@@ -144,6 +144,7 @@ class TestTrackCommand(TestCase):
         self.context_mock.region = "myregion"
         self.context_mock.command_path = "fakesam local invoke"
         self.context_mock.experimental = False
+        self.context_mock.template_dict = {}
 
         # Enable telemetry so we can actually run the tests
         self.gc_instance_mock.telemetry_enabled = True

@@ -12,25 +12,24 @@ from samcli.local.docker.lambda_container import LambdaContainer, Runtime
 from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
 from samcli.local.docker.lambda_image import RAPID_IMAGE_TAG_PREFIX
 
-RUNTIMES_WITH_ENTRYPOINT = [Runtime.dotnetcore21.value, Runtime.dotnetcore31.value, Runtime.go1x.value]
+RUNTIMES_WITH_ENTRYPOINT = [Runtime.dotnetcore31.value, Runtime.dotnet6.value, Runtime.go1x.value]
 
 RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT = [
-    Runtime.nodejs10x.value,
     Runtime.nodejs12x.value,
     Runtime.nodejs14x.value,
     Runtime.python37.value,
     Runtime.python38.value,
     Runtime.python36.value,
-    Runtime.python27.value,
     Runtime.python39.value,
+    Runtime.dotnet6.value,
 ]
 
 RUNTIMES_WITH_DEBUG_ENV_VARS_ONLY = [
     Runtime.java11.value,
     Runtime.java8.value,
     Runtime.java8al2.value,
-    Runtime.dotnetcore21.value,
     Runtime.dotnetcore31.value,
+    Runtime.dotnet6.value,
     Runtime.go1x.value,
 ]
 
@@ -97,7 +96,7 @@ class TestLambdaContainer_init(TestCase):
             env_vars=self.env_var,
             memory_mb=self.memory_mb,
             debug_options=self.debug_options,
-            function_name=self.function_name,
+            function_full_path=self.function_name,
         )
 
         self.assertEqual(image, container._image)
@@ -169,7 +168,7 @@ class TestLambdaContainer_init(TestCase):
             env_vars=self.env_var,
             memory_mb=self.memory_mb,
             debug_options=self.debug_options,
-            function_name=self.function_name,
+            function_full_path=self.function_name,
         )
 
         self.assertEqual(image, container._image)
@@ -242,7 +241,7 @@ class TestLambdaContainer_init(TestCase):
             env_vars=self.env_var,
             memory_mb=self.memory_mb,
             debug_options=self.debug_options,
-            function_name=self.function_name,
+            function_full_path=self.function_name,
         )
 
         self.assertEqual(image, container._image)
@@ -318,7 +317,7 @@ class TestLambdaContainer_init(TestCase):
             env_vars=self.env_var,
             memory_mb=self.memory_mb,
             debug_options=self.debug_options,
-            function_name=self.function_name,
+            function_full_path=self.function_name,
         )
 
         self.assertEqual(image, container._image)
@@ -398,7 +397,7 @@ class TestLambdaContainer_init(TestCase):
             memory_mb=self.memory_mb,
             debug_options=self.debug_options,
             architecture="x86_64",
-            function_name=self.function_name,
+            function_full_path=self.function_name,
         )
 
         self.assertEqual(image, container._image)

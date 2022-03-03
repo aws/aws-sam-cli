@@ -12,6 +12,10 @@ class TestImageUtils(TestCase):
         local_image = "helloworld:v1"
         self.assertEqual("helloworld-1234-v1", tag_translation(local_image, docker_image_id="sha256:1234"))
 
+    def test_tag_translation_with_image_id_and_no_tag(self):
+        local_image = "helloworld"
+        self.assertEqual("helloworld-1234-latest", tag_translation(local_image, docker_image_id="sha256:1234"))
+
     @patch("samcli.lib.package.image_utils.docker")
     def test_tag_translation_without_image_id(self, mock_docker):
         mock_docker_client = MagicMock()

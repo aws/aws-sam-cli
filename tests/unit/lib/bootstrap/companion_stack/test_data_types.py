@@ -1,3 +1,5 @@
+from parameterized import parameterized_class
+
 from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack, ECRRepo
 from samcli.lib.bootstrap.companion_stack.companion_stack_builder import CompanionStackBuilder
 from unittest import TestCase
@@ -46,11 +48,20 @@ class TestCompanionStack(TestCase):
         self.assertEqual(self.companion_stack.stack_name, "A" * 104 + "-checksum-CompanionStack")
 
 
+@parameterized_class(
+    ("function_id", "expected_prefix"),
+    [
+        ("FunctionA", "FunctionA"),
+        ("Stack/FunctionA", "StackFunctionA"),
+    ],
+)
 class TestECRRepo(TestCase):
+    function_id = "FunctionA"
+    expected_prefix = "FunctionA"
+
     def setUp(self):
         self.check_sum = "qwertyuiop"
         self.parent_stack_name = "Parent-Stack"
-        self.function_id = "FunctionA"
 
         self.check_sum_patch = patch("samcli.lib.bootstrap.companion_stack.data_types.str_checksum")
         self.check_sum_mock = self.check_sum_patch.start()
@@ -59,28 +70,30 @@ class TestECRRepo(TestCase):
         self.companion_stack_mock = Mock()
         self.companion_stack_mock.escaped_parent_stack_name = "parentstackname"
         self.companion_stack_mock.parent_stack_hash = "abcdefghijklmn"
-        self.ecr_repo = ECRRepo(companion_stack=self.companion_stack_mock, function_logical_id=self.function_id)
+        self.ecr_repo = ECRRepo(companion_stack=self.companion_stack_mock, function_full_path=self.function_id)
 
     def tearDown(self):
         self.check_sum_patch.stop()
 
     def test_logical_id(self):
-        self.assertEqual(self.ecr_repo.logical_id, "FunctionAqwertyuiRepo")
+        self.assertEqual(self.ecr_repo.logical_id, f"{self.expected_prefix}qwertyuiRepo")
 
     def test_physical_id(self):
-        self.assertEqual(self.ecr_repo.physical_id, "parentstacknameabcdefgh/functionaqwertyuirepo")
+        self.assertEqual(
+            self.ecr_repo.physical_id, f"parentstacknameabcdefgh/{self.expected_prefix.lower()}qwertyuirepo"
+        )
 
     def test_output_logical_id(self):
-        self.assertEqual(self.ecr_repo.output_logical_id, "FunctionAqwertyuiOut")
+        self.assertEqual(self.ecr_repo.output_logical_id, f"{self.expected_prefix}qwertyuiOut")
 
     def test_get_repo_uri(self):
         self.assertEqual(
             self.ecr_repo.get_repo_uri("12345", "us-west-2"),
-            "12345.dkr.ecr.us-west-2.amazonaws.com/parentstacknameabcdefgh/functionaqwertyuirepo",
+            f"12345.dkr.ecr.us-west-2.amazonaws.com/parentstacknameabcdefgh/{self.expected_prefix.lower()}qwertyuirepo",
         )
         self.assertEqual(
             self.ecr_repo.get_repo_uri("12345", "cn-north-1"),
-            "12345.dkr.ecr.cn-north-1.amazonaws.com.cn/parentstacknameabcdefgh/functionaqwertyuirepo",
+            f"12345.dkr.ecr.cn-north-1.amazonaws.com.cn/parentstacknameabcdefgh/{self.expected_prefix.lower()}qwertyuirepo",
         )
 
     def test_physical_id_cutoff(self):
@@ -88,11 +101,11 @@ class TestECRRepo(TestCase):
         self.companion_stack_mock.parent_stack_hash = "abcdefghijklmn"
 
         self.function_id = "F" * 64
-        self.ecr_repo = ECRRepo(companion_stack=self.companion_stack_mock, function_logical_id=self.function_id)
+        self.ecr_repo = ECRRepo(companion_stack=self.companion_stack_mock, function_full_path=self.function_id)
 
         self.assertEqual(self.ecr_repo.physical_id, "s" * 128 + "abcdefgh/" + "f" * 64 + "qwertyuirepo")
 
     def test_logical_id_cutoff(self):
         self.function_id = "F" * 64
-        self.ecr_repo = ECRRepo(companion_stack=self.companion_stack_mock, function_logical_id=self.function_id)
+        self.ecr_repo = ECRRepo(companion_stack=self.companion_stack_mock, function_full_path=self.function_id)
         self.assertEqual(self.ecr_repo.logical_id, "F" * 52 + "qwertyuiRepo")

@@ -27,22 +27,19 @@ RAPID_IMAGE_TAG_PREFIX = "rapid"
 
 
 class Runtime(Enum):
-    nodejs10x = "nodejs10.x"
     nodejs12x = "nodejs12.x"
     nodejs14x = "nodejs14.x"
-    python27 = "python2.7"
     python36 = "python3.6"
     python37 = "python3.7"
     python38 = "python3.8"
     python39 = "python3.9"
-    ruby25 = "ruby2.5"
     ruby27 = "ruby2.7"
     java8 = "java8"
     java8al2 = "java8.al2"
     java11 = "java11"
     go1x = "go1.x"
-    dotnetcore21 = "dotnetcore2.1"
     dotnetcore31 = "dotnetcore3.1"
+    dotnet6 = "dotnet6"
     provided = "provided"
     providedal2 = "provided.al2"
 

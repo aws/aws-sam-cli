@@ -6,6 +6,7 @@ from typing import List, Set, TYPE_CHECKING, Optional, Tuple
 import click
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
+from samcli.commands._utils.cdk_support_decorators import unsupported_command_cdk
 from samcli.commands._utils.options import (
     template_option_without_build,
     parameter_override_option,
@@ -25,6 +26,7 @@ from samcli.commands._utils.options import (
     DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
 )
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
+from samcli.commands._utils.click_mutex import ClickMutex
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.lib.bootstrap.bootstrap import manage_stack
@@ -58,9 +60,9 @@ if TYPE_CHECKING:  # pragma: no cover
 LOG = logging.getLogger(__name__)
 
 HELP_TEXT = """
-[Beta Feature] Update/sync local artifacts to AWS
+[Beta Feature] Update/Sync local artifacts to AWS
 
-By default, the sync command runs a full stack update, you can specify --code or --watch to which modes
+By default, the sync command runs a full stack update. You can specify --code or --watch to switch modes
 """
 
 SYNC_CONFIRMATION_TEXT = """
@@ -98,11 +100,15 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
     "--code",
     is_flag=True,
     help="Sync code resources. This includes Lambda Functions, API Gateway, and Step Functions.",
+    cls=ClickMutex,
+    incompatible_params=["watch"],
 )
 @click.option(
     "--watch",
     is_flag=True,
     help="Watch local files and automatically sync with remote.",
+    cls=ClickMutex,
+    incompatible_params=["code"],
 )
 @click.option(
     "--resource-id",
@@ -142,6 +148,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @track_template_warnings([CodeDeployWarning.__name__, CodeDeployConditionWarning.__name__])
 @check_newer_version
 @print_cmdline_args
+@unsupported_command_cdk()
 def cli(
     ctx: Context,
     template_file: str,
@@ -268,6 +275,7 @@ def do_cli(
         mode=mode,
         create_auto_dependency_layer=dependency_layer,
         stack_name=stack_name,
+        print_success_message=False,
     ) as build_context:
         built_template = os.path.join(build_dir, DEFAULT_TEMPLATE_NAME)
 

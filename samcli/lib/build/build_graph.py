@@ -15,6 +15,10 @@ import tomlkit
 
 from samcli.lib.build.exceptions import InvalidBuildGraphException
 from samcli.lib.providers.provider import Function, LayerVersion
+from samcli.lib.samlib.resource_metadata_normalizer import (
+    SAM_RESOURCE_ID_KEY,
+    SAM_IS_NORMALIZED,
+)
 from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.utils.architecture import X86_64
 
@@ -39,6 +43,7 @@ BUILD_METHOD_FIELD = "build_method"
 COMPATIBLE_RUNTIMES_FIELD = "compatible_runtimes"
 LAYER_FIELD = "layer"
 ARCHITECTURE_FIELD = "architecture"
+HANDLER_FIELD = "handler"
 
 
 def _function_build_definition_to_toml_table(
@@ -62,6 +67,7 @@ def _function_build_definition_to_toml_table(
         toml_table[CODE_URI_FIELD] = function_build_definition.codeuri
         toml_table[RUNTIME_FIELD] = function_build_definition.runtime
         toml_table[ARCHITECTURE_FIELD] = function_build_definition.architecture
+        toml_table[HANDLER_FIELD] = function_build_definition.handler
         if function_build_definition.source_hash:
             toml_table[SOURCE_HASH_FIELD] = function_build_definition.source_hash
         toml_table[MANIFEST_HASH_FIELD] = function_build_definition.manifest_hash
@@ -98,6 +104,7 @@ def _toml_table_to_function_build_definition(uuid: str, toml_table: tomlkit.api.
         toml_table.get(PACKAGETYPE_FIELD, ZIP),
         toml_table.get(ARCHITECTURE_FIELD, X86_64),
         dict(toml_table.get(METADATA_FIELD, {})),
+        toml_table.get(HANDLER_FIELD, ""),
         toml_table.get(SOURCE_HASH_FIELD, ""),
         toml_table.get(MANIFEST_HASH_FIELD, ""),
         dict(toml_table.get(ENV_VARS_FIELD, {})),
@@ -121,7 +128,7 @@ def _layer_build_definition_to_toml_table(layer_build_definition: "LayerBuildDef
         toml table of LayerBuildDefinition
     """
     toml_table = tomlkit.table()
-    toml_table[LAYER_NAME_FIELD] = layer_build_definition.name
+    toml_table[LAYER_NAME_FIELD] = layer_build_definition.full_path
     toml_table[CODE_URI_FIELD] = layer_build_definition.codeuri
     toml_table[BUILD_METHOD_FIELD] = layer_build_definition.build_method
     toml_table[COMPATIBLE_RUNTIMES_FIELD] = layer_build_definition.compatible_runtimes
@@ -200,16 +207,16 @@ class BuildGraph:
     def get_layer_build_definitions(self) -> Tuple["LayerBuildDefinition", ...]:
         return tuple(self._layer_build_definitions)
 
-    def get_function_build_definition_with_logical_id(
-        self, function_logial_id: str
+    def get_function_build_definition_with_full_path(
+        self, function_full_path: str
     ) -> Optional["FunctionBuildDefinition"]:
         """
         Returns FunctionBuildDefinition instance of given function logical id.
 
         Parameters
         ----------
-        function_logial_id : str
-            Function logical id that will be searched in the function build definitions
+        function_full_path : str
+            Function full path that will be searched in the function build definitions
 
         Returns
         -------
@@ -219,7 +226,7 @@ class BuildGraph:
         """
         for function_build_definition in self._function_build_definitions:
             for build_definition_function in function_build_definition.functions:
-                if build_definition_function.name == function_logial_id:
+                if build_definition_function.full_path == function_full_path:
                     return function_build_definition
         return None
 
@@ -497,7 +504,7 @@ class LayerBuildDefinition(AbstractBuildDefinition):
 
     def __init__(
         self,
-        name: str,
+        full_path: str,
         codeuri: Optional[str],
         build_method: Optional[str],
         compatible_runtimes: Optional[List[str]],
@@ -507,7 +514,7 @@ class LayerBuildDefinition(AbstractBuildDefinition):
         env_vars: Optional[Dict] = None,
     ):
         super().__init__(source_hash, manifest_hash, env_vars, architecture)
-        self.name = name
+        self.full_path = full_path
         self.codeuri = codeuri
         self.build_method = build_method
         self.compatible_runtimes = compatible_runtimes
@@ -517,7 +524,7 @@ class LayerBuildDefinition(AbstractBuildDefinition):
 
     def __str__(self) -> str:
         return (
-            f"LayerBuildDefinition({self.name}, {self.codeuri}, {self.source_hash}, {self.uuid}, "
+            f"LayerBuildDefinition({self.full_path}, {self.codeuri}, {self.source_hash}, {self.uuid}, "
             f"{self.build_method}, {self.compatible_runtimes}, {self.architecture}, {self.env_vars})"
         )
 
@@ -539,7 +546,7 @@ class LayerBuildDefinition(AbstractBuildDefinition):
             return False
 
         return (
-            self.name == other.name
+            self.full_path == other.full_path
             and self.codeuri == other.codeuri
             and self.build_method == other.build_method
             and self.compatible_runtimes == other.compatible_runtimes
@@ -560,6 +567,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         packagetype: str,
         architecture: str,
         metadata: Optional[Dict],
+        handler: Optional[str],
         source_hash: str = "",
         manifest_hash: str = "",
         env_vars: Optional[Dict] = None,
@@ -568,7 +576,14 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         self.runtime = runtime
         self.codeuri = codeuri
         self.packagetype = packagetype
-        self.metadata = metadata if metadata else {}
+        self.handler = handler
+
+        # Skip SAM Added metadata properties
+        metadata_copied = deepcopy(metadata) if metadata else {}
+        metadata_copied.pop(SAM_RESOURCE_ID_KEY, "")
+        metadata_copied.pop(SAM_IS_NORMALIZED, "")
+        self.metadata = metadata_copied
+
         self.functions: List[Function] = []
 
     def add_function(self, function: Function) -> None:
@@ -628,6 +643,12 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         # each build with custom Makefile definition should be handled separately
         if self.metadata and self.metadata.get("BuildMethod", None) == "makefile":
             return False
+
+        if self.metadata and self.metadata.get("BuildMethod", None) == "esbuild":
+            # For esbuild, we need to check if handlers within the same CodeUri are the same
+            # if they are different, it should create a separate build definition
+            if self.handler != other.handler:
+                return False
 
         return (
             self.runtime == other.runtime

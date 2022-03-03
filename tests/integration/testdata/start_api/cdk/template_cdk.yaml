@@ -1,0 +1,3890 @@
+# This template produced by CDK was created to match the resources in our existing start-api integration tests.
+Resources:
+  helloworldfunctionServiceRole306F1141:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: RootStack/helloworld-function/ServiceRole/Resource
+  helloworldfunctionFDE57595:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3Bucket0C6A52B4
+        S3Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+      Role:
+        Fn::GetAtt:
+          - helloworldfunctionServiceRole306F1141
+          - Arn
+      FunctionName: HelloWorldFunction
+      Handler: main.handler
+      Runtime: python3.8
+    DependsOn:
+      - helloworldfunctionServiceRole306F1141
+    Metadata:
+      aws:cdk:path: RootStack/helloworld-function/Resource
+      aws:asset:path: ../
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F902B618A:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: RootStackhelloworldfunctionA6293FDB:ApiEventSourceA7A86A4F
+    Metadata:
+      aws:cdk:path: RootStack/RootStackhelloworldfunctionA6293FDB:ApiEventSourceA7A86A4F/Resource
+  RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4FCloudWatchRole3C297E9E:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+    Metadata:
+      aws:cdk:path: RootStack/RootStackhelloworldfunctionA6293FDB:ApiEventSourceA7A86A4F/CloudWatchRole/Resource
+  RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4FAccountB1548A31:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+          - RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4FCloudWatchRole3C297E9E
+          - Arn
+    DependsOn:
+      - RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F902B618A
+    Metadata:
+      aws:cdk:path: RootStack/RootStackhelloworldfunctionA6293FDB:ApiEventSourceA7A86A4F/Account
+  RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4FDeploymentD2F2B48Cbdf1812325da2467a678bd00e700cea0:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId:
+        Ref: RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F902B618A
+      Description: Automatically created by the RestApi construct
+    DependsOn:
+      - RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4FanyandallANY09B02148
+      - RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4Fanyandall28922B65
+      - RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4FidPOSTD3B2BC7C
+      - RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4FidDE340141
+      - RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4FproxypathproxyGETB24503A6
+      - RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4Fproxypathproxy322385DF
+      - RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4Fproxypath00243529
+    Metadata:
+      aws:cdk:path: RootStack/RootStackhelloworldfunctionA6293FDB:ApiEventSourceA7A86A4F/Deployment/Resource
+  RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4FDeploymentStageprod4767B20B:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId:
+        Ref: RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F902B618A
+      DeploymentId:
+        Ref: RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4FDeploymentD2F2B48Cbdf1812325da2467a678bd00e700cea0
+      StageName: prod
+    Metadata:
+      aws:cdk:path: RootStack/RootStackhelloworldfunctionA6293FDB:ApiEventSourceA7A86A4F/DeploymentStage.prod/Resource
+  RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4Fproxypath00243529:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F902B618A
+          - RootResourceId
+      PathPart: proxypath
+      RestApiId:
+        Ref: RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F902B618A
+    Metadata:
+      aws:cdk:path: RootStack/RootStackhelloworldfunctionA6293FDB:ApiEventSourceA7A86A4F/Default/proxypath/Resource
+  RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4Fproxypathproxy322385DF:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Ref: RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4Fproxypath00243529
+      PathPart: "{proxy+}"
+      RestApiId:
+        Ref: RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F902B618A
+    Metadata:
+      aws:cdk:path: RootStack/RootStackhelloworldfunctionA6293FDB:ApiEventSourceA7A86A4F/Default/proxypath/{proxy+}/Resource
+  RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4FproxypathproxyGETApiPermissionRootStackRootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F0B3B1027GETproxypathproxyCF130DDB:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - helloworldfunctionFDE57595
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F902B618A
+            - /
+            - Ref: RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4FDeploymentStageprod4767B20B
+            - /GET/proxypath/*
+    Metadata:
+      aws:cdk:path: RootStack/RootStackhelloworldfunctionA6293FDB:ApiEventSourceA7A86A4F/Default/proxypath/{proxy+}/GET/ApiPermission.RootStackRootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F0B3B1027.GET..proxypath.{proxy+}
+  RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4FproxypathproxyGETApiPermissionTestRootStackRootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F0B3B1027GETproxypathproxy83EE5D61:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - helloworldfunctionFDE57595
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F902B618A
+            - /test-invoke-stage/GET/proxypath/*
+    Metadata:
+      aws:cdk:path: RootStack/RootStackhelloworldfunctionA6293FDB:ApiEventSourceA7A86A4F/Default/proxypath/{proxy+}/GET/ApiPermission.Test.RootStackRootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F0B3B1027.GET..proxypath.{proxy+}
+  RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4FproxypathproxyGETB24503A6:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId:
+        Ref: RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4Fproxypathproxy322385DF
+      RestApiId:
+        Ref: RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F902B618A
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - helloworldfunctionFDE57595
+                  - Arn
+              - /invocations
+    Metadata:
+      aws:cdk:path: RootStack/RootStackhelloworldfunctionA6293FDB:ApiEventSourceA7A86A4F/Default/proxypath/{proxy+}/GET/Resource
+  RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4FidDE340141:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F902B618A
+          - RootResourceId
+      PathPart: id
+      RestApiId:
+        Ref: RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F902B618A
+    Metadata:
+      aws:cdk:path: RootStack/RootStackhelloworldfunctionA6293FDB:ApiEventSourceA7A86A4F/Default/id/Resource
+  RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4FidPOSTApiPermissionRootStackRootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F0B3B1027POSTidF3ABE633:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - helloworldfunctionFDE57595
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F902B618A
+            - /
+            - Ref: RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4FDeploymentStageprod4767B20B
+            - /POST/id
+    Metadata:
+      aws:cdk:path: RootStack/RootStackhelloworldfunctionA6293FDB:ApiEventSourceA7A86A4F/Default/id/POST/ApiPermission.RootStackRootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F0B3B1027.POST..id
+  RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4FidPOSTApiPermissionTestRootStackRootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F0B3B1027POSTid52BFF68B:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - helloworldfunctionFDE57595
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F902B618A
+            - /test-invoke-stage/POST/id
+    Metadata:
+      aws:cdk:path: RootStack/RootStackhelloworldfunctionA6293FDB:ApiEventSourceA7A86A4F/Default/id/POST/ApiPermission.Test.RootStackRootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F0B3B1027.POST..id
+  RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4FidPOSTD3B2BC7C:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: POST
+      ResourceId:
+        Ref: RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4FidDE340141
+      RestApiId:
+        Ref: RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F902B618A
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - helloworldfunctionFDE57595
+                  - Arn
+              - /invocations
+    Metadata:
+      aws:cdk:path: RootStack/RootStackhelloworldfunctionA6293FDB:ApiEventSourceA7A86A4F/Default/id/POST/Resource
+  RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4Fanyandall28922B65:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F902B618A
+          - RootResourceId
+      PathPart: anyandall
+      RestApiId:
+        Ref: RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F902B618A
+    Metadata:
+      aws:cdk:path: RootStack/RootStackhelloworldfunctionA6293FDB:ApiEventSourceA7A86A4F/Default/anyandall/Resource
+  RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4FanyandallANYApiPermissionRootStackRootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F0B3B1027ANYanyandallD4A2DFA0:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - helloworldfunctionFDE57595
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F902B618A
+            - /
+            - Ref: RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4FDeploymentStageprod4767B20B
+            - /*/anyandall
+    Metadata:
+      aws:cdk:path: RootStack/RootStackhelloworldfunctionA6293FDB:ApiEventSourceA7A86A4F/Default/anyandall/ANY/ApiPermission.RootStackRootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F0B3B1027.ANY..anyandall
+  RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4FanyandallANYApiPermissionTestRootStackRootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F0B3B1027ANYanyandall29DD6FA7:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - helloworldfunctionFDE57595
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F902B618A
+            - /test-invoke-stage/*/anyandall
+    Metadata:
+      aws:cdk:path: RootStack/RootStackhelloworldfunctionA6293FDB:ApiEventSourceA7A86A4F/Default/anyandall/ANY/ApiPermission.Test.RootStackRootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F0B3B1027.ANY..anyandall
+  RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4FanyandallANY09B02148:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: ANY
+      ResourceId:
+        Ref: RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4Fanyandall28922B65
+      RestApiId:
+        Ref: RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F902B618A
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - helloworldfunctionFDE57595
+                  - Arn
+              - /invocations
+    Metadata:
+      aws:cdk:path: RootStack/RootStackhelloworldfunctionA6293FDB:ApiEventSourceA7A86A4F/Default/anyandall/ANY/Resource
+  echoeventfunctionServiceRole47C73665:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: RootStack/echo_event_function/ServiceRole/Resource
+  echoeventfunctionF4873677:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3Bucket0C6A52B4
+        S3Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+      Role:
+        Fn::GetAtt:
+          - echoeventfunctionServiceRole47C73665
+          - Arn
+      FunctionName: EchoEventFunction
+      Handler: main.echo_event_handler
+      Runtime: python3.8
+    DependsOn:
+      - echoeventfunctionServiceRole47C73665
+    Metadata:
+      aws:cdk:path: RootStack/echo_event_function/Resource
+      aws:asset:path: ../
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDD217C40:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: RootStackechoeventfunction131B0B6B:ApiEventSourceA7A86A4F
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction131B0B6B:ApiEventSourceA7A86A4F/Resource
+  RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FCloudWatchRoleFD55F1FB:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction131B0B6B:ApiEventSourceA7A86A4F/CloudWatchRole/Resource
+  RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FAccount20FFB1F8:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+          - RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FCloudWatchRoleFD55F1FB
+          - Arn
+    DependsOn:
+      - RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDD217C40
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction131B0B6B:ApiEventSourceA7A86A4F/Account
+  RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDeployment9C2E76349de7665dfa49103c3636bd434fe570fc:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId:
+        Ref: RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDD217C40
+      Description: Automatically created by the RestApi construct
+    DependsOn:
+      - RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FechoeventbodyPOST861052C8
+      - RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FechoeventbodyB076EE94
+      - RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FididGET7B04CAF8
+      - RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4Fidid4C8FE9FA
+      - RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FididuseruserGET2DC144D5
+      - RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4Fididuseruser16BFB19E
+      - RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4Fididuser65FC095E
+      - RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4Fid1E90BFA6
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction131B0B6B:ApiEventSourceA7A86A4F/Deployment/Resource
+  RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDeploymentStageprodF98C6753:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId:
+        Ref: RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDD217C40
+      DeploymentId:
+        Ref: RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDeployment9C2E76349de7665dfa49103c3636bd434fe570fc
+      StageName: prod
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction131B0B6B:ApiEventSourceA7A86A4F/DeploymentStage.prod/Resource
+  RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4Fid1E90BFA6:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDD217C40
+          - RootResourceId
+      PathPart: id
+      RestApiId:
+        Ref: RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDD217C40
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction131B0B6B:ApiEventSourceA7A86A4F/Default/id/Resource
+  RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4Fidid4C8FE9FA:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Ref: RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4Fid1E90BFA6
+      PathPart: "{id}"
+      RestApiId:
+        Ref: RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDD217C40
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction131B0B6B:ApiEventSourceA7A86A4F/Default/id/{id}/Resource
+  RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4Fididuser65FC095E:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Ref: RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4Fidid4C8FE9FA
+      PathPart: user
+      RestApiId:
+        Ref: RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDD217C40
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction131B0B6B:ApiEventSourceA7A86A4F/Default/id/{id}/user/Resource
+  RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4Fididuseruser16BFB19E:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Ref: RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4Fididuser65FC095E
+      PathPart: "{user}"
+      RestApiId:
+        Ref: RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDD217C40
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction131B0B6B:ApiEventSourceA7A86A4F/Default/id/{id}/user/{user}/Resource
+  RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FididuseruserGETApiPermissionRootStackRootStackechoeventfunction131B0B6BApiEventSourceA7A86A4F29EA48E7GETididuseruser2EAFD97D:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - echoeventfunctionF4873677
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDD217C40
+            - /
+            - Ref: RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDeploymentStageprodF98C6753
+            - /GET/id/*/user/*
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction131B0B6B:ApiEventSourceA7A86A4F/Default/id/{id}/user/{user}/GET/ApiPermission.RootStackRootStackechoeventfunction131B0B6BApiEventSourceA7A86A4F29EA48E7.GET..id.{id}.user.{user}
+  RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FididuseruserGETApiPermissionTestRootStackRootStackechoeventfunction131B0B6BApiEventSourceA7A86A4F29EA48E7GETididuseruserCECF401C:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - echoeventfunctionF4873677
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDD217C40
+            - /test-invoke-stage/GET/id/*/user/*
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction131B0B6B:ApiEventSourceA7A86A4F/Default/id/{id}/user/{user}/GET/ApiPermission.Test.RootStackRootStackechoeventfunction131B0B6BApiEventSourceA7A86A4F29EA48E7.GET..id.{id}.user.{user}
+  RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FididuseruserGET2DC144D5:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId:
+        Ref: RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4Fididuseruser16BFB19E
+      RestApiId:
+        Ref: RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDD217C40
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - echoeventfunctionF4873677
+                  - Arn
+              - /invocations
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction131B0B6B:ApiEventSourceA7A86A4F/Default/id/{id}/user/{user}/GET/Resource
+  RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FididGETApiPermissionRootStackRootStackechoeventfunction131B0B6BApiEventSourceA7A86A4F29EA48E7GETidid8649B828:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - echoeventfunctionF4873677
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDD217C40
+            - /
+            - Ref: RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDeploymentStageprodF98C6753
+            - /GET/id/*
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction131B0B6B:ApiEventSourceA7A86A4F/Default/id/{id}/GET/ApiPermission.RootStackRootStackechoeventfunction131B0B6BApiEventSourceA7A86A4F29EA48E7.GET..id.{id}
+  RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FididGETApiPermissionTestRootStackRootStackechoeventfunction131B0B6BApiEventSourceA7A86A4F29EA48E7GETidid7BCB7A01:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - echoeventfunctionF4873677
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDD217C40
+            - /test-invoke-stage/GET/id/*
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction131B0B6B:ApiEventSourceA7A86A4F/Default/id/{id}/GET/ApiPermission.Test.RootStackRootStackechoeventfunction131B0B6BApiEventSourceA7A86A4F29EA48E7.GET..id.{id}
+  RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FididGET7B04CAF8:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId:
+        Ref: RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4Fidid4C8FE9FA
+      RestApiId:
+        Ref: RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDD217C40
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - echoeventfunctionF4873677
+                  - Arn
+              - /invocations
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction131B0B6B:ApiEventSourceA7A86A4F/Default/id/{id}/GET/Resource
+  RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FechoeventbodyB076EE94:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDD217C40
+          - RootResourceId
+      PathPart: echoeventbody
+      RestApiId:
+        Ref: RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDD217C40
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction131B0B6B:ApiEventSourceA7A86A4F/Default/echoeventbody/Resource
+  RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FechoeventbodyPOSTApiPermissionRootStackRootStackechoeventfunction131B0B6BApiEventSourceA7A86A4F29EA48E7POSTechoeventbodyCBF2C77B:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - echoeventfunctionF4873677
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDD217C40
+            - /
+            - Ref: RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDeploymentStageprodF98C6753
+            - /POST/echoeventbody
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction131B0B6B:ApiEventSourceA7A86A4F/Default/echoeventbody/POST/ApiPermission.RootStackRootStackechoeventfunction131B0B6BApiEventSourceA7A86A4F29EA48E7.POST..echoeventbody
+  RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FechoeventbodyPOSTApiPermissionTestRootStackRootStackechoeventfunction131B0B6BApiEventSourceA7A86A4F29EA48E7POSTechoeventbodyF9E1C000:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - echoeventfunctionF4873677
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDD217C40
+            - /test-invoke-stage/POST/echoeventbody
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction131B0B6B:ApiEventSourceA7A86A4F/Default/echoeventbody/POST/ApiPermission.Test.RootStackRootStackechoeventfunction131B0B6BApiEventSourceA7A86A4F29EA48E7.POST..echoeventbody
+  RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FechoeventbodyPOST861052C8:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: POST
+      ResourceId:
+        Ref: RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FechoeventbodyB076EE94
+      RestApiId:
+        Ref: RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDD217C40
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - echoeventfunctionF4873677
+                  - Arn
+              - /invocations
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction131B0B6B:ApiEventSourceA7A86A4F/Default/echoeventbody/POST/Resource
+  echoeventfunction2ServiceRoleCF3FCF98:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: RootStack/echo_event_function_2/ServiceRole/Resource
+  echoeventfunction2E45FDC6A:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3Bucket0C6A52B4
+        S3Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+      Role:
+        Fn::GetAtt:
+          - echoeventfunction2ServiceRoleCF3FCF98
+          - Arn
+      FunctionName: EchoEventFunction2
+      Handler: main.echo_event_handler_2
+      Runtime: python3.8
+    DependsOn:
+      - echoeventfunction2ServiceRoleCF3FCF98
+    Metadata:
+      aws:cdk:path: RootStack/echo_event_function_2/Resource
+      aws:asset:path: ../
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  RootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4FE7C0192F:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: RootStackechoeventfunction221C50EC6:ApiEventSourceA7A86A4F
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction221C50EC6:ApiEventSourceA7A86A4F/Resource
+  RootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4FCloudWatchRole24425951:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction221C50EC6:ApiEventSourceA7A86A4F/CloudWatchRole/Resource
+  RootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4FAccount4ACD7330:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+          - RootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4FCloudWatchRole24425951
+          - Arn
+    DependsOn:
+      - RootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4FE7C0192F
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction221C50EC6:ApiEventSourceA7A86A4F/Account
+  RootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4FDeploymentC9538ACA48d79b1d67dddea89db4e3bbd8759fae:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId:
+        Ref: RootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4FE7C0192F
+      Description: Automatically created by the RestApi construct
+    DependsOn:
+      - RootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4FechoeventbodyGET1F9024F7
+      - RootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4FechoeventbodyDF4E4A32
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction221C50EC6:ApiEventSourceA7A86A4F/Deployment/Resource
+  RootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4FDeploymentStageprodFC7372E3:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId:
+        Ref: RootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4FE7C0192F
+      DeploymentId:
+        Ref: RootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4FDeploymentC9538ACA48d79b1d67dddea89db4e3bbd8759fae
+      StageName: prod
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction221C50EC6:ApiEventSourceA7A86A4F/DeploymentStage.prod/Resource
+  RootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4FechoeventbodyDF4E4A32:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - RootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4FE7C0192F
+          - RootResourceId
+      PathPart: echoeventbody
+      RestApiId:
+        Ref: RootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4FE7C0192F
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction221C50EC6:ApiEventSourceA7A86A4F/Default/echoeventbody/Resource
+  RootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4FechoeventbodyGETApiPermissionRootStackRootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4F40580B30GETechoeventbodyCB344342:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - echoeventfunction2E45FDC6A
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4FE7C0192F
+            - /
+            - Ref: RootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4FDeploymentStageprodFC7372E3
+            - /GET/echoeventbody
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction221C50EC6:ApiEventSourceA7A86A4F/Default/echoeventbody/GET/ApiPermission.RootStackRootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4F40580B30.GET..echoeventbody
+  RootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4FechoeventbodyGETApiPermissionTestRootStackRootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4F40580B30GETechoeventbody4E0D389E:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - echoeventfunction2E45FDC6A
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4FE7C0192F
+            - /test-invoke-stage/GET/echoeventbody
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction221C50EC6:ApiEventSourceA7A86A4F/Default/echoeventbody/GET/ApiPermission.Test.RootStackRootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4F40580B30.GET..echoeventbody
+  RootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4FechoeventbodyGET1F9024F7:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId:
+        Ref: RootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4FechoeventbodyDF4E4A32
+      RestApiId:
+        Ref: RootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4FE7C0192F
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - echoeventfunction2E45FDC6A
+                  - Arn
+              - /invocations
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechoeventfunction221C50EC6:ApiEventSourceA7A86A4F/Default/echoeventbody/GET/Resource
+  echointegerbodyfunctionServiceRole686B7DCD:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: RootStack/echo_integer_body_function/ServiceRole/Resource
+  echointegerbodyfunction97D6E17D:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3Bucket0C6A52B4
+        S3Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+      Role:
+        Fn::GetAtt:
+          - echointegerbodyfunctionServiceRole686B7DCD
+          - Arn
+      FunctionName: EchoIntegerBodyFunction
+      Handler: main.echo_integer_body
+      Runtime: python3.8
+    DependsOn:
+      - echointegerbodyfunctionServiceRole686B7DCD
+    Metadata:
+      aws:cdk:path: RootStack/echo_integer_body_function/Resource
+      aws:asset:path: ../
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  RootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4FF2663C09:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: RootStackechointegerbodyfunctionF5FA92FF:ApiEventSourceA7A86A4F
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechointegerbodyfunctionF5FA92FF:ApiEventSourceA7A86A4F/Resource
+  RootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4FCloudWatchRole67EB5C95:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechointegerbodyfunctionF5FA92FF:ApiEventSourceA7A86A4F/CloudWatchRole/Resource
+  RootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4FAccount16313EE8:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+          - RootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4FCloudWatchRole67EB5C95
+          - Arn
+    DependsOn:
+      - RootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4FF2663C09
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechointegerbodyfunctionF5FA92FF:ApiEventSourceA7A86A4F/Account
+  RootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4FDeployment4340F34B06c9bed0f8ac4c66104dd0b15c5bf7f7:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId:
+        Ref: RootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4FF2663C09
+      Description: Automatically created by the RestApi construct
+    DependsOn:
+      - RootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4FechointegerbodyGETF8DC4DF4
+      - RootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4Fechointegerbody9BCFF8AD
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechointegerbodyfunctionF5FA92FF:ApiEventSourceA7A86A4F/Deployment/Resource
+  RootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4FDeploymentStageprodDE2B15E0:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId:
+        Ref: RootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4FF2663C09
+      DeploymentId:
+        Ref: RootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4FDeployment4340F34B06c9bed0f8ac4c66104dd0b15c5bf7f7
+      StageName: prod
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechointegerbodyfunctionF5FA92FF:ApiEventSourceA7A86A4F/DeploymentStage.prod/Resource
+  RootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4Fechointegerbody9BCFF8AD:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - RootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4FF2663C09
+          - RootResourceId
+      PathPart: echo_integer_body
+      RestApiId:
+        Ref: RootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4FF2663C09
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechointegerbodyfunctionF5FA92FF:ApiEventSourceA7A86A4F/Default/echo_integer_body/Resource
+  RootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4FechointegerbodyGETApiPermissionRootStackRootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4F8ECB893EGETechointegerbody0D29A5B1:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - echointegerbodyfunction97D6E17D
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4FF2663C09
+            - /
+            - Ref: RootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4FDeploymentStageprodDE2B15E0
+            - /GET/echo_integer_body
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechointegerbodyfunctionF5FA92FF:ApiEventSourceA7A86A4F/Default/echo_integer_body/GET/ApiPermission.RootStackRootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4F8ECB893E.GET..echo_integer_body
+  RootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4FechointegerbodyGETApiPermissionTestRootStackRootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4F8ECB893EGETechointegerbodyACA9722B:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - echointegerbodyfunction97D6E17D
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4FF2663C09
+            - /test-invoke-stage/GET/echo_integer_body
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechointegerbodyfunctionF5FA92FF:ApiEventSourceA7A86A4F/Default/echo_integer_body/GET/ApiPermission.Test.RootStackRootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4F8ECB893E.GET..echo_integer_body
+  RootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4FechointegerbodyGETF8DC4DF4:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId:
+        Ref: RootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4Fechointegerbody9BCFF8AD
+      RestApiId:
+        Ref: RootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4FF2663C09
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - echointegerbodyfunction97D6E17D
+                  - Arn
+              - /invocations
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechointegerbodyfunctionF5FA92FF:ApiEventSourceA7A86A4F/Default/echo_integer_body/GET/Resource
+  contenttypesetterfunctionServiceRole9494BDDA:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: RootStack/content_type_setter_function/ServiceRole/Resource
+  contenttypesetterfunctionA5DF08C0:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3Bucket0C6A52B4
+        S3Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+      Role:
+        Fn::GetAtt:
+          - contenttypesetterfunctionServiceRole9494BDDA
+          - Arn
+      FunctionName: ContentTypeSetterFunction
+      Handler: main.content_type_setter_handler
+      Runtime: python3.8
+    DependsOn:
+      - contenttypesetterfunctionServiceRole9494BDDA
+    Metadata:
+      aws:cdk:path: RootStack/content_type_setter_function/Resource
+      aws:asset:path: ../
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  RootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4FEE738653:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: RootStackcontenttypesetterfunction146D8E2E:ApiEventSourceA7A86A4F
+    Metadata:
+      aws:cdk:path: RootStack/RootStackcontenttypesetterfunction146D8E2E:ApiEventSourceA7A86A4F/Resource
+  RootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4FCloudWatchRoleD2AE286A:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+    Metadata:
+      aws:cdk:path: RootStack/RootStackcontenttypesetterfunction146D8E2E:ApiEventSourceA7A86A4F/CloudWatchRole/Resource
+  RootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4FAccount90A0D072:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+          - RootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4FCloudWatchRoleD2AE286A
+          - Arn
+    DependsOn:
+      - RootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4FEE738653
+    Metadata:
+      aws:cdk:path: RootStack/RootStackcontenttypesetterfunction146D8E2E:ApiEventSourceA7A86A4F/Account
+  RootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4FDeployment77C3A7DD79130fa4dcfcd8332a0d00b51da376f9:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId:
+        Ref: RootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4FEE738653
+      Description: Automatically created by the RestApi construct
+    DependsOn:
+      - RootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4FgetcontenttypeGETD30B1A18
+      - RootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4Fgetcontenttype1BDBAC14
+    Metadata:
+      aws:cdk:path: RootStack/RootStackcontenttypesetterfunction146D8E2E:ApiEventSourceA7A86A4F/Deployment/Resource
+  RootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4FDeploymentStageprod95DACD82:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId:
+        Ref: RootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4FEE738653
+      DeploymentId:
+        Ref: RootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4FDeployment77C3A7DD79130fa4dcfcd8332a0d00b51da376f9
+      StageName: prod
+    Metadata:
+      aws:cdk:path: RootStack/RootStackcontenttypesetterfunction146D8E2E:ApiEventSourceA7A86A4F/DeploymentStage.prod/Resource
+  RootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4Fgetcontenttype1BDBAC14:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - RootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4FEE738653
+          - RootResourceId
+      PathPart: getcontenttype
+      RestApiId:
+        Ref: RootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4FEE738653
+    Metadata:
+      aws:cdk:path: RootStack/RootStackcontenttypesetterfunction146D8E2E:ApiEventSourceA7A86A4F/Default/getcontenttype/Resource
+  RootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4FgetcontenttypeGETApiPermissionRootStackRootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4F26FED994GETgetcontenttype0827E8C4:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - contenttypesetterfunctionA5DF08C0
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4FEE738653
+            - /
+            - Ref: RootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4FDeploymentStageprod95DACD82
+            - /GET/getcontenttype
+    Metadata:
+      aws:cdk:path: RootStack/RootStackcontenttypesetterfunction146D8E2E:ApiEventSourceA7A86A4F/Default/getcontenttype/GET/ApiPermission.RootStackRootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4F26FED994.GET..getcontenttype
+  RootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4FgetcontenttypeGETApiPermissionTestRootStackRootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4F26FED994GETgetcontenttype6BB53BD8:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - contenttypesetterfunctionA5DF08C0
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4FEE738653
+            - /test-invoke-stage/GET/getcontenttype
+    Metadata:
+      aws:cdk:path: RootStack/RootStackcontenttypesetterfunction146D8E2E:ApiEventSourceA7A86A4F/Default/getcontenttype/GET/ApiPermission.Test.RootStackRootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4F26FED994.GET..getcontenttype
+  RootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4FgetcontenttypeGETD30B1A18:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId:
+        Ref: RootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4Fgetcontenttype1BDBAC14
+      RestApiId:
+        Ref: RootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4FEE738653
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - contenttypesetterfunctionA5DF08C0
+                  - Arn
+              - /invocations
+    Metadata:
+      aws:cdk:path: RootStack/RootStackcontenttypesetterfunction146D8E2E:ApiEventSourceA7A86A4F/Default/getcontenttype/GET/Resource
+  onlysetstatuscodefunctionServiceRole3427497E:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: RootStack/only_set_status_code_function/ServiceRole/Resource
+  onlysetstatuscodefunction205470D8:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3Bucket0C6A52B4
+        S3Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+      Role:
+        Fn::GetAtt:
+          - onlysetstatuscodefunctionServiceRole3427497E
+          - Arn
+      FunctionName: OnlySetStatusCodeFunction
+      Handler: main.only_set_status_code_handler
+      Runtime: python3.8
+    DependsOn:
+      - onlysetstatuscodefunctionServiceRole3427497E
+    Metadata:
+      aws:cdk:path: RootStack/only_set_status_code_function/Resource
+      aws:asset:path: ../
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  RootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4F0F480EBE:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: RootStackonlysetstatuscodefunction31996403:ApiEventSourceA7A86A4F
+    Metadata:
+      aws:cdk:path: RootStack/RootStackonlysetstatuscodefunction31996403:ApiEventSourceA7A86A4F/Resource
+  RootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4FCloudWatchRole7C5CA927:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+    Metadata:
+      aws:cdk:path: RootStack/RootStackonlysetstatuscodefunction31996403:ApiEventSourceA7A86A4F/CloudWatchRole/Resource
+  RootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4FAccount11F9C029:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+          - RootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4FCloudWatchRole7C5CA927
+          - Arn
+    DependsOn:
+      - RootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4F0F480EBE
+    Metadata:
+      aws:cdk:path: RootStack/RootStackonlysetstatuscodefunction31996403:ApiEventSourceA7A86A4F/Account
+  RootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4FDeployment74D88B4086096f6d37aaac1b7e872ee9e5798323:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId:
+        Ref: RootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4F0F480EBE
+      Description: Automatically created by the RestApi construct
+    DependsOn:
+      - RootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4FonlysetstatuscodeGETED48AD42
+      - RootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4FonlysetstatuscodeA5CDB00A
+    Metadata:
+      aws:cdk:path: RootStack/RootStackonlysetstatuscodefunction31996403:ApiEventSourceA7A86A4F/Deployment/Resource
+  RootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4FDeploymentStageprod6D33C94A:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId:
+        Ref: RootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4F0F480EBE
+      DeploymentId:
+        Ref: RootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4FDeployment74D88B4086096f6d37aaac1b7e872ee9e5798323
+      StageName: prod
+    Metadata:
+      aws:cdk:path: RootStack/RootStackonlysetstatuscodefunction31996403:ApiEventSourceA7A86A4F/DeploymentStage.prod/Resource
+  RootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4FonlysetstatuscodeA5CDB00A:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - RootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4F0F480EBE
+          - RootResourceId
+      PathPart: onlysetstatuscode
+      RestApiId:
+        Ref: RootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4F0F480EBE
+    Metadata:
+      aws:cdk:path: RootStack/RootStackonlysetstatuscodefunction31996403:ApiEventSourceA7A86A4F/Default/onlysetstatuscode/Resource
+  RootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4FonlysetstatuscodeGETApiPermissionRootStackRootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4F92DEFD3BGETonlysetstatuscode1213ED57:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - onlysetstatuscodefunction205470D8
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4F0F480EBE
+            - /
+            - Ref: RootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4FDeploymentStageprod6D33C94A
+            - /GET/onlysetstatuscode
+    Metadata:
+      aws:cdk:path: RootStack/RootStackonlysetstatuscodefunction31996403:ApiEventSourceA7A86A4F/Default/onlysetstatuscode/GET/ApiPermission.RootStackRootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4F92DEFD3B.GET..onlysetstatuscode
+  RootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4FonlysetstatuscodeGETApiPermissionTestRootStackRootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4F92DEFD3BGETonlysetstatuscode4E995A69:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - onlysetstatuscodefunction205470D8
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4F0F480EBE
+            - /test-invoke-stage/GET/onlysetstatuscode
+    Metadata:
+      aws:cdk:path: RootStack/RootStackonlysetstatuscodefunction31996403:ApiEventSourceA7A86A4F/Default/onlysetstatuscode/GET/ApiPermission.Test.RootStackRootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4F92DEFD3B.GET..onlysetstatuscode
+  RootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4FonlysetstatuscodeGETED48AD42:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId:
+        Ref: RootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4FonlysetstatuscodeA5CDB00A
+      RestApiId:
+        Ref: RootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4F0F480EBE
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - onlysetstatuscodefunction205470D8
+                  - Arn
+              - /invocations
+    Metadata:
+      aws:cdk:path: RootStack/RootStackonlysetstatuscodefunction31996403:ApiEventSourceA7A86A4F/Default/onlysetstatuscode/GET/Resource
+  onlysetbodyfunctionServiceRole1C4259D7:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: RootStack/only_set_body_function/ServiceRole/Resource
+  onlysetbodyfunctionEE2C8286:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3Bucket0C6A52B4
+        S3Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+      Role:
+        Fn::GetAtt:
+          - onlysetbodyfunctionServiceRole1C4259D7
+          - Arn
+      FunctionName: OnlySetBodyFunction
+      Handler: main.only_set_body_handler
+      Runtime: python3.8
+    DependsOn:
+      - onlysetbodyfunctionServiceRole1C4259D7
+    Metadata:
+      aws:cdk:path: RootStack/only_set_body_function/Resource
+      aws:asset:path: ../
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  RootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4F92C50EF8:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: RootStackonlysetbodyfunctionD98A3B0D:ApiEventSourceA7A86A4F
+    Metadata:
+      aws:cdk:path: RootStack/RootStackonlysetbodyfunctionD98A3B0D:ApiEventSourceA7A86A4F/Resource
+  RootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4FCloudWatchRole54BA6A16:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+    Metadata:
+      aws:cdk:path: RootStack/RootStackonlysetbodyfunctionD98A3B0D:ApiEventSourceA7A86A4F/CloudWatchRole/Resource
+  RootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4FAccount936210B0:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+          - RootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4FCloudWatchRole54BA6A16
+          - Arn
+    DependsOn:
+      - RootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4F92C50EF8
+    Metadata:
+      aws:cdk:path: RootStack/RootStackonlysetbodyfunctionD98A3B0D:ApiEventSourceA7A86A4F/Account
+  RootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4FDeploymentEBDAABB821598bb926dd7c4d9aa036f2b9523eb1:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId:
+        Ref: RootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4F92C50EF8
+      Description: Automatically created by the RestApi construct
+    DependsOn:
+      - RootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4FonlysetbodyGETBF91E740
+      - RootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4Fonlysetbody7A3FE29F
+    Metadata:
+      aws:cdk:path: RootStack/RootStackonlysetbodyfunctionD98A3B0D:ApiEventSourceA7A86A4F/Deployment/Resource
+  RootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4FDeploymentStageprod87D87962:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId:
+        Ref: RootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4F92C50EF8
+      DeploymentId:
+        Ref: RootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4FDeploymentEBDAABB821598bb926dd7c4d9aa036f2b9523eb1
+      StageName: prod
+    Metadata:
+      aws:cdk:path: RootStack/RootStackonlysetbodyfunctionD98A3B0D:ApiEventSourceA7A86A4F/DeploymentStage.prod/Resource
+  RootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4Fonlysetbody7A3FE29F:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - RootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4F92C50EF8
+          - RootResourceId
+      PathPart: onlysetbody
+      RestApiId:
+        Ref: RootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4F92C50EF8
+    Metadata:
+      aws:cdk:path: RootStack/RootStackonlysetbodyfunctionD98A3B0D:ApiEventSourceA7A86A4F/Default/onlysetbody/Resource
+  RootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4FonlysetbodyGETApiPermissionRootStackRootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4FEB779773GETonlysetbodyC8271A06:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - onlysetbodyfunctionEE2C8286
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4F92C50EF8
+            - /
+            - Ref: RootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4FDeploymentStageprod87D87962
+            - /GET/onlysetbody
+    Metadata:
+      aws:cdk:path: RootStack/RootStackonlysetbodyfunctionD98A3B0D:ApiEventSourceA7A86A4F/Default/onlysetbody/GET/ApiPermission.RootStackRootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4FEB779773.GET..onlysetbody
+  RootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4FonlysetbodyGETApiPermissionTestRootStackRootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4FEB779773GETonlysetbody3A9E4D7F:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - onlysetbodyfunctionEE2C8286
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4F92C50EF8
+            - /test-invoke-stage/GET/onlysetbody
+    Metadata:
+      aws:cdk:path: RootStack/RootStackonlysetbodyfunctionD98A3B0D:ApiEventSourceA7A86A4F/Default/onlysetbody/GET/ApiPermission.Test.RootStackRootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4FEB779773.GET..onlysetbody
+  RootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4FonlysetbodyGETBF91E740:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId:
+        Ref: RootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4Fonlysetbody7A3FE29F
+      RestApiId:
+        Ref: RootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4F92C50EF8
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - onlysetbodyfunctionEE2C8286
+                  - Arn
+              - /invocations
+    Metadata:
+      aws:cdk:path: RootStack/RootStackonlysetbodyfunctionD98A3B0D:ApiEventSourceA7A86A4F/Default/onlysetbody/GET/Resource
+  stringstatuscodefunctionServiceRoleF56162DC:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: RootStack/string_status_code_function/ServiceRole/Resource
+  stringstatuscodefunctionB4545223:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3Bucket0C6A52B4
+        S3Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+      Role:
+        Fn::GetAtt:
+          - stringstatuscodefunctionServiceRoleF56162DC
+          - Arn
+      FunctionName: StringStatusCodeFunction
+      Handler: main.string_status_code_handler
+      Runtime: python3.8
+    DependsOn:
+      - stringstatuscodefunctionServiceRoleF56162DC
+    Metadata:
+      aws:cdk:path: RootStack/string_status_code_function/Resource
+      aws:asset:path: ../
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  RootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4F2C5F4A85:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: RootStackstringstatuscodefunction8C96EF15:ApiEventSourceA7A86A4F
+    Metadata:
+      aws:cdk:path: RootStack/RootStackstringstatuscodefunction8C96EF15:ApiEventSourceA7A86A4F/Resource
+  RootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4FCloudWatchRole43F009AC:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+    Metadata:
+      aws:cdk:path: RootStack/RootStackstringstatuscodefunction8C96EF15:ApiEventSourceA7A86A4F/CloudWatchRole/Resource
+  RootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4FAccount744B22FE:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+          - RootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4FCloudWatchRole43F009AC
+          - Arn
+    DependsOn:
+      - RootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4F2C5F4A85
+    Metadata:
+      aws:cdk:path: RootStack/RootStackstringstatuscodefunction8C96EF15:ApiEventSourceA7A86A4F/Account
+  RootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4FDeployment2575C0330e11c4ba3b8de28012abaa699de9ab41:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId:
+        Ref: RootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4F2C5F4A85
+      Description: Automatically created by the RestApi construct
+    DependsOn:
+      - RootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4FstringstatuscodeGET9C09E02E
+      - RootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4Fstringstatuscode82FDD1CF
+    Metadata:
+      aws:cdk:path: RootStack/RootStackstringstatuscodefunction8C96EF15:ApiEventSourceA7A86A4F/Deployment/Resource
+  RootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4FDeploymentStageprod29768631:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId:
+        Ref: RootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4F2C5F4A85
+      DeploymentId:
+        Ref: RootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4FDeployment2575C0330e11c4ba3b8de28012abaa699de9ab41
+      StageName: prod
+    Metadata:
+      aws:cdk:path: RootStack/RootStackstringstatuscodefunction8C96EF15:ApiEventSourceA7A86A4F/DeploymentStage.prod/Resource
+  RootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4Fstringstatuscode82FDD1CF:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - RootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4F2C5F4A85
+          - RootResourceId
+      PathPart: stringstatuscode
+      RestApiId:
+        Ref: RootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4F2C5F4A85
+    Metadata:
+      aws:cdk:path: RootStack/RootStackstringstatuscodefunction8C96EF15:ApiEventSourceA7A86A4F/Default/stringstatuscode/Resource
+  RootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4FstringstatuscodeGETApiPermissionRootStackRootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4FA308E36AGETstringstatuscode9A0ACD88:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - stringstatuscodefunctionB4545223
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4F2C5F4A85
+            - /
+            - Ref: RootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4FDeploymentStageprod29768631
+            - /GET/stringstatuscode
+    Metadata:
+      aws:cdk:path: RootStack/RootStackstringstatuscodefunction8C96EF15:ApiEventSourceA7A86A4F/Default/stringstatuscode/GET/ApiPermission.RootStackRootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4FA308E36A.GET..stringstatuscode
+  RootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4FstringstatuscodeGETApiPermissionTestRootStackRootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4FA308E36AGETstringstatuscode6EE2640B:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - stringstatuscodefunctionB4545223
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4F2C5F4A85
+            - /test-invoke-stage/GET/stringstatuscode
+    Metadata:
+      aws:cdk:path: RootStack/RootStackstringstatuscodefunction8C96EF15:ApiEventSourceA7A86A4F/Default/stringstatuscode/GET/ApiPermission.Test.RootStackRootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4FA308E36A.GET..stringstatuscode
+  RootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4FstringstatuscodeGET9C09E02E:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId:
+        Ref: RootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4Fstringstatuscode82FDD1CF
+      RestApiId:
+        Ref: RootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4F2C5F4A85
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - stringstatuscodefunctionB4545223
+                  - Arn
+              - /invocations
+    Metadata:
+      aws:cdk:path: RootStack/RootStackstringstatuscodefunction8C96EF15:ApiEventSourceA7A86A4F/Default/stringstatuscode/GET/Resource
+  sleep10secfunctionServiceRole0DDC3333:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: RootStack/sleep_10_sec_function/ServiceRole/Resource
+  sleep10secfunctionEADE465A:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3Bucket0C6A52B4
+        S3Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+      Role:
+        Fn::GetAtt:
+          - sleep10secfunctionServiceRole0DDC3333
+          - Arn
+      FunctionName: SleepFunction0
+      Handler: main.sleep_10_sec_handler
+      Runtime: python3.8
+      Timeout: 600
+    DependsOn:
+      - sleep10secfunctionServiceRole0DDC3333
+    Metadata:
+      aws:cdk:path: RootStack/sleep_10_sec_function/Resource
+      aws:asset:path: ../
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4FEE64ADC1:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: RootStacksleep10secfunctionE4949652:ApiEventSourceA7A86A4F
+    Metadata:
+      aws:cdk:path: RootStack/RootStacksleep10secfunctionE4949652:ApiEventSourceA7A86A4F/Resource
+  RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4FCloudWatchRole9AD0B86C:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+    Metadata:
+      aws:cdk:path: RootStack/RootStacksleep10secfunctionE4949652:ApiEventSourceA7A86A4F/CloudWatchRole/Resource
+  RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4FAccountC5568418:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+          - RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4FCloudWatchRole9AD0B86C
+          - Arn
+    DependsOn:
+      - RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4FEE64ADC1
+    Metadata:
+      aws:cdk:path: RootStack/RootStacksleep10secfunctionE4949652:ApiEventSourceA7A86A4F/Account
+  RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4FDeployment3E6F00755048225d042db45f24cb0c734f39bd32:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId:
+        Ref: RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4FEE64ADC1
+      Description: Automatically created by the RestApi construct
+    DependsOn:
+      - RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4Fsleepfortensecondsfunction0GET4588F52F
+      - RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4Fsleepfortensecondsfunction01F815281
+      - RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4FsleepfortensecondsFB656116
+    Metadata:
+      aws:cdk:path: RootStack/RootStacksleep10secfunctionE4949652:ApiEventSourceA7A86A4F/Deployment/Resource
+  RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4FDeploymentStageprodC9F25F60:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId:
+        Ref: RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4FEE64ADC1
+      DeploymentId:
+        Ref: RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4FDeployment3E6F00755048225d042db45f24cb0c734f39bd32
+      StageName: prod
+    Metadata:
+      aws:cdk:path: RootStack/RootStacksleep10secfunctionE4949652:ApiEventSourceA7A86A4F/DeploymentStage.prod/Resource
+  RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4FsleepfortensecondsFB656116:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4FEE64ADC1
+          - RootResourceId
+      PathPart: sleepfortenseconds
+      RestApiId:
+        Ref: RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4FEE64ADC1
+    Metadata:
+      aws:cdk:path: RootStack/RootStacksleep10secfunctionE4949652:ApiEventSourceA7A86A4F/Default/sleepfortenseconds/Resource
+  RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4Fsleepfortensecondsfunction01F815281:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Ref: RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4FsleepfortensecondsFB656116
+      PathPart: function0
+      RestApiId:
+        Ref: RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4FEE64ADC1
+    Metadata:
+      aws:cdk:path: RootStack/RootStacksleep10secfunctionE4949652:ApiEventSourceA7A86A4F/Default/sleepfortenseconds/function0/Resource
+  RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4Fsleepfortensecondsfunction0GETApiPermissionRootStackRootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4F2261C43FGETsleepfortensecondsfunction06CFCA379:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - sleep10secfunctionEADE465A
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4FEE64ADC1
+            - /
+            - Ref: RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4FDeploymentStageprodC9F25F60
+            - /GET/sleepfortenseconds/function0
+    Metadata:
+      aws:cdk:path: RootStack/RootStacksleep10secfunctionE4949652:ApiEventSourceA7A86A4F/Default/sleepfortenseconds/function0/GET/ApiPermission.RootStackRootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4F2261C43F.GET..sleepfortenseconds.function0
+  RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4Fsleepfortensecondsfunction0GETApiPermissionTestRootStackRootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4F2261C43FGETsleepfortensecondsfunction0ACBB4A1D:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - sleep10secfunctionEADE465A
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4FEE64ADC1
+            - /test-invoke-stage/GET/sleepfortenseconds/function0
+    Metadata:
+      aws:cdk:path: RootStack/RootStacksleep10secfunctionE4949652:ApiEventSourceA7A86A4F/Default/sleepfortenseconds/function0/GET/ApiPermission.Test.RootStackRootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4F2261C43F.GET..sleepfortenseconds.function0
+  RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4Fsleepfortensecondsfunction0GET4588F52F:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId:
+        Ref: RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4Fsleepfortensecondsfunction01F815281
+      RestApiId:
+        Ref: RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4FEE64ADC1
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - sleep10secfunctionEADE465A
+                  - Arn
+              - /invocations
+    Metadata:
+      aws:cdk:path: RootStack/RootStacksleep10secfunctionE4949652:ApiEventSourceA7A86A4F/Default/sleepfortenseconds/function0/GET/Resource
+  sleepfunction1ServiceRoleCCAD8A5E:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: RootStack/sleep_function_1/ServiceRole/Resource
+  sleepfunction1AAB1D4E4:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3Bucket0C6A52B4
+        S3Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+      Role:
+        Fn::GetAtt:
+          - sleepfunction1ServiceRoleCCAD8A5E
+          - Arn
+      FunctionName: SleepFunction1
+      Handler: main.sleep_10_sec_handler
+      Runtime: python3.8
+      Timeout: 600
+    DependsOn:
+      - sleepfunction1ServiceRoleCCAD8A5E
+    Metadata:
+      aws:cdk:path: RootStack/sleep_function_1/Resource
+      aws:asset:path: ../
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4F4675FD9C:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: RootStacksleepfunction17AC9AC7F:ApiEventSourceA7A86A4F
+    Metadata:
+      aws:cdk:path: RootStack/RootStacksleepfunction17AC9AC7F:ApiEventSourceA7A86A4F/Resource
+  RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4FCloudWatchRoleD4E8AE01:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+    Metadata:
+      aws:cdk:path: RootStack/RootStacksleepfunction17AC9AC7F:ApiEventSourceA7A86A4F/CloudWatchRole/Resource
+  RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4FAccount51F21B2C:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+          - RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4FCloudWatchRoleD4E8AE01
+          - Arn
+    DependsOn:
+      - RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4F4675FD9C
+    Metadata:
+      aws:cdk:path: RootStack/RootStacksleepfunction17AC9AC7F:ApiEventSourceA7A86A4F/Account
+  RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4FDeployment4EF2D77Fb486cae20ca66c9aeb74acdb991d726f:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId:
+        Ref: RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4F4675FD9C
+      Description: Automatically created by the RestApi construct
+    DependsOn:
+      - RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4Fsleepfortensecondsfunction1GET8924B8CD
+      - RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4Fsleepfortensecondsfunction1684D257F
+      - RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4FsleepfortensecondsF03FB2B9
+    Metadata:
+      aws:cdk:path: RootStack/RootStacksleepfunction17AC9AC7F:ApiEventSourceA7A86A4F/Deployment/Resource
+  RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4FDeploymentStageprodA972E9C8:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId:
+        Ref: RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4F4675FD9C
+      DeploymentId:
+        Ref: RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4FDeployment4EF2D77Fb486cae20ca66c9aeb74acdb991d726f
+      StageName: prod
+    Metadata:
+      aws:cdk:path: RootStack/RootStacksleepfunction17AC9AC7F:ApiEventSourceA7A86A4F/DeploymentStage.prod/Resource
+  RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4FsleepfortensecondsF03FB2B9:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4F4675FD9C
+          - RootResourceId
+      PathPart: sleepfortenseconds
+      RestApiId:
+        Ref: RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4F4675FD9C
+    Metadata:
+      aws:cdk:path: RootStack/RootStacksleepfunction17AC9AC7F:ApiEventSourceA7A86A4F/Default/sleepfortenseconds/Resource
+  RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4Fsleepfortensecondsfunction1684D257F:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Ref: RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4FsleepfortensecondsF03FB2B9
+      PathPart: function1
+      RestApiId:
+        Ref: RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4F4675FD9C
+    Metadata:
+      aws:cdk:path: RootStack/RootStacksleepfunction17AC9AC7F:ApiEventSourceA7A86A4F/Default/sleepfortenseconds/function1/Resource
+  RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4Fsleepfortensecondsfunction1GETApiPermissionRootStackRootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4FB9664CB8GETsleepfortensecondsfunction104652B79:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - sleepfunction1AAB1D4E4
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4F4675FD9C
+            - /
+            - Ref: RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4FDeploymentStageprodA972E9C8
+            - /GET/sleepfortenseconds/function1
+    Metadata:
+      aws:cdk:path: RootStack/RootStacksleepfunction17AC9AC7F:ApiEventSourceA7A86A4F/Default/sleepfortenseconds/function1/GET/ApiPermission.RootStackRootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4FB9664CB8.GET..sleepfortenseconds.function1
+  RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4Fsleepfortensecondsfunction1GETApiPermissionTestRootStackRootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4FB9664CB8GETsleepfortensecondsfunction1FD0924EB:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - sleepfunction1AAB1D4E4
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4F4675FD9C
+            - /test-invoke-stage/GET/sleepfortenseconds/function1
+    Metadata:
+      aws:cdk:path: RootStack/RootStacksleepfunction17AC9AC7F:ApiEventSourceA7A86A4F/Default/sleepfortenseconds/function1/GET/ApiPermission.Test.RootStackRootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4FB9664CB8.GET..sleepfortenseconds.function1
+  RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4Fsleepfortensecondsfunction1GET8924B8CD:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId:
+        Ref: RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4Fsleepfortensecondsfunction1684D257F
+      RestApiId:
+        Ref: RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4F4675FD9C
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - sleepfunction1AAB1D4E4
+                  - Arn
+              - /invocations
+    Metadata:
+      aws:cdk:path: RootStack/RootStacksleepfunction17AC9AC7F:ApiEventSourceA7A86A4F/Default/sleepfortenseconds/function1/GET/Resource
+  writetostderrServiceRoleD7C9BDAE:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: RootStack/write_to_stderr/ServiceRole/Resource
+  writetostderr79274294:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3Bucket0C6A52B4
+        S3Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+      Role:
+        Fn::GetAtt:
+          - writetostderrServiceRoleD7C9BDAE
+          - Arn
+      FunctionName: WriteToStderrFunction
+      Handler: main.write_to_stderr
+      Runtime: python3.8
+    DependsOn:
+      - writetostderrServiceRoleD7C9BDAE
+    Metadata:
+      aws:cdk:path: RootStack/write_to_stderr/Resource
+      aws:asset:path: ../
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  RootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4F39FF633B:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: RootStackwritetostderr6E3C96E3:ApiEventSourceA7A86A4F
+    Metadata:
+      aws:cdk:path: RootStack/RootStackwritetostderr6E3C96E3:ApiEventSourceA7A86A4F/Resource
+  RootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4FCloudWatchRole363147FE:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+    Metadata:
+      aws:cdk:path: RootStack/RootStackwritetostderr6E3C96E3:ApiEventSourceA7A86A4F/CloudWatchRole/Resource
+  RootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4FAccount09F55BC4:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+          - RootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4FCloudWatchRole363147FE
+          - Arn
+    DependsOn:
+      - RootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4F39FF633B
+    Metadata:
+      aws:cdk:path: RootStack/RootStackwritetostderr6E3C96E3:ApiEventSourceA7A86A4F/Account
+  RootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4FDeployment8D9502F3c2fe8c4ecc213823b0eecb456365719b:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId:
+        Ref: RootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4F39FF633B
+      Description: Automatically created by the RestApi construct
+    DependsOn:
+      - RootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4FwritetostderrGET3D7C1EE1
+      - RootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4Fwritetostderr8AB8FE11
+    Metadata:
+      aws:cdk:path: RootStack/RootStackwritetostderr6E3C96E3:ApiEventSourceA7A86A4F/Deployment/Resource
+  RootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4FDeploymentStageprod9310289E:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId:
+        Ref: RootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4F39FF633B
+      DeploymentId:
+        Ref: RootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4FDeployment8D9502F3c2fe8c4ecc213823b0eecb456365719b
+      StageName: prod
+    Metadata:
+      aws:cdk:path: RootStack/RootStackwritetostderr6E3C96E3:ApiEventSourceA7A86A4F/DeploymentStage.prod/Resource
+  RootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4Fwritetostderr8AB8FE11:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - RootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4F39FF633B
+          - RootResourceId
+      PathPart: writetostderr
+      RestApiId:
+        Ref: RootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4F39FF633B
+    Metadata:
+      aws:cdk:path: RootStack/RootStackwritetostderr6E3C96E3:ApiEventSourceA7A86A4F/Default/writetostderr/Resource
+  RootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4FwritetostderrGETApiPermissionRootStackRootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4FD7083AD0GETwritetostderrF25D8F78:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - writetostderr79274294
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4F39FF633B
+            - /
+            - Ref: RootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4FDeploymentStageprod9310289E
+            - /GET/writetostderr
+    Metadata:
+      aws:cdk:path: RootStack/RootStackwritetostderr6E3C96E3:ApiEventSourceA7A86A4F/Default/writetostderr/GET/ApiPermission.RootStackRootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4FD7083AD0.GET..writetostderr
+  RootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4FwritetostderrGETApiPermissionTestRootStackRootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4FD7083AD0GETwritetostderrC14D821C:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - writetostderr79274294
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4F39FF633B
+            - /test-invoke-stage/GET/writetostderr
+    Metadata:
+      aws:cdk:path: RootStack/RootStackwritetostderr6E3C96E3:ApiEventSourceA7A86A4F/Default/writetostderr/GET/ApiPermission.Test.RootStackRootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4FD7083AD0.GET..writetostderr
+  RootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4FwritetostderrGET3D7C1EE1:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId:
+        Ref: RootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4Fwritetostderr8AB8FE11
+      RestApiId:
+        Ref: RootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4F39FF633B
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - writetostderr79274294
+                  - Arn
+              - /invocations
+    Metadata:
+      aws:cdk:path: RootStack/RootStackwritetostderr6E3C96E3:ApiEventSourceA7A86A4F/Default/writetostderr/GET/Resource
+  writetostdoutfunctionServiceRoleE2F60DD4:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: RootStack/write_to_stdout_function/ServiceRole/Resource
+  writetostdoutfunction31F9E039:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3Bucket0C6A52B4
+        S3Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+      Role:
+        Fn::GetAtt:
+          - writetostdoutfunctionServiceRoleE2F60DD4
+          - Arn
+      FunctionName: WriteToStdoutFunction
+      Handler: main.write_to_stdout
+      Runtime: python3.8
+    DependsOn:
+      - writetostdoutfunctionServiceRoleE2F60DD4
+    Metadata:
+      aws:cdk:path: RootStack/write_to_stdout_function/Resource
+      aws:asset:path: ../
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  RootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4FCE5EA6DD:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: RootStackwritetostdoutfunction44B2CF00:ApiEventSourceA7A86A4F
+    Metadata:
+      aws:cdk:path: RootStack/RootStackwritetostdoutfunction44B2CF00:ApiEventSourceA7A86A4F/Resource
+  RootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4FCloudWatchRole619C7B79:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+    Metadata:
+      aws:cdk:path: RootStack/RootStackwritetostdoutfunction44B2CF00:ApiEventSourceA7A86A4F/CloudWatchRole/Resource
+  RootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4FAccountC5682C18:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+          - RootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4FCloudWatchRole619C7B79
+          - Arn
+    DependsOn:
+      - RootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4FCE5EA6DD
+    Metadata:
+      aws:cdk:path: RootStack/RootStackwritetostdoutfunction44B2CF00:ApiEventSourceA7A86A4F/Account
+  RootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4FDeployment544B3B33a02830ab80f0619395d034ed319a7edf:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId:
+        Ref: RootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4FCE5EA6DD
+      Description: Automatically created by the RestApi construct
+    DependsOn:
+      - RootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4FwritetostdoutGET07518AA8
+      - RootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4Fwritetostdout4C1EF169
+    Metadata:
+      aws:cdk:path: RootStack/RootStackwritetostdoutfunction44B2CF00:ApiEventSourceA7A86A4F/Deployment/Resource
+  RootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4FDeploymentStageprodE6A35461:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId:
+        Ref: RootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4FCE5EA6DD
+      DeploymentId:
+        Ref: RootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4FDeployment544B3B33a02830ab80f0619395d034ed319a7edf
+      StageName: prod
+    Metadata:
+      aws:cdk:path: RootStack/RootStackwritetostdoutfunction44B2CF00:ApiEventSourceA7A86A4F/DeploymentStage.prod/Resource
+  RootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4Fwritetostdout4C1EF169:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - RootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4FCE5EA6DD
+          - RootResourceId
+      PathPart: writetostdout
+      RestApiId:
+        Ref: RootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4FCE5EA6DD
+    Metadata:
+      aws:cdk:path: RootStack/RootStackwritetostdoutfunction44B2CF00:ApiEventSourceA7A86A4F/Default/writetostdout/Resource
+  RootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4FwritetostdoutGETApiPermissionRootStackRootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4FEAFA0E48GETwritetostdout1DF3C4BF:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - writetostdoutfunction31F9E039
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4FCE5EA6DD
+            - /
+            - Ref: RootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4FDeploymentStageprodE6A35461
+            - /GET/writetostdout
+    Metadata:
+      aws:cdk:path: RootStack/RootStackwritetostdoutfunction44B2CF00:ApiEventSourceA7A86A4F/Default/writetostdout/GET/ApiPermission.RootStackRootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4FEAFA0E48.GET..writetostdout
+  RootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4FwritetostdoutGETApiPermissionTestRootStackRootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4FEAFA0E48GETwritetostdoutD9CBAF01:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - writetostdoutfunction31F9E039
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4FCE5EA6DD
+            - /test-invoke-stage/GET/writetostdout
+    Metadata:
+      aws:cdk:path: RootStack/RootStackwritetostdoutfunction44B2CF00:ApiEventSourceA7A86A4F/Default/writetostdout/GET/ApiPermission.Test.RootStackRootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4FEAFA0E48.GET..writetostdout
+  RootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4FwritetostdoutGET07518AA8:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId:
+        Ref: RootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4Fwritetostdout4C1EF169
+      RestApiId:
+        Ref: RootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4FCE5EA6DD
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - writetostdoutfunction31F9E039
+                  - Arn
+              - /invocations
+    Metadata:
+      aws:cdk:path: RootStack/RootStackwritetostdoutfunction44B2CF00:ApiEventSourceA7A86A4F/Default/writetostdout/GET/Resource
+  invalidresponsereturnedfunctionServiceRole84CA52A7:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: RootStack/invalid_response_returned_function/ServiceRole/Resource
+  invalidresponsereturnedfunction53C3E365:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3Bucket0C6A52B4
+        S3Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+      Role:
+        Fn::GetAtt:
+          - invalidresponsereturnedfunctionServiceRole84CA52A7
+          - Arn
+      FunctionName: InvalidResponseFromLambdaFunction
+      Handler: main.invalid_response_returned
+      Runtime: python3.8
+    DependsOn:
+      - invalidresponsereturnedfunctionServiceRole84CA52A7
+    Metadata:
+      aws:cdk:path: RootStack/invalid_response_returned_function/Resource
+      aws:asset:path: ../
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  RootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4F7A2DDCDE:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: RootStackinvalidresponsereturnedfunctionAFF74549:ApiEventSourceA7A86A4F
+    Metadata:
+      aws:cdk:path: RootStack/RootStackinvalidresponsereturnedfunctionAFF74549:ApiEventSourceA7A86A4F/Resource
+  RootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4FCloudWatchRole023D11E9:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+    Metadata:
+      aws:cdk:path: RootStack/RootStackinvalidresponsereturnedfunctionAFF74549:ApiEventSourceA7A86A4F/CloudWatchRole/Resource
+  RootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4FAccount54475758:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+          - RootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4FCloudWatchRole023D11E9
+          - Arn
+    DependsOn:
+      - RootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4F7A2DDCDE
+    Metadata:
+      aws:cdk:path: RootStack/RootStackinvalidresponsereturnedfunctionAFF74549:ApiEventSourceA7A86A4F/Account
+  RootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4FDeployment42CF88C7f53ce59874c069bfb64e17ba0dc50599:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId:
+        Ref: RootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4F7A2DDCDE
+      Description: Automatically created by the RestApi construct
+    DependsOn:
+      - RootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4FinvalidresponsereturnedGETF423C9A3
+      - RootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4Finvalidresponsereturned78F8772A
+    Metadata:
+      aws:cdk:path: RootStack/RootStackinvalidresponsereturnedfunctionAFF74549:ApiEventSourceA7A86A4F/Deployment/Resource
+  RootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4FDeploymentStageprodDC974AA8:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId:
+        Ref: RootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4F7A2DDCDE
+      DeploymentId:
+        Ref: RootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4FDeployment42CF88C7f53ce59874c069bfb64e17ba0dc50599
+      StageName: prod
+    Metadata:
+      aws:cdk:path: RootStack/RootStackinvalidresponsereturnedfunctionAFF74549:ApiEventSourceA7A86A4F/DeploymentStage.prod/Resource
+  RootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4Finvalidresponsereturned78F8772A:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - RootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4F7A2DDCDE
+          - RootResourceId
+      PathPart: invalidresponsereturned
+      RestApiId:
+        Ref: RootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4F7A2DDCDE
+    Metadata:
+      aws:cdk:path: RootStack/RootStackinvalidresponsereturnedfunctionAFF74549:ApiEventSourceA7A86A4F/Default/invalidresponsereturned/Resource
+  RootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4FinvalidresponsereturnedGETApiPermissionRootStackRootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4FE9472A87GETinvalidresponsereturned5A31DEBC:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - invalidresponsereturnedfunction53C3E365
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4F7A2DDCDE
+            - /
+            - Ref: RootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4FDeploymentStageprodDC974AA8
+            - /GET/invalidresponsereturned
+    Metadata:
+      aws:cdk:path: RootStack/RootStackinvalidresponsereturnedfunctionAFF74549:ApiEventSourceA7A86A4F/Default/invalidresponsereturned/GET/ApiPermission.RootStackRootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4FE9472A87.GET..invalidresponsereturned
+  RootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4FinvalidresponsereturnedGETApiPermissionTestRootStackRootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4FE9472A87GETinvalidresponsereturned81FFFF2A:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - invalidresponsereturnedfunction53C3E365
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4F7A2DDCDE
+            - /test-invoke-stage/GET/invalidresponsereturned
+    Metadata:
+      aws:cdk:path: RootStack/RootStackinvalidresponsereturnedfunctionAFF74549:ApiEventSourceA7A86A4F/Default/invalidresponsereturned/GET/ApiPermission.Test.RootStackRootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4FE9472A87.GET..invalidresponsereturned
+  RootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4FinvalidresponsereturnedGETF423C9A3:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId:
+        Ref: RootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4Finvalidresponsereturned78F8772A
+      RestApiId:
+        Ref: RootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4F7A2DDCDE
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - invalidresponsereturnedfunction53C3E365
+                  - Arn
+              - /invocations
+    Metadata:
+      aws:cdk:path: RootStack/RootStackinvalidresponsereturnedfunctionAFF74549:ApiEventSourceA7A86A4F/Default/invalidresponsereturned/GET/Resource
+  invalidhashresponsefunctionServiceRoleD5BA0280:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: RootStack/invalid_hash_response_function/ServiceRole/Resource
+  invalidhashresponsefunction60D2712F:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3Bucket0C6A52B4
+        S3Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+      Role:
+        Fn::GetAtt:
+          - invalidhashresponsefunctionServiceRoleD5BA0280
+          - Arn
+      FunctionName: InvalidResponseHashFromLambdaFunction
+      Handler: main.invalid_hash_response
+      Runtime: python3.8
+    DependsOn:
+      - invalidhashresponsefunctionServiceRoleD5BA0280
+    Metadata:
+      aws:cdk:path: RootStack/invalid_hash_response_function/Resource
+      aws:asset:path: ../
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  RootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FA8E4C976:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: RootStackinvalidhashresponsefunctionC4DFC2E4:ApiEventSourceA7A86A4F
+    Metadata:
+      aws:cdk:path: RootStack/RootStackinvalidhashresponsefunctionC4DFC2E4:ApiEventSourceA7A86A4F/Resource
+  RootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FCloudWatchRole4864B3C3:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+    Metadata:
+      aws:cdk:path: RootStack/RootStackinvalidhashresponsefunctionC4DFC2E4:ApiEventSourceA7A86A4F/CloudWatchRole/Resource
+  RootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FAccountB7BA6068:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+          - RootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FCloudWatchRole4864B3C3
+          - Arn
+    DependsOn:
+      - RootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FA8E4C976
+    Metadata:
+      aws:cdk:path: RootStack/RootStackinvalidhashresponsefunctionC4DFC2E4:ApiEventSourceA7A86A4F/Account
+  RootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FDeploymentED46B70A6adae3b6649fac0dc56c14628842adf5:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId:
+        Ref: RootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FA8E4C976
+      Description: Automatically created by the RestApi construct
+    DependsOn:
+      - RootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FinvalidresponsehashGETDA3CD11B
+      - RootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FinvalidresponsehashD436AFD5
+    Metadata:
+      aws:cdk:path: RootStack/RootStackinvalidhashresponsefunctionC4DFC2E4:ApiEventSourceA7A86A4F/Deployment/Resource
+  RootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FDeploymentStageprod33F86521:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId:
+        Ref: RootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FA8E4C976
+      DeploymentId:
+        Ref: RootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FDeploymentED46B70A6adae3b6649fac0dc56c14628842adf5
+      StageName: prod
+    Metadata:
+      aws:cdk:path: RootStack/RootStackinvalidhashresponsefunctionC4DFC2E4:ApiEventSourceA7A86A4F/DeploymentStage.prod/Resource
+  RootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FinvalidresponsehashD436AFD5:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - RootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FA8E4C976
+          - RootResourceId
+      PathPart: invalidresponsehash
+      RestApiId:
+        Ref: RootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FA8E4C976
+    Metadata:
+      aws:cdk:path: RootStack/RootStackinvalidhashresponsefunctionC4DFC2E4:ApiEventSourceA7A86A4F/Default/invalidresponsehash/Resource
+  RootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FinvalidresponsehashGETApiPermissionRootStackRootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FB2863AD5GETinvalidresponsehash5558F56F:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - invalidhashresponsefunction60D2712F
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FA8E4C976
+            - /
+            - Ref: RootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FDeploymentStageprod33F86521
+            - /GET/invalidresponsehash
+    Metadata:
+      aws:cdk:path: RootStack/RootStackinvalidhashresponsefunctionC4DFC2E4:ApiEventSourceA7A86A4F/Default/invalidresponsehash/GET/ApiPermission.RootStackRootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FB2863AD5.GET..invalidresponsehash
+  RootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FinvalidresponsehashGETApiPermissionTestRootStackRootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FB2863AD5GETinvalidresponsehashE8C25556:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - invalidhashresponsefunction60D2712F
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FA8E4C976
+            - /test-invoke-stage/GET/invalidresponsehash
+    Metadata:
+      aws:cdk:path: RootStack/RootStackinvalidhashresponsefunctionC4DFC2E4:ApiEventSourceA7A86A4F/Default/invalidresponsehash/GET/ApiPermission.Test.RootStackRootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FB2863AD5.GET..invalidresponsehash
+  RootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FinvalidresponsehashGETDA3CD11B:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId:
+        Ref: RootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FinvalidresponsehashD436AFD5
+      RestApiId:
+        Ref: RootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FA8E4C976
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - invalidhashresponsefunction60D2712F
+                  - Arn
+              - /invocations
+    Metadata:
+      aws:cdk:path: RootStack/RootStackinvalidhashresponsefunctionC4DFC2E4:ApiEventSourceA7A86A4F/Default/invalidresponsehash/GET/Resource
+  base64responsefunctionServiceRole22C52018:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: RootStack/base64_response_function/ServiceRole/Resource
+  base64responsefunction5C49DDCB:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3Bucket0C6A52B4
+        S3Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+      Role:
+        Fn::GetAtt:
+          - base64responsefunctionServiceRole22C52018
+          - Arn
+      FunctionName: Base64ResponseFunction
+      Handler: main.base64_response
+      Runtime: python3.8
+    DependsOn:
+      - base64responsefunctionServiceRole22C52018
+    Metadata:
+      aws:cdk:path: RootStack/base64_response_function/Resource
+      aws:asset:path: ../
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  RootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4F01064C55:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: RootStackbase64responsefunction99E710A3:ApiEventSourceA7A86A4F
+    Metadata:
+      aws:cdk:path: RootStack/RootStackbase64responsefunction99E710A3:ApiEventSourceA7A86A4F/Resource
+  RootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4FCloudWatchRoleEE115977:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+    Metadata:
+      aws:cdk:path: RootStack/RootStackbase64responsefunction99E710A3:ApiEventSourceA7A86A4F/CloudWatchRole/Resource
+  RootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4FAccountD2ECB66B:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+          - RootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4FCloudWatchRoleEE115977
+          - Arn
+    DependsOn:
+      - RootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4F01064C55
+    Metadata:
+      aws:cdk:path: RootStack/RootStackbase64responsefunction99E710A3:ApiEventSourceA7A86A4F/Account
+  RootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4FDeployment6F175065fa5c48133180547216762b71e61bf872:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId:
+        Ref: RootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4F01064C55
+      Description: Automatically created by the RestApi construct
+    DependsOn:
+      - RootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4Fbase64responseGET2EA3100F
+      - RootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4Fbase64response96BCFB45
+    Metadata:
+      aws:cdk:path: RootStack/RootStackbase64responsefunction99E710A3:ApiEventSourceA7A86A4F/Deployment/Resource
+  RootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4FDeploymentStageprodB47681A2:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId:
+        Ref: RootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4F01064C55
+      DeploymentId:
+        Ref: RootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4FDeployment6F175065fa5c48133180547216762b71e61bf872
+      StageName: prod
+    Metadata:
+      aws:cdk:path: RootStack/RootStackbase64responsefunction99E710A3:ApiEventSourceA7A86A4F/DeploymentStage.prod/Resource
+  RootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4Fbase64response96BCFB45:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - RootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4F01064C55
+          - RootResourceId
+      PathPart: base64response
+      RestApiId:
+        Ref: RootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4F01064C55
+    Metadata:
+      aws:cdk:path: RootStack/RootStackbase64responsefunction99E710A3:ApiEventSourceA7A86A4F/Default/base64response/Resource
+  RootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4Fbase64responseGETApiPermissionRootStackRootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4FF5CC0E8EGETbase64responseB588C5B7:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - base64responsefunction5C49DDCB
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4F01064C55
+            - /
+            - Ref: RootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4FDeploymentStageprodB47681A2
+            - /GET/base64response
+    Metadata:
+      aws:cdk:path: RootStack/RootStackbase64responsefunction99E710A3:ApiEventSourceA7A86A4F/Default/base64response/GET/ApiPermission.RootStackRootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4FF5CC0E8E.GET..base64response
+  RootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4Fbase64responseGETApiPermissionTestRootStackRootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4FF5CC0E8EGETbase64responseD8E24817:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - base64responsefunction5C49DDCB
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4F01064C55
+            - /test-invoke-stage/GET/base64response
+    Metadata:
+      aws:cdk:path: RootStack/RootStackbase64responsefunction99E710A3:ApiEventSourceA7A86A4F/Default/base64response/GET/ApiPermission.Test.RootStackRootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4FF5CC0E8E.GET..base64response
+  RootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4Fbase64responseGET2EA3100F:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId:
+        Ref: RootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4Fbase64response96BCFB45
+      RestApiId:
+        Ref: RootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4F01064C55
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - base64responsefunction5C49DDCB
+                  - Arn
+              - /invocations
+    Metadata:
+      aws:cdk:path: RootStack/RootStackbase64responsefunction99E710A3:ApiEventSourceA7A86A4F/Default/base64response/GET/Resource
+  echobase64eventbodyfunctionServiceRoleAF0B2DEC:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: RootStack/echo_base64_event_body_function/ServiceRole/Resource
+  echobase64eventbodyfunction2DC19BBD:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3Bucket0C6A52B4
+        S3Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+      Role:
+        Fn::GetAtt:
+          - echobase64eventbodyfunctionServiceRoleAF0B2DEC
+          - Arn
+      FunctionName: EchoBase64EventBodyFunction
+      Handler: main.echo_base64_event_body
+      Runtime: python3.8
+    DependsOn:
+      - echobase64eventbodyfunctionServiceRoleAF0B2DEC
+    Metadata:
+      aws:cdk:path: RootStack/echo_base64_event_body_function/Resource
+      aws:asset:path: ../
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  RootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4FB87522E7:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: RootStackechobase64eventbodyfunctionEA581D88:ApiEventSourceA7A86A4F
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechobase64eventbodyfunctionEA581D88:ApiEventSourceA7A86A4F/Resource
+  RootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4FCloudWatchRoleDC76DEC8:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechobase64eventbodyfunctionEA581D88:ApiEventSourceA7A86A4F/CloudWatchRole/Resource
+  RootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4FAccount09386E81:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+          - RootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4FCloudWatchRoleDC76DEC8
+          - Arn
+    DependsOn:
+      - RootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4FB87522E7
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechobase64eventbodyfunctionEA581D88:ApiEventSourceA7A86A4F/Account
+  RootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4FDeployment77D36795a0324507b257a92b6cc7854811aeb893:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId:
+        Ref: RootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4FB87522E7
+      Description: Automatically created by the RestApi construct
+    DependsOn:
+      - RootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4Fechobase64eventbodyGET703BD380
+      - RootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4Fechobase64eventbodyA75A30E4
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechobase64eventbodyfunctionEA581D88:ApiEventSourceA7A86A4F/Deployment/Resource
+  RootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4FDeploymentStageprod32BC474C:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId:
+        Ref: RootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4FB87522E7
+      DeploymentId:
+        Ref: RootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4FDeployment77D36795a0324507b257a92b6cc7854811aeb893
+      StageName: prod
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechobase64eventbodyfunctionEA581D88:ApiEventSourceA7A86A4F/DeploymentStage.prod/Resource
+  RootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4Fechobase64eventbodyA75A30E4:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - RootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4FB87522E7
+          - RootResourceId
+      PathPart: echobase64eventbody
+      RestApiId:
+        Ref: RootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4FB87522E7
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechobase64eventbodyfunctionEA581D88:ApiEventSourceA7A86A4F/Default/echobase64eventbody/Resource
+  RootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4Fechobase64eventbodyGETApiPermissionRootStackRootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4FE3DEC5C2GETechobase64eventbody66287E0B:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - echobase64eventbodyfunction2DC19BBD
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4FB87522E7
+            - /
+            - Ref: RootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4FDeploymentStageprod32BC474C
+            - /GET/echobase64eventbody
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechobase64eventbodyfunctionEA581D88:ApiEventSourceA7A86A4F/Default/echobase64eventbody/GET/ApiPermission.RootStackRootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4FE3DEC5C2.GET..echobase64eventbody
+  RootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4Fechobase64eventbodyGETApiPermissionTestRootStackRootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4FE3DEC5C2GETechobase64eventbody15E3160D:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - echobase64eventbodyfunction2DC19BBD
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4FB87522E7
+            - /test-invoke-stage/GET/echobase64eventbody
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechobase64eventbodyfunctionEA581D88:ApiEventSourceA7A86A4F/Default/echobase64eventbody/GET/ApiPermission.Test.RootStackRootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4FE3DEC5C2.GET..echobase64eventbody
+  RootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4Fechobase64eventbodyGET703BD380:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId:
+        Ref: RootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4Fechobase64eventbodyA75A30E4
+      RestApiId:
+        Ref: RootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4FB87522E7
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - echobase64eventbodyfunction2DC19BBD
+                  - Arn
+              - /invocations
+    Metadata:
+      aws:cdk:path: RootStack/RootStackechobase64eventbodyfunctionEA581D88:ApiEventSourceA7A86A4F/Default/echobase64eventbody/GET/Resource
+  multipleheadersfunctionServiceRoleA8A47400:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: RootStack/multiple_headers_function/ServiceRole/Resource
+  multipleheadersfunction490D6619:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3Bucket0C6A52B4
+        S3Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+      Role:
+        Fn::GetAtt:
+          - multipleheadersfunctionServiceRoleA8A47400
+          - Arn
+      FunctionName: MultipleHeadersResponseFunction
+      Handler: main.multiple_headers
+      Runtime: python3.8
+    DependsOn:
+      - multipleheadersfunctionServiceRoleA8A47400
+    Metadata:
+      aws:cdk:path: RootStack/multiple_headers_function/Resource
+      aws:asset:path: ../
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  RootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4FCDFC6F70:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: RootStackmultipleheadersfunctionA230E701:ApiEventSourceA7A86A4F
+    Metadata:
+      aws:cdk:path: RootStack/RootStackmultipleheadersfunctionA230E701:ApiEventSourceA7A86A4F/Resource
+  RootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4FCloudWatchRole42B5FDAB:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+    Metadata:
+      aws:cdk:path: RootStack/RootStackmultipleheadersfunctionA230E701:ApiEventSourceA7A86A4F/CloudWatchRole/Resource
+  RootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4FAccountE69A6DE9:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+          - RootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4FCloudWatchRole42B5FDAB
+          - Arn
+    DependsOn:
+      - RootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4FCDFC6F70
+    Metadata:
+      aws:cdk:path: RootStack/RootStackmultipleheadersfunctionA230E701:ApiEventSourceA7A86A4F/Account
+  RootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4FDeployment392F0D6F0c67baa6aaf41372538cb11919398e82:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId:
+        Ref: RootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4FCDFC6F70
+      Description: Automatically created by the RestApi construct
+    DependsOn:
+      - RootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4FmultipleheadersGETE52E5AC4
+      - RootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4Fmultipleheaders76102292
+    Metadata:
+      aws:cdk:path: RootStack/RootStackmultipleheadersfunctionA230E701:ApiEventSourceA7A86A4F/Deployment/Resource
+  RootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4FDeploymentStageprod140841C7:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId:
+        Ref: RootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4FCDFC6F70
+      DeploymentId:
+        Ref: RootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4FDeployment392F0D6F0c67baa6aaf41372538cb11919398e82
+      StageName: prod
+    Metadata:
+      aws:cdk:path: RootStack/RootStackmultipleheadersfunctionA230E701:ApiEventSourceA7A86A4F/DeploymentStage.prod/Resource
+  RootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4Fmultipleheaders76102292:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - RootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4FCDFC6F70
+          - RootResourceId
+      PathPart: multipleheaders
+      RestApiId:
+        Ref: RootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4FCDFC6F70
+    Metadata:
+      aws:cdk:path: RootStack/RootStackmultipleheadersfunctionA230E701:ApiEventSourceA7A86A4F/Default/multipleheaders/Resource
+  RootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4FmultipleheadersGETApiPermissionRootStackRootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4F76B38809GETmultipleheadersBC81CFE6:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - multipleheadersfunction490D6619
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4FCDFC6F70
+            - /
+            - Ref: RootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4FDeploymentStageprod140841C7
+            - /GET/multipleheaders
+    Metadata:
+      aws:cdk:path: RootStack/RootStackmultipleheadersfunctionA230E701:ApiEventSourceA7A86A4F/Default/multipleheaders/GET/ApiPermission.RootStackRootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4F76B38809.GET..multipleheaders
+  RootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4FmultipleheadersGETApiPermissionTestRootStackRootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4F76B38809GETmultipleheadersF11A15AF:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - multipleheadersfunction490D6619
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4FCDFC6F70
+            - /test-invoke-stage/GET/multipleheaders
+    Metadata:
+      aws:cdk:path: RootStack/RootStackmultipleheadersfunctionA230E701:ApiEventSourceA7A86A4F/Default/multipleheaders/GET/ApiPermission.Test.RootStackRootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4F76B38809.GET..multipleheaders
+  RootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4FmultipleheadersGETE52E5AC4:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId:
+        Ref: RootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4Fmultipleheaders76102292
+      RestApiId:
+        Ref: RootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4FCDFC6F70
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - multipleheadersfunction490D6619
+                  - Arn
+              - /invocations
+    Metadata:
+      aws:cdk:path: RootStack/RootStackmultipleheadersfunctionA230E701:ApiEventSourceA7A86A4F/Default/multipleheaders/GET/Resource
+  multipleheadersoverridesheadersfunctionServiceRole8A1BD492:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: RootStack/multiple_headers_overrides_headers_function/ServiceRole/Resource
+  multipleheadersoverridesheadersfunctionDE7D7081:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3Bucket0C6A52B4
+        S3Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersfa3b13f8e96c4bf14d4c6a47337be97af700c05a39b382dd2b756f3f50ffd6b9S3VersionKey5F29F473
+      Role:
+        Fn::GetAtt:
+          - multipleheadersoverridesheadersfunctionServiceRole8A1BD492
+          - Arn
+      FunctionName: MultipleHeadersOverridesHeadersResponseFunction
+      Handler: main.multiple_headers_overrides_headers
+      Runtime: python3.8
+    DependsOn:
+      - multipleheadersoverridesheadersfunctionServiceRole8A1BD492
+    Metadata:
+      aws:cdk:path: RootStack/multiple_headers_overrides_headers_function/Resource
+      aws:asset:path: ../
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  RootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4FD0247E76:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: RootStackmultipleheadersoverridesheadersfunction150FEAD8:ApiEventSourceA7A86A4F
+    Metadata:
+      aws:cdk:path: RootStack/RootStackmultipleheadersoverridesheadersfunction150FEAD8:ApiEventSourceA7A86A4F/Resource
+  RootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4FCloudWatchRoleF09E6A16:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+    Metadata:
+      aws:cdk:path: RootStack/RootStackmultipleheadersoverridesheadersfunction150FEAD8:ApiEventSourceA7A86A4F/CloudWatchRole/Resource
+  RootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4FAccount9DD1CF2C:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+          - RootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4FCloudWatchRoleF09E6A16
+          - Arn
+    DependsOn:
+      - RootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4FD0247E76
+    Metadata:
+      aws:cdk:path: RootStack/RootStackmultipleheadersoverridesheadersfunction150FEAD8:ApiEventSourceA7A86A4F/Account
+  RootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4FDeployment21ACBB6082eb97711002fb23621f37e9765826a0:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId:
+        Ref: RootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4FD0247E76
+      Description: Automatically created by the RestApi construct
+    DependsOn:
+      - RootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4FmultipleheadersoverridesheadersGET12FA4B11
+      - RootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4Fmultipleheadersoverridesheaders30790FE4
+    Metadata:
+      aws:cdk:path: RootStack/RootStackmultipleheadersoverridesheadersfunction150FEAD8:ApiEventSourceA7A86A4F/Deployment/Resource
+  RootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4FDeploymentStageprod7FB4C4B9:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId:
+        Ref: RootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4FD0247E76
+      DeploymentId:
+        Ref: RootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4FDeployment21ACBB6082eb97711002fb23621f37e9765826a0
+      StageName: prod
+    Metadata:
+      aws:cdk:path: RootStack/RootStackmultipleheadersoverridesheadersfunction150FEAD8:ApiEventSourceA7A86A4F/DeploymentStage.prod/Resource
+  RootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4Fmultipleheadersoverridesheaders30790FE4:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - RootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4FD0247E76
+          - RootResourceId
+      PathPart: multipleheadersoverridesheaders
+      RestApiId:
+        Ref: RootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4FD0247E76
+    Metadata:
+      aws:cdk:path: RootStack/RootStackmultipleheadersoverridesheadersfunction150FEAD8:ApiEventSourceA7A86A4F/Default/multipleheadersoverridesheaders/Resource
+  RootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4FmultipleheadersoverridesheadersGETApiPermissionRootStackRootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4F970914DDGETmultipleheadersov9EFB1801:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - multipleheadersoverridesheadersfunctionDE7D7081
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4FD0247E76
+            - /
+            - Ref: RootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4FDeploymentStageprod7FB4C4B9
+            - /GET/multipleheadersoverridesheaders
+    Metadata:
+      aws:cdk:path: RootStack/RootStackmultipleheadersoverridesheadersfunction150FEAD8:ApiEventSourceA7A86A4F/Default/multipleheadersoverridesheaders/GET/ApiPermission.RootStackRootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4F970914DD.GET..multipleheadersoverridesheaders
+  RootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4FmultipleheadersoverridesheadersGETApiPermissionTestRootStackRootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4F970914DDGETmultipleheadeE3656107:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - multipleheadersoverridesheadersfunctionDE7D7081
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: RootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4FD0247E76
+            - /test-invoke-stage/GET/multipleheadersoverridesheaders
+    Metadata:
+      aws:cdk:path: RootStack/RootStackmultipleheadersoverridesheadersfunction150FEAD8:ApiEventSourceA7A86A4F/Default/multipleheadersoverridesheaders/GET/ApiPermission.Test.RootStackRootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4F970914DD.GET..multipleheadersoverridesheaders
+  RootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4FmultipleheadersoverridesheadersGET12FA4B11:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId:
+        Ref: RootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4Fmultipleheadersoverridesheaders30790FE4
+      RestApiId:
+        Ref: RootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4FD0247E76
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - multipleheadersoverridesheadersfunctionDE7D7081
+                  - Arn
+              - /invocations
+    Metadata:
+      aws:cdk:path: RootStack/RootStackmultipleheadersoverridesheadersfunction150FEAD8:ApiEventSourceA7A86A4F/Default/multipleheadersoverridesheaders/GET/Resource
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/02P0U7DMAxFv2XvacZUJMQb3RBviKp8gUlNydokVexoqqL+O0nKUJ98bNnX957kqX6UD4cXuFGl+vEYlfMo4yeDGsXl27bgwSCjFw0RcpoP2g7i4iyxD4rzzkfgORTqkFzwCjOnlV6zdnYVWTxOYL56kPEtWJXHeWfPLXqjicqBBiNj56YilOsqqK4gOyBZjKRenoMakc9AKGDWAzDeYEl3SNzM+s/PHRulXLAsXnGe3GLQFsO7Lkcr/za4Ryny+1z//I784/o82mhdV9Euieyxls/y6XAlrSufnmqDstvqL0rVI5xxAQAA
+    Metadata:
+      aws:cdk:path: RootStack/CDKMetadata/Default
+    Condition: CDKMetadataAvailable

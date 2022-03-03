@@ -1,6 +1,7 @@
 import os
 import platform
 import time
+from pathlib import Path
 from unittest.mock import ANY
 
 from .integ_base import IntegBase, TelemetryServer
@@ -51,7 +52,12 @@ class TestExperimentalMetric(IntegBase):
                             "debugFlagProvided": ANY,
                             "region": ANY,
                             "commandName": ANY,
-                            "metricSpecificAttributes": {"experimentalAccelerate": True, "experimentalAll": False},
+                            "metricSpecificAttributes": {
+                                "experimentalAccelerate": True,
+                                "experimentalAll": False,
+                                "experimentalMavenScopeAndLayer": False,
+                                "experimentalEsbuild": False,
+                            },
                             "duration": ANY,
                             "exitReason": ANY,
                             "exitCode": ANY,
@@ -60,6 +66,7 @@ class TestExperimentalMetric(IntegBase):
                 ]
             }
             self.assertEqual(request["data"], expected_data)
+        os.environ["SAM_CLI_BETA_ACCELERATE"] = "0"
 
     def test_must_send_experimental_metrics_if_experimental_option(self):
         """
@@ -97,7 +104,69 @@ class TestExperimentalMetric(IntegBase):
                             "debugFlagProvided": ANY,
                             "region": ANY,
                             "commandName": ANY,
-                            "metricSpecificAttributes": {"experimentalAccelerate": True, "experimentalAll": True},
+                            "metricSpecificAttributes": {
+                                "experimentalAccelerate": True,
+                                "experimentalAll": True,
+                                "experimentalMavenScopeAndLayer": True,
+                                "experimentalEsbuild": True,
+                            },
+                            "duration": ANY,
+                            "exitReason": ANY,
+                            "exitCode": ANY,
+                        }
+                    }
+                ]
+            }
+            self.assertEqual(request["data"], expected_data)
+        os.environ["SAM_CLI_BETA_FEATURES"] = "0"
+
+    def test_must_send_cdk_project_type_metrics(self):
+        """
+        Metrics should be sent if "Disabled via config file but Enabled via Envvar"
+        """
+        # Disable it via configuration file
+        self.unset_config()
+        self.set_config(telemetry_enabled=True)
+        os.environ["SAM_CLI_BETA_FEATURES"] = "0"
+        template_path = (
+            Path(__file__)
+            .resolve()
+            .parents[1]
+            .joinpath("testdata")
+            .joinpath("telemetry")
+            .joinpath("cdk")
+            .joinpath("cdk_template.yaml")
+        )
+        with TelemetryServer() as server:
+            # Run without any envvar.Should not publish metrics
+            process = self.run_cmd(
+                cmd_list=[self.cmd, "build", "--build-dir", self.config_dir, "--template", str(template_path)],
+                optout_envvar_value="1",
+            )
+            process.communicate()
+
+            all_requests = server.get_all_requests()
+            self.assertEqual(1, len(all_requests), "Command run metric must be sent")
+            request = all_requests[0]
+            self.assertIn("Content-Type", request["headers"])
+            self.assertEqual(request["headers"]["Content-Type"], "application/json")
+
+            expected_data = {
+                "metrics": [
+                    {
+                        "commandRun": {
+                            "requestId": ANY,
+                            "installationId": self.get_global_config().installation_id,
+                            "sessionId": ANY,
+                            "executionEnvironment": ANY,
+                            "ci": ANY,
+                            "pyversion": ANY,
+                            "samcliVersion": SAM_CLI_VERSION,
+                            "awsProfileProvided": ANY,
+                            "debugFlagProvided": ANY,
+                            "region": ANY,
+                            "commandName": ANY,
+                            "metricSpecificAttributes": {"projectType": "CDK"},
                             "duration": ANY,
                             "exitReason": ANY,
                             "exitCode": ANY,

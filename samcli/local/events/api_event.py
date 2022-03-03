@@ -435,12 +435,14 @@ class ApiGatewayV2LambdaEvent:
             "rawQueryString": self.raw_query_string,
             "cookies": self.cookies,
             "headers": self.headers,
-            "queryStringParameters": self.query_string_params,
             "requestContext": request_context_dict,
             "body": self.body,
             "pathParameters": self.path_parameters,
             "stageVariables": self.stage_variables,
             "isBase64Encoded": self.is_base_64_encoded,
         }
+
+        if self.query_string_params:
+            json_dict["queryStringParameters"] = self.query_string_params
 
         return json_dict

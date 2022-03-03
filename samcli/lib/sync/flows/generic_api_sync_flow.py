@@ -1,5 +1,6 @@
 """SyncFlow interface for HttpApi and RestApi"""
 import logging
+from pathlib import Path
 from typing import Any, Dict, List, Optional, TYPE_CHECKING, cast
 
 from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall
@@ -74,6 +75,8 @@ class GenericApiSyncFlow(SyncFlow):
             return None
         properties = api_resource.get("Properties", {})
         definition_file = properties.get("DefinitionUri")
+        if self._build_context.base_dir and definition_file:
+            definition_file = str(Path(self._build_context.base_dir).joinpath(definition_file))
         return cast(Optional[str], definition_file)
 
     def compare_remote(self) -> bool:
