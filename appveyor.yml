@@ -6,6 +6,7 @@ image:
 environment:
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
+  NODE_VERSION: "14.17.6"
  
   matrix:
 
@@ -63,6 +64,7 @@ for:
         - image: Visual Studio 2019
 
     install:
+      - ps: Install-Product node $env:NODE_VERSION
       - "SET PATH=%PYTHON_HOME%;%PATH%"
       - "echo %PYTHON_HOME%"
       - "echo %PATH%"
@@ -114,11 +116,12 @@ for:
 
       # Run tests with dev env
       - "venv\\Scripts\\activate"
-      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
-      - "pylint --rcfile .pylintrc samcli"
-      - "mypy setup.py samcli tests"
-      - "pytest -n 4 tests/functional"
+      - ps: "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
+      - ps: "pylint --rcfile .pylintrc samcli"
+      - ps: "mypy setup.py samcli tests"
+      - ps: "pytest -n 4 tests/functional"
       - "deactivate"
+
 
   - 
     matrix:
@@ -139,6 +142,9 @@ for:
       - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
       - sh: "rvm use 2.7.2"
       - sh: "docker --version"
+      - sh: "nvm install ${NODE_VERSION}"
+      - sh: "npm install npm@7.24.2 -g"
+      - sh: "npm -v"
 
       # Install latest gradle
       - sh: "sudo apt-get -y remove gradle"
@@ -165,13 +171,14 @@ for:
 
       - sh: "PATH=$PATH:/usr/bin/python3.9:/usr/bin/python3.8:/usr/bin/python3.7"
       - sh: "curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py"
+      - sh: "curl https://bootstrap.pypa.io/pip/3.6/get-pip.py -o get-pip-36.py"
 
       - sh: "sudo apt-get -y install python3-distutils"
       - sh: "sudo apt-get -y install python3.9-distutils"
       - ps: "If ($env:INSTALL_PY_39_PIP) {python3.9 get-pip.py --user}"
       - ps: "If ($env:INSTALL_PY_38_PIP) {python3.8 get-pip.py --user}"
       - ps: "If ($env:INSTALL_PY_37_PIP) {python3.7 get-pip.py --user}"
-      - ps: "If ($env:INSTALL_PY_36_PIP) {python3.6 get-pip.py --user}"
+      - ps: "If ($env:INSTALL_PY_36_PIP) {python3.6 get-pip-36.py --user}"
 
       # required for RIE with arm64 in linux
       - sh: "docker run --rm --privileged multiarch/qemu-user-static --reset -p yes"

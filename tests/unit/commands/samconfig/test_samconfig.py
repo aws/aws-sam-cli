@@ -43,7 +43,7 @@ class TestSamConfigForAllCommands(TestCase):
         config_values = {
             "no_interactive": True,
             "location": "github.com",
-            "runtime": "nodejs10.x",
+            "runtime": "nodejs14.x",
             "dependency_manager": "maven",
             "output_dir": "myoutput",
             "name": "myname",
@@ -71,7 +71,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "github.com",
                 False,
                 ZIP,
-                "nodejs10.x",
+                "nodejs14.x",
                 None,
                 None,
                 "maven",
@@ -751,7 +751,7 @@ class TestSamConfigForAllCommands(TestCase):
             "end_time": "endtime",
             "region": "myregion",
         }
-        experimental_mock.return_value = False
+        experimental_mock.return_value = True
 
         with samconfig_parameters(["logs"], self.scratch_dir, **config_values) as config_path:
             from samcli.commands.logs.command import cli
@@ -775,7 +775,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "starttime",
                 "endtime",
                 (),
-                False,
+                None,
                 "myregion",
                 None,
             )
@@ -817,7 +817,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "starttime",
                 "endtime",
                 ("cw_log_group",),
-                False,
+                None,
                 "myregion",
                 None,
             )
