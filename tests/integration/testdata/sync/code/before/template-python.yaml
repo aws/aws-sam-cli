@@ -11,7 +11,7 @@ Resources:
     Properties:
       CodeUri: function/
       Handler: app.lambda_handler
-      Runtime: python3.8
+      Runtime: python3.7
       Layers:
         - Ref: HelloWorldLayer
       Tracing: Active
@@ -35,9 +35,9 @@ Resources:
       Description: Hello World Layer
       ContentUri: layer/
       CompatibleRuntimes:
-        - python3.8
+        - python3.7
     Metadata:
-      BuildMethod: python3.8
+      BuildMethod: python3.7
 
   HelloStepFunction:
     Type: AWS::Serverless::StateMachine
