@@ -353,7 +353,7 @@ class TestInteractiveInitFlow(TestCase):
             metadata = {"number_of_stages": 2}
             with open(Path(dir, "metadata.json"), "w") as f:
                 json.dump(metadata, f)
-            self.assertEquals(metadata, _get_pipeline_template_metadata(dir))
+            self.assertEqual(metadata, _get_pipeline_template_metadata(dir))
 
     def test_get_pipeline_template_metadata_not_exist(self):
         with tempfile.TemporaryDirectory() as dir:
