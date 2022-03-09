@@ -11,10 +11,11 @@ import click
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, print_cmdline_args
 from samcli.lib.utils.version_checker import check_newer_version
-from samcli.local.common.runtime_template import RUNTIMES, SUPPORTED_DEP_MANAGERS, LAMBDA_IMAGES_RUNTIMES
+from samcli.local.common.runtime_template import INIT_RUNTIMES, SUPPORTED_DEP_MANAGERS, LAMBDA_IMAGES_RUNTIMES
 from samcli.lib.telemetry.metric import track_command
 from samcli.commands.init.interactive_init_flow import _get_runtime_from_image, get_architectures, get_sorted_runtimes
 from samcli.commands._utils.click_mutex import ClickMutex
+from samcli.lib.build.app_builder import DEPRECATED_RUNTIMES
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.architecture import X86_64, ARM64
 
@@ -168,7 +169,7 @@ def non_interactive_validation(func):
 @click.option(
     "-r",
     "--runtime",
-    type=click.Choice(get_sorted_runtimes(RUNTIMES)),
+    type=click.Choice(get_sorted_runtimes(INIT_RUNTIMES)),
     help="Lambda Runtime of your app",
     cls=ClickMutex,
     incompatible_params=["location", "base_image"],
@@ -362,11 +363,11 @@ def do_cli(
 def _deprecate_notification(runtime):
     from samcli.lib.utils.colors import Colored
 
-    deprecated_runtimes = {"dotnetcore1.0", "dotnetcore2.0"}
-    if runtime in deprecated_runtimes:
+    if runtime in DEPRECATED_RUNTIMES:
         message = (
             f"WARNING: {runtime} is no longer supported by AWS Lambda, please update to a newer supported runtime. "
-            f"See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
+            "For more information please check AWS Lambda Runtime Support Policy: "
+            "https://docs.aws.amazon.com/lambda/latest/dg/runtime-support-policy.html"
         )
         LOG.warning(Colored().yellow(message))
 

@@ -1,0 +1,15 @@
+{
+  "name": "npmdeps",
+  "version": "1.0.0",
+  "description": "",
+  "keywords": [],
+  "author": "",
+  "license": "APACHE2.0",
+  "dependencies": {
+    "minimal-request-promise": "*",
+    "@types/aws-lambda": "^8.10.92"
+  },
+  "devDependencies": {
+    "esbuild": "^0.14.14"
+  }
+}
