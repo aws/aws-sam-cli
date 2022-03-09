@@ -5,6 +5,7 @@ import logging
 import time
 import threading
 
+from pathlib import Path
 from typing import List, Optional, TYPE_CHECKING
 
 from samcli.lib.utils.colors import Colored
@@ -101,7 +102,7 @@ class WatchManager:
             self._build_context, self._deploy_context, self._stacks, self._auto_dependency_layer
         )
         self._sync_flow_factory.load_physical_id_mapping()
-        self._trigger_factory = CodeTriggerFactory(self._stacks)
+        self._trigger_factory = CodeTriggerFactory(self._stacks, Path(self._build_context.base_dir))
 
     def _add_code_triggers(self) -> None:
         """Create CodeResourceTrigger for all resources and add their handlers to observer"""
