@@ -305,7 +305,7 @@ class TestBuildGraph(TestCase):
     packagetype = "{ZIP}"
     architecture = "{ARCHITECTURE_FIELD}"
     handler = "{HANDLER}"
-    functions = ["HelloWorldPython", "HelloWorldPython2"]
+    functions = ["HelloWorldPython", "HelloWorld2Python"]
     [function_build_definitions.{UUID}.metadata]
     Test = "{METADATA['Test']}"
     Test2 = "{METADATA['Test2']}"
