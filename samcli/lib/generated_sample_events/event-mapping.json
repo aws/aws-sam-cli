@@ -1003,5 +1003,22 @@
         }
       }
     }
+  },
+  "workmail": {
+    "email": {
+      "filename": "WorkMail",
+      "help": "Generates an Amazon Work Mail Event",
+      "tags": {
+        "flow-direction": {
+          "default": "INBOUND"
+        },
+        "mail-from": {
+          "default": "from@example.com"
+        },
+        "sender": {
+          "default": "sender@example.com"
+        }
+      }
+    }
   }
 }
