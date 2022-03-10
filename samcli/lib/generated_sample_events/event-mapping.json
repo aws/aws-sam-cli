@@ -818,6 +818,23 @@
       "tags": {}
     }
   },
+  "lex-v2": {
+    "banking-bot": {
+      "filename": "BankingBot",
+      "help": "Generates an Amazon Lex V2 Banking Bot Event",
+      "tags": {}
+    },
+    "book-car": {
+      "filename": "LexBookCar",
+      "help": "Generates an Amazon Lex V2 Book Car Event",
+      "tags": {}
+    },
+    "book-hotel": {
+      "filename": "LexBookHotel",
+      "help": "Generates an Amazon Lex V2 Book Hotel Event",
+      "tags": {}
+    }
+  },
   "rekognition": {
     "s3-request": {
       "filename": "RekognitionS3Request",
