@@ -300,6 +300,9 @@ def _get_choice_from_options(chosen, options, question, msg):
     click_choices = []
 
     options_list = options if isinstance(options, list) else list(options.keys())
+    options_list = (
+        get_sorted_runtimes(options_list) if msg == "Runtime" and not isinstance(options, list) else options_list
+    )
 
     if not options_list:
         raise InvalidInitOptionException(f"There are no {msg} options available to be selected.")
@@ -312,9 +315,7 @@ def _get_choice_from_options(chosen, options, question, msg):
         return options_list[0]
 
     click.echo(f"\n{question}")
-    options_list = (
-        get_sorted_runtimes(options_list) if msg == "Runtime" and not isinstance(options, list) else options_list
-    )
+
     for index, option in enumerate(options_list):
         click.echo(f"\t{index+1} - {option}")
         click_choices.append(str(index + 1))
@@ -338,7 +339,7 @@ def get_sorted_runtimes(runtime_option_list):
         sorted list of possible runtime to be selected
     """
     runtime_list = []
-    supported_runtime_list = [runtime for runtime in runtime_option_list if runtime in INIT_RUNTIMES]
+    supported_runtime_list = get_supported_runtime(runtime_option_list)
     for runtime in supported_runtime_list:
         extractLanguageFromRuntime = re.split(r"\d", runtime)[0]
         extractVersionFromRuntime = re.search(r"\d.*", runtime).group()
@@ -347,6 +348,20 @@ def get_sorted_runtimes(runtime_option_list):
     runtime_list = sorted(supported_runtime_list, key=functools.cmp_to_key(compare_runtimes))
     sorted_runtime = ["".join(runtime_tuple) for runtime_tuple in runtime_list]
     return sorted_runtime
+
+
+def get_supported_runtime(runtime_list):
+    supported_runtime_list = []
+    error_message = ""
+    for runtime in runtime_list:
+        if runtime not in INIT_RUNTIMES:
+            if not error_message:
+                LOG.debug(
+                    "Additional runtimes may be available in the latest SAM CLI version. Upgrade your SAM CLI to see the full list."
+                )
+            continue
+        supported_runtime_list.append(runtime)
+    return supported_runtime_list
 
 
 def compare_runtimes(first_runtime, second_runtime):
