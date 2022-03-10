@@ -1,0 +1,24 @@
+{
+    "summaryVersion": "2018-10-10",
+    "envelope": {
+      "mailFrom": {
+        "address": "{{{mail_from}}}"
+      },
+      "recipients": [
+        {
+          "address": "recipient1@example.com"
+        },
+        {
+          "address": "recipient2@example.com"
+        }
+      ]
+    },
+    "sender": {
+      "address": "{{{sender}}}"
+    },
+    "subject": "Hello From Amazon WorkMail!",
+    "messageId": "00000000-0000-0000-0000-000000000000",
+    "invocationId": "00000000000000000000000000000000",
+    "flowDirection": "{{{flow_direction}}}",
+    "truncated": false
+  }

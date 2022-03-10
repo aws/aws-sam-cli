@@ -190,6 +190,35 @@
           "default": "us-east-1.amazonaws.com"
         }
       }
+    },
+    "http-api-proxy": {
+      "filename": "HttpApi",
+      "help": "Generates an Amazon API Gateway Http API Event",
+      "tags": {
+        "body": {
+          "type": "string",
+          "default": "{\"test\":\"body\"}",
+          "encoding": "base64"
+        },
+        "stage": {
+          "type": "string",
+          "default": "$default"
+        },
+        "method": {
+          "type": "string",
+          "default": "POST"
+        },
+        "path": {
+          "type": "string",
+          "default": "path/to/resource"
+        },
+        "account-id": {
+          "default": "123456789012"
+        },
+        "dns-suffix": {
+          "default": "us-east-1.amazonaws.com"
+        }
+      }    
     }
   },
   "appsync": {
@@ -1000,6 +1029,23 @@
         "cause": {
           "type": "string",
           "default": "This is the cause of the error."
+        }
+      }
+    }
+  },
+  "workmail": {
+    "email": {
+      "filename": "WorkMail",
+      "help": "Generates an Amazon Work Mail Event",
+      "tags": {
+        "flow-direction": {
+          "default": "INBOUND"
+        },
+        "mail-from": {
+          "default": "from@example.com"
+        },
+        "sender": {
+          "default": "sender@example.com"
         }
       }
     }
