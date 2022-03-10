@@ -17,7 +17,7 @@ from samcli.commands.init.interactive_event_bridge_flow import (
 )
 from samcli.commands.exceptions import SchemasApiException, InvalidInitOptionException
 from samcli.lib.schemas.schemas_code_manager import do_download_source_code_binding, do_extract_and_merge_schemas_code
-from samcli.local.common.runtime_template import LAMBDA_IMAGES_RUNTIMES_MAP
+from samcli.local.common.runtime_template import INIT_RUNTIMES, LAMBDA_IMAGES_RUNTIMES_MAP
 from samcli.commands.init.init_generator import do_generate
 from samcli.commands.init.init_templates import InitTemplates, InvalidInitTemplateError
 from samcli.lib.utils.osutils import remove
@@ -338,12 +338,13 @@ def get_sorted_runtimes(runtime_option_list):
         sorted list of possible runtime to be selected
     """
     runtime_list = []
-    for runtime in runtime_option_list:
+    supported_runtime_list = [runtime for runtime in runtime_option_list if runtime in INIT_RUNTIMES]
+    for runtime in supported_runtime_list:
         extractLanguageFromRuntime = re.split(r"\d", runtime)[0]
         extractVersionFromRuntime = re.search(r"\d.*", runtime).group()
         runtime_list.append((extractLanguageFromRuntime, extractVersionFromRuntime))
 
-    runtime_list = sorted(runtime_option_list, key=functools.cmp_to_key(compare_runtimes))
+    runtime_list = sorted(supported_runtime_list, key=functools.cmp_to_key(compare_runtimes))
     sorted_runtime = ["".join(runtime_tuple) for runtime_tuple in runtime_list]
     return sorted_runtime
 
