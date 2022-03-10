@@ -181,7 +181,7 @@ class SchemasApiCaller:
         Parameters
         ----------
         runtime:
-            Code binding runtime e.g: Java, Python, Go
+            Code binding runtime e.g: Java, Python
         registry_name:
             Registry Name
         schema_name:
@@ -208,7 +208,7 @@ class SchemasApiCaller:
         Parameters
         ----------
         runtime:
-            Code binding runtime e.g: Java, Python, Go
+            Code binding runtime e.g: Java, Python
         registry_name:
             Registry Name
         schema_name:
@@ -236,7 +236,7 @@ class SchemasApiCaller:
         Parameters
         ----------
         schemas_runtime:
-            Code binding runtime e.g: Java, Python, Go
+            Code binding runtime e.g: Java, Python
         registry_name:
             Registry Name
         schema_name:
