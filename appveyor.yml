@@ -129,6 +129,9 @@ for:
         - image: Ubuntu
 
     install:
+      # Start performance monitoring
+      - sh: "while true; do top -n 1 -b | head -n 5 | tail -n 3 >> perf.log; sleep 1; done &"
+
       # apt repo for python3.9 installation
       - sh: "sudo add-apt-repository ppa:deadsnakes/ppa"
       # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
@@ -218,3 +221,12 @@ for:
       # Smoke tests run in parallel - it runs on both Linux & Windows
       # Presence of the RUN_SMOKE envvar will run the smoke tests
       - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"
+
+
+after_test:
+  # Stop performance monitoring
+  - sh: "jobs"
+  - sh: "stop %1"
+
+artifacts:
+  - paths: perf.log

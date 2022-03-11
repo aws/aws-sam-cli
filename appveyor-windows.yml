@@ -16,7 +16,7 @@ environment:
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
 
-  # In Windows, tempdir is usually in C:\. But in AppVeyor only D:\ is shared in Docker. 
+  # In Windows, tempdir is usually in C:\. But in AppVeyor only D:\ is shared in Docker.
   # Therefore change TEMPDIR it to D: for invoke tests to work. Python uses $TMPDIR envvar
   # to find root of tempdir
   TMPDIR: D:\tmp
@@ -27,13 +27,13 @@ environment:
   PYTHON_HOME: "C:\\Python37-x64"
   PYTHON_SCRIPTS: "C:\\Python37-x64\\Scripts"
   PYTHON_EXE: "C:\\Python37-x64\\python.exe"
-  PYTHON_ARCH: '64'
+  PYTHON_ARCH: "64"
   HOME: 'C:\Users\appveyor'
-  HOMEDRIVE: 'C:'
+  HOMEDRIVE: "C:"
   HOMEPATH: 'C:\Users\appveyor'
   NOSE_PARAMETERIZED_NO_WARN: 1
-  AWS_S3: 'AWS_S3_37_WIN'
-  AWS_ECR: 'AWS_ECR_37'
+  AWS_S3: "AWS_S3_37_WIN"
+  AWS_ECR: "AWS_ECR_37"
   APPVEYOR_CONSOLE_DISABLE_PTY: true
 
 init:
@@ -42,6 +42,10 @@ init:
   - ps: gcim Win32_Processor | % { "$($_.NumberOfLogicalProcessors) logical CPUs" }
   - ps: gcim Win32_OperatingSystem | % { "$([int]($_.TotalVisibleMemorySize/1mb)) Gb" }
   - git config --global core.autocrlf false
+
+  # Start performance monitoring
+  - ps: $CPU_Job = Start-Job -ScriptBlock {Get-Counter -Counter "\Processor(_Total)\% Processor Time" -Continuous}
+  - ps: $RAM_Job = Start-Job -ScriptBlock {Get-Counter -Counter "\Memory\Available MBytes" -Continuous}
 
 cache:
   - C:\ProgramData\chocolatey\bin -> appveyor.yml
@@ -71,7 +75,7 @@ install:
   - "python --version"
 
   # Actually install SAM CLI's dependencies
-  - "pip install -e \".[dev]\""
+  - 'pip install -e ".[dev]"'
 
   # Install aws cli
   - "pip install awscli"
@@ -87,77 +91,87 @@ install:
 
 for:
   #Integ testing build, regression
-  -
-    matrix:
+  - matrix:
       only:
         - configuration: BuildIntegTesting
 
     test_script:
-        # Reactivate virtualenv before running tests
-        - ps: "
-            If (Test-Path env:BY_CANARY){
-              echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
-            }"
-        - "git --version"
-        - "venv\\Scripts\\activate"
-        - "docker system prune -a -f"
-        - ps: "pytest -vv tests/integration/buildcmd"
+      # Reactivate virtualenv before running tests
+      - ps: "
+          If (Test-Path env:BY_CANARY){
+          echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
+          }"
+      - "git --version"
+      - "venv\\Scripts\\activate"
+      - "docker system prune -a -f"
+      - ps: "pytest -vv tests/integration/buildcmd"
 
   #Integ testing deploy
-  -
-    matrix:
+  - matrix:
       only:
         - configuration: DeployIntegTesting
 
     test_script:
-        # Reactivate virtualenv before running tests
-        - ps: "
-            If (Test-Path env:BY_CANARY){
-              echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
-            }"
-        - "git --version"
-        - "venv\\Scripts\\activate"
-        - "docker system prune -a -f"
-        - ps: "pytest -vv tests/integration/delete tests/integration/deploy tests/integration/package tests/integration/sync"
+      # Reactivate virtualenv before running tests
+      - ps: "
+          If (Test-Path env:BY_CANARY){
+          echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
+          }"
+      - "git --version"
+      - "venv\\Scripts\\activate"
+      - "docker system prune -a -f"
+      - ps: "pytest -vv tests/integration/delete tests/integration/deploy tests/integration/package tests/integration/sync"
 
   #Integ testing local
-  -
-    matrix:
+  - matrix:
       only:
         - configuration: LocalIntegTesting
 
     test_script:
-        # Reactivate virtualenv before running tests
-        - ps: "
-            If (Test-Path env:BY_CANARY){
-              echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
-            }"
-        - "git --version"
-        - "venv\\Scripts\\activate"
-        - "docker system prune -a -f"
-        - ps: "pytest -vv tests/integration/local"
+      # Reactivate virtualenv before running tests
+      - ps: "
+          If (Test-Path env:BY_CANARY){
+          echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
+          }"
+      - "git --version"
+      - "venv\\Scripts\\activate"
+      - "docker system prune -a -f"
+      - ps: "pytest -vv tests/integration/local"
 
   #Other testing
-  -
-    matrix:
+  - matrix:
       only:
         - configuration: OtherTesting
 
     test_script:
-        # Reactivate virtualenv before running tests
-        - ps: "
-            If (Test-Path env:BY_CANARY){
-              echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
-            }"
-        - "git --version"
-        - "venv\\Scripts\\activate"
-        - "docker system prune -a -f"
-        - ps: "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
-        - "mypy setup.py samcli tests"
-        - ps: "pytest -n 4 tests/functional"
-        - ps: "pytest -vv tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local"
-        - ps: "pytest -vv tests/regression"
-
+      # Reactivate virtualenv before running tests
+      - ps: "
+          If (Test-Path env:BY_CANARY){
+          echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
+          }"
+      - "git --version"
+      - "venv\\Scripts\\activate"
+      - "docker system prune -a -f"
+      - ps: "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
+      - "mypy setup.py samcli tests"
+      - ps: "pytest -n 4 tests/functional"
+      - ps: "pytest -vv tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local"
+      - ps: "pytest -vv tests/regression"
 # Uncomment for RDP
 # on_finish:
 #   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+
+after_test:
+  # Stop performance monitoring
+  - ps: Stop-Job $CPU_Job
+  - ps: Stop-Job $RAM_Job
+
+  - ps: Receive-Job $CPU_Job | Out-File -FilePath CPU.log
+  - ps: Receive-Job $RAM_Job | Out-File -FilePath RAM.log
+
+  - ps: Remove-Job $CPU_Job
+  - ps: Remove-Job $RAM_Job
+
+artifacts:
+  - paths: CPU.log
+  - paths: RAM.log
