@@ -229,4 +229,4 @@ after_test:
   - sh: "stop %1"
 
 artifacts:
-  - paths: perf.log
+  - path: perf.log

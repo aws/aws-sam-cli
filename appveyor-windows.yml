@@ -173,5 +173,5 @@ after_test:
   - ps: Remove-Job $RAM_Job
 
 artifacts:
-  - paths: CPU.log
-  - paths: RAM.log
+  - path: CPU.log
+  - path: RAM.log
