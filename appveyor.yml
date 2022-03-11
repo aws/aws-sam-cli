@@ -226,7 +226,7 @@ for:
 after_test:
   # Stop performance monitoring
   - sh: "jobs"
-  - sh: "stop %1"
+  - sh: "kill %1"
 
 artifacts:
   - path: perf.log
