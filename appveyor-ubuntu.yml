@@ -1,5 +1,5 @@
 version: 1.0.{build}
-image: 
+image:
   - Ubuntu
 
 environment:
@@ -7,14 +7,14 @@ environment:
   SAM_CLI_DEV: 1
   NODE_VERSION: "14.17.6"
   PYTHON_HOME: "C:\\Python36-x64"
-  PYTHON_VERSION: '3.6'
-  PYTHON_ARCH: '64'
+  PYTHON_VERSION: "3.6"
+  PYTHON_ARCH: "64"
   NOSE_PARAMETERIZED_NO_WARN: 1
   INSTALL_PY_37_PIP: 1
   INSTALL_PY_38_PIP: 1
   INSTALL_PY_39_PIP: 1
-  AWS_S3: 'AWS_S3_36'
-  AWS_ECR: 'AWS_ECR_36'
+  AWS_S3: "AWS_S3_36"
+  AWS_ECR: "AWS_ECR_36"
   APPVEYOR_CONSOLE_DISABLE_PTY: true
 
 install:
@@ -79,26 +79,26 @@ install:
   - sh: "sudo apt-get install --reinstall ca-certificates"
 
 build_script:
-  - "python -c \"import sys; print(sys.executable)\""
+  - 'python -c "import sys; print(sys.executable)"'
 
 test_script:
   - sh: "pytest -brokenexitcode || true"
   # Pre-dev Tests
-  - "pip install -e \".[pre-dev]\""
+  - 'pip install -e ".[pre-dev]"'
   - "pylint --rcfile .pylintrc samcli"
 
   # Dev Tests
-  - "pip install -e \".[dev]\""
+  - 'pip install -e ".[dev]"'
   - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
   - "pylint --rcfile .pylintrc samcli"
   - "mypy setup.py samcli tests"
   - "pytest -n 4 tests/functional"
 
   # Runs only in Linux, logging Public ECR when running canary and cred is available
-  - sh: "
-    if [[ -n $BY_CANARY ]];
-      then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
-    fi"
+  #- sh: "
+  #  if [[ -n $BY_CANARY ]];
+  #    then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
+  #  fi"
 
   #- sh: "pytest tests/integration || true"
   - sh: "pytest -vv tests/regression"
@@ -107,7 +107,6 @@ test_script:
   # Smoke tests run in parallel - it runs on both Linux & Windows
   # Presence of the RUN_SMOKE envvar will run the smoke tests
   - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"
-
 
 after_test:
   # Stop performance monitoring
