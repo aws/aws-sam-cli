@@ -351,14 +351,28 @@ def get_sorted_runtimes(runtime_option_list):
 
 
 def get_supported_runtime(runtime_list):
+    """
+    Returns a list of only runtimes supported by the current version of SAMCLI.
+    This is the list that is presented to the customer to select from.
+
+    Parameters
+    ----------
+    runtime_list : list
+        List of runtime
+
+    Returns
+    -------
+    list
+        List of supported runtime
+    """
     supported_runtime_list = []
     error_message = ""
     for runtime in runtime_list:
         if runtime not in INIT_RUNTIMES:
             if not error_message:
-                LOG.debug(
-                    "Additional runtimes may be available in the latest SAM CLI version. Upgrade your SAM CLI to see the full list."
-                )
+                error_message = "Additional runtimes may be available in the latest SAM CLI version. \
+                    Upgrade your SAM CLI to see the full list."
+                LOG.debug(error_message)
             continue
         supported_runtime_list.append(runtime)
     return supported_runtime_list
