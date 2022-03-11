@@ -84,6 +84,7 @@ install:
 
 test_script:
   # Reactivate virtualenv before running tests
+  - ps: "try{pytest -testexitcode}finally{$LASTEXITCODE = 0}"
   - ps: "
       If (Test-Path env:BY_CANARY){
       echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
@@ -94,7 +95,7 @@ test_script:
   - ps: "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
   - "mypy setup.py samcli tests"
   - ps: "pytest -n 4 tests/functional"
-  #- ps: "pytest -vv tests/integration
+  #- ps: "try{pytest -vv tests/integration}finally{$LASTEXITCODE = 0}"
   - ps: "pytest -vv tests/regression"
 # Uncomment for RDP
 # on_finish:

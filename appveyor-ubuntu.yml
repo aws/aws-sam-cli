@@ -82,6 +82,7 @@ build_script:
   - "python -c \"import sys; print(sys.executable)\""
 
 test_script:
+  - sh: "pytest -brokenexitcode || true"
   # Pre-dev Tests
   - "pip install -e \".[pre-dev]\""
   - "pylint --rcfile .pylintrc samcli"
@@ -99,7 +100,7 @@ test_script:
       then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
     fi"
 
-  #- sh: "pytest tests/integration"
+  #- sh: "pytest tests/integration || true"
   - sh: "pytest -vv tests/regression"
   - sh: "black --check setup.py tests samcli"
 
