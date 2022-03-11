@@ -37,7 +37,7 @@ init:
   - git config --global core.autocrlf false
 
   # Start performance monitoring
-  - ps: [math]::Round((Get-Ciminstance Win32_OperatingSystem).TotalVisibleMemorySize / 1mb,2)
+  - ps: "[math]::Round((Get-Ciminstance Win32_OperatingSystem).TotalVisibleMemorySize / 1mb,2)"
   - ps: $CPU_Job = Start-Job -ScriptBlock {Get-Counter -Counter "\Processor(_Total)\% Processor Time" -Continuous}
   - ps: $RAM_Job = Start-Job -ScriptBlock {Get-Counter -Counter "\Memory\Available MBytes" -Continuous}
 
