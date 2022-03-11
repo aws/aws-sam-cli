@@ -18,7 +18,9 @@ environment:
   APPVEYOR_CONSOLE_DISABLE_PTY: true
 
 install:
-  # Start performance monitoring
+  # Start performance monitoring\
+  - sh: "cat /proc/cpuinfo"
+  - sh: "cat /proc/meminfo"
   - sh: "while true; do top -n 1 -b | head -n 5 | tail -n 3 >> perf.log; sleep 1; done &"
 
   # apt repo for python3.9 installation
