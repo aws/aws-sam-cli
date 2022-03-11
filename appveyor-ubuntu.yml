@@ -101,12 +101,12 @@ test_script:
   #  fi"
 
   #- sh: "pytest tests/integration || true"
-  - sh: "pytest -vv tests/regression"
+  #- sh: "pytest -vv tests/regression"
   - sh: "black --check setup.py tests samcli"
 
   # Smoke tests run in parallel - it runs on both Linux & Windows
   # Presence of the RUN_SMOKE envvar will run the smoke tests
-  - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"
+  #- ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"
 
 after_test:
   # Stop performance monitoring

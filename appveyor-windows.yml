@@ -96,7 +96,7 @@ test_script:
   - "mypy setup.py samcli tests"
   - ps: "pytest -n 4 tests/functional"
   #- ps: "try{pytest -vv tests/integration}finally{$LASTEXITCODE = 0}"
-  - ps: "pytest -vv tests/regression"
+  #- ps: "pytest -vv tests/regression"
 # Uncomment for RDP
 # on_finish:
 #   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
