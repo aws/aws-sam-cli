@@ -1,7 +1,6 @@
 version: 1.0.{build}
 image: 
   - Ubuntu
-  - Visual Studio 2019
 
 environment:
   AWS_DEFAULT_REGION: us-east-1
@@ -9,7 +8,6 @@ environment:
   NODE_VERSION: "14.17.6"
  
   matrix:
-
     - PYTHON_HOME: "C:\\Python36-x64"
       PYTHON_VERSION: '3.6'
       PYTHON_ARCH: '64'
@@ -21,108 +19,7 @@ environment:
       AWS_ECR: 'AWS_ECR_36'
       APPVEYOR_CONSOLE_DISABLE_PTY: true
 
-    - PYTHON_HOME: "C:\\Python37-x64"
-      PYTHON_VERSION: '3.7'
-      PYTHON_ARCH: '64'
-      RUN_SMOKE: 1
-      NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_36_PIP: 1
-      INSTALL_PY_38_PIP: 1
-      INSTALL_PY_39_PIP: 1
-      AWS_S3: 'AWS_S3_37'
-      AWS_ECR: 'AWS_ECR_37'
-      APPVEYOR_CONSOLE_DISABLE_PTY: true
-
-    - PYTHON_HOME: "C:\\Python38-x64"
-      PYTHON_VERSION: '3.8'
-      PYTHON_ARCH: '64'
-      RUN_SMOKE: 1
-      NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_36_PIP: 1
-      INSTALL_PY_37_PIP: 1
-      INSTALL_PY_39_PIP: 1
-      AWS_S3: 'AWS_S3_38'
-      AWS_ECR: 'AWS_ECR_38'
-      APPVEYOR_CONSOLE_DISABLE_PTY: true
-
-    - PYTHON_HOME: "C:\\Python39-x64"
-      PYTHON_VERSION: '3.9'
-      PYTHON_ARCH: '64'
-      RUN_SMOKE: 1
-      NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_36_PIP: 1
-      INSTALL_PY_37_PIP: 1
-      INSTALL_PY_38_PIP: 1
-      AWS_S3: 'AWS_S3_39'
-      AWS_ECR: 'AWS_ECR_39'
-      APPVEYOR_CONSOLE_DISABLE_PTY: true
-
 for:
-  - 
-    matrix:
-      only:
-        - image: Visual Studio 2019
-
-    install:
-      - ps: Install-Product node $env:NODE_VERSION
-      - "SET PATH=%PYTHON_HOME%;%PATH%"
-      - "echo %PYTHON_HOME%"
-      - "echo %PATH%"
-      - "python --version"
-      # Upgrade setuptools, wheel and virtualenv
-      - "SET PATH=%PYTHON_HOME%;%PATH%"
-      - "echo %PYTHON_HOME%"
-      - "echo %PATH%"
-      - "python -m pip install --upgrade setuptools wheel virtualenv"
-      - "docker info"
-
-      # Install AWS CLI Globally outside of a venv.
-      - "pip install awscli"
-      
-      # Create pre-dev virtual env without installing dev depenencies
-      # This is used for import check for prod code to prevent importing packages from dev.txt
-      - "rm -rf pre-dev-venv"
-      - "python -m virtualenv pre-dev-venv"
-      - "pre-dev-venv\\Scripts\\activate"
-      - "python --version"
-      - "deactivate"
-
-      # Create dev virtual env
-      - "rm -rf venv"
-      - "python -m virtualenv venv"
-      - "venv\\Scripts\\activate"
-      - "python --version"
-      - "deactivate"
-
-    build_script:
-      # Install pre-dev dependencies
-      # This env is currently used for doing import check with Pylint without dev.txt dependencies installed 
-      - "pre-dev-venv\\Scripts\\activate"
-      - "python -c \"import sys; print(sys.executable)\""
-      - "pip install -e \".[pre-dev]\""
-      - "deactivate"
-
-      # Install dev dependencies
-      - "venv\\Scripts\\activate"
-      - "python -c \"import sys; print(sys.executable)\""
-      - "pip install -e \".[dev]\""
-      - "deactivate"
-
-    test_script:
-      # Run pylint on pre-dev env to catch import errors
-      - "pre-dev-venv\\Scripts\\activate"
-      - "pylint --rcfile .pylintrc samcli"
-      - "deactivate"
-
-      # Run tests with dev env
-      - "venv\\Scripts\\activate"
-      - ps: "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
-      - ps: "pylint --rcfile .pylintrc samcli"
-      - ps: "mypy setup.py samcli tests"
-      - ps: "pytest -n 4 tests/functional"
-      - "deactivate"
-
-
   - 
     matrix:
       only:
