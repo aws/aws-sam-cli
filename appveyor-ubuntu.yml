@@ -84,7 +84,6 @@ build_script:
   - 'python -c "import sys; print(sys.executable)"'
 
 test_script:
-  - sh: "pytest -brokenexitcode || true"
   # Pre-dev Tests
   - 'pip install -e ".[pre-dev]"'
   - "pylint --rcfile .pylintrc samcli"
@@ -97,18 +96,18 @@ test_script:
   - "pytest -n 4 tests/functional"
 
   # Runs only in Linux, logging Public ECR when running canary and cred is available
-  #- sh: "
-  #  if [[ -n $BY_CANARY ]];
-  #    then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
-  #  fi"
+  - sh: "
+    if [[ -n $BY_CANARY ]];
+      then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
+    fi"
 
-  #- sh: "pytest tests/integration || true"
-  #- sh: "pytest -vv tests/regression"
+  - sh: "pytest tests/integration || true"
+  - sh: "pytest -vv tests/regression || true"
   - sh: "black --check setup.py tests samcli"
 
   # Smoke tests run in parallel - it runs on both Linux & Windows
   # Presence of the RUN_SMOKE envvar will run the smoke tests
-  #- ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"
+  - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"
 
 after_test:
   # Stop performance monitoring
