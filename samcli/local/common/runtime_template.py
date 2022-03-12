@@ -172,5 +172,21 @@ def is_custom_runtime(runtime):
 
 
 def get_custom_runtime_base_runtime(runtime):
+    """
+    Gets the base lambda runtime for which a custom runtime is based on
+    Example:
+    rust (provided.al2) --> provided.al2
+    java11 --> None
+
+    Parameters
+    ----------
+    runtime : str
+        Custom runtime or Lambda runtime
+
+    Returns
+    -------
+    str
+        returns the base lambda runtime for which a custom runtime is based on
+    """
     base_runtime_list = re.findall(r"\(([^()]+)\)", runtime)
     return base_runtime_list[0] if base_runtime_list else None
