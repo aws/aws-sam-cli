@@ -2,6 +2,7 @@
 All-in-one metadata about runtimes
 """
 
+import re
 import itertools
 import os
 import pathlib
@@ -103,6 +104,9 @@ INIT_RUNTIMES = [
     # nodejs runtimes in descending order
     "nodejs14.x",
     "nodejs12.x",
+    # custom runtime in descending order
+    "provided.al2",
+    "provided",
     # python runtimes in descending order
     "python3.9",
     "python3.8",
@@ -145,3 +149,28 @@ SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
     "dotnet6": "dotnetcore3.1",
     "go1.x": "Go1",
 }
+
+PROVIDED_RUNTIMES = ["provided.al2", "provided"]
+
+
+def is_custom_runtime(runtime):
+    """
+    validated if a runtime is custom or not
+    Parameters
+    ----------
+    runtime : str
+        runtime to be
+    Returns
+    -------
+    _type_
+        _description_
+    """
+    if not runtime:
+        return False
+    validation_result = get_custom_runtime_base_runtime(runtime)
+    return runtime in PROVIDED_RUNTIMES or bool(validation_result in PROVIDED_RUNTIMES)
+
+
+def get_custom_runtime_base_runtime(runtime):
+    base_runtime_list = re.findall(r"\(([^()]+)\)", runtime)
+    return base_runtime_list[0] if base_runtime_list else None
