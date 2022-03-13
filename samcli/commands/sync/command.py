@@ -319,6 +319,7 @@ def do_cli(
                     force_upload=True,
                     signing_profiles=None,
                     disable_rollback=False,
+                    stack_outputs_file=None,
                 ) as deploy_context:
                     if watch:
                         execute_watch(template_file, build_context, package_context, deploy_context, dependency_layer)

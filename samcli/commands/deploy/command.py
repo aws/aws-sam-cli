@@ -2,6 +2,7 @@
 CLI command for "deploy" command
 """
 import logging
+import pathlib
 
 import click
 
@@ -103,6 +104,12 @@ LOG = logging.getLogger(__name__)
     is_flag=True,
     help="Preserves the state of previously provisioned resources when an operation fails.",
 )
+@click.option(
+    "--stack-outputs-file",
+    "-so",
+    type=click.Path(),
+    help="Saves stack outputs as JSON with the file path/name provided",
+)
 @stack_name_option(callback=guided_deploy_stack_name)  # pylint: disable=E1120
 @s3_bucket_option(guided=True)  # pylint: disable=E1120
 @image_repository_option
@@ -157,6 +164,7 @@ def cli(
     config_file,
     config_env,
     disable_rollback,
+    stack_outputs_file,
 ):
     """
     `sam deploy` command entry point
@@ -191,6 +199,7 @@ def cli(
         config_env,
         resolve_image_repos,
         disable_rollback,
+        stack_outputs_file,
     )  # pragma: no cover
 
 
@@ -223,6 +232,7 @@ def do_cli(
     config_env,
     resolve_image_repos,
     disable_rollback,
+    stack_outputs_file,
 ):
     """
     Implementation of the ``cli`` method
@@ -315,5 +325,6 @@ def do_cli(
             signing_profiles=guided_context.signing_profiles if guided else signing_profiles,
             use_changeset=True,
             disable_rollback=guided_context.disable_rollback if guided else disable_rollback,
+            stack_outputs_file=pathlib.Path(stack_outputs_file),
         ) as deploy_context:
             deploy_context.run()

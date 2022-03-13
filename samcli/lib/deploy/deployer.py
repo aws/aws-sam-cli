@@ -15,6 +15,8 @@ Cloudformation deploy class which also streams events and changeset information
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+import json
+import pathlib
 import sys
 import math
 from collections import OrderedDict
@@ -38,6 +40,7 @@ from samcli.lib.package.local_files_utils import mktempfile, get_uploaded_s3_obj
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.time import utc_to_timestamp
 from samcli.lib.utils.colors import Colored
+from samcli.yamlhelper import yaml_dump
 
 LOG = logging.getLogger(__name__)
 
@@ -74,7 +77,9 @@ OUTPUTS_TABLE_HEADER_NAME = "CloudFormation outputs from deployed stack"
 
 
 class Deployer:
-    def __init__(self, cloudformation_client, changeset_prefix="samcli-deploy"):
+    def __init__(
+        self, cloudformation_client, changeset_prefix="samcli-deploy", stack_outputs_file: pathlib.Path = None
+    ):
         self._client = cloudformation_client
         self.changeset_prefix = changeset_prefix
         # 500ms of sleep time between stack checks and describe stack events.
@@ -85,6 +90,7 @@ class Deployer:
         self.max_attempts = 3
         self.deploy_color = DeployColor()
         self._colored = Colored()
+        self.stack_outputs_file = stack_outputs_file
 
     # pylint: disable=inconsistent-return-statements
     def has_stack(self, stack_name):
@@ -467,6 +473,10 @@ class Deployer:
 
         outputs = self.get_stack_outputs(stack_name=stack_name, echo=False)
         if outputs:
+            if self.stack_outputs_file:
+                # write out outputs
+                self._write_stack_outputs_file(outputs, self.stack_outputs_file)
+
             self._display_stack_outputs(outputs)
 
     def create_and_wait_for_changeset(
@@ -599,6 +609,20 @@ class Deployer:
                     drop_whitespace=False,
                 )
             newline_per_item(stack_outputs, counter)
+
+    @staticmethod
+    def _write_stack_outputs_file(outputs: dict, file_path: pathlib.Path) -> bool:
+        try:
+            out_dict = {o["OutputKey"]: o["OutputValue"] for o in outputs}
+            with open(file_path, "w") as out_io:
+                if file_path.suffix.lower() == ".json":
+                    json.dump(out_dict, out_io, indent=2)
+                else:
+                    out_io.write(yaml_dump(out_dict))
+            return True
+        except OSError:
+            LOG.warning("Stack Outputs not written. Unable to open file '%s'.", file_path)
+        return False
 
     def get_stack_outputs(self, stack_name, echo=True):
         try:
