@@ -300,9 +300,7 @@ def _get_choice_from_options(chosen, options, question, msg):
     click_choices = []
 
     options_list = options if isinstance(options, list) else list(options.keys())
-    options_list = (
-        get_sorted_runtimes(options_list) if msg == "Runtime" and not isinstance(options, list) else options_list
-    )
+    options_list = get_sorted_runtimes(options_list) if msg == "Runtime" else options_list
 
     if not options_list:
         raise InvalidInitOptionException(f"There are no {msg} options available to be selected.")
