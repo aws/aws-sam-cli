@@ -618,8 +618,8 @@ class Deployer:
                 else:
                     out_io.write(yaml_dump(out_dict))
             return True
-        except OSError:
-            LOG.warning("Stack Outputs not written. Unable to open file '%s'.", file_path)
+        except OSError as err:
+            LOG.warning("Stack Outputs not written. Unable to write to file '%s':\n{err}", file_path)
         return False
 
     def get_stack_outputs(self, stack_name, echo=True):
