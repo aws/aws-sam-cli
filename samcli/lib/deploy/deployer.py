@@ -77,9 +77,7 @@ OUTPUTS_TABLE_HEADER_NAME = "CloudFormation outputs from deployed stack"
 
 
 class Deployer:
-    def __init__(
-        self, cloudformation_client, changeset_prefix="samcli-deploy", stack_outputs_file: pathlib.Path = None
-    ):
+    def __init__(self, cloudformation_client, changeset_prefix="samcli-deploy", stack_outputs_file=None):
         self._client = cloudformation_client
         self.changeset_prefix = changeset_prefix
         # 500ms of sleep time between stack checks and describe stack events.
@@ -475,7 +473,7 @@ class Deployer:
         if outputs:
             if self.stack_outputs_file:
                 # write out outputs
-                self._write_stack_outputs_file(outputs, self.stack_outputs_file)
+                self._write_stack_outputs_file(outputs, pathlib.Path(self.stack_outputs_file))
 
             self._display_stack_outputs(outputs)
 

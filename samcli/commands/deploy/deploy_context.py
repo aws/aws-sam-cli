@@ -17,7 +17,6 @@ Deploy a SAM stack
 
 import logging
 import os
-import pathlib
 from typing import Dict, List, Optional
 
 import boto3
@@ -73,7 +72,7 @@ class DeployContext:
         signing_profiles,
         use_changeset,
         disable_rollback,
-        stack_outputs_file: pathlib.Path,
+        stack_outputs_file,
     ):
         self.template_file = template_file
         self.stack_name = stack_name
@@ -176,7 +175,6 @@ class DeployContext:
             self.confirm_changeset,
             self.use_changeset,
             self.disable_rollback,
-            self.stack_outputs_file,
         )
 
     def deploy(
@@ -195,7 +193,6 @@ class DeployContext:
         confirm_changeset=False,
         use_changeset=True,
         disable_rollback=False,
-        stack_outputs_file=None,
     ):
         """
         Deploy the stack to cloudformation.
@@ -232,8 +229,6 @@ class DeployContext:
             Involve creation of changesets, false when using sam sync
         disable_rollback : bool
             Preserves the state of previously provisioned resources when an operation fails
-        stack_outputs_file : pathlib.Path
-            If provided, write stack outputs as JSON to file
         """
         stacks, _ = SamLocalStackProvider.get_stacks(
             self.template_file,
