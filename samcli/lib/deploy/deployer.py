@@ -619,7 +619,7 @@ class Deployer:
                     out_io.write(yaml_dump(out_dict))
             return True
         except OSError as err:
-            LOG.warning("Stack Outputs not written. Unable to write to file '%s':\n{err}", file_path)
+            LOG.warning("Stack Outputs not written. Unable to write to file '%s':\n%s", file_path, err)
         return False
 
     def get_stack_outputs(self, stack_name, echo=True):
