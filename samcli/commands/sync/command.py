@@ -1,7 +1,7 @@
 """CLI command for "sync" command."""
 import os
 import logging
-from typing import List, Set, TYPE_CHECKING, Optional, Tuple
+from typing import List, Set, TYPE_CHECKING, Optional, Tuple, Union
 
 import click
 
@@ -127,6 +127,12 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
     help="This option separates the dependencies of individual function into another layer, for speeding up the sync"
     "process",
 )
+@click.option(
+    "--stack-outputs-file",
+    "-so",
+    type=click.Path(),
+    help="Saves stack outputs as JSON with the file path/name provided",
+)
 @stack_name_option(required=True)  # pylint: disable=E1120
 @base_dir_option
 @image_repository_option
@@ -157,6 +163,7 @@ def cli(
     resource_id: Optional[Tuple[str]],
     resource: Optional[Tuple[str]],
     dependency_layer: bool,
+    stack_outputs_file: Union[None, str, bytes],
     stack_name: str,
     base_dir: Optional[str],
     parameter_overrides: dict,
@@ -185,6 +192,7 @@ def cli(
         resource_id,
         resource,
         dependency_layer,
+        stack_outputs_file,
         stack_name,
         ctx.region,
         ctx.profile,
@@ -212,6 +220,7 @@ def do_cli(
     resource_id: Optional[Tuple[str]],
     resource: Optional[Tuple[str]],
     dependency_layer: bool,
+    stack_outputs_file: Union[None, str, bytes],
     stack_name: str,
     region: str,
     profile: str,
@@ -319,7 +328,7 @@ def do_cli(
                     force_upload=True,
                     signing_profiles=None,
                     disable_rollback=False,
-                    stack_outputs_file=None,
+                    stack_outputs_file=stack_outputs_file,
                 ) as deploy_context:
                     if watch:
                         execute_watch(template_file, build_context, package_context, deploy_context, dependency_layer)
