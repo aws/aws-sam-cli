@@ -1,9 +1,6 @@
 import base64
-import shutil
 import uuid
 import random
-from pathlib import Path
-from typing import Dict
 
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -15,7 +12,6 @@ from parameterized import parameterized_class
 from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
 from samcli.local.apigw.local_apigw_service import Route
 from .start_api_integ_base import StartApiIntegBaseClass, WatchWarmContainersIntegBaseClass
-from ..invoke.layer_utils import LayerUtils
 
 
 @parameterized_class(
@@ -2798,60 +2794,3 @@ class TestServiceWithCustomInvokeImages(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
-
-
-class WarmContainersWithRemoteLayersBase(TestWarmContainersBaseClass):
-    region = "us-west-2"
-    layer_utils = LayerUtils(region=region)
-    layer_cache_base_dir = str(Path().home().joinpath("integ_layer_cache"))
-    parameter_overrides: Dict[str, str] = {}
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerArn", "layer1.zip")
-        for key, val in cls.layer_utils.parameters_overrides.items():
-            cls.parameter_overrides[key] = val
-        super().setUpClass()
-
-    @classmethod
-    def tearDownClass(self) -> None:
-        self.layer_utils.delete_layers()
-        integ_layer_cache_dir = Path().home().joinpath("integ_layer_cache")
-        if integ_layer_cache_dir.exists():
-            shutil.rmtree(str(integ_layer_cache_dir))
-        super().tearDownClass()
-
-
-class TestWarmContainersRemoteLayers(WarmContainersWithRemoteLayersBase):
-    template_path = "/testdata/start_api/template-warm-containers-layers.yaml"
-    container_mode = ContainersInitializationMode.EAGER.value
-    mode_env_variable = str(uuid.uuid4())
-    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
-
-    @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=600, method="thread")
-    def test_all_containers_are_initialized_before_any_invoke(self):
-        initiated_containers = self.count_running_containers()
-        # Ensure only one function has spun up, remote layer shouldn't create another container
-        self.assertEqual(initiated_containers, 1)
-
-    @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=600, method="thread")
-    def test_can_invoke_lambda_layer_successfully(self):
-        response = requests.get(self.url + "/", timeout=300)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content.decode("utf-8"), '"Layer1"')
-
-
-class TestWarmContainersRemoteLayersLazyInvoke(WarmContainersWithRemoteLayersBase):
-    template_path = "/testdata/start_api/template-warm-containers-layers.yaml"
-    container_mode = ContainersInitializationMode.LAZY.value
-    mode_env_variable = str(uuid.uuid4())
-    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
-
-    @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=600, method="thread")
-    def test_can_invoke_lambda_layer_successfully(self):
-        response = requests.get(self.url + "/", timeout=300)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content.decode("utf-8"), '"Layer1"')

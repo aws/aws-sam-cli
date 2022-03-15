@@ -12,8 +12,8 @@ from pathlib import Path
 import docker
 from docker.errors import APIError
 
-from tests.testing_utils import kill_process
-from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS, run_command
+from tests.testing_utils import kill_process, read_until_string
+from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS, run_command, start_persistent_process
 
 LOG = logging.getLogger(__name__)
 
@@ -26,7 +26,6 @@ class StartApiIntegBaseClass(TestCase):
     binary_data_file: Optional[str] = None
     integration_dir = str(Path(__file__).resolve().parents[2])
     invoke_image: Optional[List] = None
-    layer_cache_base_dir: Optional[str] = None
 
     build_before_invoke = False
     build_overrides: Optional[Dict[str, str]] = None
@@ -80,9 +79,6 @@ class StartApiIntegBaseClass(TestCase):
 
         if cls.parameter_overrides:
             command_list += ["--parameter-overrides", cls._make_parameter_override_arg(cls.parameter_overrides)]
-
-        if cls.layer_cache_base_dir:
-            command_list += ["--layer-cache-basedir", cls.layer_cache_base_dir]
 
         if cls.invoke_image:
             for image in cls.invoke_image:
