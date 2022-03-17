@@ -47,6 +47,7 @@ class TestDoCli(TestCase):
         MOCK_SAM_CONFIG.reset_mock()
 
     @parameterized.expand([(False, False, True), (False, False, False)])
+    @patch("samcli.commands.sync.command.update_experimental_context")
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.execute_code_sync")
     @patch("samcli.commands.build.command.click")
@@ -72,6 +73,7 @@ class TestDoCli(TestCase):
         mock_build_click,
         execute_code_sync_mock,
         click_mock,
+        update_experimental_context_mock,
     ):
 
         build_context_mock = Mock()
@@ -122,6 +124,7 @@ class TestDoCli(TestCase):
             cached=True,
             create_auto_dependency_layer=auto_dependency_layer,
             stack_name=self.stack_name,
+            print_success_message=False,
         )
 
         PackageContextMock.assert_called_with(
@@ -164,11 +167,13 @@ class TestDoCli(TestCase):
             signing_profiles=None,
             disable_rollback=False,
         )
+        build_context_mock.run.assert_called_once_with()
         package_context_mock.run.assert_called_once_with()
         deploy_context_mock.run.assert_called_once_with()
         execute_code_sync_mock.assert_not_called()
 
     @parameterized.expand([(False, True, False)])
+    @patch("samcli.commands.sync.command.update_experimental_context")
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.execute_watch")
     @patch("samcli.commands.build.command.click")
@@ -194,6 +199,7 @@ class TestDoCli(TestCase):
         mock_build_click,
         execute_watch_mock,
         click_mock,
+        update_experimental_context_mock,
     ):
 
         build_context_mock = Mock()
@@ -243,6 +249,7 @@ class TestDoCli(TestCase):
             cached=True,
             create_auto_dependency_layer=auto_dependency_layer,
             stack_name=self.stack_name,
+            print_success_message=False,
         )
 
         PackageContextMock.assert_called_with(
@@ -290,6 +297,7 @@ class TestDoCli(TestCase):
         )
 
     @parameterized.expand([(True, False, True)])
+    @patch("samcli.commands.sync.command.update_experimental_context")
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.execute_code_sync")
     @patch("samcli.commands.build.command.click")
@@ -315,6 +323,7 @@ class TestDoCli(TestCase):
         mock_build_click,
         execute_code_sync_mock,
         click_mock,
+        update_experimental_context_mock,
     ):
 
         build_context_mock = Mock()

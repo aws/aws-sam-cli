@@ -1,0 +1,30 @@
+openapi: 3.0.3
+info:
+  title: API Gateway IP Filtering Example API
+  version: 1.0.0
+
+paths:
+  /anyandall:
+    any:
+      summary: Example API Endpoint
+      operationId: example
+      responses:
+        '200':
+          description: Success
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ExampleFunction.Arn}:live/invocations
+        httpMethod: POST
+        type: aws_proxy
+  /proxypath/{proxy+}:
+    get:
+      summary: Example API Endpoint
+      operationId: example
+      responses:
+        '200':
+          description: Success
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ExampleFunction.Arn}:live/invocations
+        httpMethod: POST
+        type: aws_proxy

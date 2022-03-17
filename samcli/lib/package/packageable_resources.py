@@ -47,6 +47,7 @@ from samcli.lib.utils.resources import (
     RESOURCES_WITH_LOCAL_PATHS,
     RESOURCES_WITH_IMAGE_COMPONENT,
     AWS_ECR_REPOSITORY,
+    AWS_APIGATEWAY_V2_API,
 )
 
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -453,7 +454,7 @@ class LambdaFunctionResource(ResourceWithS3UrlDict):
     FORCE_ZIP = True
 
 
-class LambdaFunctionImageResource(ResourceImageDict):
+class LambdaFunctionImageResource(ResourceImage):
     RESOURCE_TYPE = AWS_LAMBDA_FUNCTION
     PROPERTY_NAME = RESOURCES_WITH_IMAGE_COMPONENT[RESOURCE_TYPE][0]
     FORCE_ZIP = True
@@ -461,6 +462,15 @@ class LambdaFunctionImageResource(ResourceImageDict):
 
 class StepFunctionsStateMachineResource(ResourceWithS3UrlDict):
     RESOURCE_TYPE = AWS_STEPFUNCTIONS_STATEMACHINE
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
+    PACKAGE_NULL_PROPERTY = False
+    BUCKET_NAME_PROPERTY = "Bucket"
+    OBJECT_KEY_PROPERTY = "Key"
+    VERSION_PROPERTY = "Version"
+
+
+class ApiGatewayV2Resource(ResourceWithS3UrlDict):
+    RESOURCE_TYPE = AWS_APIGATEWAY_V2_API
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
     PACKAGE_NULL_PROPERTY = False
     BUCKET_NAME_PROPERTY = "Bucket"
@@ -572,6 +582,7 @@ RESOURCES_EXPORT_LIST = [
     AppSyncFunctionConfigurationRequestTemplateResource,
     AppSyncFunctionConfigurationResponseTemplateResource,
     ApiGatewayRestApiResource,
+    ApiGatewayV2Resource,
     StepFunctionsStateMachineResource,
     LambdaFunctionResource,
     LambdaFunctionImageResource,

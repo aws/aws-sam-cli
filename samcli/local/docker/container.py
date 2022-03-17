@@ -1,10 +1,13 @@
 """
 Representation of a generic Docker container
 """
+import os
 import logging
 import tarfile
 import tempfile
 import threading
+import socket
+import time
 
 import docker
 import requests
@@ -16,6 +19,8 @@ from .exceptions import ContainerNotStartableException
 from .utils import to_posix_path, find_free_port, NoFreePortsError
 
 LOG = logging.getLogger(__name__)
+
+START_CONTAINER_TIMEOUT = float(os.environ.get("SAM_CLI_START_CONTAINER_TIMEOUT", 5))
 
 
 class ContainerResponseException(Exception):
@@ -194,13 +199,13 @@ class Container:
 
         return self.id
 
-    def stop(self, time=3):
+    def stop(self, timeout=3):
         """
         Stop a container, with a given number of seconds between sending SIGTERM and SIGKILL.
 
         Parameters
         ----------
-        time
+        timeout
             Optional. Number of seconds between SIGTERM and SIGKILL. Effectively, the amount of time
             the container has to perform shutdown steps. Default: 3
         """
@@ -209,7 +214,7 @@ class Container:
             return
 
         try:
-            self.docker_client.containers.get(self.id).stop(timeout=time)
+            self.docker_client.containers.get(self.id).stop(timeout=timeout)
         except docker.errors.NotFound:
             # Container is already removed
             LOG.debug("Container with ID %s does not exist. Cannot stop!", self.id)
@@ -272,6 +277,35 @@ class Container:
         # Start the container
         real_container.start()
 
+        # Wait for port to be open
+        self.wait_for_port()
+
+    def wait_for_port(self):
+        """
+        Waits until the host machine port that Docker binds to is open.
+        """
+        start_time = time.time()
+        sleep = 0.1
+        while True:
+            a_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            location = (self._container_host_interface, self.rapid_port_host)
+            # connect_ex returns 0 if connection succeeded
+            is_port_open = not a_socket.connect_ex(location)
+            a_socket.close()
+
+            if is_port_open:
+                break
+
+            current_time = time.time()
+            if current_time - start_time > START_CONTAINER_TIMEOUT:
+                raise ContainerNotStartableException(
+                    f"Timed out while starting container. You can increase this timeout by "
+                    f"setting the SAM_CLI_START_CONTAINER_TIMEOUT environment variable. "
+                    f"The current value is {START_CONTAINER_TIMEOUT} (seconds)."
+                )
+
+            time.sleep(sleep)
+
     @retry(exc=requests.exceptions.RequestException, exc_raise=ContainerResponseException)
     def wait_for_http_response(self, name, event, stdout):
         # TODO(sriram-mv): `aws-lambda-rie` is in a mode where the function_name is always "function"
@@ -285,7 +319,7 @@ class Container:
         )
         stdout.write(resp.content)
 
-    def wait_for_result(self, name, event, stdout, stderr):
+    def wait_for_result(self, full_path, event, stdout, stderr):
         # NOTE(sriram-mv): Let logging happen in its own thread, so that a http request can be sent.
         # NOTE(sriram-mv): All logging is re-directed to stderr, so that only the lambda function return
         # will be written to stdout.
@@ -296,7 +330,7 @@ class Container:
             self._logs_thread = threading.Thread(target=self.wait_for_logs, args=(stderr, stderr), daemon=True)
             self._logs_thread.start()
 
-        self.wait_for_http_response(name, event, stdout)
+        self.wait_for_http_response(full_path, event, stdout)
 
     def wait_for_logs(self, stdout=None, stderr=None):
 

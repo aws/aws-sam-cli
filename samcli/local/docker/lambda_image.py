@@ -27,22 +27,19 @@ RAPID_IMAGE_TAG_PREFIX = "rapid"
 
 
 class Runtime(Enum):
-    nodejs10x = "nodejs10.x"
     nodejs12x = "nodejs12.x"
     nodejs14x = "nodejs14.x"
-    python27 = "python2.7"
     python36 = "python3.6"
     python37 = "python3.7"
     python38 = "python3.8"
     python39 = "python3.9"
-    ruby25 = "ruby2.5"
     ruby27 = "ruby2.7"
     java8 = "java8"
     java8al2 = "java8.al2"
     java11 = "java11"
     go1x = "go1.x"
-    dotnetcore21 = "dotnetcore2.1"
     dotnetcore31 = "dotnetcore3.1"
+    dotnet6 = "dotnet6"
     provided = "provided"
     providedal2 = "provided.al2"
 
@@ -63,7 +60,7 @@ class LambdaImage:
     _SAM_CLI_REPO_NAME = "samcli/lambda"
     _RAPID_SOURCE_PATH = Path(__file__).parent.joinpath("..", "rapid").resolve()
 
-    def __init__(self, layer_downloader, skip_pull_image, force_image_build, docker_client=None):
+    def __init__(self, layer_downloader, skip_pull_image, force_image_build, docker_client=None, invoke_images=None):
         """
 
         Parameters
@@ -81,8 +78,9 @@ class LambdaImage:
         self.skip_pull_image = skip_pull_image
         self.force_image_build = force_image_build
         self.docker_client = docker_client or docker.from_env()
+        self.invoke_images = invoke_images
 
-    def build(self, runtime, packagetype, image, layers, architecture, stream=None):
+    def build(self, runtime, packagetype, image, layers, architecture, stream=None, function_name=None):
         """
         Build the image if one is not already on the system that matches the runtime and layers
 
@@ -98,6 +96,8 @@ class LambdaImage:
             List of layers
         architecture
             Architecture type either x86_64 or arm64 on AWS lambda
+        function_name str
+            The name of the function that the image is building for
 
         Returns
         -------
@@ -109,8 +109,11 @@ class LambdaImage:
         if packagetype == IMAGE:
             image_name = image
         elif packagetype == ZIP:
-            tag_name = f"latest-{architecture}" if has_runtime_multi_arch_image(runtime) else "latest"
-            image_name = f"{self._INVOKE_REPO_PREFIX}-{runtime}:{tag_name}"
+            if self.invoke_images:
+                image_name = self.invoke_images.get(function_name, self.invoke_images.get(None))
+            if not image_name:
+                tag_name = f"latest-{architecture}" if has_runtime_multi_arch_image(runtime) else "latest"
+                image_name = f"{self._INVOKE_REPO_PREFIX}-{runtime}:{tag_name}"
 
         if not image_name:
             raise InvalidIntermediateImageError(f"Invalid PackageType, PackageType needs to be one of [{ZIP}, {IMAGE}]")

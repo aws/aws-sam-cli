@@ -551,7 +551,6 @@ class TestApiGatewayV2LambdaEvent(TestCase):
             "rawQueryString": None,
             "cookies": None,
             "headers": None,
-            "queryStringParameters": None,
             "requestContext": {},
             "body": None,
             "pathParameters": None,

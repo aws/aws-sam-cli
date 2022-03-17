@@ -14,7 +14,7 @@ class Test_get_workflow_config(TestCase):
         self.code_dir = ""
         self.project_dir = ""
 
-    @parameterized.expand([("python2.7",), ("python3.6",), ("python3.7",), ("python3.8",)])
+    @parameterized.expand([("python3.6",), ("python3.7",), ("python3.8",)])
     def test_must_work_for_python(self, runtime):
 
         result = get_workflow_config(runtime, self.code_dir, self.project_dir)
@@ -24,7 +24,7 @@ class Test_get_workflow_config(TestCase):
         self.assertEqual(result.manifest_name, "requirements.txt")
         self.assertIsNone(result.executable_search_paths)
 
-    @parameterized.expand([("nodejs10.x",), ("nodejs12.x",)])
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",)])
     def test_must_work_for_nodejs(self, runtime):
 
         result = get_workflow_config(runtime, self.code_dir, self.project_dir)
@@ -58,7 +58,7 @@ class Test_get_workflow_config(TestCase):
         with self.assertRaises(UnsupportedBuilderException):
             get_workflow_config(runtime, self.code_dir, self.project_dir, specified_workflow="Wrong")
 
-    @parameterized.expand([("ruby2.5",), ("ruby2.7",)])
+    @parameterized.expand([("ruby2.7",)])
     def test_must_work_for_ruby(self, runtime):
         result = get_workflow_config(runtime, self.code_dir, self.project_dir)
         self.assertEqual(result.language, "ruby")
@@ -85,6 +85,15 @@ class Test_get_workflow_config(TestCase):
             self.assertEqual(result.executable_search_paths, [self.code_dir, self.project_dir])
         else:
             self.assertIsNone(result.executable_search_paths)
+
+    def test_must_get_workflow_for_esbuild(self):
+        runtime = "nodejs12.x"
+        result = get_workflow_config(runtime, self.code_dir, self.project_dir, specified_workflow="esbuild")
+        self.assertEqual(result.language, "nodejs")
+        self.assertEqual(result.dependency_manager, "npm-esbuild")
+        self.assertEqual(result.application_framework, None)
+        self.assertEqual(result.manifest_name, "package.json")
+        self.assertIsNone(result.executable_search_paths)
 
     @parameterized.expand([("java8", "unknown.manifest")])
     @patch("samcli.lib.build.workflow_config.os")

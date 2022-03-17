@@ -44,6 +44,10 @@ class ExperimentalFlag:
 
     All = ExperimentalEntry("experimentalAll", EXPERIMENTAL_ENV_VAR_PREFIX + "FEATURES")
     Accelerate = ExperimentalEntry("experimentalAccelerate", EXPERIMENTAL_ENV_VAR_PREFIX + "ACCELERATE")
+    JavaMavenBuildScope = ExperimentalEntry(
+        "experimentalMavenScopeAndLayer", EXPERIMENTAL_ENV_VAR_PREFIX + "MAVEN_SCOPE_AND_LAYER"
+    )
+    Esbuild = ExperimentalEntry("experimentalEsbuild", EXPERIMENTAL_ENV_VAR_PREFIX + "ESBUILD")
 
 
 def is_experimental_enabled(config_entry: ExperimentalEntry) -> bool:
@@ -102,13 +106,29 @@ def get_all_experimental_statues() -> Dict[str, bool]:
     return {entry.config_key: is_experimental_enabled(entry) for entry in get_all_experimental() if entry.config_key}
 
 
+def get_enabled_experimental_flags() -> List[str]:
+    """
+    Returns a list of string, which contains enabled experimental flags for current session
+
+    Returns
+    -------
+    List[str]
+        List of strings which contains all enabled experimental flag names
+    """
+    enabled_experimentals = []
+    for experimental_key, status in get_all_experimental_statues().items():
+        if status:
+            enabled_experimentals.append(experimental_key)
+    return enabled_experimentals
+
+
 def disable_all_experimental():
     """Turn off all experimental flags in the ExperimentalFlag class."""
     for entry in get_all_experimental():
         set_experimental(entry, False)
 
 
-def _update_experimental_context(show_warning=True):
+def update_experimental_context(show_warning=True):
     """Set experimental for the current click context.
 
     Parameters
@@ -135,6 +155,7 @@ def _experimental_option_callback(ctx, param, enabled: Optional[bool]):
 
     if enabled:
         set_experimental(ExperimentalFlag.All, True)
+        update_experimental_context()
     else:
         disable_all_experimental()
 
@@ -172,7 +193,6 @@ def force_experimental(
         def wrapped_func(*args, **kwargs):
             if not prompt_experimental(config_entry=config_entry, prompt=prompt):
                 sys.exit(1)
-            _update_experimental_context()
             return func(*args, **kwargs)
 
         return wrapped_func
@@ -194,7 +214,6 @@ def force_experimental_option(
             if kwargs[option]:
                 if not prompt_experimental(config_entry=config_entry, prompt=prompt):
                     sys.exit(1)
-                _update_experimental_context()
             return func(*args, **kwargs)
 
         return wrapped_func
@@ -222,8 +241,10 @@ def prompt_experimental(
         Whether user have accepted the experimental feature.
     """
     if is_experimental_enabled(config_entry):
+        update_experimental_context()
         return True
     confirmed = click.confirm(prompt, default=False)
     if confirmed:
         set_experimental(config_entry=config_entry, enabled=True)
+        update_experimental_context()
     return confirmed

@@ -6,7 +6,11 @@ from pathlib import Path
 from unittest import TestCase
 
 import boto3
+from botocore.exceptions import ClientError
 
+from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack
+
+CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
 SLEEP = 3
 
 
@@ -73,6 +77,7 @@ class PackageIntegBase(TestCase):
             time.sleep(SLEEP)
 
     def setUp(self):
+        self.s3_prefix = uuid.uuid4().hex
         super().setUp()
 
     def tearDown(self):
@@ -132,3 +137,56 @@ class PackageIntegBase(TestCase):
         if resolve_s3:
             command_list = command_list + ["--resolve-s3"]
         return command_list
+
+    def _method_to_stack_name(self, method_name):
+        """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
+        method_name = method_name.split(".")[-1]
+        return f"{method_name.replace('_', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
+
+    def _stack_name_to_companion_stack(self, stack_name):
+        return CompanionStack(stack_name).stack_name
+
+    def _delete_companion_stack(self, cfn_client, ecr_client, companion_stack_name):
+        repos = list()
+        try:
+            cfn_client.describe_stacks(StackName=companion_stack_name)
+        except ClientError:
+            return
+        stack = boto3.resource("cloudformation").Stack(companion_stack_name)
+        resources = stack.resource_summaries.all()
+        for resource in resources:
+            if resource.resource_type == "AWS::ECR::Repository":
+                repos.append(resource.physical_resource_id)
+        for repo in repos:
+            try:
+                ecr_client.delete_repository(repositoryName=repo, force=True)
+            except ecr_client.exceptions.RepositoryNotFoundException:
+                pass
+        cfn_client.delete_stack(StackName=companion_stack_name)
+
+    def _assert_companion_stack(self, cfn_client, companion_stack_name):
+        try:
+            cfn_client.describe_stacks(StackName=companion_stack_name)
+        except ClientError:
+            self.fail("No companion stack found.")
+
+    def _assert_companion_stack_content(self, ecr_client, companion_stack_name):
+        stack = boto3.resource("cloudformation").Stack(companion_stack_name)
+        resources = stack.resource_summaries.all()
+        for resource in resources:
+            if resource.resource_type == "AWS::ECR::Repository":
+                policy = ecr_client.get_repository_policy(repositoryName=resource.physical_resource_id)
+                self._assert_ecr_lambda_policy(policy)
+            else:
+                self.fail("Non ECR Repo resource found in companion stack")
+
+    def _assert_ecr_lambda_policy(self, policy):
+        policyText = json.loads(policy.get("policyText", "{}"))
+        statements = policyText.get("Statement")
+        self.assertEqual(len(statements), 1)
+        lambda_policy = statements[0]
+        self.assertEqual(lambda_policy.get("Principal"), {"Service": "lambda.amazonaws.com"})
+        actions = lambda_policy.get("Action")
+        self.assertEqual(
+            sorted(actions), sorted(["ecr:GetDownloadUrlForLayer", "ecr:GetRepositoryPolicy", "ecr:BatchGetImage"])
+        )

@@ -19,11 +19,11 @@ from samcli.commands._utils.options import (
     manifest_option,
     cached_option,
 )
+from samcli.commands._utils.option_value_processor import process_env_var, process_image_options
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
-from samcli.commands.build.exceptions import InvalidBuildImageException
 from samcli.commands.build.click_container import ContainerOptions
 
 LOG = logging.getLogger(__name__)
@@ -40,11 +40,11 @@ Supported Resource Types
 \b
 Supported Runtimes
 ------------------
-1. Python 2.7, 3.6, 3.7, 3.8 3.9 using PIP\n
-2. Nodejs 14.x, 12.x, 10.x, 8.10, 6.10 using NPM\n
-3. Ruby 2.5 using Bundler\n
+1. Python 3.6, 3.7, 3.8 3.9 using PIP\n
+2. Nodejs 14.x, 12.x using NPM\n
+3. Ruby 2.7 using Bundler\n
 4. Java 8, Java 11 using Gradle and Maven\n
-5. Dotnetcore2.0 and 2.1 using Dotnet CLI (without --use-container flag)\n
+5. Dotnetcore3.1, Dotnet6 using Dotnet CLI (without --use-container flag)\n
 6. Go 1.x using Go Modules (without --use-container flag)\n
 \b
 Examples
@@ -225,8 +225,8 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     if use_container:
         LOG.info("Starting Build inside a container")
 
-    processed_env_vars = _process_env_var(container_env_var)
-    processed_build_images = _process_image_options(build_image)
+    processed_env_vars = process_env_var(container_env_var)
+    processed_build_images = process_image_options(build_image)
 
     with BuildContext(
         function_identifier,
@@ -261,92 +261,3 @@ def _get_mode_value_from_envvar(name: str, choices: List[str]) -> Optional[str]:
         raise click.UsageError("Invalid value for 'mode': invalid choice: {}. (choose from {})".format(mode, choices))
 
     return mode
-
-
-def _process_env_var(container_env_var: Optional[Tuple[str]]) -> Dict:
-    """
-    Parameters
-    ----------
-    container_env_var : Tuple
-        the tuple of command line env vars received from --container-env-var flag
-        Each input format needs to be either function specific format (FuncName.VarName=Value)
-        or global format (VarName=Value)
-
-    Returns
-    -------
-    dictionary
-        Processed command line environment variables
-    """
-    processed_env_vars: Dict = {}
-
-    if container_env_var:
-        for env_var in container_env_var:
-            location_key = "Parameters"
-
-            env_var_name, value = _parse_key_value_pair(env_var)
-
-            if not env_var_name or not value:
-                LOG.error("Invalid command line --container-env-var input %s, skipped", env_var)
-                continue
-
-            if "." in env_var_name:
-                location_key, env_var_name = env_var_name.split(".", 1)
-                if not location_key.strip() or not env_var_name.strip():
-                    LOG.error("Invalid command line --container-env-var input %s, skipped", env_var)
-                    continue
-
-            if not processed_env_vars.get(location_key):
-                processed_env_vars[location_key] = {}
-            processed_env_vars[location_key][env_var_name] = value
-
-    return processed_env_vars
-
-
-def _process_image_options(image_args: Optional[Tuple[str]]) -> Dict:
-    """
-    Parameters
-    ----------
-    image_args : Tuple
-        Tuple of command line image options in the format of
-        "Function1=public.ecr.aws/abc/abc:latest" or
-        "public.ecr.aws/abc/abc:latest"
-
-    Returns
-    -------
-    dictionary
-        Function as key and the corresponding image URI as value.
-        Global default image URI is contained in the None key.
-    """
-    build_images: Dict[Optional[str], str] = dict()
-    if image_args:
-        for build_image_string in image_args:
-            function_name, image_uri = _parse_key_value_pair(build_image_string)
-            if not image_uri:
-                raise InvalidBuildImageException(f"Invalid command line --build-image input {build_image_string}.")
-            build_images[function_name] = image_uri
-
-    return build_images
-
-
-def _parse_key_value_pair(arg: str) -> Tuple[Optional[str], str]:
-    """
-    Parameters
-    ----------
-    arg : str
-        Arg in the format of "Value" or "Key=Value"
-    Returns
-    -------
-    key : Optional[str]
-        If key is not specified, None will be the key.
-    value : str
-    """
-    key: Optional[str]
-    value: str
-    if "=" in arg:
-        parts = arg.split("=", 1)
-        key = parts[0].strip()
-        value = parts[1].strip()
-    else:
-        key = None
-        value = arg.strip()
-    return key, value

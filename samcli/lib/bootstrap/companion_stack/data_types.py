@@ -2,6 +2,7 @@
     Date type classes for companion stacks
 """
 import re
+import posixpath
 from typing import Optional
 from samcli.lib.utils.hash import str_checksum
 
@@ -61,7 +62,7 @@ class ECRRepo:
     Logical ID, Physical ID, and Repo URI will be generated with this class.
     """
 
-    _function_logical_id: Optional[str]
+    _function_full_path: Optional[str]
     _escaped_function_logical_id: Optional[str]
     _function_md5: Optional[str]
     _companion_stack: Optional[CompanionStack]
@@ -72,24 +73,24 @@ class ECRRepo:
     def __init__(
         self,
         companion_stack: Optional[CompanionStack] = None,
-        function_logical_id: Optional[str] = None,
+        function_full_path: Optional[str] = None,
         logical_id: Optional[str] = None,
         physical_id: Optional[str] = None,
         output_logical_id: Optional[str] = None,
     ):
         """
         Must be specified either with
-        companion_stack and function_logical_id
+        companion_stack and function_full_path
         or
         logical_id, physical_id, and output_logical_id
         """
-        self._function_logical_id = function_logical_id
-        self._escaped_function_logical_id = (
-            re.sub(r"[^a-z0-9]", "", self._function_logical_id.lower())
-            if self._function_logical_id is not None
-            else None
+        self._function_full_path = (
+            function_full_path.replace(posixpath.sep, "") if function_full_path else function_full_path
         )
-        self._function_md5 = str_checksum(self._function_logical_id) if self._function_logical_id is not None else None
+        self._escaped_function_logical_id = (
+            re.sub(r"[^a-z0-9]", "", self._function_full_path.lower()) if self._function_full_path is not None else None
+        )
+        self._function_md5 = str_checksum(self._function_full_path) if self._function_full_path is not None else None
         self._companion_stack = companion_stack
 
         self._logical_id = logical_id
@@ -98,11 +99,11 @@ class ECRRepo:
 
     @property
     def logical_id(self) -> Optional[str]:
-        if self._logical_id is None and self._function_logical_id and self._function_md5:
+        if self._logical_id is None and self._function_full_path and self._function_md5:
             # MD5 is used to avoid two having the same escaped name with different Lambda Functions
             # For example: Helloworld and HELLO-WORLD
             # 52 + 8 + 4 = 64 max char
-            self._logical_id = self._function_logical_id[:52] + self._function_md5[:8] + "Repo"
+            self._logical_id = self._function_full_path[:52] + self._function_md5[:8] + "Repo"
         return self._logical_id
 
     @property
@@ -129,8 +130,8 @@ class ECRRepo:
 
     @property
     def output_logical_id(self) -> Optional[str]:
-        if self._output_logical_id is None and self._function_logical_id and self._function_md5:
-            self._output_logical_id = self._function_logical_id[:52] + self._function_md5[:8] + "Out"
+        if self._output_logical_id is None and self._function_full_path and self._function_md5:
+            self._output_logical_id = self._function_full_path[:52] + self._function_md5[:8] + "Out"
         return self._output_logical_id
 
     @staticmethod

@@ -205,3 +205,8 @@ class EnvironmentVariables:
             result = value
 
         return result
+
+    def __eq__(self, other):
+        if not isinstance(other, EnvironmentVariables):
+            return False
+        return self.resolve() == other.resolve()

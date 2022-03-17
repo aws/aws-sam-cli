@@ -3,6 +3,7 @@ Keeps implementation of different build strategies
 """
 import hashlib
 import logging
+import os.path
 import pathlib
 import shutil
 from abc import abstractmethod, ABC
@@ -209,7 +210,7 @@ class DefaultBuildStrategy(BuildStrategy):
                 layer.build_architecture,
                 single_build_dir,
                 layer_definition.env_vars,
-                layer_definition.dependencies_dir,
+                layer_definition.dependencies_dir if is_experimental_enabled(ExperimentalFlag.Accelerate) else None,
                 layer_definition.download_dependencies,
             )
         }
@@ -438,18 +439,23 @@ class IncrementalBuildStrategy(BuildStrategy):
         ).hash
 
         is_manifest_changed = True
+        is_dependencies_dir_missing = True
         if manifest_hash:
             is_manifest_changed = manifest_hash != build_definition.manifest_hash
-            if is_manifest_changed:
+            is_dependencies_dir_missing = not os.path.exists(build_definition.dependencies_dir)
+            if is_manifest_changed or is_dependencies_dir_missing:
                 build_definition.manifest_hash = manifest_hash
                 LOG.info(
-                    "Manifest is changed for %s, downloading dependencies and copying/building source",
+                    "Manifest file is changed (new hash: %s) or dependency folder (%s) is missing for %s, "
+                    "downloading dependencies and copying/building source",
+                    manifest_hash,
+                    build_definition.dependencies_dir,
                     build_definition.uuid,
                 )
             else:
                 LOG.info("Manifest is not changed for %s, running incremental build", build_definition.uuid)
 
-        build_definition.download_dependencies = is_manifest_changed
+        build_definition.download_dependencies = is_manifest_changed or is_dependencies_dir_missing
 
     def _clean_redundant_dependencies(self) -> None:
         """
