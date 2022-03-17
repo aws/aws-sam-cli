@@ -190,6 +190,35 @@
           "default": "us-east-1.amazonaws.com"
         }
       }
+    },
+    "http-api-proxy": {
+      "filename": "HttpApi",
+      "help": "Generates an Amazon API Gateway Http API Event",
+      "tags": {
+        "body": {
+          "type": "string",
+          "default": "{\"test\":\"body\"}",
+          "encoding": "base64"
+        },
+        "stage": {
+          "type": "string",
+          "default": "$default"
+        },
+        "method": {
+          "type": "string",
+          "default": "POST"
+        },
+        "path": {
+          "type": "string",
+          "default": "path/to/resource"
+        },
+        "account-id": {
+          "default": "123456789012"
+        },
+        "dns-suffix": {
+          "default": "us-east-1.amazonaws.com"
+        }
+      }    
     }
   },
   "appsync": {
@@ -789,6 +818,23 @@
       "tags": {}
     }
   },
+  "lex-v2": {
+    "banking-bot": {
+      "filename": "BankingBot",
+      "help": "Generates an Amazon Lex V2 Banking Bot Event",
+      "tags": {}
+    },
+    "book-car": {
+      "filename": "LexBookCar",
+      "help": "Generates an Amazon Lex V2 Book Car Event",
+      "tags": {}
+    },
+    "book-hotel": {
+      "filename": "LexBookHotel",
+      "help": "Generates an Amazon Lex V2 Book Hotel Event",
+      "tags": {}
+    }
+  },
   "rekognition": {
     "s3-request": {
       "filename": "RekognitionS3Request",
@@ -1000,6 +1046,23 @@
         "cause": {
           "type": "string",
           "default": "This is the cause of the error."
+        }
+      }
+    }
+  },
+  "workmail": {
+    "email": {
+      "filename": "WorkMail",
+      "help": "Generates an Amazon Work Mail Event",
+      "tags": {
+        "flow-direction": {
+          "default": "INBOUND"
+        },
+        "mail-from": {
+          "default": "from@example.com"
+        },
+        "sender": {
+          "default": "sender@example.com"
         }
       }
     }
