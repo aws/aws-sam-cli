@@ -175,7 +175,7 @@ class TestGuidedContext_prompt_account_id(TestCase):
         guided_context_mock = Mock()
         GuidedContext._prompt_account_id(guided_context_mock)
 
-        self.assertEquals(None, guided_context_mock.profile)
+        self.assertEqual(None, guided_context_mock.profile)
 
     @parameterized.expand(
         [
@@ -210,7 +210,7 @@ class TestGuidedContext_prompt_account_id(TestCase):
         guided_context_mock = Mock()
         GuidedContext._prompt_account_id(guided_context_mock)
 
-        self.assertEquals(expected_profile, guided_context_mock.profile)
+        self.assertEqual(expected_profile, guided_context_mock.profile)
 
     @patch("samcli.commands.pipeline.bootstrap.guided_context.sys.exit")
     @patch("samcli.commands.pipeline.bootstrap.guided_context.get_current_account_id")
