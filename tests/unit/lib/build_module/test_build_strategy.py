@@ -42,8 +42,8 @@ class BuildStrategyBaseTest(TestCase):
         self.function2.get_build_dir = Mock()
         self.function2.full_path = Mock()
 
-        self.function_build_definition1 = FunctionBuildDefinition("runtime", "codeuri", ZIP, X86_64, {})
-        self.function_build_definition2 = FunctionBuildDefinition("runtime2", "codeuri", ZIP, X86_64, {})
+        self.function_build_definition1 = FunctionBuildDefinition("runtime", "codeuri", ZIP, X86_64, {}, "handler")
+        self.function_build_definition2 = FunctionBuildDefinition("runtime2", "codeuri", ZIP, X86_64, {}, "handler")
         self.build_graph.put_function_build_definition(self.function_build_definition1, self.function1_1)
         self.build_graph.put_function_build_definition(self.function_build_definition1, self.function1_2)
         self.build_graph.put_function_build_definition(self.function_build_definition2, self.function2)
@@ -237,7 +237,9 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
         function2.name = "Function2"
         function2.full_path = "Function2"
         function2.packagetype = IMAGE
-        build_definition = FunctionBuildDefinition("3.7", "codeuri", IMAGE, X86_64, {}, env_vars={"FOO": "BAR"})
+        build_definition = FunctionBuildDefinition(
+            "3.7", "codeuri", IMAGE, X86_64, {}, "handler", env_vars={"FOO": "BAR"}
+        )
         # since they have the same metadata, they are put into the same build_definition.
         build_definition.functions = [function1, function2]
 
@@ -265,7 +267,7 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
     packagetype = "{ZIP}"
     runtime = "{RUNTIME}"
     source_hash = "{SOURCE_HASH}"
-    functions = ["HelloWorldPython", "HelloWorldPython2"]
+    functions = ["HelloWorldPython", "HelloWorld2Python"]
 
     [layer_build_definitions]
     [layer_build_definitions.{LAYER_UUID}]
@@ -345,7 +347,7 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
             cache_dir = Path(temp_base_dir, ".aws-sam", "cache")
             cache_dir.mkdir(parents=True)
 
-            build_function_mock.return_value = {"HelloWorldPython": "artifact1", "HelloWorldPython2": "artifact2"}
+            build_function_mock.return_value = {"HelloWorldPython": "artifact1", "HelloWorld2Python": "artifact2"}
             build_layer_mock.return_value = {"SumLayer": "artifact3"}
 
             build_graph_path = Path(build_dir.parent, "build.toml")
@@ -402,10 +404,10 @@ class ParallelBuildStrategyTest(BuildStrategyBaseTest):
         # assert that delegated function calls have been registered in async context
         mock_async_context.add_async_task.assert_has_calls(
             [
-                call(delegate_build_strategy.build_single_function_definition, self.function_build_definition1),
-                call(delegate_build_strategy.build_single_function_definition, self.function_build_definition2),
                 call(delegate_build_strategy.build_single_layer_definition, self.layer_build_definition1),
                 call(delegate_build_strategy.build_single_layer_definition, self.layer_build_definition2),
+                call(delegate_build_strategy.build_single_function_definition, self.function_build_definition1),
+                call(delegate_build_strategy.build_single_function_definition, self.function_build_definition2),
             ]
         )
 
@@ -560,7 +562,7 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
         self, mocked_read, mocked_write, runtime, experimental_enabled, patched_experimental
     ):
         patched_experimental.return_value = experimental_enabled
-        build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {})
+        build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {}, "handler")
         self.build_graph.put_function_build_definition(build_definition, Mock())
         with patch.object(
             self.build_strategy, "_incremental_build_strategy"
@@ -578,13 +580,13 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
 
     @parameterized.expand(
         [
-            "dotnetcore2.1",
+            "dotnetcore3.1",
             "go1.x",
             "java11",
         ]
     )
     def test_will_call_cached_build_strategy(self, mocked_read, mocked_write, runtime):
-        build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {})
+        build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {}, "handler")
         self.build_graph.put_function_build_definition(build_definition, Mock())
         with patch.object(
             self.build_strategy, "_incremental_build_strategy"

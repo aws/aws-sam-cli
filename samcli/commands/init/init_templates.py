@@ -8,6 +8,7 @@ import logging
 import os
 from pathlib import Path
 from typing import Dict, Optional
+import requests
 
 from samcli.cli.global_config import GlobalConfig
 from samcli.commands.exceptions import UserException, AppTemplateUpdateException
@@ -20,6 +21,7 @@ from samcli.local.common.runtime_template import (
 )
 
 LOG = logging.getLogger(__name__)
+MANIFEST_URL = "https://raw.githubusercontent.com/aws/aws-sam-cli-app-templates/master/manifest-v2.json"
 APP_TEMPLATES_REPO_URL = "https://github.com/aws/aws-sam-cli-app-templates"
 APP_TEMPLATES_REPO_NAME = "aws-sam-cli-app-templates"
 
@@ -31,7 +33,7 @@ class InvalidInitTemplateError(UserException):
 class InitTemplates:
     def __init__(self):
         self._git_repo: GitRepo = GitRepo(url=APP_TEMPLATES_REPO_URL)
-        self.manifest_file_name = "manifest.json"
+        self.manifest_file_name = "manifest-v2.json"
 
     def location_from_app_template(self, package_type, runtime, base_image, dependency_manager, app_template):
         options = self.init_options(package_type, runtime, base_image, dependency_manager)
@@ -145,9 +147,9 @@ class InitTemplates:
         https://github.com/aws/aws-sam-cli-app-templates/blob/master/manifest.json
         The structure of the manifest is shown below:
         {
-            "dotnetcore2.1": [
+            "dotnetcore3.1": [
                 {
-                    "directory": "dotnetcore2.1/cookiecutter-aws-sam-hello-dotnet",
+                    "directory": "dotnetcore3.1/cookiecutter-aws-sam-hello-dotnet",
                     "displayName": "Hello World Example",
                     "dependencyManager": "cli-package",
                     "appTemplate": "hello-world",
@@ -171,11 +173,7 @@ class InitTemplates:
         [dict]
             This is preprocessed manifest with the use_case as key
         """
-        self.clone_templates_repo()
-        manifest_path = self.get_manifest_path()
-        with open(str(manifest_path)) as fp:
-            body = fp.read()
-            manifest_body = json.loads(body)
+        manifest_body = self._get_manifest()
 
         # This would ensure the Use-Case Hello World Example appears
         # at the top of list template example displayed to the Customer.
@@ -204,8 +202,24 @@ class InitTemplates:
 
         return preprocessed_manifest
 
-    def get_bundle_option(self, package_type, runtime, dependency_manager):
-        return self._init_options_from_bundle(package_type, runtime, dependency_manager)
+    def _get_manifest(self):
+        """
+        In an attempt to reduce initial wait time to achieve an interactive
+        flow <= 10sec, This method first attempts to spools just the manifest file and
+        if the manifest can't be spooled, it attempts to clone the cli template git repo or
+        use local cli template
+        """
+        try:
+            response = requests.get(MANIFEST_URL, timeout=10)
+            body = response.text
+        except (requests.Timeout, requests.ConnectionError):
+            LOG.debug("Request to get Manifest failed, attempting to clone the repository")
+            self.clone_templates_repo()
+            manifest_path = self.get_manifest_path()
+            with open(str(manifest_path)) as fp:
+                body = fp.read()
+        manifest_body = json.loads(body)
+        return manifest_body
 
 
 def get_template_value(value: str, template: dict) -> Optional[str]:

@@ -12,6 +12,7 @@ configuration:
 environment:
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
+  NODE_VERSION: "14.17.6"
  
   matrix:
 
@@ -65,6 +66,9 @@ install:
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
   - sh: "rvm use 2.7.2"
   - sh: "docker --version"
+  - sh: "nvm install ${NODE_VERSION}"
+  - sh: "npm install npm@7.24.2 -g"
+  - sh: "npm -v"
 
   # Install latest gradle
   - sh: "sudo apt-get -y remove gradle"

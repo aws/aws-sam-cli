@@ -60,9 +60,9 @@ if TYPE_CHECKING:  # pragma: no cover
 LOG = logging.getLogger(__name__)
 
 HELP_TEXT = """
-[Beta Feature] Update/sync local artifacts to AWS
+[Beta Feature] Update/Sync local artifacts to AWS
 
-By default, the sync command runs a full stack update, you can specify --code or --watch to which modes
+By default, the sync command runs a full stack update. You can specify --code or --watch to switch modes
 """
 
 SYNC_CONFIRMATION_TEXT = """
@@ -275,6 +275,7 @@ def do_cli(
         mode=mode,
         create_auto_dependency_layer=dependency_layer,
         stack_name=stack_name,
+        print_success_message=False,
     ) as build_context:
         built_template = os.path.join(build_dir, DEFAULT_TEMPLATE_NAME)
 

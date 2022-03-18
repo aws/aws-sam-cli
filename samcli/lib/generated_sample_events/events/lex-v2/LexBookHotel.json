@@ -1,0 +1,96 @@
+{
+    "sessionId": "254688924456104",
+    "inputTranscript": "Book a hotel",
+    "interpretations": [
+        {
+            "intent": {
+                "slots": {
+                    "RoomType": null,
+                    "CheckInDate": null,
+                    "Nights": null,
+                    "Location": null
+                },
+                "confirmationState": "None",
+                "name": "BookHotel",
+                "state": "InProgress"
+            },
+            "nluConfidence": 1
+        },
+        {
+            "intent": {
+                "slots": {},
+                "confirmationState": "None",
+                "name": "FallbackIntent",
+                "state": "InProgress"
+            }
+        },
+        {
+            "intent": {
+                "slots": {
+                    "ReturnDate": null,
+                    "PickUpDate": null,
+                    "DriverAge": null,
+                    "CarType": null,
+                    "PickUpCity": null
+                },
+                "confirmationState": "None",
+                "name": "BookCar",
+                "state": "InProgress"
+            },
+            "nluConfidence": 0.42
+        }
+    ],
+    "proposedNextState": {
+        "intent": {
+            "slots": {
+                "RoomType": null,
+                "CheckInDate": null,
+                "Nights": null,
+                "Location": null
+            },
+            "confirmationState": "None",
+            "name": "BookHotel",
+            "state": "InProgress"
+        },
+        "dialogAction": {
+            "slotToElicit": "Location",
+            "type": "ElicitSlot"
+        }
+    },
+    "responseContentType": "text/plain; charset=utf-8",
+    "sessionState": {
+        "intent": {
+            "slots": {
+                "RoomType": null,
+                "CheckInDate": null,
+                "Nights": null,
+                "Location": null
+            },
+            "confirmationState": "None",
+            "name": "BookHotel",
+            "state": "InProgress"
+        },
+        "originatingRequestId": "4686558a-ebce-49a8-9df9-f513590c0a95"
+    },
+    "messageVersion": "1.0",
+    "invocationSource": "DialogCodeHook",
+    "transcriptions": [
+        {
+            "resolvedSlots": {},
+            "resolvedContext": {
+                "intent": "BookHotel"
+            },
+            "transcription": "Book a hotel",
+            "transcriptionConfidence": 1
+        }
+    ],
+    "inputMode": "Text",
+    "bot": {
+        "aliasName": "TestBotAlias",
+        "aliasId": "TSTALIASID",
+        "name": "BookTrip",
+        "version": "DRAFT",
+        "localeId": "en_US",
+        "id": "CCGFLGVZMD"
+    }
+}

@@ -1,6 +1,8 @@
 """
 Isolates interactive init prompt flow. Expected to call generator logic at end of flow.
 """
+import functools
+import re
 import tempfile
 import logging
 from typing import Optional, Tuple
@@ -15,7 +17,7 @@ from samcli.commands.init.interactive_event_bridge_flow import (
 )
 from samcli.commands.exceptions import SchemasApiException, InvalidInitOptionException
 from samcli.lib.schemas.schemas_code_manager import do_download_source_code_binding, do_extract_and_merge_schemas_code
-from samcli.local.common.runtime_template import LAMBDA_IMAGES_RUNTIMES_MAP, INIT_RUNTIMES
+from samcli.local.common.runtime_template import INIT_RUNTIMES, LAMBDA_IMAGES_RUNTIMES_MAP
 from samcli.commands.init.init_generator import do_generate
 from samcli.commands.init.init_templates import InitTemplates, InvalidInitTemplateError
 from samcli.lib.utils.osutils import remove
@@ -154,10 +156,11 @@ def _generate_from_use_case(
     base_image = (
         LAMBDA_IMAGES_RUNTIMES_MAP.get(str(runtime)) if not base_image and package_type == IMAGE else base_image
     )
-    location = templates.location_from_app_template(package_type, runtime, base_image, dependency_manager, app_template)
 
     if not name:
         name = click.prompt("\nProject name", type=str, default="sam-app")
+
+    location = templates.location_from_app_template(package_type, runtime, base_image, dependency_manager, app_template)
 
     final_architecture = get_architectures(architecture)
     extra_context = {
@@ -228,8 +231,8 @@ def _generate_default_hello_world_application(
     """
     is_package_type_image = bool(package_type == IMAGE)
     if use_case == "Hello World Example" and not (runtime or base_image or is_package_type_image or dependency_manager):
-        if click.confirm("\n Use the most popular runtime and package type? (Nodejs and zip)"):
-            runtime, package_type, dependency_manager, pt_explicit = "nodejs14.x", ZIP, "npm", True
+        if click.confirm("\n Use the most popular runtime and package type? (Python and zip)"):
+            runtime, package_type, dependency_manager, pt_explicit = "python3.9", ZIP, "pip", True
     return (runtime, package_type, dependency_manager, pt_explicit)
 
 
@@ -297,6 +300,7 @@ def _get_choice_from_options(chosen, options, question, msg):
     click_choices = []
 
     options_list = options if isinstance(options, list) else list(options.keys())
+    options_list = get_sorted_runtimes(options_list) if msg == "Runtime" else options_list
 
     if not options_list:
         raise InvalidInitOptionException(f"There are no {msg} options available to be selected.")
@@ -309,9 +313,7 @@ def _get_choice_from_options(chosen, options, question, msg):
         return options_list[0]
 
     click.echo(f"\n{question}")
-    options_list = (
-        get_sorted_runtimes(options_list) if msg == "Runtime" and not isinstance(options, list) else options_list
-    )
+
     for index, option in enumerate(options_list):
         click.echo(f"\t{index+1} - {option}")
         click_choices.append(str(index + 1))
@@ -319,15 +321,141 @@ def _get_choice_from_options(chosen, options, question, msg):
     return options_list[int(choice) - 1]
 
 
-def get_sorted_runtimes(options_list):
-    runtimes = []
-    for runtime in options_list:
-        position = INIT_RUNTIMES.index(runtime)
-        runtimes.append(position)
-    sorted_runtimes = sorted(runtimes)
-    for index, position in enumerate(sorted_runtimes):
-        sorted_runtimes[index] = INIT_RUNTIMES[position]
-    return sorted_runtimes
+def get_sorted_runtimes(runtime_option_list):
+    """
+    Return a list of sorted runtimes in ascending order of runtime names and
+    descending order of runtime version.
+
+    Parameters
+    ----------
+    runtime_option_list : list
+        list of possible runtime to be selected
+
+    Returns
+    -------
+    list
+        sorted list of possible runtime to be selected
+    """
+    runtime_list = []
+    supported_runtime_list = get_supported_runtime(runtime_option_list)
+    for runtime in supported_runtime_list:
+        extractLanguageFromRuntime = re.split(r"\d", runtime)[0]
+        extractVersionFromRuntime = re.search(r"\d.*", runtime).group()
+        runtime_list.append((extractLanguageFromRuntime, extractVersionFromRuntime))
+
+    runtime_list = sorted(supported_runtime_list, key=functools.cmp_to_key(compare_runtimes))
+    sorted_runtime = ["".join(runtime_tuple) for runtime_tuple in runtime_list]
+    return sorted_runtime
+
+
+def get_supported_runtime(runtime_list):
+    """
+    Returns a list of only runtimes supported by the current version of SAMCLI.
+    This is the list that is presented to the customer to select from.
+
+    Parameters
+    ----------
+    runtime_list : list
+        List of runtime
+
+    Returns
+    -------
+    list
+        List of supported runtime
+    """
+    supported_runtime_list = []
+    error_message = ""
+    for runtime in runtime_list:
+        if runtime not in INIT_RUNTIMES:
+            if not error_message:
+                error_message = "Additional runtimes may be available in the latest SAM CLI version. \
+                    Upgrade your SAM CLI to see the full list."
+                LOG.debug(error_message)
+            continue
+        supported_runtime_list.append(runtime)
+    return supported_runtime_list
+
+
+def compare_runtimes(first_runtime, second_runtime):
+    """
+    Logic to compare supported runtime for sorting.
+
+    Parameters
+    ----------
+    first_runtime : str
+        runtime to be compared
+    second_runtime : str
+        runtime to be compared
+
+    Returns
+    -------
+    int
+        comparison result
+    """
+
+    first_runtime_name, first_version_number = _split_runtime(first_runtime)
+    second_runtime_name, second_version_number = _split_runtime(second_runtime)
+
+    if first_runtime_name == second_runtime_name:
+        if first_version_number == second_version_number:
+            # If it's the same runtime and version return al2 first
+            return -1 if first_runtime.endswith(".al2") else 1
+        return second_version_number - first_version_number
+
+    return 1 if first_runtime_name > second_runtime_name else -1
+
+
+def _split_runtime(runtime):
+    """
+    Split a runtime into its name and version number.
+
+    Parameters
+    ----------
+    runtime : str
+        Runtime in the format supported by Lambda
+
+    Returns
+    -------
+    (str, float)
+        Tuple of runtime name and runtime version
+    """
+    return (_get_runtime_name(runtime), _get_version_number(runtime))
+
+
+def _get_runtime_name(runtime):
+    """
+    Return the runtime name without the version
+
+    Parameters
+    ----------
+    runtime : str
+        Runtime in the format supported by Lambda.
+
+    Returns
+    -------
+    str
+        Runtime name, which is obtained as everything before the first number
+    """
+    return re.split(r"\d", runtime)[0]
+
+
+def _get_version_number(runtime):
+    """
+    Return the runtime version number
+
+    Parameters
+    ----------
+    runtime_version : str
+        version of a runtime
+
+    Returns
+    -------
+    float
+        Runtime version number
+    """
+    if "provided" in runtime:
+        return 1.0
+    return float(re.search(r"\d+(\.\d+)?", runtime).group())
 
 
 def _get_app_template_choice(templates_options, dependency_manager):

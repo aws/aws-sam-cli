@@ -8,7 +8,8 @@ from samcli.lib.providers.provider import ResourceIdentifier
 class TestCodeTriggerFactory(TestCase):
     def setUp(self):
         self.stacks = [MagicMock(), MagicMock()]
-        self.factory = CodeTriggerFactory(self.stacks)
+        self.base_dir = MagicMock()
+        self.factory = CodeTriggerFactory(self.stacks, self.base_dir)
 
     @patch("samcli.lib.utils.code_trigger_factory.LambdaZipCodeTrigger")
     def test_create_zip_function_trigger(self, trigger_mock):
@@ -17,7 +18,7 @@ class TestCodeTriggerFactory(TestCase):
         resource = {"Properties": {"PackageType": "Zip"}}
         result = self.factory._create_lambda_trigger(resource_identifier, "Type", resource, on_code_change_mock)
         self.assertEqual(result, trigger_mock.return_value)
-        trigger_mock.assert_called_once_with(resource_identifier, self.stacks, on_code_change_mock)
+        trigger_mock.assert_called_once_with(resource_identifier, self.stacks, self.base_dir, on_code_change_mock)
 
     @patch("samcli.lib.utils.code_trigger_factory.LambdaImageCodeTrigger")
     def test_create_image_function_trigger(self, trigger_mock):
@@ -26,7 +27,7 @@ class TestCodeTriggerFactory(TestCase):
         resource = {"Properties": {"PackageType": "Image"}}
         result = self.factory._create_lambda_trigger(resource_identifier, "Type", resource, on_code_change_mock)
         self.assertEqual(result, trigger_mock.return_value)
-        trigger_mock.assert_called_once_with(resource_identifier, self.stacks, on_code_change_mock)
+        trigger_mock.assert_called_once_with(resource_identifier, self.stacks, self.base_dir, on_code_change_mock)
 
     @patch("samcli.lib.utils.code_trigger_factory.LambdaLayerCodeTrigger")
     def test_create_layer_trigger(self, trigger_mock):
@@ -34,7 +35,7 @@ class TestCodeTriggerFactory(TestCase):
         resource_identifier = ResourceIdentifier("Layer1")
         result = self.factory._create_layer_trigger(resource_identifier, "Type", {}, on_code_change_mock)
         self.assertEqual(result, trigger_mock.return_value)
-        trigger_mock.assert_called_once_with(resource_identifier, self.stacks, on_code_change_mock)
+        trigger_mock.assert_called_once_with(resource_identifier, self.stacks, self.base_dir, on_code_change_mock)
 
     @patch("samcli.lib.utils.code_trigger_factory.DefinitionCodeTrigger")
     def test_create_definition_trigger(self, trigger_mock):
@@ -45,7 +46,9 @@ class TestCodeTriggerFactory(TestCase):
             resource_identifier, resource_type, {}, on_code_change_mock
         )
         self.assertEqual(result, trigger_mock.return_value)
-        trigger_mock.assert_called_once_with(resource_identifier, resource_type, self.stacks, on_code_change_mock)
+        trigger_mock.assert_called_once_with(
+            resource_identifier, resource_type, self.stacks, self.base_dir, on_code_change_mock
+        )
 
     @patch("samcli.lib.utils.code_trigger_factory.get_resource_by_id")
     @patch("samcli.lib.utils.resource_type_based_factory.get_resource_by_id")
