@@ -247,7 +247,9 @@ def _resolve_relative_to(path, original_root, new_root):
 
     # Value is definitely a relative path. Change it relative to the destination directory
     return os.path.relpath(
-        os.path.normpath(os.path.join(original_root, path)), new_root  # Absolute original path w.r.t ``original_root``
+        # Resolve the paths to take care of symlinks
+        os.path.normpath(os.path.join(pathlib.Path(original_root).resolve(), path)),
+        pathlib.Path(new_root).resolve(),  # Absolute original path w.r.t ``original_root``
     )  # Resolve the original path with respect to ``new_root``
 
 
