@@ -43,7 +43,6 @@ class TestInteractiveFlow(TestCase):
 
         self.prompt_mock.side_effect = [
             "1",  # Which template source -> AWS
-            "1",  # Runtime -> unknown 1
             "unknown_runtime_app",  # Project name
         ]
         self.confirm_mock.side_effect = [False]
@@ -61,4 +60,6 @@ class TestInteractiveFlow(TestCase):
             no_input=False,
         )
         output_files = list(self.output_dir.rglob("*"))
-        self.assertEqual(len(output_files), 7)
+        self.assertEqual(len(output_files), 8)
+        unique_test_file_path = self.output_dir / "unknown_runtime_app" / "unique_test_file.txt"
+        self.assertIn(unique_test_file_path, output_files)
