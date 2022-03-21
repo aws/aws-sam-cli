@@ -1,9 +1,10 @@
 """
 This module contains utility functions for boto3 library
 """
-from typing import Any, Optional, Protocol
+from typing import Any, Optional
 
 from boto3 import Session
+from typing_extensions import Protocol
 
 from botocore.config import Config
 
