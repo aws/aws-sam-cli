@@ -21,6 +21,9 @@ watchdog==2.1.2
 # This is a short term patch as we should be upgrading to new versions of Flask (and other dependencies)
 MarkupSafe==2.0.1
 
+# Needed for supporting Protocol in Python 3.7, Protocol class is became public with python3.8
+typing_extensions==3.10.0.0
+
 # NOTE: regex is not a direct dependency of SAM CLI, but pin to 2021.9.30 due to 2021.10.8 not working on M1 Mac - https://bitbucket.org/mrabarnett/mrab-regex/issues/399/missing-wheel-for-macosx-and-the-new-m1
 regex==2021.9.30
 # NOTE: tzlocal is not a direct dependency of SAM CLI, but pin to 3.0 as 4.0 break appveyor jobs
