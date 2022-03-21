@@ -4,9 +4,8 @@ import platform
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional, cast, Protocol
 
-from typing_extensions import Protocol
 from watchdog.events import FileSystemEvent, RegexMatchingEventHandler
 
 from samcli.lib.providers.exceptions import MissingCodeUri, MissingLocalDefinition
