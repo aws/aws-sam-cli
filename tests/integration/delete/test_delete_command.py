@@ -533,6 +533,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             region="us-east-1",
         )
         deploy_process_execute = run_command(deploy_command_list)
+        self.add_left_over_resources_from_stack(stack_name)
 
         delete_command_list = self.get_delete_command_list(stack_name=stack_name, region="us-east-1")
         delete_process_execute = run_command_with_input(delete_command_list, "y\nn\nn\n".encode())
