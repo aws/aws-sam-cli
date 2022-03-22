@@ -2535,8 +2535,7 @@ test-project
         init_runtime_mock.return_value = ["dotnetcore3.1", "go1.x", "java11", "python3.7", "ruby2.7"]
         expect_result = ["dotnetcore3.1", "java11", "python3.7", "ruby2.7"]
         actual_result = get_sorted_runtimes(runtime_option_list)
-        self.assertEquals(actual_result, expect_result)
-    
+        self.assertEqual(actual_result, expect_result)
 
     @patch("samcli.commands.init.init_templates.InitTemplates.get_preprocessed_manifest")
     @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")

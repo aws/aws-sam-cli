@@ -17,8 +17,8 @@ from samcli.commands.init.interactive_event_bridge_flow import (
 )
 from samcli.commands.exceptions import SchemasApiException, InvalidInitOptionException
 from samcli.lib.schemas.schemas_code_manager import do_download_source_code_binding, do_extract_and_merge_schemas_code
-from samcli.local.common.runtime_template import INIT_RUNTIMES, LAMBDA_IMAGES_RUNTIMES_MAP
 from samcli.local.common.runtime_template import (
+    INIT_RUNTIMES,
     LAMBDA_IMAGES_RUNTIMES_MAP,
     get_custom_runtime_base_runtime,
     is_custom_runtime,
@@ -269,6 +269,7 @@ def _get_app_template_properties(
     InvalidInitOptionException
         exception raised when invalid option is provided
     """
+    # breakpoint()
     runtime, package_type, dependency_manager, pt_explicit = template_properties
     runtime_options = preprocessed_options[use_case]
     runtime = None if is_custom_runtime(runtime) else runtime
@@ -343,7 +344,8 @@ def get_sorted_runtimes(runtime_option_list):
     list
         sorted list of possible runtime to be selected
     """
-    return sorted(runtime_option_list, key=functools.cmp_to_key(compare_runtimes))
+    supported_runtime_list = get_supported_runtime(runtime_option_list)
+    return sorted(supported_runtime_list, key=functools.cmp_to_key(compare_runtimes))
 
 
 def get_supported_runtime(runtime_list):
@@ -364,13 +366,14 @@ def get_supported_runtime(runtime_list):
     supported_runtime_list = []
     error_message = ""
     for runtime in runtime_list:
-        if runtime not in INIT_RUNTIMES:
+        if runtime not in INIT_RUNTIMES and not is_custom_runtime(runtime):
             if not error_message:
                 error_message = "Additional runtimes may be available in the latest SAM CLI version. \
                     Upgrade your SAM CLI to see the full list."
                 LOG.debug(error_message)
             continue
         supported_runtime_list.append(runtime)
+
     return supported_runtime_list
 
 
