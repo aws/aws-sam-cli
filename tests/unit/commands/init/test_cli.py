@@ -25,6 +25,7 @@ from samcli.commands.init.init_templates import (
     get_template_value,
     template_does_not_meet_filter_criteria,
 )
+from samcli.commands.init.interactive_init_flow import get_sorted_runtimes
 from samcli.lib.init import GenerateProjectFailedError
 from samcli.lib.utils import osutils
 from samcli.lib.utils import packagetype
@@ -2527,3 +2528,11 @@ test-project
             True,
             {"project_name": "test-project", "runtime": "java11", "architectures": {"value": ["x86_64"]}},
         )
+
+    @patch("samcli.local.common.runtime_template.INIT_RUNTIMES")
+    def test_must_remove_unsupported_runtime(self, init_runtime_mock):
+        runtime_option_list = ["python3.7", "ruby2.7", "java11", "unsupported_runtime", "dotnetcore3.1"]
+        init_runtime_mock.return_value = ["dotnetcore3.1", "go1.x", "java11", "python3.7", "ruby2.7"]
+        expect_result = ["dotnetcore3.1", "java11", "python3.7", "ruby2.7"]
+        actual_result = get_sorted_runtimes(runtime_option_list)
+        self.assertEquals(actual_result, expect_result)

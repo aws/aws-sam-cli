@@ -21,7 +21,7 @@ from samcli.local.common.runtime_template import (
 )
 
 LOG = logging.getLogger(__name__)
-MANIFEST_URL = "https://raw.githubusercontent.com/aws/aws-sam-cli-app-templates/master/manifest.json"
+MANIFEST_URL = "https://raw.githubusercontent.com/aws/aws-sam-cli-app-templates/master/manifest-v2.json"
 APP_TEMPLATES_REPO_URL = "https://github.com/aws/aws-sam-cli-app-templates"
 APP_TEMPLATES_REPO_NAME = "aws-sam-cli-app-templates"
 
@@ -33,7 +33,7 @@ class InvalidInitTemplateError(UserException):
 class InitTemplates:
     def __init__(self):
         self._git_repo: GitRepo = GitRepo(url=APP_TEMPLATES_REPO_URL)
-        self.manifest_file_name = "manifest.json"
+        self.manifest_file_name = "manifest-v2.json"
 
     def location_from_app_template(self, package_type, runtime, base_image, dependency_manager, app_template):
         options = self.init_options(package_type, runtime, base_image, dependency_manager)

@@ -12,10 +12,10 @@ attrs==20.3.0 \
     --hash=sha256:31b2eced602aa8423c2aea9c76a724617ed67cf9513173fd3a4f03e3a929c7e6 \
     --hash=sha256:832aa3cde19744e49938b91fea06d69ecb9e649c93ba974535d08ad92164f700
     # via jsonschema
-aws-lambda-builders==1.12.0 \
-    --hash=sha256:252aa1e6b47c3f51b78894bea07ca8ef8f60b58d542eb82522dd88739d2796dd \
-    --hash=sha256:799b3c47f94391436046b2b6a7fe1c85fef938c6bb1b97bd9a2846216c5aa5c7 \
-    --hash=sha256:a4df95409ed06480157fd6dbd82be8046b1d9287a1a6840c11df29c762fa6407
+aws-lambda-builders==1.14.0 \
+    --hash=sha256:221f50d7a36c1fe4a8495a1acfff3cf539ef528310c76cfe2341e250817ceb74 \
+    --hash=sha256:96e16fb9d860c91484daef296445fbc856a951dc8c35523882695d33cb177c2d \
+    --hash=sha256:c9f4a284b856c43e18e47aeb28c4ee6b702d632953b03ef4fe2fb24fd6cc99e5
     # via aws-sam-cli (setup.py)
 aws-sam-translator==1.42.0 \
     --hash=sha256:31875e4f639511f506d0c757a2a50756bd846440724079e867aafb12c534ac23 \
@@ -98,9 +98,9 @@ idna==2.10 \
     --hash=sha256:b307872f855b18632ce0c21c5e45be78c0ea7ae4c15c828c20788b26921eb3f6 \
     --hash=sha256:b97d804b1e9b523befed77c48dacec60e6dcb0b5391d57af6a65a312a90648c0
     # via requests
-importlib-metadata==4.8.1 \
-    --hash=sha256:b618b6d2d5ffa2f16add5697cf57a46c76a56229b0ed1c438322e4e95645bd15 \
-    --hash=sha256:f284b3e11256ad1e5d03ab86bb2ccd6f5339688ff17a4d797a0fe7df326f23b1
+importlib-metadata==4.11.3 \
+    --hash=sha256:1208431ca90a8cca1a6b8af391bb53c1a2db74e5d1cef6ddced95d4b2062edc6 \
+    --hash=sha256:ea4c597ebf37142f827b8f39299579e31685c31d3a438b59f469406afd0f2539
     # via jsonschema
 itsdangerous==1.1.0 \
     --hash=sha256:321b033d07f2a4136d3ec762eac9f16a10ccd60f53c0c91af90217ace7ba1f19 \
@@ -386,9 +386,9 @@ wheel==0.36.2 \
     --hash=sha256:78b5b185f0e5763c26ca1e324373aadd49182ca90e825f7853f4b2509215dc0e \
     --hash=sha256:e11eefd162658ea59a60a0f6c7d493a7190ea4b9a85e335b33489d9f17e0245e
     # via aws-lambda-builders
-zipp==3.6.0 \
-    --hash=sha256:71c644c5369f4a6e07636f0aa966270449561fcea2e3d6747b8d23efaa9d7832 \
-    --hash=sha256:9fe5ea21568a0a70e50f273397638d39b03353731e6cbbb3fd8502a33fec40bc
+zipp==3.7.0 \
+    --hash=sha256:9f50f446828eb9d45b267433fd3e9da8d801f614129124863f9c51ebceafb87d \
+    --hash=sha256:b47250dd24f92b7dd6a0a8fc5244da14608f3ca90a5efcd37a3b1642fac9a375
     # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:

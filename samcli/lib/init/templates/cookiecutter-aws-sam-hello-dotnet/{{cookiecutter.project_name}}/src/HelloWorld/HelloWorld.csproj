@@ -1,8 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    {%- if cookiecutter.runtime == '3.1' %}
+    {%- if cookiecutter.runtime == 'dotnetcore3.1' %}
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    {%- else %}
+    <TargetFramework>net6.0</TargetFramework>
     {%- endif %}
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
   </PropertyGroup>
