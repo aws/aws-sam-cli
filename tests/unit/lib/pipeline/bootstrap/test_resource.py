@@ -43,8 +43,8 @@ class TestResource(TestCase):
 class TestIAMUser(TestCase):
     def test_create_iam_user(self):
         user: IAMUser = IAMUser(arn=VALID_ARN, comment="user")
-        self.assertEquals(user.arn, VALID_ARN)
-        self.assertEquals(user.comment, "user")
+        self.assertEqual(user.arn, VALID_ARN)
+        self.assertEqual(user.comment, "user")
         self.assertIsNone(user.access_key_id)
         self.assertIsNone(user.secret_access_key)
 
@@ -54,10 +54,10 @@ class TestIAMUser(TestCase):
             secret_access_key="any_secret_access_key",
             comment="user",
         )
-        self.assertEquals(user.arn, INVALID_ARN)
-        self.assertEquals(user.comment, "user")
-        self.assertEquals(user.access_key_id, "any_access_key_id")
-        self.assertEquals(user.secret_access_key, "any_secret_access_key")
+        self.assertEqual(user.arn, INVALID_ARN)
+        self.assertEqual(user.comment, "user")
+        self.assertEqual(user.access_key_id, "any_access_key_id")
+        self.assertEqual(user.secret_access_key, "any_secret_access_key")
 
 
 class TestECRImageRepository(TestCase):
@@ -65,7 +65,7 @@ class TestECRImageRepository(TestCase):
         valid_ecr_arn = "arn:partition:service:region:account-id:repository/repository-name"
         repo: ECRImageRepository = ECRImageRepository(arn=valid_ecr_arn, comment="ecr")
         self.assertEqual(repo.get_uri(), "account-id.dkr.ecr.region.amazonaws.com/repository-name")
-        self.assertEquals("ecr", repo.comment)
+        self.assertEqual("ecr", repo.comment)
 
     def test_get_uri_with_invalid_ecr_arn(self):
         repo = ECRImageRepository(arn=INVALID_ARN, comment="ecr")

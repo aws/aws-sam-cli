@@ -341,7 +341,7 @@ class DefinitionCodeTrigger(CodeResourceTrigger):
         super().__init__(resource_identifier, stacks, base_dir, on_code_change)
         self._resource_type = resource_type
         self._definition_file = self._get_definition_file()
-        self._validator = DefinitionValidator(Path(self._definition_file))
+        self._validator = DefinitionValidator(self.base_dir.joinpath(self._definition_file))
 
     def _get_definition_file(self) -> str:
         """
