@@ -60,7 +60,7 @@ def manage_stack(
     """
     try:
         if profile:
-            session = boto3.Session(profile_name=profile, region_name=region if region else None)  # type: ignore
+            session = boto3.Session(profile_name=profile, region_name=region if region else None)
             cloudformation_client = session.client("cloudformation")
         else:
             cloudformation_client = boto3.client(
