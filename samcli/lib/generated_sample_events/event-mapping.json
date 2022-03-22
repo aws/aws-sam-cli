@@ -185,6 +185,37 @@
         }
       }
     },
+    "request-authorizer": {
+      "filename": "ApiGatewayRestRequestAuthorizer",
+      "help": "Generates an Amazon API Gateway Request Authorizer Event",
+      "tags": {
+        "account-id": {
+          "default": "123456789012"
+        },
+        "partition": {
+          "default": "aws"
+        },
+        "region": {
+          "default": "us-east-1"
+        },
+        "stage": {
+          "type": "string",
+          "default": "test"
+        },
+        "method": {
+          "type": "string",
+          "default": "GET"
+        },
+        "resource": {
+          "type": "string",
+          "default": "request"
+        },
+        "restApiId": {
+          "type": "string",
+          "default": "abcdef123"
+        }
+      }
+    },    
     "aws-proxy": {
       "filename": "AwsProxy",
       "help": "Generates an Amazon API Gateway AWS Proxy Event",
@@ -842,6 +873,23 @@
     "order-flowers": {
       "filename": "LexOrderFlowers",
       "help": "Generates an Amazon Lex Order Flowers Event",
+      "tags": {}
+    }
+  },
+  "lex-v2": {
+    "banking-bot": {
+      "filename": "BankingBot",
+      "help": "Generates an Amazon Lex V2 Banking Bot Event",
+      "tags": {}
+    },
+    "book-car": {
+      "filename": "LexBookCar",
+      "help": "Generates an Amazon Lex V2 Book Car Event",
+      "tags": {}
+    },
+    "book-hotel": {
+      "filename": "LexBookHotel",
+      "help": "Generates an Amazon Lex V2 Book Hotel Event",
       "tags": {}
     }
   },

@@ -17,7 +17,7 @@ from samcli.commands.init.interactive_event_bridge_flow import (
 )
 from samcli.commands.exceptions import SchemasApiException, InvalidInitOptionException
 from samcli.lib.schemas.schemas_code_manager import do_download_source_code_binding, do_extract_and_merge_schemas_code
-from samcli.local.common.runtime_template import LAMBDA_IMAGES_RUNTIMES_MAP
+from samcli.local.common.runtime_template import INIT_RUNTIMES, LAMBDA_IMAGES_RUNTIMES_MAP
 from samcli.commands.init.init_generator import do_generate
 from samcli.commands.init.init_templates import InitTemplates, InvalidInitTemplateError
 from samcli.lib.utils.osutils import remove
@@ -300,6 +300,7 @@ def _get_choice_from_options(chosen, options, question, msg):
     click_choices = []
 
     options_list = options if isinstance(options, list) else list(options.keys())
+    options_list = get_sorted_runtimes(options_list) if msg == "Runtime" else options_list
 
     if not options_list:
         raise InvalidInitOptionException(f"There are no {msg} options available to be selected.")
@@ -312,9 +313,7 @@ def _get_choice_from_options(chosen, options, question, msg):
         return options_list[0]
 
     click.echo(f"\n{question}")
-    options_list = (
-        get_sorted_runtimes(options_list) if msg == "Runtime" and not isinstance(options, list) else options_list
-    )
+
     for index, option in enumerate(options_list):
         click.echo(f"\t{index+1} - {option}")
         click_choices.append(str(index + 1))
@@ -338,14 +337,43 @@ def get_sorted_runtimes(runtime_option_list):
         sorted list of possible runtime to be selected
     """
     runtime_list = []
-    for runtime in runtime_option_list:
+    supported_runtime_list = get_supported_runtime(runtime_option_list)
+    for runtime in supported_runtime_list:
         extractLanguageFromRuntime = re.split(r"\d", runtime)[0]
         extractVersionFromRuntime = re.search(r"\d.*", runtime).group()
         runtime_list.append((extractLanguageFromRuntime, extractVersionFromRuntime))
 
-    runtime_list = sorted(runtime_option_list, key=functools.cmp_to_key(compare_runtimes))
+    runtime_list = sorted(supported_runtime_list, key=functools.cmp_to_key(compare_runtimes))
     sorted_runtime = ["".join(runtime_tuple) for runtime_tuple in runtime_list]
     return sorted_runtime
+
+
+def get_supported_runtime(runtime_list):
+    """
+    Returns a list of only runtimes supported by the current version of SAMCLI.
+    This is the list that is presented to the customer to select from.
+
+    Parameters
+    ----------
+    runtime_list : list
+        List of runtime
+
+    Returns
+    -------
+    list
+        List of supported runtime
+    """
+    supported_runtime_list = []
+    error_message = ""
+    for runtime in runtime_list:
+        if runtime not in INIT_RUNTIMES:
+            if not error_message:
+                error_message = "Additional runtimes may be available in the latest SAM CLI version. \
+                    Upgrade your SAM CLI to see the full list."
+                LOG.debug(error_message)
+            continue
+        supported_runtime_list.append(runtime)
+    return supported_runtime_list
 
 
 def compare_runtimes(first_runtime, second_runtime):

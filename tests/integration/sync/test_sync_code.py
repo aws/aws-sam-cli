@@ -173,7 +173,7 @@ class TestSyncCode(SyncIntegBase):
         self.stack_resources = self._get_stacks(TestSyncCode.stack_name)
         # ApiGateway Api call here, which tests the RestApi
         rest_api = self.stack_resources.get(AWS_APIGATEWAY_RESTAPI)[0]
-        self.assertEqual(self._get_api_message(rest_api), '{"message": "hello!!!"}')
+        self.assertEqual(self._get_api_message(rest_api), '{"message": "hello 2"}')
 
     def test_sync_code_state_machine(self):
         shutil.rmtree(TestSyncCode.temp_dir.joinpath("statemachine"), ignore_errors=True)
@@ -203,4 +203,4 @@ class TestSyncCode(SyncIntegBase):
         # SFN Api call here, which tests the StateMachine
         time.sleep(SFN_SLEEP)
         state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
-        self.assertEqual(self._get_sfn_response(state_machine), '"World has been updated!!"')
+        self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')
