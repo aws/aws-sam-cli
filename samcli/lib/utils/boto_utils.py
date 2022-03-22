@@ -85,7 +85,7 @@ def get_boto_client_provider_with_config(
         A callable function which will return a boto client
     """
     return get_boto_client_provider_from_session_with_config(
-        Session(region_name=region, profile_name=profile), **kwargs  # type: ignore
+        Session(region_name=region, profile_name=profile), **kwargs
     )
 
 
@@ -132,7 +132,6 @@ def get_boto_resource_provider_with_config(
     -------
         A callable function which will return a boto resource
     """
-    # ignore typing because mypy tries to assert client_name with a valid service name
     return get_boto_resource_provider_from_session_with_config(
-        Session(region_name=region, profile_name=profile), **kwargs  # type: ignore
+        Session(region_name=region, profile_name=profile), **kwargs
     )
