@@ -21,6 +21,7 @@ from samcli.lib.utils.file_observer import FileObserver
 from .provider import Function, LayerVersion, Stack
 from .sam_base_provider import SamBaseProvider
 from .sam_stack_provider import SamLocalStackProvider
+from ..build.app_builder import DEPRECATED_RUNTIMES
 
 LOG = logging.getLogger(__name__)
 
@@ -62,7 +63,6 @@ class SamFunctionProvider(SamBaseProvider):
             self._stacks, use_raw_codeuri, ignore_code_extraction_warnings
         )
 
-        self._deprecated_runtimes = {"nodejs4.3", "nodejs6.10", "nodejs8.10", "dotnetcore2.0"}
         self._colored = Colored()
 
     @property
@@ -131,11 +131,11 @@ class SamFunctionProvider(SamBaseProvider):
         return resolved_function
 
     def _deprecate_notification(self, runtime: Optional[str]) -> None:
-        if runtime in self._deprecated_runtimes:
+        if runtime in DEPRECATED_RUNTIMES:
             message = (
-                f"WARNING: {runtime} is no longer supported by AWS Lambda, "
-                "please update to a newer supported runtime. SAM CLI "
-                "See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
+                f"WARNING: {runtime} is no longer supported by AWS Lambda, please update to a newer supported "
+                "runtime. For more information please check AWS Lambda Runtime Support Policy: "
+                "https://docs.aws.amazon.com/lambda/latest/dg/runtime-support-policy.html"
             )
             LOG.warning(self._colored.yellow(message))
 
