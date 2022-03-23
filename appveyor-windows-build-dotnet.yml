@@ -2,20 +2,17 @@ version: 1.0.{build}
 image: Visual Studio 2019
 build: off
 
-# Change the clone folder to somewhere in "D:\" because this is shared by default with Docker. We need this to mount folders.
-clone_folder: D:\source
+clone_folder: C:\source
 
 environment:
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
   APPVEYOR_CI_OVERRIDE: 1
 
-  # In Windows, tempdir is usually in C:\. But in AppVeyor only D:\ is shared in Docker.
-  # Therefore change TEMPDIR it to D: for invoke tests to work. Python uses $TMPDIR envvar
-  # to find root of tempdir
-  TMPDIR: D:\tmp
-  TEMP: D:\tmp
-  TMP: D:\tmp
+  # Python uses $TMPDIR envvar to find root of tempdir
+  TMPDIR: C:\tmp
+  TEMP: C:\tmp
+  TMP: C:\tmp
 
   # MSI Installers only use Py3.7.6. It is sufficient to test with this version here.
   PYTHON_HOME: "C:\\Python37-x64"
@@ -38,7 +35,7 @@ install:
   - "choco install dotnet-sdk"
   - "refreshenv"
   # Make sure the temp directory exists for Python to use.
-  - ps: "mkdir -Force D:\\tmp"
+  - ps: "mkdir -Force C:\\tmp"
   - "SET PATH=%PYTHON_HOME%;%PATH%"
   - "echo %PYTHON_HOME%"
   - "echo %PATH%"
