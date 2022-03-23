@@ -52,7 +52,7 @@ install:
   - "choco install make"
 
   # Make sure the temp directory exists for Python to use.
-  - ps: "mkdir -Force D:\\tmp"
+  - ps: "mkdir -Force C:\\tmp"
   - "SET PATH=%PYTHON_HOME%;C:\\Ruby27-x64\\bin;%PATH%"
   - "echo %PYTHON_HOME%"
   - "echo %PATH%"
