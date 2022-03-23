@@ -7,6 +7,7 @@ import functools
 from samtranslator.public.exceptions import InvalidDocumentException
 from samtranslator.parser import parser
 from samtranslator.translator.translator import Translator
+from samtranslator.utils.py27hash_fix import undo_mark_unicode_str_in_template
 from boto3.session import Session
 
 from samcli.lib.utils.packagetype import ZIP, IMAGE
@@ -68,6 +69,7 @@ class SamTemplateValidator:
 
         try:
             template = sam_translator.translate(sam_template=self.sam_template, parameter_values={})
+            template = undo_mark_unicode_str_in_template(template)
             LOG.debug("Translated template is:\n%s", yaml_dump(template))
         except InvalidDocumentException as e:
             raise InvalidSamDocumentException(
