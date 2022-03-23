@@ -34,8 +34,8 @@ install:
   # Make sure the temp directory exists for Python to use.
   # Install python3.8 and python3.9
   - "choco install chocolatey-core.extension --version 1.3.3 --force -y"
-  - "choco install python3 --version 3.8.0"
-  - "choco install python3 --version 3.9.0"
+  #- "choco install python3 --version 3.8.0"
+  #- "choco install python3 --version 3.9.0"
   - "C:\\Python38\\python.exe -m pip freeze"
   - "C:\\Python39\\python.exe -m pip freeze"
   - "refreshenv"
