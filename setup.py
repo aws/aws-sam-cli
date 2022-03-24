@@ -53,7 +53,7 @@ setup(
     license="Apache License 2.0",
     packages=find_packages(exclude=["tests.*", "tests"]),
     keywords="AWS SAM CLI",
-    # Support Python 3.6 or greater
+    # Support Python 3.7 or greater
     python_requires=">=3.7, <=4.0, !=4.0",
     entry_points={"console_scripts": ["{}=samcli.cli.main:cli".format(cmd_name)]},
     install_requires=read_requirements("base.txt"),
