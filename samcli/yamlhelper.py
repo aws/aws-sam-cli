@@ -21,6 +21,7 @@ import json
 from typing import cast, Dict, Optional
 from botocore.compat import OrderedDict
 import yaml
+from samtranslator.utils.py27hash_fix import Py27Dict, Py27UniStr
 
 # ScalarNode and SequenceNode are not declared in __all__,
 # TODO: we need to double check whether they are public and stable
@@ -100,6 +101,8 @@ def yaml_dump(dict_to_dump):
     """
     CfnDumper.add_representer(OrderedDict, _dict_representer)
     CfnDumper.add_representer(str, string_representer)
+    CfnDumper.add_representer(Py27Dict, _dict_representer)
+    CfnDumper.add_representer(Py27UniStr, string_representer)
     return yaml.dump(dict_to_dump, default_flow_style=False, Dumper=CfnDumper)
 
 
