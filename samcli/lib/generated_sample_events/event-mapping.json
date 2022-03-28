@@ -126,6 +126,33 @@
       "tags": {}
     }
   },
+  "alb": {
+    "request": {
+      "filename": "ALBRequest",
+      "help": "Generates an Application Load Balancer Event",
+      "tags": {
+        "body": {
+          "type": "string",
+          "default": "{\"test\":\"body\"}",
+          "encoding": "base64"
+        },
+        "method": {
+          "type": "string",
+          "default": "POST"
+        },
+        "path": {
+          "type": "string",
+          "default": "path/to/resource"
+        },
+        "account-id": {
+          "default": "123456789012"
+        },
+        "dns-suffix": {
+          "default": "us-east-2.elb.amazonaws.com"
+        }
+      }
+    }
+  },
   "apigateway": {
     "authorizer": {
       "filename": "ApiGatewayAuthorizer",
