@@ -168,9 +168,10 @@ def _generate_from_use_case(
     location = templates.location_from_app_template(package_type, runtime, base_image, dependency_manager, app_template)
 
     final_architecture = get_architectures(architecture)
+    lambda_supported_runtime = get_custom_runtime_base_runtime(runtime) if is_custom_runtime(runtime) else runtime
     extra_context = {
         "project_name": name,
-        "runtime": get_custom_runtime_base_runtime(runtime) if is_custom_runtime(runtime) else runtime,
+        "runtime": lambda_supported_runtime,
         "architectures": {"value": final_architecture},
     }
 
@@ -197,8 +198,9 @@ def _generate_from_use_case(
     [*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
     """
     click.secho(next_commands_msg, fg="yellow")
-    runtime = get_custom_runtime_base_runtime(runtime) if is_custom_runtime(runtime) else runtime
-    do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, extra_context)
+    do_generate(
+        location, package_type, lambda_supported_runtime, dependency_manager, output_dir, name, no_input, extra_context
+    )
     # executing event_bridge logic if call is for Schema dynamic template
     if is_dynamic_schemas_template:
         _package_schemas_code(runtime, schemas_api_caller, schema_template_details, output_dir, name, location)
@@ -269,7 +271,6 @@ def _get_app_template_properties(
     InvalidInitOptionException
         exception raised when invalid option is provided
     """
-    # breakpoint()
     runtime, package_type, dependency_manager, pt_explicit = template_properties
     runtime_options = preprocessed_options[use_case]
     runtime = None if is_custom_runtime(runtime) else runtime
