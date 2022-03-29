@@ -154,13 +154,13 @@ class TestQuestion(TestCase):
 
     def test_question_allow_autofill_with_default_value(self):
         q = Question(text=self._ANY_TEXT, key=self._ANY_KEY, is_required=True, allow_autofill=True, default="123")
-        self.assertEquals("123", q.ask())
+        self.assertEqual("123", q.ask())
 
     @patch("samcli.lib.cookiecutter.question.click")
     def test_question_allow_autofill_without_default_value(self, click_mock):
         answer_mock = click_mock.prompt.return_value = Mock()
         q = Question(text=self._ANY_TEXT, key=self._ANY_KEY, is_required=True, allow_autofill=True)
-        self.assertEquals(answer_mock, q.ask())
+        self.assertEqual(answer_mock, q.ask())
 
 
 class TestChoice(TestCase):
