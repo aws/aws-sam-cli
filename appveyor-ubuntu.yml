@@ -3,11 +3,10 @@ image:
   - Ubuntu
 
 configuration:
-  - BuildIntegTesting
-  - DeployIntegTesting
-  - LocalIntegTesting
-  # other Integration testing, Dev, regression and smoke testing
-  - OtherTesting
+  - Worker0
+  - Worker1
+  - Worker2
+  - Worker3
 
 environment:
   AWS_DEFAULT_REGION: us-east-1
@@ -114,100 +113,23 @@ build_script:
       - "python -c \"import sys; print(sys.executable)\""
 
 for:
-  # Integ testing build
-  - 
-    matrix:
+  - matrix:
       only:
-        - image: Ubuntu
-          configuration: BuildIntegTesting
-
-    test_script:
-      # Pre-dev Tests
-      - "pip install -e \".[pre-dev]\""
-
-      # Runs only in Linux, logging Public ECR when running canary and cred is available
-      - sh: "
-        if [[ -n $BY_CANARY ]];
-          then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws; 
-        fi"
-
-      - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/buildcmd"
-
-      # Set JAVA_HOME to java11
-      - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
-      - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process"
-
-  # Integ testing deploy, package, delete, and sync
-  -
-    matrix:
+        - configuration: Worker0
+    before_test:
+      - sh: 'export WORKER_ID="0"'
+  - matrix:
       only:
-        - image: Ubuntu
-          configuration: DeployIntegTesting
-
-    test_script:
-      # Pre-dev Tests
-      - "pip install -e \".[pre-dev]\""
-
-      # Runs only in Linux, logging Public ECR when running canary and cred is available
-      - sh: "
-        if [[ -n $BY_CANARY ]];
-          then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
-        fi"
-
-      - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/delete tests/integration/deploy tests/integration/package tests/integration/sync"
-
-  # Integ testing local
-  -
-    matrix:
+        - configuration: Worker1
+    before_test:
+      - sh: 'export WORKER_ID="1"'
+  - matrix:
       only:
-        - image: Ubuntu
-          configuration: LocalIntegTesting
+        - configuration: Worker0
+        - configuration: Worker1
+  test_script:
+    # Pre-dev Tests
+    - 'pip install -e ".[pre-dev]"'
+    - 'pip install -e ".[dev]"'
+    - sh: "pytest -vv tests/unit"
 
-    test_script:
-      # Pre-dev Tests
-      - "pip install -e \".[pre-dev]\""
-      - "pylint --rcfile .pylintrc samcli"
-
-      # Runs only in Linux, logging Public ECR when running canary and cred is available
-      - sh: "
-        if [[ -n $BY_CANARY ]];
-          then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
-        fi"
-
-      - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/local"
-
-  # Other testing
-  -
-    matrix:
-      only:
-        - image: Ubuntu
-          configuration: OtherTesting
-
-    test_script:
-      # Pre-dev Tests
-      - "pip install -e \".[pre-dev]\""
-      - "pylint --rcfile .pylintrc samcli"
-
-      # Dev Tests
-      - "pip install -e \".[dev]\""
-      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
-      - "pylint --rcfile .pylintrc samcli"
-      - "mypy setup.py samcli tests"
-      - "pytest -n 4 tests/functional"
-
-      # Runs only in Linux, logging Public ECR when running canary and cred is available
-      - sh: "
-        if [[ -n $BY_CANARY ]];
-          then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
-        fi"
-
-      - sh: "pytest tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local"
-      - sh: "pytest -vv tests/regression"
-      - sh: "black --check setup.py tests samcli"
-
-      # Smoke tests run in parallel - it runs on both Linux & Windows
-      # Presence of the RUN_SMOKE envvar will run the smoke tests
-      - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"
