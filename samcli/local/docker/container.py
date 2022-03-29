@@ -29,6 +29,12 @@ class ContainerResponseException(Exception):
     """
 
 
+class ContainerStartTimeoutException(Exception):
+    """
+    Exception raised when timeout was reached while starting a container.
+    """
+
+
 class Container:
     """
     Represents an instance of a Docker container with a specific configuration. The container is not actually created
@@ -288,7 +294,7 @@ class Container:
         sleep = 0.1
         while True:
             a_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            location = (self._container_host_interface, self.rapid_port_host)
+            location = (self._container_host, self.rapid_port_host)
             # connect_ex returns 0 if connection succeeded
             is_port_open = not a_socket.connect_ex(location)
             a_socket.close()
@@ -298,10 +304,10 @@ class Container:
 
             current_time = time.time()
             if current_time - start_time > START_CONTAINER_TIMEOUT:
-                raise ContainerNotStartableException(
+                raise ContainerStartTimeoutException(
                     f"Timed out while starting container. You can increase this timeout by "
                     f"setting the SAM_CLI_START_CONTAINER_TIMEOUT environment variable. "
-                    f"The current value is {START_CONTAINER_TIMEOUT} (seconds)."
+                    f"The current timeout is {START_CONTAINER_TIMEOUT} (seconds)."
                 )
 
             time.sleep(sleep)
