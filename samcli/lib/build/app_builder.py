@@ -713,9 +713,11 @@ class ApplicationBuilder:
         dict
             Dictionary that represents the options to pass to the builder workflow or None if options are not needed
         """
+        build_props = {}
+        if metadata and isinstance(metadata, dict):
+            build_props = metadata.get(BUILD_PROPERTIES, {})
 
         if metadata and dependency_manager and dependency_manager == "npm-esbuild":
-            build_props = metadata.get(BUILD_PROPERTIES, {})
             # Esbuild takes an array of entry points from which to start bundling
             # as a required argument. This corresponds to the lambda function handler.
             normalized_build_props = ResourceMetadataNormalizer.normalize_build_properties(build_props)
@@ -727,6 +729,7 @@ class ApplicationBuilder:
         _build_options: Dict = {
             "go": {"artifact_executable_name": handler},
             "provided": {"build_logical_id": function_name},
+            "nodejs": {"use_npm_ci": build_props.get("UseNpmCi", False)},
         }
         return _build_options.get(language, None)
 

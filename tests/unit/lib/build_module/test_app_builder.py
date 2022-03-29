@@ -1875,3 +1875,34 @@ class TestApplicationBuilder_get_build_options(TestCase):
     def test_invalid_metadata_cases(self, metadata, expected_output):
         options = ApplicationBuilder._get_build_options("Function", "Node.js", "handler", "npm-esbuild", metadata)
         self.assertEqual(options, expected_output)
+
+    @parameterized.expand(
+        [
+            ("go", "", {"artifact_executable_name": "app.handler"}),
+            ("python", "", None),
+            ("nodejs", "npm", {"use_npm_ci": True}),
+            ("esbuild", "npm-esbuild", {"entry_points": ["app"], "use_npm_ci": True}),
+            ("provided", "", {"build_logical_id": "Function"}),
+        ]
+    )
+    def test_get_options_various_languages_dependency_managers(self, language, dependency_manager, expected_options):
+        build_properties = {"UseNpmCi": True}
+        metadata = {"BuildProperties": build_properties}
+        options = ApplicationBuilder._get_build_options(
+            "Function", language, "app.handler", dependency_manager, metadata
+        )
+        self.assertEqual(options, expected_options)
+
+    @parameterized.expand(
+        [
+            (None, "nodejs", "npm", {"use_npm_ci": False}),
+            ({"BuildProperties": {}}, "nodejs", "npm", {"use_npm_ci": False}),
+            (None, "esbuild", "npm-esbuild", None),
+            ({"BuildProperties": {}}, "esbuild", "npm-esbuild", {"entry_points": ["app"]}),
+        ]
+    )
+    def test_nodejs_metadata_not_defined(self, metadata, language, dependency_manager, expected_options):
+        options = ApplicationBuilder._get_build_options(
+            "Function", language, "app.handler", dependency_manager, metadata
+        )
+        self.assertEqual(options, expected_options)

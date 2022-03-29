@@ -130,7 +130,7 @@ class LambdaDebugSettings:
                 },
             ),
             Runtime.python36.value: lambda: DebugSettings(
-                entry + ["/var/lang/bin/python3.6"] + debug_args_list + ["/var/runtime/awslambda/bootstrap.py"],
+                entry + ["/var/lang/bin/python3.6"] + debug_args_list + ["/var/runtime/bootstrap.py"],
                 container_env_vars=_container_env_vars,
             ),
             Runtime.python37.value: lambda: DebugSettings(
