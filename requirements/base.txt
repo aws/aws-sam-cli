@@ -6,13 +6,13 @@ boto3>=1.18.32,==1.*
 jmespath~=0.10.0
 PyYAML~=5.3
 cookiecutter~=1.7.2
-aws-sam-translator==1.42.0
+aws-sam-translator==1.44.0
 #docker minor version updates can include breaking changes. Auto update micro version only.
 docker~=4.2.0
 dateparser~=1.0
 requests==2.25.1
 serverlessrepo==0.1.10
-aws_lambda_builders==1.12.0
+aws_lambda_builders==1.14.0
 tomlkit==0.7.2
 watchdog==2.1.2
 
@@ -21,10 +21,9 @@ watchdog==2.1.2
 # This is a short term patch as we should be upgrading to new versions of Flask (and other dependencies)
 MarkupSafe==2.0.1
 
-# Needed for supporting Protocol in Python 3.6
+# Needed for supporting Protocol in Python 3.7, Protocol class became public with python3.8
 typing_extensions==3.10.0.0
-# Needed for supporting dataclasses decorator in Python3.6
-dataclasses==0.8; python_version < '3.7'
+
 # NOTE: regex is not a direct dependency of SAM CLI, but pin to 2021.9.30 due to 2021.10.8 not working on M1 Mac - https://bitbucket.org/mrabarnett/mrab-regex/issues/399/missing-wheel-for-macosx-and-the-new-m1
 regex==2021.9.30
 # NOTE: tzlocal is not a direct dependency of SAM CLI, but pin to 3.0 as 4.0 break appveyor jobs
