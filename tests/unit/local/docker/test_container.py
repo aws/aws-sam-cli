@@ -9,8 +9,7 @@ from unittest.mock import Mock, call, patch, ANY
 from requests import RequestException
 
 from samcli.lib.utils.packagetype import IMAGE
-from samcli.local.docker.container import Container, ContainerResponseException
-from samcli.local.docker.exceptions import ContainerNotStartableException
+from samcli.local.docker.container import Container, ContainerResponseException, ContainerStartTimeoutException
 
 
 class TestContainer_init(TestCase):
@@ -515,10 +514,10 @@ class TestContainer_start(TestCase):
         patched_socket.return_value = socket_mock
 
         with self.assertRaises(
-            ContainerNotStartableException,
+            ContainerStartTimeoutException,
             msg=(
                 "Timed out while starting container. You can increase this timeout by setting the "
-                "SAM_CLI_START_CONTAINER_TIMEOUT environment variable. The current value is 0.1 (seconds)."
+                "SAM_CLI_START_CONTAINER_TIMEOUT environment variable. The current timeout is 0 (seconds)."
             ),
         ):
             self.container.start()
