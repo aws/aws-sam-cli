@@ -862,14 +862,10 @@ class LocalApigwService(BaseLocalService):
 
         # Flask returns an ImmutableMultiDict so convert to a dictionary that becomes
         # a dict(str: list) then iterate over
-        for query_string_key, query_string_list in flask_request.args.lists():
-            query_string_value_length = len(query_string_list)
-
-            # if the list is empty, default to empty string
-            if not query_string_value_length:
-                query_string_dict[query_string_key] = ""
-            else:
-                query_string_dict[query_string_key] = ",".join(query_string_list)
+        query_string_dict = {
+            query_string_key: ",".join(query_string_list)
+            for query_string_key, query_string_list in flask_request.args.lists()
+        }
 
         return query_string_dict
 
