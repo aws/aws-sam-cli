@@ -20,7 +20,7 @@ from samcli.lib.schemas.schemas_code_manager import do_download_source_code_bind
 from samcli.local.common.runtime_template import (
     INIT_RUNTIMES,
     LAMBDA_IMAGES_RUNTIMES_MAP,
-    get_custom_runtime_base_runtime,
+    get_provided_runtime_from_custom_runtime,
     is_custom_runtime,
 )
 from samcli.commands.init.init_generator import do_generate
@@ -168,7 +168,9 @@ def _generate_from_use_case(
     location = templates.location_from_app_template(package_type, runtime, base_image, dependency_manager, app_template)
 
     final_architecture = get_architectures(architecture)
-    lambda_supported_runtime = get_custom_runtime_base_runtime(runtime) if is_custom_runtime(runtime) else runtime
+    lambda_supported_runtime = (
+        get_provided_runtime_from_custom_runtime(runtime) if is_custom_runtime(runtime) else runtime
+    )
     extra_context = {
         "project_name": name,
         "runtime": lambda_supported_runtime,

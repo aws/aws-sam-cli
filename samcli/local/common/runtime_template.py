@@ -167,11 +167,11 @@ def is_custom_runtime(runtime):
     """
     if not runtime:
         return False
-    validation_result = get_custom_runtime_base_runtime(runtime)
-    return runtime in PROVIDED_RUNTIMES or bool(validation_result in PROVIDED_RUNTIMES)
+    provided_runtime = get_provided_runtime_from_custom_runtime(runtime)
+    return runtime in PROVIDED_RUNTIMES or bool(provided_runtime in PROVIDED_RUNTIMES)
 
 
-def get_custom_runtime_base_runtime(runtime):
+def get_provided_runtime_from_custom_runtime(runtime):
     """
     Gets the base lambda runtime for which a custom runtime is based on
     Example:
