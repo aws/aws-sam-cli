@@ -1,6 +1,7 @@
 import base64
 import copy
 import json
+from time import time
 from datetime import datetime
 from unittest import TestCase
 
@@ -15,6 +16,7 @@ from samcli.local.apigw.local_apigw_service import (
     Route,
     LambdaResponseParseException,
     PayloadFormatVersionValidateException,
+    CatchAllPathConverter,
 )
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 
@@ -1496,47 +1498,58 @@ class TestService_construct_event_http(TestCase):
         cookies_mock.keys.return_value = ["cookie1", "cookie2"]
         cookies_mock.get.side_effect = ["test", "test"]
         self.request_mock.cookies = cookies_mock
+        self.request_time_epoch = int(time())
+        self.request_time = datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000")
 
-        expected = """
-        {
+        expected = f"""
+        {{
             "version": "2.0",
             "routeKey": "GET /endpoint",
             "rawPath": "/endpoint",
             "rawQueryString": "query=params",
             "cookies": ["cookie1=test", "cookie2=test"],
-            "headers": {
+            "headers": {{
                 "Content-Type": "application/json",
                 "X-Test": "Value",
                 "X-Forwarded-Proto": "http",
                 "X-Forwarded-Port": "3000"
-            },
-            "queryStringParameters": {"query": "param1,param2"},
-            "requestContext": {
+            }},
+            "queryStringParameters": {{"query": "param1,param2"}},
+            "requestContext": {{
                 "accountId": "123456789012",
                 "apiId": "1234567890",
-                "http": {
+                "domainName": "localhost",
+                "domainPrefix": "localhost",
+                "http": {{
                     "method": "GET",
                     "path": "/endpoint",
                     "protocol": "HTTP/1.1",
                     "sourceIp": "190.0.0.0",
                     "userAgent": "Custom User Agent String"
-                },
+                }},
                 "requestId": "",
                 "routeKey": "GET /endpoint",
-                "stage": null
-            },
+                "stage": "$default",
+                "time": \"{self.request_time}\",
+                "timeEpoch": {self.request_time_epoch}
+            }},
             "body": "DATA!!!!",
-            "pathParameters": {"path": "params"},
+            "pathParameters": {{"path": "params"}},
             "stageVariables": null,
             "isBase64Encoded": false
-        }
+        }}
         """
 
         self.expected_dict = json.loads(expected)
 
     def test_construct_event_with_data(self):
         actual_event_str = LocalApigwService._construct_v_2_0_event_http(
-            self.request_mock, 3000, binary_types=[], route_key="GET /endpoint"
+            self.request_mock,
+            3000,
+            binary_types=[],
+            route_key="GET /endpoint",
+            request_time_epoch=self.request_time_epoch,
+            request_time=self.request_time,
         )
         print("DEBUG: json.loads(actual_event_str)", json.loads(actual_event_str))
         print("DEBUG: self.expected_dict", self.expected_dict)
@@ -1550,7 +1563,12 @@ class TestService_construct_event_http(TestCase):
         self.expected_dict["body"] = None
 
         actual_event_str = LocalApigwService._construct_v_2_0_event_http(
-            self.request_mock, 3000, binary_types=[], route_key="GET /endpoint"
+            self.request_mock,
+            3000,
+            binary_types=[],
+            route_key="GET /endpoint",
+            request_time_epoch=self.request_time_epoch,
+            request_time=self.request_time,
         )
         actual_event_dict = json.loads(actual_event_str)
         self.assertEqual(len(actual_event_dict["requestContext"]["requestId"]), 36)
@@ -1578,7 +1596,12 @@ class TestService_construct_event_http(TestCase):
         self.maxDiff = None
 
         actual_event_str = LocalApigwService._construct_v_2_0_event_http(
-            self.request_mock, 3000, binary_types=[], route_key="GET /endpoint"
+            self.request_mock,
+            3000,
+            binary_types=[],
+            route_key="GET /endpoint",
+            request_time_epoch=self.request_time_epoch,
+            request_time=self.request_time,
         )
         actual_event_dict = json.loads(actual_event_str)
         self.assertEqual(len(actual_event_dict["requestContext"]["requestId"]), 36)
@@ -1718,3 +1741,28 @@ class TestRouteEqualsHash(TestCase):
         route1 = Route(function_name="test", path="/test1", methods=["GET", "POST"], stack_path="2")
         route2 = Route(function_name="test", path="/test1", methods=["GET", "POST"], stack_path="1")
         self.assertNotEqual(route1.__hash__(), route2.__hash__())
+
+
+class TestPathConverter(TestCase):
+    def test_path_converter_to_url_accepts_any_path(self):
+        map = Mock()
+        map.charset = "utf-8"
+        path_converter = CatchAllPathConverter(map)
+        path = "/path/test/sub_path"
+        output = path_converter.to_url(path)
+        self.assertEquals(path, output)
+
+    def test_path_converter_to_python_accepts_any_path(self):
+        map = Mock()
+        map.charset = "utf-8"
+        path_converter = CatchAllPathConverter(map)
+        path = "/path/test/sub_path"
+        output = path_converter.to_python(path)
+        self.assertEquals(path, output)
+
+    def test_path_converter_matches_any_path(self):
+        map = Mock()
+        map.charset = "utf-8"
+        path_converter = CatchAllPathConverter(map)
+        path = "/path/test/sub_path"
+        self.assertRegexpMatches(path, path_converter.regex)

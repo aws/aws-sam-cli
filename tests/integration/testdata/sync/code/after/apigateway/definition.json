@@ -1,0 +1,48 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "HelloWorldExample",
+        "version": "1.0.0"
+    },
+    "schemes": [
+        "https"
+    ],
+    "basePath": "/v1",
+    "produces": [
+        "application/json"
+    ],
+    "paths": {
+        "/hello": {
+            "get": {
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "statusCode": 200
+                    }
+                },
+                "security": [
+                    {
+                        "api_key": []
+                    }
+                ],
+                "x-amazon-apigateway-auth": {
+                    "type": "none"
+                },
+                "x-amazon-apigateway-integration": {
+                    "type": "mock",
+                    "requestTemplates": {
+                        "application/json": "{\"statusCode\": 200}"
+                    },
+                    "responses": {
+                        "default": {
+                            "statusCode": 200,
+                            "responseTemplates": {
+                                "application/json": "{\"message\": \"hello 2\"}"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

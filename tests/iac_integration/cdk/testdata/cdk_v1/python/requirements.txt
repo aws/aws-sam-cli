@@ -1,0 +1,8 @@
+aws-cdk.aws-apigateway<2.0.0
+aws-cdk.aws-apigatewayv2<2.0.0
+aws-cdk.aws-apigatewayv2-integrations<2.0.0
+aws-cdk.aws-lambda<2.0.0
+aws-cdk.aws-lambda-go<2.0.0
+aws-cdk.aws-lambda-nodejs<2.0.0
+aws-cdk.aws-lambda-python<2.0.0
+aws-cdk.core<2.0.0

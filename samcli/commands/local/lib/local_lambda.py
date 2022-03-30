@@ -72,7 +72,7 @@ class LocalLambdaRunner:
         self.aws_region = aws_region
         self.env_vars_values = env_vars_values or {}
         self.debug_context = debug_context
-        self._boto3_session_creds: Optional[Dict[str, str]] = None
+        self._boto3_session_creds: Optional[Credentials] = None
         self._boto3_region: Optional[str] = None
         self.container_host = container_host
         self.container_host_interface = container_host_interface
@@ -194,6 +194,7 @@ class LocalLambdaRunner:
 
         return FunctionConfig(
             name=function.name,
+            full_path=function.full_path,
             runtime=function.runtime,
             handler=function.handler,
             imageuri=function.imageuri,
@@ -227,7 +228,9 @@ class LocalLambdaRunner:
 
         """
 
+        function_id = function.function_id
         name = function.name
+        full_path = function.full_path
 
         variables = None
         if isinstance(function.environment, dict) and "Variables" in function.environment:
@@ -256,7 +259,12 @@ class LocalLambdaRunner:
         else:
             # Standard format
             LOG.debug("Environment variables overrides data is standard format")
-            overrides = self.env_vars_values.get(name, None)
+            # Precedence: logical_id -> function_id -> full_path, customer can use any of them
+            overrides = (
+                self.env_vars_values.get(name, None)
+                or self.env_vars_values.get(function_id, None)
+                or self.env_vars_values.get(full_path, None)
+            )
 
         shell_env = os.environ
         aws_creds = self.get_aws_creds()
@@ -272,7 +280,7 @@ class LocalLambdaRunner:
             aws_creds=aws_creds,
         )  # EnvironmentVariables is not yet annotated with type hints, disable mypy check for now. type: ignore
 
-    def _get_session_creds(self) -> Credentials:
+    def _get_session_creds(self) -> Optional[Credentials]:
         if self._boto3_session_creds is None:
             # to pass command line arguments for region & profile to setup boto3 default session
             LOG.debug("Loading AWS credentials from session with profile '%s'", self.aws_profile)

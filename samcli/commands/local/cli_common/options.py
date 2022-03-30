@@ -65,6 +65,20 @@ def local_common_options(f):
             help="IP address of the host network interface that container ports should bind to. "
             "Use 0.0.0.0 to bind to all interfaces.",
         ),
+        click.option(
+            "--invoke-image",
+            "-ii",
+            default=None,
+            required=False,
+            multiple=True,
+            help="Container image URIs for invoking functions or starting api and function. "
+            "You can specify the image URI used for the local function invocation "
+            "(--invoke-image public.ecr.aws/sam/build-nodejs14.x:latest). "
+            "You can specify for each individual function with "
+            "(--invoke-image Function1=public.ecr.aws/sam/build-nodejs14.x:latest). "
+            "If a function does not have invoke image specified, the default SAM CLI "
+            "emulation image will be used.",
+        ),
     ]
 
     # Reverse the list to maintain ordering of options in help text printed with --help

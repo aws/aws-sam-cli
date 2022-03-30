@@ -37,7 +37,7 @@ class TestSwaggerParser_get_apis(TestCase):
         swagger = {
             "paths": {
                 "/path1": {
-                    "get": {"x-amazon-apigateway-integration": {"type": "aws_proxy", "uri": "someuri"}},
+                    "get": {"x-amazon-apigateway-integration": {"type": "AWS_PROXY", "uri": "someuri"}},
                     "delete": {"x-amazon-apigateway-integration": {"type": "aws_proxy", "uri": "someuri"}},
                 },
                 "/path2": {"post": {"x-amazon-apigateway-integration": {"type": "aws_proxy", "uri": "someuri"}}},

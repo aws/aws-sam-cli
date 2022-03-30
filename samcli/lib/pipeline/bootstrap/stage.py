@@ -145,13 +145,15 @@ class Stage:
 
         if self.did_user_provide_all_required_resources():
             click.secho(
-                self.color.yellow(f"\nAll required resources for the {self.name} environment exist, skipping creation.")
+                self.color.yellow(
+                    f"\nAll required resources for the {self.name} configuration exist, skipping creation."
+                )
             )
             return True
 
         missing_resources_msg: str = self._get_non_user_provided_resources_msg()
         click.echo(
-            f"This will create the following required resources for the '{self.name}' environment: \n"
+            f"This will create the following required resources for the '{self.name}' configuration: \n"
             f"{missing_resources_msg}"
         )
         if confirm_changeset:
@@ -213,7 +215,7 @@ class Stage:
         Returns tuple of aws_access_key_id and aws_secret_access_key.
 
         """
-        session = boto3.Session(profile_name=profile, region_name=region if region else None)  # type: ignore
+        session = boto3.Session(profile_name=profile, region_name=region if region else None)
         secrets_manager_client = session.client("secretsmanager")
         response = secrets_manager_client.get_secret_value(SecretId=secret_manager_arn)
         secret_string = response["SecretString"]
@@ -326,5 +328,5 @@ class Stage:
             click.secho(self.color.green(f"\tAWS_SECRET_ACCESS_KEY: {self.pipeline_user.secret_access_key}"))
 
     def _get_stack_name(self) -> str:
-        sanitized_stage_name: str = re.sub("[^0-9a-zA-Z]+", "-", self.name)
-        return f"{STACK_NAME_PREFIX}-{sanitized_stage_name}-{STAGE_RESOURCES_STACK_NAME_SUFFIX}"
+        sanitized_stage_configuration_name: str = re.sub("[^0-9a-zA-Z]+", "-", self.name)
+        return f"{STACK_NAME_PREFIX}-{sanitized_stage_configuration_name}-{STAGE_RESOURCES_STACK_NAME_SUFFIX}"

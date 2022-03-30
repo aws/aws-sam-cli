@@ -100,6 +100,37 @@ class TestCWLogPuller_load_time_period(TestCase):
             for event in self.expected_events:
                 self.assertIn(event, call_args)
 
+    @patch("samcli.lib.observability.cw_logs.cw_log_puller.LOG")
+    def test_must_print_resource_not_found_only_once(self, patched_log):
+        pattern = "foobar"
+        start = datetime.utcnow()
+        end = datetime.utcnow()
+
+        expected_params = {
+            "logGroupName": self.log_group_name,
+            "interleaved": True,
+            "startTime": to_timestamp(start),
+            "endTime": to_timestamp(end),
+            "filterPattern": pattern,
+        }
+
+        self.client_stubber.add_client_error(
+            "filter_log_events", expected_params=expected_params, service_error_code="ResourceNotFoundException"
+        )
+        self.client_stubber.add_client_error(
+            "filter_log_events", expected_params=expected_params, service_error_code="ResourceNotFoundException"
+        )
+        self.client_stubber.add_response("filter_log_events", self.mock_api_response, expected_params)
+
+        with self.client_stubber:
+            self.assertFalse(self.fetcher._invalid_log_group)
+            self.fetcher.load_time_period(start_time=start, end_time=end, filter_pattern=pattern)
+            self.assertTrue(self.fetcher._invalid_log_group)
+            self.fetcher.load_time_period(start_time=start, end_time=end, filter_pattern=pattern)
+            self.assertTrue(self.fetcher._invalid_log_group)
+            self.fetcher.load_time_period(start_time=start, end_time=end, filter_pattern=pattern)
+            self.assertFalse(self.fetcher._invalid_log_group)
+
     def test_must_paginate_using_next_token(self):
         """Make three API calls, first two returns a nextToken and last does not."""
         token = "token"
@@ -320,3 +351,31 @@ class TestCWLogPuller_tail(TestCase):
                 self.assertEqual([], expected_consumer_call_args)
                 self.assertEqual(expected_load_time_period_calls, patched_load_time_period.call_args_list)
                 self.assertEqual(expected_sleep_calls, time_mock.sleep.call_args_list)
+
+    @patch("samcli.lib.observability.cw_logs.cw_log_puller.time")
+    def test_with_throttling(self, time_mock):
+        expected_params = {
+            "logGroupName": self.log_group_name,
+            "interleaved": True,
+            "startTime": 0,
+            "filterPattern": self.filter_pattern,
+        }
+
+        for _ in range(self.max_retries):
+            self.client_stubber.add_client_error(
+                "filter_log_events", expected_params=expected_params, service_error_code="ThrottlingException"
+            )
+
+        expected_load_time_period_calls = [call(to_datetime(0), filter_pattern=ANY) for _ in range(self.max_retries)]
+
+        expected_time_calls = [call(2), call(4), call(16)]
+
+        with patch.object(
+            self.fetcher, "load_time_period", wraps=self.fetcher.load_time_period
+        ) as patched_load_time_period:
+            with self.client_stubber:
+                self.fetcher.tail(filter_pattern=self.filter_pattern)
+
+                self.consumer.consume.assert_not_called()
+                self.assertEqual(expected_load_time_period_calls, patched_load_time_period.call_args_list)
+                time_mock.sleep.assert_has_calls(expected_time_calls, any_order=True)

@@ -1,21 +1,53 @@
 """
 Keeps implementation of different build strategies
 """
+import hashlib
 import logging
+import os.path
 import pathlib
 import shutil
 from abc import abstractmethod, ABC
-from typing import Callable, Dict, List, Any, Optional, cast
+from copy import deepcopy
+from typing import Callable, Dict, List, Any, Optional, cast, Set
 
-from samcli.commands.build.exceptions import MissingBuildMethodException
+from samcli.commands._utils.experimental import is_experimental_enabled, ExperimentalFlag
 from samcli.lib.utils import osutils
 from samcli.lib.utils.async_utils import AsyncContext
 from samcli.lib.utils.hash import dir_checksum
 from samcli.lib.utils.packagetype import ZIP, IMAGE
-from samcli.lib.build.build_graph import BuildGraph, FunctionBuildDefinition, LayerBuildDefinition
+from samcli.lib.build.dependency_hash_generator import DependencyHashGenerator
+from samcli.lib.build.build_graph import (
+    BuildGraph,
+    FunctionBuildDefinition,
+    LayerBuildDefinition,
+    AbstractBuildDefinition,
+    DEFAULT_DEPENDENCIES_DIR,
+)
+from samcli.lib.build.exceptions import MissingBuildMethodException
 
 
 LOG = logging.getLogger(__name__)
+
+
+def clean_redundant_folders(base_dir: str, uuids: Set[str]) -> None:
+    """
+    Compares existing folders inside base_dir and removes the ones which is not in the uuids set.
+
+    Parameters
+    ----------
+    base_dir : str
+        Base directory that it will be operating
+    uuids : Set[str]
+        Expected folder names. If any folder name in the base_dir is not present in this Set, it will be deleted.
+    """
+    base_dir_path = pathlib.Path(base_dir)
+
+    if not base_dir_path.exists():
+        return
+
+    for full_dir_path in pathlib.Path(base_dir).iterdir():
+        if full_dir_path.name not in uuids:
+            shutil.rmtree(pathlib.Path(base_dir, full_dir_path.name))
 
 
 class BuildStrategy(ABC):
@@ -39,8 +71,8 @@ class BuildStrategy(ABC):
         """
         result = {}
         with self:
-            result.update(self._build_functions(self._build_graph))
             result.update(self._build_layers(self._build_graph))
+            result.update(self._build_functions(self._build_graph))
 
         return result
 
@@ -88,8 +120,8 @@ class DefaultBuildStrategy(BuildStrategy):
         self,
         build_graph: BuildGraph,
         build_dir: str,
-        build_function: Callable[[str, str, str, str, str, Optional[str], str, dict, dict], str],
-        build_layer: Callable[[str, str, str, List[str], str, str, dict], str],
+        build_function: Callable[[str, str, str, str, str, Optional[str], str, dict, dict, Optional[str], bool], str],
+        build_layer: Callable[[str, str, str, List[str], str, str, dict, Optional[str], bool], str],
     ) -> None:
         super().__init__(build_graph)
         self._build_dir = build_dir
@@ -116,6 +148,10 @@ class DefaultBuildStrategy(BuildStrategy):
 
         LOG.debug("Building to following folder %s", single_build_dir)
 
+        # we should create a copy and pass it down, otherwise additional env vars like LAMBDA_BUILDERS_LOG_LEVEL
+        # will make cache invalid all the time
+        container_env_vars = deepcopy(build_definition.env_vars)
+
         # when a function is passed here, it is ZIP function, codeuri and runtime are not None
         result = self._build_function(
             build_definition.get_function_name(),
@@ -126,7 +162,9 @@ class DefaultBuildStrategy(BuildStrategy):
             build_definition.get_handler_name(),
             single_build_dir,
             build_definition.metadata,
-            build_definition.env_vars,
+            container_env_vars,
+            build_definition.dependencies_dir if is_experimental_enabled(ExperimentalFlag.Accelerate) else None,
+            build_definition.download_dependencies,
         )
         function_build_results[single_full_path] = result
 
@@ -172,6 +210,8 @@ class DefaultBuildStrategy(BuildStrategy):
                 layer.build_architecture,
                 single_build_dir,
                 layer_definition.env_vars,
+                layer_definition.dependencies_dir if is_experimental_enabled(ExperimentalFlag.Accelerate) else None,
+                layer_definition.download_dependencies,
             )
         }
 
@@ -180,7 +220,7 @@ class CachedBuildStrategy(BuildStrategy):
     """
     Cached implementation of Build Strategy
     For each function and layer, it first checks if there is a valid cache, and if there is, it copies from previous
-    build. If caching is invalid, it builds function or layer from scratch and updates cache folder and md5 of the
+    build. If caching is invalid, it builds function or layer from scratch and updates cache folder and hash of the
     function or layer.
     For actual building, it uses delegate implementation
     """
@@ -192,21 +232,16 @@ class CachedBuildStrategy(BuildStrategy):
         base_dir: str,
         build_dir: str,
         cache_dir: str,
-        is_building_specific_resource: bool,
     ) -> None:
         super().__init__(build_graph)
         self._delegate_build_strategy = delegate_build_strategy
         self._base_dir = base_dir
         self._build_dir = build_dir
         self._cache_dir = cache_dir
-        self._is_building_specific_resource = is_building_specific_resource
-
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        self._clean_redundant_cached()
 
     def build(self) -> Dict[str, str]:
         result = {}
-        with self, self._delegate_build_strategy:
+        with self._delegate_build_strategy:
             result.update(super().build())
         return result
 
@@ -218,11 +253,11 @@ class CachedBuildStrategy(BuildStrategy):
             return self._delegate_build_strategy.build_single_function_definition(build_definition)
 
         code_dir = str(pathlib.Path(self._base_dir, cast(str, build_definition.codeuri)).resolve())
-        source_md5 = dir_checksum(code_dir, ignore_list=[".aws-sam"])
+        source_hash = dir_checksum(code_dir, ignore_list=[".aws-sam"], hash_generator=hashlib.sha256())
         cache_function_dir = pathlib.Path(self._cache_dir, build_definition.uuid)
         function_build_results = {}
 
-        if not cache_function_dir.exists() or build_definition.source_md5 != source_md5:
+        if not cache_function_dir.exists() or build_definition.source_hash != source_hash:
             LOG.info(
                 "Cache is invalid, running build and copying resources to function build definition of %s",
                 build_definition.uuid,
@@ -233,7 +268,7 @@ class CachedBuildStrategy(BuildStrategy):
             if cache_function_dir.exists():
                 shutil.rmtree(str(cache_function_dir))
 
-            build_definition.source_md5 = source_md5
+            build_definition.source_hash = source_hash
             # Since all the build contents are same for a build definition, just copy any one of them into the cache
             for _, value in build_result.items():
                 osutils.copytree(value, cache_function_dir)
@@ -257,11 +292,11 @@ class CachedBuildStrategy(BuildStrategy):
         Builds single layer definition with caching
         """
         code_dir = str(pathlib.Path(self._base_dir, cast(str, layer_definition.codeuri)).resolve())
-        source_md5 = dir_checksum(code_dir, ignore_list=[".aws-sam"])
+        source_hash = dir_checksum(code_dir, ignore_list=[".aws-sam"], hash_generator=hashlib.sha256())
         cache_function_dir = pathlib.Path(self._cache_dir, layer_definition.uuid)
         layer_build_result = {}
 
-        if not cache_function_dir.exists() or layer_definition.source_md5 != source_md5:
+        if not cache_function_dir.exists() or layer_definition.source_hash != source_hash:
             LOG.info(
                 "Cache is invalid, running build and copying resources to layer build definition of %s",
                 layer_definition.uuid,
@@ -272,7 +307,7 @@ class CachedBuildStrategy(BuildStrategy):
             if cache_function_dir.exists():
                 shutil.rmtree(str(cache_function_dir))
 
-            layer_definition.source_md5 = source_md5
+            layer_definition.source_hash = source_hash
             # Since all the build contents are same for a build definition, just copy any one of them into the cache
             for _, value in build_result.items():
                 osutils.copytree(value, cache_function_dir)
@@ -294,12 +329,9 @@ class CachedBuildStrategy(BuildStrategy):
         """
         clean the redundant cached folder
         """
-        self._build_graph.clean_redundant_definitions_and_update(not self._is_building_specific_resource)
         uuids = {bd.uuid for bd in self._build_graph.get_function_build_definitions()}
         uuids.update({ld.uuid for ld in self._build_graph.get_layer_build_definitions()})
-        for cache_dir in pathlib.Path(self._cache_dir).iterdir():
-            if cache_dir.name not in uuids:
-                shutil.rmtree(pathlib.Path(self._cache_dir, cache_dir.name))
+        clean_redundant_folders(self._cache_dir, uuids)
 
 
 class ParallelBuildStrategy(BuildStrategy):
@@ -313,18 +345,18 @@ class ParallelBuildStrategy(BuildStrategy):
         self,
         build_graph: BuildGraph,
         delegate_build_strategy: BuildStrategy,
-        async_context: AsyncContext = AsyncContext(),
+        async_context: Optional[AsyncContext] = None,
     ) -> None:
         super().__init__(build_graph)
         self._delegate_build_strategy = delegate_build_strategy
-        self._async_context = async_context
+        self._async_context = async_context if async_context else AsyncContext()
 
     def build(self) -> Dict[str, str]:
         """
         Runs all build and collects results from async context
         """
         result = {}
-        with self, self._delegate_build_strategy:
+        with self._delegate_build_strategy:
             # ignore result
             super().build()
             # wait for other executions to complete
@@ -352,3 +384,186 @@ class ParallelBuildStrategy(BuildStrategy):
             self._delegate_build_strategy.build_single_layer_definition, layer_definition
         )
         return {}
+
+
+class IncrementalBuildStrategy(BuildStrategy):
+    """
+    Incremental build is supported for certain runtimes in aws-lambda-builders, with dependencies_dir (str)
+    and download_dependencies (bool) options.
+
+    This build strategy sets whether we need to download dependencies again (download_dependencies option) by comparing
+    the hash of the manifest file of the given runtime as well as the dependencies directory location
+    (dependencies_dir option).
+    """
+
+    def __init__(
+        self,
+        build_graph: BuildGraph,
+        delegate_build_strategy: BuildStrategy,
+        base_dir: str,
+        manifest_path_override: Optional[str],
+    ):
+        super().__init__(build_graph)
+        self._delegate_build_strategy = delegate_build_strategy
+        self._base_dir = base_dir
+        self._manifest_path_override = manifest_path_override
+
+    def build(self) -> Dict[str, str]:
+        result = {}
+        with self, self._delegate_build_strategy:
+            result.update(super().build())
+        return result
+
+    def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
+        self._check_whether_manifest_is_changed(build_definition, build_definition.codeuri, build_definition.runtime)
+        return self._delegate_build_strategy.build_single_function_definition(build_definition)
+
+    def build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
+        self._check_whether_manifest_is_changed(
+            layer_definition, layer_definition.codeuri, layer_definition.build_method
+        )
+        return self._delegate_build_strategy.build_single_layer_definition(layer_definition)
+
+    def _check_whether_manifest_is_changed(
+        self,
+        build_definition: AbstractBuildDefinition,
+        codeuri: Optional[str],
+        runtime: Optional[str],
+    ) -> None:
+        """
+        Checks whether the manifest file have been changed by comparing its hash with previously stored one and updates
+        download_dependencies property of build definition to True, if it is changed
+        """
+        manifest_hash = DependencyHashGenerator(
+            cast(str, codeuri), self._base_dir, cast(str, runtime), self._manifest_path_override
+        ).hash
+
+        is_manifest_changed = True
+        is_dependencies_dir_missing = True
+        if manifest_hash:
+            is_manifest_changed = manifest_hash != build_definition.manifest_hash
+            is_dependencies_dir_missing = not os.path.exists(build_definition.dependencies_dir)
+            if is_manifest_changed or is_dependencies_dir_missing:
+                build_definition.manifest_hash = manifest_hash
+                LOG.info(
+                    "Manifest file is changed (new hash: %s) or dependency folder (%s) is missing for %s, "
+                    "downloading dependencies and copying/building source",
+                    manifest_hash,
+                    build_definition.dependencies_dir,
+                    build_definition.uuid,
+                )
+            else:
+                LOG.info("Manifest is not changed for %s, running incremental build", build_definition.uuid)
+
+        build_definition.download_dependencies = is_manifest_changed or is_dependencies_dir_missing
+
+    def _clean_redundant_dependencies(self) -> None:
+        """
+        Update build definitions with possible new manifest hash information and clean the redundant dependencies folder
+        """
+        uuids = {bd.uuid for bd in self._build_graph.get_function_build_definitions()}
+        uuids.update({ld.uuid for ld in self._build_graph.get_layer_build_definitions()})
+        clean_redundant_folders(DEFAULT_DEPENDENCIES_DIR, uuids)
+
+
+class CachedOrIncrementalBuildStrategyWrapper(BuildStrategy):
+    """
+    A wrapper class which holds instance of CachedBuildStrategy and IncrementalBuildStrategy
+    to select one of them during function or layer build, depending on the runtime that they are using
+    """
+
+    SUPPORTED_RUNTIME_PREFIXES: Set[str] = {
+        "python",
+        "ruby",
+        "nodejs",
+    }
+
+    def __init__(
+        self,
+        build_graph: BuildGraph,
+        delegate_build_strategy: BuildStrategy,
+        base_dir: str,
+        build_dir: str,
+        cache_dir: str,
+        manifest_path_override: Optional[str],
+        is_building_specific_resource: bool,
+    ):
+        super().__init__(build_graph)
+        self._incremental_build_strategy = IncrementalBuildStrategy(
+            build_graph,
+            delegate_build_strategy,
+            base_dir,
+            manifest_path_override,
+        )
+        self._cached_build_strategy = CachedBuildStrategy(
+            build_graph,
+            delegate_build_strategy,
+            base_dir,
+            build_dir,
+            cache_dir,
+        )
+        self._is_building_specific_resource = is_building_specific_resource
+
+    def build(self) -> Dict[str, str]:
+        result = {}
+        with self._cached_build_strategy, self._incremental_build_strategy:
+            result.update(super().build())
+        return result
+
+    def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
+        if self._is_incremental_build_supported(build_definition.runtime):
+            LOG.debug(
+                "Running incremental build for runtime %s for build definition %s",
+                build_definition.runtime,
+                build_definition.uuid,
+            )
+            return self._incremental_build_strategy.build_single_function_definition(build_definition)
+
+        LOG.debug(
+            "Running incremental build for runtime %s for build definition %s",
+            build_definition.runtime,
+            build_definition.uuid,
+        )
+        return self._cached_build_strategy.build_single_function_definition(build_definition)
+
+    def build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
+        if self._is_incremental_build_supported(layer_definition.build_method):
+            LOG.debug(
+                "Running incremental build for runtime %s for build definition %s",
+                layer_definition.build_method,
+                layer_definition.uuid,
+            )
+            return self._incremental_build_strategy.build_single_layer_definition(layer_definition)
+
+        LOG.debug(
+            "Running cached build for runtime %s for build definition %s",
+            layer_definition.build_method,
+            layer_definition.uuid,
+        )
+        return self._cached_build_strategy.build_single_layer_definition(layer_definition)
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        """
+        After build is complete, this method cleans up redundant folders in cached directory as well as in dependencies
+        directory. This also updates hashes of the functions and layers, if only single function or layer is been built.
+
+        If SAM CLI switched to use only IncrementalBuildStrategy, contents of this method should be moved inside
+        IncrementalBuildStrategy so that it will still continue to clean-up redundant folders.
+        """
+        if self._is_building_specific_resource:
+            self._build_graph.update_definition_hash()
+        else:
+            self._build_graph.clean_redundant_definitions_and_update(not self._is_building_specific_resource)
+            self._cached_build_strategy._clean_redundant_cached()
+            self._incremental_build_strategy._clean_redundant_dependencies()
+
+    @staticmethod
+    def _is_incremental_build_supported(runtime: Optional[str]) -> bool:
+        if not runtime or not is_experimental_enabled(ExperimentalFlag.Accelerate):
+            return False
+
+        for supported_runtime_prefix in CachedOrIncrementalBuildStrategyWrapper.SUPPORTED_RUNTIME_PREFIXES:
+            if runtime.startswith(supported_runtime_prefix):
+                return True
+
+        return False

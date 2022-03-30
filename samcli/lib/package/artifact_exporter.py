@@ -20,7 +20,9 @@ from typing import Dict, Optional, List
 
 from botocore.utils import set_value_from_jmespath
 
-from samcli.commands._utils.resources import (
+from samcli.lib.providers.provider import get_full_path
+from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
+from samcli.lib.utils.resources import (
     AWS_SERVERLESS_FUNCTION,
     AWS_CLOUDFORMATION_STACK,
     RESOURCES_WITH_LOCAL_PATHS,
@@ -78,7 +80,15 @@ class CloudFormationStackResource(ResourceZip):
                 property_name=self.PROPERTY_NAME, resource_id=resource_id, template_path=abs_template_path
             )
 
-        exported_template_dict = Template(template_path, parent_dir, self.uploaders, self.code_signer).export()
+        exported_template_dict = Template(
+            template_path,
+            parent_dir,
+            self.uploaders,
+            self.code_signer,
+            normalize_template=True,
+            normalize_parameters=True,
+            parent_stack_id=resource_id,
+        ).export()
 
         exported_template_str = yaml_dump(exported_template_dict)
 
@@ -127,6 +137,9 @@ class Template:
         ),
         metadata_to_export=frozenset(METADATA_EXPORT_LIST),
         template_str: Optional[str] = None,
+        normalize_template: bool = False,
+        normalize_parameters: bool = False,
+        parent_stack_id: str = "",
     ):
         """
         Reads the template and makes it ready for export
@@ -144,9 +157,12 @@ class Template:
             self.template_dir = template_dir
             self.code_signer = code_signer
         self.template_dict = yaml_parse(template_str)
+        if normalize_template:
+            ResourceMetadataNormalizer.normalize(self.template_dict, normalize_parameters)
         self.resources_to_export = resources_to_export
         self.metadata_to_export = metadata_to_export
         self.uploaders = uploaders
+        self.parent_stack_id = parent_stack_id
 
     def _export_global_artifacts(self, template_dict: Dict) -> Dict:
         """
@@ -222,10 +238,11 @@ class Template:
         self._apply_global_values()
         self.template_dict = self._export_global_artifacts(self.template_dict)
 
-        for resource_id, resource in self.template_dict["Resources"].items():
-
+        for resource_logical_id, resource in self.template_dict["Resources"].items():
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
+            resource_id = ResourceMetadataNormalizer.get_resource_id(resource, resource_logical_id)
+            full_path = get_full_path(self.parent_stack_id, resource_id)
 
             for exporter_class in self.resources_to_export:
                 if exporter_class.RESOURCE_TYPE != resource_type:
@@ -234,7 +251,7 @@ class Template:
                     continue
                 # Export code resources
                 exporter = exporter_class(self.uploaders, self.code_signer)
-                exporter.export(resource_id, resource_dict, self.template_dir)
+                exporter.export(full_path, resource_dict, self.template_dir)
 
         return self.template_dict
 

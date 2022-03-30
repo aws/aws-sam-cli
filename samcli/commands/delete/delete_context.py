@@ -12,7 +12,7 @@ from click import confirm
 from click import prompt
 
 from samcli.cli.cli_config_file import TomlProvider
-from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
+from samcli.lib.utils.boto_utils import get_boto_config_with_user_agent
 from samcli.lib.delete.cfn_utils import CfnUtils
 
 from samcli.lib.package.s3_uploader import S3Uploader
