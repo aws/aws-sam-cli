@@ -632,9 +632,7 @@ class TestPackageZip(PackageIntegBase):
 
         # make sure uploads' checksum match the dirs and stackset template
         build_dir = pathlib.Path(os.path.dirname(__file__)).parent.joinpath("testdata", "package", "stackset")
-        dirs = [
-            build_dir.joinpath("FunctionA")
-        ]
+        dirs = [build_dir.joinpath("FunctionA")]
         # here we only verify function/layer code dirs' hash
         # because templates go through some pre-process before being uploaded and the hash can not be determined
         for dir in dirs:

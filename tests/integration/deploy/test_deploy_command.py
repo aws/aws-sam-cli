@@ -981,9 +981,7 @@ to create a managed default bucket, or run sam deploy --guided",
         # verify child stack ChildStackX's creation
         self.assertRegex(process_stdout, r"CREATE_COMPLETE.+ChildStackX")
 
-    @parameterized.expand(
-        [os.path.join("stackset", "template.yaml")]
-    )
+    @parameterized.expand([os.path.join("stackset", "template.yaml")])
     def test_deploy_stackset(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
