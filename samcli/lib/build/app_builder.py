@@ -40,7 +40,6 @@ from samcli.lib.utils.colors import Colored
 from samcli.lib.utils import osutils
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
-from samcli.local.docker.container import ContainerStartTimeoutException
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from samcli.local.docker.utils import is_docker_reachable, get_docker_platform
 from samcli.local.docker.manager import ContainerManager
@@ -820,8 +819,6 @@ class ApplicationBuilder:
                     raise UnsupportedBuilderLibraryVersionError(
                         container.image, "{} executable not found in container".format(container.executable_name)
                     ) from ex
-            except ContainerStartTimeoutException as e:
-                raise BuildInsideContainerError(str(e)) from e
 
             # Container's output provides status of whether the build succeeded or failed
             # stdout contains the result of JSON-RPC call
