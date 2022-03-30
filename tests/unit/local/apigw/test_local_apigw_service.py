@@ -1483,7 +1483,7 @@ class TestService_construct_event_http(TestCase):
         self.request_mock.get_data.return_value = b"DATA!!!!"
         self.request_mock.mimetype = "application/json"
         query_param_args_mock = Mock()
-        query_param_args_mock.lists.return_value = {"query": ["param1","param2"]}.items()
+        query_param_args_mock.lists.return_value = {"query": ["param1", "param2"]}.items()
         self.request_mock.args = query_param_args_mock
         self.request_mock.query_string = b"query=params"
         headers_mock = Mock()
