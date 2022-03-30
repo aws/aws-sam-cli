@@ -20,7 +20,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 7: Infrastructure event management - Use case
-        # 1: Java Runtime
+        # 2: Java Runtime (java11)
         # 2: Maven
         # 2: select event-bridge app from scratch
         # test-project: response to name
@@ -32,7 +32,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
         user_input = """
 1
 7
-1
+2
 2
 2
 eb-app-maven
@@ -58,7 +58,7 @@ Y
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 7: Infrastructure event management - Use case
-        # 1: Java Runtime
+        # 2: Java Runtime
         # 2: Maven
         # 2: select event-bridge app from scratch
         # test-project: response to name
@@ -69,7 +69,7 @@ Y
         user_input = """
 1
 7
-1
+2
 2
 2
 eb-app-maven
@@ -105,7 +105,7 @@ Y
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 7: Infrastructure event management - Use case
-        # 1: Java Runtime
+        # 2: Java Runtime
         # 2: Maven
         # 2: select event-bridge app from scratch
         # eb-app-maven: response to name
@@ -118,7 +118,7 @@ Y
         user_input = """
 1
 7
-1
+2
 2
 2
 eb-app-maven
@@ -145,7 +145,7 @@ P
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 7: Infrastructure event management - Use case
-        # 1: Java Runtime
+        # 2: Java Runtime
         # 2: Maven
         # 2: select event-bridge app from scratch
         # eb-app-maven: response to name
@@ -156,7 +156,7 @@ P
         user_input = """
 1
 7
-1
+2
 2
 2
 eb-app-maven
@@ -192,9 +192,9 @@ Y
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 7: Infrastructure event management - Use case
-        # 6: Python 3.7
+        # 6: Python 3.8
         # 2: select event-bridge app from scratch
-        # eb-app-python37: response to name
+        # eb-app-python38: response to name
         # Y: Use default aws configuration
         # 4: select aws.events as registries
         # 1: select aws schema
@@ -204,7 +204,7 @@ Y
 7
 6
 2
-eb-app-python37
+eb-app-python38
 Y
 1
 4
@@ -215,7 +215,7 @@ Y
             result = runner.invoke(init_cmd, ["--output-dir", temp], input=user_input)
 
             self.assertFalse(result.exception)
-            expected_output_folder = Path(temp, "eb-app-python37")
+            expected_output_folder = Path(temp, "eb-app-python38")
             self.assertTrue(expected_output_folder.exists)
             self.assertTrue(expected_output_folder.is_dir())
             self.assertTrue(Path(expected_output_folder, "hello_world_function", "schema").is_dir())
@@ -256,9 +256,9 @@ Y
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 3: Infrastructure event management - Use case
-        # 6: Python 3.7
+        # 6: Python 3.8
         # 2: select event-bridge app from scratch
-        # eb-app-python37: response to name
+        # eb-app-python38: response to name
         # N: Use default profile
         # 2: uses second profile from displayed one (myprofile)
         # schemas aws region us-east-1
@@ -270,7 +270,7 @@ Y
 7
 6
 2
-eb-app-python37
+eb-app-python38
 3
 N
 2
@@ -283,7 +283,7 @@ us-east-1
             result = runner.invoke(init_cmd, ["--output-dir", temp], input=user_input)
 
             self.assertFalse(result.exception)
-            expected_output_folder = Path(temp, "eb-app-python37")
+            expected_output_folder = Path(temp, "eb-app-python38")
             self.assertTrue(expected_output_folder.exists)
             self.assertTrue(expected_output_folder.is_dir())
             self.assertTrue(Path(expected_output_folder, "hello_world_function", "schema").is_dir())
@@ -295,9 +295,9 @@ us-east-1
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 7: Infrastructure event management - Use case
-        # 6: Python 3.7
+        # 6: Python 3.8
         # 2: select event-bridge app from scratch
-        # eb-app-python37: response to name
+        # eb-app-python38: response to name
         # Y: Use default profile
         # 1: select aws.events as registries
         # 1: select aws schema
@@ -307,7 +307,7 @@ us-east-1
 7
 6
 2
-eb-app-python37
+eb-app-python38
 Y
 1
 1
