@@ -981,6 +981,42 @@ to create a managed default bucket, or run sam deploy --guided",
         # verify child stack ChildStackX's creation
         self.assertRegex(process_stdout, r"CREATE_COMPLETE.+ChildStackX")
 
+    @parameterized.expand(
+        [os.path.join("stackset", "template.yaml")]
+    )
+    def test_deploy_stackset(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        # Package and Deploy in one go without confirming change set.
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            # Note(xinhol): --capabilities does not allow passing multiple, we need to fix it
+            # here we use samconfig-stackset.toml as a workaround
+            config_file=self.test_data_path.joinpath("samconfig-stackset.toml"),
+            s3_prefix=self.s3_prefix,
+            s3_bucket=self.s3_bucket.name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+            image_repository=self.ecr_repo_name,
+        )
+
+        prevdir = os.getcwd()
+        os.chdir(os.path.expanduser(os.path.dirname(template_path)))
+        deploy_process_execute = run_command(deploy_command_list)
+        process_stdout = deploy_process_execute.stdout.decode()
+        os.chdir(prevdir)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+        # verify child stack ChildStackX's creation
+        self.assertRegex(process_stdout, r"CREATE_COMPLETE.+StackSetA")
+
     @parameterized.expand(["aws-dynamodb-error.yaml"])
     def test_deploy_create_failed_rollback(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
