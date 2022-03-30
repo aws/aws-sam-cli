@@ -2,14 +2,15 @@ import uuid
 from collections import namedtuple
 
 import boto3
+from boto3 import Session
 
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
 from pathlib import Path
 
 
 class LayerUtils(object):
-    def __init__(self, region):
-        self.region = region
+    def __init__(self, region=None):
+        self.region = region if region else Session().region_name
         self.layer_meta = namedtuple("LayerMeta", ["layer_name", "layer_arn", "layer_version"])
         self.lambda_client = boto3.client("lambda", region_name=region)
         self.parameters_overrides = {}
