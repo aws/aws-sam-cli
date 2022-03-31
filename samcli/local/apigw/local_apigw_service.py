@@ -847,6 +847,7 @@ class LocalApigwService(BaseLocalService):
     def _query_string_params_v_2_0(flask_request):
         """
         Constructs an APIGW equivalent query string dictionary using the 2.0 format
+        https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html#2.0
 
         Parameters
         ----------

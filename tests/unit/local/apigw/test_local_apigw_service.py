@@ -1473,6 +1473,15 @@ class TestService_construct_event(TestCase):
         actual_query_string = LocalApigwService._query_string_params(request_mock)
         self.assertEqual(actual_query_string, ({"param": "b"}, {"param": ["a", "b"]}))
 
+    def test_query_string_params_v_2_0_with_param_value_being_non_empty_list(self):
+        request_mock = Mock()
+        query_param_args_mock = Mock()
+        query_param_args_mock.lists.return_value = {"param": ["a", "b"]}.items()
+        request_mock.args = query_param_args_mock
+
+        actual_query_string = LocalApigwService._query_string_params_v_2_0(request_mock)
+        self.assertEqual(actual_query_string, {"param": "a,b"})
+
 
 class TestService_construct_event_http(TestCase):
     def setUp(self):
