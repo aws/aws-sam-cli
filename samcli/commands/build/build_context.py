@@ -23,6 +23,7 @@ from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_layer_provider import SamLayerProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
+from samcli.local.docker.container import ContainerStartTimeoutException
 from samcli.local.docker.manager import ContainerManager
 from samcli.local.lambdafn.exceptions import ResourceNotFound
 from samcli.lib.build.exceptions import BuildInsideContainerError
@@ -241,6 +242,7 @@ class BuildContext:
             UnsupportedBuilderLibraryVersionError,
             ContainerBuildNotSupported,
             InvalidBuildGraphException,
+            ContainerStartTimeoutException,
         ) as ex:
             click.secho("\nBuild Failed", fg="red")
 
