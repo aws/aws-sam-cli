@@ -20,7 +20,7 @@ from .utils import to_posix_path, find_free_port, NoFreePortsError
 
 LOG = logging.getLogger(__name__)
 
-START_CONTAINER_TIMEOUT = float(os.environ.get("SAM_CLI_START_CONTAINER_TIMEOUT", 5))
+START_CONTAINER_TIMEOUT = float(os.environ.get("SAM_CLI_START_CONTAINER_TIMEOUT", 10))
 
 
 class ContainerResponseException(Exception):
