@@ -86,6 +86,14 @@ PROVIDED_MAKE_CONFIG = CONFIG(
     executable_search_paths=None,
 )
 
+NODEJS_NPM_ESBUILD_CONFIG = CONFIG(
+    language="nodejs",
+    dependency_manager="npm-esbuild",
+    application_framework=None,
+    manifest_name="package.json",
+    executable_search_paths=None,
+)
+
 
 class UnsupportedRuntimeException(Exception):
     pass
@@ -147,21 +155,20 @@ def get_selector(
 
 def get_layer_subfolder(build_workflow: str) -> str:
     subfolders_by_runtime = {
-        "python2.7": "python",
         "python3.6": "python",
         "python3.7": "python",
         "python3.8": "python",
+        "python3.9": "python",
         "nodejs4.3": "nodejs",
         "nodejs6.10": "nodejs",
         "nodejs8.10": "nodejs",
-        "nodejs10.x": "nodejs",
         "nodejs12.x": "nodejs",
         "nodejs14.x": "nodejs",
-        "ruby2.5": "ruby/lib",
         "ruby2.7": "ruby/lib",
         "java8": "java",
         "java11": "java",
         "java8.al2": "java",
+        "dotnet6": "dotnet",
         # User is responsible for creating subfolder in these workflows
         "makefile": "",
     }
@@ -194,7 +201,7 @@ def get_workflow_config(
 
     specified_workflow str
         Workflow to be used, if directly specified. They are currently scoped to "makefile" and the official runtime
-        identifier names themselves, eg: nodejs10.x. If a workflow is not directly specified,
+        identifier names themselves, eg: nodejs14.x. If a workflow is not directly specified,
         it is calculated by the current method based on the runtime.
 
     Returns
@@ -206,17 +213,15 @@ def get_workflow_config(
     selectors_by_build_method = {"makefile": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG)}
 
     selectors_by_runtime = {
-        "python2.7": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.6": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.7": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.8": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
-        "nodejs10.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
+        "python3.9": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "nodejs12.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs14.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
-        "ruby2.5": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "ruby2.7": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
-        "dotnetcore2.1": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "dotnetcore3.1": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
+        "dotnet6": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "go1.x": BasicWorkflowSelector(GO_MOD_CONFIG),
         # When Maven builder exists, add to this list so we can automatically choose a builder based on the supported
         # manifest
@@ -247,6 +252,11 @@ def get_workflow_config(
         "provided": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG),
         "provided.al2": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG),
     }
+
+    selectors_by_builder = {
+        "esbuild": BasicWorkflowSelector(NODEJS_NPM_ESBUILD_CONFIG),
+    }
+
     # First check if the runtime is present and is buildable, if not raise an UnsupportedRuntimeException Error.
     # If runtime is present it should be in selectors_by_runtime, however for layers there will be no runtime
     # so in that case we move ahead and resolve to any matching workflow from both types.
@@ -256,7 +266,7 @@ def get_workflow_config(
     try:
         # Identify appropriate workflow selector.
         selector = get_selector(
-            selector_list=[selectors_by_build_method, selectors_by_runtime],
+            selector_list=[selectors_by_build_method, selectors_by_runtime, selectors_by_builder],
             identifiers=[specified_workflow, runtime],
             specified_workflow=specified_workflow,
         )
@@ -299,9 +309,6 @@ def supports_build_in_container(config: CONFIG) -> Tuple[bool, Optional[str]]:
     unsupported = {
         _key(DOTNET_CLIPACKAGE_CONFIG): "We do not support building .NET Core Lambda functions within a container. "
         "Try building without the container. Most .NET Core functions will build "
-        "successfully.",
-        _key(GO_MOD_CONFIG): "We do not support building Go Lambda functions within a container. "
-        "Try building without the container. Most Go functions will build "
         "successfully.",
     }
 

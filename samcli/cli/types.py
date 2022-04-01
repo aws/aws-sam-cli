@@ -39,16 +39,7 @@ def _generate_match_regex(match_pattern, delim):
 
 def _unquote_wrapped_quotes(value):
     r"""
-    Removes wrapping double quotes and any '\ ' characters. They are usually added to preserve spaces when passing
-    value thru shell.
-
-    Examples
-    --------
-    >>> _unquote_wrapped_quotes('val\ ue')
-    value
-
-    >>> _unquote_wrapped_quotes("hel\ lo")
-    hello
+    Removes wrapping single or double quotes and unescapes '\ ', '\"' and '\''.
 
     Parameters
     ----------
@@ -59,12 +50,9 @@ def _unquote_wrapped_quotes(value):
     -------
     Unquoted string
     """
-    if value and (value[0] == value[-1] == '"'):
-        # Remove double quotes only if the string is wrapped in double quotes
-        value = value.strip('"')
-    elif value and (value[0] == value[-1] == "'"):
-        # Remove single quotes only if the string is wrapped in single quotes
-        value = value.strip("'")
+
+    if value and ((value[0] == value[-1] == '"') or (value[0] == value[-1] == "'")):
+        value = value[1:-1]
 
     return value.replace("\\ ", " ").replace('\\"', '"').replace("\\'", "'")
 
@@ -208,6 +196,11 @@ class CfnTags(click.ParamType):
         if value == ("",):
             return result
 
+        # if value comes in via samconfig file and is a list, it is parsed to string.
+        if isinstance(value, list):
+            if not value:
+                return result
+            value = " ".join(value)
         # if value comes in a via configuration file, it will be a string. So we should still convert it.
         value = (value,) if not isinstance(value, tuple) else value
 

@@ -46,6 +46,7 @@ class InvokeIntegBase(TestCase):
         profile=None,
         layer_cache=None,
         docker_network=None,
+        invoke_image=None,
     ):
         command_list = [self.cmd, "local", "invoke", function_to_invoke]
 
@@ -78,6 +79,9 @@ class InvokeIntegBase(TestCase):
 
         if region:
             command_list = command_list + ["--region", region]
+
+        if invoke_image:
+            command_list = command_list + ["--invoke-image", invoke_image]
 
         return command_list
 

@@ -1,0 +1,32 @@
+{
+    "unknown.runtime1": [
+        {
+            "directory": "random.runtime1/cookiecutter-aws-sam-hello",
+            "displayName": "Hello World Example",
+            "dependencyManager": "pip",
+            "appTemplate": "hello-world",
+            "packageType": "Zip",
+            "useCaseName": "Hello World Example"
+        }
+    ],
+    "unknown.runtime2": [
+        {
+            "directory": "random.runtime2/cookiecutter-aws-sam-hello",
+            "displayName": "Hello World Example",
+            "dependencyManager": "pip",
+            "appTemplate": "hello-world",
+            "packageType": "Zip",
+            "useCaseName": "Hello World Example"
+        }
+    ],
+    "python3.8": [
+        {
+            "directory": "python3.8/cookiecutter-aws-sam-hello",
+            "displayName": "Hello World Example",
+            "dependencyManager": "pip",
+            "appTemplate": "hello-world",
+            "packageType": "Zip",
+            "useCaseName": "Hello World Example"
+        }
+    ]
+}

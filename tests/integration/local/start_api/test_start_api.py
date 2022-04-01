@@ -1,7 +1,10 @@
+import base64
+import shutil
 import uuid
 import random
+from pathlib import Path
+from typing import Dict
 
-import docker
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time, sleep
@@ -12,15 +15,20 @@ from parameterized import parameterized_class
 from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
 from samcli.local.apigw.local_apigw_service import Route
 from .start_api_integ_base import StartApiIntegBaseClass, WatchWarmContainersIntegBaseClass
+from ..invoke.layer_utils import LayerUtils
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template.yaml",),
+        ("/testdata/start_api/cdk/template_cdk.yaml",),
+    ],
+)
 class TestParallelRequests(StartApiIntegBaseClass):
     """
     Test Class centered around sending parallel requests to the service `sam local start-api`
     """
-
-    # This is here so the setUpClass doesn't fail. Set to this something else once the class is implemented
-    template_path = "/testdata/start_api/template.yaml"
 
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
@@ -80,13 +88,17 @@ class TestParallelRequests(StartApiIntegBaseClass):
                 self.assertEqual(result.json(), {"message": "HelloWorld! I just slept and waking up."})
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template.yaml",),
+        ("/testdata/start_api/cdk/template_cdk.yaml",),
+    ],
+)
 class TestServiceErrorResponses(StartApiIntegBaseClass):
     """
     Test Class centered around the Error Responses the Service can return for a given api
     """
-
-    # This is here so the setUpClass doesn't fail. Set to this something else once the class is implemented.
-    template_path = "/testdata/start_api/template.yaml"
 
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
@@ -126,6 +138,7 @@ class TestServiceErrorResponses(StartApiIntegBaseClass):
     [
         ("/testdata/start_api/template.yaml",),
         ("/testdata/start_api/nested-templates/template-parent.yaml",),
+        ("/testdata/start_api/cdk/template_cdk.yaml",),
     ],
 )
 class TestService(StartApiIntegBaseClass):
@@ -382,14 +395,14 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
-    def test_invalid_v2_lambda_response(self):
+    def test_v2_lambda_response_skip_unexpected_fields(self):
         """
         Patch Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
         """
         response = requests.get(self.url + "/invalidv2response", timeout=300)
 
-        self.assertEqual(response.status_code, 502)
-        self.assertEqual(response.json(), {"message": "Internal server error"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -417,6 +430,17 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
         Get Request to a path that was defined as ANY in SAM through Swagger
         """
         response = requests.get(self.url + "/anyandall", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_parse_swagger_body_with_non_case_sensitive_integration_type(self):
+        """
+        Get Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.get(self.url + "/nonsensitiveanyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
@@ -538,6 +562,48 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Content-Type"), "image/gif")
         self.assertEqual(response.content, expected)
 
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_non_decoded_binary_response(self):
+        """
+        Binary data is returned correctly
+        """
+        expected = base64.b64encode(self.get_binary_data(self.binary_data_file))
+
+        response = requests.get(self.url + "/nondecodedbase64response", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("Content-Type"), "image/gif")
+        self.assertEqual(response.content, expected)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_decoded_binary_response_base64encoded_field(self):
+        """
+        Binary data is returned correctly
+        """
+        expected = self.get_binary_data(self.binary_data_file)
+
+        response = requests.get(self.url + "/decodedbase64responsebas64encoded", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("Content-Type"), "image/gif")
+        self.assertEqual(response.content, expected)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_decoded_binary_response_base64encoded_field_is_priority(self):
+        """
+        Binary data is returned correctly
+        """
+        expected = base64.b64encode(self.get_binary_data(self.binary_data_file))
+
+        response = requests.get(self.url + "/decodedbase64responsebas64encodedpriority", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("Content-Type"), "image/gif")
+        self.assertEqual(response.content, expected)
+
 
 class TestStartApiWithSwaggerHttpApis(StartApiIntegBaseClass):
     template_path = "/testdata/start_api/swagger-template-http-api.yaml"
@@ -620,6 +686,32 @@ class TestStartApiWithSwaggerHttpApis(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_http_api_payload_v1_should_not_have_operation_id(self):
+        response = requests.get(self.url + "/httpapi-operation-id-v1", timeout=300)
+        self.assertEqual(response.status_code, 200)
+
+        response_data = response.json()
+        self.assertEqual(response_data.get("version", {}), "1.0")
+        # operationName or operationId shouldn't be processed by Httpapi swaggers
+        request_context_keys = [key.lower() for key in response_data.get("requestContext", {}).keys()]
+        self.assertTrue("operationid" not in request_context_keys)
+        self.assertTrue("operationname" not in request_context_keys)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_http_api_payload_v2_should_not_have_operation_id(self):
+        response = requests.get(self.url + "/httpapi-operation-id-v2", timeout=300)
+        self.assertEqual(response.status_code, 200)
+
+        response_data = response.json()
+        self.assertEqual(response_data.get("version", {}), "2.0")
+        # operationName or operationId shouldn't be processed by Httpapi swaggers
+        request_context_keys = [key.lower() for key in response_data.get("requestContext", {}).keys()]
+        self.assertTrue("operationid" not in request_context_keys)
+        self.assertTrue("operationname" not in request_context_keys)
 
 
 class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
@@ -748,6 +840,16 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Content-Type"), "image/gif")
         self.assertEqual(response.content, expected)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_rest_api_operation_id(self):
+        """
+        Binary data is returned correctly
+        """
+        response = requests.get(self.url + "/printeventwithoperationidfunction", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json().get("requestContext", {}).get("operationName"), "MyOperationName")
 
 
 class TestServiceResponses(StartApiIntegBaseClass):
@@ -1650,11 +1752,30 @@ class TestCFNTemplateWithRestApiAndHttpApiGateways(StartApiIntegBaseClass):
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
+    def test_http_api_with_operation_name_is_reachable(self):
+        response = requests.get(self.url + "/http-api-with-operation-name", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+        # operationName or operationId shouldn't be processed by Httpapi
+        request_context_keys = [key.lower() for key in response_data.get("requestContext", {}).keys()]
+        self.assertTrue("operationid" not in request_context_keys)
+        self.assertTrue("operationname" not in request_context_keys)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
     def test_rest_api_is_reachable(self):
         response = requests.get(self.url + "/rest-api", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_rest_api_with_operation_name_is_reachable(self):
+        response = requests.get(self.url + "/rest-api-with-operation-name", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"operation_name": "MyOperationName"})
 
 
 class TestCFNTemplateHttpApiWithSwaggerBody(StartApiIntegBaseClass):
@@ -1673,12 +1794,15 @@ class TestCFNTemplateHttpApiWithSwaggerBody(StartApiIntegBaseClass):
         self.assertEqual(response_data.get("version", {}), "2.0")
         self.assertIsNone(response_data.get("multiValueHeaders"))
         self.assertIsNotNone(response_data.get("cookies"))
+        # operationName or operationId shouldn't be processed by Httpapi swaggers
+        request_context_keys = [key.lower() for key in response_data.get("requestContext", {}).keys()]
+        self.assertTrue("operationid" not in request_context_keys)
+        self.assertTrue("operationname" not in request_context_keys)
 
 
 class TestWarmContainersBaseClass(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
-        self.docker_client = docker.from_env()
 
     def count_running_containers(self):
         running_containers = 0
@@ -1689,8 +1813,14 @@ class TestWarmContainersBaseClass(StartApiIntegBaseClass):
         return running_containers
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template-warm-containers.yaml",),
+        ("/testdata/start_api/cdk/template-cdk-warm-container.yaml",),
+    ],
+)
 class TestWarmContainers(TestWarmContainersBaseClass):
-    template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
@@ -1703,8 +1833,14 @@ class TestWarmContainers(TestWarmContainersBaseClass):
         self.assertEqual(response.json(), {"hello": "world"})
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template-warm-containers.yaml",),
+        ("/testdata/start_api/cdk/template-cdk-warm-container.yaml",),
+    ],
+)
 class TestWarmContainersInitialization(TestWarmContainersBaseClass):
-    template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
@@ -1717,8 +1853,14 @@ class TestWarmContainersInitialization(TestWarmContainersBaseClass):
         self.assertEqual(initiated_containers, 2)
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template-warm-containers.yaml",),
+        ("/testdata/start_api/cdk/template-cdk-warm-container.yaml",),
+    ],
+)
 class TestWarmContainersMultipleInvoke(TestWarmContainersBaseClass):
-    template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
@@ -1734,8 +1876,14 @@ class TestWarmContainersMultipleInvoke(TestWarmContainersBaseClass):
         self.assertEqual(initiated_containers, initiated_containers_before_invoking_any_function)
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template-warm-containers.yaml",),
+        ("/testdata/start_api/cdk/template-cdk-warm-container.yaml",),
+    ],
+)
 class TestLazyContainers(TestWarmContainersBaseClass):
-    template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.LAZY.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
@@ -1748,8 +1896,14 @@ class TestLazyContainers(TestWarmContainersBaseClass):
         self.assertEqual(response.json(), {"hello": "world"})
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template-warm-containers.yaml",),
+        ("/testdata/start_api/cdk/template-cdk-warm-container.yaml",),
+    ],
+)
 class TestLazyContainersInitialization(TestWarmContainersBaseClass):
-    template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.LAZY.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
@@ -1763,8 +1917,14 @@ class TestLazyContainersInitialization(TestWarmContainersBaseClass):
         self.assertEqual(initiated_containers, 0)
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template-warm-containers.yaml",),
+        ("/testdata/start_api/cdk/template-cdk-warm-container.yaml",),
+    ],
+)
 class TestLazyContainersMultipleInvoke(TestWarmContainersBaseClass):
-    template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.LAZY.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
@@ -1885,6 +2045,141 @@ def handler(event, context):
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
+class TestWatchingTemplateChangesLambdaFunctionHandlerChanged(WatchWarmContainersIntegBaseClass):
+    template_content = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    """
+
+    template_content_2 = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler2
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    """
+    code_content = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world"})}
+    
+def handler2(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}
+    """
+
+    docker_file_content = ""
+    container_mode = ContainersInitializationMode.EAGER.value
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_changed_code_got_observed_and_loaded(self):
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+        self._write_file_content(self.template_path, self.template_content_2)
+        # wait till SAM got notified that the source code got changed
+        sleep(2)
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world2"})
+
+
+class TestWatchingTemplateChangesLambdaFunctionCodeUriChanged(WatchWarmContainersIntegBaseClass):
+    template_content = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.7
+      CodeUri: .
+      Timeout: 600
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    """
+
+    template_content_2 = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main2.handler
+      Runtime: python3.7
+      CodeUri: dir
+      Timeout: 600
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    """
+    code_content = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world"})}
+    """
+    code_content_2 = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}
+        """
+
+    docker_file_content = ""
+    container_mode = ContainersInitializationMode.EAGER.value
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_changed_code_got_observed_and_loaded(self):
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+        self._write_file_content(self.template_path, self.template_content_2)
+        self._write_file_content(self.code_path2, self.code_content_2)
+        # wait till SAM got notified that the source code got changed
+        sleep(2)
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world2"})
+
+
 class TestWatchingImageWarmContainers(WatchWarmContainersIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
@@ -1941,6 +2236,100 @@ COPY main.py ./"""
         self.assertEqual(response.json(), {"hello": "world"})
 
         self._write_file_content(self.code_path, self.code_content_2)
+        self.build()
+        # wait till SAM got notified that the image got changed
+        sleep(2)
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world2"})
+
+
+class TestWatchingTemplateChangesImageDockerFileChangedLocation(WatchWarmContainersIntegBaseClass):
+    template_content = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Parameteres:
+  Tag:
+    Type: String
+  ImageUri:
+    Type: String
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - main.handler
+        Timeout: 600
+      ImageUri: !Ref ImageUri
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    Metadata:
+      DockerTag: !Ref Tag
+      DockerContext: .
+      Dockerfile: Dockerfile
+        """
+    template_content_2 = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Parameteres:
+  Tag:
+    Type: String
+  ImageUri:
+    Type: String
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - main.handler
+        Timeout: 600
+      ImageUri: !Ref ImageUri
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    Metadata:
+      DockerTag: !Ref Tag
+      DockerContext: .
+      Dockerfile: Dockerfile2
+        """
+    code_content = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world"})}"""
+    code_content_2 = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}"""
+    docker_file_content = """FROM public.ecr.aws/lambda/python:3.7
+COPY main.py ./"""
+    container_mode = ContainersInitializationMode.EAGER.value
+    build_before_invoke = True
+    tag = f"python-{random.randint(1000, 2000)}"
+    build_overrides = {"Tag": tag}
+    parameter_overrides = {"ImageUri": f"helloworldfunction:{tag}"}
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=6000, method="thread")
+    def test_changed_code_got_observed_and_loaded(self):
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+        self._write_file_content(self.template_path, self.template_content_2)
+        self._write_file_content(self.code_path, self.code_content_2)
+        self._write_file_content(self.docker_file_path2, self.docker_file_content)
         self.build()
         # wait till SAM got notified that the image got changed
         sleep(2)
@@ -2062,6 +2451,235 @@ COPY main.py ./"""
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
+class TestWatchingTemplateChangesLambdaFunctionHandlerChangedLazyContainer(WatchWarmContainersIntegBaseClass):
+    template_content = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    """
+
+    template_content_2 = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler2
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    """
+    code_content = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world"})}
+
+def handler2(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}
+    """
+
+    docker_file_content = ""
+    container_mode = ContainersInitializationMode.LAZY.value
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_changed_code_got_observed_and_loaded(self):
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+        self._write_file_content(self.template_path, self.template_content_2)
+        # wait till SAM got notified that the source code got changed
+        sleep(2)
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world2"})
+
+
+class TestWatchingTemplateChangesLambdaFunctionCodeUriChangedLazyContainers(WatchWarmContainersIntegBaseClass):
+    template_content = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.7
+      CodeUri: .
+      Timeout: 600
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    """
+
+    template_content_2 = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main2.handler
+      Runtime: python3.7
+      CodeUri: dir
+      Timeout: 600
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    """
+    code_content = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world"})}
+    """
+    code_content_2 = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}
+        """
+
+    docker_file_content = ""
+    container_mode = ContainersInitializationMode.LAZY.value
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_changed_code_got_observed_and_loaded(self):
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+        self._write_file_content(self.template_path, self.template_content_2)
+        self._write_file_content(self.code_path2, self.code_content_2)
+        # wait till SAM got notified that the source code got changed
+        sleep(2)
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world2"})
+
+
+class TestWatchingTemplateChangesImageDockerFileChangedLocationLazyContainers(WatchWarmContainersIntegBaseClass):
+    template_content = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Parameteres:
+  Tag:
+    Type: String
+  ImageUri:
+    Type: String
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - main.handler
+        Timeout: 600
+      ImageUri: !Ref ImageUri
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    Metadata:
+      DockerTag: !Ref Tag
+      DockerContext: .
+      Dockerfile: Dockerfile
+        """
+    template_content_2 = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Parameteres:
+  Tag:
+    Type: String
+  ImageUri:
+    Type: String
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - main.handler
+        Timeout: 600
+      ImageUri: !Ref ImageUri
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    Metadata:
+      DockerTag: !Ref Tag
+      DockerContext: .
+      Dockerfile: Dockerfile2
+        """
+    code_content = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world"})}"""
+    code_content_2 = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}"""
+    docker_file_content = """FROM public.ecr.aws/lambda/python:3.7
+COPY main.py ./"""
+    container_mode = ContainersInitializationMode.LAZY.value
+    build_before_invoke = True
+    tag = f"python-{random.randint(1000, 2000)}"
+    build_overrides = {"Tag": tag}
+    parameter_overrides = {"ImageUri": f"helloworldfunction:{tag}"}
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=6000, method="thread")
+    def test_changed_code_got_observed_and_loaded(self):
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+        self._write_file_content(self.template_path, self.template_content_2)
+        self._write_file_content(self.code_path, self.code_content_2)
+        self._write_file_content(self.docker_file_path2, self.docker_file_content)
+        self.build()
+        # wait till SAM got notified that the image got changed
+        sleep(2)
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world2"})
+
+
 class TestApiPrecedenceInNestedStacks(StartApiIntegBaseClass):
     """
     Here we test when two APIs share the same path+method,
@@ -2115,3 +2733,124 @@ class TestApiPrecedenceInNestedStacks(StartApiIntegBaseClass):
         response = requests.put(self.url + "/path2", data=data, timeout=300)
 
         self.assertEqual(response.status_code, 403)
+
+
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template.yaml",),
+        ("/testdata/start_api/nested-templates/template-parent.yaml",),
+    ],
+)
+class TestServiceWithCustomInvokeImages(StartApiIntegBaseClass):
+    """
+    Testing general requirements around the Service that powers `sam local start-api` using invoke images
+    """
+
+    invoke_image = [
+        "amazon/aws-sam-cli-emulation-image-python3.6",
+        "HelloWorldFunction=public.ecr.aws/sam/emulation-python3.6",
+    ]
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_static_directory(self):
+        pass
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_calling_proxy_endpoint_custom_invoke_image(self):
+        response = requests.get(self.url + "/proxypath/this/is/some/path", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_get_call_with_path_setup_with_any_implicit_api_custom_invoke_image(self):
+        """
+        Get Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.get(self.url + "/anyandall", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_post_call_with_path_setup_with_any_implicit_api_custom_invoke_image(self):
+        """
+        Post Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.post(self.url + "/anyandall", json={}, timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_put_call_with_path_setup_with_any_implicit_api_custom_invoke_image(self):
+        """
+        Put Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.put(self.url + "/anyandall", json={}, timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+
+class WarmContainersWithRemoteLayersBase(TestWarmContainersBaseClass):
+    layer_utils = LayerUtils()
+    layer_cache_base_dir = str(Path().home().joinpath("integ_layer_cache"))
+    parameter_overrides: Dict[str, str] = {}
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerArn", "layer1.zip")
+        for key, val in cls.layer_utils.parameters_overrides.items():
+            cls.parameter_overrides[key] = val
+        super().setUpClass()
+
+    @classmethod
+    def tearDownClass(self) -> None:
+        self.layer_utils.delete_layers()
+        integ_layer_cache_dir = Path().home().joinpath("integ_layer_cache")
+        if integ_layer_cache_dir.exists():
+            shutil.rmtree(str(integ_layer_cache_dir))
+        super().tearDownClass()
+
+
+class TestWarmContainersRemoteLayers(WarmContainersWithRemoteLayersBase):
+    template_path = "/testdata/start_api/template-warm-containers-layers.yaml"
+    container_mode = ContainersInitializationMode.EAGER.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_all_containers_are_initialized_before_any_invoke(self):
+        initiated_containers = self.count_running_containers()
+        # Ensure only one function has spun up, remote layer shouldn't create another container
+        self.assertEqual(initiated_containers, 1)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_can_invoke_lambda_layer_successfully(self):
+        response = requests.get(self.url + "/", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content.decode("utf-8"), '"Layer1"')
+
+
+class TestWarmContainersRemoteLayersLazyInvoke(WarmContainersWithRemoteLayersBase):
+    template_path = "/testdata/start_api/template-warm-containers-layers.yaml"
+    container_mode = ContainersInitializationMode.LAZY.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_can_invoke_lambda_layer_successfully(self):
+        response = requests.get(self.url + "/", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content.decode("utf-8"), '"Layer1"')

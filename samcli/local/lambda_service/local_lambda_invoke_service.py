@@ -5,6 +5,7 @@ import logging
 import io
 
 from flask import Flask, request
+from werkzeug.routing import BaseConverter
 
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
@@ -12,6 +13,16 @@ from samcli.local.lambdafn.exceptions import FunctionNotFound
 from .lambda_error_responses import LambdaErrorResponses
 
 LOG = logging.getLogger(__name__)
+
+
+class FunctionNamePathConverter(BaseConverter):
+    regex = ".+"
+
+    def to_python(self, value):
+        return value
+
+    def to_url(self, value):
+        return value
 
 
 class LocalLambdaInvokeService(BaseLocalService):
@@ -40,7 +51,10 @@ class LocalLambdaInvokeService(BaseLocalService):
         """
         self._app = Flask(__name__)
 
-        path = "/2015-03-31/functions/<function_name>/invocations"
+        # add converter to support nested stack function path
+        self._app.url_map.converters["function_path"] = FunctionNamePathConverter
+
+        path = "/2015-03-31/functions/<function_path:function_name>/invocations"
         self._app.add_url_rule(
             path,
             endpoint=path,
@@ -145,7 +159,7 @@ class LocalLambdaInvokeService(BaseLocalService):
         request_data = request_data.decode("utf-8")
 
         stdout_stream = io.BytesIO()
-        stdout_stream_writer = StreamWriter(stdout_stream, self.is_debugging)
+        stdout_stream_writer = StreamWriter(stdout_stream, auto_flush=True)
 
         try:
             self.lambda_runner.invoke(function_name, request_data, stdout=stdout_stream_writer, stderr=self.stderr)

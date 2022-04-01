@@ -1,0 +1,98 @@
+{
+    "sessionId": "254688924456220",
+    "inputTranscript": "Book a car",
+    "interpretations": [
+        {
+            "intent": {
+                "slots": {
+                    "ReturnDate": null,
+                    "PickUpDate": null,
+                    "DriverAge": null,
+                    "CarType": null,
+                    "PickUpCity": null
+                },
+                "confirmationState": "None",
+                "name": "BookCar",
+                "state": "InProgress"
+            },
+            "nluConfidence": 1
+        },
+        {
+            "intent": {
+                "slots": {
+                    "RoomType": null,
+                    "CheckInDate": null,
+                    "Nights": null,
+                    "Location": null
+                },
+                "confirmationState": "None",
+                "name": "BookHotel",
+                "state": "InProgress"
+            },
+            "nluConfidence": 0.51
+        },
+        {
+            "intent": {
+                "slots": {},
+                "confirmationState": "None",
+                "name": "FallbackIntent",
+                "state": "InProgress"
+            }
+        }
+    ],
+    "proposedNextState": {
+        "intent": {
+            "slots": {
+                "ReturnDate": null,
+                "PickUpDate": null,
+                "DriverAge": null,
+                "CarType": null,
+                "PickUpCity": null
+            },
+            "confirmationState": "None",
+            "name": "BookCar",
+            "state": "InProgress"
+        },
+        "dialogAction": {
+            "slotToElicit": "PickUpCity",
+            "type": "ElicitSlot"
+        }
+    },
+    "responseContentType": "text/plain; charset=utf-8",
+    "sessionState": {
+        "intent": {
+            "slots": {
+                "ReturnDate": null,
+                "PickUpDate": null,
+                "DriverAge": null,
+                "CarType": null,
+                "PickUpCity": null
+            },
+            "confirmationState": "None",
+            "name": "BookCar",
+            "state": "InProgress"
+        },
+        "originatingRequestId": "d32005f8-c142-48b5-bf88-c2dd4c05a25e"
+    },
+    "messageVersion": "1.0",
+    "invocationSource": "DialogCodeHook",
+    "transcriptions": [
+        {
+            "resolvedSlots": {},
+            "resolvedContext": {
+                "intent": "BookCar"
+            },
+            "transcription": "Book a car",
+            "transcriptionConfidence": 1
+        }
+    ],
+    "inputMode": "Text",
+    "bot": {
+        "aliasName": "TestBotAlias",
+        "aliasId": "TSTALIASID",
+        "name": "BookTrip",
+        "version": "DRAFT",
+        "localeId": "en_US",
+        "id": "CCGFLGVZMD"
+    }
+}

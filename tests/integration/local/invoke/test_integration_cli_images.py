@@ -3,7 +3,7 @@ import os
 import copy
 from unittest import skipIf
 
-from docker.errors import APIError
+from docker.errors import APIError, ImageNotFound
 from parameterized import parameterized
 from subprocess import Popen, PIPE, TimeoutExpired
 from timeit import default_timer as timer
@@ -16,6 +16,8 @@ from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE
 from pathlib import Path
 
 from samcli import __version__ as version
+from samcli.local.docker.lambda_image import RAPID_IMAGE_TAG_PREFIX
+from samcli.lib.utils.architecture import X86_64
 
 TIMEOUT = 300
 
@@ -44,7 +46,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
     def tearDownClass(cls):
         try:
             cls.client.api.remove_image(cls.docker_tag)
-            cls.client.api.remove_image(f"{cls.image_name}:rapid-{version}")
+            cls.client.api.remove_image(f"{cls.image_name}:{RAPID_IMAGE_TAG_PREFIX}-{version}")
         except APIError:
             pass
 
@@ -399,3 +401,115 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
             "Error: Error building docker image: pull access denied for non-existing-image",
         )
         self.assertEqual(process.returncode, 1)
+
+
+class TestDeleteOldRapidImages(InvokeIntegBase):
+    template = Path("template_image.yaml")
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestDeleteOldRapidImages, cls).setUpClass()
+        cls.client = docker.from_env()
+        cls.repo = "sam-test-lambdaimage"
+        cls.tag = f"{cls.repo}:v1"
+        cls.test_data_invoke_path = str(Path(__file__).resolve().parents[2].joinpath("testdata", "invoke"))
+        # Directly build an image that will be used across all local invokes in this class.
+        for log in cls.client.api.build(
+            path=cls.test_data_invoke_path, dockerfile="Dockerfile", tag=cls.tag, decode=True, nocache=True
+        ):
+            print(log)
+        cls.other_repo = "test-delete-old-rapid-images-other-repo"
+        cls.other_repo_tags = [f"{cls.other_repo}:v1", f"{cls.other_repo}:{RAPID_IMAGE_TAG_PREFIX}-0.00.01"]
+
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            cls.client.api.remove_image(cls.tag)
+        except APIError:
+            pass
+
+    def setUp(self):
+        self.old_rapid_image_tags = [
+            f"{self.repo}:{RAPID_IMAGE_TAG_PREFIX}-0.00.01",
+            f"{self.repo}:{RAPID_IMAGE_TAG_PREFIX}-0.00.02",
+        ]
+        for tag in self.old_rapid_image_tags:
+            for log in self.client.api.build(
+                path=self.test_data_invoke_path, dockerfile="Dockerfile", tag=tag, decode=True, nocache=True
+            ):
+                print(log)
+        self.new_rapid_image_tag = f"{self.repo}:{RAPID_IMAGE_TAG_PREFIX}-{version}-{X86_64}"
+
+    def tearDown(self):
+        for tag in self.old_rapid_image_tags + [self.new_rapid_image_tag] + self.other_repo_tags:
+            try:
+                self.client.api.remove_image(tag)
+            except APIError:
+                pass
+
+    @pytest.mark.flaky(reruns=3)
+    def test_building_new_rapid_image_removes_old_rapid_images(self):
+        command_list = self.get_command_list(
+            "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        for tag in self.old_rapid_image_tags:
+            self.assertRaises(ImageNotFound, self.client.images.get, tag)
+        self.client.images.get(self.new_rapid_image_tag)
+        self.client.images.get(f"{self.repo}:v1")
+
+    @pytest.mark.flaky(reruns=3)
+    def test_building_existing_rapid_image_does_not_remove_old_rapid_images(self):
+        for log in self.client.api.build(
+            path=self.test_data_invoke_path,
+            dockerfile="Dockerfile",
+            tag=self.new_rapid_image_tag,
+            decode=True,
+            nocache=True,
+        ):
+            print(log)
+
+        command_list = self.get_command_list(
+            "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        for tag in self.old_rapid_image_tags:
+            self.client.images.get(tag)
+        self.client.images.get(self.new_rapid_image_tag)
+        self.client.images.get(f"{self.repo}:v1")
+
+    @pytest.mark.flaky(reruns=3)
+    def test_building_new_rapid_image_doesnt_remove_images_in_other_repos(self):
+        for tag in self.other_repo_tags:
+            for log in self.client.api.build(
+                path=self.test_data_invoke_path, dockerfile="Dockerfile", tag=tag, decode=True, nocache=True
+            ):
+                print(log)
+
+        command_list = self.get_command_list(
+            "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        for tag in self.other_repo_tags:
+            self.client.images.get(tag)

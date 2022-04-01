@@ -157,6 +157,7 @@ class SwaggerParser:
                     methods=[method],
                     event_type=event_type,
                     payload_format_version=payload_format_version,
+                    operation_name=method_config.get("operationId"),
                     stack_path=self.stack_path,
                 )
                 result.append(route)
@@ -183,7 +184,11 @@ class SwaggerParser:
 
         integration = method_config[self._INTEGRATION_KEY]
 
-        if integration and isinstance(integration, dict) and integration.get("type") == IntegrationType.aws_proxy.value:
+        if (
+            integration
+            and isinstance(integration, dict)
+            and integration.get("type").lower() == IntegrationType.aws_proxy.value
+        ):
             # Integration must be "aws_proxy" otherwise we don't care about it
             return integration
 

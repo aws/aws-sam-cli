@@ -14,11 +14,13 @@ Resources:
     Properties:
       CodeUri: ./src/HelloWorld/
       Handler: HelloWorld::HelloWorld.Function::FunctionHandler
-      {%- if cookiecutter.runtime == 'dotnetcore2.1' %}
-      Runtime: {{ cookiecutter.runtime }}
-      {%- else %}
+      {%- if cookiecutter.runtime == 'dotnetcore3.1' %}
       Runtime: dotnetcore3.1
       {%- endif %}
+      Architectures:
+      {%- for arch in cookiecutter.architectures.value %}
+        - {{arch}}
+      {%- endfor %}
       Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
         Variables:
           PARAM1: VALUE

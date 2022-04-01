@@ -2,25 +2,29 @@
 Implementation of Local Lambda runner
 """
 
-import os
 import logging
+import os
 from typing import Any, Dict, Optional, cast
-import boto3
 
+import boto3
 from botocore.credentials import Credentials
 
 from samcli.commands.local.lib.debug_context import DebugContext
+from samcli.commands.local.lib.exceptions import (
+    OverridesNotWellDefinedError,
+    NoPrivilegeException,
+    InvalidIntermediateImageError,
+)
+from samcli.lib.providers.provider import Function
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
+from samcli.lib.utils.architecture import validate_architecture_runtime
 from samcli.lib.utils.codeuri import resolve_code_path
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.stream_writer import StreamWriter
-from samcli.local.docker.container import ContainerResponseException
-from samcli.local.lambdafn.env_vars import EnvironmentVariables
+from samcli.local.docker.container import ContainerResponseException, ContainerStartTimeoutException
 from samcli.local.lambdafn.config import FunctionConfig
+from samcli.local.lambdafn.env_vars import EnvironmentVariables
 from samcli.local.lambdafn.exceptions import FunctionNotFound
-from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
-from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError, NoPrivilegeException
-from samcli.lib.providers.provider import Function
 from samcli.local.lambdafn.runtime import LambdaRuntime
 
 LOG = logging.getLogger(__name__)
@@ -68,7 +72,7 @@ class LocalLambdaRunner:
         self.aws_region = aws_region
         self.env_vars_values = env_vars_values or {}
         self.debug_context = debug_context
-        self._boto3_session_creds: Optional[Dict[str, str]] = None
+        self._boto3_session_creds: Optional[Credentials] = None
         self._boto3_region: Optional[str] = None
         self.container_host = container_host
         self.container_host_interface = container_host_interface
@@ -123,6 +127,9 @@ class LocalLambdaRunner:
                     f"ImageUri not provided for Function: {function_identifier} of PackageType: {function.packagetype}"
                 )
             LOG.info("Invoking Container created from %s", function.imageuri)
+
+        validate_architecture_runtime(function)
+
         config = self.get_invoke_config(function)
 
         # Invoke the function
@@ -139,6 +146,11 @@ class LocalLambdaRunner:
         except ContainerResponseException:
             # NOTE(sriram-mv): This should still result in a exit code zero to avoid regressions.
             LOG.info("No response from invoke container for %s", function.name)
+        except ContainerStartTimeoutException as e:
+            # NOTE: Exit code of zero here as well to match the behaviour above (ContainerResponseException
+            # having exit code of zero) because previously when it timed out or exhausted retries while
+            # trying to connect to a container it would throw ContainerResponseException but now it's this.
+            LOG.info(str(e))
         except OSError as os_error:
             # pylint: disable=no-member
             if hasattr(os_error, "winerror") and os_error.winerror == 1314:  # type: ignore
@@ -187,6 +199,7 @@ class LocalLambdaRunner:
 
         return FunctionConfig(
             name=function.name,
+            full_path=function.full_path,
             runtime=function.runtime,
             handler=function.handler,
             imageuri=function.imageuri,
@@ -194,6 +207,7 @@ class LocalLambdaRunner:
             packagetype=function.packagetype,
             code_abs_path=code_abs_path,
             layers=function.layers,
+            architecture=function.architecture,
             memory=function.memory,
             timeout=function_timeout,
             env_vars=env_vars,
@@ -219,7 +233,9 @@ class LocalLambdaRunner:
 
         """
 
+        function_id = function.function_id
         name = function.name
+        full_path = function.full_path
 
         variables = None
         if isinstance(function.environment, dict) and "Variables" in function.environment:
@@ -248,7 +264,12 @@ class LocalLambdaRunner:
         else:
             # Standard format
             LOG.debug("Environment variables overrides data is standard format")
-            overrides = self.env_vars_values.get(name, None)
+            # Precedence: logical_id -> function_id -> full_path, customer can use any of them
+            overrides = (
+                self.env_vars_values.get(name, None)
+                or self.env_vars_values.get(function_id, None)
+                or self.env_vars_values.get(full_path, None)
+            )
 
         shell_env = os.environ
         aws_creds = self.get_aws_creds()
@@ -264,7 +285,7 @@ class LocalLambdaRunner:
             aws_creds=aws_creds,
         )  # EnvironmentVariables is not yet annotated with type hints, disable mypy check for now. type: ignore
 
-    def _get_session_creds(self) -> Credentials:
+    def _get_session_creds(self) -> Optional[Credentials]:
         if self._boto3_session_creds is None:
             # to pass command line arguments for region & profile to setup boto3 default session
             LOG.debug("Loading AWS credentials from session with profile '%s'", self.aws_profile)

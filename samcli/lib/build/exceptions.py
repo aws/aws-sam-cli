@@ -41,6 +41,11 @@ class DockerBuildFailed(BuildError):
         BuildError.__init__(self, "DockerBuildFailed", msg)
 
 
+class MissingBuildMethodException(BuildError):
+    def __init__(self, msg: str) -> None:
+        BuildError.__init__(self, "MissingBuildMethodException", msg)
+
+
 class InvalidBuildGraphException(Exception):
     def __init__(self, msg: str) -> None:
         Exception.__init__(self, msg)

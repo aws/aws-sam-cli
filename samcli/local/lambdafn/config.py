@@ -17,6 +17,7 @@ class FunctionConfig:
     def __init__(
         self,
         name,
+        full_path,
         runtime,
         handler,
         imageuri,
@@ -24,34 +25,50 @@ class FunctionConfig:
         packagetype,
         code_abs_path,
         layers,
+        architecture,
         memory=None,
         timeout=None,
         env_vars=None,
     ):
         """
-        Initialize the class.
-
         Parameters
         ----------
-        name str
+        name : str
             Name of the function
-        runtime str
+        full_path : str
+            The function full path
+        runtime : str
             Runtime of function
-        handler str
+        handler : str
             Handler method
-        code_abs_path str
+        imageuri : str
+            Name of the Lambda Image which is of the form {image}:{tag}
+        imageconfig : str
+            Image configuration which can be used set to entrypoint, command and working dir for the container.
+        packagetype : str
+            Package type for the lambda function which is either zip or image.
+        code_abs_path : str
             Absolute path to the code
-        layers list(str)
+        layers : list(str)
             List of Layers
-        memory int
-            Function memory limit in MB
-        timeout int
-            Function timeout in seconds
-        env_vars samcli.local.lambdafn.env_vars.EnvironmentVariables
-            Optional, Environment variables.
-            If it not provided, this class will generate one for you based on the function properties
+        architecture : str
+            Architecture type either x86_64 or arm64 on AWS lambda
+        memory : int, optional
+            Function memory limit in MB, by default None
+        timeout : int, optional
+            Function timeout in seconds, by default None
+        env_vars : str, optional
+            Environment variables, by default None
+             If it not provided, this class will generate one for you based on the function properties
+
+        Raises
+        ------
+        InvalidSamTemplateException
+            Throw when template provided was invalid and not able to transform into a Standard CloudFormation Template
         """
+
         self.name = name
+        self.full_path = full_path
         self.runtime = runtime
         self.imageuri = imageuri
         self.imageconfig = imageconfig
@@ -60,6 +77,7 @@ class FunctionConfig:
         self.code_abs_path = code_abs_path
         self.layers = layers
         self.memory = memory or self._DEFAULT_MEMORY
+        self.architecture = architecture
 
         self.timeout = timeout or self._DEFAULT_TIMEOUT_SECONDS
 
@@ -80,4 +98,4 @@ class FunctionConfig:
         self.env_vars.timeout = self.timeout
 
     def __eq__(self, other):
-        return self.name == other.name
+        return self.full_path == other.full_path

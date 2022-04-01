@@ -17,6 +17,10 @@ Resources:
       CodeUri: HelloWorldFunction
       Handler: helloworld.App::handleRequest
       Runtime: {{ cookiecutter.runtime }}
+      Architectures:
+      {%- for arch in cookiecutter.architectures.value %}
+        - {{arch}}
+      {%- endfor %}
       MemorySize: 512
       Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
         Variables:

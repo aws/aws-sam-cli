@@ -17,6 +17,10 @@ Resources:
       CodeUri: hello-world/
       Handler: hello-world
       Runtime: go1.x
+      Architectures:
+      {%- for arch in cookiecutter.architectures.value %}
+        - {{arch}}
+      {%- endfor %}
       Tracing: Active # https://docs.aws.amazon.com/lambda/latest/dg/lambda-x-ray.html
       Events:
         CatchAll:
