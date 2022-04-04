@@ -29,7 +29,7 @@ from samcli.commands.deploy.utils import (
     print_deploy_args,
     hide_noecho_parameter_overrides,
 )
-from samcli.lib.deploy.deployer import Deployer
+from samcli.lib.deploy.deployer import Deployer, DEFAULT_CLIENT_SLEEP
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
@@ -142,7 +142,9 @@ class DeployContext:
                 s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload, self.no_progressbar
             )
 
-        self.deployer = Deployer(cloudformation_client)
+        self.deployer = Deployer(
+            cloudformation_client, client_sleep=os.getenv("SAM_CLI_POLL_DELAY", str(DEFAULT_CLIENT_SLEEP))
+        )
 
         region = s3_client._client_config.region_name if s3_client else self.region  # pylint: disable=W0212
         display_parameter_overrides = hide_noecho_parameter_overrides(template_dict, self.parameter_overrides)
