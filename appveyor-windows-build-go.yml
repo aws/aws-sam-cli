@@ -10,9 +10,8 @@ environment:
   APPVEYOR_CI_OVERRIDE: 1
 
   # Python uses $TMPDIR envvar to find root of tempdir
-  TMPDIR: C:\tmp
-  TEMP: C:\tmp
-  TMP: C:\tmp
+  TMPDIR: '%TEMP%'
+  TMP: '%TEMP%'
 
   # MSI Installers only use Py3.7.6. It is sufficient to test with this version here.
   PYTHON_HOME: "C:\\Python37-x64"
@@ -32,8 +31,7 @@ init:
 
 install:
   # Install Go
-  - "choco install golang"
-  - "choco install bzr"
+  - ps: "choco install golang"
   - "refreshenv"
   - "go version"
   - "go env"
@@ -74,5 +72,5 @@ test_script:
   - ps: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_Go_Modules"
   - ps: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_Go_Modules_With_Specified_Architecture"
 # Uncomment for RDP
-# on_finish:
-#   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+#on_finish:
+#  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
