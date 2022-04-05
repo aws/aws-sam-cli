@@ -9,7 +9,7 @@ from typing import Dict, Optional, List, cast
 
 import click
 
-from samcli.commands._utils.experimental import is_experimental_enabled, ExperimentalFlag
+from samcli.commands._utils.experimental import is_experimental_enabled, ExperimentalFlag, prompt_experimental
 from samcli.lib.providers.sam_api_provider import SamApiProvider
 from samcli.lib.utils.packagetype import IMAGE
 
@@ -23,6 +23,7 @@ from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_layer_provider import SamLayerProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
+from samcli.local.docker.container import ContainerStartTimeoutException
 from samcli.local.docker.manager import ContainerManager
 from samcli.local.lambdafn.exceptions import ResourceNotFound
 from samcli.lib.build.exceptions import BuildInsideContainerError
@@ -187,6 +188,7 @@ class BuildContext:
 
         try:
             self._check_java_warning()
+            self._check_esbuild_warning()
             build_result = builder.build()
             artifacts = build_result.artifacts
 
@@ -240,6 +242,7 @@ class BuildContext:
             UnsupportedBuilderLibraryVersionError,
             ContainerBuildNotSupported,
             InvalidBuildGraphException,
+            ContainerStartTimeoutException,
         ) as ex:
             click.secho("\nBuild Failed", fg="red")
 
@@ -519,6 +522,12 @@ Commands you can use next
         "Check https://github.com/aws/aws-sam-cli/issues/3639 for more information."
     )
 
+    _ESBUILD_WARNING_MESSAGE = (
+        "Using esbuild for bundling Node.js and TypeScript is a beta feature.\n"
+        "Please confirm if you would like to proceed with using esbuild to build your function.\n"
+        "You can also enable this beta feature with 'sam build --beta-features'."
+    )
+
     def _check_java_warning(self) -> None:
         """
         Prints warning message about upcoming changes to building java functions and layers.
@@ -538,3 +547,17 @@ Commands you can use next
 
         if is_building_java and not is_experimental_enabled(ExperimentalFlag.JavaMavenBuildScope):
             click.secho(self._JAVA_BUILD_WARNING_MESSAGE, fg="yellow")
+
+    def _check_esbuild_warning(self) -> None:
+        """
+        Prints warning message and confirms that the user wants to enable beta features
+        """
+        resources_to_build = self.get_resources_to_build()
+        is_building_esbuild = False
+        for function in resources_to_build.functions:
+            if function.metadata and function.metadata.get("BuildMethod", "") == "esbuild":
+                is_building_esbuild = True
+                break
+
+        if is_building_esbuild:
+            prompt_experimental(ExperimentalFlag.Esbuild, self._ESBUILD_WARNING_MESSAGE)

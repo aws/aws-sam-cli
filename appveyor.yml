@@ -6,19 +6,9 @@ image:
 environment:
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
+  NODE_VERSION: "14.17.6"
  
   matrix:
-
-    - PYTHON_HOME: "C:\\Python36-x64"
-      PYTHON_VERSION: '3.6'
-      PYTHON_ARCH: '64'
-      NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_37_PIP: 1
-      INSTALL_PY_38_PIP: 1
-      INSTALL_PY_39_PIP: 1
-      AWS_S3: 'AWS_S3_36'
-      AWS_ECR: 'AWS_ECR_36'
-      APPVEYOR_CONSOLE_DISABLE_PTY: true
 
     - PYTHON_HOME: "C:\\Python37-x64"
       PYTHON_VERSION: '3.7'
@@ -63,6 +53,7 @@ for:
         - image: Visual Studio 2019
 
     install:
+      - ps: Install-Product node $env:NODE_VERSION
       - "SET PATH=%PYTHON_HOME%;%PATH%"
       - "echo %PYTHON_HOME%"
       - "echo %PATH%"
@@ -140,6 +131,9 @@ for:
       - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
       - sh: "rvm use 2.7.2"
       - sh: "docker --version"
+      - sh: "nvm install ${NODE_VERSION}"
+      - sh: "npm install npm@7.24.2 -g"
+      - sh: "npm -v"
 
       # Install latest gradle
       - sh: "sudo apt-get -y remove gradle"

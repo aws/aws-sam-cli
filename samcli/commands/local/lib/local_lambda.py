@@ -21,7 +21,7 @@ from samcli.lib.utils.architecture import validate_architecture_runtime
 from samcli.lib.utils.codeuri import resolve_code_path
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.stream_writer import StreamWriter
-from samcli.local.docker.container import ContainerResponseException
+from samcli.local.docker.container import ContainerResponseException, ContainerStartTimeoutException
 from samcli.local.lambdafn.config import FunctionConfig
 from samcli.local.lambdafn.env_vars import EnvironmentVariables
 from samcli.local.lambdafn.exceptions import FunctionNotFound
@@ -72,7 +72,7 @@ class LocalLambdaRunner:
         self.aws_region = aws_region
         self.env_vars_values = env_vars_values or {}
         self.debug_context = debug_context
-        self._boto3_session_creds: Optional[Dict[str, str]] = None
+        self._boto3_session_creds: Optional[Credentials] = None
         self._boto3_region: Optional[str] = None
         self.container_host = container_host
         self.container_host_interface = container_host_interface
@@ -146,6 +146,11 @@ class LocalLambdaRunner:
         except ContainerResponseException:
             # NOTE(sriram-mv): This should still result in a exit code zero to avoid regressions.
             LOG.info("No response from invoke container for %s", function.name)
+        except ContainerStartTimeoutException as e:
+            # NOTE: Exit code of zero here as well to match the behaviour above (ContainerResponseException
+            # having exit code of zero) because previously when it timed out or exhausted retries while
+            # trying to connect to a container it would throw ContainerResponseException but now it's this.
+            LOG.info(str(e))
         except OSError as os_error:
             # pylint: disable=no-member
             if hasattr(os_error, "winerror") and os_error.winerror == 1314:  # type: ignore
@@ -280,7 +285,7 @@ class LocalLambdaRunner:
             aws_creds=aws_creds,
         )  # EnvironmentVariables is not yet annotated with type hints, disable mypy check for now. type: ignore
 
-    def _get_session_creds(self) -> Credentials:
+    def _get_session_creds(self) -> Optional[Credentials]:
         if self._boto3_session_creds is None:
             # to pass command line arguments for region & profile to setup boto3 default session
             LOG.debug("Loading AWS credentials from session with profile '%s'", self.aws_profile)
