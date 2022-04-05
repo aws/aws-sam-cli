@@ -72,5 +72,5 @@ test_script:
   - ps: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_Go_Modules"
   - ps: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_Go_Modules_With_Specified_Architecture"
 # Uncomment for RDP
-on_finish:
-  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+#on_finish:
+#  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
