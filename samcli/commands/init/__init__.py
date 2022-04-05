@@ -231,6 +231,14 @@ def non_interactive_validation(func):
     """ """,
     required=False,
 )
+@click.option(
+    "-t",
+    "--tracing",
+    default="disable",
+    type=click.Choice(["enable", "disable"]),
+    help="Enable AWS X-Ray tracing for your lambda functions",
+    cls=ClickMutex,
+)
 @common_options
 @non_interactive_validation
 @pass_context
@@ -251,6 +259,7 @@ def cli(
     app_template,
     no_input,
     extra_context,
+    tracing,
     config_file,
     config_env,
 ):
@@ -272,6 +281,7 @@ def cli(
         app_template,
         no_input,
         extra_context,
+        tracing,
     )  # pragma: no cover
 
 
@@ -291,6 +301,7 @@ def do_cli(
     app_template,
     no_input,
     extra_context,
+    tracing,
 ):
     """
     Implementation of the ``cli`` method
@@ -339,6 +350,7 @@ def do_cli(
             name,
             no_input,
             extra_context,
+            tracing,
         )
     else:
         if not (pt_explicit or runtime or dependency_manager or base_image or architecture):
@@ -357,6 +369,7 @@ def do_cli(
             name,
             app_template,
             no_input,
+            tracing,
         )
 
 

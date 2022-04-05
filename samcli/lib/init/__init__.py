@@ -11,8 +11,10 @@ from cookiecutter.exceptions import CookiecutterException, RepositoryNotFound, U
 from cookiecutter.main import cookiecutter
 
 from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING
+from samcli.lib.init.cli_template_modifier import TemplateModifier
 from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.utils import osutils
+from samcli.yamlhelper import parse_yaml_file, yaml_dump_writer
 from .exceptions import GenerateProjectFailedError, InvalidLocationError
 from .arbitrary_project import generate_non_cookiecutter_project
 
@@ -28,6 +30,7 @@ def generate_project(
     name=None,
     no_input=False,
     extra_context=None,
+    tracing="Disable",
 ):
     """Generates project using cookiecutter and options given
 
@@ -56,6 +59,8 @@ def generate_project(
         (the default is False, which prompts the user for values it doesn't know for baking)
     extra_context : Optional[Dict]
         An optional dictionary, the extra cookiecutter context
+    tracing: Optional[str]
+        Enable or disable X-Ray Tracing
 
     Raises
     ------
@@ -111,3 +116,8 @@ def generate_project(
         raise InvalidLocationError(template=params["template"]) from e
     except CookiecutterException as e:
         raise GenerateProjectFailedError(project=name, provider_error=e) from e
+
+    if tracing == "enable":
+        template_file_path = f"{output_dir}/{name}/template.yaml"
+        template_modifier = TemplateModifier(template_file_path)
+        template_modifier.modify_template()

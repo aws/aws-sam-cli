@@ -40,6 +40,7 @@ def do_interactive(
     name,
     app_template,
     no_input,
+    tracing,
 ):
     """
     Implementation of the ``cli`` method when --interactive is provided.
@@ -65,6 +66,7 @@ def do_interactive(
         app_template,
         no_input,
         location_opt_choice,
+        tracing,
     )
 
 
@@ -81,7 +83,8 @@ def generate_application(
     app_template,
     no_input,
     location_opt_choice,
-):  # pylint: disable=too-many-arguments
+    tracing,
+):  # pylint: disable=too-many-arguments, missing-function-docstring
     if location_opt_choice == "1":
         _generate_from_use_case(
             location,
@@ -94,14 +97,17 @@ def generate_application(
             name,
             app_template,
             architecture,
+            tracing,
         )
 
     else:
-        _generate_from_location(location, package_type, runtime, dependency_manager, output_dir, name, no_input)
+        _generate_from_location(
+            location, package_type, runtime, dependency_manager, output_dir, name, no_input, tracing
+        )
 
 
 # pylint: disable=too-many-statements
-def _generate_from_location(location, package_type, runtime, dependency_manager, output_dir, name, no_input):
+def _generate_from_location(location, package_type, runtime, dependency_manager, output_dir, name, no_input, tracing):
     location = click.prompt("\nTemplate location (git, mercurial, http(s), zip, path)", type=str)
     summary_msg = """
 -----------------------
@@ -113,7 +119,7 @@ Output Directory: {output_dir}
         location=location, output_dir=output_dir
     )
     click.echo(summary_msg)
-    do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, None)
+    do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, None, tracing)
 
 
 # pylint: disable=too-many-statements
@@ -128,6 +134,7 @@ def _generate_from_use_case(
     name: Optional[str],
     app_template: Optional[str],
     architecture: Optional[str],
+    tracing: str,
 ) -> None:
     templates = InitTemplates()
     runtime_or_base_image = runtime if runtime else base_image
@@ -151,6 +158,8 @@ def _generate_from_use_case(
         preprocessed_options, use_case, base_image, default_app_template_properties
     )
     runtime, base_image, package_type, dependency_manager, template_chosen = chosen_app_template_properties
+
+    tracing = prompt_user_to_add_tracing(tracing)
 
     app_template = template_chosen["appTemplate"]
     base_image = (
@@ -192,7 +201,7 @@ def _generate_from_use_case(
     [*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
     """
     click.secho(next_commands_msg, fg="yellow")
-    do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, extra_context)
+    do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, extra_context, tracing)
     # executing event_bridge logic if call is for Schema dynamic template
     if is_dynamic_schemas_template:
         _package_schemas_code(runtime, schemas_api_caller, schema_template_details, output_dir, name, location)
@@ -231,7 +240,7 @@ def _generate_default_hello_world_application(
     """
     is_package_type_image = bool(package_type == IMAGE)
     if use_case == "Hello World Example" and not (runtime or base_image or is_package_type_image or dependency_manager):
-        if click.confirm("\n Use the most popular runtime and package type? (Python and zip)"):
+        if click.confirm("\nUse the most popular runtime and package type? (Python and zip)"):
             runtime, package_type, dependency_manager, pt_explicit = "python3.9", ZIP, "pip", True
     return (runtime, package_type, dependency_manager, pt_explicit)
 
@@ -286,10 +295,28 @@ def _get_app_template_properties(
         raise InvalidInitOptionException(
             f"{package_type} package type is not supported for {use_case} examples and runtime {runtime} selected."
         )
-
     dependency_manager = _get_dependency_manager(dependency_manager_options, dependency_manager, runtime)
     template_chosen = _get_app_template_choice(dependency_manager_options, dependency_manager)
     return (runtime, base_image, package_type, dependency_manager, template_chosen)
+
+
+def prompt_user_to_add_tracing(tracing):
+    """
+    Parameters
+    ----------
+    tracing : bool
+        Boolean to active AWS Lambda X-ray Tracing
+    Returns
+    -------
+    return
+        True if X-Ray Tracing should activate for functions in the SAM template and vice versa
+    """
+    if tracing == "disable":
+        if click.confirm("\nWould you like to enable X-Ray tracing on the function(s) in your application? "):
+            doc_link = "https://aws.amazon.com/xray/pricing/"
+            click.echo(f"X-Ray will incur an additional cost. View {doc_link} for more details")
+            tracing = "enable"
+    return tracing
 
 
 def _get_choice_from_options(chosen, options, question, msg):
@@ -599,6 +626,7 @@ def generate_summary_message(
     Architectures: {architecture[0]}
     Dependency Manager: {dependency_manager}
     Output Directory: {output_dir}
+    
     Next steps can be found in the README file at {output_dir}/{name}/README.md
     """
 

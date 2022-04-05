@@ -146,6 +146,18 @@ def parse_yaml_file(file_path, extra_context: Optional[Dict] = None) -> Dict:
         return yaml_parse(content)
 
 
+def yaml_dump_writer(dict_to_dump, file_path):
+    """
+    Dumps the dictionary as a YAML document
+    :param dict_to_dump:
+    :return:
+    """
+    CfnDumper.add_representer(OrderedDict, _dict_representer)
+    CfnDumper.add_representer(str, string_representer)
+    with open(file_path, "w") as file:
+        yaml.dump(dict_to_dump, file, default_flow_style=False, Dumper=CfnDumper)
+
+
 class CfnDumper(yaml.SafeDumper):
     def ignore_aliases(self, data):
         return True
