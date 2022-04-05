@@ -38,6 +38,8 @@ init:
   - ps: gcim Win32_Processor | % { "$($_.NumberOfLogicalProcessors) logical CPUs" }
   - ps: gcim Win32_OperatingSystem | % { "$([int]($_.TotalVisibleMemorySize/1mb)) Gb" }
   - git config --global core.autocrlf false
+  - ps: New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
+  - ps: git config --system core.longpaths true
 
 cache:
   - C:\ProgramData\chocolatey\bin -> appveyor.yml
