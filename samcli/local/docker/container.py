@@ -1,13 +1,10 @@
 """
 Representation of a generic Docker container
 """
-import os
 import logging
 import tarfile
 import tempfile
 import threading
-import socket
-import time
 
 import docker
 import requests
@@ -20,18 +17,10 @@ from .utils import to_posix_path, find_free_port, NoFreePortsError
 
 LOG = logging.getLogger(__name__)
 
-START_CONTAINER_TIMEOUT = float(os.environ.get("SAM_CLI_START_CONTAINER_TIMEOUT", 20))
-
 
 class ContainerResponseException(Exception):
     """
     Exception raised when unable to communicate with RAPID APIs on a running container.
-    """
-
-
-class ContainerStartTimeoutException(Exception):
-    """
-    Exception raised when timeout was reached while starting a container.
     """
 
 
@@ -205,13 +194,13 @@ class Container:
 
         return self.id
 
-    def stop(self, timeout=3):
+    def stop(self, time=3):
         """
         Stop a container, with a given number of seconds between sending SIGTERM and SIGKILL.
 
         Parameters
         ----------
-        timeout
+        time
             Optional. Number of seconds between SIGTERM and SIGKILL. Effectively, the amount of time
             the container has to perform shutdown steps. Default: 3
         """
@@ -220,7 +209,7 @@ class Container:
             return
 
         try:
-            self.docker_client.containers.get(self.id).stop(timeout=timeout)
+            self.docker_client.containers.get(self.id).stop(timeout=time)
         except docker.errors.NotFound:
             # Container is already removed
             LOG.debug("Container with ID %s does not exist. Cannot stop!", self.id)
@@ -282,35 +271,6 @@ class Container:
 
         # Start the container
         real_container.start()
-
-        # Wait for port to be open
-        self.wait_for_port()
-
-    def wait_for_port(self):
-        """
-        Waits until the host machine port that Docker binds to is open.
-        """
-        start_time = time.time()
-        sleep = 0.1
-        while True:
-            a_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            location = (self._container_host, self.rapid_port_host)
-            # connect_ex returns 0 if connection succeeded
-            is_port_open = not a_socket.connect_ex(location)
-            a_socket.close()
-
-            if is_port_open:
-                break
-
-            current_time = time.time()
-            if current_time - start_time > START_CONTAINER_TIMEOUT:
-                raise ContainerStartTimeoutException(
-                    f"Timed out while starting container. You can increase this timeout by "
-                    f"setting the SAM_CLI_START_CONTAINER_TIMEOUT environment variable. "
-                    f"The current timeout is {START_CONTAINER_TIMEOUT} (seconds)."
-                )
-
-            time.sleep(sleep)
 
     @retry(exc=requests.exceptions.RequestException, exc_raise=ContainerResponseException)
     def wait_for_http_response(self, name, event, stdout):
