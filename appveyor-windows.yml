@@ -16,9 +16,8 @@ environment:
   SAM_CLI_DEV: 1
 
   # Python uses $TMPDIR envvar to find root of tempdir
-  TMPDIR: C:\tmp
-  TEMP: C:\tmp
-  TMP: C:\tmp
+  TMPDIR: '%TEMP%'
+  TMP: '%TEMP%'
 
   # MSI Installers only use Py3.7.6. It is sufficient to test with this version here.
   PYTHON_HOME: "C:\\Python37-x64"
