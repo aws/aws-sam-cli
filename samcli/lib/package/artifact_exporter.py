@@ -25,6 +25,7 @@ from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNorma
 from samcli.lib.utils.resources import (
     AWS_SERVERLESS_FUNCTION,
     AWS_CLOUDFORMATION_STACK,
+    AWS_CLOUDFORMATION_STACKSET,
     RESOURCES_WITH_LOCAL_PATHS,
     AWS_SERVERLESS_APPLICATION,
 )
@@ -114,6 +115,43 @@ class ServerlessApplicationResource(CloudFormationStackResource):
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[AWS_SERVERLESS_APPLICATION][0]
 
 
+class CloudFormationStackSetResource(ResourceZip):
+    """
+    Represents CloudFormation::StackSet resource that can refer to a
+    stack template via TemplateURL property.
+    """
+
+    RESOURCE_TYPE = AWS_CLOUDFORMATION_STACKSET
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
+
+    def do_export(self, resource_id, resource_dict, parent_dir):
+        """
+        If the stack template is valid, this method will
+        upload the template to S3
+        and set property to URL of the uploaded S3 template
+        """
+
+        template_path = resource_dict.get(self.PROPERTY_NAME, None)
+
+        if template_path is None or is_s3_url(template_path):
+            # Nothing to do
+            return
+
+        abs_template_path = make_abs_path(parent_dir, template_path)
+        if not is_local_file(abs_template_path):
+            raise exceptions.InvalidTemplateUrlParameterError(
+                property_name=self.PROPERTY_NAME, resource_id=resource_id, template_path=abs_template_path
+            )
+
+        remote_path = get_uploaded_s3_object_name(file_path=template_path, extension="template")
+        url = self.uploader.upload(template_path, remote_path)
+
+        # TemplateUrl property requires S3 URL to be in path-style format
+        parts = S3Uploader.parse_s3_url(url, version_property="Version")
+        s3_path_url = self.uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))
+        set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, s3_path_url)
+
+
 class Template:
     """
     Class to export a CloudFormation template
@@ -133,7 +171,8 @@ class Template:
         uploaders: Uploaders,
         code_signer: CodeSigner,
         resources_to_export=frozenset(
-            RESOURCES_EXPORT_LIST + [CloudFormationStackResource, ServerlessApplicationResource]
+            RESOURCES_EXPORT_LIST
+            + [CloudFormationStackResource, CloudFormationStackSetResource, ServerlessApplicationResource]
         ),
         metadata_to_export=frozenset(METADATA_EXPORT_LIST),
         template_str: Optional[str] = None,

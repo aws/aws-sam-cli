@@ -22,6 +22,7 @@ from samcli.lib.package.artifact_exporter import (
     make_abs_path,
     Template,
     CloudFormationStackResource,
+    CloudFormationStackSetResource,
     ServerlessApplicationResource,
 )
 from samcli.lib.package.packageable_resources import (
@@ -931,6 +932,81 @@ class TestArtifactExporter(unittest.TestCase):
         s3_url = "s3://hello/world"
 
         # Case 3: Path is not a file
+        with self.make_temp_dir() as dirname:
+            resource_dict = {property_name: dirname}
+            with self.assertRaises(exceptions.ExportFailedError):
+                stack_resource.export(resource_id, resource_dict, "dir")
+                self.s3_uploader_mock.upload.assert_not_called()
+
+    def test_export_cloudformation_stack_set(self):
+        stack_resource = CloudFormationStackSetResource(self.uploaders_mock, self.code_signer_mock)
+
+        resource_id = "id"
+        property_name = stack_resource.PROPERTY_NAME
+        result_s3_url = "s3://hello/world"
+        result_path_style_s3_url = "http://s3.amazonws.com/hello/world"
+
+        self.s3_uploader_mock.upload.return_value = result_s3_url
+        self.s3_uploader_mock.to_path_style_s3_url.return_value = result_path_style_s3_url
+
+        with tempfile.NamedTemporaryFile(delete=False) as handle:
+            template_path = handle.name
+            resource_dict = {property_name: template_path}
+            parent_dir = tempfile.gettempdir()
+
+            stack_resource.export(resource_id, resource_dict, parent_dir)
+            self.assertEqual(resource_dict[property_name], result_path_style_s3_url)
+
+            self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
+            self.s3_uploader_mock.to_path_style_s3_url.assert_called_once_with("world", None)
+
+    def test_export_cloudformation_stack_set_no_upload_path_is_s3url(self):
+        stack_resource = CloudFormationStackSetResource(self.uploaders_mock, self.code_signer_mock)
+        resource_id = "id"
+        property_name = stack_resource.PROPERTY_NAME
+        s3_url = "s3://hello/world"
+        resource_dict = {property_name: s3_url}
+        # Case 1: Path is already S3 url
+        stack_resource.export(resource_id, resource_dict, "dir")
+        self.assertEqual(resource_dict[property_name], s3_url)
+        self.s3_uploader_mock.upload.assert_not_called()
+
+    def test_export_cloudformation_stack_set_no_upload_path_is_httpsurl(self):
+        stack_resource = CloudFormationStackSetResource(self.uploaders_mock, self.code_signer_mock)
+        resource_id = "id"
+        property_name = stack_resource.PROPERTY_NAME
+        s3_url = "https://s3.amazonaws.com/hello/world"
+        resource_dict = {property_name: s3_url}
+        # Case 2: Path is already HTTPS S3 url
+        stack_resource.export(resource_id, resource_dict, "dir")
+        self.assertEqual(resource_dict[property_name], s3_url)
+        self.s3_uploader_mock.upload.assert_not_called()
+
+    def test_export_cloudformation_stack_set_no_upload_path_is_s3_region_httpsurl(self):
+        stack_resource = CloudFormationStackSetResource(self.uploaders_mock, self.code_signer_mock)
+        resource_id = "id"
+        property_name = stack_resource.PROPERTY_NAME
+        s3_url = "https://s3.some-valid-region.amazonaws.com/hello/world"
+        resource_dict = {property_name: s3_url}
+        # Case 3: Path is already HTTPS S3 Regional url
+        stack_resource.export(resource_id, resource_dict, "dir")
+        self.assertEqual(resource_dict[property_name], s3_url)
+        self.s3_uploader_mock.upload.assert_not_called()
+
+    def test_export_cloudformation_stack_set_no_upload_path_is_empty(self):
+        stack_resource = CloudFormationStackSetResource(self.uploaders_mock, self.code_signer_mock)
+        resource_id = "id"
+        # Case 4: Path is empty
+        resource_dict = {}
+        stack_resource.export(resource_id, resource_dict, "dir")
+        self.assertEqual(resource_dict, {})
+        self.s3_uploader_mock.upload.assert_not_called()
+
+    def test_export_cloudformation_stack_set_no_upload_path_not_file(self):
+        stack_resource = CloudFormationStackSetResource(self.uploaders_mock, self.code_signer_mock)
+        resource_id = "id"
+        property_name = stack_resource.PROPERTY_NAME
+        # Case 5: Path is not a file
         with self.make_temp_dir() as dirname:
             resource_dict = {property_name: dirname}
             with self.assertRaises(exceptions.ExportFailedError):
