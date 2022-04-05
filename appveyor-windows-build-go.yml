@@ -31,7 +31,7 @@ init:
 
 install:
   # Install Go
-  - "choco install golang"
+  - ps: "choco install golang"
   - ps: "choco install bzr"
   - "refreshenv"
   - "go version"
