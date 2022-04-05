@@ -205,7 +205,9 @@ def _generate_from_use_case(
     )
     # executing event_bridge logic if call is for Schema dynamic template
     if is_dynamic_schemas_template:
-        _package_schemas_code(runtime, schemas_api_caller, schema_template_details, output_dir, name, location)
+        _package_schemas_code(
+            lambda_supported_runtime, schemas_api_caller, schema_template_details, output_dir, name, location
+        )
 
 
 def _generate_default_hello_world_application(

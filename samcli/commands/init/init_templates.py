@@ -182,7 +182,7 @@ class InitTemplates:
         preprocessed_manifest = {"Hello World Example": {}}  # type: dict
         for template_runtime in manifest_body:
             if not filter_value_matches_template_runtime(filter_value, template_runtime):
-                LOG.debug("Template runtime {template_runtime} does not match filter value {filter_value}")
+                LOG.debug("Template runtime %s does not match filter value %s", template_runtime, filter_value)
                 continue
             template_list = manifest_body[template_runtime]
             for template in template_list:
@@ -283,8 +283,10 @@ def filter_value_matches_template_runtime(filter_value, template_runtime):
     bool
         True if there is a match else False
     """
+    if not filter_value:
+        return True
     if is_custom_runtime(filter_value) and filter_value != get_provided_runtime_from_custom_runtime(template_runtime):
         return False
-    if filter_value and not is_custom_runtime(filter_value) and filter_value != template_runtime:
+    if not is_custom_runtime(filter_value) and filter_value != template_runtime:
         return False
     return True
