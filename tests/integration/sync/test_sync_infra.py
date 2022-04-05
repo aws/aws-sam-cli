@@ -41,10 +41,7 @@ class TestSyncInfra(SyncIntegBase):
     )
     @pytest.mark.flaky(reruns=3)
     @parameterized.expand(["ruby", "python"])
-    def test_sync_infra_ruby(self, runtime):
-        self._test_sync_infra(runtime)
-
-    def _test_sync_infra(self, runtime):
+    def test_sync_infra(self, runtime):
         template_before = f"infra/template-{runtime}-before.yaml"
         template_path = str(self.test_data_path.joinpath(template_before))
         stack_name = self._method_to_stack_name(self.id())
