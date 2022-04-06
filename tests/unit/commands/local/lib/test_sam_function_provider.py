@@ -770,6 +770,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=ZIP,
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="",
                 ),
             ),
@@ -795,6 +796,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=ZIP,
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="",
                 ),
             ),
@@ -826,6 +828,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=ZIP,
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="",
                 ),
             ),
@@ -857,6 +860,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=ZIP,
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="",
                 ),
             ),
@@ -888,6 +892,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=ZIP,
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="ChildStack",
                 ),
             ),
@@ -919,6 +924,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=ZIP,
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="ChildStack",
                 ),
             ),
@@ -950,6 +956,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=ZIP,
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="ChildStack",
                 ),
             ),
@@ -1677,6 +1684,7 @@ class TestSamFunctionProvider_get(TestCase):
             packagetype=None,
             codesign_config_arn=None,
             architectures=None,
+            function_url_config=None,
             stack_path=posixpath.join("this_is", "stack_path_C"),
         )
 
@@ -1700,6 +1708,7 @@ class TestSamFunctionProvider_get(TestCase):
             packagetype=None,
             codesign_config_arn=None,
             architectures=None,
+            function_url_config=None,
             stack_path=posixpath.join("this_is", "stack_path_B"),
         )
 
@@ -1723,6 +1732,7 @@ class TestSamFunctionProvider_get(TestCase):
             packagetype=None,
             codesign_config_arn=None,
             architectures=None,
+            function_url_config=None,
             stack_path=posixpath.join("this_is", "stack_path_A"),
         )
 
@@ -1746,6 +1756,7 @@ class TestSamFunctionProvider_get(TestCase):
             packagetype=None,
             codesign_config_arn=None,
             architectures=None,
+            function_url_config=None,
             stack_path=posixpath.join("this_is", "stack_path_D"),
         )
         provider.functions = {"func1": function1, "func2": function2, "func3": function3, "func4": function4}
