@@ -20,7 +20,7 @@ Gitpod is free for 50 hours per month - make sure to stop your workspace when yo
 ## Environment Setup
 ### 1. Prerequisites (Python Virtual Environment)
 
-AWS SAM CLI is mainly written in Python 3 and we support Python 3.6, 3.7 and 3.8.
+AWS SAM CLI is mainly written in Python 3 and we support Python 3.7 and 3.8.
 So having a Python environment with aforementioned versions is required.
 
 Having a dedicated Python virtual environment ensures it won't "pollute" or get "polluted" 
@@ -163,7 +163,7 @@ contribute to the repository, there are a few more things to consider.
 
 ### Make Sure AWS SAM CLI Work in Multiple Python Versions
 
-We support 3.6, 3.7 and 3.8 versions. Our CI/CD pipeline is setup to run
+We support 3.7 and 3.8 versions. Our CI/CD pipeline is setup to run
 unit tests against all Python versions. So make sure you test it
 with all versions before sending a Pull Request.
 See [Unit testing with multiple Python versions](#unit-testing-with-multiple-python-versions).
@@ -255,9 +255,9 @@ We also suggest to run `make pr` or `./Make -pr` in all Python versions.
 #### Unit Testing with Multiple Python Versions (Optional)
 
 Currently, SAM CLI only supports Python3 versions (see setup.py for exact versions). For the most
-part, code that works in Python3.6 will work in Python3.7. You only run into problems if you are
-trying to use features released in a higher version (for example features introduced into Python3.7
-will not work in Python3.6). If you want to test in many versions, you can create a virtualenv for
+part, code that works in Python3.7 will work in Python3.8. You only run into problems if you are
+trying to use features released in a higher version (for example features introduced into Python3.8
+will not work in Python3.7). If you want to test in many versions, you can create a virtualenv for
 each version and flip between them (sourcing the activate script). Typically, we run all tests in
 one python version locally and then have our ci (appveyor) run all supported versions.
 
@@ -285,6 +285,8 @@ finally {
   $env:SAM_CLI_DEV = ''
 }
 ```
+
+When writing integration tests, please don't hardcode region information assuming the tests will always run in that region. Please write integration tests region agnostic so that they will succeed when they are run in different regions. Use current region from `boto3` session or use ${AWS::Region} in the templates.
 
 ## Other Topics
 ### Code Conventions

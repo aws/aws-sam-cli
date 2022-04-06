@@ -20,9 +20,12 @@ from typing import Dict, Optional, List
 
 from botocore.utils import set_value_from_jmespath
 
-from samcli.commands._utils.resources import (
+from samcli.lib.providers.provider import get_full_path
+from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
+from samcli.lib.utils.resources import (
     AWS_SERVERLESS_FUNCTION,
     AWS_CLOUDFORMATION_STACK,
+    AWS_CLOUDFORMATION_STACKSET,
     RESOURCES_WITH_LOCAL_PATHS,
     AWS_SERVERLESS_APPLICATION,
 )
@@ -78,7 +81,15 @@ class CloudFormationStackResource(ResourceZip):
                 property_name=self.PROPERTY_NAME, resource_id=resource_id, template_path=abs_template_path
             )
 
-        exported_template_dict = Template(template_path, parent_dir, self.uploaders, self.code_signer).export()
+        exported_template_dict = Template(
+            template_path,
+            parent_dir,
+            self.uploaders,
+            self.code_signer,
+            normalize_template=True,
+            normalize_parameters=True,
+            parent_stack_id=resource_id,
+        ).export()
 
         exported_template_str = yaml_dump(exported_template_dict)
 
@@ -104,6 +115,43 @@ class ServerlessApplicationResource(CloudFormationStackResource):
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[AWS_SERVERLESS_APPLICATION][0]
 
 
+class CloudFormationStackSetResource(ResourceZip):
+    """
+    Represents CloudFormation::StackSet resource that can refer to a
+    stack template via TemplateURL property.
+    """
+
+    RESOURCE_TYPE = AWS_CLOUDFORMATION_STACKSET
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
+
+    def do_export(self, resource_id, resource_dict, parent_dir):
+        """
+        If the stack template is valid, this method will
+        upload the template to S3
+        and set property to URL of the uploaded S3 template
+        """
+
+        template_path = resource_dict.get(self.PROPERTY_NAME, None)
+
+        if template_path is None or is_s3_url(template_path):
+            # Nothing to do
+            return
+
+        abs_template_path = make_abs_path(parent_dir, template_path)
+        if not is_local_file(abs_template_path):
+            raise exceptions.InvalidTemplateUrlParameterError(
+                property_name=self.PROPERTY_NAME, resource_id=resource_id, template_path=abs_template_path
+            )
+
+        remote_path = get_uploaded_s3_object_name(file_path=template_path, extension="template")
+        url = self.uploader.upload(template_path, remote_path)
+
+        # TemplateUrl property requires S3 URL to be in path-style format
+        parts = S3Uploader.parse_s3_url(url, version_property="Version")
+        s3_path_url = self.uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))
+        set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, s3_path_url)
+
+
 class Template:
     """
     Class to export a CloudFormation template
@@ -123,10 +171,14 @@ class Template:
         uploaders: Uploaders,
         code_signer: CodeSigner,
         resources_to_export=frozenset(
-            RESOURCES_EXPORT_LIST + [CloudFormationStackResource, ServerlessApplicationResource]
+            RESOURCES_EXPORT_LIST
+            + [CloudFormationStackResource, CloudFormationStackSetResource, ServerlessApplicationResource]
         ),
         metadata_to_export=frozenset(METADATA_EXPORT_LIST),
         template_str: Optional[str] = None,
+        normalize_template: bool = False,
+        normalize_parameters: bool = False,
+        parent_stack_id: str = "",
     ):
         """
         Reads the template and makes it ready for export
@@ -144,9 +196,12 @@ class Template:
             self.template_dir = template_dir
             self.code_signer = code_signer
         self.template_dict = yaml_parse(template_str)
+        if normalize_template:
+            ResourceMetadataNormalizer.normalize(self.template_dict, normalize_parameters)
         self.resources_to_export = resources_to_export
         self.metadata_to_export = metadata_to_export
         self.uploaders = uploaders
+        self.parent_stack_id = parent_stack_id
 
     def _export_global_artifacts(self, template_dict: Dict) -> Dict:
         """
@@ -222,10 +277,11 @@ class Template:
         self._apply_global_values()
         self.template_dict = self._export_global_artifacts(self.template_dict)
 
-        for resource_id, resource in self.template_dict["Resources"].items():
-
+        for resource_logical_id, resource in self.template_dict["Resources"].items():
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
+            resource_id = ResourceMetadataNormalizer.get_resource_id(resource, resource_logical_id)
+            full_path = get_full_path(self.parent_stack_id, resource_id)
 
             for exporter_class in self.resources_to_export:
                 if exporter_class.RESOURCE_TYPE != resource_type:
@@ -234,7 +290,7 @@ class Template:
                     continue
                 # Export code resources
                 exporter = exporter_class(self.uploaders, self.code_signer)
-                exporter.export(resource_id, resource_dict, self.template_dir)
+                exporter.export(full_path, resource_dict, self.template_dir)
 
         return self.template_dict
 

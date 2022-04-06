@@ -25,7 +25,7 @@ from samcli.lib.package.utils import (
     is_ecr_url,
 )
 
-from samcli.commands._utils.resources import (
+from samcli.lib.utils.resources import (
     AWS_SERVERLESSREPO_APPLICATION,
     AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_API,
@@ -47,6 +47,7 @@ from samcli.commands._utils.resources import (
     RESOURCES_WITH_LOCAL_PATHS,
     RESOURCES_WITH_IMAGE_COMPONENT,
     AWS_ECR_REPOSITORY,
+    AWS_APIGATEWAY_V2_API,
 )
 
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -91,7 +92,7 @@ class ResourceZip(Resource):
     """
 
     RESOURCE_TYPE: Optional[str] = None
-    PROPERTY_NAME: Optional[str] = None
+    PROPERTY_NAME: str = ""
     PACKAGE_NULL_PROPERTY = True
     # Set this property to True in base class if you want the exporter to zip
     # up the file before uploading This is useful for Lambda functions.
@@ -453,7 +454,7 @@ class LambdaFunctionResource(ResourceWithS3UrlDict):
     FORCE_ZIP = True
 
 
-class LambdaFunctionImageResource(ResourceImageDict):
+class LambdaFunctionImageResource(ResourceImage):
     RESOURCE_TYPE = AWS_LAMBDA_FUNCTION
     PROPERTY_NAME = RESOURCES_WITH_IMAGE_COMPONENT[RESOURCE_TYPE][0]
     FORCE_ZIP = True
@@ -461,6 +462,15 @@ class LambdaFunctionImageResource(ResourceImageDict):
 
 class StepFunctionsStateMachineResource(ResourceWithS3UrlDict):
     RESOURCE_TYPE = AWS_STEPFUNCTIONS_STATEMACHINE
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
+    PACKAGE_NULL_PROPERTY = False
+    BUCKET_NAME_PROPERTY = "Bucket"
+    OBJECT_KEY_PROPERTY = "Key"
+    VERSION_PROPERTY = "Version"
+
+
+class ApiGatewayV2Resource(ResourceWithS3UrlDict):
+    RESOURCE_TYPE = AWS_APIGATEWAY_V2_API
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
     PACKAGE_NULL_PROPERTY = False
     BUCKET_NAME_PROPERTY = "Bucket"
@@ -572,6 +582,7 @@ RESOURCES_EXPORT_LIST = [
     AppSyncFunctionConfigurationRequestTemplateResource,
     AppSyncFunctionConfigurationResponseTemplateResource,
     ApiGatewayRestApiResource,
+    ApiGatewayV2Resource,
     StepFunctionsStateMachineResource,
     LambdaFunctionResource,
     LambdaFunctionImageResource,

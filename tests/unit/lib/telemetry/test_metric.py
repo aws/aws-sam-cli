@@ -143,6 +143,8 @@ class TestTrackCommand(TestCase):
         self.context_mock.debug = False
         self.context_mock.region = "myregion"
         self.context_mock.command_path = "fakesam local invoke"
+        self.context_mock.experimental = False
+        self.context_mock.template_dict = {}
 
         # Enable telemetry so we can actually run the tests
         self.gc_instance_mock.telemetry_enabled = True
@@ -297,6 +299,7 @@ class TestTrackCommand(TestCase):
 
     @patch("samcli.lib.telemetry.metric.Context")
     def test_must_return_value_from_decorated_function(self, ContextMock):
+        ContextMock.get_current_context.return_value = self.context_mock
         expected_value = "some return value"
 
         def real_fn():
@@ -317,6 +320,8 @@ class TestTrackCommand(TestCase):
 
     @patch("samcli.lib.telemetry.metric.Context")
     def test_must_decorate_functions(self, ContextMock):
+        ContextMock.get_current_context.return_value = self.context_mock
+
         @track_command
         def real_fn(a, b=None):
             return "{} {}".format(a, b)

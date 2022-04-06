@@ -9,7 +9,7 @@ from samcli.lib.utils.architecture import X86_64, ARM64
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
 from samcli.lib.providers.provider import Function, LayerVersion, Stack
-from samcli.lib.providers.sam_function_provider import SamFunctionProvider
+from samcli.lib.providers.sam_function_provider import SamFunctionProvider, RefreshableSamFunctionProvider
 from samcli.lib.providers.exceptions import InvalidLayerReference
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 
@@ -177,6 +177,28 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     "CodeSigningConfigArn": "codeSignConfigArn",
                 },
             },
+            "LambdaFuncWithCustomId": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {
+                    "Code": "/usr/foo/bar",
+                    "Runtime": "nodejs4.3",
+                    "Handler": "index.handler",
+                },
+                "Metadata": {"SamResourceId": "LambdaFunctionCustomId-x"},
+            },
+            "LambdaCDKFunc": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {
+                    "Code": {"Bucket": "bucket", "Key": "key"},
+                    "Runtime": "nodejs4.3",
+                    "Handler": "index.handler",
+                },
+                "Metadata": {
+                    "aws:cdk:path": "Stack/LambdaCFKFunction-x/Resource",
+                    "aws:asset:path": "/usr/foo/bar",
+                    "aws:asset:property": "Code",
+                },
+            },
             "OtherResource": {
                 "Type": "AWS::Serverless::Api",
                 "Properties": {"StageName": "prod", "DefinitionUri": "s3://bucket/key"},
@@ -215,6 +237,19 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                 },
                 "Metadata": {"DockerTag": "tag", "DockerContext": "./image", "Dockerfile": "Dockerfile"},
             },
+            "LambdaCDKFuncInChild": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {
+                    "Code": {"Bucket": "bucket", "Key": "key"},
+                    "Runtime": "nodejs4.3",
+                    "Handler": "index.handler",
+                },
+                "Metadata": {
+                    "aws:cdk:path": "Stack/LambdaCDKFuncInChild-x/Resource",
+                    "aws:asset:path": "/usr/foo/bar",
+                    "aws:asset:property": "Code",
+                },
+            },
         }
     }
 
@@ -234,6 +269,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "SamFunc1",
                 Function(
+                    function_id="SamFunctions",
                     name="SamFunctions",
                     functionname="SamFunc1",
                     runtime="nodejs4.3",
@@ -245,7 +281,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     rolearn=None,
                     layers=[],
                     events=None,
-                    metadata=None,
+                    metadata={"SamResourceId": "SamFunctions"},
                     inlinecode=None,
                     imageuri=None,
                     imageconfig=None,
@@ -259,6 +295,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "SamFuncWithInlineCode",
                 Function(
+                    function_id="SamFuncWithInlineCode",
                     name="SamFuncWithInlineCode",
                     functionname="SamFuncWithInlineCode",
                     runtime="nodejs4.3",
@@ -270,7 +307,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     rolearn=None,
                     layers=[],
                     events=None,
-                    metadata=None,
+                    metadata={"SamResourceId": "SamFuncWithInlineCode"},
                     inlinecode="testcode",
                     imageuri=None,
                     imageconfig=None,
@@ -284,6 +321,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "SamFunctions",
                 Function(
+                    function_id="SamFunctions",
                     name="SamFunctions",
                     functionname="SamFunc1",
                     runtime="nodejs4.3",
@@ -295,7 +333,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     rolearn=None,
                     layers=[],
                     events=None,
-                    metadata=None,
+                    metadata={"SamResourceId": "SamFunctions"},
                     inlinecode=None,
                     imageuri=None,
                     imageconfig=None,
@@ -311,6 +349,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "SamFuncWithImage1",
                 Function(
+                    function_id="SamFuncWithImage1",
                     name="SamFuncWithImage1",
                     functionname="SamFuncWithImage1",
                     runtime=None,
@@ -330,6 +369,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                         "DockerTag": "tag",
                         "DockerContext": os.path.join("image"),
                         "Dockerfile": "Dockerfile",
+                        "SamResourceId": "SamFuncWithImage1",
                     },
                     codesign_config_arn=None,
                     architectures=None,
@@ -340,6 +380,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "SamFuncWithImage2",
                 Function(
+                    function_id="SamFuncWithImage2",
                     name="SamFuncWithImage2",
                     functionname="SamFuncWithImage2",
                     runtime=None,
@@ -359,6 +400,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                         "DockerTag": "tag",
                         "DockerContext": os.path.join("image"),
                         "Dockerfile": "Dockerfile",
+                        "SamResourceId": "SamFuncWithImage2",
                     },
                     codesign_config_arn=None,
                     architectures=None,
@@ -370,6 +412,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "SamFuncWithImage4",  # despite imageuri is ecr location, the necessary metadata is still provided, build
                 Function(
+                    function_id="SamFuncWithImage4",
                     name="SamFuncWithImage4",
                     functionname="SamFuncWithImage4",
                     runtime=None,
@@ -389,6 +432,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                         "DockerTag": "tag",
                         "DockerContext": os.path.join("image"),
                         "Dockerfile": "Dockerfile",
+                        "SamResourceId": "SamFuncWithImage4",
                     },
                     codesign_config_arn=None,
                     architectures=None,
@@ -399,6 +443,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "SamFuncWithFunctionNameOverride-x",
                 Function(
+                    function_id="SamFuncWithFunctionNameOverride",
                     name="SamFuncWithFunctionNameOverride",
                     functionname="SamFuncWithFunctionNameOverride-x",
                     runtime="nodejs4.3",
@@ -410,7 +455,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     rolearn=None,
                     layers=[],
                     events=None,
-                    metadata=None,
+                    metadata={"SamResourceId": "SamFuncWithFunctionNameOverride"},
                     inlinecode=None,
                     imageuri=None,
                     imageconfig=None,
@@ -425,6 +470,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "LambdaFuncWithImage1",
                 Function(
+                    function_id="LambdaFuncWithImage1",
                     name="LambdaFuncWithImage1",
                     functionname="LambdaFuncWithImage1",
                     runtime=None,
@@ -440,6 +486,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                         "DockerTag": "tag",
                         "DockerContext": os.path.join("image"),
                         "Dockerfile": "Dockerfile",
+                        "SamResourceId": "LambdaFuncWithImage1",
                     },
                     inlinecode=None,
                     imageuri=None,
@@ -454,6 +501,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "LambdaFuncWithImage2",
                 Function(
+                    function_id="LambdaFuncWithImage2",
                     name="LambdaFuncWithImage2",
                     functionname="LambdaFuncWithImage2",
                     runtime=None,
@@ -469,6 +517,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                         "DockerTag": "tag",
                         "DockerContext": os.path.join("image"),
                         "Dockerfile": "Dockerfile",
+                        "SamResourceId": "LambdaFuncWithImage2",
                     },
                     inlinecode=None,
                     imageuri="image:tag",
@@ -484,6 +533,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "LambdaFuncWithImage4",  # despite imageuri is ecr location, the necessary metadata is still provided, build
                 Function(
+                    function_id="LambdaFuncWithImage4",
                     name="LambdaFuncWithImage4",
                     functionname="LambdaFuncWithImage4",
                     runtime=None,
@@ -499,6 +549,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                         "DockerTag": "tag",
                         "DockerContext": os.path.join("image"),
                         "Dockerfile": "Dockerfile",
+                        "SamResourceId": "LambdaFuncWithImage4",
                     },
                     inlinecode=None,
                     imageuri="123456789012.dkr.ecr.us-east-1.amazonaws.com/myrepo",
@@ -513,6 +564,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "LambdaFuncWithInlineCode",
                 Function(
+                    function_id="LambdaFuncWithInlineCode",
                     name="LambdaFuncWithInlineCode",
                     functionname="LambdaFuncWithInlineCode",
                     runtime="nodejs4.3",
@@ -524,7 +576,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     rolearn=None,
                     layers=[],
                     events=None,
-                    metadata=None,
+                    metadata={"SamResourceId": "LambdaFuncWithInlineCode"},
                     inlinecode="testcode",
                     codesign_config_arn=None,
                     imageuri=None,
@@ -538,6 +590,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "LambdaFuncWithLocalPath",
                 Function(
+                    function_id="LambdaFuncWithLocalPath",
                     name="LambdaFuncWithLocalPath",
                     functionname="LambdaFuncWithLocalPath",
                     runtime="nodejs4.3",
@@ -549,7 +602,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     rolearn=None,
                     layers=[],
                     events=None,
-                    metadata=None,
+                    metadata={"SamResourceId": "LambdaFuncWithLocalPath"},
                     inlinecode=None,
                     codesign_config_arn=None,
                     imageuri=None,
@@ -563,6 +616,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "LambdaFuncWithFunctionNameOverride-x",
                 Function(
+                    function_id="LambdaFuncWithFunctionNameOverride",
                     name="LambdaFuncWithFunctionNameOverride",
                     functionname="LambdaFuncWithFunctionNameOverride-x",
                     runtime="nodejs4.3",
@@ -574,7 +628,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     rolearn=None,
                     layers=[],
                     events=None,
-                    metadata=None,
+                    metadata={"SamResourceId": "LambdaFuncWithFunctionNameOverride"},
                     inlinecode=None,
                     imageuri=None,
                     imageconfig=None,
@@ -588,6 +642,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "LambdaFuncWithCodeSignConfig",
                 Function(
+                    function_id="LambdaFuncWithCodeSignConfig",
                     name="LambdaFuncWithCodeSignConfig",
                     functionname="LambdaFuncWithCodeSignConfig",
                     runtime="nodejs4.3",
@@ -599,7 +654,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     rolearn=None,
                     layers=[],
                     events=None,
-                    metadata=None,
+                    metadata={"SamResourceId": "LambdaFuncWithCodeSignConfig"},
                     inlinecode=None,
                     imageuri=None,
                     imageconfig=None,
@@ -613,6 +668,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 posixpath.join("ChildStack", "SamFunctionsInChild"),
                 Function(
+                    function_id="SamFunctionsInChild",
                     name="SamFunctionsInChild",
                     functionname="SamFunctionsInChildName",
                     runtime="nodejs4.3",
@@ -624,7 +680,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     rolearn=None,
                     layers=[],
                     events=None,
-                    metadata=None,
+                    metadata={"SamResourceId": "SamFunctionsInChild"},
                     inlinecode=None,
                     imageuri=None,
                     imageconfig=None,
@@ -638,6 +694,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 posixpath.join("ChildStack", "SamFunctionsInChildAbsPath"),
                 Function(
+                    function_id="SamFunctionsInChildAbsPath",
                     name="SamFunctionsInChildAbsPath",
                     functionname="SamFunctionsInChildAbsPathName",
                     runtime="nodejs4.3",
@@ -649,7 +706,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     rolearn=None,
                     layers=[],
                     events=None,
-                    metadata=None,
+                    metadata={"SamResourceId": "SamFunctionsInChildAbsPath"},
                     inlinecode=None,
                     imageuri=None,
                     imageconfig=None,
@@ -663,6 +720,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 posixpath.join("ChildStack", "SamImageFunctionsInChild"),
                 Function(
+                    function_id="SamImageFunctionsInChild",
                     name="SamImageFunctionsInChild",
                     functionname="SamImageFunctionsInChild",
                     runtime=None,
@@ -678,6 +736,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                         "DockerTag": "tag",
                         "DockerContext": os.path.join("child", "image"),  # the path should starts with child
                         "Dockerfile": "Dockerfile",
+                        "SamResourceId": "SamImageFunctionsInChild",
                     },
                     inlinecode=None,
                     imageuri=None,
@@ -689,6 +748,217 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     stack_path="ChildStack",
                 ),
             ),
+            (
+                "LambdaFunctionCustomId-x",
+                Function(
+                    function_id="LambdaFunctionCustomId-x",
+                    name="LambdaFuncWithCustomId",
+                    functionname="LambdaFuncWithCustomId",
+                    runtime="nodejs4.3",
+                    handler="index.handler",
+                    codeuri="/usr/foo/bar",
+                    memory=None,
+                    timeout=None,
+                    environment=None,
+                    rolearn=None,
+                    layers=[],
+                    events=None,
+                    metadata={"SamResourceId": "LambdaFunctionCustomId-x"},
+                    inlinecode=None,
+                    imageuri=None,
+                    imageconfig=None,
+                    packagetype=ZIP,
+                    codesign_config_arn=None,
+                    architectures=None,
+                    stack_path="",
+                ),
+            ),
+            (
+                "LambdaFuncWithCustomId",
+                Function(
+                    function_id="LambdaFunctionCustomId-x",
+                    name="LambdaFuncWithCustomId",
+                    functionname="LambdaFuncWithCustomId",
+                    runtime="nodejs4.3",
+                    handler="index.handler",
+                    codeuri="/usr/foo/bar",
+                    memory=None,
+                    timeout=None,
+                    environment=None,
+                    rolearn=None,
+                    layers=[],
+                    events=None,
+                    metadata={"SamResourceId": "LambdaFunctionCustomId-x"},
+                    inlinecode=None,
+                    imageuri=None,
+                    imageconfig=None,
+                    packagetype=ZIP,
+                    codesign_config_arn=None,
+                    architectures=None,
+                    stack_path="",
+                ),
+            ),
+            (
+                "LambdaCFKFunction-x",
+                Function(
+                    function_id="LambdaCFKFunction-x",
+                    name="LambdaCDKFunc",
+                    functionname="LambdaCDKFunc",
+                    runtime="nodejs4.3",
+                    handler="index.handler",
+                    codeuri="/usr/foo/bar",
+                    memory=None,
+                    timeout=None,
+                    environment=None,
+                    rolearn=None,
+                    layers=[],
+                    events=None,
+                    metadata={
+                        "aws:cdk:path": "Stack/LambdaCFKFunction-x/Resource",
+                        "aws:asset:path": "/usr/foo/bar",
+                        "aws:asset:property": "Code",
+                        "SamNormalized": True,
+                        "SamResourceId": "LambdaCFKFunction-x",
+                    },
+                    inlinecode=None,
+                    imageuri=None,
+                    imageconfig=None,
+                    packagetype=ZIP,
+                    codesign_config_arn=None,
+                    architectures=None,
+                    stack_path="",
+                ),
+            ),
+            (
+                "LambdaCDKFunc",
+                Function(
+                    function_id="LambdaCFKFunction-x",
+                    name="LambdaCDKFunc",
+                    functionname="LambdaCDKFunc",
+                    runtime="nodejs4.3",
+                    handler="index.handler",
+                    codeuri="/usr/foo/bar",
+                    memory=None,
+                    timeout=None,
+                    environment=None,
+                    rolearn=None,
+                    layers=[],
+                    events=None,
+                    metadata={
+                        "aws:cdk:path": "Stack/LambdaCFKFunction-x/Resource",
+                        "aws:asset:path": "/usr/foo/bar",
+                        "aws:asset:property": "Code",
+                        "SamNormalized": True,
+                        "SamResourceId": "LambdaCFKFunction-x",
+                    },
+                    inlinecode=None,
+                    imageuri=None,
+                    imageconfig=None,
+                    packagetype=ZIP,
+                    codesign_config_arn=None,
+                    architectures=None,
+                    stack_path="",
+                ),
+            ),
+            (
+                "LambdaCDKFuncInChild-x",
+                Function(
+                    function_id="LambdaCDKFuncInChild-x",
+                    name="LambdaCDKFuncInChild",
+                    functionname="LambdaCDKFuncInChild",
+                    runtime="nodejs4.3",
+                    handler="index.handler",
+                    codeuri="/usr/foo/bar",
+                    memory=None,
+                    timeout=None,
+                    environment=None,
+                    rolearn=None,
+                    layers=[],
+                    events=None,
+                    metadata={
+                        "aws:cdk:path": "Stack/LambdaCDKFuncInChild-x/Resource",
+                        "aws:asset:path": "/usr/foo/bar",
+                        "aws:asset:property": "Code",
+                        "SamNormalized": True,
+                        "SamResourceId": "LambdaCDKFuncInChild-x",
+                    },
+                    inlinecode=None,
+                    imageuri=None,
+                    imageconfig=None,
+                    packagetype=ZIP,
+                    codesign_config_arn=None,
+                    architectures=None,
+                    stack_path="ChildStack",
+                ),
+            ),
+            (
+                "LambdaCDKFuncInChild",
+                Function(
+                    function_id="LambdaCDKFuncInChild-x",
+                    name="LambdaCDKFuncInChild",
+                    functionname="LambdaCDKFuncInChild",
+                    runtime="nodejs4.3",
+                    handler="index.handler",
+                    codeuri="/usr/foo/bar",
+                    memory=None,
+                    timeout=None,
+                    environment=None,
+                    rolearn=None,
+                    layers=[],
+                    events=None,
+                    metadata={
+                        "aws:cdk:path": "Stack/LambdaCDKFuncInChild-x/Resource",
+                        "aws:asset:path": "/usr/foo/bar",
+                        "aws:asset:property": "Code",
+                        "SamNormalized": True,
+                        "SamResourceId": "LambdaCDKFuncInChild-x",
+                    },
+                    inlinecode=None,
+                    imageuri=None,
+                    imageconfig=None,
+                    packagetype=ZIP,
+                    codesign_config_arn=None,
+                    architectures=None,
+                    stack_path="ChildStack",
+                ),
+            ),
+            (
+                posixpath.join("ChildStack", "LambdaCDKFuncInChild-x"),
+                Function(
+                    function_id="LambdaCDKFuncInChild-x",
+                    name="LambdaCDKFuncInChild",
+                    functionname="LambdaCDKFuncInChild",
+                    runtime="nodejs4.3",
+                    handler="index.handler",
+                    codeuri="/usr/foo/bar",
+                    memory=None,
+                    timeout=None,
+                    environment=None,
+                    rolearn=None,
+                    layers=[],
+                    events=None,
+                    metadata={
+                        "aws:cdk:path": "Stack/LambdaCDKFuncInChild-x/Resource",
+                        "aws:asset:path": "/usr/foo/bar",
+                        "aws:asset:property": "Code",
+                        "SamNormalized": True,
+                        "SamResourceId": "LambdaCDKFuncInChild-x",
+                    },
+                    inlinecode=None,
+                    imageuri=None,
+                    imageconfig=None,
+                    packagetype=ZIP,
+                    codesign_config_arn=None,
+                    architectures=None,
+                    stack_path="ChildStack",
+                ),
+            ),
+            (
+                # resource_Iac_id is used to build full_path, so logical id will not be used in full_path if
+                # resource_iac_id exists
+                posixpath.join("ChildStack", "LambdaCDKFuncInChild"),
+                None,
+            ),
         ]
     )
     def test_get_must_return_each_function(self, name, expected_output):
@@ -698,7 +968,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
 
     def test_get_all_must_return_all_functions(self):
 
-        result = {posixpath.join(f.stack_path, f.name) for f in self.provider.get_all()}
+        result = {f.full_path for f in self.provider.get_all()}
         expected = {
             "SamFunctions",
             "SamFuncWithImage1",
@@ -713,9 +983,12 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             "LambdaFuncWithLocalPath",
             "LambdaFuncWithFunctionNameOverride",
             "LambdaFuncWithCodeSignConfig",
+            "LambdaFunctionCustomId-x",
+            "LambdaCFKFunction-x",
             posixpath.join("ChildStack", "SamFunctionsInChild"),
             posixpath.join("ChildStack", "SamFunctionsInChildAbsPath"),
             posixpath.join("ChildStack", "SamImageFunctionsInChild"),
+            posixpath.join("ChildStack", "LambdaCDKFuncInChild-x"),
         }
 
         self.assertEqual(expected, result)
@@ -859,6 +1132,75 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         )
 
 
+class TestSamFunctionProvider_get_function_id(TestCase):
+    def test_get_default_logical_id_no_property(self):
+        resource_properties = {
+            "CodeUri": "/usr/local",
+            "Runtime": "myruntime",
+            "MemorySize": "mymemorysize",
+            "Timeout": "30",
+            "Handler": "myhandler",
+            "Environment": "myenvironment",
+            "Role": "myrole",
+            "Layers": ["Layer1", "Layer2"],
+            "Architectures": [X86_64],
+            "Metadata": {"aws:asset:path": "new path", "aws:asset:property": "Code"},
+        }
+        logical_id = "DefaultLogicalId"
+
+        result = SamFunctionProvider._get_function_id(resource_properties=resource_properties, logical_id=logical_id)
+        expected = logical_id
+        self.assertEqual(expected, result)
+
+    def test_get_default_logical_id_property_empty_str(self):
+        resource_properties = {
+            "CodeUri": "/usr/local",
+            "Runtime": "myruntime",
+            "MemorySize": "mymemorysize",
+            "Timeout": "30",
+            "Handler": "myhandler",
+            "Environment": "myenvironment",
+            "Role": "myrole",
+            "Layers": ["Layer1", "Layer2"],
+            "Architectures": [X86_64],
+            "Metadata": {
+                "aws:asset:path": "new path",
+                "aws:asset:property": "Code",
+                "aws:cdk:path": "",
+                "SamResourceId": "",
+            },
+        }
+        logical_id = "DefaultLogicalId"
+
+        result = SamFunctionProvider._get_function_id(resource_properties=resource_properties, logical_id=logical_id)
+        expected = logical_id
+        self.assertEqual(expected, result)
+
+    def test_get_function_id(self):
+        resource_properties = {
+            "CodeUri": "/usr/local",
+            "Runtime": "myruntime",
+            "MemorySize": "mymemorysize",
+            "Timeout": "30",
+            "Handler": "myhandler",
+            "Environment": "myenvironment",
+            "Role": "myrole",
+            "Layers": ["Layer1", "Layer2"],
+            "Architectures": [X86_64],
+            "Metadata": {
+                "aws:asset:path": "new path",
+                "aws:asset:property": "Code",
+                "aws:cdk:path": "stack/functionId/Resource",
+                "SamResourceId": "functionId",
+            },
+        }
+        logical_id = "DefaultLogicalId"
+
+        result = SamFunctionProvider._get_function_id(resource_properties=resource_properties, logical_id=logical_id)
+        expected = "functionId"
+        self.assertEqual(expected, result)
+
+
 class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
     def test_must_convert_zip(self):
 
@@ -876,6 +1218,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         }
 
         expected = Function(
+            function_id="myname",
             name="myname",
             functionname="myname",
             runtime="myruntime",
@@ -918,6 +1261,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         }
 
         expected = Function(
+            function_id="myname",
             name="myname",
             functionname="myname",
             runtime="myruntime",
@@ -950,6 +1294,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         properties = {"CodeUri": "/usr/local"}
 
         expected = Function(
+            function_id="myname",
             name="myname",
             functionname="myname",
             runtime=None,
@@ -997,6 +1342,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         }
 
         expected = Function(
+            function_id="myname",
             name="myname",
             functionname="myname",
             runtime="myruntime",
@@ -1037,6 +1383,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         }
 
         expected = Function(
+            function_id="myname",
             name="myname",
             functionname="myname",
             runtime="myruntime",
@@ -1093,6 +1440,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
         }
 
         expected = Function(
+            function_id="myname",
             name="myname",
             functionname="myname",
             runtime="myruntime",
@@ -1133,6 +1481,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
         }
 
         expected = Function(
+            function_id="myname",
             name="myname",
             functionname="myname",
             runtime="myruntime",
@@ -1165,6 +1514,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
         properties = {"Code": {"Bucket": "bucket"}}
 
         expected = Function(
+            function_id="myname",
             name="myname",
             functionname="myname",
             runtime=None,
@@ -1278,6 +1628,7 @@ class TestSamFunctionProvider_get(TestCase):
         provider = SamFunctionProvider([])
         # Cheat a bit here by setting the value of this property directly
         function = Function(
+            function_id="not-value",
             name="not-value",
             functionname="value",
             runtime=None,
@@ -1303,6 +1654,110 @@ class TestSamFunctionProvider_get(TestCase):
 
         self.assertEqual(function, provider.get("value"))
 
+    def test_found_by_different_ids(self):
+        provider = SamFunctionProvider([])
+        # Cheat a bit here by setting the value of this property directly
+        function1 = Function(
+            function_id="not-value",
+            name="not-value",
+            functionname="not-value",
+            runtime=None,
+            handler=None,
+            codeuri=None,
+            memory=None,
+            timeout=None,
+            environment=None,
+            rolearn=None,
+            layers=[],
+            events=None,
+            metadata=None,
+            inlinecode=None,
+            imageuri=None,
+            imageconfig=None,
+            packagetype=None,
+            codesign_config_arn=None,
+            architectures=None,
+            stack_path=posixpath.join("this_is", "stack_path_C"),
+        )
+
+        function2 = Function(
+            function_id="expected_function_id",
+            name="not-value",
+            functionname="not-value",
+            runtime=None,
+            handler=None,
+            codeuri=None,
+            memory=None,
+            timeout=None,
+            environment=None,
+            rolearn=None,
+            layers=[],
+            events=None,
+            metadata=None,
+            inlinecode=None,
+            imageuri=None,
+            imageconfig=None,
+            packagetype=None,
+            codesign_config_arn=None,
+            architectures=None,
+            stack_path=posixpath.join("this_is", "stack_path_B"),
+        )
+
+        function3 = Function(
+            function_id="not-value",
+            name="expected_logical_id",
+            functionname="not-value",
+            runtime=None,
+            handler=None,
+            codeuri=None,
+            memory=None,
+            timeout=None,
+            environment=None,
+            rolearn=None,
+            layers=[],
+            events=None,
+            metadata=None,
+            inlinecode=None,
+            imageuri=None,
+            imageconfig=None,
+            packagetype=None,
+            codesign_config_arn=None,
+            architectures=None,
+            stack_path=posixpath.join("this_is", "stack_path_A"),
+        )
+
+        function4 = Function(
+            function_id="not-value",
+            name="not-value",
+            functionname="expected_function_name",
+            runtime=None,
+            handler=None,
+            codeuri=None,
+            memory=None,
+            timeout=None,
+            environment=None,
+            rolearn=None,
+            layers=[],
+            events=None,
+            metadata=None,
+            inlinecode=None,
+            imageuri=None,
+            imageconfig=None,
+            packagetype=None,
+            codesign_config_arn=None,
+            architectures=None,
+            stack_path=posixpath.join("this_is", "stack_path_D"),
+        )
+        provider.functions = {"func1": function1, "func2": function2, "func3": function3, "func4": function4}
+
+        self.assertIsNone(provider.get("value"))
+        self.assertEqual(function1, provider.get("func1"))
+        self.assertEqual(function2, provider.get("expected_function_id"))
+        self.assertEqual(function3, provider.get("expected_logical_id"))
+        self.assertEqual(function4, provider.get("expected_function_name"))
+        # The returned function is the full_path sorted one if multiple ones are matched
+        self.assertEqual(function3, provider.get("not-value"))
+
     def test_return_none_if_function_not_found(self):
         provider = SamFunctionProvider([])
 
@@ -1315,3 +1770,386 @@ class TestSamFunctionProvider_get_all(TestCase):
 
         result = [f for f in provider.get_all()]
         self.assertEqual(result, [])
+
+
+class TestRefreshableSamFunctionProvider(TestCase):
+    def setUp(self):
+        self.parameter_overrides = {}
+        self.global_parameter_overrides = {}
+        self.file_observer = Mock()
+        self.file_observer.start = Mock()
+        self.file_observer.watch = Mock()
+        self.file_observer.unwatch = Mock()
+        self.file_observer.stop = Mock()
+
+    @patch("samcli.lib.providers.sam_function_provider.FileObserver")
+    @patch.object(SamFunctionProvider, "_extract_functions")
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_init_must_extract_functions_and_stacks_got_observed(
+        self, get_template_mock, extract_mock, FileObserverMock
+    ):
+        FileObserverMock.return_value = self.file_observer
+
+        extract_result = {"foo": "bar"}
+        extract_mock.return_value = extract_result
+
+        template = {"Resources": {"a": "b"}}
+        template2 = {"Resources": {"a": "b"}}
+        get_template_mock.return_value = template
+        stack = make_root_stack(template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2)
+        provider = RefreshableSamFunctionProvider(
+            [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
+        )
+
+        extract_mock.assert_called_with([stack, stack2], False, False)
+        get_template_mock.assert_called_with(template, self.parameter_overrides)
+        self.assertEqual(provider.functions, extract_result)
+
+        FileObserverMock.assert_called_with(provider._set_templates_changed)
+        self.file_observer.start.assert_called_with()
+        self.file_observer.watch.assert_has_calls([call("template.yaml"), call("child/template.yaml")])
+
+        self.assertEqual(provider.parent_templates_paths, ["template.yaml"])
+        self.assertEqual(provider.is_changed, False)
+
+    @patch("samcli.lib.providers.sam_function_provider.FileObserver")
+    @patch.object(SamFunctionProvider, "_extract_functions")
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_reload_flag_set_to_true_incase_any_template_got_changed(
+        self, get_template_mock, extract_mock, FileObserverMock
+    ):
+        FileObserverMock.return_value = self.file_observer
+
+        extract_result = {"foo": "bar"}
+        extract_mock.return_value = extract_result
+
+        template = {"Resources": {"a": "b"}}
+        template2 = {"Resources": {"a": "b"}}
+        get_template_mock.return_value = template
+        stack = make_root_stack(template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2)
+        provider = RefreshableSamFunctionProvider(
+            [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
+        )
+        provider._set_templates_changed(["child/template.yaml"])
+
+        self.assertTrue(provider.is_changed)
+        self.file_observer.unwatch.assert_has_calls([call("template.yaml"), call("child/template.yaml")])
+
+    @patch("samcli.lib.providers.sam_function_provider.SamLocalStackProvider.get_stacks")
+    @patch("samcli.lib.providers.sam_function_provider.FileObserver")
+    @patch.object(SamFunctionProvider, "_extract_functions")
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_reload_incase_if_change_flag_is_true_and_stacks_mathod_called(
+        self, get_template_mock, extract_mock, FileObserverMock, get_stacks_mock
+    ):
+        FileObserverMock.return_value = self.file_observer
+
+        extract_result = {"foo": "bar"}
+        extract_mock.return_value = extract_result
+
+        template = {"Resources": {"a": "b"}}
+        template2 = {"Resources": {"a": "b"}}
+        get_template_mock.return_value = template
+        stack = make_root_stack(template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2)
+        provider = RefreshableSamFunctionProvider(
+            [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
+        )
+        provider._set_templates_changed(["child/template.yaml"])
+        updated_template = {"Resources": {"a": "b", "c": "d"}}
+        updated_template2 = {"Resources": {"a": "b"}}
+        updated_template3 = {"Resources": {"a": "b"}}
+        stack = make_root_stack(updated_template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, updated_template2)
+        stack3 = Stack("", "childStack2", "child/child/template.yaml", self.parameter_overrides, updated_template3)
+        get_stacks_mock.return_value = [stack, stack2, stack3], None
+
+        updated_extract_result = {"foo": "bar", "foo2": "bar2"}
+        extract_mock.return_value = updated_extract_result
+
+        self.file_observer.watch.reset_mock()
+        stacks = provider.stacks
+        self.assertEqual(stacks, [stack, stack2, stack3])
+        self.assertFalse(provider.is_changed)
+
+        self.file_observer.watch.assert_has_calls(
+            [call("template.yaml"), call("child/template.yaml"), call("child/child/template.yaml")]
+        )
+
+        functions = []
+        for func in provider.get_all():
+            functions.append(func)
+        self.assertEqual(functions, ["bar", "bar2"])
+
+    @patch("samcli.lib.providers.sam_function_provider.SamLocalStackProvider.get_stacks")
+    @patch("samcli.lib.providers.sam_function_provider.FileObserver")
+    @patch.object(SamFunctionProvider, "_extract_functions")
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_reload_incase_if_change_flag_is_true_and_get_all_mathod_called(
+        self, get_template_mock, extract_mock, FileObserverMock, get_stacks_mock
+    ):
+        FileObserverMock.return_value = self.file_observer
+
+        extract_result = {"foo": "bar"}
+        extract_mock.return_value = extract_result
+
+        template = {"Resources": {"a": "b"}}
+        template2 = {"Resources": {"a": "b"}}
+        get_template_mock.return_value = template
+        stack = make_root_stack(template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2)
+        provider = RefreshableSamFunctionProvider(
+            [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
+        )
+        provider._set_templates_changed(["child/template.yaml"])
+        updated_template = {"Resources": {"a": "b", "c": "d"}}
+        updated_template2 = {"Resources": {"a": "b"}}
+        updated_template3 = {"Resources": {"a": "b"}}
+        stack = make_root_stack(updated_template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, updated_template2)
+        stack3 = Stack("", "childStack2", "child/child/template.yaml", self.parameter_overrides, updated_template3)
+        get_stacks_mock.return_value = [stack, stack2, stack3], None
+
+        updated_extract_result = {"foo": "bar", "foo2": "bar2"}
+        extract_mock.return_value = updated_extract_result
+
+        self.file_observer.watch.reset_mock()
+
+        functions = []
+        for func in provider.get_all():
+            functions.append(func)
+        self.assertEqual(functions, ["bar", "bar2"])
+        self.assertFalse(provider.is_changed)
+
+        self.file_observer.watch.assert_has_calls(
+            [call("template.yaml"), call("child/template.yaml"), call("child/child/template.yaml")]
+        )
+
+    @patch("samcli.lib.providers.sam_function_provider.SamLocalStackProvider.get_stacks")
+    @patch("samcli.lib.providers.sam_function_provider.FileObserver")
+    @patch.object(SamFunctionProvider, "_extract_functions")
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_reload_incase_if_change_flag_is_true_and_get_mathod_called(
+        self, get_template_mock, extract_mock, FileObserverMock, get_stacks_mock
+    ):
+        FileObserverMock.return_value = self.file_observer
+
+        extract_result = {"foo": "bar"}
+        extract_mock.return_value = extract_result
+
+        template = {"Resources": {"a": "b"}}
+        template2 = {"Resources": {"a": "b"}}
+        get_template_mock.return_value = template
+        stack = make_root_stack(template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2)
+        provider = RefreshableSamFunctionProvider(
+            [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
+        )
+        provider._set_templates_changed(["child/template.yaml"])
+        updated_template = {"Resources": {"a": "b", "c": "d"}}
+        updated_template2 = {"Resources": {"a": "b"}}
+        updated_template3 = {"Resources": {"a": "b"}}
+        stack = make_root_stack(updated_template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, updated_template2)
+        stack3 = Stack("", "childStack2", "child/child/template.yaml", self.parameter_overrides, updated_template3)
+        get_stacks_mock.return_value = [stack, stack2, stack3], None
+
+        func1 = Mock()
+        func2 = Mock()
+        updated_extract_result = {"foo": func1, "foo2": func2}
+        extract_mock.return_value = updated_extract_result
+
+        self.file_observer.watch.reset_mock()
+        self.assertEqual(provider.get("foo2"), func2)
+        self.assertFalse(provider.is_changed)
+
+        self.file_observer.watch.assert_has_calls(
+            [call("template.yaml"), call("child/template.yaml"), call("child/child/template.yaml")]
+        )
+
+    @patch("samcli.lib.providers.sam_function_provider.SamLocalStackProvider.get_stacks")
+    @patch("samcli.lib.providers.sam_function_provider.FileObserver")
+    @patch.object(SamFunctionProvider, "_extract_functions")
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_reload_incase_if_change_flag_is_true_and_get_resources_by_stack_path_mathod_called(
+        self, get_template_mock, extract_mock, FileObserverMock, get_stacks_mock
+    ):
+        FileObserverMock.return_value = self.file_observer
+
+        extract_result = {"foo": "bar"}
+        extract_mock.return_value = extract_result
+
+        template = {"Resources": {"a": "b"}}
+        template2 = {"Resources": {"a": "b"}}
+        get_template_mock.return_value = template
+        stack = make_root_stack(template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2)
+        provider = RefreshableSamFunctionProvider(
+            [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
+        )
+        provider._set_templates_changed(["child/template.yaml"])
+        updated_template = {"Resources": {"a": "b", "c": "d"}}
+        updated_template2 = {"Resources": {"a": "b"}}
+        updated_template3 = {"Resources": {"c": "d"}}
+        get_template_mock.return_value = updated_template
+        stack = make_root_stack(updated_template, self.parameter_overrides)
+        get_template_mock.return_value = updated_template2
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, updated_template2)
+        get_template_mock.return_value = updated_template3
+        stack3 = Stack(
+            "childStack", "childStack2", "child/child/template.yaml", self.parameter_overrides, updated_template3
+        )
+        get_stacks_mock.return_value = [stack, stack2, stack3], None
+
+        func1 = Mock()
+        func2 = Mock()
+        updated_extract_result = {"foo": func1, "foo2": func2}
+        extract_mock.return_value = updated_extract_result
+
+        self.file_observer.watch.reset_mock()
+
+        self.assertEqual(provider.get_resources_by_stack_path("childStack/childStack2"), {"c": "d"})
+        self.assertFalse(provider.is_changed)
+
+        self.file_observer.watch.assert_has_calls(
+            [call("template.yaml"), call("child/template.yaml"), call("child/child/template.yaml")]
+        )
+
+    @patch("samcli.lib.providers.sam_function_provider.FileObserver")
+    @patch.object(SamFunctionProvider, "_extract_functions")
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_does_not_reload_incase_if_change_flag_is_false_and_stacks_mathod_called(
+        self, get_template_mock, extract_mock, FileObserverMock
+    ):
+        FileObserverMock.return_value = self.file_observer
+
+        extract_result = {"foo": "bar"}
+        extract_mock.return_value = extract_result
+
+        template = {"Resources": {"a": "b"}}
+        template2 = {"Resources": {"a": "b"}}
+        get_template_mock.return_value = template
+        stack = make_root_stack(template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2)
+        provider = RefreshableSamFunctionProvider(
+            [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
+        )
+
+        self.file_observer.watch.reset_mock()
+        stacks = provider.stacks
+        self.assertEqual(stacks, [stack, stack2])
+        self.assertFalse(provider.is_changed)
+
+        self.file_observer.watch.assert_not_called()
+
+        functions = []
+        for func in provider.get_all():
+            functions.append(func)
+        self.assertEqual(functions, ["bar"])
+
+    @patch("samcli.lib.providers.sam_function_provider.FileObserver")
+    @patch.object(SamFunctionProvider, "_extract_functions")
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_does_not_reload_incase_if_change_flag_is_false_and_get_all_mathod_called(
+        self, get_template_mock, extract_mock, FileObserverMock
+    ):
+        FileObserverMock.return_value = self.file_observer
+
+        extract_result = {"foo": "bar"}
+        extract_mock.return_value = extract_result
+
+        template = {"Resources": {"a": "b"}}
+        template2 = {"Resources": {"a": "b"}}
+        get_template_mock.return_value = template
+        stack = make_root_stack(template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2)
+        provider = RefreshableSamFunctionProvider(
+            [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
+        )
+
+        self.file_observer.watch.reset_mock()
+        functions = []
+        for func in provider.get_all():
+            functions.append(func)
+        self.assertEqual(functions, ["bar"])
+        self.assertFalse(provider.is_changed)
+        self.file_observer.watch.assert_not_called()
+
+    @patch("samcli.lib.providers.sam_function_provider.FileObserver")
+    @patch.object(SamFunctionProvider, "_extract_functions")
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_does_not_reload_incase_if_change_flag_is_false_and_get_mathod_called(
+        self, get_template_mock, extract_mock, FileObserverMock
+    ):
+        FileObserverMock.return_value = self.file_observer
+
+        func = Mock()
+        extract_result = {"foo": func}
+        extract_mock.return_value = extract_result
+
+        template = {"Resources": {"a": "b"}}
+        template2 = {"Resources": {"a": "b"}}
+        get_template_mock.return_value = template
+        stack = make_root_stack(template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2)
+        provider = RefreshableSamFunctionProvider(
+            [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
+        )
+
+        self.file_observer.watch.reset_mock()
+        self.assertEqual(provider.get("foo"), func)
+        self.assertIsNone(provider.get("foo2"))
+        self.assertFalse(provider.is_changed)
+        self.file_observer.watch.assert_not_called()
+
+    @patch("samcli.lib.providers.sam_function_provider.SamLocalStackProvider.get_stacks")
+    @patch("samcli.lib.providers.sam_function_provider.FileObserver")
+    @patch.object(SamFunctionProvider, "_extract_functions")
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_does_not_reload_incase_if_change_flag_is_false_and_get_resources_by_stack_path_mathod_called(
+        self, get_template_mock, extract_mock, FileObserverMock, get_stacks_mock
+    ):
+        FileObserverMock.return_value = self.file_observer
+
+        func = Mock()
+        extract_result = {"foo": func}
+        extract_mock.return_value = extract_result
+
+        template = {"Resources": {"a": "b"}}
+        template2 = {"Resources": {"a": "b"}}
+        get_template_mock.return_value = template
+        stack = make_root_stack(template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2)
+        provider = RefreshableSamFunctionProvider(
+            [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
+        )
+
+        self.file_observer.watch.reset_mock()
+        self.assertEqual(provider.get_resources_by_stack_path("childStack"), {"a": "b"})
+        with self.assertRaises(RuntimeError):
+            provider.get_resources_by_stack_path("childStack/childStack2")
+        self.assertFalse(provider.is_changed)
+        self.file_observer.watch.assert_not_called()
+
+    @patch("samcli.lib.providers.sam_function_provider.FileObserver")
+    @patch.object(SamFunctionProvider, "_extract_functions")
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_provider_stop_will_stop_all_observers(self, get_template_mock, extract_mock, FileObserverMock):
+        FileObserverMock.return_value = self.file_observer
+
+        extract_result = {"foo": "bar"}
+        extract_mock.return_value = extract_result
+
+        template = {"Resources": {"a": "b"}}
+        template2 = {"Resources": {"a": "b"}}
+        get_template_mock.return_value = template
+        stack = make_root_stack(template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2)
+        provider = RefreshableSamFunctionProvider(
+            [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
+        )
+        provider.stop_observer()
+
+        self.file_observer.stop.assert_called_once()

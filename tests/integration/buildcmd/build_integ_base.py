@@ -161,6 +161,16 @@ class BuildIntegBase(TestCase):
     def _make_parameter_override_arg(self, overrides):
         return " ".join(["ParameterKey={},ParameterValue={}".format(key, value) for key, value in overrides.items()])
 
+    def _verify_image_build_artifact(self, template_path, image_function_logical_id, property, image_uri):
+        self.assertTrue(template_path.exists(), "Build directory should be created")
+
+        build_dir = template_path.parent
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertNotIn(image_function_logical_id, build_dir_files)
+
+        # Make sure the template has correct CodeUri for resource
+        self._verify_resource_property(str(template_path), image_function_logical_id, property, image_uri)
+
     def _verify_resource_property(self, template_path, logical_id, property, expected_value):
         with open(template_path, "r") as fp:
             template_dict = yaml_parse(fp.read())
@@ -179,9 +189,15 @@ class BuildIntegBase(TestCase):
             "-t",
             str(template_path),
             "--no-event",
-            "--parameter-overrides",
-            overrides,
         ]
+
+        if overrides:
+            cmdlist += [
+                "--parameter-overrides",
+                overrides,
+            ]
+
+        LOG.info("Running invoke Command: {}".format(cmdlist))
 
         process_execute = run_command(cmdlist)
         process_execute.process.wait()
@@ -277,6 +293,55 @@ class BuildIntegRubyBase(BuildIntegBase):
         gem_path = ruby_bundled_path.joinpath(ruby_version[0], "gems")
 
         self.assertTrue(any([True if self.EXPECTED_RUBY_GEM in gem else False for gem in os.listdir(str(gem_path))]))
+
+
+class BuildIntegEsbuildBase(BuildIntegBase):
+    FUNCTION_LOGICAL_ID = "Function"
+
+    def _test_with_default_package_json(
+        self, runtime, use_container, code_uri, expected_files, handler, architecture=None
+    ):
+        overrides = self.get_override(runtime, code_uri, architecture, handler)
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+
+        cmdlist.append("--beta-features")
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        run_command(cmdlist, cwd=self.working_dir)
+
+        self._verify_built_artifact(
+            self.default_build_dir,
+            self.FUNCTION_LOGICAL_ID,
+            expected_files,
+        )
+
+        expected = {"body": '{"message":"hello world!"}', "statusCode": 200}
+        if not SKIP_DOCKER_TESTS and architecture == X86_64:
+            # ARM64 is not supported yet for invoking
+            self._verify_invoke_built_function(
+                self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+            )
+
+        if use_container:
+            self.verify_docker_container_cleanedup(runtime)
+            self.verify_pulled_image(runtime, architecture)
+
+    def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("template.yaml", build_dir_files)
+        self.assertIn(function_logical_id, build_dir_files)
+
+        template_path = build_dir.joinpath("template.yaml")
+        resource_artifact_dir = build_dir.joinpath(function_logical_id)
+
+        # Make sure the template has correct CodeUri for resource
+        self._verify_resource_property(str(template_path), function_logical_id, "CodeUri", function_logical_id)
+
+        all_artifacts = set(os.listdir(str(resource_artifact_dir)))
+        actual_files = all_artifacts.intersection(expected_files)
+        self.assertEqual(actual_files, expected_files)
 
 
 class BuildIntegNodeBase(BuildIntegBase):
@@ -506,12 +571,21 @@ class BuildIntegPythonBase(BuildIntegBase):
     }
 
     FUNCTION_LOGICAL_ID = "Function"
+    prop = "CodeUri"
 
-    def _test_with_default_requirements(self, runtime, codeuri, use_container, relative_path, architecture=None):
+    def _test_with_default_requirements(
+        self,
+        runtime,
+        codeuri,
+        use_container,
+        relative_path,
+        do_override=True,
+        check_function_only=False,
+        architecture=None,
+    ):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
-
-        overrides = self.get_override(runtime, codeuri, architecture, "main.handler")
+        overrides = self.get_override(runtime, codeuri, architecture, "main.handler") if do_override else None
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
@@ -521,37 +595,41 @@ class BuildIntegPythonBase(BuildIntegBase):
             self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
         )
 
-        self._verify_resource_property(
-            str(self.built_template),
-            "OtherRelativePathResource",
-            "BodyS3Location",
-            os.path.relpath(
-                os.path.normpath(os.path.join(str(relative_path), "SomeRelativePath")),
-                str(self.default_build_dir),
-            ),
-        )
+        if not check_function_only:
+            self._verify_resource_property(
+                str(self.built_template),
+                "OtherRelativePathResource",
+                "BodyS3Location",
+                os.path.relpath(
+                    os.path.normpath(os.path.join(str(relative_path), "SomeRelativePath")),
+                    str(self.default_build_dir),
+                ),
+            )
 
-        self._verify_resource_property(
-            str(self.built_template),
-            "GlueResource",
-            "Command.ScriptLocation",
-            os.path.relpath(
-                os.path.normpath(os.path.join(str(relative_path), "SomeRelativePath")),
-                str(self.default_build_dir),
-            ),
-        )
+            self._verify_resource_property(
+                str(self.built_template),
+                "GlueResource",
+                "Command.ScriptLocation",
+                os.path.relpath(
+                    os.path.normpath(os.path.join(str(relative_path), "SomeRelativePath")),
+                    str(self.default_build_dir),
+                ),
+            )
 
-        self._verify_resource_property(
-            str(self.built_template),
-            "ExampleNestedStack",
-            "TemplateURL",
-            "https://s3.amazonaws.com/examplebucket/exampletemplate.yml",
-        )
+            self._verify_resource_property(
+                str(self.built_template),
+                "ExampleNestedStack",
+                "TemplateURL",
+                "https://s3.amazonaws.com/examplebucket/exampletemplate.yml",
+            )
 
         expected = {"pi": "3.14"}
         if not SKIP_DOCKER_TESTS:
             self._verify_invoke_built_function(
-                self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+                self.built_template,
+                self.FUNCTION_LOGICAL_ID,
+                self._make_parameter_override_arg(overrides) if do_override else None,
+                expected,
             )
         if use_container:
             self.verify_docker_container_cleanedup(runtime)
@@ -568,7 +646,7 @@ class BuildIntegPythonBase(BuildIntegBase):
         resource_artifact_dir = build_dir.joinpath(function_logical_id)
 
         # Make sure the template has correct CodeUri for resource
-        self._verify_resource_property(str(template_path), function_logical_id, "CodeUri", function_logical_id)
+        self._verify_resource_property(str(template_path), function_logical_id, self.prop, function_logical_id)
 
         all_artifacts = set(os.listdir(str(resource_artifact_dir)))
         actual_files = all_artifacts.intersection(expected_files)

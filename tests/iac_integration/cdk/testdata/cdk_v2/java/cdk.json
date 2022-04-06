@@ -1,0 +1,6 @@
+{
+  "app": "mvn versions:use-latest-versions -DallowMajorUpdates=false && mvn -e -q compile exec:java",
+  "context": {
+
+  }
+}

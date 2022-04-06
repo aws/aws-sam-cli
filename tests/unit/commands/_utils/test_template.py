@@ -1,18 +1,21 @@
 import copy
 import os
+import tempfile
 from unittest import TestCase
 from unittest.mock import patch, mock_open, MagicMock
+import shutil
 
 import yaml
 from botocore.utils import set_value_from_jmespath
 from parameterized import parameterized, param
 
-from samcli.commands._utils.resources import AWS_SERVERLESS_FUNCTION, AWS_SERVERLESS_API
+from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION, AWS_SERVERLESS_API, RESOURCES_WITH_IMAGE_COMPONENT
 from samcli.commands._utils.template import (
     get_template_data,
     METADATA_WITH_LOCAL_PATHS,
     RESOURCES_WITH_LOCAL_PATHS,
     _update_relative_paths,
+    _resolve_relative_to,
     move_template,
     get_template_parameters,
     TemplateNotFoundException,
@@ -69,6 +72,57 @@ class Test_get_template_data(TestCase):
             result = get_template_parameters(filename)
 
             self.assertEqual(result, {"Myparameter": "String"})
+
+        m.assert_called_with(filename, "r", encoding="utf-8")
+        yaml_parse_mock.assert_called_with(file_data)
+
+    @patch("samcli.commands._utils.template.yaml_parse")
+    @patch("samcli.commands._utils.template.pathlib")
+    def test_must_read_file_get_and_normalize_parameters(self, pathlib_mock, yaml_parse_mock):
+        filename = "filename"
+        file_data = "contents of the file"
+        parse_result = {
+            "Parameters": {
+                "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481S3VersionKeyA3EB644B": {
+                    "Type": "String",
+                    "Description": 'S3 bucket for asset "12345432"',
+                },
+            },
+            "Resources": {
+                "CDKMetadata": {
+                    "Type": "AWS::CDK::Metadata",
+                    "Properties": {"Analytics": "v2:deflate64:H4s"},
+                    "Metadata": {"aws:cdk:path": "Stack/CDKMetadata/Default"},
+                },
+                "Function1": {
+                    "Properties": {"Code": "some value"},
+                    "Metadata": {
+                        "aws:asset:path": "new path",
+                        "aws:asset:property": "Code",
+                        "aws:asset:is-bundled": False,
+                    },
+                },
+            },
+        }
+
+        pathlib_mock.Path.return_value.exists.return_value = True  # Fake that the file exists
+
+        m = mock_open(read_data=file_data)
+        yaml_parse_mock.return_value = parse_result
+
+        with patch("samcli.commands._utils.template.open", m):
+            result = get_template_parameters(filename)
+
+            self.assertEqual(
+                result,
+                {
+                    "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481S3VersionKeyA3EB644B": {
+                        "Type": "String",
+                        "Description": 'S3 bucket for asset "12345432"',
+                        "Default": " ",
+                    }
+                },
+            )
 
         m.assert_called_with(filename, "r", encoding="utf-8")
         yaml_parse_mock.assert_called_with(file_data)
@@ -140,6 +194,7 @@ class Test_update_relative_paths(TestCase):
         self.dest = os.path.abspath(os.path.join("src", "destination"))  # /path/from/root/src/destination
 
         self.expected_result = os.path.join("..", "foo", "bar")
+        self.image_uri = "func12343:latest"
 
     @parameterized.expand([(resource_type, props) for resource_type, props in METADATA_WITH_LOCAL_PATHS.items()])
     def test_must_update_relative_metadata_paths(self, resource_type, properties):
@@ -199,6 +254,138 @@ class Test_update_relative_paths(TestCase):
             self.maxDiff = None
             self.assertEqual(result, expected_template_dict)
 
+    @parameterized.expand([(resource_type, props) for resource_type, props in RESOURCES_WITH_LOCAL_PATHS.items()])
+    def test_must_update_relative_resource_metadata_paths(self, resource_type, properties):
+        for propname in properties:
+            template_dict = {
+                "Resources": {
+                    "MyResourceWithRelativePath": {
+                        "Type": resource_type,
+                        "Properties": {},
+                        "Metadata": {"aws:asset:path": self.curpath},
+                    },
+                    "MyResourceWithS3Path": {
+                        "Type": resource_type,
+                        "Properties": {propname: self.s3path},
+                        "Metadata": {},
+                    },
+                    "MyResourceWithAbsolutePath": {
+                        "Type": resource_type,
+                        "Properties": {propname: self.abspath},
+                        "Metadata": {"aws:asset:path": self.abspath},
+                    },
+                    "MyResourceWithInvalidPath": {
+                        "Type": resource_type,
+                        "Properties": {
+                            # Path is not a string
+                            propname: {"foo": "bar"}
+                        },
+                    },
+                    "MyResourceWithoutProperties": {"Type": resource_type},
+                    "UnsupportedResourceType": {"Type": "AWS::Ec2::Instance", "Properties": {"Code": "bar"}},
+                    "ResourceWithoutType": {"foo": "bar"},
+                },
+                "Parameters": {"a": "b"},
+            }
+
+            set_value_from_jmespath(
+                template_dict, f"Resources.MyResourceWithRelativePath.Properties.{propname}", self.curpath
+            )
+
+            expected_template_dict = copy.deepcopy(template_dict)
+
+            set_value_from_jmespath(
+                expected_template_dict,
+                f"Resources.MyResourceWithRelativePath.Properties.{propname}",
+                self.expected_result,
+            )
+
+            expected_template_dict["Resources"]["MyResourceWithRelativePath"]["Metadata"][
+                "aws:asset:path"
+            ] = self.expected_result
+
+            result = _update_relative_paths(template_dict, self.src, self.dest)
+
+            self.maxDiff = None
+            self.assertEqual(result, expected_template_dict)
+
+    @parameterized.expand([(resource_type, props) for resource_type, props in RESOURCES_WITH_IMAGE_COMPONENT.items()])
+    def test_must_skip_image_components(self, resource_type, properties):
+        for propname in properties:
+            template_dict = {
+                "Resources": {
+                    "ImageResource": {"Type": resource_type, "Properties": {"PackageType": "Image"}},
+                }
+            }
+
+            set_value_from_jmespath(template_dict, f"Resources.ImageResource.Properties.{propname}", self.image_uri)
+
+            expected_template_dict = copy.deepcopy(template_dict)
+
+            result = _update_relative_paths(template_dict, self.src, self.dest)
+
+            self.maxDiff = None
+            self.assertEqual(result, expected_template_dict)
+
+    @parameterized.expand(
+        [
+            (image_resource_type, image_props, non_image_resource_type, non_image_props)
+            for image_resource_type, image_props in RESOURCES_WITH_IMAGE_COMPONENT.items()
+            for non_image_resource_type, non_image_props in RESOURCES_WITH_LOCAL_PATHS.items()
+        ]
+    )
+    def test_must_skip_only_image_components_and_update_relative_resource_paths(
+        self, image_resource_type, image_properties, non_image_resource_type, non_image_properties
+    ):
+        for non_image_propname in non_image_properties:
+            for image_propname in image_properties:
+                template_dict = {
+                    "Resources": {
+                        "MyResourceWithRelativePath": {"Type": non_image_resource_type, "Properties": {}},
+                        "MyResourceWithS3Path": {
+                            "Type": non_image_resource_type,
+                            "Properties": {non_image_propname: self.s3path},
+                        },
+                        "MyResourceWithAbsolutePath": {
+                            "Type": non_image_resource_type,
+                            "Properties": {non_image_propname: self.abspath},
+                        },
+                        "MyResourceWithInvalidPath": {
+                            "Type": non_image_resource_type,
+                            "Properties": {
+                                # Path is not a string
+                                non_image_propname: {"foo": "bar"}
+                            },
+                        },
+                        "MyResourceWithoutProperties": {"Type": non_image_resource_type},
+                        "UnsupportedResourceType": {"Type": "AWS::Ec2::Instance", "Properties": {"Code": "bar"}},
+                        "ResourceWithoutType": {"foo": "bar"},
+                        "ImageResource": {"Type": image_resource_type, "Properties": {"PackageType": "Image"}},
+                    },
+                    "Parameters": {"a": "b"},
+                }
+
+                set_value_from_jmespath(
+                    template_dict, f"Resources.MyResourceWithRelativePath.Properties.{non_image_propname}", self.curpath
+                )
+
+                set_value_from_jmespath(
+                    template_dict, f"Resources.ImageResource.Properties.{image_propname}", self.image_uri
+                )
+
+                expected_template_dict = copy.deepcopy(template_dict)
+
+                set_value_from_jmespath(
+                    expected_template_dict,
+                    f"Resources.MyResourceWithRelativePath.Properties.{non_image_propname}",
+                    self.expected_result,
+                )
+
+                result = _update_relative_paths(template_dict, self.src, self.dest)
+
+                self.maxDiff = None
+                self.assertEqual(result, expected_template_dict)
+
     def test_must_update_aws_include_also(self):
         template_dict = {
             "Resources": {"Fn::Transform": {"Name": "AWS::Include", "Parameters": {"Location": self.curpath}}},
@@ -235,6 +422,78 @@ class Test_update_relative_paths(TestCase):
         result = _update_relative_paths(template_dict, self.src, self.dest)
         self.maxDiff = None
         self.assertEqual(result, expected_template_dict)
+
+
+class Test_resolve_relative_to(TestCase):
+    def setUp(self):
+        self.scratchdir = os.path.split(tempfile.mkdtemp(dir=os.curdir))[-1]
+        self.curpath = os.path.join("foo", "bar")
+
+    def tearDown(self):
+        shutil.rmtree(self.scratchdir)
+
+    def test_must_resolve_relative_to_with_simple_paths(self):
+        original_root = os.path.abspath("src")
+        new_root = os.path.abspath("src/destination")
+
+        result = _resolve_relative_to(self.curpath, original_root, new_root)
+        expected_result = os.path.join("..", self.curpath)
+
+        self.assertEqual(result, expected_result)
+
+    def test_must_resolve_relative_to_with_symlinked_original_root(self):
+        original_root = os.path.abspath(os.path.join(self.scratchdir, "some", "src"))
+        original_root_link = os.path.abspath(os.path.join(self.scratchdir, "originallink"))
+        self.create_symlink(original_root, original_root_link)
+
+        new_root = os.path.abspath("destination")
+
+        result = _resolve_relative_to(self.curpath, original_root_link, new_root)
+        # path = foo/bar
+        # original_path = /path/from/root/scratchdir/originallink -> /path/from/root/scratchdir/some/src
+        # new_path = /path/from/root/destination
+        # relative path must be ../scratchdir/some/src/foo/bar
+        expected_result = os.path.join("..", self.scratchdir, "some", "src", self.curpath)
+
+        self.assertEqual(result, expected_result)
+
+    def test_must_resolve_relative_to_with_symlinked_new_root(self):
+        original_root = os.path.abspath("src")
+
+        new_root = os.path.abspath(os.path.join(self.scratchdir, "some", "destination"))
+        new_root_link = os.path.abspath(os.path.join(self.scratchdir, "newlink"))
+        self.create_symlink(new_root, new_root_link)
+
+        result = _resolve_relative_to(self.curpath, original_root, new_root_link)
+        # path = foo/bar
+        # original_path = /path/from/root/src
+        # new_path = /path/from/root/scratchdir/newlink -> /path/from/root/scratchdir/some/destination
+        # relative path must be ../../../src/foo/bar
+        expected_result = os.path.join("..", "..", "..", "src", self.curpath)
+
+        self.assertEqual(result, expected_result)
+
+    def test_must_resolve_relative_to_symlinked_original_root_and_new_root(self):
+        original_root = os.path.abspath(os.path.join(self.scratchdir, "some", "src"))
+        original_root_link = os.path.abspath(os.path.join(self.scratchdir, "originallink"))
+        self.create_symlink(original_root, original_root_link)
+
+        new_root = os.path.abspath(os.path.join(self.scratchdir, "another", "destination"))
+        new_root_link = os.path.abspath(os.path.join(self.scratchdir, "newlink"))
+        self.create_symlink(new_root, new_root_link)
+
+        result = _resolve_relative_to(self.curpath, original_root, new_root_link)
+        # path = foo/bar
+        # original_path = /path/from/root/scratchdir/originallink -> /path/from/root/scratchdir/some/src
+        # new_path = /path/from/root/scratchdir/newlink -> /path/from/root/scratchdir/another/destination
+        # relative path must be ../../some/srcfoo/bar
+        expected_result = os.path.join("..", "..", "some", "src", self.curpath)
+
+        self.assertEqual(result, expected_result)
+
+    def create_symlink(self, src, dest):
+        os.makedirs(src)
+        os.symlink(src, dest)
 
 
 class Test_move_template(TestCase):

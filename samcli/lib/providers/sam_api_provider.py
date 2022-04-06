@@ -7,16 +7,15 @@ from samcli.lib.providers.api_collector import ApiCollector
 from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.providers.provider import Stack
+from samcli.lib.utils.colors import Colored
 from samcli.local.apigw.local_apigw_service import Route
+from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION, AWS_SERVERLESS_API, AWS_SERVERLESS_HTTPAPI
 
 LOG = logging.getLogger(__name__)
 
 
 class SamApiProvider(CfnBaseApiProvider):
-    SERVERLESS_FUNCTION = "AWS::Serverless::Function"
-    SERVERLESS_API = "AWS::Serverless::Api"
-    SERVERLESS_HTTP_API = "AWS::Serverless::HttpApi"
-    TYPES = [SERVERLESS_FUNCTION, SERVERLESS_API, SERVERLESS_HTTP_API]
+    TYPES = [AWS_SERVERLESS_FUNCTION, AWS_SERVERLESS_API, AWS_SERVERLESS_HTTPAPI]
     _EVENT_TYPE_API = "Api"
     _EVENT_TYPE_HTTP_API = "HttpApi"
     _FUNCTION_EVENT = "Events"
@@ -46,11 +45,11 @@ class SamApiProvider(CfnBaseApiProvider):
         for stack in stacks:
             for logical_id, resource in stack.resources.items():
                 resource_type = resource.get(CfnBaseApiProvider.RESOURCE_TYPE)
-                if resource_type == SamApiProvider.SERVERLESS_FUNCTION:
+                if resource_type == AWS_SERVERLESS_FUNCTION:
                     self._extract_routes_from_function(stack.stack_path, logical_id, resource, collector)
-                if resource_type == SamApiProvider.SERVERLESS_API:
+                if resource_type == AWS_SERVERLESS_API:
                     self._extract_from_serverless_api(stack.stack_path, logical_id, resource, collector, cwd=cwd)
-                if resource_type == SamApiProvider.SERVERLESS_HTTP_API:
+                if resource_type == AWS_SERVERLESS_HTTPAPI:
                     self._extract_from_serverless_http(stack.stack_path, logical_id, resource, collector, cwd=cwd)
 
         collector.routes = self.merge_routes(collector)
@@ -156,7 +155,7 @@ class SamApiProvider(CfnBaseApiProvider):
             Path of the stack the resource is located
 
         logical_id : str
-            Logical ID of the resourc
+            Logical ID of the resource
 
         function_resource : dict
             Contents of the function resource including its properties
@@ -329,3 +328,20 @@ class SamApiProvider(CfnBaseApiProvider):
         if not route.stack_path:
             return 0
         return route.stack_path.count("/") + 1
+
+    @staticmethod
+    def check_implicit_api_resource_ids(stacks: List[Stack]) -> None:
+        for stack in stacks:
+            for logical_id in stack.resources:
+                if logical_id in (
+                    SamApiProvider.IMPLICIT_API_RESOURCE_ID,
+                    SamApiProvider.IMPLICIT_HTTP_API_RESOURCE_ID,
+                ):
+                    LOG.warning(
+                        Colored().yellow(
+                            'Your template contains a resource with logical ID "%s", '
+                            "which is a reserved logical ID in AWS SAM. "
+                            "It could result in unexpected behaviors and is not recommended."
+                        ),
+                        logical_id,
+                    )

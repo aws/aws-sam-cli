@@ -11,10 +11,11 @@ import click
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, print_cmdline_args
 from samcli.lib.utils.version_checker import check_newer_version
-from samcli.local.common.runtime_template import RUNTIMES, SUPPORTED_DEP_MANAGERS, LAMBDA_IMAGES_RUNTIMES
+from samcli.local.common.runtime_template import INIT_RUNTIMES, SUPPORTED_DEP_MANAGERS, LAMBDA_IMAGES_RUNTIMES
 from samcli.lib.telemetry.metric import track_command
-from samcli.commands.init.interactive_init_flow import _get_runtime_from_image, get_architectures
-from samcli.commands.local.cli_common.click_mutex import Mutex
+from samcli.commands.init.interactive_init_flow import _get_runtime_from_image, get_architectures, get_sorted_runtimes
+from samcli.commands._utils.click_mutex import ClickMutex
+from samcli.lib.build.app_builder import DEPRECATED_RUNTIMES
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.architecture import X86_64, ARM64
 
@@ -61,6 +62,20 @@ Common usage:
     Initializes a new SAM project using custom template in a local path
     \b
     $ sam init --location /path/to/template/folder
+"""
+
+INCOMPATIBLE_PARAMS_HINT = """You can run 'sam init' without any options for an interactive initialization flow, \
+or you can provide one of the following required parameter combinations:
+\t--name, --location, or
+\t--name, --package-type, --base-image, or
+\t--name, --runtime, --app-template, --dependency-manager
+"""
+
+REQUIRED_PARAMS_HINT = "You can also re-run without the --no-interactive flag to be prompted for required values."
+
+INIT_INTERACTIVE_OPTION_GUIDE = """
+You can preselect a particular runtime or package type when using the `sam init` experience.
+Call `sam init --help` to learn more.
 """
 
 
@@ -127,44 +142,48 @@ def non_interactive_validation(func):
     is_flag=True,
     default=False,
     help="Disable interactive prompting for init parameters, and fail if any required values are missing.",
-    cls=Mutex,
-    required_params=[
+    cls=ClickMutex,
+    required_param_lists=[
         ["name", "location"],
-        ["name", "runtime", "dependency_manager", "app_template"],
         ["name", "package_type", "base_image"],
+        ["name", "runtime", "dependency_manager", "app_template"],
         # check non_interactive_validation for additional validations
     ],
+    required_params_hint=REQUIRED_PARAMS_HINT,
 )
 @click.option(
     "-a",
     "--architecture",
     type=click.Choice([ARM64, X86_64]),
     help="Architectures your Lambda function will run on",
-    cls=Mutex,
+    cls=ClickMutex,
 )
 @click.option(
     "-l",
     "--location",
     help="Template location (git, mercurial, http(s), zip, path)",
-    cls=Mutex,
-    not_required=["package_type", "runtime", "base_image", "dependency_manager", "app_template"],
+    cls=ClickMutex,
+    incompatible_params=["package_type", "runtime", "base_image", "dependency_manager", "app_template"],
+    incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
 )
 @click.option(
     "-r",
     "--runtime",
-    type=click.Choice(RUNTIMES),
+    type=click.Choice(get_sorted_runtimes(INIT_RUNTIMES)),
     help="Lambda Runtime of your app",
-    cls=Mutex,
-    not_required=["location", "base_image"],
+    cls=ClickMutex,
+    incompatible_params=["location", "base_image"],
+    incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
 )
 @click.option(
     "-p",
     "--package-type",
     type=click.Choice([ZIP, IMAGE]),
     help="Package type for your app",
-    cls=Mutex,
+    cls=ClickMutex,
     callback=PackageType.pt_callback,
-    not_required=["location"],
+    incompatible_params=["location"],
+    incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
 )
 @click.option(
     "-i",
@@ -172,8 +191,9 @@ def non_interactive_validation(func):
     type=click.Choice(LAMBDA_IMAGES_RUNTIMES),
     default=None,
     help="Lambda Image of your app",
-    cls=Mutex,
-    not_required=["location", "runtime"],
+    cls=ClickMutex,
+    incompatible_params=["location", "runtime"],
+    incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
 )
 @click.option(
     "-d",
@@ -182,8 +202,9 @@ def non_interactive_validation(func):
     default=None,
     help="Dependency manager of your Lambda runtime",
     required=False,
-    cls=Mutex,
-    not_required=["location"],
+    cls=ClickMutex,
+    incompatible_params=["location"],
+    incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
 )
 @click.option("-o", "--output-dir", type=click.Path(), help="Where to output the initialized app into", default=".")
 @click.option("-n", "--name", help="Name of your project to be generated as a folder")
@@ -191,8 +212,9 @@ def non_interactive_validation(func):
     "--app-template",
     help="Identifier of the managed application template you want to use. "
     "If not sure, call 'sam init' without options for an interactive workflow.",
-    cls=Mutex,
-    not_required=["location"],
+    cls=ClickMutex,
+    incompatible_params=["location"],
+    incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
 )
 @click.option(
     "--no-input",
@@ -286,9 +308,9 @@ def do_cli(
     image_bool = name and pt_explicit and base_image
     if location or zip_bool or image_bool:
         # need to turn app_template into a location before we generate
-        templates = InitTemplates(no_interactive)
+        templates = InitTemplates()
         if package_type == IMAGE and image_bool:
-            base_image, runtime = _get_runtime_from_image(base_image)
+            runtime = _get_runtime_from_image(base_image)
             options = templates.init_options(package_type, runtime, base_image, dependency_manager)
             if not app_template:
                 if len(options) == 1:
@@ -319,6 +341,9 @@ def do_cli(
             extra_context,
         )
     else:
+        if not (pt_explicit or runtime or dependency_manager or base_image or architecture):
+            click.secho(INIT_INTERACTIVE_OPTION_GUIDE, fg="yellow", bold=True)
+
         # proceed to interactive state machine, which will call do_generate
         do_interactive(
             location,
@@ -338,12 +363,11 @@ def do_cli(
 def _deprecate_notification(runtime):
     from samcli.lib.utils.colors import Colored
 
-    deprecated_runtimes = {"dotnetcore1.0", "dotnetcore2.0"}
-    if runtime in deprecated_runtimes:
+    if runtime in DEPRECATED_RUNTIMES:
         message = (
             f"WARNING: {runtime} is no longer supported by AWS Lambda, please update to a newer supported runtime. "
-            f"SAM CLI will drop support for all deprecated runtimes {deprecated_runtimes} on May 1st. "
-            f"See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
+            "For more information please check AWS Lambda Runtime Support Policy: "
+            "https://docs.aws.amazon.com/lambda/latest/dg/runtime-support-policy.html"
         )
         LOG.warning(Colored().yellow(message))
 

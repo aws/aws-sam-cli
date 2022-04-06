@@ -3,12 +3,20 @@ CLI command for "logs" command
 """
 
 import logging
+
 import click
 
-from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
-from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
+from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
+from samcli.commands._utils.options import common_observability_options
+from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
+from samcli.commands._utils.experimental import (
+    ExperimentalFlag,
+    force_experimental_option,
+    experimental,
+    prompt_experimental,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -38,9 +46,12 @@ $ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
 @click.option(
     "--name",
     "-n",
-    required=True,
-    help="Name of your AWS Lambda function. If this function is a part of a CloudFormation stack, "
-    "this can be the LogicalID of function resource in the CloudFormation/SAM template.",
+    multiple=True,
+    help="Name(s) of your AWS Lambda function. If this function is a part of a CloudFormation stack, "
+    "this can be the LogicalID of function resource in the CloudFormation/SAM template. "
+    "[Beta Feature] Multiple names can be provided by repeating the parameter again. "
+    "If it is not provided and no --cw-log-group have been given, it will scan "
+    "given stack and find all possible resources, and start pulling log information from them.",
 )
 @click.option("--stack-name", default=None, help="Name of the AWS CloudFormation stack that the function is a part of.")
 @click.option(
@@ -52,40 +63,41 @@ $ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
     "https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html",
 )
 @click.option(
-    "--start-time",
-    "-s",
-    default="10m ago",
-    help="Fetch logs starting at this time. Time can be relative values like '5mins ago', 'yesterday' or "
-    "formatted timestamp like '2018-01-01 10:10:10'. Defaults to '10mins ago'.",
-)
-@click.option(
-    "--end-time",
-    "-e",
-    default=None,
-    help="Fetch logs up to this time. Time can be relative values like '5mins ago', 'tomorrow' or "
-    "formatted timestamp like '2018-01-01 10:10:10'",
-)
-@click.option(
-    "--tail",
-    "-t",
+    "--include-traces",
+    "-i",
     is_flag=True,
-    help="Tail the log output. This will ignore the end time argument and continue to fetch logs as they "
-    "become available.",
+    help="[Beta Feature] Include the XRay traces in the log output.",
 )
+@click.option(
+    "--cw-log-group",
+    multiple=True,
+    help="[Beta Feature] "
+    "Additional CloudWatch Log group names that are not auto-discovered based upon --name parameter. "
+    "When provided, it will only tail the given CloudWatch Log groups. If you want to tail log groups related "
+    "to resources, please also provide their names as well",
+)
+@common_observability_options
+@experimental
 @cli_framework_options
 @aws_creds_options
 @pass_context
 @track_command
 @check_newer_version
 @print_cmdline_args
+@force_experimental_option("include_traces", config_entry=ExperimentalFlag.Accelerate)  # pylint: disable=E1120
+@force_experimental_option("cw_log_group", config_entry=ExperimentalFlag.Accelerate)  # pylint: disable=E1120
+@force_experimental_option("output", config_entry=ExperimentalFlag.Accelerate)  # pylint: disable=E1120
 def cli(
     ctx,
     name,
     stack_name,
     filter,
     tail,
+    include_traces,
     start_time,
     end_time,
+    output,
+    cw_log_group,
     config_file,
     config_env,
 ):  # pylint: disable=redefined-builtin
@@ -94,30 +106,82 @@ def cli(
     """
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(name, stack_name, filter, tail, start_time, end_time)  # pragma: no cover
+    do_cli(
+        name,
+        stack_name,
+        filter,
+        tail,
+        include_traces,
+        start_time,
+        end_time,
+        cw_log_group,
+        output,
+        ctx.region,
+        ctx.profile,
+    )  # pragma: no cover
 
 
-def do_cli(function_name, stack_name, filter_pattern, tailing, start_time, end_time):
+def do_cli(
+    names,
+    stack_name,
+    filter_pattern,
+    tailing,
+    include_tracing,
+    start_time,
+    end_time,
+    cw_log_groups,
+    output,
+    region,
+    profile,
+):
     """
     Implementation of the ``cli`` method
     """
-    from .logs_context import LogsCommandContext
 
-    LOG.debug("'logs' command is called")
+    from datetime import datetime
 
-    with LogsCommandContext(
-        function_name,
-        stack_name=stack_name,
-        filter_pattern=filter_pattern,
-        start_time=start_time,
-        end_time=end_time,
-    ) as context:
+    from samcli.commands.logs.logs_context import parse_time, ResourcePhysicalIdResolver
+    from samcli.commands.logs.puller_factory import generate_puller
+    from samcli.lib.observability.util import OutputOption
+    from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config, get_boto_resource_provider_with_config
 
-        if tailing:
-            context.fetcher.tail(start_time=context.start_time, filter_pattern=context.filter_pattern)
-        else:
-            context.fetcher.load_time_period(
-                start_time=context.start_time,
-                end_time=context.end_time,
-                filter_pattern=context.filter_pattern,
-            )
+    if not names or len(names) > 1:
+        if not prompt_experimental(ExperimentalFlag.Accelerate):
+            return
+    else:
+        click.echo(
+            "You can now use 'sam logs' without --name parameter, "
+            "which will pull the logs from all supported resources in your stack."
+        )
+
+    sanitized_start_time = parse_time(start_time, "start-time")
+    sanitized_end_time = parse_time(end_time, "end-time") or datetime.utcnow()
+
+    boto_client_provider = get_boto_client_provider_with_config(region=region, profile=profile)
+    boto_resource_provider = get_boto_resource_provider_with_config(region=region, profile=profile)
+    resource_logical_id_resolver = ResourcePhysicalIdResolver(boto_resource_provider, stack_name, names)
+
+    # only fetch all resources when no CloudWatch log group defined
+    fetch_all_when_no_resource_name_given = not cw_log_groups
+    puller = generate_puller(
+        boto_client_provider,
+        resource_logical_id_resolver.get_resource_information(fetch_all_when_no_resource_name_given),
+        filter_pattern,
+        cw_log_groups,
+        OutputOption(output) if output else OutputOption.text,
+        include_tracing,
+    )
+
+    if tailing:
+        puller.tail(sanitized_start_time, filter_pattern)
+    else:
+        puller.load_time_period(sanitized_start_time, sanitized_end_time, filter_pattern)
+
+    if tailing:
+        next_commands_msg = f"""
+            Commands you can use next
+            =========================
+            [*] Tail Logs from All Support Resources and X-Ray: sam logs --stack-name {stack_name} --tail --include-traces
+            [*] Tail X-Ray Information: sam traces --tail
+            """
+        click.secho(next_commands_msg, fg="yellow")

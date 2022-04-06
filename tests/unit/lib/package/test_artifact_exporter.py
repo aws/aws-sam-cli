@@ -22,6 +22,7 @@ from samcli.lib.package.artifact_exporter import (
     make_abs_path,
     Template,
     CloudFormationStackResource,
+    CloudFormationStackSetResource,
     ServerlessApplicationResource,
 )
 from samcli.lib.package.packageable_resources import (
@@ -862,7 +863,15 @@ class TestArtifactExporter(unittest.TestCase):
 
             self.assertEqual(resource_dict[property_name], result_path_style_s3_url)
 
-            TemplateMock.assert_called_once_with(template_path, parent_dir, self.uploaders_mock, self.code_signer_mock)
+            TemplateMock.assert_called_once_with(
+                template_path,
+                parent_dir,
+                self.uploaders_mock,
+                self.code_signer_mock,
+                normalize_parameters=True,
+                normalize_template=True,
+                parent_stack_id="id",
+            )
             template_instance_mock.export.assert_called_once_with()
             self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
             self.s3_uploader_mock.to_path_style_s3_url.assert_called_once_with("world", None)
@@ -929,6 +938,81 @@ class TestArtifactExporter(unittest.TestCase):
                 stack_resource.export(resource_id, resource_dict, "dir")
                 self.s3_uploader_mock.upload.assert_not_called()
 
+    def test_export_cloudformation_stack_set(self):
+        stack_resource = CloudFormationStackSetResource(self.uploaders_mock, self.code_signer_mock)
+
+        resource_id = "id"
+        property_name = stack_resource.PROPERTY_NAME
+        result_s3_url = "s3://hello/world"
+        result_path_style_s3_url = "http://s3.amazonws.com/hello/world"
+
+        self.s3_uploader_mock.upload.return_value = result_s3_url
+        self.s3_uploader_mock.to_path_style_s3_url.return_value = result_path_style_s3_url
+
+        with tempfile.NamedTemporaryFile(delete=False) as handle:
+            template_path = handle.name
+            resource_dict = {property_name: template_path}
+            parent_dir = tempfile.gettempdir()
+
+            stack_resource.export(resource_id, resource_dict, parent_dir)
+            self.assertEqual(resource_dict[property_name], result_path_style_s3_url)
+
+            self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
+            self.s3_uploader_mock.to_path_style_s3_url.assert_called_once_with("world", None)
+
+    def test_export_cloudformation_stack_set_no_upload_path_is_s3url(self):
+        stack_resource = CloudFormationStackSetResource(self.uploaders_mock, self.code_signer_mock)
+        resource_id = "id"
+        property_name = stack_resource.PROPERTY_NAME
+        s3_url = "s3://hello/world"
+        resource_dict = {property_name: s3_url}
+        # Case 1: Path is already S3 url
+        stack_resource.export(resource_id, resource_dict, "dir")
+        self.assertEqual(resource_dict[property_name], s3_url)
+        self.s3_uploader_mock.upload.assert_not_called()
+
+    def test_export_cloudformation_stack_set_no_upload_path_is_httpsurl(self):
+        stack_resource = CloudFormationStackSetResource(self.uploaders_mock, self.code_signer_mock)
+        resource_id = "id"
+        property_name = stack_resource.PROPERTY_NAME
+        s3_url = "https://s3.amazonaws.com/hello/world"
+        resource_dict = {property_name: s3_url}
+        # Case 2: Path is already HTTPS S3 url
+        stack_resource.export(resource_id, resource_dict, "dir")
+        self.assertEqual(resource_dict[property_name], s3_url)
+        self.s3_uploader_mock.upload.assert_not_called()
+
+    def test_export_cloudformation_stack_set_no_upload_path_is_s3_region_httpsurl(self):
+        stack_resource = CloudFormationStackSetResource(self.uploaders_mock, self.code_signer_mock)
+        resource_id = "id"
+        property_name = stack_resource.PROPERTY_NAME
+        s3_url = "https://s3.some-valid-region.amazonaws.com/hello/world"
+        resource_dict = {property_name: s3_url}
+        # Case 3: Path is already HTTPS S3 Regional url
+        stack_resource.export(resource_id, resource_dict, "dir")
+        self.assertEqual(resource_dict[property_name], s3_url)
+        self.s3_uploader_mock.upload.assert_not_called()
+
+    def test_export_cloudformation_stack_set_no_upload_path_is_empty(self):
+        stack_resource = CloudFormationStackSetResource(self.uploaders_mock, self.code_signer_mock)
+        resource_id = "id"
+        # Case 4: Path is empty
+        resource_dict = {}
+        stack_resource.export(resource_id, resource_dict, "dir")
+        self.assertEqual(resource_dict, {})
+        self.s3_uploader_mock.upload.assert_not_called()
+
+    def test_export_cloudformation_stack_set_no_upload_path_not_file(self):
+        stack_resource = CloudFormationStackSetResource(self.uploaders_mock, self.code_signer_mock)
+        resource_id = "id"
+        property_name = stack_resource.PROPERTY_NAME
+        # Case 5: Path is not a file
+        with self.make_temp_dir() as dirname:
+            resource_dict = {property_name: dirname}
+            with self.assertRaises(exceptions.ExportFailedError):
+                stack_resource.export(resource_id, resource_dict, "dir")
+                self.s3_uploader_mock.upload.assert_not_called()
+
     @patch("samcli.lib.package.artifact_exporter.Template")
     def test_export_serverless_application(self, TemplateMock):
         stack_resource = ServerlessApplicationResource(self.uploaders_mock, self.code_signer_mock)
@@ -955,7 +1039,15 @@ class TestArtifactExporter(unittest.TestCase):
 
             self.assertEqual(resource_dict[property_name], result_path_style_s3_url)
 
-            TemplateMock.assert_called_once_with(template_path, parent_dir, self.uploaders_mock, self.code_signer_mock)
+            TemplateMock.assert_called_once_with(
+                template_path,
+                parent_dir,
+                self.uploaders_mock,
+                self.code_signer_mock,
+                normalize_parameters=True,
+                normalize_template=True,
+                parent_stack_id="id",
+            )
             template_instance_mock.export.assert_called_once_with()
             self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
             self.s3_uploader_mock.to_path_style_s3_url.assert_called_once_with("world", None)
@@ -1122,6 +1214,139 @@ class TestArtifactExporter(unittest.TestCase):
             resource_type1_instance.export.assert_called_once_with("Resource1", mock.ANY, template_dir)
             resource_type2_class.assert_called_once_with(self.uploaders_mock, self.code_signer_mock)
             resource_type2_instance.export.assert_called_once_with("Resource2", mock.ANY, template_dir)
+
+    @patch("samcli.lib.package.artifact_exporter.yaml_parse")
+    def test_cdk_template_export(self, yaml_parse_mock):
+        parent_dir = os.path.sep
+        template_dir = os.path.join(parent_dir, "foo", "bar")
+        template_path = os.path.join(template_dir, "path")
+        template_str = self.example_yaml_template()
+
+        resource_type1_class = Mock()
+        resource_type1_class.RESOURCE_TYPE = "AWS::Lambda::Function"
+        resource_type1_class.ARTIFACT_TYPE = ZIP
+        resource_type1_class.EXPORT_DESTINATION = Destination.S3
+        resource_type1_instance = Mock()
+        resource_type1_class.return_value = resource_type1_instance
+
+        resources_to_export = [resource_type1_class]
+
+        template_dict = {
+            "Resources": {
+                "Resource1": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {
+                        "Code": {
+                            "S3Bucket": "bucket_name",
+                            "S3Key": "key_name",
+                        },
+                    },
+                    "Metadata": {
+                        "aws:cdk:path": "Stack/Resource1/Resource",
+                        "aws:asset:path": "/path/code",
+                        "aws:asset:is-bundled": False,
+                        "aws:asset:property": "Code",
+                    },
+                },
+            }
+        }
+
+        open_mock = mock.mock_open()
+        yaml_parse_mock.return_value = template_dict
+
+        # Patch the file open method to return template string
+        with patch("samcli.lib.package.artifact_exporter.open", open_mock(read_data=template_str)) as open_mock:
+            template_exporter = Template(
+                template_path,
+                parent_dir,
+                self.uploaders_mock,
+                self.code_signer_mock,
+                resources_to_export,
+                normalize_template=True,
+            )
+            exported_template = template_exporter.export()
+            self.assertEqual(exported_template, template_dict)
+
+            open_mock.assert_called_once_with(make_abs_path(parent_dir, template_path), "r")
+
+            self.assertEqual(1, yaml_parse_mock.call_count)
+
+            resource_type1_class.assert_called_once_with(self.uploaders_mock, self.code_signer_mock)
+            expected_resource_properties = {
+                "Code": "/path/code",
+            }
+            resource_type1_instance.export.assert_called_once_with(
+                "Resource1", expected_resource_properties, template_dir
+            )
+
+    @patch("samcli.lib.package.artifact_exporter.yaml_parse")
+    def test_cdk_template_export_with_normalize_parameter(self, yaml_parse_mock):
+        parent_dir = os.path.sep
+        template_dir = os.path.join(parent_dir, "foo", "bar")
+        template_path = os.path.join(template_dir, "path")
+        template_str = self.example_yaml_template()
+
+        resource_type1_class = Mock()
+        resource_type1_class.RESOURCE_TYPE = "AWS::Lambda::Function"
+        resource_type1_class.ARTIFACT_TYPE = ZIP
+        resource_type1_class.EXPORT_DESTINATION = Destination.S3
+        resource_type1_instance = Mock()
+        resource_type1_class.return_value = resource_type1_instance
+
+        resources_to_export = [resource_type1_class]
+
+        template_dict = {
+            "Parameters": {
+                "AssetParameters123": {"Type": "String", "Description": 'S3 bucket for asset "12345432"'},
+            },
+            "Resources": {
+                "Resource1": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {
+                        "Code": {
+                            "S3Bucket": "bucket_name",
+                            "S3Key": "key_name",
+                        },
+                    },
+                    "Metadata": {
+                        "aws:cdk:path": "Stack/Resource1/Resource",
+                        "aws:asset:path": "/path/code",
+                        "aws:asset:is-bundled": False,
+                        "aws:asset:property": "Code",
+                    },
+                },
+            },
+        }
+
+        open_mock = mock.mock_open()
+        yaml_parse_mock.return_value = template_dict
+
+        # Patch the file open method to return template string
+        with patch("samcli.lib.package.artifact_exporter.open", open_mock(read_data=template_str)) as open_mock:
+            template_exporter = Template(
+                template_path,
+                parent_dir,
+                self.uploaders_mock,
+                self.code_signer_mock,
+                resources_to_export,
+                normalize_template=True,
+                normalize_parameters=True,
+            )
+            exported_template = template_exporter.export()
+            template_dict["Parameters"]["AssetParameters123"]["Default"] = " "
+            self.assertEqual(exported_template, template_dict)
+
+            open_mock.assert_called_once_with(make_abs_path(parent_dir, template_path), "r")
+
+            self.assertEqual(1, yaml_parse_mock.call_count)
+
+            resource_type1_class.assert_called_once_with(self.uploaders_mock, self.code_signer_mock)
+            expected_resource_properties = {
+                "Code": "/path/code",
+            }
+            resource_type1_instance.export.assert_called_once_with(
+                "Resource1", expected_resource_properties, template_dir
+            )
 
     @patch("samcli.lib.package.artifact_exporter.yaml_parse")
     def test_template_export_with_globals(self, yaml_parse_mock):
