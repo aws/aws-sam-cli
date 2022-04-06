@@ -247,6 +247,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             packagetype=ZIP,
             architectures=[X86_64],
             codesign_config_arn=None,
+            function_url_config=None,
         )
 
         self.local_lambda.env_vars_values = env_vars_values
@@ -298,6 +299,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             packagetype=ZIP,
             architectures=[X86_64],
             codesign_config_arn=None,
+            function_url_config=None,
         )
 
         self.local_lambda.env_vars_values = env_vars_values
@@ -339,6 +341,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             packagetype=ZIP,
             architectures=[X86_64],
             codesign_config_arn=None,
+            function_url_config=None,
         )
 
         self.local_lambda.env_vars_values = {}
@@ -416,6 +419,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             packagetype=ZIP,
             architectures=[ARM64],
             codesign_config_arn=None,
+            function_url_config=None,
         )
 
         config = "someconfig"
@@ -480,6 +484,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             imageconfig=None,
             packagetype=ZIP,
             architectures=[X86_64],
+            function_url_config=None,
             codesign_config_arn=None,
         )
 
