@@ -349,6 +349,7 @@ class SamFunctionProvider(SamBaseProvider):
             inlinecode=inlinecode,
             codesign_config_arn=resource_properties.get("CodeSigningConfigArn", None),
             architectures=resource_properties.get("Architectures", None),
+            function_url_config=resource_properties.get("FunctionUrlConfig"),
         )
 
     @staticmethod

@@ -67,6 +67,8 @@ class Function(NamedTuple):
     codesign_config_arn: Optional[str]
     # Architecture Type
     architectures: Optional[List[str]]
+    # The function url configuration
+    function_url_config: Optional[Dict]
     # The path of the stack relative to the root stack, it is empty for functions in root stack
     stack_path: str = ""
 
