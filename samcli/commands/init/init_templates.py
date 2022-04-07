@@ -16,8 +16,10 @@ from samcli.lib.utils.git_repo import GitRepo, CloneRepoException, CloneRepoUnst
 from samcli.lib.utils.packagetype import IMAGE
 from samcli.local.common.runtime_template import (
     RUNTIME_DEP_TEMPLATE_MAPPING,
+    get_provided_runtime_from_custom_runtime,
     get_local_lambda_images_location,
     get_local_manifest_path,
+    is_custom_runtime,
 )
 
 LOG = logging.getLogger(__name__)
@@ -179,7 +181,8 @@ class InitTemplates:
         # at the top of list template example displayed to the Customer.
         preprocessed_manifest = {"Hello World Example": {}}  # type: dict
         for template_runtime in manifest_body:
-            if filter_value and filter_value != template_runtime:
+            if not filter_value_matches_template_runtime(filter_value, template_runtime):
+                LOG.debug("Template runtime %s does not match filter value %s", template_runtime, filter_value)
                 continue
             template_list = manifest_body[template_runtime]
             for template in template_list:
@@ -262,3 +265,28 @@ def template_does_not_meet_filter_criteria(
         or (package_type and package_type != template.get("packageType"))
         or (dependency_manager and dependency_manager != template.get("dependencyManager"))
     )
+
+
+def filter_value_matches_template_runtime(filter_value, template_runtime):
+    """
+    Validate if the filter value matches template runtimes from the manifest file
+
+    Parameters
+    ----------
+    filter_value : str
+        Lambda runtime used to filter through data generated from the manifest
+    template_runtime : str
+        Runtime of the template in view
+
+    Returns
+    -------
+    bool
+        True if there is a match else False
+    """
+    if not filter_value:
+        return True
+    if is_custom_runtime(filter_value) and filter_value != get_provided_runtime_from_custom_runtime(template_runtime):
+        return False
+    if not is_custom_runtime(filter_value) and filter_value != template_runtime:
+        return False
+    return True
