@@ -9,6 +9,7 @@ REPO_URL = "REPO URL"
 REPO_NAME = "REPO NAME"
 CLONE_DIR = os.path.normpath("/tmp/local/clone/dir")
 EXPECTED_DEFAULT_CLONE_PATH = os.path.normpath(os.path.join(CLONE_DIR, REPO_NAME))
+COMMIT = "123"
 
 
 class TestGitRepo(TestCase):
@@ -186,3 +187,34 @@ class TestGitRepo(TestCase):
         shutil_mock.rmtree.assert_called_once_with(EXPECTED_DEFAULT_CLONE_PATH, onerror=rmtree_callback)
         shutil_mock.copytree.assert_called_once_with(ANY, EXPECTED_DEFAULT_CLONE_PATH, ignore=ANY)
         shutil_mock.ignore_patterns.assert_called_once_with("*.git")
+
+    @patch("samcli.lib.utils.git_repo.LOG")
+    @patch("samcli.lib.utils.git_repo.check_output")
+    def test_checkout_commit_when_commit_not_exist(self, check_output_mock, log_mock):
+        check_output_mock.side_effect = subprocess.CalledProcessError(
+            "fail", "fail", "fatal: reference is not a tree".encode("utf-8")
+        )
+        try:
+            with self.assertRaises(CloneRepoException):
+                self.repo._checkout_commit(repo_dir="test", commit="1234", git_executable="git")
+        except Exception:
+            pass
+        log_mock.warning.assert_called()
+
+    @patch("samcli.lib.utils.git_repo.Path.exists")
+    @patch("samcli.lib.utils.git_repo.shutil")
+    @patch("samcli.lib.utils.git_repo.check_output")
+    @patch("samcli.lib.utils.git_repo.subprocess.Popen")
+    @patch("samcli.lib.utils.git_repo.platform.system")
+    def test_clone_with_commit(self, platform_mock, popen_mock, check_output_mock, shutil_mock, path_exist_mock):
+        path_exist_mock.return_value = False
+        self.repo.clone(clone_dir=self.local_clone_dir, clone_name=REPO_NAME, commit=COMMIT)
+        self.local_clone_dir.mkdir.assert_called_once_with(mode=0o700, parents=True, exist_ok=True)
+        popen_mock.assert_called_once_with(["git"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        check_output_mock.assert_has_calls(
+            [call(["git", "clone", self.repo.url, REPO_NAME], cwd=ANY, stderr=subprocess.STDOUT)],
+            [call(["git", "checkout", COMMIT], cwd=ANY, stderr=subprocess.STDOUT)],
+        )
+        shutil_mock.rmtree.assert_not_called()
+        shutil_mock.copytree.assert_called_with(ANY, EXPECTED_DEFAULT_CLONE_PATH, ignore=ANY)
+        shutil_mock.ignore_patterns.assert_called_with("*.git")

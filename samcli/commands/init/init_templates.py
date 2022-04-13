@@ -26,6 +26,7 @@ LOG = logging.getLogger(__name__)
 MANIFEST_URL = "https://raw.githubusercontent.com/aws/aws-sam-cli-app-templates/master/manifest-v2.json"
 APP_TEMPLATES_REPO_URL = "https://github.com/aws/aws-sam-cli-app-templates"
 APP_TEMPLATES_REPO_NAME = "aws-sam-cli-app-templates"
+APP_TEMPLATES_REPO_COMMIT = "773d842c8f721d08c35321defa9087aaabf251f7"
 
 
 class InvalidInitTemplateError(UserException):
@@ -66,7 +67,12 @@ class InitTemplates:
         if not self._git_repo.clone_attempted:
             shared_dir: Path = GlobalConfig().config_dir
             try:
-                self._git_repo.clone(clone_dir=shared_dir, clone_name=APP_TEMPLATES_REPO_NAME, replace_existing=True)
+                self._git_repo.clone(
+                    clone_dir=shared_dir,
+                    clone_name=APP_TEMPLATES_REPO_NAME,
+                    replace_existing=True,
+                    commit=APP_TEMPLATES_REPO_COMMIT,
+                )
             except CloneRepoUnstableStateException as ex:
                 raise AppTemplateUpdateException(str(ex)) from ex
             except (OSError, CloneRepoException):
