@@ -1,0 +1,26 @@
+{
+  "name": "api-cors-issue",
+  "version": "0.1.0",
+  "bin": {
+    "api-cors-issue": "bin/api-cors-issue.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "cdk": "cdk"
+  },
+  "devDependencies": {
+    "@aws-cdk/assert": "",
+    "@types/node": "10.17.27",
+    "aws-cdk": "",
+    "ts-node": "^9.0.0",
+    "typescript": "~3.9.7"
+  },
+  "dependencies": {
+    "@aws-cdk/aws-apigatewayv2-alpha": "",
+    "@aws-cdk/aws-apigatewayv2-integrations-alpha": "",
+    "@aws-cdk/aws-lambda-go-alpha": "",
+    "@aws-cdk/aws-lambda-python-alpha": "",
+    "aws-cdk-lib": "",
+    "constructs": "^10.0.0"
+  }
+}

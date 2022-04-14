@@ -145,6 +145,7 @@ class TestFunction(TestCase):
             None,
             None,
             [ARM64],
+            None,
             "stackpath",
         )
 

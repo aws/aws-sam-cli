@@ -428,7 +428,7 @@ class TestLambdaImage(TestCase):
         dockerfile_mock = Mock()
         m = mock_open(dockerfile_mock)
         with patch("samcli.local.docker.lambda_image.open", m):
-            with self.assertRaisesRegexp(ImageBuildException, "Problem in the build!"):
+            with self.assertRaisesRegex(ImageBuildException, "Problem in the build!"):
                 LambdaImage(layer_downloader_mock, True, False, docker_client=docker_client_mock)._build_image(
                     "base_image", "docker_tag", [layer_version1], X86_64
                 )

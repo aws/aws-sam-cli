@@ -1,7 +1,9 @@
 import copy
 import os
+import tempfile
 from unittest import TestCase
 from unittest.mock import patch, mock_open, MagicMock
+import shutil
 
 import yaml
 from botocore.utils import set_value_from_jmespath
@@ -13,6 +15,7 @@ from samcli.commands._utils.template import (
     METADATA_WITH_LOCAL_PATHS,
     RESOURCES_WITH_LOCAL_PATHS,
     _update_relative_paths,
+    _resolve_relative_to,
     move_template,
     get_template_parameters,
     TemplateNotFoundException,
@@ -419,6 +422,78 @@ class Test_update_relative_paths(TestCase):
         result = _update_relative_paths(template_dict, self.src, self.dest)
         self.maxDiff = None
         self.assertEqual(result, expected_template_dict)
+
+
+class Test_resolve_relative_to(TestCase):
+    def setUp(self):
+        self.scratchdir = os.path.split(tempfile.mkdtemp(dir=os.curdir))[-1]
+        self.curpath = os.path.join("foo", "bar")
+
+    def tearDown(self):
+        shutil.rmtree(self.scratchdir)
+
+    def test_must_resolve_relative_to_with_simple_paths(self):
+        original_root = os.path.abspath("src")
+        new_root = os.path.abspath("src/destination")
+
+        result = _resolve_relative_to(self.curpath, original_root, new_root)
+        expected_result = os.path.join("..", self.curpath)
+
+        self.assertEqual(result, expected_result)
+
+    def test_must_resolve_relative_to_with_symlinked_original_root(self):
+        original_root = os.path.abspath(os.path.join(self.scratchdir, "some", "src"))
+        original_root_link = os.path.abspath(os.path.join(self.scratchdir, "originallink"))
+        self.create_symlink(original_root, original_root_link)
+
+        new_root = os.path.abspath("destination")
+
+        result = _resolve_relative_to(self.curpath, original_root_link, new_root)
+        # path = foo/bar
+        # original_path = /path/from/root/scratchdir/originallink -> /path/from/root/scratchdir/some/src
+        # new_path = /path/from/root/destination
+        # relative path must be ../scratchdir/some/src/foo/bar
+        expected_result = os.path.join("..", self.scratchdir, "some", "src", self.curpath)
+
+        self.assertEqual(result, expected_result)
+
+    def test_must_resolve_relative_to_with_symlinked_new_root(self):
+        original_root = os.path.abspath("src")
+
+        new_root = os.path.abspath(os.path.join(self.scratchdir, "some", "destination"))
+        new_root_link = os.path.abspath(os.path.join(self.scratchdir, "newlink"))
+        self.create_symlink(new_root, new_root_link)
+
+        result = _resolve_relative_to(self.curpath, original_root, new_root_link)
+        # path = foo/bar
+        # original_path = /path/from/root/src
+        # new_path = /path/from/root/scratchdir/newlink -> /path/from/root/scratchdir/some/destination
+        # relative path must be ../../../src/foo/bar
+        expected_result = os.path.join("..", "..", "..", "src", self.curpath)
+
+        self.assertEqual(result, expected_result)
+
+    def test_must_resolve_relative_to_symlinked_original_root_and_new_root(self):
+        original_root = os.path.abspath(os.path.join(self.scratchdir, "some", "src"))
+        original_root_link = os.path.abspath(os.path.join(self.scratchdir, "originallink"))
+        self.create_symlink(original_root, original_root_link)
+
+        new_root = os.path.abspath(os.path.join(self.scratchdir, "another", "destination"))
+        new_root_link = os.path.abspath(os.path.join(self.scratchdir, "newlink"))
+        self.create_symlink(new_root, new_root_link)
+
+        result = _resolve_relative_to(self.curpath, original_root, new_root_link)
+        # path = foo/bar
+        # original_path = /path/from/root/scratchdir/originallink -> /path/from/root/scratchdir/some/src
+        # new_path = /path/from/root/scratchdir/newlink -> /path/from/root/scratchdir/another/destination
+        # relative path must be ../../some/srcfoo/bar
+        expected_result = os.path.join("..", "..", "some", "src", self.curpath)
+
+        self.assertEqual(result, expected_result)
+
+    def create_symlink(self, src, dest):
+        os.makedirs(src)
+        os.symlink(src, dest)
 
 
 class Test_move_template(TestCase):

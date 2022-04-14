@@ -1,0 +1,6 @@
+aws-cdk-lib
+constructs>=10.0.0
+aws-cdk.aws-apigatewayv2-alpha
+aws-cdk.aws-apigatewayv2-integrations-alpha
+aws-cdk.aws-lambda-go-alpha
+aws-cdk.aws-lambda-python-alpha
