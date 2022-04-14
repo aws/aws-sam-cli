@@ -30,6 +30,12 @@ class CloneRepoUnstableStateException(CloneRepoException):
     """
 
 
+class ManifestNotFoundException(Exception):
+    """
+    Exception class when request Manifest file return 404.
+    """
+
+
 class GitRepo:
     """
     Class for managing a Git repo, currently it has a clone functionality only

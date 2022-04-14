@@ -13,7 +13,12 @@ import requests
 from samcli.cli.global_config import GlobalConfig
 from samcli.commands.exceptions import UserException, AppTemplateUpdateException
 from samcli.lib.utils import configuration
-from samcli.lib.utils.git_repo import GitRepo, CloneRepoException, CloneRepoUnstableStateException
+from samcli.lib.utils.git_repo import (
+    GitRepo,
+    CloneRepoException,
+    CloneRepoUnstableStateException,
+    ManifestNotFoundException,
+)
 from samcli.lib.utils.packagetype import IMAGE
 from samcli.local.common.runtime_template import (
     RUNTIME_DEP_TEMPLATE_MAPPING,
@@ -224,7 +229,11 @@ class InitTemplates:
         try:
             response = requests.get(MANIFEST_URL, timeout=10)
             body = response.text
-        except (requests.Timeout, requests.ConnectionError):
+            # if the commit is not exist then MANIFEST_URL will be invalid, fall back to use manifest in latest commit
+            if response.status_code == 404:
+                raise ManifestNotFoundException()
+
+        except (requests.Timeout, requests.ConnectionError, ManifestNotFoundException):
             LOG.debug("Request to get Manifest failed, attempting to clone the repository")
             self.clone_templates_repo()
             manifest_path = self.get_manifest_path()
