@@ -309,6 +309,66 @@ class TestBasicInitCommand(TestCase):
             msg = "Invalid value for '-a' / '--architecture': invalid choice: unknown_arch. (choose from arm64, x86_64)"
             self.assertIn(capture_output, msg)
 
+    def test_init_command_passes_with_enabled_tracing(self):
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    _get_command(),
+                    "init",
+                    "--runtime",
+                    "nodejs14.x",
+                    "--dependency-manager",
+                    "npm",
+                    "--app-template",
+                    "hello-world",
+                    "--name",
+                    "sam-app",
+                    "--no-interactive",
+                    "-o",
+                    temp,
+                    "--tracing",
+                    "enable",
+                ]
+            )
+            try:
+                process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 0)
+            self.assertTrue(Path(temp, "sam-app").is_dir())
+
+    def test_init_command_passes_with_disabled_tracing(self):
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    _get_command(),
+                    "init",
+                    "--runtime",
+                    "nodejs14.x",
+                    "--dependency-manager",
+                    "npm",
+                    "--app-template",
+                    "hello-world",
+                    "--name",
+                    "sam-app",
+                    "--no-interactive",
+                    "-o",
+                    temp,
+                    "--tracing",
+                    "disable",
+                ]
+            )
+            try:
+                process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 0)
+            self.assertTrue(Path(temp, "sam-app").is_dir())
+
 
 MISSING_REQUIRED_PARAM_MESSAGE = """Error: Missing required parameters, with --no-interactive set.
 Must provide one of the following required parameter combinations:
@@ -626,7 +686,7 @@ class TestInitWithArbitraryProject(TestCase):
 
 
 def _get_command():
-    command = "sam"
+    command = "samdev"
     if os.getenv("SAM_CLI_DEV"):
         command = "samdev"
     return command
