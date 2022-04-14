@@ -231,6 +231,11 @@ class InitTemplates:
             body = response.text
             # if the commit is not exist then MANIFEST_URL will be invalid, fall back to use manifest in latest commit
             if response.status_code == 404:
+                LOG.debug(
+                    "Request to MANIFEST_URL: %s failed, the commit hash in this url maybe invalid, "
+                    "Using manifest.json in the latest commit instead.",
+                    MANIFEST_URL,
+                )
                 raise ManifestNotFoundException()
 
         except (requests.Timeout, requests.ConnectionError, ManifestNotFoundException):

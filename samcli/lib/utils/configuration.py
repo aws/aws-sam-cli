@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-CONFIG_FILE = Path(Path(__file__).resolve().parents[3], "config.json")
+CONFIG_FILE = Path(Path(__file__).resolve().parents[2], "config.json")
 
 
 def get_configuration(key):
