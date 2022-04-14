@@ -28,6 +28,12 @@ if TYPE_CHECKING:  # pragma: no cover
 
 LOG = logging.getLogger(__name__)
 
+CORS_ORIGIN_HEADER = "Access-Control-Allow-Origin"
+CORS_METHODS_HEADER = "Access-Control-Allow-Methods"
+CORS_HEADERS_HEADER = "Access-Control-Allow-Headers"
+CORS_CREDENTIALS_HEADER = "Access-Control-Allow-Credentials"
+CORS_MAX_AGE_HEADER = "Access-Control-Max-Age"
+
 
 class Function(NamedTuple):
     """
@@ -452,11 +458,11 @@ class Cors(_CorsTuple):
         if not cors:
             return {}
         headers = {
-            "Access-Control-Allow-Origin": cors.allow_origin,
-            "Access-Control-Allow-Methods": cors.allow_methods,
-            "Access-Control-Allow-Headers": cors.allow_headers,
-            "Access-Control-Allow-Credentials": cors.allow_credentials,
-            "Access-Control-Max-Age": cors.max_age,
+            CORS_ORIGIN_HEADER: cors.allow_origin,
+            CORS_METHODS_HEADER: cors.allow_methods,
+            CORS_HEADERS_HEADER: cors.allow_headers,
+            CORS_CREDENTIALS_HEADER: cors.allow_credentials,
+            CORS_MAX_AGE_HEADER: cors.max_age,
         }
         # Filters out items in the headers dictionary that isn't empty.
         # This is required because the flask Headers dict will send an invalid 'None' string
