@@ -89,7 +89,7 @@ def generate_application(
     no_input,
     location_opt_choice,
     tracing,
-):  # pylint: disable=too-many-arguments
+):  # pylint: disable=too-many-arguments, missing-function-docstring
     if location_opt_choice == "1":
         _generate_from_use_case(
             location,
