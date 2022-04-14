@@ -12,6 +12,7 @@ import requests
 
 from samcli.cli.global_config import GlobalConfig
 from samcli.commands.exceptions import UserException, AppTemplateUpdateException
+from samcli.lib.utils import configuration
 from samcli.lib.utils.git_repo import GitRepo, CloneRepoException, CloneRepoUnstableStateException
 from samcli.lib.utils.packagetype import IMAGE
 from samcli.local.common.runtime_template import (
@@ -26,7 +27,7 @@ LOG = logging.getLogger(__name__)
 MANIFEST_URL = "https://raw.githubusercontent.com/aws/aws-sam-cli-app-templates/master/manifest-v2.json"
 APP_TEMPLATES_REPO_URL = "https://github.com/aws/aws-sam-cli-app-templates"
 APP_TEMPLATES_REPO_NAME = "aws-sam-cli-app-templates"
-APP_TEMPLATES_REPO_COMMIT = "773d842c8f721d08c35321defa9087aaabf251f7"
+APP_TEMPLATES_REPO_COMMIT = configuration.get_configuration("app_template_repo_commit")
 
 
 class InvalidInitTemplateError(UserException):
