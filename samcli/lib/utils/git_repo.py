@@ -188,5 +188,5 @@ class GitRepo:
             )
         except subprocess.CalledProcessError as checkout_error:
             output = checkout_error.output.decode("utf-8")
-            if "fatal: reference is not a tree" in output.lower():
-                LOG.warning("WARN: Commit: %s not exist, using the latest one", commit, exc_info=checkout_error)
+            if "fatal" in output.lower() or "error" in output.lower():
+                LOG.warning("WARN: Commit not exist: %s, using the latest one", commit, exc_info=checkout_error)

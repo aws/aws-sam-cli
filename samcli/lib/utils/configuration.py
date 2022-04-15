@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 import logging
 
+from click import ClickException
+
 LOG = logging.getLogger(__name__)
 
 CONFIG_FILE = Path(Path(__file__).resolve().parents[2], "runtime_config.json")
@@ -19,6 +21,7 @@ def get_app_template_repo_commit():
     """
     commit_hash = config.get("app_template_repo_commit", None)
     if not commit_hash:
-        LOG.debug("Error when retrieving app_template_repo_commit, runtime_config.json file maybe invalid")
-        raise ValueError()
+        raise ClickException(
+            message="Error when retrieving app_template_repo_commit, runtime_config.json file maybe invalid"
+        )
     return commit_hash

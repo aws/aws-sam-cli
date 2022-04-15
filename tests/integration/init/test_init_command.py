@@ -12,6 +12,8 @@ from pathlib import Path
 
 TIMEOUT = 300
 
+COMMIT_ERROR = "WARN: Commit not exist:"
+
 
 class TestBasicInitCommand(TestCase):
     def test_init_command_passes_and_dir_created(self):
@@ -33,16 +35,20 @@ class TestBasicInitCommand(TestCase):
                     "--no-interactive",
                     "-o",
                     temp,
-                ]
+                ],
+                stdout=PIPE,
+                stderr=PIPE,
             )
             try:
-                process.communicate(timeout=TIMEOUT)
+                stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
+                stderr = stderr_data.decode("utf-8")
             except TimeoutExpired:
                 process.kill()
                 raise
 
             self.assertEqual(process.returncode, 0)
             self.assertTrue(Path(temp, "sam-app").is_dir())
+            self.assertNotIn(COMMIT_ERROR, stderr)
 
     def test_init_command_passes_and_dir_created_image(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -89,16 +95,20 @@ class TestBasicInitCommand(TestCase):
                     "--no-interactive",
                     "-o",
                     temp,
-                ]
+                ],
+                stdout=PIPE,
+                stderr=PIPE,
             )
             try:
-                process.communicate(timeout=TIMEOUT)
+                stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
+                stderr = stderr_data.decode("utf-8")
             except TimeoutExpired:
                 process.kill()
                 raise
 
             self.assertEqual(process.returncode, 0)
             self.assertTrue(Path(temp, "qs-scratch").is_dir())
+            self.assertNotIn(COMMIT_ERROR, stderr)
 
     def test_init_command_java_maven(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -117,16 +127,20 @@ class TestBasicInitCommand(TestCase):
                     "--no-interactive",
                     "-o",
                     temp,
-                ]
+                ],
+                stdout=PIPE,
+                stderr=PIPE,
             )
             try:
-                process.communicate(timeout=TIMEOUT)
+                stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
+                stderr = stderr_data.decode("utf-8")
             except TimeoutExpired:
                 process.kill()
                 raise
 
             self.assertEqual(process.returncode, 0)
             self.assertTrue(Path(temp, "sam-app-maven").is_dir())
+            self.assertNotIn(COMMIT_ERROR, stderr)
 
     def test_init_command_java_gradle(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -145,16 +159,20 @@ class TestBasicInitCommand(TestCase):
                     "--no-interactive",
                     "-o",
                     temp,
-                ]
+                ],
+                stdout=PIPE,
+                stderr=PIPE,
             )
             try:
-                process.communicate(timeout=TIMEOUT)
+                stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
+                stderr = stderr_data.decode("utf-8")
             except TimeoutExpired:
                 process.kill()
                 raise
 
             self.assertEqual(process.returncode, 0)
             self.assertTrue(Path(temp, "sam-app-gradle").is_dir())
+            self.assertNotIn(COMMIT_ERROR, stderr)
 
     def test_init_command_with_extra_context_parameter(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -175,16 +193,20 @@ class TestBasicInitCommand(TestCase):
                     '{"schema_name": "codedeploy", "schema_type": "aws"}',
                     "-o",
                     temp,
-                ]
+                ],
+                stdout=PIPE,
+                stderr=PIPE,
             )
             try:
-                process.communicate(timeout=TIMEOUT)
+                stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
+                stderr = stderr_data.decode("utf-8")
             except TimeoutExpired:
                 process.kill()
                 raise
 
             self.assertEqual(process.returncode, 0)
             self.assertTrue(Path(temp, "sam-app-maven").is_dir())
+            self.assertNotIn(COMMIT_ERROR, stderr)
 
     def test_init_command_passes_with_arm_architecture(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -205,16 +227,20 @@ class TestBasicInitCommand(TestCase):
                     temp,
                     "--architecture",
                     "arm64",
-                ]
+                ],
+                stdout=PIPE,
+                stderr=PIPE,
             )
             try:
-                process.communicate(timeout=TIMEOUT)
+                stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
+                stderr = stderr_data.decode("utf-8")
             except TimeoutExpired:
                 process.kill()
                 raise
 
             self.assertEqual(process.returncode, 0)
             self.assertTrue(Path(temp, "sam-app").is_dir())
+            self.assertNotIn(COMMIT_ERROR, stderr)
 
     def test_init_command_passes_with_x86_64_architecture(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -235,16 +261,20 @@ class TestBasicInitCommand(TestCase):
                     temp,
                     "--architecture",
                     "x86_64",
-                ]
+                ],
+                stdout=PIPE,
+                stderr=PIPE,
             )
             try:
-                process.communicate(timeout=TIMEOUT)
+                stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
+                stderr = stderr_data.decode("utf-8")
             except TimeoutExpired:
                 process.kill()
                 raise
 
             self.assertEqual(process.returncode, 0)
             self.assertTrue(Path(temp, "sam-app").is_dir())
+            self.assertNotIn(COMMIT_ERROR, stderr)
 
     def test_init_command_passes_with_unknown_architecture(self):
         with tempfile.TemporaryDirectory() as temp:
