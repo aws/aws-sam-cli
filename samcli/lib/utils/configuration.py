@@ -1,23 +1,24 @@
-""" Read info from config.json file"""
+""" Read info from runtime_config.json file"""
 
 import json
 from pathlib import Path
+import logging
 
-CONFIG_FILE = Path(Path(__file__).resolve().parents[2], "config.json")
+LOG = logging.getLogger(__name__)
+
+CONFIG_FILE = Path(Path(__file__).resolve().parents[2], "runtime_config.json")
+config = json.loads(CONFIG_FILE.read_text())
 
 
-def get_configuration(key):
+def get_app_template_repo_commit():
     """
-
-    Parameters
-    ----------
-    key: the name of a specific filed in the config file
-
     Returns
     -------
-    the value of specific filed
+    the value of app_template_repo_commit
 
     """
-    with open(CONFIG_FILE) as config:
-        config = json.load(config)
-    return config.get(key, "")
+    commit_hash = config.get("app_template_repo_commit", None)
+    if not commit_hash:
+        LOG.debug("Error when retrieving app_template_repo_commit, runtime_config.json file maybe invalid")
+        raise ValueError()
+    return commit_hash

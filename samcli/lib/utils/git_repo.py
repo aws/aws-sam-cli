@@ -138,7 +138,7 @@ class GitRepo:
                 # bind a certain sam cli release to a specific commit of the aws-sam-cli-app-templates's repo, avoiding
                 # regression
                 if commit:
-                    self._checkout_commit(temp_path, commit, git_executable)
+                    self._checkout_commit(temp_path, commit)
 
                 self.local_path = self._persist_local_repo(temp_path, clone_dir, clone_name, replace_existing)
                 return self.local_path
@@ -177,9 +177,10 @@ class GitRepo:
             ) from ex
 
     @staticmethod
-    def _checkout_commit(repo_dir: str, commit: str, git_executable: str):
+    def _checkout_commit(repo_dir: str, commit: str):
         try:
             # if the checkout commit failed, it will use the latest commit instead
+            git_executable = GitRepo._git_executable()
             check_output(
                 [git_executable, "checkout", commit],
                 cwd=repo_dir,

@@ -196,7 +196,7 @@ class TestGitRepo(TestCase):
         )
         try:
             with self.assertRaises(CloneRepoException):
-                self.repo._checkout_commit(repo_dir="test", commit="1234", git_executable="git")
+                self.repo._checkout_commit(repo_dir="test", commit="1234")
         except Exception:
             pass
         log_mock.warning.assert_called()
@@ -210,7 +210,10 @@ class TestGitRepo(TestCase):
         path_exist_mock.return_value = False
         self.repo.clone(clone_dir=self.local_clone_dir, clone_name=REPO_NAME, commit=COMMIT)
         self.local_clone_dir.mkdir.assert_called_once_with(mode=0o700, parents=True, exist_ok=True)
-        popen_mock.assert_called_once_with(["git"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        popen_mock.assert_has_calls(
+            [call(["git"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)],
+            [call(["git"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)],
+        )
         check_output_mock.assert_has_calls(
             [call(["git", "clone", self.repo.url, REPO_NAME], cwd=ANY, stderr=subprocess.STDOUT)],
             [call(["git", "checkout", COMMIT], cwd=ANY, stderr=subprocess.STDOUT)],
