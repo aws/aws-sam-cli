@@ -921,10 +921,10 @@ class LocalApigwService(BaseLocalService):
         # Multi-value request headers is not really supported by Flask.
         # See https://github.com/pallets/flask/issues/850
         for header_key in flask_request.headers.keys():
-            headers[header_key] = flask_request.headers.get(header_key)
+            headers[header_key.lower()] = flask_request.headers.get(header_key)
 
-        headers["X-Forwarded-Proto"] = flask_request.scheme
-        headers["X-Forwarded-Port"] = str(port)
+        headers["x-forwarded-proto"] = flask_request.scheme
+        headers["x-forwarded-port"] = str(port)
         return headers
 
     @staticmethod

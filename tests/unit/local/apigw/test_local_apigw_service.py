@@ -1509,10 +1509,10 @@ class TestService_construct_event_http(TestCase):
             "rawQueryString": "query=params",
             "cookies": ["cookie1=test", "cookie2=test"],
             "headers": {{
-                "Content-Type": "application/json",
-                "X-Test": "Value",
-                "X-Forwarded-Proto": "http",
-                "X-Forwarded-Port": "3000"
+                "content-type": "application/json",
+                "x-test": "Value",
+                "x-forwarded-proto": "http",
+                "x-forwarded-port": "3000"
             }},
             "queryStringParameters": {{"query": "params"}},
             "requestContext": {{
@@ -1616,7 +1616,7 @@ class TestService_construct_event_http(TestCase):
         request_mock.scheme = "http"
 
         actual_query_string = LocalApigwService._event_http_headers(request_mock, "3000")
-        self.assertEqual(actual_query_string, {"X-Forwarded-Proto": "http", "X-Forwarded-Port": "3000"})
+        self.assertEqual(actual_query_string, {"x-forwarded-proto": "http", "x-forwarded-port": "3000"})
 
     def test_event_headers_with_non_empty_list(self):
         request_mock = Mock()
@@ -1631,10 +1631,10 @@ class TestService_construct_event_http(TestCase):
         self.assertEqual(
             actual_query_string,
             {
-                "Content-Type": "application/json",
-                "X-Test": "Value",
-                "X-Forwarded-Proto": "http",
-                "X-Forwarded-Port": "3000",
+                "content-type": "application/json",
+                "x-test": "Value",
+                "x-forwarded-proto": "http",
+                "x-forwarded-port": "3000",
             },
         )
 
