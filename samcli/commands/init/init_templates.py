@@ -12,7 +12,13 @@ import requests
 
 from samcli.cli.global_config import GlobalConfig
 from samcli.commands.exceptions import UserException, AppTemplateUpdateException
-from samcli.lib.utils.git_repo import GitRepo, CloneRepoException, CloneRepoUnstableStateException
+from samcli.lib.utils import configuration
+from samcli.lib.utils.git_repo import (
+    GitRepo,
+    CloneRepoException,
+    CloneRepoUnstableStateException,
+    ManifestNotFoundException,
+)
 from samcli.lib.utils.packagetype import IMAGE
 from samcli.local.common.runtime_template import (
     RUNTIME_DEP_TEMPLATE_MAPPING,
@@ -23,7 +29,10 @@ from samcli.local.common.runtime_template import (
 )
 
 LOG = logging.getLogger(__name__)
-MANIFEST_URL = "https://raw.githubusercontent.com/aws/aws-sam-cli-app-templates/master/manifest-v2.json"
+APP_TEMPLATES_REPO_COMMIT = configuration.get_app_template_repo_commit()
+MANIFEST_URL = (
+    f"https://raw.githubusercontent.com/aws/aws-sam-cli-app-templates/{APP_TEMPLATES_REPO_COMMIT}/manifest-v2.json"
+)
 APP_TEMPLATES_REPO_URL = "https://github.com/aws/aws-sam-cli-app-templates"
 APP_TEMPLATES_REPO_NAME = "aws-sam-cli-app-templates"
 
@@ -66,7 +75,12 @@ class InitTemplates:
         if not self._git_repo.clone_attempted:
             shared_dir: Path = GlobalConfig().config_dir
             try:
-                self._git_repo.clone(clone_dir=shared_dir, clone_name=APP_TEMPLATES_REPO_NAME, replace_existing=True)
+                self._git_repo.clone(
+                    clone_dir=shared_dir,
+                    clone_name=APP_TEMPLATES_REPO_NAME,
+                    replace_existing=True,
+                    commit=APP_TEMPLATES_REPO_COMMIT,
+                )
             except CloneRepoUnstableStateException as ex:
                 raise AppTemplateUpdateException(str(ex)) from ex
             except (OSError, CloneRepoException):
@@ -215,7 +229,16 @@ class InitTemplates:
         try:
             response = requests.get(MANIFEST_URL, timeout=10)
             body = response.text
-        except (requests.Timeout, requests.ConnectionError):
+            # if the commit is not exist then MANIFEST_URL will be invalid, fall back to use manifest in latest commit
+            if response.status_code == 404:
+                LOG.warning(
+                    "Request to MANIFEST_URL: %s failed, the commit hash in this url maybe invalid, "
+                    "Using manifest.json in the latest commit instead.",
+                    MANIFEST_URL,
+                )
+                raise ManifestNotFoundException()
+
+        except (requests.Timeout, requests.ConnectionError, ManifestNotFoundException):
             LOG.debug("Request to get Manifest failed, attempting to clone the repository")
             self.clone_templates_repo()
             manifest_path = self.get_manifest_path()
