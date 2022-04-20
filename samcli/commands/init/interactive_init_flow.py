@@ -164,7 +164,8 @@ def _generate_from_use_case(
     )
     runtime, base_image, package_type, dependency_manager, template_chosen = chosen_app_template_properties
 
-    tracing = prompt_user_to_enable_tracing(tracing)
+    if not tracing:
+        tracing = prompt_user_to_enable_tracing()
 
     app_template = template_chosen["appTemplate"]
     base_image = (
@@ -323,7 +324,7 @@ def _get_app_template_properties(
     return (runtime, base_image, package_type, dependency_manager, template_chosen)
 
 
-def prompt_user_to_enable_tracing(tracing):
+def prompt_user_to_enable_tracing():
     """
     Parameters
     ----------
@@ -334,11 +335,11 @@ def prompt_user_to_enable_tracing(tracing):
     return
         True if X-Ray Tracing should activate for functions in the SAM template and vice versa
     """
-    if tracing == "disable":
-        if click.confirm("\nWould you like to enable X-Ray tracing on the function(s) in your application? "):
-            doc_link = "https://aws.amazon.com/xray/pricing/"
-            click.echo(f"X-Ray will incur an additional cost. View {doc_link} for more details")
-            tracing = "enable"
+    tracing = "disable"
+    if click.confirm("\nWould you like to enable X-Ray tracing on the function(s) in your application? "):
+        doc_link = "https://aws.amazon.com/xray/pricing/"
+        click.echo(f"X-Ray will incur an additional cost. View {doc_link} for more details")
+        tracing = "enable"
     return tracing
 
 

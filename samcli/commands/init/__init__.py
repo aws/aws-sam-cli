@@ -234,7 +234,6 @@ def non_interactive_validation(func):
 @click.option(
     "-t",
     "--tracing",
-    default="disable",
     type=click.Choice(["enable", "disable"]),
     help="Enable AWS X-Ray tracing for your lambda functions",
     cls=ClickMutex,

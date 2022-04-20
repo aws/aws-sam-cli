@@ -1468,7 +1468,7 @@ foo
             None,
             False,
             None,
-            "disable",
+            None,
         )
 
     @patch("samcli.commands.init.init_templates.InitTemplates._get_manifest")
@@ -1796,7 +1796,7 @@ n
         # THEN we should receive no errors
         self.assertFalse(result.exception)
         generate_project_patch.assert_called_once_with(
-            ANY, IMAGE, "java11", "gradle", ".", "untitled6", True, ANY, "disable"
+            ANY, IMAGE, "java11", "gradle", ".", "untitled6", True, ANY, None
         )
         PackageType.explicit = (
             False  # Other tests fail after we pass --packge-type in this test, so let's reset this variable

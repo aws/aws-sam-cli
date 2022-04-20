@@ -80,7 +80,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "apptemplate",
                 True,
                 '{"key": "value", "key2": "value2"}',
-                "disable",
+                None,
             )
 
     @patch("samcli.commands.validate.validate.do_cli")
