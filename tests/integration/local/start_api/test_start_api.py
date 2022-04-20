@@ -2801,8 +2801,7 @@ class TestServiceWithCustomInvokeImages(StartApiIntegBaseClass):
 
 
 class WarmContainersWithRemoteLayersBase(TestWarmContainersBaseClass):
-    region = "us-west-2"
-    layer_utils = LayerUtils(region=region)
+    layer_utils = LayerUtils()
     layer_cache_base_dir = str(Path().home().joinpath("integ_layer_cache"))
     parameter_overrides: Dict[str, str] = {}
 

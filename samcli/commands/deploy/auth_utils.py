@@ -13,7 +13,8 @@ LOG = logging.getLogger(__name__)
 
 def auth_per_resource(stacks: List[Stack]):
     """
-    Check if authentication has been set for the function resources defined in the template that have `Api` Event type.
+    Check if authentication has been set for the function resources defined in the template that have `Api` Event type
+    or the function property FunctionUrlConfig.
 
     Parameters
     ----------
@@ -23,18 +24,24 @@ def auth_per_resource(stacks: List[Stack]):
     Returns
     -------
 
-    List of tuples per function resource that have the `Api` or `HttpApi` event types, that describes the resource name
+    List of tuples per function resource that have the `Api` or `HttpApi` event types, that describes the resource
+    (function logical_id - event type or function resource logical_id and description - FURL
     and if authorization is required per resource.
 
     """
-
     _auth_per_resource: List[Tuple[str, bool]] = []
 
     sam_function_provider = SamFunctionProvider(stacks, ignore_code_extraction_warnings=True)
+
     for sam_function in sam_function_provider.get_all():
-        # Only check for auth if there are function events defined.
+        # Only check for auth if there are function events defined or function url Configuration is defined.
         if sam_function.events:
             _auth_resource_event(sam_function_provider, sam_function, _auth_per_resource)
+
+        if sam_function.function_url_config:
+            authorization_type = sam_function.function_url_config.get("AuthType")
+            function_resource_name = f"{sam_function.name} Function Url"
+            _auth_per_resource.append((function_resource_name, bool(authorization_type != "NONE")))
 
     return _auth_per_resource
 
