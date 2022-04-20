@@ -30,6 +30,12 @@ class CloneRepoUnstableStateException(CloneRepoException):
     """
 
 
+class ManifestNotFoundException(Exception):
+    """
+    Exception class when request Manifest file return 404.
+    """
+
+
 class GitRepo:
     """
     Class for managing a Git repo, currently it has a clone functionality only
@@ -81,7 +87,7 @@ class GitRepo:
 
         raise OSError("Cannot find git, was looking at executables: {}".format(executables))
 
-    def clone(self, clone_dir: Path, clone_name: str, replace_existing: bool = False) -> Path:
+    def clone(self, clone_dir: Path, clone_name: str, replace_existing: bool = False, commit: str = "") -> Path:
         """
         creates a local clone of this Git repository.
         This method is different from the standard Git clone in the following:
@@ -98,7 +104,8 @@ class GitRepo:
             The dirname of the local clone
         replace_existing: bool
             Whether to replace the current local clone directory if already exists or not
-
+        commit: str
+            if a commit is provided, it will checkout out the commit in the clone repo
         Returns
         -------
             The path of the created local clone
@@ -127,6 +134,12 @@ class GitRepo:
                     cwd=tempdir,
                     stderr=subprocess.STDOUT,
                 )
+
+                # bind a certain sam cli release to a specific commit of the aws-sam-cli-app-templates's repo, avoiding
+                # regression
+                if commit:
+                    self._checkout_commit(temp_path, commit)
+
                 self.local_path = self._persist_local_repo(temp_path, clone_dir, clone_name, replace_existing)
                 return self.local_path
             except OSError as ex:
@@ -162,3 +175,18 @@ class GitRepo:
                 f"Check that you have permissions to create/delete files in {dest_dir} directory "
                 "or file an issue at https://github.com/aws/aws-sam-cli/issues"
             ) from ex
+
+    @staticmethod
+    def _checkout_commit(repo_dir: str, commit: str):
+        try:
+            # if the checkout commit failed, it will use the latest commit instead
+            git_executable = GitRepo._git_executable()
+            check_output(
+                [git_executable, "checkout", commit],
+                cwd=repo_dir,
+                stderr=subprocess.STDOUT,
+            )
+        except subprocess.CalledProcessError as checkout_error:
+            output = checkout_error.output.decode("utf-8")
+            if "fatal" in output.lower() or "error" in output.lower():
+                LOG.warning("WARN: Commit not exist: %s, using the latest one", commit, exc_info=checkout_error)

@@ -2535,4 +2535,158 @@ test-project
         init_runtime_mock.return_value = ["dotnetcore3.1", "go1.x", "java11", "python3.7", "ruby2.7"]
         expect_result = ["dotnetcore3.1", "java11", "python3.7", "ruby2.7"]
         actual_result = get_sorted_runtimes(runtime_option_list)
-        self.assertEquals(actual_result, expect_result)
+        self.assertEqual(actual_result, expect_result)
+
+    @patch("samcli.commands.init.init_templates.InitTemplates._get_manifest")
+    @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    def test_init_cli_generate_app_template_with_custom_runtime(
+        self, generate_project_patch, init_options_from_manifest_mock, _get_manifest_mock
+    ):
+        init_options_from_manifest_mock.return_value = [
+            {
+                "directory": "rust/cookiecutter-aws-sam-hello-rust",
+                "displayName": "Hello World Example",
+                "dependencyManager": "cargo",
+                "appTemplate": "hello-world",
+                "packageType": "Zip",
+                "useCaseName": "Hello World Example",
+            },
+            {
+                "directory": "java11/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
+                "displayName": "EventBridge App from scratch (100+ Event Schemas): Maven",
+                "dependencyManager": "maven",
+                "appTemplate": "eventBridge-schema-app",
+                "isDynamicTemplate": "True",
+                "packageType": "Zip",
+                "useCaseName": "Hello World Example",
+            },
+        ]
+
+        _get_manifest_mock.return_value = {
+            "rust (provided.al2)": [
+                {
+                    "directory": "rust/cookiecutter-aws-sam-hello-rust",
+                    "displayName": "Hello World Example",
+                    "dependencyManager": "cargo",
+                    "appTemplate": "hello-world",
+                    "packageType": "Zip",
+                    "useCaseName": "Hello World Example",
+                }
+            ],
+            "java11": [
+                {
+                    "directory": "java11/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
+                    "displayName": "EventBridge App from scratch (100+ Event Schemas): Maven",
+                    "dependencyManager": "maven",
+                    "appTemplate": "eventBridge-schema-app",
+                    "isDynamicTemplate": "True",
+                    "packageType": "Zip",
+                    "useCaseName": "Hello World Example",
+                },
+            ],
+        }
+
+        # WHEN the user follows interactive init prompts
+        # 1: AWS Quick Start Templates
+        # N: Do not select default application
+        # 2: rust runtime
+        # test-project: response to name
+        user_input = """
+1
+N
+2
+test-project
+        """
+
+        runner = CliRunner()
+        result = runner.invoke(init_cmd, input=user_input)
+        self.assertFalse(result.exception)
+        generate_project_patch.assert_called_once_with(
+            ANY,
+            ZIP,
+            "provided.al2",
+            "cargo",
+            ".",
+            "test-project",
+            True,
+            {"project_name": "test-project", "runtime": "provided.al2", "architectures": {"value": ["x86_64"]}},
+        )
+
+    @patch("samcli.commands.init.init_templates.InitTemplates._get_manifest")
+    @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    def test_init_cli_generate_app_template_with_custom_runtime_using_options(
+        self, generate_project_patch, init_options_from_manifest_mock, _get_manifest_mock
+    ):
+        init_options_from_manifest_mock.return_value = [
+            {
+                "directory": "rust/cookiecutter-aws-sam-hello-rust",
+                "displayName": "Hello World Example",
+                "dependencyManager": "cargo",
+                "appTemplate": "hello-world",
+                "packageType": "Zip",
+                "useCaseName": "Hello World Example",
+            },
+            {
+                "directory": "java11/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
+                "displayName": "EventBridge App from scratch (100+ Event Schemas): Maven",
+                "dependencyManager": "maven",
+                "appTemplate": "eventBridge-schema-app",
+                "isDynamicTemplate": "True",
+                "packageType": "Zip",
+                "useCaseName": "Hello World Example",
+            },
+        ]
+
+        _get_manifest_mock.return_value = {
+            "rust (provided.al2)": [
+                {
+                    "directory": "rust/cookiecutter-aws-sam-hello-rust",
+                    "displayName": "Hello World Example",
+                    "dependencyManager": "cargo",
+                    "appTemplate": "hello-world",
+                    "packageType": "Zip",
+                    "useCaseName": "Hello World Example",
+                }
+            ],
+            "java11": [
+                {
+                    "directory": "java11/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
+                    "displayName": "EventBridge App from scratch (100+ Event Schemas): Maven",
+                    "dependencyManager": "maven",
+                    "appTemplate": "eventBridge-schema-app",
+                    "isDynamicTemplate": "True",
+                    "packageType": "Zip",
+                    "useCaseName": "Hello World Example",
+                },
+            ],
+        }
+
+        # WHEN the user follows interactive init prompts
+        # 1: AWS Quick Start Templates
+        # test-project: response to name
+        user_input = """
+1
+test-project
+        """
+        args = [
+            "--runtime",
+            "provided.al2",
+        ]
+
+        runner = CliRunner()
+        result = runner.invoke(init_cmd, args=args, input=user_input)
+        self.assertFalse(result.exception)
+        generate_project_patch.assert_called_once_with(
+            ANY,
+            ZIP,
+            "provided.al2",
+            "cargo",
+            ".",
+            "test-project",
+            True,
+            {"project_name": "test-project", "runtime": "provided.al2", "architectures": {"value": ["x86_64"]}},
+        )

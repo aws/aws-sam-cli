@@ -149,3 +149,83 @@ class TestAuthUtils(TestCase):
         _auth_per_resource = auth_per_resource([Stack("", "", "", {}, self.template_dict)])
 
         self.assertEqual(_auth_per_resource, [("HelloWorldFunction", False)])
+
+    def test_auth_per_resource_no_auth_for_function_url_config(self):
+        self.template_dict = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Description": "\nSample SAM Template for Tests\n",
+            "Globals": OrderedDict([("Function", OrderedDict([("Timeout", 3)]))]),
+            "Resources": OrderedDict(
+                [
+                    (
+                        "HelloWorldFunction",
+                        OrderedDict(
+                            [
+                                ("Type", "AWS::Serverless::Function"),
+                                (
+                                    "Properties",
+                                    OrderedDict(
+                                        [
+                                            ("FunctionUrlConfig", OrderedDict([("AuthType", "NONE")])),
+                                        ]
+                                    ),
+                                ),
+                            ]
+                        ),
+                    )
+                ]
+            ),
+        }
+        _auth_per_resource = auth_per_resource([Stack("", "", "", {}, self.template_dict)])
+        self.assertEqual(_auth_per_resource, [("HelloWorldFunction Function Url", False)])
+
+    def test_auth_per_resource_no_auth_for_function_url_config_and_event_type(self):
+        url_config = ("FunctionUrlConfig", OrderedDict([("AuthType", "NONE")]))
+        events = [
+            (
+                "HelloWorld",
+                OrderedDict(
+                    [
+                        ("Type", "Api"),
+                        (
+                            "Properties",
+                            OrderedDict([("Path", "/hello"), ("Method", "get")]),
+                        ),
+                    ]
+                ),
+            )
+        ]
+        function_properties = [
+            ("Type", "AWS::Serverless::Function"),
+            (
+                "Properties",
+                OrderedDict(
+                    [
+                        url_config,
+                        (
+                            "Events",
+                            OrderedDict(events),
+                        ),
+                    ]
+                ),
+            ),
+        ]
+        self.template_dict = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Description": "\nSample SAM Template for Tests\n",
+            "Globals": OrderedDict([("Function", OrderedDict([("Timeout", 3)]))]),
+            "Resources": OrderedDict(
+                [
+                    (
+                        "HelloWorldFunction",
+                        OrderedDict(function_properties),
+                    )
+                ]
+            ),
+        }
+        _auth_per_resource = auth_per_resource([Stack("", "", "", {}, self.template_dict)])
+        self.assertEqual(
+            _auth_per_resource, [("HelloWorldFunction", False), ("HelloWorldFunction Function Url", False)]
+        )
