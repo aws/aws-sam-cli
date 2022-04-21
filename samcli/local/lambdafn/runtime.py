@@ -435,6 +435,13 @@ class WarmLambdaRuntime(LambdaRuntime):
             Timer object, if we setup a timer. None otherwise
         """
 
+        def start_timer():
+            # Start a timer, we'll use this to abort the function if it runs beyond the specified timeout
+            LOG.debug("Starting a timer for %s seconds for function '%s'", timeout, function_full_path)
+            timer = threading.Timer(timeout, timer_handler, ())
+            timer.start()
+            return timer
+
         def timer_handler():
             # NOTE: This handler runs in a separate thread. So don't try to mutate any non-thread-safe data structures
             LOG.info("Function '%s' timed out after %d seconds", function_full_path, timeout)
@@ -448,11 +455,7 @@ class WarmLambdaRuntime(LambdaRuntime):
             signal.signal(signal.SIGTERM, signal_handler)
             return None
 
-        # Start a timer, we'll use this to abort the function if it runs beyond the specified timeout
-        LOG.debug("Starting a timer for %s seconds for function '%s'", timeout, function_full_path)
-        timer = threading.Timer(timeout, timer_handler, ())
-        timer.start()
-        return timer
+        return start_timer
 
     def clean_running_containers_and_related_resources(self):
         """
