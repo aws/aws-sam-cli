@@ -2,6 +2,8 @@
 Factory for creating CodeResourceTriggers
 """
 import logging
+
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, cast
 
 from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_by_id
@@ -33,6 +35,10 @@ LOG = logging.getLogger(__name__)
 class CodeTriggerFactory(ResourceTypeBasedFactory[CodeResourceTrigger]):  # pylint: disable=E1136
     _stacks: List[Stack]
 
+    def __init__(self, stacks: List[Stack], base_dir: Path) -> None:
+        self.base_dir = base_dir
+        super().__init__(stacks)
+
     def _create_lambda_trigger(
         self,
         resource_identifier: ResourceIdentifier,
@@ -42,9 +48,9 @@ class CodeTriggerFactory(ResourceTypeBasedFactory[CodeResourceTrigger]):  # pyli
     ):
         package_type = resource.get("Properties", dict()).get("PackageType", ZIP)
         if package_type == ZIP:
-            return LambdaZipCodeTrigger(resource_identifier, self._stacks, on_code_change)
+            return LambdaZipCodeTrigger(resource_identifier, self._stacks, self.base_dir, on_code_change)
         if package_type == IMAGE:
-            return LambdaImageCodeTrigger(resource_identifier, self._stacks, on_code_change)
+            return LambdaImageCodeTrigger(resource_identifier, self._stacks, self.base_dir, on_code_change)
         return None
 
     def _create_layer_trigger(
@@ -54,7 +60,7 @@ class CodeTriggerFactory(ResourceTypeBasedFactory[CodeResourceTrigger]):  # pyli
         resource: Dict[str, Any],
         on_code_change: Callable,
     ):
-        return LambdaLayerCodeTrigger(resource_identifier, self._stacks, on_code_change)
+        return LambdaLayerCodeTrigger(resource_identifier, self._stacks, self.base_dir, on_code_change)
 
     def _create_definition_code_trigger(
         self,
@@ -63,7 +69,7 @@ class CodeTriggerFactory(ResourceTypeBasedFactory[CodeResourceTrigger]):  # pyli
         resource: Dict[str, Any],
         on_code_change: Callable,
     ):
-        return DefinitionCodeTrigger(resource_identifier, resource_type, self._stacks, on_code_change)
+        return DefinitionCodeTrigger(resource_identifier, resource_type, self._stacks, self.base_dir, on_code_change)
 
     GeneratorFunction = Callable[
         ["CodeTriggerFactory", ResourceIdentifier, str, Dict[str, Any], Callable], Optional[CodeResourceTrigger]

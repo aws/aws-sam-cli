@@ -11,6 +11,7 @@ from pathlib import Path, WindowsPath
 
 from parameterized import parameterized
 
+from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.lib.providers.provider import ResourcesToBuildCollector, Function
 from samcli.lib.build.app_builder import (
     ApplicationBuilder,
@@ -433,6 +434,7 @@ class TestApplicationBuilder_build(TestCase):
             inlinecode=None,
             architectures=[X86_64, ARM64],
             stack_path="",
+            function_url_config=None,
         )
 
         resources_to_build_collector = ResourcesToBuildCollector()
@@ -451,6 +453,19 @@ class TestApplicationBuilder_build(TestCase):
             builder.build()
         msg = "Function name property Architectures should be a list of length 1"
         self.assertEqual(str(ex.exception), msg)
+
+    @parameterized.expand([("python2.7",), ("ruby2.5",), ("nodejs10.x",), ("dotnetcore2.1",)])
+    def test_deprecated_runtimes(self, runtime):
+        with self.assertRaises(UnsupportedRuntimeException):
+            self.builder._build_function(
+                function_name="function_name",
+                codeuri="code_uri",
+                packagetype=ZIP,
+                runtime=runtime,
+                architecture="architecture",
+                handler="handler",
+                artifact_dir="artifact_dir",
+            )
 
 
 class PathValidator:
@@ -1823,3 +1838,34 @@ class TestApplicationBuilder_get_build_options(TestCase):
     def test_invalid_metadata_cases(self, metadata, expected_output):
         options = ApplicationBuilder._get_build_options("Function", "Node.js", "handler", "npm-esbuild", metadata)
         self.assertEqual(options, expected_output)
+
+    @parameterized.expand(
+        [
+            ("go", "", {"artifact_executable_name": "app.handler"}),
+            ("python", "", None),
+            ("nodejs", "npm", {"use_npm_ci": True}),
+            ("esbuild", "npm-esbuild", {"entry_points": ["app"], "use_npm_ci": True}),
+            ("provided", "", {"build_logical_id": "Function"}),
+        ]
+    )
+    def test_get_options_various_languages_dependency_managers(self, language, dependency_manager, expected_options):
+        build_properties = {"UseNpmCi": True}
+        metadata = {"BuildProperties": build_properties}
+        options = ApplicationBuilder._get_build_options(
+            "Function", language, "app.handler", dependency_manager, metadata
+        )
+        self.assertEqual(options, expected_options)
+
+    @parameterized.expand(
+        [
+            (None, "nodejs", "npm", {"use_npm_ci": False}),
+            ({"BuildProperties": {}}, "nodejs", "npm", {"use_npm_ci": False}),
+            (None, "esbuild", "npm-esbuild", None),
+            ({"BuildProperties": {}}, "esbuild", "npm-esbuild", {"entry_points": ["app"]}),
+        ]
+    )
+    def test_nodejs_metadata_not_defined(self, metadata, language, dependency_manager, expected_options):
+        options = ApplicationBuilder._get_build_options(
+            "Function", language, "app.handler", dependency_manager, metadata
+        )
+        self.assertEqual(options, expected_options)

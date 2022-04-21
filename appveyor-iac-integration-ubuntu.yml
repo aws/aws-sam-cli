@@ -8,14 +8,6 @@ environment:
  
   matrix:
 
-    - PYTHON_VERSION: '3.6'
-      PYTHON_ARCH: '64'
-      NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_37_PIP: 1
-      INSTALL_PY_38_PIP: 1
-      INSTALL_PY_39_PIP: 1
-      APPVEYOR_CONSOLE_DISABLE_PTY: true
-
     - PYTHON_VERSION: '3.7'
       PYTHON_ARCH: '64'
       NOSE_PARAMETERIZED_NO_WARN: 1

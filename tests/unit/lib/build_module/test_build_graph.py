@@ -305,7 +305,7 @@ class TestBuildGraph(TestCase):
     packagetype = "{ZIP}"
     architecture = "{ARCHITECTURE_FIELD}"
     handler = "{HANDLER}"
-    functions = ["HelloWorldPython", "HelloWorldPython2"]
+    functions = ["HelloWorldPython", "HelloWorld2Python"]
     [function_build_definitions.{UUID}.metadata]
     Test = "{METADATA['Test']}"
     Test2 = "{METADATA['Test2']}"
@@ -538,8 +538,15 @@ class TestBuildGraph(TestCase):
             build_graph_path.write_text(TestBuildGraph.BUILD_GRAPH_CONTENTS)
 
             build_graph = BuildGraph(str(build_dir))
+
+            current_function_build_definitions = build_graph.get_function_build_definitions()
+            current_layer_build_definitions = build_graph.get_layer_build_definitions()
+
             build_graph.update_definition_hash()
+
             write_hash_mock.assert_called_with({"mock": "hash"}, {"mock": "hash"})
+            self.assertEqual(current_function_build_definitions, build_graph.get_function_build_definitions())
+            self.assertEqual(current_layer_build_definitions, build_graph.get_layer_build_definitions())
 
     def test_compare_hash_changes_should_succeed(self):
         with osutils.mkdir_temp() as temp_base_dir:

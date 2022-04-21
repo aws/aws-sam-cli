@@ -186,13 +186,13 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                     "Type": "AWS::Serverless::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "CodeUri": ".",
                                     },
                                 },
                                 "LambdaFunction": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                 },
                             }
                         },
@@ -215,13 +215,13 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                     "Type": "AWS::Serverless::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "CodeUri": ".",
                                     },
                                 },
                                 "LambdaFunction": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                 },
                             }
                         },
@@ -244,13 +244,13 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                     "Type": "AWS::Serverless::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "CodeUri": ".",
                                     },
                                 },
                                 "LambdaFunction": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                 },
                             }
                         },
@@ -273,19 +273,19 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                     "Type": "AWS::Serverless::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "CodeUri": ".",
                                     },
                                 },
                                 "LambdaFunction": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                 },
                                 "ServerlessImageFunc": {
                                     "Type": "AWS::Serverless::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "ImageUri": ".",
                                         "PackageType": "Image",
                                     },
@@ -294,7 +294,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                     "Type": "AWS::Lambda::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "Code": {"ImageUri": "."},
                                         "PackageType": "Image",
                                     },
@@ -323,19 +323,19 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                     "Type": "AWS::Serverless::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "CodeUri": ".",
                                     },
                                 },
                                 "LambdaFunction": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                 },
                                 "ServerlessImageFunc": {
                                     "Type": "AWS::Serverless::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "ImageUri": ".",
                                         "PackageType": "Image",
                                     },
@@ -344,7 +344,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                     "Type": "AWS::Lambda::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "Code": {"ImageUri": "."},
                                         "PackageType": "Image",
                                     },
@@ -370,19 +370,19 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                     "Type": "AWS::Serverless::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "CodeUri": ".",
                                     },
                                 },
                                 "LambdaFunction": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                 },
                                 "ServerlessImageFunc": {
                                     "Type": "AWS::Serverless::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "ImageUri": ".",
                                         "PackageType": "Image",
                                     },
@@ -391,7 +391,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                     "Type": "AWS::Lambda::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "Code": {"ImageUri": "."},
                                         "PackageType": "Image",
                                     },
@@ -419,19 +419,19 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                     "Type": "AWS::Serverless::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "CodeUri": ".",
                                     },
                                 },
                                 "LambdaFunction": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                 },
                                 "ServerlessImageFunc": {
                                     "Type": "AWS::Serverless::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "ImageUri": ".",
                                         "PackageType": "Image",
                                     },
@@ -440,7 +440,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                     "Type": "AWS::Lambda::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "Code": {"ImageUri": "."},
                                         "PackageType": "Image",
                                     },
@@ -470,19 +470,19 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                     "Type": "AWS::Serverless::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "CodeUri": ".",
                                     },
                                 },
                                 "LambdaFunction": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                 },
                                 "ServerlessImageFunc": {
                                     "Type": "AWS::Serverless::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "ImageUri": ".",
                                         "PackageType": "Image",
                                     },
@@ -491,7 +491,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                     "Type": "AWS::Lambda::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "Code": {"ImageUri": "."},
                                         "PackageType": "Image",
                                     },
@@ -510,19 +510,19 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                     "Type": "AWS::Serverless::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "CodeUri": ".",
                                     },
                                 },
                                 "LambdaFunctionInChild": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                 },
                                 "ServerlessImageFuncInChild": {
                                     "Type": "AWS::Serverless::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "ImageUri": ".",
                                         "PackageType": "Image",
                                     },
@@ -531,7 +531,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                     "Type": "AWS::Lambda::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "Code": {"ImageUri": "."},
                                         "PackageType": "Image",
                                     },
@@ -562,19 +562,19 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                     "Type": "AWS::Serverless::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "CodeUri": ".",
                                     },
                                 },
                                 "LambdaFunction": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                 },
                                 "ServerlessImageFunc": {
                                     "Type": "AWS::Serverless::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "ImageUri": ".",
                                         "PackageType": "Image",
                                     },
@@ -583,7 +583,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                     "Type": "AWS::Lambda::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "Code": {"ImageUri": "."},
                                         "PackageType": "Image",
                                     },
@@ -602,19 +602,19 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                     "Type": "AWS::Serverless::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "CodeUri": ".",
                                     },
                                 },
                                 "LambdaFunctionInChild": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                 },
                                 "ServerlessImageFuncInChild": {
                                     "Type": "AWS::Serverless::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "ImageUri": ".",
                                         "PackageType": "Image",
                                     },
@@ -623,7 +623,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                     "Type": "AWS::Lambda::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "Code": {"ImageUri": "."},
                                         "PackageType": "Image",
                                     },
@@ -658,19 +658,19 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                     "Type": "AWS::Serverless::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "CodeUri": ".",
                                     },
                                 },
                                 "LambdaFunction": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                 },
                                 "ServerlessImageFunc": {
                                     "Type": "AWS::Serverless::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "ImageUri": ".",
                                         "PackageType": "Image",
                                     },
@@ -679,7 +679,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                     "Type": "AWS::Lambda::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "Code": {"ImageUri": "."},
                                         "PackageType": "Image",
                                     },
@@ -698,19 +698,19 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                     "Type": "AWS::Serverless::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "CodeUri": ".",
                                     },
                                 },
                                 "LambdaFunctionInChild": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                 },
                                 "ServerlessImageFuncInChild": {
                                     "Type": "AWS::Serverless::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "ImageUri": ".",
                                         "PackageType": "Image",
                                     },
@@ -719,7 +719,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                     "Type": "AWS::Lambda::Function",
                                     "Properties": {
                                         "Handler": "lambda.handler",
-                                        "Runtime": "nodejs10.x",
+                                        "Runtime": "nodejs14.x",
                                         "Code": {"ImageUri": "."},
                                         "PackageType": "Image",
                                     },
@@ -751,7 +751,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                             "Resources": {
                                 "LambdaFunction1": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunction1",
                                         "aws:cdk:path": "Stack/CDKLambdaFunction1/Resource",
@@ -761,7 +761,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                 },
                                 "LambdaFunction2": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunction2",
                                         "aws:cdk:path": "Stack/CDKLambdaFunction2/Resource",
@@ -788,7 +788,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                             "Resources": {
                                 "LambdaFunction1": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunction1",
                                         "aws:cdk:path": "Stack/CDKLambdaFunction1/Resource",
@@ -798,7 +798,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                 },
                                 "LambdaFunction2": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunction2",
                                         "aws:cdk:path": "Stack/CDKLambdaFunction2/Resource",
@@ -825,7 +825,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                             "Resources": {
                                 "LambdaFunction1": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunction1",
                                         "aws:cdk:path": "Stack/CDKLambdaFunction1/Resource",
@@ -835,7 +835,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                 },
                                 "LambdaFunction2": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunction2",
                                         "aws:cdk:path": "Stack/CDKLambdaFunction2/Resource",
@@ -862,7 +862,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                             "Resources": {
                                 "LambdaFunction1": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunction1",
                                         "aws:cdk:path": "Stack/CDKLambdaFunction1/Resource",
@@ -872,7 +872,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                 },
                                 "LambdaFunction2": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunction2",
                                         "aws:cdk:path": "Stack/CDKLambdaFunction2/Resource",
@@ -932,7 +932,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                             "Resources": {
                                 "LambdaFunction1": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunction1",
                                         "aws:cdk:path": "Stack/CDKLambdaFunction1/Resource",
@@ -942,7 +942,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                 },
                                 "LambdaFunction2": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunction2",
                                         "aws:cdk:path": "Stack/CDKLambdaFunction2/Resource",
@@ -1002,7 +1002,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                             "Resources": {
                                 "LambdaFunction1": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunction1",
                                         "aws:cdk:path": "Stack/CDKLambdaFunction1/Resource",
@@ -1012,7 +1012,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                 },
                                 "LambdaFunction2": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunction2",
                                         "aws:cdk:path": "Stack/CDKLambdaFunction2/Resource",
@@ -1072,7 +1072,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                             "Resources": {
                                 "LambdaFunction1": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunction1",
                                         "aws:cdk:path": "Stack/CDKLambdaFunction1/Resource",
@@ -1082,7 +1082,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                 },
                                 "LambdaFunction2": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunction2",
                                         "aws:cdk:path": "Stack/CDKLambdaFunction2/Resource",
@@ -1139,7 +1139,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                             "Resources": {
                                 "LambdaFunction1": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunction1",
                                         "aws:cdk:path": "Stack/CDKLambdaFunction1/Resource",
@@ -1149,7 +1149,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                 },
                                 "LambdaFunction2": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunction2",
                                         "aws:cdk:path": "Stack/CDKLambdaFunction2/Resource",
@@ -1199,7 +1199,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                             "Resources": {
                                 "LambdaFunctionInChild1": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunctionInChild1",
                                         "aws:cdk:path": "Stack/CDKLambdaFunctionInChild1/Resource",
@@ -1209,7 +1209,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                 },
                                 "LambdaFunctionInChild2": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunctionInChild2",
                                         "aws:cdk:path": "Stack/CDKLambdaFunctionInChild2/Resource",
@@ -1271,7 +1271,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                             "Resources": {
                                 "LambdaFunction1": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunction1",
                                         "aws:cdk:path": "Stack/CDKLambdaFunction1/Resource",
@@ -1281,7 +1281,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                 },
                                 "LambdaFunction2": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunction2",
                                         "aws:cdk:path": "Stack/CDKLambdaFunction2/Resource",
@@ -1331,7 +1331,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                             "Resources": {
                                 "LambdaFunctionInChild1": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunctionInChild1",
                                         "aws:cdk:path": "Stack/CDKLambdaFunctionInChild1/Resource",
@@ -1341,7 +1341,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                 },
                                 "LambdaFunctionInChild2": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunctionInChild2",
                                         "aws:cdk:path": "Stack/CDKLambdaFunctionInChild2/Resource",
@@ -1403,7 +1403,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                             "Resources": {
                                 "LambdaFunction1": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunction1",
                                         "aws:cdk:path": "Stack/CDKLambdaFunction1/Resource",
@@ -1413,7 +1413,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                 },
                                 "LambdaFunction2": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunction2",
                                         "aws:cdk:path": "Stack/CDKLambdaFunction2/Resource",
@@ -1463,7 +1463,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                             "Resources": {
                                 "LambdaFunctionInChild1": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunctionInChild1",
                                         "aws:cdk:path": "Stack/CDKLambdaFunctionInChild1/Resource",
@@ -1473,7 +1473,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                 },
                                 "LambdaFunctionInChild2": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunctionInChild2",
                                         "aws:cdk:path": "Stack/CDKLambdaFunctionInChild2/Resource",
@@ -1539,7 +1539,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                             "Resources": {
                                 "LambdaFunction1": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunction1",
                                         "aws:cdk:path": "Stack/CDKLambdaFunction1/Resource",
@@ -1549,7 +1549,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                 },
                                 "LambdaFunction2": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunction2",
                                         "aws:cdk:path": "Stack/CDKLambdaFunction2/Resource",
@@ -1599,7 +1599,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                             "Resources": {
                                 "LambdaFunctionInChild1": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunctionInChild1",
                                         "aws:cdk:path": "Stack/CDKLambdaFunctionInChild1/Resource",
@@ -1609,7 +1609,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                                 },
                                 "LambdaFunctionInChild2": {
                                     "Type": "AWS::Lambda::Function",
-                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x", "Code": "."},
+                                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs14.x", "Code": "."},
                                     "Metadata": {
                                         "SamResource": "CDKLambdaFunctionInChild2",
                                         "aws:cdk:path": "Stack/CDKLambdaFunctionInChild2/Resource",

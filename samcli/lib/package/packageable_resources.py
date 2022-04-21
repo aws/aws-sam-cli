@@ -92,7 +92,7 @@ class ResourceZip(Resource):
     """
 
     RESOURCE_TYPE: Optional[str] = None
-    PROPERTY_NAME: Optional[str] = None
+    PROPERTY_NAME: str = ""
     PACKAGE_NULL_PROPERTY = True
     # Set this property to True in base class if you want the exporter to zip
     # up the file before uploading This is useful for Lambda functions.
