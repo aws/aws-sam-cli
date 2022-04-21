@@ -20,7 +20,7 @@ from .utils import to_posix_path, find_free_port, NoFreePortsError
 
 LOG = logging.getLogger(__name__)
 
-START_CONTAINER_TIMEOUT = float(os.environ.get("SAM_CLI_START_CONTAINER_TIMEOUT", 5))
+START_CONTAINER_TIMEOUT = float(os.environ.get("SAM_CLI_START_CONTAINER_TIMEOUT", 20))
 
 
 class ContainerResponseException(Exception):
@@ -283,12 +283,60 @@ class Container:
         # Start the container
         real_container.start()
 
-        # Wait for port to be open
-        self.wait_for_port()
+    @retry(exc=requests.exceptions.RequestException, exc_raise=ContainerResponseException)
+    def wait_for_http_response(self, name, event, stdout):
+        # TODO(sriram-mv): `aws-lambda-rie` is in a mode where the function_name is always "function"
+        # NOTE(sriram-mv): There is a connection timeout set on the http call to `aws-lambda-rie`, however there is not
+        # a read time out for the response received from the server.
 
-    def wait_for_port(self):
+        resp = requests.post(
+            self.URL.format(host=self._container_host, port=self.rapid_port_host, function_name="function"),
+            data=event.encode("utf-8"),
+            timeout=(self.RAPID_CONNECTION_TIMEOUT, None),
+        )
+        stdout.write(resp.content)
+
+    def wait_for_result(self, full_path, event, stdout, stderr, start_timer):
+        # NOTE(sriram-mv): Let logging happen in its own thread, so that a http request can be sent.
+        # NOTE(sriram-mv): All logging is re-directed to stderr, so that only the lambda function return
+        # will be written to stdout.
+
+        # the log thread will not be closed until the container itself got deleted,
+        # so as long as the container is still there, no need to start a new log thread
+        if not self._logs_thread or not self._logs_thread.is_alive():
+            self._logs_thread = threading.Thread(target=self.wait_for_logs, args=(stderr, stderr), daemon=True)
+            self._logs_thread.start()
+
+        # wait_for_http_response will attempt to establish a connection to the socket
+        # but it'll fail if the socket is not listening yet, so we wait for the socket
+        self.wait_for_socket_connection()
+
+        # start the timer for function timeout right before executing the function, as waiting for the socket
+        # can take some time
+        timer = start_timer() if start_timer else None
+        self.wait_for_http_response(full_path, event, stdout)
+        if timer:
+            timer.cancel()
+
+    def wait_for_logs(self, stdout=None, stderr=None):
+
+        # Return instantly if we don't have to fetch any logs
+        if not stdout and not stderr:
+            return
+
+        if not self.is_created():
+            raise RuntimeError("Container does not exist. Cannot get logs for this container")
+
+        real_container = self.docker_client.containers.get(self.id)
+
+        # Fetch both stdout and stderr streams from Docker as a single iterator.
+        logs_itr = real_container.attach(stream=True, logs=True, demux=True)
+
+        self._write_container_output(logs_itr, stdout=stdout, stderr=stderr)
+
+    def wait_for_socket_connection(self):
         """
-        Waits until the host machine port that Docker binds to is open.
+        Waits for a successful connection to the socket used to communicate with Docker.
         """
         start_time = time.time()
         sleep = 0.1
@@ -311,48 +359,6 @@ class Container:
                 )
 
             time.sleep(sleep)
-
-    @retry(exc=requests.exceptions.RequestException, exc_raise=ContainerResponseException)
-    def wait_for_http_response(self, name, event, stdout):
-        # TODO(sriram-mv): `aws-lambda-rie` is in a mode where the function_name is always "function"
-        # NOTE(sriram-mv): There is a connection timeout set on the http call to `aws-lambda-rie`, however there is not
-        # a read time out for the response received from the server.
-
-        resp = requests.post(
-            self.URL.format(host=self._container_host, port=self.rapid_port_host, function_name="function"),
-            data=event.encode("utf-8"),
-            timeout=(self.RAPID_CONNECTION_TIMEOUT, None),
-        )
-        stdout.write(resp.content)
-
-    def wait_for_result(self, full_path, event, stdout, stderr):
-        # NOTE(sriram-mv): Let logging happen in its own thread, so that a http request can be sent.
-        # NOTE(sriram-mv): All logging is re-directed to stderr, so that only the lambda function return
-        # will be written to stdout.
-
-        # the log thread will not be closed until the container itself got deleted,
-        # so as long as the container is still there, no need to start a new log thread
-        if not self._logs_thread or not self._logs_thread.is_alive():
-            self._logs_thread = threading.Thread(target=self.wait_for_logs, args=(stderr, stderr), daemon=True)
-            self._logs_thread.start()
-
-        self.wait_for_http_response(full_path, event, stdout)
-
-    def wait_for_logs(self, stdout=None, stderr=None):
-
-        # Return instantly if we don't have to fetch any logs
-        if not stdout and not stderr:
-            return
-
-        if not self.is_created():
-            raise RuntimeError("Container does not exist. Cannot get logs for this container")
-
-        real_container = self.docker_client.containers.get(self.id)
-
-        # Fetch both stdout and stderr streams from Docker as a single iterator.
-        logs_itr = real_container.attach(stream=True, logs=True, demux=True)
-
-        self._write_container_output(logs_itr, stdout=stdout, stderr=stderr)
 
     def copy(self, from_container_path, to_host_path):
 
