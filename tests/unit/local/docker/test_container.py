@@ -481,46 +481,18 @@ class TestContainer_start(TestCase):
 
         self.container.is_created = Mock()
 
-    @patch("socket.socket")
-    def test_must_start_container(self, patched_socket):
+    def test_must_start_container(self):
 
         self.container.is_created.return_value = True
 
         container_mock = Mock()
         self.mock_docker_client.containers.get.return_value = container_mock
         container_mock.start = Mock()
-
-        socket_mock = Mock()
-        socket_mock.connect_ex.return_value = 0
-        patched_socket.return_value = socket_mock
 
         self.container.start()
 
         self.mock_docker_client.containers.get.assert_called_with(self.container.id)
         container_mock.start.assert_called_with()
-
-    @patch("samcli.local.docker.container.START_CONTAINER_TIMEOUT", 0)
-    @patch("socket.socket")
-    def test_times_out_if_port_not_open(self, patched_socket):
-
-        self.container.is_created.return_value = True
-
-        container_mock = Mock()
-        self.mock_docker_client.containers.get.return_value = container_mock
-        container_mock.start = Mock()
-
-        socket_mock = Mock()
-        socket_mock.connect_ex.return_value = 22
-        patched_socket.return_value = socket_mock
-
-        with self.assertRaises(
-            ContainerStartTimeoutException,
-            msg=(
-                "Timed out while starting container. You can increase this timeout by setting the "
-                "SAM_CLI_START_CONTAINER_TIMEOUT environment variable. The current timeout is 0 (seconds)."
-            ),
-        ):
-            self.container.start()
 
     def test_must_not_start_if_container_is_not_created(self):
 
@@ -563,8 +535,12 @@ class TestContainer_wait_for_result(TestCase):
         self.container.is_created = Mock()
         self.timeout = 1
 
+        self.socket_mock = Mock()
+        self.socket_mock.connect_ex.return_value = 0
+
+    @patch("socket.socket")
     @patch("samcli.local.docker.container.requests")
-    def test_wait_for_result_no_error(self, mock_requests):
+    def test_wait_for_result_no_error(self, mock_requests, patched_socket):
         self.container.is_created.return_value = True
 
         real_container_mock = Mock()
@@ -579,10 +555,25 @@ class TestContainer_wait_for_result(TestCase):
         response = Mock()
         response.content = b'{"hello":"world"}'
         mock_requests.post.return_value = response
-        self.container.wait_for_result(event=self.event, full_path=self.name, stdout=stdout_mock, stderr=stderr_mock)
 
+        patched_socket.return_value = self.socket_mock
+
+        start_timer = Mock()
+        timer = Mock()
+        start_timer.return_value = timer
+
+        self.container.wait_for_result(
+            event=self.event, full_path=self.name, stdout=stdout_mock, stderr=stderr_mock, start_timer=start_timer
+        )
+
+        # since we passed in a start_timer function, ensure it's called and
+        # the timer is cancelled once execution is done
+        start_timer.assert_called()
+        timer.cancel.assert_called()
+
+    @patch("socket.socket")
     @patch("samcli.local.docker.container.requests")
-    def test_wait_for_result_error_retried(self, mock_requests):
+    def test_wait_for_result_error_retried(self, mock_requests, patched_socket):
         self.container.is_created.return_value = True
 
         real_container_mock = Mock()
@@ -596,6 +587,9 @@ class TestContainer_wait_for_result(TestCase):
         stderr_mock = Mock()
         self.container.rapid_port_host = "7077"
         mock_requests.post.side_effect = [RequestException(), RequestException(), RequestException()]
+
+        patched_socket.return_value = self.socket_mock
+
         with self.assertRaises(ContainerResponseException):
             self.container.wait_for_result(
                 event=self.event, full_path=self.name, stdout=stdout_mock, stderr=stderr_mock
@@ -624,8 +618,9 @@ class TestContainer_wait_for_result(TestCase):
             ],
         )
 
+    @patch("socket.socket")
     @patch("samcli.local.docker.container.requests")
-    def test_wait_for_result_error(self, mock_requests):
+    def test_wait_for_result_error(self, mock_requests, patched_socket):
         self.container.is_created.return_value = True
 
         real_container_mock = Mock()
@@ -638,10 +633,40 @@ class TestContainer_wait_for_result(TestCase):
         stdout_mock = Mock()
         stderr_mock = Mock()
         mock_requests.post.side_effect = ContainerResponseException()
+
+        patched_socket.return_value = self.socket_mock
+
         with self.assertRaises(ContainerResponseException):
             self.container.wait_for_result(
                 event=self.event, full_path=self.name, stdout=stdout_mock, stderr=stderr_mock
             )
+
+    @patch("samcli.local.docker.container.START_CONTAINER_TIMEOUT", 0.5)
+    @patch("socket.socket")
+    @patch("samcli.local.docker.container.requests")
+    def test_wait_for_result_waits_for_socket_before_post_request(self, mock_requests, patched_socket):
+        self.container.is_created.return_value = True
+
+        real_container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = real_container_mock
+
+        output_itr = Mock()
+        real_container_mock.attach.return_value = output_itr
+        self.container._write_container_output = Mock()
+
+        stdout_mock = Mock()
+        stderr_mock = Mock()
+
+        unsuccessful_socket_mock = Mock()
+        unsuccessful_socket_mock.connect_ex.return_value = 22
+        patched_socket.return_value = unsuccessful_socket_mock
+
+        with self.assertRaises(ContainerStartTimeoutException):
+            self.container.wait_for_result(
+                event=self.event, full_path=self.name, stdout=stdout_mock, stderr=stderr_mock
+            )
+
+        self.assertEqual(mock_requests.post.call_count, 0)
 
 
 class TestContainer_wait_for_logs(TestCase):
@@ -726,6 +751,49 @@ class TestContainer_write_container_output(TestCase):
         self.stdout_mock.write.assert_has_calls([call(b"stdout1"), call(b"stdout2")])
 
         self.stderr_mock.write.assert_not_called()  # stderr must never be called
+
+
+class TestContainer_wait_for_socket_connection(TestCase):
+    def setUp(self):
+        self.image = IMAGE
+        self.cmd = "cmd"
+        self.working_dir = "working_dir"
+        self.host_dir = "host_dir"
+
+        self.mock_docker_client = Mock()
+        self.mock_docker_client.containers = Mock()
+        self.mock_docker_client.containers.get = Mock()
+
+        self.container = Container(
+            self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
+        )
+        self.container.id = "someid"
+
+    @patch("samcli.local.docker.container.START_CONTAINER_TIMEOUT", 0)
+    @patch("socket.socket")
+    def test_times_out_if_unable_to_connect(self, patched_socket):
+
+        socket_mock = Mock()
+        socket_mock.connect_ex.return_value = 22
+        patched_socket.return_value = socket_mock
+
+        with self.assertRaises(
+            ContainerStartTimeoutException,
+            msg=(
+                "Timed out while starting container. You can increase this timeout by setting the "
+                "SAM_CLI_START_CONTAINER_TIMEOUT environment variable. The current timeout is 0 (seconds)."
+            ),
+        ):
+            self.container.wait_for_socket_connection()
+
+    @patch("socket.socket")
+    def test_does_not_time_out_if_able_to_connect(self, patched_socket):
+
+        socket_mock = Mock()
+        socket_mock.connect_ex.return_value = 0
+        patched_socket.return_value = socket_mock
+
+        self.container.wait_for_socket_connection()
 
 
 class TestContainer_image(TestCase):

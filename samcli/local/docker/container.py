@@ -296,7 +296,7 @@ class Container:
         )
         stdout.write(resp.content)
 
-    def wait_for_result(self, full_path, event, stdout, stderr, start_timer):
+    def wait_for_result(self, full_path, event, stdout, stderr, start_timer=None):
         # NOTE(sriram-mv): Let logging happen in its own thread, so that a http request can be sent.
         # NOTE(sriram-mv): All logging is re-directed to stderr, so that only the lambda function return
         # will be written to stdout.
