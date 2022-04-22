@@ -97,7 +97,6 @@ disable=
     C0103, # Class constant name "%s" doesn't conform to UPPER_CASE naming style ('([^\\W\\da-z][^\\Wa-z]*|__.*__)$' pattern) (invalid-name)
     # New recommendations, disable for now to avoid introducing behaviour changes.
     R1729, # Use a generator instead '%s' (use-a-generator)
-    R1732, # Consider using 'with' for resource-allocating operations (consider-using-with)
     C0209, # Formatting a regular string which could be a f-string (consider-using-f-string)
     W1514, # Using open without explicitly specifying an encoding (unspecified-encoding)
     R1734, # Consider using [] instead of list() (use-list-literal)
