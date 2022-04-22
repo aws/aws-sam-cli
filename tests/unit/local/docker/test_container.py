@@ -518,8 +518,6 @@ class TestContainer_wait_for_result(TestCase):
         self.working_dir = "working_dir"
         self.host_dir = "host_dir"
         self.container_host = "localhost"
-        # self.rapid_port = 7777
-        # patched_find_free_port.return_value = self.rapid_port
 
         self.mock_docker_client = Mock()
         self.mock_docker_client.containers = Mock()

@@ -2,7 +2,6 @@
 Unit tests for Lambda runtime
 """
 
-from tracemalloc import start
 from unittest import TestCase
 from unittest.mock import Mock, patch, MagicMock, ANY, call
 from parameterized import parameterized

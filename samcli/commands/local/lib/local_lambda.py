@@ -149,7 +149,7 @@ class LocalLambdaRunner:
         except ContainerStartTimeoutException as e:
             # NOTE: Exit code of zero here as well to match the behaviour above (ContainerResponseException
             # having exit code of zero) because previously when it timed out or exhausted retries while
-            # trying to connect to a container it would throw ContainerResponseException but now it's this.
+            # trying to connect to the socket for Docker it would throw ContainerResponseException but now it's this.
             LOG.info(str(e))
         except OSError as os_error:
             # pylint: disable=no-member

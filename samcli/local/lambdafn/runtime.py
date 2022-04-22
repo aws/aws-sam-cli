@@ -195,7 +195,6 @@ class LambdaRuntime:
             # container is in debugging mode. We have special handling of Ctrl+C. So handle KeyboardInterrupt
             # and swallow the exception. The ``finally`` block will also take care of cleaning it up.
             LOG.debug("Ctrl+C was pressed. Aborting Lambda execution")
-            print("Ctrl+C was pressed. Aborting Lambda execution")
 
         finally:
             # We will be done with execution, if either the execution completed or an interrupt was fired
