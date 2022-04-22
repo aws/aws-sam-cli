@@ -97,7 +97,7 @@ def generate_project(
         # https://github.com/cookiecutter/cookiecutter/pull/1407
         if platform.system().lower() == "windows":
             osutils.convert_files_to_unix_line_endings(output_dir, ["gradlew"])
-    except RepositoryNotFound as e:
+    except RepositoryNotFound:
         # cookiecutter.json is not found in the template. Let's just clone it directly without using cookiecutter
         # and call it done.
         LOG.debug(

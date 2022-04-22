@@ -140,10 +140,16 @@ class Template:
         output_dir: str
             the directory where project will be generated in
 
-        Raise:
+        Raises
         ------
-        InvalidLocationError: if the given location is not from a known repo type
-        GenerateProjectFailedError: if something else went wrong
+        PreprocessingError
+            xxx
+        InvalidLocationError
+            if the given location is not from a known repo type
+        GenerateProjectFailedError
+            if something else went wrong
+        PostprocessingError
+            yyy
         """
         try:
             LOG.debug("preprocessing the cookiecutter context")
@@ -161,7 +167,7 @@ class Template:
                 extra_context=context,
                 overwrite_if_exists=True,
             )
-        except RepositoryNotFound as e:
+        except RepositoryNotFound:
             # cookiecutter.json is not found in the template. Let's just clone it directly without
             # using cookiecutter and call it done.
             LOG.debug(

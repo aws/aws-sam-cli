@@ -370,7 +370,7 @@ class BuildGraph:
         """
         document = {}
         if not self._filepath.exists():
-            open(self._filepath, "a+").close()
+            open(self._filepath, "a+").close()  # pylint: disable=consider-using-with
 
         txt = self._filepath.read_text()
         # .loads() returns a TOMLDocument,
@@ -462,7 +462,7 @@ class BuildGraph:
         document.add(BuildGraph.LAYER_BUILD_DEFINITIONS, cast(tomlkit.items.Item, layer_build_definitions_table))
 
         if not self._filepath.exists():
-            open(self._filepath, "a+").close()
+            open(self._filepath, "a+").close()  # pylint: disable=consider-using-with
 
         self._filepath.write_text(tomlkit.dumps(document))
 
