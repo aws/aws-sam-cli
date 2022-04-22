@@ -518,6 +518,8 @@ class TestContainer_wait_for_result(TestCase):
         self.working_dir = "working_dir"
         self.host_dir = "host_dir"
         self.container_host = "localhost"
+        # self.rapid_port = 7777
+        # patched_find_free_port.return_value = self.rapid_port
 
         self.mock_docker_client = Mock()
         self.mock_docker_client.containers = Mock()
@@ -570,6 +572,16 @@ class TestContainer_wait_for_result(TestCase):
         # the timer is cancelled once execution is done
         start_timer.assert_called()
         timer.cancel.assert_called()
+
+        # make sure we wait for the same host+port that we make the post request to
+        host = self.container._container_host
+        port = self.container.rapid_port_host
+        self.socket_mock.connect_ex.assert_called_with((host, port))
+        mock_requests.post.assert_called_with(
+            self.container.URL.format(host=host, port=port, function_name="function"),
+            data=b"{}",
+            timeout=(self.container.RAPID_CONNECTION_TIMEOUT, None),
+        )
 
     @patch("socket.socket")
     @patch("samcli.local.docker.container.requests")
