@@ -61,7 +61,7 @@ class SamLocalStackProvider(SamBaseProvider):
         self.remote_stack_full_paths: List[str] = []
         self._extract_stacks()
 
-        LOG.debug("%d nested stacks found in the template", len(self._stacks))
+        LOG.debug("%d stacks found in the template", len(self._stacks))
 
     def get(self, name: str) -> Optional[Stack]:
         """
