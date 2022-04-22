@@ -3,15 +3,13 @@ from enum import Enum, auto
 
 import boto3
 from botocore.config import Config
+from tests.testing_utils import get_sam_command
 
 
 class ResourceType(Enum):
     LAMBDA_FUNCTION = auto()
     S3_BUCKET = auto()
     IAM_ROLE = auto()
-
-
-from tests.testing_utils import get_sam_command
 
 
 class DeployIntegBase(TestCase):
