@@ -13,8 +13,16 @@ from parameterized import parameterized
 
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.integration.logs.logs_integ_base import LogsIntegBase, RETRY_COUNT
-from tests.testing_utils import run_command, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, \
-    start_persistent_process, read_until, kill_process, method_to_stack_name
+from tests.testing_utils import (
+    run_command,
+    RUNNING_ON_CI,
+    RUNNING_TEST_FOR_MASTER_ON_CI,
+    RUN_BY_CANARY,
+    start_persistent_process,
+    read_until,
+    kill_process,
+    method_to_stack_name,
+)
 
 LOG = logging.getLogger(__name__)
 SKIP_LOGS_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
@@ -42,13 +50,13 @@ class TestLogsCommand(LogsIntegBase):
             capabilities="CAPABILITY_IAM",
         )
         deploy_result = run_command(deploy_cmd)
-        self.assertEqual(deploy_result.process.returncode, 0, f"Deployment of the test stack is failed with {deploy_result.stderr}")
+        self.assertEqual(
+            deploy_result.process.returncode, 0, f"Deployment of the test stack is failed with {deploy_result.stderr}"
+        )
 
         cfn_client = boto3.client("cloudformation")
-        cfn_resource = boto3.resource('cloudformation')
-        TestLogsCommand.stack_resources = cfn_client.describe_stack_resources(
-            StackName=TestLogsCommand.stack_name
-        ).get(
+        cfn_resource = boto3.resource("cloudformation")
+        TestLogsCommand.stack_resources = cfn_client.describe_stack_resources(StackName=TestLogsCommand.stack_name).get(
             "StackResources", []
         )
         TestLogsCommand.stack_info = cfn_resource.Stack(TestLogsCommand.stack_name)
@@ -85,7 +93,7 @@ class TestLogsCommand(LogsIntegBase):
     def test_tail(self, function_name: str):
         cmd_list = self.get_logs_command_list(self.stack_name, name=function_name, tail=True)
         tail_process = start_persistent_process(cmd_list)
-        
+
         expected_log_output = f"Hello world from {function_name} function"
         LOG.info("Invoking function %s", function_name)
         lambda_invoke_result = self.lambda_client.invoke(FunctionName=self._get_physical_id(function_name))
@@ -133,11 +141,7 @@ class TestLogsCommand(LogsIntegBase):
         LOG.info("APIGW result %s", apigw_result)
         cmd_list = self.get_logs_command_list(self.stack_name, beta_features=True)
         self._check_logs(
-            cmd_list,
-            [
-                f"HTTP Method: GET, Resource Path: /{path}",
-                "Hello world from ApiGwFunction function"
-            ]
+            cmd_list, [f"HTTP Method: GET, Resource Path: /{path}", "Hello world from ApiGwFunction function"]
         )
 
     @parameterized.expand(itertools.product(["HelloWorldServerlessApi"], ["world"]))
@@ -150,9 +154,9 @@ class TestLogsCommand(LogsIntegBase):
             cmd_list,
             [
                 f"HTTP Method: GET, Resource Path: /{path}",
-                "\"type\": \"TaskStateEntered\"",
-                "Hello world from ApiGwFunction function"
-            ]
+                '"type": "TaskStateEntered"',
+                "Hello world from ApiGwFunction function",
+            ],
         )
 
     @parameterized.expand(itertools.product(["ApiGwFunction", "SfnFunction"], [None, "text", "json"]))
@@ -165,15 +169,17 @@ class TestLogsCommand(LogsIntegBase):
         cmd_list = self.get_logs_command_list(self.stack_name, name=function_name, output=output, beta_features=True)
         self._check_logs(cmd_list, [expected_log_output], output=output)
 
-    @parameterized.expand(itertools.product(
-        ["ApiGwFunction", "SfnFunction"],
-        [
-            (None, None, True),
-            (None, "1 minute", True),
-            ("1 minute", None, True),
-            ("now", None, False),
-        ]
-    ))
+    @parameterized.expand(
+        itertools.product(
+            ["ApiGwFunction", "SfnFunction"],
+            [
+                (None, None, True),
+                (None, "1 minute", True),
+                ("1 minute", None, True),
+                ("now", None, False),
+            ],
+        )
+    )
     def test_start_end(self, function_name: str, start_end_time_params: Tuple[Optional[str], Optional[str], bool]):
         (start_time, end_time, should_succeed) = start_end_time_params
         expected_log_output = f"Hello world from {function_name} function"
@@ -201,13 +207,9 @@ class TestLogsCommand(LogsIntegBase):
         cmd_list = self.get_logs_command_list(
             self.stack_name, name=function_name, include_traces=True, beta_features=True
         )
-        self._check_logs(cmd_list, [
-            "New XRay Service Graph",
-            "XRay Event at",
-            expected_log_output
-        ])
+        self._check_logs(cmd_list, ["New XRay Service Graph", "XRay Event at", expected_log_output])
 
-    def _check_logs(self, cmd_list: List, log_strings: List[str], output: str ="text", retries=RETRY_COUNT):
+    def _check_logs(self, cmd_list: List, log_strings: List[str], output: str = "text", retries=RETRY_COUNT):
         for _ in range(retries):
             cmd_result = run_command(cmd_list)
             cmd_stdout = cmd_result.stdout.decode("utf-8")
@@ -228,5 +230,3 @@ class TestLogsCommand(LogsIntegBase):
             time.sleep(RETRY_SLEEP)
 
         raise ValueError(f"No match found for one of the expected log outputs '{log_strings}'")
-
-

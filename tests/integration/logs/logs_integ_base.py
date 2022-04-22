@@ -8,19 +8,18 @@ RETRY_SLEEP = 2
 
 
 class LogsIntegBase(TestCase):
-
     @staticmethod
     def get_logs_command_list(
-            stack_name: str,
-            name: Optional[str] = None,
-            filter: Optional[str] = None,
-            include_traces: bool = False,
-            cw_log_groups: Optional[List] = None,
-            tail: bool = False,
-            start_time: Optional[str] = None,
-            end_time: Optional[str] = None,
-            output: Optional[str] = None,
-            beta_features: bool = False,
+        stack_name: str,
+        name: Optional[str] = None,
+        filter: Optional[str] = None,
+        include_traces: bool = False,
+        cw_log_groups: Optional[List] = None,
+        tail: bool = False,
+        start_time: Optional[str] = None,
+        end_time: Optional[str] = None,
+        output: Optional[str] = None,
+        beta_features: bool = False,
     ):
         command_list = [get_sam_command(), "logs", "--stack-name", stack_name]
 

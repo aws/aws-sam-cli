@@ -10,6 +10,7 @@ class ResourceType(Enum):
     S3_BUCKET = auto()
     IAM_ROLE = auto()
 
+
 from tests.testing_utils import get_sam_command
 
 
