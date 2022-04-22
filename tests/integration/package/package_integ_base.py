@@ -9,8 +9,8 @@ import boto3
 from botocore.exceptions import ClientError
 
 from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack
+from tests.testing_utils import method_to_stack_name
 
-CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
 SLEEP = 3
 
 
@@ -139,9 +139,7 @@ class PackageIntegBase(TestCase):
         return command_list
 
     def _method_to_stack_name(self, method_name):
-        """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
-        method_name = method_name.split(".")[-1]
-        return f"{method_name.replace('_', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
+        return method_to_stack_name(method_name)
 
     def _stack_name_to_companion_stack(self, stack_name):
         return CompanionStack(stack_name).stack_name
