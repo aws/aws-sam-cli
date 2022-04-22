@@ -2,6 +2,7 @@
 Class to parse and update template when tracing is enabled
 """
 import logging
+from typing import Any
 from yaml.parser import ParserError
 from samcli.yamlhelper import parse_yaml_file
 
@@ -73,7 +74,7 @@ class TemplateModifier:
                 self.template[:resource_section_position] + global_section + self.template[resource_section_position:]
             )
 
-    def section_position(self, section, position=0):
+    def section_position(self, section: str, position: int = 0) -> int:
         """
         validate if a section in the template exist
 
@@ -86,8 +87,8 @@ class TemplateModifier:
 
         Returns
         -------
-        tuple
-            tuple of the bool and index of section in the array that stores template data
+        int
+            index of section in the template list
         """
         template = self.template[position:]
         for index, line in enumerate(template):
@@ -96,7 +97,7 @@ class TemplateModifier:
                 return section_index
         return -1
 
-    def add_fields_to_section(self, position, fields):
+    def add_fields_to_section(self, position: int, fields: str) -> Any:
         """
         Adds fields to section in the template
 
@@ -118,7 +119,7 @@ class TemplateModifier:
                 return self.template[: position + index] + fields + self.template[position + index :]
         return self.template
 
-    def field_position(self, position, field):
+    def field_position(self, position, field) -> Any:
         """
         Checks if the field needed to be added to the SAM template already exist in the template
 
@@ -142,7 +143,7 @@ class TemplateModifier:
                 break
         return -1
 
-    def sanity_check(self):
+    def sanity_check(self) -> bool:
         """
         Conducts sanity check on template using yaml parser to ensure the updated template meets
         CFN template criteria
@@ -161,7 +162,7 @@ class TemplateModifier:
             LOG.warning(message)
             return False
 
-    def write(self, template):
+    def write(self, template: list):
         """
         write generated template into SAM template
 
@@ -174,7 +175,7 @@ class TemplateModifier:
             for line in template:
                 f.write(line)
 
-    def get_template(self):
+    def get_template(self) -> list:
         """
         Gets data the SAM templates and returns it in a array
 
@@ -184,5 +185,4 @@ class TemplateModifier:
             array with updated template data
         """
         file = open(self.template_location, "r")
-        template = file.readlines()
-        return template
+        return file.readlines()

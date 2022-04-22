@@ -29,7 +29,7 @@ def generate_project(
     name=None,
     no_input=False,
     extra_context=None,
-    tracing="Disable",
+    tracing="disable",
 ):
     """Generates project using cookiecutter and options given
 

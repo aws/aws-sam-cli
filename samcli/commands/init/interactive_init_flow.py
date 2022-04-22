@@ -326,14 +326,7 @@ def _get_app_template_properties(
 
 def prompt_user_to_enable_tracing():
     """
-    Parameters
-    ----------
-    tracing : bool
-        Boolean to active AWS Lambda X-ray Tracing
-    Returns
-    -------
-    return
-        True if X-Ray Tracing should activate for functions in the SAM template and vice versa
+    Prompt user to if X-Ray Tracing should activated for functions in the SAM template and vice versa
     """
     tracing = "disable"
     if click.confirm("\nWould you like to enable X-Ray tracing on the function(s) in your application? "):
