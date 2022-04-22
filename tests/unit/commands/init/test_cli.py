@@ -117,7 +117,7 @@ class TestCli(TestCase):
             app_template=self.app_template,
             no_input=self.no_input,
             extra_context=None,
-            tracing="disable",
+            tracing=False,
         )
 
         # THEN we should receive no errors
@@ -132,7 +132,7 @@ class TestCli(TestCase):
             self.name,
             True,
             self.extra_context_as_json,
-            "disable",
+            False,
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -155,7 +155,7 @@ class TestCli(TestCase):
             app_template=None,
             no_input=self.no_input,
             extra_context=None,
-            tracing="disable",
+            tracing=False,
         )
 
         # THEN we should receive no errors
@@ -169,7 +169,7 @@ class TestCli(TestCase):
             self.name,
             True,
             {"runtime": "nodejs12.x", "project_name": "testing project", "architectures": {"value": [ARM64]}},
-            "disable",
+            False,
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -192,7 +192,7 @@ class TestCli(TestCase):
             app_template=self.app_template,
             no_input=self.no_input,
             extra_context=None,
-            tracing="enable",
+            tracing=True,
         )
 
         # THEN we should receive no errors
@@ -207,7 +207,7 @@ class TestCli(TestCase):
             self.name,
             True,
             self.extra_context_as_json,
-            "enable",
+            True,
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -230,7 +230,7 @@ class TestCli(TestCase):
             app_template=None,
             no_input=self.no_input,
             extra_context=None,
-            tracing="disable",
+            tracing=False,
         )
 
         # THEN we should receive no errors
@@ -244,7 +244,7 @@ class TestCli(TestCase):
             self.name,
             True,
             {"runtime": "java11", "project_name": "testing project", "architectures": {"value": [X86_64]}},
-            "disable",
+            False,
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -267,7 +267,7 @@ class TestCli(TestCase):
                 app_template="wrong-and-bad",
                 no_input=self.no_input,
                 extra_context=None,
-                tracing="disable",
+                tracing=False,
             )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -290,7 +290,7 @@ class TestCli(TestCase):
                 app_template=self.app_template,
                 no_input=self.no_input,
                 extra_context=None,
-                tracing="disable",
+                tracing=False,
             )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -319,7 +319,7 @@ class TestCli(TestCase):
                 app_template=None,
                 no_input=self.no_input,
                 extra_context=None,
-                tracing="disable",
+                tracing=False,
             )
 
             generate_project_patch.assert_called_with(
@@ -329,7 +329,7 @@ class TestCli(TestCase):
                 self.output_dir,
                 self.name,
                 self.no_input,
-                "disable",
+                False,
             )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -358,7 +358,7 @@ class TestCli(TestCase):
                 app_template=None,
                 no_input=self.no_input,
                 extra_context=None,
-                tracing="disable",
+                tracing=False,
             )
 
             generate_project_patch.assert_called_with(
@@ -368,7 +368,7 @@ class TestCli(TestCase):
                 self.output_dir,
                 self.name,
                 self.no_input,
-                "disable",
+                False,
             )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -391,13 +391,13 @@ class TestCli(TestCase):
             app_template=self.app_template,
             no_input=self.no_input,
             extra_context=None,
-            tracing="disable",
+            tracing=False,
         )
 
         # THEN we should receive no errors
         self.extra_context_as_json["architectures"] = {"value": [ARM64]}
         generate_project_patch.assert_called_once_with(
-            ANY, ZIP, self.runtime, self.dependency_manager, ".", self.name, True, self.extra_context_as_json, "disable"
+            ANY, ZIP, self.runtime, self.dependency_manager, ".", self.name, True, self.extra_context_as_json, False
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -420,7 +420,7 @@ class TestCli(TestCase):
             app_template=self.app_template,
             no_input=self.no_input,
             extra_context='{"schema_name":"events", "schema_type":"aws"}',
-            tracing="disable",
+            tracing=False,
         )
 
         # THEN we should receive no errors and right extra_context should be passed
@@ -439,7 +439,7 @@ class TestCli(TestCase):
                 "schema_type": "aws",
                 "architectures": {"value": [X86_64]},
             },
-            "disable",
+            False,
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -464,7 +464,7 @@ class TestCli(TestCase):
             app_template=self.app_template,
             no_input=self.no_input,
             extra_context='{"project_name": "my_project", "runtime": "java8", "schema_name":"events", "schema_type": "aws"}',
-            tracing="disable",
+            tracing=False,
         )
 
         # THEN extra_context should have not overridden default_parameters(name, runtime)
@@ -483,7 +483,7 @@ class TestCli(TestCase):
                 "schema_type": "aws",
                 "architectures": {"value": [ARM64]},
             },
-            "disable",
+            False,
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -506,7 +506,7 @@ class TestCli(TestCase):
                 app_template=self.app_template,
                 no_input=self.no_input,
                 extra_context='{"project_name", "my_project", "runtime": "java8", "schema_name":"events", "schema_type": "aws"}',
-                tracing="disable",
+                tracing=False,
             )
 
     @patch("samcli.commands.init.init_generator.generate_project")
@@ -528,7 +528,7 @@ class TestCli(TestCase):
             app_template=None,
             no_input=None,
             extra_context='{"schema_name":"events", "schema_type": "aws"}',
-            tracing="disable",
+            tracing=False,
         )
 
         # THEN should set default parameter(name, runtime) as extra_context
@@ -547,7 +547,7 @@ class TestCli(TestCase):
                 "project_name": "test-project",
                 "architectures": {"value": [X86_64]},
             },
-            "disable",
+            False,
         )
 
     @patch("samcli.commands.init.init_generator.generate_project")
@@ -569,7 +569,7 @@ class TestCli(TestCase):
             app_template=None,
             no_input=None,
             extra_context='{"schema_name":"events", "schema_type": "aws"}',
-            tracing="disable",
+            tracing=False,
         )
 
         # THEN extra_context should be without runtime
@@ -587,7 +587,7 @@ class TestCli(TestCase):
                 "project_name": "test-project",
                 "architectures": {"value": [ARM64]},
             },
-            "disable",
+            False,
         )
 
     @patch("samcli.commands.init.init_generator.generate_project")
@@ -609,7 +609,7 @@ class TestCli(TestCase):
             app_template=None,
             no_input=None,
             extra_context='{"schema_name":"events", "schema_type": "aws"}',
-            tracing="disable",
+            tracing=False,
         )
 
         # THEN extra_context should be without name
@@ -627,7 +627,7 @@ class TestCli(TestCase):
                 "runtime": "java8",
                 "architectures": {"value": [ARM64]},
             },
-            "disable",
+            False,
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -651,7 +651,7 @@ class TestCli(TestCase):
             no_input=self.no_input,
             # fmt: off
             extra_context='{\"schema_name\":\"events\", \"schema_type\":\"aws\"}',
-            tracing="disable",
+            tracing=False,
             # fmt: on
         )
 
@@ -671,7 +671,7 @@ class TestCli(TestCase):
                 "schema_type": "aws",
                 "architectures": {"value": [X86_64]},
             },
-            "disable",
+            False,
         )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -812,7 +812,7 @@ Y
                 "AWS_Schema_root": "schemas.aws.AWSAPICallViaCloudTrail",
                 "architectures": {"value": [X86_64]},
             },
-            "disable",
+            False,
         )
         get_schemas_client_mock.assert_called_once_with(None, "ap-northeast-1")
         do_extract_and_merge_schemas_code_mock.do_extract_and_merge_schemas_code_mock(
@@ -880,7 +880,7 @@ test-project
             "test-project",
             True,
             {"project_name": "test-project", "runtime": "java8", "architectures": {"value": [X86_64]}},
-            "disable",
+            False,
         )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -1026,7 +1026,7 @@ us-east-1
                 "AWS_Schema_root": "schemas.aws.AWSAPICallViaCloudTrail",
                 "architectures": {"value": [X86_64]},
             },
-            "disable",
+            False,
         )
         get_schemas_client_mock.assert_called_once_with("default", "us-east-1")
         do_extract_and_merge_schemas_code_mock.do_extract_and_merge_schemas_code("result.zip", ".", "test-project", ANY)
@@ -1277,7 +1277,7 @@ Y
                 "AWS_Schema_root": "schemas.aws.AWSAPICallViaCloudTrail",
                 "architectures": {"value": [X86_64]},
             },
-            "disable",
+            False,
         )
         get_schemas_client_mock.assert_called_once_with(None, "ap-northeast-1")
         do_extract_and_merge_schemas_code_mock.do_extract_and_merge_schemas_code_mock(
@@ -1424,7 +1424,7 @@ Y
             no_input=self.no_input,
             extra_context=None,
             architecture=ARM64,
-            tracing="disable",
+            tracing=False,
         )
 
         self.extra_context_as_json["architectures"] = {"value": [ARM64]}
@@ -1438,7 +1438,7 @@ Y
             self.name,
             True,
             self.extra_context_as_json,
-            "disable",
+            False,
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -1503,7 +1503,7 @@ n
         # THEN we should receive no errors
         self.assertFalse(result.exception)
         generate_project_patch.assert_called_once_with(
-            ANY, IMAGE, "python3.8", "pip", ".", "untitled6", True, ANY, "disable"
+            ANY, IMAGE, "python3.8", "pip", ".", "untitled6", True, ANY, False
         )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -1544,7 +1544,7 @@ n
                 runtime=None,
                 no_input=self.no_input,
                 extra_context=self.extra_context,
-                tracing="disable",
+                tracing=False,
             )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -1585,7 +1585,7 @@ n
                 runtime=None,
                 no_input=self.no_input,
                 extra_context=self.extra_context,
-                tracing="disable",
+                tracing=False,
             )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -1627,7 +1627,7 @@ n
             runtime=None,
             no_input=None,
             extra_context=None,
-            tracing="disable",
+            tracing=False,
         )
         generate_project_patch.assert_called_once_with(
             ANY,  # location
@@ -1638,7 +1638,7 @@ n
             self.name,
             True,  # no_input
             ANY,
-            "disable",
+            False,
         )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -1672,7 +1672,7 @@ n
             runtime=None,
             no_input=None,
             extra_context=None,
-            tracing="disable",
+            tracing=False,
             architecture=None,
         )
         generate_project_patch.assert_called_once_with(
@@ -1684,7 +1684,7 @@ n
             self.name,
             True,  # no_input
             ANY,
-            "disable",
+            False,
         )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -1718,7 +1718,7 @@ n
             runtime=None,
             no_input=None,
             extra_context=None,
-            tracing="disable",
+            tracing=False,
             architecture=None,
         )
         generate_project_patch.assert_called_once_with(
@@ -1730,7 +1730,7 @@ n
             self.name,
             True,  # no_input
             ANY,
-            "disable",
+            False,
         )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -1765,7 +1765,7 @@ n
                 runtime=None,
                 no_input=None,
                 extra_context=None,
-                tracing="disable",
+                tracing=False,
                 architecture=None,
             )
 
@@ -1885,7 +1885,7 @@ test-project
             "test-project",
             True,
             {"project_name": "test-project", "runtime": "python3.9", "architectures": {"value": ["x86_64"]}},
-            "disable",
+            False,
         )
 
     @patch("samcli.commands.init.init_templates.InitTemplates.get_preprocessed_manifest")
@@ -1972,7 +1972,7 @@ test-project
             "test-project",
             True,
             {"project_name": "test-project", "runtime": "java11", "architectures": {"value": ["x86_64"]}},
-            "disable",
+            False,
         )
 
     def test_must_return_runtime_from_base_image_name(self):
@@ -2129,7 +2129,7 @@ test-project
                 app_template=self.app_template,
                 no_input=self.no_input,
                 extra_context=None,
-                tracing="disable",
+                tracing=False,
                 architecture=X86_64,
             )
         expected_error_message = (
@@ -2245,7 +2245,7 @@ test-project
             "test-project",
             True,
             {"project_name": "test-project", "runtime": "java11", "architectures": {"value": ["x86_64"]}},
-            "disable",
+            False,
         )
 
     @patch("samcli.commands.init.init_templates.LOG")
@@ -2453,7 +2453,7 @@ test-project
             "test-project",
             True,
             {"project_name": "test-project", "runtime": "java11", "architectures": {"value": ["x86_64"]}},
-            "disable",
+            False,
         )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -2542,7 +2542,7 @@ test-project
             "test-project",
             True,
             {"project_name": "test-project", "runtime": "java11", "architectures": {"value": ["x86_64"]}},
-            "disable",
+            False,
         )
 
     def does_template_meet_filter_criteria(self):
@@ -2623,7 +2623,7 @@ test-project
             "test-project",
             True,
             {"project_name": "test-project", "runtime": "java11", "architectures": {"value": ["x86_64"]}},
-            "disable",
+            False,
         )
 
     @patch("samcli.local.common.runtime_template.INIT_RUNTIMES")
@@ -2710,7 +2710,7 @@ test-project
             "test-project",
             True,
             {"project_name": "test-project", "runtime": "provided.al2", "architectures": {"value": ["x86_64"]}},
-            "disable",
+            False,
         )
 
     @patch("samcli.commands.init.init_templates.InitTemplates._get_manifest")
@@ -2789,7 +2789,7 @@ test-project
             "test-project",
             True,
             {"project_name": "test-project", "runtime": "provided.al2", "architectures": {"value": ["x86_64"]}},
-            "disable",
+            False,
         )
 
     @patch("samcli.commands.init.init_templates.InitTemplates.get_preprocessed_manifest")
@@ -2861,7 +2861,7 @@ test-project
         """
 
         runner = CliRunner()
-        result = runner.invoke(init_cmd, ["--tracing", "enable"], input=user_input)
+        result = runner.invoke(init_cmd, ["--tracing"], input=user_input)
         self.assertFalse(result.exception)
         generate_project_patch.assert_called_once_with(
             ANY,
@@ -2872,5 +2872,5 @@ test-project
             "test-project",
             True,
             {"project_name": "test-project", "runtime": "java11", "architectures": {"value": ["x86_64"]}},
-            "enable",
+            True,
         )

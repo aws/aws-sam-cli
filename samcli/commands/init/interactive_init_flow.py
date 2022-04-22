@@ -139,7 +139,7 @@ def _generate_from_use_case(
     name: Optional[str],
     app_template: Optional[str],
     architecture: Optional[str],
-    tracing: str,
+    tracing: Optional[bool],
 ) -> None:
     templates = InitTemplates()
     runtime_or_base_image = runtime if runtime else base_image
@@ -164,7 +164,7 @@ def _generate_from_use_case(
     )
     runtime, base_image, package_type, dependency_manager, template_chosen = chosen_app_template_properties
 
-    if not tracing:
+    if tracing is None:
         tracing = prompt_user_to_enable_tracing()
 
     app_template = template_chosen["appTemplate"]
@@ -328,12 +328,11 @@ def prompt_user_to_enable_tracing():
     """
     Prompt user to if X-Ray Tracing should activated for functions in the SAM template and vice versa
     """
-    tracing = "disable"
     if click.confirm("\nWould you like to enable X-Ray tracing on the function(s) in your application? "):
         doc_link = "https://aws.amazon.com/xray/pricing/"
         click.echo(f"X-Ray will incur an additional cost. View {doc_link} for more details")
-        tracing = "enable"
-    return tracing
+        return True
+    return False
 
 
 def _get_choice_from_options(chosen, options, question, msg):

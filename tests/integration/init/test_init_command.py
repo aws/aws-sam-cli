@@ -327,7 +327,6 @@ class TestBasicInitCommand(TestCase):
                     "-o",
                     temp,
                     "--tracing",
-                    "enable",
                 ]
             )
             try:
@@ -356,8 +355,7 @@ class TestBasicInitCommand(TestCase):
                     "--no-interactive",
                     "-o",
                     temp,
-                    "--tracing",
-                    "disable",
+                    "--no-tracing",
                 ]
             )
             try:
@@ -686,7 +684,7 @@ class TestInitWithArbitraryProject(TestCase):
 
 
 def _get_command():
-    command = "samdev"
+    command = "sam"
     if os.getenv("SAM_CLI_DEV"):
         command = "samdev"
     return command
