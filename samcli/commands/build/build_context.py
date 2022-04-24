@@ -266,7 +266,7 @@ Built Template   : {template}
 
 Commands you can use next
 =========================
-[*] Validate SAM template: sam validate --profile {{profile-name}}
+[*] Validate SAM template: sam validate
 [*] Invoke Function: {invokecmd}
 [*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
 [*] Deploy: {deploycmd}
