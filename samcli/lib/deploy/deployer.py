@@ -416,6 +416,8 @@ class Deployer:
                 if self._check_stack_not_in_progress(stack_status):
                     stack_change_in_progress = False
                     break
+                # Reset retry attempts if iteration is a success to use client_sleep again
+                retry_attempts = 0
             except botocore.exceptions.ClientError as ex:
                 retry_attempts = retry_attempts + 1
                 if retry_attempts > self.max_attempts:
