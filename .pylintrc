@@ -97,7 +97,11 @@ disable=
     C0103, # Class constant name "%s" doesn't conform to UPPER_CASE naming style ('([^\\W\\da-z][^\\Wa-z]*|__.*__)$' pattern) (invalid-name)
     # New recommendations, disable for now to avoid introducing behaviour changes.
     R1729, # Use a generator instead '%s' (use-a-generator)
-    R1732, # Consider using 'with' for resource-allocating operations (consider-using-with)
+    C0209, # Formatting a regular string which could be a f-string (consider-using-f-string)
+    W1514, # Using open without explicitly specifying an encoding (unspecified-encoding)
+    R1734, # Consider using [] instead of list() (use-list-literal)
+    R1735, # Consider using {} instead of dict() (use-dict-literal)
+
     # This applies to CPython only.
     I1101, # Module 'math' has no 'pow' member, but source is unavailable. Consider adding this module to extension-pkg-allow-list if you want to perform analysis based on run-time introspection of living objects. (c-extension-no-member)
 

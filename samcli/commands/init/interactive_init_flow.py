@@ -1,6 +1,8 @@
 """
 Isolates interactive init prompt flow. Expected to call generator logic at end of flow.
 """
+import functools
+import re
 import tempfile
 import logging
 from typing import Optional, Tuple
@@ -15,7 +17,12 @@ from samcli.commands.init.interactive_event_bridge_flow import (
 )
 from samcli.commands.exceptions import SchemasApiException, InvalidInitOptionException
 from samcli.lib.schemas.schemas_code_manager import do_download_source_code_binding, do_extract_and_merge_schemas_code
-from samcli.local.common.runtime_template import LAMBDA_IMAGES_RUNTIMES_MAP, INIT_RUNTIMES
+from samcli.local.common.runtime_template import (
+    INIT_RUNTIMES,
+    LAMBDA_IMAGES_RUNTIMES_MAP,
+    get_provided_runtime_from_custom_runtime,
+    is_custom_runtime,
+)
 from samcli.commands.init.init_generator import do_generate
 from samcli.commands.init.init_templates import InitTemplates, InvalidInitTemplateError
 from samcli.lib.utils.osutils import remove
@@ -154,15 +161,19 @@ def _generate_from_use_case(
     base_image = (
         LAMBDA_IMAGES_RUNTIMES_MAP.get(str(runtime)) if not base_image and package_type == IMAGE else base_image
     )
-    location = templates.location_from_app_template(package_type, runtime, base_image, dependency_manager, app_template)
 
     if not name:
         name = click.prompt("\nProject name", type=str, default="sam-app")
 
+    location = templates.location_from_app_template(package_type, runtime, base_image, dependency_manager, app_template)
+
     final_architecture = get_architectures(architecture)
+    lambda_supported_runtime = (
+        get_provided_runtime_from_custom_runtime(runtime) if is_custom_runtime(runtime) else runtime
+    )
     extra_context = {
         "project_name": name,
-        "runtime": runtime,
+        "runtime": lambda_supported_runtime,
         "architectures": {"value": final_architecture},
     }
 
@@ -189,10 +200,14 @@ def _generate_from_use_case(
     [*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
     """
     click.secho(next_commands_msg, fg="yellow")
-    do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, extra_context)
+    do_generate(
+        location, package_type, lambda_supported_runtime, dependency_manager, output_dir, name, no_input, extra_context
+    )
     # executing event_bridge logic if call is for Schema dynamic template
     if is_dynamic_schemas_template:
-        _package_schemas_code(runtime, schemas_api_caller, schema_template_details, output_dir, name, location)
+        _package_schemas_code(
+            lambda_supported_runtime, schemas_api_caller, schema_template_details, output_dir, name, location
+        )
 
 
 def _generate_default_hello_world_application(
@@ -228,8 +243,8 @@ def _generate_default_hello_world_application(
     """
     is_package_type_image = bool(package_type == IMAGE)
     if use_case == "Hello World Example" and not (runtime or base_image or is_package_type_image or dependency_manager):
-        if click.confirm("\n Use the most popular runtime and package type? (Nodejs and zip)"):
-            runtime, package_type, dependency_manager, pt_explicit = "nodejs14.x", ZIP, "npm", True
+        if click.confirm("\n Use the most popular runtime and package type? (Python and zip)"):
+            runtime, package_type, dependency_manager, pt_explicit = "python3.9", ZIP, "pip", True
     return (runtime, package_type, dependency_manager, pt_explicit)
 
 
@@ -262,6 +277,7 @@ def _get_app_template_properties(
     """
     runtime, package_type, dependency_manager, pt_explicit = template_properties
     runtime_options = preprocessed_options[use_case]
+    runtime = None if is_custom_runtime(runtime) else runtime
     if not runtime and not base_image:
         question = "Which runtime would you like to use?"
         runtime = _get_choice_from_options(runtime, runtime_options, question, "Runtime")
@@ -297,6 +313,7 @@ def _get_choice_from_options(chosen, options, question, msg):
     click_choices = []
 
     options_list = options if isinstance(options, list) else list(options.keys())
+    options_list = get_sorted_runtimes(options_list) if msg == "Runtime" else options_list
 
     if not options_list:
         raise InvalidInitOptionException(f"There are no {msg} options available to be selected.")
@@ -309,9 +326,7 @@ def _get_choice_from_options(chosen, options, question, msg):
         return options_list[0]
 
     click.echo(f"\n{question}")
-    options_list = (
-        get_sorted_runtimes(options_list) if msg == "Runtime" and not isinstance(options, list) else options_list
-    )
+
     for index, option in enumerate(options_list):
         click.echo(f"\t{index+1} - {option}")
         click_choices.append(str(index + 1))
@@ -319,15 +334,135 @@ def _get_choice_from_options(chosen, options, question, msg):
     return options_list[int(choice) - 1]
 
 
-def get_sorted_runtimes(options_list):
-    runtimes = []
-    for runtime in options_list:
-        position = INIT_RUNTIMES.index(runtime)
-        runtimes.append(position)
-    sorted_runtimes = sorted(runtimes)
-    for index, position in enumerate(sorted_runtimes):
-        sorted_runtimes[index] = INIT_RUNTIMES[position]
-    return sorted_runtimes
+def get_sorted_runtimes(runtime_option_list):
+    """
+    Return a list of sorted runtimes in ascending order of runtime names and
+    descending order of runtime version.
+
+    Parameters
+    ----------
+    runtime_option_list : list
+        list of possible runtime to be selected
+
+    Returns
+    -------
+    list
+        sorted list of possible runtime to be selected
+    """
+    supported_runtime_list = get_supported_runtime(runtime_option_list)
+    return sorted(supported_runtime_list, key=functools.cmp_to_key(compare_runtimes))
+
+
+def get_supported_runtime(runtime_list):
+    """
+    Returns a list of only runtimes supported by the current version of SAMCLI.
+    This is the list that is presented to the customer to select from.
+
+    Parameters
+    ----------
+    runtime_list : list
+        List of runtime
+
+    Returns
+    -------
+    list
+        List of supported runtime
+    """
+    supported_runtime_list = []
+    error_message = ""
+    for runtime in runtime_list:
+        if runtime not in INIT_RUNTIMES and not is_custom_runtime(runtime):
+            if not error_message:
+                error_message = "Additional runtimes may be available in the latest SAM CLI version. \
+                    Upgrade your SAM CLI to see the full list."
+                LOG.debug(error_message)
+            continue
+        supported_runtime_list.append(runtime)
+
+    return supported_runtime_list
+
+
+def compare_runtimes(first_runtime, second_runtime):
+    """
+    Logic to compare supported runtime for sorting.
+
+    Parameters
+    ----------
+    first_runtime : str
+        runtime to be compared
+    second_runtime : str
+        runtime to be compared
+
+    Returns
+    -------
+    int
+        comparison result
+    """
+
+    first_runtime_name, first_version_number = _split_runtime(first_runtime)
+    second_runtime_name, second_version_number = _split_runtime(second_runtime)
+
+    if first_runtime_name == second_runtime_name:
+        if first_version_number == second_version_number:
+            # If it's the same runtime and version return al2 first
+            return -1 if first_runtime.endswith(".al2") else 1
+        return second_version_number - first_version_number
+
+    return 1 if first_runtime_name > second_runtime_name else -1
+
+
+def _split_runtime(runtime):
+    """
+    Split a runtime into its name and version number.
+
+    Parameters
+    ----------
+    runtime : str
+        Runtime in the format supported by Lambda
+
+    Returns
+    -------
+    (str, float)
+        Tuple of runtime name and runtime version
+    """
+    return (_get_runtime_name(runtime), _get_version_number(runtime))
+
+
+def _get_runtime_name(runtime):
+    """
+    Return the runtime name without the version
+
+    Parameters
+    ----------
+    runtime : str
+        Runtime in the format supported by Lambda.
+
+    Returns
+    -------
+    str
+        Runtime name, which is obtained as everything before the first number
+    """
+    return re.split(r"\d", runtime)[0]
+
+
+def _get_version_number(runtime):
+    """
+    Return the runtime version number
+
+    Parameters
+    ----------
+    runtime_version : str
+        version of a runtime
+
+    Returns
+    -------
+    float
+        Runtime version number
+    """
+
+    if is_custom_runtime(runtime):
+        return 1.0
+    return float(re.search(r"\d+(\.\d+)?", runtime).group())
 
 
 def _get_app_template_choice(templates_options, dependency_manager):
@@ -398,10 +533,9 @@ def _get_schema_template_details(schemas_api_caller):
 def _package_schemas_code(runtime, schemas_api_caller, schema_template_details, output_dir, name, location):
     try:
         click.echo("Trying to get package schema code")
-        download_location = tempfile.NamedTemporaryFile(delete=False)
-        do_download_source_code_binding(runtime, schema_template_details, schemas_api_caller, download_location)
-        do_extract_and_merge_schemas_code(download_location, output_dir, name, location)
-        download_location.close()
+        with tempfile.NamedTemporaryFile(delete=False) as download_location:
+            do_download_source_code_binding(runtime, schema_template_details, schemas_api_caller, download_location)
+            do_extract_and_merge_schemas_code(download_location, output_dir, name, location)
     except (ClientError, WaiterError) as e:
         raise SchemasApiException(
             "Exception occurs while packaging Schemas code. %s" % e.response["Error"]["Message"]

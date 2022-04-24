@@ -8,18 +8,31 @@ import logging
 import os
 from pathlib import Path
 from typing import Dict, Optional
+import requests
 
 from samcli.cli.global_config import GlobalConfig
 from samcli.commands.exceptions import UserException, AppTemplateUpdateException
-from samcli.lib.utils.git_repo import GitRepo, CloneRepoException, CloneRepoUnstableStateException
+from samcli.lib.utils import configuration
+from samcli.lib.utils.git_repo import (
+    GitRepo,
+    CloneRepoException,
+    CloneRepoUnstableStateException,
+    ManifestNotFoundException,
+)
 from samcli.lib.utils.packagetype import IMAGE
 from samcli.local.common.runtime_template import (
     RUNTIME_DEP_TEMPLATE_MAPPING,
+    get_provided_runtime_from_custom_runtime,
     get_local_lambda_images_location,
     get_local_manifest_path,
+    is_custom_runtime,
 )
 
 LOG = logging.getLogger(__name__)
+APP_TEMPLATES_REPO_COMMIT = configuration.get_app_template_repo_commit()
+MANIFEST_URL = (
+    f"https://raw.githubusercontent.com/aws/aws-sam-cli-app-templates/{APP_TEMPLATES_REPO_COMMIT}/manifest-v2.json"
+)
 APP_TEMPLATES_REPO_URL = "https://github.com/aws/aws-sam-cli-app-templates"
 APP_TEMPLATES_REPO_NAME = "aws-sam-cli-app-templates"
 
@@ -31,7 +44,7 @@ class InvalidInitTemplateError(UserException):
 class InitTemplates:
     def __init__(self):
         self._git_repo: GitRepo = GitRepo(url=APP_TEMPLATES_REPO_URL)
-        self.manifest_file_name = "manifest.json"
+        self.manifest_file_name = "manifest-v2.json"
 
     def location_from_app_template(self, package_type, runtime, base_image, dependency_manager, app_template):
         options = self.init_options(package_type, runtime, base_image, dependency_manager)
@@ -62,7 +75,12 @@ class InitTemplates:
         if not self._git_repo.clone_attempted:
             shared_dir: Path = GlobalConfig().config_dir
             try:
-                self._git_repo.clone(clone_dir=shared_dir, clone_name=APP_TEMPLATES_REPO_NAME, replace_existing=True)
+                self._git_repo.clone(
+                    clone_dir=shared_dir,
+                    clone_name=APP_TEMPLATES_REPO_NAME,
+                    replace_existing=True,
+                    commit=APP_TEMPLATES_REPO_COMMIT,
+                )
             except CloneRepoUnstableStateException as ex:
                 raise AppTemplateUpdateException(str(ex)) from ex
             except (OSError, CloneRepoException):
@@ -145,9 +163,9 @@ class InitTemplates:
         https://github.com/aws/aws-sam-cli-app-templates/blob/master/manifest.json
         The structure of the manifest is shown below:
         {
-            "dotnetcore2.1": [
+            "dotnetcore3.1": [
                 {
-                    "directory": "dotnetcore2.1/cookiecutter-aws-sam-hello-dotnet",
+                    "directory": "dotnetcore3.1/cookiecutter-aws-sam-hello-dotnet",
                     "displayName": "Hello World Example",
                     "dependencyManager": "cli-package",
                     "appTemplate": "hello-world",
@@ -171,17 +189,14 @@ class InitTemplates:
         [dict]
             This is preprocessed manifest with the use_case as key
         """
-        self.clone_templates_repo()
-        manifest_path = self.get_manifest_path()
-        with open(str(manifest_path)) as fp:
-            body = fp.read()
-            manifest_body = json.loads(body)
+        manifest_body = self._get_manifest()
 
         # This would ensure the Use-Case Hello World Example appears
         # at the top of list template example displayed to the Customer.
         preprocessed_manifest = {"Hello World Example": {}}  # type: dict
         for template_runtime in manifest_body:
-            if filter_value and filter_value != template_runtime:
+            if not filter_value_matches_template_runtime(filter_value, template_runtime):
+                LOG.debug("Template runtime %s does not match filter value %s", template_runtime, filter_value)
                 continue
             template_list = manifest_body[template_runtime]
             for template in template_list:
@@ -204,8 +219,33 @@ class InitTemplates:
 
         return preprocessed_manifest
 
-    def get_bundle_option(self, package_type, runtime, dependency_manager):
-        return self._init_options_from_bundle(package_type, runtime, dependency_manager)
+    def _get_manifest(self):
+        """
+        In an attempt to reduce initial wait time to achieve an interactive
+        flow <= 10sec, This method first attempts to spools just the manifest file and
+        if the manifest can't be spooled, it attempts to clone the cli template git repo or
+        use local cli template
+        """
+        try:
+            response = requests.get(MANIFEST_URL, timeout=10)
+            body = response.text
+            # if the commit is not exist then MANIFEST_URL will be invalid, fall back to use manifest in latest commit
+            if response.status_code == 404:
+                LOG.warning(
+                    "Request to MANIFEST_URL: %s failed, the commit hash in this url maybe invalid, "
+                    "Using manifest.json in the latest commit instead.",
+                    MANIFEST_URL,
+                )
+                raise ManifestNotFoundException()
+
+        except (requests.Timeout, requests.ConnectionError, ManifestNotFoundException):
+            LOG.debug("Request to get Manifest failed, attempting to clone the repository")
+            self.clone_templates_repo()
+            manifest_path = self.get_manifest_path()
+            with open(str(manifest_path)) as fp:
+                body = fp.read()
+        manifest_body = json.loads(body)
+        return manifest_body
 
 
 def get_template_value(value: str, template: dict) -> Optional[str]:
@@ -248,3 +288,28 @@ def template_does_not_meet_filter_criteria(
         or (package_type and package_type != template.get("packageType"))
         or (dependency_manager and dependency_manager != template.get("dependencyManager"))
     )
+
+
+def filter_value_matches_template_runtime(filter_value, template_runtime):
+    """
+    Validate if the filter value matches template runtimes from the manifest file
+
+    Parameters
+    ----------
+    filter_value : str
+        Lambda runtime used to filter through data generated from the manifest
+    template_runtime : str
+        Runtime of the template in view
+
+    Returns
+    -------
+    bool
+        True if there is a match else False
+    """
+    if not filter_value:
+        return True
+    if is_custom_runtime(filter_value) and filter_value != get_provided_runtime_from_custom_runtime(template_runtime):
+        return False
+    if not is_custom_runtime(filter_value) and filter_value != template_runtime:
+        return False
+    return True

@@ -1,0 +1,48 @@
+{
+    "type": "REQUEST",
+    "methodArn": "arn:{{{partition}}}:execute-api:{{{region}}}:{{{account_id}}}:{{{restApiId}}}/{{{stage}}}/{{{method}}}/{{{resource}}}",
+    "resource": "/{{{resource}}}",
+    "path": "/{{{resource}}}",
+    "httpMethod": "{{{method}}}",
+    "headers": {
+      "X-AMZ-Date": "20170718T062915Z",
+      "Accept": "*/*",
+      "HeaderAuth1": "headerValue1",
+      "CloudFront-Viewer-Country": "US",
+      "CloudFront-Forwarded-Proto": "https",
+      "CloudFront-Is-Tablet-Viewer": "false",
+      "CloudFront-Is-Mobile-Viewer": "false",
+      "User-Agent": "..."
+    },
+    "queryStringParameters": {
+      "QueryString1": "queryValue1"
+    },
+    "pathParameters": {},
+    "stageVariables": {
+      "StageVar1": "stageValue1"
+    },
+    "requestContext": {
+      "path": "/{{{resource}}}",
+      "accountId": "{{{account_id}}}",
+      "resourceId": "05c7jb",
+      "stage": "{{{stage}}}",
+      "requestId": "...",
+      "identity": {
+        "apiKey": "...",
+        "sourceIp": "...",
+        "clientCert": {
+          "clientCertPem": "CERT_CONTENT",
+          "subjectDN": "www.example.com",
+          "issuerDN": "Example issuer",
+          "serialNumber": "a1:a1:a1:a1:a1:a1:a1:a1:a1:a1:a1:a1:a1:a1:a1:a1",
+          "validity": {
+            "notBefore": "May 28 12:30:02 2019 GMT",
+            "notAfter": "Aug  5 09:36:04 2021 GMT"
+          }
+        }
+      },
+      "resourcePath": "/{{{resource}}}",
+      "httpMethod": "{{{method}}}",
+      "apiId": "{{{restApiId}}}"
+    }
+  }

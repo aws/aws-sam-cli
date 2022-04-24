@@ -10,7 +10,7 @@ from pathlib import Path
 from cookiecutter.exceptions import CookiecutterException, RepositoryNotFound, UnknownRepoType
 from cookiecutter.main import cookiecutter
 
-from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING
+from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING, is_custom_runtime
 from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.utils import osutils
 from .exceptions import GenerateProjectFailedError, InvalidLocationError
@@ -64,7 +64,7 @@ def generate_project(
     """
     template = None
 
-    if runtime and package_type == ZIP:
+    if runtime and not is_custom_runtime(runtime) and package_type == ZIP:
         for mapping in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values()))):
             if runtime in mapping["runtimes"] or any([r.startswith(runtime) for r in mapping["runtimes"]]):
                 if not dependency_manager or dependency_manager == mapping["dependency_manager"]:
@@ -97,7 +97,7 @@ def generate_project(
         # https://github.com/cookiecutter/cookiecutter/pull/1407
         if platform.system().lower() == "windows":
             osutils.convert_files_to_unix_line_endings(output_dir, ["gradlew"])
-    except RepositoryNotFound as e:
+    except RepositoryNotFound:
         # cookiecutter.json is not found in the template. Let's just clone it directly without using cookiecutter
         # and call it done.
         LOG.debug(

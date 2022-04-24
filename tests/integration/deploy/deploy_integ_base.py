@@ -1,5 +1,15 @@
-import os
 from unittest import TestCase
+from enum import Enum, auto
+
+import boto3
+from botocore.config import Config
+from tests.testing_utils import get_sam_command
+
+
+class ResourceType(Enum):
+    LAMBDA_FUNCTION = auto()
+    S3_BUCKET = auto()
+    IAM_ROLE = auto()
 
 
 class DeployIntegBase(TestCase):
@@ -9,19 +19,65 @@ class DeployIntegBase(TestCase):
 
     def setUp(self):
         super().setUp()
+        self.left_over_resources = {
+            ResourceType.LAMBDA_FUNCTION: list(),
+            ResourceType.S3_BUCKET: list(),
+            ResourceType.IAM_ROLE: list(),
+        }
 
     def tearDown(self):
         super().tearDown()
+        self.delete_s3_buckets()
+        self.delete_iam_roles()
+        self.delete_lambda_functions()
 
-    def base_command(self):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
+    def delete_s3_buckets(self):
+        config = Config(retries={"max_attempts": 10, "mode": "adaptive"})
+        s3 = boto3.resource("s3", config=config)
 
-        return command
+        for bucket_name in self.left_over_resources[ResourceType.S3_BUCKET]:
+            try:
+                s3_bucket = s3.Bucket(bucket_name)
+                s3_bucket.objects.all().delete()
+                s3_bucket.object_versions.all().delete()
+                s3_bucket.delete()
+            except s3.meta.client.exceptions.NoSuchBucket:
+                pass
 
+    def delete_iam_roles(self):
+        iam = boto3.resource("iam")
+        for role_name in self.left_over_resources[ResourceType.IAM_ROLE]:
+            try:
+                role = iam.Role(role_name)
+                policies = role.attached_policies.all()
+                for policy in policies:
+                    role.detach_policy(PolicyArn=policy.arn)
+                role.delete()
+            except iam.meta.client.exceptions.NoSuchEntityException:
+                pass
+
+    def delete_lambda_functions(self):
+        lambda_client = boto3.client("lambda")
+        for function_name in self.left_over_resources[ResourceType.LAMBDA_FUNCTION]:
+            try:
+                lambda_client.delete_function(FunctionName=function_name)
+            except lambda_client.exceptions.ResourceNotFoundException:
+                pass
+
+    def add_left_over_resources_from_stack(self, stack_name):
+        resources = boto3.client("cloudformation").describe_stack_resources(StackName=stack_name).get("StackResources")
+        for resource in resources:
+            resource_type = resource.get("ResourceType")
+            resource_physical_id = resource.get("PhysicalResourceId")
+            if resource_type == "AWS::Lambda::Function":
+                self.left_over_resources[ResourceType.LAMBDA_FUNCTION].append(resource_physical_id)
+            elif resource_type == "AWS::IAM::Role":
+                self.left_over_resources[ResourceType.IAM_ROLE].append(resource_physical_id)
+            elif resource_type == "AWS::S3::Bucket":
+                self.left_over_resources[ResourceType.S3_BUCKET].append(resource_physical_id)
+
+    @staticmethod
     def get_deploy_command_list(
-        self,
         s3_bucket=None,
         image_repository=None,
         image_repositories=None,
@@ -49,7 +105,7 @@ class DeployIntegBase(TestCase):
         resolve_image_repos=False,
         disable_rollback=False,
     ):
-        command_list = [self.base_command(), "deploy"]
+        command_list = [get_sam_command(), "deploy"]
 
         if guided:
             command_list = command_list + ["--guided"]
@@ -112,8 +168,9 @@ class DeployIntegBase(TestCase):
 
         return command_list
 
+    @staticmethod
     def get_minimal_build_command_list(self, template_file=None, build_dir=None):
-        command_list = [self.base_command(), "build"]
+        command_list = [get_sam_command(), "build"]
 
         if template_file:
             command_list = command_list + ["--template-file", str(template_file)]

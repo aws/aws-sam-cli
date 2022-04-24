@@ -1,11 +1,19 @@
 import logging
 import os
 import platform
+import subprocess
 import tempfile
-import shutil
+
+from threading import Thread
+from typing import Callable, List, Optional
 from collections import namedtuple
 from subprocess import Popen, PIPE, TimeoutExpired
-from typing import List
+from queue import Queue
+
+import shutil
+from uuid import uuid4
+
+import psutil  # type: ignore
 
 IS_WINDOWS = platform.system().lower() == "windows"
 RUNNING_ON_CI = os.environ.get("APPVEYOR", False)
@@ -27,6 +35,17 @@ LOG = logging.getLogger(__name__)
 
 CommandResult = namedtuple("CommandResult", "process stdout stderr")
 TIMEOUT = 600
+CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
+
+
+def get_sam_command():
+    return "samdev" if os.getenv("SAM_CLI_DEV") else "sam"
+
+
+def method_to_stack_name(method_name):
+    """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
+    method_name = method_name.split(".")[-1]
+    return f"{method_name.replace('_', '-')}-{CFN_PYTHON_VERSION_SUFFIX}-{uuid4().hex}"[:128]
 
 
 def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandResult:
@@ -59,6 +78,100 @@ def run_command_with_input(command_list, stdin_input, timeout=TIMEOUT) -> Comman
 
 def run_command_with_inputs(command_list: List[str], inputs: List[str], timeout=TIMEOUT) -> CommandResult:
     return run_command_with_input(command_list, ("\n".join(inputs) + "\n").encode(), timeout)
+
+
+def start_persistent_process(
+    command_list: List[str],
+    cwd: Optional[str] = None,
+) -> Popen:
+    """Start a process with parameters that are suitable for persistent execution."""
+    return Popen(
+        command_list,
+        stdout=PIPE,
+        stderr=subprocess.STDOUT,
+        stdin=PIPE,
+        encoding="utf-8",
+        bufsize=1,
+        cwd=cwd,
+    )
+
+
+def kill_process(process: Popen) -> None:
+    """Kills a process and it's children.
+    This loop ensures orphaned children are killed as well.
+    https://psutil.readthedocs.io/en/latest/#kill-process-tree
+    Raises ValueError if some processes are alive"""
+    root_process = psutil.Process(process.pid)
+    all_processes = root_process.children(recursive=True)
+    all_processes.append(root_process)
+    for process in all_processes:
+        try:
+            process.kill()
+        except psutil.NoSuchProcess:
+            pass
+    _, alive = psutil.wait_procs(all_processes, timeout=10)
+    if alive:
+        raise ValueError(f"Processes: {alive} are still alive.")
+
+
+def read_until_string(process: Popen, expected_output: str, timeout: int = 5) -> None:
+    """Read output from process until a line equals to expected_output has shown up or reaching timeout.
+    Throws TimeoutError if times out
+    """
+
+    def _compare_output(output, _: List[str]) -> bool:
+        return bool(output == expected_output)
+
+    try:
+        read_until(process, _compare_output, timeout)
+    except TimeoutError as ex:
+        expected_output_bytes = expected_output.encode("utf-8")
+        raise TimeoutError(
+            f"Did not get expected output after {timeout} seconds. Expected output: {expected_output_bytes!r}"
+        ) from ex
+
+
+def read_until(process: Popen, callback: Callable[[str, List[str]], bool], timeout: int = 5):
+    """Read output from process until callback returns True or timeout is reached
+
+    Parameters
+    ----------
+    process : Popen
+    callback : Callable[[str, List[str]], None]
+        Call when a new line is read from the process.
+    timeout : int, optional
+        By default 5
+
+    Raises
+    ------
+    TimeoutError
+        Raises when timeout is reached
+    """
+    result_queue: Queue = Queue()
+
+    def _read_output():
+        try:
+            outputs = list()
+            for output in process.stdout:
+                outputs.append(output)
+                LOG.info(output.encode("utf-8"))
+                if callback(output, outputs):
+                    result_queue.put(True)
+                    return
+        except Exception as ex:
+            result_queue.put(ex)
+
+    reading_thread = Thread(target=_read_output, daemon=True)
+    reading_thread.start()
+    reading_thread.join(timeout=timeout)
+    if reading_thread.is_alive():
+        raise TimeoutError(f"Did not get expected output after {timeout} seconds.")
+    if result_queue.qsize() > 0:
+        result = result_queue.get()
+        if isinstance(result, Exception):
+            raise result
+    else:
+        raise ValueError()
 
 
 class FileCreator(object):

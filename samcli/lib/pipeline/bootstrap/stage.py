@@ -215,7 +215,7 @@ class Stage:
         Returns tuple of aws_access_key_id and aws_secret_access_key.
 
         """
-        session = boto3.Session(profile_name=profile, region_name=region if region else None)  # type: ignore
+        session = boto3.Session(profile_name=profile, region_name=region if region else None)
         secrets_manager_client = session.client("secretsmanager")
         response = secrets_manager_client.get_secret_value(SecretId=secret_manager_arn)
         secret_string = response["SecretString"]

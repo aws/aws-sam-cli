@@ -81,30 +81,6 @@ class IntegBase(TestCase):
     def get_global_config(self):
         return self._gc
 
-    @staticmethod
-    def wait_for_process_terminate(process, timeout_seconds=5):
-        """
-        This is needed because Python2's wait() method does *not* have a timeout
-
-        Returns
-        -------
-            Return code if the process exited within the timout. None, if process is still executing
-        """
-
-        start = timeit.default_timer()
-        retcode = None
-
-        while (timeit.default_timer() - start) < timeout_seconds:
-            retcode = process.poll()
-
-            if retcode is not None:
-                # Process exited
-                break
-
-            time.sleep(0.1)  # 100ms
-
-        return retcode
-
 
 class TelemetryServer(Thread):
     """

@@ -43,6 +43,7 @@ BUILD_METHOD_FIELD = "build_method"
 COMPATIBLE_RUNTIMES_FIELD = "compatible_runtimes"
 LAYER_FIELD = "layer"
 ARCHITECTURE_FIELD = "architecture"
+HANDLER_FIELD = "handler"
 
 
 def _function_build_definition_to_toml_table(
@@ -66,6 +67,7 @@ def _function_build_definition_to_toml_table(
         toml_table[CODE_URI_FIELD] = function_build_definition.codeuri
         toml_table[RUNTIME_FIELD] = function_build_definition.runtime
         toml_table[ARCHITECTURE_FIELD] = function_build_definition.architecture
+        toml_table[HANDLER_FIELD] = function_build_definition.handler
         if function_build_definition.source_hash:
             toml_table[SOURCE_HASH_FIELD] = function_build_definition.source_hash
         toml_table[MANIFEST_HASH_FIELD] = function_build_definition.manifest_hash
@@ -102,6 +104,7 @@ def _toml_table_to_function_build_definition(uuid: str, toml_table: tomlkit.api.
         toml_table.get(PACKAGETYPE_FIELD, ZIP),
         toml_table.get(ARCHITECTURE_FIELD, X86_64),
         dict(toml_table.get(METADATA_FIELD, {})),
+        toml_table.get(HANDLER_FIELD, ""),
         toml_table.get(SOURCE_HASH_FIELD, ""),
         toml_table.get(MANIFEST_HASH_FIELD, ""),
         dict(toml_table.get(ENV_VARS_FIELD, {})),
@@ -321,15 +324,20 @@ class BuildGraph:
         during the process of reading and modifying the hash value
         """
         with BuildGraph.__toml_lock:
-            stored_definitions = copy.deepcopy(self._function_build_definitions)
-            stored_layers = copy.deepcopy(self._layer_build_definitions)
+            stored_function_definitions = copy.deepcopy(self._function_build_definitions)
+            stored_layer_definitions = copy.deepcopy(self._layer_build_definitions)
             self._read()
 
-            function_content = BuildGraph._compare_hash_changes(stored_definitions, self._function_build_definitions)
-            layer_content = BuildGraph._compare_hash_changes(stored_layers, self._layer_build_definitions)
+            function_content = BuildGraph._compare_hash_changes(
+                stored_function_definitions, self._function_build_definitions
+            )
+            layer_content = BuildGraph._compare_hash_changes(stored_layer_definitions, self._layer_build_definitions)
 
             if function_content or layer_content:
                 self._write_source_hash(function_content, layer_content)
+
+            self._function_build_definitions = stored_function_definitions
+            self._layer_build_definitions = stored_layer_definitions
 
     @staticmethod
     def _compare_hash_changes(
@@ -362,7 +370,7 @@ class BuildGraph:
         """
         document = {}
         if not self._filepath.exists():
-            open(self._filepath, "a+").close()
+            open(self._filepath, "a+").close()  # pylint: disable=consider-using-with
 
         txt = self._filepath.read_text()
         # .loads() returns a TOMLDocument,
@@ -454,7 +462,7 @@ class BuildGraph:
         document.add(BuildGraph.LAYER_BUILD_DEFINITIONS, cast(tomlkit.items.Item, layer_build_definitions_table))
 
         if not self._filepath.exists():
-            open(self._filepath, "a+").close()
+            open(self._filepath, "a+").close()  # pylint: disable=consider-using-with
 
         self._filepath.write_text(tomlkit.dumps(document))
 
@@ -564,6 +572,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         packagetype: str,
         architecture: str,
         metadata: Optional[Dict],
+        handler: Optional[str],
         source_hash: str = "",
         manifest_hash: str = "",
         env_vars: Optional[Dict] = None,
@@ -572,6 +581,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         self.runtime = runtime
         self.codeuri = codeuri
         self.packagetype = packagetype
+        self.handler = handler
 
         # Skip SAM Added metadata properties
         metadata_copied = deepcopy(metadata) if metadata else {}
@@ -638,6 +648,12 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         # each build with custom Makefile definition should be handled separately
         if self.metadata and self.metadata.get("BuildMethod", None) == "makefile":
             return False
+
+        if self.metadata and self.metadata.get("BuildMethod", None) == "esbuild":
+            # For esbuild, we need to check if handlers within the same CodeUri are the same
+            # if they are different, it should create a separate build definition
+            if self.handler != other.handler:
+                return False
 
         return (
             self.runtime == other.runtime

@@ -56,11 +56,14 @@ def manage_stack(
     parameter_overrides: Optional[Dict[str, Union[str, List[str]]]]
         Values of template parameters, if any.
 
-    Returns: Stack output section(list of OutputKey, OutputValue pairs)
+    Returns
+    -------
+    StackOutput:
+        Stack output section(list of OutputKey, OutputValue pairs)
     """
     try:
         if profile:
-            session = boto3.Session(profile_name=profile, region_name=region if region else None)  # type: ignore
+            session = boto3.Session(profile_name=profile, region_name=region if region else None)
             cloudformation_client = session.client("cloudformation")
         else:
             cloudformation_client = boto3.client(
