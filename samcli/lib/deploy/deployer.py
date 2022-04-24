@@ -81,7 +81,7 @@ class Deployer:
         self._client = cloudformation_client
         self.changeset_prefix = changeset_prefix
         try:
-            self.client_sleep = int(client_sleep)
+            self.client_sleep = float(client_sleep)
         except ValueError:
             self.client_sleep = DEFAULT_CLIENT_SLEEP
         if self.client_sleep <= 0:

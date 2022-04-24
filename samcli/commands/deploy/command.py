@@ -2,6 +2,7 @@
 CLI command for "deploy" command
 """
 import logging
+import os
 
 import click
 
@@ -290,6 +291,15 @@ def do_cli(
         ) as package_context:
             package_context.run()
 
+        # 500ms of sleep time between stack checks and describe stack events.
+        DEFAULT_POLL_DELAY = 0.5
+        try:
+            poll_delay = float(os.getenv("SAM_CLI_POLL_DELAY", str(DEFAULT_POLL_DELAY)))
+        except ValueError:
+            poll_delay = DEFAULT_POLL_DELAY
+        if poll_delay <= 0:
+            poll_delay = DEFAULT_POLL_DELAY
+
         with DeployContext(
             template_file=output_template_file.name,
             stack_name=guided_context.guided_stack_name if guided else stack_name,
@@ -315,5 +325,6 @@ def do_cli(
             signing_profiles=guided_context.signing_profiles if guided else signing_profiles,
             use_changeset=True,
             disable_rollback=guided_context.disable_rollback if guided else disable_rollback,
+            poll_delay=poll_delay,
         ) as deploy_context:
             deploy_context.run()
