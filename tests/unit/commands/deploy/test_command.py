@@ -1,3 +1,4 @@
+import os
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, Mock, call, patch
 
@@ -63,6 +64,7 @@ class TestDeployCliCommand(TestCase):
     def tearDown(self):
         self.companion_stack_manager_patch.stop()
 
+    @patch("os.environ", {**os.environ, "SAM_CLI_POLL_DELAY": 10})
     @patch("samcli.commands.package.command.click")
     @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.deploy.command.click")
@@ -126,6 +128,7 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             use_changeset=self.use_changeset,
             disable_rollback=self.disable_rollback,
+            poll_delay=10,
         )
 
         context_mock.run.assert_called_with()
@@ -332,6 +335,7 @@ class TestDeployCliCommand(TestCase):
                 signing_profiles=self.signing_profiles,
                 use_changeset=self.use_changeset,
                 disable_rollback=True,
+                poll_delay=0.5,
             )
 
             context_mock.run.assert_called_with()
@@ -479,6 +483,7 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             use_changeset=self.use_changeset,
             disable_rollback=True,
+            poll_delay=0.5,
         )
 
         context_mock.run.assert_called_with()
@@ -630,6 +635,7 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             use_changeset=self.use_changeset,
             disable_rollback=True,
+            poll_delay=0.5,
         )
 
         context_mock.run.assert_called_with()
@@ -766,6 +772,7 @@ class TestDeployCliCommand(TestCase):
                 signing_profiles=self.signing_profiles,
                 use_changeset=self.use_changeset,
                 disable_rollback=self.disable_rollback,
+                poll_delay=0.5,
             )
 
             context_mock.run.assert_called_with()
@@ -839,6 +846,7 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             use_changeset=self.use_changeset,
             disable_rollback=self.disable_rollback,
+            poll_delay=0.5,
         )
 
         context_mock.run.assert_called_with()
@@ -950,6 +958,7 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             use_changeset=True,
             disable_rollback=self.disable_rollback,
+            poll_delay=0.5,
         )
 
         context_mock.run.assert_called_with()
