@@ -29,7 +29,7 @@ def generate_project(
     name=None,
     no_input=False,
     extra_context=None,
-    tracing="disable",
+    tracing=False,
 ):
     """Generates project using cookiecutter and options given
 
@@ -116,7 +116,7 @@ def generate_project(
     except CookiecutterException as e:
         raise GenerateProjectFailedError(project=name, provider_error=e) from e
 
-    if tracing == "enable":
+    if tracing:
         template_file_path = f"{output_dir}/{name}/template.yaml"
         template_modifier = TemplateModifier(template_file_path)
         template_modifier.modify_template()

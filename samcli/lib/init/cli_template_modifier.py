@@ -24,6 +24,7 @@ class TemplateModifier:
         self.template_location = location
         self.template = self.get_template()
         self.copy_of_original_template = self.template
+        print("I was called")
 
     def modify_template(self):
         """
@@ -171,9 +172,9 @@ class TemplateModifier:
         template : list
             array with updated template data
         """
-        with open(self.template_location, "w") as f:
+        with open(self.template_location, "w") as file:
             for line in template:
-                f.write(line)
+                file.write(line)
 
     def get_template(self) -> list:
         """
@@ -184,5 +185,5 @@ class TemplateModifier:
         list
             array with updated template data
         """
-        file = open(self.template_location, "r")
-        return file.readlines()
+        with open(self.template_location, "r") as file:
+            return file.readlines()
