@@ -35,7 +35,7 @@ jobs:
           cd ../aws-sam-cli
           git checkout -b update_app_templates_hash
           git reset --hard develop
-          cat <<< $(jq --arg commit_hash "$APP_TEMPLATES_COMMIT_HASH" --indent 4 '.app_template_repo_commit =  $commit_hash' samcli/runtime_config.json) > samcli/runtime_config.json
+          cat <<< "$(jq --arg commit_hash "$APP_TEMPLATES_COMMIT_HASH" --indent 4 '.app_template_repo_commit =  $commit_hash' samcli/runtime_config.json)" > samcli/runtime_config.json
           git status
           git diff --quiet && exit 0 # exit if there is no change
           git add -u
