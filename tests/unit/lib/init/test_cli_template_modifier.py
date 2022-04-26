@@ -165,8 +165,9 @@ class TestTemplateModifier(TestCase):
     @patch("samcli.lib.init.cli_template_modifier.parse_yaml_file")
     def test_must_fail_sanity_check(self, parse_yaml_file_mock, log_mock):
         expected_warning_msg = (
-            "Error: Unable to add Tracing to the project. To learn more Tracing visit "
-            "https://docs.aws.amazon.com/lambda/latest/dg/services-xray.html"
+            "Warning: Unable to add Tracing to the project. To learn more about Tracing visit "
+            "https://docs.aws.amazon.com/serverless-application-model/latest"
+            "/developerguide/sam-resource-function.html#sam-function-tracing"
         )
         template_modifier = TemplateModifier(self.location)
         parse_yaml_file_mock.side_effect = ParserError

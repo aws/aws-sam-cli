@@ -24,7 +24,6 @@ class TemplateModifier:
         self.template_location = location
         self.template = self.get_template()
         self.copy_of_original_template = self.template
-        print("I was called")
 
     def modify_template(self):
         """
@@ -158,8 +157,11 @@ class TemplateModifier:
             parse_template = parse_yaml_file(self.template_location)
             return bool(parse_template)
         except ParserError:
-            link = "https://docs.aws.amazon.com/lambda/latest/dg/services-xray.html"
-            message = f"Error: Unable to add Tracing to the project. To learn more Tracing visit {link}"
+            link = (
+                "https://docs.aws.amazon.com/serverless-application-model/latest"
+                "/developerguide/sam-resource-function.html#sam-function-tracing"
+            )
+            message = f"Warning: Unable to add Tracing to the project. To learn more about Tracing visit {link}"
             LOG.warning(message)
             return False
 
