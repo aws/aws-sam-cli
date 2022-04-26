@@ -20,7 +20,7 @@ from .utils import to_posix_path, find_free_port, NoFreePortsError
 
 LOG = logging.getLogger(__name__)
 
-START_CONTAINER_TIMEOUT = float(os.environ.get("SAM_CLI_START_CONTAINER_TIMEOUT", 20))
+CONTAINER_CONNECTION_TIMEOUT = float(os.environ.get("SAM_CLI_CONTAINER_CONNECTION_TIMEOUT", 20))
 
 
 class ContainerResponseException(Exception):
@@ -29,9 +29,9 @@ class ContainerResponseException(Exception):
     """
 
 
-class ContainerStartTimeoutException(Exception):
+class ContainerConnectionTimeoutException(Exception):
     """
-    Exception raised when timeout was reached while starting a container.
+    Exception raised when timeout was reached while attempting to establish a connection to a container.
     """
 
 
@@ -309,7 +309,7 @@ class Container:
 
         # wait_for_http_response will attempt to establish a connection to the socket
         # but it'll fail if the socket is not listening yet, so we wait for the socket
-        self.wait_for_socket_connection()
+        self._wait_for_socket_connection()
 
         # start the timer for function timeout right before executing the function, as waiting for the socket
         # can take some time
@@ -334,7 +334,7 @@ class Container:
 
         self._write_container_output(logs_itr, stdout=stdout, stderr=stderr)
 
-    def wait_for_socket_connection(self):
+    def _wait_for_socket_connection(self):
         """
         Waits for a successful connection to the socket used to communicate with Docker.
         """
@@ -351,11 +351,11 @@ class Container:
                 break
 
             current_time = time.time()
-            if current_time - start_time > START_CONTAINER_TIMEOUT:
-                raise ContainerStartTimeoutException(
-                    f"Timed out while starting container. You can increase this timeout by "
-                    f"setting the SAM_CLI_START_CONTAINER_TIMEOUT environment variable. "
-                    f"The current timeout is {START_CONTAINER_TIMEOUT} (seconds)."
+            if current_time - start_time > CONTAINER_CONNECTION_TIMEOUT:
+                raise ContainerConnectionTimeoutException(
+                    f"Timed out while attempting to establish a connection to the container. You can increase this "
+                    f"timeout by setting the SAM_CLI_CONTAINER_CONNECTION_TIMEOUT environment variable. "
+                    f"The current timeout is {CONTAINER_CONNECTION_TIMEOUT} (seconds)."
                 )
 
             time.sleep(sleep)

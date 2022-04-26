@@ -9,7 +9,7 @@ from unittest.mock import Mock, call, patch, ANY
 from requests import RequestException
 
 from samcli.lib.utils.packagetype import IMAGE
-from samcli.local.docker.container import Container, ContainerResponseException, ContainerStartTimeoutException
+from samcli.local.docker.container import Container, ContainerResponseException, ContainerConnectionTimeoutException
 
 
 class TestContainer_init(TestCase):
@@ -671,7 +671,7 @@ class TestContainer_wait_for_result(TestCase):
         unsuccessful_socket_mock.connect_ex.return_value = 22
         patched_socket.return_value = unsuccessful_socket_mock
 
-        with self.assertRaises(ContainerStartTimeoutException):
+        with self.assertRaises(ContainerConnectionTimeoutException):
             self.container.wait_for_result(
                 event=self.event, full_path=self.name, stdout=stdout_mock, stderr=stderr_mock
             )
@@ -788,13 +788,13 @@ class TestContainer_wait_for_socket_connection(TestCase):
         patched_socket.return_value = socket_mock
 
         with self.assertRaises(
-            ContainerStartTimeoutException,
+            ContainerConnectionTimeoutException,
             msg=(
                 "Timed out while starting container. You can increase this timeout by setting the "
                 "SAM_CLI_START_CONTAINER_TIMEOUT environment variable. The current timeout is 0 (seconds)."
             ),
         ):
-            self.container.wait_for_socket_connection()
+            self.container._wait_for_socket_connection()
 
     @patch("socket.socket")
     def test_does_not_time_out_if_able_to_connect(self, patched_socket):
@@ -803,7 +803,7 @@ class TestContainer_wait_for_socket_connection(TestCase):
         socket_mock.connect_ex.return_value = 0
         patched_socket.return_value = socket_mock
 
-        self.container.wait_for_socket_connection()
+        self.container._wait_for_socket_connection()
 
 
 class TestContainer_image(TestCase):
