@@ -334,22 +334,22 @@ class Container:
 
         self._write_container_output(logs_itr, stdout=stdout, stderr=stderr)
 
-    def _wait_for_socket_connection(self):
+    def _wait_for_socket_connection(self) -> None:
         """
         Waits for a successful connection to the socket used to communicate with Docker.
         """
-        start_time = time.time()
-        sleep = 0.1
-        while True:
+
+        def can_connect_to_socket() -> bool:
             a_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             location = (self._container_host, self.rapid_port_host)
             # connect_ex returns 0 if connection succeeded
-            is_port_open = not a_socket.connect_ex(location)
+            connection_succeeded = not a_socket.connect_ex(location)
             a_socket.close()
+            return connection_succeeded
 
-            if is_port_open:
-                break
-
+        start_time = time.time()
+        while not can_connect_to_socket():
+            time.sleep(0.1)
             current_time = time.time()
             if current_time - start_time > CONTAINER_CONNECTION_TIMEOUT:
                 raise ContainerConnectionTimeoutException(
@@ -357,8 +357,6 @@ class Container:
                     f"timeout by setting the SAM_CLI_CONTAINER_CONNECTION_TIMEOUT environment variable. "
                     f"The current timeout is {CONTAINER_CONNECTION_TIMEOUT} (seconds)."
                 )
-
-            time.sleep(sleep)
 
     def copy(self, from_container_path, to_host_path):
 
