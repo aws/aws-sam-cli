@@ -29,7 +29,7 @@ jobs:
           cd aws-sam-cli-app-templates
           export APP_TEMPLATES_COMMIT_HASH=$(git rev-parse HEAD)
           cd ../aws-sam-cli
-          cat <<< $(jq --arg commit_hash "$APP_TEMPLATES_COMMIT_HASH" --indent 4 '.app_template_repo_commit =  $commit_hash' samcli/runtime_config.json) > samcli/runtime_config.json
+          cat <<< $(jq --arg commit_hash "$APP_TEMPLATES_COMMIT_HASH" --indent 2 '.app_template_repo_commit =  $commit_hash' samcli/runtime_config.json) > samcli/runtime_config.json
 
       - name: Raise PR for SAM CLI
         uses: peter-evans/create-pull-request@v4
