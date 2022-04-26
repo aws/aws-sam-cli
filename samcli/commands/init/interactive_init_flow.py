@@ -533,10 +533,9 @@ def _get_schema_template_details(schemas_api_caller):
 def _package_schemas_code(runtime, schemas_api_caller, schema_template_details, output_dir, name, location):
     try:
         click.echo("Trying to get package schema code")
-        download_location = tempfile.NamedTemporaryFile(delete=False)
-        do_download_source_code_binding(runtime, schema_template_details, schemas_api_caller, download_location)
-        do_extract_and_merge_schemas_code(download_location, output_dir, name, location)
-        download_location.close()
+        with tempfile.NamedTemporaryFile(delete=False) as download_location:
+            do_download_source_code_binding(runtime, schema_template_details, schemas_api_caller, download_location)
+            do_extract_and_merge_schemas_code(download_location, output_dir, name, location)
     except (ClientError, WaiterError) as e:
         raise SchemasApiException(
             "Exception occurs while packaging Schemas code. %s" % e.response["Error"]["Message"]
