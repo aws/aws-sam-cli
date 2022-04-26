@@ -2,7 +2,7 @@ name: Update aws/aws-sam-cli with latest commit hash from aws/aws-sam-cli-app-te
 
 on:
   schedule:
-    - cron: "0 * * * *"
+    - cron: "0 * * * *" # run at the top of every hour
   workflow_dispatch: {}
 
 jobs:
@@ -24,20 +24,22 @@ jobs:
           repository: aws/aws-sam-cli
           path: aws-sam-cli
 
-      - name: Update commit hash in SAM CLI from App Templates
+      - name: Update hash & Raise PR for SAM CLI
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
           cd aws-sam-cli-app-templates
-          export APP_TEMPLATES_COMMIT_HASH=$(git rev-parse HEAD)
+          APP_TEMPLATES_COMMIT_HASH=$(git rev-parse HEAD)
           cd ../aws-sam-cli
-          cat <<< $(jq --arg commit_hash "$APP_TEMPLATES_COMMIT_HASH" --indent 2 '.app_template_repo_commit =  $commit_hash' samcli/runtime_config.json) > samcli/runtime_config.json
-
-      - name: Raise PR for SAM CLI
-        uses: peter-evans/create-pull-request@v4
-        with:
-          path: aws-sam-cli
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: update_app_templates_hash
-          delete-branch: true
-          title: 'feat: update SAM CLI with latest App Templates commit hash'
-          body:
-            This PR & commit is automatically created by GH action to update the aws/aws-sam-cli with latest hash of the aws/aws-sam-cli-app-templates.
+          git checkout -b update_app_templates_hash
+          git reset --hard develop
+          cat <<< $(jq --arg commit_hash "$APP_TEMPLATES_COMMIT_HASH" --indent 4 '.app_template_repo_commit =  $commit_hash' samcli/runtime_config.json) > samcli/runtime_config.json
+          git status
+          git diff --quiet && exit 0 # exit if there is no change
+          git add -u
+          git commit -m "feat: updating app templates repo hash with ($APP_TEMPLATES_COMMIT_HASH)"
+          git push --force origin update_app_templates_hash
+          gh pr list --repo mndeveci/mock-cli --head update_app_templates_hash --json id --jq length | grep 1 && exit 0 # exit if there is existing pr
+          gh pr create --base develop --head update_app_templates_hash --title "feat: update SAM CLI with latest App Templates commit hash" --body "This PR & commit is automatically created from App Templates repo to update the SAM CLI with latest hash of the App Templates."
