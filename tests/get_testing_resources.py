@@ -6,7 +6,7 @@ from boto3.session import Session
 from botocore.config import Config
 
 DEFAULT_BOTO_CONFIG = Config(retries={"max_attempts": 10, "mode": "standard"})
-MANAGED_TEST_RESOURCE_STACK_NAME = "managed-test-resource"
+MANAGED_TEST_RESOURCE_STACK_NAME = "managed-test-resources"
 
 
 def main():
