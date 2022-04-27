@@ -339,16 +339,8 @@ class Container:
         Waits for a successful connection to the socket used to communicate with Docker.
         """
 
-        def can_connect_to_socket() -> bool:
-            a_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            location = (self._container_host, self.rapid_port_host)
-            # connect_ex returns 0 if connection succeeded
-            connection_succeeded = not a_socket.connect_ex(location)
-            a_socket.close()
-            return connection_succeeded
-
         start_time = time.time()
-        while not can_connect_to_socket():
+        while not self._can_connect_to_socket():
             time.sleep(0.1)
             current_time = time.time()
             if current_time - start_time > CONTAINER_CONNECTION_TIMEOUT:
@@ -357,6 +349,18 @@ class Container:
                     f"timeout by setting the SAM_CLI_CONTAINER_CONNECTION_TIMEOUT environment variable. "
                     f"The current timeout is {CONTAINER_CONNECTION_TIMEOUT} (seconds)."
                 )
+
+    def _can_connect_to_socket(self) -> bool:
+        """
+        Checks if able to connect successully to the socket used to communicate with Docker.
+        """
+
+        a_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        location = (self._container_host, self.rapid_port_host)
+        # connect_ex returns 0 if connection succeeded
+        connection_succeeded = not a_socket.connect_ex(location)
+        a_socket.close()
+        return connection_succeeded
 
     def copy(self, from_container_path, to_host_path):
 
