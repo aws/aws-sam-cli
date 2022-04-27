@@ -41,7 +41,7 @@ def get_testing_credentials():
     )
     response = lambda_client.invoke(FunctionName=lambda_arn)
     payload = json.loads(response["Payload"].read())
-    if response["FunctionError"]:
+    if response.get("FunctionError"):
         raise ValueError(f"Failed to get credential. {payload['errorType']}")
     return payload
 
