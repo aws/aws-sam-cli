@@ -108,7 +108,8 @@ install:
 
   # get testing env vars
   - sh: "sudo apt install -y jq"
-  - sh: "virtualenv .venv_env_vars"
+  
+  - sh: "python3.9 -m venv .venv_env_vars"
   - sh: ".venv_env_vars/bin/pip install boto3"
   - sh: "test_env_var=$(.venv_env_vars/bin/python tests/get_testing_resources.py)"
   - sh: "echo $test_env_var"

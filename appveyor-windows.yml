@@ -71,9 +71,8 @@ install:
 
   # Get testing env vars
   - ps: "python -m virtualenv venv_env_vars"
-  - ps: "venv_env_vars/Scripts/pip install boto3"
-  - ps: "test_env_var=$(venv_env_vars/Scripts/python tests/get_testing_resources.py)"
-  - ps: "$test_env_var = python tests/get_testing_resources.py"
+  - ps: "./venv_env_vars/Scripts/pip install boto3"
+  - ps: "$test_env_var = ./venv_env_vars/Scripts/python tests/get_testing_resources.py"
   - ps: "echo $test_env_var"
   - ps: "$test_env_var_json = ConvertFrom-Json $test_env_var"
 
