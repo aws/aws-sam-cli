@@ -13,6 +13,8 @@ environment:
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
   NODE_VERSION: "14.17.6"
+  AWS_S3: 'AWS_S3_TESTING'
+  AWS_ECR: 'AWS_ECR_TESTING'
  
   matrix:
 
@@ -24,8 +26,6 @@ environment:
       INSTALL_PY_36_PIP: 1
       INSTALL_PY_38_PIP: 1
       INSTALL_PY_39_PIP: 1
-      AWS_S3: 'AWS_S3_37'
-      AWS_ECR: 'AWS_ECR_37'
       APPVEYOR_CONSOLE_DISABLE_PTY: true
 
     - PYTHON_HOME: "C:\\Python38-x64"
@@ -36,8 +36,6 @@ environment:
       INSTALL_PY_36_PIP: 1
       INSTALL_PY_37_PIP: 1
       INSTALL_PY_39_PIP: 1
-      AWS_S3: 'AWS_S3_38'
-      AWS_ECR: 'AWS_ECR_38'
       APPVEYOR_CONSOLE_DISABLE_PTY: true
 
     - PYTHON_HOME: "C:\\Python39-x64"
@@ -48,8 +46,6 @@ environment:
       INSTALL_PY_36_PIP: 1
       INSTALL_PY_37_PIP: 1
       INSTALL_PY_38_PIP: 1
-      AWS_S3: 'AWS_S3_39'
-      AWS_ECR: 'AWS_ECR_39'
       APPVEYOR_CONSOLE_DISABLE_PTY: true
 
 install:
@@ -112,12 +108,18 @@ install:
 
   # get testing credentials
   - sh: "sudo apt install -y jq"
-  - sh: "$test_env_var = python test/get_testing_resources.py"
+  - sh: "test_env_var=(python tests/get_testing_resources.py)"
   - sh: "echo $test_env_var"
+  
   - sh: "export AWS_ACCESS_KEY_ID=$(echo '$test_env_var' | jq '.accessKey')"
   - sh: "export AWS_SECRET_ACCESS_KEY=$(echo '$test_env_var' | jq '.secretKey')"
   - sh: "export AWS_SESSION_TOKEN=$(echo '$test_env_var' | jq '.sessionToken')"
   - sh: "export TASK_TOKEN=$(echo '$test_env_var' | jq '.taskToken')"
+  - sh: "export AWS_S3_TESTING=$(echo '$test_env_var' | jq '.TestBucketName')"
+  - sh: "export AWS_ECR_TESTING=$(echo '$test_env_var' | jq '.TestECRURI')"
+  - sh: "export AWS_KMS_KEY=$(echo '$test_env_var' | jq '.TestKMSKeyArn')"
+  - sh: "export AWS_SIGNING_PROFILE_NAME=$(echo '$test_env_var' | jq '.TestSigningProfileName')"
+  - sh: "export AWS_SIGNING_PROFILE_VERSION_ARN=$(echo '$test_env_var' | jq '.TestSigningProfileARN')"
 
 
 build_script:
