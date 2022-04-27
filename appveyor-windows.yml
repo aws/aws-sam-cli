@@ -83,7 +83,10 @@ install:
   # Echo final Path
   - "echo %PATH%"
 
-  # Get testing credentials
+  # Get testing env vars
+  - ps: "python -m venv .testing_env_vars"
+  - ps: ".testing_env_vars/Scripts/pip install boto3"
+  - ps: "test_env_var=$(.testing_env_vars/Scripts/python tests/get_testing_resources.py)"
   - ps: "$test_env_var = python tests/get_testing_resources.py"
   - ps: "echo $test_env_var"
   - ps: "$test_env_var_json = ConvertFrom-Json $test_env_var"

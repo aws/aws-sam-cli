@@ -106,9 +106,11 @@ install:
   # update ca-certificates which causes failures with newest golang library
   - sh: "sudo apt-get install --reinstall ca-certificates"
 
-  # get testing credentials
+  # get testing env vars
   - sh: "sudo apt install -y jq"
-  - sh: "test_env_var=$(python tests/get_testing_resources.py)"
+  - sh: "python -m venv .testing_env_vars"
+  - sh: ".testing_env_vars/bin/pip install boto3"
+  - sh: "test_env_var=$(.testing_env_vars/bin/python tests/get_testing_resources.py)"
   - sh: "echo $test_env_var"
 
   - sh: "export AWS_ACCESS_KEY_ID=$(echo '$test_env_var' | jq '.accessKey')"
