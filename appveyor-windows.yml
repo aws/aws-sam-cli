@@ -98,6 +98,9 @@ install:
   - ps: "$AWS_SIGNING_PROFILE_NAME = $test_env_var_json.TestSigningProfileName"
   - ps: "$AWS_SIGNING_PROFILE_VERSION_ARN = $test_env_var_json.TestSigningProfileARN"
 
+# Final clean up no matter success or failure
+on_finish:
+  - ps: 'aws stepfunctions send-task-success --task-token "$TASK_TOKEN" --task-output "{}"'
 for:
   #Integ testing build, regression
   - matrix:
