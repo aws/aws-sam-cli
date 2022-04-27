@@ -63,30 +63,16 @@ install:
   # Install AWS CLI Globally via pip3
   - "pip install awscli"
 
-  # Create new virtual environment with chosen python version and activate it
-  - "python -m virtualenv venv"
-  - "venv\\Scripts\\activate"
-  - "python --version"
-
-  # Actually install SAM CLI's dependencies
-  - 'pip install -e ".[dev]"'
-
-  # Install aws cli
-  - "pip install awscli"
-
   # Switch to Docker Linux containers
   - ps: Switch-DockerLinux
 
   # Check for git executable
   - "git --version"
 
-  # Echo final Path
-  - "echo %PATH%"
-
   # Get testing env vars
-  - ps: "python -m venv .testing_env_vars"
-  - ps: ".testing_env_vars/Scripts/pip install boto3"
-  - ps: "test_env_var=$(.testing_env_vars/Scripts/python tests/get_testing_resources.py)"
+  - ps: "python -m virtualenv venv_env_vars"
+  - ps: "venv_env_vars/Scripts/pip install boto3"
+  - ps: "test_env_var=$(venv_env_vars/Scripts/python tests/get_testing_resources.py)"
   - ps: "$test_env_var = python tests/get_testing_resources.py"
   - ps: "echo $test_env_var"
   - ps: "$test_env_var_json = ConvertFrom-Json $test_env_var"
@@ -100,6 +86,20 @@ install:
   - ps: "$AWS_KMS_KEY = $test_env_var_json.TestKMSKeyArn"
   - ps: "$AWS_SIGNING_PROFILE_NAME = $test_env_var_json.TestSigningProfileName"
   - ps: "$AWS_SIGNING_PROFILE_VERSION_ARN = $test_env_var_json.TestSigningProfileARN"
+
+  # Create new virtual environment with chosen python version and activate it
+  - "python -m virtualenv venv"
+  - "venv\\Scripts\\activate"
+  - "python --version"
+
+  # Actually install SAM CLI's dependencies
+  - 'pip install -e ".[dev]"'
+
+  # Install aws cli
+  - "pip install awscli"
+
+  # Echo final Path
+  - "echo %PATH%"
 
 # Final clean up no matter success or failure
 on_finish:

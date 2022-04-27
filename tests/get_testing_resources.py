@@ -5,7 +5,7 @@ import boto3
 from boto3.session import Session
 from botocore.config import Config
 
-DEFAULT_BOTO_CONFIG = Config(region_name="us-east-1", retries={"max_attempts": 10, "mode": "standard"})
+DEFAULT_BOTO_CONFIG = Config(retries={"max_attempts": 10, "mode": "standard"})
 MANAGED_TEST_RESOURCE_STACK_NAME = "managed-test-resources"
 
 
@@ -21,7 +21,7 @@ def main():
 
 
 def get_managed_test_resource_outputs(session: Session):
-    cfn_resource = session.resource("cloudformation", config=DEFAULT_BOTO_CONFIG)
+    cfn_resource = session.resource("cloudformation", config=DEFAULT_BOTO_CONFIG, region_name="us-east-1")
     stack = cfn_resource.Stack(MANAGED_TEST_RESOURCE_STACK_NAME)
     outputs_dict = dict()
     for output in stack.outputs:
@@ -31,7 +31,11 @@ def get_managed_test_resource_outputs(session: Session):
 
 def get_testing_credentials():
     lambda_arn = os.environ["CREDENTIAL_DISTRIBUTION_LAMBDA_ARN"]
-    lambda_client = boto3.client("lambda", config=DEFAULT_BOTO_CONFIG)
+    lambda_client = boto3.client(
+        "lambda",
+        config=DEFAULT_BOTO_CONFIG,
+        region_name="us-west-2",
+    )
     response = lambda_client.invoke(FunctionName=lambda_arn)
     payload = json.loads(response["Payload"].read())
     if response["FunctionError"]:
