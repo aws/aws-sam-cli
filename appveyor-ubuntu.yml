@@ -81,7 +81,7 @@ install:
   - sh: "sudo apt-get -y install python2.7"
   - sh: "sudo apt-get -y install python3.7"
   - sh: "sudo apt-get -y install python3.8"
-  - sh: "sudo apt-get -y install python3.9"
+  - sh: "sudo apt-get -y install python3.9 python3.9-dev python3.9-venv"
 
   - sh: "which python3.8"
   - sh: "which python3.7"
@@ -108,7 +108,7 @@ install:
 
   # get testing env vars
   - sh: "sudo apt install -y jq"
-  
+
   - sh: "python3.9 -m venv .venv_env_vars"
   - sh: ".venv_env_vars/bin/pip install boto3"
   - sh: "test_env_var=$(.venv_env_vars/bin/python tests/get_testing_resources.py)"
