@@ -108,9 +108,9 @@ install:
 
   # get testing credentials
   - sh: "sudo apt install -y jq"
-  - sh: "test_env_var=(python tests/get_testing_resources.py)"
+  - sh: "test_env_var=$(python tests/get_testing_resources.py)"
   - sh: "echo $test_env_var"
-  
+
   - sh: "export AWS_ACCESS_KEY_ID=$(echo '$test_env_var' | jq '.accessKey')"
   - sh: "export AWS_SECRET_ACCESS_KEY=$(echo '$test_env_var' | jq '.secretKey')"
   - sh: "export AWS_SESSION_TOKEN=$(echo '$test_env_var' | jq '.sessionToken')"
