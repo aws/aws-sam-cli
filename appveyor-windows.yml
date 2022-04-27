@@ -76,8 +76,8 @@ install:
   - ps: "echo $test_env_var"
   - ps: "$test_env_var_json = ConvertFrom-Json $test_env_var"
 
-  - ps: "$AWS_ACCESS_KEY_ID = $test_env_var_json.accessKey"
-  - ps: "$AWS_SECRET_ACCESS_KEY = $test_env_var_json.secretKey"
+  - ps: "$AWS_ACCESS_KEY_ID = $test_env_var_json.accessKeyID"
+  - ps: "$AWS_SECRET_ACCESS_KEY = $test_env_var_json.secretAccessKey"
   - ps: "$AWS_SESSION_TOKEN = $test_env_var_json.sessionToken"
   - ps: "$TASK_TOKEN = $test_env_var_json.taskToken"
   - ps: "$AWS_S3_TESTING = $test_env_var_json.TestBucketName"

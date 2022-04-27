@@ -12,13 +12,13 @@ MANAGED_TEST_RESOURCE_STACK_NAME = "managed-test-resources"
 def main():
     env_vars = get_testing_credentials()
     test_session = Session(
-        aws_access_key_id=env_vars["accessKey"],
-        aws_secret_access_key=env_vars["secretKey"],
+        aws_access_key_id=env_vars["accessKeyID"],
+        aws_secret_access_key=env_vars["secretAccessKey"],
         aws_session_token=env_vars["sessionToken"],
     )
     env_vars.update(get_managed_test_resource_outputs(test_session))
-    env_vars["accessKey"] = env_vars["accessKey"][:5]
-    env_vars["secretKey"] = env_vars["secretKey"][:5]
+    env_vars["accessKeyID"] = env_vars["accessKeyID"][:5]
+    env_vars["secretAccessKey"] = env_vars["secretAccessKey"][:5]
     env_vars["sessionToken"] = env_vars["sessionToken"][:5]
     print(json.dumps(env_vars))
 
