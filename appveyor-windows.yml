@@ -16,8 +16,8 @@ environment:
   SAM_CLI_DEV: 1
 
   # Python uses $TMPDIR envvar to find root of tempdir
-  TMPDIR: '%TEMP%'
-  TMP: '%TEMP%'
+  TMPDIR: "%TEMP%"
+  TMP: "%TEMP%"
 
   # MSI Installers only use Py3.7.6. It is sufficient to test with this version here.
   PYTHON_HOME: "C:\\Python37-x64"
@@ -82,6 +82,10 @@ install:
 
   # Echo final Path
   - "echo %PATH%"
+
+  # Get testing credentials
+  - ps: "$test_env_var = python test/get_testing_resources.py"
+  - ps: "echo $test_env_var"
 
 for:
   #Integ testing build, regression
