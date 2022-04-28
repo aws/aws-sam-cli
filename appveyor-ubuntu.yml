@@ -121,8 +121,6 @@ install:
   - sh: 'export CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY'
   - sh: 'export CI_ACCESS_ROLE_AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN'
 
-  - sh: "aws sts get-caller-identity"
-
   - sh: 'export AWS_ACCESS_KEY_ID=$(echo "$test_env_var" | jq ".accessKeyID")'
   - sh: 'export AWS_SECRET_ACCESS_KEY=$(echo "$test_env_var" | jq ".secretAccessKey")'
   - sh: 'export AWS_SESSION_TOKEN=$(echo "$test_env_var" | jq ".sessionToken")'
@@ -132,8 +130,6 @@ install:
   - sh: 'export AWS_KMS_KEY=$(echo "$test_env_var" | jq ".TestKMSKeyArn")'
   - sh: 'export AWS_SIGNING_PROFILE_NAME=$(echo "$test_env_var" | jq ".TestSigningProfileName")'
   - sh: 'export AWS_SIGNING_PROFILE_VERSION_ARN=$(echo "$test_env_var" | jq ".TestSigningProfileARN")'
-
-  - sh: "aws sts get-caller-identity"
 
   # required for RIE with arm64 in linux
   - sh: "
@@ -159,14 +155,11 @@ build_script:
 
 # Final clean up no matter success or failure
 on_finish:
-  - sh: "aws sts get-caller-identity"
-  
   - sh: 'export AWS_ACCESS_KEY_ID=$CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID'
   - sh: 'export AWS_SECRET_ACCESS_KEY=$CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY'
   - sh: 'export AWS_SESSION_TOKEN=$CI_ACCESS_ROLE_AWS_SESSION_TOKEN'
 
-  - sh: "aws sts get-caller-identity"
-  - sh: "aws stepfunctions send-task-success --task-token '$TASK_TOKEN' --task-output '{}'"
+  - sh: "aws stepfunctions send-task-success --task-token '$TASK_TOKEN' --task-output '{}' --region us-west-2"
 
 for:
   # Integ testing build
