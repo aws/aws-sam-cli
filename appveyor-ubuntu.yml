@@ -114,15 +114,15 @@ install:
   - sh: "test_env_var=$(.venv_env_vars/bin/python tests/get_testing_resources.py)"
   - sh: "echo $test_env_var"
 
-  - sh: "export AWS_ACCESS_KEY_ID=$(echo '$test_env_var' | jq '.accessKeyID')"
-  - sh: "export AWS_SECRET_ACCESS_KEY=$(echo '$test_env_var' | jq '.secretAccessKey')"
-  - sh: "export AWS_SESSION_TOKEN=$(echo '$test_env_var' | jq '.sessionToken')"
-  - sh: "export TASK_TOKEN=$(echo '$test_env_var' | jq '.taskToken')"
-  - sh: "export AWS_S3_TESTING=$(echo '$test_env_var' | jq '.TestBucketName')"
-  - sh: "export AWS_ECR_TESTING=$(echo '$test_env_var' | jq '.TestECRURI')"
-  - sh: "export AWS_KMS_KEY=$(echo '$test_env_var' | jq '.TestKMSKeyArn')"
-  - sh: "export AWS_SIGNING_PROFILE_NAME=$(echo '$test_env_var' | jq '.TestSigningProfileName')"
-  - sh: "export AWS_SIGNING_PROFILE_VERSION_ARN=$(echo '$test_env_var' | jq '.TestSigningProfileARN')"
+  - sh: 'export AWS_ACCESS_KEY_ID=$(echo "$test_env_var" | jq ".accessKeyID")'
+  - sh: 'export AWS_SECRET_ACCESS_KEY=$(echo "$test_env_var" | jq ".secretAccessKey")'
+  - sh: 'export AWS_SESSION_TOKEN=$(echo "$test_env_var" | jq ".sessionToken")'
+  - sh: 'export TASK_TOKEN=$(echo "$test_env_var" | jq ".taskToken")'
+  - sh: 'export AWS_S3_TESTING=$(echo "$test_env_var" | jq ".TestBucketName")'
+  - sh: 'export AWS_ECR_TESTING=$(echo "$test_env_var" | jq ".TestECRURI")'
+  - sh: 'export AWS_KMS_KEY=$(echo "$test_env_var" | jq ".TestKMSKeyArn")'
+  - sh: 'export AWS_SIGNING_PROFILE_NAME=$(echo "$test_env_var" | jq ".TestSigningProfileName")'
+  - sh: 'export AWS_SIGNING_PROFILE_VERSION_ARN=$(echo "$test_env_var" | jq ".TestSigningProfileARN")'
 
 
 build_script:
