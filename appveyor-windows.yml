@@ -70,24 +70,28 @@ install:
   - "git --version"
 
   # Get testing env vars
-  - ps: "python -m virtualenv venv_env_vars"
-  - ps: "./venv_env_vars/Scripts/pip install boto3"
-  - ps: "$test_env_var = ./venv_env_vars/Scripts/python tests/get_testing_resources.py"
-  - ps: "$test_env_var_json = ConvertFrom-Json $test_env_var"
+  - ps: "
+  If (Test-Path env:BY_CANARY){
+    python -m virtualenv venv_env_vars
+    ./venv_env_vars/Scripts/pip install boto3
+    $test_env_var = ./venv_env_vars/Scripts/python tests/get_testing_resources.py
+    $test_env_var_json = ConvertFrom-Json $test_env_var
 
-  - ps: "$env:CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID = $env:AWS_ACCESS_KEY_ID"
-  - ps: "$env:CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY = $env:AWS_SECRET_ACCESS_KEY"
-  - ps: "$env:CI_ACCESS_ROLE_AWS_SESSION_TOKEN = $env:AWS_SESSION_TOKEN"
+    $env:CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID = $env:AWS_ACCESS_KEY_ID
+    $env:CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY = $env:AWS_SECRET_ACCESS_KEY
+    $env:CI_ACCESS_ROLE_AWS_SESSION_TOKEN = $env:AWS_SESSION_TOKEN
 
-  - ps: "$env:AWS_ACCESS_KEY_ID = $test_env_var_json.accessKeyID"
-  - ps: "$env:AWS_SECRET_ACCESS_KEY = $test_env_var_json.secretAccessKey"
-  - ps: "$env:AWS_SESSION_TOKEN = $test_env_var_json.sessionToken"
-  - ps: "$env:TASK_TOKEN = $test_env_var_json.taskToken"
-  - ps: "$env:AWS_S3_TESTING = $test_env_var_json.TestBucketName"
-  - ps: "$env:AWS_ECR_TESTING = $test_env_var_json.TestECRURI"
-  - ps: "$env:AWS_KMS_KEY = $test_env_var_json.TestKMSKeyArn"
-  - ps: "$env:AWS_SIGNING_PROFILE_NAME = $test_env_var_json.TestSigningProfileName"
-  - ps: "$env:AWS_SIGNING_PROFILE_VERSION_ARN = $test_env_var_json.TestSigningProfileARN"
+    $env:AWS_ACCESS_KEY_ID = $test_env_var_json.accessKeyID
+    $env:AWS_SECRET_ACCESS_KEY = $test_env_var_json.secretAccessKey
+    $env:AWS_SESSION_TOKEN = $test_env_var_json.sessionToken
+    $env:TASK_TOKEN = $test_env_var_json.taskToken
+    $env:AWS_S3_TESTING = $test_env_var_json.TestBucketName
+    $env:AWS_ECR_TESTING = $test_env_var_json.TestECRURI
+    $env:AWS_KMS_KEY = $test_env_var_json.TestKMSKeyArn
+    $env:AWS_SIGNING_PROFILE_NAME = $test_env_var_json.TestSigningProfileName
+    $env:AWS_SIGNING_PROFILE_VERSION_ARN = $test_env_var_json.TestSigningProfileARN
+  }"
+
 
   # Create new virtual environment with chosen python version and activate it
   - "python -m virtualenv venv"
@@ -110,11 +114,15 @@ install:
 
 # Final clean up no matter success or failure
 on_finish:
-  - ps: "$env:AWS_ACCESS_KEY_ID = $env:CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID"
-  - ps: "$env:AWS_SECRET_ACCESS_KEY = $env:CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY"
-  - ps: "$env:AWS_SESSION_TOKEN = $env:CI_ACCESS_ROLE_AWS_SESSION_TOKEN"
+  - ps: "
+  If (Test-Path env:BY_CANARY){
+    $env:AWS_ACCESS_KEY_ID = $env:CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID
+    $env:AWS_SECRET_ACCESS_KEY = $env:CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY
+    $env:AWS_SESSION_TOKEN = $env:CI_ACCESS_ROLE_AWS_SESSION_TOKEN
+    aws stepfunctions send-task-success --task-token \"$env:TASK_TOKEN\" --task-output \"{}\" --region us-west-2
+  }"
 
-  - ps: 'aws stepfunctions send-task-success --task-token "$env:TASK_TOKEN" --task-output "{}" --region us-west-2'
+
 for:
   #Integ testing build, regression
   - matrix:

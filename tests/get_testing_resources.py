@@ -7,6 +7,7 @@ from botocore.config import Config
 
 DEFAULT_BOTO_CONFIG = Config(retries={"max_attempts": 10, "mode": "standard"})
 MANAGED_TEST_RESOURCE_STACK_NAME = "managed-test-resources"
+LAMBDA_TIME_OUT = 300
 
 
 def main():
@@ -31,9 +32,14 @@ def get_managed_test_resource_outputs(session: Session):
 
 def get_testing_credentials():
     lambda_arn = os.environ["CREDENTIAL_DISTRIBUTION_LAMBDA_ARN"]
+    # Max attempts to 0 so that boto3 will not invoke multiple times
     lambda_client = boto3.client(
         "lambda",
-        config=DEFAULT_BOTO_CONFIG,
+        config=Config(
+            retries={"max_attempts": 0, "mode": "standard"},
+            connect_timeout=LAMBDA_TIME_OUT + 60,
+            read_timeout=LAMBDA_TIME_OUT + 60,
+        ),
         region_name="us-west-2",
     )
     response = lambda_client.invoke(FunctionName=lambda_arn)
