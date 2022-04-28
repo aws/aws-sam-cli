@@ -79,6 +79,8 @@ install:
   - ps: "$env:CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY = $env:AWS_SECRET_ACCESS_KEY"
   - ps: "$env:CI_ACCESS_ROLE_AWS_SESSION_TOKEN = $env:AWS_SESSION_TOKEN"
 
+  - ps: "aws sts get-caller-identity"
+
   - ps: "$env:AWS_ACCESS_KEY_ID = $test_env_var_json.accessKeyID"
   - ps: "$env:AWS_SECRET_ACCESS_KEY = $test_env_var_json.secretAccessKey"
   - ps: "$env:AWS_SESSION_TOKEN = $test_env_var_json.sessionToken"
@@ -88,6 +90,8 @@ install:
   - ps: "$env:AWS_KMS_KEY = $test_env_var_json.TestKMSKeyArn"
   - ps: "$env:AWS_SIGNING_PROFILE_NAME = $test_env_var_json.TestSigningProfileName"
   - ps: "$env:AWS_SIGNING_PROFILE_VERSION_ARN = $test_env_var_json.TestSigningProfileARN"
+
+  - ps: "aws sts get-caller-identity"
 
   # Create new virtual environment with chosen python version and activate it
   - "python -m virtualenv venv"
@@ -110,9 +114,14 @@ install:
 
 # Final clean up no matter success or failure
 on_finish:
+  - ps: "aws sts get-caller-identity"
+
   - ps: "$env:AWS_ACCESS_KEY_ID = $env:CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID"
   - ps: "$env:AWS_SECRET_ACCESS_KEY = $env:CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY"
   - ps: "$env:AWS_SESSION_TOKEN = $env:CI_ACCESS_ROLE_AWS_SESSION_TOKEN"
+
+  - ps: "aws sts get-caller-identity"
+
   - ps: 'aws stepfunctions send-task-success --task-token "$env:TASK_TOKEN" --task-output "{}"'
 for:
   #Integ testing build, regression
