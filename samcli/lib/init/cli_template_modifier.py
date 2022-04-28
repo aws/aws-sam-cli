@@ -1,5 +1,5 @@
 """
-Class to parse and update template when tracing is enabled
+Classes used to parse and update template when tracing is enabled
 """
 import logging
 from typing import Any, List
@@ -10,68 +10,88 @@ from samcli.yamlhelper import parse_yaml_file
 LOG = logging.getLogger(__name__)
 
 
-class TemplateModifier:
-    GLOBALS = "Globals:\n"
-    RESOURCES = "Resources:\n"
-    FUNCTION = "  Function:\n"
-    TRACING = "    Tracing: Active\n"
-    GLOBAL_COMMENT = (
-        "# More info about Globals: "
-        "https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst\n"
-    )
+class GlobalsSection:
+    def __init__(self):
+        self.globals = "Globals:\n"
+        self.resource = "Resources:\n"
+        self.function = "  Function:\n"
+        self.tracing = "    Tracing: Active\n"
+        self.comment = (
+            "# More info about Globals: "
+            "https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst\n"
+        )
 
+    def get_field(self, field: str):
+        """
+        Parameters
+        ----------
+        field : str
+            Global field value
+
+        Returns
+        -------
+        str
+            field and it value
+        """
+        return self.tracing if field == "Tracing" else None
+
+
+class TemplateModifier:
     def __init__(self, location):
         self.template_location = location
         self.template = self.get_template()
         self.copy_of_original_template = self.template
 
-    def modify_template(self):
+    def modify_template(self, field, globals_section):
         """
         This method modifies the template by first added the new field to the template
         and then run a sanity check on the template to know if the template matches the
         CFN yaml
         """
-        self.add_new_field_to_template()
+        self.add_new_field_to_template(field, globals_section)
         self.write(self.template)
         if not self.sanity_check():
             self.write(self.copy_of_original_template)
 
-    def add_new_field_to_template(self):
+    def add_new_field_to_template(self, field, globals_section):
         """
         Add new field to SAM template
         """
 
-        global_section_position = self.section_position(self.GLOBALS)
+        field_and_value = globals_section.get_field(field)
+        global_section_position = self.section_position(globals_section.globals)
 
         if global_section_position >= 0:
-            function_section_position = self.section_position(self.FUNCTION, global_section_position)
+            function_section_position = self.section_position(globals_section.function, global_section_position)
 
             if function_section_position >= 0:
-                field_positon = self.field_position(function_section_position, "Tracing")
+                field_positon = self.field_position(function_section_position, field)
                 if field_positon >= 0:
-                    self.template[field_positon] = self.TRACING
+                    self.template[field_positon] = field_and_value
                     return
 
-                new_fields = [self.TRACING]
+                new_fields = [field_and_value]
                 section_position = function_section_position
 
             else:
-                new_fields = [self.FUNCTION, self.TRACING]
+                new_fields = [globals_section.function, field_and_value]
                 section_position = global_section_position + 1
 
             self.template = self.add_fields_to_section(section_position, new_fields)
 
         else:
-            resource_section_position = self.section_position(self.RESOURCES)
-            global_section = [
-                self.GLOBAL_COMMENT,
-                self.GLOBALS,
-                self.FUNCTION,
-                self.TRACING,
+            resource_section_position = self.section_position(globals_section.resource)
+            globals_section_data = [
+                globals_section.comment,
+                globals_section.globals,
+                globals_section.function,
+                field_and_value,
                 "\n",
             ]
             self.template = (
-                self.template[:resource_section_position] + global_section + self.template[resource_section_position:]
+                self.template[:resource_section_position]
+                + globals_section_data
+                + self.template[resource_section_position:]
             )
 
     def section_position(self, section: str, position: int = 0) -> int:

@@ -2,7 +2,7 @@ from unittest import TestCase
 from unittest.mock import patch, MagicMock
 from yaml.parser import ParserError
 
-from samcli.lib.init.cli_template_modifier import TemplateModifier
+from samcli.lib.init.cli_template_modifier import TemplateModifier, GlobalsSection
 
 
 class TestTemplateModifier(TestCase):
@@ -16,6 +16,7 @@ class TestTemplateModifier(TestCase):
             "      CodeUri: hello_world/\n",
             "      Handler: app.lambda_handler\n",
         ]
+        self.globals_section = GlobalsSection()
 
     @patch("samcli.lib.init.cli_template_modifier.TemplateModifier.get_template")
     def test_must_add_new_field_to_template(self, get_template_patch):
@@ -43,7 +44,7 @@ class TestTemplateModifier(TestCase):
         ]
 
         template_modifier = TemplateModifier(self.location)
-        template_modifier.add_new_field_to_template()
+        template_modifier.add_new_field_to_template("Tracing", self.globals_section)
 
         self.assertEqual(template_modifier.template, expected_template_data)
 
@@ -80,7 +81,7 @@ class TestTemplateModifier(TestCase):
         ]
 
         template_modifier = TemplateModifier(self.location)
-        template_modifier.add_new_field_to_template()
+        template_modifier.add_new_field_to_template("Tracing", self.globals_section)
 
         self.assertEqual(template_modifier.template, expected_template_data)
 
@@ -116,8 +117,7 @@ class TestTemplateModifier(TestCase):
         ]
 
         template_modifier = TemplateModifier(self.location)
-        template_modifier.add_new_field_to_template()
-        print(template_modifier.template)
+        template_modifier.add_new_field_to_template("Tracing", self.globals_section)
         self.assertEqual(template_modifier.template, expected_template_data)
 
     @patch("samcli.lib.init.cli_template_modifier.TemplateModifier.get_template")
