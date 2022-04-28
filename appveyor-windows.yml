@@ -75,15 +75,19 @@ install:
   - ps: "$test_env_var = ./venv_env_vars/Scripts/python tests/get_testing_resources.py"
   - ps: "$test_env_var_json = ConvertFrom-Json $test_env_var"
 
-  - ps: "$AWS_ACCESS_KEY_ID = $test_env_var_json.accessKeyID"
-  - ps: "$AWS_SECRET_ACCESS_KEY = $test_env_var_json.secretAccessKey"
-  - ps: "$AWS_SESSION_TOKEN = $test_env_var_json.sessionToken"
-  - ps: "$TASK_TOKEN = $test_env_var_json.taskToken"
-  - ps: "$AWS_S3_TESTING = $test_env_var_json.TestBucketName"
-  - ps: "$AWS_ECR_TESTING = $test_env_var_json.TestECRURI"
-  - ps: "$AWS_KMS_KEY = $test_env_var_json.TestKMSKeyArn"
-  - ps: "$AWS_SIGNING_PROFILE_NAME = $test_env_var_json.TestSigningProfileName"
-  - ps: "$AWS_SIGNING_PROFILE_VERSION_ARN = $test_env_var_json.TestSigningProfileARN"
+  - ps: "$env:CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID = $env:AWS_ACCESS_KEY_ID"
+  - ps: "$env:CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY = $env:AWS_SECRET_ACCESS_KEY"
+  - ps: "$env:CI_ACCESS_ROLE_AWS_SESSION_TOKEN = $env:AWS_SESSION_TOKEN"
+
+  - ps: "$env:AWS_ACCESS_KEY_ID = $test_env_var_json.accessKeyID"
+  - ps: "$env:AWS_SECRET_ACCESS_KEY = $test_env_var_json.secretAccessKey"
+  - ps: "$env:AWS_SESSION_TOKEN = $test_env_var_json.sessionToken"
+  - ps: "$env:TASK_TOKEN = $test_env_var_json.taskToken"
+  - ps: "$env:AWS_S3_TESTING = $test_env_var_json.TestBucketName"
+  - ps: "$env:AWS_ECR_TESTING = $test_env_var_json.TestECRURI"
+  - ps: "$env:AWS_KMS_KEY = $test_env_var_json.TestKMSKeyArn"
+  - ps: "$env:AWS_SIGNING_PROFILE_NAME = $test_env_var_json.TestSigningProfileName"
+  - ps: "$env:AWS_SIGNING_PROFILE_VERSION_ARN = $test_env_var_json.TestSigningProfileARN"
 
   # Create new virtual environment with chosen python version and activate it
   - "python -m virtualenv venv"
@@ -99,9 +103,17 @@ install:
   # Echo final Path
   - "echo %PATH%"
 
+  - ps: "
+      If (Test-Path env:BY_CANARY){
+      echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
+      }"
+
 # Final clean up no matter success or failure
 on_finish:
-  - ps: 'aws stepfunctions send-task-success --task-token "$TASK_TOKEN" --task-output "{}"'
+  - ps: "$env:AWS_ACCESS_KEY_ID = $env:CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID"
+  - ps: "$env:AWS_SECRET_ACCESS_KEY = $env:CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY"
+  - ps: "$env:AWS_SESSION_TOKEN = $env:CI_ACCESS_ROLE_AWS_SESSION_TOKEN"
+  - ps: 'aws stepfunctions send-task-success --task-token "$env:TASK_TOKEN" --task-output "{}"'
 for:
   #Integ testing build, regression
   - matrix:
@@ -110,10 +122,6 @@ for:
 
     test_script:
       # Reactivate virtualenv before running tests
-      - ps: "
-          If (Test-Path env:BY_CANARY){
-          echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
-          }"
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
@@ -126,10 +134,6 @@ for:
 
     test_script:
       # Reactivate virtualenv before running tests
-      - ps: "
-          If (Test-Path env:BY_CANARY){
-          echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
-          }"
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
@@ -142,10 +146,6 @@ for:
 
     test_script:
       # Reactivate virtualenv before running tests
-      - ps: "
-          If (Test-Path env:BY_CANARY){
-          echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
-          }"
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
@@ -158,10 +158,6 @@ for:
 
     test_script:
       # Reactivate virtualenv before running tests
-      - ps: "
-          If (Test-Path env:BY_CANARY){
-          echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
-          }"
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
