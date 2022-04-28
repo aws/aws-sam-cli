@@ -112,6 +112,7 @@ install:
   - sh: '
     if [[ "$test_env_var" == *"NoAvailableAccountException"* ]]; then
       echo "Failed to acquire account. No available account.";
+      false;
     fi
   '
 
