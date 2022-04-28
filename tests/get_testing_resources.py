@@ -17,9 +17,6 @@ def main():
         aws_session_token=env_vars["sessionToken"],
     )
     env_vars.update(get_managed_test_resource_outputs(test_session))
-    env_vars["accessKeyID"] = env_vars["accessKeyID"][:5]
-    env_vars["secretAccessKey"] = env_vars["secretAccessKey"][:5]
-    env_vars["sessionToken"] = env_vars["sessionToken"][:5]
     print(json.dumps(env_vars))
 
 
