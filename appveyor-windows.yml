@@ -72,24 +72,24 @@ install:
   # Get testing env vars
   - ps: "
   If (Test-Path env:BY_CANARY){
-    python -m virtualenv venv_env_vars
-    ./venv_env_vars/Scripts/pip install boto3
-    $test_env_var = ./venv_env_vars/Scripts/python tests/get_testing_resources.py
-    $test_env_var_json = ConvertFrom-Json $test_env_var
+    python -m virtualenv venv_env_vars;
+    ./venv_env_vars/Scripts/pip install boto3;
+    $test_env_var = ./venv_env_vars/Scripts/python tests/get_testing_resources.py;
+    $test_env_var_json = ConvertFrom-Json $test_env_var;
 
-    $env:CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID = $env:AWS_ACCESS_KEY_ID
-    $env:CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY = $env:AWS_SECRET_ACCESS_KEY
-    $env:CI_ACCESS_ROLE_AWS_SESSION_TOKEN = $env:AWS_SESSION_TOKEN
+    $env:CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID = $env:AWS_ACCESS_KEY_ID;
+    $env:CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY = $env:AWS_SECRET_ACCESS_KEY;
+    $env:CI_ACCESS_ROLE_AWS_SESSION_TOKEN = $env:AWS_SESSION_TOKEN;
 
-    $env:AWS_ACCESS_KEY_ID = $test_env_var_json.accessKeyID
-    $env:AWS_SECRET_ACCESS_KEY = $test_env_var_json.secretAccessKey
-    $env:AWS_SESSION_TOKEN = $test_env_var_json.sessionToken
-    $env:TASK_TOKEN = $test_env_var_json.taskToken
-    $env:AWS_S3_TESTING = $test_env_var_json.TestBucketName
-    $env:AWS_ECR_TESTING = $test_env_var_json.TestECRURI
-    $env:AWS_KMS_KEY = $test_env_var_json.TestKMSKeyArn
-    $env:AWS_SIGNING_PROFILE_NAME = $test_env_var_json.TestSigningProfileName
-    $env:AWS_SIGNING_PROFILE_VERSION_ARN = $test_env_var_json.TestSigningProfileARN
+    $env:AWS_ACCESS_KEY_ID = $test_env_var_json.accessKeyID;
+    $env:AWS_SECRET_ACCESS_KEY = $test_env_var_json.secretAccessKey;
+    $env:AWS_SESSION_TOKEN = $test_env_var_json.sessionToken;
+    $env:TASK_TOKEN = $test_env_var_json.taskToken;
+    $env:AWS_S3_TESTING = $test_env_var_json.TestBucketName;
+    $env:AWS_ECR_TESTING = $test_env_var_json.TestECRURI;
+    $env:AWS_KMS_KEY = $test_env_var_json.TestKMSKeyArn;
+    $env:AWS_SIGNING_PROFILE_NAME = $test_env_var_json.TestSigningProfileName;
+    $env:AWS_SIGNING_PROFILE_VERSION_ARN = $test_env_var_json.TestSigningProfileARN;
   }"
 
 
