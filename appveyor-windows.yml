@@ -116,10 +116,10 @@ install:
 on_finish:
   - ps: "
   If (Test-Path env:BY_CANARY){
-    $env:AWS_ACCESS_KEY_ID = $env:CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID
-    $env:AWS_SECRET_ACCESS_KEY = $env:CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY
-    $env:AWS_SESSION_TOKEN = $env:CI_ACCESS_ROLE_AWS_SESSION_TOKEN
-    aws stepfunctions send-task-success --task-token \"$env:TASK_TOKEN\" --task-output \"{}\" --region us-west-2
+    $env:AWS_ACCESS_KEY_ID = $env:CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID;
+    $env:AWS_SECRET_ACCESS_KEY = $env:CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY;
+    $env:AWS_SESSION_TOKEN = $env:CI_ACCESS_ROLE_AWS_SESSION_TOKEN;
+    aws stepfunctions send-task-success --task-token \"$env:TASK_TOKEN\" --task-output \"{}\" --region us-west-2;
   }"
 
 
