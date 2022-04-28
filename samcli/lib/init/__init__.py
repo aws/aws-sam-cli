@@ -11,7 +11,7 @@ from cookiecutter.exceptions import CookiecutterException, RepositoryNotFound, U
 from cookiecutter.main import cookiecutter
 
 from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING, is_custom_runtime
-from samcli.lib.init.cli_template_modifier import TemplateModifier, GlobalsSection
+from samcli.lib.init.template_modifiers.xray_tracing_template_modifier import XRayTracingTemplateModifier
 from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.utils import osutils
 from .exceptions import GenerateProjectFailedError, InvalidLocationError
@@ -118,5 +118,5 @@ def generate_project(
 
     if tracing:
         template_file_path = f"{output_dir}/{name}/template.yaml"
-        template_modifier = TemplateModifier(template_file_path)
-        template_modifier.modify_template("Tracing", GlobalsSection())
+        template_modifier = XRayTracingTemplateModifier(template_file_path)
+        template_modifier.modify_template()
