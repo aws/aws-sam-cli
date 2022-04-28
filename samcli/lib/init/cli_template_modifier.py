@@ -2,7 +2,7 @@
 Class to parse and update template when tracing is enabled
 """
 import logging
-from typing import Any
+from typing import Any, List
 from yaml.parser import ParserError
 from samcli.yamlhelper import parse_yaml_file
 
@@ -119,7 +119,7 @@ class TemplateModifier:
                 return self.template[: position + index] + fields + self.template[position + index :]
         return self.template
 
-    def field_position(self, position, field) -> Any:
+    def field_position(self, position: int, field: str) -> Any:
         """
         Checks if the field needed to be added to the SAM template already exist in the template
 
@@ -178,7 +178,7 @@ class TemplateModifier:
             for line in template:
                 file.write(line)
 
-    def get_template(self) -> list:
+    def get_template(self) -> List[str]:
         """
         Gets data the SAM templates and returns it in a array
 

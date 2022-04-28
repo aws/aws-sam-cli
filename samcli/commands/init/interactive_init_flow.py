@@ -89,7 +89,39 @@ def generate_application(
     no_input,
     location_opt_choice,
     tracing,
-):  # pylint: disable=too-many-arguments, missing-function-docstring
+):  # pylint: disable=too-many-arguments
+    """
+    The method holds the decision logic for generating an application
+    Parameters
+    ----------
+    location : str
+        Location to SAM template
+    pt_explicit : bool
+        boolean representing if the customer explicitly stated packageType
+    package_type : str
+        Zip or Image
+    runtime : str
+        AWS Lambda runtime or Custom runtime
+    architecture : str
+        The architecture type 'x86_64' and 'arm64' in AWS
+    base_image : str
+        AWS Lambda base image
+    dependency_manager : str
+        Runtime's Dependency manager
+    output_dir : str
+        Project output directory
+    name : str
+        name of the project
+    app_template : str
+        AWS Serverless Application template
+    no_input : bool
+        Whether to prompt for input or to accept default values
+        (the default is False, which prompts the user for values it doesn't know for baking)
+    location_opt_choice : int
+        User input for selecting how to get customer a vended serverless application
+    tracing : bool
+        boolen value to determine if X-Ray tracing show be activated or not
+    """
     if location_opt_choice == "1":
         _generate_from_use_case(
             location,
