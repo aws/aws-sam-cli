@@ -39,7 +39,7 @@ class GlobalsSection:
 class TemplateModifier:
     def __init__(self, location):
         self.template_location = location
-        self.template = self.get_template()
+        self.template = self._get_template()
         self.copy_of_original_template = self.template
 
     def modify_template(self, field, globals_section):
@@ -48,39 +48,39 @@ class TemplateModifier:
         and then run a sanity check on the template to know if the template matches the
         CFN yaml
         """
-        self.add_new_field_to_template(field, globals_section)
-        self.write(self.template)
-        if not self.sanity_check():
-            self.write(self.copy_of_original_template)
+        self._add_new_field_to_template(field, globals_section)
+        self._write(self.template)
+        if not self._sanity_check():
+            self._write(self.copy_of_original_template)
 
-    def add_new_field_to_template(self, field, globals_section):
+    def _add_new_field_to_template(self, field, globals_section):
         """
         Add new field to SAM template
         """
 
         field_and_value = globals_section.get_field(field)
-        global_section_position = self.section_position(globals_section.globals)
+        global_section_position = self._section_position(globals_section.globals)
 
         if global_section_position >= 0:
-            function_section_position = self.section_position(globals_section.function, global_section_position)
+            function_section_position = self._section_position(globals_section.function, global_section_position)
 
             if function_section_position >= 0:
-                field_positon = self.field_position(function_section_position, field)
+                field_positon = self._field_position(function_section_position, field)
                 if field_positon >= 0:
                     self.template[field_positon] = field_and_value
                     return
 
                 new_fields = [field_and_value]
-                section_position = function_section_position
+                _section_position = function_section_position
 
             else:
                 new_fields = [globals_section.function, field_and_value]
-                section_position = global_section_position + 1
+                _section_position = global_section_position + 1
 
-            self.template = self.add_fields_to_section(section_position, new_fields)
+            self.template = self._add_fields_to_section(_section_position, new_fields)
 
         else:
-            resource_section_position = self.section_position(globals_section.resource)
+            resource_section_position = self._section_position(globals_section.resource)
             globals_section_data = [
                 globals_section.comment,
                 globals_section.globals,
@@ -94,7 +94,7 @@ class TemplateModifier:
                 + self.template[resource_section_position:]
             )
 
-    def section_position(self, section: str, position: int = 0) -> int:
+    def _section_position(self, section: str, position: int = 0) -> int:
         """
         validate if a section in the template exist
 
@@ -117,7 +117,7 @@ class TemplateModifier:
                 return section_index
         return -1
 
-    def add_fields_to_section(self, position: int, fields: str) -> Any:
+    def _add_fields_to_section(self, position: int, fields: str) -> Any:
         """
         Adds fields to section in the template
 
@@ -139,7 +139,7 @@ class TemplateModifier:
                 return self.template[: position + index] + fields + self.template[position + index :]
         return self.template
 
-    def field_position(self, position: int, field: str) -> Any:
+    def _field_position(self, position: int, field: str) -> Any:
         """
         Checks if the field needed to be added to the SAM template already exist in the template
 
@@ -163,7 +163,7 @@ class TemplateModifier:
                 break
         return -1
 
-    def sanity_check(self) -> bool:
+    def _sanity_check(self) -> bool:
         """
         Conducts sanity check on template using yaml parser to ensure the updated template meets
         CFN template criteria
@@ -185,7 +185,7 @@ class TemplateModifier:
             LOG.warning(message)
             return False
 
-    def write(self, template: list):
+    def _write(self, template: list):
         """
         write generated template into SAM template
 
@@ -198,7 +198,7 @@ class TemplateModifier:
             for line in template:
                 file.write(line)
 
-    def get_template(self) -> List[str]:
+    def _get_template(self) -> List[str]:
         """
         Gets data the SAM templates and returns it in a array
 

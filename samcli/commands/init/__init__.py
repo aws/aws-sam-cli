@@ -235,7 +235,6 @@ def non_interactive_validation(func):
     "--tracing/--no-tracing",
     default=None,
     help="Enable AWS X-Ray tracing for your lambda functions",
-    cls=ClickMutex,
 )
 @common_options
 @non_interactive_validation
