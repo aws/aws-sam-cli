@@ -111,7 +111,7 @@ install:
   - sh: "test_env_var=$(.venv_env_vars/bin/python tests/get_testing_resources.py)"
   - sh: '
     if [ $? -ne 0 ]; then
-      echo $test_env_var;
+      echo "get_testing_resources failed. Failed to acquire credentials or test resources.";
       false;
     fi
   '
