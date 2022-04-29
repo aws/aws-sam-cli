@@ -1,3 +1,7 @@
+"""
+Script for getting test account credentials and managed test account resources.
+The output will be a json string with creds and resource names.
+"""
 import json
 import os
 
@@ -12,6 +16,7 @@ LAMBDA_TIME_OUT = 300
 
 def main():
     env_vars = get_testing_credentials()
+    # Assume testing account credential in order to access managed test resource stack
     test_session = Session(
         aws_access_key_id=env_vars["accessKeyID"],
         aws_secret_access_key=env_vars["secretAccessKey"],
@@ -22,6 +27,7 @@ def main():
 
 
 def get_managed_test_resource_outputs(session: Session):
+    """Read output of the managed test resource stack for resource names and arns"""
     cfn_resource = session.resource("cloudformation", config=DEFAULT_BOTO_CONFIG, region_name="us-east-1")
     stack = cfn_resource.Stack(MANAGED_TEST_RESOURCE_STACK_NAME)
     outputs_dict = dict()
