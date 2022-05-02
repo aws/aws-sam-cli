@@ -237,8 +237,7 @@ def make_zip(file_name, source_root):
     source_root = os.path.abspath(source_root)
     compression_type = zipfile.ZIP_DEFLATED
     with open(zipfile_name, "wb") as f:
-        zip_file = zipfile.ZipFile(f, "w", compression_type)
-        with contextlib.closing(zip_file) as zf:
+        with contextlib.closing(zipfile.ZipFile(f, "w", compression_type)) as zf:
             for root, _, files in os.walk(source_root, followlinks=True):
                 for filename in files:
                     full_path = os.path.join(root, filename)
