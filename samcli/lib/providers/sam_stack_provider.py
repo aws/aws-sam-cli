@@ -55,13 +55,13 @@ class SamLocalStackProvider(SamBaseProvider):
         self._resources = self._template_dict.get("Resources", {})
         self._global_parameter_overrides = global_parameter_overrides
 
-        LOG.debug("%d stacks found in the template", len(self._resources))
-
         # Store a map of stack name to stack information for quick reference -> self._stacks
         # and detect remote stacks -> self._remote_stack_full_paths
         self._stacks: Dict[str, Stack] = {}
         self.remote_stack_full_paths: List[str] = []
         self._extract_stacks()
+
+        LOG.debug("%d stacks found in the template", len(self._stacks))
 
     def get(self, name: str) -> Optional[Stack]:
         """
