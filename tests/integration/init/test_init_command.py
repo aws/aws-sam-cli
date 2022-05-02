@@ -688,7 +688,6 @@ class TestInitWithArbitraryProject(TestCase):
 
 
 class TestInteractiveInit(TestCase):
-
     def test_interactive_init(self):
         user_input = """
 1
@@ -708,12 +707,8 @@ sam-interactive-init-app
             expected_output_folder = Path(temp, "sam-interactive-init-app")
             self.assertTrue(expected_output_folder.exists)
             self.assertTrue(expected_output_folder.is_dir())
-            self.assertTrue(
-                Path(expected_output_folder, "hello-world").is_dir()
-            )
-            self.assertTrue(
-                Path(expected_output_folder, "hello-world", "app.js").is_file()
-            )
+            self.assertTrue(Path(expected_output_folder, "hello-world").is_dir())
+            self.assertTrue(Path(expected_output_folder, "hello-world", "app.js").is_file())
 
     def test_interactive_init_default_runtime(self):
         user_input = """
@@ -731,9 +726,5 @@ sam-interactive-init-app-default-runtime
             expected_output_folder = Path(temp, "sam-interactive-init-app-default-runtime")
             self.assertTrue(expected_output_folder.exists)
             self.assertTrue(expected_output_folder.is_dir())
-            self.assertTrue(
-                Path(expected_output_folder, "hello_world").is_dir()
-            )
-            self.assertTrue(
-                Path(expected_output_folder, "hello_world", "app.py").is_file()
-            )
+            self.assertTrue(Path(expected_output_folder, "hello_world").is_dir())
+            self.assertTrue(Path(expected_output_folder, "hello_world", "app.py").is_file())

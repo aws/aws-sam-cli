@@ -332,4 +332,3 @@ Y
             result = runner.invoke(init_cmd, ["--output-dir", temp], input=user_input)
             self.assertTrue(result.exception)
             self._tear_down_custom_config()
-
