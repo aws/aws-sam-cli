@@ -61,7 +61,7 @@ def print_cmdline_args(func):
 
     Parameters
     ----------
-    func: function reference
+    func: Callable
         Actual function (command) which will be executed
 
     Returns

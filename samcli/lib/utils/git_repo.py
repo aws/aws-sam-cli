@@ -79,9 +79,9 @@ class GitRepo:
 
         for executable in executables:
             try:
-                subprocess.Popen([executable], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                # No exception. Let's pick this
-                return executable
+                with subprocess.Popen([executable], stdout=subprocess.PIPE, stderr=subprocess.PIPE):
+                    # No exception. Let's pick this
+                    return executable
             except OSError as ex:
                 LOG.debug("Unable to find executable %s", executable, exc_info=ex)
 
