@@ -1,14 +1,18 @@
-from samcli.lib.utils.osutils import stderr
+from click.testing import CliRunner
+
+from samcli.commands.init import cli as init_cmd
 from unittest import TestCase
 
 from parameterized import parameterized
-from subprocess import STDOUT, Popen, TimeoutExpired, PIPE
+from subprocess import Popen, TimeoutExpired, PIPE
 import os
 import shutil
 import tempfile
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 from pathlib import Path
+
+from tests.testing_utils import get_sam_command
 
 TIMEOUT = 300
 
@@ -20,7 +24,7 @@ class TestBasicInitCommand(TestCase):
         with tempfile.TemporaryDirectory() as temp:
             process = Popen(
                 [
-                    _get_command(),
+                    get_sam_command(),
                     "init",
                     "--runtime",
                     "nodejs14.x",
@@ -54,7 +58,7 @@ class TestBasicInitCommand(TestCase):
         with tempfile.TemporaryDirectory() as temp:
             process = Popen(
                 [
-                    _get_command(),
+                    get_sam_command(),
                     "init",
                     "--package-type",
                     IMAGE,
@@ -82,7 +86,7 @@ class TestBasicInitCommand(TestCase):
         with tempfile.TemporaryDirectory() as temp:
             process = Popen(
                 [
-                    _get_command(),
+                    get_sam_command(),
                     "init",
                     "--runtime",
                     "nodejs14.x",
@@ -114,7 +118,7 @@ class TestBasicInitCommand(TestCase):
         with tempfile.TemporaryDirectory() as temp:
             process = Popen(
                 [
-                    _get_command(),
+                    get_sam_command(),
                     "init",
                     "--runtime",
                     "java8",
@@ -146,7 +150,7 @@ class TestBasicInitCommand(TestCase):
         with tempfile.TemporaryDirectory() as temp:
             process = Popen(
                 [
-                    _get_command(),
+                    get_sam_command(),
                     "init",
                     "--runtime",
                     "java8",
@@ -178,7 +182,7 @@ class TestBasicInitCommand(TestCase):
         with tempfile.TemporaryDirectory() as temp:
             process = Popen(
                 [
-                    _get_command(),
+                    get_sam_command(),
                     "init",
                     "--runtime",
                     "java8",
@@ -212,7 +216,7 @@ class TestBasicInitCommand(TestCase):
         with tempfile.TemporaryDirectory() as temp:
             process = Popen(
                 [
-                    _get_command(),
+                    get_sam_command(),
                     "init",
                     "--runtime",
                     "nodejs14.x",
@@ -246,7 +250,7 @@ class TestBasicInitCommand(TestCase):
         with tempfile.TemporaryDirectory() as temp:
             process = Popen(
                 [
-                    _get_command(),
+                    get_sam_command(),
                     "init",
                     "--runtime",
                     "nodejs14.x",
@@ -280,7 +284,7 @@ class TestBasicInitCommand(TestCase):
         with tempfile.TemporaryDirectory() as temp:
             process = Popen(
                 [
-                    _get_command(),
+                    get_sam_command(),
                     "init",
                     "--runtime",
                     "nodejs14.x",
@@ -313,7 +317,7 @@ class TestBasicInitCommand(TestCase):
         with tempfile.TemporaryDirectory() as temp:
             process = Popen(
                 [
-                    _get_command(),
+                    get_sam_command(),
                     "init",
                     "--runtime",
                     "nodejs14.x",
@@ -342,7 +346,7 @@ class TestBasicInitCommand(TestCase):
         with tempfile.TemporaryDirectory() as temp:
             process = Popen(
                 [
-                    _get_command(),
+                    get_sam_command(),
                     "init",
                     "--runtime",
                     "nodejs14.x",
@@ -390,7 +394,7 @@ class TestInitForParametersCompatibility(TestCase):
         with tempfile.TemporaryDirectory() as temp:
             process = Popen(
                 [
-                    _get_command(),
+                    get_sam_command(),
                     "init",
                     "--runtime",
                     "nodejs14.x",
@@ -421,7 +425,7 @@ class TestInitForParametersCompatibility(TestCase):
         with tempfile.TemporaryDirectory() as temp:
             process = Popen(
                 [
-                    _get_command(),
+                    get_sam_command(),
                     "init",
                     "--app-template",
                     "hello-world",
@@ -453,7 +457,7 @@ class TestInitForParametersCompatibility(TestCase):
         with tempfile.TemporaryDirectory() as temp:
             process = Popen(
                 [
-                    _get_command(),
+                    get_sam_command(),
                     "init",
                     "--runtime",
                     "nodejs14.x",
@@ -484,7 +488,7 @@ class TestInitForParametersCompatibility(TestCase):
         with tempfile.TemporaryDirectory() as temp:
             process = Popen(
                 [
-                    _get_command(),
+                    get_sam_command(),
                     "init",
                     "--base-image",
                     "amazon/nodejs14.x-base",
@@ -516,7 +520,7 @@ class TestInitForParametersCompatibility(TestCase):
         with tempfile.TemporaryDirectory() as temp:
             process = Popen(
                 [
-                    _get_command(),
+                    get_sam_command(),
                     "init",
                     "--package-type",
                     IMAGE,
@@ -545,7 +549,7 @@ class TestInitForParametersCompatibility(TestCase):
         with tempfile.TemporaryDirectory() as temp:
             process = Popen(
                 [
-                    _get_command(),
+                    get_sam_command(),
                     "init",
                     "--package-type",
                     ZIP,
@@ -577,7 +581,7 @@ class TestInitForParametersCompatibility(TestCase):
         with tempfile.TemporaryDirectory() as temp:
             process = Popen(
                 [
-                    _get_command(),
+                    get_sam_command(),
                     "init",
                     "--base-image",
                     "amazon/nodejs14.x-base",
@@ -604,7 +608,7 @@ class TestInitForParametersCompatibility(TestCase):
         with tempfile.TemporaryDirectory() as temp:
             process = Popen(
                 [
-                    _get_command(),
+                    get_sam_command(),
                     "init",
                     "--package-type",
                     "WrongPT",
@@ -628,7 +632,7 @@ Try '{0} init -h' for help.
 
 Error: Invalid value for '-p' / '--package-type': invalid choice: WrongPT. (choose from Zip, Image)
                         """.format(
-                _get_command()
+                get_sam_command()
             )
 
             self.assertEqual(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
@@ -652,7 +656,7 @@ class TestInitWithArbitraryProject(TestCase):
     @parameterized.expand([(None,), ("project_name",)])
     def test_arbitrary_project(self, project_name):
         with tempfile.TemporaryDirectory() as temp:
-            args = [_get_command(), "init", "--location", self.zip_path, "-o", temp]
+            args = [get_sam_command(), "init", "--location", self.zip_path, "-o", temp]
             if project_name:
                 args.extend(["--name", project_name])
 
@@ -671,7 +675,7 @@ class TestInitWithArbitraryProject(TestCase):
 
     def test_zip_not_exists(self):
         with tempfile.TemporaryDirectory() as temp:
-            args = [_get_command(), "init", "--location", str(Path("invalid", "zip", "path")), "-o", temp]
+            args = [get_sam_command(), "init", "--location", str(Path("invalid", "zip", "path")), "-o", temp]
 
             process = Popen(args)
             try:
@@ -683,8 +687,44 @@ class TestInitWithArbitraryProject(TestCase):
             self.assertEqual(process.returncode, 1)
 
 
-def _get_command():
-    command = "sam"
-    if os.getenv("SAM_CLI_DEV"):
-        command = "samdev"
-    return command
+class TestInteractiveInit(TestCase):
+    def test_interactive_init(self):
+        user_input = """
+1
+1
+N
+8
+1
+1
+N
+sam-interactive-init-app
+        """
+        with tempfile.TemporaryDirectory() as temp:
+            runner = CliRunner()
+            result = runner.invoke(init_cmd, ["--output-dir", temp, "--debug"], input=user_input)
+
+            self.assertFalse(result.exception)
+            expected_output_folder = Path(temp, "sam-interactive-init-app")
+            self.assertTrue(expected_output_folder.exists)
+            self.assertTrue(expected_output_folder.is_dir())
+            self.assertTrue(Path(expected_output_folder, "hello-world").is_dir())
+            self.assertTrue(Path(expected_output_folder, "hello-world", "app.js").is_file())
+
+    def test_interactive_init_default_runtime(self):
+        user_input = """
+1
+1
+Y
+N
+sam-interactive-init-app-default-runtime
+        """
+        with tempfile.TemporaryDirectory() as temp:
+            runner = CliRunner()
+            result = runner.invoke(init_cmd, ["--output-dir", temp, "--debug"], input=user_input)
+
+            self.assertFalse(result.exception)
+            expected_output_folder = Path(temp, "sam-interactive-init-app-default-runtime")
+            self.assertTrue(expected_output_folder.exists)
+            self.assertTrue(expected_output_folder.is_dir())
+            self.assertTrue(Path(expected_output_folder, "hello_world").is_dir())
+            self.assertTrue(Path(expected_output_folder, "hello_world", "app.py").is_file())
