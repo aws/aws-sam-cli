@@ -1,4 +1,5 @@
 import pathlib
+from parameterized import parameterized
 from unittest import TestCase
 
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
@@ -417,17 +418,23 @@ class TestResourceMetadataNormalizer(TestCase):
 
 
 class TestResourceMetadataNormalizerGetResourceId(TestCase):
-    def test_use_cdk_id_as_resource_id(self):
+    @parameterized.expand(
+        [
+            ("stack_id/func_cdk_id/Resource", "func_cdk_id"),
+            ("stack_id/serverless_func_cdk_id", "serverless_func_cdk_id"),
+        ]
+    )
+    def test_use_cdk_id_as_resource_id(self, cdk_path, expected_resource_id):
         resource_id = ResourceMetadataNormalizer.get_resource_id(
             {
                 "Type": "any:value",
                 "Properties": {"key": "value"},
-                "Metadata": {"aws:cdk:path": "stack_id/func_cdk_id/Resource"},
+                "Metadata": {"aws:cdk:path": cdk_path},
             },
             "logical_id",
         )
 
-        self.assertEquals("func_cdk_id", resource_id)
+        self.assertEquals(expected_resource_id, resource_id)
 
     def test_use_logical_id_as_resource_id_incase_of_invalid_cdk_path(self):
         resource_id = ResourceMetadataNormalizer.get_resource_id(
@@ -450,20 +457,6 @@ class TestResourceMetadataNormalizerGetResourceId(TestCase):
         )
 
         self.assertEquals("nested_stack_id", resource_id)
-
-    def test_use_logical_id_as_resource_id_for_invalid_nested_stack_path(self):
-        resource_id = ResourceMetadataNormalizer.get_resource_id(
-            {
-                "Type": "AWS::CloudFormation::Stack",
-                "Properties": {"key": "value"},
-                "Metadata": {
-                    "aws:cdk:path": "parent_stack_id/nested_stack_idNestedStack/nested_stack_id.NestedStackResource"
-                },
-            },
-            "logical_id",
-        )
-
-        self.assertEquals("nested_stack_idNestedStack", resource_id)
 
     def test_use_provided_customer_defined_id(self):
         resource_id = ResourceMetadataNormalizer.get_resource_id(

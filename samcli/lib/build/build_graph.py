@@ -324,15 +324,20 @@ class BuildGraph:
         during the process of reading and modifying the hash value
         """
         with BuildGraph.__toml_lock:
-            stored_definitions = copy.deepcopy(self._function_build_definitions)
-            stored_layers = copy.deepcopy(self._layer_build_definitions)
+            stored_function_definitions = copy.deepcopy(self._function_build_definitions)
+            stored_layer_definitions = copy.deepcopy(self._layer_build_definitions)
             self._read()
 
-            function_content = BuildGraph._compare_hash_changes(stored_definitions, self._function_build_definitions)
-            layer_content = BuildGraph._compare_hash_changes(stored_layers, self._layer_build_definitions)
+            function_content = BuildGraph._compare_hash_changes(
+                stored_function_definitions, self._function_build_definitions
+            )
+            layer_content = BuildGraph._compare_hash_changes(stored_layer_definitions, self._layer_build_definitions)
 
             if function_content or layer_content:
                 self._write_source_hash(function_content, layer_content)
+
+            self._function_build_definitions = stored_function_definitions
+            self._layer_build_definitions = stored_layer_definitions
 
     @staticmethod
     def _compare_hash_changes(
@@ -365,7 +370,7 @@ class BuildGraph:
         """
         document = {}
         if not self._filepath.exists():
-            open(self._filepath, "a+").close()
+            open(self._filepath, "a+").close()  # pylint: disable=consider-using-with
 
         txt = self._filepath.read_text()
         # .loads() returns a TOMLDocument,
@@ -457,7 +462,7 @@ class BuildGraph:
         document.add(BuildGraph.LAYER_BUILD_DEFINITIONS, cast(tomlkit.items.Item, layer_build_definitions_table))
 
         if not self._filepath.exists():
-            open(self._filepath, "a+").close()
+            open(self._filepath, "a+").close()  # pylint: disable=consider-using-with
 
         self._filepath.write_text(tomlkit.dumps(document))
 
