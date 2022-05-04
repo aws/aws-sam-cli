@@ -1,13 +1,16 @@
 import itertools
 import time
 from pathlib import Path
+from typing import List
 from unittest import skipIf
 
 import boto3
 
 from samcli.lib.observability.util import OutputOption
-from tests.integration.traces.traces_integ_base import TracesIntegBase, RETRY_COUNT
-from tests.testing_utils import run_command, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
+from tests.integration.deploy.deploy_integ_base import DeployIntegBase
+from tests.integration.traces.traces_integ_base import TracesIntegBase, RETRY_COUNT, RETRY_SLEEP
+from tests.testing_utils import run_command, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, \
+    method_to_stack_name, kill_process, start_persistent_process, read_until
 from datetime import datetime
 import logging
 from parameterized import parameterized
@@ -27,11 +30,11 @@ class TestTracesCommand(TracesIntegBase):
 
         cls.test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "traces")
 
-        cls.stack_name = cls._method_to_stack_name("test.integration.test_traces_command")
+        cls.stack_name = method_to_stack_name("test.integration.test_traces_command")
 
         LOG.info("Deploying stack %s", cls.stack_name)
 
-        deploy_cmd = cls.get_basic_deploy_command_list(
+        deploy_cmd = DeployIntegBase.get_deploy_command_list(
             stack_name=cls.stack_name,
             template_file=cls.test_data_path.joinpath("python-apigw-sfn", "template.yaml"),
             resolve_s3=True,
@@ -85,7 +88,7 @@ class TestTracesCommand(TracesIntegBase):
             trace_summaries = trace_summaries_response.get("TraceSummaries", [])
             if trace_summaries:
                 break
-            time.sleep(2)
+            time.sleep(RETRY_SLEEP)
 
         if not trace_summaries:
             self.fail("can't find any trace summaries")
@@ -123,18 +126,24 @@ class TestTracesCommand(TracesIntegBase):
         self._check_traces(cmd_list, expected_trace_output)
 
     @parameterized.expand([("ApiGwFunction",), ("SfnFunction",)])
-    def test_traces_with_tail(self, function_name):
+    def test_traces_with_tail(self, function_name: str):
         function_id = self._get_physical_id(function_name)
-        expected_trace_output = [function_id]
+        expected_trace_output = function_id
 
         LOG.info("Invoking function %s", "HelloWorldFunction")
         lambda_invoke_result = self.lambda_client.invoke(FunctionName=function_id)
         LOG.info("Lambda invoke result %s", lambda_invoke_result)
 
         cmd_list = self.get_traces_command_list(tail=True, beta_features=True)
-        tail_read_thread = self.start_tail(cmd_list, expected_trace_output)
-        while tail_read_thread.is_alive():
-            time.sleep(1)
+        tail_process = start_persistent_process(cmd_list)
+
+        def _check_traces(output: str, _: List[str]) -> bool:
+            return expected_trace_output in output
+
+        try:
+            read_until(tail_process, _check_traces, timeout=RETRY_COUNT * RETRY_SLEEP)
+        finally:
+            kill_process(tail_process)
 
     @parameterized.expand(
         itertools.product(["ApiGwFunction", "SfnFunction"], [None, OutputOption.text.name, OutputOption.json.name])
@@ -159,10 +168,10 @@ class TestTracesCommand(TracesIntegBase):
             actual_output = cmd_result.stdout.decode("utf-8")
 
             if has_service_graph and not self._check_traces_with_service_graph(trace_strings, actual_output, output):
-                time.sleep(2)
+                time.sleep(RETRY_SLEEP)
                 continue
             if not self._check_traces_with_xray_event(trace_strings, actual_output, output):
-                time.sleep(2)
+                time.sleep(RETRY_SLEEP)
                 continue
             return
 
