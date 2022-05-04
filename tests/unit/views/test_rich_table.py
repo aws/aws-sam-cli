@@ -6,7 +6,6 @@ from samcli.views.concrete_views.rich_table import RichTable
 
 
 class TestRichTableView(TestCase):
-
     def test_create_basic_table(self):
         table = RichTable("test_table")
 

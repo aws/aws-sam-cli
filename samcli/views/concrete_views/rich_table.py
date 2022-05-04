@@ -1,7 +1,7 @@
 """
 Implementation of table view using the Rich terminal library
 """
-from typing import List, Dict
+from typing import List, Dict, Optional, Any
 
 from rich.console import Console
 from rich.table import Table
@@ -9,23 +9,25 @@ from samcli.views.table_view import AbstractTable
 
 
 class RichTable(AbstractTable):
-
-    def __init__(self, title: str, table_options: Dict[str, str] = None):
+    def __init__(self, title: str, table_options: Optional[Dict[Any, Any]] = None):
         """
         Instantiate a Rich table
         :param title: name of the table
         """
         self.title = title
         self.table = Table(title=title, **table_options) if table_options else Table(title=title)
-        self.console = Console(markup=True)
+        self.console = Console()
 
-    def add_column(self, title: str, options: Dict[str, str] = None) -> None:
+    def add_column(self, title: str, options: Optional[Dict[Any, Any]] = None) -> None:
         """
         Add a column to a rich table
         :param title: column title
         :param options: style object should contain styling properties as defined by the Rich library
         """
-        self.table.add_column(title, **options) if options else self.table.add_column(title)
+        if options:
+            self.table.add_column(title, **options)
+        else:
+            self.table.add_column(title)
 
     def add_row(self, data: List[str]) -> None:
         """

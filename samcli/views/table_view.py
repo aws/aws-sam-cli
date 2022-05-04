@@ -2,13 +2,12 @@
 Generic table view interface
 """
 from abc import ABC, abstractmethod
-from typing import List, Dict
+from typing import List, Dict, Optional, Any
 
 
 class AbstractTable(ABC):
-
     @abstractmethod
-    def add_column(self, title: str, options: Dict[str, str]) -> None:
+    def add_column(self, title: str, options: Optional[Dict[Any, Any]]) -> None:
         """
         Add a column to the table
         :param title: Column title
