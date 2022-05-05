@@ -135,8 +135,6 @@ class WatchManager:
                 )
                 continue
 
-            if not template_trigger:
-                continue
             self._observer.schedule_handlers(template_trigger.get_path_handlers())
 
     def _execute_infra_context(self) -> None:

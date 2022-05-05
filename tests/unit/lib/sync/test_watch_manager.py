@@ -129,24 +129,6 @@ class TestWatchManager(TestCase):
 
         self.assertEqual(3, self.path_observer.schedule_handlers.call_count)
         self.path_observer.schedule_handlers.assert_any_call(trigger.get_path_handlers.return_value)
-
-    @patch("samcli.lib.sync.watch_manager.TemplateTrigger")
-    @patch("samcli.lib.sync.watch_manager.SamLocalStackProvider.get_stacks")
-    def test_add_none_template_triggers(self, get_stack_mock, template_trigger_mock):
-        template_trigger_mock.return_value = None
-        stack_name = "stack"
-        stack1 = MagicMock()
-        stack1.location = "template.yaml"
-        stack1.name = stack_name
-        get_stack_mock.return_value = [[stack1]]
-
-        self.watch_manager._add_template_triggers()
-
-        self.assertEqual(1, template_trigger_mock.call_count)
-
-        template_trigger_mock.assert_any_call("template.yaml", stack_name, ANY)
-
-        self.assertEqual(0, self.path_observer.schedule_handlers.call_count)
     
     @patch("samcli.lib.sync.watch_manager.TemplateTrigger")
     @patch("samcli.lib.sync.watch_manager.SamLocalStackProvider.get_stacks")
