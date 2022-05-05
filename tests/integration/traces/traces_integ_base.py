@@ -10,15 +10,14 @@ RETRY_SLEEP = 2
 
 
 class TracesIntegBase(TestCase):
-
     @staticmethod
     def get_traces_command_list(
-            trace_id: Optional[str] = None,
-            start_time: Optional[str] = None,
-            end_time: Optional[str] = None,
-            tail: bool = False,
-            output: Optional[str] = None,
-            beta_features: bool = False,
+        trace_id: Optional[str] = None,
+        start_time: Optional[str] = None,
+        end_time: Optional[str] = None,
+        tail: bool = False,
+        output: Optional[str] = None,
+        beta_features: bool = False,
     ):
         command_list = [get_sam_command(), "traces"]
 
@@ -36,7 +35,3 @@ class TracesIntegBase(TestCase):
             command_list += ["--beta-features"]
 
         return command_list
-
-
-
-

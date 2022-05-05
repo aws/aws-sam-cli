@@ -9,8 +9,16 @@ import boto3
 from samcli.lib.observability.util import OutputOption
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.integration.traces.traces_integ_base import TracesIntegBase, RETRY_COUNT, RETRY_SLEEP
-from tests.testing_utils import run_command, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, \
-    method_to_stack_name, kill_process, start_persistent_process, read_until
+from tests.testing_utils import (
+    run_command,
+    RUNNING_ON_CI,
+    RUNNING_TEST_FOR_MASTER_ON_CI,
+    RUN_BY_CANARY,
+    method_to_stack_name,
+    kill_process,
+    start_persistent_process,
+    read_until,
+)
 from datetime import datetime
 import logging
 from parameterized import parameterized
