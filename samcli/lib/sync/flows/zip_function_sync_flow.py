@@ -5,6 +5,7 @@ import os
 import base64
 import tempfile
 import uuid
+from contextlib import ExitStack
 
 from typing import Any, Dict, List, Optional, TYPE_CHECKING, cast
 
@@ -72,7 +73,9 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
 
     def gather_resources(self) -> None:
         """Build function and ZIP it into a temp file in self._zip_file"""
-        with self._get_lock_chain():
+        with ExitStack() as exit_stack:
+            if self.has_locks():
+                exit_stack.enter_context(self._get_lock_chain())
 
             builder = ApplicationBuilder(
                 self._build_context.collect_build_resources(self._function_identifier),

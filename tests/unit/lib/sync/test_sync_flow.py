@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, call, patch, Mock
 
 from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall
 from samcli.lib.utils.lock_distributor import LockChain
+from parameterized import parameterized
 
 
 class TestSyncFlow(TestCase):
@@ -84,6 +85,16 @@ class TestSyncFlow(TestCase):
         distributor.get_locks.return_value = locks
         sync_flow.set_locks_with_distributor(distributor)
         self.assertEqual(locks, sync_flow._locks)
+
+    @parameterized.expand([({"A": 1, "B": 2}, True), ({"A": 1}, True), ({}, False)])
+    @patch.multiple(SyncFlow, __abstractmethods__=set())
+    def test_has_locks(self, locks, expected_result):
+        sync_flow = self.create_sync_flow()
+        distributor = MagicMock()
+        distributor.get_locks.return_value = locks
+        sync_flow.set_locks_with_distributor(distributor)
+        has_locks = sync_flow.has_locks()
+        self.assertEqual(has_locks, expected_result)
 
     @patch.multiple(SyncFlow, __abstractmethods__=set())
     def test_get_lock_keys(self):

@@ -1,8 +1,0 @@
-{
-  "runtimeOptions": {
-    "additionalProbingPaths": [
-      "/Users/mladan/.dotnet/store/|arch|/|tfm|",
-      "/Users/mladan/.nuget/packages"
-    ]
-  }
-}

@@ -48,6 +48,7 @@ class TestZipFunctionSyncFlow(TestCase):
         sync_flow = self.create_function_sync_flow()
 
         sync_flow._get_lock_chain = MagicMock()
+        sync_flow.has_locks = MagicMock()
 
         sync_flow.set_up()
         sync_flow.gather_resources()

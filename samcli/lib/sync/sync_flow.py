@@ -131,6 +131,15 @@ class SyncFlow(ABC):
         """
         raise NotImplementedError("_get_resource_api_calls")
 
+    def has_locks(self) -> bool:
+        """Check if a sync flow has locks and needs to enter a lock context
+        Returns
+        -------
+        bool
+            whether or not a sync flow contains locks
+        """
+        return bool(self._locks)
+
     def get_lock_keys(self) -> List[str]:
         """Get a list of function + API calls that can be used as keys for LockDistributor
 
