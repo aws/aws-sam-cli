@@ -113,7 +113,10 @@ class WatchManager:
             try:
                 trigger = self._trigger_factory.create_trigger(resource_id, self._on_code_change_wrapper(resource_id))
             except (MissingCodeUri, MissingLocalDefinition):
-                LOG.debug("CodeTrigger not created as CodeUri or DefinitionUri is missing for %s.", str(resource_id))
+                LOG.warning(
+                    self._color.yellow("CodeTrigger not created as CodeUri or DefinitionUri is missing for %s."),
+                    str(resource_id),
+                )
                 continue
 
             if not trigger:
@@ -128,8 +131,8 @@ class WatchManager:
             try:
                 template_trigger = TemplateTrigger(template, stack.name, lambda _=None: self.queue_infra_sync())
             except InvalidTemplateFile:
-                LOG.info(
-                    self._color.red(
+                LOG.warning(
+                    self._color.yellow(
                         "Template %s not watched due to template file validation failed for stack %s.\
 If you have fixed this issue you can re-run the sync."
                     ),
