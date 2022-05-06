@@ -1,0 +1,81 @@
+{
+  "format": 1,
+  "restore": {
+    "/Users/mladan/ws/test-issue/sam-sync-watch-net-multi-lambdas-master/src/HelloWorld/HelloWorld.csproj": {}
+  },
+  "projects": {
+    "/Users/mladan/ws/test-issue/sam-sync-watch-net-multi-lambdas-master/src/HelloWorld/HelloWorld.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/Users/mladan/ws/test-issue/sam-sync-watch-net-multi-lambdas-master/src/HelloWorld/HelloWorld.csproj",
+        "projectName": "HelloWorld",
+        "projectPath": "/Users/mladan/ws/test-issue/sam-sync-watch-net-multi-lambdas-master/src/HelloWorld/HelloWorld.csproj",
+        "packagesPath": "/Users/mladan/.nuget/packages/",
+        "outputPath": "/Users/mladan/ws/test-issue/sam-sync-watch-net-multi-lambdas-master/src/HelloWorld/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/Users/mladan/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "netcoreapp3.1"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "netcoreapp3.1": {
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "netcoreapp3.1": {
+          "dependencies": {
+            "Amazon.Lambda.APIGatewayEvents": {
+              "target": "Package",
+              "version": "[1.2.0, )"
+            },
+            "Amazon.Lambda.Core": {
+              "target": "Package",
+              "version": "[1.1.0, )"
+            },
+            "Amazon.Lambda.Serialization.Json": {
+              "target": "Package",
+              "version": "[1.5.0, )"
+            },
+            "Newtonsoft.Json": {
+              "target": "Package",
+              "version": "[12.0.1, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/3.1.412/RuntimeIdentifierGraph.json"
+        }
+      },
+      "runtimes": {
+        "linux-x64": {
+          "#import": []
+        }
+      }
+    }
+  }
+}

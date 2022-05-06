@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "dgSpecHash": "0H98F+O14JwGpAwXK1z3agCN9V18sdY1Dh3oFcfV8GvsPE7k7Sdts4zK7y5Z9FgsS1qi8VUul6ZOKdu/lOC8iA==",
+  "success": true,
+  "projectFilePath": "/Users/mladan/ws/test-issue/sam-sync-watch-net-multi-lambdas-master/src/HelloWorld/HelloWorld.csproj",
+  "expectedPackageFiles": [
+    "/Users/mladan/.nuget/packages/amazon.lambda.apigatewayevents/1.2.0/amazon.lambda.apigatewayevents.1.2.0.nupkg.sha512",
+    "/Users/mladan/.nuget/packages/amazon.lambda.core/1.1.0/amazon.lambda.core.1.1.0.nupkg.sha512",
+    "/Users/mladan/.nuget/packages/amazon.lambda.serialization.json/1.5.0/amazon.lambda.serialization.json.1.5.0.nupkg.sha512",
+    "/Users/mladan/.nuget/packages/newtonsoft.json/12.0.1/newtonsoft.json.12.0.1.nupkg.sha512"
+  ],
+  "logs": []
+}

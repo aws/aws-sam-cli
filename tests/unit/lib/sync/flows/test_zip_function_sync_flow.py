@@ -162,6 +162,7 @@ class TestZipFunctionSyncFlow(TestCase):
         layer2.full_path = "Layer2"
         function_mock = MagicMock()
         function_mock.layers = [layer1, layer2]
+        function_mock.codeuri = "CodeUri/"
         build_context.function_provider.functions.get.return_value = function_mock
         sync_flow = ZipFunctionSyncFlow(
             "Function1",
@@ -172,9 +173,10 @@ class TestZipFunctionSyncFlow(TestCase):
         )
 
         result = sync_flow._get_resource_api_calls()
-        self.assertEqual(len(result), 2)
+        self.assertEqual(len(result), 3)
         resource_api_call_mock.assert_any_call("Layer1", ["Build"])
         resource_api_call_mock.assert_any_call("Layer2", ["Build"])
+        resource_api_call_mock.assert_any_call("CodeUri/", ["Build"])
 
     def test_combine_dependencies(self):
         sync_flow = self.create_function_sync_flow()

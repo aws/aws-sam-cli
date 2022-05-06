@@ -25,7 +25,7 @@ LOG = logging.getLogger(__name__)
 class ResourceAPICall(NamedTuple):
     """Named tuple for a resource and its potential API calls"""
 
-    resource_identifier: str
+    shared_resource: str
     api_calls: List[str]
 
 
@@ -142,7 +142,7 @@ class SyncFlow(ABC):
         lock_keys = list()
         for resource_api_calls in self._get_resource_api_calls():
             for api_call in resource_api_calls.api_calls:
-                lock_keys.append(SyncFlow._get_lock_key(resource_api_calls.resource_identifier, api_call))
+                lock_keys.append(SyncFlow._get_lock_key(resource_api_calls.shared_resource, api_call))
         return lock_keys
 
     def set_locks_with_distributor(self, distributor: LockDistributor):
