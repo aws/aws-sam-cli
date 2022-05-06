@@ -48,13 +48,27 @@ class DefinitionValidator:
             If detect_change is set, False will also be returned if there is
             no change compared to the previous validation.
         """
+        old_data = self._data
+
+        if not self.raw_validate():
+            return False
+        return old_data != self._data if self._detect_change else True
+
+    def raw_validate(self) -> bool:
+        """Validate json or yaml file.
+
+        Returns
+        -------
+        bool
+            True if it is valid path and yaml file, False otherwise.
+        """
         if not self._path.exists():
+            LOG.debug("DefinitionValidator failed to due to template path does not exist.")
             return False
 
-        old_data = self._data
         try:
             self._data = parse_yaml_file(str(self._path))
-            return old_data != self._data if self._detect_change else True
         except (ValueError, yaml.YAMLError) as e:
-            LOG.debug("DefinitionValidator failed to validate.", exc_info=e)
+            LOG.debug("DefinitionValidator failed to validate due to template file cannot be parsed.", exc_info=e)
             return False
+        return True

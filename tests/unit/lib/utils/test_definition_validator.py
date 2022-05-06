@@ -10,18 +10,20 @@ class TestDefinitionValidator(TestCase):
 
     @patch("samcli.lib.utils.definition_validator.parse_yaml_file")
     def test_invalid_path(self, parse_yaml_file_mock):
-        parse_yaml_file_mock.side_effect = [{"A": 1}, {"A": 1}]
+        parse_yaml_file_mock.side_effect = [{"A": 1}, {"A": 1}, {"A": 1}]
         self.path.exists.return_value = False
 
         validator = DefinitionValidator(self.path, detect_change=False, initialize_data=False)
+        self.assertFalse(validator.raw_validate())
         self.assertFalse(validator.validate())
         self.assertFalse(validator.validate())
 
     @patch("samcli.lib.utils.definition_validator.parse_yaml_file")
     def test_no_detect_change_valid(self, parse_yaml_file_mock):
-        parse_yaml_file_mock.side_effect = [{"A": 1}, {"A": 1}]
+        parse_yaml_file_mock.side_effect = [ValueError(), {"A": 1}, {"A": 1}]
 
         validator = DefinitionValidator(self.path, detect_change=False, initialize_data=False)
+        self.assertFalse(validator.raw_validate())
         self.assertTrue(validator.validate())
         self.assertTrue(validator.validate())
 

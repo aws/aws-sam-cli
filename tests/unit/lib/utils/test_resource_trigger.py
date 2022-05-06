@@ -65,7 +65,7 @@ class TestTemplateTrigger(TestCase):
     @patch("samcli.lib.utils.resource_trigger.Path")
     @patch("samcli.lib.utils.resource_trigger.ResourceTrigger.get_single_file_path_handler")
     def test_invalid_template(self, single_file_handler_mock, path_mock, validator_mock):
-        validator_mock.return_value.validate.return_value = False
+        validator_mock.return_value.raw_validate.return_value = False
         with self.assertRaises(InvalidTemplateFile):
             trigger = TemplateTrigger("template.yaml", "stack", MagicMock())
 
@@ -73,7 +73,7 @@ class TestTemplateTrigger(TestCase):
     @patch("samcli.lib.utils.resource_trigger.Path")
     @patch("samcli.lib.utils.resource_trigger.ResourceTrigger.get_single_file_path_handler")
     def test_get_path_handler(self, single_file_handler_mock, path_mock, validator_mock):
-        validator_mock.return_value.validate.return_value = True
+        validator_mock.return_value.raw_validate.return_value = True
         trigger = TemplateTrigger("template.yaml", "stack", MagicMock())
         result = trigger.get_path_handlers()
         self.assertEqual(result, [single_file_handler_mock.return_value])
@@ -82,10 +82,10 @@ class TestTemplateTrigger(TestCase):
     @patch("samcli.lib.utils.resource_trigger.DefinitionValidator")
     @patch("samcli.lib.utils.resource_trigger.Path")
     def test_validator_wrapper(self, path_mock, validator_mock):
-        validator_mock.return_value.validate.return_value = True
+        validator_mock.return_value.raw_validate.return_value = True
         on_template_change_mock = MagicMock()
         event_mock = MagicMock()
-        validator_mock.return_value.validate.return_value = True
+        validator_mock.return_value.raw_validate.return_value = True
         trigger = TemplateTrigger("template.yaml", "stack", on_template_change_mock)
         trigger._validator_wrapper(event_mock)
         on_template_change_mock.assert_called_once_with(event_mock)
