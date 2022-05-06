@@ -307,7 +307,7 @@ class GlobalConfig(metaclass=Singleton):
             for key in json_body:
                 self._persistent_fields.append(key)
         except (OSError, ValueError) as ex:
-            LOG.debug(
+            LOG.warning(
                 "Error when loading global config file: %s",
                 self.config_path,
                 exc_info=ex,
@@ -325,7 +325,7 @@ class GlobalConfig(metaclass=Singleton):
                 self.config_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
             self.config_path.write_text(json_str)
         except (OSError, ValueError) as ex:
-            LOG.debug(
+            LOG.warning(
                 "Error when writing global config file: %s",
                 self.config_path,
                 exc_info=ex,
