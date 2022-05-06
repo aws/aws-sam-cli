@@ -63,12 +63,12 @@ class DefinitionValidator:
             True if it is valid path and yaml file, False otherwise.
         """
         if not self._path.exists():
-            LOG.debug("DefinitionValidator failed to due to template path does not exist.")
+            LOG.warning("Template %s failed to validate due to template path does not exist.", self._path)
             return False
 
         try:
             self._data = parse_yaml_file(str(self._path))
         except (ValueError, yaml.YAMLError) as e:
-            LOG.debug("DefinitionValidator failed to validate due to template file cannot be parsed.", exc_info=e)
+            LOG.warning("Template %s failed to validate due to template file cannot be parsed.", self._path, exc_info=e)
             return False
         return True
