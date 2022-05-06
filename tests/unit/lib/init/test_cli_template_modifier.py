@@ -127,7 +127,6 @@ class TestTemplateModifier(TestCase):
 
         self.assertEqual(template_modifier.template, expected_template_data)
 
-
     @patch("samcli.lib.init.template_modifiers.cli_template_modifier.TemplateModifier._get_template")
     def test_must_replace_new_field_to_template(self, get_template_patch):
         get_template_patch.return_value = [
