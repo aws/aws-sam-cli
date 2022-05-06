@@ -9,11 +9,14 @@ LOG = logging.getLogger(__name__)
 
 class XRayTracingTemplateModifier(TemplateModifier):
 
-    FIELD_NAME = "Tracing"
+    FIELD_NAME_FUNCTION_TRACING = "Tracing"
+    FIELD_NAME_API_TRACING = "TracingEnabled"
     GLOBALS = "Globals:\n"
     RESOURCE = "Resources:\n"
     FUNCTION = "  Function:\n"
-    TRACING = "    Tracing: Active\n"
+    TRACING_FUNCTION = "    Tracing: Active\n"
+    API = "  Api:\n"
+    TRACING_API = "    TracingEnabled: True\n"
     COMMENT = (
         "# More info about Globals: "
         "https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst\n"
@@ -26,22 +29,45 @@ class XRayTracingTemplateModifier(TemplateModifier):
         global_section_position = self._section_position(self.GLOBALS)
 
         if global_section_position >= 0:
+            """
+            Function
+            """
             function_section_position = self._section_position(self.FUNCTION, global_section_position)
 
             if function_section_position >= 0:
-                field_positon = self._field_position(function_section_position, self.FIELD_NAME)
+                field_positon = self._field_position(function_section_position, self.FIELD_NAME_FUNCTION_TRACING)
                 if field_positon >= 0:
-                    self.template[field_positon] = self.TRACING
-                    return
-
-                new_fields = [self.TRACING]
-                _section_position = function_section_position
+                    self.template[field_positon] = self.TRACING_FUNCTION
+                
+                else:
+                    new_fields = [self.TRACING_FUNCTION]
+                    _section_position = function_section_position
+                    self.template = self._add_fields_to_section(_section_position, new_fields)
 
             else:
-                new_fields = [self.FUNCTION, self.TRACING]
+                new_fields = [self.FUNCTION, self.TRACING_FUNCTION]
                 _section_position = global_section_position + 1
+                self.template = self._add_fields_to_section(_section_position, new_fields)
 
-            self.template = self._add_fields_to_section(_section_position, new_fields)
+            """
+            Api
+            """
+            api_section_position = self._section_position(self.API, global_section_position)
+
+            if api_section_position >= 0:
+                field_positon = self._field_position(api_section_position, self.FIELD_NAME_API_TRACING)
+                if field_positon >= 0:
+                    self.template[field_positon] = self.TRACING_API
+                
+                else:
+                    new_fields = [self.TRACING_API]
+                    _section_position = api_section_position
+                    self.template = self._add_fields_to_section(_section_position, new_fields)
+
+            else:
+                new_fields = [self.API, self.TRACING_API]
+                _section_position = global_section_position + 1
+                self.template = self._add_fields_to_section(_section_position, new_fields)
 
         else:
             resource_section_position = self._section_position(self.RESOURCE)
@@ -49,7 +75,9 @@ class XRayTracingTemplateModifier(TemplateModifier):
                 self.COMMENT,
                 self.GLOBALS,
                 self.FUNCTION,
-                self.TRACING,
+                self.TRACING_FUNCTION,
+                self.API,
+                self.TRACING_API,
                 "\n",
             ]
             self.template = (
