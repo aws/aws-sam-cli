@@ -5,6 +5,7 @@ from typing import List
 from unittest import skipIf
 
 import boto3
+import pytest
 
 from samcli.lib.observability.util import OutputOption
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
@@ -30,36 +31,37 @@ SKIP_TRACES_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_
 
 @skipIf(SKIP_TRACES_TESTS, "Skip traces tests in CI/CD only")
 class TestTracesCommand(TracesIntegBase):
-    @classmethod
-    def setUpClass(cls):
-        cls.lambda_client = boto3.client("lambda")
-        cls.cfn_client = boto3.client("cloudformation")
-        cls.xray_client = boto3.client("xray")
+    stack_resources = []
 
-        cls.test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "traces")
+    def setUp(self):
+        self.lambda_client = boto3.client("lambda")
+        self.sfn_client = boto3.client("stepfunctions")
+        self.xray_client = boto3.client("xray")
 
-        cls.stack_name = method_to_stack_name("test.integration.test_traces_command")
-
-        LOG.info("Deploying stack %s", cls.stack_name)
-
+    @pytest.fixture(autouse=True, scope="class")
+    def sync_code_base(self):
+        test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "traces")
+        stack_name = method_to_stack_name("test_traces_command")
+        LOG.info("Deploying stack %s", stack_name)
         deploy_cmd = DeployIntegBase.get_deploy_command_list(
-            stack_name=cls.stack_name,
-            template_file=cls.test_data_path.joinpath("python-apigw-sfn", "template.yaml"),
+            stack_name=stack_name,
+            template_file=test_data_path.joinpath("python-apigw-sfn", "template.yaml"),
             resolve_s3=True,
             capabilities="CAPABILITY_IAM",
         )
         deploy_result = run_command(deploy_cmd)
+        self.assertEqual(
+            deploy_result.process.returncode, 0, f"Deployment of the test stack is failed with {deploy_result.stderr}"
+        )
 
-        if deploy_result.process.returncode != 0:
-            LOG.error(f"Deployment of the test stack is failed with {deploy_result.stderr}")
-
-        cls.stack_resources = cls.cfn_client.describe_stack_resources(StackName=cls.stack_name).get(
+        cfn_client = boto3.client("cloudformation")
+        TestTracesCommand.stack_resources = cfn_client.describe_stack_resources(StackName=stack_name).get(
             "StackResources", []
         )
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.cfn_client.delete_stack(StackName=cls.stack_name)
+        yield
+
+        cfn_client.delete_stack(StackName=stack_name)
 
     def _get_physical_id(self, logical_id: str):
         for stack_resource in self.stack_resources:
