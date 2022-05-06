@@ -26,6 +26,7 @@ class RemoteStackLocationNotSupported(Exception):
 
 class InvalidTemplateFile(Exception):
     """Exception when template validation fails"""
+
     _template: str
     _stack_name: str
 

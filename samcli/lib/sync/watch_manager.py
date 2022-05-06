@@ -129,9 +129,7 @@ class WatchManager:
                 template_trigger = TemplateTrigger(template, stack.name, lambda _=None: self.queue_infra_sync())
             except InvalidTemplateFile:
                 LOG.debug(
-                    "Template %s not watched due to template file validation failed for stack %s.",
-                    template,
-                    stack.name
+                    "Template %s not watched due to template file validation failed for stack %s.", template, stack.name
                 )
                 continue
 

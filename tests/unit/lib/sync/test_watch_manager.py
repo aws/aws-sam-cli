@@ -129,7 +129,7 @@ class TestWatchManager(TestCase):
 
         self.assertEqual(3, self.path_observer.schedule_handlers.call_count)
         self.path_observer.schedule_handlers.assert_any_call(trigger.get_path_handlers.return_value)
-    
+
     @patch("samcli.lib.sync.watch_manager.TemplateTrigger")
     @patch("samcli.lib.sync.watch_manager.SamLocalStackProvider.get_stacks")
     def test_add_invalid_template_triggers(self, get_stack_mock, template_trigger_mock):
