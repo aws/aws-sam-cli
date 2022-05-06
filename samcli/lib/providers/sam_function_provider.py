@@ -478,15 +478,15 @@ class SamFunctionProvider(SamBaseProvider):
                 )  # noqa: E501
 
             # If the layer is a string, assume it is the arn
-            if isinstance(layer, str):
-                layers.append(
-                    LayerVersion(
-                        layer,
-                        None,
-                        stack_path=stack.stack_path,
-                    )
-                )
-                continue
+            # if isinstance(layer, str):
+            #     layers.append(
+            #         LayerVersion(
+            #             layer,
+            #             None,
+            #             stack_path=stack.stack_path,
+            #         )
+            #     )
+            #     continue
 
             # In the list of layers that is defined within a template, you can reference a LayerVersion resource.
             # When running locally, we need to follow that Ref so we can extract the local path to the layer code.
