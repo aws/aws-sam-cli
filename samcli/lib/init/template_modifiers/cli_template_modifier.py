@@ -72,10 +72,12 @@ class TemplateModifier:
         list
             array with updated template data
         """
-        template = self.template[position:]
+        section_space_count = self.template[position].find(self.template[position].strip())
+        start_position = position + 1
+        template = self.template[start_position:]
         for index, line in enumerate(template):
-            if not (line.startswith(" ") or line.startswith("#")):
-                return self.template[: position + index] + fields + self.template[position + index :]
+            if not (line.find(line.strip()) > section_space_count or line.startswith("#")):
+                return self.template[: start_position + index] + fields + self.template[start_position + index :]
         return self.template
 
     def _field_position(self, position: int, field: str) -> Any:

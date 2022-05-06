@@ -34,6 +34,8 @@ class TestTemplateModifier(TestCase):
             "Globals:\n",
             "  Function:\n",
             "    Tracing: Active\n",
+            "  Api:\n",
+            "    TracingEnabled: True\n",
             "\n",
             "Resources:\n",
             "  HelloWorldFunction:\n",
@@ -69,7 +71,91 @@ class TestTemplateModifier(TestCase):
             "Globals:\n",
             "  Api:\n",
             "    api_field: field_value\n",
+            "    TracingEnabled: True\n",
             "  Function:\n",
+            "    Tracing: Active\n",
+            "\n",
+            "Resources:\n",
+            "  HelloWorldFunction:\n",
+            "    Type: AWS::Serverless::Function\n",
+            "    Properties:\n",
+            "      CodeUri: hello_world/\n",
+            "      Handler: app.lambda_handler\n",
+        ]
+
+        template_modifier = XRayTracingTemplateModifier(self.location)
+        template_modifier._add_new_field_to_template()
+
+        self.assertEqual(template_modifier.template, expected_template_data)
+
+    @patch("samcli.lib.init.template_modifiers.cli_template_modifier.TemplateModifier._get_template")
+    def test_must_add_new_api_function_field_to_template(self, get_template_patch):
+        get_template_patch.return_value = [
+            "# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst\n",
+            "Globals:\n",
+            "  HttpApi:\n",
+            "    http_api_field: field_value\n",
+            "\n",
+            "Resources:\n",
+            "  HelloWorldFunction:\n",
+            "    Type: AWS::Serverless::Function\n",
+            "    Properties:\n",
+            "      CodeUri: hello_world/\n",
+            "      Handler: app.lambda_handler\n",
+        ]
+
+        expected_template_data = [
+            "# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst\n",
+            "Globals:\n",
+            "  HttpApi:\n",
+            "    http_api_field: field_value\n",
+            "  Function:\n",
+            "    Tracing: Active\n",
+            "  Api:\n",
+            "    TracingEnabled: True\n",
+            "\n",
+            "Resources:\n",
+            "  HelloWorldFunction:\n",
+            "    Type: AWS::Serverless::Function\n",
+            "    Properties:\n",
+            "      CodeUri: hello_world/\n",
+            "      Handler: app.lambda_handler\n",
+        ]
+
+        template_modifier = XRayTracingTemplateModifier(self.location)
+        template_modifier._add_new_field_to_template()
+
+        self.assertEqual(template_modifier.template, expected_template_data)
+
+
+    @patch("samcli.lib.init.template_modifiers.cli_template_modifier.TemplateModifier._get_template")
+    def test_must_replace_new_field_to_template(self, get_template_patch):
+        get_template_patch.return_value = [
+            "# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst\n",
+            "Globals:\n",
+            "  Api:\n",
+            "    api_field: field_value\n",
+            "    TracingEnabled: False\n",
+            "  Function:\n",
+            "    function_field: field_value\n",
+            "    Tracing: PassThrough\n",
+            "\n",
+            "Resources:\n",
+            "  HelloWorldFunction:\n",
+            "    Type: AWS::Serverless::Function\n",
+            "    Properties:\n",
+            "      CodeUri: hello_world/\n",
+            "      Handler: app.lambda_handler\n",
+        ]
+
+        expected_template_data = [
+            "# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst\n",
+            "Globals:\n",
+            "  Api:\n",
+            "    api_field: field_value\n",
+            "    TracingEnabled: True\n",
+            "  Function:\n",
+            "    function_field: field_value\n",
             "    Tracing: Active\n",
             "\n",
             "Resources:\n",
@@ -107,6 +193,8 @@ class TestTemplateModifier(TestCase):
             "  Function:\n",
             "    Timeout: 3\n",
             "    Tracing: Active\n",
+            "  Api:\n",
+            "    TracingEnabled: True\n",
             "\n",
             "Resources:\n",
             "  HelloWorldFunction:\n",
@@ -127,6 +215,8 @@ class TestTemplateModifier(TestCase):
             "Globals:\n",
             "  Function:\n",
             "    Tracing: Active\n",
+            "  Api:\n",
+            "    TracingEnabled: True\n",
             "\n",
             "Resources:\n",
             "  HelloWorldFunction:\n",
@@ -139,14 +229,45 @@ class TestTemplateModifier(TestCase):
         template_modifier = XRayTracingTemplateModifier(self.location)
         global_location = template_modifier._section_position("Globals:\n")
         function_location = template_modifier._section_position("  Function:\n")
+        api_location = template_modifier._section_position("  Api:\n")
         resource_location = template_modifier._section_position("Resources:\n")
 
         self.assertEqual(global_location, 1)
         self.assertEqual(function_location, 2)
-        self.assertEqual(resource_location, 5)
+        self.assertEqual(api_location, 4)
+        self.assertEqual(resource_location, 7)
 
     @patch("samcli.lib.init.template_modifiers.cli_template_modifier.TemplateModifier._get_template")
-    def test_must_get_field_position(self, get_template_patch):
+    def test_must_get_section_position_desc(self, get_template_patch):
+        get_template_patch.return_value = [
+            "# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst\n",
+            "Globals:\n",
+            "  Api:\n",
+            "    TracingEnabled: True\n",
+            "  Function:\n",
+            "    Tracing: Active\n",
+            "\n",
+            "Resources:\n",
+            "  HelloWorldFunction:\n",
+            "    Type: AWS::Serverless::Function\n",
+            "    Properties:\n",
+            "      CodeUri: hello_world/\n",
+            "      Handler: app.lambda_handler\n",
+        ]
+
+        template_modifier = XRayTracingTemplateModifier(self.location)
+        global_location = template_modifier._section_position("Globals:\n")
+        function_location = template_modifier._section_position("  Function:\n")
+        api_location = template_modifier._section_position("  Api:\n")
+        resource_location = template_modifier._section_position("Resources:\n")
+
+        self.assertEqual(global_location, 1)
+        self.assertEqual(api_location, 2)
+        self.assertEqual(function_location, 4)
+        self.assertEqual(resource_location, 7)
+
+    @patch("samcli.lib.init.template_modifiers.cli_template_modifier.TemplateModifier._get_template")
+    def test_must_get_function_field_position(self, get_template_patch):
         get_template_patch.return_value = [
             "Resources:\n",
             "  HelloWorldFunction:\n",
@@ -158,6 +279,22 @@ class TestTemplateModifier(TestCase):
 
         template_modifier = XRayTracingTemplateModifier(self.location)
         tracing_location = template_modifier._field_position(0, "Tracing")
+
+        self.assertEqual(tracing_location, -1)
+
+    @patch("samcli.lib.init.template_modifiers.cli_template_modifier.TemplateModifier._get_template")
+    def test_must_get_api_field_position(self, get_template_patch):
+        get_template_patch.return_value = [
+            "Resources:\n",
+            "  HelloWorldFunction:\n",
+            "    Type: AWS::Serverless::Function\n",
+            "    Properties:\n",
+            "      CodeUri: hello_world/\n",
+            "      Handler: app.lambda_handler\n",
+        ]
+
+        template_modifier = XRayTracingTemplateModifier(self.location)
+        tracing_location = template_modifier._field_position(0, "TracingEnabled")
 
         self.assertEqual(tracing_location, -1)
 

@@ -29,45 +29,35 @@ class XRayTracingTemplateModifier(TemplateModifier):
         global_section_position = self._section_position(self.GLOBALS)
 
         if global_section_position >= 0:
-            """
-            Function
-            """
             function_section_position = self._section_position(self.FUNCTION, global_section_position)
 
             if function_section_position >= 0:
-                field_positon = self._field_position(function_section_position, self.FIELD_NAME_FUNCTION_TRACING)
-                if field_positon >= 0:
-                    self.template[field_positon] = self.TRACING_FUNCTION
-                
+                field_positon_function = self._field_position(
+                    function_section_position, self.FIELD_NAME_FUNCTION_TRACING
+                )
+                if field_positon_function >= 0:
+                    self.template[field_positon_function] = self.TRACING_FUNCTION
+
                 else:
-                    new_fields = [self.TRACING_FUNCTION]
-                    _section_position = function_section_position
-                    self.template = self._add_fields_to_section(_section_position, new_fields)
+                    self.template = self._add_fields_to_section(function_section_position, [self.TRACING_FUNCTION])
 
             else:
-                new_fields = [self.FUNCTION, self.TRACING_FUNCTION]
-                _section_position = global_section_position + 1
-                self.template = self._add_fields_to_section(_section_position, new_fields)
+                self.template = self._add_fields_to_section(
+                    global_section_position, [self.FUNCTION, self.TRACING_FUNCTION]
+                )
 
-            """
-            Api
-            """
             api_section_position = self._section_position(self.API, global_section_position)
 
             if api_section_position >= 0:
-                field_positon = self._field_position(api_section_position, self.FIELD_NAME_API_TRACING)
-                if field_positon >= 0:
-                    self.template[field_positon] = self.TRACING_API
-                
+                field_positon_api = self._field_position(api_section_position, self.FIELD_NAME_API_TRACING)
+                if field_positon_api >= 0:
+                    self.template[field_positon_api] = self.TRACING_API
+
                 else:
-                    new_fields = [self.TRACING_API]
-                    _section_position = api_section_position
-                    self.template = self._add_fields_to_section(_section_position, new_fields)
+                    self.template = self._add_fields_to_section(api_section_position, [self.TRACING_API])
 
             else:
-                new_fields = [self.API, self.TRACING_API]
-                _section_position = global_section_position + 1
-                self.template = self._add_fields_to_section(_section_position, new_fields)
+                self.template = self._add_fields_to_section(global_section_position, [self.API, self.TRACING_API])
 
         else:
             resource_section_position = self._section_position(self.RESOURCE)
