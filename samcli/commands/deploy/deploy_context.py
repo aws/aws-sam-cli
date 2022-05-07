@@ -72,6 +72,7 @@ class DeployContext:
         signing_profiles,
         use_changeset,
         disable_rollback,
+        stack_outputs_file,
     ):
         self.template_file = template_file
         self.stack_name = stack_name
@@ -101,6 +102,7 @@ class DeployContext:
         self.signing_profiles = signing_profiles
         self.use_changeset = use_changeset
         self.disable_rollback = disable_rollback
+        self.stack_outputs_file = stack_outputs_file
 
     def __enter__(self):
         return self
@@ -142,7 +144,7 @@ class DeployContext:
                 s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload, self.no_progressbar
             )
 
-        self.deployer = Deployer(cloudformation_client)
+        self.deployer = Deployer(cloudformation_client, stack_outputs_file=self.stack_outputs_file)
 
         region = s3_client._client_config.region_name if s3_client else self.region  # pylint: disable=W0212
         display_parameter_overrides = hide_noecho_parameter_overrides(template_dict, self.parameter_overrides)
