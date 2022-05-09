@@ -17,7 +17,12 @@ from samcli.commands.init.interactive_event_bridge_flow import (
 )
 from samcli.commands.exceptions import SchemasApiException, InvalidInitOptionException
 from samcli.lib.schemas.schemas_code_manager import do_download_source_code_binding, do_extract_and_merge_schemas_code
-from samcli.local.common.runtime_template import LAMBDA_IMAGES_RUNTIMES_MAP
+from samcli.local.common.runtime_template import (
+    INIT_RUNTIMES,
+    LAMBDA_IMAGES_RUNTIMES_MAP,
+    get_provided_runtime_from_custom_runtime,
+    is_custom_runtime,
+)
 from samcli.commands.init.init_generator import do_generate
 from samcli.commands.init.init_templates import InitTemplates, InvalidInitTemplateError
 from samcli.lib.utils.osutils import remove
@@ -40,6 +45,7 @@ def do_interactive(
     name,
     app_template,
     no_input,
+    tracing,
 ):
     """
     Implementation of the ``cli`` method when --interactive is provided.
@@ -65,6 +71,7 @@ def do_interactive(
         app_template,
         no_input,
         location_opt_choice,
+        tracing,
     )
 
 
@@ -81,7 +88,40 @@ def generate_application(
     app_template,
     no_input,
     location_opt_choice,
+    tracing,
 ):  # pylint: disable=too-many-arguments
+    """
+    The method holds the decision logic for generating an application
+    Parameters
+    ----------
+    location : str
+        Location to SAM template
+    pt_explicit : bool
+        boolean representing if the customer explicitly stated packageType
+    package_type : str
+        Zip or Image
+    runtime : str
+        AWS Lambda runtime or Custom runtime
+    architecture : str
+        The architecture type 'x86_64' and 'arm64' in AWS
+    base_image : str
+        AWS Lambda base image
+    dependency_manager : str
+        Runtime's Dependency manager
+    output_dir : str
+        Project output directory
+    name : str
+        name of the project
+    app_template : str
+        AWS Serverless Application template
+    no_input : bool
+        Whether to prompt for input or to accept default values
+        (the default is False, which prompts the user for values it doesn't know for baking)
+    location_opt_choice : int
+        User input for selecting how to get customer a vended serverless application
+    tracing : bool
+        boolen value to determine if X-Ray tracing show be activated or not
+    """
     if location_opt_choice == "1":
         _generate_from_use_case(
             location,
@@ -94,14 +134,17 @@ def generate_application(
             name,
             app_template,
             architecture,
+            tracing,
         )
 
     else:
-        _generate_from_location(location, package_type, runtime, dependency_manager, output_dir, name, no_input)
+        _generate_from_location(
+            location, package_type, runtime, dependency_manager, output_dir, name, no_input, tracing
+        )
 
 
 # pylint: disable=too-many-statements
-def _generate_from_location(location, package_type, runtime, dependency_manager, output_dir, name, no_input):
+def _generate_from_location(location, package_type, runtime, dependency_manager, output_dir, name, no_input, tracing):
     location = click.prompt("\nTemplate location (git, mercurial, http(s), zip, path)", type=str)
     summary_msg = """
 -----------------------
@@ -113,7 +156,7 @@ Output Directory: {output_dir}
         location=location, output_dir=output_dir
     )
     click.echo(summary_msg)
-    do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, None)
+    do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, None, tracing)
 
 
 # pylint: disable=too-many-statements
@@ -128,6 +171,7 @@ def _generate_from_use_case(
     name: Optional[str],
     app_template: Optional[str],
     architecture: Optional[str],
+    tracing: Optional[bool],
 ) -> None:
     templates = InitTemplates()
     runtime_or_base_image = runtime if runtime else base_image
@@ -152,6 +196,9 @@ def _generate_from_use_case(
     )
     runtime, base_image, package_type, dependency_manager, template_chosen = chosen_app_template_properties
 
+    if tracing is None:
+        tracing = prompt_user_to_enable_tracing()
+
     app_template = template_chosen["appTemplate"]
     base_image = (
         LAMBDA_IMAGES_RUNTIMES_MAP.get(str(runtime)) if not base_image and package_type == IMAGE else base_image
@@ -163,9 +210,12 @@ def _generate_from_use_case(
     location = templates.location_from_app_template(package_type, runtime, base_image, dependency_manager, app_template)
 
     final_architecture = get_architectures(architecture)
+    lambda_supported_runtime = (
+        get_provided_runtime_from_custom_runtime(runtime) if is_custom_runtime(runtime) else runtime
+    )
     extra_context = {
         "project_name": name,
-        "runtime": runtime,
+        "runtime": lambda_supported_runtime,
         "architectures": {"value": final_architecture},
     }
 
@@ -189,13 +239,26 @@ def _generate_from_use_case(
     Commands you can use next
     =========================
     [*] Create pipeline: cd {name} && sam pipeline init --bootstrap
+    [*] Validate SAM template: sam validate
     [*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
     """
     click.secho(next_commands_msg, fg="yellow")
-    do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, extra_context)
+    do_generate(
+        location,
+        package_type,
+        lambda_supported_runtime,
+        dependency_manager,
+        output_dir,
+        name,
+        no_input,
+        extra_context,
+        tracing,
+    )
     # executing event_bridge logic if call is for Schema dynamic template
     if is_dynamic_schemas_template:
-        _package_schemas_code(runtime, schemas_api_caller, schema_template_details, output_dir, name, location)
+        _package_schemas_code(
+            lambda_supported_runtime, schemas_api_caller, schema_template_details, output_dir, name, location
+        )
 
 
 def _generate_default_hello_world_application(
@@ -231,7 +294,7 @@ def _generate_default_hello_world_application(
     """
     is_package_type_image = bool(package_type == IMAGE)
     if use_case == "Hello World Example" and not (runtime or base_image or is_package_type_image or dependency_manager):
-        if click.confirm("\n Use the most popular runtime and package type? (Python and zip)"):
+        if click.confirm("\nUse the most popular runtime and package type? (Python and zip)"):
             runtime, package_type, dependency_manager, pt_explicit = "python3.9", ZIP, "pip", True
     return (runtime, package_type, dependency_manager, pt_explicit)
 
@@ -265,6 +328,7 @@ def _get_app_template_properties(
     """
     runtime, package_type, dependency_manager, pt_explicit = template_properties
     runtime_options = preprocessed_options[use_case]
+    runtime = None if is_custom_runtime(runtime) else runtime
     if not runtime and not base_image:
         question = "Which runtime would you like to use?"
         runtime = _get_choice_from_options(runtime, runtime_options, question, "Runtime")
@@ -292,6 +356,17 @@ def _get_app_template_properties(
     return (runtime, base_image, package_type, dependency_manager, template_chosen)
 
 
+def prompt_user_to_enable_tracing():
+    """
+    Prompt user to if X-Ray Tracing should activated for functions in the SAM template and vice versa
+    """
+    if click.confirm("\nWould you like to enable X-Ray tracing on the function(s) in your application? "):
+        doc_link = "https://aws.amazon.com/xray/pricing/"
+        click.echo(f"X-Ray will incur an additional cost. View {doc_link} for more details")
+        return True
+    return False
+
+
 def _get_choice_from_options(chosen, options, question, msg):
 
     if chosen:
@@ -300,6 +375,7 @@ def _get_choice_from_options(chosen, options, question, msg):
     click_choices = []
 
     options_list = options if isinstance(options, list) else list(options.keys())
+    options_list = get_sorted_runtimes(options_list) if msg == "Runtime" else options_list
 
     if not options_list:
         raise InvalidInitOptionException(f"There are no {msg} options available to be selected.")
@@ -312,9 +388,7 @@ def _get_choice_from_options(chosen, options, question, msg):
         return options_list[0]
 
     click.echo(f"\n{question}")
-    options_list = (
-        get_sorted_runtimes(options_list) if msg == "Runtime" and not isinstance(options, list) else options_list
-    )
+
     for index, option in enumerate(options_list):
         click.echo(f"\t{index+1} - {option}")
         click_choices.append(str(index + 1))
@@ -337,15 +411,37 @@ def get_sorted_runtimes(runtime_option_list):
     list
         sorted list of possible runtime to be selected
     """
-    runtime_list = []
-    for runtime in runtime_option_list:
-        extractLanguageFromRuntime = re.split(r"\d", runtime)[0]
-        extractVersionFromRuntime = re.search(r"\d.*", runtime).group()
-        runtime_list.append((extractLanguageFromRuntime, extractVersionFromRuntime))
+    supported_runtime_list = get_supported_runtime(runtime_option_list)
+    return sorted(supported_runtime_list, key=functools.cmp_to_key(compare_runtimes))
 
-    runtime_list = sorted(runtime_option_list, key=functools.cmp_to_key(compare_runtimes))
-    sorted_runtime = ["".join(runtime_tuple) for runtime_tuple in runtime_list]
-    return sorted_runtime
+
+def get_supported_runtime(runtime_list):
+    """
+    Returns a list of only runtimes supported by the current version of SAMCLI.
+    This is the list that is presented to the customer to select from.
+
+    Parameters
+    ----------
+    runtime_list : list
+        List of runtime
+
+    Returns
+    -------
+    list
+        List of supported runtime
+    """
+    supported_runtime_list = []
+    error_message = ""
+    for runtime in runtime_list:
+        if runtime not in INIT_RUNTIMES and not is_custom_runtime(runtime):
+            if not error_message:
+                error_message = "Additional runtimes may be available in the latest SAM CLI version. \
+                    Upgrade your SAM CLI to see the full list."
+                LOG.debug(error_message)
+            continue
+        supported_runtime_list.append(runtime)
+
+    return supported_runtime_list
 
 
 def compare_runtimes(first_runtime, second_runtime):
@@ -425,7 +521,8 @@ def _get_version_number(runtime):
     float
         Runtime version number
     """
-    if "provided" in runtime:
+
+    if is_custom_runtime(runtime):
         return 1.0
     return float(re.search(r"\d+(\.\d+)?", runtime).group())
 
@@ -498,10 +595,9 @@ def _get_schema_template_details(schemas_api_caller):
 def _package_schemas_code(runtime, schemas_api_caller, schema_template_details, output_dir, name, location):
     try:
         click.echo("Trying to get package schema code")
-        download_location = tempfile.NamedTemporaryFile(delete=False)
-        do_download_source_code_binding(runtime, schema_template_details, schemas_api_caller, download_location)
-        do_extract_and_merge_schemas_code(download_location, output_dir, name, location)
-        download_location.close()
+        with tempfile.NamedTemporaryFile(delete=False) as download_location:
+            do_download_source_code_binding(runtime, schema_template_details, schemas_api_caller, download_location)
+            do_extract_and_merge_schemas_code(download_location, output_dir, name, location)
     except (ClientError, WaiterError) as e:
         raise SchemasApiException(
             "Exception occurs while packaging Schemas code. %s" % e.response["Error"]["Message"]
@@ -571,6 +667,7 @@ def generate_summary_message(
     Architectures: {architecture[0]}
     Dependency Manager: {dependency_manager}
     Output Directory: {output_dir}
+
     Next steps can be found in the README file at {output_dir}/{name}/README.md
     """
 

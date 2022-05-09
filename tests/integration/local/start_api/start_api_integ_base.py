@@ -92,7 +92,10 @@ class StartApiIntegBaseClass(TestCase):
 
         while True:
             line = cls.start_api_process.stderr.readline()
-            if "(Press CTRL+C to quit)" in str(line):
+            line_as_str = str(line.decode("utf-8")).strip()
+            if line_as_str:
+                LOG.info(f"{line_as_str}")
+            if "(Press CTRL+C to quit)" in line_as_str:
                 break
 
         cls.stop_reading_thread = False

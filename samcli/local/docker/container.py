@@ -20,12 +20,18 @@ from .utils import to_posix_path, find_free_port, NoFreePortsError
 
 LOG = logging.getLogger(__name__)
 
-START_CONTAINER_TIMEOUT = float(os.environ.get("SAM_CLI_START_CONTAINER_TIMEOUT", 5))
+CONTAINER_CONNECTION_TIMEOUT = float(os.environ.get("SAM_CLI_CONTAINER_CONNECTION_TIMEOUT", 20))
 
 
 class ContainerResponseException(Exception):
     """
     Exception raised when unable to communicate with RAPID APIs on a running container.
+    """
+
+
+class ContainerConnectionTimeoutException(Exception):
+    """
+    Exception raised when timeout was reached while attempting to establish a connection to a container.
     """
 
 
@@ -277,35 +283,6 @@ class Container:
         # Start the container
         real_container.start()
 
-        # Wait for port to be open
-        self.wait_for_port()
-
-    def wait_for_port(self):
-        """
-        Waits until the host machine port that Docker binds to is open.
-        """
-        start_time = time.time()
-        sleep = 0.1
-        while True:
-            a_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            location = (self._container_host_interface, self.rapid_port_host)
-            # connect_ex returns 0 if connection succeeded
-            is_port_open = not a_socket.connect_ex(location)
-            a_socket.close()
-
-            if is_port_open:
-                break
-
-            current_time = time.time()
-            if current_time - start_time > START_CONTAINER_TIMEOUT:
-                raise ContainerNotStartableException(
-                    f"Timed out while starting container. You can increase this timeout by "
-                    f"setting the SAM_CLI_START_CONTAINER_TIMEOUT environment variable. "
-                    f"The current value is {START_CONTAINER_TIMEOUT} (seconds)."
-                )
-
-            time.sleep(sleep)
-
     @retry(exc=requests.exceptions.RequestException, exc_raise=ContainerResponseException)
     def wait_for_http_response(self, name, event, stdout):
         # TODO(sriram-mv): `aws-lambda-rie` is in a mode where the function_name is always "function"
@@ -319,7 +296,7 @@ class Container:
         )
         stdout.write(resp.content)
 
-    def wait_for_result(self, full_path, event, stdout, stderr):
+    def wait_for_result(self, full_path, event, stdout, stderr, start_timer=None):
         # NOTE(sriram-mv): Let logging happen in its own thread, so that a http request can be sent.
         # NOTE(sriram-mv): All logging is re-directed to stderr, so that only the lambda function return
         # will be written to stdout.
@@ -330,7 +307,16 @@ class Container:
             self._logs_thread = threading.Thread(target=self.wait_for_logs, args=(stderr, stderr), daemon=True)
             self._logs_thread.start()
 
+        # wait_for_http_response will attempt to establish a connection to the socket
+        # but it'll fail if the socket is not listening yet, so we wait for the socket
+        self._wait_for_socket_connection()
+
+        # start the timer for function timeout right before executing the function, as waiting for the socket
+        # can take some time
+        timer = start_timer() if start_timer else None
         self.wait_for_http_response(full_path, event, stdout)
+        if timer:
+            timer.cancel()
 
     def wait_for_logs(self, stdout=None, stderr=None):
 
@@ -347,6 +333,34 @@ class Container:
         logs_itr = real_container.attach(stream=True, logs=True, demux=True)
 
         self._write_container_output(logs_itr, stdout=stdout, stderr=stderr)
+
+    def _wait_for_socket_connection(self) -> None:
+        """
+        Waits for a successful connection to the socket used to communicate with Docker.
+        """
+
+        start_time = time.time()
+        while not self._can_connect_to_socket():
+            time.sleep(0.1)
+            current_time = time.time()
+            if current_time - start_time > CONTAINER_CONNECTION_TIMEOUT:
+                raise ContainerConnectionTimeoutException(
+                    f"Timed out while attempting to establish a connection to the container. You can increase this "
+                    f"timeout by setting the SAM_CLI_CONTAINER_CONNECTION_TIMEOUT environment variable. "
+                    f"The current timeout is {CONTAINER_CONNECTION_TIMEOUT} (seconds)."
+                )
+
+    def _can_connect_to_socket(self) -> bool:
+        """
+        Checks if able to connect successully to the socket used to communicate with Docker.
+        """
+
+        a_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        location = (self._container_host, self.rapid_port_host)
+        # connect_ex returns 0 if connection succeeded
+        connection_succeeded = not a_socket.connect_ex(location)
+        a_socket.close()
+        return connection_succeeded
 
     def copy(self, from_container_path, to_host_path):
 

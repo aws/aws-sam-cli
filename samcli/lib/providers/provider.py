@@ -28,6 +28,12 @@ if TYPE_CHECKING:  # pragma: no cover
 
 LOG = logging.getLogger(__name__)
 
+CORS_ORIGIN_HEADER = "Access-Control-Allow-Origin"
+CORS_METHODS_HEADER = "Access-Control-Allow-Methods"
+CORS_HEADERS_HEADER = "Access-Control-Allow-Headers"
+CORS_CREDENTIALS_HEADER = "Access-Control-Allow-Credentials"
+CORS_MAX_AGE_HEADER = "Access-Control-Max-Age"
+
 
 class Function(NamedTuple):
     """
@@ -74,6 +80,8 @@ class Function(NamedTuple):
     codesign_config_arn: Optional[str]
     # Architecture Type
     architectures: Optional[List[str]]
+    # The function url configuration
+    function_url_config: Optional[Dict]
     # The path of the stack relative to the root stack, it is empty for functions in root stack
     stack_path: str = ""
 
@@ -450,11 +458,11 @@ class Cors(_CorsTuple):
         if not cors:
             return {}
         headers = {
-            "Access-Control-Allow-Origin": cors.allow_origin,
-            "Access-Control-Allow-Methods": cors.allow_methods,
-            "Access-Control-Allow-Headers": cors.allow_headers,
-            "Access-Control-Allow-Credentials": cors.allow_credentials,
-            "Access-Control-Max-Age": cors.max_age,
+            CORS_ORIGIN_HEADER: cors.allow_origin,
+            CORS_METHODS_HEADER: cors.allow_methods,
+            CORS_HEADERS_HEADER: cors.allow_headers,
+            CORS_CREDENTIALS_HEADER: cors.allow_credentials,
+            CORS_MAX_AGE_HEADER: cors.max_age,
         }
         # Filters out items in the headers dictionary that isn't empty.
         # This is required because the flask Headers dict will send an invalid 'None' string
@@ -475,7 +483,7 @@ class AbstractApiProvider:
         raise NotImplementedError("not implemented")
 
 
-class Stack(NamedTuple):
+class Stack:
     """
     A class encapsulate info about a stack/sam-app resource,
     including its content, parameter overrides, file location, logicalID
@@ -495,6 +503,23 @@ class Stack(NamedTuple):
     template_dict: Dict
     # metadata
     metadata: Optional[Dict] = None
+
+    def __init__(
+        self,
+        parent_stack_path: str,
+        name: str,
+        location: str,
+        parameters: Optional[Dict],
+        template_dict: Dict,
+        metadata: Optional[Dict] = None,
+    ):
+        self.parent_stack_path = parent_stack_path
+        self.name = name
+        self.location = location
+        self.parameters = parameters
+        self.template_dict = template_dict
+        self.metadata = metadata
+        self._resources: Optional[Dict] = None
 
     @property
     def stack_id(self) -> str:
@@ -525,9 +550,11 @@ class Stack(NamedTuple):
         Return the resources dictionary where SAM plugins have been run
         and parameter values have been substituted.
         """
-        processed_template_dict: Dict = SamBaseProvider.get_template(self.template_dict, self.parameters)
-        resources: Dict = processed_template_dict.get("Resources", {})
-        return resources
+        if self._resources is not None:
+            return self._resources
+        processed_template_dict: Dict[str, Dict] = SamBaseProvider.get_template(self.template_dict, self.parameters)
+        self._resources = cast(Dict, processed_template_dict.get("Resources", {}))
+        return self._resources
 
     def get_output_template_path(self, build_root: str) -> str:
         """
@@ -535,6 +562,21 @@ class Stack(NamedTuple):
         """
         # stack_path is always posix path, we need to convert it to path that matches the OS
         return os.path.join(build_root, self.stack_path.replace(posixpath.sep, os.path.sep), "template.yaml")
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, Stack):
+            return (
+                self.is_root_stack == other.is_root_stack
+                and self.location == other.location
+                and self.metadata == other.metadata
+                and self.name == other.name
+                and self.parameters == other.parameters
+                and self.parent_stack_path == other.parent_stack_path
+                and self.stack_id == other.stack_id
+                and self.stack_path == other.stack_path
+                and self.template_dict == other.template_dict
+            )
+        return False
 
 
 class ResourceIdentifier:

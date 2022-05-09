@@ -434,6 +434,7 @@ class TestApplicationBuilder_build(TestCase):
             inlinecode=None,
             architectures=[X86_64, ARM64],
             stack_path="",
+            function_url_config=None,
         )
 
         resources_to_build_collector = ResourcesToBuildCollector()

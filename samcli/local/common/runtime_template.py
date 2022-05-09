@@ -2,6 +2,7 @@
 All-in-one metadata about runtimes
 """
 
+import re
 import itertools
 import os
 import pathlib
@@ -104,6 +105,9 @@ INIT_RUNTIMES = [
     "nodejs16.x",
     "nodejs14.x",
     "nodejs12.x",
+    # custom runtime in descending order
+    "provided.al2",
+    "provided",
     # python runtimes in descending order
     "python3.9",
     "python3.8",
@@ -145,4 +149,46 @@ SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
     "python3.8": "Python36",
     "python3.9": "Python36",
     "dotnet6": "dotnetcore3.1",
+    "go1.x": "Go1",
 }
+
+PROVIDED_RUNTIMES = ["provided.al2", "provided"]
+
+
+def is_custom_runtime(runtime):
+    """
+    validated if a runtime is custom or not
+    Parameters
+    ----------
+    runtime : str
+        runtime to be
+    Returns
+    -------
+    _type_
+        _description_
+    """
+    if not runtime:
+        return False
+    provided_runtime = get_provided_runtime_from_custom_runtime(runtime)
+    return runtime in PROVIDED_RUNTIMES or bool(provided_runtime in PROVIDED_RUNTIMES)
+
+
+def get_provided_runtime_from_custom_runtime(runtime):
+    """
+    Gets the base lambda runtime for which a custom runtime is based on
+    Example:
+    rust (provided.al2) --> provided.al2
+    java11 --> None
+
+    Parameters
+    ----------
+    runtime : str
+        Custom runtime or Lambda runtime
+
+    Returns
+    -------
+    str
+        returns the base lambda runtime for which a custom runtime is based on
+    """
+    base_runtime_list = re.findall(r"\(([^()]+)\)", runtime)
+    return base_runtime_list[0] if base_runtime_list else None
