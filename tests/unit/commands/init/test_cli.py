@@ -155,6 +155,7 @@ class TestCli(TestCase):
             app_template=self.app_template,
             no_input=self.no_input,
             extra_context=None,
+            tracing=False,
         )
 
         # THEN we should receive no errors
@@ -167,7 +168,8 @@ class TestCli(TestCase):
             self.output_dir,
             self.name,
             True,
-            {'runtime': 'nodejs16.x', 'project_name': 'testing project', 'architectures': {'value': ['x86_64']}},
+            {"runtime": "nodejs16.x", "project_name": "testing project", "architectures": {"value": ["x86_64"]}},
+            False,
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
