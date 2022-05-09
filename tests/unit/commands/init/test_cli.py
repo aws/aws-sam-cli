@@ -155,6 +155,7 @@ class TestCli(TestCase):
             app_template=self.app_template,
             no_input=self.no_input,
             extra_context=None,
+            tracing=False,
         )
 
         # THEN we should receive no errors
