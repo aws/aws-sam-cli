@@ -168,7 +168,7 @@ class TestCli(TestCase):
             self.output_dir,
             self.name,
             True,
-            {'runtime': 'nodejs16.x', 'project_name': 'testing project', 'architectures': {'value': ['x86_64']}},
+            {"runtime": "nodejs16.x", "project_name": "testing project", "architectures": {"value": ["x86_64"]}},
             False,
         )
 
