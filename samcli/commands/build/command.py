@@ -41,7 +41,7 @@ Supported Resource Types
 Supported Runtimes
 ------------------
 1. Python 3.6, 3.7, 3.8 3.9 using PIP\n
-2. Nodejs 14.x, 12.x using NPM\n
+2. Nodejs 16.x, 14.x, 12.x using NPM\n
 3. Ruby 2.7 using Bundler\n
 4. Java 8, Java 11 using Gradle and Maven\n
 5. Dotnetcore3.1, Dotnet6 using Dotnet CLI (without --use-container flag)\n
