@@ -2,7 +2,7 @@ from samcli.lib.providers.provider import ResourceIdentifier
 from unittest import TestCase
 from unittest.mock import MagicMock, call, patch, Mock
 
-from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall
+from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall, ApiCallTypes
 from samcli.lib.utils.lock_distributor import LockChain
 from parameterized import parameterized
 
@@ -99,9 +99,12 @@ class TestSyncFlow(TestCase):
     @patch.multiple(SyncFlow, __abstractmethods__=set())
     def test_get_lock_keys(self):
         sync_flow = self.create_sync_flow()
-        sync_flow._get_resource_api_calls.return_value = [ResourceAPICall("A", "1"), ResourceAPICall("B", "2")]
+        sync_flow._get_resource_api_calls.return_value = [
+            ResourceAPICall("A", [ApiCallTypes.BUILD]),
+            ResourceAPICall("B", [ApiCallTypes.UPDATE_FUNCTION_CONFIGURATION]),
+        ]
         result = sync_flow.get_lock_keys()
-        self.assertEqual(result, ["A_1", "B_2"])
+        self.assertEqual(result, ["A_Build", "B_UpdateFunctionConfiguration"])
 
     @patch("samcli.lib.sync.sync_flow.LockChain")
     @patch("samcli.lib.sync.sync_flow.Session")

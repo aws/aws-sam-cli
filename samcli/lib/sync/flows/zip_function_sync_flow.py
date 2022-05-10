@@ -18,7 +18,7 @@ from samcli.lib.utils.hash import file_checksum
 from samcli.lib.package.utils import make_zip
 
 from samcli.lib.build.app_builder import ApplicationBuilder
-from samcli.lib.sync.sync_flow import ResourceAPICall
+from samcli.lib.sync.sync_flow import ResourceAPICall, ApiCallTypes
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
@@ -151,13 +151,13 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
     def _get_layers_api_calls(self) -> List[ResourceAPICall]:
         layer_api_calls = list()
         for layer in self._function.layers:
-            layer_api_calls.append(ResourceAPICall(layer.full_path, ["Build"]))
+            layer_api_calls.append(ResourceAPICall(layer.full_path, [ApiCallTypes.BUILD]))
         return layer_api_calls
 
     def _get_codeuri_api_calls(self) -> List[ResourceAPICall]:
         codeuri_api_call = list()
         if self._function.codeuri:
-            codeuri_api_call.append(ResourceAPICall(self._function.codeuri, ["Build"]))
+            codeuri_api_call.append(ResourceAPICall(self._function.codeuri, [ApiCallTypes.BUILD]))
         return codeuri_api_call
 
     @staticmethod

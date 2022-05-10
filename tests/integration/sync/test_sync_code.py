@@ -36,11 +36,11 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 LOG = logging.getLogger(__name__)
 
 
-@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
-class TestSyncCode(SyncIntegBase):
+class TestSyncCodeBase(SyncIntegBase):
     temp_dir = ""
     stack_name = ""
     template_path = ""
+    template = ""
 
     @pytest.fixture(autouse=True, scope="class")
     def sync_code_base(self):
@@ -48,8 +48,7 @@ class TestSyncCode(SyncIntegBase):
             TestSyncCode.temp_dir = Path(temp).joinpath("code")
             shutil.copytree(self.test_data_path.joinpath("code").joinpath("before"), TestSyncCode.temp_dir)
 
-            template = "template-python.yaml"
-            TestSyncCode.template_path = TestSyncCode.temp_dir.joinpath(template)
+            TestSyncCode.template_path = TestSyncCode.temp_dir.joinpath(self.template)
             TestSyncCode.stack_name = self._method_to_stack_name(self.id())
 
             # Run infra sync
@@ -80,6 +79,11 @@ class TestSyncCode(SyncIntegBase):
                 cfn_client, ecr_client, self._stack_name_to_companion_stack(TestSyncCode.stack_name)
             )
             cfn_client.delete_stack(StackName=TestSyncCode.stack_name)
+
+
+@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+class TestSyncCode(TestSyncCodeBase):
+    template = "template-python.yaml"
 
     def test_sync_code_function(self):
         shutil.rmtree(TestSyncCode.temp_dir.joinpath("function"), ignore_errors=True)
@@ -206,6 +210,11 @@ class TestSyncCode(SyncIntegBase):
         time.sleep(SFN_SLEEP)
         state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
         self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')
+
+
+@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+class TestSyncCodeDotnetFunctionTemplate(TestSyncCodeBase):
+    template = "template-dotnet.yaml"
 
     def test_sync_code_shared_codeuri(self):
         shutil.rmtree(Path(TestSyncCode.temp_dir).joinpath("dotnet_function"), ignore_errors=True)

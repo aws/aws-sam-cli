@@ -2,6 +2,7 @@
 import logging
 
 from abc import ABC, abstractmethod
+from enum import Enum
 from threading import Lock
 from typing import Any, Dict, List, NamedTuple, Optional, TYPE_CHECKING, cast
 from boto3.session import Session
@@ -22,11 +23,18 @@ if TYPE_CHECKING:  # pragma: no cover
 LOG = logging.getLogger(__name__)
 
 
+class ApiCallTypes(Enum):
+    """API call stages that can be locked on"""
+
+    BUILD = "Build"
+    UPDATE_FUNCTION_CONFIGURATION = "UpdateFunctionConfiguration"
+
+
 class ResourceAPICall(NamedTuple):
     """Named tuple for a resource and its potential API calls"""
 
     shared_resource: str
-    api_calls: List[str]
+    api_calls: List[ApiCallTypes]
 
 
 class SyncFlow(ABC):
@@ -175,7 +183,7 @@ class SyncFlow(ABC):
         self._locks = locks
 
     @staticmethod
-    def _get_lock_key(logical_id: str, api_call: str) -> str:
+    def _get_lock_key(logical_id: str, api_call: ApiCallTypes) -> str:
         """Get a single lock key for a pair of resource and API call.
 
         Parameters
@@ -190,7 +198,7 @@ class SyncFlow(ABC):
         str
             String key created with logical ID and API call name.
         """
-        return logical_id + "_" + api_call
+        return f"{logical_id}_{api_call.value}"
 
     def _get_lock_chain(self) -> LockChain:
         """Return a LockChain object for all the locks

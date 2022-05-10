@@ -1,7 +1,7 @@
 import os
 import hashlib
 
-from samcli.lib.sync.sync_flow import SyncFlow
+from samcli.lib.sync.sync_flow import SyncFlow, ApiCallTypes
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, call, mock_open, patch
 
@@ -175,9 +175,9 @@ class TestZipFunctionSyncFlow(TestCase):
 
         result = sync_flow._get_resource_api_calls()
         self.assertEqual(len(result), 3)
-        resource_api_call_mock.assert_any_call("Layer1", ["Build"])
-        resource_api_call_mock.assert_any_call("Layer2", ["Build"])
-        resource_api_call_mock.assert_any_call("CodeUri/", ["Build"])
+        resource_api_call_mock.assert_any_call("Layer1", [ApiCallTypes.BUILD])
+        resource_api_call_mock.assert_any_call("Layer2", [ApiCallTypes.BUILD])
+        resource_api_call_mock.assert_any_call("CodeUri/", [ApiCallTypes.BUILD])
 
     def test_combine_dependencies(self):
         sync_flow = self.create_function_sync_flow()
