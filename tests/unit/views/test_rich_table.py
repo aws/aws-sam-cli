@@ -33,7 +33,7 @@ class TestRichTableView(TestCase):
         sys.stdout = table_out = StringIO()
         table.print()
 
-        rich_table = table.table
+        rich_table = table._table
 
         # Comment out this assertion until we find a better way to evaluate the output
         # self.assertEqual(expected_table, table_out.getvalue())
@@ -66,7 +66,7 @@ class TestRichTableView(TestCase):
         sys.stdout = table_out = StringIO()
         table.print()
 
-        rich_table = table.table
+        rich_table = table._table
 
         self.assertEqual(rich_table.columns[0].style, "green")
         self.assertEqual(rich_table.columns[1].style, "red")

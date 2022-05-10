@@ -14,9 +14,9 @@ class RichTable(AbstractTable):
         Instantiate a Rich table
         :param title: name of the table
         """
-        self.title = title
-        self.table = Table(title=title, **table_options) if table_options else Table(title=title)
-        self.console = Console()
+        self._title = title
+        self._table = Table(title=title, **table_options) if table_options else Table(title=title)
+        self._console = Console()
 
     def add_column(self, title: str, options: Optional[Dict[Any, Any]] = None) -> None:
         """
@@ -25,19 +25,19 @@ class RichTable(AbstractTable):
         :param options: style object should contain styling properties as defined by the Rich library
         """
         if options:
-            self.table.add_column(title, **options)
+            self._table.add_column(title, **options)
         else:
-            self.table.add_column(title)
+            self._table.add_column(title)
 
     def add_row(self, data: List[str]) -> None:
         """
         Add a row to a rich table
         :param data: data to be displayed given as a list of strings, where each string corresponds to a column
         """
-        self.table.add_row(*data)
+        self._table.add_row(*data)
 
     def print(self) -> None:
         """
         Print the table to stdout
         """
-        self.console.print(self.table)
+        self._console.print(self._table)
