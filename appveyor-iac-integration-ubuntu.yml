@@ -82,6 +82,8 @@ install:
   - ps: "If ($env:INSTALL_PY_37_PIP) {python3.7 get-pip.py --user}"
   - ps: "If ($env:INSTALL_PY_36_PIP) {python3.6 get-pip-36.py --user}"
 
+  # get testing env vars
+  - sh: "sudo apt install -y jq"
   - sh: "python3.9 -m venv .venv_env_vars"
   - sh: ".venv_env_vars/bin/pip install boto3"
   - sh: "test_env_var=$(.venv_env_vars/bin/python tests/get_testing_resources.py)"
