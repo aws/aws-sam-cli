@@ -137,6 +137,43 @@ class TestCli(TestCase):
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
     @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_node(self, generate_project_patch, git_repo_clone_mock):
+        # GIVEN generate_project successfully created a project
+        # WHEN a project name has been passed
+        init_cli(
+            ctx=self.ctx,
+            no_interactive=self.no_interactive,
+            location=self.location,
+            pt_explicit=self.pt_explicit,
+            package_type=self.package_type,
+            runtime="nodejs16.x",
+            architecture=X86_64,
+            base_image=self.base_image,
+            dependency_manager="npm",
+            output_dir=None,
+            name=self.name,
+            app_template=self.app_template,
+            no_input=self.no_input,
+            extra_context=None,
+            tracing=False,
+        )
+
+        # THEN we should receive no errors
+        generate_project_patch.assert_called_once_with(
+            # need to change the location validation check
+            ANY,
+            ZIP,
+            "nodejs16.x",
+            "npm",
+            self.output_dir,
+            self.name,
+            True,
+            {"runtime": "nodejs16.x", "project_name": "testing project", "architectures": {"value": ["x86_64"]}},
+            False,
+        )
+
+    @patch("samcli.lib.utils.git_repo.GitRepo.clone")
+    @patch("samcli.commands.init.init_generator.generate_project")
     def test_init_image_cli(self, generate_project_patch, git_repo_clone_mock):
         # GIVEN generate_project successfully created a project
         # WHEN a project name has been passed
