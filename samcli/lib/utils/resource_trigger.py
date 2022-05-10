@@ -123,6 +123,8 @@ class TemplateTrigger(ResourceTrigger):
         self._stack_name = stack_name
         self._on_template_change = on_template_change
         self._validator = DefinitionValidator(Path(self._template_file))
+
+    def raw_validate(self):
         if not self._validator.raw_validate():
             raise InvalidTemplateFile(self._template_file, self._stack_name)
 

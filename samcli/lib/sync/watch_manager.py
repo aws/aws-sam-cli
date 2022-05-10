@@ -128,17 +128,10 @@ class WatchManager:
         stacks = SamLocalStackProvider.get_stacks(self._template)[0]
         for stack in stacks:
             template = stack.location
+            template_trigger = TemplateTrigger(template, stack.name, lambda _=None: self.queue_infra_sync())
             try:
-                template_trigger = TemplateTrigger(template, stack.name, lambda _=None: self.queue_infra_sync())
+                template_trigger.raw_validate()
             except InvalidTemplateFile:
-                LOG.warning(
-                    self._color.yellow(
-                        "Template %s not watched due to template file validation failed for stack %s.\
-If you have fixed this issue you can re-run the sync."
-                    ),
-                    template,
-                    stack.name,
-                )
                 continue
 
             self._observer.schedule_handlers(template_trigger.get_path_handlers())
