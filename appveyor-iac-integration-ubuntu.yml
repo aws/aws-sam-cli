@@ -127,3 +127,11 @@ test_script:
 
   - "pip install -e \".[dev]\""
   - sh: "pytest -vv tests/iac_integration"
+
+# Final clean up no matter success or failure
+on_finish:
+  - sh: 'export AWS_ACCESS_KEY_ID=$CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID'
+  - sh: 'export AWS_SECRET_ACCESS_KEY=$CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY'
+  - sh: 'export AWS_SESSION_TOKEN=$CI_ACCESS_ROLE_AWS_SESSION_TOKEN'
+
+  - sh: 'aws stepfunctions send-task-success --task-token "$TASK_TOKEN" --task-output "{}" --region us-west-2'
