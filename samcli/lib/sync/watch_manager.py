@@ -132,7 +132,7 @@ class WatchManager:
             try:
                 template_trigger.raw_validate()
             except InvalidTemplateFile:
-                continue
+                LOG.warning(self._color.yellow("Template validation failed for %s in %s"), template, stack.location)
 
             self._observer.schedule_handlers(template_trigger.get_path_handlers())
 

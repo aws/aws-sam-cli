@@ -135,7 +135,7 @@ class TestWatchManager(TestCase):
     def test_add_invalid_template_triggers(self, get_stack_mock, template_trigger_mock):
         stack_name = "stack"
         template = "template.yaml"
-        template_trigger_mock.side_effect = InvalidTemplateFile(template, stack_name)
+        template_trigger_mock.return_value.raw_validate.side_effect = InvalidTemplateFile(template, stack_name)
         stack = MagicMock()
         stack.location = template
         stack.name = stack_name
@@ -147,7 +147,7 @@ class TestWatchManager(TestCase):
 
         template_trigger_mock.assert_any_call("template.yaml", stack_name, ANY)
 
-        self.assertEqual(0, self.path_observer.schedule_handlers.call_count)
+        self.assertEqual(1, self.path_observer.schedule_handlers.call_count)
 
     def test_execute_infra_sync(self):
         self.watch_manager._execute_infra_context()

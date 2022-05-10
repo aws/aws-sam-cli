@@ -42,9 +42,7 @@ class InvalidTemplateFile(Exception):
         """
         self._template = template
         self._stack_name = stack_name
-        super().__init__(
-            f"Template at {template} for stack {stack_name} failed to validate. This template will not be watched."
-        )
+        super().__init__(f"Template at {template} for stack {stack_name} failed to validate.")
 
     @property
     def template(self) -> str:

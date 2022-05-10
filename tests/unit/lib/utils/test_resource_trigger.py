@@ -68,6 +68,7 @@ class TestTemplateTrigger(TestCase):
         validator_mock.return_value.raw_validate.return_value = False
         with self.assertRaises(InvalidTemplateFile):
             trigger = TemplateTrigger("template.yaml", "stack", MagicMock())
+            trigger.raw_validate()
 
     @patch("samcli.lib.utils.resource_trigger.DefinitionValidator")
     @patch("samcli.lib.utils.resource_trigger.Path")
