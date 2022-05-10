@@ -64,7 +64,7 @@ install:
   - sh: "sudo apt-get -y install python3.6"
   - sh: "sudo apt-get -y install python3.7"
   - sh: "sudo apt-get -y install python3.8"
-  - sh: "sudo apt-get -y install python3.9"
+  - sh: "sudo apt-get -y install python3.9 python3.9-venv"
 
   - sh: "which python3.8"
   - sh: "which python3.7"
