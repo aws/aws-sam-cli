@@ -35,7 +35,7 @@ class InvalidTemplateFile(Exception):
 
         Parameters
         ----------
-        template_location : str
+        template : str
             Template location that failed to validate
         stack_name : str
             Stack name of the template

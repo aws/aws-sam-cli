@@ -130,7 +130,7 @@ class WatchManager:
             template = stack.location
             template_trigger = TemplateTrigger(template, stack.name, lambda _=None: self.queue_infra_sync())
             try:
-                template_trigger.raw_validate()
+                template_trigger.validate_template()
             except InvalidTemplateFile:
                 LOG.warning(self._color.yellow("Template validation failed for %s in %s"), template, stack.location)
 

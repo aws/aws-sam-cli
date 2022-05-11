@@ -124,8 +124,8 @@ class TemplateTrigger(ResourceTrigger):
         self._on_template_change = on_template_change
         self._validator = DefinitionValidator(Path(self._template_file))
 
-    def raw_validate(self):
-        if not self._validator.raw_validate():
+    def validate_template(self):
+        if not self._validator.validate_file():
             raise InvalidTemplateFile(self._template_file, self._stack_name)
 
     def _validator_wrapper(self, event: Optional[FileSystemEvent] = None) -> None:
@@ -135,7 +135,7 @@ class TemplateTrigger(ResourceTrigger):
         ----------
         event : Optional[FileSystemEvent], optional
         """
-        if self._validator.validate():
+        if self._validator.validate_change():
             self._on_template_change(event)
 
     def get_path_handlers(self) -> List[PathHandler]:
@@ -376,7 +376,7 @@ class DefinitionCodeTrigger(CodeResourceTrigger):
         ----------
         event : Optional[FileSystemEvent], optional
         """
-        if self._validator.validate():
+        if self._validator.validate_change():
             self._on_code_change(event)
 
     def get_path_handlers(self) -> List[PathHandler]:
