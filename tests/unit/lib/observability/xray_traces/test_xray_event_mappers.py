@@ -59,7 +59,7 @@ class AbstraceXRayTraceMapperTest(TestCase):
                     },
                 ],
             },
-            1
+            1,
         )
 
 
