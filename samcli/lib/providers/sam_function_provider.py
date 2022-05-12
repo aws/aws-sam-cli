@@ -205,6 +205,8 @@ class SamFunctionProvider(SamBaseProvider):
                 if resource_type == AWS_SERVERLESS_FUNCTION:
                     layers = SamFunctionProvider._parse_layer_info(
                         stack,
+                        stacks,
+                        resource_metadata.get("SamResourceId", ""),
                         resource_properties.get("Layers", []),
                         use_raw_codeuri,
                         ignore_code_extraction_warnings=ignore_code_extraction_warnings,
@@ -437,6 +439,8 @@ class SamFunctionProvider(SamBaseProvider):
     @staticmethod
     def _parse_layer_info(
         stack: Stack,
+        stacks: List[Stack],
+        function_id: str,
         list_of_layers: List[Any],
         use_raw_codeuri: bool = False,
         ignore_code_extraction_warnings: bool = False,
@@ -464,6 +468,15 @@ class SamFunctionProvider(SamBaseProvider):
 
             I.E: list_of_layers = ["layer1", "layer2"] the return would be [Layer("layer1"), Layer("layer2")]
         """
+        found_layers = []
+
+        func_template = stack.template_dict.get("Resources").get(function_id)
+        a_list_of_layers = func_template.get("Properties").get("Layers")
+        for layer in a_list_of_layers:
+            found_layer = SamFunctionProvider._search_layer(stack, stacks, layer, use_raw_codeuri, ignore_code_extraction_warnings)
+            if found_layer:
+                found_layers.append(found_layer)
+
         layers = []
         for layer in list_of_layers:
             if layer == "arn:aws:lambda:::awslayer:AmazonLinux1803":
@@ -477,33 +490,74 @@ class SamFunctionProvider(SamBaseProvider):
                     "for more detials."
                 )  # noqa: E501
 
+            # If the layer is a string, it can be a parameter pass from parent stack, we need to locate to where the
+            # layer is actually defined
+
             # If the layer is a string, assume it is the arn
-            # if isinstance(layer, str):
-            #     layers.append(
-            #         LayerVersion(
-            #             layer,
-            #             None,
-            #             stack_path=stack.stack_path,
-            #         )
-            #     )
-            #     continue
+            if isinstance(layer, str):
+                already_resolved = False
+                for added_layer in found_layers:
+                    if added_layer.arn == layer:
+                        already_resolved = True
+                        break
+
+                if already_resolved:
+                    continue
+
+                layers.append(
+                    LayerVersion(
+                        layer,
+                        None,
+                        stack_path=stack.stack_path,
+                    )
+                )
+                continue
 
             # In the list of layers that is defined within a template, you can reference a LayerVersion resource.
             # When running locally, we need to follow that Ref so we can extract the local path to the layer code.
-            if isinstance(layer, dict) and layer.get("Ref"):
-                found_layer = SamFunctionProvider._locate_layer_from_ref(
+            # if isinstance(layer, dict) and layer.get("Ref"):
+            #     found_layer = SamFunctionProvider._locate_layer_from_ref(
+            #         stack, layer, use_raw_codeuri, ignore_code_extraction_warnings
+            #     )
+            #     if found_layer:
+            #         layers.append(found_layer)
+            # else:
+            #     LOG.debug(
+            #         'layer "%s" is not recognizable, '
+            #         "it might be using intrinsic functions that we don't support yet. Skipping.",
+            #         str(layer),
+            #     )
+
+        return layers + found_layers
+
+    @staticmethod
+    def _search_layer(stack, stacks, layer, use_raw_codeuri, ignore_code_extraction_warnings):
+
+        # if layer in stack.
+        if isinstance(layer, dict) and layer.get("Ref"):
+            layer_reference = layer.get("Ref")
+
+        if not stack.template_dict.get("Parameters") or layer_reference not in stack.template_dict.get("Parameters"):
+            # layer reference should be in current stack
+            resolve_layer = SamFunctionProvider._locate_layer_from_ref(
                     stack, layer, use_raw_codeuri, ignore_code_extraction_warnings
                 )
-                if found_layer:
-                    layers.append(found_layer)
-            else:
-                LOG.debug(
-                    'layer "%s" is not recognizable, '
-                    "it might be using intrinsic functions that we don't support yet. Skipping.",
-                    str(layer),
-                )
+            return resolve_layer
 
-        return layers
+        # search in parent stack
+        parent_stack = SamFunctionProvider._get_parent_stack(stack, stacks)
+        layer = parent_stack.template_dict.get("Resources").get(stack.name).get("Properties").get("Parameters").get(layer_reference)
+
+        return SamFunctionProvider._search_layer(parent_stack, stacks, layer, use_raw_codeuri, ignore_code_extraction_warnings)
+
+    @staticmethod
+    def _get_parent_stack(stack, stacks):
+        parent_stack_path = stack.parent_stack_path
+        for stack in stacks:
+            if stack.stack_path == parent_stack_path:
+                return stack
+        return None
+
 
     @staticmethod
     def _locate_layer_from_ref(
