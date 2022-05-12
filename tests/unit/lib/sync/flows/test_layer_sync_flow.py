@@ -1,13 +1,11 @@
 import base64
-import hashlib
 from unittest import TestCase
 from unittest.mock import MagicMock, Mock, patch, call, ANY, mock_open, PropertyMock
 
-from parameterized import parameterized
 
 from samcli.lib.sync.exceptions import MissingPhysicalResourceError, NoLayerVersionsFoundError
 from samcli.lib.sync.flows.layer_sync_flow import LayerSyncFlow, FunctionLayerReferenceSync
-from samcli.lib.sync.sync_flow import SyncFlow
+from samcli.lib.sync.sync_flow import SyncFlow, ApiCallTypes
 
 
 class TestLayerSyncFlow(TestCase):
@@ -330,7 +328,7 @@ class TestLayerSyncFlow(TestCase):
     def test_get_resource_api_calls(self, resource_api_call_mock):
         result = self.layer_sync_flow._get_resource_api_calls()
         self.assertEqual(len(result), 1)
-        resource_api_call_mock.assert_called_once_with(self.layer_identifier, ["Build"])
+        resource_api_call_mock.assert_called_once_with(self.layer_identifier, [ApiCallTypes.BUILD])
 
 
 class TestFunctionLayerReferenceSync(TestCase):
@@ -371,9 +369,7 @@ class TestFunctionLayerReferenceSync(TestCase):
                 patched_get_physical_id.assert_called_with(self.function_identifier)
 
                 patched_locks.get.assert_called_with(
-                    SyncFlow._get_lock_key(
-                        self.function_identifier, FunctionLayerReferenceSync.UPDATE_FUNCTION_CONFIGURATION
-                    )
+                    SyncFlow._get_lock_key(self.function_identifier, ApiCallTypes.UPDATE_FUNCTION_CONFIGURATION)
                 )
 
                 given_lambda_client.get_function.assert_called_with(FunctionName=given_physical_id)
@@ -397,9 +393,7 @@ class TestFunctionLayerReferenceSync(TestCase):
                 self.function_layer_sync.sync()
 
                 patched_locks.get.assert_called_with(
-                    SyncFlow._get_lock_key(
-                        self.function_identifier, FunctionLayerReferenceSync.UPDATE_FUNCTION_CONFIGURATION
-                    )
+                    SyncFlow._get_lock_key(self.function_identifier, ApiCallTypes.UPDATE_FUNCTION_CONFIGURATION)
                 )
 
                 patched_get_physical_id.assert_called_with(self.function_identifier)
