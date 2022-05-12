@@ -14,7 +14,7 @@ from samcli.lib.package.utils import make_zip
 from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_by_id, Function
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.sync.exceptions import MissingPhysicalResourceError, NoLayerVersionsFoundError
-from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall
+from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall, ApiCallTypes
 from samcli.lib.sync.sync_flow_executor import HELP_TEXT_FOR_SYNC_INFRA
 from samcli.lib.utils.hash import file_checksum
 
@@ -110,7 +110,7 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
         return dependencies
 
     def _get_resource_api_calls(self) -> List[ResourceAPICall]:
-        return [ResourceAPICall(self._layer_identifier, ["Build"])]
+        return [ResourceAPICall(self._layer_identifier, [ApiCallTypes.BUILD])]
 
     def _equality_keys(self) -> Any:
         return self._layer_identifier
@@ -244,8 +244,6 @@ class FunctionLayerReferenceSync(SyncFlow):
     Used for updating new Layer version for the related functions
     """
 
-    UPDATE_FUNCTION_CONFIGURATION = "UpdateFunctionConfiguration"
-
     _lambda_client: Any
 
     _function_identifier: str
@@ -286,9 +284,7 @@ class FunctionLayerReferenceSync(SyncFlow):
         if not self._locks:
             LOG.warning("%sLocks is None", self.log_prefix)
             return
-        lock_key = SyncFlow._get_lock_key(
-            self._function_identifier, FunctionLayerReferenceSync.UPDATE_FUNCTION_CONFIGURATION
-        )
+        lock_key = SyncFlow._get_lock_key(self._function_identifier, ApiCallTypes.UPDATE_FUNCTION_CONFIGURATION)
         lock = self._locks.get(lock_key)
         if not lock:
             LOG.warning("%s%s lock is None", self.log_prefix, lock_key)
@@ -332,7 +328,7 @@ class FunctionLayerReferenceSync(SyncFlow):
             self._lambda_client.update_function_configuration(FunctionName=function_physical_id, Layers=layer_arns)
 
     def _get_resource_api_calls(self) -> List[ResourceAPICall]:
-        return [ResourceAPICall(self._function_identifier, [FunctionLayerReferenceSync.UPDATE_FUNCTION_CONFIGURATION])]
+        return [ResourceAPICall(self._function_identifier, [ApiCallTypes.UPDATE_FUNCTION_CONFIGURATION])]
 
     def compare_remote(self) -> bool:
         return False
