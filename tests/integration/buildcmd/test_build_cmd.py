@@ -350,8 +350,10 @@ class TestBuildCommand_NodeFunctions(BuildIntegNodeBase):
         [
             ("nodejs12.x", False),
             ("nodejs14.x", False),
+            ("nodejs16.x", False),
             ("nodejs12.x", "use_container"),
             ("nodejs14.x", "use_container"),
+            ("nodejs16.x", "use_container"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -410,12 +412,16 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
         [
             ("nodejs12.x", False, "x86_64"),
             ("nodejs14.x", False, "x86_64"),
+            ("nodejs16.x", False, "x86_64"),
             ("nodejs12.x", "use_container", "x86_64"),
             ("nodejs14.x", "use_container", "x86_64"),
+            ("nodejs16.x", "use_container", "x86_64"),
             ("nodejs12.x", False, "arm64"),
             ("nodejs14.x", False, "arm64"),
+            ("nodejs16.x", False, "arm64"),
             ("nodejs12.x", "use_container", "arm64"),
             ("nodejs14.x", "use_container", "arm64"),
+            ("nodejs16.x", "use_container", "arm64"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
