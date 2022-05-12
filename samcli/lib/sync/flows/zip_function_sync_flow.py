@@ -5,8 +5,8 @@ import os
 import base64
 import tempfile
 import uuid
-
 from contextlib import ExitStack
+
 from typing import Any, Dict, List, Optional, TYPE_CHECKING, cast
 
 from samcli.lib.build.build_graph import BuildGraph
@@ -18,7 +18,7 @@ from samcli.lib.utils.hash import file_checksum
 from samcli.lib.package.utils import make_zip
 
 from samcli.lib.build.app_builder import ApplicationBuilder
-from samcli.lib.sync.sync_flow import ResourceAPICall
+from samcli.lib.sync.sync_flow import ResourceAPICall, ApiCallTypes
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
@@ -74,7 +74,7 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
     def gather_resources(self) -> None:
         """Build function and ZIP it into a temp file in self._zip_file"""
         with ExitStack() as exit_stack:
-            if self._function.layers:
+            if self.has_locks():
                 exit_stack.enter_context(self._get_lock_chain())
 
             builder = ApplicationBuilder(
@@ -144,9 +144,21 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
 
     def _get_resource_api_calls(self) -> List[ResourceAPICall]:
         resource_calls = list()
-        for layer in self._function.layers:
-            resource_calls.append(ResourceAPICall(layer.full_path, ["Build"]))
+        resource_calls.extend(self._get_layers_api_calls())
+        resource_calls.extend(self._get_codeuri_api_calls())
         return resource_calls
+
+    def _get_layers_api_calls(self) -> List[ResourceAPICall]:
+        layer_api_calls = list()
+        for layer in self._function.layers:
+            layer_api_calls.append(ResourceAPICall(layer.full_path, [ApiCallTypes.BUILD]))
+        return layer_api_calls
+
+    def _get_codeuri_api_calls(self) -> List[ResourceAPICall]:
+        codeuri_api_call = list()
+        if self._function.codeuri:
+            codeuri_api_call.append(ResourceAPICall(self._function.codeuri, [ApiCallTypes.BUILD]))
+        return codeuri_api_call
 
     @staticmethod
     def _combine_dependencies() -> bool:
