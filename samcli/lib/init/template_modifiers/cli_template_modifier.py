@@ -56,7 +56,7 @@ class TemplateModifier:
                 return section_index
         return -1
 
-    def _add_fields_to_section(self, position: int, fields: str) -> Any:
+    def _add_fields_to_section(self, position: int, fields: List[str]) -> Any:
         """
         Adds fields to section in the template
 
