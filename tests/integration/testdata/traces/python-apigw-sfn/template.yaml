@@ -58,6 +58,9 @@ Resources:
 
   MyStateMachineLogGroup:
     Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Join ['-', ['/aws/vendedlogs/', !Select [2, !Split ['/', !Ref AWS::StackId]]]]
+
 
   ApiGwFunction:
     Type: AWS::Serverless::Function

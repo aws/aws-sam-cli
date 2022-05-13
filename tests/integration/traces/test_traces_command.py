@@ -32,36 +32,41 @@ SKIP_TRACES_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_
 @skipIf(SKIP_TRACES_TESTS, "Skip traces tests in CI/CD only")
 class TestTracesCommand(TracesIntegBase):
     stack_resources = []
+    stack_name = ""
 
     def setUp(self):
         self.lambda_client = boto3.client("lambda")
         self.sfn_client = boto3.client("stepfunctions")
         self.xray_client = boto3.client("xray")
 
-    @pytest.fixture(autouse=True, scope="class")
-    def sync_code_base(self):
+    @pytest.fixture(scope="class")
+    def deploy_testing_stack(self):
         test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "traces")
-        stack_name = method_to_stack_name("test_traces_command")
-        LOG.info("Deploying stack %s", stack_name)
+        TestTracesCommand.stack_name = method_to_stack_name("test_traces_command")
+        cfn_client = boto3.client("cloudformation")
         deploy_cmd = DeployIntegBase.get_deploy_command_list(
-            stack_name=stack_name,
+            stack_name=TestTracesCommand.stack_name,
             template_file=test_data_path.joinpath("python-apigw-sfn", "template.yaml"),
             resolve_s3=True,
             capabilities="CAPABILITY_IAM",
         )
         deploy_result = run_command(deploy_cmd)
+
+        yield deploy_result, cfn_client
+
+        cfn_client.delete_stack(StackName=TestTracesCommand.stack_name)
+
+    @pytest.fixture(autouse=True, scope="class")
+    def sync_code_base(self, deploy_testing_stack):
+        deploy_result = deploy_testing_stack[0]
+        cfn_client = deploy_testing_stack[1]
         self.assertEqual(
             deploy_result.process.returncode, 0, f"Deployment of the test stack is failed with {deploy_result.stderr}"
         )
 
-        cfn_client = boto3.client("cloudformation")
-        TestTracesCommand.stack_resources = cfn_client.describe_stack_resources(StackName=stack_name).get(
-            "StackResources", []
-        )
-
-        yield
-
-        cfn_client.delete_stack(StackName=stack_name)
+        TestTracesCommand.stack_resources = cfn_client.describe_stack_resources(
+            StackName=TestTracesCommand.stack_name
+        ).get("StackResources", [])
 
     def _get_physical_id(self, logical_id: str):
         for stack_resource in self.stack_resources:
