@@ -24,6 +24,35 @@ class RemoteStackLocationNotSupported(Exception):
     pass
 
 
+class InvalidTemplateFile(Exception):
+    """Exception when template validation fails"""
+
+    _template: str
+    _stack_name: str
+
+    def __init__(self, template: str, stack_name: str) -> None:
+        """Exception when template validation fails
+
+        Parameters
+        ----------
+        template : str
+            Template location that failed to validate
+        stack_name : str
+            Stack name of the template
+        """
+        self._template = template
+        self._stack_name = stack_name
+        super().__init__(f"Template at {template} for stack {stack_name} failed to validate.")
+
+    @property
+    def template(self) -> str:
+        return self._template
+
+    @property
+    def stack_name(self) -> str:
+        return self._stack_name
+
+
 class MissingCodeUri(Exception):
     """Exception when Function or Lambda resources do not have CodeUri specified"""
 

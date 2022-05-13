@@ -1,0 +1,25 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Timeout: 10
+
+Resources:
+   HelloWorldFunctionDotNet:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./dotnet_function/src/HelloWorld/
+      Handler: HelloWorld::HelloWorld.Function::FunctionHandler
+      Runtime: dotnetcore3.1
+      Architectures:
+        - x86_64
+
+    AnotherFunctionDotNet:
+      Type: AWS::Serverless::Function
+      Properties:
+        CodeUri: ./dotnet_function/src/HelloWorld/
+        Handler: HelloWorld::HelloWorld.AnotherFunction::FunctionHandler
+        Runtime: dotnetcore3.1
+        Architectures:
+          - x86_64
