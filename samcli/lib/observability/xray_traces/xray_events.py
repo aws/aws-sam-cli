@@ -18,7 +18,7 @@ class XRayTraceEvent(ObservabilityEvent[dict]):
     See XRayTracePuller
     """
 
-    def __init__(self, event: dict, revision: Optional[int]):
+    def __init__(self, event: dict, revision: Optional[int] = None):
         super().__init__(event, 0)
         self.id = event.get("Id", "")
         # A revision number will be passed to link with the event
