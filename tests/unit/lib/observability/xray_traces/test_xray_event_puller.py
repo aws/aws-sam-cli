@@ -55,6 +55,40 @@ class TestXrayTracePuller(TestCase):
             for event in collected_events:
                 event.get_latest_event_time.assert_called_once()
 
+    @parameterized.expand([(i,) for i in range(1, 15)])
+    @patch("samcli.lib.observability.xray_traces.xray_event_puller.XRayTraceEvent")
+    def test_load_events_with_trace_id(self, size, patched_xray_trace_event):
+        ids = [str(uuid.uuid4()) for _ in range(size)]
+        batch_ids = list(zip_longest(*([iter(ids)] * 5)))
+
+        given_paginators = [Mock() for _ in batch_ids]
+        self.xray_client.get_paginator.side_effect = given_paginators
+
+        given_results = []
+        for i in range(len(batch_ids)):
+            given_result = [{"Traces": [Mock() for _ in batch]} for batch in batch_ids]
+            given_paginators[i].paginate.return_value = given_result
+            given_results.append(given_result)
+
+        collected_events = []
+
+        def dynamic_mock(trace):
+            mocked_trace_event = Mock(trace=trace)
+            mocked_trace_event.get_latest_event_time.return_value = time.time()
+            collected_events.append(mocked_trace_event)
+            return mocked_trace_event
+
+        patched_xray_trace_event.side_effect = dynamic_mock
+
+        self.xray_trace_puller.load_events(ids)
+
+        for i in range(len(batch_ids)):
+            self.xray_client.get_paginator.assert_called_with("batch_get_traces")
+            given_paginators[i].assert_has_calls([call.paginate(TraceIds=list(filter(None, batch_ids[i])))])
+            self.consumer.assert_has_calls([call.consume(event) for event in collected_events])
+            for event in collected_events:
+                event.get_latest_event_time.assert_called_once()
+
     def test_load_events_with_no_event_ids(self):
         self.xray_trace_puller.load_events({})
         self.consumer.assert_not_called()
