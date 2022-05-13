@@ -145,6 +145,37 @@ class SyncFlowExecutor:
             task.sync_flow.set_locks_with_distributor(self._lock_distributor)
             self._flow_queue.put(task)
 
+    @staticmethod
+    def _check_racing_function_update(
+        sync_flow: SyncFlow, running_flows: List[SyncFlow], input_type: str, conflict_type: str
+    ) -> bool:
+        input_update = False
+        for class_type in type(sync_flow).__mro__:
+            if class_type.__name__ == input_type:
+                input_update = True
+        for running_flow in running_flows:
+            for class_type in type(running_flow).__mro__:
+                if class_type.__name__ == conflict_type:
+                    if input_update:
+                        return sync_flow._function_identifier == running_flow._function_identifier
+
+    def _wait_until_function_complete(self, sync_flow: SyncFlow, running_flows: List[SyncFlow]) -> None:
+        if self._check_racing_function_update(
+            sync_flow, running_flows, "FunctionLayerReferenceSync", "FunctionSyncFlow"
+        ) or self._check_racing_function_update(
+            sync_flow, running_flows, "FunctionSyncFlow", "FunctionLayerReferenceSync"
+        ):
+            time.sleep(0.5)
+            new_flows = [future.sync_flow for future in self._running_futures]
+            LOG.debug(self._color.red("Running wait function again"))
+            LOG.debug("Task for " + type(sync_flow).__name__ + "")
+            for flow in new_flows:
+                LOG.debug("Waiting on " + type(flow).__name__)
+            self._wait_until_function_complete(sync_flow, new_flows)
+        else:
+            LOG.debug(self._color.green("No blocker on function update"))
+            return
+
     def add_sync_flow(self, sync_flow: SyncFlow, dedup: bool = True) -> None:
         """Add a SyncFlow to queue to be executed
         Locks will be set with LockDistributor
@@ -226,6 +257,11 @@ class SyncFlowExecutor:
             # Go through all queued tasks and try to execute them
             while not self._flow_queue.empty():
                 sync_flow_task: SyncFlowTask = self._flow_queue.get()
+
+                sync_flow = sync_flow_task.sync_flow
+                running_flows = [future.sync_flow for future in self._running_futures]
+
+                self._wait_until_function_complete(sync_flow, running_flows)
 
                 sync_flow_future = self._submit_sync_flow_task(executor, sync_flow_task)
 
