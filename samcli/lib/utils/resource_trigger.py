@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, cast
 from typing_extensions import Protocol
 from watchdog.events import FileSystemEvent, RegexMatchingEventHandler
 
-from samcli.lib.providers.exceptions import MissingCodeUri, MissingLocalDefinition
+from samcli.lib.providers.exceptions import MissingCodeUri, MissingLocalDefinition, InvalidTemplateFile
 from samcli.lib.providers.provider import Function, LayerVersion, ResourceIdentifier, Stack, get_resource_by_id
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_layer_provider import SamLayerProvider
@@ -103,22 +103,30 @@ class ResourceTrigger(ABC):
 
 class TemplateTrigger(ResourceTrigger):
     _template_file: str
+    _stack_name: str
     _on_template_change: OnChangeCallback
     _validator: DefinitionValidator
 
-    def __init__(self, template_file: str, on_template_change: OnChangeCallback) -> None:
+    def __init__(self, template_file: str, stack_name: str, on_template_change: OnChangeCallback) -> None:
         """
         Parameters
         ----------
         template_file : str
             Template file to be watched
+        stack_name: str
+            Stack name of the template
         on_template_change : OnChangeCallback
             Callback when template changes
         """
         super().__init__()
         self._template_file = template_file
+        self._stack_name = stack_name
         self._on_template_change = on_template_change
         self._validator = DefinitionValidator(Path(self._template_file))
+
+    def validate_template(self):
+        if not self._validator.validate_file():
+            raise InvalidTemplateFile(self._template_file, self._stack_name)
 
     def _validator_wrapper(self, event: Optional[FileSystemEvent] = None) -> None:
         """Wrapper for callback that only executes if the template is valid and non-trivial changes are detected.
@@ -127,7 +135,7 @@ class TemplateTrigger(ResourceTrigger):
         ----------
         event : Optional[FileSystemEvent], optional
         """
-        if self._validator.validate():
+        if self._validator.validate_change():
             self._on_template_change(event)
 
     def get_path_handlers(self) -> List[PathHandler]:
@@ -368,7 +376,7 @@ class DefinitionCodeTrigger(CodeResourceTrigger):
         ----------
         event : Optional[FileSystemEvent], optional
         """
-        if self._validator.validate():
+        if self._validator.validate_change():
             self._on_code_change(event)
 
     def get_path_handlers(self) -> List[PathHandler]:
