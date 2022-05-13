@@ -21,4 +21,4 @@ class PhysicalIdsLoader:
     def get_root_stack(self):
         for stack in self._stacks:
             if stack.is_root_stack:
-                return  stack
+                return stack

@@ -1,6 +1,6 @@
 from typing import List
 
-from samcli.lib.providers.provider import ResourceIdentifier, get_full_path
+from samcli.lib.providers.provider import ResourceIdentifier, get_full_path, Stack
 from samcli.lib.utils.cloudformation import get_resource_summaries, CloudFormationResourceSummary
 
 
@@ -24,8 +24,8 @@ class RemoteStack:
         for resource_summary in resources_summaries:
             if resource_summary.resource_type == "AWS::CloudFormation::Stack":
                 child_stack_name = resource_summary.physical_resource_id.split("/")[1]
-                local_child_stacks = RemoteStack._get_child_stacks(self._local_stack, self._stacks)
-                child_local_stack = RemoteStack._get_stack_by_logical(resource_summary.logical_resource_id, local_child_stacks)
+                local_child_stacks = Stack.get_child_stacks(self._local_stack, self._stacks)
+                child_local_stack = Stack.get_stack_by_logical(resource_summary.logical_resource_id, local_child_stacks)
                 self._children.append(
                     RemoteStack(child_stack_name, child_local_stack, self._stacks, resource_summary.logical_resource_id, self._provider))
             else:
@@ -38,17 +38,3 @@ class RemoteStack:
 
         return resource_id_mapping
 
-    @staticmethod
-    def _get_stack_by_logical(id, stacks):
-        for stack in stacks:
-            if stack.name == id:
-                return stack
-        return None
-
-    @staticmethod
-    def _get_child_stacks(stack, stacks):
-        child_stacks = []
-        for child in stacks:
-            if child.parent_stack_path == stack.stack_path:
-                child_stacks.append(child)
-        return child_stacks

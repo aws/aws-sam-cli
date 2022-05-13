@@ -515,18 +515,18 @@ class SamFunctionProvider(SamBaseProvider):
 
             # In the list of layers that is defined within a template, you can reference a LayerVersion resource.
             # When running locally, we need to follow that Ref so we can extract the local path to the layer code.
-            # if isinstance(layer, dict) and layer.get("Ref"):
-            #     found_layer = SamFunctionProvider._locate_layer_from_ref(
-            #         stack, layer, use_raw_codeuri, ignore_code_extraction_warnings
-            #     )
-            #     if found_layer:
-            #         layers.append(found_layer)
-            # else:
-            #     LOG.debug(
-            #         'layer "%s" is not recognizable, '
-            #         "it might be using intrinsic functions that we don't support yet. Skipping.",
-            #         str(layer),
-            #     )
+            if isinstance(layer, dict) and layer.get("Ref"):
+                found_layer = SamFunctionProvider._locate_layer_from_ref(
+                    stack, layer, use_raw_codeuri, ignore_code_extraction_warnings
+                )
+                if found_layer:
+                    layers.append(found_layer)
+            else:
+                LOG.debug(
+                    'layer "%s" is not recognizable, '
+                    "it might be using intrinsic functions that we don't support yet. Skipping.",
+                    str(layer),
+                )
 
         return layers + found_layers
 
@@ -534,8 +534,21 @@ class SamFunctionProvider(SamBaseProvider):
     def _search_layer(stack, stacks, layer, use_raw_codeuri, ignore_code_extraction_warnings):
 
         # if layer in stack.
+        if isinstance(layer, str):
+            outputs = stack.template_dict.get("Outputs", {})
+            if layer in outputs:
+                layer = outputs.get(layer).get("Value")
+
         if isinstance(layer, dict) and layer.get("Ref"):
             layer_reference = layer.get("Ref")
+        elif isinstance(layer, dict) and layer.get("Fn::GetAtt"):
+            layer_stack_reference = layer.get("Fn::GetAtt")[0]
+            layer_reference = layer.get("Fn::GetAtt")[1].split(".")[1]
+            child_stacks = Stack.get_child_stacks(stack, stacks)
+            child_stack = Stack.get_stack_by_logical(layer_stack_reference, child_stacks)
+            return SamFunctionProvider._search_layer(child_stack, stacks, layer_reference, use_raw_codeuri,
+                                                     ignore_code_extraction_warnings)
+
 
         if not stack.template_dict.get("Parameters") or layer_reference not in stack.template_dict.get("Parameters"):
             # layer reference should be in current stack
@@ -545,19 +558,10 @@ class SamFunctionProvider(SamBaseProvider):
             return resolve_layer
 
         # search in parent stack
-        parent_stack = SamFunctionProvider._get_parent_stack(stack, stacks)
+        parent_stack = Stack.get_parent_stack(stack, stacks)
         layer = parent_stack.template_dict.get("Resources").get(stack.name).get("Properties").get("Parameters").get(layer_reference)
 
         return SamFunctionProvider._search_layer(parent_stack, stacks, layer, use_raw_codeuri, ignore_code_extraction_warnings)
-
-    @staticmethod
-    def _get_parent_stack(stack, stacks):
-        parent_stack_path = stack.parent_stack_path
-        for stack in stacks:
-            if stack.stack_path == parent_stack_path:
-                return stack
-        return None
-
 
     @staticmethod
     def _locate_layer_from_ref(
