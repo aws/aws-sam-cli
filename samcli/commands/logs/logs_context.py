@@ -10,10 +10,11 @@ from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_RESTAPI,
     AWS_APIGATEWAY_V2_API,
     AWS_STEPFUNCTIONS_STATEMACHINE,
+    AWS_CLOUDFORMATION_STACK,
 )
 from samcli.commands.exceptions import UserException
 from samcli.lib.utils.boto_utils import BotoProviderType
-from samcli.lib.utils.cloudformation import get_resource_summaries
+from samcli.lib.utils.cloudformation import get_resource_summaries, CloudFormationResourceSummary
 from samcli.lib.utils.time import to_utc, parse_date
 
 LOG = logging.getLogger(__name__)
@@ -106,7 +107,9 @@ class ResourcePhysicalIdResolver:
             return self._fetch_resources_from_stack()
         return []
 
-    def _fetch_resources_from_stack(self, selected_resource_names: Optional[Set[str]] = None) -> List[Any]:
+    def _fetch_resources_from_stack(
+        self, selected_resource_names: Optional[Set[str]] = None
+    ) -> List[CloudFormationResourceSummary]:
         """
         Returns list of all resources from given stack name
         If any resource is not supported, it will discard them
@@ -119,22 +122,67 @@ class ResourcePhysicalIdResolver:
 
         Returns
         -------
-        List[StackResourceSummary]
+        List[CloudFormationResourceSummary]
             List of resource information, which will be used to fetch the logs
         """
-        results = []
         LOG.debug("Getting logical id of the all resources for stack '%s'", self._stack_name)
         stack_resources = get_resource_summaries(
             self._boto_resource_provider, self._stack_name, ResourcePhysicalIdResolver.DEFAULT_SUPPORTED_RESOURCES
         )
 
-        if selected_resource_names is None:
-            selected_resource_names = {stack_resource.logical_resource_id for stack_resource in stack_resources}
+        if selected_resource_names:
+            return self._get_selected_resources(stack_resources, selected_resource_names)
+        return self._get_all_resources(stack_resources)
 
-        for resource in stack_resources:
-            # if resource name is not selected, continue
-            if resource.logical_resource_id not in selected_resource_names:
-                LOG.debug("Resource (%s) is not selected with given input", resource.logical_resource_id)
-                continue
-            results.append(resource)
-        return results
+    def _get_selected_resources(
+        self,
+        resource_summaries: List[CloudFormationResourceSummary],
+        selected_resource_names: Set[str],
+    ) -> List[CloudFormationResourceSummary]:
+        """
+        Returns list of resources which matches with selected_resource_names.
+        selected_resource_names can be;
+        - resource name like HelloWorldFunction
+        - or it could be pointing to a resource in nested stack like NestedApp/HelloWorldFunction
+
+        Parameters
+        ----------
+        resource_summaries : List[CloudFormationResourceSummary]
+            List of CloudformationResourceSummary which was returned from given stack
+        selected_resource_names : Set[str]
+            List of resource name definitions that will be used to filter the results
+
+        Returns
+        ------
+        List[CloudFormationResourceSummary]
+            Filtered list of CloudFormationResourceSummary's
+        """
+        resources = []
+        for selected_resource_name in selected_resource_names:
+            if "/" in selected_resource_name:
+                current_stack_name, rest_of_name = selected_resource_name.split("/", 1)
+                for resource_summary in resource_summaries:
+                    if resource_summary.logical_resource_id == current_stack_name:
+                        resources.extend(
+                            self._get_selected_resources(resource_summary.nested_stack_resources, {rest_of_name})
+                        )
+            else:
+                for resource_summary in resource_summaries:
+                    if resource_summary.logical_resource_id == selected_resource_name:
+                        resources.append(resource_summary)
+        return resources
+
+    def _get_all_resources(
+        self, resource_summaries: List[CloudFormationResourceSummary]
+    ) -> List[CloudFormationResourceSummary]:
+        """
+        Returns all elements from given list of CloudFormationResourceSummary.
+        If there is a nested stack, it will also extract them and return single level list.
+        """
+        resources = []
+        for resource_summary in resource_summaries:
+            if resource_summary.resource_type == AWS_CLOUDFORMATION_STACK:
+                resources.extend(self._get_all_resources(resource_summary.nested_stack_resources))
+            else:
+                resources.append(resource_summary)
+        return resources

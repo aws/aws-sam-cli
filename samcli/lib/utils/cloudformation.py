@@ -2,16 +2,19 @@
 This utility file contains methods to read information from certain CFN stack
 """
 import logging
-from typing import List, Dict, NamedTuple, Set, Optional
+from typing import List, Dict, Set, Optional
 
+from attr import dataclass
 from botocore.exceptions import ClientError
 
 from samcli.lib.utils.boto_utils import BotoProviderType
+from samcli.lib.utils.resources import AWS_CLOUDFORMATION_STACK
 
 LOG = logging.getLogger(__name__)
 
 
-class CloudFormationResourceSummary(NamedTuple):
+@dataclass
+class CloudFormationResourceSummary:
     """
     Keeps information about CFN resource
     """
@@ -19,6 +22,7 @@ class CloudFormationResourceSummary(NamedTuple):
     resource_type: str
     logical_resource_id: str
     physical_resource_id: str
+    nested_stack_resources: List["CloudFormationResourceSummary"]
 
 
 def get_physical_id_mapping(
@@ -80,7 +84,13 @@ def get_resource_summaries(
             cfn_resource_summary.resource_type,
             cfn_resource_summary.logical_resource_id,
             cfn_resource_summary.physical_resource_id,
+            [],
         )
+        if resource_summary.resource_type == AWS_CLOUDFORMATION_STACK:
+            resource_summary.nested_stack_resources.extend(
+                get_resource_summaries(boto_resource_provider, resource_summary.physical_resource_id, resource_types)
+            )
+            resource_summaries.append(resource_summary)
         if resource_types and resource_summary.resource_type not in resource_types:
             LOG.debug(
                 "Skipping resource %s since its type %s is not supported. Supported types %s",
@@ -119,6 +129,7 @@ def get_resource_summary(boto_resource_provider: BotoProviderType, stack_name: s
             cfn_resource_summary.resource_type,
             cfn_resource_summary.logical_resource_id,
             cfn_resource_summary.physical_resource_id,
+            [],
         )
     except ClientError as e:
         LOG.error(
