@@ -1,0 +1,26 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: [AWS::Serverless-2016-10-31]
+
+Parameters:
+  ArtifactsPath:
+    Type: String
+
+Resources:
+  ServerlessApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      DefinitionBody: # Workaround to pass CF variables to openapi.yaml; need to upload file to S3 first
+        Fn::Transform:
+          Name: "AWS::Include"
+          Parameters:
+            Location: !Join ["", ["s3://", !Ref ArtifactsPath, "/openapi.yaml"]]
+      StageName: Prod
+  ServerlessHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      DefinitionBody: # Workaround to pass CF variables to openapi.yaml; need to upload file to S3 first
+        Fn::Transform:
+          Name: "AWS::Include"
+          Parameters:
+            Location: !Join ["", ["s3://", !Ref ArtifactsPath, "/openapi.yaml"]]
+      StageName: Prod

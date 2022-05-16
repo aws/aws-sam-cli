@@ -58,6 +58,9 @@ class TestValidate(TestCase):
         [
             ("default_yaml", TemplateFileTypes.YAML),  # project with template.yaml
             ("default_json", TemplateFileTypes.JSON),  # project with template.json
+            ("openapi_yaml", TemplateFileTypes.YAML),  # project with template.yaml
+            ("openapi_json", TemplateFileTypes.JSON),  # project with template.json
+            ("include_none_string", TemplateFileTypes.YAML),  # project with template.yaml and none string include
             ("multiple_files", TemplateFileTypes.YAML),  # project with both template.yaml and template.json
             (
                 "with_build",
