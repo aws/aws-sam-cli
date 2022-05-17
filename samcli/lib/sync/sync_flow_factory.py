@@ -88,7 +88,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
         provider = get_boto_resource_provider_with_config(region=self._deploy_context.region, profile=self._deploy_context.profile)
 
         physical_id_loader = PhysicalIdsLoader(self._deploy_context.stack_name, provider, self._stacks)
-        self._physical_id_mapping = self._physical_id_mapping = physical_id_loader.load()
+        self._physical_id_mapping = physical_id_loader.load()
         # extend physical id mapping to contain resource ids as well
         resource_id_mapping = {}
         # for stack in self._stacks:

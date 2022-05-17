@@ -549,7 +549,6 @@ class SamFunctionProvider(SamBaseProvider):
             return SamFunctionProvider._search_layer(child_stack, stacks, layer_reference, use_raw_codeuri,
                                                      ignore_code_extraction_warnings)
 
-
         if not stack.template_dict.get("Parameters") or layer_reference not in stack.template_dict.get("Parameters"):
             # layer reference should be in current stack
             resolve_layer = SamFunctionProvider._locate_layer_from_ref(
