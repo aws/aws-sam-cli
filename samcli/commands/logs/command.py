@@ -41,7 +41,7 @@ $ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
 \b
 [Beta Features]
 \b
-You can now fetch logs from supported resource, by only providing --stack-name parameter
+You can now fetch logs from supported resources, by only providing --stack-name parameter
 $ sam logs --stack-name mystack \n
 \b
 You can also fetch logs from a resource which is defined in a nested stack.

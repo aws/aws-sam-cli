@@ -18,40 +18,25 @@ class TestCloudFormationResourceSummary(TestCase):
         given_logical_id = "logical_id"
         given_physical_id = "physical_id"
 
-        given_nested_resource_type = "nested_type"
-        given_nested_logical_id = "nested_type"
-        given_nested_physical_id = "nested_type"
-
         resource_summary = CloudFormationResourceSummary(
             given_type,
             given_logical_id,
             given_physical_id,
-            [
-                CloudFormationResourceSummary(
-                    given_nested_resource_type, given_nested_logical_id, given_nested_physical_id, []
-                )
-            ],
         )
 
         self.assertEqual(given_type, resource_summary.resource_type)
         self.assertEqual(given_logical_id, resource_summary.logical_resource_id)
         self.assertEqual(given_physical_id, resource_summary.physical_resource_id)
-        self.assertEqual(len(resource_summary.nested_stack_resources), 1)
-
-        nested_resource_summary = resource_summary.nested_stack_resources[0]
-        self.assertEqual(nested_resource_summary.resource_type, given_nested_resource_type)
-        self.assertEqual(nested_resource_summary.logical_resource_id, given_nested_logical_id)
-        self.assertEqual(nested_resource_summary.physical_resource_id, given_nested_physical_id)
 
 
 class TestCloudformationUtils(TestCase):
     @patch("samcli.lib.utils.cloudformation.get_resource_summaries")
     def test_get_physical_id_mapping(self, patched_get_resource_summaries):
-        patched_get_resource_summaries.return_value = [
-            CloudFormationResourceSummary("", "Logical1", "Physical1", []),
-            CloudFormationResourceSummary("", "Logical2", "Physical2", []),
-            CloudFormationResourceSummary("", "Logical3", "Physical3", []),
-        ]
+        patched_get_resource_summaries.return_value = {
+            "Logical1": CloudFormationResourceSummary("", "Logical1", "Physical1"),
+            "Logical2": CloudFormationResourceSummary("", "Logical2", "Physical2"),
+            "Logical3": CloudFormationResourceSummary("", "Logical3", "Physical3"),
+        }
 
         given_resource_provider = Mock()
         given_resource_types = Mock()
@@ -112,22 +97,19 @@ class TestCloudformationUtils(TestCase):
 
         resource_summaries = get_resource_summaries(resource_provider_mock, given_stack_name, given_resource_types)
 
-        self.assertEqual(len(resource_summaries), 3)
+        self.assertEqual(len(resource_summaries), 4)
         self.assertEqual(
             resource_summaries,
-            [
-                CloudFormationResourceSummary("ResourceType0", "logical_id_1", "physical_id_1", []),
-                CloudFormationResourceSummary("ResourceType0", "logical_id_2", "physical_id_2", []),
-                CloudFormationResourceSummary(
-                    AWS_CLOUDFORMATION_STACK,
-                    "logical_id_4",
-                    "physical_id_4",
-                    [
-                        CloudFormationResourceSummary("ResourceType0", "logical_id_5", "physical_id_5", []),
-                        CloudFormationResourceSummary("ResourceType0", "logical_id_6", "physical_id_6", []),
-                    ],
+            {
+                "logical_id_1": CloudFormationResourceSummary("ResourceType0", "logical_id_1", "physical_id_1"),
+                "logical_id_2": CloudFormationResourceSummary("ResourceType0", "logical_id_2", "physical_id_2"),
+                "logical_id_4/logical_id_5": CloudFormationResourceSummary(
+                    "ResourceType0", "logical_id_5", "physical_id_5"
                 ),
-            ],
+                "logical_id_4/logical_id_6": CloudFormationResourceSummary(
+                    "ResourceType0", "logical_id_6", "physical_id_6"
+                ),
+            },
         )
 
         resource_provider_mock.assert_called_with("cloudformation")

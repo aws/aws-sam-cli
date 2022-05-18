@@ -3,14 +3,13 @@ Read and parse CLI args for the Logs Command and setup the context for running t
 """
 
 import logging
-from typing import List, Optional, Set, Any
+from typing import List, Optional, Set, Any, Dict
 
 from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION,
     AWS_APIGATEWAY_RESTAPI,
     AWS_APIGATEWAY_V2_API,
     AWS_STEPFUNCTIONS_STATEMACHINE,
-    AWS_CLOUDFORMATION_STACK,
 )
 from samcli.commands.exceptions import UserException
 from samcli.lib.utils.boto_utils import BotoProviderType
@@ -132,11 +131,11 @@ class ResourcePhysicalIdResolver:
 
         if selected_resource_names:
             return self._get_selected_resources(stack_resources, selected_resource_names)
-        return self._get_all_resources(stack_resources)
+        return list(stack_resources.values())
 
+    @staticmethod
     def _get_selected_resources(
-        self,
-        resource_summaries: List[CloudFormationResourceSummary],
+        resource_summaries: Dict[str, CloudFormationResourceSummary],
         selected_resource_names: Set[str],
     ) -> List[CloudFormationResourceSummary]:
         """
@@ -147,8 +146,8 @@ class ResourcePhysicalIdResolver:
 
         Parameters
         ----------
-        resource_summaries : List[CloudFormationResourceSummary]
-            List of CloudformationResourceSummary which was returned from given stack
+        resource_summaries : Dict[str, CloudFormationResourceSummary]
+            Dictionary of resource key and CloudformationResourceSummary which was returned from given stack
         selected_resource_names : Set[str]
             List of resource name definitions that will be used to filter the results
 
@@ -159,30 +158,7 @@ class ResourcePhysicalIdResolver:
         """
         resources = []
         for selected_resource_name in selected_resource_names:
-            if "/" in selected_resource_name:
-                current_stack_name, rest_of_name = selected_resource_name.split("/", 1)
-                for resource_summary in resource_summaries:
-                    if resource_summary.logical_resource_id == current_stack_name:
-                        resources.extend(
-                            self._get_selected_resources(resource_summary.nested_stack_resources, {rest_of_name})
-                        )
-            else:
-                for resource_summary in resource_summaries:
-                    if resource_summary.logical_resource_id == selected_resource_name:
-                        resources.append(resource_summary)
-        return resources
-
-    def _get_all_resources(
-        self, resource_summaries: List[CloudFormationResourceSummary]
-    ) -> List[CloudFormationResourceSummary]:
-        """
-        Returns all elements from given list of CloudFormationResourceSummary.
-        If there is a nested stack, it will also extract them and return single level list.
-        """
-        resources = []
-        for resource_summary in resource_summaries:
-            if resource_summary.resource_type == AWS_CLOUDFORMATION_STACK:
-                resources.extend(self._get_all_resources(resource_summary.nested_stack_resources))
-            else:
-                resources.append(resource_summary)
+            selected_resource = resource_summaries.get(selected_resource_name)
+            if selected_resource:
+                resources.append(selected_resource)
         return resources
