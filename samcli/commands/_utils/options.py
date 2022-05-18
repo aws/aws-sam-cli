@@ -551,8 +551,10 @@ def manifest_option(f):
 
 def cached_click_option():
     return click.option(
-        "--cached",
+        "--cached/--no-cached",
         "-c",
+        default=False,
+        required=False,
         is_flag=True,
         help="Enable cached builds. Use this flag to reuse build artifacts that have not changed from previous builds. "
         "AWS SAM evaluates whether you have made any changes to files in your project directory. \n\n"
