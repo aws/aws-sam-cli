@@ -34,6 +34,7 @@ SUPPORTED_LANGUAGES = ("python", "nodejs", "java")
 
 class NestedStackManager:
 
+    _stack: Stack
     _stack_name: str
     _build_dir: str
     _stack_location: str
@@ -43,9 +44,9 @@ class NestedStackManager:
 
     def __init__(
         self,
+        stack: Stack,
         stack_name: str,
         build_dir: str,
-        stack_location: str,
         current_template: Dict,
         app_build_result: ApplicationBuildResult,
         stack_metadata: Optional[Dict] = None,
@@ -53,12 +54,12 @@ class NestedStackManager:
         """
         Parameters
         ----------
+        stack: Stack
+            Stack that it is currently been processed
         stack_name : str
             Original stack name, which is used to generate layer name
         build_dir : str
             Build directory for storing the new nested stack template
-        stack_location : str
-            Used to move template and its resources' relative path information
         current_template : Dict
             Current template of the project
         app_build_result: ApplicationBuildResult
@@ -66,9 +67,9 @@ class NestedStackManager:
         stack_metadata: Optional[Dict]
             The nested stack resource metadata values.
         """
+        self._stack = stack
         self._stack_name = stack_name
         self._build_dir = build_dir
-        self._stack_location = stack_location
         self._current_template = current_template
         self._app_build_result = app_build_result
         self._nested_stack_builder = NestedStackBuilder()
@@ -83,8 +84,7 @@ class NestedStackManager:
         template = deepcopy(self._current_template)
         resources = template.get("Resources", {})
 
-        stack = Stack("", "", self._stack_location, {}, template_dict=template, metadata=self._stack_metadata)
-        function_provider = SamFunctionProvider([stack], ignore_code_extraction_warnings=True)
+        function_provider = SamFunctionProvider([self._stack], ignore_code_extraction_warnings=True)
         zip_functions = [function for function in function_provider.get_all() if function.packagetype == ZIP]
 
         for zip_function in zip_functions:
@@ -105,18 +105,23 @@ class NestedStackManager:
             LOG.debug("No function has been added for auto dependency layer creation")
             return template
 
-        nested_template_location = os.path.join(self._build_dir, "nested_template.yaml")
-        move_template(self._stack_location, nested_template_location, self._nested_stack_builder.build_as_dict())
+        nested_template_location = str(
+            self._get_template_folder().joinpath("nested_template.yaml")
+        )
+        move_template(self._stack.location, nested_template_location, self._nested_stack_builder.build_as_dict())
 
         resources[NESTED_STACK_NAME] = self._nested_stack_builder.get_nested_stack_reference_resource(
             nested_template_location
         )
         return template
 
+    def _get_template_folder(self) -> Path:
+        return Path(self._stack.get_output_template_path(self._build_dir)).parent
+
     def _add_layer(self, dependencies_dir: str, function: Function, resources: Dict):
         layer_logical_id = NestedStackBuilder.get_layer_logical_id(function.full_path)
         layer_location = self.update_layer_folder(
-            self._build_dir, dependencies_dir, layer_logical_id, function.full_path, function.runtime
+            str(self._get_template_folder()), dependencies_dir, layer_logical_id, function.full_path, function.runtime
         )
 
         layer_output_key = self._nested_stack_builder.add_function(self._stack_name, layer_location, function)
@@ -195,4 +200,10 @@ class NestedStackManager:
             function_full_path
         )
 
-        return function_build_definition.dependencies_dir if function_build_definition else None
+        if not function_build_definition or not function_build_definition.dependencies_dir:
+            return None
+
+        if not os.path.isdir(function_build_definition.dependencies_dir):
+            return None
+
+        return function_build_definition.dependencies_dir

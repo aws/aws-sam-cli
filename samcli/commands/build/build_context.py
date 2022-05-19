@@ -205,7 +205,7 @@ class BuildContext:
                 if self._create_auto_dependency_layer:
                     LOG.debug("Auto creating dependency layer for each function resource into a nested stack")
                     nested_stack_manager = NestedStackManager(
-                        self._stack_name, self.build_dir, stack.location, modified_template, build_result
+                        stack, self._stack_name, self.build_dir, modified_template, build_result
                     )
                     modified_template = nested_stack_manager.generate_auto_dependency_layer_stack()
                 move_template(stack.location, output_template_path, modified_template)
