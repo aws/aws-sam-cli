@@ -5,7 +5,6 @@ from botocore.exceptions import ClientError
 
 from samcli.lib.utils.cloudformation import (
     CloudFormationResourceSummary,
-    get_physical_id_mapping,
     get_resource_summaries,
     get_resource_summary,
 )
@@ -22,34 +21,6 @@ class TestCloudFormationResourceSummary(TestCase):
         self.assertEqual(given_type, resource_summary.resource_type)
         self.assertEqual(given_logical_id, resource_summary.logical_resource_id)
         self.assertEqual(given_physical_id, resource_summary.physical_resource_id)
-
-
-class TestCloudformationUtils(TestCase):
-    @patch("samcli.lib.utils.cloudformation.get_resource_summaries")
-    def test_get_physical_id_mapping(self, patched_get_resource_summaries):
-        patched_get_resource_summaries.return_value = [
-            CloudFormationResourceSummary("", "Logical1", "Physical1"),
-            CloudFormationResourceSummary("", "Logical2", "Physical2"),
-            CloudFormationResourceSummary("", "Logical3", "Physical3"),
-        ]
-
-        given_resource_provider = Mock()
-        given_resource_types = Mock()
-        given_stack_name = "stack_name"
-        physical_id_mapping = get_physical_id_mapping(given_resource_provider, given_stack_name, given_resource_types)
-
-        self.assertEqual(
-            physical_id_mapping,
-            {
-                "Logical1": "Physical1",
-                "Logical2": "Physical2",
-                "Logical3": "Physical3",
-            },
-        )
-
-        patched_get_resource_summaries.assert_called_with(
-            given_resource_provider, given_stack_name, given_resource_types
-        )
 
     def test_get_resource_summaries(self):
         resource_provider_mock = Mock()
