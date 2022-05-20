@@ -1473,6 +1473,15 @@ class TestService_construct_event(TestCase):
         actual_query_string = LocalApigwService._query_string_params(request_mock)
         self.assertEqual(actual_query_string, ({"param": "b"}, {"param": ["a", "b"]}))
 
+    def test_query_string_params_v_2_0_with_param_value_being_non_empty_list(self):
+        request_mock = Mock()
+        query_param_args_mock = Mock()
+        query_param_args_mock.lists.return_value = {"param": ["a", "b"]}.items()
+        request_mock.args = query_param_args_mock
+
+        actual_query_string = LocalApigwService._query_string_params_v_2_0(request_mock)
+        self.assertEqual(actual_query_string, {"param": "a,b"})
+
 
 class TestService_construct_event_http(TestCase):
     def setUp(self):
@@ -1483,7 +1492,7 @@ class TestService_construct_event_http(TestCase):
         self.request_mock.get_data.return_value = b"DATA!!!!"
         self.request_mock.mimetype = "application/json"
         query_param_args_mock = Mock()
-        query_param_args_mock.lists.return_value = {"query": ["params"]}.items()
+        query_param_args_mock.lists.return_value = {"query": ["param1", "param2"]}.items()
         self.request_mock.args = query_param_args_mock
         self.request_mock.query_string = b"query=params"
         headers_mock = Mock()
@@ -1514,7 +1523,7 @@ class TestService_construct_event_http(TestCase):
                 "X-Forwarded-Proto": "http",
                 "X-Forwarded-Port": "3000"
             }},
-            "queryStringParameters": {{"query": "params"}},
+            "queryStringParameters": {{"query": "param1,param2"}},
             "requestContext": {{
                 "accountId": "123456789012",
                 "apiId": "1234567890",

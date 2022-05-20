@@ -4,7 +4,7 @@ CloudWatch log event puller implementation
 import logging
 import time
 from datetime import datetime
-from typing import Optional, Any, List
+from typing import Optional, Any, List, Union, Dict
 
 from botocore.exceptions import ClientError
 
@@ -143,5 +143,5 @@ class CWLogPuller(ObservabilityPuller):
             if not next_token:
                 break
 
-    def load_events(self, event_ids: List[Any]):
+    def load_events(self, event_ids: Union[List[Any], Dict]):
         LOG.debug("Loading specific events are not supported via CloudWatch Log Group")
