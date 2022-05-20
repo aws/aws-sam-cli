@@ -1,7 +1,7 @@
 from unittest.case import TestCase
 from unittest.mock import MagicMock, patch, ANY
 from samcli.lib.sync.watch_manager import WatchManager
-from samcli.lib.providers.exceptions import MissingCodeUri, MissingLocalDefinition
+from samcli.lib.providers.exceptions import MissingCodeUri, MissingLocalDefinition, InvalidTemplateFile
 from samcli.lib.sync.exceptions import MissingPhysicalResourceError, SyncFlowException
 
 
@@ -90,13 +90,64 @@ class TestWatchManager(TestCase):
         self.assertEqual(self.path_observer.schedule_handlers.call_count, 2)
 
     @patch("samcli.lib.sync.watch_manager.TemplateTrigger")
-    def test_add_template_trigger(self, template_trigger_mock):
+    @patch("samcli.lib.sync.watch_manager.SamLocalStackProvider.get_stacks")
+    def test_add_template_triggers(self, get_stack_mock, template_trigger_mock):
         trigger = template_trigger_mock.return_value
+        stack_name = "stack"
+        stack_mock = MagicMock()
+        stack_mock.location = self.template
+        stack_mock.name = stack_name
+        get_stack_mock.return_value = [[stack_mock]]
 
-        self.watch_manager._add_template_trigger()
+        self.watch_manager._add_template_triggers()
 
-        template_trigger_mock.assert_called_once_with(self.template, ANY)
+        template_trigger_mock.assert_called_once_with(self.template, stack_name, ANY)
         self.path_observer.schedule_handlers.assert_any_call(trigger.get_path_handlers.return_value)
+
+    @patch("samcli.lib.sync.watch_manager.TemplateTrigger")
+    @patch("samcli.lib.sync.watch_manager.SamLocalStackProvider.get_stacks")
+    def test_add_nested_template_triggers(self, get_stack_mock, template_trigger_mock):
+        trigger = template_trigger_mock.return_value
+        root_stack = MagicMock()
+        root_stack.location = "template.yaml"
+        root_stack.name = "root_stack"
+        child_stack = MagicMock()
+        child_stack.location = "child_stack/child_template.yaml"
+        child_stack.name = "child_stack"
+        child_stack2 = MagicMock()
+        child_stack2.location = "child_stack2/child_template2.yaml"
+        child_stack2.name = "child_stack2"
+        get_stack_mock.return_value = [[root_stack, child_stack, child_stack2]]
+
+        self.watch_manager._add_template_triggers()
+
+        self.assertEqual(3, template_trigger_mock.call_count)
+
+        template_trigger_mock.assert_any_call("template.yaml", "root_stack", ANY)
+        template_trigger_mock.assert_any_call("child_stack/child_template.yaml", "child_stack", ANY)
+        template_trigger_mock.assert_any_call("child_stack2/child_template2.yaml", "child_stack2", ANY)
+
+        self.assertEqual(3, self.path_observer.schedule_handlers.call_count)
+        self.path_observer.schedule_handlers.assert_any_call(trigger.get_path_handlers.return_value)
+
+    @patch("samcli.lib.sync.watch_manager.TemplateTrigger")
+    @patch("samcli.lib.sync.watch_manager.SamLocalStackProvider.get_stacks")
+    def test_add_invalid_template_triggers(self, get_stack_mock, template_trigger_mock):
+        stack_name = "stack"
+        template = "template.yaml"
+        template_trigger_mock.return_value.raw_validate.side_effect = InvalidTemplateFile(template, stack_name)
+        stack = MagicMock()
+        stack.location = template
+        stack.name = stack_name
+        get_stack_mock.return_value = [[stack]]
+
+        self.watch_manager._add_template_triggers()
+
+        self.assertEqual(1, template_trigger_mock.call_count)
+
+        template_trigger_mock.assert_any_call("template.yaml", stack_name, ANY)
+
+        self.assertEqual(1, self.path_observer.schedule_handlers.call_count)
 
     def test_execute_infra_sync(self):
         self.watch_manager._execute_infra_context()
@@ -154,7 +205,7 @@ class TestWatchManager(TestCase):
         self.watch_manager._stop_code_sync = stop_code_sync_mock
         self.watch_manager._execute_infra_context = execute_infra_sync_mock
         self.watch_manager._update_stacks = update_stacks_mock
-        self.watch_manager._add_template_trigger = add_template_trigger_mock
+        self.watch_manager._add_template_triggers = add_template_trigger_mock
         self.watch_manager._add_code_triggers = add_code_trigger_mock
         self.watch_manager._start_code_sync = start_code_sync_mock
 
@@ -192,7 +243,7 @@ class TestWatchManager(TestCase):
         self.watch_manager._stop_code_sync = stop_code_sync_mock
         self.watch_manager._execute_infra_context = execute_infra_sync_mock
         self.watch_manager._update_stacks = update_stacks_mock
-        self.watch_manager._add_template_trigger = add_template_trigger_mock
+        self.watch_manager._add_template_triggers = add_template_trigger_mock
         self.watch_manager._add_code_triggers = add_code_trigger_mock
         self.watch_manager._start_code_sync = start_code_sync_mock
 
