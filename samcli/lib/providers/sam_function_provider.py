@@ -493,8 +493,8 @@ class SamFunctionProvider(SamBaseProvider):
         if search_layer:
             # The layer can be a parameter pass from parent stack, we need to locate to where the
             # layer is actually defined
-            func_template = stack.template_dict.get("Resources").get(function_id)
-            a_list_of_layers = func_template.get("Properties").get("Layers")
+            func_template = stack.template_dict.get("Resources", {}).get(function_id, {})
+            a_list_of_layers = func_template.get("Properties", {}).get("Layers", [])
             for layer in a_list_of_layers:
                 found_layer = SamFunctionProvider._search_layer(
                     stack, stacks, layer, use_raw_codeuri, ignore_code_extraction_warnings
@@ -518,10 +518,9 @@ class SamFunctionProvider(SamBaseProvider):
             # If the layer is a string, assume it is the arn
             if isinstance(layer, str):
 
-                if search_layer:
+                if search_layer and "arn:aws:lambda" not in layer:
                     # the layer is not an arn
-                    if "arn:aws:lambda" not in layer:
-                        continue
+                    continue
 
                 layers.append(
                     LayerVersion(
@@ -561,7 +560,7 @@ class SamFunctionProvider(SamBaseProvider):
         layer: Any,
         use_raw_codeuri: bool = False,
         ignore_code_extraction_warnings: bool = False,
-    ):
+    ) -> Optional[LayerVersion]:
         """
         Search the layer reference through all the local templates and try to find it's actual location then create a
         layer object and return
@@ -604,13 +603,16 @@ class SamFunctionProvider(SamBaseProvider):
             layer_stack_reference = layer.get("Fn::GetAtt")[0]
             layer_reference = layer.get("Fn::GetAtt")[1].split(".")[1]
             child_stacks = Stack.get_child_stacks(stack, stacks)
-            child_stack = Stack.get_stack_by_logical(layer_stack_reference, child_stacks)
+            child_stack = Stack.get_stack_by_logical_id(layer_stack_reference, child_stacks)
+            if not child_stack:
+                return None
             return SamFunctionProvider._search_layer(
                 child_stack, stacks, layer_reference, use_raw_codeuri, ignore_code_extraction_warnings
             )
 
         # If the layer reference is not in the stack's parameters section, it must be a layer reference in current stack
-        if not stack.template_dict.get("Parameters") or layer_reference not in stack.template_dict.get("Parameters"):
+        parameters: Dict = stack.template_dict.get("Parameters", {})
+        if not parameters or layer_reference not in parameters:
             # layer reference should be in current stack
             resolve_layer = SamFunctionProvider._locate_layer_from_ref(
                 stack, layer, use_raw_codeuri, ignore_code_extraction_warnings
@@ -624,10 +626,10 @@ class SamFunctionProvider(SamBaseProvider):
         if not parent_stack:
             return None
         layer = (
-            parent_stack.template_dict.get("Resources")
-            .get(stack.name)
-            .get("Properties")
-            .get("Parameters")
+            parent_stack.template_dict.get("Resources", {})
+            .get(stack.name, {})
+            .get("Properties", {})
+            .get("Parameters", {})
             .get(layer_reference)
         )
 

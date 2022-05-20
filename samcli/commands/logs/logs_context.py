@@ -106,7 +106,8 @@ class ResourcePhysicalIdResolver:
             return self._fetch_resources_from_stack()
         return []
 
-    def _fetch_resources_from_stack(self, selected_resource_names: Optional[Set[str]] = None) -> List[Any]:
+    def _fetch_resources_from_stack(
+            self, selected_resource_names: Optional[Set[str]] = None) -> List[Any]:  # type: ignore
         """
         Returns list of all resources from given stack name
         If any resource is not supported, it will discard them

@@ -579,22 +579,22 @@ class Stack:
         return False
 
     @staticmethod
-    def get_parent_stack(stack, stacks):
-        parent_stack_path = stack.parent_stack_path
+    def get_parent_stack(child_stack: "Stack", stacks: List["Stack"]) -> Optional["Stack"]:
+        parent_stack_path = child_stack.parent_stack_path
         for stack in stacks:
             if stack.stack_path == parent_stack_path:
                 return stack
         return None
 
     @staticmethod
-    def get_stack_by_logical(id, stacks):
+    def get_stack_by_logical_id(logical_id: str, stacks: List["Stack"]) -> Optional["Stack"]:
         for stack in stacks:
-            if stack.name == id:
+            if stack.name == logical_id:
                 return stack
         return None
 
     @staticmethod
-    def get_child_stacks(stack, stacks):
+    def get_child_stacks(stack: "Stack", stacks: List["Stack"]) -> List["Stack"]:
         child_stacks = []
         for child in stacks:
             if not child.is_root_stack and child.parent_stack_path == stack.stack_path:

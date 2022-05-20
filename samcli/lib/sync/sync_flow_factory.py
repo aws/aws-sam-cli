@@ -83,7 +83,9 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
         )
 
         # get the resource_id -> physical_id mapping
-        self._physical_id_mapping = {resource_id: summary.physical_resource_id for resource_id, summary in resource_mapping.items()}
+        self._physical_id_mapping = {
+            resource_id: summary.physical_resource_id for resource_id, summary in resource_mapping.items()
+        }
 
     def _create_lambda_flow(
             self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]
