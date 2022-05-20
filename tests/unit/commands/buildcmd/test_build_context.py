@@ -139,7 +139,7 @@ class TestBuildContext__enter__(TestCase):
             parameter_overrides={"overrides": "value"},
             global_parameter_overrides={"AWS::Region": "any_aws_region"},
         )
-        SamFunctionProviderMock.assert_called_once_with([stack], False)
+        SamFunctionProviderMock.assert_called_once_with([stack], False, search_layer=False)
         pathlib_mock.Path.assert_called_once_with("template_file")
         setup_build_dir_mock.assert_called_with("build_dir", True)
         ContainerManagerMock.assert_called_once_with(docker_network_id="network", skip_pull_image=True)
@@ -474,7 +474,7 @@ class TestBuildContext__enter__(TestCase):
         get_buildable_stacks_mock.assert_called_once_with(
             "template_file", parameter_overrides={"overrides": "value"}, global_parameter_overrides=None
         )
-        SamFunctionProviderMock.assert_called_once_with([stack], False)
+        SamFunctionProviderMock.assert_called_once_with([stack], False, search_layer=False)
         pathlib_mock.Path.assert_called_once_with("template_file")
         setup_build_dir_mock.assert_called_with("build_dir", True)
         ContainerManagerMock.assert_called_once_with(docker_network_id="network", skip_pull_image=True)

@@ -214,9 +214,9 @@ class SamFunctionProvider(SamBaseProvider):
                 if resource_type == AWS_SERVERLESS_FUNCTION:
                     layers = SamFunctionProvider._parse_layer_info(
                         stack,
-                        stacks,
-                        resource_metadata.get("SamResourceId", ""),
                         resource_properties.get("Layers", []),
+                        stacks if search_layer else None,
+                        resource_metadata.get("SamResourceId", "") if search_layer else None,
                         use_raw_codeuri,
                         ignore_code_extraction_warnings=ignore_code_extraction_warnings,
                         search_layer=search_layer,
@@ -233,9 +233,9 @@ class SamFunctionProvider(SamBaseProvider):
                 elif resource_type == AWS_LAMBDA_FUNCTION:
                     layers = SamFunctionProvider._parse_layer_info(
                         stack,
-                        stacks,
-                        resource_metadata.get("SamResourceId", ""),
                         resource_properties.get("Layers", []),
+                        stacks if search_layer else None,
+                        resource_metadata.get("SamResourceId", "") if search_layer else None,
                         use_raw_codeuri,
                         ignore_code_extraction_warnings=ignore_code_extraction_warnings,
                         search_layer=search_layer,
@@ -452,9 +452,9 @@ class SamFunctionProvider(SamBaseProvider):
     @staticmethod
     def _parse_layer_info(
         stack: Stack,
-        stacks: List[Stack],
-        function_id: str,
         list_of_layers: List[Any],
+        stacks: Optional[List[Stack]] = None,
+        function_id: Optional[str] = None,
         use_raw_codeuri: bool = False,
         ignore_code_extraction_warnings: bool = False,
         search_layer: bool = False,
@@ -490,7 +490,7 @@ class SamFunctionProvider(SamBaseProvider):
         """
         found_layers = []
 
-        if search_layer:
+        if search_layer and stacks and function_id:
             # The layer can be a parameter pass from parent stack, we need to locate to where the
             # layer is actually defined
             func_template = stack.template_dict.get("Resources", {}).get(function_id, {})
@@ -592,20 +592,22 @@ class SamFunctionProvider(SamBaseProvider):
                 return None
             layer = outputs.get(layer).get("Value")
 
-        # if the layer is in format {Ref:LayerName}, it may pass from the parent stack through parameter or is a
+        # if the layer is in format {Ref:LayerName}, it is passed from the parent stack through parameter or is a
         # reference to the layer in current stack
         if isinstance(layer, dict) and layer.get("Ref"):
             layer_reference = layer.get("Ref")
 
         # if the layer is in the format {"Fn::GetAtt": ["LayerStackName", "Outputs.LayerName"]},
-        # it may pass from another child stack inside the same parent stack
+        # it is passed from another child stack inside the same parent stack
         elif isinstance(layer, dict) and layer.get("Fn::GetAtt"):
-            layer_stack_reference = layer.get("Fn::GetAtt")[0]
-            layer_reference = layer.get("Fn::GetAtt")[1].split(".")[1]
+            layer_attribute: List = layer.get("Fn::GetAtt", [])
+            layer_stack_reference = layer_attribute[0]
+            layer_reference = layer_attribute[1].split(".")[1]
             child_stacks = Stack.get_child_stacks(stack, stacks)
             child_stack = Stack.get_stack_by_logical_id(layer_stack_reference, child_stacks)
             if not child_stack:
                 return None
+            # search in child stack
             return SamFunctionProvider._search_layer(
                 child_stack, stacks, layer_reference, use_raw_codeuri, ignore_code_extraction_warnings
             )

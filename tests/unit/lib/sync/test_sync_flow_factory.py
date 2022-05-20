@@ -2,6 +2,7 @@ from unittest import TestCase
 from unittest.mock import MagicMock, patch, Mock
 
 from samcli.lib.sync.sync_flow_factory import SyncFlowFactory
+from samcli.lib.utils.cloudformation import CloudFormationResourceSummary
 
 
 class TestSyncFlowFactory(TestCase):
@@ -28,18 +29,31 @@ class TestSyncFlowFactory(TestCase):
         )
         return factory
 
-    @patch("samcli.lib.sync.sync_flow_factory.get_physical_id_mapping")
+    @patch("samcli.lib.sync.sync_flow_factory.get_resource_summaries")
     @patch("samcli.lib.sync.sync_flow_factory.get_boto_resource_provider_with_config")
-    def test_load_physical_id_mapping(self, get_boto_resource_provider_mock, get_physical_id_mapping_mock):
-        get_physical_id_mapping_mock.return_value = {"Resource1": "PhysicalResource1", "Resource2": "PhysicalResource2"}
-
+    def test_load_physical_id_mapping(self, get_boto_resource_provider_mock, get_resource_summaries_mock):
+        resource_summary_1 = CloudFormationResourceSummary(
+            resource_type="",
+            logical_resource_id="",
+            physical_resource_id="PhysicalResource1"
+        )
+        resource_summary_2 = CloudFormationResourceSummary(
+            resource_type="",
+            logical_resource_id="",
+            physical_resource_id="PhysicalResource2"
+        )
+        # get_resource_summaries_mock.return_value = {"Resource1": "PhysicalResource1", "Resource2": "PhysicalResource2"}
+        get_resource_summaries_mock.return_value = {
+            "Resource1": resource_summary_1,
+            "Resource2": resource_summary_2
+        }
         factory = self.create_factory()
         factory.load_physical_id_mapping()
 
-        self.assertEqual(len(factory._physical_id_mapping), 3)
+        self.assertEqual(len(factory._physical_id_mapping), 2)
         self.assertEqual(
             factory._physical_id_mapping,
-            {"Resource1": "PhysicalResource1", "Resource2": "PhysicalResource2", "CDKResource2": "PhysicalResource2"},
+            {"Resource1": "PhysicalResource1", "Resource2": "PhysicalResource2"},
         )
 
     @patch("samcli.lib.sync.sync_flow_factory.ImageFunctionSyncFlow")

@@ -1016,7 +1016,7 @@ class TestSamFunctionProvider_init(TestCase):
         stack = make_root_stack(template, self.parameter_overrides)
         provider = SamFunctionProvider([stack])
 
-        extract_mock.assert_called_with([stack], False, False)
+        extract_mock.assert_called_with([stack], False, False, False)
         get_template_mock.assert_called_with(template, self.parameter_overrides)
         self.assertEqual(provider.functions, extract_result)
 
@@ -1031,7 +1031,22 @@ class TestSamFunctionProvider_init(TestCase):
         stack = make_root_stack(template, self.parameter_overrides)
         provider = SamFunctionProvider([stack])
 
-        extract_mock.assert_called_with([stack], False, False)  # Empty Resources value must be passed
+        extract_mock.assert_called_with([stack], False, False, False)  # Empty Resources value must be passed
+        self.assertEqual(provider.functions, extract_result)
+
+    @patch.object(SamFunctionProvider, "_extract_functions")
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_search_layer_flag(self, get_template_mock, extract_mock):
+        extract_result = {"foo": "bar"}
+        extract_mock.return_value = extract_result
+
+        template = {"Resources": {"a": "b"}}
+        get_template_mock.return_value = template
+        stack = make_root_stack(template, self.parameter_overrides)
+        provider = SamFunctionProvider([stack], search_layer=True)
+
+        extract_mock.assert_called_with([stack], False, False, True)
+        get_template_mock.assert_called_with(template, self.parameter_overrides)
         self.assertEqual(provider.functions, extract_result)
 
 
@@ -1138,6 +1153,97 @@ class TestSamFunctionProvider_extract_functions(TestCase):
             ]
         )
 
+    @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
+    @patch.object(SamFunctionProvider, "_parse_layer_info")
+    @patch.object(SamFunctionProvider, "_convert_lambda_function_resource")
+    def test_must_work_for_lambda_function_search_layer(self, convert_mock, parse_layer_mock, resources_mock):
+        convertion_result = Mock()
+        convertion_result.full_path = "A/B/C/Func1"
+        convert_mock.return_value = convertion_result
+        parse_layer_mock.return_value = []
+
+        resources_mock.return_value = {
+            "Func1": {"Type": "AWS::Lambda::Function", "Properties": {"a": "b"}, "Metadata": {"SamResourceId": "id"}}
+        }
+
+        expected = {"A/B/C/Func1": convertion_result}
+
+        stack = make_root_stack(None)
+        result = SamFunctionProvider._extract_functions([stack], search_layer=True)
+        self.assertEqual(expected, result)
+        convert_mock.assert_called_with(stack, "Func1", {"a": "b", "Metadata": {"SamResourceId": "id"}}, [], False)
+        parse_layer_mock.assert_called_with(
+            stack, [], [stack], "id", False, ignore_code_extraction_warnings=False, search_layer=True
+        )
+
+    @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
+    @patch.object(SamFunctionProvider, "_parse_layer_info")
+    @patch.object(SamFunctionProvider, "_convert_sam_function_resource")
+    def test_must_work_for_serverless_function_search_layer(self, convert_mock, parse_layer_mock, resources_mock):
+        convertion_result = Mock()
+        convertion_result.full_path = "A/B/C/Func1"
+        convert_mock.return_value = convertion_result
+        parse_layer_mock.return_value = []
+
+        resources_mock.return_value = {
+            "Func1": {"Type": "AWS::Serverless::Function", "Properties": {"a": "b"}, "Metadata": {"SamResourceId": "id"}}
+        }
+
+        expected = {"A/B/C/Func1": convertion_result}
+
+        stack = make_root_stack(None)
+        result = SamFunctionProvider._extract_functions([stack], search_layer=True)
+        self.assertEqual(expected, result)
+        convert_mock.assert_called_with(stack, "Func1", {"a": "b", "Metadata": {"SamResourceId": "id"}}, [], False)
+        parse_layer_mock.assert_called_with(
+            stack, [], [stack], "id", False, ignore_code_extraction_warnings=False, search_layer=True
+        )
+
+    @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
+    @patch.object(SamFunctionProvider, "_parse_layer_info")
+    @patch.object(SamFunctionProvider, "_convert_lambda_function_resource")
+    def test_must_work_for_lambda_function_no_search_layer(self, convert_mock, parse_layer_mock, resources_mock):
+        convertion_result = Mock()
+        convertion_result.full_path = "A/B/C/Func1"
+        convert_mock.return_value = convertion_result
+        parse_layer_mock.return_value = []
+
+        resources_mock.return_value = {
+            "Func1": {"Type": "AWS::Lambda::Function", "Properties": {"a": "b"}, "Metadata": {"SamResourceId": "id"}}
+        }
+
+        expected = {"A/B/C/Func1": convertion_result}
+
+        stack = make_root_stack(None)
+        result = SamFunctionProvider._extract_functions([stack])
+        self.assertEqual(expected, result)
+        convert_mock.assert_called_with(stack, "Func1", {"a": "b", "Metadata": {"SamResourceId": "id"}}, [], False)
+        parse_layer_mock.assert_called_with(
+            stack, [], None, None, False, ignore_code_extraction_warnings=False, search_layer=False
+        )
+
+    @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
+    @patch.object(SamFunctionProvider, "_parse_layer_info")
+    @patch.object(SamFunctionProvider, "_convert_sam_function_resource")
+    def test_must_work_for_serverless_function_no_search_layer(self, convert_mock, parse_layer_mock, resources_mock):
+        convertion_result = Mock()
+        convertion_result.full_path = "A/B/C/Func1"
+        convert_mock.return_value = convertion_result
+        parse_layer_mock.return_value = []
+
+        resources_mock.return_value = {
+            "Func1": {"Type": "AWS::Serverless::Function", "Properties": {"a": "b"}, "Metadata": {"SamResourceId": "id"}}
+        }
+
+        expected = {"A/B/C/Func1": convertion_result}
+
+        stack = make_root_stack(None)
+        result = SamFunctionProvider._extract_functions([stack])
+        self.assertEqual(expected, result)
+        convert_mock.assert_called_with(stack, "Func1", {"a": "b", "Metadata": {"SamResourceId": "id"}}, [], False)
+        parse_layer_mock.assert_called_with(
+            stack, [], None, None, False, ignore_code_extraction_warnings=False, search_layer=False
+        )
 
 class TestSamFunctionProvider_get_function_id(TestCase):
     def test_get_default_logical_id_no_property(self):
@@ -1623,6 +1729,38 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
 
         self.assertEqual(actual, [])
 
+    @patch.object(SamFunctionProvider, "_search_layer")
+    def test_layers_with_search_layer(self, search_layer_mock):
+        layer = {"Ref", "layer"}
+        func_temp = {"Properties": {"Layers": [layer]}}
+
+        resources = {
+            "Layer": {"Type": "AWS::Lambda::LayerVersion", "Properties": {"Content": "/somepath"}}
+        }
+
+        list_of_layers = [
+            {"Ref": "Layer"}
+        ]
+
+        search_layer_mock.return_value = LayerVersion("Layer", "/somepath", stack_path=STACK_PATH)
+
+        mock_stack = Mock(
+            stack_path=STACK_PATH,
+            location="template.yaml",
+            resources=resources,
+            template_dict={"Resources": {"function_id": func_temp}}
+        )
+
+        expected_layer = [search_layer_mock.return_value]
+
+        actual = SamFunctionProvider._parse_layer_info(
+            mock_stack, list_of_layers, [mock_stack], "function_id", search_layer=True
+        )
+
+        search_layer_mock.assert_called_with(mock_stack, [mock_stack], layer, False, False)
+
+        self.assertEqual(actual, expected_layer)
+
 
 class TestSamFunctionProvider_get(TestCase):
     def test_raise_on_invalid_name(self):
@@ -1813,7 +1951,7 @@ class TestRefreshableSamFunctionProvider(TestCase):
             [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
         )
 
-        extract_mock.assert_called_with([stack, stack2], False, False)
+        extract_mock.assert_called_with([stack, stack2], False, False, False)
         get_template_mock.assert_called_with(template, self.parameter_overrides)
         self.assertEqual(provider.functions, extract_result)
 
