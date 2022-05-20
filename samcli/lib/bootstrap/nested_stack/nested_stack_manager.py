@@ -105,9 +105,7 @@ class NestedStackManager:
             LOG.debug("No function has been added for auto dependency layer creation")
             return template
 
-        nested_template_location = str(
-            self._get_template_folder().joinpath("nested_template.yaml")
-        )
+        nested_template_location = str(self._get_template_folder().joinpath("nested_template.yaml"))
         move_template(self._stack.location, nested_template_location, self._nested_stack_builder.build_as_dict())
 
         resources[NESTED_STACK_NAME] = self._nested_stack_builder.get_nested_stack_reference_resource(

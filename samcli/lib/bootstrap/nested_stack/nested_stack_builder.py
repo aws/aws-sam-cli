@@ -87,4 +87,4 @@ class NestedStackBuilder(AbstractStackBuilder):
         Removes all non-alphanumeric chars to make it usable for resource name definition
         https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/resources-section-structure.html
         """
-        return NON_ALPHANUM_REGEX.sub('', function_logical_id)
+        return NON_ALPHANUM_REGEX.sub("", function_logical_id)

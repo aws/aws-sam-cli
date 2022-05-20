@@ -19,12 +19,8 @@ class TestNestedStackManager(TestCase):
     def setUp(self) -> None:
         self.stack_name = "stack_name"
         self.build_dir = "build_dir"
-        self.stack_location = "stack_location"
         self.stack = Mock(
-            wraps=Stack("", "", "", template_dict={}, parameters={}),
-            stack_path="",
-            location="foo/bar",
-            resources={}
+            wraps=Stack("", "", "", template_dict={}, parameters={}), stack_path="", location="foo/bar", resources={}
         )
 
     def test_nothing_to_add(self):
@@ -57,9 +53,7 @@ class TestNestedStackManager(TestCase):
             }
         }
         self.stack.resources = resources
-        template = {
-            "Resources": resources
-        }
+        template = {"Resources": resources}
         app_build_result = ApplicationBuildResult(Mock(), {"MyFunction": "path/to/build/dir"})
         nested_stack_manager = NestedStackManager(
             self.stack, self.stack_name, self.build_dir, template, app_build_result
@@ -69,13 +63,9 @@ class TestNestedStackManager(TestCase):
         self.assertEqual(template, result)
 
     def test_unsupported_runtime(self):
-        resources = {
-            "MyFunction": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"Runtime": "unsupported_runtime"}}
-        }
+        resources = {"MyFunction": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"Runtime": "unsupported_runtime"}}}
         self.stack.resources = resources
-        template = {
-            "Resources": resources
-        }
+        template = {"Resources": resources}
         app_build_result = ApplicationBuildResult(Mock(), {"MyFunction": "path/to/build/dir"})
         nested_stack_manager = NestedStackManager(
             self.stack, self.stack_name, self.build_dir, template, app_build_result
@@ -87,9 +77,7 @@ class TestNestedStackManager(TestCase):
     def test_no_function_build_definition(self):
         resources = {"MyFunction": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"Runtime": "python3.8"}}}
         self.stack.resources = resources
-        template = {
-            "Resources": resources
-        }
+        template = {"Resources": resources}
         build_graph = Mock()
         build_graph.get_function_build_definition_with_full_path.return_value = None
         app_build_result = ApplicationBuildResult(build_graph, {"MyFunction": "path/to/build/dir"})
@@ -103,9 +91,7 @@ class TestNestedStackManager(TestCase):
     def test_function_build_definition_without_dependencies_dir(self):
         resources = {"MyFunction": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"Runtime": "python3.8"}}}
         self.stack.resources = resources
-        template = {
-            "Resources": resources
-        }
+        template = {"Resources": resources}
         build_graph = Mock()
         build_graph.get_function_build_definition_with_full_path.return_value = Mock(dependencies_dir=None)
         app_build_result = ApplicationBuildResult(build_graph, {"MyFunction": "path/to/build/dir"})
@@ -119,9 +105,7 @@ class TestNestedStackManager(TestCase):
     def test_non_existent_dependencies_dir(self):
         resources = {"MyFunction": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"Runtime": "python3.8"}}}
         self.stack.resources = resources
-        template = {
-            "Resources": resources
-        }
+        template = {"Resources": resources}
         build_graph = Mock()
         build_graph.get_function_build_definition_with_full_path.return_value = Mock(dependencies_dir="foo/bar")
         app_build_result = ApplicationBuildResult(build_graph, {"MyFunction": "path/to/build/dir"})
@@ -138,9 +122,7 @@ class TestNestedStackManager(TestCase):
     def test_with_zip_function(self, patched_isdir, patched_osutils, patched_move_template):
         resources = {"MyFunction": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"Runtime": "python3.8"}}}
         self.stack.resources = resources
-        template = {
-            "Resources": resources
-        }
+        template = {"Resources": resources}
 
         # prepare build graph
         dependencies_dir = Mock()
@@ -161,7 +143,7 @@ class TestNestedStackManager(TestCase):
             result = nested_stack_manager.generate_auto_dependency_layer_stack()
 
             patched_move_template.assert_called_with(
-                self.stack_location, os.path.join(self.build_dir, "nested_template.yaml"), ANY
+                self.stack.location, os.path.join(self.build_dir, "nested_template.yaml"), ANY
             )
             self.assertNotEqual(template, result)
 

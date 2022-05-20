@@ -784,6 +784,8 @@ class TestBuildContext_setup_cached_and_deps_dir(TestCase):
 
 
 class TestBuildContext_run(TestCase):
+    @parameterized.expand([(True,), (False,)])
+    @patch("samcli.commands.build.build_context.NestedStackManager")
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.build.build_context.SamApiProvider")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
@@ -798,6 +800,7 @@ class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.os")
     def test_run_build_context(
         self,
+        auto_dependency_layer,
         os_mock,
         get_template_data_mock,
         move_template_mock,
@@ -810,11 +813,10 @@ class TestBuildContext_run(TestCase):
         SamFunctionProviderMock,
         SamApiProviderMock,
         get_buildable_stacks_mock,
+        nested_stack_manager_mock,
     ):
-
         root_stack = Mock()
         root_stack.is_root_stack = True
-        auto_dependency_layer = False
         root_stack.get_output_template_path = Mock(return_value="./build_dir/template.yaml")
         child_stack = Mock()
         child_stack.get_output_template_path = Mock(return_value="./build_dir/abcd/template.yaml")
@@ -826,7 +828,7 @@ class TestBuildContext_run(TestCase):
 
         builder_mock = ApplicationBuilderMock.return_value = Mock()
         artifacts = "artifacts"
-        builder_mock.build.return_value = ApplicationBuildResult(Mock(), artifacts)
+        application_build_result = builder_mock.build.return_value = ApplicationBuildResult(Mock(), artifacts)
         modified_template_root = "modified template 1"
         modified_template_child = "modified template 2"
         builder_mock.update_template.side_effect = [modified_template_root, modified_template_child]
@@ -843,6 +845,13 @@ class TestBuildContext_run(TestCase):
         base_dir = pathlib_mock.Path.return_value.resolve.return_value.parent = "basedir"
         container_mgr_mock = ContainerManagerMock.return_value = Mock()
         build_dir_mock.return_value = "build_dir"
+
+        given_nested_stack_manager = Mock()
+        given_nested_stack_manager.generate_auto_dependency_layer_stack.side_effect = [
+            modified_template_root,
+            modified_template_child,
+        ]
+        nested_stack_manager_mock.return_value = given_nested_stack_manager
 
         with BuildContext(
             resource_identifier="function_identifier",
@@ -913,6 +922,25 @@ class TestBuildContext_run(TestCase):
                     ),
                 ]
             )
+
+            if auto_dependency_layer:
+                nested_stack_manager_mock.assert_has_calls(
+                    [
+                        call(
+                            root_stack, None, build_context.build_dir, modified_template_root, application_build_result
+                        ),
+                        call(
+                            child_stack,
+                            None,
+                            build_context.build_dir,
+                            modified_template_child,
+                            application_build_result,
+                        ),
+                    ],
+                    any_order=True,
+                )
+                # assert that nested stack manager is called by both root stack and child stack
+                given_nested_stack_manager.generate_auto_dependency_layer_stack.assert_has_calls([call(), call()])
 
     @parameterized.expand(
         [
