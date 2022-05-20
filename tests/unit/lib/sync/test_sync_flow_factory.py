@@ -33,20 +33,13 @@ class TestSyncFlowFactory(TestCase):
     @patch("samcli.lib.sync.sync_flow_factory.get_boto_resource_provider_with_config")
     def test_load_physical_id_mapping(self, get_boto_resource_provider_mock, get_resource_summaries_mock):
         resource_summary_1 = CloudFormationResourceSummary(
-            resource_type="",
-            logical_resource_id="",
-            physical_resource_id="PhysicalResource1"
+            resource_type="", logical_resource_id="", physical_resource_id="PhysicalResource1"
         )
         resource_summary_2 = CloudFormationResourceSummary(
-            resource_type="",
-            logical_resource_id="",
-            physical_resource_id="PhysicalResource2"
+            resource_type="", logical_resource_id="", physical_resource_id="PhysicalResource2"
         )
         # get_resource_summaries_mock.return_value = {"Resource1": "PhysicalResource1", "Resource2": "PhysicalResource2"}
-        get_resource_summaries_mock.return_value = {
-            "Resource1": resource_summary_1,
-            "Resource2": resource_summary_2
-        }
+        get_resource_summaries_mock.return_value = {"Resource1": resource_summary_1, "Resource2": resource_summary_2}
         factory = self.create_factory()
         factory.load_physical_id_mapping()
 

@@ -1186,7 +1186,11 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         parse_layer_mock.return_value = []
 
         resources_mock.return_value = {
-            "Func1": {"Type": "AWS::Serverless::Function", "Properties": {"a": "b"}, "Metadata": {"SamResourceId": "id"}}
+            "Func1": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"a": "b"},
+                "Metadata": {"SamResourceId": "id"},
+            }
         }
 
         expected = {"A/B/C/Func1": convertion_result}
@@ -1232,7 +1236,11 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         parse_layer_mock.return_value = []
 
         resources_mock.return_value = {
-            "Func1": {"Type": "AWS::Serverless::Function", "Properties": {"a": "b"}, "Metadata": {"SamResourceId": "id"}}
+            "Func1": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"a": "b"},
+                "Metadata": {"SamResourceId": "id"},
+            }
         }
 
         expected = {"A/B/C/Func1": convertion_result}
@@ -1244,6 +1252,7 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         parse_layer_mock.assert_called_with(
             stack, [], None, None, False, ignore_code_extraction_warnings=False, search_layer=False
         )
+
 
 class TestSamFunctionProvider_get_function_id(TestCase):
     def test_get_default_logical_id_no_property(self):
@@ -1734,13 +1743,9 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
         layer = {"Ref", "layer"}
         func_temp = {"Properties": {"Layers": [layer]}}
 
-        resources = {
-            "Layer": {"Type": "AWS::Lambda::LayerVersion", "Properties": {"Content": "/somepath"}}
-        }
+        resources = {"Layer": {"Type": "AWS::Lambda::LayerVersion", "Properties": {"Content": "/somepath"}}}
 
-        list_of_layers = [
-            {"Ref": "Layer"}
-        ]
+        list_of_layers = [{"Ref": "Layer"}]
 
         search_layer_mock.return_value = LayerVersion("Layer", "/somepath", stack_path=STACK_PATH)
 
@@ -1748,7 +1753,7 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
             stack_path=STACK_PATH,
             location="template.yaml",
             resources=resources,
-            template_dict={"Resources": {"function_id": func_temp}}
+            template_dict={"Resources": {"function_id": func_temp}},
         )
 
         expected_layer = [search_layer_mock.return_value]
@@ -2302,3 +2307,81 @@ class TestRefreshableSamFunctionProvider(TestCase):
         provider.stop_observer()
 
         self.file_observer.stop.assert_called_once()
+
+
+class TestSamFunctionProvider_search_layer(TestCase):
+    root_stack_template = {
+        "Resources": {
+            "LayerStack": {
+                "Type": "AWS::Serverless::Application",
+                "Properties": {"Location": "child_layer/template.yaml"},
+            },
+            "FunctionStack": {
+                "Type": "AWS::Serverless::Application",
+                "Properties": {
+                    "Location": "child_function/template.yaml",
+                    "Parameters": {"Layer": {"Fn::GetAtt": ["LayerStack", "Outputs.LayerName"]}},
+                },
+            },
+        }
+    }
+
+    layer_stack_template = {
+        "Resources": {
+            "SamLayer": {
+                "Type": "AWS::Serverless::LayerVersion",
+                "Properties": {
+                    "LayerName": "SamLayer",
+                    "Description": "Sam",
+                    "ContentUri": "layer/",
+                    "CompatibleRuntimes": ["python3.7"],
+                },
+            }
+        },
+        "Outputs": {"LayerName": {"Description": "The name of the layer", "Value": {"Ref": "SamLayer"}}},
+    }
+
+    function_stack_template = {
+        "Parameters": {"Layer": {"Type": "String"}},
+        "Resources": {
+            "SamFunctions": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {
+                    "FunctionName": "SamFunc1",
+                    "CodeUri": "/usr/foo/bar",
+                    "Runtime": "nodejs4.3",
+                    "Handler": "index.handler",
+                    "Layers": {"Ref": "Layer"},
+                },
+            }
+        },
+    }
+
+    @patch.object(SamFunctionProvider, "_locate_layer_from_ref")
+    def test_search_layer_with_layer_arn(self, locate_layer_ref_mock):
+        stack = Stack("", "", "template.yaml", None, self.root_stack_template)
+        layer_version = SamFunctionProvider._search_layer(stack, [stack], "layer_arn")
+        self.assertIsNone(layer_version)
+        locate_layer_ref_mock.assert_not_called()
+
+    @patch.object(SamFunctionProvider, "_locate_layer_from_ref")
+    def test_search_layer_in_outputs(self, locate_layer_ref_mock):
+        stack = Stack("", "", "template.yaml", None, self.layer_stack_template)
+        SamFunctionProvider._search_layer(stack, [stack], "LayerName")
+        locate_layer_ref_mock.assert_called_with(stack, {"Ref": "SamLayer"}, False, False)
+
+    @patch.object(SamFunctionProvider, "_locate_layer_from_ref")
+    def test_search_layer_ref_in_current_stack(self, locate_layer_ref_mock):
+        stack = Stack("", "", "template.yaml", None, self.layer_stack_template)
+        SamFunctionProvider._search_layer(stack, [stack], {"Ref": "SamLayer"})
+        locate_layer_ref_mock.assert_called_with(stack, {"Ref": "SamLayer"}, False, False)
+
+    @patch.object(SamFunctionProvider, "_locate_layer_from_ref")
+    def test_search_layer_fn_get(self, locate_layer_ref_mock):
+        root_stack = Stack("", "root", "template.yaml", None, self.root_stack_template)
+        child_layer_stack = Stack("root", "LayerStack", "template.yaml", None, self.layer_stack_template)
+        child_function_stack = Stack("root", "FunctionStack", "template.yaml", None, self.function_stack_template)
+        SamFunctionProvider._search_layer(
+            child_function_stack, [root_stack, child_layer_stack, child_function_stack], {"Ref": "Layer"}
+        )
+        locate_layer_ref_mock.assert_called_with(child_layer_stack, {"Ref": "SamLayer"}, False, False)

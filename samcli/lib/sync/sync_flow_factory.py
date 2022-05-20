@@ -49,11 +49,11 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
     _auto_dependency_layer: bool
 
     def __init__(
-            self,
-            build_context: "BuildContext",
-            deploy_context: "DeployContext",
-            stacks: List[Stack],
-            auto_dependency_layer: bool,
+        self,
+        build_context: "BuildContext",
+        deploy_context: "DeployContext",
+        stacks: List[Stack],
+        auto_dependency_layer: bool,
     ) -> None:
         """
         Parameters
@@ -74,12 +74,12 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
     def load_physical_id_mapping(self) -> None:
         """Load physical IDs of the stack resources from remote"""
         LOG.debug("Loading physical ID mapping")
-        provider = get_boto_resource_provider_with_config(region=self._deploy_context.region,
-                                                          profile=self._deploy_context.profile)
+        provider = get_boto_resource_provider_with_config(
+            region=self._deploy_context.region, profile=self._deploy_context.profile
+        )
 
         resource_mapping = get_resource_summaries(
-            boto_resource_provider=provider,
-            stack_name=self._deploy_context.stack_name
+            boto_resource_provider=provider, stack_name=self._deploy_context.stack_name
         )
 
         # get the resource_id -> physical_id mapping
@@ -88,7 +88,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
         }
 
     def _create_lambda_flow(
-            self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]
+        self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]
     ) -> Optional[FunctionSyncFlow]:
         resource_properties = resource.get("Properties", dict())
         package_type = resource_properties.get("PackageType", ZIP)
@@ -149,7 +149,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
         )
 
     def _create_stepfunctions_flow(
-            self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]
+        self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]
     ) -> Optional[SyncFlow]:
         return StepFunctionsSyncFlow(
             str(resource_identifier),
