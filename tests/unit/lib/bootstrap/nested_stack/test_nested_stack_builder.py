@@ -76,3 +76,15 @@ class TestNestedStackBuilder(TestCase):
         self.assertTrue(layer_name.endswith("DepLayer"))
         self.assertIn(function_logical_id[:22], layer_name)
         self.assertLessEqual(len(layer_name), 64)
+
+    def test_layer_logical_id_should_be_different(self):
+        self.assertNotEqual(
+            NestedStackBuilder.get_layer_logical_id("ChildApp/HelloWorldFunction"),
+            NestedStackBuilder.get_layer_logical_id("ChildAppHelloWorldFunction"),
+        )
+
+    def test_layer_name_should_be_different(self):
+        self.assertNotEqual(
+            NestedStackBuilder.get_layer_name("my-app", "ChildApp/HelloWorldFunction"),
+            NestedStackBuilder.get_layer_name("my-app", "ChildAppHelloWorldFunction"),
+        )

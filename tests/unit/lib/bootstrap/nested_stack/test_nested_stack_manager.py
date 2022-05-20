@@ -143,7 +143,7 @@ class TestNestedStackManager(TestCase):
             result = nested_stack_manager.generate_auto_dependency_layer_stack()
 
             patched_move_template.assert_called_with(
-                self.stack.location, os.path.join(self.build_dir, "nested_template.yaml"), ANY
+                self.stack.location, os.path.join(self.build_dir, "adl_nested_template.yaml"), ANY
             )
             self.assertNotEqual(template, result)
 
