@@ -35,7 +35,11 @@ class SamFunctionProvider(SamBaseProvider):
     """
 
     def __init__(
-        self, stacks: List[Stack], use_raw_codeuri: bool = False, ignore_code_extraction_warnings: bool = False
+        self,
+        stacks: List[Stack],
+        use_raw_codeuri: bool = False,
+        ignore_code_extraction_warnings: bool = False,
+        search_layer: bool = False,
     ) -> None:
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
@@ -51,6 +55,7 @@ class SamFunctionProvider(SamBaseProvider):
         :param bool use_raw_codeuri: Do not resolve adjust core_uri based on the template path, use the raw uri.
             Note(xinhol): use_raw_codeuri is temporary to fix a bug, and will be removed for a permanent solution.
         :param bool ignore_code_extraction_warnings: Ignores Log warnings
+        :param bool search_layer: resolved nested layer reference to their actual location in the nested stack
         """
 
         self._stacks = stacks
@@ -60,7 +65,7 @@ class SamFunctionProvider(SamBaseProvider):
 
         # Store a map of function full_path to function information for quick reference
         self.functions = SamFunctionProvider._extract_functions(
-            self._stacks, use_raw_codeuri, ignore_code_extraction_warnings
+            self._stacks, use_raw_codeuri, ignore_code_extraction_warnings, search_layer
         )
 
         self._colored = Colored()
@@ -151,7 +156,10 @@ class SamFunctionProvider(SamBaseProvider):
 
     @staticmethod
     def _extract_functions(
-        stacks: List[Stack], use_raw_codeuri: bool = False, ignore_code_extraction_warnings: bool = False
+        stacks: List[Stack],
+        use_raw_codeuri: bool = False,
+        ignore_code_extraction_warnings: bool = False,
+        search_layer: bool = False,
     ) -> Dict[str, Function]:
         """
         Extracts and returns function information from the given dictionary of SAM/CloudFormation resources. This
@@ -160,6 +168,7 @@ class SamFunctionProvider(SamBaseProvider):
         :param stacks: List of SAM/CloudFormation stacks to extract functions from
         :param bool use_raw_codeuri: Do not resolve adjust core_uri based on the template path, use the raw uri.
         :param bool ignore_code_extraction_warnings: suppress log statements on code extraction from resources.
+        :param bool search_layer: resolved nested layer reference to their actual location in the nested stack
         :return dict(string : samcli.commands.local.lib.provider.Function): Dictionary of function full_path to the
             Function configuration object
         """
@@ -210,6 +219,7 @@ class SamFunctionProvider(SamBaseProvider):
                         resource_properties.get("Layers", []),
                         use_raw_codeuri,
                         ignore_code_extraction_warnings=ignore_code_extraction_warnings,
+                        search_layer=search_layer,
                     )
                     function = SamFunctionProvider._convert_sam_function_resource(
                         stack,
@@ -223,9 +233,12 @@ class SamFunctionProvider(SamBaseProvider):
                 elif resource_type == AWS_LAMBDA_FUNCTION:
                     layers = SamFunctionProvider._parse_layer_info(
                         stack,
+                        stacks,
+                        resource_metadata.get("SamResourceId", ""),
                         resource_properties.get("Layers", []),
                         use_raw_codeuri,
                         ignore_code_extraction_warnings=ignore_code_extraction_warnings,
+                        search_layer=search_layer,
                     )
                     function = SamFunctionProvider._convert_lambda_function_resource(
                         stack, name, resource_properties, layers, use_raw_codeuri
@@ -444,6 +457,7 @@ class SamFunctionProvider(SamBaseProvider):
         list_of_layers: List[Any],
         use_raw_codeuri: bool = False,
         ignore_code_extraction_warnings: bool = False,
+        search_layer: bool = False,
     ) -> List[LayerVersion]:
         """
         Creates a list of Layer objects that are represented by the resources and the list of layers
@@ -452,6 +466,10 @@ class SamFunctionProvider(SamBaseProvider):
         ----------
         stack : Stack
             The stack the layer is defined in
+        stacks: List[Stack]
+            List of stacks generates from templates
+        function_id: str
+            Logical id for the function resources
         list_of_layers : List[Any]
             List of layers that are defined within the Layers Property on a function,
             layer can be defined as string or Dict, in case customers define it in other types, use "Any" here.
@@ -459,6 +477,8 @@ class SamFunctionProvider(SamBaseProvider):
             Do not resolve adjust core_uri based on the template path, use the raw uri.
         ignore_code_extraction_warnings : bool
             Whether to print warning when codeuri is not a local pth
+        search_layer: bool
+            Resolved nested layer reference to their actual location in the nested stack
 
         Returns
         -------
@@ -470,12 +490,17 @@ class SamFunctionProvider(SamBaseProvider):
         """
         found_layers = []
 
-        func_template = stack.template_dict.get("Resources").get(function_id)
-        a_list_of_layers = func_template.get("Properties").get("Layers")
-        for layer in a_list_of_layers:
-            found_layer = SamFunctionProvider._search_layer(stack, stacks, layer, use_raw_codeuri, ignore_code_extraction_warnings)
-            if found_layer:
-                found_layers.append(found_layer)
+        if search_layer:
+            # The layer can be a parameter pass from parent stack, we need to locate to where the
+            # layer is actually defined
+            func_template = stack.template_dict.get("Resources").get(function_id)
+            a_list_of_layers = func_template.get("Properties").get("Layers")
+            for layer in a_list_of_layers:
+                found_layer = SamFunctionProvider._search_layer(
+                    stack, stacks, layer, use_raw_codeuri, ignore_code_extraction_warnings
+                )
+                if found_layer:
+                    found_layers.append(found_layer)
 
         layers = []
         for layer in list_of_layers:
@@ -490,19 +515,13 @@ class SamFunctionProvider(SamBaseProvider):
                     "for more detials."
                 )  # noqa: E501
 
-            # If the layer is a string, it can be a parameter pass from parent stack, we need to locate to where the
-            # layer is actually defined
-
             # If the layer is a string, assume it is the arn
             if isinstance(layer, str):
-                already_resolved = False
-                for added_layer in found_layers:
-                    if added_layer.arn == layer:
-                        already_resolved = True
-                        break
 
-                if already_resolved:
-                    continue
+                if search_layer:
+                    # the layer is not an arn
+                    if "arn:aws:lambda" not in layer:
+                        continue
 
                 layers.append(
                     LayerVersion(
@@ -516,6 +535,11 @@ class SamFunctionProvider(SamBaseProvider):
             # In the list of layers that is defined within a template, you can reference a LayerVersion resource.
             # When running locally, we need to follow that Ref so we can extract the local path to the layer code.
             if isinstance(layer, dict) and layer.get("Ref"):
+
+                # if search_layer is set, this case should be resolved already
+                if search_layer:
+                    continue
+
                 found_layer = SamFunctionProvider._locate_layer_from_ref(
                     stack, layer, use_raw_codeuri, ignore_code_extraction_warnings
                 )
@@ -531,36 +555,85 @@ class SamFunctionProvider(SamBaseProvider):
         return layers + found_layers
 
     @staticmethod
-    def _search_layer(stack, stacks, layer, use_raw_codeuri, ignore_code_extraction_warnings):
+    def _search_layer(
+        stack: Stack,
+        stacks: List[Stack],
+        layer: Any,
+        use_raw_codeuri: bool = False,
+        ignore_code_extraction_warnings: bool = False,
+    ):
+        """
+        Search the layer reference through all the local templates and try to find it's actual location then create a
+        layer object and return
 
-        # if layer in stack.
+        Parameters
+        ----------
+        stack : Stack
+            The stack the layer is defined in
+        stacks: List[Stack]
+            List of stacks generates from templates
+        layer : Any
+            layer that are defined within the Layers Property on a function,
+            layer can be defined as string or Dict, in case customers define it in other types, use "Any" here.
+        use_raw_codeuri : bool
+            Do not resolve adjust core_uri based on the template path, use the raw uri.
+        ignore_code_extraction_warnings : bool
+            Whether to print warning when codeuri is not a local path
+
+        Returns
+        -------
+        samcli.commands.local.lib.provider.Layer
+            The Layer object created from the template and layer defined on the function.
+        """
+
         if isinstance(layer, str):
             outputs = stack.template_dict.get("Outputs", {})
-            if layer in outputs:
-                layer = outputs.get(layer).get("Value")
+            # if the layer is not in the output section, it may be an layer arn and cannot be located in the template
+            if layer not in outputs:
+                return None
+            layer = outputs.get(layer).get("Value")
 
+        # if the layer is in format {Ref:LayerName}, it may pass from the parent stack through parameter or is a
+        # reference to the layer in current stack
         if isinstance(layer, dict) and layer.get("Ref"):
             layer_reference = layer.get("Ref")
+
+        # if the layer is in the format {"Fn::GetAtt": ["LayerStackName", "Outputs.LayerName"]},
+        # it may pass from another child stack inside the same parent stack
         elif isinstance(layer, dict) and layer.get("Fn::GetAtt"):
             layer_stack_reference = layer.get("Fn::GetAtt")[0]
             layer_reference = layer.get("Fn::GetAtt")[1].split(".")[1]
             child_stacks = Stack.get_child_stacks(stack, stacks)
             child_stack = Stack.get_stack_by_logical(layer_stack_reference, child_stacks)
-            return SamFunctionProvider._search_layer(child_stack, stacks, layer_reference, use_raw_codeuri,
-                                                     ignore_code_extraction_warnings)
+            return SamFunctionProvider._search_layer(
+                child_stack, stacks, layer_reference, use_raw_codeuri, ignore_code_extraction_warnings
+            )
 
+        # If the layer reference is not in the stack's parameters section, it must be a layer reference in current stack
         if not stack.template_dict.get("Parameters") or layer_reference not in stack.template_dict.get("Parameters"):
             # layer reference should be in current stack
             resolve_layer = SamFunctionProvider._locate_layer_from_ref(
-                    stack, layer, use_raw_codeuri, ignore_code_extraction_warnings
-                )
+                stack, layer, use_raw_codeuri, ignore_code_extraction_warnings
+            )
             return resolve_layer
 
         # search in parent stack
         parent_stack = Stack.get_parent_stack(stack, stacks)
-        layer = parent_stack.template_dict.get("Resources").get(stack.name).get("Properties").get("Parameters").get(layer_reference)
+        # If it can't find the parent stack, it mean's the current stack is root stack and the layer reference may be a
+        # layer arn passing from root stack's parameters, which means the actual layer can't be located in templates
+        if not parent_stack:
+            return None
+        layer = (
+            parent_stack.template_dict.get("Resources")
+            .get(stack.name)
+            .get("Properties")
+            .get("Parameters")
+            .get(layer_reference)
+        )
 
-        return SamFunctionProvider._search_layer(parent_stack, stacks, layer, use_raw_codeuri, ignore_code_extraction_warnings)
+        return SamFunctionProvider._search_layer(
+            parent_stack, stacks, layer, use_raw_codeuri, ignore_code_extraction_warnings
+        )
 
     @staticmethod
     def _locate_layer_from_ref(

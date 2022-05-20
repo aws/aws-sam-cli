@@ -22,6 +22,8 @@ class TestCloudFormationResourceSummary(TestCase):
         self.assertEqual(given_logical_id, resource_summary.logical_resource_id)
         self.assertEqual(given_physical_id, resource_summary.physical_resource_id)
 
+
+class TestCloudformationUtils(TestCase):
     def test_get_resource_summaries(self):
         resource_provider_mock = Mock()
         given_stack_name = "stack_name"

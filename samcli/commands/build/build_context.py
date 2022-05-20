@@ -71,6 +71,7 @@ class BuildContext:
         create_auto_dependency_layer: bool = False,
         stack_name: Optional[str] = None,
         print_success_message: bool = True,
+        search_layer: bool = False,
     ) -> None:
 
         self._resource_identifier = resource_identifier
@@ -106,6 +107,7 @@ class BuildContext:
         self._layer_provider: Optional[SamLayerProvider] = None
         self._container_manager: Optional[ContainerManager] = None
         self._stacks: List[Stack] = []
+        self._search_layer = search_layer
 
     def __enter__(self) -> "BuildContext":
         self.set_up()
@@ -130,7 +132,9 @@ class BuildContext:
         # Note(xinhol): self._use_raw_codeuri is added temporarily to fix issue #2717
         # when base_dir is provided, codeuri should not be resolved based on template file path.
         # we will refactor to make all path resolution inside providers intead of in multiple places
-        self._function_provider = SamFunctionProvider(self.stacks, self._use_raw_codeuri)
+        self._function_provider = SamFunctionProvider(
+            self.stacks, self._use_raw_codeuri, search_layer=self._search_layer
+        )
         self._layer_provider = SamLayerProvider(self.stacks, self._use_raw_codeuri)
 
         if not self._base_dir:
