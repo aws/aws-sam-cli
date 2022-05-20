@@ -689,11 +689,18 @@ class TestInitWithArbitraryProject(TestCase):
 
 class TestInteractiveInit(TestCase):
     def test_interactive_init(self):
+        # 1: AWS Quick Start Templates
+        # 1: Hello World Example
+        # N: Use the most popular runtime and package type? (Python and zip) [y/N]
+        # 10: nodejs16.x
+        # 1: Zip
+        # 1: Hello World Example
+        # N: Would you like to enable X-Ray tracing on the function(s) in your application?  [y/N]
         user_input = """
 1
 1
 N
-8
+10
 1
 1
 N

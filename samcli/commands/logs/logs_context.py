@@ -3,7 +3,7 @@ Read and parse CLI args for the Logs Command and setup the context for running t
 """
 
 import logging
-from typing import List, Optional, Set, Any
+from typing import List, Optional, Set, Any, Dict
 
 from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION,
@@ -13,7 +13,7 @@ from samcli.lib.utils.resources import (
 )
 from samcli.commands.exceptions import UserException
 from samcli.lib.utils.boto_utils import BotoProviderType
-from samcli.lib.utils.cloudformation import get_resource_summaries
+from samcli.lib.utils.cloudformation import get_resource_summaries, CloudFormationResourceSummary
 from samcli.lib.utils.time import to_utc, parse_date
 
 LOG = logging.getLogger(__name__)
@@ -106,7 +106,9 @@ class ResourcePhysicalIdResolver:
             return self._fetch_resources_from_stack()
         return []
 
-    def _fetch_resources_from_stack(self, selected_resource_names: Optional[Set[str]] = None) -> List[Any]:
+    def _fetch_resources_from_stack(
+        self, selected_resource_names: Optional[Set[str]] = None
+    ) -> List[CloudFormationResourceSummary]:
         """
         Returns list of all resources from given stack name
         If any resource is not supported, it will discard them
@@ -119,22 +121,44 @@ class ResourcePhysicalIdResolver:
 
         Returns
         -------
-        List[StackResourceSummary]
+        List[CloudFormationResourceSummary]
             List of resource information, which will be used to fetch the logs
         """
-        results = []
         LOG.debug("Getting logical id of the all resources for stack '%s'", self._stack_name)
         stack_resources = get_resource_summaries(
             self._boto_resource_provider, self._stack_name, ResourcePhysicalIdResolver.DEFAULT_SUPPORTED_RESOURCES
         )
 
-        if selected_resource_names is None:
-            selected_resource_names = {stack_resource.logical_resource_id for stack_resource in stack_resources}
+        if selected_resource_names:
+            return self._get_selected_resources(stack_resources, selected_resource_names)
+        return list(stack_resources.values())
 
-        for resource in stack_resources:
-            # if resource name is not selected, continue
-            if resource.logical_resource_id not in selected_resource_names:
-                LOG.debug("Resource (%s) is not selected with given input", resource.logical_resource_id)
-                continue
-            results.append(resource)
-        return results
+    @staticmethod
+    def _get_selected_resources(
+        resource_summaries: Dict[str, CloudFormationResourceSummary],
+        selected_resource_names: Set[str],
+    ) -> List[CloudFormationResourceSummary]:
+        """
+        Returns list of resources which matches with selected_resource_names.
+        selected_resource_names can be;
+        - resource name like HelloWorldFunction
+        - or it could be pointing to a resource in nested stack like NestedApp/HelloWorldFunction
+
+        Parameters
+        ----------
+        resource_summaries : Dict[str, CloudFormationResourceSummary]
+            Dictionary of resource key and CloudformationResourceSummary which was returned from given stack
+        selected_resource_names : Set[str]
+            List of resource name definitions that will be used to filter the results
+
+        Returns
+        ------
+        List[CloudFormationResourceSummary]
+            Filtered list of CloudFormationResourceSummary's
+        """
+        resources = []
+        for selected_resource_name in selected_resource_names:
+            selected_resource = resource_summaries.get(selected_resource_name)
+            if selected_resource:
+                resources.append(selected_resource)
+        return resources
