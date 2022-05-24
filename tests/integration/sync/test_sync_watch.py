@@ -11,7 +11,7 @@ from unittest import skipIf
 
 import boto3
 from botocore.config import Config
-from parameterized import parameterized
+from parameterized import parameterized_class
 
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
 from samcli.lib.utils.resources import (
@@ -19,7 +19,6 @@ from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION,
     AWS_STEPFUNCTIONS_STATEMACHINE,
 )
-from tests.integration.buildcmd.build_integ_base import BuildIntegBase
 from tests.integration.sync.sync_integ_base import SyncIntegBase
 from tests.integration.package.package_integ_base import PackageIntegBase
 from tests.integration.sync.test_sync_code import API_SLEEP, SFN_SLEEP
@@ -32,7 +31,6 @@ from tests.testing_utils import (
     read_until_string,
     start_persistent_process,
 )
-from tests.testing_utils import run_command_with_input
 
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
@@ -52,7 +50,7 @@ LOG.addHandler(handler)
 
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
-class TestSyncWatch(SyncIntegBase):
+class TestSyncWatchBase(SyncIntegBase):
     @classmethod
     def setUpClass(cls):
         PackageIntegBase.setUpClass()
@@ -67,11 +65,14 @@ class TestSyncWatch(SyncIntegBase):
         self.stacks = []
         self.s3_prefix = uuid.uuid4().hex
         self.test_dir = Path(tempfile.mkdtemp())
+        self.template_before = "" if not self.template_before else self.template_before
+        self.stack_name = self._method_to_stack_name(self.id())
         # Remove temp dir so that shutil.copytree will not throw an error
         # Needed for python 3.6 and 3.7 as these versions don't have dirs_exist_ok
         shutil.rmtree(self.test_dir)
         shutil.copytree(self.test_data_path, self.test_dir)
         super().setUp()
+        self._setup_verify_infra()
 
     def tearDown(self):
         kill_process(self.watch_process)
@@ -89,12 +90,9 @@ class TestSyncWatch(SyncIntegBase):
                 cfn_client.delete_stack(StackName=stack_name)
         super().tearDown()
 
-    @parameterized.expand(["python"])
-    def test_sync_watch_infra(self, runtime):
-        template_before = f"infra/template-{runtime}-before.yaml"
-        template_path = self.test_dir.joinpath(template_before)
-        stack_name = self._method_to_stack_name(self.id())
-        self.stacks.append({"name": stack_name})
+    def _setup_verify_infra(self):
+        template_path = self.test_dir.joinpath(self.template_before)
+        self.stacks.append({"name": self.stack_name})
 
         # Start watch
         sync_command_list = self.get_sync_command_list(
@@ -102,7 +100,7 @@ class TestSyncWatch(SyncIntegBase):
             code=False,
             watch=True,
             dependency_layer=True,
-            stack_name=stack_name,
+            stack_name=self.stack_name,
             parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
@@ -117,7 +115,7 @@ class TestSyncWatch(SyncIntegBase):
         read_until_string(self.watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n", timeout=600)
 
         # Initial Infra Validation
-        self.stack_resources = self._get_stacks(stack_name)
+        self.stack_resources = self._get_stacks(self.stack_name)
         lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
         for lambda_function in lambda_functions:
             lambda_response = json.loads(self._get_lambda_response(lambda_function))
@@ -128,15 +126,37 @@ class TestSyncWatch(SyncIntegBase):
         state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
         self.assertEqual(self._get_sfn_response(state_machine), '"World 1"')
 
+    @staticmethod
+    def update_file(source, destination):
+        with open(source, "rb") as source_file:
+            with open(destination, "wb") as destination_file:
+                destination_file.write(source_file.read())
+
+
+@parameterized_class([{"runtime": "python"}])
+class TestSyncCodeInfra(TestSyncWatchBase):
+    @classmethod
+    def setUpClass(cls):
+        cls.template_before = f"infra/template-{cls.runtime}-before.yaml"
+        super(TestSyncCodeInfra, cls).setUpClass()
+
+    def setup(self):
+        super(TestSyncCodeInfra, self).setUp()
+
+    def tearDown(self):
+        super(TestSyncCodeInfra, self).tearDown()
+
+    def test_sync_watch_infra(self):
+
         self.update_file(
-            self.test_dir.joinpath(f"infra/template-{runtime}-after.yaml"),
-            self.test_dir.joinpath(f"infra/template-{runtime}-before.yaml"),
+            self.test_dir.joinpath(f"infra/template-{self.runtime}-after.yaml"),
+            self.test_dir.joinpath(f"infra/template-{self.runtime}-before.yaml"),
         )
 
         read_until_string(self.watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n", timeout=600)
 
         # Updated Infra Validation
-        self.stack_resources = self._get_stacks(stack_name)
+        self.stack_resources = self._get_stacks(self.stack_name)
 
         # Lambda
         lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
@@ -153,45 +173,21 @@ class TestSyncWatch(SyncIntegBase):
         state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
         self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')
 
+
+class TestSyncWatchCode(TestSyncWatchBase):
+    @classmethod
+    def setUpClass(cls):
+        cls.template_before = f"code/before/template-python.yaml"
+        super(TestSyncWatchCode, cls).setUpClass()
+
+    def setup(self):
+        super(TestSyncWatchCode, self).setUp()
+
+    def tearDown(self):
+        super(TestSyncWatchCode, self).tearDown()
+
     def test_sync_watch_code(self):
-        template_before = f"code/before/template-python.yaml"
-        template_path = self.test_dir.joinpath(template_before)
-        stack_name = self._method_to_stack_name(self.id())
-        self.stacks.append({"name": stack_name})
-
-        # Start watch
-        sync_command_list = self.get_sync_command_list(
-            template_file=str(template_path),
-            code=False,
-            watch=True,
-            dependency_layer=True,
-            stack_name=stack_name,
-            parameter_overrides="Parameter=Clarity",
-            image_repository=self.ecr_repo_name,
-            s3_prefix=self.s3_prefix,
-            kms_key_id=self.kms_key,
-            tags="integ=true clarity=yes foo_bar=baz",
-        )
-        self.watch_process = start_persistent_process(sync_command_list, cwd=self.test_dir)
-        read_until_string(self.watch_process, "Enter Y to proceed with the command, or enter N to cancel:\n")
-
-        self.watch_process.stdin.write("y\n")
-
-        read_until_string(self.watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n", timeout=600)
-
-        # Initial Infra Validation
-        self.stack_resources = self._get_stacks(stack_name)
-        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
-        for lambda_function in lambda_functions:
-            lambda_response = json.loads(self._get_lambda_response(lambda_function))
-            self.assertIn("extra_message", lambda_response)
-            self.assertEqual(lambda_response.get("message"), "7")
-        rest_api = self.stack_resources.get(AWS_APIGATEWAY_RESTAPI)[0]
-        self.assertEqual(self._get_api_message(rest_api), '{"message": "hello 1"}')
-        state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
-        self.assertEqual(self._get_sfn_response(state_machine), '"World 1"')
-
-        self.stack_resources = self._get_stacks(stack_name)
+        self.stack_resources = self._get_stacks(self.stack_name)
 
         # Test Lambda Function
         self.update_file(
@@ -245,7 +241,15 @@ class TestSyncWatch(SyncIntegBase):
         time.sleep(SFN_SLEEP)
         self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')
 
-    def update_file(self, source, destination):
-        with open(source, "rb") as source_file:
-            with open(destination, "wb") as destination_file:
-                destination_file.write(source_file.read())
+
+class TestSyncInfraNestedStacks(TestSyncWatchBase):
+    @classmethod
+    def setUpClass(cls):
+        cls.template_before = f"code/before/template-python.yaml"
+        super(TestSyncInfraNestedStacks, cls).setUpClass()
+
+    def setup(self):
+        super(TestSyncInfraNestedStacks, self).setUp()
+
+    def tearDown(self):
+        super(TestSyncInfraNestedStacks, self).tearDown()
