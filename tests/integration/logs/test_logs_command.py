@@ -207,7 +207,7 @@ class TestLogsCommand(LogsIntegBase):
         cmd_list = self.get_logs_command_list(
             self.stack_name, name=function_name, include_traces=True, beta_features=True
         )
-        self._check_logs(cmd_list, ["New XRay Service Graph", "XRay Event at", expected_log_output])
+        self._check_logs(cmd_list, ["New XRay Service Graph", "XRay Event [revision ", expected_log_output])
 
     def _check_logs(self, cmd_list: List, log_strings: List[str], output: str = "text", retries=RETRY_COUNT):
         for _ in range(retries):

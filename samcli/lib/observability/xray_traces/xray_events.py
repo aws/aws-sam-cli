@@ -23,8 +23,7 @@ class XRayTraceEvent(ObservabilityEvent[dict]):
         self.id = event.get("Id", "")
         # A revision number will be passed to link with the event
         # The same x-ray event will differ in information on different revisions
-        if revision:
-            self.revision = revision
+        self.revision = revision
         self.duration = event.get("Duration", 0.0)
         self.message = json.dumps(event)
         self.segments: List[XRayTraceSegment] = []
