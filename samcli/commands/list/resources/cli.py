@@ -17,7 +17,7 @@ resource will be mapped to the logical ID of each resource.
 # @click.command(name="resources", cls=GenerateEventCommand, help=HELP_TEXT)
 
 
-@click.command(name="resources", help=HELP_TEXT)
+@click.command(name="resources", no_args_is_help=True, help=HELP_TEXT)
 @click.option(
     "--stack-name",
     help=(

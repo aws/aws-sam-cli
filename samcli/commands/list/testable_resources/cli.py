@@ -18,7 +18,7 @@ are lambda functions and API Gateway API resources.
 # @click.command(name="resources", cls=GenerateEventCommand, help=HELP_TEXT)
 
 
-@click.command(name="testable-resources", help=HELP_TEXT)
+@click.command(name="testable-resources", no_args_is_help=True, help=HELP_TEXT)
 @click.option(
     "--stack-name",
     help=(

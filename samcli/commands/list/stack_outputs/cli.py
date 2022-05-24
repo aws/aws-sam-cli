@@ -14,7 +14,7 @@ Get the stack outputs as defined in the SAM/CloudFormation template.
 # @click.command(name="resources", cls=GenerateEventCommand, help=HELP_TEXT)
 
 
-@click.command(name="stack-outputs", help=HELP_TEXT)
+@click.command(name="stack-outputs", no_args_is_help=True, help=HELP_TEXT)
 @click.option(
     "--stack-name",
     help=(
