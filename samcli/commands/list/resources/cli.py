@@ -40,3 +40,9 @@ def cli(self, stack_name, output):
     """
     Generate an event for one of the services listed below:
     """
+
+    do_cli(self, stack_name, output)
+
+
+def do_cli(self, stack_name, output):
+    pass
