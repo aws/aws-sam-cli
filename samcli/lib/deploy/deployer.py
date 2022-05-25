@@ -72,13 +72,20 @@ OUTPUTS_DEFAULTS_ARGS = OrderedDict({"Outputs": "Outputs"})
 
 OUTPUTS_TABLE_HEADER_NAME = "CloudFormation outputs from deployed stack"
 
+# 500ms of sleep time between stack checks and describe stack events.
+DEFAULT_CLIENT_SLEEP = 0.5
+
 
 class Deployer:
-    def __init__(self, cloudformation_client, changeset_prefix="samcli-deploy"):
+    def __init__(self, cloudformation_client, changeset_prefix="samcli-deploy", client_sleep=DEFAULT_CLIENT_SLEEP):
         self._client = cloudformation_client
         self.changeset_prefix = changeset_prefix
-        # 500ms of sleep time between stack checks and describe stack events.
-        self.client_sleep = 0.5
+        try:
+            self.client_sleep = float(client_sleep)
+        except ValueError:
+            self.client_sleep = DEFAULT_CLIENT_SLEEP
+        if self.client_sleep <= 0:
+            self.client_sleep = DEFAULT_CLIENT_SLEEP
         # 2000ms of backoff time which is exponentially used, when there are exceptions during describe stack events
         self.backoff = 2
         # Maximum number of attempts before raising exception back up the chain.
@@ -409,6 +416,8 @@ class Deployer:
                 if self._check_stack_not_in_progress(stack_status):
                     stack_change_in_progress = False
                     break
+                # Reset retry attempts if iteration is a success to use client_sleep again
+                retry_attempts = 0
             except botocore.exceptions.ClientError as ex:
                 retry_attempts = retry_attempts + 1
                 if retry_attempts > self.max_attempts:
