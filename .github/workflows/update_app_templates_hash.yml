@@ -10,6 +10,7 @@ jobs:
     permissions:
       pull-requests: write
       contents: write
+    if: github.repository == 'aws/aws-sam-cli'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout App Templates
