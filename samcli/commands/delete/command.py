@@ -63,12 +63,26 @@ LOG = logging.getLogger(__name__)
     is_flag=True,
     required=False,
 )
+@click.option(
+    "--s3-bucket",
+    help=("The S3 bucket path you want to delete."),
+    type=click.STRING,
+    default=None,
+    required=False,
+)
+@click.option(
+    "--s3-prefix",
+    help=("The S3 prefix you want to delete"),
+    type=click.STRING,
+    default=None,
+    required=False,
+)
 @aws_creds_options
 @common_options
 @pass_context
 @check_newer_version
 @print_cmdline_args
-def cli(ctx, stack_name: str, config_file: str, config_env: str, no_prompts: bool):
+def cli(ctx, stack_name: str, config_file: str, config_env: str, no_prompts: bool, s3_bucket: str, s3_prefix: str):
     """
     `sam delete` command entry point
     """
@@ -81,10 +95,21 @@ def cli(ctx, stack_name: str, config_file: str, config_env: str, no_prompts: boo
         config_env=config_env,
         profile=ctx.profile,
         no_prompts=no_prompts,
+        s3_bucket=s3_bucket,
+        s3_prefix=s3_prefix,
     )  # pragma: no cover
 
 
-def do_cli(stack_name: str, region: str, config_file: str, config_env: str, profile: str, no_prompts: bool):
+def do_cli(
+    stack_name: str,
+    region: str,
+    config_file: str,
+    config_env: str,
+    profile: str,
+    no_prompts: bool,
+    s3_bucket: str,
+    s3_prefix: str,
+):
     """
     Implementation of the ``cli`` method
     """
@@ -97,5 +122,7 @@ def do_cli(stack_name: str, region: str, config_file: str, config_env: str, prof
         config_file=config_file,
         config_env=config_env,
         no_prompts=no_prompts,
+        s3_bucket=s3_bucket,
+        s3_prefix=s3_prefix,
     ) as delete_context:
         delete_context.run()
