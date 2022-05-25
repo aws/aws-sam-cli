@@ -5,11 +5,11 @@ from pathlib import Path
 from subprocess import Popen, PIPE, TimeoutExpired
 
 
-class ResourcesIntegBase(TestCase):
+class StackOutputsIntegBase(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.cmd = cls.base_command()
-        cls.resources_test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "list")
+        cls.stack_outputs_test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "list")
 
     def setUp(self):
         super().setUp()
@@ -24,8 +24,8 @@ class ResourcesIntegBase(TestCase):
 
         return command
 
-    def get_resources_command_list(self, stack_name=None, output=None):
-        command_list = [self.base_command(), "list", "resources"]
+    def get_stack_outputs_command_list(self, stack_name=None, output=None):
+        command_list = [self.base_command(), "list", "stack-outputs"]
         if stack_name:
             command_list += ["--stack-name", str(stack_name)]
 
