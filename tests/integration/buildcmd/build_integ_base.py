@@ -13,6 +13,7 @@ import docker
 import jmespath
 from pathlib import Path
 
+from samcli.lib.utils import osutils
 from samcli.lib.utils.architecture import X86_64, has_runtime_multi_arch_image
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from samcli.yamlhelper import yaml_parse
@@ -499,7 +500,7 @@ class BuildIntegJavaBase(BuildIntegBase):
             osutils.convert_to_unix_line_ending(os.path.join(self.test_data_path, self.USING_GRADLEW_PATH, "gradlew"))
 
         LOG.info("Running Command: {}".format(cmdlist))
-        run_command(cmdlist, cwd=self.working_dir)
+        run_command(cmdlist, cwd=self.working_dir, timeout=900)
 
         self._verify_built_artifact(
             self.default_build_dir, self.FUNCTION_LOGICAL_ID, expected_files, expected_dependencies

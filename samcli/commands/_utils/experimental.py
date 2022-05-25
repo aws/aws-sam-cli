@@ -44,9 +44,6 @@ class ExperimentalFlag:
 
     All = ExperimentalEntry("experimentalAll", EXPERIMENTAL_ENV_VAR_PREFIX + "FEATURES")
     Accelerate = ExperimentalEntry("experimentalAccelerate", EXPERIMENTAL_ENV_VAR_PREFIX + "ACCELERATE")
-    JavaMavenBuildScope = ExperimentalEntry(
-        "experimentalMavenScopeAndLayer", EXPERIMENTAL_ENV_VAR_PREFIX + "MAVEN_SCOPE_AND_LAYER"
-    )
     Esbuild = ExperimentalEntry("experimentalEsbuild", EXPERIMENTAL_ENV_VAR_PREFIX + "ESBUILD")
 
 

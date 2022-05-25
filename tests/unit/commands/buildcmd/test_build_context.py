@@ -611,10 +611,9 @@ class TestBuildContext__enter__(TestCase):
             print_success_message=False,
         ) as build_context:
             with patch("samcli.commands.build.build_context.BuildContext.gen_success_msg") as mock_message:
-                with patch("samcli.commands.build.build_context.BuildContext._check_java_warning") as mock_java_warning:
-                    with patch("samcli.commands.build.build_context.BuildContext._check_esbuild_warning"):
-                        build_context.run()
-                        mock_message.assert_not_called()
+                with patch("samcli.commands.build.build_context.BuildContext._check_esbuild_warning"):
+                    build_context.run()
+                    mock_message.assert_not_called()
 
 
 class TestBuildContext_setup_build_dir(TestCase):
@@ -1079,45 +1078,6 @@ class TestBuildContext_run(TestCase):
                 build_context.run()
 
         self.assertEqual(str(ctx.exception), "Function Not Found")
-
-
-class TestBuildContext_java_warning(TestCase):
-    @parameterized.expand(
-        [
-            ([], [], False),
-            ([DummyFunction("NonJavaFunction", runtime="nodejs14.x")], [], False),
-            ([], [DummyLayer("NonJavaLayer", build_method="nodejs14.x")], False),
-            (
-                [DummyFunction("NonJavaFunction", runtime="nodejs14.x")],
-                [DummyLayer("NonJavaLayer", build_method="nodejs14.x")],
-                False,
-            ),
-            ([DummyFunction("JavaFunction", runtime="java8")], [], True),
-            ([], [DummyLayer("JavaLayer", build_method="java11")], True),
-            ([DummyFunction("JavaFunction", runtime="java11")], [DummyLayer("JavaLayer", build_method="java8")], True),
-        ]
-    )
-    @patch("samcli.commands.build.build_context.click.secho")
-    def test_check_java_warning(self, functions, layers, should_print, mocked_click):
-        build_context = BuildContext(
-            resource_identifier="function_identifier",
-            template_file="template_file",
-            base_dir="base_dir",
-            build_dir="build_dir",
-            cache_dir="cache_dir",
-            cached=False,
-            clean=False,
-            parallel=False,
-            mode="mode",
-        )
-        with patch.object(build_context, "get_resources_to_build") as mocked_resources_to_build:
-            mocked_resources_to_build.return_value = Mock(functions=functions, layers=layers)
-            build_context._check_java_warning()
-
-            if should_print:
-                mocked_click.assert_called_with(BuildContext._JAVA_BUILD_WARNING_MESSAGE, fg="yellow")
-            else:
-                mocked_click.assert_not_called()
 
 
 class TestBuildContext_esbuild_warning(TestCase):
