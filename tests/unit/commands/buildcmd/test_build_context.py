@@ -880,7 +880,7 @@ class TestBuildContext_run(TestCase):
                 container_env_var=build_context._container_env_var,
                 container_env_var_file=build_context._container_env_var_file,
                 build_images=build_context._build_images,
-                excluded_files=build_context._exclude,
+                excluded_resources=build_context._exclude,
                 combine_dependencies=not auto_dependency_layer,
             )
             builder_mock.build.assert_called_once()
@@ -1172,7 +1172,7 @@ class TestBuildContext_exclude_warning(TestCase):
             clean=False,
             parallel=False,
             mode="mode",
-            excluded_files=exclude,
+            excluded_resources=exclude,
         )
         with patch.object(build_context, "get_resources_to_build") as mocked_resources_to_build:
             mocked_resources_to_build.return_value = Mock(functions=[DummyFunction(resource_id)])

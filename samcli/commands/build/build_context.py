@@ -67,7 +67,7 @@ class BuildContext:
         container_env_var: Optional[dict] = None,
         container_env_var_file: Optional[str] = None,
         build_images: Optional[dict] = None,
-        excluded_files: Optional[Tuple[str]] = None,
+        excluded_resources: Optional[Tuple[str, ...]] = None,
         aws_region: Optional[str] = None,
         create_auto_dependency_layer: bool = False,
         stack_name: Optional[str] = None,
@@ -99,7 +99,7 @@ class BuildContext:
         self._container_env_var = container_env_var
         self._container_env_var_file = container_env_var_file
         self._build_images = build_images
-        self._exclude = excluded_files
+        self._exclude = excluded_resources
         self._create_auto_dependency_layer = create_auto_dependency_layer
         self._stack_name = stack_name
         self._print_success_message = print_success_message
@@ -182,7 +182,7 @@ class BuildContext:
                 container_env_var=self._container_env_var,
                 container_env_var_file=self._container_env_var_file,
                 build_images=self._build_images,
-                excluded_files=self._exclude,
+                excluded_resources=self._exclude,
                 combine_dependencies=not self._create_auto_dependency_layer,
             )
         except FunctionNotFound as ex:
@@ -419,7 +419,7 @@ Commands you can use next
             ResourcesToBuildCollector that contains all the buildable resources.
         """
         result = ResourcesToBuildCollector()
-        excludes: List[str] = list(self._exclude) if self._exclude else []
+        excludes: Tuple[str, ...] = self._exclude if self._exclude is not None else ()
         result.add_functions(
             [
                 f
@@ -544,7 +544,7 @@ Commands you can use next
         "You can also enable this beta feature with 'sam build --beta-features'."
     )
 
-    _EXCLUDE_WARNING_MESSAGE = "Resource expected to be built, but marked as excluded.\n" "Building anyways..."
+    _EXCLUDE_WARNING_MESSAGE = "Resource expected to be built, but marked as excluded.\nBuilding anyways..."
 
     def _check_java_warning(self) -> None:
         """

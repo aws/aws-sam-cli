@@ -166,7 +166,7 @@ def cli(
     container_env_var: Optional[Tuple[str]],
     container_env_var_file: Optional[str],
     build_image: Optional[Tuple[str]],
-    exclude: Optional[Tuple[str]],
+    exclude: Optional[Tuple[str, ...]],
     skip_pull_image: bool,
     parameter_overrides: dict,
     config_file: str,
@@ -221,7 +221,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     container_env_var: Optional[Tuple[str]],
     container_env_var_file: Optional[str],
     build_image: Optional[Tuple[str]],
-    exclude: Optional[Tuple[str]],
+    exclude: Optional[Tuple[str, ...]],
 ) -> None:
     """
     Implementation of the ``cli`` method
@@ -256,7 +256,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         container_env_var=processed_env_vars,
         container_env_var_file=container_env_var_file,
         build_images=processed_build_images,
-        excluded_files=exclude,
+        excluded_resources=exclude,
         aws_region=click_ctx.region,
     ) as ctx:
         ctx.run()
