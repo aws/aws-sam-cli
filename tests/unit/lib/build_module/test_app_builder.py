@@ -327,7 +327,9 @@ class TestApplicationBuilder_build(TestCase):
         build_graph_mock = Mock()
         get_build_graph_mock = Mock(return_value=build_graph_mock)
 
-        builder = ApplicationBuilder(Mock(), "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr))
+        builder = ApplicationBuilder(
+            MagicMock(), "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr)
+        )
         builder._get_build_graph = get_build_graph_mock
 
         result = builder.build().artifacts
@@ -347,7 +349,7 @@ class TestApplicationBuilder_build(TestCase):
         get_build_graph_mock = Mock(return_value=build_graph_mock)
 
         builder = ApplicationBuilder(
-            Mock(), "builddir", "basedir", "cachedir", cached=True, stream_writer=StreamWriter(sys.stderr)
+            MagicMock(), "builddir", "basedir", "cachedir", cached=True, stream_writer=StreamWriter(sys.stderr)
         )
         builder._get_build_graph = get_build_graph_mock
 
@@ -365,7 +367,7 @@ class TestApplicationBuilder_build(TestCase):
         get_build_graph_mock = Mock(return_value=build_graph_mock)
 
         builder = ApplicationBuilder(
-            Mock(), "builddir", "basedir", "cachedir", parallel=True, stream_writer=StreamWriter(sys.stderr)
+            MagicMock(), "builddir", "basedir", "cachedir", parallel=True, stream_writer=StreamWriter(sys.stderr)
         )
         builder._get_build_graph = get_build_graph_mock
 
@@ -390,7 +392,7 @@ class TestApplicationBuilder_build(TestCase):
         get_build_graph_mock = Mock(return_value=build_graph_mock)
 
         builder = ApplicationBuilder(
-            Mock(),
+            MagicMock(),
             "builddir",
             "basedir",
             "cachedir",

@@ -5,7 +5,7 @@ import logging
 import os
 import pathlib
 import shutil
-from typing import Dict, Optional, List, cast
+from typing import Dict, Optional, List, Tuple, cast
 
 import click
 
@@ -67,6 +67,7 @@ class BuildContext:
         container_env_var: Optional[dict] = None,
         container_env_var_file: Optional[str] = None,
         build_images: Optional[dict] = None,
+        excluded_files: Optional[Tuple[str]] = None,
         aws_region: Optional[str] = None,
         create_auto_dependency_layer: bool = False,
         stack_name: Optional[str] = None,
@@ -98,6 +99,7 @@ class BuildContext:
         self._container_env_var = container_env_var
         self._container_env_var_file = container_env_var_file
         self._build_images = build_images
+        self._exclude = excluded_files
         self._create_auto_dependency_layer = create_auto_dependency_layer
         self._stack_name = stack_name
         self._print_success_message = print_success_message
@@ -180,6 +182,7 @@ class BuildContext:
                 container_env_var=self._container_env_var,
                 container_env_var_file=self._container_env_var_file,
                 build_images=self._build_images,
+                excluded_files=self._exclude,
                 combine_dependencies=not self._create_auto_dependency_layer,
             )
         except FunctionNotFound as ex:
@@ -188,6 +191,7 @@ class BuildContext:
         try:
             self._check_java_warning()
             self._check_esbuild_warning()
+            self._check_exclude_warning()
             build_result = builder.build()
             artifacts = build_result.artifacts
 
@@ -415,8 +419,15 @@ Commands you can use next
             ResourcesToBuildCollector that contains all the buildable resources.
         """
         result = ResourcesToBuildCollector()
-        result.add_functions([f for f in self.function_provider.get_all() if BuildContext._is_function_buildable(f)])
-        result.add_layers([l for l in self.layer_provider.get_all() if BuildContext._is_layer_buildable(l)])
+        excludes: List[str] = list(self._exclude) if self._exclude else []
+        result.add_functions([
+            f for f in self.function_provider.get_all()
+            if (f.name not in excludes) and BuildContext._is_function_buildable(f)
+        ])
+        result.add_layers([
+            l for l in self.layer_provider.get_all()
+            if (l.name not in excludes) and BuildContext._is_layer_buildable(l)
+        ])
         return result
 
     @property
@@ -527,6 +538,11 @@ Commands you can use next
         "You can also enable this beta feature with 'sam build --beta-features'."
     )
 
+    _EXCLUDE_WARNING_MESSAGE = (
+        "Resource expected to be built, but marked as excluded.\n"
+        "Building anyways..."
+    )
+
     def _check_java_warning(self) -> None:
         """
         Prints warning message about upcoming changes to building java functions and layers.
@@ -560,3 +576,11 @@ Commands you can use next
 
         if is_building_esbuild:
             prompt_experimental(ExperimentalFlag.Esbuild, self._ESBUILD_WARNING_MESSAGE)
+
+    def _check_exclude_warning(self) -> None:
+        """
+        Prints warning message if a single resource to build is also being excluded
+        """
+        excludes: List[str] = list(self._exclude) if self._exclude else []
+        if self._resource_identifier in excludes:
+            LOG.warning(self._EXCLUDE_WARNING_MESSAGE)

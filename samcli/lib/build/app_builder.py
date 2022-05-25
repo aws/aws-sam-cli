@@ -6,7 +6,7 @@ import io
 import json
 import logging
 import pathlib
-from typing import List, Optional, Dict, cast, Union, NamedTuple, Set
+from typing import List, Optional, Dict, cast, Tuple, Union, NamedTuple, Set
 
 import docker
 import docker.errors
@@ -110,6 +110,7 @@ class ApplicationBuilder:
         container_env_var: Optional[Dict] = None,
         container_env_var_file: Optional[str] = None,
         build_images: Optional[Dict] = None,
+        excluded_files: Optional[Tuple[str]] = None,
         combine_dependencies: bool = True,
     ) -> None:
         """
@@ -149,6 +150,8 @@ class ApplicationBuilder:
             An optional path to file that contains environment variables to pass to the container
         build_images : Optional[Dict]
             An optional dictionary of build images to be used for building functions
+        excluded_files : Optional[Tuple[str]]
+            An optional list of resources to exclude from the build
         combine_dependencies: bool
             An optional bool parameter to inform lambda builders whether we should separate the source code and
             dependencies or not.
@@ -172,6 +175,7 @@ class ApplicationBuilder:
         self._container_env_var = container_env_var
         self._container_env_var_file = container_env_var_file
         self._build_images = build_images or {}
+        self._exclude = excluded_files
         self._combine_dependencies = combine_dependencies
 
     def build(self) -> ApplicationBuildResult:
@@ -184,6 +188,19 @@ class ApplicationBuilder:
             Returns the build graph and the path to where each resource was built as a map of resource's LogicalId
             to the path string
         """
+        # Remove excluded resources
+        resources_to_build = ResourcesToBuildCollector()
+        excludes: List[str] = list(self._exclude) if self._exclude else []
+        resources_to_build.add_functions([
+            f for f in self._resources_to_build.functions
+            if f.name not in excludes
+        ])
+        resources_to_build.add_layers([
+            l for l in self._resources_to_build.layers
+            if l.name not in excludes
+        ])
+        self._resources_to_build = resources_to_build
+
         build_graph = self._get_build_graph(self._container_env_var, self._container_env_var_file)
         build_strategy: BuildStrategy = DefaultBuildStrategy(
             build_graph, self._build_dir, self._build_function, self._build_layer

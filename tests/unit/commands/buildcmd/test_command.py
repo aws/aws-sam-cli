@@ -35,6 +35,7 @@ class TestDoCli(TestCase):
             (""),
             "container_env_var_file",
             (),
+            (),
         )
 
         BuildContextMock.assert_called_with(
@@ -55,6 +56,7 @@ class TestDoCli(TestCase):
             container_env_var={},
             container_env_var_file="container_env_var_file",
             build_images={},
+            excluded_files=(),
             aws_region=ctx_mock.region,
         )
         ctx_mock.run.assert_called_with()

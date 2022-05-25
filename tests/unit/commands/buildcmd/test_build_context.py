@@ -880,6 +880,7 @@ class TestBuildContext_run(TestCase):
                 container_env_var=build_context._container_env_var,
                 container_env_var_file=build_context._container_env_var_file,
                 build_images=build_context._build_images,
+                excluded_files=build_context._exclude,
                 combine_dependencies=not auto_dependency_layer,
             )
             builder_mock.build.assert_called_once()
@@ -1149,3 +1150,35 @@ class TestBuildContext_esbuild_warning(TestCase):
             mocked_click.assert_called_with(ExperimentalFlag.Esbuild, BuildContext._ESBUILD_WARNING_MESSAGE)
         else:
             mocked_click.assert_not_called()
+
+
+class TestBuildContext_exclude_warning(TestCase):
+    @parameterized.expand(
+        [
+            ([], [], False),
+            ("Function", ("Function",), True),
+            ("Function", ("NotTheSameFunction",), False),
+        ]
+    )
+    @patch("samcli.commands.build.build_context.LOG")
+    def test_check_exclude_warning(self, resource_id, exclude, should_print, log_mock):
+        build_context = BuildContext(
+            resource_identifier=resource_id,
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            cached=False,
+            clean=False,
+            parallel=False,
+            mode="mode",
+            excluded_files=exclude,
+        )
+        with patch.object(build_context, "get_resources_to_build") as mocked_resources_to_build:
+            mocked_resources_to_build.return_value = Mock(functions=[DummyFunction(resource_id)])
+            build_context._check_exclude_warning()
+
+        if should_print:
+            log_mock.warning.assert_called_once_with(BuildContext._EXCLUDE_WARNING_MESSAGE)
+        else:
+            log_mock.warning.assert_not_called()
