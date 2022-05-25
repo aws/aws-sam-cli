@@ -1,3 +1,4 @@
+import os
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, Mock, patch
 from parameterized import parameterized
@@ -47,6 +48,7 @@ class TestDoCli(TestCase):
         MOCK_SAM_CONFIG.reset_mock()
 
     @parameterized.expand([(False, False, True), (False, False, False)])
+    @patch("os.environ", {**os.environ, "SAM_CLI_POLL_DELAY": 10})
     @patch("samcli.commands.sync.command.update_experimental_context")
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.execute_code_sync")
@@ -166,6 +168,7 @@ class TestDoCli(TestCase):
             force_upload=True,
             signing_profiles=None,
             disable_rollback=False,
+            poll_delay=10,
         )
         build_context_mock.run.assert_called_once_with()
         package_context_mock.run.assert_called_once_with()
@@ -291,6 +294,7 @@ class TestDoCli(TestCase):
             force_upload=True,
             signing_profiles=None,
             disable_rollback=False,
+            poll_delay=0.5,
         )
         execute_watch_mock.assert_called_once_with(
             self.template_file, build_context_mock, package_context_mock, deploy_context_mock, auto_dependency_layer
