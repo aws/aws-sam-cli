@@ -1568,29 +1568,32 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
             "FunctionRuntime": "python3.8",
         }
         config_file_testdata = Path(__file__).resolve().parents[2].joinpath("integration", "testdata")
-        config_file_buildcmd = (config_file_testdata.joinpath("buildcmd"))
+        config_file_buildcmd = config_file_testdata.joinpath("buildcmd")
         config_file = str(config_file_buildcmd.joinpath("samconfig_no_cached.toml"))
         cmdlist = self.get_command_list(parameter_overrides=overrides, cached=True)
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertTrue(self.default_build_dir.exists())
         self.assertIn("samconfig_no_cached.toml", os.listdir(str(config_file_buildcmd)))
-        self.assertTrue("Running PythonPipBuilder:ResolveDependencies" in str(command_result.stderr) and
-                        "Running PythonPipBuilder:CopySource" in str(command_result.stderr),
-                        "Non-cached build should have been run")
+        self.assertTrue(
+            "Running PythonPipBuilder:ResolveDependencies" in str(command_result.stderr)
+            and "Running PythonPipBuilder:CopySource" in str(command_result.stderr),
+            "Non-cached build should have been run",
+        )
         cmdlist = self.get_command_list(parameter_overrides=overrides)
-        cmdlist.extend(['--config-file', config_file])
+        cmdlist.extend(["--config-file", config_file])
         command_result = run_command(cmdlist, cwd=self.working_dir)
-        self.assertTrue("Valid cache found, copying previously built resources from function build definition of"
-                        in str(command_result.stderr), "Should have built using cache")
-        cmdlist.extend(['--no-cached'])
+        self.assertTrue(
+            "Valid cache found, copying previously built resources from function build definition of"
+            in str(command_result.stderr),
+            "Should have built using cache",
+        )
+        cmdlist.extend(["--no-cached"])
         command_result = run_command(cmdlist, cwd=self.working_dir)
-        self.assertTrue("Running PythonPipBuilder:ResolveDependencies" in str(command_result.stderr) and
-                        "Running PythonPipBuilder:CopySource" in str(command_result.stderr),
-                        "Non-cached build should have been run")
-
-
-
-
+        self.assertTrue(
+            "Running PythonPipBuilder:ResolveDependencies" in str(command_result.stderr)
+            and "Running PythonPipBuilder:CopySource" in str(command_result.stderr),
+            "Non-cached build should have been run",
+        )
 
     @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
     def test_cached_build_with_env_vars(self):
