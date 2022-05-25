@@ -191,14 +191,8 @@ class ApplicationBuilder:
         # Remove excluded resources
         resources_to_build = ResourcesToBuildCollector()
         excludes: List[str] = list(self._exclude) if self._exclude else []
-        resources_to_build.add_functions([
-            f for f in self._resources_to_build.functions
-            if f.name not in excludes
-        ])
-        resources_to_build.add_layers([
-            l for l in self._resources_to_build.layers
-            if l.name not in excludes
-        ])
+        resources_to_build.add_functions([f for f in self._resources_to_build.functions if f.name not in excludes])
+        resources_to_build.add_layers([l for l in self._resources_to_build.layers if l.name not in excludes])
         self._resources_to_build = resources_to_build
 
         build_graph = self._get_build_graph(self._container_env_var, self._container_env_var_file)

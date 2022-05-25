@@ -420,14 +420,20 @@ Commands you can use next
         """
         result = ResourcesToBuildCollector()
         excludes: List[str] = list(self._exclude) if self._exclude else []
-        result.add_functions([
-            f for f in self.function_provider.get_all()
-            if (f.name not in excludes) and BuildContext._is_function_buildable(f)
-        ])
-        result.add_layers([
-            l for l in self.layer_provider.get_all()
-            if (l.name not in excludes) and BuildContext._is_layer_buildable(l)
-        ])
+        result.add_functions(
+            [
+                f
+                for f in self.function_provider.get_all()
+                if (f.name not in excludes) and BuildContext._is_function_buildable(f)
+            ]
+        )
+        result.add_layers(
+            [
+                l
+                for l in self.layer_provider.get_all()
+                if (l.name not in excludes) and BuildContext._is_layer_buildable(l)
+            ]
+        )
         return result
 
     @property
@@ -538,10 +544,7 @@ Commands you can use next
         "You can also enable this beta feature with 'sam build --beta-features'."
     )
 
-    _EXCLUDE_WARNING_MESSAGE = (
-        "Resource expected to be built, but marked as excluded.\n"
-        "Building anyways..."
-    )
+    _EXCLUDE_WARNING_MESSAGE = "Resource expected to be built, but marked as excluded.\n" "Building anyways..."
 
     def _check_java_warning(self) -> None:
         """

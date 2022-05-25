@@ -221,7 +221,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     container_env_var: Optional[Tuple[str]],
     container_env_var_file: Optional[str],
     build_image: Optional[Tuple[str]],
-    exclude: Optional[Tuple[str]]
+    exclude: Optional[Tuple[str]],
 ) -> None:
     """
     Implementation of the ``cli`` method
