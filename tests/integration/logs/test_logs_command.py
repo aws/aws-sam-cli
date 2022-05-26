@@ -132,7 +132,7 @@ class TestLogsCommand(LogsIntegBase):
         execution_arn = sfn_invoke_result.get("executionArn", "")
         LOG.info("SFN invoke result %s", sfn_invoke_result)
         cmd_list = self.get_logs_command_list(self.stack_name, name=state_machine_name, beta_features=True)
-        self._check_logs(cmd_list, execution_arn)
+        self._check_logs(cmd_list, [execution_arn])
 
     @parameterized.expand(itertools.product(["HelloWorldServerlessApi"], ["hello"]))
     def test_end_to_end_apigw(self, apigw_name: str, path: str):
