@@ -118,11 +118,11 @@ class FunctionUpdateStatus(Enum):
 def wait_for_function_update_complete(lambda_client: BaseClient, physical_id: str) -> None:
     """
     Parameters
-        ----------
-        lambda_client : boto.core.BaseClient
-            Lambda client that performs get_function API call.
-        physical_id : str
-            Physical identifier of the function resource
+    ----------
+    lambda_client : boto.core.BaseClient
+        Lambda client that performs get_function API call.
+    physical_id : str
+        Physical identifier of the function resource
     """
 
     status = FunctionUpdateStatus.IN_PROGRESS.value

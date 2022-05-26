@@ -128,9 +128,9 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
                         FunctionName=self.get_physical_id(self._function_identifier), ZipFile=data
                     )
 
-                    lambda_client = self._lambda_client
-                    physical_id = self.get_physical_id(self._function_identifier)
-                    wait_for_function_update_complete(lambda_client, physical_id)
+                    wait_for_function_update_complete(
+                        self._lambda_client, self.get_physical_id(self._function_identifier)
+                    )
 
         else:
             # Upload to S3 first for oversized ZIPs
@@ -156,9 +156,7 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
                     S3Key=s3_key,
                 )
 
-                lambda_client = self._lambda_client
-                physical_id = self.get_physical_id(self._function_identifier)
-                wait_for_function_update_complete(lambda_client, physical_id)
+                wait_for_function_update_complete(self._lambda_client, self.get_physical_id(self._function_identifier))
 
         if os.path.exists(self._zip_file):
             os.remove(self._zip_file)

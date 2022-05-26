@@ -327,9 +327,7 @@ class FunctionLayerReferenceSync(SyncFlow):
 
             self._lambda_client.update_function_configuration(FunctionName=function_physical_id, Layers=layer_arns)
 
-            lambda_client = self._lambda_client
-            physical_id = self.get_physical_id(self._function_identifier)
-            wait_for_function_update_complete(lambda_client, physical_id)
+            wait_for_function_update_complete(self._lambda_client, self.get_physical_id(self._function_identifier))
 
     def _get_resource_api_calls(self) -> List[ResourceAPICall]:
         return [
