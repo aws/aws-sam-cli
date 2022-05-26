@@ -150,12 +150,13 @@ class TestSyncWatchBase(SyncIntegBase):
                 destination_file.write(source_file.read())
 
 
-@parameterized_class([{"runtime": "python"}])
+@parameterized_class(
+    [{"runtime": "python", "dependency_layer": True}, {"runtime": "python", "dependency_layer": False}]
+)
 class TestSyncCodeInfra(TestSyncWatchBase):
     @classmethod
     def setUpClass(cls):
         cls.template_before = f"infra/template-{cls.runtime}-before.yaml"
-        cls.dependency_layer = True
         super(TestSyncCodeInfra, cls).setUpClass()
 
     def setup(self):
@@ -178,11 +179,13 @@ class TestSyncCodeInfra(TestSyncWatchBase):
         self._verify_infra_changes(self.stack_resources)
 
 
+@parameterized_class(
+    [{"dependency_layer": True}, {"dependency_layer": False}]
+)
 class TestSyncWatchCode(TestSyncWatchBase):
     @classmethod
     def setUpClass(cls):
         cls.template_before = f"code/before/template-python.yaml"
-        cls.dependency_layer = True
         super(TestSyncWatchCode, cls).setUpClass()
 
     def setup(self):
