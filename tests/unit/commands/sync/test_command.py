@@ -127,7 +127,7 @@ class TestDoCli(TestCase):
             create_auto_dependency_layer=auto_dependency_layer,
             stack_name=self.stack_name,
             print_success_message=False,
-            search_layer=True,
+            locate_layer_nested=True,
         )
 
         PackageContextMock.assert_called_with(
@@ -254,7 +254,7 @@ class TestDoCli(TestCase):
             create_auto_dependency_layer=auto_dependency_layer,
             stack_name=self.stack_name,
             print_success_message=False,
-            search_layer=True,
+            locate_layer_nested=True,
         )
 
         PackageContextMock.assert_called_with(

@@ -1043,7 +1043,7 @@ class TestSamFunctionProvider_init(TestCase):
         template = {"Resources": {"a": "b"}}
         get_template_mock.return_value = template
         stack = make_root_stack(template, self.parameter_overrides)
-        provider = SamFunctionProvider([stack], search_layer=True)
+        provider = SamFunctionProvider([stack], locate_layer_nested=True)
 
         extract_mock.assert_called_with([stack], False, False, True)
         get_template_mock.assert_called_with(template, self.parameter_overrides)
@@ -1169,11 +1169,12 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         expected = {"A/B/C/Func1": convertion_result}
 
         stack = make_root_stack(None)
-        result = SamFunctionProvider._extract_functions([stack], search_layer=True)
+        result = SamFunctionProvider._extract_functions([stack], locate_layer_nested=True)
         self.assertEqual(expected, result)
         convert_mock.assert_called_with(stack, "Func1", {"a": "b", "Metadata": {"SamResourceId": "id"}}, [], False)
         parse_layer_mock.assert_called_with(
-            stack, [], [stack], "id", False, ignore_code_extraction_warnings=False, search_layer=True
+            stack, [], False, ignore_code_extraction_warnings=False, locate_layer_nested=True, stacks=[stack],
+            function_id="id"
         )
 
     @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
@@ -1196,11 +1197,12 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         expected = {"A/B/C/Func1": convertion_result}
 
         stack = make_root_stack(None)
-        result = SamFunctionProvider._extract_functions([stack], search_layer=True)
+        result = SamFunctionProvider._extract_functions([stack], locate_layer_nested=True)
         self.assertEqual(expected, result)
         convert_mock.assert_called_with(stack, "Func1", {"a": "b", "Metadata": {"SamResourceId": "id"}}, [], False)
         parse_layer_mock.assert_called_with(
-            stack, [], [stack], "id", False, ignore_code_extraction_warnings=False, search_layer=True
+            stack, [], False, ignore_code_extraction_warnings=False, locate_layer_nested=True, stacks=[stack],
+            function_id="id"
         )
 
     @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
@@ -1223,7 +1225,8 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         self.assertEqual(expected, result)
         convert_mock.assert_called_with(stack, "Func1", {"a": "b", "Metadata": {"SamResourceId": "id"}}, [], False)
         parse_layer_mock.assert_called_with(
-            stack, [], None, None, False, ignore_code_extraction_warnings=False, search_layer=False
+            stack, [], False, ignore_code_extraction_warnings=False, locate_layer_nested=False, stacks=None,
+            function_id=None
         )
 
     @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
@@ -1250,7 +1253,8 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         self.assertEqual(expected, result)
         convert_mock.assert_called_with(stack, "Func1", {"a": "b", "Metadata": {"SamResourceId": "id"}}, [], False)
         parse_layer_mock.assert_called_with(
-            stack, [], None, None, False, ignore_code_extraction_warnings=False, search_layer=False
+            stack, [], False, ignore_code_extraction_warnings=False, locate_layer_nested=False, stacks=None,
+            function_id=None
         )
 
 
@@ -1738,8 +1742,8 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
 
         self.assertEqual(actual, [])
 
-    @patch.object(SamFunctionProvider, "_search_layer")
-    def test_layers_with_search_layer(self, search_layer_mock):
+    @patch.object(SamFunctionProvider, "_locate_layer_from_nested")
+    def test_layers_with_search_layer(self, locate_layer_mock):
         layer = {"Ref", "layer"}
         func_temp = {"Properties": {"Layers": [layer]}}
 
@@ -1747,7 +1751,7 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
 
         list_of_layers = [{"Ref": "Layer"}]
 
-        search_layer_mock.return_value = LayerVersion("Layer", "/somepath", stack_path=STACK_PATH)
+        locate_layer_mock.return_value = LayerVersion("Layer", "/somepath", stack_path=STACK_PATH)
 
         mock_stack = Mock(
             stack_path=STACK_PATH,
@@ -1756,13 +1760,13 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
             template_dict={"Resources": {"function_id": func_temp}},
         )
 
-        expected_layer = [search_layer_mock.return_value]
+        expected_layer = [locate_layer_mock.return_value]
 
         actual = SamFunctionProvider._parse_layer_info(
-            mock_stack, list_of_layers, [mock_stack], "function_id", search_layer=True
+            mock_stack, list_of_layers, stacks=[mock_stack], function_id="function_id", locate_layer_nested=True
         )
 
-        search_layer_mock.assert_called_with(mock_stack, [mock_stack], layer, False, False)
+        locate_layer_mock.assert_called_with(mock_stack, [mock_stack], layer, False, False)
 
         self.assertEqual(actual, expected_layer)
 
@@ -2360,20 +2364,20 @@ class TestSamFunctionProvider_search_layer(TestCase):
     @patch.object(SamFunctionProvider, "_locate_layer_from_ref")
     def test_search_layer_with_layer_arn(self, locate_layer_ref_mock):
         stack = Stack("", "", "template.yaml", None, self.root_stack_template)
-        layer_version = SamFunctionProvider._search_layer(stack, [stack], "layer_arn")
+        layer_version = SamFunctionProvider._locate_layer_from_nested(stack, [stack], "layer_arn")
         self.assertIsNone(layer_version)
         locate_layer_ref_mock.assert_not_called()
 
     @patch.object(SamFunctionProvider, "_locate_layer_from_ref")
     def test_search_layer_in_outputs(self, locate_layer_ref_mock):
         stack = Stack("", "", "template.yaml", None, self.layer_stack_template)
-        SamFunctionProvider._search_layer(stack, [stack], "LayerName")
+        SamFunctionProvider._locate_layer_from_nested(stack, [stack], "LayerName")
         locate_layer_ref_mock.assert_called_with(stack, {"Ref": "SamLayer"}, False, False)
 
     @patch.object(SamFunctionProvider, "_locate_layer_from_ref")
     def test_search_layer_ref_in_current_stack(self, locate_layer_ref_mock):
         stack = Stack("", "", "template.yaml", None, self.layer_stack_template)
-        SamFunctionProvider._search_layer(stack, [stack], {"Ref": "SamLayer"})
+        SamFunctionProvider._locate_layer_from_nested(stack, [stack], {"Ref": "SamLayer"})
         locate_layer_ref_mock.assert_called_with(stack, {"Ref": "SamLayer"}, False, False)
 
     @patch.object(SamFunctionProvider, "_locate_layer_from_ref")
@@ -2381,7 +2385,25 @@ class TestSamFunctionProvider_search_layer(TestCase):
         root_stack = Stack("", "root", "template.yaml", None, self.root_stack_template)
         child_layer_stack = Stack("root", "LayerStack", "template.yaml", None, self.layer_stack_template)
         child_function_stack = Stack("root", "FunctionStack", "template.yaml", None, self.function_stack_template)
-        SamFunctionProvider._search_layer(
+        SamFunctionProvider._locate_layer_from_nested(
             child_function_stack, [root_stack, child_layer_stack, child_function_stack], {"Ref": "Layer"}
         )
         locate_layer_ref_mock.assert_called_with(child_layer_stack, {"Ref": "SamLayer"}, False, False)
+
+    def test_validate_layer_get_attr_format(self):
+        valid_layer = {"Fn::GetAtt": ["LayerStackName", "Outputs.LayerName"]}
+        self.assertTrue(SamFunctionProvider._validate_layer_get_attr_format(valid_layer))
+
+        invalid_layer_not_list = {"Fn::GetAtt": ""}
+        self.assertFalse(SamFunctionProvider._validate_layer_get_attr_format(invalid_layer_not_list))
+
+        invalid_layer_empty_list = {"Fn::GetAtt": []}
+        self.assertFalse(SamFunctionProvider._validate_layer_get_attr_format(invalid_layer_empty_list))
+
+        invalid_layer_str_format = {"Fn::GetAtt": ["LayerStackName", ""]}
+        self.assertFalse(SamFunctionProvider._validate_layer_get_attr_format(invalid_layer_str_format))
+
+        invalid_layer_str_format = {"Fn::GetAtt": ["LayerStackName", "Outputs.invalid.format"]}
+        self.assertFalse(SamFunctionProvider._validate_layer_get_attr_format(invalid_layer_str_format))
+
+

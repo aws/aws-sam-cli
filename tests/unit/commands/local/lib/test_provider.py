@@ -802,8 +802,8 @@ class TestGetResourceFullPathByID(TestCase):
 
 
 class TestGetStack(TestCase):
-    root_stack = Stack("", "root", "template.yaml", None, {})
-    child_stack = Stack("root", "child", "template.yaml", None, {})
+    root_stack = Stack("", "", "template.yaml", None, {})
+    child_stack = Stack("", "child", "template.yaml", None, {})
 
     def test_get_parent_stack(self):
         stack = Stack.get_parent_stack(self.child_stack, [self.root_stack, self.child_stack])
@@ -813,8 +813,8 @@ class TestGetStack(TestCase):
         self.assertIsNone(stack)
 
     def test_get_stack_by_logical_id(self):
-        stack = Stack.get_stack_by_logical_id("root", [self.root_stack, self.child_stack])
-        self.assertEqual(stack, self.root_stack)
+        stack = Stack.get_stack_by_logical_id("child", [self.root_stack, self.child_stack])
+        self.assertEqual(stack, self.child_stack)
 
         stack = Stack.get_stack_by_logical_id("not_exist", [self.root_stack, self.child_stack])
         self.assertIsNone(stack)
