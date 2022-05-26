@@ -5,24 +5,11 @@ Globals:
   Function:
     Timeout: 10
 
-Parameters:
-  EnableNestedStack:
-    AllowedValues:
-      - 'true'
-      - 'false'
-    Default: 'false'
-    Type: String
-
-Conditions:
-  NestedStackCondition: !Equals
-    - !Ref EnableNestedStack
-    - 'true'
-
 Resources:
   HelloWorldFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: before/Python/function/
+      CodeUri: after/Python/function/
       Handler: app.lambda_handler
       Runtime: python3.7
       Layers:
@@ -33,20 +20,20 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       StageName: prod
-      DefinitionUri: before/Python/apigateway/definition.json
+      DefinitionUri: after/Python/apigateway/definition.json
 
   HelloWorldApiV2:
     Type: AWS::Serverless::HttpApi
     Properties:
       StageName: beta
-      DefinitionUri: before/Python/apigateway2/definition.yaml
+      DefinitionUri: after/Python/apigateway2/definition.yaml
 
   HelloWorldLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
       LayerName: HelloWorldLayer
       Description: Hello World Layer
-      ContentUri: before/Python/layer/
+      ContentUri: after/Python/layer/
       CompatibleRuntimes:
         - python3.7
     Metadata:
@@ -55,13 +42,7 @@ Resources:
   HelloStepFunction:
     Type: AWS::Serverless::StateMachine
     Properties:
-      DefinitionUri: before/Python/statemachine/function.asl.json
+      DefinitionUri: after/Python/statemachine/function.asl.json
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref HelloWorldFunction
-
-  LocalNestedChildStack:
-    Condition: NestedStackCondition
-    Type: AWS::Serverless::Application
-    Properties:
-      Location: ./template-python-nested-child-before.yaml

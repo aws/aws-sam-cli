@@ -58,6 +58,7 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
 
     def _get_stacks(self, stack_name):
         physical_ids = {}
+        nested_stack_resources = {}
         response = self.cfn_client.describe_stack_resources(StackName=stack_name).get("StackResources", {})
         for resource in response:
             resource_type = resource.get("ResourceType")
@@ -68,11 +69,15 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
                 for nested_resource_type, nested_physical_ids in nested_stack_physical_ids.items():
                     if nested_resource_type not in physical_ids:
                         physical_ids[nested_resource_type] = []
+                    if nested_resource_type not in nested_stack_resources:
+                        nested_stack_resources[nested_resource_type] = []
                     physical_ids[nested_resource_type] += nested_physical_ids
+                    nested_stack_resources[nested_resource_type] += nested_physical_ids
                 continue
             if resource_type not in physical_ids:
                 physical_ids[resource.get("ResourceType")] = []
             physical_ids[resource_type].append(resource.get("PhysicalResourceId"))
+        physical_ids["nested_resources"] = nested_stack_resources
         return physical_ids
 
     def _get_lambda_response(self, lambda_function):

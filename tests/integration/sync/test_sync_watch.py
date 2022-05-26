@@ -94,6 +94,7 @@ class TestSyncWatchBase(SyncIntegBase):
         template_path = self.test_dir.joinpath(self.template_before)
         self.stacks.append({"name": self.stack_name})
 
+        parameter_overrides = "Parameter=Clarity" if not self.parameter_overrides else self.parameter_overrides
         # Start watch
         sync_command_list = self.get_sync_command_list(
             template_file=str(template_path),
@@ -101,7 +102,7 @@ class TestSyncWatchBase(SyncIntegBase):
             watch=True,
             dependency_layer=True,
             stack_name=self.stack_name,
-            parameter_overrides="Parameter=Clarity",
+            parameter_overrides=parameter_overrides,
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -126,6 +127,22 @@ class TestSyncWatchBase(SyncIntegBase):
         state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
         self.assertEqual(self._get_sfn_response(state_machine), '"World 1"')
 
+    def _verify_infra_changes(self, resources):
+        # Lambda
+        lambda_functions = resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "9")
+
+        # APIGW
+        rest_api = resources.get(AWS_APIGATEWAY_RESTAPI)[0]
+        self.assertEqual(self._get_api_message(rest_api), '{"message": "hello 2"}')
+
+        # SFN
+        state_machine = resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
+        self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')
+
     @staticmethod
     def update_file(source, destination):
         with open(source, "rb") as source_file:
@@ -138,6 +155,7 @@ class TestSyncCodeInfra(TestSyncWatchBase):
     @classmethod
     def setUpClass(cls):
         cls.template_before = f"infra/template-{cls.runtime}-before.yaml"
+        cls.parameter_overrides = None
         super(TestSyncCodeInfra, cls).setUpClass()
 
     def setup(self):
@@ -157,27 +175,14 @@ class TestSyncCodeInfra(TestSyncWatchBase):
 
         # Updated Infra Validation
         self.stack_resources = self._get_stacks(self.stack_name)
-
-        # Lambda
-        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
-        for lambda_function in lambda_functions:
-            lambda_response = json.loads(self._get_lambda_response(lambda_function))
-            self.assertIn("extra_message", lambda_response)
-            self.assertEqual(lambda_response.get("message"), "9")
-
-        # APIGW
-        rest_api = self.stack_resources.get(AWS_APIGATEWAY_RESTAPI)[0]
-        self.assertEqual(self._get_api_message(rest_api), '{"message": "hello 2"}')
-
-        # SFN
-        state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
-        self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')
+        self._verify_infra_changes(self.stack_resources)
 
 
 class TestSyncWatchCode(TestSyncWatchBase):
     @classmethod
     def setUpClass(cls):
         cls.template_before = f"code/before/template-python.yaml"
+        cls.parameter_overrides = None
         super(TestSyncWatchCode, cls).setUpClass()
 
     def setup(self):
@@ -245,7 +250,8 @@ class TestSyncWatchCode(TestSyncWatchBase):
 class TestSyncInfraNestedStacks(TestSyncWatchBase):
     @classmethod
     def setUpClass(cls):
-        cls.template_before = f"code/before/template-python.yaml"
+        cls.template_before = f"infra/template-python-before.yaml"
+        cls.parameter_overrides = "EnableNestedStack=true"
         super(TestSyncInfraNestedStacks, cls).setUpClass()
 
     def setup(self):
@@ -253,3 +259,15 @@ class TestSyncInfraNestedStacks(TestSyncWatchBase):
 
     def tearDown(self):
         super(TestSyncInfraNestedStacks, self).tearDown()
+
+    def test_sync_watch_infra_nested_stack(self):
+        self.update_file(
+            self.test_dir.joinpath(f"infra/template-python-nested-child-after.yaml"),
+            self.test_dir.joinpath(f"infra/template-python-nested-child-before.yaml"),
+        )
+
+        read_until_string(self.watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n", timeout=600)
+
+        # Updated Infra Validation
+        self.stack_resources = self._get_stacks(self.stack_name).get("nested_resources", {})
+        self._verify_infra_changes(self.stack_resources)
