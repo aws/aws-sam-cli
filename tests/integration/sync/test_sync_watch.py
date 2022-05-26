@@ -179,9 +179,7 @@ class TestSyncCodeInfra(TestSyncWatchBase):
         self._verify_infra_changes(self.stack_resources)
 
 
-@parameterized_class(
-    [{"dependency_layer": True}, {"dependency_layer": False}]
-)
+@parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 class TestSyncWatchCode(TestSyncWatchBase):
     @classmethod
     def setUpClass(cls):
