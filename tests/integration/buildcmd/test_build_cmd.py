@@ -1567,13 +1567,9 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
             "Function2Handler": "main.second_function_handler",
             "FunctionRuntime": "python3.8",
         }
-        config_file_testdata = Path(__file__).resolve().parents[2].joinpath("integration", "testdata")
-        config_file_buildcmd = config_file_testdata.joinpath("buildcmd")
-        config_file = str(config_file_buildcmd.joinpath("samconfig_no_cached.toml"))
+        config_file = str(Path(self.test_data_path).joinpath("samconfig_no_cached.toml"))
         cmdlist = self.get_command_list(parameter_overrides=overrides, cached=True)
         command_result = run_command(cmdlist, cwd=self.working_dir)
-        self.assertTrue(self.default_build_dir.exists())
-        self.assertIn("samconfig_no_cached.toml", os.listdir(str(config_file_buildcmd)))
         self.assertTrue(
             "Running PythonPipBuilder:ResolveDependencies" in str(command_result.stderr)
             and "Running PythonPipBuilder:CopySource" in str(command_result.stderr),
