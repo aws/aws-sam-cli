@@ -181,7 +181,7 @@ def track_command(func):
         for i, line in enumerate(stack_trace_lines):
             dir_index = line.find(working_directory)
             if dir_index != -1:
-                stack_trace_lines[i] = line[:dir_index] + line[dir_index+len(working_directory):]
+                stack_trace_lines[i] = line[:dir_index] + line[dir_index+len(working_directory)+1:]
 
         stack_trace = '\n'.join(stack_trace_lines)
         return stack_trace
