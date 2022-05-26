@@ -1,8 +1,10 @@
 import os
-from typing import Optional
-from unittest import TestCase, skipIf
+from unittest import TestCase
 from pathlib import Path
-from subprocess import Popen, PIPE, TimeoutExpired
+import uuid
+import shutil
+import tempfile
+
 
 
 class ResourcesIntegBase(TestCase):
@@ -13,10 +15,16 @@ class ResourcesIntegBase(TestCase):
 
     def setUp(self):
         super().setUp()
+        self.scratch_dir = str(Path(__file__).resolve().parent.joinpath(str(uuid.uuid4()).replace("-", "")[:10]))
+        shutil.rmtree(self.scratch_dir, ignore_errors=True)
+        os.mkdir(self.scratch_dir)
+
+        self.working_dir = tempfile.mkdtemp(dir=self.scratch_dir)
 
     def tearDown(self):
         super().tearDown()
 
+    @classmethod
     def base_command(self):
         command = "sam"
         if os.getenv("SAM_CLI_DEV"):
@@ -24,7 +32,7 @@ class ResourcesIntegBase(TestCase):
 
         return command
 
-    def get_resources_command_list(self, stack_name=None, output=None):
+    def get_resources_command_list(self, stack_name=None, output=None, help=False):
         command_list = [self.base_command(), "list", "resources"]
         if stack_name:
             command_list += ["--stack-name", str(stack_name)]
@@ -32,6 +40,7 @@ class ResourcesIntegBase(TestCase):
         if output:
             command_list += ["--output", str(output)]
 
+        if help:
+            command_list += ["--help"]
+
         return command_list
-
-
