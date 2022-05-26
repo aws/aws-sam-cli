@@ -66,6 +66,7 @@ class TestSyncWatchBase(SyncIntegBase):
         self.s3_prefix = uuid.uuid4().hex
         self.test_dir = Path(tempfile.mkdtemp())
         self.template_before = "" if not self.template_before else self.template_before
+        self.dependency_layer = True if self.dependency_layer is None else self.dependency_layer
         self.stack_name = self._method_to_stack_name(self.id())
         # Remove temp dir so that shutil.copytree will not throw an error
         # Needed for python 3.6 and 3.7 as these versions don't have dirs_exist_ok
@@ -94,15 +95,14 @@ class TestSyncWatchBase(SyncIntegBase):
         template_path = self.test_dir.joinpath(self.template_before)
         self.stacks.append({"name": self.stack_name})
 
-        parameter_overrides = "Parameter=Clarity" if not self.parameter_overrides else self.parameter_overrides
         # Start watch
         sync_command_list = self.get_sync_command_list(
             template_file=str(template_path),
             code=False,
             watch=True,
-            dependency_layer=True,
+            dependency_layer=self.dependency_layer,
             stack_name=self.stack_name,
-            parameter_overrides=parameter_overrides,
+            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -155,7 +155,7 @@ class TestSyncCodeInfra(TestSyncWatchBase):
     @classmethod
     def setUpClass(cls):
         cls.template_before = f"infra/template-{cls.runtime}-before.yaml"
-        cls.parameter_overrides = None
+        cls.dependency_layer = True
         super(TestSyncCodeInfra, cls).setUpClass()
 
     def setup(self):
@@ -182,7 +182,7 @@ class TestSyncWatchCode(TestSyncWatchBase):
     @classmethod
     def setUpClass(cls):
         cls.template_before = f"code/before/template-python.yaml"
-        cls.parameter_overrides = None
+        cls.dependency_layer = True
         super(TestSyncWatchCode, cls).setUpClass()
 
     def setup(self):
@@ -250,8 +250,9 @@ class TestSyncWatchCode(TestSyncWatchBase):
 class TestSyncInfraNestedStacks(TestSyncWatchBase):
     @classmethod
     def setUpClass(cls):
-        cls.template_before = f"infra/template-python-before.yaml"
-        cls.parameter_overrides = "EnableNestedStack=true"
+        cls.template_before = f"infra/parent-stack.yaml"
+        cls.dependency_layer = False
+        # cls.parameter_overrides = "EnableNestedStack=true"
         super(TestSyncInfraNestedStacks, cls).setUpClass()
 
     def setup(self):
@@ -262,12 +263,89 @@ class TestSyncInfraNestedStacks(TestSyncWatchBase):
 
     def test_sync_watch_infra_nested_stack(self):
         self.update_file(
-            self.test_dir.joinpath(f"infra/template-python-nested-child-after.yaml"),
-            self.test_dir.joinpath(f"infra/template-python-nested-child-before.yaml"),
+            self.test_dir.joinpath(f"infra/template-python-after.yaml"),
+            self.test_dir.joinpath(f"infra/template-python-before.yaml"),
         )
 
         read_until_string(self.watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n", timeout=600)
 
         # Updated Infra Validation
-        self.stack_resources = self._get_stacks(self.stack_name).get("nested_resources", {})
+        self.stack_resources = self._get_stacks(self.stack_name)
         self._verify_infra_changes(self.stack_resources)
+
+
+class TestSyncCodeWatchNestedStacks(TestSyncWatchBase):
+    @classmethod
+    def setUpClass(cls):
+        cls.template_before = f"code/before/parent-stack.yaml"
+        cls.dependency_layer = False
+        super(TestSyncCodeWatchNestedStacks, cls).setUpClass()
+
+    def setup(self):
+        super(TestSyncCodeWatchNestedStacks, self).setUp()
+
+    def tearDown(self):
+        super(TestSyncCodeWatchNestedStacks, self).tearDown()
+
+    def test_sync_watch_code_nested_stack(self):
+        self.stack_resources = self._get_stacks(self.stack_name)
+
+        # Test Lambda Function
+        self.update_file(
+            self.test_dir.joinpath("code/after/function/app.py"),
+            self.test_dir.joinpath("code/before/function/app.py"),
+        )
+        read_until_string(
+            self.watch_process,
+            "\x1b[32mFinished syncing Lambda Function LocalNestedChildStack/HelloWorldFunction.\x1b[0m\n",
+            timeout=30,
+        )
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "8")
+
+        # Test Lambda Layer
+        self.update_file(
+            self.test_dir.joinpath("code/after/layer/layer_method.py"),
+            self.test_dir.joinpath("code/before/layer/layer_method.py"),
+        )
+        read_until_string(
+            self.watch_process,
+            "\x1b[32mFinished syncing Function Layer Reference Sync LocalNestedChildStack/HelloWorldFunction.\x1b[0m\n",
+            timeout=30,
+        )
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "9")
+
+        # Test APIGW
+        self.update_file(
+            self.test_dir.joinpath("code/after/apigateway/definition.json"),
+            self.test_dir.joinpath("code/before/apigateway/definition.json"),
+        )
+        read_until_string(
+            self.watch_process,
+            "\x1b[32mFinished syncing RestApi LocalNestedChildStack/HelloWorldApi.\x1b[0m\n",
+            timeout=20,
+        )
+        time.sleep(API_SLEEP)
+        rest_api = self.stack_resources.get(AWS_APIGATEWAY_RESTAPI)[0]
+        self.assertEqual(self._get_api_message(rest_api), '{"message": "hello 2"}')
+
+        # Test SFN
+        self.update_file(
+            self.test_dir.joinpath("code/after/statemachine/function.asl.json"),
+            self.test_dir.joinpath("code/before/statemachine/function.asl.json"),
+        )
+        read_until_string(
+            self.watch_process,
+            "\x1b[32mFinished syncing StepFunctions LocalNestedChildStack/HelloStepFunction.\x1b[0m\n",
+            timeout=20,
+        )
+        state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
+        time.sleep(SFN_SLEEP)
+        self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')

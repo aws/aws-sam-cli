@@ -5,19 +5,6 @@ Globals:
   Function:
     Timeout: 10
 
-Parameters:
-  EnableNestedStack:
-    AllowedValues:
-      - 'true'
-      - 'false'
-    Default: 'false'
-    Type: String
-
-Conditions:
-  NestedStackCondition: !Equals
-    - !Ref EnableNestedStack
-    - 'true'
-
 Resources:
   HelloWorldFunction:
     Type: AWS::Serverless::Function
@@ -59,9 +46,3 @@ Resources:
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref HelloWorldFunction
-
-  LocalNestedChildStack:
-    Condition: NestedStackCondition
-    Type: AWS::Serverless::Application
-    Properties:
-      Location: ./template-python-nested-child-before.yaml
