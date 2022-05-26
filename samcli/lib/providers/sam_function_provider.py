@@ -593,9 +593,12 @@ class SamFunctionProvider(SamBaseProvider):
         if isinstance(layer, str):
             outputs = stack.template_dict.get("Outputs", {})
             # if the layer is not in the output section, it may be an layer arn and cannot be located in the template
+            LOG.debug("Search layer %s in %s 's Output section", layer, stack.stack_path)
             if layer not in outputs:
+                LOG.debug("Layer not in Output section, layer can not be located in templates")
                 return None
             layer = outputs.get(layer).get("Value")
+            LOG.debug("Layer found in Output section, try to search it in current stack %s", stack.stack_path)
 
         # if the layer is in format {Ref:LayerName}, it is passed from the parent stack through parameter or is a
         # reference to the layer in current stack
@@ -610,12 +613,15 @@ class SamFunctionProvider(SamBaseProvider):
                 return None
             layer_stack_reference = layer_attribute[0]
             layer_reference = layer_attribute[1].split(".")[1]
+            LOG.debug("Search layer %s in child stack", layer_reference)
 
             child_stacks = Stack.get_child_stacks(stack, stacks)
             child_stack = Stack.get_stack_by_logical_id(layer_stack_reference, child_stacks)
             if not child_stack:
+                LOG.debug("Child stack not found, layer can not be located in templates")
                 return None
             # search in child stack
+            LOG.debug("Child stack %s found", child_stack.stack_path)
             return SamFunctionProvider._locate_layer_from_nested(
                 child_stack, stacks, layer_reference, use_raw_codeuri, ignore_code_extraction_warnings
             )
@@ -623,6 +629,7 @@ class SamFunctionProvider(SamBaseProvider):
         # If the layer reference is not in the stack's parameters section, it must be a layer reference in current stack
         parameters: Dict = stack.template_dict.get("Parameters", {})
         if not parameters or layer_reference not in parameters:
+            LOG.debug("Resolved layer: %s in current stack %s", layer_reference, stack.stack_path)
             # layer reference should be in current stack
             resolve_layer = SamFunctionProvider._locate_layer_from_ref(
                 stack, layer, use_raw_codeuri, ignore_code_extraction_warnings
@@ -631,10 +638,13 @@ class SamFunctionProvider(SamBaseProvider):
 
         # search in parent stack
         parent_stack = Stack.get_parent_stack(stack, stacks)
+        LOG.debug("Search layer: %s in parent stack", layer_reference)
         # If it can't find the parent stack, it mean's the current stack is root stack and the layer reference may be a
         # layer arn passing from root stack's parameters, which means the actual layer can't be located in templates
         if not parent_stack:
+            LOG.debug("Parent stack not found, layer can not be located in templates")
             return None
+        LOG.debug("Found parent stack: %s", parent_stack.stack_path)
         layer = (
             parent_stack.template_dict.get("Resources", {})
             .get(stack.name, {})
