@@ -127,7 +127,7 @@ def wait_for_function_update_complete(lambda_client: BaseClient, physical_id: st
 
     status = FunctionUpdateStatus.IN_PROGRESS.value
     while status == FunctionUpdateStatus.IN_PROGRESS.value:
-        response = lambda_client.get_function(FunctionName=physical_id)
+        response = lambda_client.get_function(FunctionName=physical_id)  # type: ignore
         status = response.get("Configuration", {}).get("LastUpdateStatus", "")
 
         if status == FunctionUpdateStatus.IN_PROGRESS.value:
