@@ -75,6 +75,7 @@ class BuildIntegBase(TestCase):
         container_env_var=None,
         container_env_var_file=None,
         build_image=None,
+        exclude=None,
         region=None,
     ):
 
@@ -120,6 +121,9 @@ class BuildIntegBase(TestCase):
 
         if build_image:
             command_list += ["--build-image", build_image]
+
+        if exclude:
+            command_list += ["--exclude", exclude]
 
         if region:
             command_list += ["--region", region]

@@ -188,13 +188,6 @@ class ApplicationBuilder:
             Returns the build graph and the path to where each resource was built as a map of resource's LogicalId
             to the path string
         """
-        # Remove excluded resources
-        resources_to_build = ResourcesToBuildCollector()
-        excludes: List[str] = list(self._exclude) if self._exclude else []
-        resources_to_build.add_functions([f for f in self._resources_to_build.functions if f.name not in excludes])
-        resources_to_build.add_layers([l for l in self._resources_to_build.layers if l.name not in excludes])
-        self._resources_to_build = resources_to_build
-
         build_graph = self._get_build_graph(self._container_env_var, self._container_env_var_file)
         build_strategy: BuildStrategy = DefaultBuildStrategy(
             build_graph, self._build_dir, self._build_function, self._build_layer

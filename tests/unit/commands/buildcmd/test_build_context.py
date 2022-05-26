@@ -1174,9 +1174,7 @@ class TestBuildContext_exclude_warning(TestCase):
             mode="mode",
             excluded_resources=exclude,
         )
-        with patch.object(build_context, "get_resources_to_build") as mocked_resources_to_build:
-            mocked_resources_to_build.return_value = Mock(functions=[DummyFunction(resource_id)])
-            build_context._check_exclude_warning()
+        build_context._check_exclude_warning()
 
         if should_print:
             log_mock.warning.assert_called_once_with(BuildContext._EXCLUDE_WARNING_MESSAGE)

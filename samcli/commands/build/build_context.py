@@ -584,6 +584,6 @@ Commands you can use next
         """
         Prints warning message if a single resource to build is also being excluded
         """
-        excludes: List[str] = list(self._exclude) if self._exclude else []
+        excludes: Tuple[str, ...] = self._exclude if self._exclude is not None else ()
         if self._resource_identifier in excludes:
             LOG.warning(self._EXCLUDE_WARNING_MESSAGE)
