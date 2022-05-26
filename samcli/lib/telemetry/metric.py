@@ -7,6 +7,8 @@ from functools import wraps, reduce
 import uuid
 import platform
 import logging
+import traceback
+import os
 from typing import Optional
 
 import click
@@ -115,6 +117,7 @@ def track_command(func):
         return_value = None
         exit_reason = "success"
         exit_code = 0
+        stack_trace = None
 
         duration_fn = _timer()
         try:
@@ -131,12 +134,14 @@ def track_command(func):
                 exit_reason = type(ex).__name__
             else:
                 exit_reason = ex.wrapped_from
+            stack_trace = _get_stack_trace()
 
         except Exception as ex:
             exception = ex
             # Standard Unix practice to return exit code 255 on fatal/unhandled exit.
             exit_code = 255
             exit_reason = type(ex).__name__
+            stack_trace = _get_stack_trace()
 
         try:
             ctx = Context.get_current_context()
@@ -151,7 +156,7 @@ def track_command(func):
             metric = Metric(metric_name)
             metric.add_data("awsProfileProvided", bool(ctx.profile))
             metric.add_data("debugFlagProvided", bool(ctx.debug))
-            metric.add_data("region", ctx.region or "")
+            metric.add_data("region", ctx.region or "") 
             metric.add_data("commandName", ctx.command_path)  # Full command path. ex: sam local start-api
             if metric_specific_attributes:
                 metric.add_data("metricSpecificAttributes", metric_specific_attributes)
@@ -159,6 +164,7 @@ def track_command(func):
             metric.add_data("duration", duration_fn())
             metric.add_data("exitReason", exit_reason)
             metric.add_data("exitCode", exit_code)
+            metric.add_data("stackTrace", stack_trace)
             telemetry.emit(metric)
         except RuntimeError:
             LOG.debug("Unable to find Click Context for getting session_id.")
@@ -166,6 +172,19 @@ def track_command(func):
             raise exception  # pylint: disable=raising-bad-type
 
         return return_value
+
+    def _get_stack_trace():
+        # Obtains stack trace (during an exception) and filters out the working directory path whenever possible
+        stack_trace_lines = traceback.format_exc().splitlines()
+        working_directory = os.getcwd()
+
+        for i, line in enumerate(stack_trace_lines):
+            dir_index = line.find(working_directory)
+            if dir_index != -1:
+                stack_trace_lines[i] = line[:dir_index] + line[dir_index+len(working_directory):]
+
+        stack_trace = '\n'.join(stack_trace_lines)
+        return stack_trace
 
     return wrapped
 

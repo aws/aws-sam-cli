@@ -184,6 +184,7 @@ class TestTrackCommand(TestCase):
             "duration": ANY,
             "exitReason": "success",
             "exitCode": 0,
+            "stackTrace": None
         }
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric = args[0]
