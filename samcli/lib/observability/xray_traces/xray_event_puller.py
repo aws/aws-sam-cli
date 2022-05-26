@@ -133,8 +133,11 @@ class XRayTracePuller(AbstractXRayPuller):
             LOG.debug("Nothing to fetch, empty event_id dict given (%s)", event_ids)
             return
 
-        # xray client only accepts 5 items at max, so create batches of 5 element arrays
-        event_batches = zip_longest(*([iter(event_ids.keys())] * 5))  # type: ignore
+        if isinstance(event_ids, dict):
+            # xray client only accepts 5 items at max, so create batches of 5 element arrays
+            event_batches = zip_longest(*([iter(event_ids.keys())] * 5))
+        else:
+            event_batches = zip_longest(*([iter(event_ids)] * 5))
 
         for event_batch in event_batches:
             kwargs: Dict[str, Any] = {"TraceIds": list(filter(None, event_batch))}
@@ -149,7 +152,10 @@ class XRayTracePuller(AbstractXRayPuller):
                 for trace in traces:
                     self._had_data = True
                     trace_id = trace.get("Id", None)
-                    xray_trace_event = XRayTraceEvent(trace, event_ids.get(trace_id, None))  # type: ignore
+                    if isinstance(event_ids, dict):
+                        xray_trace_event = XRayTraceEvent(trace, event_ids.get(trace_id, None))
+                    else:
+                        xray_trace_event = XRayTraceEvent(trace)
 
                     # update latest fetched event
                     latest_event_time = xray_trace_event.get_latest_event_time()

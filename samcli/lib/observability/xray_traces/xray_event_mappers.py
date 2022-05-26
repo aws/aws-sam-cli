@@ -24,8 +24,9 @@ class XRayTraceConsoleMapper(ObservabilityEventMapper[XRayTraceEvent]):
     def map(self, event: XRayTraceEvent) -> XRayTraceEvent:
         formatted_segments = self.format_segments(event.segments)
         iso_formatted_timestamp = datetime.fromtimestamp(event.timestamp).isoformat()
+        revision_info = f"[revision {event.revision}] " if event.revision else ""
         mapped_message = (
-            f"\nXRay Event [revision {event.revision}] at ({iso_formatted_timestamp}) with \
+            f"\nXRay Event {revision_info}at ({iso_formatted_timestamp}) with \
 id ({event.id}) and duration ({event.duration:.3f}s)"
             f"{formatted_segments}"
         )
