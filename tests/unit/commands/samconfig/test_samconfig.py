@@ -177,6 +177,7 @@ class TestSamConfigForAllCommands(TestCase):
             "container_env_var": (""),
             "container_env_var_file": "file",
             "build_image": (""),
+            "exclude": (""),
         }
 
         with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
