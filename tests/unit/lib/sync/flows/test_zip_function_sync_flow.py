@@ -214,11 +214,11 @@ class TestZipFunctionSyncFlow(TestCase):
             patched_get_physical_id.assert_called_with("Function1")
 
             given_lambda_client.get_function.assert_called_with(FunctionName=given_physical_id)
-            self.assertEqual( given_lambda_client.get_function.call_count, 3)
+            self.assertEqual(given_lambda_client.get_function.call_count, 3)
 
     def test_verify_function_status_failure(self):
         sync_flow = self.create_function_sync_flow()
-        
+
         given_lambda_client = MagicMock()
         sync_flow._lambda_client = given_lambda_client
 

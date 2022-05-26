@@ -380,7 +380,6 @@ class TestFunctionLayerReferenceSync(TestCase):
             )
             self.function_layer_sync._verify_function_status.assert_called_once()
             self.function_layer_sync._get_lock_chain.return_value.__exit__.assert_called_once()
-            
 
     def test_sync_with_existing_new_layer_version_arn(self):
         given_lambda_client = Mock()
@@ -393,7 +392,7 @@ class TestFunctionLayerReferenceSync(TestCase):
             self.function_layer_sync._get_lock_chain = MagicMock()
             self.function_layer_sync.has_locks = MagicMock()
             self.function_layer_sync._verify_function_status = Mock()
-            
+
             given_physical_id = Mock()
             patched_get_physical_id.return_value = given_physical_id
 
@@ -438,7 +437,7 @@ class TestFunctionLayerReferenceSync(TestCase):
             patched_get_physical_id.assert_called_with(self.function_identifier)
 
             given_lambda_client.get_function.assert_called_with(FunctionName=given_physical_id)
-            self.assertEqual( given_lambda_client.get_function.call_count, 3)
+            self.assertEqual(given_lambda_client.get_function.call_count, 3)
 
     def test_verify_function_status_failure(self):
         given_lambda_client = Mock()
