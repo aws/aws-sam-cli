@@ -11,5 +11,3 @@ class TestResources(ResourcesIntegBase):
         from_command = "".join(re.split(" *", str(command_result.stdout).replace("\\n", "")))
         from_help = "".join(re.split("\n*| *", HELP_TEXT))
         self.assertTrue(from_help in from_command, "Resources help text should have been printed")
-
-

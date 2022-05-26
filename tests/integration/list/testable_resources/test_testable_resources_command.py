@@ -3,6 +3,7 @@ from samcli.commands.list.testable_resources.cli import HELP_TEXT
 from tests.testing_utils import run_command
 import re
 
+
 class TestTestableResources(TestableResourcesIntegBase):
     def test_testable_resources_help_message(self):
         cmdlist = self.get_testable_resources_command_list(help=True)
@@ -11,5 +12,3 @@ class TestTestableResources(TestableResourcesIntegBase):
         from_help = "".join(re.split("\n*| *", HELP_TEXT))
 
         self.assertTrue(from_help in from_command, "Testable-resources help text should have been printed")
-
-

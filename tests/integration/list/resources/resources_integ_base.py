@@ -6,7 +6,6 @@ import shutil
 import tempfile
 
 
-
 class ResourcesIntegBase(TestCase):
     @classmethod
     def setUpClass(cls):
