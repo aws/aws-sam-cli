@@ -1015,6 +1015,44 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+class TestBuildCommand_ExcludeFiles(BuildIntegBase):
+    template = "many-more-functions-template.yaml"
+
+    @parameterized.expand(
+        [
+            ((), None),
+            ("FunctionOne", None),
+            ("FunctionThree", None),
+            ("FunctionOne", "FunctionOne"),
+            ("FunctionOne", "FunctionTwo"),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_build_without_resources(self, excluded_resources, function_identifier):
+        overrides = {"Runtime": "python3.7", "CodeUri": "Python", "Handler": "main.handler"}
+        cmdlist = self.get_command_list(
+            parameter_overrides=overrides, function_identifier=function_identifier, exclude=excluded_resources
+        )
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        run_command(cmdlist, cwd=self.working_dir)
+
+        self._verify_resources_excluded(self.default_build_dir, excluded_resources, function_identifier)
+
+    def _verify_resources_excluded(self, build_dir, excluded_resources, function_identifier):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+
+        if function_identifier is not None and function_identifier not in excluded_resources:
+            for resource in excluded_resources:
+                self.assertNotIn(resource, build_dir_files)
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
 class TestBuildCommand_LayerBuilds(BuildIntegBase):
     template = "layers-functions-template.yaml"
 
