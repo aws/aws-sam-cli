@@ -156,7 +156,7 @@ def track_command(func):
             metric = Metric(metric_name)
             metric.add_data("awsProfileProvided", bool(ctx.profile))
             metric.add_data("debugFlagProvided", bool(ctx.debug))
-            metric.add_data("region", ctx.region or "") 
+            metric.add_data("region", ctx.region or "")
             metric.add_data("commandName", ctx.command_path)  # Full command path. ex: sam local start-api
             if metric_specific_attributes:
                 metric.add_data("metricSpecificAttributes", metric_specific_attributes)
@@ -181,9 +181,9 @@ def track_command(func):
         for i, line in enumerate(stack_trace_lines):
             dir_index = line.find(working_directory)
             if dir_index != -1:
-                stack_trace_lines[i] = line[:dir_index] + line[dir_index+len(working_directory)+1:]
+                stack_trace_lines[i] = line[:dir_index] + line[dir_index + len(working_directory) + 1 :]
 
-        stack_trace = '\n'.join(stack_trace_lines)
+        stack_trace = "\n".join(stack_trace_lines)
         return stack_trace
 
     return wrapped
