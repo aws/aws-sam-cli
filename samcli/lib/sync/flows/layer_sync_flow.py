@@ -5,7 +5,6 @@ import logging
 import os
 import re
 import tempfile
-import time
 import uuid
 from abc import ABC, abstractmethod
 from typing import Any, TYPE_CHECKING, cast, Dict, List, Optional
@@ -20,7 +19,7 @@ from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall, ApiCallTypes
 from samcli.lib.sync.sync_flow_executor import HELP_TEXT_FOR_SYNC_INFRA
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.hash import file_checksum
-from samcli.lib.sync.flows.function_sync_flow import FunctionUpdateStatus
+from samcli.lib.sync.flows.function_sync_flow import wait_for_function_update_complete
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.build.build_context import BuildContext
@@ -328,8 +327,9 @@ class FunctionLayerReferenceSync(SyncFlow):
 
             self._lambda_client.update_function_configuration(FunctionName=function_physical_id, Layers=layer_arns)
 
-            if self._verify_function_status():
-                LOG.debug(self._color.green("Function configuration update status is now successful on cloud."))
+            lambda_client = self._lambda_client
+            physical_id = self.get_physical_id(self._function_identifier)
+            wait_for_function_update_complete(lambda_client, physical_id)
 
     def _get_resource_api_calls(self) -> List[ResourceAPICall]:
         return [
@@ -350,17 +350,3 @@ class FunctionLayerReferenceSync(SyncFlow):
 
     def _equality_keys(self) -> Any:
         return self._function_identifier, self._layer_arn, self._new_layer_version
-
-    def _verify_function_status(self) -> bool:
-        """
-        return value:
-        True if last function update was successful
-        False if last function update was still in progress or failed
-        """
-        response = self._lambda_client.get_function(FunctionName=self.get_physical_id(self._function_identifier))
-        if response.get("Configuration", {}).get("LastUpdateStatus", "") == FunctionUpdateStatus.IN_PROGRESS.value:
-            time.sleep(FUNCTION_SLEEP)
-            return self._verify_function_status()
-        if response.get("Configuration", {}).get("LastUpdateStatus", "") == FunctionUpdateStatus.SUCCESS.value:
-            return True
-        return False

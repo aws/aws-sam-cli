@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional, TYPE_CHECKING, cast
 from samcli.lib.build.build_graph import BuildGraph
 from samcli.lib.providers.provider import Stack
 
-from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow
+from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow, wait_for_function_update_complete
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.hash import file_checksum
@@ -128,8 +128,9 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
                         FunctionName=self.get_physical_id(self._function_identifier), ZipFile=data
                     )
 
-                    if self._verify_function_status():
-                        LOG.debug(self._color.green("Function update status is now successful on cloud."))
+                    lambda_client = self._lambda_client
+                    physical_id = self.get_physical_id(self._function_identifier)
+                    wait_for_function_update_complete(lambda_client, physical_id)
 
         else:
             # Upload to S3 first for oversized ZIPs
@@ -155,8 +156,9 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
                     S3Key=s3_key,
                 )
 
-                if self._verify_function_status():
-                    LOG.debug(self._color.green("Function update status is now successful on cloud."))
+                lambda_client = self._lambda_client
+                physical_id = self.get_physical_id(self._function_identifier)
+                wait_for_function_update_complete(lambda_client, physical_id)
 
         if os.path.exists(self._zip_file):
             os.remove(self._zip_file)

@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, Mock, patch, call, ANY, mock_open, Property
 
 
 from samcli.lib.sync.exceptions import MissingPhysicalResourceError, NoLayerVersionsFoundError
+from samcli.lib.sync.flows.function_sync_flow import wait_for_function_update_complete
 from samcli.lib.sync.flows.layer_sync_flow import LayerSyncFlow, FunctionLayerReferenceSync
 from samcli.lib.sync.sync_flow import SyncFlow, ApiCallTypes
 
@@ -351,7 +352,8 @@ class TestFunctionLayerReferenceSync(TestCase):
                 patched_super_setup.assert_called_once()
                 client_provider_mock.return_value.assert_called_with("lambda")
 
-    def test_sync(self):
+    @patch("samcli.lib.sync.flows.layer_sync_flow.wait_for_function_update_complete")
+    def test_sync(self, wait_for_function_mock):
         given_lambda_client = Mock()
         self.function_layer_sync._lambda_client = given_lambda_client
 
@@ -362,7 +364,6 @@ class TestFunctionLayerReferenceSync(TestCase):
         with patch.object(self.function_layer_sync, "get_physical_id") as patched_get_physical_id:
             self.function_layer_sync._get_lock_chain = MagicMock()
             self.function_layer_sync.has_locks = MagicMock()
-            self.function_layer_sync._verify_function_status = Mock()
 
             given_physical_id = Mock()
             patched_get_physical_id.return_value = given_physical_id
@@ -378,10 +379,11 @@ class TestFunctionLayerReferenceSync(TestCase):
             given_lambda_client.update_function_configuration.assert_called_with(
                 FunctionName=given_physical_id, Layers=[other_layer_version_arn, "Layer1:2"]
             )
-            self.function_layer_sync._verify_function_status.assert_called_once()
+            wait_for_function_mock.assert_called_once_with(given_lambda_client, given_physical_id)
             self.function_layer_sync._get_lock_chain.return_value.__exit__.assert_called_once()
 
-    def test_sync_with_existing_new_layer_version_arn(self):
+    @patch("samcli.lib.sync.flows.layer_sync_flow.wait_for_function_update_complete")
+    def test_sync_with_existing_new_layer_version_arn(self, wait_for_function_mock):
         given_lambda_client = Mock()
         self.function_layer_sync._lambda_client = given_lambda_client
 
@@ -391,7 +393,6 @@ class TestFunctionLayerReferenceSync(TestCase):
         with patch.object(self.function_layer_sync, "get_physical_id") as patched_get_physical_id:
             self.function_layer_sync._get_lock_chain = MagicMock()
             self.function_layer_sync.has_locks = MagicMock()
-            self.function_layer_sync._verify_function_status = Mock()
 
             given_physical_id = Mock()
             patched_get_physical_id.return_value = given_physical_id
@@ -405,7 +406,7 @@ class TestFunctionLayerReferenceSync(TestCase):
             self.function_layer_sync._get_lock_chain.assert_not_called()
             self.function_layer_sync._get_lock_chain.return_value.__enter__.assert_not_called()
             given_lambda_client.update_function_configuration.assert_not_called()
-            self.function_layer_sync._verify_function_status.assert_not_called()
+            wait_for_function_mock.assert_not_called()
             self.function_layer_sync._get_lock_chain.return_value.__exit__.assert_not_called()
 
     def test_equality_keys(self):
@@ -419,39 +420,3 @@ class TestFunctionLayerReferenceSync(TestCase):
 
     def test_gather_dependencies(self):
         self.assertEqual(self.function_layer_sync.gather_dependencies(), [])
-
-    def test_verify_function_status_recursion(self):
-        given_lambda_client = Mock()
-        self.function_layer_sync._lambda_client = given_lambda_client
-
-        function_result1 = {"Configuration": {"LastUpdateStatus": "InProgress"}}
-        function_result2 = {"Configuration": {"LastUpdateStatus": "Successful"}}
-        given_lambda_client.get_function.side_effect = [function_result1, function_result1, function_result2]
-
-        with patch.object(self.function_layer_sync, "get_physical_id") as patched_get_physical_id:
-            given_physical_id = Mock()
-            patched_get_physical_id.return_value = given_physical_id
-
-            self.assertTrue(self.function_layer_sync._verify_function_status())
-
-            patched_get_physical_id.assert_called_with(self.function_identifier)
-
-            given_lambda_client.get_function.assert_called_with(FunctionName=given_physical_id)
-            self.assertEqual(given_lambda_client.get_function.call_count, 3)
-
-    def test_verify_function_status_failure(self):
-        given_lambda_client = Mock()
-        self.function_layer_sync._lambda_client = given_lambda_client
-
-        function_result = {"Configuration": {"LastUpdateStatus": "Failure"}}
-        given_lambda_client.get_function.return_value = function_result
-
-        with patch.object(self.function_layer_sync, "get_physical_id") as patched_get_physical_id:
-            given_physical_id = Mock()
-            patched_get_physical_id.return_value = given_physical_id
-
-            self.assertFalse(self.function_layer_sync._verify_function_status())
-
-            patched_get_physical_id.assert_called_with(self.function_identifier)
-
-            given_lambda_client.get_function.assert_called_with(FunctionName=given_physical_id)

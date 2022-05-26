@@ -189,7 +189,6 @@ class TestSyncCode(TestSyncCodeBase):
                 self.assertIn("extra_message", lambda_response)
                 self.assertEqual(lambda_response.get("message"), "7")
 
-
     def test_sync_code_rest_api(self):
         shutil.rmtree(TestSyncCode.temp_dir.joinpath("apigateway"), ignore_errors=True)
         shutil.copytree(
