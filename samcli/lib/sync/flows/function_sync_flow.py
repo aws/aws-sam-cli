@@ -101,7 +101,7 @@ class FunctionSyncFlow(SyncFlow):
 
         return sync_flows
 
-    def _get_function_status(self) -> bool:
+    def _verify_function_status(self) -> bool:
         """
         return value:
         True if last function update was successful
@@ -110,11 +110,10 @@ class FunctionSyncFlow(SyncFlow):
         response = self._lambda_client.get_function(FunctionName=self.get_physical_id(self._function_identifier))
         if response.get("Configuration", {}).get("LastUpdateStatus", "") == FunctionUpdateStatus.IN_PROGRESS.value:
             time.sleep(FUNCTION_SLEEP)
-            return self._get_function_status()
+            return self._verify_function_status()
         if response.get("Configuration", {}).get("LastUpdateStatus", "") == FunctionUpdateStatus.SUCCESS.value:
             return True
-        else:
-            return False
+        return False
 
     def _equality_keys(self):
         return self._function_identifier
@@ -123,6 +122,6 @@ class FunctionSyncFlow(SyncFlow):
 class FunctionUpdateStatus(Enum):
     """Function update return types"""
 
-    SUCCESS = "Success"
+    SUCCESS = "Successful"
     FAILED = "Failed"
     IN_PROGRESS = "InProgress"

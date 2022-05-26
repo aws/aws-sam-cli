@@ -1,5 +1,4 @@
 """SyncFlow for ZIP based Lambda Functions"""
-from enum import Enum
 import hashlib
 import logging
 import os
@@ -10,7 +9,7 @@ from contextlib import ExitStack
 
 from typing import Any, Dict, List, Optional, TYPE_CHECKING, cast
 
-from samcli.lib.build.build_graph import FUNCTIONS_FIELD, BuildGraph
+from samcli.lib.build.build_graph import BuildGraph
 from samcli.lib.providers.provider import Stack
 
 from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow
@@ -129,8 +128,8 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
                         FunctionName=self.get_physical_id(self._function_identifier), ZipFile=data
                     )
 
-                    if self._get_function_status():
-                        LOG.debug("Function update status is now successful on cloud.")
+                    if self._verify_function_status():
+                        LOG.debug(self._color.green("Function update status is now successful on cloud."))
 
         else:
             # Upload to S3 first for oversized ZIPs
@@ -156,8 +155,8 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
                     S3Key=s3_key,
                 )
 
-                if self._get_function_status():
-                    LOG.debug("Function update status is now successful on cloud.")
+                if self._verify_function_status():
+                    LOG.debug(self._color.green("Function update status is now successful on cloud."))
 
         if os.path.exists(self._zip_file):
             os.remove(self._zip_file)

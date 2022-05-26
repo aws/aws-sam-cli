@@ -360,23 +360,27 @@ class TestFunctionLayerReferenceSync(TestCase):
         given_lambda_client.get_function.return_value = given_function_result
 
         with patch.object(self.function_layer_sync, "get_physical_id") as patched_get_physical_id:
-            with patch.object(self.function_layer_sync, "_locks") as patched_locks:
-                given_physical_id = Mock()
-                patched_get_physical_id.return_value = given_physical_id
+            self.function_layer_sync._get_lock_chain = MagicMock()
+            self.function_layer_sync.has_locks = MagicMock()
+            self.function_layer_sync._verify_function_status = Mock()
 
-                self.function_layer_sync.sync()
+            given_physical_id = Mock()
+            patched_get_physical_id.return_value = given_physical_id
 
-                patched_get_physical_id.assert_called_with(self.function_identifier)
+            self.function_layer_sync.sync()
 
-                patched_locks.get.assert_called_with(
-                    SyncFlow._get_lock_key(self.function_identifier, ApiCallTypes.UPDATE_FUNCTION_CONFIGURATION)
-                )
+            patched_get_physical_id.assert_called_with(self.function_identifier)
 
-                given_lambda_client.get_function.assert_called_with(FunctionName=given_physical_id)
+            given_lambda_client.get_function.assert_called_with(FunctionName=given_physical_id)
 
-                given_lambda_client.update_function_configuration.assert_called_with(
-                    FunctionName=given_physical_id, Layers=[other_layer_version_arn, "Layer1:2"]
-                )
+            self.function_layer_sync._get_lock_chain.assert_called_once()
+            self.function_layer_sync._get_lock_chain.return_value.__enter__.assert_called_once()
+            given_lambda_client.update_function_configuration.assert_called_with(
+                FunctionName=given_physical_id, Layers=[other_layer_version_arn, "Layer1:2"]
+            )
+            self.function_layer_sync._verify_function_status.assert_called_once()
+            self.function_layer_sync._get_lock_chain.return_value.__exit__.assert_called_once()
+            
 
     def test_sync_with_existing_new_layer_version_arn(self):
         given_lambda_client = Mock()
@@ -386,21 +390,24 @@ class TestFunctionLayerReferenceSync(TestCase):
         given_lambda_client.get_function.return_value = given_function_result
 
         with patch.object(self.function_layer_sync, "get_physical_id") as patched_get_physical_id:
-            with patch.object(self.function_layer_sync, "_locks") as patched_locks:
-                given_physical_id = Mock()
-                patched_get_physical_id.return_value = given_physical_id
+            self.function_layer_sync._get_lock_chain = MagicMock()
+            self.function_layer_sync.has_locks = MagicMock()
+            self.function_layer_sync._verify_function_status = Mock()
+            
+            given_physical_id = Mock()
+            patched_get_physical_id.return_value = given_physical_id
 
-                self.function_layer_sync.sync()
+            self.function_layer_sync.sync()
 
-                patched_locks.get.assert_called_with(
-                    SyncFlow._get_lock_key(self.function_identifier, ApiCallTypes.UPDATE_FUNCTION_CONFIGURATION)
-                )
+            patched_get_physical_id.assert_called_with(self.function_identifier)
 
-                patched_get_physical_id.assert_called_with(self.function_identifier)
+            given_lambda_client.get_function.assert_called_with(FunctionName=given_physical_id)
 
-                given_lambda_client.get_function.assert_called_with(FunctionName=given_physical_id)
-
-                given_lambda_client.update_function_configuration.assert_not_called()
+            self.function_layer_sync._get_lock_chain.assert_not_called()
+            self.function_layer_sync._get_lock_chain.return_value.__enter__.assert_not_called()
+            given_lambda_client.update_function_configuration.assert_not_called()
+            self.function_layer_sync._verify_function_status.assert_not_called()
+            self.function_layer_sync._get_lock_chain.return_value.__exit__.assert_not_called()
 
     def test_equality_keys(self):
         self.assertEqual(
@@ -413,3 +420,39 @@ class TestFunctionLayerReferenceSync(TestCase):
 
     def test_gather_dependencies(self):
         self.assertEqual(self.function_layer_sync.gather_dependencies(), [])
+
+    def test_verify_function_status_recursion(self):
+        given_lambda_client = Mock()
+        self.function_layer_sync._lambda_client = given_lambda_client
+
+        function_result1 = {"Configuration": {"LastUpdateStatus": "InProgress"}}
+        function_result2 = {"Configuration": {"LastUpdateStatus": "Successful"}}
+        given_lambda_client.get_function.side_effect = [function_result1, function_result1, function_result2]
+
+        with patch.object(self.function_layer_sync, "get_physical_id") as patched_get_physical_id:
+            given_physical_id = Mock()
+            patched_get_physical_id.return_value = given_physical_id
+
+            self.assertTrue(self.function_layer_sync._verify_function_status())
+
+            patched_get_physical_id.assert_called_with(self.function_identifier)
+
+            given_lambda_client.get_function.assert_called_with(FunctionName=given_physical_id)
+            self.assertEqual( given_lambda_client.get_function.call_count, 3)
+
+    def test_verify_function_status_failure(self):
+        given_lambda_client = Mock()
+        self.function_layer_sync._lambda_client = given_lambda_client
+
+        function_result = {"Configuration": {"LastUpdateStatus": "Failure"}}
+        given_lambda_client.get_function.return_value = function_result
+
+        with patch.object(self.function_layer_sync, "get_physical_id") as patched_get_physical_id:
+            given_physical_id = Mock()
+            patched_get_physical_id.return_value = given_physical_id
+
+            self.assertFalse(self.function_layer_sync._verify_function_status())
+
+            patched_get_physical_id.assert_called_with(self.function_identifier)
+
+            given_lambda_client.get_function.assert_called_with(FunctionName=given_physical_id)

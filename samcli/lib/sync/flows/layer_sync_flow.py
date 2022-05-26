@@ -328,8 +328,8 @@ class FunctionLayerReferenceSync(SyncFlow):
 
             self._lambda_client.update_function_configuration(FunctionName=function_physical_id, Layers=layer_arns)
 
-            if self._get_function_status():
-                LOG.debug("Function configuration update status is now successful on cloud.")
+            if self._verify_function_status():
+                LOG.debug(self._color.green("Function configuration update status is now successful on cloud."))
 
     def _get_resource_api_calls(self) -> List[ResourceAPICall]:
         return [
@@ -351,7 +351,7 @@ class FunctionLayerReferenceSync(SyncFlow):
     def _equality_keys(self) -> Any:
         return self._function_identifier, self._layer_arn, self._new_layer_version
 
-    def _get_function_status(self) -> bool:
+    def _verify_function_status(self) -> bool:
         """
         return value:
         True if last function update was successful
@@ -360,8 +360,7 @@ class FunctionLayerReferenceSync(SyncFlow):
         response = self._lambda_client.get_function(FunctionName=self.get_physical_id(self._function_identifier))
         if response.get("Configuration", {}).get("LastUpdateStatus", "") == FunctionUpdateStatus.IN_PROGRESS.value:
             time.sleep(FUNCTION_SLEEP)
-            return self._get_function_status()
+            return self._verify_function_status()
         if response.get("Configuration", {}).get("LastUpdateStatus", "") == FunctionUpdateStatus.SUCCESS.value:
             return True
-        else:
-            return False
+        return False
