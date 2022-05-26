@@ -1,5 +1,7 @@
 """Base SyncFlow for Lambda Function"""
+from enum import Enum
 import logging
+import time
 from typing import Any, Dict, List, TYPE_CHECKING, cast
 
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
@@ -14,6 +16,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.build.build_context import BuildContext
 
 LOG = logging.getLogger(__name__)
+FUNCTION_SLEEP = 1  # used to wait for lambda function last update to be successful
 
 
 class FunctionSyncFlow(SyncFlow):
@@ -98,5 +101,28 @@ class FunctionSyncFlow(SyncFlow):
 
         return sync_flows
 
+    def _get_function_status(self) -> bool:
+        """
+        return value:
+        True if last function update was successful
+        False if last function update was still in progress or failed
+        """
+        response = self._lambda_client.get_function(FunctionName=self.get_physical_id(self._function_identifier))
+        if response.get("Configuration", {}).get("LastUpdateStatus", "") == FunctionUpdateStatus.IN_PROGRESS.value:
+            time.sleep(FUNCTION_SLEEP)
+            return self._get_function_status()
+        if response.get("Configuration", {}).get("LastUpdateStatus", "") == FunctionUpdateStatus.SUCCESS.value:
+            return True
+        else:
+            return False
+
     def _equality_keys(self):
         return self._function_identifier
+
+
+class FunctionUpdateStatus(Enum):
+    """Function update return types"""
+
+    SUCCESS = "Success"
+    FAILED = "Failed"
+    IN_PROGRESS = "InProgress"

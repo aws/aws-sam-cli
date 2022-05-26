@@ -5,9 +5,11 @@ import logging
 import os
 import re
 import tempfile
+import time
 import uuid
 from abc import ABC, abstractmethod
 from typing import Any, TYPE_CHECKING, cast, Dict, List, Optional
+from contextlib import ExitStack
 
 from samcli.lib.build.app_builder import ApplicationBuilder
 from samcli.lib.package.utils import make_zip
@@ -16,13 +18,16 @@ from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.sync.exceptions import MissingPhysicalResourceError, NoLayerVersionsFoundError
 from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall, ApiCallTypes
 from samcli.lib.sync.sync_flow_executor import HELP_TEXT_FOR_SYNC_INFRA
+from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.hash import file_checksum
+from samcli.lib.sync.flows.function_sync_flow import FunctionUpdateStatus
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.build.build_context import BuildContext
     from samcli.commands.deploy.deploy_context import DeployContext
 
 LOG = logging.getLogger(__name__)
+FUNCTION_SLEEP = 1  # used to wait for lambda function configuration last update to be successful
 
 
 class AbstractLayerSyncFlow(SyncFlow, ABC):
@@ -271,6 +276,7 @@ class FunctionLayerReferenceSync(SyncFlow):
         self._function_identifier = function_identifier
         self._layer_arn = layer_arn
         self._new_layer_version = new_layer_version
+        self._color = Colored()
 
     def set_up(self) -> None:
         super().set_up()
@@ -281,54 +287,57 @@ class FunctionLayerReferenceSync(SyncFlow):
         First read the current Layers property and update the old layer version arn with new one
         then call the update function configuration to update the function with new layer version arn
         """
-        if not self._locks:
-            LOG.warning("%sLocks is None", self.log_prefix)
+        new_layer_arn = f"{self._layer_arn}:{self._new_layer_version}"
+
+        function_physical_id = self.get_physical_id(self._function_identifier)
+        get_function_result = self._lambda_client.get_function(FunctionName=function_physical_id)
+
+        # get the current layer version arns
+        layer_arns = [layer.get("Arn") for layer in get_function_result.get("Configuration", {}).get("Layers", [])]
+
+        # Check whether layer version is up to date
+        if new_layer_arn in layer_arns:
+            LOG.warning(
+                "%sLambda Function (%s) is already up to date with new Layer version (%d).",
+                self.log_prefix,
+                self._function_identifier,
+                self._new_layer_version,
+            )
             return
-        lock_key = SyncFlow._get_lock_key(self._function_identifier, ApiCallTypes.UPDATE_FUNCTION_CONFIGURATION)
-        lock = self._locks.get(lock_key)
-        if not lock:
-            LOG.warning("%s%s lock is None", self.log_prefix, lock_key)
+
+        # Check function uses layer
+        old_layer_arn = [layer_arn for layer_arn in layer_arns if layer_arn.startswith(self._layer_arn)]
+        old_layer_arn = old_layer_arn[0] if len(old_layer_arn) == 1 else None
+        if not old_layer_arn:
+            LOG.warning(
+                "%sLambda Function (%s) does not have layer (%s).%s",
+                self.log_prefix,
+                self._function_identifier,
+                self._layer_arn,
+                HELP_TEXT_FOR_SYNC_INFRA,
+            )
             return
 
-        with lock:
-            new_layer_arn = f"{self._layer_arn}:{self._new_layer_version}"
+        # remove the old layer version arn and add the new one
+        layer_arns.remove(old_layer_arn)
+        layer_arns.append(new_layer_arn)
 
-            function_physical_id = self.get_physical_id(self._function_identifier)
-            get_function_result = self._lambda_client.get_function(FunctionName=function_physical_id)
+        with ExitStack() as exit_stack:
+            if self.has_locks():
+                exit_stack.enter_context(self._get_lock_chain())
 
-            # get the current layer version arns
-            layer_arns = [layer.get("Arn") for layer in get_function_result.get("Configuration", {}).get("Layers", [])]
-
-            # Check whether layer version is up to date
-            if new_layer_arn in layer_arns:
-                LOG.warning(
-                    "%sLambda Function (%s) is already up to date with new Layer version (%d).",
-                    self.log_prefix,
-                    self._function_identifier,
-                    self._new_layer_version,
-                )
-                return
-
-            # Check function uses layer
-            old_layer_arn = [layer_arn for layer_arn in layer_arns if layer_arn.startswith(self._layer_arn)]
-            old_layer_arn = old_layer_arn[0] if len(old_layer_arn) == 1 else None
-            if not old_layer_arn:
-                LOG.warning(
-                    "%sLambda Function (%s) does not have layer (%s).%s",
-                    self.log_prefix,
-                    self._function_identifier,
-                    self._layer_arn,
-                    HELP_TEXT_FOR_SYNC_INFRA,
-                )
-                return
-
-            # remove the old layer version arn and add the new one
-            layer_arns.remove(old_layer_arn)
-            layer_arns.append(new_layer_arn)
             self._lambda_client.update_function_configuration(FunctionName=function_physical_id, Layers=layer_arns)
 
+            if self._get_function_status():
+                LOG.debug("Function configuration update status is now successful on cloud.")
+
     def _get_resource_api_calls(self) -> List[ResourceAPICall]:
-        return [ResourceAPICall(self._function_identifier, [ApiCallTypes.UPDATE_FUNCTION_CONFIGURATION])]
+        return [
+            ResourceAPICall(
+                self._function_identifier,
+                [ApiCallTypes.UPDATE_FUNCTION_CODE, ApiCallTypes.UPDATE_FUNCTION_CONFIGURATION],
+            )
+        ]
 
     def compare_remote(self) -> bool:
         return False
@@ -341,3 +350,18 @@ class FunctionLayerReferenceSync(SyncFlow):
 
     def _equality_keys(self) -> Any:
         return self._function_identifier, self._layer_arn, self._new_layer_version
+
+    def _get_function_status(self) -> bool:
+        """
+        return value:
+        True if last function update was successful
+        False if last function update was still in progress or failed
+        """
+        response = self._lambda_client.get_function(FunctionName=self.get_physical_id(self._function_identifier))
+        if response.get("Configuration", {}).get("LastUpdateStatus", "") == FunctionUpdateStatus.IN_PROGRESS.value:
+            time.sleep(FUNCTION_SLEEP)
+            return self._get_function_status()
+        if response.get("Configuration", {}).get("LastUpdateStatus", "") == FunctionUpdateStatus.SUCCESS.value:
+            return True
+        else:
+            return False

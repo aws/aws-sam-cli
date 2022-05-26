@@ -1,4 +1,5 @@
 """SyncFlow for ZIP based Lambda Functions"""
+from enum import Enum
 import hashlib
 import logging
 import os
@@ -9,11 +10,12 @@ from contextlib import ExitStack
 
 from typing import Any, Dict, List, Optional, TYPE_CHECKING, cast
 
-from samcli.lib.build.build_graph import BuildGraph
+from samcli.lib.build.build_graph import FUNCTIONS_FIELD, BuildGraph
 from samcli.lib.providers.provider import Stack
 
 from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow
 from samcli.lib.package.s3_uploader import S3Uploader
+from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.hash import file_checksum
 from samcli.lib.package.utils import make_zip
 
@@ -66,6 +68,7 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
         self._zip_file = None
         self._local_sha = None
         self._build_graph = None
+        self._color = Colored()
 
     def set_up(self) -> None:
         super().set_up()
@@ -117,9 +120,18 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
             LOG.debug("%sUploading Function Directly", self.log_prefix)
             with open(self._zip_file, "rb") as zip_file:
                 data = zip_file.read()
-                self._lambda_client.update_function_code(
-                    FunctionName=self.get_physical_id(self._function_identifier), ZipFile=data
-                )
+
+                with ExitStack() as exit_stack:
+                    if self.has_locks():
+                        exit_stack.enter_context(self._get_lock_chain())
+
+                    self._lambda_client.update_function_code(
+                        FunctionName=self.get_physical_id(self._function_identifier), ZipFile=data
+                    )
+
+                    if self._get_function_status():
+                        LOG.debug("Function update status is now successful on cloud.")
+
         else:
             # Upload to S3 first for oversized ZIPs
             LOG.debug("%sUploading Function Through S3", self.log_prefix)
@@ -133,11 +145,19 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
             )
             s3_url = uploader.upload_with_dedup(self._zip_file)
             s3_key = s3_url[5:].split("/", 1)[1]
-            self._lambda_client.update_function_code(
-                FunctionName=self.get_physical_id(self._function_identifier),
-                S3Bucket=self._deploy_context.s3_bucket,
-                S3Key=s3_key,
-            )
+
+            with ExitStack() as exit_stack:
+                if self.has_locks():
+                    exit_stack.enter_context(self._get_lock_chain())
+
+                self._lambda_client.update_function_code(
+                    FunctionName=self.get_physical_id(self._function_identifier),
+                    S3Bucket=self._deploy_context.s3_bucket,
+                    S3Key=s3_key,
+                )
+
+                if self._get_function_status():
+                    LOG.debug("Function update status is now successful on cloud.")
 
         if os.path.exists(self._zip_file):
             os.remove(self._zip_file)
@@ -146,6 +166,7 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
         resource_calls = list()
         resource_calls.extend(self._get_layers_api_calls())
         resource_calls.extend(self._get_codeuri_api_calls())
+        resource_calls.extend(self._get_function_api_calls())
         return resource_calls
 
     def _get_layers_api_calls(self) -> List[ResourceAPICall]:
@@ -159,6 +180,14 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
         if self._function.codeuri:
             codeuri_api_call.append(ResourceAPICall(self._function.codeuri, [ApiCallTypes.BUILD]))
         return codeuri_api_call
+
+    def _get_function_api_calls(self) -> List[ResourceAPICall]:
+        return [
+            ResourceAPICall(
+                self._function_identifier,
+                [ApiCallTypes.UPDATE_FUNCTION_CODE, ApiCallTypes.UPDATE_FUNCTION_CONFIGURATION],
+            )
+        ]
 
     @staticmethod
     def _combine_dependencies() -> bool:
