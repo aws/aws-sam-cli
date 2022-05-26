@@ -6,7 +6,7 @@ import io
 import json
 import logging
 import pathlib
-from typing import List, Optional, Dict, cast, Tuple, Union, NamedTuple, Set
+from typing import List, Optional, Dict, cast, Union, NamedTuple, Set
 
 import docker
 import docker.errors
@@ -110,7 +110,6 @@ class ApplicationBuilder:
         container_env_var: Optional[Dict] = None,
         container_env_var_file: Optional[str] = None,
         build_images: Optional[Dict] = None,
-        excluded_resources: Optional[Tuple[str, ...]] = None,
         combine_dependencies: bool = True,
     ) -> None:
         """
@@ -150,8 +149,6 @@ class ApplicationBuilder:
             An optional path to file that contains environment variables to pass to the container
         build_images : Optional[Dict]
             An optional dictionary of build images to be used for building functions
-        excluded_resources : Optional[Tuple[str,...]]
-            An optional n-tuple of resource names to exclude from the build
         combine_dependencies: bool
             An optional bool parameter to inform lambda builders whether we should separate the source code and
             dependencies or not.
@@ -175,7 +172,6 @@ class ApplicationBuilder:
         self._container_env_var = container_env_var
         self._container_env_var_file = container_env_var_file
         self._build_images = build_images or {}
-        self._exclude = excluded_resources
         self._combine_dependencies = combine_dependencies
 
     def build(self) -> ApplicationBuildResult:

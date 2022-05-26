@@ -879,7 +879,6 @@ class TestBuildContext_run(TestCase):
                 container_env_var=build_context._container_env_var,
                 container_env_var_file=build_context._container_env_var_file,
                 build_images=build_context._build_images,
-                excluded_resources=build_context._exclude,
                 combine_dependencies=not auto_dependency_layer,
             )
             builder_mock.build.assert_called_once()

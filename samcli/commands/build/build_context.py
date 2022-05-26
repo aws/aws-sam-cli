@@ -182,7 +182,6 @@ class BuildContext:
                 container_env_var=self._container_env_var,
                 container_env_var_file=self._container_env_var_file,
                 build_images=self._build_images,
-                excluded_resources=self._exclude,
                 combine_dependencies=not self._create_auto_dependency_layer,
             )
         except FunctionNotFound as ex:
