@@ -116,6 +116,7 @@ class TestZipFunctionSyncFlow(TestCase):
 
         sync_flow._get_lock_chain = MagicMock()
         sync_flow.has_locks = MagicMock()
+        sync_flow._verify_function_status = MagicMock()
         sync_flow.get_physical_id = MagicMock()
         sync_flow.get_physical_id.return_value = "PhysicalFunction1"
 
@@ -128,6 +129,7 @@ class TestZipFunctionSyncFlow(TestCase):
         sync_flow._lambda_client.update_function_code.assert_called_once_with(
             FunctionName="PhysicalFunction1", ZipFile=b"zip_content"
         )
+        sync_flow._verify_function_status.assert_called_once()
         sync_flow._get_lock_chain.return_value.__exit__.assert_called_once()
         remove_mock.assert_called_once_with("zip_file")
 
@@ -147,6 +149,7 @@ class TestZipFunctionSyncFlow(TestCase):
 
         sync_flow._get_lock_chain = MagicMock()
         sync_flow.has_locks = MagicMock()
+        sync_flow._verify_function_status = MagicMock()
         sync_flow.get_physical_id = MagicMock()
         sync_flow.get_physical_id.return_value = "PhysicalFunction1"
 
@@ -161,6 +164,7 @@ class TestZipFunctionSyncFlow(TestCase):
         sync_flow._lambda_client.update_function_code.assert_called_once_with(
             FunctionName="PhysicalFunction1", S3Bucket="bucket_name", S3Key="bucket/key"
         )
+        sync_flow._verify_function_status.assert_called_once()
         sync_flow._get_lock_chain.return_value.__exit__.assert_called_once()
         remove_mock.assert_called_once_with("zip_file")
 
