@@ -15,6 +15,7 @@ from samcli.lib.telemetry.cicd import CICDPlatform
 from samcli.lib.telemetry.metric import (
     capture_return_value,
     _get_metric,
+    _get_stack_trace,
     send_installed_metric,
     track_command,
     track_template_warnings,
@@ -228,8 +229,11 @@ class TestTrackCommand(TestCase):
             "Measured duration must be in milliseconds and greater than equal to the sleep duration",
         )
 
+    @patch("samcli.lib.telemetry.metric._get_stack_trace")
     @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_record_user_exception(self, ContextMock):
+    def test_must_record_user_exception(self, ContextMock, StackTraceMock):
+        expected_stack_trace = "Expected stack trace"
+        StackTraceMock.return_value = expected_stack_trace
         ContextMock.get_current_context.return_value = self.context_mock
         expected_exception = UserException("Something went wrong")
         expected_exception.exit_code = 1235
@@ -245,14 +249,20 @@ class TestTrackCommand(TestCase):
                 "Must re-raise the original exception object " "without modification",
             )
 
-        expected_attrs = _ignore_common_attributes({"exitReason": "UserException", "exitCode": 1235})
+        StackTraceMock.assert_called_once()
+        expected_attrs = _ignore_common_attributes(
+            {"exitReason": "UserException", "exitCode": 1235, "stackTrace": expected_stack_trace}
+        )
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric = args[0]
         assert metric.get_metric_name() == "commandRun"
         self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
 
+    @patch("samcli.lib.telemetry.metric._get_stack_trace")
     @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_record_wrapped_user_exception(self, ContextMock):
+    def test_must_record_wrapped_user_exception(self, ContextMock, StackTraceMock):
+        expected_stack_trace = "Expected stack trace"
+        StackTraceMock.return_value = expected_stack_trace
         ContextMock.get_current_context.return_value = self.context_mock
         expected_exception = UserException("Something went wrong", wrapped_from="CustomException")
         expected_exception.exit_code = 1235
@@ -268,14 +278,20 @@ class TestTrackCommand(TestCase):
                 "Must re-raise the original exception object " "without modification",
             )
 
-        expected_attrs = _ignore_common_attributes({"exitReason": "CustomException", "exitCode": 1235})
+        StackTraceMock.assert_called_once()
+        expected_attrs = _ignore_common_attributes(
+            {"exitReason": "CustomException", "exitCode": 1235, "stackTrace": expected_stack_trace}
+        )
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric = args[0]
         assert metric.get_metric_name() == "commandRun"
         self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
 
+    @patch("samcli.lib.telemetry.metric._get_stack_trace")
     @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_record_any_exceptions(self, ContextMock):
+    def test_must_record_any_exceptions(self, ContextMock, StackTraceMock):
+        expected_stack_trace = "Expected stack trace"
+        StackTraceMock.return_value = expected_stack_trace
         ContextMock.get_current_context.return_value = self.context_mock
         expected_exception = KeyError("IO Error test")
 
@@ -290,8 +306,13 @@ class TestTrackCommand(TestCase):
                 "Must re-raise the original exception object " "without modification",
             )
 
+        StackTraceMock.assert_called_once()
         expected_attrs = _ignore_common_attributes(
-            {"exitReason": "KeyError", "exitCode": 255}  # Unhandled exceptions always use exit code 255
+            {
+                "exitReason": "KeyError",
+                "exitCode": 255,
+                "stackTrace": expected_stack_trace,
+            }  # Unhandled exceptions always use exit code 255
         )
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric = args[0]
@@ -338,6 +359,78 @@ class TestTrackCommand(TestCase):
             [call(ANY)],
             "The command metrics be emitted when used as a decorator",
         )
+
+
+class TestStackTrace(TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    @patch("samcli.lib.telemetry.metric.traceback.format_exc")
+    @patch("samcli.lib.telemetry.metric.os.getcwd")
+    def test_must_remove_working_directory_path(self, WorkingDirectoryMock, StackTraceMock):
+        WorkingDirectoryMock.return_value = "/folder1"
+        StackTraceMock.return_value = (
+            "Traceback (most recent call last):\n"
+            '  File "/folder1/abc.py", line 508, in _api_call\n'
+            "    return self._make_api_call(operation_name, kwargs)\n"
+            '  File "/folder1/folder2/abc.py", line 911, in _make_api_call\n'
+            "    raise error_class(parsed_response, operation_name)\n"
+            "botocore.exceptions.ClientError: An error occurred..."
+        )
+        expected_stack_trace = (
+            "Traceback (most recent call last):\n"
+            '  File "abc.py", line 508, in _api_call\n'
+            "    return self._make_api_call(operation_name, kwargs)\n"
+            '  File "folder2/abc.py", line 911, in _make_api_call\n'
+            "    raise error_class(parsed_response, operation_name)\n"
+            "botocore.exceptions.ClientError: An error occurred..."
+        )
+
+        stack_trace = _get_stack_trace()
+        self.assertEqual(stack_trace, expected_stack_trace)
+
+    @patch("samcli.lib.telemetry.metric.traceback.format_exc")
+    @patch("samcli.lib.telemetry.metric.os.getcwd")
+    def test_must_substitute_user_sensitive_path(self, WorkingDirectoryMock, StackTraceMock):
+        WorkingDirectoryMock.return_value = "/folder1"
+        StackTraceMock.return_value = (
+            "Traceback (most recent call last):\n"
+            '  File "/Users/test_user/abc.py", line 508, in _api_call\n'
+            "    return self._make_api_call(operation_name, kwargs)\n"
+            "botocore.exceptions.ClientError: An error occurred..."
+        )
+        expected_stack_trace = (
+            "Traceback (most recent call last):\n"
+            '  File "/../abc.py", line 508, in _api_call\n'
+            "    return self._make_api_call(operation_name, kwargs)\n"
+            "botocore.exceptions.ClientError: An error occurred..."
+        )
+
+        stack_trace = _get_stack_trace()
+        self.assertEqual(stack_trace, expected_stack_trace)
+
+    @patch("samcli.lib.telemetry.metric.traceback.format_exc")
+    @patch("samcli.lib.telemetry.metric.os.getcwd")
+    def test_must_substitute_user_sensitive_path_windows(self, WorkingDirectoryMock, StackTraceMock):
+        WorkingDirectoryMock.return_value = "\\folder1"
+        StackTraceMock.return_value = (
+            "Traceback (most recent call last):\n"
+            '  File "\\Users\\test_user\\abc.py", line 508, in _api_call\n'
+            "    return self._make_api_call(operation_name, kwargs)\n"
+            "botocore.exceptions.ClientError: An error occurred..."
+        )
+        expected_stack_trace = (
+            "Traceback (most recent call last):\n"
+            '  File "\\..\\abc.py", line 508, in _api_call\n'
+            "    return self._make_api_call(operation_name, kwargs)\n"
+            "botocore.exceptions.ClientError: An error occurred..."
+        )
+
+        stack_trace = _get_stack_trace()
+        self.assertEqual(stack_trace, expected_stack_trace)
 
 
 class TestParameterCapture(TestCase):

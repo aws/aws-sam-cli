@@ -136,6 +136,8 @@ def track_command(func):
                 exit_reason = ex.wrapped_from
             stack_trace = _get_stack_trace()
 
+            print(stack_trace)
+
         except Exception as ex:
             exception = ex
             # Standard Unix practice to return exit code 255 on fatal/unhandled exit.
@@ -173,20 +175,45 @@ def track_command(func):
 
         return return_value
 
-    def _get_stack_trace():
-        # Obtains stack trace (during an exception) and filters out the working directory path whenever possible
-        stack_trace_lines = traceback.format_exc().splitlines()
-        working_directory = os.getcwd()
-
-        for i, line in enumerate(stack_trace_lines):
-            dir_index = line.find(working_directory)
-            if dir_index != -1:
-                stack_trace_lines[i] = line[:dir_index] + line[dir_index + len(working_directory) + 1 :]
-
-        stack_trace = "\n".join(stack_trace_lines)
-        return stack_trace
-
     return wrapped
+
+
+def _get_stack_trace() -> str:
+    """
+    Obtains stack trace (during an exception) and filters out user-sensitive parts of its paths
+
+    Returns
+    -------
+    str
+        Stack trace with paths filtered
+    """
+    stack_trace_lines = traceback.format_exc().splitlines()
+    working_directory = os.getcwd()
+
+    for i, line in enumerate(stack_trace_lines):
+        # Make no changes if current line does not contain a path
+        line_split = line.split('"')
+        if len(line_split) != 3:
+            continue
+        prefix, path, suffix = line_split
+
+        # If working directory is found within path, remove it
+        dir_index = path.find(working_directory)
+        if dir_index != -1:
+            stack_trace_lines[
+                i
+            ] = f'{prefix}"{path[:dir_index]}{path[dir_index + len(working_directory) + 1 :]}"{suffix}'
+            continue
+
+        # If working directory is not found within path, replace leading path of the last file with: /../ or ..\
+        # i.e. /Users/user1/test.py becomes /../test.py
+        separator = "\\" if "\\" in path else "/"
+        path_split = path.split(separator)
+        if len(path_split) > 0:
+            stack_trace_lines[i] = f'{prefix}"{separator}..{separator}{path_split[-1]}"{suffix}'
+
+    stack_trace = "\n".join(stack_trace_lines)
+    return stack_trace
 
 
 def _timer():
