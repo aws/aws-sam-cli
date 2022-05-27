@@ -4,7 +4,7 @@ import logging
 from abc import ABC, abstractmethod
 from enum import Enum
 from threading import Lock
-from typing import Any, Dict, List, NamedTuple, Optional, TYPE_CHECKING, cast
+from typing import Any, Dict, List, NamedTuple, Optional, TYPE_CHECKING, cast, Set
 from boto3.session import Session
 
 from samcli.lib.providers.provider import get_resource_by_id
@@ -28,6 +28,7 @@ class ApiCallTypes(Enum):
 
     BUILD = "Build"
     UPDATE_FUNCTION_CONFIGURATION = "UpdateFunctionConfiguration"
+    UPDATE_FUNCTION_CODE = "UpdateFunctionCode"
 
 
 class ResourceAPICall(NamedTuple):
@@ -148,18 +149,18 @@ class SyncFlow(ABC):
         """
         return bool(self._locks)
 
-    def get_lock_keys(self) -> List[str]:
+    def get_lock_keys(self) -> Set[str]:
         """Get a list of function + API calls that can be used as keys for LockDistributor
 
         Returns
         -------
-        List[str]
-            List of keys for all resources and their API calls
+        Set[str]
+            Set of keys for all resources and their API calls
         """
-        lock_keys = list()
+        lock_keys = set()
         for resource_api_calls in self._get_resource_api_calls():
             for api_call in resource_api_calls.api_calls:
-                lock_keys.append(SyncFlow._get_lock_key(resource_api_calls.shared_resource, api_call))
+                lock_keys.add(SyncFlow._get_lock_key(resource_api_calls.shared_resource, api_call))
         return lock_keys
 
     def set_locks_with_distributor(self, distributor: LockDistributor):
