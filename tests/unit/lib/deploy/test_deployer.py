@@ -1,6 +1,7 @@
 from logging import captureWarnings
 import uuid
 import time
+import math
 from datetime import datetime, timedelta
 from unittest import TestCase
 from unittest.mock import patch, MagicMock, ANY, call
@@ -56,6 +57,26 @@ class TestDeployer(TestCase):
     def test_deployer_init(self):
         self.assertEqual(self.deployer._client, self.cloudformation_client)
         self.assertEqual(self.deployer.changeset_prefix, "samcli-deploy")
+
+    def test_deployer_init_custom_sleep(self):
+        deployer = Deployer(MagicMock().client("cloudformation"), client_sleep=10)
+        self.assertEqual(deployer.client_sleep, 10)
+
+    def test_deployer_init_custom_sleep_invalid(self):
+        deployer = Deployer(MagicMock().client("cloudformation"), client_sleep="INVALID")
+        self.assertEqual(deployer.client_sleep, 0.5)  # 0.5 is the default value
+
+    def test_deployer_init_custom_sleep_negative(self):
+        deployer = Deployer(MagicMock().client("cloudformation"), client_sleep=-5)
+        self.assertEqual(deployer.client_sleep, 0.5)  # 0.5 is the default value
+
+    def test_deployer_init_custom_sleep_zero(self):
+        deployer = Deployer(MagicMock().client("cloudformation"), client_sleep=0)
+        self.assertEqual(deployer.client_sleep, 0.5)  # 0.5 is the default value
+
+    def test_deployer_init_default_sleep(self):
+        deployer = Deployer(MagicMock().client("cloudformation"))
+        self.assertEqual(deployer.client_sleep, 0.5)
 
     def test_deployer_has_no_stack(self):
         self.deployer._client.describe_stacks = MagicMock(return_value={"Stacks": []})
@@ -594,6 +615,79 @@ class TestDeployer(TestCase):
         self.deployer.describe_stack_events("test", time.time())
         self.assertEqual(patched_math.pow.call_count, 3)
         self.assertEqual(patched_math.pow.call_args_list, [call(2, 1), call(2, 2), call(2, 3)])
+
+    @patch("samcli.lib.deploy.deployer.math.pow", wraps=math.pow)
+    @patch("time.sleep")
+    def test_describe_stack_events_reset_retry_on_success_after_exceptions(self, patched_time, patched_pow):
+        current_timestamp = datetime.utcnow()
+
+        self.deployer._client.describe_stacks = MagicMock(
+            side_effect=[
+                {"Stacks": [{"StackStatus": "CREATE_IN_PROGRESS"}]},
+                ClientError(
+                    error_response={"Error": {"Message": "Rate Exceeded"}}, operation_name="describe_stack_events"
+                ),
+                ClientError(
+                    error_response={"Error": {"Message": "Rate Exceeded"}}, operation_name="describe_stack_events"
+                ),
+                {"Stacks": [{"StackStatus": "CREATE_IN_PROGRESS"}]},
+                ClientError(
+                    error_response={"Error": {"Message": "Rate Exceeded"}}, operation_name="describe_stack_events"
+                ),
+                {"Stacks": [{"StackStatus": "CREATE_COMPLETE"}]},
+            ]
+        )
+
+        self.deployer._client.get_paginator = MagicMock(
+            return_value=MockPaginator(
+                [
+                    {
+                        "StackEvents": [
+                            {
+                                "EventId": str(uuid.uuid4()),
+                                "Timestamp": current_timestamp,
+                                "ResourceStatus": "CREATE_IN_PROGRESS",
+                                "ResourceType": "s3",
+                                "LogicalResourceId": "mybucket",
+                            }
+                        ]
+                    },
+                    {
+                        "StackEvents": [
+                            {
+                                "EventId": str(uuid.uuid4()),
+                                "Timestamp": current_timestamp,
+                                "ResourceStatus": "CREATE_IN_PROGRESS",
+                                "ResourceType": "kms",
+                                "LogicalResourceId": "mykms",
+                            }
+                        ]
+                    },
+                    {
+                        "StackEvents": [
+                            {
+                                "EventId": str(uuid.uuid4()),
+                                "Timestamp": current_timestamp,
+                                "ResourceStatus": "CREATE_COMPLETE",
+                                "ResourceType": "s3",
+                                "LogicalResourceId": "mybucket",
+                            }
+                        ]
+                    },
+                ]
+            )
+        )
+
+        self.deployer.describe_stack_events("test", time.time())
+
+        # There are 2 sleep call for exceptions (backoff + regular one at 0)
+        self.assertEqual(patched_time.call_count, 9)
+        self.assertEqual(
+            patched_time.call_args_list,
+            [call(0.5), call(0.5), call(2.0), call(0), call(4.0), call(0), call(0.5), call(2.0), call(0)],
+        )
+        self.assertEqual(patched_pow.call_count, 3)
+        self.assertEqual(patched_pow.call_args_list, [call(2, 1), call(2, 2), call(2, 1)])
 
     def test_check_stack_status(self):
         self.assertEqual(self.deployer._check_stack_not_in_progress("CREATE_COMPLETE"), True)

@@ -611,10 +611,9 @@ class TestBuildContext__enter__(TestCase):
             print_success_message=False,
         ) as build_context:
             with patch("samcli.commands.build.build_context.BuildContext.gen_success_msg") as mock_message:
-                with patch("samcli.commands.build.build_context.BuildContext._check_java_warning") as mock_java_warning:
-                    with patch("samcli.commands.build.build_context.BuildContext._check_esbuild_warning"):
-                        build_context.run()
-                        mock_message.assert_not_called()
+                with patch("samcli.commands.build.build_context.BuildContext._check_esbuild_warning"):
+                    build_context.run()
+                    mock_message.assert_not_called()
 
 
 class TestBuildContext_setup_build_dir(TestCase):
@@ -784,6 +783,8 @@ class TestBuildContext_setup_cached_and_deps_dir(TestCase):
 
 
 class TestBuildContext_run(TestCase):
+    @parameterized.expand([(True,), (False,)])
+    @patch("samcli.commands.build.build_context.NestedStackManager")
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.build.build_context.SamApiProvider")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
@@ -798,6 +799,7 @@ class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.os")
     def test_run_build_context(
         self,
+        auto_dependency_layer,
         os_mock,
         get_template_data_mock,
         move_template_mock,
@@ -810,11 +812,10 @@ class TestBuildContext_run(TestCase):
         SamFunctionProviderMock,
         SamApiProviderMock,
         get_buildable_stacks_mock,
+        nested_stack_manager_mock,
     ):
-
         root_stack = Mock()
         root_stack.is_root_stack = True
-        auto_dependency_layer = False
         root_stack.get_output_template_path = Mock(return_value="./build_dir/template.yaml")
         child_stack = Mock()
         child_stack.get_output_template_path = Mock(return_value="./build_dir/abcd/template.yaml")
@@ -826,7 +827,7 @@ class TestBuildContext_run(TestCase):
 
         builder_mock = ApplicationBuilderMock.return_value = Mock()
         artifacts = "artifacts"
-        builder_mock.build.return_value = ApplicationBuildResult(Mock(), artifacts)
+        application_build_result = builder_mock.build.return_value = ApplicationBuildResult(Mock(), artifacts)
         modified_template_root = "modified template 1"
         modified_template_child = "modified template 2"
         builder_mock.update_template.side_effect = [modified_template_root, modified_template_child]
@@ -843,6 +844,13 @@ class TestBuildContext_run(TestCase):
         base_dir = pathlib_mock.Path.return_value.resolve.return_value.parent = "basedir"
         container_mgr_mock = ContainerManagerMock.return_value = Mock()
         build_dir_mock.return_value = "build_dir"
+
+        given_nested_stack_manager = Mock()
+        given_nested_stack_manager.generate_auto_dependency_layer_stack.side_effect = [
+            modified_template_root,
+            modified_template_child,
+        ]
+        nested_stack_manager_mock.return_value = given_nested_stack_manager
 
         with BuildContext(
             resource_identifier="function_identifier",
@@ -913,6 +921,25 @@ class TestBuildContext_run(TestCase):
                     ),
                 ]
             )
+
+            if auto_dependency_layer:
+                nested_stack_manager_mock.assert_has_calls(
+                    [
+                        call(
+                            root_stack, None, build_context.build_dir, modified_template_root, application_build_result
+                        ),
+                        call(
+                            child_stack,
+                            None,
+                            build_context.build_dir,
+                            modified_template_child,
+                            application_build_result,
+                        ),
+                    ],
+                    any_order=True,
+                )
+                # assert that nested stack manager is called by both root stack and child stack
+                given_nested_stack_manager.generate_auto_dependency_layer_stack.assert_has_calls([call(), call()])
 
     @parameterized.expand(
         [
@@ -1079,45 +1106,6 @@ class TestBuildContext_run(TestCase):
                 build_context.run()
 
         self.assertEqual(str(ctx.exception), "Function Not Found")
-
-
-class TestBuildContext_java_warning(TestCase):
-    @parameterized.expand(
-        [
-            ([], [], False),
-            ([DummyFunction("NonJavaFunction", runtime="nodejs14.x")], [], False),
-            ([], [DummyLayer("NonJavaLayer", build_method="nodejs14.x")], False),
-            (
-                [DummyFunction("NonJavaFunction", runtime="nodejs14.x")],
-                [DummyLayer("NonJavaLayer", build_method="nodejs14.x")],
-                False,
-            ),
-            ([DummyFunction("JavaFunction", runtime="java8")], [], True),
-            ([], [DummyLayer("JavaLayer", build_method="java11")], True),
-            ([DummyFunction("JavaFunction", runtime="java11")], [DummyLayer("JavaLayer", build_method="java8")], True),
-        ]
-    )
-    @patch("samcli.commands.build.build_context.click.secho")
-    def test_check_java_warning(self, functions, layers, should_print, mocked_click):
-        build_context = BuildContext(
-            resource_identifier="function_identifier",
-            template_file="template_file",
-            base_dir="base_dir",
-            build_dir="build_dir",
-            cache_dir="cache_dir",
-            cached=False,
-            clean=False,
-            parallel=False,
-            mode="mode",
-        )
-        with patch.object(build_context, "get_resources_to_build") as mocked_resources_to_build:
-            mocked_resources_to_build.return_value = Mock(functions=functions, layers=layers)
-            build_context._check_java_warning()
-
-            if should_print:
-                mocked_click.assert_called_with(BuildContext._JAVA_BUILD_WARNING_MESSAGE, fg="yellow")
-            else:
-                mocked_click.assert_not_called()
 
 
 class TestBuildContext_esbuild_warning(TestCase):
