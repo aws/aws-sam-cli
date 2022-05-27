@@ -558,7 +558,9 @@ class TestBuildContext__enter__(TestCase):
         self.assertEqual(context.stacks, [stack])
         self.assertEqual(context.is_building_specific_resource, bool(resource_identifier))
         ctx_resources_to_build = context.resources_to_build
-        final_resources = [x for x in resources_to_build if x not in excluded_resources] if excluded_resources else []
+        final_resources = (
+            [x for x in resources_to_build if x not in excluded_resources] if excluded_resources else resources_to_build
+        )
 
         if resource_identifier is not None and resource_identifier in excluded_resources:
             # If building 1 and excluding it, build anyway

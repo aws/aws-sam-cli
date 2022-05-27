@@ -1021,10 +1021,11 @@ class TestBuildCommand_ExcludeResources(BuildIntegBase):
     @parameterized.expand(
         [
             ((), None),
-            ("FunctionOne", None),
-            ("FunctionThree", None),
-            ("FunctionOne", "FunctionOne"),
-            ("FunctionOne", "FunctionTwo"),
+            (("FunctionOne",), None),
+            (("FunctionThree",), None),
+            (("FunctionOne",), "FunctionOne"),
+            (("FunctionOne",), "FunctionTwo"),
+            (("FunctionTwo", "FunctionThree")),
         ]
     )
     @pytest.mark.flaky(reruns=3)
