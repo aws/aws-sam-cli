@@ -135,11 +135,6 @@ def track_command(func):
             else:
                 exit_reason = ex.wrapped_from
             stack_trace = _get_stack_trace()
-<<<<<<< HEAD
-
-            print(stack_trace)
-=======
->>>>>>> 0b9bde96e95bed52d52fb46107fd8a70b1d26b0f
 
         except Exception as ex:
             exception = ex

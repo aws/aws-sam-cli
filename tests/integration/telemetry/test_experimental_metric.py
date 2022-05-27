@@ -60,11 +60,7 @@ class TestExperimentalMetric(IntegBase):
                             "duration": ANY,
                             "exitReason": ANY,
                             "exitCode": ANY,
-<<<<<<< HEAD
                             "stackTrace": ANY,
-=======
-                            "stackTrace": ANY
->>>>>>> 0b9bde96e95bed52d52fb46107fd8a70b1d26b0f
                         }
                     }
                 ]
@@ -116,11 +112,7 @@ class TestExperimentalMetric(IntegBase):
                             "duration": ANY,
                             "exitReason": ANY,
                             "exitCode": ANY,
-<<<<<<< HEAD
                             "stackTrace": ANY,
-=======
-                            "stackTrace": ANY
->>>>>>> 0b9bde96e95bed52d52fb46107fd8a70b1d26b0f
                         }
                     }
                 ]
@@ -178,11 +170,7 @@ class TestExperimentalMetric(IntegBase):
                             "duration": ANY,
                             "exitReason": ANY,
                             "exitCode": ANY,
-<<<<<<< HEAD
                             "stackTrace": ANY,
-=======
-                            "stackTrace": ANY
->>>>>>> 0b9bde96e95bed52d52fb46107fd8a70b1d26b0f
                         }
                     }
                 ]
@@ -228,11 +216,7 @@ class TestExperimentalMetric(IntegBase):
                             "duration": ANY,
                             "exitReason": ANY,
                             "exitCode": ANY,
-<<<<<<< HEAD
                             "stackTrace": ANY,
-=======
-                            "stackTrace": ANY
->>>>>>> 0b9bde96e95bed52d52fb46107fd8a70b1d26b0f
                         }
                     }
                 ]
