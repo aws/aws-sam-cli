@@ -1015,7 +1015,7 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
-class TestBuildCommand_ExcludeFiles(BuildIntegBase):
+class TestBuildCommand_ExcludeResources(BuildIntegBase):
     template = "many-more-functions-template.yaml"
 
     @parameterized.expand(
@@ -1044,7 +1044,9 @@ class TestBuildCommand_ExcludeFiles(BuildIntegBase):
 
         build_dir_files = os.listdir(str(build_dir))
 
-        if function_identifier is not None and function_identifier not in excluded_resources:
+        if function_identifier is not None and function_identifier in excluded_resources:
+            self.assertIn(function_identifier, build_dir_files)  # If building 1 and excluding it, build anyway
+        else:
             for resource in excluded_resources:
                 self.assertNotIn(resource, build_dir_files)
 

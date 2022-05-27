@@ -1,6 +1,6 @@
 import os
 from unittest import TestCase
-from unittest.mock import patch, Mock, ANY, call
+from unittest.mock import MagicMock, patch, Mock, ANY, call
 
 from parameterized import parameterized
 
@@ -479,6 +479,96 @@ class TestBuildContext__enter__(TestCase):
         setup_build_dir_mock.assert_called_with("build_dir", True)
         ContainerManagerMock.assert_called_once_with(docker_network_id="network", skip_pull_image=True)
         func_provider_mock.get_all.assert_called_once()
+
+    @parameterized.expand(
+        [
+            ([], None, None),
+            (["func1", "func2", "func3"], None, None),
+            ([], ("func1",), None),
+            (["func1", "func2", "func3"], ("func2",), None),
+            (["func1"], ("func1"), None),
+            (["func1", "func2", "func3"], ("func1", "func3"), None),
+            (["func1"], ("func1",), "func1"),
+            (["func1", "func2"], ("func2",), "func1"),
+        ]
+    )
+    @patch("samcli.commands.build.build_context.get_template_data")
+    @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
+    @patch("samcli.commands.build.build_context.SamFunctionProvider")
+    @patch("samcli.commands.build.build_context.SamLayerProvider")
+    @patch("samcli.commands.build.build_context.pathlib")
+    @patch("samcli.commands.build.build_context.ContainerManager")
+    def test_must_exclude_functions_from_build(
+        self,
+        resources_to_build,
+        excluded_resources,
+        resource_identifier,
+        ContainerManagerMock,
+        pathlib_mock,
+        SamLayerProviderMock,
+        SamFunctionProviderMock,
+        get_buildable_stacks_mock,
+        get_template_data_mock,
+    ):
+        template_dict = "template dict"
+        stack = Mock()
+        stack.template_dict = template_dict
+        get_buildable_stacks_mock.return_value = ([stack], [])
+
+        funcs = [DummyFunction(f) for f in resources_to_build]
+        resource_to_exclude = None
+        for f in funcs:
+            if f.name == resource_identifier:
+                resource_to_exclude = f
+                break
+
+        func_provider_mock = Mock()
+        func_provider_mock.get_all.return_value = funcs
+        func_provider_mock.get.return_value = resource_to_exclude
+        func_provider_mock.layers.return_value = []
+        funcprovider = SamFunctionProviderMock.return_value = func_provider_mock
+
+        context = BuildContext(
+            resource_identifier,
+            "template_file",
+            None,  # No base dir is provided
+            "build_dir",
+            manifest_path="manifest_path",
+            clean=True,
+            use_container=True,
+            docker_network="network",
+            parameter_overrides={"overrides": "value"},
+            skip_pull_image=True,
+            mode="buildmode",
+            cached=False,
+            cache_dir="cache_dir",
+            parallel=True,
+            excluded_resources=excluded_resources,
+        )
+        setup_build_dir_mock = Mock()
+        build_dir_result = setup_build_dir_mock.return_value = "my/new/build/dir"
+        context._setup_build_dir = setup_build_dir_mock
+
+        # call the enter method
+        result = context.__enter__()
+
+        self.assertEqual(result, context)  # __enter__ must return self
+        self.assertEqual(context.function_provider, funcprovider)
+        self.assertEqual(context.build_dir, build_dir_result)
+        self.assertEqual(context.stacks, [stack])
+        self.assertEqual(context.is_building_specific_resource, bool(resource_identifier))
+        ctx_resources_to_build = context.resources_to_build
+
+        if resource_identifier is not None and resource_identifier in excluded_resources:
+            # If building 1 and excluding it, build anyway
+            self.assertTrue(context.is_building_specific_resource)
+            self.assertIn(resource_to_exclude, ctx_resources_to_build.functions)
+        else:
+            if excluded_resources:
+                self.assertTrue(all([x not in ctx_resources_to_build.functions for x in excluded_resources]))
+                self.assertTrue(all([x.name in resources_to_build for x in ctx_resources_to_build.functions]))
+            else:
+                self.assertTrue(all([x in ctx_resources_to_build.functions for x in ctx_resources_to_build.functions]))
 
     @parameterized.expand([(["remote_stack_1", "stack.remote_stack_2"], "print_warning"), ([], False)])
     @patch("samcli.commands.build.build_context.LOG")

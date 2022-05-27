@@ -124,7 +124,7 @@ $ sam build MyFunction
     "--exclude",
     "-x",
     default=None,
-    multiple=True,  # Multiple files can be excepted from the build
+    multiple=True,  # Multiple resources can be excepted from the build
     help="Name of the resource(s) to exclude from the SAM CLI build.",
 )
 @click.option(
