@@ -117,6 +117,8 @@ class FunctionUpdateStatus(Enum):
 
 def wait_for_function_update_complete(lambda_client: BaseClient, physical_id: str) -> None:
     """
+    Checks on cloud side to wait for the function update status to be complete
+
     Parameters
     ----------
     lambda_client : boto.core.BaseClient
