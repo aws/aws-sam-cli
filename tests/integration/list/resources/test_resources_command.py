@@ -10,4 +10,7 @@ class TestResources(ResourcesIntegBase):
         command_result = run_command(cmdlist, cwd=self.working_dir)
         from_command = "".join(re.split(" *", str(command_result.stdout).replace("\\n", "")))
         from_help = "".join(re.split("\n*| *", HELP_TEXT))
+        print()
+        print(from_command)
+        print(from_help)
         self.assertTrue(from_help in from_command, "Resources help text should have been printed")
