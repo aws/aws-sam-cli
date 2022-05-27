@@ -1,6 +1,7 @@
 """
 StackBuilder implementation for nested stack
 """
+import re
 from typing import cast
 
 from samcli.lib.bootstrap.stack_builder import AbstractStackBuilder
@@ -10,6 +11,7 @@ from samcli.lib.utils.resources import AWS_SERVERLESS_LAYERVERSION, AWS_CLOUDFOR
 
 CREATED_BY_METADATA_KEY = "CreatedBy"
 CREATED_BY_METADATA_VALUE = "AWS SAM CLI sync command"
+NON_ALPHANUM_REGEX = re.compile(r"\W+")
 
 
 class NestedStackBuilder(AbstractStackBuilder):
@@ -43,14 +45,16 @@ class NestedStackBuilder(AbstractStackBuilder):
     @staticmethod
     def get_layer_logical_id(function_logical_id: str) -> str:
         function_logical_id_hash = str_checksum(function_logical_id)
-        return f"{function_logical_id[:48]}{function_logical_id_hash[:8]}DepLayer"
+        sanitized_function_logical_id = NestedStackBuilder._get_logical_id_compliant_str(function_logical_id)
+        return f"{sanitized_function_logical_id[:48]}{function_logical_id_hash[:8]}DepLayer"
 
     @staticmethod
     def get_layer_name(stack_name: str, function_logical_id: str) -> str:
         function_logical_id_hash = str_checksum(function_logical_id)
+        sanitized_function_logical_id = NestedStackBuilder._get_logical_id_compliant_str(function_logical_id)
         stack_name_hash = str_checksum(stack_name)
         return (
-            f"{stack_name[:16]}{stack_name_hash[:8]}-{function_logical_id[:22]}{function_logical_id_hash[:8]}"
+            f"{stack_name[:16]}{stack_name_hash[:8]}-{sanitized_function_logical_id[:22]}{function_logical_id_hash[:8]}"
             f"-DepLayer"
         )
 
@@ -76,3 +80,11 @@ class NestedStackBuilder(AbstractStackBuilder):
             "Properties": {"TemplateURL": nested_template_location},
             "Metadata": {CREATED_BY_METADATA_KEY: CREATED_BY_METADATA_VALUE},
         }
+
+    @staticmethod
+    def _get_logical_id_compliant_str(function_logical_id: str):
+        """
+        Removes all non-alphanumeric chars to make it usable for resource name definition
+        https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/resources-section-structure.html
+        """
+        return NON_ALPHANUM_REGEX.sub("", function_logical_id)

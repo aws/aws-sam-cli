@@ -1,9 +1,9 @@
 import os
-import hashlib
+from samcli.lib.sync.flows.function_sync_flow import wait_for_function_update_complete
 
-from samcli.lib.sync.sync_flow import SyncFlow, ApiCallTypes
+from samcli.lib.sync.sync_flow import ApiCallTypes
 from unittest import TestCase
-from unittest.mock import ANY, MagicMock, call, mock_open, patch
+from unittest.mock import MagicMock, mock_open, patch
 
 from samcli.lib.sync.flows.zip_function_sync_flow import ZipFunctionSyncFlow
 
@@ -102,18 +102,21 @@ class TestZipFunctionSyncFlow(TestCase):
         b64decode_mock.assert_called_once_with("sha256_value_b64")
         self.assertFalse(result)
 
+    @patch("samcli.lib.sync.flows.zip_function_sync_flow.wait_for_function_update_complete")
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.open", mock_open(read_data=b"zip_content"), create=True)
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.os.remove")
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.os.path.exists")
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.S3Uploader")
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.os.path.getsize")
     @patch("samcli.lib.sync.sync_flow.Session")
-    def test_sync_direct(self, session_mock, getsize_mock, uploader_mock, exists_mock, remove_mock):
+    def test_sync_direct(self, session_mock, getsize_mock, uploader_mock, exists_mock, remove_mock, wait_mock):
         getsize_mock.return_value = 49 * 1024 * 1024
         exists_mock.return_value = True
         sync_flow = self.create_function_sync_flow()
         sync_flow._zip_file = "zip_file"
 
+        sync_flow._get_lock_chain = MagicMock()
+        sync_flow.has_locks = MagicMock()
         sync_flow.get_physical_id = MagicMock()
         sync_flow.get_physical_id.return_value = "PhysicalFunction1"
 
@@ -121,18 +124,23 @@ class TestZipFunctionSyncFlow(TestCase):
 
         sync_flow.sync()
 
+        sync_flow._get_lock_chain.assert_called_once()
+        sync_flow._get_lock_chain.return_value.__enter__.assert_called_once()
         sync_flow._lambda_client.update_function_code.assert_called_once_with(
             FunctionName="PhysicalFunction1", ZipFile=b"zip_content"
         )
+        wait_mock.assert_called_once_with(sync_flow._lambda_client, "PhysicalFunction1")
+        sync_flow._get_lock_chain.return_value.__exit__.assert_called_once()
         remove_mock.assert_called_once_with("zip_file")
 
+    @patch("samcli.lib.sync.flows.zip_function_sync_flow.wait_for_function_update_complete")
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.open", mock_open(read_data=b"zip_content"), create=True)
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.os.remove")
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.os.path.exists")
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.S3Uploader")
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.os.path.getsize")
     @patch("samcli.lib.sync.sync_flow.Session")
-    def test_sync_s3(self, session_mock, getsize_mock, uploader_mock, exists_mock, remove_mock):
+    def test_sync_s3(self, session_mock, getsize_mock, uploader_mock, exists_mock, remove_mock, wait_mock):
         getsize_mock.return_value = 51 * 1024 * 1024
         exists_mock.return_value = True
         uploader_mock.return_value.upload_with_dedup.return_value = "s3://bucket_name/bucket/key"
@@ -140,6 +148,8 @@ class TestZipFunctionSyncFlow(TestCase):
         sync_flow._zip_file = "zip_file"
         sync_flow._deploy_context.s3_bucket = "bucket_name"
 
+        sync_flow._get_lock_chain = MagicMock()
+        sync_flow.has_locks = MagicMock()
         sync_flow.get_physical_id = MagicMock()
         sync_flow.get_physical_id.return_value = "PhysicalFunction1"
 
@@ -149,9 +159,13 @@ class TestZipFunctionSyncFlow(TestCase):
 
         uploader_mock.return_value.upload_with_dedup.assert_called_once_with("zip_file")
 
+        sync_flow._get_lock_chain.assert_called_once()
+        sync_flow._get_lock_chain.return_value.__enter__.assert_called_once()
         sync_flow._lambda_client.update_function_code.assert_called_once_with(
             FunctionName="PhysicalFunction1", S3Bucket="bucket_name", S3Key="bucket/key"
         )
+        wait_mock.assert_called_once_with(sync_flow._lambda_client, "PhysicalFunction1")
+        sync_flow._get_lock_chain.return_value.__exit__.assert_called_once()
         remove_mock.assert_called_once_with("zip_file")
 
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.ResourceAPICall")
@@ -174,11 +188,38 @@ class TestZipFunctionSyncFlow(TestCase):
         )
 
         result = sync_flow._get_resource_api_calls()
-        self.assertEqual(len(result), 3)
+        self.assertEqual(len(result), 4)
         resource_api_call_mock.assert_any_call("Layer1", [ApiCallTypes.BUILD])
         resource_api_call_mock.assert_any_call("Layer2", [ApiCallTypes.BUILD])
         resource_api_call_mock.assert_any_call("CodeUri/", [ApiCallTypes.BUILD])
+        resource_api_call_mock.assert_any_call(
+            "Function1", [ApiCallTypes.UPDATE_FUNCTION_CODE, ApiCallTypes.UPDATE_FUNCTION_CONFIGURATION]
+        )
 
     def test_combine_dependencies(self):
         sync_flow = self.create_function_sync_flow()
         self.assertTrue(sync_flow._combine_dependencies())
+
+    def test_verify_function_status_recursion(self):
+        given_lambda_client = MagicMock()
+        given_physical_id = "function"
+
+        function_result1 = {"Configuration": {"LastUpdateStatus": "InProgress"}}
+        function_result2 = {"Configuration": {"LastUpdateStatus": "Successful"}}
+        given_lambda_client.get_function.side_effect = [function_result1, function_result1, function_result2]
+
+        wait_for_function_update_complete(given_lambda_client, given_physical_id)
+
+        given_lambda_client.get_function.assert_called_with(FunctionName=given_physical_id)
+        self.assertEqual(given_lambda_client.get_function.call_count, 3)
+
+    def test_wait_for_function_status_failure(self):
+        given_lambda_client = MagicMock()
+        given_physical_id = "function"
+
+        function_result = {"Configuration": {"LastUpdateStatus": "Failure"}}
+        given_lambda_client.get_function.return_value = function_result
+
+        wait_for_function_update_complete(given_lambda_client, given_physical_id)
+
+        given_lambda_client.get_function.assert_called_with(FunctionName=given_physical_id)
