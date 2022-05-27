@@ -10,4 +10,4 @@ class TestStackOutputs(StackOutputsIntegBase):
         command_result = run_command(cmdlist, cwd=self.working_dir)
         from_command = "".join(command_result.stdout.decode().split())
         from_help = "".join(HELP_TEXT.split())
-        self.assertTrue(from_help in from_command, "Stack-outputs help text should have been printed")
+        self.assertIn(from_help, from_command, "Stack-outputs help text should have been printed")
