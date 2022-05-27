@@ -1032,7 +1032,7 @@ class TestBuildCommand_ExcludeResources(BuildIntegBase):
     def test_build_without_resources(self, excluded_resources, function_identifier):
         overrides = {"Runtime": "python3.7", "CodeUri": "Python", "Handler": "main.handler"}
         cmdlist = self.get_command_list(
-            parameter_overrides=overrides, function_identifier=function_identifier, exclude=excluded_resources
+            parameter_overrides=overrides, function_identifier=function_identifier, exclude=str(excluded_resources)
         )
 
         LOG.info("Running Command: {}".format(cmdlist))

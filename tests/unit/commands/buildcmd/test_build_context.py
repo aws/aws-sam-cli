@@ -558,7 +558,7 @@ class TestBuildContext__enter__(TestCase):
         self.assertEqual(context.stacks, [stack])
         self.assertEqual(context.is_building_specific_resource, bool(resource_identifier))
         ctx_resources_to_build = context.resources_to_build
-        final_resources = (
+        non_excluded_resources = (
             [x for x in resources_to_build if x not in excluded_resources] if excluded_resources else resources_to_build
         )
 
@@ -570,7 +570,7 @@ class TestBuildContext__enter__(TestCase):
             named_funcs = [f.name for f in ctx_resources_to_build.functions]
             if excluded_resources:
                 self.assertTrue(all([x not in named_funcs for x in excluded_resources]))
-                self.assertTrue(all([x in named_funcs for x in final_resources]))
+                self.assertTrue(all([x in named_funcs for x in non_excluded_resources]))
             else:
                 self.assertTrue(all([x in named_funcs for x in resources_to_build]))
 
