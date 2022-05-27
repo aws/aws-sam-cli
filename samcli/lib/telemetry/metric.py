@@ -135,8 +135,11 @@ def track_command(func):
             else:
                 exit_reason = ex.wrapped_from
             stack_trace = _get_stack_trace()
+<<<<<<< HEAD
 
             print(stack_trace)
+=======
+>>>>>>> 0b9bde96e95bed52d52fb46107fd8a70b1d26b0f
 
         except Exception as ex:
             exception = ex
@@ -158,7 +161,7 @@ def track_command(func):
             metric = Metric(metric_name)
             metric.add_data("awsProfileProvided", bool(ctx.profile))
             metric.add_data("debugFlagProvided", bool(ctx.debug))
-            metric.add_data("region", ctx.region or "")
+            metric.add_data("region", ctx.region or "") 
             metric.add_data("commandName", ctx.command_path)  # Full command path. ex: sam local start-api
             if metric_specific_attributes:
                 metric.add_data("metricSpecificAttributes", metric_specific_attributes)
@@ -174,6 +177,19 @@ def track_command(func):
             raise exception  # pylint: disable=raising-bad-type
 
         return return_value
+
+    def _get_stack_trace():
+        # Obtains stack trace (during an exception) and filters out the working directory path whenever possible
+        stack_trace_lines = traceback.format_exc().splitlines()
+        working_directory = os.getcwd()
+
+        for i, line in enumerate(stack_trace_lines):
+            dir_index = line.find(working_directory)
+            if dir_index != -1:
+                stack_trace_lines[i] = line[:dir_index] + line[dir_index+len(working_directory)+1:]
+
+        stack_trace = '\n'.join(stack_trace_lines)
+        return stack_trace
 
     return wrapped
 
