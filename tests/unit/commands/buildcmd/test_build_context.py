@@ -1,6 +1,6 @@
 import os
 from unittest import TestCase
-from unittest.mock import MagicMock, patch, Mock, ANY, call
+from unittest.mock import patch, Mock, ANY, call
 
 from parameterized import parameterized
 
