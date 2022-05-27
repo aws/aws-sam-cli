@@ -4,8 +4,10 @@ Delete a SAM stack
 import logging
 
 import json
-import boto3
 
+from typing import Optional
+
+import boto3
 
 import click
 from click import confirm
@@ -44,8 +46,8 @@ class DeleteContext:
         config_file: str,
         config_env: str,
         no_prompts: bool,
-        s3_bucket: str,
-        s3_prefix: str,
+        s3_bucket: Optional[str],
+        s3_prefix: Optional[str],
     ):
         self.stack_name = stack_name
         self.region = region
@@ -332,13 +334,14 @@ class DeleteContext:
             self.cf_utils.delete_stack(stack_name=self.stack_name, retain_resources=retain_resources)
             self.cf_utils.wait_for_delete(self.stack_name)
 
-        # If s3_bucket information is not available, warn the user
-        if not self.s3_bucket:
-            LOG.debug("Cannot delete s3 files as no s3_bucket found")
+        # Warn the user that s3 information is missing and to use --s3 options
+        if not self.s3_bucket or not self.s3_prefix:
+            LOG.debug("Cannot delete s3 objects as bucket or prefix is missing")
             click.secho(
-                "\nWarning: s3_bucket and s3_prefix information could not be"
-                " obtained from option flags, local config file"
-                " or cloudformation template, delete the s3 files manually if required",
+                "\nWarning: Cannot resolve s3 bucket information from command options"
+                " , local config file or cloudformation template. Please use"
+                " --s3-bucket and --s3-prefix command options next time and"
+                " delete s3 files manually if required.",
                 fg="yellow",
             )
 

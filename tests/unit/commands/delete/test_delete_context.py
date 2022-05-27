@@ -180,9 +180,10 @@ class TestDeleteContext(TestCase):
             delete_context.run()
             expected_click_secho_calls = [
                 call(
-                    "\nWarning: s3_bucket and s3_prefix information could not be"
-                    " obtained from option flags, local config file"
-                    " or cloudformation template, delete the s3 files manually if required",
+                    "\nWarning: Cannot resolve s3 bucket information from command options"
+                    " , local config file or cloudformation template. Please use"
+                    " --s3-bucket and --s3-prefix command options next time and"
+                    " delete s3 files manually if required.",
                     fg="yellow",
                 ),
             ]

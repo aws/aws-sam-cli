@@ -45,9 +45,60 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
 
     def setUp(self):
         self.cf_client = boto3.client("cloudformation")
+        self.s3_client = boto3.client("s3")
         self.sns_arn = os.environ.get("AWS_SNS")
         time.sleep(CFN_SLEEP)
         super().setUp()
+
+    @parameterized.expand(
+        [
+            "aws-serverless-function.yaml",
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_s3_options(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            image_repository=self.ecr_repo_name,
+            s3_bucket=self.bucket_name,
+            s3_prefix=self.s3_prefix,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+            region="us-east-1",
+        )
+        deploy_process_execute = run_command(deploy_command_list)
+
+        delete_command_list = self.get_delete_command_list(
+            stack_name=stack_name,
+            region="us-east-1",
+            no_prompts=True,
+            s3_bucket=self.bucket_name,
+            s3_prefix=self.s3_prefix,
+        )
+        delete_process_execute = run_command(delete_command_list)
+
+        self.assertEqual(delete_process_execute.process.returncode, 0)
+
+        # Check if the stack was deleted
+        try:
+            resp = self.cf_client.describe_stacks(StackName=stack_name)
+        except ClientError as ex:
+            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
+
+        # Check for zero objects in bucket
+        s3_objects_resp = self.s3_client.list_objects_v2(Bucket=self.bucket_name, Prefix=self.s3_prefix)
+        self.assertEqual(s3_objects_resp["KeyCount"], 0)
 
     @pytest.mark.flaky(reruns=3)
     def test_delete_command_no_stack_deployed(self):

@@ -4,6 +4,7 @@ CLI command for "delete" command
 
 import logging
 
+from typing import Optional
 import click
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 
@@ -107,8 +108,8 @@ def do_cli(
     config_env: str,
     profile: str,
     no_prompts: bool,
-    s3_bucket: str,
-    s3_prefix: str,
+    s3_bucket: Optional[str],
+    s3_prefix: Optional[str],
 ):
     """
     Implementation of the ``cli`` method
