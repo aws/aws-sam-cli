@@ -25,36 +25,6 @@ class CloudFormationResourceSummary:
     physical_resource_id: str
 
 
-def get_physical_id_mapping(
-    boto_resource_provider: BotoProviderType, stack_name: str, resource_types: Optional[Set[str]] = None
-) -> Dict[str, str]:
-    """
-    Uses get_resource_summaries method to gather resource summaries and creates a dictionary which contains
-    logical_id to physical_id mapping
-
-    Parameters
-    ----------
-    boto_resource_provider : BotoProviderType
-        A callable which will return boto3 resource
-    stack_name : str
-        Name of the stack which is deployed to CFN
-    resource_types : Optional[Set[str]]
-        List of resource types, which will filter the results
-
-    Returns
-    -------
-        Dictionary of string, string which will contain logical_id to physical_id mapping
-
-    """
-    resource_summaries = get_resource_summaries(boto_resource_provider, stack_name, resource_types)
-
-    resource_physical_id_map: Dict[str, str] = {}
-    for resource_key, resource_summary in resource_summaries.items():
-        resource_physical_id_map[resource_key] = resource_summary.physical_resource_id
-
-    return resource_physical_id_map
-
-
 def get_resource_summaries(
     boto_resource_provider: BotoProviderType,
     stack_name: str,

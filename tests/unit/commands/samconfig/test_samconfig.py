@@ -158,6 +158,60 @@ class TestSamConfigForAllCommands(TestCase):
             )
 
     @patch("samcli.commands.build.command.do_cli")
+    def test_build_with_no_cached_override(self, do_cli_mock):
+        config_values = {
+            "resource_logical_id": "foo",
+            "template_file": "mytemplate.yaml",
+            "base_dir": "basedir",
+            "build_dir": "builddir",
+            "cache_dir": "cachedir",
+            "cache": False,
+            "cached": True,
+            "use_container": True,
+            "manifest": "requirements.txt",
+            "docker_network": "mynetwork",
+            "skip_pull_image": True,
+            "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
+            "container_env_var": (""),
+            "container_env_var_file": "file",
+            "build_image": (""),
+        }
+
+        with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
+            from samcli.commands.build.command import cli
+
+            LOG.debug(Path(config_path).read_text())
+            runner = CliRunner()
+            result = runner.invoke(cli, ["--no-cached"])
+
+            LOG.info(result.output)
+            LOG.info(result.exception)
+            if result.exception:
+                LOG.exception("Command failed", exc_info=result.exc_info)
+            self.assertIsNone(result.exception)
+
+            do_cli_mock.assert_called_with(
+                ANY,
+                "foo",
+                str(Path(os.getcwd(), "mytemplate.yaml")),
+                "basedir",
+                "builddir",
+                "cachedir",
+                True,
+                True,
+                False,
+                False,
+                "requirements.txt",
+                "mynetwork",
+                True,
+                {"Key": "Value", "Key2": "Value2"},
+                None,
+                (),
+                "file",
+                (),
+            )
+
+    @patch("samcli.commands.build.command.do_cli")
     def test_build_with_container_env_vars(self, do_cli_mock):
         config_values = {
             "resource_logical_id": "foo",

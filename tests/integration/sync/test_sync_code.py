@@ -151,6 +151,44 @@ class TestSyncCode(TestSyncCodeBase):
                 self.assertIn("extra_message", lambda_response)
                 self.assertEqual(lambda_response.get("message"), "9")
 
+    def test_sync_function_layer_race_condition(self):
+        shutil.rmtree(TestSyncCode.temp_dir.joinpath("function"), ignore_errors=True)
+        shutil.copytree(
+            self.test_data_path.joinpath("code").joinpath("before").joinpath("function"),
+            TestSyncCode.temp_dir.joinpath("function"),
+        )
+        shutil.rmtree(TestSyncCode.temp_dir.joinpath("layer"), ignore_errors=True)
+        shutil.copytree(
+            self.test_data_path.joinpath("code").joinpath("before").joinpath("layer"),
+            TestSyncCode.temp_dir.joinpath("layer"),
+        )
+        # Run code sync
+        sync_command_list = self.get_sync_command_list(
+            template_file=TestSyncCode.template_path,
+            code=True,
+            watch=False,
+            resource="AWS::Serverless::Function",
+            dependency_layer=True,
+            stack_name=TestSyncCode.stack_name,
+            parameter_overrides="Parameter=Clarity",
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+
+        # CFN Api call here to collect all the stack resources
+        self.stack_resources = self._get_stacks(TestSyncCode.stack_name)
+        # Lambda Api call here, which tests both the python function and the layer
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            if lambda_function == "HelloWorldFunction":
+                lambda_response = json.loads(self._get_lambda_response(lambda_function))
+                self.assertIn("extra_message", lambda_response)
+                self.assertEqual(lambda_response.get("message"), "7")
+
     def test_sync_code_rest_api(self):
         shutil.rmtree(TestSyncCode.temp_dir.joinpath("apigateway"), ignore_errors=True)
         shutil.copytree(

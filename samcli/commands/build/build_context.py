@@ -71,7 +71,59 @@ class BuildContext:
         create_auto_dependency_layer: bool = False,
         stack_name: Optional[str] = None,
         print_success_message: bool = True,
+        locate_layer_nested: bool = False,
     ) -> None:
+        """
+        Initialize the class
+
+        Parameters
+        ----------
+        resource_identifier: Optional[str]
+            The unique identifier of the resource
+        template_file: str
+            Path to the template for building
+        base_dir : str
+            Path to a folder. Use this folder as the root to resolve relative source code paths against
+        build_dir : str
+            Path to the directory where we will be storing built artifacts
+        cache_dir : str
+            Path to a the directory where we will be caching built artifacts
+        cached:
+            Optional. Set to True to build each function with cache to improve performance
+        parallel : bool
+            Optional. Set to True to build each function in parallel to improve performance
+        mode : str
+            Optional, name of the build mode to use ex: 'debug'
+        manifest_path : Optional[str]
+            Optional path to manifest file to replace the default one
+        clean: bool
+            Clear the build directory before building
+        use_container: bool
+            Build inside container
+        parameter_overrides: Optional[dict]
+            Optional dictionary of values for SAM template parameters that might want
+            to get substituted within the template
+        docker_network: Optional[str]
+            Docker network to run the container in.
+        skip_pull_image: bool
+            Whether we should pull new Docker container image or not
+        container_env_var: Optional[dict]
+            An optional dictionary of environment variables to pass to the container
+        container_env_var_file: Optional[dict]
+            An optional path to file that contains environment variables to pass to the container
+        build_images: Optional[dict]
+            An optional dictionary of build images to be used for building functions
+        aws_region: Optional[str]
+            Aws region code
+        create_auto_dependency_layer: bool
+            Create auto dependency layer for accelerate feature
+        stack_name: Optional[str]
+            Original stack name, which is used to generate layer name for accelerate feature
+        print_success_message: bool
+            Print successful message
+        locate_layer_nested: bool
+            Locate layer to its actual, worked with nested stack
+        """
 
         self._resource_identifier = resource_identifier
         self._template_file = template_file
@@ -106,6 +158,7 @@ class BuildContext:
         self._layer_provider: Optional[SamLayerProvider] = None
         self._container_manager: Optional[ContainerManager] = None
         self._stacks: List[Stack] = []
+        self._locate_layer_nested = locate_layer_nested
 
     def __enter__(self) -> "BuildContext":
         self.set_up()
@@ -130,7 +183,9 @@ class BuildContext:
         # Note(xinhol): self._use_raw_codeuri is added temporarily to fix issue #2717
         # when base_dir is provided, codeuri should not be resolved based on template file path.
         # we will refactor to make all path resolution inside providers intead of in multiple places
-        self._function_provider = SamFunctionProvider(self.stacks, self._use_raw_codeuri)
+        self._function_provider = SamFunctionProvider(
+            self.stacks, self._use_raw_codeuri, locate_layer_nested=self._locate_layer_nested
+        )
         self._layer_provider = SamLayerProvider(self.stacks, self._use_raw_codeuri)
 
         if not self._base_dir:
@@ -204,7 +259,7 @@ class BuildContext:
                 if self._create_auto_dependency_layer:
                     LOG.debug("Auto creating dependency layer for each function resource into a nested stack")
                     nested_stack_manager = NestedStackManager(
-                        self._stack_name, self.build_dir, stack.location, modified_template, build_result
+                        stack, self._stack_name, self.build_dir, modified_template, build_result
                     )
                     modified_template = nested_stack_manager.generate_auto_dependency_layer_stack()
                 move_template(stack.location, output_template_path, modified_template)
