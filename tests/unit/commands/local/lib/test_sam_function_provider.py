@@ -1173,8 +1173,13 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         self.assertEqual(expected, result)
         convert_mock.assert_called_with(stack, "Func1", {"a": "b", "Metadata": {"SamResourceId": "id"}}, [], False)
         parse_layer_mock.assert_called_with(
-            stack, [], False, ignore_code_extraction_warnings=False, locate_layer_nested=True, stacks=[stack],
-            function_id="id"
+            stack,
+            [],
+            False,
+            ignore_code_extraction_warnings=False,
+            locate_layer_nested=True,
+            stacks=[stack],
+            function_id="id",
         )
 
     @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
@@ -1201,8 +1206,13 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         self.assertEqual(expected, result)
         convert_mock.assert_called_with(stack, "Func1", {"a": "b", "Metadata": {"SamResourceId": "id"}}, [], False)
         parse_layer_mock.assert_called_with(
-            stack, [], False, ignore_code_extraction_warnings=False, locate_layer_nested=True, stacks=[stack],
-            function_id="id"
+            stack,
+            [],
+            False,
+            ignore_code_extraction_warnings=False,
+            locate_layer_nested=True,
+            stacks=[stack],
+            function_id="id",
         )
 
     @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
@@ -1225,8 +1235,13 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         self.assertEqual(expected, result)
         convert_mock.assert_called_with(stack, "Func1", {"a": "b", "Metadata": {"SamResourceId": "id"}}, [], False)
         parse_layer_mock.assert_called_with(
-            stack, [], False, ignore_code_extraction_warnings=False, locate_layer_nested=False, stacks=None,
-            function_id=None
+            stack,
+            [],
+            False,
+            ignore_code_extraction_warnings=False,
+            locate_layer_nested=False,
+            stacks=None,
+            function_id=None,
         )
 
     @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
@@ -1253,8 +1268,13 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         self.assertEqual(expected, result)
         convert_mock.assert_called_with(stack, "Func1", {"a": "b", "Metadata": {"SamResourceId": "id"}}, [], False)
         parse_layer_mock.assert_called_with(
-            stack, [], False, ignore_code_extraction_warnings=False, locate_layer_nested=False, stacks=None,
-            function_id=None
+            stack,
+            [],
+            False,
+            ignore_code_extraction_warnings=False,
+            locate_layer_nested=False,
+            stacks=None,
+            function_id=None,
         )
 
 
@@ -2405,5 +2425,3 @@ class TestSamFunctionProvider_search_layer(TestCase):
 
         invalid_layer_str_format = {"Fn::GetAtt": ["LayerStackName", "Outputs.invalid.format"]}
         self.assertFalse(SamFunctionProvider._validate_layer_get_attr_format(invalid_layer_str_format))
-
-
