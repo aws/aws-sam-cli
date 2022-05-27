@@ -1,4 +1,5 @@
 """SyncFlow for Image based Lambda Functions"""
+from contextlib import ExitStack
 import logging
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
@@ -6,11 +7,11 @@ import docker
 from docker.client import DockerClient
 
 from samcli.lib.providers.provider import Stack
-from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow
+from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow, wait_for_function_update_complete
 from samcli.lib.package.ecr_uploader import ECRUploader
 
 from samcli.lib.build.app_builder import ApplicationBuilder
-from samcli.lib.sync.sync_flow import ResourceAPICall
+from samcli.lib.sync.sync_flow import ApiCallTypes, ResourceAPICall
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
@@ -103,7 +104,24 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
         ecr_uploader = ECRUploader(self._docker_client, self._ecr_client, ecr_repo, None)
         image_uri = ecr_uploader.upload(self._image_name, self._function_identifier)
 
-        self._lambda_client.update_function_code(FunctionName=function_physical_id, ImageUri=image_uri)
+        with ExitStack() as exit_stack:
+            if self.has_locks():
+                exit_stack.enter_context(self._get_lock_chain())
+
+            self._lambda_client.update_function_code(FunctionName=function_physical_id, ImageUri=image_uri)
+
+            # We need to wait for the cloud side update to finish
+            # Otherwise even if the call is finished and lockchain is released
+            # It is still possible that we have a race condition on cloud updating the same function
+            wait_for_function_update_complete(self._lambda_client, self.get_physical_id(self._function_identifier))
 
     def _get_resource_api_calls(self) -> List[ResourceAPICall]:
-        return []
+        # We need to acquire lock for both API calls since they would conflict on cloud
+        # Any UPDATE_FUNCTION_CODE and UPDATE_FUNCTION_CONFIGURATION on the same function
+        # Cannot take place in parallel
+        return [
+            ResourceAPICall(
+                self._function_identifier,
+                [ApiCallTypes.UPDATE_FUNCTION_CODE, ApiCallTypes.UPDATE_FUNCTION_CONFIGURATION],
+            )
+        ]
