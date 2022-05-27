@@ -327,9 +327,15 @@ class FunctionLayerReferenceSync(SyncFlow):
 
             self._lambda_client.update_function_configuration(FunctionName=function_physical_id, Layers=layer_arns)
 
+            # We need to wait for the cloud side update to finish
+            # Otherwise even if the call is finished and lockchain is released
+            # It is still possible that we have a race condition on cloud updating the same function
             wait_for_function_update_complete(self._lambda_client, self.get_physical_id(self._function_identifier))
 
     def _get_resource_api_calls(self) -> List[ResourceAPICall]:
+        # We need to acquire lock for both API calls since they would conflict on cloud
+        # Any UPDATE_FUNCTION_CODE and UPDATE_FUNCTION_CONFIGURATION on the same function
+        # Cannot take place in parallel
         return [
             ResourceAPICall(
                 self._function_identifier,
