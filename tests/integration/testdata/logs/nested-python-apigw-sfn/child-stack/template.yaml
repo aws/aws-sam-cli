@@ -113,19 +113,16 @@ Resources:
       ManagedPolicyArns:
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
 
-  ChildStack:
+  GrandChildStack:
     Type: AWS::Serverless::Application
     Properties:
-      Location: child-stack/template.yaml
+      Location: grand-child-stack/template.yaml
 
 Outputs:
   HelloWorldServerlessApi:
     Description: "API Gateway endpoint URL for Prod stage for Hello World function"
     Value: !Sub "https://${HelloWorldServerlessApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
-  ChildStackHelloWorldServerlessApi:
-    Description: "API Gateway endpoint URL from child stack"
-    Value: !GetAtt [ChildStack, Outputs.HelloWorldServerlessApi]
   GrandChildStackHelloWorldServerlessApi:
     Description: "API Gateway endpoint URL from grand-child stack"
-    Value: !GetAtt [ChildStack, Outputs.GrandChildStackHelloWorldServerlessApi]
+    Value: !GetAtt [GrandChildStack, Outputs.HelloWorldServerlessApi]
 

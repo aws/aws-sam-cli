@@ -8,6 +8,9 @@ from unittest import skipIf
 import boto3
 import pytest
 import requests
+
+from samcli.lib.utils.boto_utils import get_boto_resource_provider_with_config
+from samcli.lib.utils.cloudformation import get_resource_summaries
 from tests.integration.logs.logs_integ_base import RETRY_SLEEP
 from parameterized import parameterized
 
@@ -31,7 +34,7 @@ SKIP_LOGS_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY
 @skipIf(SKIP_LOGS_TESTS, "Skip logs tests in CI/CD only")
 class TestLogsCommand(LogsIntegBase):
     stack_name = ""
-    stack_resources = []
+    stack_resources = {}
     stack_info = None
 
     def setUp(self):
@@ -45,9 +48,9 @@ class TestLogsCommand(LogsIntegBase):
         LOG.info("Deploying stack %s", self.stack_name)
         deploy_cmd = DeployIntegBase.get_deploy_command_list(
             stack_name=self.stack_name,
-            template_file=test_data_path.joinpath("python-apigw-sfn", "template.yaml"),
+            template_file=test_data_path.joinpath("nested-python-apigw-sfn", "template.yaml"),
             resolve_s3=True,
-            capabilities="CAPABILITY_IAM",
+            capabilities_list=["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
         )
         deploy_result = run_command(deploy_cmd)
         self.assertEqual(
@@ -56,9 +59,13 @@ class TestLogsCommand(LogsIntegBase):
 
         cfn_client = boto3.client("cloudformation")
         cfn_resource = boto3.resource("cloudformation")
-        TestLogsCommand.stack_resources = cfn_client.describe_stack_resources(StackName=TestLogsCommand.stack_name).get(
-            "StackResources", []
+        stack_resource_summaries = get_resource_summaries(
+            get_boto_resource_provider_with_config(), TestLogsCommand.stack_name
         )
+        TestLogsCommand.stack_resources = {
+            resource_full_path: stack_resource_summary.physical_resource_id
+            for resource_full_path, stack_resource_summary in stack_resource_summaries.items()
+        }
         TestLogsCommand.stack_info = cfn_resource.Stack(TestLogsCommand.stack_name)
 
         yield
@@ -66,11 +73,7 @@ class TestLogsCommand(LogsIntegBase):
         cfn_client.delete_stack(StackName=self.stack_name)
 
     def _get_physical_id(self, logical_id: str):
-        for stack_resource in self.stack_resources:
-            if stack_resource["LogicalResourceId"] == logical_id:
-                return stack_resource["PhysicalResourceId"]
-
-        return None
+        return self.stack_resources[logical_id]
 
     def _get_output_value(self, key: str):
         for output in self.stack_info.outputs:
@@ -79,7 +82,7 @@ class TestLogsCommand(LogsIntegBase):
 
         return None
 
-    @parameterized.expand([("ApiGwFunction",), ("SfnFunction",)])
+    @parameterized.expand([("ApiGwFunction",), ("SfnFunction",), ("ChildStack/ApiGwFunction",), ("ChildStack/SfnFunction",), ("ChildStack/GrandChildStack/ApiGwFunction",), ("ChildStack/GrandChildStack/SfnFunction",)])
     def test_function_logs(self, function_name: str):
         expected_log_output = f"Hello world from {function_name} function"
         LOG.info("Invoking function %s", function_name)
@@ -89,7 +92,7 @@ class TestLogsCommand(LogsIntegBase):
         cmd_list = self.get_logs_command_list(self.stack_name, name=function_name)
         self._check_logs(cmd_list, [expected_log_output])
 
-    @parameterized.expand([("ApiGwFunction",), ("SfnFunction",)])
+    @parameterized.expand([("ApiGwFunction",), ("SfnFunction",), ("ChildStack/ApiGwFunction",), ("ChildStack/SfnFunction",), ("ChildStack/GrandChildStack/ApiGwFunction",), ("ChildStack/GrandChildStack/SfnFunction",)])
     def test_tail(self, function_name: str):
         cmd_list = self.get_logs_command_list(self.stack_name, name=function_name, tail=True)
         tail_process = start_persistent_process(cmd_list)
@@ -107,9 +110,9 @@ class TestLogsCommand(LogsIntegBase):
         finally:
             kill_process(tail_process)
 
-    @parameterized.expand([("ApiGwFunction",), ("SfnFunction",)])
+    @parameterized.expand([("ApiGwFunction",), ("SfnFunction",), ("ChildStack/ApiGwFunction",), ("ChildStack/SfnFunction",), ("ChildStack/GrandChildStack/ApiGwFunction",), ("ChildStack/GrandChildStack/SfnFunction",)])
     def test_filter(self, function_name: str):
-        log_filter = "this should be filtered"
+        log_filter = f"this should be filtered {function_name}"
         LOG.info("Invoking function %s", function_name)
         lambda_invoke_result = self.lambda_client.invoke(FunctionName=self._get_physical_id(function_name))
         LOG.info("Lambda invoke result %s", lambda_invoke_result)
@@ -117,7 +120,7 @@ class TestLogsCommand(LogsIntegBase):
         cmd_list = self.get_logs_command_list(self.stack_name, name=function_name, filter=log_filter)
         self._check_logs(cmd_list, [log_filter])
 
-    @parameterized.expand(itertools.product(["HelloWorldServerlessApi"], ["hello", "world"]))
+    @parameterized.expand(itertools.product(["HelloWorldServerlessApi", "ChildStackHelloWorldServerlessApi", "GrandChildStackHelloWorldServerlessApi"], ["hello", "world"]))
     def test_apigw_logs(self, apigw_name: str, path: str):
         apigw_url = f"{self._get_output_value(apigw_name)}{path}"
         apigw_result = requests.get(apigw_url)
@@ -125,7 +128,7 @@ class TestLogsCommand(LogsIntegBase):
         cmd_list = self.get_logs_command_list(self.stack_name, name=apigw_name, beta_features=True)
         self._check_logs(cmd_list, [f"HTTP Method: GET, Resource Path: /{path}"])
 
-    @parameterized.expand([("MyStateMachine",)])
+    @parameterized.expand([("MyStateMachine",), ("ChildStack/MyStateMachine",), ("ChildStack/GrandChildStack/MyStateMachine",)])
     def test_sfn_logs(self, state_machine_name: str):
         sfn_physical_id = self._get_physical_id(state_machine_name)
         sfn_invoke_result = self.sfn_client.start_execution(stateMachineArn=sfn_physical_id)
@@ -134,17 +137,17 @@ class TestLogsCommand(LogsIntegBase):
         cmd_list = self.get_logs_command_list(self.stack_name, name=state_machine_name, beta_features=True)
         self._check_logs(cmd_list, [execution_arn])
 
-    @parameterized.expand(itertools.product(["HelloWorldServerlessApi"], ["hello"]))
+    @parameterized.expand(itertools.product(["HelloWorldServerlessApi", "ChildStackHelloWorldServerlessApi", "GrandChildStackHelloWorldServerlessApi"], ["hello"]))
     def test_end_to_end_apigw(self, apigw_name: str, path: str):
         apigw_url = f"{self._get_output_value(apigw_name)}{path}"
         apigw_result = requests.get(apigw_url)
         LOG.info("APIGW result %s", apigw_result)
         cmd_list = self.get_logs_command_list(self.stack_name, beta_features=True)
         self._check_logs(
-            cmd_list, [f"HTTP Method: GET, Resource Path: /{path}", "Hello world from ApiGwFunction function"]
+            cmd_list, [f"HTTP Method: GET, Resource Path: /{path}", f"Hello world from {apigw_name}/{path} function"]
         )
 
-    @parameterized.expand(itertools.product(["HelloWorldServerlessApi"], ["world"]))
+    @parameterized.expand(itertools.product(["HelloWorldServerlessApi", "ChildStackHelloWorldServerlessApi", "GrandChildStackHelloWorldServerlessApi"], ["world"]))
     def test_end_to_end_sfn(self, apigw_name: str, path: str):
         apigw_url = f"{self._get_output_value(apigw_name)}{path}"
         apigw_result = requests.get(apigw_url)
@@ -155,11 +158,11 @@ class TestLogsCommand(LogsIntegBase):
             [
                 f"HTTP Method: GET, Resource Path: /{path}",
                 '"type": "TaskStateEntered"',
-                "Hello world from ApiGwFunction function",
+                f"Hello world from {apigw_name}/{path} function",
             ],
         )
 
-    @parameterized.expand(itertools.product(["ApiGwFunction", "SfnFunction"], [None, "text", "json"]))
+    @parameterized.expand(itertools.product(["ApiGwFunction", "SfnFunction", "ChildStack/ApiGwFunction", "ChildStack/SfnFunction", "ChildStack/GrandChildStack/ApiGwFunction", "ChildStack/GrandChildStack/SfnFunction"], [None, "text", "json"]))
     def test_output(self, function_name: str, output: Optional[str]):
         expected_log_output = f"Hello world from {function_name} function"
         LOG.info("Invoking function %s", function_name)
@@ -171,7 +174,7 @@ class TestLogsCommand(LogsIntegBase):
 
     @parameterized.expand(
         itertools.product(
-            ["ApiGwFunction", "SfnFunction"],
+            ["ApiGwFunction", "SfnFunction", "ChildStack/ApiGwFunction", "ChildStack/SfnFunction", "ChildStack/GrandChildStack/ApiGwFunction", "ChildStack/GrandChildStack/SfnFunction"],
             [
                 (None, None, True),
                 (None, "1 minute", True),
@@ -197,7 +200,7 @@ class TestLogsCommand(LogsIntegBase):
         else:
             self._check_logs(cmd_list, [expected_log_output])
 
-    @parameterized.expand([("ApiGwFunction",), ("SfnFunction",)])
+    @parameterized.expand([("ApiGwFunction",), ("SfnFunction",), ("ChildStack/ApiGwFunction",), ("ChildStack/SfnFunction",), ("ChildStack/GrandChildStack/ApiGwFunction",), ("ChildStack/GrandChildStack/SfnFunction",)])
     def test_include_traces(self, function_name: str):
         expected_log_output = f"Hello world from {function_name} function"
         LOG.info("Invoking function %s", function_name)

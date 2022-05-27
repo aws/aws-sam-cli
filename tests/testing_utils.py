@@ -45,7 +45,10 @@ def get_sam_command():
 def method_to_stack_name(method_name):
     """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
     method_name = method_name.split(".")[-1]
-    return f"{method_name.replace('_', '-')}-{CFN_PYTHON_VERSION_SUFFIX}-{uuid4().hex}"[:128]
+    stack_name = f"{method_name.replace('_', '-')}-{CFN_PYTHON_VERSION_SUFFIX}-{uuid4().hex}"
+    if not stack_name.startswith("test"):
+        stack_name = f"test-{stack_name}"
+    return stack_name[:128]
 
 
 def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandResult:
