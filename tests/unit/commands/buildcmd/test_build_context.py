@@ -558,17 +558,19 @@ class TestBuildContext__enter__(TestCase):
         self.assertEqual(context.stacks, [stack])
         self.assertEqual(context.is_building_specific_resource, bool(resource_identifier))
         ctx_resources_to_build = context.resources_to_build
+        final_resources = [x for x in resources_to_build if x not in excluded_resources] if excluded_resources else []
 
         if resource_identifier is not None and resource_identifier in excluded_resources:
             # If building 1 and excluding it, build anyway
             self.assertTrue(context.is_building_specific_resource)
             self.assertIn(resource_to_exclude, ctx_resources_to_build.functions)
         else:
+            named_funcs = [f.name for f in ctx_resources_to_build.functions]
             if excluded_resources:
-                self.assertTrue(all([x not in ctx_resources_to_build.functions for x in excluded_resources]))
-                self.assertTrue(all([x.name in resources_to_build for x in ctx_resources_to_build.functions]))
+                self.assertTrue(all([x not in named_funcs for x in excluded_resources]))
+                self.assertTrue(all([x in named_funcs for x in final_resources]))
             else:
-                self.assertTrue(all([x in ctx_resources_to_build.functions for x in ctx_resources_to_build.functions]))
+                self.assertTrue(all([x in named_funcs for x in resources_to_build]))
 
     @parameterized.expand([(["remote_stack_1", "stack.remote_stack_2"], "print_warning"), ([], False)])
     @patch("samcli.commands.build.build_context.LOG")
