@@ -8,7 +8,6 @@ from samcli.cli.main import pass_context
 
 HELP_TEXT = """
 Get a list of resources that will be deployed to CloudFormation.\n
-
 If a stack name is provided, the corresponding physical IDs of each
 resource will be mapped to the logical ID of each resource.
 """

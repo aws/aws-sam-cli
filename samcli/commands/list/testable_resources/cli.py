@@ -8,7 +8,6 @@ from samcli.cli.main import pass_context
 
 HELP_TEXT = """
 Get a summary of the testable resources in the stack.\n
-
 This command will show both the cloud and local endpoints that can
 be used with sam local and sam sync. Currently the testable resources
 are lambda functions and API Gateway API resources.
