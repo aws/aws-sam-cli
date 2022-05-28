@@ -124,7 +124,8 @@ class BuildIntegBase(TestCase):
             command_list += ["--build-image", build_image]
 
         if exclude:
-            command_list += ["--exclude", exclude]
+            for f in exclude:
+                command_list += ["--exclude", f]
 
         if region:
             command_list += ["--region", region]
