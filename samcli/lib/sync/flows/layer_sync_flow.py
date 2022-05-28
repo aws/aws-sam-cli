@@ -229,7 +229,7 @@ class LayerSyncFlow(AbstractLayerSyncFlow):
         return layer_resource.get("Properties", {}).get("CompatibleRuntimes", [])
 
     def _get_dependent_functions(self) -> List[Function]:
-        function_provider = SamFunctionProvider(cast(List[Stack], self._stacks))
+        function_provider = SamFunctionProvider(cast(List[Stack], self._stacks), locate_layer_nested=True)
 
         dependent_functions = []
         for function in function_provider.get_all():
