@@ -11,7 +11,9 @@ import click
 MIN_OFFSET = 20
 
 
-def pprint_column_names(format_string, format_kwargs, margin=None, table_header=None, color="yellow"):
+def pprint_column_names(
+    format_string, format_kwargs, margin=None, table_header=None, color="yellow", display_sleep=False
+):
     """
 
     :param format_string: format string to be used that has the strings, minimum width to be replaced
@@ -19,6 +21,7 @@ def pprint_column_names(format_string, format_kwargs, margin=None, table_header=
     :param margin: margin that is to be reduced from column width for columnar text.
     :param table_header: Supplied table header
     :param color: color supplied for table headers and column names.
+    :param display_sleep: flag to format table_header to include deployer's client_sleep
     :return: boilerplate table string
     """
 
@@ -59,7 +62,7 @@ def pprint_column_names(format_string, format_kwargs, margin=None, table_header=
         def wrap(*args, **kwargs):
             # The table is setup with the column names, format_string contains the column names.
             if table_header:
-                click.secho("\n" + table_header)
+                click.secho("\n" + table_header.format(args[0].client_sleep) if display_sleep else table_header)
             click.secho("-" * usable_width, fg=color)
             click.secho(format_string.format(*format_args, **format_kwargs), fg=color)
             click.secho("-" * usable_width, fg=color)

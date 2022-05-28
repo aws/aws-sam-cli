@@ -53,7 +53,7 @@ DESCRIBE_STACK_EVENTS_DEFAULT_ARGS = OrderedDict(
     }
 )
 
-DESCRIBE_STACK_EVENTS_TABLE_HEADER_NAME = "CloudFormation events from stack operations"
+DESCRIBE_STACK_EVENTS_TABLE_HEADER_NAME = "CloudFormation events from stack operations (refresh every {} seconds)"
 
 DESCRIBE_CHANGESET_FORMAT_STRING = "{Operation:<{0}} {LogicalResourceId:<{1}} {ResourceType:<{2}} {Replacement:<{3}}"
 DESCRIBE_CHANGESET_DEFAULT_ARGS = OrderedDict(
@@ -360,6 +360,7 @@ class Deployer:
         format_string=DESCRIBE_STACK_EVENTS_FORMAT_STRING,
         format_kwargs=DESCRIBE_STACK_EVENTS_DEFAULT_ARGS,
         table_header=DESCRIBE_STACK_EVENTS_TABLE_HEADER_NAME,
+        display_sleep=True,
     )
     def describe_stack_events(self, stack_name, time_stamp_marker, **kwargs):
         """
