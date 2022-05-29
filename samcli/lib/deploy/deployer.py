@@ -434,7 +434,7 @@ class Deployer:
 
     @staticmethod
     def _is_root_stack_event(event: Dict) -> bool:
-        return (
+        return bool(
             event["ResourceType"] == "AWS::CloudFormation::Stack"
             and event["StackName"] == event["LogicalResourceId"]
             and event["PhysicalResourceId"] == event["StackId"]

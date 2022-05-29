@@ -50,7 +50,7 @@ class MockCreateUpdateWaiter:
 
 
 class CustomTestCase(TestCase):
-    def assertListSubset(self, l1: Union[Iterable, Container], l2: Union[Iterable, Container], msg=None) -> None:
+    def assertListSubset(self, l1: Iterable, l2: Union[Iterable, Container], msg=None) -> None:
         """
         Assert l2 contains all items in l1.
         Just like calling self.assertIn(l1[x], l2) in a loop.
@@ -461,20 +461,20 @@ class TestDeployer(CustomTestCase):
         self.deployer.describe_stack_events("test", utc_to_timestamp(start_timestamp) - 1)
         self.assertEqual(patched_pprint_columns.call_count, 5)
         self.assertListSubset(
-            ["CREATE_IN_PROGRESS", "s3", "mybucket"], patched_pprint_columns.call_args_list[0].kwargs["columns"]
+            ["CREATE_IN_PROGRESS", "s3", "mybucket"], patched_pprint_columns.call_args_list[0][1]["columns"]
         )
         self.assertListSubset(
-            ["CREATE_IN_PROGRESS", "kms", "mykms"], patched_pprint_columns.call_args_list[1].kwargs["columns"]
+            ["CREATE_IN_PROGRESS", "kms", "mykms"], patched_pprint_columns.call_args_list[1][1]["columns"]
         )
         self.assertListSubset(
-            ["CREATE_COMPLETE", "s3", "mybucket"], patched_pprint_columns.call_args_list[2].kwargs["columns"]
+            ["CREATE_COMPLETE", "s3", "mybucket"], patched_pprint_columns.call_args_list[2][1]["columns"]
         )
         self.assertListSubset(
-            ["CREATE_COMPLETE", "kms", "mykms"], patched_pprint_columns.call_args_list[3].kwargs["columns"]
+            ["CREATE_COMPLETE", "kms", "mykms"], patched_pprint_columns.call_args_list[3][1]["columns"]
         )
         self.assertListSubset(
             ["CREATE_COMPLETE", "AWS::CloudFormation::Stack", "test"],
-            patched_pprint_columns.call_args_list[4].kwargs["columns"],
+            patched_pprint_columns.call_args_list[4][1]["columns"],
         )
 
     @patch("time.sleep")
@@ -567,20 +567,20 @@ class TestDeployer(CustomTestCase):
         self.deployer.describe_stack_events("test", utc_to_timestamp(last_event_timestamp))
         self.assertEqual(patched_pprint_columns.call_count, 5)
         self.assertListSubset(
-            ["UPDATE_IN_PROGRESS", "s3", "mybucket"], patched_pprint_columns.call_args_list[0].kwargs["columns"]
+            ["UPDATE_IN_PROGRESS", "s3", "mybucket"], patched_pprint_columns.call_args_list[0][1]["columns"]
         )
         self.assertListSubset(
-            ["UPDATE_IN_PROGRESS", "kms", "mykms"], patched_pprint_columns.call_args_list[1].kwargs["columns"]
+            ["UPDATE_IN_PROGRESS", "kms", "mykms"], patched_pprint_columns.call_args_list[1][1]["columns"]
         )
         self.assertListSubset(
-            ["UPDATE_COMPLETE", "s3", "mybucket"], patched_pprint_columns.call_args_list[2].kwargs["columns"]
+            ["UPDATE_COMPLETE", "s3", "mybucket"], patched_pprint_columns.call_args_list[2][1]["columns"]
         )
         self.assertListSubset(
-            ["UPDATE_COMPLETE", "kms", "mykms"], patched_pprint_columns.call_args_list[3].kwargs["columns"]
+            ["UPDATE_COMPLETE", "kms", "mykms"], patched_pprint_columns.call_args_list[3][1]["columns"]
         )
         self.assertListSubset(
             ["UPDATE_COMPLETE", "AWS::CloudFormation::Stack", "test"],
-            patched_pprint_columns.call_args_list[4].kwargs["columns"],
+            patched_pprint_columns.call_args_list[4][1]["columns"],
         )
 
     @patch("time.sleep")
@@ -687,11 +687,11 @@ class TestDeployer(CustomTestCase):
         self.assertEqual(patched_pprint_columns.call_count, 4)
         self.assertListSubset(
             ["UPDATE_IN_PROGRESS", "AWS::CloudFormation::Stack", "test"],
-            patched_pprint_columns.call_args_list[0].kwargs["columns"],
+            patched_pprint_columns.call_args_list[0][1]["columns"],
         )
         self.assertListSubset(
             ["UPDATE_COMPLETE", "AWS::CloudFormation::Stack", "test"],
-            patched_pprint_columns.call_args_list[3].kwargs["columns"],
+            patched_pprint_columns.call_args_list[3][1]["columns"],
         )
 
     @patch("time.sleep")
@@ -789,14 +789,14 @@ class TestDeployer(CustomTestCase):
         self.deployer.describe_stack_events("test", utc_to_timestamp(start_timestamp) - 1)
         self.assertEqual(patched_pprint_columns.call_count, 3)
         self.assertListSubset(
-            ["CREATE_IN_PROGRESS", "s3", "mybucket"], patched_pprint_columns.call_args_list[0].kwargs["columns"]
+            ["CREATE_IN_PROGRESS", "s3", "mybucket"], patched_pprint_columns.call_args_list[0][1]["columns"]
         )
         self.assertListSubset(
-            ["CREATE_COMPLETE", "s3", "mybucket"], patched_pprint_columns.call_args_list[1].kwargs["columns"]
+            ["CREATE_COMPLETE", "s3", "mybucket"], patched_pprint_columns.call_args_list[1][1]["columns"]
         )
         self.assertListSubset(
             ["CREATE_COMPLETE", "AWS::CloudFormation::Stack", "test"],
-            patched_pprint_columns.call_args_list[2].kwargs["columns"],
+            patched_pprint_columns.call_args_list[2][1]["columns"],
         )
 
     @patch("samcli.lib.deploy.deployer.math")
