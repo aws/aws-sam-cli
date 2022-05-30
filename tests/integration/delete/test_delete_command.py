@@ -107,7 +107,9 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
 
         stack_name = self._method_to_stack_name(self.id())
 
-        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region=self._session.region_name, no_prompts=True)
+        delete_command_list = self.get_delete_command_list(
+            stack_name=stack_name, region=self._session.region_name, no_prompts=True
+        )
 
         delete_process_execute = run_command(delete_command_list)
         self.assertEqual(delete_process_execute.process.returncode, 0)
@@ -257,7 +259,9 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             deploy_command_list, "{}\n\n\n\n\nn\n\n\n".format(stack_name).encode()
         )
 
-        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region=self._session.region_name, no_prompts=True)
+        delete_command_list = self.get_delete_command_list(
+            stack_name=stack_name, region=self._session.region_name, no_prompts=True
+        )
 
         delete_process_execute = run_command(delete_command_list)
         self.assertEqual(delete_process_execute.process.returncode, 0)
@@ -296,7 +300,9 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
 
         deploy_process_execute = run_command(deploy_command_list)
 
-        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region=self._session.region_name, no_prompts=True)
+        delete_command_list = self.get_delete_command_list(
+            stack_name=stack_name, region=self._session.region_name, no_prompts=True
+        )
 
         delete_process_execute = run_command(delete_command_list)
 
@@ -338,7 +344,9 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
 
         deploy_process_execute = run_command(deploy_command_list)
 
-        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region=self._session.region_name, no_prompts=True)
+        delete_command_list = self.get_delete_command_list(
+            stack_name=stack_name, region=self._session.region_name, no_prompts=True
+        )
 
         delete_process_execute = run_command(delete_command_list)
 
@@ -378,7 +386,9 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
 
         deploy_process_execute = run_command(deploy_command_list)
 
-        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region=self._session.region_name, no_prompts=True)
+        delete_command_list = self.get_delete_command_list(
+            stack_name=stack_name, region=self._session.region_name, no_prompts=True
+        )
 
         delete_process_execute = run_command(delete_command_list)
 
@@ -405,7 +415,9 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
 
         self.cf_client.create_stack(StackName=stack_name, TemplateBody=template_str, EnableTerminationProtection=True)
 
-        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region=self._session.region_name, no_prompts=True)
+        delete_command_list = self.get_delete_command_list(
+            stack_name=stack_name, region=self._session.region_name, no_prompts=True
+        )
 
         delete_process_execute = run_command(delete_command_list)
 

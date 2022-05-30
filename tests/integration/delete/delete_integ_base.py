@@ -26,7 +26,7 @@ class DeleteIntegBase(TestCase):
         self,
         stack_name: Optional[str] = None,
         region: Optional[str] = None,
-        config_file:Optional[str] = None,
+        config_file: Optional[str] = None,
         config_env: Optional[str] = None,
         profile: Optional[str] = None,
         no_prompts: Optional[bool] = None,
