@@ -203,7 +203,7 @@ def _get_stack_trace() -> str:
             ] = f'{prefix}"{path[:dir_index]}{path[dir_index + len(working_directory) + 1 :]}"{suffix}'
             continue
 
-        # If working directory is not found within path, replace leading path of the last file with: /../ or ..\
+        # If working directory is not found within path, replace leading path of the last file with: /../ or \..\
         # i.e. /Users/user1/test.py becomes /../test.py
         separator = "\\" if "\\" in path else "/"
         path_split = path.split(separator)
