@@ -136,6 +136,13 @@ class BuildIntegBase(TestCase):
         )
         self.assertFalse(bool(samcli_containers), "Build containers have not been removed")
 
+    def get_number_of_created_containers(self):
+        if IS_WINDOWS:
+            time.sleep(1)
+        docker_client = docker.from_env()
+        containers = docker_client.containers.list(all=True)
+        return len(containers)
+
     def verify_pulled_image(self, runtime, architecture=X86_64):
         docker_client = docker.from_env()
         image_name = f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{runtime}"
