@@ -1143,6 +1143,8 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
                 buildargs={"a": "b", "SAM_BUILD_MODE": "debug"},
                 decode=True,
                 platform="linux/amd64",
+                rm=True,
+                forcerm=True,
             ),
         )
 
@@ -1171,6 +1173,8 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
                 decode=True,
                 target="stage",
                 platform="linux/amd64",
+                rm=True,
+                forcerm=True,
             ),
         )
 
