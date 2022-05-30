@@ -46,7 +46,6 @@ LOG = logging.getLogger(__name__)
 SKIP_SAR_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
 
-
 class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
     template = "template_image.yaml"
 
@@ -82,7 +81,6 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
             self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
         )
 
-
     @pytest.mark.flaky(reruns=3)
     def test_intermediate_container_deleted(self):
         _tag = f"{random.randint(1, 100)}"
@@ -113,8 +111,9 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
             self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
         )
 
-        self.assertEqual(_num_of_containers_before_build, _num_of_containers_after_build,
-                         "Intermediate containers are not removed")
+        self.assertEqual(
+            _num_of_containers_before_build, _num_of_containers_after_build, "Intermediate containers are not removed"
+        )
 
 
 @skipIf(
