@@ -134,7 +134,7 @@ class LambdaDebugSettings:
                 + ["/var/lang/bin/node"]
                 + debug_args_list
                 + ["--no-lazy", "--expose-gc"]
-                + ["/var/runtime/index.js"],
+                + ["/var/runtime/index.mjs"],
                 container_env_vars={
                     "NODE_PATH": "/opt/nodejs/node_modules:/opt/nodejs/node16/node_modules:/var/runtime/node_modules:"
                     "/var/runtime:/var/task",
