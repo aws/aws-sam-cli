@@ -142,7 +142,6 @@ def track_command(func):
             exit_code = 255
             exit_reason = type(ex).__name__
             stack_trace = _get_stack_trace()
-
         try:
             ctx = Context.get_current_context()
             metric_specific_attributes = get_all_experimental_statues() if ctx.experimental else {}
@@ -186,26 +185,30 @@ def _get_stack_trace() -> str:
         Stack trace with paths filtered
     """
     stack_trace_lines = traceback.format_exc().splitlines()
-    working_directory = os.getcwd()
 
     for i, line in enumerate(stack_trace_lines):
         # Make no changes if current line does not contain a path
         line_split = line.split('"')
         if len(line_split) != 3:
             continue
-        prefix, path, suffix = line_split
 
-        # If working directory is found within path, remove it
-        dir_index = path.find(working_directory)
-        if dir_index != -1:
-            stack_trace_lines[
-                i
-            ] = f'{prefix}"{path[:dir_index]}{path[dir_index + len(working_directory) + 1 :]}"{suffix}'
+        prefix, path, suffix = line_split
+        separator = "\\" if "\\" in path else "/"
+
+        # Case 1: If "site-packages" is found within path, replace its leading segment with: /../ or \..\
+        # i.e. /python3.8/site-packages/boto3/test.py becomes /../site-packages/boto3/test.py
+        site_packages_idx = path.rfind("site-packages")
+        if site_packages_idx != -1:
+            stack_trace_lines[i] = f'{prefix}"{separator}..{separator}{path[site_packages_idx:]}"{suffix}'
             continue
 
-        # If working directory is not found within path, replace leading path of the last file with: /../ or \..\
-        # i.e. /Users/user1/test.py becomes /../test.py
-        separator = "\\" if "\\" in path else "/"
+        # Case 2: If "samcli" is found within path, do the same replacement as previous
+        samcli_idx = path.rfind("samcli")
+        if samcli_idx != -1:
+            stack_trace_lines[i] = f'{prefix}"{separator}..{separator}{path[samcli_idx:]}"{suffix}'
+            continue
+
+        # Case 3: Keep only the last file within the path, and do the same replacement as previous
         path_split = path.split(separator)
         if len(path_split) > 0:
             stack_trace_lines[i] = f'{prefix}"{separator}..{separator}{path_split[-1]}"{suffix}'

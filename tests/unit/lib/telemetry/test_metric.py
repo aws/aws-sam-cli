@@ -369,23 +369,21 @@ class TestStackTrace(TestCase):
         pass
 
     @patch("samcli.lib.telemetry.metric.traceback.format_exc")
-    @patch("samcli.lib.telemetry.metric.os.getcwd")
-    def test_must_remove_working_directory_path(self, WorkingDirectoryMock, StackTraceMock):
-        WorkingDirectoryMock.return_value = "/folder1"
+    def test_must_clean_path_preceding_site_packages(self, StackTraceMock):
         StackTraceMock.return_value = (
             "Traceback (most recent call last):\n"
-            '  File "/folder1/abc.py", line 508, in _api_call\n'
-            "    return self._make_api_call(operation_name, kwargs)\n"
-            '  File "/folder1/folder2/abc.py", line 911, in _make_api_call\n'
-            "    raise error_class(parsed_response, operation_name)\n"
+            '  File "/python3.8/site-packages/botocore/abc.py", line 264, in ___iter__\n'
+            "    response = self._make_request(current_kwargs)\n"
+            '  File "/python3.8/site-packages/samcli/abc.py", line 87, in wrapper\n'
+            "    return func(*args, **kwargs)\n"
             "botocore.exceptions.ClientError: An error occurred..."
         )
         expected_stack_trace = (
             "Traceback (most recent call last):\n"
-            '  File "abc.py", line 508, in _api_call\n'
-            "    return self._make_api_call(operation_name, kwargs)\n"
-            '  File "folder2/abc.py", line 911, in _make_api_call\n'
-            "    raise error_class(parsed_response, operation_name)\n"
+            '  File "/../site-packages/botocore/abc.py", line 264, in ___iter__\n'
+            "    response = self._make_request(current_kwargs)\n"
+            '  File "/../site-packages/samcli/abc.py", line 87, in wrapper\n'
+            "    return func(*args, **kwargs)\n"
             "botocore.exceptions.ClientError: An error occurred..."
         )
 
@@ -393,12 +391,28 @@ class TestStackTrace(TestCase):
         self.assertEqual(stack_trace, expected_stack_trace)
 
     @patch("samcli.lib.telemetry.metric.traceback.format_exc")
-    @patch("samcli.lib.telemetry.metric.os.getcwd")
-    def test_must_substitute_user_sensitive_path(self, WorkingDirectoryMock, StackTraceMock):
-        WorkingDirectoryMock.return_value = "/folder1"
+    def test_must_clean_path_preceding_samcli(self, StackTraceMock):
         StackTraceMock.return_value = (
             "Traceback (most recent call last):\n"
-            '  File "/Users/test_user/abc.py", line 508, in _api_call\n'
+            '  File "/aws-sam-cli/samcli/abc.py", line 87, in wrapper\n'
+            "    return func(*args, **kwargs)\n"
+            "botocore.exceptions.ClientError: An error occurred..."
+        )
+        expected_stack_trace = (
+            "Traceback (most recent call last):\n"
+            '  File "/../samcli/abc.py", line 87, in wrapper\n'
+            "    return func(*args, **kwargs)\n"
+            "botocore.exceptions.ClientError: An error occurred..."
+        )
+
+        stack_trace = _get_stack_trace()
+        self.assertEqual(stack_trace, expected_stack_trace)
+
+    @patch("samcli.lib.telemetry.metric.traceback.format_exc")
+    def test_must_clean_path_preceding_last_file(self, StackTraceMock):
+        StackTraceMock.return_value = (
+            "Traceback (most recent call last):\n"
+            '  File "/test-folder/abc.py", line 508, in _api_call\n'
             "    return self._make_api_call(operation_name, kwargs)\n"
             "botocore.exceptions.ClientError: An error occurred..."
         )
@@ -413,12 +427,10 @@ class TestStackTrace(TestCase):
         self.assertEqual(stack_trace, expected_stack_trace)
 
     @patch("samcli.lib.telemetry.metric.traceback.format_exc")
-    @patch("samcli.lib.telemetry.metric.os.getcwd")
-    def test_must_substitute_user_sensitive_path_windows(self, WorkingDirectoryMock, StackTraceMock):
-        WorkingDirectoryMock.return_value = "\\folder1"
+    def test_must_substitute_user_sensitive_path_windows(self, StackTraceMock):
         StackTraceMock.return_value = (
             "Traceback (most recent call last):\n"
-            '  File "\\Users\\test_user\\abc.py", line 508, in _api_call\n'
+            '  File "\\test-folder\\abc.py", line 508, in _api_call\n'
             "    return self._make_api_call(operation_name, kwargs)\n"
             "botocore.exceptions.ClientError: An error occurred..."
         )
