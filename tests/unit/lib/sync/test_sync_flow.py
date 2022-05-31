@@ -104,7 +104,7 @@ class TestSyncFlow(TestCase):
             ResourceAPICall("B", [ApiCallTypes.UPDATE_FUNCTION_CONFIGURATION]),
         ]
         result = sync_flow.get_lock_keys()
-        self.assertEqual(result, ["A_Build", "B_UpdateFunctionConfiguration"])
+        self.assertEqual(sorted(result), sorted(["A_Build", "B_UpdateFunctionConfiguration"]))
 
     @patch("samcli.lib.sync.sync_flow.LockChain")
     @patch("samcli.lib.sync.sync_flow.Session")
