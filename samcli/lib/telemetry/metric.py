@@ -8,7 +8,6 @@ import uuid
 import platform
 import logging
 import traceback
-import os
 from typing import Optional
 
 import click
@@ -142,6 +141,7 @@ def track_command(func):
             exit_code = 255
             exit_reason = type(ex).__name__
             stack_trace = _get_stack_trace()
+
         try:
             ctx = Context.get_current_context()
             metric_specific_attributes = get_all_experimental_statues() if ctx.experimental else {}
