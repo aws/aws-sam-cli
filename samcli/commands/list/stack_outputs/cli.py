@@ -29,7 +29,7 @@ Get the stack outputs as defined in the SAM/CloudFormation template.
 @track_command
 @check_newer_version
 @print_cmdline_args
-def cli(self, stack_name, output="json"):
+def cli(self, stack_name, output):
     """
     Generate an event for one of the services listed below:
     """
