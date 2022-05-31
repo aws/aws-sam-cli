@@ -64,7 +64,7 @@ install:
   - sh: "sudo apt-get -y install python3.6"
   - sh: "sudo apt-get -y install python3.7"
   - sh: "sudo apt-get -y install python3.8"
-  - sh: "sudo apt-get -y install python3.9"
+  - sh: "sudo apt-get -y install python3.9 python3.9-venv"
 
   - sh: "which python3.8"
   - sh: "which python3.7"
@@ -81,6 +81,32 @@ install:
   - ps: "If ($env:INSTALL_PY_38_PIP) {python3.8 get-pip.py --user}"
   - ps: "If ($env:INSTALL_PY_37_PIP) {python3.7 get-pip.py --user}"
   - ps: "If ($env:INSTALL_PY_36_PIP) {python3.6 get-pip-36.py --user}"
+
+  # get testing env vars
+  - sh: "sudo apt install -y jq"
+  - sh: "python3.9 -m venv .venv_env_vars"
+  - sh: ".venv_env_vars/bin/pip install boto3"
+  - sh: "test_env_var=$(.venv_env_vars/bin/python tests/get_testing_resources.py)"
+  - sh: '
+    if [ $? -ne 0 ]; then
+      echo "get_testing_resources failed. Failed to acquire credentials or test resources.";
+      false;
+    fi
+  '
+
+  - sh: 'export CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID'
+  - sh: 'export CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY'
+  - sh: 'export CI_ACCESS_ROLE_AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN'
+
+  - sh: 'export AWS_ACCESS_KEY_ID=$(echo "$test_env_var" | jq -j ".accessKeyID")'
+  - sh: 'export AWS_SECRET_ACCESS_KEY=$(echo "$test_env_var" | jq -j ".secretAccessKey")'
+  - sh: 'export AWS_SESSION_TOKEN=$(echo "$test_env_var" | jq -j ".sessionToken")'
+  - sh: 'export TASK_TOKEN=$(echo "$test_env_var" | jq -j ".taskToken")'
+  - sh: 'export AWS_S3_TESTING=$(echo "$test_env_var" | jq -j ".TestBucketName")'
+  - sh: 'export AWS_ECR_TESTING=$(echo "$test_env_var" | jq -j ".TestECRURI")'
+  - sh: 'export AWS_KMS_KEY=$(echo "$test_env_var" | jq -j ".TestKMSKeyArn")'
+  - sh: 'export AWS_SIGNING_PROFILE_NAME=$(echo "$test_env_var" | jq -j ".TestSigningProfileName")'
+  - sh: 'export AWS_SIGNING_PROFILE_VERSION_ARN=$(echo "$test_env_var" | jq -j ".TestSigningProfileARN")'
 
   # required for RIE with arm64 in linux
   - sh: "docker run --rm --privileged multiarch/qemu-user-static --reset -p yes"
@@ -103,3 +129,11 @@ test_script:
 
   - "pip install -e \".[dev]\""
   - sh: "pytest -vv tests/iac_integration"
+
+# Final clean up no matter success or failure
+on_finish:
+  - sh: 'export AWS_ACCESS_KEY_ID=$CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID'
+  - sh: 'export AWS_SECRET_ACCESS_KEY=$CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY'
+  - sh: 'export AWS_SESSION_TOKEN=$CI_ACCESS_ROLE_AWS_SESSION_TOKEN'
+
+  - sh: 'aws stepfunctions send-task-success --task-token "$TASK_TOKEN" --task-output "{}" --region us-west-2'

@@ -49,9 +49,10 @@ class TestXRayTraceEvent(AbstractXRayEventTextTest):
                 {"Id": self.segment_2.get("Id"), "Document": json.dumps(self.segment_2)},
             ],
         }
+        self.revision = 1
 
     def test_xray_trace_event(self):
-        xray_trace_event = XRayTraceEvent(self.event_dict)
+        xray_trace_event = XRayTraceEvent(self.event_dict, self.revision)
         self.assertEqual(xray_trace_event.id, self.event_dict.get("Id"))
         self.assertEqual(xray_trace_event.duration, self.event_dict.get("Duration"))
         segments = self.event_dict.get("Segments", [])
@@ -61,16 +62,20 @@ class TestXRayTraceEvent(AbstractXRayEventTextTest):
             subsegment = next(x for x in xray_trace_event.segments if x.id == segment.get("Id"))
             self.validate_segment(subsegment, json.loads(segment.get("Document")))
 
+    def test_event_revision(self):
+        xray_trace_event = XRayTraceEvent(self.event_dict, self.revision)
+        self.assertEqual(xray_trace_event.revision, self.revision)
+
     def test_latest_event_time(self):
-        xray_trace_event = XRayTraceEvent(self.event_dict)
+        xray_trace_event = XRayTraceEvent(self.event_dict, self.revision)
         self.assertEqual(xray_trace_event.get_latest_event_time(), LATEST_EVENT_TIME)
 
     def test_first_event_time(self):
-        xray_trace_event = XRayTraceEvent(self.event_dict)
+        xray_trace_event = XRayTraceEvent(self.event_dict, self.revision)
         self.assertEqual(xray_trace_event.timestamp, self.first_segment_date)
 
     def test_segment_order(self):
-        xray_trace_event = XRayTraceEvent(self.event_dict)
+        xray_trace_event = XRayTraceEvent(self.event_dict, self.revision)
 
         self.assertEqual(len(xray_trace_event.segments), 2)
         self.assertIn("First", xray_trace_event.segments[0].name)

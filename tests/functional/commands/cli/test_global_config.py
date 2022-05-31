@@ -4,7 +4,7 @@ import shutil
 import os
 from time import time
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, ANY
 from unittest import TestCase
 from samcli.cli.global_config import GlobalConfig
 from pathlib import Path
@@ -237,7 +237,8 @@ class TestGlobalConfig(TestCase):
         gc.telemetry_enabled = True
         self.assertTrue(gc.telemetry_enabled)
 
-    def test_setter_cannot_open_file(self):
+    @patch("samcli.cli.global_config.LOG")
+    def test_setter_cannot_open_file(self, patched_logger):
         path = Path(self._cfg_dir, "metadata.json")
         with open(str(path), "w") as f:
             cfg = {"telemetryEnabled": True}
@@ -247,5 +248,5 @@ class TestGlobalConfig(TestCase):
         gc = GlobalConfig()
         gc.config_dir = Path(self._cfg_dir)
         with patch("samcli.cli.global_config.Path.write_text", m):
-            with self.assertRaises(OSError):
-                gc.telemetry_enabled = True
+            gc.telemetry_enabled = True
+            patched_logger.warning.assert_called_with("Error when writing global config file: %s", ANY, exc_info=ANY)
