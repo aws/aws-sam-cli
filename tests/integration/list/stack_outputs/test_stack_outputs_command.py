@@ -1,7 +1,6 @@
-from .stack_outputs_integ_base import StackOutputsIntegBase
+from tests.integration.list.stack_outputs.stack_outputs_integ_base import StackOutputsIntegBase
 from samcli.commands.list.stack_outputs.cli import HELP_TEXT
 from tests.testing_utils import run_command
-import re
 
 
 class TestStackOutputs(StackOutputsIntegBase):

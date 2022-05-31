@@ -1,7 +1,6 @@
-from .resources_integ_base import ResourcesIntegBase
+from tests.integration.list.resources.resources_integ_base import ResourcesIntegBase
 from samcli.commands.list.resources.cli import HELP_TEXT
 from tests.testing_utils import run_command
-import re
 
 
 class TestResources(ResourcesIntegBase):

@@ -7,17 +7,7 @@ import tempfile
 from tests.integration.list.list_integ_base import ListIntegBase
 
 
-class TestableResourcesIntegBase(ListIntegBase, TestCase):
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-
-    def setUp(self):
-        super().setUp()
-
-    def tearDown(self):
-        super().tearDown()
-
+class TestableResourcesIntegBase(ListIntegBase):
     def get_testable_resources_command_list(self, stack_name=None, output=None, help=False):
         command_list = [self.base_command(), "list", "testable-resources"]
         if stack_name:

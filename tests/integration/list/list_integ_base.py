@@ -4,6 +4,7 @@ from pathlib import Path
 import uuid
 import shutil
 import tempfile
+from tests.testing_utils import get_sam_command
 
 
 class ListIntegBase(TestCase):
@@ -27,8 +28,4 @@ class ListIntegBase(TestCase):
 
     @classmethod
     def base_command(cls):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
-
-        return command
+        return get_sam_command()

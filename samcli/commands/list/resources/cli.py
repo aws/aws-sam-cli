@@ -6,6 +6,8 @@ import click
 
 from samcli.commands.list.cli_common.options import stack_name_option, output_option
 from samcli.cli.main import pass_context, common_options, aws_creds_options, print_cmdline_args
+from samcli.lib.utils.version_checker import check_newer_version
+from samcli.lib.telemetry.metric import track_command
 
 
 HELP_TEXT = """
@@ -18,10 +20,11 @@ resource will be mapped to the logical ID of each resource.
 @click.command(name="resources", help=HELP_TEXT)
 @stack_name_option
 @output_option
-@output_option
 @aws_creds_options
 @common_options
 @pass_context
+@track_command
+@check_newer_version
 @print_cmdline_args
 def cli(self, stack_name, output):
     """
