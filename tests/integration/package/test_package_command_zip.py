@@ -643,6 +643,49 @@ class TestPackageZip(PackageIntegBase):
         uploads = re.findall(r"\.template", process_stderr)
         self.assertEqual(len(uploads), 1)
 
+    def test_package_with_stackset_in_a_substack(self):
+        """
+        this template contains a stack set:
+        - root
+          - ChildStackX
+            - FunctionA
+            - StackSetA
+        """
+        template_file = os.path.join("stackset", "nested-template.yaml")
+
+        template_path = self.test_data_path.joinpath(template_file)
+        command_list = self.get_command_list(
+            s3_bucket=self.s3_bucket.name, s3_prefix=self.s3_prefix, template=template_path, force_upload=True
+        )
+
+        prevdir = os.getcwd()
+        os.chdir(os.path.expanduser(os.path.dirname(template_path)))
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE)
+        try:
+            _, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stderr = stderr.strip().decode("utf-8")
+        os.chdir(prevdir)
+
+        # there are in total 1 child stack, 1 function dir, 1 stackset template to upload
+        uploads = re.findall(r"Uploading to.+", process_stderr)
+        self.assertEqual(len(uploads), 3)
+
+        # make sure uploads' checksum match the dirs and stackset template
+        build_dir = pathlib.Path(os.path.dirname(__file__)).parent.joinpath("testdata", "package", "stackset")
+        dirs = [build_dir.joinpath("FunctionA")]
+        # here we only verify function/layer code dirs' hash
+        # because templates go through some pre-process before being uploaded and the hash can not be determined
+        for dir in dirs:
+            checksum = dir_checksum(dir.absolute())
+            self.assertIn(checksum, process_stderr)
+
+        # verify child stack and stack set templates are uploaded
+        uploads = re.findall(r"\.template", process_stderr)
+        self.assertEqual(len(uploads), 2)
+
     @parameterized.expand(["aws-serverless-function-cdk.yaml", "cdk_v1_synthesized_template_zip_functions.json"])
     def test_package_logs_warning_for_cdk_project(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
