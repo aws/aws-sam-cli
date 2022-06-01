@@ -17,6 +17,7 @@ from samcli.cli.global_config import GlobalConfig
 from samcli.lib.warnings.sam_cli_warning import TemplateWarningsChecker
 from samcli.commands.exceptions import UserException
 from samcli.lib.telemetry.cicd import CICDDetector, CICDPlatform
+from samcli.lib.telemetry.project_metadata import get_git_origin, get_project_name, get_initial_commit
 from samcli.commands._utils.experimental import get_all_experimental_statues
 from .telemetry import Telemetry
 from ..iac.cdk.utils import is_cdk_project
@@ -153,6 +154,10 @@ def track_command(func):
             metric.add_data("debugFlagProvided", bool(ctx.debug))
             metric.add_data("region", ctx.region or "")
             metric.add_data("commandName", ctx.command_path)  # Full command path. ex: sam local start-api
+            # Project metadata metrics
+            metric_specific_attributes["gitOrigin"] = get_git_origin()
+            metric_specific_attributes["projectName"] = get_project_name()
+            metric_specific_attributes["initialCommit"] = get_initial_commit()
             if metric_specific_attributes:
                 metric.add_data("metricSpecificAttributes", metric_specific_attributes)
             # Metric about command's execution characteristics
