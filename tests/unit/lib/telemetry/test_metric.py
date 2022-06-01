@@ -2,6 +2,7 @@ import pathlib
 import platform
 import time
 import uuid
+import traceback
 
 from parameterized import parameterized
 
@@ -363,85 +364,79 @@ class TestTrackCommand(TestCase):
 
 class TestStackTrace(TestCase):
     def setUp(self):
-        pass
+        self.exception = Exception("Something went wrong")
+        self.tb_exception = traceback.TracebackException.from_exception(self.exception)
 
     def tearDown(self):
         pass
 
-    @patch("samcli.lib.telemetry.metric.traceback.format_exc")
-    def test_must_clean_path_preceding_site_packages(self, StackTraceMock):
-        StackTraceMock.return_value = (
-            "Traceback (most recent call last):\n"
-            '  File "/python3.8/site-packages/botocore/abc.py", line 264, in ___iter__\n'
-            "    response = self._make_request(current_kwargs)\n"
-            '  File "/python3.8/site-packages/samcli/abc.py", line 87, in wrapper\n'
-            "    return func(*args, **kwargs)\n"
-            "botocore.exceptions.ClientError: An error occurred..."
-        )
+    @patch("samcli.lib.telemetry.metric.traceback.TracebackException.from_exception")
+    def test_must_clean_path_preceding_site_packages(self, tb_from_exception_mock):
+        stack = [
+            ("/python3.8/site-packages/botocore/abc.py", 264, "___iter__", "return func(*args, **kwargs)"),
+            ("/python3.8/site-packages/samcli/abc.py", 87, "wrapper", "return func(*args, **kwargs)"),
+        ]
+        self.tb_exception.stack = traceback.StackSummary.from_list(stack)
+        tb_from_exception_mock.return_value = self.tb_exception
+
         expected_stack_trace = (
             "Traceback (most recent call last):\n"
             '  File "/../site-packages/botocore/abc.py", line 264, in ___iter__\n'
-            "    response = self._make_request(current_kwargs)\n"
+            "    return func(*args, **kwargs)\n"
             '  File "/../site-packages/samcli/abc.py", line 87, in wrapper\n'
             "    return func(*args, **kwargs)\n"
-            "botocore.exceptions.ClientError: An error occurred..."
+            "Exception: Something went wrong\n"
         )
 
-        stack_trace = _get_stack_trace()
+        stack_trace = _get_stack_trace(self.exception)
         self.assertEqual(stack_trace, expected_stack_trace)
 
-    @patch("samcli.lib.telemetry.metric.traceback.format_exc")
-    def test_must_clean_path_preceding_samcli(self, StackTraceMock):
-        StackTraceMock.return_value = (
-            "Traceback (most recent call last):\n"
-            '  File "/aws-sam-cli/samcli/abc.py", line 87, in wrapper\n'
-            "    return func(*args, **kwargs)\n"
-            "botocore.exceptions.ClientError: An error occurred..."
-        )
+    @patch("samcli.lib.telemetry.metric.traceback.TracebackException.from_exception")
+    def test_must_clean_path_preceding_samcli(self, tb_from_exception_mock):
+        stack = [("/aws-sam-cli/samcli/abc.py", 87, "wrapper", "return func(*args, **kwargs)")]
+        self.tb_exception.stack = traceback.StackSummary.from_list(stack)
+        tb_from_exception_mock.return_value = self.tb_exception
+
         expected_stack_trace = (
             "Traceback (most recent call last):\n"
             '  File "/../samcli/abc.py", line 87, in wrapper\n'
             "    return func(*args, **kwargs)\n"
-            "botocore.exceptions.ClientError: An error occurred..."
+            "Exception: Something went wrong\n"
         )
 
-        stack_trace = _get_stack_trace()
+        stack_trace = _get_stack_trace(self.exception)
         self.assertEqual(stack_trace, expected_stack_trace)
 
-    @patch("samcli.lib.telemetry.metric.traceback.format_exc")
-    def test_must_clean_path_preceding_last_file(self, StackTraceMock):
-        StackTraceMock.return_value = (
-            "Traceback (most recent call last):\n"
-            '  File "/test-folder/abc.py", line 508, in _api_call\n'
-            "    return self._make_api_call(operation_name, kwargs)\n"
-            "botocore.exceptions.ClientError: An error occurred..."
-        )
+    @patch("samcli.lib.telemetry.metric.traceback.TracebackException.from_exception")
+    def test_must_clean_path_preceding_last_file(self, tb_from_exception_mock):
+        stack = [("/test-folder/abc.py", 508, "_api_call", "return self._make_api_call(operation_name, kwargs)")]
+        self.tb_exception.stack = traceback.StackSummary.from_list(stack)
+        tb_from_exception_mock.return_value = self.tb_exception
+
         expected_stack_trace = (
             "Traceback (most recent call last):\n"
             '  File "/../abc.py", line 508, in _api_call\n'
             "    return self._make_api_call(operation_name, kwargs)\n"
-            "botocore.exceptions.ClientError: An error occurred..."
+            "Exception: Something went wrong\n"
         )
 
-        stack_trace = _get_stack_trace()
+        stack_trace = _get_stack_trace(self.exception)
         self.assertEqual(stack_trace, expected_stack_trace)
 
-    @patch("samcli.lib.telemetry.metric.traceback.format_exc")
-    def test_must_substitute_user_sensitive_path_windows(self, StackTraceMock):
-        StackTraceMock.return_value = (
-            "Traceback (most recent call last):\n"
-            '  File "\\test-folder\\abc.py", line 508, in _api_call\n'
-            "    return self._make_api_call(operation_name, kwargs)\n"
-            "botocore.exceptions.ClientError: An error occurred..."
-        )
+    @patch("samcli.lib.telemetry.metric.traceback.TracebackException.from_exception")
+    def test_must_clean_path_preceding_last_file_windows(self, tb_from_exception_mock):
+        stack = [("\\test-folder\\abc.py", 508, "_api_call", "return self._make_api_call(operation_name, kwargs)")]
+        self.tb_exception.stack = traceback.StackSummary.from_list(stack)
+        tb_from_exception_mock.return_value = self.tb_exception
+
         expected_stack_trace = (
             "Traceback (most recent call last):\n"
             '  File "\\..\\abc.py", line 508, in _api_call\n'
             "    return self._make_api_call(operation_name, kwargs)\n"
-            "botocore.exceptions.ClientError: An error occurred..."
+            "Exception: Something went wrong\n"
         )
 
-        stack_trace = _get_stack_trace()
+        stack_trace = _get_stack_trace(self.exception)
         self.assertEqual(stack_trace, expected_stack_trace)
 
 

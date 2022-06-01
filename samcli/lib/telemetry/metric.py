@@ -133,14 +133,14 @@ def track_command(func):
                 exit_reason = type(ex).__name__
             else:
                 exit_reason = ex.wrapped_from
-            stack_trace = _get_stack_trace()
+            stack_trace = _get_stack_trace(ex)
 
         except Exception as ex:
             exception = ex
             # Standard Unix practice to return exit code 255 on fatal/unhandled exit.
             exit_code = 255
             exit_reason = type(ex).__name__
-            stack_trace = _get_stack_trace()
+            stack_trace = _get_stack_trace(ex)
 
         try:
             ctx = Context.get_current_context()
@@ -175,45 +175,45 @@ def track_command(func):
     return wrapped
 
 
-def _get_stack_trace() -> str:
+def _get_stack_trace(exception) -> str:
     """
-    Obtains stack trace (during an exception) and filters out user-sensitive parts of its paths
+    Retreives stack trace from an Exception instance and cleans user-sensitive parts of its paths
+
+    Parameters
+    ----------
+    exception : Exception
+        Exception instance
 
     Returns
     -------
     str
-        Stack trace with paths filtered
+        Stack trace with paths cleaned, in a readable string format
     """
-    stack_trace_lines = traceback.format_exc().splitlines()
+    tb_exception = traceback.TracebackException.from_exception(exception)
 
-    for i, line in enumerate(stack_trace_lines):
-        # Make no changes if current line does not contain a path
-        line_split = line.split('"')
-        if len(line_split) != 3:
-            continue
-
-        prefix, path, suffix = line_split
+    for frame in tb_exception.stack:
+        path = frame.filename
         separator = "\\" if "\\" in path else "/"
 
         # Case 1: If "site-packages" is found within path, replace its leading segment with: /../ or \..\
         # i.e. /python3.8/site-packages/boto3/test.py becomes /../site-packages/boto3/test.py
         site_packages_idx = path.rfind("site-packages")
         if site_packages_idx != -1:
-            stack_trace_lines[i] = f'{prefix}"{separator}..{separator}{path[site_packages_idx:]}"{suffix}'
+            frame.filename = f"{separator}..{separator}{path[site_packages_idx:]}"
             continue
 
         # Case 2: If "samcli" is found within path, do the same replacement as previous
         samcli_idx = path.rfind("samcli")
         if samcli_idx != -1:
-            stack_trace_lines[i] = f'{prefix}"{separator}..{separator}{path[samcli_idx:]}"{suffix}'
+            frame.filename = f"{separator}..{separator}{path[samcli_idx:]}"
             continue
 
         # Case 3: Keep only the last file within the path, and do the same replacement as previous
         path_split = path.split(separator)
         if len(path_split) > 0:
-            stack_trace_lines[i] = f'{prefix}"{separator}..{separator}{path_split[-1]}"{suffix}'
+            frame.filename = f"{separator}..{separator}{path_split[-1]}"
 
-    stack_trace = "\n".join(stack_trace_lines)
+    stack_trace = "".join(list(tb_exception.format()))
     return stack_trace
 
 
