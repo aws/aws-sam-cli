@@ -175,9 +175,9 @@ def track_command(func):
     return wrapped
 
 
-def _get_stack_trace(exception) -> str:
+def _get_stack_trace(exception: Exception) -> str:
     """
-    Retreives stack trace from an Exception instance and cleans user-sensitive parts of its paths
+    Retreives stack trace from an Exception instance and returns a readable string with user-sensitive paths cleaned
 
     Parameters
     ----------
@@ -187,11 +187,24 @@ def _get_stack_trace(exception) -> str:
     Returns
     -------
     str
-        Stack trace with paths cleaned, in a readable string format
+        Stack trace with paths cleaned
     """
     tb_exception = traceback.TracebackException.from_exception(exception)
+    _clean_stack_summary_paths(tb_exception.stack)
+    stack_trace = "".join(list(tb_exception.format()))
+    return stack_trace
 
-    for frame in tb_exception.stack:
+
+def _clean_stack_summary_paths(stack_summary: traceback.StackSummary):
+    """
+    Cleans the user-sensitive paths contained within a StackSummary instance
+
+    Parameters
+    ----------
+    stack_summary : traceback.StackSummary
+        StackSummary instance
+    """
+    for frame in stack_summary:
         path = frame.filename
         separator = "\\" if "\\" in path else "/"
 
@@ -212,9 +225,6 @@ def _get_stack_trace(exception) -> str:
         path_split = path.split(separator)
         if len(path_split) > 0:
             frame.filename = f"{separator}..{separator}{path_split[-1]}"
-
-    stack_trace = "".join(list(tb_exception.format()))
-    return stack_trace
 
 
 def _timer():

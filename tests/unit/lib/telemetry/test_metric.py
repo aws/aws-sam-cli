@@ -16,7 +16,7 @@ from samcli.lib.telemetry.cicd import CICDPlatform
 from samcli.lib.telemetry.metric import (
     capture_return_value,
     _get_metric,
-    _get_stack_trace,
+    _clean_stack_summary_paths,
     send_installed_metric,
     track_command,
     track_template_warnings,
@@ -364,80 +364,56 @@ class TestTrackCommand(TestCase):
 
 class TestStackTrace(TestCase):
     def setUp(self):
-        self.exception = Exception("Something went wrong")
-        self.tb_exception = traceback.TracebackException.from_exception(self.exception)
+        pass
 
     def tearDown(self):
         pass
 
-    @patch("samcli.lib.telemetry.metric.traceback.TracebackException.from_exception")
-    def test_must_clean_path_preceding_site_packages(self, tb_from_exception_mock):
-        stack = [
-            ("/python3.8/site-packages/botocore/abc.py", 264, "___iter__", "return func(*args, **kwargs)"),
-            ("/python3.8/site-packages/samcli/abc.py", 87, "wrapper", "return func(*args, **kwargs)"),
-        ]
-        self.tb_exception.stack = traceback.StackSummary.from_list(stack)
-        tb_from_exception_mock.return_value = self.tb_exception
-
-        expected_stack_trace = (
-            "Traceback (most recent call last):\n"
-            '  File "/../site-packages/botocore/abc.py", line 264, in ___iter__\n'
-            "    return func(*args, **kwargs)\n"
-            '  File "/../site-packages/samcli/abc.py", line 87, in wrapper\n'
-            "    return func(*args, **kwargs)\n"
-            "Exception: Something went wrong\n"
+    def test_must_clean_path_preceding_site_packages(self):
+        stack_summary = traceback.StackSummary.from_list(
+            [
+                ("/python3.8/site-packages/botocore/abc.py", 264, "___iter__", "return func(*args, **kwargs)"),
+                ("/python3.8/site-packages/samcli/abc.py", 87, "wrapper", "return func(*args, **kwargs)"),
+            ]
         )
-
-        stack_trace = _get_stack_trace(self.exception)
-        self.assertEqual(stack_trace, expected_stack_trace)
-
-    @patch("samcli.lib.telemetry.metric.traceback.TracebackException.from_exception")
-    def test_must_clean_path_preceding_samcli(self, tb_from_exception_mock):
-        stack = [("/aws-sam-cli/samcli/abc.py", 87, "wrapper", "return func(*args, **kwargs)")]
-        self.tb_exception.stack = traceback.StackSummary.from_list(stack)
-        tb_from_exception_mock.return_value = self.tb_exception
-
-        expected_stack_trace = (
-            "Traceback (most recent call last):\n"
-            '  File "/../samcli/abc.py", line 87, in wrapper\n'
-            "    return func(*args, **kwargs)\n"
-            "Exception: Something went wrong\n"
+        expected_stack_summary = traceback.StackSummary.from_list(
+            [
+                ("/../site-packages/botocore/abc.py", 264, "___iter__", "return func(*args, **kwargs)"),
+                ("/../site-packages/samcli/abc.py", 87, "wrapper", "return func(*args, **kwargs)"),
+            ]
         )
+        _clean_stack_summary_paths(stack_summary)
+        self.assertEqual(stack_summary, expected_stack_summary)
 
-        stack_trace = _get_stack_trace(self.exception)
-        self.assertEqual(stack_trace, expected_stack_trace)
-
-    @patch("samcli.lib.telemetry.metric.traceback.TracebackException.from_exception")
-    def test_must_clean_path_preceding_last_file(self, tb_from_exception_mock):
-        stack = [("/test-folder/abc.py", 508, "_api_call", "return self._make_api_call(operation_name, kwargs)")]
-        self.tb_exception.stack = traceback.StackSummary.from_list(stack)
-        tb_from_exception_mock.return_value = self.tb_exception
-
-        expected_stack_trace = (
-            "Traceback (most recent call last):\n"
-            '  File "/../abc.py", line 508, in _api_call\n'
-            "    return self._make_api_call(operation_name, kwargs)\n"
-            "Exception: Something went wrong\n"
+    def test_must_clean_path_preceding_samcli(self):
+        stack_summary = traceback.StackSummary.from_list(
+            [("/aws-sam-cli/samcli/abc.py", 87, "wrapper", "return func(*args, **kwargs)")]
         )
-
-        stack_trace = _get_stack_trace(self.exception)
-        self.assertEqual(stack_trace, expected_stack_trace)
-
-    @patch("samcli.lib.telemetry.metric.traceback.TracebackException.from_exception")
-    def test_must_clean_path_preceding_last_file_windows(self, tb_from_exception_mock):
-        stack = [("\\test-folder\\abc.py", 508, "_api_call", "return self._make_api_call(operation_name, kwargs)")]
-        self.tb_exception.stack = traceback.StackSummary.from_list(stack)
-        tb_from_exception_mock.return_value = self.tb_exception
-
-        expected_stack_trace = (
-            "Traceback (most recent call last):\n"
-            '  File "\\..\\abc.py", line 508, in _api_call\n'
-            "    return self._make_api_call(operation_name, kwargs)\n"
-            "Exception: Something went wrong\n"
+        expected_stack_summary = traceback.StackSummary.from_list(
+            [("/../samcli/abc.py", 87, "wrapper", "return func(*args, **kwargs)")]
         )
+        _clean_stack_summary_paths(stack_summary)
+        self.assertEqual(stack_summary, expected_stack_summary)
 
-        stack_trace = _get_stack_trace(self.exception)
-        self.assertEqual(stack_trace, expected_stack_trace)
+    def test_must_clean_path_preceding_last_file(self):
+        stack_summary = traceback.StackSummary.from_list(
+            [("/test-folder/abc.py", 508, "_api_call", "return self._make_api_call(operation_name, kwargs)")]
+        )
+        expected_stack_summary = traceback.StackSummary.from_list(
+            [("/../abc.py", 508, "_api_call", "return self._make_api_call(operation_name, kwargs)")]
+        )
+        _clean_stack_summary_paths(stack_summary)
+        self.assertEqual(stack_summary, expected_stack_summary)
+
+    def test_must_clean_path_preceding_last_file_windows(self):
+        stack_summary = traceback.StackSummary.from_list(
+            [("\\test-folder\\abc.py", 508, "_api_call", "return self._make_api_call(operation_name, kwargs)")]
+        )
+        expected_stack_summary = traceback.StackSummary.from_list(
+            [("\\..\\abc.py", 508, "_api_call", "return self._make_api_call(operation_name, kwargs)")]
+        )
+        _clean_stack_summary_paths(stack_summary)
+        self.assertEqual(stack_summary, expected_stack_summary)
 
 
 class TestParameterCapture(TestCase):
