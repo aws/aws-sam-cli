@@ -38,6 +38,14 @@ $ sam logs -n HelloWorldFunction --stack-name mystack --tail \n
 \b
 Use the --filter option to quickly find logs that match terms, phrases or values in your log events.
 $ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
+\b
+[Beta Features]
+\b
+You can now fetch logs from supported resources, by only providing --stack-name parameter
+$ sam logs --stack-name mystack \n
+\b
+You can also fetch logs from a resource which is defined in a nested stack.
+$ sam logs --stack-name mystack -n MyNestedStack/HelloWorldFunction
 """
 
 
@@ -50,8 +58,10 @@ $ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
     help="Name(s) of your AWS Lambda function. If this function is a part of a CloudFormation stack, "
     "this can be the LogicalID of function resource in the CloudFormation/SAM template. "
     "[Beta Feature] Multiple names can be provided by repeating the parameter again. "
+    "If resource is in a nested stack, name can be prepended by nested stack name to pull logs "
+    "from that resource (NestedStackLogicalId/ResourceLogicalId). "
     "If it is not provided and no --cw-log-group have been given, it will scan "
-    "given stack and find all possible resources, and start pulling log information from them.",
+    "given stack and find all supported resources, and start pulling log information from them.",
 )
 @click.option("--stack-name", default=None, help="Name of the AWS CloudFormation stack that the function is a part of.")
 @click.option(
