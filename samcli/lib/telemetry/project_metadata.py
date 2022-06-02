@@ -3,6 +3,7 @@ Creates and encrypts metadata regarding SAM CLI projects.
 """
 
 from os import getcwd
+from os.path import basename
 import re
 import subprocess
 from uuid import uuid5, NAMESPACE_URL
@@ -57,7 +58,7 @@ def get_project_name():
     project_name = ""
 
     if runcmd.returncode:  # Not a git repo. Get dir name instead
-        project_name = _get_current_directory(getcwd())
+        project_name = basename(getcwd())
     else:
         project_name = _parse_remote_origin_url(str(runcmd.stdout))[2]
 
@@ -66,7 +67,7 @@ def get_project_name():
 
 def get_initial_commit():
     """
-    Retrieve an encrypted version of the project's initial commit hash.
+    Retrieve an encrypted version of the project's initial commit hash, if it exists.
 
     Returns
     -------
@@ -99,12 +100,3 @@ def _parse_remote_origin_url(url: str):
     """
     pattern = re.compile(r"(?:https?://|git@)(?P<hostname>\S*)(?:/|:)(?P<owner>\S*)/(?P<project_name>\S*)\.git")
     return pattern.findall(url)[0]
-
-
-def _get_current_directory(cwd: str) -> str:
-    """Parse a full working directory to retrieve only the top-level directory."""
-    pattern = re.compile(r"(?:\w:(?:\\|/)(?:\S*))(?:\\|/)(\S*)")
-    retrieved = pattern.findall(cwd)
-    if retrieved:
-        return str(retrieved[0])
-    return ""

@@ -52,7 +52,7 @@ class TestProjectMetadata(TestCase):
         self.assertEqual(git_origin, str(uuid5(NAMESPACE_URL, expected)))
 
     @patch("samcli.lib.telemetry.project_metadata.subprocess.run")
-    def test_not_a_git_repo(self, sp_mock):
+    def test_retrieve_git_origin_when_not_a_repo(self, sp_mock):
         sp_mock.return_value = CompletedProcess(["git", "config", "--get", "remote.origin.url"], 128)
 
         git_origin = get_git_origin()
@@ -69,7 +69,7 @@ class TestProjectMetadata(TestCase):
         ]
     )
     @patch("samcli.lib.telemetry.project_metadata.subprocess.run")
-    def test_retrieve_project_name_git(self, origin, expected, sp_mock):
+    def test_retrieve_project_name_from_git(self, origin, expected, sp_mock):
         sp_mock.return_value = CompletedProcess(["git", "config", "--get", "remote.origin.url"], 0, stdout=origin)
 
         project_name = get_project_name()
@@ -82,12 +82,14 @@ class TestProjectMetadata(TestCase):
             ("C:/", ""),
             ("C:\\", ""),
             ("E:/path/to/another/dir", "dir"),
+            ("This/one/doesn't/start/with/a/letter", "letter"),
+            ("/banana", "banana"),
             ("D:/one/more/just/to/be/safe", "safe"),
         ]
     )
     @patch("samcli.lib.telemetry.project_metadata.getcwd")
     @patch("samcli.lib.telemetry.project_metadata.subprocess.run")
-    def test_retrieve_project_name_dir(self, cwd, expected, sp_mock, cwd_mock):
+    def test_retrieve_project_name_from_dir(self, cwd, expected, sp_mock, cwd_mock):
         sp_mock.return_value = CompletedProcess(["git", "config", "--get", "remote.origin.url"], 128)
         cwd_mock.return_value = cwd
 
