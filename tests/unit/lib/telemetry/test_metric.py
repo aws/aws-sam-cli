@@ -232,9 +232,9 @@ class TestTrackCommand(TestCase):
 
     @patch("samcli.lib.telemetry.metric._get_stack_trace")
     @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_record_user_exception(self, ContextMock, StackTraceMock):
+    def test_must_record_user_exception(self, ContextMock, get_stack_trace_mock):
         expected_stack_trace = "Expected stack trace"
-        StackTraceMock.return_value = expected_stack_trace
+        get_stack_trace_mock.return_value = expected_stack_trace
         ContextMock.get_current_context.return_value = self.context_mock
         expected_exception = UserException("Something went wrong")
         expected_exception.exit_code = 1235
@@ -250,7 +250,7 @@ class TestTrackCommand(TestCase):
                 "Must re-raise the original exception object " "without modification",
             )
 
-        StackTraceMock.assert_called_once()
+        get_stack_trace_mock.assert_called_once()
         expected_attrs = _ignore_common_attributes(
             {"exitReason": "UserException", "exitCode": 1235, "stackTrace": expected_stack_trace}
         )
@@ -261,9 +261,9 @@ class TestTrackCommand(TestCase):
 
     @patch("samcli.lib.telemetry.metric._get_stack_trace")
     @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_record_wrapped_user_exception(self, ContextMock, StackTraceMock):
+    def test_must_record_wrapped_user_exception(self, ContextMock, get_stack_trace_mock):
         expected_stack_trace = "Expected stack trace"
-        StackTraceMock.return_value = expected_stack_trace
+        get_stack_trace_mock.return_value = expected_stack_trace
         ContextMock.get_current_context.return_value = self.context_mock
         expected_exception = UserException("Something went wrong", wrapped_from="CustomException")
         expected_exception.exit_code = 1235
@@ -279,7 +279,7 @@ class TestTrackCommand(TestCase):
                 "Must re-raise the original exception object " "without modification",
             )
 
-        StackTraceMock.assert_called_once()
+        get_stack_trace_mock.assert_called_once()
         expected_attrs = _ignore_common_attributes(
             {"exitReason": "CustomException", "exitCode": 1235, "stackTrace": expected_stack_trace}
         )
@@ -290,9 +290,9 @@ class TestTrackCommand(TestCase):
 
     @patch("samcli.lib.telemetry.metric._get_stack_trace")
     @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_record_any_exceptions(self, ContextMock, StackTraceMock):
+    def test_must_record_any_exceptions(self, ContextMock, get_stack_trace_mock):
         expected_stack_trace = "Expected stack trace"
-        StackTraceMock.return_value = expected_stack_trace
+        get_stack_trace_mock.return_value = expected_stack_trace
         ContextMock.get_current_context.return_value = self.context_mock
         expected_exception = KeyError("IO Error test")
 
@@ -307,7 +307,7 @@ class TestTrackCommand(TestCase):
                 "Must re-raise the original exception object " "without modification",
             )
 
-        StackTraceMock.assert_called_once()
+        get_stack_trace_mock.assert_called_once()
         expected_attrs = _ignore_common_attributes(
             {
                 "exitReason": "KeyError",
