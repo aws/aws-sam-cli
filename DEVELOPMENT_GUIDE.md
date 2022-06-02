@@ -166,7 +166,7 @@ contribute to the repository, there are a few more things to consider.
 We support 3.7 and 3.8 versions. Our CI/CD pipeline is setup to run
 unit tests against all Python versions. So make sure you test it
 with all versions before sending a Pull Request.
-See [Unit testing with multiple Python versions](#unit-testing-with-multiple-python-versions).
+See [Unit testing with multiple Python versions](#unit-testing-with-multiple-python-versions-optional).
 
 If you chose to use `pyenv` in the previous session, setting up a 
 different Python version should be easy:

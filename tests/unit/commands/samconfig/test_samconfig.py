@@ -120,6 +120,7 @@ class TestSamConfigForAllCommands(TestCase):
             "container_env_var": (""),
             "container_env_var_file": "file",
             "build_image": (""),
+            "exclude": (""),
         }
 
         with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
@@ -155,6 +156,7 @@ class TestSamConfigForAllCommands(TestCase):
                 (),
                 "file",
                 (),
+                (),
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -175,6 +177,7 @@ class TestSamConfigForAllCommands(TestCase):
             "container_env_var": (""),
             "container_env_var_file": "file",
             "build_image": (""),
+            "exclude": (""),
         }
 
         with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
@@ -208,6 +211,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 (),
                 "file",
+                (),
                 (),
             )
 
@@ -262,6 +266,7 @@ class TestSamConfigForAllCommands(TestCase):
                 (),
                 "env_vars_file",
                 (),
+                (),
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -314,6 +319,7 @@ class TestSamConfigForAllCommands(TestCase):
                 (),
                 None,
                 ("Function1=image_1", "image_2"),
+                (),
             )
 
     @patch("samcli.commands.local.invoke.cli.do_cli")
