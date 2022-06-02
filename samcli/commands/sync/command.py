@@ -330,6 +330,7 @@ def do_cli(
                     signing_profiles=None,
                     disable_rollback=False,
                     poll_delay=poll_delay,
+                    on_failure=None,
                 ) as deploy_context:
                     if watch:
                         execute_watch(template_file, build_context, package_context, deploy_context, dependency_layer)

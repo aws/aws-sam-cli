@@ -864,6 +864,7 @@ class TestDeployer(TestCase):
             notification_arns=[],
             s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
             tags={"unit": "true"},
+            on_failure=None,
         )
 
         self.assertEqual(self.deployer._client.update_stack.call_count, 1)
@@ -875,6 +876,7 @@ class TestDeployer(TestCase):
             StackName="test",
             Tags={"unit": "true"},
             TemplateURL=ANY,
+            DisableRollback=False,
         )
 
     def test_sync_update_stack_exception(self):
@@ -893,6 +895,7 @@ class TestDeployer(TestCase):
                 notification_arns=[],
                 s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
                 tags={"unit": "true"},
+                on_failure=None,
             )
 
     def test_sync_create_stack(self):
@@ -909,6 +912,7 @@ class TestDeployer(TestCase):
             notification_arns=[],
             s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
             tags={"unit": "true"},
+            on_failure=None,
         )
 
         self.assertEqual(self.deployer._client.create_stack.call_count, 1)
@@ -938,6 +942,7 @@ class TestDeployer(TestCase):
                 notification_arns=[],
                 s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
                 tags={"unit": "true"},
+                on_failure=None,
             )
 
     def test_process_kwargs(self):

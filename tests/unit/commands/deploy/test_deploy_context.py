@@ -34,6 +34,7 @@ class TestSamDeployCommand(TestCase):
             use_changeset=True,
             disable_rollback=False,
             poll_delay=0.5,
+            on_failure=None,
         )
 
     def test_template_improper(self):
@@ -185,6 +186,7 @@ class TestSamDeployCommand(TestCase):
             use_changeset=False,
             disable_rollback=False,
             poll_delay=0.5,
+            on_failure=None,
         )
         patched_get_buildable_stacks.return_value = (Mock(), [])
         patched_auth_required.return_value = [("HelloWorldFunction", False)]

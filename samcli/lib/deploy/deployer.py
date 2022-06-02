@@ -25,7 +25,7 @@ from typing import Dict, List, Optional
 
 import botocore
 
-from samcli.lib.deploy.utils import DeployColor
+from samcli.lib.deploy.utils import DeployColor, FailureMode
 from samcli.commands.deploy.exceptions import (
     DeployFailedError,
     ChangeSetError,
@@ -529,6 +529,7 @@ class Deployer:
         notification_arns: Optional[List[str]],
         s3_uploader: Optional[S3Uploader],
         tags: Optional[Dict],
+        on_failure: Optional[str],
     ):
         """
         Call the sync command to directly update stack or create stack
@@ -543,6 +544,7 @@ class Deployer:
         :param notification_arns: Arns for sending notifications
         :param s3_uploader: S3Uploader object to upload files to S3 buckets
         :param tags: Array of tags passed to CloudFormation
+        :param on_failure: String indicating the action to take on stack creation failure
         :return:
         """
         exists = self.has_stack(stack_name)
@@ -571,13 +573,20 @@ class Deployer:
         kwargs = self._process_kwargs(kwargs, s3_uploader, capabilities, role_arn, notification_arns)
 
         try:
+            do_nothing = on_failure == FailureMode.DO_NOTHING
+
             if exists:
+                kwargs["DisableRollback"] = do_nothing
+
                 result = self.update_stack(**kwargs)
-                self.wait_for_execute(stack_name, "UPDATE", False)
+                self.wait_for_execute(stack_name, "UPDATE", do_nothing)
                 LOG.info("\nStack update succeeded. Sync infra completed.\n")
             else:
+                if do_nothing:
+                    kwargs["OnFailure"] = FailureMode.DO_NOTHING
+
                 result = self.create_stack(**kwargs)
-                self.wait_for_execute(stack_name, "CREATE", False)
+                self.wait_for_execute(stack_name, "CREATE", do_nothing)
                 LOG.info("\nStack creation succeeded. Sync infra completed.\n")
 
             return result
