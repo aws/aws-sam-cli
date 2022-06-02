@@ -2,7 +2,7 @@
 Module for testing the project_metadata.py methods.
 """
 
-from subprocess import CompletedProcess
+from subprocess import CompletedProcess, CalledProcessError
 from uuid import uuid5, NAMESPACE_URL
 from unittest.mock import patch, Mock
 from unittest import TestCase
@@ -53,7 +53,7 @@ class TestProjectMetadata(TestCase):
 
     @patch("samcli.lib.telemetry.project_metadata.subprocess.run")
     def test_retrieve_git_origin_when_not_a_repo(self, sp_mock):
-        sp_mock.return_value = CompletedProcess(["git", "config", "--get", "remote.origin.url"], 128)
+        sp_mock.side_effect = CalledProcessError(128, ["git", "config", "--get", "remote.origin.url"])
 
         git_origin = get_git_origin()
         self.assertIsNone(git_origin)
@@ -90,7 +90,7 @@ class TestProjectMetadata(TestCase):
     @patch("samcli.lib.telemetry.project_metadata.getcwd")
     @patch("samcli.lib.telemetry.project_metadata.subprocess.run")
     def test_retrieve_project_name_from_dir(self, cwd, expected, sp_mock, cwd_mock):
-        sp_mock.return_value = CompletedProcess(["git", "config", "--get", "remote.origin.url"], 128)
+        sp_mock.side_effect = CalledProcessError(128, ["git", "config", "--get", "remote.origin.url"])
         cwd_mock.return_value = cwd
 
         project_name = get_project_name()

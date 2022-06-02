@@ -26,15 +26,16 @@ def get_git_origin():
     if not bool(GlobalConfig().telemetry_enabled):
         return None
 
-    runcmd = subprocess.run(
-        ["git", "config", "--get", "remote.origin.url"], capture_output=True, shell=True, check=True, text=True
-    )
-
-    if runcmd.returncode:
+    git_url = None
+    try:
+        runcmd = subprocess.run(
+            ["git", "config", "--get", "remote.origin.url"], capture_output=True, shell=True, check=True, text=True
+        )
+        metadata = _parse_remote_origin_url(str(runcmd.stdout))
+        git_url = "/".join(metadata) + ".git"   # Format to <hostname>/<owner>/<project_name>.git
+    except subprocess.CalledProcessError:
         return None  # Not a git repo
 
-    metadata = _parse_remote_origin_url(str(runcmd.stdout))
-    git_url = "/".join(metadata) + ".git"  # Format to <hostname>/<owner>/<project_name>.git
     return str(uuid5(NAMESPACE_URL, git_url))
 
 
@@ -52,15 +53,14 @@ def get_project_name():
     if not bool(GlobalConfig().telemetry_enabled):
         return None
 
-    runcmd = subprocess.run(
-        ["git", "config", "--get", "remote.origin.url"], capture_output=True, shell=True, check=True, text=True
-    )
     project_name = ""
-
-    if runcmd.returncode:  # Not a git repo. Get dir name instead
-        project_name = basename(getcwd().replace("\\", "/"))
-    else:
-        project_name = _parse_remote_origin_url(str(runcmd.stdout))[2]
+    try:
+        runcmd = subprocess.run(
+            ["git", "config", "--get", "remote.origin.url"], capture_output=True, shell=True, check=True, text=True
+        )
+        project_name = _parse_remote_origin_url(str(runcmd.stdout))[2]  # dir is git repo, get project name from URL
+    except subprocess.CalledProcessError:
+        project_name = basename(getcwd().replace("\\", "/"))    # dir is not a git repo, get directory name
 
     return str(uuid5(NAMESPACE_URL, project_name))
 
@@ -79,14 +79,15 @@ def get_initial_commit():
     if not bool(GlobalConfig().telemetry_enabled):
         return None
 
-    runcmd = subprocess.run(
-        ["git", "rev-list", "--max-parents=0", "HEAD"], capture_output=True, shell=True, check=True, text=True
-    )
-
-    if runcmd.returncode:
+    metadata = None
+    try:
+        runcmd = subprocess.run(
+            ["git", "rev-list", "--max-parents=0", "HEAD"], capture_output=True, shell=True, check=True, text=True
+        )
+        metadata = runcmd.stdout.strip()
+    except subprocess.CalledProcessError:
         return None  # Not a git repo
 
-    metadata = runcmd.stdout.strip()
     return str(uuid5(NAMESPACE_URL, metadata))
 
 
