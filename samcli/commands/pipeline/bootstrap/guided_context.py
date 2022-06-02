@@ -20,6 +20,9 @@ from samcli.lib.utils.profile import list_available_profiles
 
 
 class GuidedContext:
+
+    SUPPORTED_OIDC_PROVIDERS = {"1": "GitHub Actions"}
+
     def __init__(
         self,
         profile: Optional[str] = None,
@@ -31,6 +34,9 @@ class GuidedContext:
         create_image_repository: bool = False,
         image_repository_arn: Optional[str] = None,
         region: Optional[str] = None,
+        use_oidc_provider: Optional[bool] = None,
+        oidc_client_id: Optional[str] = None,
+        oidc_provider_url: Optional[str] = None,
     ) -> None:
         self.profile = profile
         self.stage_configuration_name = stage_configuration_name
@@ -41,6 +47,9 @@ class GuidedContext:
         self.create_image_repository = create_image_repository
         self.image_repository_arn = image_repository_arn
         self.region = region
+        self.use_oidc_provider = use_oidc_provider
+        self.oidc_client_id = oidc_client_id
+        self.oidc_provider_url = oidc_provider_url
         self.color = Colored()
 
     def _prompt_account_id(self) -> None:
@@ -144,17 +153,95 @@ class GuidedContext:
         else:
             self.create_image_repository = False
 
+    def _prompt_use_oidc_provider(self) -> None:
+        click.echo("Select a user permissions provider:")
+        click.echo("\t1 - IAM (default)")
+        click.echo("\t2 - OpenID Connect")
+        user_provider = click.prompt("",
+            type=click.Choice((["1","2"])),
+            show_choices=False,
+            show_default=False,
+            default="1",
+            prompt_suffix=""
+        )
+        self.use_oidc_provider = True if user_provider == "2" else False
+
+    def _prompt_oidc_provider(self) -> None:
+        click.echo("Select an OIDC Provider:")
+        for key in self.SUPPORTED_OIDC_PROVIDERS:
+            click.echo("\t{key} - {provider}".format(key=key, provider=self.SUPPORTED_OIDC_PROVIDERS[key]))
+        self.oidc_provider = click.prompt("",
+            type=click.Choice((list(self.SUPPORTED_OIDC_PROVIDERS))),
+            show_choices=False,
+            show_default=False,
+            prompt_suffix=""
+        )
+
+    def _prompt_oidc_provider_url(self) -> None:
+        self.oidc_provider_url = click.prompt(
+            "Enter the URL of the OIDC provider",
+            type=click.STRING
+        )
+    
+    def _prompt_oidc_client_id(self) -> None:
+        self.oidc_client_id = click.prompt(
+            "Enter the OIDC client ID (sometimes called audience)",
+            type=click.STRING
+        )
+
+    def _prompt_subject_claim(self, oidc_provider):
+        if self.oidc_provider == "1":
+            github_org = self._prompt_github_org()
+            github_repo = self._prompt_github_repo()
+            branch = self._prompt_github_branch()
+            self.subject_claim = "repo:{org}/{repo}:ref:refs/heads/{branch}".format(org=github_org, repo=github_repo, branch=branch)
+    
+    def _prompt_github_org(self) -> None:
+        return click.prompt(
+            "Enter the GitHub Organization that the code repository belongs to."
+            " If there is no organization enter your username instead",
+            type=click.STRING
+        )
+    
+    def _prompt_github_repo(self) -> None:
+        return click.prompt(
+            "Enter the name of the GitHub repository",
+            type=click.STRING
+        )
+    
+    def _prompt_github_branch(self) -> None:
+        return click.prompt(
+            "Enter the name of the branch that deployments will occur from",
+            type=click.STRING
+        )
+    
+    def _validate_oidc_provider_url(self) -> None:
+        while (self.oidc_provider_url.find('https://') == -1):
+            click.echo("Please ensure the OIDC URL begins with 'https://'")
+            self._prompt_oidc_provider_url()
+
     def _get_user_inputs(self) -> List[Tuple[str, Callable[[], None]]]:
-        return [
+        inputs = [
             (f"Account: {get_current_account_id(self.profile)}", self._prompt_account_id),
             (f"Stage configuration name: {self.stage_configuration_name}", self._prompt_stage_configuration_name),
-            (f"Region: {self.region}", self._prompt_region_name),
-            (
-                f"Pipeline user ARN: {self.pipeline_user_arn}"
-                if self.pipeline_user_arn
-                else "Pipeline user: [to be created]",
-                self._prompt_pipeline_user,
-            ),
+            (f"Region: {self.region}", self._prompt_region_name)]
+
+        if self.use_oidc_provider:
+            inputs.extend([
+                (f"OIDC Identity Provider URL: {self.oidc_provider_url}", self._prompt_oidc_provider_url),
+                (f"OIDC Client ID: {self.oidc_client_id}", self._prompt_oidc_client_id)
+            ])
+        else:
+            inputs.extend([
+                (
+                    f"Pipeline user ARN: {self.pipeline_user_arn}"
+                    if self.pipeline_user_arn
+                    else "Pipeline user: [to be created]",
+                    self._prompt_pipeline_user,
+                )
+            ])
+
+        inputs.extend([
             (
                 f"Pipeline execution role ARN: {self.pipeline_execution_role_arn}"
                 if self.pipeline_execution_role_arn
@@ -179,7 +266,8 @@ class GuidedContext:
                 else f"ECR image repository: [{'to be created' if self.create_image_repository else 'skipped'}]",
                 self._prompt_image_repository,
             ),
-        ]
+        ])
+        return inputs
 
     def run(self) -> None:  # pylint: disable=too-many-branches
         """
@@ -201,10 +289,20 @@ class GuidedContext:
         if not self.region:
             self._prompt_region_name()
 
-        if self.pipeline_user_arn:
-            click.echo(f"Pipeline IAM user ARN: {self.pipeline_user_arn}")
+        if not self.use_oidc_provider and not self.pipeline_user_arn:
+            self._prompt_use_oidc_provider()
+
+        if self.use_oidc_provider:
+            self._prompt_oidc_provider()
+            self._prompt_oidc_provider_url()
+            self._validate_oidc_provider_url()
+            self._prompt_oidc_client_id()
+            self._prompt_subject_claim(self.oidc_provider)
         else:
-            self._prompt_pipeline_user()
+            if self.pipeline_user_arn:
+                click.echo(f"Pipeline IAM user ARN: {self.pipeline_user_arn}")
+            else:
+                self._prompt_pipeline_user()
         click.echo()
 
         click.secho(self.color.bold("[3] Reference application build resources"))

@@ -87,6 +87,23 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
     is_flag=True,
     help="Prompt to confirm if the resources are to be deployed.",
 )
+@click.option(
+    "--use-oidc-provider",
+    default=False,
+    is_flag=True,
+    required=False,
+    help="Indicates to use an OIDC provider to assume the pipeline execution role. Default is to use an IAM User.",
+)
+@click.option(
+    "--oidc-provider-url",
+    help="The URL of the OIDC provider. Example: https://server.example.com",
+    required=False
+)
+@click.option(
+    "--oidc-client-id",
+    help="The client ID configured to use with the OIDC provider.",
+    required=False
+)
 @common_options
 @aws_creds_options
 @pass_context
@@ -106,6 +123,9 @@ def cli(
     confirm_changeset: bool,
     config_file: Optional[str],
     config_env: Optional[str],
+    use_oidc_provider: Optional[bool],
+    oidc_provider_url: Optional[str],
+    oidc_client_id: Optional[str]
 ) -> None:
     """
     `sam pipeline bootstrap` command entry point
@@ -124,6 +144,9 @@ def cli(
         confirm_changeset=confirm_changeset,
         config_file=config_env,
         config_env=config_file,
+        use_oidc_provider=use_oidc_provider,
+        oidc_provider_url=oidc_provider_url,
+        oidc_client_id=oidc_client_id
     )  # pragma: no cover
 
 
@@ -141,6 +164,9 @@ def do_cli(
     confirm_changeset: bool,
     config_file: Optional[str],
     config_env: Optional[str],
+    use_oidc_provider: Optional[bool],
+    oidc_provider_url: Optional[str],
+    oidc_client_id: Optional[str],
     standalone: bool = True,
 ) -> None:
     """
@@ -175,6 +201,9 @@ def do_cli(
             create_image_repository=create_image_repository,
             image_repository_arn=image_repository_arn,
             region=region,
+            use_oidc_provider=use_oidc_provider,
+            oidc_provider_url=oidc_provider_url,
+            oidc_client_id=oidc_client_id
         )
         guided_context.run()
         stage_configuration_name = guided_context.stage_configuration_name
@@ -186,6 +215,10 @@ def do_cli(
         image_repository_arn = guided_context.image_repository_arn
         region = guided_context.region
         profile = guided_context.profile
+        use_oidc_provider=guided_context.use_oidc_provider
+        oidc_client_id=guided_context.oidc_client_id
+        oidc_provider_url=guided_context.oidc_provider_url
+        subject_claim=guided_context.subject_claim
 
     if not stage_configuration_name:
         raise click.UsageError("Missing required parameter '--stage'")
@@ -200,6 +233,10 @@ def do_cli(
         artifacts_bucket_arn=artifacts_bucket_arn,
         create_image_repository=create_image_repository,
         image_repository_arn=image_repository_arn,
+        oidc_provider_url=oidc_provider_url,
+        oidc_client_id=oidc_client_id,
+        use_oidc_provider=use_oidc_provider,
+        subject_claim=subject_claim
     )
 
     bootstrapped: bool = environment.bootstrap(confirm_changeset=confirm_changeset)
@@ -221,7 +258,7 @@ def do_cli(
             )
         )
 
-        if not environment.pipeline_user.is_user_provided:
+        if not environment.pipeline_user.is_user_provided and not environment.use_oidc_provider:
             click.secho(
                 dedent(
                     f"""\

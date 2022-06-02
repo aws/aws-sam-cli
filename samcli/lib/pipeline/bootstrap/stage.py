@@ -5,14 +5,20 @@ import pathlib
 import re
 from itertools import chain
 from typing import Dict, List, Optional, Tuple
+from OpenSSL import SSL, crypto
 
 import boto3
 import click
+import requests
+import socket
+import hashlib
+
+from yaml import dump
 
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.managed_cloudformation_stack import manage_stack, StackOutput
-from samcli.lib.pipeline.bootstrap.resource import Resource, IAMUser, ECRImageRepository
+from samcli.lib.pipeline.bootstrap.resource import OidcProvider, Resource, IAMUser, ECRImageRepository
 
 CFN_TEMPLATE_PATH = str(pathlib.Path(os.path.dirname(__file__)))
 STACK_NAME_PREFIX = "aws-sam-cli-managed"
@@ -74,6 +80,7 @@ class Stage:
     def __init__(
         self,
         name: str,
+        use_oidc_provider: bool,
         aws_profile: Optional[str] = None,
         aws_region: Optional[str] = None,
         pipeline_user_arn: Optional[str] = None,
@@ -82,8 +89,13 @@ class Stage:
         artifacts_bucket_arn: Optional[str] = None,
         create_image_repository: bool = False,
         image_repository_arn: Optional[str] = None,
+        oidc_provider_url: Optional[str] = None,
+        oidc_client_id: Optional[str] = None,
+        subject_claim: Optional[str] = None
     ) -> None:
         self.name: str = name
+        self.subject_claim = subject_claim
+        self.use_oidc_provider = use_oidc_provider
         self.aws_profile: Optional[str] = aws_profile
         self.aws_region: Optional[str] = aws_region
         self.pipeline_user: IAMUser = IAMUser(arn=pipeline_user_arn, comment="Pipeline IAM user")
@@ -100,6 +112,34 @@ class Stage:
         )
         self.color = Colored()
 
+        self.oidc_provider: OidcProvider = OidcProvider(
+            client_id=oidc_client_id, provider_url=oidc_provider_url, thumbprint="", comment="IAM OIDC Identity Provider", arn=""
+        )
+    
+    def _generate_thumbprint(self, oidc_provider_url: str) -> str:
+        oidc_config_url = oidc_provider_url + "/.well-known/openid-configuration"
+        r = requests.get(oidc_config_url)
+        jwks_uri = r.json()['jwks_uri']
+        url_start = jwks_uri.find('//') + 2
+        url_end = jwks_uri[url_start:].find('/') + url_start
+        url_for_certificate = jwks_uri[url_start:url_end]
+
+        address = (url_for_certificate, 443)
+        ctx = SSL.Context(SSL.TLS_METHOD)
+        s = socket.create_connection(address)
+        c = SSL.Connection(ctx, s)
+        c.set_connect_state()
+        c.set_tlsext_host_name(str.encode(address[0]))
+
+        #If we attempt to get the cert chain without exchanging some traffic it will be empty
+        c.sendall(str.encode('HEAD / HTTP/1.0\n\n'))
+        peerCertChain = c.get_peer_cert_chain()
+        cert = peerCertChain[-1]
+        dumped_cert = crypto.dump_certificate(crypto.FILETYPE_ASN1, cert)
+        s.close()
+
+        return hashlib.sha1(dumped_cert).hexdigest()
+
     def did_user_provide_all_required_resources(self) -> bool:
         """Check if the user provided all of the environment resources or not"""
         return all(resource.is_user_provided for resource in self._get_resources())
@@ -107,7 +147,8 @@ class Stage:
     def _get_non_user_provided_resources_msg(self) -> str:
         resource_comments = chain.from_iterable(
             [
-                [] if self.pipeline_user.is_user_provided else [self.pipeline_user.comment],
+                [] if self.pipeline_user.is_user_provided or self.use_oidc_provider else [self.pipeline_user.comment],
+                [] if not self.use_oidc_provider else [self.oidc_provider.comment],
                 [] if self.pipeline_execution_role.is_user_provided else [self.pipeline_execution_role.comment],
                 []
                 if self.cloudformation_execution_role.is_user_provided
@@ -123,7 +164,7 @@ class Stage:
     def bootstrap(self, confirm_changeset: bool = True) -> bool:
         """
         Deploys the CFN template(./stage_resources.yaml) which deploys:
-            * Pipeline IAM User
+            * Pipeline IAM User or IAM OIDC Identity Provider
             * Pipeline execution IAM role
             * CloudFormation execution IAM role
             * Artifacts' S3 Bucket
@@ -162,6 +203,8 @@ class Stage:
                 click.secho(self.color.red("Canceling pipeline bootstrap creation."))
                 return False
 
+        self.oidc_provider.thumbprint = self._generate_thumbprint(self.oidc_provider.provider_url)
+
         environment_resources_template_body = Stage._read_template(STAGE_RESOURCES_CFN_TEMPLATE)
         output: StackOutput = manage_stack(
             stack_name=self._get_stack_name(),
@@ -175,6 +218,11 @@ class Stage:
                 "ArtifactsBucketArn": self.artifacts_bucket.arn or "",
                 "CreateImageRepository": "true" if self.create_image_repository else "false",
                 "ImageRepositoryArn": self.image_repository.arn or "",
+                "IdentityProviderThumbprint": self.oidc_provider.thumbprint or "",
+                "OidcClientId": self.oidc_provider.client_id or "",
+                "OidcProviderUrl": self.oidc_provider.provider_url or "",
+                "UseOidcProvider": "true" if self.use_oidc_provider else "false",
+                "SubjectClaim": self.subject_claim or ""
             },
         )
 
@@ -297,11 +345,14 @@ class Stage:
 
     def _get_resources(self) -> List[Resource]:
         resources = [
-            self.pipeline_user,
             self.pipeline_execution_role,
             self.cloudformation_execution_role,
             self.artifacts_bucket,
         ]
+        if self.use_oidc_provider:
+            resources.append(self.oidc_provider)
+        else:
+            resources.append(self.pipeline_user)
         if self.create_image_repository or self.image_repository.arn:  # Image Repository is optional
             resources.append(self.image_repository)
         return resources
@@ -322,7 +373,7 @@ class Stage:
             for resource in created_resources:
                 click.secho(self.color.green(f"\t- {resource.comment}"))
 
-        if not self.pipeline_user.is_user_provided:
+        if not self.pipeline_user.is_user_provided and not self.use_oidc_provider:
             click.secho(self.color.green("Pipeline IAM user credential:"))
             click.secho(self.color.green(f"\tAWS_ACCESS_KEY_ID: {self.pipeline_user.access_key_id}"))
             click.secho(self.color.green(f"\tAWS_SECRET_ACCESS_KEY: {self.pipeline_user.secret_access_key}"))

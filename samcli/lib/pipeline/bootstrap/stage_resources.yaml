@@ -16,9 +16,21 @@ Parameters:
     AllowedValues: [true, false]
   ImageRepositoryArn:
     Type: String
+  IdentityProviderThumbprint:
+    Type: String
+  OidcClientId:
+    Type: String
+  OidcProviderUrl:
+    Type: String
+  UseOidcProvider:
+    Type: String
+  SubjectClaim:
+    Type: String
 
 Conditions:
-  MissingPipelineUser: !Equals [!Ref PipelineUserArn, ""]
+  ShouldUseOidc: !Equals [!Ref UseOidcProvider, "true"] 
+  DontUseOidc: !Not [!Condition ShouldUseOidc]
+  MissingPipelineUser: !And [!Not [!Condition ShouldUseOidc], !Equals [!Ref PipelineUserArn, ""]]
   MissingPipelineExecutionRole: !Equals [!Ref PipelineExecutionRoleArn, ""]
   MissingCloudFormationExecutionRole: !Equals [!Ref CloudFormationExecutionRoleArn, ""]
   MissingArtifactsBucket: !Equals [!Ref ArtifactsBucketArn, ""]
@@ -26,6 +38,16 @@ Conditions:
   MissingImageRepository: !And [!Condition ShouldHaveImageRepository, !Equals [!Ref ImageRepositoryArn, ""]]
 
 Resources:
+  OidcProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: ShouldUseOidc
+    Properties: 
+      ClientIdList: 
+        - !Ref OidcClientId
+      ThumbprintList: 
+        - !Ref IdentityProviderThumbprint
+      Url: !Ref OidcProviderUrl
+
   PipelineUser:
     Type: AWS::IAM::User
     Condition: MissingPipelineUser
@@ -94,31 +116,55 @@ Resources:
         - Key: Role
           Value: pipeline-execution-role
       AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              AWS:
-                - Fn::If:
-                  - MissingPipelineUser
-                  - !GetAtt PipelineUser.Arn
-                  - !Ref PipelineUserArn
-            Action:
-              - 'sts:AssumeRole'
-          - Effect: Allow
-            Principal:
-              # Allow roles with tag Role=aws-sam-pipeline-codebuild-service-role to assume this role.
-              # This is required when CodePipeline is the CI/CD system of choice.
-              AWS:
-                - !If
-                  - MissingPipelineUser
-                  - !Ref AWS::AccountId
-                  - !Select [4, !Split [':', !Ref PipelineUserArn]]
-            Action:
-              - 'sts:AssumeRole'
-            Condition:
-              StringEquals:
-                aws:PrincipalTag/Role: aws-sam-pipeline-codebuild-service-role
+        Fn::If:
+          - DontUseOidc
+          - Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Principal:
+                  AWS:
+                    - Fn::If:
+                      - MissingPipelineUser
+                      - !GetAtt PipelineUser.Arn
+                      - !Ref PipelineUserArn
+                Action:
+                  - 'sts:AssumeRole'
+              - Effect: Allow
+                Principal:
+                  # Allow roles with tag Role=aws-sam-pipeline-codebuild-service-role to assume this role.
+                  # This is required when CodePipeline is the CI/CD system of choice.
+                  AWS:
+                    - !If
+                      - MissingPipelineUser
+                      - !Ref AWS::AccountId
+                      - !Select [4, !Split [':', !Ref PipelineUserArn]]
+                Action:
+                  - 'sts:AssumeRole'
+                Condition:
+                  StringEquals:
+                    aws:PrincipalTag/Role: aws-sam-pipeline-codebuild-service-role
+          - Fn::Sub: 
+              - |
+                {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                    {
+                      "Effect": "Allow",
+                      "Principal": {
+                        "Federated": "arn:aws:iam::${AWS::AccountId}:oidc-provider/${Url}"
+                      },
+                      "Action": "sts:AssumeRoleWithWebIdentity",
+                      "Condition": {
+                        "ForAllValues:StringEquals": {
+                          "${Url}:aud": "${OidcClientId}",
+                          "${Url}:sub":  "${SubjectClaim}"
+                        }
+                      }
+                    }
+                  ]
+                }
+              - Url: !Select [1, !Split ["//", !Ref OidcProviderUrl]]
+
 
   ArtifactsBucket:
     Type: AWS::S3::Bucket
