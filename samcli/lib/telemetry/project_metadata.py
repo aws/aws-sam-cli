@@ -58,7 +58,7 @@ def get_project_name():
     project_name = ""
 
     if runcmd.returncode:  # Not a git repo. Get dir name instead
-        project_name = basename(getcwd())
+        project_name = basename(getcwd().replace("\\", "/"))
     else:
         project_name = _parse_remote_origin_url(str(runcmd.stdout))[2]
 
