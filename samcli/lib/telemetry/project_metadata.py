@@ -32,7 +32,7 @@ def get_git_origin():
             ["git", "config", "--get", "remote.origin.url"], capture_output=True, shell=True, check=True, text=True
         )
         metadata = _parse_remote_origin_url(str(runcmd.stdout))
-        git_url = "/".join(metadata) + ".git"   # Format to <hostname>/<owner>/<project_name>.git
+        git_url = "/".join(metadata) + ".git"  # Format to <hostname>/<owner>/<project_name>.git
     except subprocess.CalledProcessError:
         return None  # Not a git repo
 
@@ -60,7 +60,7 @@ def get_project_name():
         )
         project_name = _parse_remote_origin_url(str(runcmd.stdout))[2]  # dir is git repo, get project name from URL
     except subprocess.CalledProcessError:
-        project_name = basename(getcwd().replace("\\", "/"))    # dir is not a git repo, get directory name
+        project_name = basename(getcwd().replace("\\", "/"))  # dir is not a git repo, get directory name
 
     return str(uuid5(NAMESPACE_URL, project_name))
 
