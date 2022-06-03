@@ -2,7 +2,7 @@
 import threading
 import multiprocessing
 import multiprocessing.managers
-from typing import Dict, List, Optional, cast
+from typing import Dict, Set, Optional, cast
 from enum import Enum, auto
 
 
@@ -108,13 +108,13 @@ class LockDistributor:
                 self._locks[key] = self._create_new_lock()
             return self._locks[key]
 
-    def get_locks(self, keys: List[str]) -> Dict[str, threading.Lock]:
+    def get_locks(self, keys: Set[str]) -> Dict[str, threading.Lock]:
         """Retrieve a list of locks associating with keys
 
         Parameters
         ----------
-        keys : List[str]
-            List of keys for retrieving the locks
+        keys : Set[str]
+            Set of keys for retrieving the locks
 
         Returns
         -------
@@ -126,13 +126,13 @@ class LockDistributor:
             lock_mapping[key] = self.get_lock(key)
         return lock_mapping
 
-    def get_lock_chain(self, keys: List[str]) -> LockChain:
+    def get_lock_chain(self, keys: Set[str]) -> LockChain:
         """Similar to get_locks, but retrieves a LockChain object instead of a dictionary
 
         Parameters
         ----------
-        keys : List[str]
-            List of keys for retrieving the locks
+        keys : Set[str]
+            Set of keys for retrieving the locks
 
         Returns
         -------
