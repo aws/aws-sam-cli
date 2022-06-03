@@ -125,7 +125,7 @@ Outputs:
   ChildStackHelloWorldServerlessApi:
     Description: "API Gateway endpoint URL from child stack"
     Value: !GetAtt [ChildStack, Outputs.HelloWorldServerlessApi]
-  GrandChildStackHelloWorldServerlessApi:
+  ChildStackGrandChildStackHelloWorldServerlessApi:
     Description: "API Gateway endpoint URL from grand-child stack"
     Value: !GetAtt [ChildStack, Outputs.GrandChildStackHelloWorldServerlessApi]
 
