@@ -38,11 +38,11 @@ class TestLogsCommand(LogsIntegBase):
         self.lambda_client = boto3.client("lambda")
         self.sfn_client = boto3.client("stepfunctions")
 
-    @pytest.fixture(autouse=True, scope="class")
-    def sync_code_base(self):
+    @pytest.fixture(scope="class")
+    def deploy_testing_stack(self):
         test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "logs")
-        TestLogsCommand.stack_name = method_to_stack_name("sam_logs")
-        LOG.info("Deploying stack %s", self.stack_name)
+        TestLogsCommand.stack_name = method_to_stack_name("test_logs_command")
+        cfn_client = boto3.client("cloudformation")
         deploy_cmd = DeployIntegBase.get_deploy_command_list(
             stack_name=self.stack_name,
             template_file=test_data_path.joinpath("python-apigw-sfn", "template.yaml"),
@@ -50,20 +50,24 @@ class TestLogsCommand(LogsIntegBase):
             capabilities="CAPABILITY_IAM",
         )
         deploy_result = run_command(deploy_cmd)
+
+        yield deploy_result, cfn_client
+
+        cfn_client.delete_stack(StackName=self.stack_name)
+
+    @pytest.fixture(autouse=True, scope="class")
+    def sync_code_base(self, deploy_testing_stack):
+        deploy_result = deploy_testing_stack[0]
+        cfn_client = deploy_testing_stack[1]
         self.assertEqual(
             deploy_result.process.returncode, 0, f"Deployment of the test stack is failed with {deploy_result.stderr}"
         )
 
-        cfn_client = boto3.client("cloudformation")
         cfn_resource = boto3.resource("cloudformation")
         TestLogsCommand.stack_resources = cfn_client.describe_stack_resources(StackName=TestLogsCommand.stack_name).get(
             "StackResources", []
         )
         TestLogsCommand.stack_info = cfn_resource.Stack(TestLogsCommand.stack_name)
-
-        yield
-
-        cfn_client.delete_stack(StackName=self.stack_name)
 
     def _get_physical_id(self, logical_id: str):
         for stack_resource in self.stack_resources:
