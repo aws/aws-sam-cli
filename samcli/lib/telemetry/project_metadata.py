@@ -11,7 +11,7 @@ from uuid import uuid5, NAMESPACE_URL
 from samcli.cli.global_config import GlobalConfig
 
 
-def get_git_origin():
+def get_git_remote_origin_url():
     """
     Retrieve an encrypted version of the project's git remote origin url, if it exists.
 
@@ -36,7 +36,7 @@ def get_git_origin():
     except subprocess.CalledProcessError:
         return None  # Not a git repo
 
-    return str(uuid5(NAMESPACE_URL, git_url))
+    return _encrypt_value(git_url)
 
 
 def get_project_name():
@@ -62,10 +62,10 @@ def get_project_name():
     except subprocess.CalledProcessError:
         project_name = basename(getcwd().replace("\\", "/"))  # dir is not a git repo, get directory name
 
-    return str(uuid5(NAMESPACE_URL, project_name))
+    return _encrypt_value(project_name)
 
 
-def get_initial_commit():
+def get_initial_commit_hash():
     """
     Retrieve an encrypted version of the project's initial commit hash, if it exists.
 
@@ -88,7 +88,7 @@ def get_initial_commit():
     except subprocess.CalledProcessError:
         return None  # Not a git repo
 
-    return str(uuid5(NAMESPACE_URL, metadata))
+    return _encrypt_value(metadata)
 
 
 def _parse_remote_origin_url(url: str):
@@ -101,3 +101,8 @@ def _parse_remote_origin_url(url: str):
     """
     pattern = re.compile(r"(?:https?://|git@)(?P<hostname>\S*)(?:/|:)(?P<owner>\S*)/(?P<project_name>\S*)\.git")
     return pattern.findall(url)[0]
+
+
+def _encrypt_value(value: str) -> str:
+    """Encrypt a string, and then return the encrypted value as a string."""
+    return str(uuid5(NAMESPACE_URL, value))

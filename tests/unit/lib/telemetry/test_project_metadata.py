@@ -9,7 +9,7 @@ from unittest import TestCase
 
 from parameterized import parameterized
 
-from samcli.lib.telemetry.project_metadata import get_git_origin, get_project_name, get_initial_commit
+from samcli.lib.telemetry.project_metadata import get_git_remote_origin_url, get_project_name, get_initial_commit_hash
 
 
 class TestProjectMetadata(TestCase):
@@ -25,13 +25,13 @@ class TestProjectMetadata(TestCase):
     def test_return_none_when_telemetry_disabled(self):
         self.gc_mock.return_value.telemetry_enabled = False
 
-        git_origin = get_git_origin()
+        git_origin = get_git_remote_origin_url()
         self.assertIsNone(git_origin)
 
         project_name = get_project_name()
         self.assertIsNone(project_name)
 
-        initial_commit = get_initial_commit()
+        initial_commit = get_initial_commit_hash()
         self.assertIsNone(initial_commit)
 
     @parameterized.expand(
@@ -48,14 +48,14 @@ class TestProjectMetadata(TestCase):
     def test_retrieve_git_origin(self, origin, expected, sp_mock):
         sp_mock.return_value = CompletedProcess(["git", "config", "--get", "remote.origin.url"], 0, stdout=origin)
 
-        git_origin = get_git_origin()
+        git_origin = get_git_remote_origin_url()
         self.assertEqual(git_origin, str(uuid5(NAMESPACE_URL, expected)))
 
     @patch("samcli.lib.telemetry.project_metadata.subprocess.run")
     def test_retrieve_git_origin_when_not_a_repo(self, sp_mock):
         sp_mock.side_effect = CalledProcessError(128, ["git", "config", "--get", "remote.origin.url"])
 
-        git_origin = get_git_origin()
+        git_origin = get_git_remote_origin_url()
         self.assertIsNone(git_origin)
 
     @parameterized.expand(
@@ -107,5 +107,5 @@ class TestProjectMetadata(TestCase):
     def test_retrieve_initial_commit(self, git_hash, sp_mock):
         sp_mock.return_value = CompletedProcess(["git", "rev-list", "--max-parents=0", "HEAD"], 0, stdout=git_hash)
 
-        initial_commit = get_initial_commit()
+        initial_commit = get_initial_commit_hash()
         self.assertEqual(initial_commit, str(uuid5(NAMESPACE_URL, git_hash)))
