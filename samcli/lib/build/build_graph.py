@@ -614,7 +614,10 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         Return the directory path relative to root build directory
         """
         self._validate_functions()
-        return self.functions[0].get_build_dir(artifact_root_dir)
+        build_dir = self.functions[0].get_build_dir(artifact_root_dir)
+        if len(self.functions) > 1:
+            build_dir = f"{build_dir}-Shared"
+        return build_dir
 
     def _validate_functions(self) -> None:
         if not self.functions:
