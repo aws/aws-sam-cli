@@ -16,6 +16,7 @@ from samcli.lib.telemetry.cicd import CICDPlatform
 from samcli.lib.telemetry.metric import (
     capture_return_value,
     _get_metric,
+    _get_stack_trace_info,
     _clean_stack_summary_paths,
     send_installed_metric,
     track_command,
@@ -187,6 +188,7 @@ class TestTrackCommand(TestCase):
             "exitReason": "success",
             "exitCode": 0,
             "stackTrace": None,
+            "exceptionMessage": None,
         }
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric = args[0]
@@ -230,11 +232,12 @@ class TestTrackCommand(TestCase):
             "Measured duration must be in milliseconds and greater than equal to the sleep duration",
         )
 
-    @patch("samcli.lib.telemetry.metric._get_stack_trace")
+    @patch("samcli.lib.telemetry.metric._get_stack_trace_info")
     @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_record_user_exception(self, ContextMock, get_stack_trace_mock):
+    def test_must_record_user_exception(self, ContextMock, get_stack_trace_info_mock):
         expected_stack_trace = "Expected stack trace"
-        get_stack_trace_mock.return_value = expected_stack_trace
+        expected_exception_message = "Expected exception message"
+        get_stack_trace_info_mock.return_value = (expected_stack_trace, expected_exception_message)
         ContextMock.get_current_context.return_value = self.context_mock
         expected_exception = UserException("Something went wrong")
         expected_exception.exit_code = 1235
@@ -250,20 +253,26 @@ class TestTrackCommand(TestCase):
                 "Must re-raise the original exception object " "without modification",
             )
 
-        get_stack_trace_mock.assert_called_once()
+        get_stack_trace_info_mock.assert_called_once()
         expected_attrs = _ignore_common_attributes(
-            {"exitReason": "UserException", "exitCode": 1235, "stackTrace": expected_stack_trace}
+            {
+                "exitReason": "UserException",
+                "exitCode": 1235,
+                "stackTrace": expected_stack_trace,
+                "exceptionMessage": expected_exception_message,
+            }
         )
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric = args[0]
         assert metric.get_metric_name() == "commandRun"
         self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
 
-    @patch("samcli.lib.telemetry.metric._get_stack_trace")
+    @patch("samcli.lib.telemetry.metric._get_stack_trace_info")
     @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_record_wrapped_user_exception(self, ContextMock, get_stack_trace_mock):
+    def test_must_record_wrapped_user_exception(self, ContextMock, get_stack_trace_info_mock):
         expected_stack_trace = "Expected stack trace"
-        get_stack_trace_mock.return_value = expected_stack_trace
+        expected_exception_message = "Expected exception message"
+        get_stack_trace_info_mock.return_value = (expected_stack_trace, expected_exception_message)
         ContextMock.get_current_context.return_value = self.context_mock
         expected_exception = UserException("Something went wrong", wrapped_from="CustomException")
         expected_exception.exit_code = 1235
@@ -279,20 +288,26 @@ class TestTrackCommand(TestCase):
                 "Must re-raise the original exception object " "without modification",
             )
 
-        get_stack_trace_mock.assert_called_once()
+        get_stack_trace_info_mock.assert_called_once()
         expected_attrs = _ignore_common_attributes(
-            {"exitReason": "CustomException", "exitCode": 1235, "stackTrace": expected_stack_trace}
+            {
+                "exitReason": "CustomException",
+                "exitCode": 1235,
+                "stackTrace": expected_stack_trace,
+                "exceptionMessage": expected_exception_message,
+            }
         )
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric = args[0]
         assert metric.get_metric_name() == "commandRun"
         self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
 
-    @patch("samcli.lib.telemetry.metric._get_stack_trace")
+    @patch("samcli.lib.telemetry.metric._get_stack_trace_info")
     @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_record_any_exceptions(self, ContextMock, get_stack_trace_mock):
+    def test_must_record_any_exceptions(self, ContextMock, get_stack_trace_info_mock):
         expected_stack_trace = "Expected stack trace"
-        get_stack_trace_mock.return_value = expected_stack_trace
+        expected_exception_message = "Expected exception message"
+        get_stack_trace_info_mock.return_value = (expected_stack_trace, expected_exception_message)
         ContextMock.get_current_context.return_value = self.context_mock
         expected_exception = KeyError("IO Error test")
 
@@ -307,12 +322,13 @@ class TestTrackCommand(TestCase):
                 "Must re-raise the original exception object " "without modification",
             )
 
-        get_stack_trace_mock.assert_called_once()
+        get_stack_trace_info_mock.assert_called_once()
         expected_attrs = _ignore_common_attributes(
             {
                 "exitReason": "KeyError",
                 "exitCode": 255,
                 "stackTrace": expected_stack_trace,
+                "exceptionMessage": expected_exception_message,
             }  # Unhandled exceptions always use exit code 255
         )
         args, _ = self.telemetry_instance.emit.call_args_list[0]
@@ -368,6 +384,12 @@ class TestStackTrace(TestCase):
 
     def tearDown(self):
         pass
+
+    def test_must_return_stack_trace_info(self):
+        exception = Exception("Something went wrong...")
+        stack_trace, exception_message = _get_stack_trace_info(exception)
+        self.assertIsInstance(stack_trace, str)
+        self.assertIsInstance(exception_message, str)
 
     def test_must_clean_path_preceding_site_packages(self):
         stack_summary = traceback.StackSummary.from_list(

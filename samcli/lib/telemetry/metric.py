@@ -8,7 +8,7 @@ import uuid
 import platform
 import logging
 import traceback
-from typing import Optional
+from typing import Optional, Tuple
 
 import click
 
@@ -117,6 +117,7 @@ def track_command(func):
         exit_reason = "success"
         exit_code = 0
         stack_trace = None
+        exception_message = None
 
         duration_fn = _timer()
         try:
@@ -133,14 +134,14 @@ def track_command(func):
                 exit_reason = type(ex).__name__
             else:
                 exit_reason = ex.wrapped_from
-            stack_trace = _get_stack_trace(ex)
+            stack_trace, exception_message = _get_stack_trace_info(ex)
 
         except Exception as ex:
             exception = ex
             # Standard Unix practice to return exit code 255 on fatal/unhandled exit.
             exit_code = 255
             exit_reason = type(ex).__name__
-            stack_trace = _get_stack_trace(ex)
+            stack_trace, exception_message = _get_stack_trace_info(ex)
 
         try:
             ctx = Context.get_current_context()
@@ -164,6 +165,7 @@ def track_command(func):
             metric.add_data("exitReason", exit_reason)
             metric.add_data("exitCode", exit_code)
             metric.add_data("stackTrace", stack_trace)
+            metric.add_data("exceptionMessage", exception_message)
             telemetry.emit(metric)
         except RuntimeError:
             LOG.debug("Unable to find Click Context for getting session_id.")
@@ -175,9 +177,11 @@ def track_command(func):
     return wrapped
 
 
-def _get_stack_trace(exception: Exception) -> str:
+def _get_stack_trace_info(exception: Exception) -> Tuple[str, str]:
     """
-    Retreives stack trace from an Exception instance and returns a readable string with user-sensitive paths cleaned
+    Takes an Exception instance and extracts the following:
+      1. Stack trace in a readable string format with user-sensitive paths cleaned
+      2. Exception mesage including the fully-qualified exception name and value
 
     Parameters
     ----------
@@ -186,16 +190,18 @@ def _get_stack_trace(exception: Exception) -> str:
 
     Returns
     -------
-    str
-        Stack trace with paths cleaned
+    (str, str)
+        (stack trace, exception message)
     """
     tb_exception = traceback.TracebackException.from_exception(exception)
     _clean_stack_summary_paths(tb_exception.stack)
     stack_trace = "".join(list(tb_exception.format()))
-    return stack_trace
+    exception_msg = list(tb_exception.format_exception_only())[-1]
+
+    return (stack_trace, exception_msg)
 
 
-def _clean_stack_summary_paths(stack_summary: traceback.StackSummary):
+def _clean_stack_summary_paths(stack_summary: traceback.StackSummary) -> None:
     """
     Cleans the user-sensitive paths contained within a StackSummary instance
 
