@@ -65,7 +65,7 @@ HELP_TEXT = """
 By default, the sync command runs a full stack update. You can specify --code or --watch to switch modes.
 \b
 Sync also supports nested stacks and nested stack resources. For example
-$ sam sync --code --stack-name {stack} --resource-id ChildStack/ResourceId
+$ sam sync --code --stack-name {stack} --resource-id {ChildStack}/{ResourceId}
 """
 
 SYNC_CONFIRMATION_TEXT = """
