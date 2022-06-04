@@ -13,6 +13,7 @@ from uuid import uuid4
 
 import tomlkit
 
+from samcli.commands._utils.experimental import is_experimental_enabled, ExperimentalFlag
 from samcli.lib.build.exceptions import InvalidBuildGraphException
 from samcli.lib.providers.provider import Function, LayerVersion
 from samcli.lib.samlib.resource_metadata_normalizer import (
@@ -615,7 +616,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         """
         self._validate_functions()
         build_dir = self.functions[0].get_build_dir(artifact_root_dir)
-        if len(self.functions) > 1:
+        if is_experimental_enabled(ExperimentalFlag.BuildImprovementsMay22) and len(self.functions) > 1:
             build_dir = f"{build_dir}-Shared"
         return build_dir
 
