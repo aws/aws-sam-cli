@@ -41,12 +41,13 @@ class TestSyncCodeBase(SyncIntegBase):
     stack_name = ""
     template_path = ""
     template = ""
+    folder = ""
 
     @pytest.fixture(scope="class")
     def execute_infra_sync(self):
         with tempfile.TemporaryDirectory() as temp:
-            TestSyncCodeBase.temp_dir = Path(temp).joinpath("code")
-            shutil.copytree(self.test_data_path.joinpath("code").joinpath("before"), TestSyncCodeBase.temp_dir)
+            TestSyncCodeBase.temp_dir = Path(temp).joinpath(self.folder)
+            shutil.copytree(self.test_data_path.joinpath(self.folder).joinpath("before"), TestSyncCodeBase.temp_dir)
 
             TestSyncCodeBase.template_path = TestSyncCodeBase.temp_dir.joinpath(self.template)
             TestSyncCodeBase.stack_name = self._method_to_stack_name(self.id())
@@ -74,11 +75,11 @@ class TestSyncCodeBase(SyncIntegBase):
             cfn_client = boto3.client("cloudformation")
             ecr_client = boto3.client("ecr")
             self._delete_companion_stack(
-                cfn_client, ecr_client, self._stack_name_to_companion_stack(TestSyncCode.stack_name)
+                cfn_client, ecr_client, self._stack_name_to_companion_stack(TestSyncCodeBase.stack_name)
             )
 
             cfn_client = boto3.client("cloudformation")
-            cfn_client.delete_stack(StackName=TestSyncCode.stack_name)
+            cfn_client.delete_stack(StackName=TestSyncCodeBase.stack_name)
 
     @pytest.fixture(autouse=True, scope="class")
     def sync_code_base(self, execute_infra_sync):
@@ -90,6 +91,7 @@ class TestSyncCodeBase(SyncIntegBase):
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
 class TestSyncCode(TestSyncCodeBase):
     template = "template-python.yaml"
+    folder = "code"
 
     def test_sync_code_function(self):
         shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("function"), ignore_errors=True)
@@ -173,7 +175,6 @@ class TestSyncCode(TestSyncCodeBase):
             template_file=TestSyncCodeBase.template_path,
             code=True,
             watch=False,
-            resource="AWS::Serverless::Function",
             dependency_layer=True,
             stack_name=TestSyncCodeBase.stack_name,
             parameter_overrides="Parameter=Clarity",
@@ -259,6 +260,7 @@ class TestSyncCode(TestSyncCodeBase):
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
 class TestSyncCodeDotnetFunctionTemplate(TestSyncCodeBase):
     template = "template-dotnet.yaml"
+    folder = "code"
 
     def test_sync_code_shared_codeuri(self):
         shutil.rmtree(Path(TestSyncCodeBase.temp_dir).joinpath("dotnet_function"), ignore_errors=True)
@@ -297,94 +299,17 @@ class TestSyncCodeDotnetFunctionTemplate(TestSyncCodeBase):
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
 class TestSyncCodeNested(SyncIntegBase):
-    template = "template-python.yaml"
+    template = "template.yaml"
+    folder = "nested"
 
     def test_sync_code_nested_function(self):
-        shutil.rmtree(TestSyncCodeNested.temp_dir.joinpath("function"), ignore_errors=True)
+        shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("child_stack").joinpath("child_functions"), ignore_errors=True)
         shutil.copytree(
             self.test_data_path.joinpath("nested")
             .joinpath("after")
-            .joinpath("nested-layer-function")
-            .joinpath("function"),
-            TestSyncCodeBase.temp_dir.joinpath("function"),
-        )
-        # Run code sync
-        sync_command_list = self.get_sync_command_list(
-            template_file=TestSyncCodeBase.template_path,
-            code=True,
-            watch=False,
-            resource="AWS::Serverless::Function",
-            dependency_layer=True,
-            stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
-            image_repository=self.ecr_repo_name,
-            s3_prefix=self.s3_prefix,
-            kms_key_id=self.kms_key,
-            tags="integ=true clarity=yes foo_bar=baz",
-        )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
-        self.assertEqual(sync_process_execute.process.returncode, 0)
-
-        # CFN Api call here to collect all the stack resources
-        self.stack_resources = self._get_stacks(TestSyncCodeBase.stack_name)
-        # Lambda Api call here, which tests both the python function and the layer
-        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
-        for lambda_function in lambda_functions:
-            if lambda_function == "HelloWorldFunction":
-                lambda_response = json.loads(self._get_lambda_response(lambda_function))
-                self.assertIn("extra_message", lambda_response)
-                self.assertEqual(lambda_response.get("message"), "8")
-
-    def test_sync_code_nested_layer(self):
-        shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("layer"), ignore_errors=True)
-        shutil.copytree(
-            self.test_data_path.joinpath("code").joinpath("after").joinpath("layer"),
-            TestSyncCodeBase.temp_dir.joinpath("layer"),
-        )
-        # Run code sync
-        sync_command_list = self.get_sync_command_list(
-            template_file=TestSyncCodeBase.template_path,
-            code=True,
-            watch=False,
-            resource="AWS::Serverless::LayerVersion",
-            dependency_layer=True,
-            stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
-            image_repository=self.ecr_repo_name,
-            s3_prefix=self.s3_prefix,
-            kms_key_id=self.kms_key,
-            tags="integ=true clarity=yes foo_bar=baz",
-        )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
-        self.assertEqual(sync_process_execute.process.returncode, 0)
-
-        # CFN Api call here to collect all the stack resources
-        self.stack_resources = self._get_stacks(TestSyncCodeBase.stack_name)
-        # Lambda Api call here, which tests both the python function and the layer
-        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
-        for lambda_function in lambda_functions:
-            if lambda_function == "HelloWorldFunction":
-                lambda_response = json.loads(self._get_lambda_response(lambda_function))
-                self.assertIn("extra_message", lambda_response)
-                self.assertEqual(lambda_response.get("message"), "9")
-
-    def test_sync_nested_function_layer_race_condition(self):
-        shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("function"), ignore_errors=True)
-        shutil.copytree(
-            self.test_data_path.joinpath("nested")
-            .joinpath("after")
-            .joinpath("nested-layer-function")
-            .joinpath("function"),
-            TestSyncCodeBase.temp_dir.joinpath("function"),
-        )
-        shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("layer"), ignore_errors=True)
-        shutil.copytree(
-            self.test_data_path.joinpath("nested")
-            .joinpath("after")
-            .joinpath("nested-layer-function")
             .joinpath("child_stack")
             .joinpath("child_functions"),
-            TestSyncCodeBase.temp_dir.joinpath("layer"),
+            TestSyncCodeBase.temp_dir.joinpath("child_stack").joinpath("child_functions"),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
@@ -411,4 +336,81 @@ class TestSyncCodeNested(SyncIntegBase):
             if lambda_function == "child_stack/child_child_stack/HelloWorldFunction":
                 lambda_response = json.loads(self._get_lambda_response(lambda_function))
                 self.assertIn("extra_message", lambda_response)
-                self.assertEqual(lambda_response.get("message"), "7")
+                self.assertEqual(lambda_response.get("message"), "11")
+
+    def test_sync_code_nested_layer(self):
+        shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("root_layer"), ignore_errors=True)
+        shutil.copytree(
+            self.test_data_path.joinpath("nested")
+            .joinpath("after")
+            .joinpath("root_layer"),
+            TestSyncCodeBase.temp_dir.joinpath("root_layer"),
+        )
+        # Run code sync
+        sync_command_list = self.get_sync_command_list(
+            template_file=TestSyncCodeBase.template_path,
+            code=True,
+            watch=False,
+            resource="AWS::Serverless::LayerVersion",
+            dependency_layer=True,
+            stack_name=TestSyncCodeBase.stack_name,
+            parameter_overrides="Parameter=Clarity",
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+
+        # CFN Api call here to collect all the stack resources
+        self.stack_resources = self._get_stacks(TestSyncCodeBase.stack_name)
+        # Lambda Api call here, which tests both the python function and the layer
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            if lambda_function == "child_stack/child_child_stack/HelloWorldFunction":
+                lambda_response = json.loads(self._get_lambda_response(lambda_function))
+                self.assertIn("extra_message", lambda_response)
+                self.assertEqual(lambda_response.get("message"), "12")
+
+    def test_sync_nested_function_layer_race_condition(self):
+        shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("child_stack").joinpath("child_functions"), ignore_errors=True)
+        shutil.copytree(
+            self.test_data_path.joinpath("nested")
+            .joinpath("before")
+            .joinpath("child_stack")
+            .joinpath("child_functions"),
+            TestSyncCodeBase.temp_dir.joinpath("child_stack").joinpath("child_functions"),
+        )
+        shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("root_layer"), ignore_errors=True)
+        shutil.copytree(
+            self.test_data_path.joinpath("nested")
+            .joinpath("before")
+            .joinpath("root_layer"),
+            TestSyncCodeBase.temp_dir.joinpath("root_layer"),
+        )
+        # Run code sync
+        sync_command_list = self.get_sync_command_list(
+            template_file=TestSyncCodeBase.template_path,
+            code=True,
+            watch=False,
+            dependency_layer=True,
+            stack_name=TestSyncCodeBase.stack_name,
+            parameter_overrides="Parameter=Clarity",
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+
+        # CFN Api call here to collect all the stack resources
+        self.stack_resources = self._get_stacks(TestSyncCodeBase.stack_name)
+        # Lambda Api call here, which tests both the python function and the layer
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            if lambda_function == "child_stack/child_child_stack/HelloWorldFunction":
+                lambda_response = json.loads(self._get_lambda_response(lambda_function))
+                self.assertIn("extra_message", lambda_response)
+                self.assertEqual(lambda_response.get("message"), "10")

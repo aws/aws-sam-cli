@@ -7,6 +7,6 @@ def lambda_handler(event, context):
     return {
         "statusCode": 200,
         "body": json.dumps({
-            "message": f"{layer_method()+7}"
+            "message": f"{layer_method()+6}"
         }),
     }
