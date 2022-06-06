@@ -59,7 +59,6 @@ class LogsIntegTestCases(LogsIntegBase):
         self.assertEqual(
             deploy_result.process.returncode, 0, f"Deployment of the test stack is failed with {deploy_result.stderr}"
         )
-
         stack_resource_summaries = get_resource_summaries(
             get_boto_resource_provider_with_config(), LogsIntegTestCases.stack_name
         )
