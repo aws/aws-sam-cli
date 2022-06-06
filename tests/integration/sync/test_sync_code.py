@@ -42,8 +42,8 @@ class TestSyncCodeBase(SyncIntegBase):
     template_path = ""
     template = ""
 
-    @pytest.fixture(autouse=True, scope="class")
-    def sync_code_base(self):
+    @pytest.fixture(scope="class")
+    def execute_infra_sync(self):
         with tempfile.TemporaryDirectory() as temp:
             TestSyncCode.temp_dir = Path(temp).joinpath("code")
             shutil.copytree(self.test_data_path.joinpath("code").joinpath("before"), TestSyncCode.temp_dir)
@@ -67,10 +67,8 @@ class TestSyncCodeBase(SyncIntegBase):
             )
 
             sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
-            self.assertEqual(sync_process_execute.process.returncode, 0)
-            self.assertIn("Stack creation succeeded. Sync infra completed.", str(sync_process_execute.stderr))
 
-            yield
+            yield sync_process_execute
 
             shutil.rmtree(os.path.join(os.getcwd(), ".aws-sam", "build"), ignore_errors=True)
             cfn_client = boto3.client("cloudformation")
@@ -78,7 +76,15 @@ class TestSyncCodeBase(SyncIntegBase):
             self._delete_companion_stack(
                 cfn_client, ecr_client, self._stack_name_to_companion_stack(TestSyncCode.stack_name)
             )
+
+            cfn_client = boto3.client("cloudformation")
             cfn_client.delete_stack(StackName=TestSyncCode.stack_name)
+
+    @pytest.fixture(autouse=True, scope="class")
+    def sync_code_base(self, execute_infra_sync):
+        sync_process_execute = execute_infra_sync
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+        self.assertIn("Stack creation succeeded. Sync infra completed.", str(sync_process_execute.stderr))
 
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
