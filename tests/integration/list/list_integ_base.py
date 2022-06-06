@@ -16,9 +16,7 @@ class ListIntegBase(TestCase):
     def setUp(self):
         super().setUp()
         self.scratch_dir = str(Path(__file__).resolve().parent.joinpath(str(uuid.uuid4()).replace("-", "")[:10]))
-        shutil.rmtree(self.scratch_dir, ignore_errors=True)
         os.mkdir(self.scratch_dir)
-
         self.working_dir = tempfile.mkdtemp(dir=self.scratch_dir)
 
     def tearDown(self):
