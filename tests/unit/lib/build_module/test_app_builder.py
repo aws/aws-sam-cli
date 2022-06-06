@@ -1146,7 +1146,6 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
                 decode=True,
                 platform="linux/amd64",
                 rm=True,
-                forcerm=True,
             ),
         )
 
@@ -1176,7 +1175,6 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
                 target="stage",
                 platform="linux/amd64",
                 rm=True,
-                forcerm=True,
             ),
         )
 
