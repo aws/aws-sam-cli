@@ -3,11 +3,14 @@ import os
 import logging
 import json
 import shutil
+import tempfile
 import time
 import uuid
+import zipfile
 from pathlib import Path
 
 import boto3
+import requests
 from botocore.exceptions import ClientError
 from botocore.config import Config
 
@@ -19,6 +22,7 @@ CFN_SLEEP = 3
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
 RETRY_ATTEMPTS = 20
 RETRY_WAIT = 1
+ZIP_FILE = "layer_zip.zip"
 
 LOG = logging.getLogger(__name__)
 
@@ -135,6 +139,22 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
                 return execution_detail.get("output")
             count += 1
         return ""
+
+    @staticmethod
+    def _extract_contents_from_layer_zip(runtime, zipped_layer):
+        with tempfile.TemporaryDirectory() as extract_path:
+            zipped_path = Path(extract_path, ZIP_FILE)
+            with open(zipped_path, "wb") as file:
+                file.write(zipped_layer.content)
+            with zipfile.ZipFile(zipped_path) as zip_ref:
+                zip_ref.extractall(extract_path)
+            return os.listdir(Path(extract_path, runtime))
+
+    def get_layer_contents(self, layer_name, layer_version, runtime):
+        layer = self.lambda_client.get_layer_version(LayerName=layer_name, VersionNumber=layer_version)
+        layer_location = layer.get("Content", {}).get("Location", "")
+        zipped_layer = requests.get(layer_location)
+        return SyncIntegBase._extract_contents_from_layer_zip(runtime, zipped_layer)
 
     def base_command(self):
         command = "sam"

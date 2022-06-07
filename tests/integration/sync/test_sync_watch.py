@@ -248,12 +248,11 @@ class TestSyncWatchCode(TestSyncWatchBase):
         self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')
 
 
+@parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 class TestSyncInfraNestedStacks(TestSyncWatchBase):
     @classmethod
     def setUpClass(cls):
         cls.template_before = f"infra/parent-stack.yaml"
-        cls.dependency_layer = False
-        # cls.parameter_overrides = "EnableNestedStack=true"
         super(TestSyncInfraNestedStacks, cls).setUpClass()
 
     def setup(self):
@@ -275,6 +274,7 @@ class TestSyncInfraNestedStacks(TestSyncWatchBase):
         self._verify_infra_changes(self.stack_resources)
 
 
+@parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 class TestSyncCodeWatchNestedStacks(TestSyncWatchBase):
     @classmethod
     def setUpClass(cls):
