@@ -6,12 +6,13 @@ from os import getcwd
 from os.path import basename
 import re
 import subprocess
+from typing import List, Optional
 from uuid import uuid5, NAMESPACE_URL
 
 from samcli.cli.global_config import GlobalConfig
 
 
-def get_git_remote_origin_url():
+def get_git_remote_origin_url() -> Optional[str]:
     """
     Retrieve an encrypted version of the project's git remote origin url, if it exists.
 
@@ -39,7 +40,7 @@ def get_git_remote_origin_url():
     return _encrypt_value(git_url)
 
 
-def get_project_name():
+def get_project_name() -> Optional[str]:
     """
     Retrieve an encrypted version of the project's name, as defined by the .git folder (or directory name if no .git).
 
@@ -65,7 +66,7 @@ def get_project_name():
     return _encrypt_value(project_name)
 
 
-def get_initial_commit_hash():
+def get_initial_commit_hash() -> Optional[str]:
     """
     Retrieve an encrypted version of the project's initial commit hash, if it exists.
 
@@ -91,16 +92,17 @@ def get_initial_commit_hash():
     return _encrypt_value(metadata)
 
 
-def _parse_remote_origin_url(url: str):
+def _parse_remote_origin_url(url: str) -> List[str]:
     """
     Parse a `git remote origin url` into its hostname, owner, and project name.
 
     Returns
     -------
-    A list of 3 strings, with indeces corresponding to 0:hostname, 1:owner, 2:project_name
+    List[str]
+        A list of 3 strings, with indeces corresponding to 0:hostname, 1:owner, 2:project_name
     """
     pattern = re.compile(r"(?:https?://|git@)(?P<hostname>\S*)(?:/|:)(?P<owner>\S*)/(?P<project_name>\S*)\.git")
-    return pattern.findall(url)[0]
+    return [str(item) for item in pattern.findall(url)[0]]
 
 
 def _encrypt_value(value: str) -> str:
