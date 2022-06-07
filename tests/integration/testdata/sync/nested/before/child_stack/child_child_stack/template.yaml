@@ -18,9 +18,27 @@ Resources:
   HelloWorldFunction:
     Type: AWS::Serverless::Function
     Properties:
+      # Currently if a base_dir option is provided, the nested stack code URIs
+      # Needs to be relative to the base_dir instead of the child templates
+      # Changing this behaviour raises concerns of breaking change since
+      # Build with nested stack already exhibits this behaviour
       CodeUri: ../child_functions/
       Handler: child_function.lambda_handler
       Runtime: python3.7
       Layers:
         - Ref: ParentLayer2
       Tracing: Active
+
+  HelloWorldApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      DefinitionUri: apigateway/definition.json
+
+  HelloStepFunction:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionUri: statemachine/function.asl.json
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref HelloWorldFunction

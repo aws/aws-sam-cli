@@ -15,6 +15,10 @@ Resources:
   ChildFunction:
     Type: AWS::Serverless::Function
     Properties:
+      # Currently if a base_dir option is provided, the nested stack code URIs
+      # Needs to be relative to the base_dir instead of the child templates
+      # Changing this behaviour raises concerns of breaking change since
+      # Build with nested stack already exhibits this behaviour
       CodeUri: child_functions/
       Handler: child_function.lambda_handler
       Runtime: python3.7
@@ -27,6 +31,10 @@ Resources:
     Properties:
       LayerName: HelloWorldLayer
       Description: Hello World Layer
+      # Currently if a base_dir option is provided, the nested stack code URIs
+      # Needs to be relative to the base_dir instead of the child templates
+      # Changing this behaviour raises concerns of breaking change since
+      # Build with nested stack already exhibits this behaviour
       ContentUri: ../root_layer/
       CompatibleRuntimes:
         - python3.7
@@ -36,6 +44,7 @@ Resources:
   ChildChildStack:
     Type: AWS::Serverless::Application
     Properties:
+      # This however can only resolve relative to the current template
       Location: child_child_stack/template.yaml
       Parameters:
         ParentLayer1: !Ref HelloWorldLayer

@@ -36,6 +36,16 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 LOG = logging.getLogger(__name__)
 
 
+def list_files(startpath):
+    for root, dirs, files in os.walk(startpath):
+        level = root.replace(startpath, "").count(os.sep)
+        indent = " " * 4 * (level)
+        print("{}{}/".format(indent, os.path.basename(root)))
+        subindent = " " * 4 * (level + 1)
+        for f in files:
+            print("{}{}".format(subindent, f))
+
+
 class TestSyncCodeBase(SyncIntegBase):
     temp_dir = ""
     stack_name = ""
@@ -57,7 +67,6 @@ class TestSyncCodeBase(SyncIntegBase):
                 template_file=TestSyncCodeBase.template_path,
                 code=False,
                 watch=False,
-                base_dir=TestSyncCodeBase.temp_dir,
                 dependency_layer=True,
                 stack_name=TestSyncCodeBase.stack_name,
                 parameter_overrides="Parameter=Clarity",
@@ -104,7 +113,7 @@ class TestSyncCode(TestSyncCodeBase):
             template_file=TestSyncCodeBase.template_path,
             code=True,
             watch=False,
-            resource="AWS::Serverless::Function",
+            resource_list=["AWS::Serverless::Function"],
             dependency_layer=True,
             stack_name=TestSyncCodeBase.stack_name,
             parameter_overrides="Parameter=Clarity",
@@ -137,7 +146,7 @@ class TestSyncCode(TestSyncCodeBase):
             template_file=TestSyncCode.template_path,
             code=True,
             watch=False,
-            resource="AWS::Serverless::LayerVersion",
+            resource_list=["AWS::Serverless::LayerVersion"],
             dependency_layer=True,
             stack_name=TestSyncCode.stack_name,
             parameter_overrides="Parameter=Clarity",
@@ -176,6 +185,7 @@ class TestSyncCode(TestSyncCodeBase):
             code=True,
             watch=False,
             dependency_layer=True,
+            resource_list=["AWS::Serverless::LayerVersion", "AWS::Serverless::Function"],
             stack_name=TestSyncCodeBase.stack_name,
             parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
@@ -207,8 +217,7 @@ class TestSyncCode(TestSyncCodeBase):
             template_file=TestSyncCodeBase.template_path,
             code=True,
             watch=False,
-            base_dir=TestSyncCodeBase.temp_dir,
-            resource="AWS::Serverless::Api",
+            resource_list=["AWS::Serverless::Api"],
             stack_name=TestSyncCodeBase.stack_name,
             parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
@@ -237,8 +246,7 @@ class TestSyncCode(TestSyncCodeBase):
             template_file=TestSyncCodeBase.template_path,
             code=True,
             watch=False,
-            base_dir=TestSyncCodeBase.temp_dir,
-            resource="AWS::Serverless::StateMachine",
+            resource_list=["AWS::Serverless::StateMachine"],
             stack_name=TestSyncCodeBase.stack_name,
             parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
@@ -274,7 +282,7 @@ class TestSyncCodeDotnetFunctionTemplate(TestSyncCodeBase):
             template_file=TestSyncCodeBase.template_path,
             code=True,
             watch=False,
-            resource="AWS::Serverless::Function",
+            resource_list=["AWS::Serverless::Function"],
             dependency_layer=True,
             stack_name=TestSyncCodeBase.stack_name,
             parameter_overrides="Parameter=Clarity",
@@ -298,7 +306,7 @@ class TestSyncCodeDotnetFunctionTemplate(TestSyncCodeBase):
 
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
-class TestSyncCodeNested(SyncIntegBase):
+class TestSyncCodeNested(TestSyncCodeBase):
     template = "template.yaml"
     folder = "nested"
 
@@ -316,7 +324,7 @@ class TestSyncCodeNested(SyncIntegBase):
             template_file=TestSyncCodeBase.template_path,
             code=True,
             watch=False,
-            resource="AWS::Serverless::Function",
+            resource_list=["AWS::Serverless::Function"],
             dependency_layer=True,
             stack_name=TestSyncCodeBase.stack_name,
             parameter_overrides="Parameter=Clarity",
@@ -333,7 +341,7 @@ class TestSyncCodeNested(SyncIntegBase):
         # Lambda Api call here, which tests both the python function and the layer
         lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
         for lambda_function in lambda_functions:
-            if lambda_function == "child_stack/child_child_stack/HelloWorldFunction":
+            if lambda_function == "ChildStack/ChildChildStack/HelloWorldFunction":
                 lambda_response = json.loads(self._get_lambda_response(lambda_function))
                 self.assertIn("extra_message", lambda_response)
                 self.assertEqual(lambda_response.get("message"), "11")
@@ -341,9 +349,7 @@ class TestSyncCodeNested(SyncIntegBase):
     def test_sync_code_nested_layer(self):
         shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("root_layer"), ignore_errors=True)
         shutil.copytree(
-            self.test_data_path.joinpath("nested")
-            .joinpath("after")
-            .joinpath("root_layer"),
+            self.test_data_path.joinpath("nested").joinpath("after").joinpath("root_layer"),
             TestSyncCodeBase.temp_dir.joinpath("root_layer"),
         )
         # Run code sync
@@ -351,7 +357,7 @@ class TestSyncCodeNested(SyncIntegBase):
             template_file=TestSyncCodeBase.template_path,
             code=True,
             watch=False,
-            resource="AWS::Serverless::LayerVersion",
+            resource_list=["AWS::Serverless::LayerVersion"],
             dependency_layer=True,
             stack_name=TestSyncCodeBase.stack_name,
             parameter_overrides="Parameter=Clarity",
@@ -368,7 +374,7 @@ class TestSyncCodeNested(SyncIntegBase):
         # Lambda Api call here, which tests both the python function and the layer
         lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
         for lambda_function in lambda_functions:
-            if lambda_function == "child_stack/child_child_stack/HelloWorldFunction":
+            if lambda_function == "ChildStack/ChildChildStack/HelloWorldFunction":
                 lambda_response = json.loads(self._get_lambda_response(lambda_function))
                 self.assertIn("extra_message", lambda_response)
                 self.assertEqual(lambda_response.get("message"), "12")
@@ -384,9 +390,7 @@ class TestSyncCodeNested(SyncIntegBase):
         )
         shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("root_layer"), ignore_errors=True)
         shutil.copytree(
-            self.test_data_path.joinpath("nested")
-            .joinpath("before")
-            .joinpath("root_layer"),
+            self.test_data_path.joinpath("nested").joinpath("before").joinpath("root_layer"),
             TestSyncCodeBase.temp_dir.joinpath("root_layer"),
         )
         # Run code sync
@@ -396,6 +400,7 @@ class TestSyncCodeNested(SyncIntegBase):
             watch=False,
             dependency_layer=True,
             stack_name=TestSyncCodeBase.stack_name,
+            resource_list=["AWS::Serverless::LayerVersion", "AWS::Serverless::Function"],
             parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
@@ -410,7 +415,77 @@ class TestSyncCodeNested(SyncIntegBase):
         # Lambda Api call here, which tests both the python function and the layer
         lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
         for lambda_function in lambda_functions:
-            if lambda_function == "child_stack/child_child_stack/HelloWorldFunction":
+            if lambda_function == "ChildStack/ChildChildStack/HelloWorldFunction":
                 lambda_response = json.loads(self._get_lambda_response(lambda_function))
                 self.assertIn("extra_message", lambda_response)
                 self.assertEqual(lambda_response.get("message"), "10")
+
+    @pytest.mark.skip(reason="Currently not properly supported")
+    def test_sync_code_nested_rest_api(self):
+        shutil.rmtree(
+            TestSyncCodeBase.temp_dir.joinpath("apigateway"),
+            ignore_errors=True,
+        )
+        shutil.copytree(
+            self.test_data_path.joinpath("nested")
+            .joinpath("after")
+            .joinpath("apigateway"),
+            TestSyncCodeBase.temp_dir.joinpath("apigateway"),
+        )
+        # Run code sync
+        sync_command_list = self.get_sync_command_list(
+            template_file=TestSyncCodeBase.template_path,
+            code=True,
+            watch=False,
+            resource_list=["AWS::Serverless::Api"],
+            stack_name=TestSyncCodeBase.stack_name,
+            parameter_overrides="Parameter=Clarity",
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+
+        time.sleep(API_SLEEP)
+        # CFN Api call here to collect all the stack resources
+        self.stack_resources = self._get_stacks(TestSyncCodeBase.stack_name)
+        # ApiGateway Api call here, which tests the RestApi
+        rest_api = self.stack_resources.get(AWS_APIGATEWAY_RESTAPI)[0]
+        self.assertEqual(self._get_api_message(rest_api), '{"message": "hello 2"}')
+
+    @pytest.mark.skip(reason="Currently not properly supported")
+    def test_sync_code_nested_state_machine(self):
+        shutil.rmtree(
+            TestSyncCodeBase.temp_dir.joinpath("statemachine"),
+            ignore_errors=True,
+        )
+        shutil.copytree(
+            self.test_data_path.joinpath("nested")
+            .joinpath("after")
+            .joinpath("statemachine"),
+            TestSyncCodeBase.temp_dir.joinpath("statemachine"),
+        )
+        # Run code sync
+        sync_command_list = self.get_sync_command_list(
+            template_file=TestSyncCodeBase.template_path,
+            code=True,
+            watch=False,
+            resource_list=["AWS::Serverless::StateMachine"],
+            stack_name=TestSyncCodeBase.stack_name,
+            parameter_overrides="Parameter=Clarity",
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+
+        # CFN Api call here to collect all the stack resources
+        self.stack_resources = self._get_stacks(TestSyncCodeBase.stack_name)
+        # SFN Api call here, which tests the StateMachine
+        time.sleep(SFN_SLEEP)
+        state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
+        self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')
