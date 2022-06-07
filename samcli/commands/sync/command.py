@@ -238,18 +238,6 @@ def do_cli(
     from samcli.commands.package.package_context import PackageContext
     from samcli.commands.deploy.deploy_context import DeployContext
 
-    s3_bucket = manage_stack(profile=profile, region=region)
-    click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
-
-    click.echo(f"\n\t\tDefault capabilities applied: {DEFAULT_CAPABILITIES}")
-    click.echo("To override with customized capabilities, use --capabilities flag or set it in samconfig.toml")
-
-    build_dir = DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER if dependency_layer else DEFAULT_BUILD_DIR
-    LOG.debug("Using build directory as %s", build_dir)
-
-    build_dir = DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER if dependency_layer else DEFAULT_BUILD_DIR
-    LOG.debug("Using build directory as %s", build_dir)
-
     confirmation_text = SYNC_CONFIRMATION_TEXT
 
     if not is_experimental_enabled(ExperimentalFlag.Accelerate):
@@ -260,6 +248,12 @@ def do_cli(
 
     set_experimental(ExperimentalFlag.Accelerate)
     update_experimental_context()
+
+    build_dir = DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER if dependency_layer else DEFAULT_BUILD_DIR
+    LOG.debug("Using build directory as %s", build_dir)
+
+    build_dir = DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER if dependency_layer else DEFAULT_BUILD_DIR
+    LOG.debug("Using build directory as %s", build_dir)
 
     with BuildContext(
         resource_identifier=None,
