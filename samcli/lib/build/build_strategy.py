@@ -139,7 +139,7 @@ class DefaultBuildStrategy(BuildStrategy):
             build_definition.runtime,
             build_definition.metadata,
             build_definition.architecture,
-            [function.full_path for function in build_definition.functions],
+            build_definition.get_functions_full_paths(),
         )
 
         # build into one of the functions from this build definition
@@ -259,8 +259,8 @@ class CachedBuildStrategy(BuildStrategy):
 
         if not cache_function_dir.exists() or build_definition.source_hash != source_hash:
             LOG.info(
-                "Cache is invalid, running build and copying resources to function build definition of %s",
-                build_definition.uuid,
+                "Cache is invalid, running build and copying resources for following functions (%s)",
+                build_definition.get_resource_full_paths(),
             )
             build_result = self._delegate_build_strategy.build_single_function_definition(build_definition)
             function_build_results.update(build_result)
@@ -275,8 +275,8 @@ class CachedBuildStrategy(BuildStrategy):
                 break
         else:
             LOG.info(
-                "Valid cache found, copying previously built resources from function build definition of %s",
-                build_definition.uuid,
+                "Valid cache found, copying previously built resources for following functions (%s)",
+                build_definition.get_resource_full_paths(),
             )
             for function in build_definition.functions:
                 # artifacts directory will be created by the builder
@@ -298,8 +298,8 @@ class CachedBuildStrategy(BuildStrategy):
 
         if not cache_function_dir.exists() or layer_definition.source_hash != source_hash:
             LOG.info(
-                "Cache is invalid, running build and copying resources to layer build definition of %s",
-                layer_definition.uuid,
+                "Cache is invalid, running build and copying resources for following layers (%s)",
+                layer_definition.get_resource_full_paths(),
             )
             build_result = self._delegate_build_strategy.build_single_layer_definition(layer_definition)
             layer_build_result.update(build_result)
@@ -314,8 +314,8 @@ class CachedBuildStrategy(BuildStrategy):
                 break
         else:
             LOG.info(
-                "Valid cache found, copying previously built resources from layer build definition of %s",
-                layer_definition.uuid,
+                "Valid cache found, copying previously built resources for following layers (%s)",
+                layer_definition.get_resource_full_paths(),
             )
             # artifacts directory will be created by the builder
             artifacts_dir = str(pathlib.Path(self._build_dir, layer_definition.layer.full_path))
@@ -446,14 +446,17 @@ class IncrementalBuildStrategy(BuildStrategy):
             if is_manifest_changed or is_dependencies_dir_missing:
                 build_definition.manifest_hash = manifest_hash
                 LOG.info(
-                    "Manifest file is changed (new hash: %s) or dependency folder (%s) is missing for %s, "
+                    "Manifest file is changed (new hash: %s) or dependency folder (%s) is missing for (%s), "
                     "downloading dependencies and copying/building source",
                     manifest_hash,
                     build_definition.dependencies_dir,
-                    build_definition.uuid,
+                    build_definition.get_resource_full_paths(),
                 )
             else:
-                LOG.info("Manifest is not changed for %s, running incremental build", build_definition.uuid)
+                LOG.info(
+                    "Manifest is not changed for (%s), running incremental build",
+                    build_definition.get_resource_full_paths()
+                )
 
         build_definition.download_dependencies = is_manifest_changed or is_dependencies_dir_missing
 
@@ -513,32 +516,32 @@ class CachedOrIncrementalBuildStrategyWrapper(BuildStrategy):
     def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
         if self._is_incremental_build_supported(build_definition.runtime):
             LOG.debug(
-                "Running incremental build for runtime %s for build definition %s",
+                "Running incremental build for runtime %s for following resources (%s)",
                 build_definition.runtime,
-                build_definition.uuid,
+                build_definition.get_resource_full_paths(),
             )
             return self._incremental_build_strategy.build_single_function_definition(build_definition)
 
         LOG.debug(
-            "Running incremental build for runtime %s for build definition %s",
+            "Running incremental build for runtime %s for following resources (%s)",
             build_definition.runtime,
-            build_definition.uuid,
+            build_definition.get_resource_full_paths(),
         )
         return self._cached_build_strategy.build_single_function_definition(build_definition)
 
     def build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
         if self._is_incremental_build_supported(layer_definition.build_method):
             LOG.debug(
-                "Running incremental build for runtime %s for build definition %s",
+                "Running incremental build for runtime %s for following resources (%s)",
                 layer_definition.build_method,
-                layer_definition.uuid,
+                layer_definition.get_resource_full_paths(),
             )
             return self._incremental_build_strategy.build_single_layer_definition(layer_definition)
 
         LOG.debug(
-            "Running cached build for runtime %s for build definition %s",
+            "Running cached build for runtime %s for following resources (%s)",
             layer_definition.build_method,
-            layer_definition.uuid,
+            layer_definition.get_resource_full_paths,
         )
         return self._cached_build_strategy.build_single_layer_definition(layer_definition)
 
