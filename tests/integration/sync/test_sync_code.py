@@ -36,16 +36,6 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 LOG = logging.getLogger(__name__)
 
 
-def list_files(startpath):
-    for root, dirs, files in os.walk(startpath):
-        level = root.replace(startpath, "").count(os.sep)
-        indent = " " * 4 * (level)
-        print("{}{}/".format(indent, os.path.basename(root)))
-        subindent = " " * 4 * (level + 1)
-        for f in files:
-            print("{}{}".format(subindent, f))
-
-
 class TestSyncCodeBase(SyncIntegBase):
     temp_dir = ""
     stack_name = ""
@@ -139,16 +129,16 @@ class TestSyncCode(TestSyncCodeBase):
         shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("layer"), ignore_errors=True)
         shutil.copytree(
             self.test_data_path.joinpath("code").joinpath("after").joinpath("layer"),
-            TestSyncCode.temp_dir.joinpath("layer"),
+            TestSyncCodeBase.temp_dir.joinpath("layer"),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
-            template_file=TestSyncCode.template_path,
+            template_file=TestSyncCodeBase.template_path,
             code=True,
             watch=False,
             resource_list=["AWS::Serverless::LayerVersion"],
             dependency_layer=True,
-            stack_name=TestSyncCode.stack_name,
+            stack_name=TestSyncCodeBase.stack_name,
             parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
@@ -295,7 +285,7 @@ class TestSyncCodeDotnetFunctionTemplate(TestSyncCodeBase):
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         # CFN Api call here to collect all the stack resources
-        self.stack_resources = self._get_stacks(TestSyncCode.stack_name)
+        self.stack_resources = self._get_stacks(TestSyncCodeBase.stack_name)
         # Lambda Api call here, which tests both the python function and the layer
         lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
         for lambda_function in lambda_functions:
@@ -427,9 +417,7 @@ class TestSyncCodeNested(TestSyncCodeBase):
             ignore_errors=True,
         )
         shutil.copytree(
-            self.test_data_path.joinpath("nested")
-            .joinpath("after")
-            .joinpath("apigateway"),
+            self.test_data_path.joinpath("nested").joinpath("after").joinpath("apigateway"),
             TestSyncCodeBase.temp_dir.joinpath("apigateway"),
         )
         # Run code sync
@@ -462,9 +450,7 @@ class TestSyncCodeNested(TestSyncCodeBase):
             ignore_errors=True,
         )
         shutil.copytree(
-            self.test_data_path.joinpath("nested")
-            .joinpath("after")
-            .joinpath("statemachine"),
+            self.test_data_path.joinpath("nested").joinpath("after").joinpath("statemachine"),
             TestSyncCodeBase.temp_dir.joinpath("statemachine"),
         )
         # Run code sync
