@@ -181,6 +181,7 @@ class TestTrackCommand(TestCase):
             "debugFlagProvided": False,
             "region": "myregion",
             "commandName": "fakesam local invoke",
+            "metricSpecificAttributes": ANY,
             "duration": ANY,
             "exitReason": "success",
             "exitCode": 0,
