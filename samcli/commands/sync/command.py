@@ -62,7 +62,10 @@ LOG = logging.getLogger(__name__)
 HELP_TEXT = """
 [Beta Feature] Update/Sync local artifacts to AWS
 
-By default, the sync command runs a full stack update. You can specify --code or --watch to switch modes
+By default, the sync command runs a full stack update. You can specify --code or --watch to switch modes.
+\b
+Sync also supports nested stacks and nested stack resources. For example
+$ sam sync --code --stack-name {stack} --resource-id {ChildStack}/{ResourceId}
 """
 
 SYNC_CONFIRMATION_TEXT = """
@@ -113,7 +116,8 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @click.option(
     "--resource-id",
     multiple=True,
-    help="Sync code for all the resources with the ID.",
+    help="Sync code for all the resources with the ID. To sync a resource within a nested stack, "
+    "use the following pattern {ChildStack}/{logicalId}.",
 )
 @click.option(
     "--resource",
