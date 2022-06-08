@@ -148,8 +148,8 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         template_file=None,
         code=None,
         watch=None,
-        resource_id=None,
-        resource=None,
+        resource_id_list=None,
+        resource_list=None,
         dependency_layer=None,
         stack_name=None,
         region=None,
@@ -166,6 +166,7 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         notification_arns=None,
         tags=None,
         metadata=None,
+        debug=None,
     ):
         command_list = [self.base_command(), "sync"]
 
@@ -174,10 +175,12 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
             command_list += ["--code"]
         if watch:
             command_list += ["--watch"]
-        if resource_id:
-            command_list += ["--resource-id", str(resource_id)]
-        if resource:
-            command_list += ["--resource", str(resource)]
+        if resource_id_list:
+            for resource_id in resource_id_list:
+                command_list += ["--resource-id", str(resource_id)]
+        if resource_list:
+            for resource in resource_list:
+                command_list += ["--resource", str(resource)]
         if dependency_layer:
             command_list += ["--dependency-layer"]
         if not dependency_layer:
@@ -214,5 +217,7 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
             command_list += ["--tags", str(tags)]
         if metadata:
             command_list += ["--metadata", json.dumps(metadata)]
+        if debug:
+            command_list += ["--debug"]
 
         return command_list
