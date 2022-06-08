@@ -26,6 +26,8 @@ class TestDeleteContext(TestCase):
             config_env="default",
             profile="test",
             no_prompts=True,
+            s3_bucket=None,
+            s3_prefix=None,
         ) as delete_context:
 
             delete_context.run()
@@ -44,6 +46,8 @@ class TestDeleteContext(TestCase):
             config_env="default",
             profile="test",
             no_prompts=True,
+            s3_bucket=None,
+            s3_prefix=None,
         ) as delete_context:
             self.assertEqual(delete_context.parse_config_file.call_count, 1)
             self.assertEqual(delete_context.init_clients.call_count, 1)
@@ -73,6 +77,8 @@ class TestDeleteContext(TestCase):
             config_env="default",
             profile=None,
             no_prompts=True,
+            s3_bucket=None,
+            s3_prefix=None,
         ) as delete_context:
             self.assertEqual(delete_context.stack_name, "test")
             self.assertEqual(delete_context.region, "us-east-1")
@@ -93,6 +99,8 @@ class TestDeleteContext(TestCase):
             config_env=None,
             profile=None,
             no_prompts=None,
+            s3_bucket=None,
+            s3_prefix=None,
         ) as delete_context:
             delete_context.run()
 
@@ -136,6 +144,8 @@ class TestDeleteContext(TestCase):
             config_env="default",
             profile=None,
             no_prompts=True,
+            s3_bucket=None,
+            s3_prefix=None,
         ) as delete_context:
             delete_context.run()
 
@@ -163,13 +173,17 @@ class TestDeleteContext(TestCase):
             config_env="default",
             profile="test",
             no_prompts=True,
+            s3_bucket=None,
+            s3_prefix=None,
         ) as delete_context:
 
             delete_context.run()
             expected_click_secho_calls = [
                 call(
-                    "\nWarning: s3_bucket and s3_prefix information could not be obtained from local config file"
-                    " or cloudformation template, delete the s3 files manually if required",
+                    "\nWarning: Cannot resolve s3 bucket information from command options"
+                    " , local config file or cloudformation template. Please use"
+                    " --s3-bucket next time and"
+                    " delete s3 files manually if required.",
                     fg="yellow",
                 ),
             ]
@@ -201,6 +215,8 @@ class TestDeleteContext(TestCase):
             config_env="default",
             profile="test",
             no_prompts=None,
+            s3_bucket=None,
+            s3_prefix=None,
         ) as delete_context:
             patched_confirm.side_effect = [True, False, True]
             delete_context.s3_bucket = "s3_bucket"
@@ -258,6 +274,8 @@ class TestDeleteContext(TestCase):
             config_env="default",
             profile="test",
             no_prompts=None,
+            s3_bucket=None,
+            s3_prefix=None,
         ) as delete_context:
             patched_confirm.side_effect = [True, True]
             delete_context.s3_bucket = "s3_bucket"
@@ -307,6 +325,8 @@ class TestDeleteContext(TestCase):
             config_env="default",
             profile="test",
             no_prompts=None,
+            s3_bucket=None,
+            s3_prefix=None,
         ) as delete_context:
             patched_confirm.side_effect = [True, False, True, True, True]
             delete_context.s3_bucket = "s3_bucket"
@@ -384,6 +404,8 @@ class TestDeleteContext(TestCase):
             config_env="default",
             profile="test",
             no_prompts=True,
+            s3_bucket=None,
+            s3_prefix=None,
         ) as delete_context:
             delete_context.s3_bucket = "s3_bucket"
             delete_context.s3_prefix = "s3_prefix"
@@ -424,6 +446,8 @@ class TestDeleteContext(TestCase):
             config_env="default",
             profile="test",
             no_prompts=True,
+            s3_bucket=None,
+            s3_prefix=None,
         ) as delete_context:
             delete_context.s3_bucket = "s3_bucket"
             delete_context.s3_prefix = "s3_prefix"
@@ -434,3 +458,50 @@ class TestDeleteContext(TestCase):
             self.assertEqual(CfnUtils.get_stack_template.call_count, 2)
             self.assertEqual(CfnUtils.delete_stack.call_count, 4)
             self.assertEqual(CfnUtils.wait_for_delete.call_count, 4)
+
+    @patch.object(DeleteContext, "parse_config_file", MagicMock())
+    @patch.object(DeleteContext, "init_clients", MagicMock())
+    def test_s3_option_flag(self):
+        with DeleteContext(
+            stack_name="test",
+            region="us-east-1",
+            config_file="samconfig.toml",
+            config_env="default",
+            profile="test",
+            no_prompts=True,
+            s3_bucket="s3_bucket",
+            s3_prefix="s3_prefix",
+        ) as delete_context:
+            self.assertEqual(delete_context.s3_bucket, "s3_bucket")
+            self.assertEqual(delete_context.s3_prefix, "s3_prefix")
+
+    @patch.object(
+        TomlProvider,
+        "__call__",
+        MagicMock(
+            return_value=(
+                {
+                    "stack_name": "test",
+                    "region": "us-east-1",
+                    "profile": "developer",
+                    "s3_bucket": "s3_bucket",
+                    "s3_prefix": "s3_prefix",
+                }
+            )
+        ),
+    )
+    @patch.object(DeleteContext, "parse_config_file", MagicMock())
+    @patch.object(DeleteContext, "init_clients", MagicMock())
+    def test_s3_option_flag_overrides_config(self):
+        with DeleteContext(
+            stack_name="test",
+            region="us-east-1",
+            config_file="samconfig.toml",
+            config_env="default",
+            profile="test",
+            no_prompts=True,
+            s3_bucket="s3_bucket_override",
+            s3_prefix="s3_prefix_override",
+        ) as delete_context:
+            self.assertEqual(delete_context.s3_bucket, "s3_bucket_override")
+            self.assertEqual(delete_context.s3_prefix, "s3_prefix_override")
