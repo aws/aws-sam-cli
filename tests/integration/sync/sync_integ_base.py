@@ -142,27 +142,27 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         return ""
 
     @staticmethod
-    def _extract_contents_from_layer_zip(runtime, zipped_layer):
+    def _extract_contents_from_layer_zip(dep_dir, zipped_layer):
         with tempfile.TemporaryDirectory() as extract_path:
             zipped_path = Path(extract_path, ZIP_FILE)
             with open(zipped_path, "wb") as file:
                 file.write(zipped_layer.content)
             with zipfile.ZipFile(zipped_path) as zip_ref:
                 zip_ref.extractall(extract_path)
-            return os.listdir(Path(extract_path, runtime))
+            return os.listdir(Path(extract_path, dep_dir))
 
-    def get_layer_contents(self, arn, runtime):
+    def get_layer_contents(self, arn, dep_dir):
         layer = self.lambda_client.get_layer_version_by_arn(Arn=arn)
         layer_location = layer.get("Content", {}).get("Location", "")
         zipped_layer = requests.get(layer_location)
-        return SyncIntegBase._extract_contents_from_layer_zip(runtime, zipped_layer)
+        return SyncIntegBase._extract_contents_from_layer_zip(dep_dir, zipped_layer)
 
-    def get_dependency_layer_contents_from_arn(self, stack_resources, runtime, version):
+    def get_dependency_layer_contents_from_arn(self, stack_resources, dep_dir, version):
         layers = stack_resources["AWS::Lambda::LayerVersion"]
         for layer in layers:
             if "DepLayer" in layer:
                 layer_version = layer[:-1] + str(version)
-                return self.get_layer_contents(layer_version, runtime)
+                return self.get_layer_contents(layer_version, dep_dir)
         return None
 
     def base_command(self):

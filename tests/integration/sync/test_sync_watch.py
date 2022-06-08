@@ -272,6 +272,23 @@ class TestSyncCodeWatchNestedStacks(TestSyncWatchBase):
     def test_sync_watch_code_nested_stack(self):
         self.stack_resources = self._get_stacks(self.stack_name)
 
+        if self.dependency_layer:
+            # Test update manifest
+            layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "python", 1)
+            self.assertNotIn("requests", layer_contents)
+            self.update_file(
+                self.test_dir.joinpath("code/after/function/requirements.txt"),
+                self.test_dir.joinpath("code/before/function/requirements.txt"),
+            )
+            read_until_string(
+                self.watch_process,
+                "\x1b[32mFinished syncing Function Layer Reference Sync "
+                "LocalNestedChildStack/HelloWorldFunction.\x1b[0m\n",
+                timeout=45,
+            )
+            layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "python", 2)
+            self.assertIn("requests", layer_contents)
+
         # Test Lambda Function
         self.update_file(
             self.test_dir.joinpath("code/after/function/app.py"),

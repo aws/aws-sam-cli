@@ -98,6 +98,13 @@ class TestSyncCode(TestSyncCodeBase):
             self.test_data_path.joinpath("code").joinpath("after").joinpath("function"),
             TestSyncCode.temp_dir.joinpath("function"),
         )
+
+        self.stack_resources = self._get_stacks(TestSyncCode.stack_name)
+        if self.dependency_layer:
+            # Test update manifest
+            layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "python", 1)
+            self.assertNotIn("requests", layer_contents)
+
         # Run code sync
         sync_command_list = self.get_sync_command_list(
             template_file=TestSyncCode.template_path,
@@ -124,6 +131,10 @@ class TestSyncCode(TestSyncCodeBase):
                 lambda_response = json.loads(self._get_lambda_response(lambda_function))
                 self.assertIn("extra_message", lambda_response)
                 self.assertEqual(lambda_response.get("message"), "8")
+
+        if self.dependency_layer:
+            layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "python", 2)
+            self.assertIn("requests", layer_contents)
 
     def test_sync_code_layer(self):
         shutil.rmtree(TestSyncCode.temp_dir.joinpath("layer"), ignore_errors=True)
@@ -295,3 +306,53 @@ class TestSyncCodeDotnetFunctionTemplate(TestSyncCodeBase):
                 lambda_response = json.loads(self._get_lambda_response(lambda_function))
                 self.assertIn("extra_message", lambda_response)
                 self.assertEqual(lambda_response.get("message"), "hello sam accelerate!!")
+
+
+@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
+class TestSyncCodeNodejsFunctionTemplate(TestSyncCodeBase):
+    template = "template-nodejs.yaml"
+
+    def test_sync_code_nodejs_function(self):
+        shutil.rmtree(Path(TestSyncCode.temp_dir).joinpath("nodejs_function"), ignore_errors=True)
+        shutil.copytree(
+            self.test_data_path.joinpath("code").joinpath("after").joinpath("nodejs_function"),
+            Path(TestSyncCode.temp_dir).joinpath("nodejs_function"),
+        )
+
+        self.stack_resources = self._get_stacks(TestSyncCode.stack_name)
+        if self.dependency_layer:
+            # Test update manifest
+            layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "nodejs/node_modules", 1)
+            self.assertNotIn("@faker-js", layer_contents)
+
+        # Run code sync
+        sync_command_list = self.get_sync_command_list(
+            template_file=TestSyncCode.template_path,
+            code=True,
+            watch=False,
+            resource="AWS::Serverless::Function",
+            dependency_layer=self.dependency_layer,
+            stack_name=TestSyncCode.stack_name,
+            parameter_overrides="Parameter=Clarity",
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+
+        # CFN Api call here to collect all the stack resources
+        self.stack_resources = self._get_stacks(TestSyncCode.stack_name)
+        # Lambda Api call here, which tests both the python function and the layer
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            if lambda_function == "HelloWorldFunction":
+                lambda_response = json.loads(self._get_lambda_response(lambda_function))
+                self.assertIn("extra_message", lambda_response)
+                self.assertEqual(lambda_response.get("message"), "Hello world!")
+
+        if self.dependency_layer:
+            layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "nodejs/node_modules", 2)
+            self.assertIn("@faker-js", layer_contents)
