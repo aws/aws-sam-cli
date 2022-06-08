@@ -53,6 +53,7 @@ class TestGitRepo(TestCase):
     @patch("samcli.lib.utils.git_repo.subprocess.Popen")
     @patch("samcli.lib.utils.git_repo.platform.system")
     def test_clone_happy_case(self, platform_mock, popen_mock, check_output_mock, shutil_mock, path_exist_mock):
+        platform_mock.return_value = "Not Windows"
         path_exist_mock.return_value = False
         self.repo.clone(clone_dir=self.local_clone_dir, clone_name=REPO_NAME)
         self.local_clone_dir.mkdir.assert_called_once_with(mode=0o700, parents=True, exist_ok=True)
@@ -207,6 +208,7 @@ class TestGitRepo(TestCase):
     @patch("samcli.lib.utils.git_repo.subprocess.Popen")
     @patch("samcli.lib.utils.git_repo.platform.system")
     def test_clone_with_commit(self, platform_mock, popen_mock, check_output_mock, shutil_mock, path_exist_mock):
+        platform_mock.return_value = "Not Windows"
         path_exist_mock.return_value = False
         self.repo.clone(clone_dir=self.local_clone_dir, clone_name=REPO_NAME, commit=COMMIT)
         self.local_clone_dir.mkdir.assert_called_once_with(mode=0o700, parents=True, exist_ok=True)
