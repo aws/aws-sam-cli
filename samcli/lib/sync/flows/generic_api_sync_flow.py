@@ -1,7 +1,7 @@
 """SyncFlow interface for HttpApi and RestApi"""
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, cast
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall
 from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIdentifier
