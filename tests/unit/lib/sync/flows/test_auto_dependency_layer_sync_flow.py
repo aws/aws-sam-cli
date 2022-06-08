@@ -6,7 +6,7 @@ from samcli.lib.build.build_graph import BuildGraph
 from samcli.lib.sync.exceptions import (
     MissingFunctionBuildDefinition,
     InvalidRuntimeDefinitionForFunction,
-    NoLayerVersionsFoundError,
+    NoLayerVersionsFoundError, MissingPhysicalResourceError,
 )
 from samcli.lib.sync.flows.auto_dependency_layer_sync_flow import (
     AutoDependencyLayerParentSyncFlow,
@@ -97,6 +97,13 @@ class TestAutoDependencyLayerSyncFlow(TestCase):
         patched_make_zip.return_value = zipfile
         self.build_graph.get_function_build_definitions.return_value = [Mock(dependencies_dir=dependencies_dir)]
 
+        lambda_client_mock = Mock()
+        given_layer_arn = "aws:lambda:layer:arn"
+        lambda_client_mock.list_layer_versions.return_value = {
+            "LayerVersions": [{"LayerVersionArn": f"{given_layer_arn}:1"}]
+        }
+        self.sync_flow._lambda_client = lambda_client_mock
+
         with patch.object(self.sync_flow, "_get_compatible_runtimes") as patched_comp_runtimes:
             patched_comp_runtimes.return_value = [runtime]
             self.sync_flow.gather_resources()
@@ -109,6 +116,45 @@ class TestAutoDependencyLayerSyncFlow(TestCase):
                 os.path.join(tmpdir, f"data-{uuid_hex}"), self.sync_flow._artifact_folder
             )
             patched_file_checksum.assert_called_with(zipfile, ANY)
+            lambda_client_mock.list_layer_versions.assert_called_with(LayerName=ANY)
+            self.assertEqual(self.sync_flow._layer_arn, given_layer_arn)
+
+    @patch("samcli.lib.sync.flows.auto_dependency_layer_sync_flow.uuid")
+    @patch("samcli.lib.sync.flows.auto_dependency_layer_sync_flow.file_checksum")
+    @patch("samcli.lib.sync.flows.auto_dependency_layer_sync_flow.make_zip")
+    @patch("samcli.lib.sync.flows.auto_dependency_layer_sync_flow.tempfile")
+    @patch("samcli.lib.sync.flows.auto_dependency_layer_sync_flow.NestedStackManager")
+    def test_gather_resources_with_no_layer_version(
+            self,
+            patched_nested_stack_manager,
+            patched_tempfile,
+            patched_make_zip,
+            patched_file_checksum,
+            patched_uuid,
+    ):
+        layer_root_folder = "layer_root_folder"
+        dependencies_dir = "dependencies_dir"
+        tmpdir = "tmpdir"
+        uuid_hex = "uuid_hex"
+        runtime = "runtime"
+        zipfile = "zipfile"
+
+        patched_nested_stack_manager.update_layer_folder.return_value = layer_root_folder
+        patched_tempfile.gettempdir.return_value = tmpdir
+        patched_uuid.uuid4.return_value = Mock(hex=uuid_hex)
+        patched_make_zip.return_value = zipfile
+        self.build_graph.get_function_build_definitions.return_value = [Mock(dependencies_dir=dependencies_dir)]
+
+        lambda_client_mock = Mock()
+        lambda_client_mock.list_layer_versions.return_value = {
+            "LayerVersions": []
+        }
+        self.sync_flow._lambda_client = lambda_client_mock
+
+        with patch.object(self.sync_flow, "_get_compatible_runtimes") as patched_comp_runtimes:
+            patched_comp_runtimes.return_value = [runtime]
+            with self.assertRaises(MissingPhysicalResourceError):
+                self.sync_flow.gather_resources()
 
     def test_empty_gather_dependencies(self):
         with patch.object(self.sync_flow, "_get_dependent_functions") as patched_get_dependent_functions:
@@ -140,37 +186,3 @@ class TestAutoDependencyLayerSyncFlow(TestCase):
         patched_function_provider.return_value.get.return_value = given_function_in_template
 
         self.assertEqual(self.sync_flow._get_compatible_runtimes(), [given_runtime])
-
-    @patch("samcli.lib.sync.flows.auto_dependency_layer_sync_flow.NestedStackBuilder")
-    @patch("samcli.lib.sync.flows.auto_dependency_layer_sync_flow.super")
-    def test_setup(self, patched_super, patched_nested_stack_builder):
-        layer_name = "layer_name"
-        patched_nested_stack_builder.get_layer_name.return_value = layer_name
-
-        patched_lambda_client = Mock()
-        self.sync_flow._lambda_client = patched_lambda_client
-        layer_physical_name = "layer_physical_name"
-        patched_lambda_client.list_layer_versions.return_value = {
-            "LayerVersions": [{"LayerVersionArn": f"{layer_physical_name}:0"}]
-        }
-
-        self.sync_flow.set_up()
-
-        self.assertEqual(self.sync_flow._layer_arn, layer_physical_name)
-        patched_nested_stack_builder.get_layer_name.assert_called_with(
-            self.sync_flow._deploy_context.stack_name, self.sync_flow._function_identifier
-        )
-        patched_lambda_client.list_layer_versions.assert_called_with(LayerName=layer_name)
-
-    @patch("samcli.lib.sync.flows.auto_dependency_layer_sync_flow.NestedStackBuilder")
-    @patch("samcli.lib.sync.flows.auto_dependency_layer_sync_flow.super")
-    def test_setup_with_no_layer_version(self, patched_super, patched_nested_stack_builder):
-        layer_name = "layer_name"
-        patched_nested_stack_builder.get_layer_name.return_value = layer_name
-
-        patched_lambda_client = Mock()
-        self.sync_flow._lambda_client = patched_lambda_client
-        patched_lambda_client.list_layer_versions.return_value = {"LayerVersions": []}
-
-        with self.assertRaises(NoLayerVersionsFoundError):
-            self.sync_flow.set_up()

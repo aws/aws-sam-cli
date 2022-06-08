@@ -119,7 +119,8 @@ class TestNestedStackManager(TestCase):
     @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.move_template")
     @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.osutils")
     @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.os.path.isdir")
-    def test_with_zip_function(self, patched_isdir, patched_osutils, patched_move_template):
+    @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.os.listdir")
+    def test_with_zip_function(self, patched_list_dir, patched_isdir, patched_osutils, patched_move_template):
         resources = {"MyFunction": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"Runtime": "python3.8"}}}
         self.stack.resources = resources
         template = {"Resources": resources}
@@ -134,6 +135,7 @@ class TestNestedStackManager(TestCase):
         build_graph.get_function_build_definition_with_logical_id.return_value = function_definition_mock
         app_build_result = ApplicationBuildResult(build_graph, {"MyFunction": "path/to/build/dir"})
         patched_isdir.return_value = True
+        patched_list_dir.return_value = ["dependency_file_1", "dependency_file_2"]
 
         nested_stack_manager = NestedStackManager(
             self.stack, self.stack_name, self.build_dir, template, app_build_result
@@ -234,3 +236,52 @@ class TestNestedStackManager(TestCase):
     @parameterized.expand([("python3.8", True), ("ruby2.7", False)])
     def test_is_runtime_supported(self, runtime, supported):
         self.assertEqual(NestedStackManager.is_runtime_supported(runtime), supported)
+
+    def test_get_dependencies_dir_with_no_build_definition(self):
+        build_graph_mock = Mock()
+        build_graph_mock.get_function_build_definition_with_full_path.return_value = None
+        nested_stack_manager = NestedStackManager(
+            self.stack, self.stack_name, self.build_dir, {}, Mock(build_graph=build_graph_mock)
+        )
+        self.assertIsNone(nested_stack_manager._get_dependencies_dir("full_path"))
+
+    def test_get_dependencies_dir_with_no_dependency_dir_field(self):
+        build_graph_mock = Mock()
+        build_graph_mock.get_function_build_definition_with_full_path.return_value = Mock(dependencies_dir=None)
+        nested_stack_manager = NestedStackManager(
+            self.stack, self.stack_name, self.build_dir, {}, Mock(build_graph=build_graph_mock)
+        )
+        self.assertIsNone(nested_stack_manager._get_dependencies_dir("full_path"))
+
+    @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.os")
+    def test_get_dependencies_dir_with_dependency_dir_not_a_folder(self, patched_os):
+        build_graph_mock = Mock()
+        build_graph_mock.get_function_build_definition_with_full_path.return_value = Mock(dependencies_dir="deps")
+        nested_stack_manager = NestedStackManager(
+            self.stack, self.stack_name, self.build_dir, {}, Mock(build_graph=build_graph_mock)
+        )
+        patched_os.path.isdir.return_value = False
+        self.assertIsNone(nested_stack_manager._get_dependencies_dir("full_path"))
+
+    @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.os")
+    def test_get_dependencies_dir_with_empty_dependency(self, patched_os):
+        build_graph_mock = Mock()
+        build_graph_mock.get_function_build_definition_with_full_path.return_value = Mock(dependencies_dir="deps")
+        nested_stack_manager = NestedStackManager(
+            self.stack, self.stack_name, self.build_dir, {}, Mock(build_graph=build_graph_mock)
+        )
+        patched_os.path.isdir.return_value = True
+        patched_os.listdir.return_value = []
+        self.assertIsNone(nested_stack_manager._get_dependencies_dir("full_path"))
+
+    @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.os")
+    def test_get_dependencies_dir_with_non_empty_dependency_dir(self, patched_os):
+        build_graph_mock = Mock()
+        build_graph_mock.get_function_build_definition_with_full_path.return_value = Mock(dependencies_dir="deps")
+        nested_stack_manager = NestedStackManager(
+            self.stack, self.stack_name, self.build_dir, {}, Mock(build_graph=build_graph_mock)
+        )
+        patched_os.path.isdir.return_value = True
+        patched_os.listdir.return_value = ["a", "b"]
+        self.assertEqual(nested_stack_manager._get_dependencies_dir("full_path"), "deps")
+
