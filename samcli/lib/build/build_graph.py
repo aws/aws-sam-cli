@@ -505,7 +505,6 @@ class AbstractBuildDefinition:
     @abstractmethod
     def get_resource_full_paths(self) -> str:
         """Returns string representation of resources' full path information for this build definition"""
-        pass
 
 
 class LayerBuildDefinition(AbstractBuildDefinition):

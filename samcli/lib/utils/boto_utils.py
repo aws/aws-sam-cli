@@ -4,9 +4,9 @@ This module contains utility functions for boto3 library
 from typing import Any, Optional
 
 from boto3 import Session
-from typing_extensions import Protocol
-
 from botocore.config import Config
+from botocore.exceptions import ClientError
+from typing_extensions import Protocol
 
 from samcli import __version__
 from samcli.cli.global_config import GlobalConfig
@@ -135,3 +135,8 @@ def get_boto_resource_provider_with_config(
     return get_boto_resource_provider_from_session_with_config(
         Session(region_name=region, profile_name=profile), **kwargs
     )
+
+
+def get_client_error_code(client_error: ClientError) -> Optional[str]:
+    """Extracts error code from boto ClientError"""
+    return client_error.response.get("Error", {}).get("Code")

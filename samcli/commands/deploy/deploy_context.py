@@ -285,7 +285,7 @@ class DeployContext:
                     s3_uploader=s3_uploader,
                     tags=tags,
                 )
-                LOG.info(result)
+                LOG.debug(result)
 
             except deploy_exceptions.DeployFailedError as ex:
                 LOG.error(str(ex))
