@@ -85,7 +85,7 @@ class StepFunctionsSyncFlow(SyncFlow):
         properties = self._resource.get("Properties", {})
         definition_file = properties.get("DefinitionUri")
         if definition_file:
-            if self._build_context._use_raw_codeuri:
+            if self._build_context.use_base_dir:
                 definition_file = str(Path(self._build_context.base_dir).joinpath(definition_file))
             else:
                 child_stack = Stack.get_stack_by_full_path(

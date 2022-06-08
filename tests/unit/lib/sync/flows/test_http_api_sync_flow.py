@@ -50,7 +50,7 @@ class TestHttpApiSyncFlow(TestCase):
     def test_get_definition_file(self, get_resource_mock, get_stack_mock):
         sync_flow = self.create_sync_flow()
 
-        sync_flow._build_context._use_raw_codeuri = False
+        sync_flow._build_context.use_base_dir = False
         get_resource_mock.return_value = {"Properties": {"DefinitionUri": "test_uri"}}
         get_stack_mock.return_value = Stack("parent_path", "stack_name", "location/template.yaml", None, {})
 
@@ -67,7 +67,7 @@ class TestHttpApiSyncFlow(TestCase):
     def test_get_definition_file_with_base_dir(self, get_resource_mock):
         sync_flow = self.create_sync_flow()
 
-        sync_flow._build_context._use_raw_codeuri = True
+        sync_flow._build_context.use_base_dir = True
         sync_flow._build_context.base_dir = "base_dir"
         get_resource_mock.return_value = {"Properties": {"DefinitionUri": "test_uri"}}
         result_uri = sync_flow._get_definition_file("test")
