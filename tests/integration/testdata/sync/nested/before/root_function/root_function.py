@@ -1,7 +1,6 @@
 import json
 from root_layer import layer_method
 
-# import numpy as np
 import requests
 
 def lambda_handler(event, context):
@@ -20,6 +19,5 @@ def lambda_handler(event, context):
         "body": json.dumps({
             "message": f"{layer_method()+6}",
             "location": ip.text.replace("\n", "")
-            # "extra_message": np.array([1, 2, 3, 4, 5, 6]).tolist() # checking external library call will succeed
         }),
     }
