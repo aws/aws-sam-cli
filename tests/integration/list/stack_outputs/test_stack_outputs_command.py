@@ -13,7 +13,7 @@ from tests.testing_utils import run_command, run_command_with_input
 SKIP_STACK_OUTPUTS_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 CFN_SLEEP = 3
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
-# commit to re-trigger appveyor tests
+# commit to re-trigger appveyor  tests
 
 
 class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
