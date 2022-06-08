@@ -3,17 +3,17 @@ import json
 import os
 import pathlib
 import re
+import socket
+import hashlib
 from itertools import chain
 from typing import Dict, List, Optional, Tuple
-from OpenSSL import SSL, crypto
 
 import boto3
 import click
 import requests
-import socket
-import hashlib
 
-from yaml import dump
+
+from OpenSSL import SSL, crypto  # type: ignore
 
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.utils.colors import Colored
@@ -29,6 +29,7 @@ PIPELINE_EXECUTION_ROLE = "pipeline_execution_role"
 CLOUDFORMATION_EXECUTION_ROLE = "cloudformation_execution_role"
 ARTIFACTS_BUCKET = "artifacts_bucket"
 ECR_IMAGE_REPOSITORY = "image_repository"
+PERMISSIONS_PROVIDER = "permissions_provider"
 REGION = "region"
 
 
@@ -80,7 +81,7 @@ class Stage:
     def __init__(
         self,
         name: str,
-        use_oidc_provider: bool,
+        use_oidc_provider: Optional[bool] = None,
         aws_profile: Optional[str] = None,
         aws_region: Optional[str] = None,
         pipeline_user_arn: Optional[str] = None,
@@ -91,7 +92,8 @@ class Stage:
         image_repository_arn: Optional[str] = None,
         oidc_provider_url: Optional[str] = None,
         oidc_client_id: Optional[str] = None,
-        subject_claim: Optional[str] = None
+        subject_claim: Optional[str] = None,
+        create_new_oidc_provider: Optional[bool] = None,
     ) -> None:
         self.name: str = name
         self.subject_claim = subject_claim
@@ -113,15 +115,21 @@ class Stage:
         self.color = Colored()
 
         self.oidc_provider: OidcProvider = OidcProvider(
-            client_id=oidc_client_id, provider_url=oidc_provider_url, thumbprint="", comment="IAM OIDC Identity Provider", arn=""
+            client_id=oidc_client_id,
+            provider_url=oidc_provider_url,
+            thumbprint="",
+            comment="IAM OIDC Identity Provider",
+            arn="",
         )
-    
-    def _generate_thumbprint(self, oidc_provider_url: str) -> str:
-        oidc_config_url = oidc_provider_url + "/.well-known/openid-configuration"
-        r = requests.get(oidc_config_url)
-        jwks_uri = r.json()['jwks_uri']
-        url_start = jwks_uri.find('//') + 2
-        url_end = jwks_uri[url_start:].find('/') + url_start
+        self.create_new_oidc_provider = create_new_oidc_provider
+
+    def _generate_thumbprint(self) -> Optional[str]:
+        oidc_config_url = "{url}/.well-known/openid-configuration".format(url=self.oidc_provider.provider_url)
+
+        r = requests.get(oidc_config_url, timeout=5)
+        jwks_uri = r.json()["jwks_uri"]
+        url_start = jwks_uri.find("//") + 2
+        url_end = jwks_uri[url_start:].find("/") + url_start
         url_for_certificate = jwks_uri[url_start:url_end]
 
         address = (url_for_certificate, 443)
@@ -131,8 +139,8 @@ class Stage:
         c.set_connect_state()
         c.set_tlsext_host_name(str.encode(address[0]))
 
-        #If we attempt to get the cert chain without exchanging some traffic it will be empty
-        c.sendall(str.encode('HEAD / HTTP/1.0\n\n'))
+        # If we attempt to get the cert chain without exchanging some traffic it will be empty
+        c.sendall(str.encode("HEAD / HTTP/1.0\n\n"))
         peerCertChain = c.get_peer_cert_chain()
         cert = peerCertChain[-1]
         dumped_cert = crypto.dump_certificate(crypto.FILETYPE_ASN1, cert)
@@ -203,7 +211,7 @@ class Stage:
                 click.secho(self.color.red("Canceling pipeline bootstrap creation."))
                 return False
 
-        self.oidc_provider.thumbprint = self._generate_thumbprint(self.oidc_provider.provider_url)
+        self.oidc_provider.thumbprint = self._generate_thumbprint()
 
         environment_resources_template_body = Stage._read_template(STAGE_RESOURCES_CFN_TEMPLATE)
         output: StackOutput = manage_stack(
@@ -222,18 +230,20 @@ class Stage:
                 "OidcClientId": self.oidc_provider.client_id or "",
                 "OidcProviderUrl": self.oidc_provider.provider_url or "",
                 "UseOidcProvider": "true" if self.use_oidc_provider else "false",
-                "SubjectClaim": self.subject_claim or ""
+                "SubjectClaim": self.subject_claim or "",
+                "CreateNewOidcProvider": "true" if self.create_new_oidc_provider else "false",
             },
         )
 
-        pipeline_user_secret_sm_id = output.get("PipelineUserSecretKey")
+        if not self.use_oidc_provider:
+            pipeline_user_secret_sm_id = output.get("PipelineUserSecretKey")
 
-        self.pipeline_user.arn = output.get("PipelineUser")
-        if pipeline_user_secret_sm_id:
-            (
-                self.pipeline_user.access_key_id,
-                self.pipeline_user.secret_access_key,
-            ) = Stage._get_pipeline_user_secret_pair(pipeline_user_secret_sm_id, self.aws_profile, self.aws_region)
+            self.pipeline_user.arn = output.get("PipelineUser")
+            if pipeline_user_secret_sm_id:
+                (
+                    self.pipeline_user.access_key_id,
+                    self.pipeline_user.secret_access_key,
+                ) = Stage._get_pipeline_user_secret_pair(pipeline_user_secret_sm_id, self.aws_profile, self.aws_region)
         self.pipeline_execution_role.arn = output.get("PipelineExecutionRole")
         self.cloudformation_execution_role.arn = output.get("CloudFormationExecutionRole")
         self.artifacts_bucket.arn = output.get("ArtifactsBucket")

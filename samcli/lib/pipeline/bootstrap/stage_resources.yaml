@@ -26,11 +26,13 @@ Parameters:
     Type: String
   SubjectClaim:
     Type: String
+  CreateNewOidcProvider:
+    Type: String
 
 Conditions:
-  ShouldUseOidc: !Equals [!Ref UseOidcProvider, "true"] 
-  DontUseOidc: !Not [!Condition ShouldUseOidc]
-  MissingPipelineUser: !And [!Not [!Condition ShouldUseOidc], !Equals [!Ref PipelineUserArn, ""]]
+  MissingOidcProvider: !Equals [!Ref CreateNewOidcProvider, "true"] 
+  DontUseOidc: !Not [!Equals [!Ref UseOidcProvider, "true"] ]
+  MissingPipelineUser: !And [!Condition DontUseOidc, !Equals [!Ref PipelineUserArn, ""]]
   MissingPipelineExecutionRole: !Equals [!Ref PipelineExecutionRoleArn, ""]
   MissingCloudFormationExecutionRole: !Equals [!Ref CloudFormationExecutionRoleArn, ""]
   MissingArtifactsBucket: !Equals [!Ref ArtifactsBucketArn, ""]
@@ -40,7 +42,7 @@ Conditions:
 Resources:
   OidcProvider:
     Type: AWS::IAM::OIDCProvider
-    Condition: ShouldUseOidc
+    Condition: MissingOidcProvider
     Properties: 
       ClientIdList: 
         - !Ref OidcClientId
