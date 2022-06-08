@@ -93,7 +93,7 @@ class StepFunctionsSyncFlow(SyncFlow):
                 )
                 if child_stack:
                     definition_path = Path(child_stack.location).parent.joinpath(definition_file)
-        return cast(Optional[Path], definition_path)
+        return definition_path
 
     def compare_remote(self) -> bool:
         # Not comparing with remote right now, instead only making update api calls

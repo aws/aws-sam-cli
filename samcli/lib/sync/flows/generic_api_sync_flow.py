@@ -80,8 +80,9 @@ class GenericApiSyncFlow(SyncFlow):
             definition_path = Path(self._build_context.base_dir).joinpath(definition_file)
             if not self._build_context.use_base_dir:
                 child_stack = Stack.get_stack_by_full_path(ResourceIdentifier(api_identifier).stack_path, self._stacks)
-                definition_path = Path(child_stack.location).parent.joinpath(definition_file)
-        return cast(Optional[Path], definition_path)
+                if child_stack:
+                    definition_path = Path(child_stack.location).parent.joinpath(definition_file)
+        return definition_path
 
     def compare_remote(self) -> bool:
         return False
