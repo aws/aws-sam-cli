@@ -33,8 +33,13 @@ def cli(self, stack_name, output):
     """
     Generate an event for one of the services listed below:
     """
-    do_cli(stack_name, output)
+    do_cli(stack_name=stack_name, output=output, region=self.region, profile=self.profile)
 
 
-def do_cli(stack_name, output):
-    pass
+def do_cli(stack_name, output, region, profile):
+    from samcli.commands.list.stack_outputs.stack_outputs_context import StackOutputsContext
+
+    with StackOutputsContext(
+        stack_name=stack_name, output=output, region=region, profile=profile
+    ) as stack_output_context:
+        stack_output_context.run()
