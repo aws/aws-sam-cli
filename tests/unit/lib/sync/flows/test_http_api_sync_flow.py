@@ -51,6 +51,7 @@ class TestHttpApiSyncFlow(TestCase):
         sync_flow = self.create_sync_flow()
 
         sync_flow._build_context.use_base_dir = False
+        sync_flow._build_context.base_dir = "base_dir"
         get_resource_mock.return_value = {"Properties": {"DefinitionUri": "test_uri"}}
         get_stack_mock.return_value = Stack("parent_path", "stack_name", "location/template.yaml", None, {})
 
