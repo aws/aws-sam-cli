@@ -69,15 +69,19 @@ class GenericApiSyncFlow(SyncFlow):
             swagger_body = swagger_file.read()
             return swagger_body
 
-    def _get_definition_file(self, api_identifier: str) -> Optional[str]:
+    def _get_definition_file(self, api_identifier: str) -> Optional[Path]:
         api_resource = get_resource_by_id(self._stacks, ResourceIdentifier(api_identifier))
         if api_resource is None:
             return None
         properties = api_resource.get("Properties", {})
         definition_file = properties.get("DefinitionUri")
-        if self._build_context.base_dir and definition_file:
-            definition_file = str(Path(self._build_context.base_dir).joinpath(definition_file))
-        return cast(Optional[str], definition_file)
+        if definition_file:
+            if self._build_context._use_raw_codeuri:
+                definition_file = str(Path(self._build_context.base_dir).joinpath(definition_file))
+            else:
+                child_stack = Stack.get_stack_by_full_path(ResourceIdentifier(api_identifier).stack_path, self._stacks)
+                definition_file = Path(child_stack.location).parent.joinpath(definition_file)
+        return cast(Optional[Path], definition_file)
 
     def compare_remote(self) -> bool:
         return False

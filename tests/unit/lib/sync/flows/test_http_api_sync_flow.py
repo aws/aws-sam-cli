@@ -1,6 +1,7 @@
 from unittest import TestCase
 from unittest.mock import MagicMock, mock_open, patch
 from pathlib import Path
+from samcli.lib.providers.provider import Stack
 
 from samcli.lib.sync.flows.http_api_sync_flow import HttpApiSyncFlow
 from samcli.lib.providers.exceptions import MissingLocalDefinition
@@ -44,17 +45,18 @@ class TestHttpApiSyncFlow(TestCase):
 
         sync_flow._api_client.reimport_api.assert_called_once_with(ApiId="PhysicalApi1", Body='{"key": "value"}')
 
+    @patch("samcli.lib.sync.flows.generic_api_sync_flow.Stack.get_stack_by_full_path")
     @patch("samcli.lib.sync.flows.generic_api_sync_flow.get_resource_by_id")
-    @patch("samcli.lib.sync.flows.generic_api_sync_flow.Path.joinpath")
-    def test_get_definition_file(self, join_path_mock, get_resource_mock):
+    def test_get_definition_file(self, get_resource_mock, get_stack_mock):
         sync_flow = self.create_sync_flow()
 
-        sync_flow._build_context.base_dir = None
-        join_path_mock.return_value = "test_uri"
+        sync_flow._build_context._use_raw_codeuri = False
         get_resource_mock.return_value = {"Properties": {"DefinitionUri": "test_uri"}}
+        get_stack_mock.return_value = Stack("parent_path", "stack_name", "location/template.yaml", None, {})
+
         result_uri = sync_flow._get_definition_file("test")
 
-        self.assertEqual(result_uri, "test_uri")
+        self.assertEqual(result_uri, Path("location").joinpath("test_uri"))
 
         get_resource_mock.return_value = {"Properties": {}}
         result_uri = sync_flow._get_definition_file("test")
@@ -65,6 +67,7 @@ class TestHttpApiSyncFlow(TestCase):
     def test_get_definition_file_with_base_dir(self, get_resource_mock):
         sync_flow = self.create_sync_flow()
 
+        sync_flow._build_context._use_raw_codeuri = True
         sync_flow._build_context.base_dir = "base_dir"
         get_resource_mock.return_value = {"Properties": {"DefinitionUri": "test_uri"}}
         result_uri = sync_flow._get_definition_file("test")

@@ -79,14 +79,20 @@ class StepFunctionsSyncFlow(SyncFlow):
             states_data = states_file.read()
             return states_data
 
-    def _get_definition_file(self, state_machine_identifier: str) -> Optional[str]:
+    def _get_definition_file(self, state_machine_identifier: str) -> Optional[Path]:
         if self._resource is None:
             return None
         properties = self._resource.get("Properties", {})
         definition_file = properties.get("DefinitionUri")
-        if self._build_context.base_dir:
-            definition_file = str(Path(self._build_context.base_dir).joinpath(definition_file))
-        return cast(Optional[str], definition_file)
+        if definition_file:
+            if self._build_context._use_raw_codeuri:
+                definition_file = str(Path(self._build_context.base_dir).joinpath(definition_file))
+            else:
+                child_stack = Stack.get_stack_by_full_path(
+                    ResourceIdentifier(state_machine_identifier).stack_path, self._stacks
+                )
+                definition_file = Path(child_stack.location).parent.joinpath(definition_file)
+        return cast(Optional[Path], definition_file)
 
     def compare_remote(self) -> bool:
         # Not comparing with remote right now, instead only making update api calls
