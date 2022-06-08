@@ -221,3 +221,29 @@ class TestGitRepo(TestCase):
         shutil_mock.rmtree.assert_not_called()
         shutil_mock.copytree.assert_called_with(ANY, EXPECTED_DEFAULT_CLONE_PATH, ignore=ANY)
         shutil_mock.ignore_patterns.assert_called_with("*.git")
+
+    @patch("samcli.lib.utils.git_repo.Path.exists")
+    @patch("samcli.lib.utils.git_repo.shutil")
+    @patch("samcli.lib.utils.git_repo.check_output")
+    @patch("samcli.lib.utils.git_repo.subprocess.Popen")
+    @patch("samcli.lib.utils.git_repo.platform.system")
+    def test_clone_with_longpaths_configured_in_windows(
+        self, platform_mock, popen_mock, check_output_mock, shutil_mock, path_exist_mock
+    ):
+        platform_mock.return_value = "windows"
+        path_exist_mock.return_value = False
+        self.repo.clone(clone_dir=self.local_clone_dir, clone_name=REPO_NAME)
+        self.local_clone_dir.mkdir.assert_called_once_with(mode=0o700, parents=True, exist_ok=True)
+        popen_mock.assert_called_once_with(["git"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        check_output_mock.assert_has_calls(
+            [
+                call(
+                    ["git", "clone", self.repo.url, REPO_NAME, "--config", "core.longpaths=true"],
+                    cwd=ANY,
+                    stderr=subprocess.STDOUT,
+                )
+            ]
+        )
+        shutil_mock.rmtree.assert_not_called()
+        shutil_mock.copytree.assert_called_with(ANY, EXPECTED_DEFAULT_CLONE_PATH, ignore=ANY)
+        shutil_mock.ignore_patterns.assert_called_with("*.git")

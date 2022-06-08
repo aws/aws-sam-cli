@@ -129,8 +129,11 @@ class GitRepo:
                 temp_path = os.path.normpath(os.path.join(tempdir, clone_name))
                 git_executable: str = GitRepo._git_executable()
                 LOG.info("\nCloning from %s (process may take a moment)", self.url)
+                command = [git_executable, "clone", self.url, clone_name]
+                if platform.system().lower() == "windows":
+                    command += ["--config", "core.longpaths=true"]
                 check_output(
-                    [git_executable, "clone", self.url, clone_name],
+                    command,
                     cwd=tempdir,
                     stderr=subprocess.STDOUT,
                 )
