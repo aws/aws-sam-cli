@@ -21,7 +21,7 @@ class StepFunctionsSyncFlow(SyncFlow):
     _state_machine_identifier: str
     _stepfunctions_client: Any
     _stacks: List[Stack]
-    _definition_uri: Optional[str]
+    _definition_uri: Optional[Path]
     _states_definition: Optional[str]
 
     def __init__(
@@ -75,7 +75,7 @@ class StepFunctionsSyncFlow(SyncFlow):
     def _process_definition_file(self) -> Optional[str]:
         if self._definition_uri is None:
             return None
-        with open(self._definition_uri, "r", encoding="utf-8") as states_file:
+        with open(str(self._definition_uri), "r", encoding="utf-8") as states_file:
             states_data = states_file.read()
             return states_data
 
@@ -86,7 +86,7 @@ class StepFunctionsSyncFlow(SyncFlow):
         definition_file = properties.get("DefinitionUri")
         if definition_file:
             if self._build_context.use_base_dir:
-                definition_file = str(Path(self._build_context.base_dir).joinpath(definition_file))
+                definition_file = Path(self._build_context.base_dir).joinpath(definition_file)
             else:
                 child_stack = Stack.get_stack_by_full_path(
                     ResourceIdentifier(state_machine_identifier).stack_path, self._stacks

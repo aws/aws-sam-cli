@@ -20,7 +20,7 @@ class GenericApiSyncFlow(SyncFlow):
 
     _api_client: Any
     _api_identifier: str
-    _definition_uri: Optional[str]
+    _definition_uri: Optional[Path]
     _stacks: List[Stack]
     _swagger_body: Optional[bytes]
 
@@ -65,7 +65,7 @@ class GenericApiSyncFlow(SyncFlow):
     def _process_definition_file(self) -> Optional[bytes]:
         if self._definition_uri is None:
             return None
-        with open(self._definition_uri, "rb") as swagger_file:
+        with open(str(self._definition_uri), "rb") as swagger_file:
             swagger_body = swagger_file.read()
             return swagger_body
 
@@ -77,7 +77,7 @@ class GenericApiSyncFlow(SyncFlow):
         definition_file = properties.get("DefinitionUri")
         if definition_file:
             if self._build_context.use_base_dir:
-                definition_file = str(Path(self._build_context.base_dir).joinpath(definition_file))
+                definition_file = Path(self._build_context.base_dir).joinpath(definition_file)
             else:
                 child_stack = Stack.get_stack_by_full_path(ResourceIdentifier(api_identifier).stack_path, self._stacks)
                 definition_file = Path(child_stack.location).parent.joinpath(definition_file)
