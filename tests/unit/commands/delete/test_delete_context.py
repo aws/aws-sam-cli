@@ -182,7 +182,7 @@ class TestDeleteContext(TestCase):
                 call(
                     "\nWarning: Cannot resolve s3 bucket information from command options"
                     " , local config file or cloudformation template. Please use"
-                    " --s3-bucket and --s3-prefix command options next time and"
+                    " --s3-bucket next time and"
                     " delete s3 files manually if required.",
                     fg="yellow",
                 ),

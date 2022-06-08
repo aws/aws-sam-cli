@@ -335,12 +335,12 @@ class DeleteContext:
             self.cf_utils.wait_for_delete(self.stack_name)
 
         # Warn the user that s3 information is missing and to use --s3 options
-        if not self.s3_bucket or not self.s3_prefix:
-            LOG.debug("Cannot delete s3 objects as bucket or prefix is missing")
+        if not self.s3_bucket:
+            LOG.debug("Cannot delete s3 objects as bucket is missing")
             click.secho(
                 "\nWarning: Cannot resolve s3 bucket information from command options"
                 " , local config file or cloudformation template. Please use"
-                " --s3-bucket and --s3-prefix command options next time and"
+                " --s3-bucket next time and"
                 " delete s3 files manually if required.",
                 fg="yellow",
             )
