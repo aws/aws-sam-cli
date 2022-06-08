@@ -201,7 +201,8 @@ class NestedStackManager:
         if not function_build_definition or not function_build_definition.dependencies_dir:
             return None
 
-        if not os.path.isdir(function_build_definition.dependencies_dir):
+        if not os.path.isdir(function_build_definition.dependencies_dir) \
+                or not os.listdir(function_build_definition.dependencies_dir):
             return None
 
         return function_build_definition.dependencies_dir

@@ -17,7 +17,7 @@ from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.sync.exceptions import (
     MissingFunctionBuildDefinition,
     InvalidRuntimeDefinitionForFunction,
-    NoLayerVersionsFoundError,
+    MissingPhysicalResourceError,
 )
 from samcli.lib.sync.flows.layer_sync_flow import AbstractLayerSyncFlow
 from samcli.lib.sync.flows.zip_function_sync_flow import ZipFunctionSyncFlow
@@ -62,16 +62,6 @@ class AutoDependencyLayerSyncFlow(AbstractLayerSyncFlow):
         self._function_identifier = function_identifier
         self._build_graph = build_graph
 
-    def set_up(self) -> None:
-        super().set_up()
-
-        # find layer's physical id
-        layer_name = NestedStackBuilder.get_layer_name(self._deploy_context.stack_name, self._function_identifier)
-        layer_versions = self._lambda_client.list_layer_versions(LayerName=layer_name).get("LayerVersions", [])
-        if not layer_versions:
-            raise NoLayerVersionsFoundError(layer_name)
-        self._layer_arn = layer_versions[0].get("LayerVersionArn").rsplit(":", 1)[0]
-
     def gather_resources(self) -> None:
         function_build_definitions = cast(BuildGraph, self._build_graph).get_function_build_definitions()
         if not function_build_definitions:
@@ -87,6 +77,13 @@ class AutoDependencyLayerSyncFlow(AbstractLayerSyncFlow):
         zip_file_path = os.path.join(tempfile.gettempdir(), "data-" + uuid.uuid4().hex)
         self._zip_file = make_zip(zip_file_path, self._artifact_folder)
         self._local_sha = file_checksum(cast(str, self._zip_file), hashlib.sha256())
+
+        # find layer's physical id
+        layer_name = NestedStackBuilder.get_layer_name(self._deploy_context.stack_name, self._function_identifier)
+        layer_versions = self._lambda_client.list_layer_versions(LayerName=layer_name).get("LayerVersions", [])
+        if not layer_versions:
+            raise MissingPhysicalResourceError(layer_name)
+        self._layer_arn = layer_versions[0].get("LayerVersionArn").rsplit(":", 1)[0]
 
     def _get_dependent_functions(self) -> List[Function]:
         function = SamFunctionProvider(cast(List[Stack], self._stacks)).get(self._function_identifier)
@@ -118,8 +115,10 @@ class AutoDependencyLayerParentSyncFlow(ZipFunctionSyncFlow):
             raise MissingFunctionBuildDefinition(self._function.name)
 
         # don't queue up auto dependency layer, if dependencies are not changes
-        need_dependency_layer_sync = function_build_definitions[0].download_dependencies
-        if need_dependency_layer_sync:
+        function_build_definition = function_build_definitions[0]
+        downloaded_new_dependencies = function_build_definition.download_dependencies
+
+        if downloaded_new_dependencies:
             parent_dependencies.append(
                 AutoDependencyLayerSyncFlow(
                     self._function_identifier,

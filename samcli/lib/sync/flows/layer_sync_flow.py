@@ -315,7 +315,7 @@ class FunctionLayerReferenceSync(SyncFlow):
                 self._layer_arn,
                 HELP_TEXT_FOR_SYNC_INFRA,
             )
-            return
+            raise MissingPhysicalResourceError(self._layer_arn)
 
         # remove the old layer version arn and add the new one
         layer_arns.remove(old_layer_arn)
