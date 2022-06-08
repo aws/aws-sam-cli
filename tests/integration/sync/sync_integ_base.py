@@ -43,6 +43,7 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         self.sns_arn = os.environ.get("AWS_SNS")
         self.stacks = []
         self.s3_prefix = uuid.uuid4().hex
+        self.dependency_layer = True if self.dependency_layer is None else self.dependency_layer
         super().setUp()
 
     def tearDown(self):
@@ -150,11 +151,19 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
                 zip_ref.extractall(extract_path)
             return os.listdir(Path(extract_path, runtime))
 
-    def get_layer_contents(self, layer_name, layer_version, runtime):
-        layer = self.lambda_client.get_layer_version(LayerName=layer_name, VersionNumber=layer_version)
+    def get_layer_contents(self, arn, runtime):
+        layer = self.lambda_client.get_layer_version_by_arn(Arn=arn)
         layer_location = layer.get("Content", {}).get("Location", "")
         zipped_layer = requests.get(layer_location)
         return SyncIntegBase._extract_contents_from_layer_zip(runtime, zipped_layer)
+
+    def get_dependency_layer_contents_from_arn(self, stack_resources, runtime, version):
+        layers = stack_resources["AWS::Lambda::LayerVersion"]
+        for layer in layers:
+            if "DepLayer" in layer:
+                layer_version = layer[:-1] + str(version)
+                return self.get_layer_contents(layer_version, runtime)
+        return None
 
     def base_command(self):
         command = "sam"

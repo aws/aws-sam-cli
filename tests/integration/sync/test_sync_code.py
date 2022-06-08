@@ -12,6 +12,7 @@ from unittest import skipIf
 
 import pytest
 import boto3
+from parameterized import parameterized_class
 
 from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_RESTAPI,
@@ -50,14 +51,13 @@ class TestSyncCodeBase(SyncIntegBase):
 
             TestSyncCode.template_path = TestSyncCode.temp_dir.joinpath(self.template)
             TestSyncCode.stack_name = self._method_to_stack_name(self.id())
-
             # Run infra sync
             sync_command_list = self.get_sync_command_list(
                 template_file=TestSyncCode.template_path,
                 code=False,
                 watch=False,
                 base_dir=TestSyncCode.temp_dir,
-                dependency_layer=True,
+                dependency_layer=self.dependency_layer,
                 stack_name=TestSyncCode.stack_name,
                 parameter_overrides="Parameter=Clarity",
                 image_repository=self.ecr_repo_name,
@@ -88,6 +88,7 @@ class TestSyncCodeBase(SyncIntegBase):
 
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 class TestSyncCode(TestSyncCodeBase):
     template = "template-python.yaml"
 
@@ -103,7 +104,7 @@ class TestSyncCode(TestSyncCodeBase):
             code=True,
             watch=False,
             resource="AWS::Serverless::Function",
-            dependency_layer=True,
+            dependency_layer=self.dependency_layer,
             stack_name=TestSyncCode.stack_name,
             parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
@@ -136,7 +137,7 @@ class TestSyncCode(TestSyncCodeBase):
             code=True,
             watch=False,
             resource="AWS::Serverless::LayerVersion",
-            dependency_layer=True,
+            dependency_layer=self.dependency_layer,
             stack_name=TestSyncCode.stack_name,
             parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
@@ -174,7 +175,7 @@ class TestSyncCode(TestSyncCodeBase):
             code=True,
             watch=False,
             resource="AWS::Serverless::Function",
-            dependency_layer=True,
+            dependency_layer=self.dependency_layer,
             stack_name=TestSyncCode.stack_name,
             parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
@@ -259,6 +260,7 @@ class TestSyncCode(TestSyncCodeBase):
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
 class TestSyncCodeDotnetFunctionTemplate(TestSyncCodeBase):
     template = "template-dotnet.yaml"
+    dependency_layer = False
 
     def test_sync_code_shared_codeuri(self):
         shutil.rmtree(Path(TestSyncCode.temp_dir).joinpath("dotnet_function"), ignore_errors=True)
@@ -273,7 +275,7 @@ class TestSyncCodeDotnetFunctionTemplate(TestSyncCodeBase):
             code=True,
             watch=False,
             resource="AWS::Serverless::Function",
-            dependency_layer=True,
+            dependency_layer=self.dependency_layer,
             stack_name=TestSyncCode.stack_name,
             parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,

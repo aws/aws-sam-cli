@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest import skipIf
 
 import pytest
-from parameterized import parameterized
+from parameterized import parameterized, parameterized_class
 
 from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_RESTAPI,
@@ -34,6 +34,7 @@ LOG = logging.getLogger(__name__)
 
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 class TestSyncInfra(SyncIntegBase):
     @skipIf(
         IS_WINDOWS,
@@ -52,7 +53,7 @@ class TestSyncInfra(SyncIntegBase):
             template_file=template_path,
             code=False,
             watch=False,
-            dependency_layer=True,
+            dependency_layer=self.dependency_layer,
             stack_name=stack_name,
             parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
@@ -89,7 +90,7 @@ class TestSyncInfra(SyncIntegBase):
             template_file=template_path,
             code=False,
             watch=False,
-            dependency_layer=True,
+            dependency_layer=self.dependency_layer,
             stack_name=stack_name,
             parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
@@ -129,7 +130,7 @@ class TestSyncInfra(SyncIntegBase):
             template_file=template_path,
             code=False,
             watch=False,
-            dependency_layer=True,
+            dependency_layer=self.dependency_layer,
             stack_name=stack_name,
             parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
@@ -151,7 +152,7 @@ class TestSyncInfra(SyncIntegBase):
             template_file=template_path,
             code=False,
             watch=False,
-            dependency_layer=True,
+            dependency_layer=self.dependency_layer,
             parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
@@ -174,7 +175,7 @@ class TestSyncInfra(SyncIntegBase):
             template_file=template_path,
             code=False,
             watch=False,
-            dependency_layer=True,
+            dependency_layer=self.dependency_layer,
             stack_name=stack_name,
             parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
@@ -191,6 +192,10 @@ class TestSyncInfra(SyncIntegBase):
 Requires capabilities : [CAPABILITY_AUTO_EXPAND]",
             str(sync_process_execute.stderr),
         )
+
+
+class TestSyncInfraCDKTemplates(SyncIntegBase):
+    dependency_layer = None
 
     @parameterized.expand(
         [
