@@ -249,6 +249,8 @@ def do_cli(
     set_experimental(ExperimentalFlag.Accelerate)
     update_experimental_context()
 
+    s3_bucket = manage_stack(profile=profile, region=region)
+
     build_dir = DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER if dependency_layer else DEFAULT_BUILD_DIR
     LOG.debug("Using build directory as %s", build_dir)
 

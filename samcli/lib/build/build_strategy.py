@@ -139,7 +139,7 @@ class DefaultBuildStrategy(BuildStrategy):
             build_definition.runtime,
             build_definition.metadata,
             build_definition.architecture,
-            build_definition.get_functions_full_paths(),
+            build_definition.get_resource_full_paths(),
         )
 
         # build into one of the functions from this build definition
