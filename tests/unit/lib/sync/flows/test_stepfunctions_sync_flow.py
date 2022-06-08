@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import ANY, MagicMock, mock_open, patch
+from unittest.mock import MagicMock, mock_open, patch
 from pathlib import Path
 from samcli.lib.providers.provider import Stack
 

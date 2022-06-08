@@ -1,4 +1,3 @@
-from os import sync
 from unittest import TestCase
 from unittest.mock import MagicMock, mock_open, patch, call
 from pathlib import Path
