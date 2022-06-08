@@ -117,3 +117,4 @@ class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
         """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
         method_name = method_name.split(".")[-1]
         return f"{method_name.replace('_', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
+

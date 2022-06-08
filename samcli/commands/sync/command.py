@@ -276,6 +276,7 @@ def do_cli(
         create_auto_dependency_layer=dependency_layer,
         stack_name=stack_name,
         print_success_message=False,
+        locate_layer_nested=True,
     ) as build_context:
         built_template = os.path.join(build_dir, DEFAULT_TEMPLATE_NAME)
 
@@ -295,6 +296,15 @@ def do_cli(
                 use_json=False,
                 force_upload=True,
             ) as package_context:
+
+                # 500ms of sleep time between stack checks and describe stack events.
+                DEFAULT_POLL_DELAY = 0.5
+                try:
+                    poll_delay = float(os.getenv("SAM_CLI_POLL_DELAY", str(DEFAULT_POLL_DELAY)))
+                except ValueError:
+                    poll_delay = DEFAULT_POLL_DELAY
+                if poll_delay <= 0:
+                    poll_delay = DEFAULT_POLL_DELAY
 
                 with DeployContext(
                     template_file=output_template_file.name,
@@ -319,6 +329,7 @@ def do_cli(
                     force_upload=True,
                     signing_profiles=None,
                     disable_rollback=False,
+                    poll_delay=poll_delay,
                 ) as deploy_context:
                     if watch:
                         execute_watch(template_file, build_context, package_context, deploy_context, dependency_layer)

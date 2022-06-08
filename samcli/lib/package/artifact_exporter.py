@@ -143,8 +143,8 @@ class CloudFormationStackSetResource(ResourceZip):
                 property_name=self.PROPERTY_NAME, resource_id=resource_id, template_path=abs_template_path
             )
 
-        remote_path = get_uploaded_s3_object_name(file_path=template_path, extension="template")
-        url = self.uploader.upload(template_path, remote_path)
+        remote_path = get_uploaded_s3_object_name(file_path=abs_template_path, extension="template")
+        url = self.uploader.upload(abs_template_path, remote_path)
 
         # TemplateUrl property requires S3 URL to be in path-style format
         parts = S3Uploader.parse_s3_url(url, version_property="Version")

@@ -1,0 +1,12 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Timeout: 10
+
+Resources:
+  LocalNestedChildStack:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./template-python-before.yaml

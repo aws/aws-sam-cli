@@ -2,8 +2,9 @@
 import logging
 
 from abc import ABC, abstractmethod
+from enum import Enum
 from threading import Lock
-from typing import Any, Dict, List, NamedTuple, Optional, TYPE_CHECKING, cast
+from typing import Any, Dict, List, NamedTuple, Optional, TYPE_CHECKING, cast, Set
 from boto3.session import Session
 
 from samcli.lib.providers.provider import get_resource_by_id
@@ -22,11 +23,19 @@ if TYPE_CHECKING:  # pragma: no cover
 LOG = logging.getLogger(__name__)
 
 
+class ApiCallTypes(Enum):
+    """API call stages that can be locked on"""
+
+    BUILD = "Build"
+    UPDATE_FUNCTION_CONFIGURATION = "UpdateFunctionConfiguration"
+    UPDATE_FUNCTION_CODE = "UpdateFunctionCode"
+
+
 class ResourceAPICall(NamedTuple):
     """Named tuple for a resource and its potential API calls"""
 
-    resource_identifier: str
-    api_calls: List[str]
+    shared_resource: str
+    api_calls: List[ApiCallTypes]
 
 
 class SyncFlow(ABC):
@@ -131,18 +140,27 @@ class SyncFlow(ABC):
         """
         raise NotImplementedError("_get_resource_api_calls")
 
-    def get_lock_keys(self) -> List[str]:
+    def has_locks(self) -> bool:
+        """Check if a sync flow has locks and needs to enter a lock context
+        Returns
+        -------
+        bool
+            whether or not a sync flow contains locks
+        """
+        return bool(self._locks)
+
+    def get_lock_keys(self) -> Set[str]:
         """Get a list of function + API calls that can be used as keys for LockDistributor
 
         Returns
         -------
-        List[str]
-            List of keys for all resources and their API calls
+        Set[str]
+            Set of keys for all resources and their API calls
         """
-        lock_keys = list()
+        lock_keys = set()
         for resource_api_calls in self._get_resource_api_calls():
             for api_call in resource_api_calls.api_calls:
-                lock_keys.append(SyncFlow._get_lock_key(resource_api_calls.resource_identifier, api_call))
+                lock_keys.add(SyncFlow._get_lock_key(resource_api_calls.shared_resource, api_call))
         return lock_keys
 
     def set_locks_with_distributor(self, distributor: LockDistributor):
@@ -166,7 +184,7 @@ class SyncFlow(ABC):
         self._locks = locks
 
     @staticmethod
-    def _get_lock_key(logical_id: str, api_call: str) -> str:
+    def _get_lock_key(logical_id: str, api_call: ApiCallTypes) -> str:
         """Get a single lock key for a pair of resource and API call.
 
         Parameters
@@ -181,7 +199,7 @@ class SyncFlow(ABC):
         str
             String key created with logical ID and API call name.
         """
-        return logical_id + "_" + api_call
+        return f"{logical_id}_{api_call.value}"
 
     def _get_lock_chain(self) -> LockChain:
         """Return a LockChain object for all the locks

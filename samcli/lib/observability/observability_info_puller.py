@@ -4,7 +4,7 @@ Interfaces and generic implementations for observability events (like CW logs)
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import List, Optional, Generic, TypeVar, Any, Sequence
+from typing import Dict, List, Optional, Generic, TypeVar, Any, Sequence, Union
 
 from samcli.lib.utils.async_utils import AsyncContext
 
@@ -78,13 +78,13 @@ class ObservabilityPuller(ABC):
         """
 
     @abstractmethod
-    def load_events(self, event_ids: List[Any]):
+    def load_events(self, event_ids: Union[List[Any], Dict]):
         """
         This method will load specific events which is given by the event_ids parameter
 
         Parameters
         ----------
-        event_ids : List[str]
+        event_ids : List[str] or Dict
             List of event ids that will be pulled
         """
 
@@ -207,7 +207,7 @@ class ObservabilityCombinedPuller(ObservabilityPuller):
         LOG.debug("Running all 'load_time_period' tasks in parallel")
         async_context.run_async()
 
-    def load_events(self, event_ids: List[Any]):
+    def load_events(self, event_ids: Union[List[Any], Dict]):
         """
         Implementation of ObservabilityPuller.load_events method with AsyncContext.
         It will create tasks by calling load_events methods of all given pullers, and execute them in async
