@@ -413,12 +413,16 @@ class TestSyncCodeNested(TestSyncCodeBase):
     @pytest.mark.skip(reason="Currently not properly supported")
     def test_sync_code_nested_rest_api(self):
         shutil.rmtree(
-            TestSyncCodeBase.temp_dir.joinpath("apigateway"),
+            TestSyncCodeBase.temp_dir.joinpath("child_stack").joinpath("child_child_stack").joinpath("apigateway"),
             ignore_errors=True,
         )
         shutil.copytree(
-            self.test_data_path.joinpath(self.folder).joinpath("after").joinpath("apigateway"),
-            TestSyncCodeBase.temp_dir.joinpath("apigateway"),
+            self.test_data_path.joinpath(self.folder)
+            .joinpath("after")
+            .joinpath("child_stack")
+            .joinpath("child_child_stack")
+            .joinpath("apigateway"),
+            TestSyncCodeBase.temp_dir.joinpath("child_stack").joinpath("child_child_stack").joinpath("apigateway"),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
@@ -446,12 +450,16 @@ class TestSyncCodeNested(TestSyncCodeBase):
     @pytest.mark.skip(reason="Currently not properly supported")
     def test_sync_code_nested_state_machine(self):
         shutil.rmtree(
-            TestSyncCodeBase.temp_dir.joinpath("statemachine"),
+            TestSyncCodeBase.temp_dir.joinpath("child_stack").joinpath("child_child_stack").joinpath("statemachine"),
             ignore_errors=True,
         )
         shutil.copytree(
-            self.test_data_path.joinpath(self.folder).joinpath("after").joinpath("statemachine"),
-            TestSyncCodeBase.temp_dir.joinpath("statemachine"),
+            self.test_data_path.joinpath(self.folder)
+            .joinpath("after")
+            .joinpath("child_stack")
+            .joinpath("child_child_stack")
+            .joinpath("statemachine"),
+            TestSyncCodeBase.temp_dir.joinpath("child_stack").joinpath("child_child_stack").joinpath("statemachine"),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
