@@ -31,8 +31,8 @@ def cli(self, stack_name, output):
     Generate an event for one of the services listed below:
     """
 
-    do_cli(stack_name, output)
+    do_cli(stack_name=stack_name, output=output, region=self.region, profile=self.profile)
 
 
-def do_cli(stack_name, output):
+def do_cli(stack_name, output, region, profile):
     pass

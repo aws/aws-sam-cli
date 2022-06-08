@@ -2,13 +2,15 @@ import os
 import time
 import boto3
 import re
-
+from unittest import skipIf
 
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.integration.list.stack_outputs.stack_outputs_integ_base import StackOutputsIntegBase
 from samcli.commands.list.stack_outputs.cli import HELP_TEXT
+from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 from tests.testing_utils import run_command, run_command_with_input
 
+SKIP_STACK_OUTPUTS_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 CFN_SLEEP = 3
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
 
@@ -21,7 +23,7 @@ class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
 
     def setUp(self):
 
-        self.cf_client = boto3.client("cloudformation", region_name=boto3.Session().region_name)
+        self.cf_client = boto3.client("cloudformation")
         time.sleep(CFN_SLEEP)
         super().setUp()
 
@@ -32,6 +34,7 @@ class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
         from_help = "".join(HELP_TEXT.split())
         self.assertIn(from_help, from_command, "Stack-outputs help text should have been printed")
 
+    @skipIf(SKIP_STACK_OUTPUTS_TESTS, "Skip stack-outputs tests in CI/CD only")
     def test_stack_output_exists(self):
         template_path = self.list_test_data_path.joinpath("test_stack_creation_template.yaml")
         stack_name = self._method_to_stack_name(self.id())
@@ -74,6 +77,7 @@ class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
             )
         )
 
+    @skipIf(SKIP_STACK_OUTPUTS_TESTS, "Skip stack-outputs tests in CI/CD only")
     def test_stack_no_outputs_exist(self):
         template_path = self.list_test_data_path.joinpath("test_stack_no_outputs_template.yaml")
         stack_name = self._method_to_stack_name(self.id())
@@ -99,6 +103,7 @@ class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
             expected_output, command_result.stdout.decode(), "Should have raised error that outputs do not exist"
         )
 
+    @skipIf(SKIP_STACK_OUTPUTS_TESTS, "Skip stack-outputs tests in CI/CD only")
     def test_stack_does_not_exist(self):
         template_path = self.list_test_data_path.joinpath("test_stack_no_outputs_template.yaml")
         stack_name = self._method_to_stack_name(self.id())
@@ -117,4 +122,3 @@ class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
         """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
         method_name = method_name.split(".")[-1]
         return f"{method_name.replace('_', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
-

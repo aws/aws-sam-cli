@@ -2,10 +2,8 @@
 Display the Outputs of a SAM stack
 """
 import logging
-
 import json
 import boto3
-
 import click
 from botocore.exceptions import ClientError, BotoCoreError
 
@@ -87,7 +85,6 @@ class StackOutputsContext:
         )
 
     def run(self):
-        self.init_clients()
         exists = self.stack_exists(self.stack_name)
         if exists:
             if exists[0]:

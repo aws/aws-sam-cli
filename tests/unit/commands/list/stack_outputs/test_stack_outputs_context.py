@@ -2,7 +2,7 @@ from unittest import TestCase, mock
 from unittest.mock import patch, call, MagicMock
 from botocore.exceptions import ClientError, BotoCoreError, WaiterError, EndpointConnectionError
 import boto3
-
+import os
 import click
 
 from samcli.commands.list.stack_outputs.stack_outputs_context import StackOutputsContext
@@ -168,3 +168,76 @@ class TestStackOutputsContext(TestCase):
         with StackOutputsContext(stack_name="test", output="json", region=None, profile="test") as stack_output_context:
             stack_output_context.init_clients()
             self.assertTrue(stack_output_context.region)
+
+    @patch("samcli.commands.list.stack_outputs.stack_outputs_context.click.echo")
+    @patch("samcli.commands.list.stack_outputs.stack_outputs_context.click.get_current_context")
+    @patch.object(
+        StackOutputsContext,
+        "stack_exists",
+        MagicMock(return_value=(None)),
+    )
+    def test_stack_exists_returns_none(self, patched_click_get_current_context, patched_click_echo):
+        with StackOutputsContext(
+            stack_name="test", output="json", region="us-east-1", profile="test"
+        ) as stack_output_context:
+            stack_output_context.run()
+            expected_click_echo_calls = [
+                call(
+                    f"Error: The input stack {stack_output_context.stack_name} does"
+                    f" not exist on Cloudformation in the region {stack_output_context.region}"
+                )
+            ]
+            self.assertEqual(
+                expected_click_echo_calls, patched_click_echo.call_args_list, "stack_exists should have returned None"
+            )
+
+    @patch("samcli.commands.list.stack_outputs.stack_outputs_context.click.echo")
+    @patch("samcli.commands.list.stack_outputs.stack_outputs_context.click.get_current_context")
+    @patch.object(
+        StackOutputsContext,
+        "get_stack_info",
+        MagicMock(
+            return_value=(
+                {
+                    "Stacks": [
+                        {"Outputs": [{"OutputKey": "HelloWorldTest", "OutputValue": "TestVal", "Description": "Test"}]}
+                    ]
+                }
+            )
+        ),
+    )
+    @patch.object(
+        StackOutputsContext,
+        "stack_exists",
+        MagicMock(return_value=(True, None)),
+    )
+    def test_stack_outputs_stack_exists_returns_true(self, patched_click_get_current_context, patched_click_echo):
+        with StackOutputsContext(
+            stack_name="test", output="json", region="us-east-1", profile="test"
+        ) as stack_output_context:
+            stack_output_context.run()
+            expected_click_echo_calls = [
+                call(
+                    '[\n  {\n    "OutputKey": "HelloWorldTest",\n    "OutputValue": "TestVal",\n    "Description": "Test"\n  }\n]'
+                )
+            ]
+            self.assertEqual(
+                expected_click_echo_calls, patched_click_echo.call_args_list, "Stack and stack outputs should exist"
+            )
+
+    @patch("samcli.commands.list.stack_outputs.stack_outputs_context.click.echo")
+    @patch("samcli.commands.list.stack_outputs.stack_outputs_context.click.get_current_context")
+    @patch.object(
+        StackOutputsContext,
+        "stack_exists",
+        MagicMock(return_value=(False, "Error message")),
+    )
+    def test_stack_outputs_stack_exists_returns_false(self, patched_click_get_current_context, patched_click_echo):
+        with StackOutputsContext(
+            stack_name="test", output="json", region="us-east-1", profile="test"
+        ) as stack_output_context:
+            stack_output_context.run()
+            expected_click_echo_calls = [call("Error message")]
+            self.assertEqual(
+                expected_click_echo_calls, patched_click_echo.call_args_list, "Stack and stack outputs should exist"
+            )
