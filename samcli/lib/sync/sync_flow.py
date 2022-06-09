@@ -318,9 +318,31 @@ class SyncFlow(ABC):
         return dependencies
 
 
-# A helper method used by non-function sync flows to resolve definition file path
-# that are relative to the child stack to absolute path for nested stacks
-def get_definition_path(resource: Dict, identifier: str, use_base_dir: bool, base_dir, stacks) -> Optional[Path]:
+def get_definition_path(
+    resource: Dict, identifier: str, use_base_dir: bool, base_dir: str, stacks: List[Stack]
+) -> Optional[Path]:
+    """
+    A helper method used by non-function sync flows to resolve definition file path
+    that are relative to the child stack to absolute path for nested stacks
+
+    Parameters
+    -------
+    resource: Dict
+        The resource's template dict
+    identifier: str
+        The logical ID identifier of the resource
+    use_base_dir: bool
+        Whether or not the base_dir option was used
+    base_dir: str
+        Base directory if provided, otherwise the root template directory
+    stacks: List[Stack]
+        The list of stacks for the application
+
+    Returns
+    -------
+    Optional[Path]
+        A resolved absolute path for the definition file
+    """
     properties = resource.get("Properties", {})
     definition_file = properties.get("DefinitionUri")
     definition_path = None
