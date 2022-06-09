@@ -413,6 +413,7 @@ class ApplicationBuilder:
             "buildargs": docker_build_args,
             "decode": True,
             "platform": get_docker_platform(architecture),
+            "rm": True,
         }
         if docker_build_target:
             build_args["target"] = cast(str, docker_build_target)
