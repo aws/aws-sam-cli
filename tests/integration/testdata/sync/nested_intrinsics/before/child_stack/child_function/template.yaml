@@ -1,0 +1,22 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Timeout: 10
+
+Parameters:
+  Layer:
+    Description: The name of the layer
+    Type: String
+
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: function/
+      Handler: function.lambda_handler
+      Runtime: python3.7
+      Layers:
+        - Ref: Layer
+      Tracing: Active
