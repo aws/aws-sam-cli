@@ -181,7 +181,7 @@ def list_active_stack_names(boto_client_provider: BotoProviderType, show_nested_
 
     while first_call or next_token:
         first_call = False
-        kwargs: Dict[str, Any] = {"StackStatusFilter":STACK_ACTIVE_STATUS}
+        kwargs: Dict[str, Any] = {"StackStatusFilter": STACK_ACTIVE_STATUS}
         if next_token:
             kwargs["NextToken"] = next_token
         list_stacks_result = cfn_client.list_stacks(**kwargs)

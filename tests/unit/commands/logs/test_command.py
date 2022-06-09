@@ -2,9 +2,11 @@ import itertools
 from unittest import TestCase
 from unittest.mock import Mock, patch, call, ANY
 
+import pytest
+from click.testing import CliRunner
 from parameterized import parameterized
 
-from samcli.commands.logs.command import do_cli
+from samcli.commands.logs.command import do_cli, cli
 from samcli.lib.observability.util import OutputOption
 
 
@@ -109,3 +111,26 @@ class TestLogsCliCommand(TestCase):
             mocked_puller.assert_has_calls(
                 [call.load_time_period(mocked_start_time, mocked_end_time, self.filter_pattern)]
             )
+
+    def test_without_stack_name_or_cw_log_group(
+            self, patched_is_experimental_enabled, patched_update_experimental_context
+    ):
+        cli_runner = CliRunner()
+        result = cli_runner.invoke(cli, [])
+        self.assertIn("Please provide '--stack-name' or '--cw-log-group'", result.output)
+
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog):
+        self._caplog = caplog
+
+    def test_invalid_stack_name(
+            self, patched_is_experimental_enabled, patched_update_experimental_context
+    ):
+        self._caplog.set_level(100000)
+        cli_runner = CliRunner()
+        invalid_stack_name = "my-invalid-stack-name"
+        result = cli_runner.invoke(cli, ["--stack-name", invalid_stack_name, "--region", "us-west-2"])
+        self.assertIn(
+            f"Invalid --stack-name parameter. Stack with id '{invalid_stack_name}' does not exist", result.output
+        )
+
