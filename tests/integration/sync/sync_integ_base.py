@@ -91,6 +91,22 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
             count += 1
         return ""
 
+    def _confirm_lambda_error(self, lambda_function):
+        count = 0
+        while count < RETRY_ATTEMPTS:
+            try:
+                time.sleep(RETRY_WAIT)
+                lambda_response = self.lambda_client.invoke(
+                    FunctionName=lambda_function, InvocationType="RequestResponse"
+                )
+                if lambda_response.get("FunctionError"):
+                    return
+            except Exception:
+                if count == RETRY_ATTEMPTS:
+                    raise
+            count += 1
+        return ""
+
     def _get_api_message(self, rest_api):
         api_resource = self.api_client.get_resources(restApiId=rest_api)
         for item in api_resource.get("items"):

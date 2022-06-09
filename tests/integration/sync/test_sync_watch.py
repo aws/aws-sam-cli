@@ -29,7 +29,7 @@ from tests.testing_utils import (
     RUN_BY_CANARY,
     kill_process,
     read_until_string,
-    start_persistent_process,
+    start_persistent_process, run_command,
 )
 
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
@@ -91,6 +91,10 @@ class TestSyncWatchBase(SyncIntegBase):
                 cfn_client.delete_stack(StackName=stack_name)
         super().tearDown()
 
+    def should_run_initial_infra_validation(self):
+        """Decides whether we should run initial infra sync validation"""
+        return True
+
     def _setup_verify_infra(self):
         template_path = self.test_dir.joinpath(self.template_before)
         self.stacks.append({"name": self.stack_name})
@@ -115,17 +119,18 @@ class TestSyncWatchBase(SyncIntegBase):
 
         read_until_string(self.watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n", timeout=600)
 
-        # Initial Infra Validation
-        self.stack_resources = self._get_stacks(self.stack_name)
-        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
-        for lambda_function in lambda_functions:
-            lambda_response = json.loads(self._get_lambda_response(lambda_function))
-            self.assertIn("extra_message", lambda_response)
-            self.assertEqual(lambda_response.get("message"), "7")
-        rest_api = self.stack_resources.get(AWS_APIGATEWAY_RESTAPI)[0]
-        self.assertEqual(self._get_api_message(rest_api), '{"message": "hello 1"}')
-        state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
-        self.assertEqual(self._get_sfn_response(state_machine), '"World 1"')
+        if self.should_run_initial_infra_validation():
+            # Initial Infra Validation
+            self.stack_resources = self._get_stacks(self.stack_name)
+            lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+            for lambda_function in lambda_functions:
+                lambda_response = json.loads(self._get_lambda_response(lambda_function))
+                self.assertIn("extra_message", lambda_response)
+                self.assertEqual(lambda_response.get("message"), "7")
+            rest_api = self.stack_resources.get(AWS_APIGATEWAY_RESTAPI)[0]
+            self.assertEqual(self._get_api_message(rest_api), '{"message": "hello 1"}')
+            state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
+            self.assertEqual(self._get_sfn_response(state_machine), '"World 1"')
 
     def _verify_infra_changes(self, resources):
         # Lambda
