@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
-from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall
+from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall, get_definition_path
 from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIdentifier
 
 # BuildContext and DeployContext will only be imported for type checking to improve performance
@@ -71,18 +71,15 @@ class GenericApiSyncFlow(SyncFlow):
 
     def _get_definition_file(self, api_identifier: str) -> Optional[Path]:
         api_resource = get_resource_by_id(self._stacks, ResourceIdentifier(api_identifier))
-        if api_resource is None:
+        if not api_resource:
             return None
-        properties = api_resource.get("Properties", {})
-        definition_file = properties.get("DefinitionUri")
-        definition_path = None
-        if definition_file:
-            definition_path = Path(self._build_context.base_dir).joinpath(definition_file)
-            if not self._build_context.use_base_dir:
-                child_stack = Stack.get_stack_by_full_path(ResourceIdentifier(api_identifier).stack_path, self._stacks)
-                if child_stack:
-                    definition_path = Path(child_stack.location).parent.joinpath(definition_file)
-        return definition_path
+        return get_definition_path(
+            api_resource,
+            self._api_identifier,
+            self._build_context.use_base_dir,
+            self._build_context.base_dir,
+            self._stacks,
+        )
 
     def compare_remote(self) -> bool:
         return False

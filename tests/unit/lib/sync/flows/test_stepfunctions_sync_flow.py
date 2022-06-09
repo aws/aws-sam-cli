@@ -55,33 +55,49 @@ class TestStepFunctionsSyncFlow(TestCase):
             stateMachineArn="PhysicalId1", definition='{"key": "value"}'
         )
 
-    @patch("samcli.lib.sync.flows.generic_api_sync_flow.Stack.get_stack_by_full_path")
-    def test_get_definition_file(self, get_stack_mock):
+    @patch("samcli.lib.sync.flows.stepfunctions_sync_flow.get_definition_path")
+    def test_get_definition_file(self, get_path_mock):
         sync_flow = self.create_sync_flow()
 
         sync_flow._build_context.use_base_dir = False
         sync_flow._build_context.base_dir = "base_dir"
         sync_flow._resource = {"Properties": {"DefinitionUri": "test_uri"}}
-        get_stack_mock.return_value = Stack("parent_path", "stack_name", "location/template.yaml", None, {})
+        get_path_mock.return_value = Path("base_dir").joinpath("test_uri")
 
-        result_uri = sync_flow._get_definition_file("test")
+        result_uri = sync_flow._get_definition_file(sync_flow._state_machine_identifier)
 
-        self.assertEqual(result_uri, Path("location").joinpath("test_uri"))
+        get_path_mock.assert_called_with(
+            {"Properties": {"DefinitionUri": "test_uri"}},
+            sync_flow._state_machine_identifier,
+            False,
+            "base_dir",
+            sync_flow._stacks,
+        )
+        self.assertEqual(result_uri, Path("base_dir").joinpath("test_uri"))
 
-        sync_flow._resource = {"Properties": {}}
-        result_uri = sync_flow._get_definition_file("test")
+        sync_flow._resource = {}
+        result_uri = sync_flow._get_definition_file(sync_flow._state_machine_identifier)
 
         self.assertEqual(result_uri, None)
 
-    @patch("samcli.lib.sync.flows.generic_api_sync_flow.Stack.get_stack_by_full_path")
-    def test_get_definition_file_with_base_dir(self, get_stack_mock):
+    @patch("samcli.lib.sync.flows.stepfunctions_sync_flow.get_definition_path")
+    def test_get_definition_file_with_base_dir(self, get_path_mock):
         sync_flow = self.create_sync_flow()
 
         sync_flow._build_context.use_base_dir = True
         sync_flow._build_context.base_dir = "base_dir"
         sync_flow._resource = {"Properties": {"DefinitionUri": "test_uri"}}
-        result_uri = sync_flow._get_definition_file("test")
+        get_path_mock.return_value = Path("base_dir").joinpath("test_uri")
 
+        result_uri = sync_flow._get_definition_file(sync_flow._state_machine_identifier)
+
+        get_path_mock.assert_called_with(
+            {"Properties": {"DefinitionUri": "test_uri"}},
+            sync_flow._state_machine_identifier,
+            True,
+            "base_dir",
+            sync_flow._stacks,
+        )
         self.assertEqual(result_uri, Path("base_dir").joinpath("test_uri"))
 
     def test_process_definition_file(self):

@@ -5,7 +5,7 @@ from typing import Any, Dict, List, TYPE_CHECKING, Optional
 
 
 from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIdentifier
-from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall
+from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall, get_definition_path
 from samcli.lib.sync.exceptions import InfraSyncRequiredError
 from samcli.lib.providers.exceptions import MissingLocalDefinition
 
@@ -80,20 +80,15 @@ class StepFunctionsSyncFlow(SyncFlow):
             return states_data
 
     def _get_definition_file(self, state_machine_identifier: str) -> Optional[Path]:
-        if self._resource is None:
+        if not self._resource:
             return None
-        properties = self._resource.get("Properties", {})
-        definition_file = properties.get("DefinitionUri")
-        definition_path = None
-        if definition_file:
-            definition_path = Path(self._build_context.base_dir).joinpath(definition_file)
-            if not self._build_context.use_base_dir:
-                child_stack = Stack.get_stack_by_full_path(
-                    ResourceIdentifier(state_machine_identifier).stack_path, self._stacks
-                )
-                if child_stack:
-                    definition_path = Path(child_stack.location).parent.joinpath(definition_file)
-        return definition_path
+        return get_definition_path(
+            self._resource,
+            state_machine_identifier,
+            self._build_context.use_base_dir,
+            self._build_context.base_dir,
+            self._stacks,
+        )
 
     def compare_remote(self) -> bool:
         # Not comparing with remote right now, instead only making update api calls
