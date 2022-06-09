@@ -194,6 +194,7 @@ Requires capabilities : [CAPABILITY_AUTO_EXPAND]",
         )
 
 
+@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
 class TestSyncInfraCDKTemplates(SyncIntegBase):
     dependency_layer = None
 
