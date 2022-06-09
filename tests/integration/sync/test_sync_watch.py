@@ -174,7 +174,7 @@ class TestSyncCodeInfra(TestSyncWatchBase):
 
 @parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 class TestSyncWatchCode(TestSyncWatchBase):
-    template_before = f"code/before/template-python.yaml"
+    template_before = str(Path("code", "before", "template-python.yaml"))
 
     def test_sync_watch_code(self):
         self.stack_resources = self._get_stacks(self.stack_name)
@@ -184,8 +184,8 @@ class TestSyncWatchCode(TestSyncWatchBase):
             layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "python", 1)
             self.assertNotIn("requests", layer_contents)
             self.update_file(
-                self.test_dir.joinpath("code/after/function/requirements.txt"),
-                self.test_dir.joinpath("code/before/function/requirements.txt"),
+                self.test_dir.joinpath("code", "after", "function", "requirements.txt"),
+                self.test_dir.joinpath("code", "before", "function", "requirements.txt"),
             )
             read_until_string(
                 self.watch_process,
@@ -197,8 +197,8 @@ class TestSyncWatchCode(TestSyncWatchBase):
 
         # Test Lambda Function
         self.update_file(
-            self.test_dir.joinpath("code/after/function/app.py"),
-            self.test_dir.joinpath("code/before/function/app.py"),
+            self.test_dir.joinpath("code", "after", "function", "app.py"),
+            self.test_dir.joinpath("code", "before", "function", "app.py"),
         )
         read_until_string(
             self.watch_process, "\x1b[32mFinished syncing Lambda Function HelloWorldFunction.\x1b[0m\n", timeout=30
@@ -211,8 +211,8 @@ class TestSyncWatchCode(TestSyncWatchBase):
 
         # Test Lambda Layer
         self.update_file(
-            self.test_dir.joinpath("code/after/layer/layer_method.py"),
-            self.test_dir.joinpath("code/before/layer/layer_method.py"),
+            self.test_dir.joinpath("code", "after", "layer", "layer_method.py"),
+            self.test_dir.joinpath("code", "before", "layer", "layer_method.py"),
         )
         read_until_string(
             self.watch_process,
@@ -227,8 +227,8 @@ class TestSyncWatchCode(TestSyncWatchBase):
 
         # Test APIGW
         self.update_file(
-            self.test_dir.joinpath("code/after/apigateway/definition.json"),
-            self.test_dir.joinpath("code/before/apigateway/definition.json"),
+            self.test_dir.joinpath("code", "after", "apigateway", "definition.json"),
+            self.test_dir.joinpath("code", "before", "apigateway", "definition.json"),
         )
         read_until_string(self.watch_process, "\x1b[32mFinished syncing RestApi HelloWorldApi.\x1b[0m\n", timeout=20)
         time.sleep(API_SLEEP)
@@ -237,8 +237,8 @@ class TestSyncWatchCode(TestSyncWatchBase):
 
         # Test SFN
         self.update_file(
-            self.test_dir.joinpath("code/after/statemachine/function.asl.json"),
-            self.test_dir.joinpath("code/before/statemachine/function.asl.json"),
+            self.test_dir.joinpath("code", "after", "statemachine", "function.asl.json"),
+            self.test_dir.joinpath("code", "before", "statemachine", "function.asl.json"),
         )
         read_until_string(
             self.watch_process, "\x1b[32mFinished syncing StepFunctions HelloStepFunction.\x1b[0m\n", timeout=20
