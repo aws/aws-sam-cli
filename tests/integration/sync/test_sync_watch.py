@@ -148,12 +148,6 @@ class TestSyncWatchBase(SyncIntegBase):
         state_machine = resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
         self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')
 
-    @staticmethod
-    def update_file(source, destination):
-        with open(source, "rb") as source_file:
-            with open(destination, "wb") as destination_file:
-                destination_file.write(source_file.read())
-
 
 @parameterized_class(
     [{"runtime": "python", "dependency_layer": True}, {"runtime": "python", "dependency_layer": False}]

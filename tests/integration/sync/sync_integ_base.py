@@ -14,9 +14,8 @@ from botocore.config import Config
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
 from tests.integration.buildcmd.build_integ_base import BuildIntegBase
 from tests.integration.package.package_integ_base import PackageIntegBase
+from tests.testing_utils import get_sam_command
 
-CFN_SLEEP = 3
-CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
 RETRY_ATTEMPTS = 20
 RETRY_WAIT = 1
 
@@ -83,7 +82,9 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
                 lambda_response = self.lambda_client.invoke(
                     FunctionName=lambda_function, InvocationType="RequestResponse"
                 )
-                payload = json.loads(lambda_response.get("Payload").read().decode("utf-8"))
+                lambda_response_payload = lambda_response.get("Payload").read().decode("utf-8")
+                LOG.info("Lambda Response Payload: %s", lambda_response_payload)
+                payload = json.loads(lambda_response_payload)
                 return payload.get("body")
             except Exception:
                 if count == RETRY_ATTEMPTS:
@@ -152,12 +153,11 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
             count += 1
         return ""
 
-    def base_command(self):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
-
-        return command
+    @staticmethod
+    def update_file(source, destination):
+        with open(source, "rb") as source_file:
+            with open(destination, "wb") as destination_file:
+                destination_file.write(source_file.read())
 
     def get_sync_command_list(
         self,
@@ -184,7 +184,7 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         metadata=None,
         debug=None,
     ):
-        command_list = [self.base_command(), "sync"]
+        command_list = [get_sam_command(), "sync"]
 
         command_list += ["-t", str(template_file)]
         if code:
