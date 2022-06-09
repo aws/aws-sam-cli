@@ -131,6 +131,9 @@ class GitRepo:
                 LOG.info("\nCloning from %s (process may take a moment)", self.url)
                 command = [git_executable, "clone", self.url, clone_name]
                 if platform.system().lower() == "windows":
+                    LOG.debug(
+                        "Configure to core.longpaths=true in git clone. You might also need to enable long paths in Windows registry."
+                    )
                     command += ["--config", "core.longpaths=true"]
                 check_output(
                     command,
