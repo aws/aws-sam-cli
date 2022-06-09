@@ -325,7 +325,9 @@ class TestSyncCodeNodejsFunctionTemplate(TestSyncCodeBase):
         self.stack_resources = self._get_stacks(TestSyncCode.stack_name)
         if self.dependency_layer:
             # Test update manifest
-            layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "nodejs/node_modules", 1)
+            layer_contents = self.get_dependency_layer_contents_from_arn(
+                self.stack_resources, str(Path("nodejs", "node_modules")), 1
+            )
             self.assertNotIn("@faker-js", layer_contents)
 
         # Run code sync
@@ -356,7 +358,9 @@ class TestSyncCodeNodejsFunctionTemplate(TestSyncCodeBase):
                 self.assertEqual(lambda_response.get("message"), "Hello world!")
 
         if self.dependency_layer:
-            layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "nodejs/node_modules", 2)
+            layer_contents = self.get_dependency_layer_contents_from_arn(
+                self.stack_resources, str(Path("nodejs", "node_modules")), 2
+            )
             self.assertIn("@faker-js", layer_contents)
 
 
