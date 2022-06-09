@@ -29,10 +29,12 @@ are lambda functions and API Gateway API resources.
 @print_cmdline_args
 def cli(self, stack_name, output):
     """
-    Generate an event for one of the services listed below:
+    `sam list testable-resources` command entry point
     """
     do_cli(stack_name=stack_name, output=output, region=self.region, profile=self.profile)
 
 
 def do_cli(stack_name, output, region, profile):
-    pass
+    """
+    Implementation of the ``cli`` method
+    """

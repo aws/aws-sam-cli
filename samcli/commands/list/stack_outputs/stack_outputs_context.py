@@ -7,16 +7,15 @@ import boto3
 import click
 from botocore.exceptions import ClientError, BotoCoreError
 
-from samcli.lib.utils.boto_utils import get_boto_config_with_user_agent
-from samcli.cli.context import Context
-from samcli.commands.list.exceptions import NoRegionError
-
+from samcli.commands.exceptions import RegionError
+from samcli.commands.list.exceptions import StackOutputsError, NoOutputsForStackError
+from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config
 
 LOG = logging.getLogger(__name__)
 
 
 class StackOutputsContext:
-    def __init__(self, stack_name, output, region, profile):
+    def __init__(self, stack_name: str, output: str, region: str, profile: str):
         self.stack_name = stack_name
         self.output = output
         self.region = region
@@ -31,38 +30,51 @@ class StackOutputsContext:
         pass
 
     def get_stack_info(self):
-        return self.cloudformation_client.describe_stacks(StackName=self.stack_name)
+        """
+        Returns the stack information for the stack
 
-    def stack_exists(self, stack_name):
-        input_stack_does_not_exist_in_region = (
-            f"Error: The input stack {self.stack_name} does" f" not exist on Cloudformation in the region {self.region}"
-        )
-        outputs_do_not_exist_in_stack = (
-            f"Error: Outputs do not exist for the input stack {self.stack_name}"
-            f" on Cloudformation in the region {self.region}"
-        )
+        Returns
+        -------
+            A dictionary containing the stack's information
+        """
+        cfn_client = self.cloudformation_client
+        return cfn_client.describe_stacks(StackName=self.stack_name)
+
+    def stack_exists(self, stack_name: str) -> bool:
+        """
+        Returns whether a stack exists in the region and is valid, and raises exceptions accordingly
+
+        Parameters
+        ----------
+        stack_name: str
+            Name of the stack that is deployed to CFN
+
+        Returns
+        -------
+            A boolean value of whether the stack exists in the region
+        """
         try:
             response = self.get_stack_info()
             if not response["Stacks"]:
-                return False, input_stack_does_not_exist_in_region
+                return False
             if "Outputs" not in response["Stacks"][0]:
-                return False, outputs_do_not_exist_in_stack
-            return True, None
+                raise NoOutputsForStackError(stack_name=self.stack_name, msg=self.region)
+            return True
 
         except ClientError as e:
             if "Stack with id {0} does not exist".format(stack_name) in str(e):
                 LOG.debug("Stack with id %s does not exist", stack_name)
-                return False, input_stack_does_not_exist_in_region
+                return False
             LOG.error("ClientError Exception : %s", str(e))
-            return False, "Error: " + str(e)
+            raise StackOutputsError(stack_name=self.stack_name, msg=str(e)) from e
         except BotoCoreError as e:
             # If there are credentials, environment errors,
             # catch that and throw a delete failed error.
 
             LOG.error("Botocore Exception : %s", str(e))
-            return False, "Error: " + str(e)
+            raise StackOutputsError(stack_name=self.stack_name, msg=str(e)) from e
 
-    def init_clients(self):
+    def init_clients(self) -> None:
         """
         Initialize the clients being used by sam list.
         """
@@ -72,28 +84,21 @@ class StackOutputsContext:
             if region:
                 self.region = region
             else:
-                raise NoRegionError(stack_name=self.stack_name, msg="no region specified/found")
+                raise RegionError(message="no region specified/found")
 
-        if self.profile:
-            Context.get_current_context().profile = self.profile
-        if self.region:
-            Context.get_current_context().region = self.region
+        client_provider = get_boto_client_provider_with_config(region=self.region, profile=self.profile)
+        self.cloudformation_client = client_provider("cloudformation")
 
-        boto_config = get_boto_config_with_user_agent()
-        self.cloudformation_client = boto3.client(
-            "cloudformation", region_name=self.region if self.region else None, config=boto_config
-        )
-
-    def run(self):
+    def run(self) -> None:
+        """
+        Get the stack outputs for a stack
+        """
         exists = self.stack_exists(self.stack_name)
         if exists:
-            if exists[0]:
-                response = self.get_stack_info()
-                click.echo(json.dumps(response["Stacks"][0]["Outputs"], indent=2))
-            else:
-                LOG.debug("Input stack does not exists on Cloudformation")
-                click.echo(exists[1])
+            response = self.get_stack_info()
+            click.echo(json.dumps(response["Stacks"][0]["Outputs"], indent=2))
         else:
+            LOG.debug("Input stack does not exists on Cloudformation")
             click.echo(
                 f"Error: The input stack {self.stack_name} does"
                 f" not exist on Cloudformation in the region {self.region}"

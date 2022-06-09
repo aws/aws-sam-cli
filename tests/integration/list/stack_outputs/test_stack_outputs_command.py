@@ -13,7 +13,6 @@ from tests.testing_utils import run_command, run_command_with_input
 SKIP_STACK_OUTPUTS_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 CFN_SLEEP = 3
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
-# commit to re-trigger appveyor  tests
 
 
 class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
@@ -101,7 +100,7 @@ class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
             f"Error: Outputs do not exist for the input stack {stack_name}" f" on Cloudformation in the region {region}"
         )
         self.assertIn(
-            expected_output, command_result.stdout.decode(), "Should have raised error that outputs do not exist"
+            expected_output, command_result.stderr.decode(), "Should have raised error that outputs do not exist"
         )
 
     @skipIf(SKIP_STACK_OUTPUTS_TESTS, "Skip stack-outputs tests in CI/CD only")
