@@ -31,6 +31,7 @@ class TestCloudFormationResourceSummary(TestCase):
 class TestCloudformationUtils(TestCase):
     def test_get_resource_summaries(self):
         resource_provider_mock = Mock()
+        client_provider_mock = Mock()
         given_stack_name = "stack_name"
         given_resource_types = {"ResourceType0"}
 
@@ -68,7 +69,9 @@ class TestCloudformationUtils(TestCase):
             given_nested_stack_resource_array,
         ]
 
-        resource_summaries = get_resource_summaries(resource_provider_mock, given_stack_name, given_resource_types)
+        resource_summaries = get_resource_summaries(
+            resource_provider_mock, client_provider_mock, given_stack_name, given_resource_types
+        )
 
         self.assertEqual(len(resource_summaries), 4)
         self.assertEqual(

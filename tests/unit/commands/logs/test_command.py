@@ -88,7 +88,7 @@ class TestLogsCliCommand(TestCase):
         patched_boto_resource_provider.assert_called_with(region=self.region, profile=self.profile)
 
         patched_resource_physical_id_resolver.assert_called_with(
-            mocked_resource_provider, self.stack_name, self.function_name
+            mocked_resource_provider, mocked_client_provider, self.stack_name, self.function_name
         )
 
         fetch_param = not bool(len(cw_log_group))

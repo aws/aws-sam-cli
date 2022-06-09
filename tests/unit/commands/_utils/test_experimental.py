@@ -15,6 +15,7 @@ from samcli.commands._utils.experimental import (
     ExperimentalEntry,
     ExperimentalFlag,
 )
+from samcli.lib.utils.colors import Colored
 
 
 class TestExperimental(TestCase):
@@ -118,5 +119,5 @@ class TestExperimental(TestCase):
         prompt_experimental(config_entry, prompt)
         set_experimental_mock.assert_called_once_with(config_entry=config_entry, enabled=True)
         enabled_mock.assert_called_once_with(config_entry)
-        confirm_mock.assert_called_once_with(prompt, default=False)
+        confirm_mock.assert_called_once_with(Colored().yellow(prompt), default=False)
         update_experimental_context.assert_called_once()
