@@ -67,6 +67,8 @@ def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandRes
 
 
 def run_command_with_input(command_list, stdin_input, timeout=TIMEOUT) -> CommandResult:
+    LOG.info("Running command: %s", " ".join(command_list))
+    LOG.info("With input: %s", stdin_input)
     process_execute = Popen(command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE)
     try:
         stdout_data, stderr_data = process_execute.communicate(stdin_input, timeout=timeout)
