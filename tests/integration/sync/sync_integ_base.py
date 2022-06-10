@@ -6,6 +6,7 @@ import shutil
 import time
 import uuid
 from pathlib import Path
+from typing import Callable
 
 import boto3
 from botocore.exceptions import ClientError
@@ -91,6 +92,23 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
                     raise
             count += 1
         return ""
+
+    def _confirm_lambda_response(self, lambda_function: str, verification_function: Callable) -> None:
+        count = 0
+        while count < RETRY_ATTEMPTS:
+            try:
+                time.sleep(RETRY_WAIT)
+                lambda_response = self.lambda_client.invoke(
+                    FunctionName=lambda_function, InvocationType="RequestResponse"
+                )
+                lambda_response_payload = lambda_response.get("Payload").read().decode("utf-8")
+                LOG.info("Lambda Response Payload: %s", lambda_response_payload)
+                payload = json.loads(lambda_response_payload)
+                verification_function(payload)
+            except Exception:
+                if count == RETRY_ATTEMPTS:
+                    raise
+            count += 1
 
     def _confirm_lambda_error(self, lambda_function):
         count = 0

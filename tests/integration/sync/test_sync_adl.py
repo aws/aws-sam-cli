@@ -1,11 +1,10 @@
 import json
 import os.path
-import time
 from unittest import skipIf
 
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION
-from tests.integration.sync.test_sync_code import TestSyncCodeBase, SKIP_SYNC_TESTS, TestSyncCode, LAMBDA_SLEEP
-from tests.integration.sync.test_sync_watch import TestSyncWatchBase, TestSyncWatchCode
+from tests.integration.sync.test_sync_code import TestSyncCodeBase, SKIP_SYNC_TESTS, TestSyncCode
+from tests.integration.sync.test_sync_watch import TestSyncWatchBase
 from tests.testing_utils import run_command_with_input, read_until_string
 
 
@@ -32,7 +31,7 @@ class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
             template_file=TestSyncCode.template_path,
             code=True,
             watch=False,
-            resource_id="HelloWorldFunction",
+            resource_id_list=["HelloWorldFunction"],
             dependency_layer=True,
             stack_name=TestSyncCode.stack_name,
             parameter_overrides="Parameter=Clarity",
@@ -59,7 +58,7 @@ class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
             template_file=TestSyncCode.template_path,
             code=True,
             watch=False,
-            resource_id="HelloWorldFunction",
+            resource_id_list=["HelloWorldFunction"],
             dependency_layer=True,
             stack_name=TestSyncCode.stack_name,
             parameter_overrides="Parameter=Clarity",
@@ -85,7 +84,7 @@ class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
             template_file=TestSyncCode.template_path,
             code=True,
             watch=False,
-            resource_id="HelloWorldFunction",
+            resource_id_list=["HelloWorldFunction"],
             dependency_layer=True,
             stack_name=TestSyncCode.stack_name,
             parameter_overrides="Parameter=Clarity",
@@ -112,17 +111,16 @@ class TestSyncAdlWithWatchStartWithNoDependencies(TestSyncWatchBase):
         cls.dependency_layer = True
         super().setUpClass()
 
-    def should_run_initial_infra_validation(self):
-        return False
-
-    def test_sync_watch_code(self):
+    def run_initial_infra_validation(self):
         self.stack_resources = self._get_stacks(self.stack_name)
-
-        # first confirm initial response
         lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
         lambda_response = json.loads(self._get_lambda_response(lambda_functions[0]))
         self.assertEqual(lambda_response.get("message"), "hello world")
         self.assertNotIn("extra_message", lambda_response)
+
+    def test_sync_watch_code(self):
+        self.stack_resources = self._get_stacks(self.stack_name)
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
 
         # change lambda with another output
         self.update_file(
@@ -148,7 +146,6 @@ class TestSyncAdlWithWatchStartWithNoDependencies(TestSyncWatchBase):
             "\x1b[32mFinished syncing Function Layer Reference Sync HelloWorldFunction.\x1b[0m\n",
             timeout=60
         )
-        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
         self._confirm_lambda_error(lambda_functions[0])
 
         # add dependency and confirm it executes as expected
@@ -161,8 +158,9 @@ class TestSyncAdlWithWatchStartWithNoDependencies(TestSyncWatchBase):
             "\x1b[32mFinished syncing Function Layer Reference Sync HelloWorldFunction.\x1b[0m\n",
             timeout=60
         )
-        time.sleep(LAMBDA_SLEEP)
-        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
-        lambda_response = json.loads(self._get_lambda_response(lambda_functions[0]))
-        self.assertEqual(lambda_response.get("message"), "hello mars")
-        self.assertIn("extra_message", lambda_response)
+
+        def _verify_lambda_response(_lambda_response):
+            self.assertEqual(lambda_response.get("message"), "hello mars")
+            self.assertIn("extra_message", lambda_response)
+
+        self._confirm_lambda_response(self._get_lambda_response(lambda_functions[0]), _verify_lambda_response)
