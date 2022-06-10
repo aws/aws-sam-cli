@@ -1,8 +1,9 @@
 import itertools
 from unittest import TestCase
-from unittest.mock import Mock, patch, call, ANY
+from unittest.mock import Mock, patch, call
 
 import pytest
+from botocore.exceptions import ClientError
 from click.testing import CliRunner
 from parameterized import parameterized
 
@@ -119,13 +120,52 @@ class TestLogsCliCommand(TestCase):
         result = cli_runner.invoke(cli, [])
         self.assertIn("Please provide '--stack-name' or '--cw-log-group'", result.output)
 
+    @patch("samcli.commands.logs.logs_context.ResourcePhysicalIdResolver.get_resource_information")
+    @patch("samcli.commands.logs.puller_factory.generate_puller")
+    def test_with_stack_name_but_without_cw_log_group_should_succeed(
+            self,
+            patched_generate_puller,
+            patched_get_resource_information,
+            patched_is_experimental_enabled,
+            patched_update_experimental_context,
+    ):
+        cli_runner = CliRunner()
+        cli_runner.invoke(cli, ["--stack-name", "abcdef"])
+        patched_get_resource_information.assert_called_with(True)
+        patched_generate_puller.assert_called_once()
+
+    @patch("samcli.commands.logs.logs_context.ResourcePhysicalIdResolver.get_resource_information")
+    @patch("samcli.commands.logs.puller_factory.generate_puller")
+    def test_with_cw_log_group_but_without_stack_name_should_succeed(
+            self,
+            patched_generate_puller,
+            patched_get_resource_information,
+            patched_is_experimental_enabled,
+            patched_update_experimental_context,
+    ):
+        cli_runner = CliRunner()
+        cli_runner.invoke(cli, ["--cw-log-group", "abcdef"])
+        patched_get_resource_information.assert_called_with(False)
+        patched_generate_puller.assert_called_once()
+
+    def test_with_name_but_without_stack_name_should_fail(
+            self, patched_is_experimental_enabled, patched_update_experimental_context
+    ):
+        cli_runner = CliRunner()
+        result = cli_runner.invoke(cli, ["--name", "abcdef"])
+        self.assertIn("Missing option. Please provide '--stack-name' when using '--name' option", result.output)
+
     @pytest.fixture(autouse=True)
     def inject_fixtures(self, caplog):
         self._caplog = caplog
 
-    def test_invalid_stack_name(
-            self, patched_is_experimental_enabled, patched_update_experimental_context
+    @patch("samcli.commands.logs.logs_context.ResourcePhysicalIdResolver.get_resource_information")
+    def test_invalid_stack_name_should_fail(
+            self, patched_get_resource_information, patched_is_experimental_enabled, patched_update_experimental_context
     ):
+        patched_get_resource_information.side_effect = ClientError(
+            {"Error": {"Code": "ValidationError"}}, "ListStackResources"
+        )
         self._caplog.set_level(100000)
         cli_runner = CliRunner()
         invalid_stack_name = "my-invalid-stack-name"
