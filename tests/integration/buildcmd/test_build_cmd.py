@@ -1654,7 +1654,7 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
         cmdlist.extend(["--config-file", config_file])
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertTrue(
-            "Valid cache found, copying previously built resources from function build definition of"
+            "Valid cache found, copying previously built resources for following functions"
             in str(command_result.stderr),
             "Should have built using cache",
         )
