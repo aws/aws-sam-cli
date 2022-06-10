@@ -27,7 +27,7 @@ def stack_name_cw_log_group_validation(func):
     def wrapped(*args, **kwargs):
         ctx = click.get_current_context()
         stack_name = ctx.params.get("stack_name")
-        cw_log_groups = ctx.params.get("cw_log_groups")
+        cw_log_groups = ctx.params.get("cw_log_group")
 
         # either --stack-name or --cw-log-group flags should be provided
         if not stack_name and not cw_log_groups:
