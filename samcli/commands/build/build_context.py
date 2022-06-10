@@ -409,6 +409,10 @@ Commands you can use next
         return self._mode
 
     @property
+    def use_base_dir(self) -> bool:
+        return self._use_raw_codeuri
+
+    @property
     def resources_to_build(self) -> ResourcesToBuildCollector:
         """
         Function return resources that should be build by current build command. This function considers
