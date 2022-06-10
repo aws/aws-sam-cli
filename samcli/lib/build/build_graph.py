@@ -533,7 +533,10 @@ class LayerBuildDefinition(AbstractBuildDefinition):
         self.layer: LayerVersion = None  # type: ignore
 
     def get_resource_full_paths(self) -> str:
-        return self.layer.full_path if self.layer else self.uuid
+        if not self.layer:
+            LOG.debug("LayerBuildDefinition with uuid (%s) doesn't have a layer assigned to it", self.uuid)
+            return ""
+        return self.layer.full_path
 
     def __str__(self) -> str:
         return (

@@ -24,10 +24,9 @@ def command_exception_handler(f, additional_mapping: Optional[Dict[Any, Callable
                 return func(*args, **kwargs)
             except Exception as ex:
                 exception_type = type(ex)
-                additional_mapping_with_defaults = (additional_mapping or {})
 
                 # check if there is a custom handling defined
-                exception_handler = additional_mapping_with_defaults.get(exception_type)
+                exception_handler = (additional_mapping or {}).get(exception_type)
                 if exception_handler:
                     exception_handler(ex)
 

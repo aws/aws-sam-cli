@@ -28,6 +28,15 @@ def stack_name_cw_log_group_validation(func):
         ctx = click.get_current_context()
         stack_name = ctx.params.get("stack_name")
         cw_log_groups = ctx.params.get("cw_log_group")
+        names = ctx.params.get("name")
+
+        # if --name is provided --stack-name should be provided as well
+        if names and not stack_name:
+            raise BadOptionUsage(
+                option_name="--stack-name",
+                ctx=ctx,
+                message="Missing option. Please provide '--stack-name' when using '--name' option",
+            )
 
         # either --stack-name or --cw-log-group flags should be provided
         if not stack_name and not cw_log_groups:
