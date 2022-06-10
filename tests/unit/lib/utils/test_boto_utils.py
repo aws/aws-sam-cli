@@ -8,7 +8,8 @@ from samcli.lib.utils.boto_utils import (
     get_boto_client_provider_with_config,
     get_boto_resource_provider_with_config,
     get_boto_resource_provider_from_session_with_config,
-    get_boto_client_provider_from_session_with_config, get_client_error_code,
+    get_boto_client_provider_from_session_with_config,
+    get_client_error_code,
 )
 
 TEST_VERSION = "1.0.0"
@@ -125,4 +126,3 @@ class TestBotoUtils(TestCase):
     @parameterized.expand([({}, None), ({"Error": {}}, None), ({"Error": {"Code": "ErrorCode"}}, "ErrorCode")])
     def test_get_client_error_code(self, response, expected):
         self.assertEqual(expected, get_client_error_code(Mock(response=response)))
-

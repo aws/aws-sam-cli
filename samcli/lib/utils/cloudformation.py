@@ -31,7 +31,7 @@ STACK_ACTIVE_STATUS = [
     "UPDATE_ROLLBACK_FAILED",
     "UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS",
     "UPDATE_ROLLBACK_COMPLETE",
-    "REVIEW_IN_PROGRESS"
+    "REVIEW_IN_PROGRESS",
 ]
 
 
@@ -85,7 +85,7 @@ def get_resource_summaries(
             LOG.debug(
                 "Invalid stack name (%s). Available stack names: %s",
                 stack_name,
-                ", ".join(list_active_stack_names(boto_client_provider))
+                ", ".join(list_active_stack_names(boto_client_provider)),
             )
         raise ex
     resource_summaries: Dict[str, CloudFormationResourceSummary] = {}
@@ -127,7 +127,7 @@ def get_resource_summaries(
 
 
 def get_resource_summary(
-        boto_resource_provider: BotoProviderType, stack_name: str, resource_logical_id: str
+    boto_resource_provider: BotoProviderType, stack_name: str, resource_logical_id: str
 ) -> Optional[CloudFormationResourceSummary]:
     """
     Returns resource summary of given single resource with its logical id

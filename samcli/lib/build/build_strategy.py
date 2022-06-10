@@ -455,7 +455,7 @@ class IncrementalBuildStrategy(BuildStrategy):
             else:
                 LOG.info(
                     "Manifest is not changed for (%s), running incremental build",
-                    build_definition.get_resource_full_paths()
+                    build_definition.get_resource_full_paths(),
                 )
 
         build_definition.download_dependencies = is_manifest_changed or is_dependencies_dir_missing

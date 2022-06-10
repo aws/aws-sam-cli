@@ -114,7 +114,7 @@ class TestLogsCliCommand(TestCase):
             )
 
     def test_without_stack_name_or_cw_log_group(
-            self, patched_is_experimental_enabled, patched_update_experimental_context
+        self, patched_is_experimental_enabled, patched_update_experimental_context
     ):
         cli_runner = CliRunner()
         result = cli_runner.invoke(cli, [])
@@ -123,11 +123,11 @@ class TestLogsCliCommand(TestCase):
     @patch("samcli.commands.logs.logs_context.ResourcePhysicalIdResolver.get_resource_information")
     @patch("samcli.commands.logs.puller_factory.generate_puller")
     def test_with_stack_name_but_without_cw_log_group_should_succeed(
-            self,
-            patched_generate_puller,
-            patched_get_resource_information,
-            patched_is_experimental_enabled,
-            patched_update_experimental_context,
+        self,
+        patched_generate_puller,
+        patched_get_resource_information,
+        patched_is_experimental_enabled,
+        patched_update_experimental_context,
     ):
         cli_runner = CliRunner()
         cli_runner.invoke(cli, ["--stack-name", "abcdef"])
@@ -137,11 +137,11 @@ class TestLogsCliCommand(TestCase):
     @patch("samcli.commands.logs.logs_context.ResourcePhysicalIdResolver.get_resource_information")
     @patch("samcli.commands.logs.puller_factory.generate_puller")
     def test_with_cw_log_group_but_without_stack_name_should_succeed(
-            self,
-            patched_generate_puller,
-            patched_get_resource_information,
-            patched_is_experimental_enabled,
-            patched_update_experimental_context,
+        self,
+        patched_generate_puller,
+        patched_get_resource_information,
+        patched_is_experimental_enabled,
+        patched_update_experimental_context,
     ):
         cli_runner = CliRunner()
         cli_runner.invoke(cli, ["--cw-log-group", "abcdef"])
@@ -149,7 +149,7 @@ class TestLogsCliCommand(TestCase):
         patched_generate_puller.assert_called_once()
 
     def test_with_name_but_without_stack_name_should_fail(
-            self, patched_is_experimental_enabled, patched_update_experimental_context
+        self, patched_is_experimental_enabled, patched_update_experimental_context
     ):
         cli_runner = CliRunner()
         result = cli_runner.invoke(cli, ["--name", "abcdef"])
@@ -161,7 +161,7 @@ class TestLogsCliCommand(TestCase):
 
     @patch("samcli.commands.logs.logs_context.ResourcePhysicalIdResolver.get_resource_information")
     def test_invalid_stack_name_should_fail(
-            self, patched_get_resource_information, patched_is_experimental_enabled, patched_update_experimental_context
+        self, patched_get_resource_information, patched_is_experimental_enabled, patched_update_experimental_context
     ):
         patched_get_resource_information.side_effect = ClientError(
             {"Error": {"Code": "ValidationError"}}, "ListStackResources"
@@ -173,4 +173,3 @@ class TestLogsCliCommand(TestCase):
         self.assertIn(
             f"Invalid --stack-name parameter. Stack with id '{invalid_stack_name}' does not exist", result.output
         )
-

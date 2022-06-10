@@ -131,7 +131,7 @@ class ResourcePhysicalIdResolver:
             self._boto_resource_provider,
             self._boto_client_provider,
             self._stack_name,
-            ResourcePhysicalIdResolver.DEFAULT_SUPPORTED_RESOURCES
+            ResourcePhysicalIdResolver.DEFAULT_SUPPORTED_RESOURCES,
         )
 
         if selected_resource_names:
@@ -170,6 +170,6 @@ class ResourcePhysicalIdResolver:
                 LOG.warning(
                     "Resource name (%s) does not exist. Available resource names: %s",
                     selected_resource_name,
-                    ", ".join(resource_summaries.keys())
+                    ", ".join(resource_summaries.keys()),
                 )
         return resources

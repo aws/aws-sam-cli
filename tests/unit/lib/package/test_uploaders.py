@@ -7,7 +7,6 @@ from samcli.lib.package.uploaders import Destination, Uploaders
 
 
 class TestUploaders(TestCase):
-
     @parameterized.expand([(Destination.S3,), (Destination.ECR,), (None,)])
     def test_uploader_get(self, destination):
         ecr_uploader = Mock()

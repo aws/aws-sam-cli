@@ -17,6 +17,7 @@ def command_exception_handler(f, additional_mapping: Optional[Dict[Any, Callable
     """
     This function returns a wrapped function definition, which handles configured exceptions gracefully
     """
+
     def decorator_command_exception_handler(func):
         @wraps(func)
         def wrapper_command_exception_handler(*args, **kwargs):
@@ -37,7 +38,9 @@ def command_exception_handler(f, additional_mapping: Optional[Dict[Any, Callable
 
                 # if no handler defined, raise the exception
                 raise ex
+
         return wrapper_command_exception_handler
+
     return decorator_command_exception_handler(f)
 
 

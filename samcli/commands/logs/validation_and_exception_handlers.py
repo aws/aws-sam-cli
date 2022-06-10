@@ -47,6 +47,7 @@ def stack_name_cw_log_group_validation(func):
             )
 
         return func(*args, **kwargs)
+
     return wrapped
 
 
@@ -57,13 +58,11 @@ def _handle_client_error(ex: ClientError) -> None:
     operation_name = ex.operation_name
     client_error_code = get_client_error_code(ex)
     if client_error_code == "ValidationError" and operation_name == "ListStackResources":
-        click_context : Context = click.get_current_context()
+        click_context: Context = click.get_current_context()
         stack_name_value = click_context.params.get("stack_name")
         raise InvalidStackNameException(
             f"Invalid --stack-name parameter. Stack with id '{stack_name_value}' does not exist"
         )
 
 
-SAM_LOGS_ADDITIONAL_EXCEPTION_HANDLERS: Dict[Any, Callable] = {
-    ClientError: _handle_client_error
-}
+SAM_LOGS_ADDITIONAL_EXCEPTION_HANDLERS: Dict[Any, Callable] = {ClientError: _handle_client_error}

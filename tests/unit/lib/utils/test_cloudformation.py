@@ -6,7 +6,8 @@ from botocore.exceptions import ClientError
 from samcli.lib.utils.cloudformation import (
     CloudFormationResourceSummary,
     get_resource_summaries,
-    get_resource_summary, list_active_stack_names,
+    get_resource_summary,
+    list_active_stack_names,
 )
 from samcli.lib.utils.resources import AWS_CLOUDFORMATION_STACK
 
@@ -144,24 +145,17 @@ class TestCloudformationUtils(TestCase):
         with self.assertRaises(ClientError):
             get_resource_summaries(resource_provider_mock, client_provider_mock, "invalid-stack")
             patched_log.debug.assert_called_with(
-                "Invalid stack name (%s). Available stack names: %s",
-                "invalid-stack",
-                ", ".join([])
+                "Invalid stack name (%s). Available stack names: %s", "invalid-stack", ", ".join([])
             )
 
     def test_list_active_stack_names(self):
         cfn_client_mock = Mock()
         cfn_client_mock.list_stacks.side_effect = [
             {
-                "StackSummaries": [
-                    {"StackName": "A"}, {"StackName": "B"}, {"StackName": "C", "RootId": "A"}
-                ], "NextToken": "X"
+                "StackSummaries": [{"StackName": "A"}, {"StackName": "B"}, {"StackName": "C", "RootId": "A"}],
+                "NextToken": "X",
             },
-            {
-                "StackSummaries": [
-                    {"StackName": "D"}, {"StackName": "E"}, {"StackName": "F", "RootId": "A"}
-                ]
-            }
+            {"StackSummaries": [{"StackName": "D"}, {"StackName": "E"}, {"StackName": "F", "RootId": "A"}]},
         ]
         client_provider_mock = Mock()
         client_provider_mock.return_value = cfn_client_mock
@@ -172,15 +166,10 @@ class TestCloudformationUtils(TestCase):
         cfn_client_mock = Mock()
         cfn_client_mock.list_stacks.side_effect = [
             {
-                "StackSummaries": [
-                    {"StackName": "A"}, {"StackName": "B"}, {"StackName": "C", "RootId": "A"}
-                ], "NextToken": "X"
+                "StackSummaries": [{"StackName": "A"}, {"StackName": "B"}, {"StackName": "C", "RootId": "A"}],
+                "NextToken": "X",
             },
-            {
-                "StackSummaries": [
-                    {"StackName": "D"}, {"StackName": "E"}, {"StackName": "F", "RootId": "A"}
-                ]
-            }
+            {"StackSummaries": [{"StackName": "D"}, {"StackName": "E"}, {"StackName": "F", "RootId": "A"}]},
         ]
         client_provider_mock = Mock()
         client_provider_mock.return_value = cfn_client_mock

@@ -18,7 +18,6 @@ class UnhandledException(Exception):
 
 
 class TestCommandExceptionHandler(TestCase):
-
     def test_no_exception(self):
         self.assertEqual(echo_command(lambda: 5), 5)
 
@@ -73,12 +72,9 @@ def command_with_custom_exception_handler(proxy_function: Callable):
 
 
 class TestCommandExceptionHandlerWithCustomHandler(TestCase):
-
     def test_custom_exception(self):
         def _proxy_custom_exception():
             raise CustomException()
 
         with self.assertRaises(CustomUserException):
             command_with_custom_exception_handler(_proxy_custom_exception)
-
-

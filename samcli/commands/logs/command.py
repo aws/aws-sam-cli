@@ -15,8 +15,10 @@ from samcli.commands._utils.experimental import (
     prompt_experimental,
 )
 from samcli.commands._utils.options import common_observability_options
-from samcli.commands.logs.validation_and_exception_handlers import SAM_LOGS_ADDITIONAL_EXCEPTION_HANDLERS, \
-    stack_name_cw_log_group_validation
+from samcli.commands.logs.validation_and_exception_handlers import (
+    SAM_LOGS_ADDITIONAL_EXCEPTION_HANDLERS,
+    stack_name_cw_log_group_validation,
+)
 from samcli.lib.telemetry.metric import track_command
 from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.lib.utils.version_checker import check_newer_version

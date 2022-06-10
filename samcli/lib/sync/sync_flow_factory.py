@@ -84,7 +84,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
         resource_mapping = get_resource_summaries(
             boto_resource_provider=resource_provider,
             boto_client_provider=client_provider,
-            stack_name=self._deploy_context.stack_name
+            stack_name=self._deploy_context.stack_name,
         )
 
         # get the resource_id -> physical_id mapping
