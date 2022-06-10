@@ -31,8 +31,6 @@ class TestDeleteCliCommand(TestCase):
             config_env=self.config_env,
             profile=self.profile,
             no_prompts=self.no_prompts,
-            s3_bucket=self.s3_bucket,
-            s3_prefix=self.s3_prefix,
         )
 
         mock_delete_context.assert_called_with(
@@ -42,8 +40,6 @@ class TestDeleteCliCommand(TestCase):
             config_file=self.config_file,
             config_env=self.config_env,
             no_prompts=self.no_prompts,
-            s3_bucket=self.s3_bucket,
-            s3_prefix=self.s3_prefix,
         )
 
         context_mock.run.assert_called_with()
