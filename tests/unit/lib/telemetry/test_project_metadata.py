@@ -77,24 +77,24 @@ class TestProjectMetadata(TestCase):
 
     @parameterized.expand(
         [
-            ("C:/Users/aws/path/to/library/aws-sam-cli", "aws-sam-cli"),
-            ("C:\\Users\\aws\\Windows\\path\\aws-sam-cli", "aws-sam-cli"),
-            ("C:/", ""),
-            ("C:\\", ""),
-            ("E:/path/to/another/dir", "dir"),
-            ("This/one/doesn't/start/with/a/letter", "letter"),
-            ("/banana", "banana"),
-            ("D:/one/more/just/to/be/safe", "safe"),
+            ("C:/Users/aws/path/to/library/aws-sam-cli"),
+            ("C:\\Users\\aws\\Windows\\path\\aws-sam-cli"),
+            ("C:/"),
+            ("C:\\"),
+            ("E:/path/to/another/dir"),
+            ("This/one/doesn't/start/with/a/letter"),
+            ("/banana"),
+            ("D:/one/more/just/to/be/safe"),
         ]
     )
     @patch("samcli.lib.telemetry.project_metadata.getcwd")
     @patch("samcli.lib.telemetry.project_metadata.subprocess.run")
-    def test_retrieve_project_name_from_dir(self, cwd, expected, sp_mock, cwd_mock):
+    def test_retrieve_project_name_from_dir(self, cwd, sp_mock, cwd_mock):
         sp_mock.side_effect = CalledProcessError(128, ["git", "config", "--get", "remote.origin.url"])
         cwd_mock.return_value = cwd
 
         project_name = get_project_name()
-        self.assertEqual(project_name, str(uuid5(NAMESPACE_URL, expected)))
+        self.assertEqual(project_name, str(uuid5(NAMESPACE_URL, cwd.replace("\\", "/"))))
 
     @parameterized.expand(
         [

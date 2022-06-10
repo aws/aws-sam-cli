@@ -3,7 +3,6 @@ Creates and encrypts metadata regarding SAM CLI projects.
 """
 
 from os import getcwd
-from os.path import basename
 import re
 import subprocess
 from typing import List, Optional
@@ -48,7 +47,7 @@ def get_project_name() -> Optional[str]:
     -------
     str | None
         A UUID5 encrypted string of either the name of the project, or the name of the
-        current directory that the command is running in.
+        current working directory that the command is running in.
         If telemetry is opted out of by the user, returns None
     """
     if not bool(GlobalConfig().telemetry_enabled):
@@ -61,7 +60,7 @@ def get_project_name() -> Optional[str]:
         )
         project_name = _parse_remote_origin_url(str(runcmd.stdout))[2]  # dir is git repo, get project name from URL
     except subprocess.CalledProcessError:
-        project_name = basename(getcwd().replace("\\", "/"))  # dir is not a git repo, get directory name
+        project_name = getcwd().replace("\\", "/")  # dir is not a git repo, get directory name
 
     return _encrypt_value(project_name)
 
