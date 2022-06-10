@@ -3,12 +3,15 @@ import os
 import logging
 import json
 import shutil
+import tempfile
 import time
 import uuid
+import zipfile
 from pathlib import Path
 from typing import Callable
 
 import boto3
+import requests
 from botocore.exceptions import ClientError
 from botocore.config import Config
 
@@ -19,6 +22,7 @@ from tests.testing_utils import get_sam_command
 
 RETRY_ATTEMPTS = 20
 RETRY_WAIT = 1
+ZIP_FILE = "layer_zip.zip"
 
 LOG = logging.getLogger(__name__)
 
@@ -39,6 +43,7 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         self.sns_arn = os.environ.get("AWS_SNS")
         self.stacks = []
         self.s3_prefix = uuid.uuid4().hex
+        self.dependency_layer = True if self.dependency_layer is None else self.dependency_layer
         super().setUp()
 
     def tearDown(self):
@@ -176,6 +181,30 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         with open(source, "rb") as source_file:
             with open(destination, "wb") as destination_file:
                 destination_file.write(source_file.read())
+
+    @staticmethod
+    def _extract_contents_from_layer_zip(dep_dir, zipped_layer):
+        with tempfile.TemporaryDirectory() as extract_path:
+            zipped_path = Path(extract_path, ZIP_FILE)
+            with open(zipped_path, "wb") as file:
+                file.write(zipped_layer.content)
+            with zipfile.ZipFile(zipped_path) as zip_ref:
+                zip_ref.extractall(extract_path)
+            return os.listdir(Path(extract_path, dep_dir))
+
+    def get_layer_contents(self, arn, dep_dir):
+        layer = self.lambda_client.get_layer_version_by_arn(Arn=arn)
+        layer_location = layer.get("Content", {}).get("Location", "")
+        zipped_layer = requests.get(layer_location)
+        return SyncIntegBase._extract_contents_from_layer_zip(dep_dir, zipped_layer)
+
+    def get_dependency_layer_contents_from_arn(self, stack_resources, dep_dir, version):
+        layers = stack_resources["AWS::Lambda::LayerVersion"]
+        for layer in layers:
+            if "DepLayer" in layer:
+                layer_version = layer[:-1] + str(version)
+                return self.get_layer_contents(layer_version, dep_dir)
+        return None
 
     def get_sync_command_list(
         self,
