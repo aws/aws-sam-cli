@@ -7,6 +7,7 @@ import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
+from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.commands._utils.options import common_observability_options
 from samcli.lib.observability.util import OutputOption
 from samcli.lib.telemetry.metric import track_command
@@ -36,6 +37,7 @@ HELP_TEXT = """
 @track_command
 @check_newer_version
 @print_cmdline_args
+@command_exception_handler
 def cli(
     ctx,
     trace_id,
