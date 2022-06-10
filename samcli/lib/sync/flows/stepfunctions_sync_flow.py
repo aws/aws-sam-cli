@@ -1,11 +1,11 @@
 """Base SyncFlow for StepFunctions"""
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, TYPE_CHECKING, cast, Optional
+from typing import Any, Dict, List, TYPE_CHECKING, Optional
 
 
 from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIdentifier
-from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall
+from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall, get_definition_path
 from samcli.lib.sync.exceptions import InfraSyncRequiredError
 from samcli.lib.providers.exceptions import MissingLocalDefinition
 
@@ -21,7 +21,7 @@ class StepFunctionsSyncFlow(SyncFlow):
     _state_machine_identifier: str
     _stepfunctions_client: Any
     _stacks: List[Stack]
-    _definition_uri: Optional[str]
+    _definition_uri: Optional[Path]
     _states_definition: Optional[str]
 
     def __init__(
@@ -75,18 +75,20 @@ class StepFunctionsSyncFlow(SyncFlow):
     def _process_definition_file(self) -> Optional[str]:
         if self._definition_uri is None:
             return None
-        with open(self._definition_uri, "r", encoding="utf-8") as states_file:
+        with open(str(self._definition_uri), "r", encoding="utf-8") as states_file:
             states_data = states_file.read()
             return states_data
 
-    def _get_definition_file(self, state_machine_identifier: str) -> Optional[str]:
-        if self._resource is None:
+    def _get_definition_file(self, state_machine_identifier: str) -> Optional[Path]:
+        if not self._resource:
             return None
-        properties = self._resource.get("Properties", {})
-        definition_file = properties.get("DefinitionUri")
-        if self._build_context.base_dir:
-            definition_file = str(Path(self._build_context.base_dir).joinpath(definition_file))
-        return cast(Optional[str], definition_file)
+        return get_definition_path(
+            self._resource,
+            state_machine_identifier,
+            self._build_context.use_base_dir,
+            self._build_context.base_dir,
+            self._stacks,
+        )
 
     def compare_remote(self) -> bool:
         # Not comparing with remote right now, instead only making update api calls

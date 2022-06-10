@@ -802,26 +802,39 @@ class TestGetResourceFullPathByID(TestCase):
 
 
 class TestGetStack(TestCase):
-    root_stack = Stack("", "", "template.yaml", None, {})
-    child_stack = Stack("", "child", "template.yaml", None, {})
+    root_stack = Stack("", "Root", "template.yaml", None, {})
+    child_stack = Stack("Root", "Child", "root_stack/template.yaml", None, {})
+    child_child_stack = Stack("Root/Child", "ChildChild", "root_stack/child_stack/template.yaml", None, {})
 
     def test_get_parent_stack(self):
-        stack = Stack.get_parent_stack(self.child_stack, [self.root_stack, self.child_stack])
+        stack = Stack.get_parent_stack(self.child_stack, [self.root_stack, self.child_stack, self.child_child_stack])
         self.assertEqual(stack, self.root_stack)
 
-        stack = Stack.get_parent_stack(self.root_stack, [self.root_stack, self.child_stack])
+        stack = Stack.get_parent_stack(self.root_stack, [self.root_stack, self.child_stack, self.child_child_stack])
         self.assertIsNone(stack)
 
-    def test_get_stack_by_logical_id(self):
-        stack = Stack.get_stack_by_logical_id("child", [self.root_stack, self.child_stack])
+    def test_get_stack_by_full_path(self):
+        stack = Stack.get_stack_by_full_path("Root/Child", [self.root_stack, self.child_stack, self.child_child_stack])
         self.assertEqual(stack, self.child_stack)
 
-        stack = Stack.get_stack_by_logical_id("not_exist", [self.root_stack, self.child_stack])
+        stack = Stack.get_stack_by_full_path("Root", [self.root_stack, self.child_stack, self.child_child_stack])
+        self.assertEqual(stack, self.root_stack)
+
+        stack = Stack.get_stack_by_full_path("Child/Child", [self.root_stack, self.child_stack, self.child_child_stack])
         self.assertIsNone(stack)
 
     def test_get_child_stacks(self):
-        stack_list = Stack.get_child_stacks(self.root_stack, [self.root_stack, self.child_stack])
+        stack_list = Stack.get_child_stacks(
+            self.root_stack, [self.root_stack, self.child_stack, self.child_child_stack]
+        )
         self.assertEqual(stack_list, [self.child_stack])
 
-        stack_list = Stack.get_child_stacks(self.child_stack, [self.root_stack, self.child_stack])
+        stack_list = Stack.get_child_stacks(
+            self.child_stack, [self.root_stack, self.child_stack, self.child_child_stack]
+        )
+        self.assertEqual(stack_list, [self.child_child_stack])
+
+        stack_list = Stack.get_child_stacks(
+            self.child_child_stack, [self.root_stack, self.child_stack, self.child_child_stack]
+        )
         self.assertEqual(stack_list, [])

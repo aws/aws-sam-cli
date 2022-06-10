@@ -480,7 +480,6 @@ class TestSyncCodeNested(TestSyncCodeBase):
                 self.assertIn("extra_message", lambda_response)
                 self.assertEqual(lambda_response.get("message"), "10")
 
-    @pytest.mark.skip(reason="Currently not properly supported")
     def test_sync_code_nested_rest_api(self):
         shutil.rmtree(
             TestSyncCodeBase.temp_dir.joinpath("child_stack").joinpath("child_child_stack").joinpath("apigateway"),
@@ -518,7 +517,6 @@ class TestSyncCodeNested(TestSyncCodeBase):
         rest_api = self.stack_resources.get(AWS_APIGATEWAY_RESTAPI)[0]
         self.assertEqual(self._get_api_message(rest_api), '{"message": "hello 2"}')
 
-    @pytest.mark.skip(reason="Currently not properly supported")
     def test_sync_code_nested_state_machine(self):
         shutil.rmtree(
             TestSyncCodeBase.temp_dir.joinpath("child_stack").joinpath("child_child_stack").joinpath("statemachine"),
