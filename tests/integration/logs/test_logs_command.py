@@ -80,7 +80,7 @@ class LogsIntegTestCases(LogsIntegBase):
         return None
 
     def _test_function_logs(self, function_name):
-        expected_log_output = f"Hello world from {function_name} function" # Hello world from ApiGwFunction function
+        expected_log_output = f"Hello world from {function_name} function"  # Hello world from ApiGwFunction function
         LOG.info("Invoking function %s", function_name)
         lambda_invoke_result = self.lambda_client.invoke(FunctionName=self._get_physical_id(function_name))
         LOG.info("Lambda invoke result %s", lambda_invoke_result)
@@ -90,7 +90,7 @@ class LogsIntegTestCases(LogsIntegBase):
     def _test_tail(self, function_name):
         cmd_list = self.get_logs_command_list(self.stack_name, name=function_name, tail=True)
         tail_process = start_persistent_process(cmd_list)
-        expected_log_output = f"Hello world from {function_name} function" # Hello world from ApiGwFunction function
+        expected_log_output = f"Hello world from {function_name} function"  # Hello world from ApiGwFunction function
         LOG.info("Invoking function %s", function_name)
         lambda_invoke_result = self.lambda_client.invoke(FunctionName=self._get_physical_id(function_name))
         LOG.info("Lambda invoke result %s", lambda_invoke_result)
@@ -105,7 +105,7 @@ class LogsIntegTestCases(LogsIntegBase):
 
     def _test_filter(self, function_name):
         function_name_for_filter = function_name.replace("/", "")
-        log_filter = f"this should be filtered {function_name_for_filter}" # this should be filtered ApiGwFunction
+        log_filter = f"this should be filtered {function_name_for_filter}"  # this should be filtered ApiGwFunction
         LOG.info("Invoking function %s", function_name)
         lambda_invoke_result = self.lambda_client.invoke(FunctionName=self._get_physical_id(function_name))
         LOG.info("Lambda invoke result %s", lambda_invoke_result)
@@ -141,7 +141,7 @@ class LogsIntegTestCases(LogsIntegBase):
             [
                 f"HTTP Method: GET, Resource Path: /{path}",
                 # Hello world from HelloWorldServerlessApi/hello function
-                f"Hello world from {apigw_name_from_output}/{path} function"
+                f"Hello world from {apigw_name_from_output}/{path} function",
             ],
         )
 
@@ -163,7 +163,7 @@ class LogsIntegTestCases(LogsIntegBase):
         )
 
     def _test_output(self, function_name, output):
-        expected_log_output = f"Hello world from {function_name} function" # Hello world from ApiGwFunction function
+        expected_log_output = f"Hello world from {function_name} function"  # Hello world from ApiGwFunction function
         LOG.info("Invoking function %s", function_name)
         lambda_invoke_result = self.lambda_client.invoke(FunctionName=self._get_physical_id(function_name))
         LOG.info("Lambda invoke result %s", lambda_invoke_result)
@@ -172,7 +172,7 @@ class LogsIntegTestCases(LogsIntegBase):
 
     def _test_start_end(self, function_name, start_end_time_params):
         (start_time, end_time, should_succeed) = start_end_time_params
-        expected_log_output = f"Hello world from {function_name} function" # Hello world from ApiGwFunction function
+        expected_log_output = f"Hello world from {function_name} function"  # Hello world from ApiGwFunction function
         LOG.info("Invoking function %s", function_name)
         lambda_invoke_result = self.lambda_client.invoke(FunctionName=self._get_physical_id(function_name))
         LOG.info("Lambda invoke result %s", lambda_invoke_result)
@@ -186,7 +186,7 @@ class LogsIntegTestCases(LogsIntegBase):
             self._check_logs(cmd_list, [expected_log_output])
 
     def _test_include_traces(self, function_name):
-        expected_log_output = f"Hello world from {function_name} function" # Hello world from ApiGwFunction function
+        expected_log_output = f"Hello world from {function_name} function"  # Hello world from ApiGwFunction function
         LOG.info("Invoking function %s", function_name)
         lambda_invoke_result = self.lambda_client.invoke(FunctionName=self._get_physical_id(function_name))
         LOG.info("Lambda invoke result %s", lambda_invoke_result)
