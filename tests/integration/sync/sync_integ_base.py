@@ -8,6 +8,7 @@ import time
 import uuid
 import zipfile
 from pathlib import Path
+from typing import Callable
 
 import boto3
 import requests
@@ -17,9 +18,8 @@ from botocore.config import Config
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
 from tests.integration.buildcmd.build_integ_base import BuildIntegBase
 from tests.integration.package.package_integ_base import PackageIntegBase
+from tests.testing_utils import get_sam_command
 
-CFN_SLEEP = 3
-CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
 RETRY_ATTEMPTS = 20
 RETRY_WAIT = 1
 ZIP_FILE = "layer_zip.zip"
@@ -88,8 +88,43 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
                 lambda_response = self.lambda_client.invoke(
                     FunctionName=lambda_function, InvocationType="RequestResponse"
                 )
-                payload = json.loads(lambda_response.get("Payload").read().decode("utf-8"))
+                lambda_response_payload = lambda_response.get("Payload").read().decode("utf-8")
+                LOG.info("Lambda Response Payload: %s", lambda_response_payload)
+                payload = json.loads(lambda_response_payload)
                 return payload.get("body")
+            except Exception:
+                if count == RETRY_ATTEMPTS:
+                    raise
+            count += 1
+        return ""
+
+    def _confirm_lambda_response(self, lambda_function: str, verification_function: Callable) -> None:
+        count = 0
+        while count < RETRY_ATTEMPTS:
+            try:
+                time.sleep(RETRY_WAIT)
+                lambda_response = self.lambda_client.invoke(
+                    FunctionName=lambda_function, InvocationType="RequestResponse"
+                )
+                lambda_response_payload = lambda_response.get("Payload").read().decode("utf-8")
+                LOG.info("Lambda Response Payload: %s", lambda_response_payload)
+                payload = json.loads(lambda_response_payload)
+                verification_function(payload)
+            except Exception:
+                if count == RETRY_ATTEMPTS:
+                    raise
+            count += 1
+
+    def _confirm_lambda_error(self, lambda_function):
+        count = 0
+        while count < RETRY_ATTEMPTS:
+            try:
+                time.sleep(RETRY_WAIT)
+                lambda_response = self.lambda_client.invoke(
+                    FunctionName=lambda_function, InvocationType="RequestResponse"
+                )
+                if lambda_response.get("FunctionError"):
+                    return
             except Exception:
                 if count == RETRY_ATTEMPTS:
                     raise
@@ -142,6 +177,12 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         return ""
 
     @staticmethod
+    def update_file(source, destination):
+        with open(source, "rb") as source_file:
+            with open(destination, "wb") as destination_file:
+                destination_file.write(source_file.read())
+
+    @staticmethod
     def _extract_contents_from_layer_zip(dep_dir, zipped_layer):
         with tempfile.TemporaryDirectory() as extract_path:
             zipped_path = Path(extract_path, ZIP_FILE)
@@ -164,13 +205,6 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
                 layer_version = layer[:-1] + str(version)
                 return self.get_layer_contents(layer_version, dep_dir)
         return None
-
-    def base_command(self):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
-
-        return command
 
     def get_sync_command_list(
         self,
@@ -197,7 +231,7 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         metadata=None,
         debug=None,
     ):
-        command_list = [self.base_command(), "sync"]
+        command_list = [get_sam_command(), "sync"]
 
         command_list += ["-t", str(template_file)]
         if code:
