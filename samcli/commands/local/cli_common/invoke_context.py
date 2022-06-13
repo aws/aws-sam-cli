@@ -9,12 +9,13 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional, IO, cast, Tuple, Any, Type
 
+from samcli.commands.local.cli_common.user_exceptions import InvokeContextException, DebugContextException
 from samcli.lib.utils import osutils
 from samcli.lib.providers.provider import Stack, Function
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.async_utils import AsyncContext
 from samcli.lib.utils.stream_writer import StreamWriter
-from samcli.commands.exceptions import ContainersInitializationException, UserException
+from samcli.commands.exceptions import ContainersInitializationException
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.local.lambdafn.runtime import LambdaRuntime, WarmLambdaRuntime
@@ -27,27 +28,21 @@ from samcli.lib.providers.sam_function_provider import SamFunctionProvider, Refr
 LOG = logging.getLogger(__name__)
 
 
-class DockerIsNotReachableException(UserException):
+class DockerIsNotReachableException(InvokeContextException):
     """
     Docker is not installed or not running at the moment
     """
 
 
-class InvalidEnvironmentVariablesFileException(UserException):
+class InvalidEnvironmentVariablesFileException(InvokeContextException):
     """
     User provided an environment variables file which couldn't be read by SAM CLI
     """
 
 
-class NoFunctionIdentifierProvidedException(UserException):
+class NoFunctionIdentifierProvidedException(InvokeContextException):
     """
     If template has more than one function defined and user didn't provide any function logical id
-    """
-
-
-class DebugContextException(UserException):
-    """
-    Something went wrong when creating the DebugContext
     """
 
 

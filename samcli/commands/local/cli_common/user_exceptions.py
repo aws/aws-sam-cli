@@ -5,6 +5,12 @@ Class containing error conditions that are exposed to the user.
 from samcli.commands.exceptions import UserException
 
 
+class InvokeContextException(UserException):
+    """
+    Something went wrong invoking the function.
+    """
+
+
 class InvalidSamTemplateException(UserException):
     """
     The template provided was invalid and not able to transform into a Standard CloudFormation Template
@@ -14,6 +20,12 @@ class InvalidSamTemplateException(UserException):
 class SamTemplateNotFoundException(UserException):
     """
     The SAM Template provided could not be found
+    """
+
+
+class DebugContextException(UserException):
+    """
+    Something went wrong when creating the DebugContext
     """
 
 
