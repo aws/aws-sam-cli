@@ -12,7 +12,6 @@ import boto3
 import click
 import requests
 
-
 from OpenSSL import SSL, crypto  # type: ignore
 
 from samcli.lib.config.samconfig import SamConfig
@@ -29,7 +28,12 @@ PIPELINE_EXECUTION_ROLE = "pipeline_execution_role"
 CLOUDFORMATION_EXECUTION_ROLE = "cloudformation_execution_role"
 ARTIFACTS_BUCKET = "artifacts_bucket"
 ECR_IMAGE_REPOSITORY = "image_repository"
-PERMISSIONS_PROVIDER = "permissions_provider"
+OIDC_PROVIDER_URL = "oidc_provider_url"
+OIDC_CLIENT_ID = "oidc_client_id"
+OIDC_PROVIDER = "oidc_provider"
+GITHUB_ORG = "github_org"
+GITHUB_REPO = "github_repo"
+DEPLOYMENT_BRANCH = "deployment_branch"
 REGION = "region"
 
 
@@ -94,10 +98,18 @@ class Stage:
         oidc_client_id: Optional[str] = None,
         subject_claim: Optional[str] = None,
         create_new_oidc_provider: Optional[bool] = None,
+        oidc_provider_name: Optional[str] = None,
+        github_org: Optional[str] = None,
+        github_repo: Optional[str] = None,
+        deployment_branch: Optional[str] = None,
     ) -> None:
         self.name: str = name
         self.subject_claim = subject_claim
         self.use_oidc_provider = use_oidc_provider
+        self.oidc_provider_name = oidc_provider_name
+        self.github_org = github_org
+        self.github_repo = github_repo
+        self.deployment_branch = deployment_branch
         self.aws_profile: Optional[str] = aws_profile
         self.aws_region: Optional[str] = aws_region
         self.pipeline_user: IAMUser = IAMUser(arn=pipeline_user_arn, comment="Pipeline IAM user")
@@ -124,17 +136,18 @@ class Stage:
         self.create_new_oidc_provider = create_new_oidc_provider
 
     def _generate_thumbprint(self) -> Optional[str]:
+        # Send HTTP GET to retrieve jwks_uri field from openid-configuration document
         oidc_config_url = "{url}/.well-known/openid-configuration".format(url=self.oidc_provider.provider_url)
-
         r = requests.get(oidc_config_url, timeout=5)
         jwks_uri = r.json()["jwks_uri"]
         url_start = jwks_uri.find("//") + 2
         url_end = jwks_uri[url_start:].find("/") + url_start
         url_for_certificate = jwks_uri[url_start:url_end]
 
+        # Create connection to retrieve certificate
         address = (url_for_certificate, 443)
         ctx = SSL.Context(SSL.TLS_METHOD)
-        s = socket.create_connection(address)
+        s = socket.create_connection(address, timeout=5)
         c = SSL.Connection(ctx, s)
         c.set_connect_state()
         c.set_tlsext_host_name(str.encode(address[0]))
@@ -143,6 +156,8 @@ class Stage:
         c.sendall(str.encode("HEAD / HTTP/1.0\n\n"))
         peerCertChain = c.get_peer_cert_chain()
         cert = peerCertChain[-1]
+
+        # Dump the certificate in DER/ASN1 format so that its SHA1 hash can be computed
         dumped_cert = crypto.dump_certificate(crypto.FILETYPE_ASN1, cert)
         s.close()
 
@@ -211,7 +226,8 @@ class Stage:
                 click.secho(self.color.red("Canceling pipeline bootstrap creation."))
                 return False
 
-        self.oidc_provider.thumbprint = self._generate_thumbprint()
+        if self.create_new_oidc_provider:
+            self.oidc_provider.thumbprint = self._generate_thumbprint()
 
         environment_resources_template_body = Stage._read_template(STAGE_RESOURCES_CFN_TEMPLATE)
         output: StackOutput = manage_stack(
@@ -310,7 +326,20 @@ class Stage:
 
         if self.pipeline_user.arn:
             samconfig.put(cmd_names=cmd_names, section="parameters", key=PIPELINE_USER, value=self.pipeline_user.arn)
-
+        if self.use_oidc_provider:
+            samconfig.put(
+                cmd_names=cmd_names, section="parameters", key=OIDC_PROVIDER_URL, value=self.oidc_provider.provider_url
+            )
+            samconfig.put(
+                cmd_names=cmd_names, section="parameters", key=OIDC_CLIENT_ID, value=self.oidc_provider.client_id
+            )
+            samconfig.put(cmd_names=cmd_names, section="parameters", key=OIDC_PROVIDER, value=self.oidc_provider_name)
+            if self.oidc_provider_name == "GitHub Actions":
+                samconfig.put(cmd_names=cmd_names, section="parameters", key=GITHUB_ORG, value=self.github_org)
+                samconfig.put(cmd_names=cmd_names, section="parameters", key=GITHUB_REPO, value=self.github_repo)
+                samconfig.put(
+                    cmd_names=cmd_names, section="parameters", key=DEPLOYMENT_BRANCH, value=self.deployment_branch
+                )
         # Computing Artifacts bucket name and ECR image repository URL may through an exception if the ARNs are wrong
         # Let's swallow such an exception to be able to save the remaining resources
         try:

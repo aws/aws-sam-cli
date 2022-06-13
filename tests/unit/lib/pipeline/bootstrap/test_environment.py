@@ -1,5 +1,9 @@
+import hashlib
 from unittest import TestCase
 from unittest.mock import Mock, patch, call, MagicMock
+
+import OpenSSL.SSL  # type: ignore
+import requests
 
 from samcli.lib.pipeline.bootstrap.stage import Stage
 
@@ -189,6 +193,13 @@ class TestStage(TestCase):
             "ArtifactsBucketArn": ANY_ARTIFACTS_BUCKET_ARN,
             "CreateImageRepository": "true",
             "ImageRepositoryArn": ANY_IMAGE_REPOSITORY_ARN,
+            "UseOidcProvider": "false",
+            "CreateNewOidcProvider": "false",
+            "IdentityProviderThumbprint": "",
+            "OidcClientId": "",
+            "OidcProviderUrl": "",
+            "SubjectClaim": "",
+            "UseOidcProvider": "false",
         }
         self.assertEqual(expected_parameter_overrides, kwargs["parameter_overrides"])
 
@@ -400,6 +411,37 @@ class TestStage(TestCase):
         stage_without_provided_pipeline_user.print_resources_summary()
         self.assert_summary_has_a_message_like("AWS_ACCESS_KEY_ID", click_mock.secho)
         self.assert_summary_has_a_message_like("AWS_SECRET_ACCESS_KEY", click_mock.secho)
+
+    @patch("samcli.lib.pipeline.bootstrap.stage.crypto")
+    @patch("samcli.lib.pipeline.bootstrap.stage.socket")
+    @patch("samcli.lib.pipeline.bootstrap.stage.SSL")
+    @patch("samcli.lib.pipeline.bootstrap.stage.requests")
+    @patch("samcli.lib.pipeline.bootstrap.stage.click")
+    def test_generate_oidc_provider_thumbprint(self, click_mock, requests_mock, ssl_mock, socket_mock, crypto_mock):
+        # setup
+        stage: Stage = Stage(
+            name=ANY_STAGE_CONFIGURATION_NAME,
+            pipeline_user_arn=ANY_PIPELINE_USER_ARN,
+            artifacts_bucket_arn=ANY_ARTIFACTS_BUCKET_ARN,
+            create_image_repository=True,
+            image_repository_arn=ANY_IMAGE_REPOSITORY_ARN,
+        )
+        response_mock = Mock(requests.Response)
+        requests_mock.get.return_value = response_mock
+        response_mock.json.return_value = {"jwks_uri": "https://server.example.com/test"}
+        connection_mock = Mock(OpenSSL.SSL.Connection)
+        ssl_mock.Connection.return_value = connection_mock
+        certificate_mock = Mock(OpenSSL.crypto.x509)
+        connection_mock.get_peer_cert_chain.return_value = [certificate_mock]
+        dumped_certificate = "not a real certificate object dump".encode("utf-8")
+        crypto_mock.dump_certificate.return_value = dumped_certificate
+        expected_thumbprint = hashlib.sha1(dumped_certificate).hexdigest()
+
+        # trigger
+        actual_thumbprint = stage._generate_thumbprint()
+
+        # verify
+        self.assertEqual(expected_thumbprint, actual_thumbprint)
 
     def assert_summary_has_a_message_like(self, msg, click_secho_mock):
         self.assertTrue(

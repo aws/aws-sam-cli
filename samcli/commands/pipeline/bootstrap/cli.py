@@ -11,7 +11,15 @@ import click
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, aws_creds_options, print_cmdline_args
 from samcli.lib.config.samconfig import SamConfig
-from samcli.lib.pipeline.bootstrap.stage import Stage
+from samcli.lib.pipeline.bootstrap.stage import (
+    DEPLOYMENT_BRANCH,
+    GITHUB_ORG,
+    GITHUB_REPO,
+    OIDC_CLIENT_ID,
+    OIDC_PROVIDER,
+    OIDC_PROVIDER_URL,
+    Stage,
+)
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.version_checker import check_newer_version
@@ -216,8 +224,18 @@ def do_cli(
     """
     implementation of `sam pipeline bootstrap` command
     """
-    if not pipeline_user_arn:
+    if not pipeline_user_arn and not use_oidc_provider:
         pipeline_user_arn = _load_saved_pipeline_user_arn()
+
+    if not pipeline_user_arn and not oidc_provider_url:
+        oidc_parameters = _load_saved_oidc_values()
+        oidc_provider = oidc_parameters[OIDC_PROVIDER]
+        oidc_provider_url = oidc_parameters[OIDC_PROVIDER_URL]
+        oidc_client_id = oidc_parameters[OIDC_CLIENT_ID]
+        github_org = oidc_parameters[GITHUB_ORG]
+        github_repo = oidc_parameters[GITHUB_REPO]
+        deployment_branch = oidc_parameters[DEPLOYMENT_BRANCH]
+        create_new_oidc_provider = len(oidc_parameters) > 0
 
     if interactive:
         if standalone:
@@ -319,6 +337,10 @@ def do_cli(
         use_oidc_provider=use_oidc_provider,
         subject_claim=subject_claim,
         create_new_oidc_provider=create_new_oidc_provider,
+        oidc_provider_name=oidc_provider,
+        github_org=github_org,
+        github_repo=github_repo,
+        deployment_branch=deployment_branch,
     )
 
     bootstrapped: bool = environment.bootstrap(confirm_changeset=confirm_changeset)
@@ -360,6 +382,21 @@ def _load_saved_pipeline_user_arn() -> Optional[str]:
     return config.get("pipeline_user")
 
 
+def _load_saved_oidc_values() -> Dict[str, Optional[str]]:
+    samconfig: SamConfig = SamConfig(config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME)
+    if not samconfig.exists():
+        return {}
+    config: Dict[str, str] = samconfig.get_all(cmd_names=_get_bootstrap_command_names(), section="parameters")
+    oidc_parameters: Dict[str, Optional[str]] = {}
+    oidc_parameters[OIDC_PROVIDER] = config.get(OIDC_PROVIDER)
+    oidc_parameters[OIDC_PROVIDER_URL] = config.get(OIDC_PROVIDER_URL)
+    oidc_parameters[OIDC_CLIENT_ID] = config.get(OIDC_CLIENT_ID)
+    oidc_parameters[GITHUB_ORG] = config.get(GITHUB_ORG)
+    oidc_parameters[GITHUB_REPO] = config.get(GITHUB_REPO)
+    oidc_parameters[DEPLOYMENT_BRANCH] = config.get(DEPLOYMENT_BRANCH)
+    return oidc_parameters
+
+
 def _build_oidc_subject_claim(github_org: Optional[str], github_repo: Optional[str], branch: Optional[str]) -> str:
     return "repo:{org}/{repo}:ref:refs/heads/{branch}".format(org=github_org, repo=github_repo, branch=branch)
 
@@ -394,7 +431,7 @@ def _check_oidc_common_params(
         missing_parameters_messages.append("Error: Missing required parameter '--oidc-provider-url'")
     if create_new_oidc_provider is None:
         missing_parameters_messages.append("Error: Missing required parameter '--create-new-oidc-provider'")
-    if not oidc_client_id and create_new_oidc_provider:
+    if not oidc_client_id:
         missing_parameters_messages.append("Error: Missing required parameter '--oidc-client-id'")
     if not oidc_provider:
         missing_parameters_messages.append("Error: Missing required parameter '--oidc-provider'")
