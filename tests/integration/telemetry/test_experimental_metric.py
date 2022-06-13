@@ -81,7 +81,7 @@ class TestExperimentalMetric(IntegBase):
             process = self.run_cmd(cmd_list=[self.cmd, "logs", "--include-traces"], optout_envvar_value="1")
             process.communicate()
 
-            self.assertEqual(process.returncode, 1, "Command should fail")
+            self.assertEqual(process.returncode, 2, "Command should fail")
             all_requests = server.get_all_requests()
             self.assertEqual(1, len(all_requests), "Command run metric must be sent")
             request = all_requests[0]
@@ -188,7 +188,7 @@ class TestExperimentalMetric(IntegBase):
             process = self.run_cmd(cmd_list=[self.cmd, "logs", "--name", "abc"], optout_envvar_value="1")
             process.communicate()
 
-            self.assertEqual(process.returncode, 1, "Command should fail")
+            self.assertEqual(process.returncode, 2, "Command should fail")
             all_requests = server.get_all_requests()
             self.assertEqual(1, len(all_requests), "Command run metric must be sent")
             request = all_requests[0]

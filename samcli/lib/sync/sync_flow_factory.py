@@ -16,7 +16,7 @@ from samcli.lib.sync.flows.image_function_sync_flow import ImageFunctionSyncFlow
 from samcli.lib.sync.flows.rest_api_sync_flow import RestApiSyncFlow
 from samcli.lib.sync.flows.http_api_sync_flow import HttpApiSyncFlow
 from samcli.lib.sync.flows.stepfunctions_sync_flow import StepFunctionsSyncFlow
-from samcli.lib.utils.boto_utils import get_boto_resource_provider_with_config
+from samcli.lib.utils.boto_utils import get_boto_resource_provider_with_config, get_boto_client_provider_with_config
 from samcli.lib.utils.cloudformation import get_resource_summaries
 from samcli.lib.utils.resources import (
     AWS_SERVERLESS_FUNCTION,
@@ -74,12 +74,17 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
     def load_physical_id_mapping(self) -> None:
         """Load physical IDs of the stack resources from remote"""
         LOG.debug("Loading physical ID mapping")
-        provider = get_boto_resource_provider_with_config(
+        resource_provider = get_boto_resource_provider_with_config(
+            region=self._deploy_context.region, profile=self._deploy_context.profile
+        )
+        client_provider = get_boto_client_provider_with_config(
             region=self._deploy_context.region, profile=self._deploy_context.profile
         )
 
         resource_mapping = get_resource_summaries(
-            boto_resource_provider=provider, stack_name=self._deploy_context.stack_name
+            boto_resource_provider=resource_provider,
+            boto_client_provider=client_provider,
+            stack_name=self._deploy_context.stack_name,
         )
 
         # get the resource_id -> physical_id mapping

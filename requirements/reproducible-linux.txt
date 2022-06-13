@@ -17,10 +17,10 @@ aws-lambda-builders==1.17.0 \
     --hash=sha256:3eb7ca5ab71761766586db080a8b80ab81346b307fa72d5cea64ccd69fb41efe \
     --hash=sha256:abae4ccfc419fc5cd8eebd4cc81e335ec7610f53804ce1aa2b655159ce339610
     # via aws-sam-cli (setup.py)
-aws-sam-translator==1.45.0 \
-    --hash=sha256:40a6dd5a0aba32c7b38b0f5c54470396acdcd75e4b64251b015abdf922a18b5f \
-    --hash=sha256:bf321ab62aa1731d3e471fd55de6f5d1ab07dfc169cd254aa523dd9ad30246f9 \
-    --hash=sha256:cd4761c01902e5103e60202373275886e59edcc778edf18ca22d380059ed44e7
+aws-sam-translator==1.46.0 \
+    --hash=sha256:03cb83135c98b1c47bf2b3c15507808c7e06d4717a3ca3da1cee6e7ebcb5282b \
+    --hash=sha256:095d1c8b9cb7fdaec6ff70914f8ae1269f14d91594b9f452b63548425b3de93b \
+    --hash=sha256:53ed4cbabf8b9247c1be9c5f47fcfc2764578f55b12e7fe24b9bc41d6fce47cc
     # via aws-sam-cli (setup.py)
 backports-zoneinfo==0.2.1 \
     --hash=sha256:17746bd546106fa389c51dbea67c8b7c8f0d14b5526a579ca6ccf5ed72c526cf \
