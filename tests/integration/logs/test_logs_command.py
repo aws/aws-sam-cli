@@ -9,7 +9,7 @@ import pytest
 import requests
 from parameterized import parameterized
 
-from samcli.lib.utils.boto_utils import get_boto_resource_provider_with_config
+from samcli.lib.utils.boto_utils import get_boto_resource_provider_with_config, get_boto_client_provider_with_config
 from samcli.lib.utils.cloudformation import get_resource_summaries
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.integration.logs.logs_integ_base import LogsIntegBase, RETRY_COUNT
@@ -60,7 +60,9 @@ class LogsIntegTestCases(LogsIntegBase):
             deploy_result.process.returncode, 0, f"Deployment of the test stack is failed with {deploy_result.stderr}"
         )
         stack_resource_summaries = get_resource_summaries(
-            get_boto_resource_provider_with_config(), LogsIntegTestCases.stack_name
+            get_boto_resource_provider_with_config(),
+            get_boto_client_provider_with_config(),
+            LogsIntegTestCases.stack_name
         )
         LogsIntegTestCases.stack_resources = {
             resource_full_path: stack_resource_summary.physical_resource_id
