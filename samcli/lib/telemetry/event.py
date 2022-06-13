@@ -4,7 +4,7 @@ Represents Events and their values.
 
 from abc import ABC
 from enum import Enum
-from typing import Any, List
+from typing import List
 
 
 class EventName(Enum):
@@ -48,17 +48,26 @@ class Event:
     event_value: str  # Validated by EventType.get_accepted_values to never be an arbitrary string
 
     def __init__(self, event_name: str, event_value: str):
-        Event._verify_event_name(event_name)
+        Event._verify_event(event_name, event_value)
         self.event_name = EventName(event_name)
-        if event_value not in EventType.get_accepted_values(self.event_name):
-            raise KeyError(f"Event '{self.event_name.value}' does not accept value '{event_value}'.")
         self.event_value = event_value
 
     def __eq__(self, other):
         return self.event_name == other.event_name and self.event_value == other.event_value
 
     @staticmethod
-    def _verify_event_name(event_name: Any) -> None:
-        """Raise a NameError if the passed parameter is not an EventName Enum."""
-        if event_name not in [event.value for event in EventName]:
-            raise NameError(f"Event '{event_name}' does not exist.")
+    def _verify_event(event_name: str, event_value: str) -> None:
+        """Raise an EventCreationError if either the event name or value is not valid."""
+        if event_name not in Event._get_event_names():
+            raise EventCreationError(f"Event '{event_name}' does not exist.")
+        if event_value not in EventType.get_accepted_values(EventName(event_name)):
+            raise EventCreationError(f"Event '{event_name}' does not accept value '{event_value}'.")
+
+    @staticmethod
+    def _get_event_names() -> List[str]:
+        """Retrieves a list of all valid event names."""
+        return [event.value for event in EventName]
+
+
+class EventCreationError(Exception):
+    """Exception called when an Event is not properly created."""
