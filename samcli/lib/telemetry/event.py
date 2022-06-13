@@ -2,7 +2,6 @@
 Represents Events and their values.
 """
 
-from abc import ABC
 from enum import Enum
 from typing import List
 
@@ -15,8 +14,8 @@ class EventName(Enum):
     BUILD_RUNTIME = "BuildRuntime"
 
 
-class EventType(ABC):
-    """Abstract class for Events and the types of values they may have."""
+class EventType:
+    """Class for Events and the types of values they may have."""
 
     _events = {
         EventName.USED_FEATURE: [
