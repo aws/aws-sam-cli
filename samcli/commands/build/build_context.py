@@ -566,7 +566,7 @@ Commands you can use next
             docker_context = cast(str, metadata.get("DockerContext", ""))
             if not dockerfile or not docker_context:
                 LOG.debug(
-                    "Skip Building %s function, as it does not contain either Dockerfile or DockerContext "
+                    "Skip Building %s function, as it is missing either Dockerfile or DockerContext "
                     "metadata properties.",
                     function.full_path,
                 )
