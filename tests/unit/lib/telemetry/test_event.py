@@ -6,7 +6,7 @@ from enum import Enum
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
-from samcli.lib.telemetry.event import Event, EventCreationError
+from samcli.lib.telemetry.event import Event, EventCreationError, EventTracker
 
 
 class DummyEventName(Enum):
@@ -48,3 +48,21 @@ class TestEventCreation(TestCase):
             Event("SomeEventThatDoesn'tExist", "value1")
 
         self.assertEqual(e.exception.args[0], "Event 'SomeEventThatDoesn'tExist' does not exist.")
+
+
+class TestEventTracker(TestCase):
+    @patch("samcli.lib.telemetry.event.Event")
+    def test_track_event(self, event_mock):
+        # Test that an event can be tracked
+        dummy_event = Mock(event_name="Test", event_value="SomeValue")
+        event_mock.return_value = dummy_event
+
+        EventTracker.track_event("Test", "SomeValue")
+
+        self.assertEqual(len(EventTracker._events), 1)
+        self.assertEqual(EventTracker._events[0], dummy_event)
+
+        # Test that the Event list will be cleared
+        EventTracker.clear_trackers()
+
+        self.assertEqual(len(EventTracker._events), 0)
