@@ -384,7 +384,10 @@ class Deployer:
                 time.sleep(0 if retry_attempts else self.client_sleep)
                 paginator = self._client.get_paginator("describe_stack_events")
                 response_iterator = paginator.paginate(StackName=stack_name)
-                new_events = deque()  # event buffer
+
+                # Event buffer
+                new_events = deque()  # type: deque
+
                 for event_items in response_iterator:
                     for event in event_items["StackEvents"]:
                         # Skip already shown old event entries or former deployments
