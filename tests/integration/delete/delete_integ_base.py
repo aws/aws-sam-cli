@@ -24,14 +24,14 @@ class DeleteIntegBase(TestCase):
 
     def get_delete_command_list(
         self,
-        stack_name: None,
-        region: None,
-        config_file: None,
-        config_env: None,
-        profile: None,
-        no_prompts: None,
-        s3_bucket: None,
-        s3_prefix: None,
+        stack_name=None,
+        region=None,
+        config_file=None,
+        config_env=None,
+        profile=None,
+        no_prompts=None,
+        s3_bucket=None,
+        s3_prefix=None,
     ):
         command_list = [self.base_command(), "delete"]
 
