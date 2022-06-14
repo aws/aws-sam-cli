@@ -1,0 +1,131 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Logs Command Test
+
+Globals:
+  Function:
+    Timeout: 10
+
+Resources:
+  MyStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Definition:
+        Comment: A Hello World example of the Amazon States Language using Pass states
+        StartAt: Hello
+        States:
+          Hello:
+            Type: Pass
+            Result: Hello
+            Next: CallFunction
+          CallFunction:
+            Type: Task
+            Resource: !GetAtt SfnFunction.Arn
+            Next: World
+          World:
+            Type: Pass
+            Result: World
+            End: true
+      Type: EXPRESS
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: "Allow"
+              Action:
+                - "logs:*"
+              Resource: "*"
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: "Allow"
+              Action:
+                - "lambda:InvokeFunction"
+              Resource:
+                - !GetAtt SfnFunction.Arn
+      Logging:
+        Level: ALL
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt MyStateMachineLogGroup.Arn
+      Tracing:
+        Enabled: True
+      Events:
+        GetApi:
+          Type: Api
+          Properties:
+            Path: /world
+            Method: get
+            RestApiId: !Ref HelloWorldServerlessApi
+
+  MyStateMachineLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Join ['-', ['/aws/vendedlogs/', !Select [2, !Split ['/', !Ref AWS::StackId]]]]
+
+  ApiGwFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: apigw-function/
+      Handler: app.handler
+      Runtime: python3.9
+      Tracing: Active
+      Events:
+        HelloWorld:
+          Type: Api
+          Properties:
+            Path: /hello
+            Method: get
+            RestApiId: !Ref HelloWorldServerlessApi
+
+  SfnFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: sfn-function/
+      Handler: app.handler
+      Runtime: python3.9
+      Tracing: Active
+
+  HelloWorldServerlessApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: "Prod"
+      TracingEnabled: True
+      MethodSettings:
+        - LoggingLevel: INFO
+          ResourcePath: '/*'
+          HttpMethod: '*'
+
+  ApiGwAccountConfig:
+    Type: "AWS::ApiGateway::Account"
+    Properties:
+      CloudWatchRoleArn: !GetAtt "ApiGatewayLoggingRole.Arn"
+  ApiGatewayLoggingRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - "apigateway.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Path: "/"
+      ManagedPolicyArns:
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+
+  ChildStack:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: child-stack/template.yaml
+
+Outputs:
+  HelloWorldServerlessApi:
+    Description: "API Gateway endpoint URL for Prod stage for Hello World function"
+    Value: !Sub "https://${HelloWorldServerlessApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  ChildStackHelloWorldServerlessApi:
+    Description: "API Gateway endpoint URL from child stack"
+    Value: !GetAtt [ChildStack, Outputs.HelloWorldServerlessApi]
+  ChildStackGrandChildStackHelloWorldServerlessApi:
+    Description: "API Gateway endpoint URL from grand-child stack"
+    Value: !GetAtt [ChildStack, Outputs.GrandChildStackHelloWorldServerlessApi]
+

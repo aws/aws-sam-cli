@@ -54,7 +54,7 @@ class TestLogsCommandContext(TestCase):
 
 class TestResourcePhysicalIdResolver(TestCase):
     def test_get_resource_information_with_resources(self):
-        resource_physical_id_resolver = ResourcePhysicalIdResolver(Mock(), "stack_name", ["resource_name"])
+        resource_physical_id_resolver = ResourcePhysicalIdResolver(Mock(), Mock(), "stack_name", ["resource_name"])
         with mock.patch(
             "samcli.commands.logs.logs_context.ResourcePhysicalIdResolver._fetch_resources_from_stack"
         ) as mocked_fetch:
