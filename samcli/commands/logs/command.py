@@ -149,7 +149,7 @@ def do_cli(
     from samcli.lib.observability.util import OutputOption
     from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config, get_boto_resource_provider_with_config
 
-    if not names or len(names) > 1:
+    if names and len(names) <= 1:
         click.echo(
             "You can now use 'sam logs' without --name parameter, "
             "which will pull the logs from all supported resources in your stack."
