@@ -44,13 +44,6 @@ from samcli.lib.providers.provider import (
 )
 from samcli.cli.context import Context
 from samcli.lib.sync.watch_manager import WatchManager
-from samcli.commands._utils.experimental import (
-    ExperimentalFlag,
-    experimental,
-    is_experimental_enabled,
-    set_experimental,
-    update_experimental_context,
-)
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
@@ -60,7 +53,7 @@ if TYPE_CHECKING:  # pragma: no cover
 LOG = logging.getLogger(__name__)
 
 HELP_TEXT = """
-[Beta Feature] Update/Sync local artifacts to AWS
+Update/Sync local artifacts to AWS
 
 By default, the sync command runs a full stack update. You can specify --code or --watch to switch modes.
 \b
@@ -77,20 +70,8 @@ Confirm that you are synchronizing a development stack.
 Enter Y to proceed with the command, or enter N to cancel:
 """
 
-SYNC_CONFIRMATION_TEXT_WITH_BETA = """
-This feature is currently in beta. Visit the docs page to learn more about the AWS Beta terms https://aws.amazon.com/service-terms/.
 
-The SAM CLI will use the AWS Lambda, Amazon API Gateway, and AWS StepFunctions APIs to upload your code without 
-performing a CloudFormation deployment. This will cause drift in your CloudFormation stack. 
-**The sync command should only be used against a development stack**.
-
-Confirm that you are synchronizing a development stack and want to turn on beta features.
-
-Enter Y to proceed with the command, or enter N to cancel:
-"""
-
-
-SHORT_HELP = "[Beta Feature] Sync a project to AWS"
+SHORT_HELP = "Sync a project to AWS"
 
 DEFAULT_TEMPLATE_NAME = "template.yaml"
 DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
@@ -145,7 +126,6 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @notification_arns_option
 @tags_option
 @capabilities_option(default=DEFAULT_CAPABILITIES)  # pylint: disable=E1120
-@experimental
 @pass_context
 @track_command
 @image_repository_validation
@@ -244,14 +224,8 @@ def do_cli(
 
     confirmation_text = SYNC_CONFIRMATION_TEXT
 
-    if not is_experimental_enabled(ExperimentalFlag.Accelerate):
-        confirmation_text = SYNC_CONFIRMATION_TEXT_WITH_BETA
-
     if not click.confirm(Colored().yellow(confirmation_text), default=False):
         return
-
-    set_experimental(ExperimentalFlag.Accelerate)
-    update_experimental_context()
 
     s3_bucket = manage_stack(profile=profile, region=region)
 
