@@ -15,6 +15,7 @@ CFN_SLEEP = 3
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
 
 
+@skipIf(SKIP_STACK_OUTPUTS_TESTS, "Skip stack-outputs tests in CI/CD only")
 class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
     @classmethod
     def setUpClass(cls):
@@ -34,7 +35,6 @@ class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
         from_help = "".join(HELP_TEXT.split())
         self.assertIn(from_help, from_command, "Stack-outputs help text should have been printed")
 
-    @skipIf(SKIP_STACK_OUTPUTS_TESTS, "Skip stack-outputs tests in CI/CD only")
     def test_stack_output_exists(self):
         template_path = self.list_test_data_path.joinpath("test_stack_creation_template.yaml")
         stack_name = self._method_to_stack_name(self.id())
@@ -63,12 +63,12 @@ class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
   },
   {
     "OutputKey": "HelloWorldApi",
-    "OutputValue": "https://...........execute\-api.us\-east\-1.amazonaws.com/Prod/hello/",
+    "OutputValue": "https://...........execute.*.amazonaws.com/Prod/hello/",
     "Description": "API Gateway endpoint URL for Prod stage for Hello World function"
   },
   {
     "OutputKey": "HelloWorldFunction",
-    "OutputValue": "arn:aws:lambda:us\-east\-1:............:function:test-stack-output-exists-0-0-0\-HelloWorldFunction\-............",
+    "OutputValue": "arn:aws:lambda:.*:............:function:test-stack-output-exists-0-0-0\-HelloWorldFunction\-............",
     "Description": "Hello World Lambda Function ARN"
   }
 \]
@@ -77,7 +77,6 @@ class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
             )
         )
 
-    @skipIf(SKIP_STACK_OUTPUTS_TESTS, "Skip stack-outputs tests in CI/CD only")
     def test_stack_no_outputs_exist(self):
         template_path = self.list_test_data_path.joinpath("test_stack_no_outputs_template.yaml")
         stack_name = self._method_to_stack_name(self.id())
@@ -103,7 +102,6 @@ class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
             expected_output, command_result.stderr.decode(), "Should have raised error that outputs do not exist"
         )
 
-    @skipIf(SKIP_STACK_OUTPUTS_TESTS, "Skip stack-outputs tests in CI/CD only")
     def test_stack_does_not_exist(self):
         template_path = self.list_test_data_path.joinpath("test_stack_no_outputs_template.yaml")
         stack_name = self._method_to_stack_name(self.id())
@@ -115,7 +113,7 @@ class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
             f"Error: The input stack {stack_name} does" f" not exist on Cloudformation in the region {region}"
         )
         self.assertIn(
-            expected_output, command_result.stdout.decode(), "Should have raised error that outputs do not exist"
+            expected_output, command_result.stderr.decode(), "Should have raised error that outputs do not exist"
         )
 
     def _method_to_stack_name(self, method_name):

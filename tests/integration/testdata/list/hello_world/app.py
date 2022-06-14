@@ -32,11 +32,11 @@ def lambda_handler(event, context):
     #     print(e)
 
     #     raise e
-    personId = event['queryStringParameters']['personId']
+
     return {
         "statusCode": 200,
         "body": json.dumps({
-            "personId": personId + " from Lambda",
+            "message": "hello world",
             # "location": ip.text.replace("\n", "")
         }),
     }
