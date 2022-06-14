@@ -39,3 +39,6 @@ class FailureMode(Enum):
     ROLLBACK = "ROLLBACK"
     DELETE = "DELETE"
     DO_NOTHING = "DO_NOTHING"
+
+    def __str__(self):
+        return self.value

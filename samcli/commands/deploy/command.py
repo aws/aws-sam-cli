@@ -119,8 +119,9 @@ LOG = logging.getLogger(__name__)
     help="""
     Provide an action to determine what will happen when a stack fails to create. Three actions are available:\n
     - ROLLBACK: This will rollback a stack to a previous known good state.\n
-    - DELETE: The stack will be deleted if one exists.\n
-    - DO_NOTHING: The stack will not rollback or delete.
+    - DELETE: The stack will rollback to a previous state if one exists, otherwise the stack will be deleted.\n
+    - DO_NOTHING: The stack will not rollback or delete.\n
+    Default behaviour is ROLLBACK.
     """,
     cls=ClickMutex,
     incompatible_params=["disable_rollback", "no_disable_rollback"],

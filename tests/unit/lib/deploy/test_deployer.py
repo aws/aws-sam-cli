@@ -15,6 +15,7 @@ from samcli.commands.deploy.exceptions import (
     DeployBucketInDifferentRegionError,
 )
 from samcli.lib.deploy.deployer import Deployer
+from samcli.lib.deploy.utils import FailureMode
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.time import utc_to_timestamp, to_datetime
 
@@ -912,7 +913,7 @@ class TestDeployer(TestCase):
             notification_arns=[],
             s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
             tags={"unit": "true"},
-            on_failure=None,
+            on_failure=FailureMode.ROLLBACK,
         )
 
         self.assertEqual(self.deployer._client.create_stack.call_count, 1)
@@ -924,6 +925,7 @@ class TestDeployer(TestCase):
             StackName="test",
             Tags={"unit": "true"},
             TemplateURL=ANY,
+            OnFailure=str(FailureMode.ROLLBACK),
         )
 
     def test_sync_create_stack_exception(self):
@@ -958,3 +960,79 @@ class TestDeployer(TestCase):
         }
         result = self.deployer._process_kwargs(kwargs, None, capabilities, role_arn, notification_arns)
         self.assertEqual(expected, result)
+
+    def test_sync_disable_rollback_using_on_failure(self):
+        self.deployer.has_stack = MagicMock(return_value=True)
+        self.deployer.wait_for_execute = MagicMock()
+        self.deployer.sync(
+            stack_name="test",
+            cfn_template=" ",
+            parameter_values=[
+                {"ParameterKey": "a", "ParameterValue": "b"},
+            ],
+            capabilities=["CAPABILITY_IAM"],
+            role_arn="role-arn",
+            notification_arns=[],
+            s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
+            tags={"unit": "true"},
+            on_failure=FailureMode.DO_NOTHING,
+        )
+
+        self.assertEqual(self.deployer._client.update_stack.call_count, 1)
+        self.deployer._client.update_stack.assert_called_with(
+            Capabilities=["CAPABILITY_IAM"],
+            NotificationARNs=[],
+            Parameters=[{"ParameterKey": "a", "ParameterValue": "b"}],
+            RoleARN="role-arn",
+            StackName="test",
+            Tags={"unit": "true"},
+            TemplateURL=ANY,
+            DisableRollback=True,
+        )
+
+    def test_sync_create_stack_on_failure_delete(self):
+        self.deployer.has_stack = MagicMock(return_value=False)
+        self.deployer.wait_for_execute = MagicMock()
+        self.deployer.sync(
+            stack_name="test",
+            cfn_template=" ",
+            parameter_values=[
+                {"ParameterKey": "a", "ParameterValue": "b"},
+            ],
+            capabilities=["CAPABILITY_IAM"],
+            role_arn="role-arn",
+            notification_arns=[],
+            s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
+            tags={"unit": "true"},
+            on_failure=str(FailureMode.DELETE),
+        )
+
+        self.assertEqual(self.deployer._client.create_stack.call_count, 1)
+        self.deployer._client.create_stack.assert_called_with(
+            Capabilities=["CAPABILITY_IAM"],
+            NotificationARNs=[],
+            Parameters=[{"ParameterKey": "a", "ParameterValue": "b"}],
+            RoleARN="role-arn",
+            StackName="test",
+            Tags={"unit": "true"},
+            TemplateURL=ANY,
+            OnFailure=str(FailureMode.DELETE),
+        )
+
+    def test_rollback_stack_new_stack_failed(self):
+        self.deployer._client.describe_stacks = MagicMock(return_value={"Stacks": [{"StackStatus": "CREATE_FAILED"}]})
+        self.deployer.wait_for_execute = MagicMock()
+
+        self.deployer.rollback_stack("test")
+
+        self.assertEqual(self.deployer._client.delete_stack.call_count, 1)
+        self.deployer._client.delete_stack.assert_called_with(StackName="test")
+
+    def test_rollback_stack_update_stack_failed(self):
+        self.deployer._client.describe_stacks = MagicMock(return_value={"Stacks": [{"StackStatus": "UPDATE_FAILED"}]})
+        self.deployer.wait_for_execute = MagicMock()
+
+        self.deployer.rollback_stack("test")
+
+        self.assertEqual(self.deployer._client.rollback_stack.call_count, 1)
+        self.deployer._client.rollback_stack.assert_called_with(StackName="test")

@@ -105,7 +105,7 @@ class DeployContext:
         self.use_changeset = use_changeset
         self.disable_rollback = disable_rollback
         self.poll_delay = poll_delay
-        self.on_failure = on_failure or FailureMode.ROLLBACK
+        self.on_failure = FailureMode(on_failure) if on_failure else FailureMode.ROLLBACK
 
     def __enter__(self):
         return self
@@ -267,16 +267,25 @@ class DeployContext:
                     if not click.confirm(f"{self.MSG_CONFIRM_CHANGESET}", default=False):
                         return
 
-                do_disable_rollback = self.on_failure == FailureMode.DO_NOTHING or disable_rollback
+                # Stop the rollback in the case of DO_NOTHING or if this is a new stack and DELETE is specified
+                do_disable_rollback = (
+                    self.on_failure in [FailureMode.DO_NOTHING, FailureMode.DELETE] or disable_rollback
+                )
 
                 self.deployer.execute_changeset(result["Id"], stack_name, do_disable_rollback)
-                self.deployer.wait_for_execute(stack_name, changeset_type, do_disable_rollback)
+                self.deployer.wait_for_execute(stack_name, changeset_type, do_disable_rollback, self.on_failure)
                 click.echo(self.MSG_EXECUTE_SUCCESS.format(stack_name=stack_name, region=region))
 
             except deploy_exceptions.ChangeEmptyError as ex:
                 if fail_on_empty_changeset:
                     raise
                 click.echo(str(ex))
+            except deploy_exceptions.DeployFailedError:
+                # Failed to deploy, check for DELETE action otherwise skip
+                if self.on_failure != FailureMode.DELETE:
+                    raise
+
+                self.deployer.rollback_stack(stack_name)
 
         else:
             try:
