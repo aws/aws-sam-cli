@@ -24,32 +24,33 @@ class DeleteIntegBase(TestCase):
 
     def get_delete_command_list(
         self,
-        stack_name: Optional[str] = None,
-        region: Optional[str] = None,
-        config_file: Optional[str] = None,
-        config_env: Optional[str] = None,
-        profile: Optional[str] = None,
-        no_prompts: Optional[bool] = None,
-        s3_bucket: Optional[str] = None,
-        s3_prefix: Optional[str] = None,
+        stack_name: None,
+        region: None,
+        config_file: None,
+        config_env: None,
+        profile: None,
+        no_prompts: None,
+        s3_bucket: None,
+        s3_prefix: None,
     ):
         command_list = [self.base_command(), "delete"]
 
+        # Convert all values as string to make behaviour uniform across platforms
         if stack_name:
-            command_list += ["--stack-name", stack_name]
+            command_list += ["--stack-name", str(stack_name)]
         if region:
-            command_list += ["--region", region]
+            command_list += ["--region", str(region)]
         if config_file:
-            command_list += ["--config-file", config_file]
+            command_list += ["--config-file", str(config_file)]
         if config_env:
-            command_list += ["--config-env", config_env]
+            command_list += ["--config-env", str(config_env)]
         if profile:
-            command_list += ["--profile", profile]
+            command_list += ["--profile", str(profile)]
         if no_prompts:
             command_list += ["--no-prompts"]
         if s3_bucket:
-            command_list += ["--s3-bucket", s3_bucket]
+            command_list += ["--s3-bucket", str(s3_bucket)]
         if s3_prefix:
-            command_list += ["--s3-prefix", s3_prefix]
+            command_list += ["--s3-prefix", str(s3_prefix)]
 
         return command_list
