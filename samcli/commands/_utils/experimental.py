@@ -240,7 +240,7 @@ def prompt_experimental(
     if is_experimental_enabled(config_entry):
         update_experimental_context()
         return True
-    confirmed = click.confirm(prompt, default=False)
+    confirmed = click.confirm(Colored().yellow(prompt), default=False)
     if confirmed:
         set_experimental(config_entry=config_entry, enabled=True)
         update_experimental_context()

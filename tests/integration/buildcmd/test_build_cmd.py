@@ -86,6 +86,40 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
             self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
         )
 
+    @pytest.mark.flaky(reruns=3)
+    def test_intermediate_container_deleted(self):
+        _tag = f"{random.randint(1, 100)}"
+        overrides = {
+            "Runtime": "3.9",
+            "Handler": "main.handler",
+            "DockerFile": "Dockerfile",
+            "Tag": _tag,
+        }
+        cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
+
+        LOG.info("Running Command: ")
+        LOG.info(cmdlist)
+
+        _num_of_containers_before_build = self.get_number_of_created_containers()
+        run_command(cmdlist, cwd=self.working_dir)
+        _num_of_containers_after_build = self.get_number_of_created_containers()
+
+        self._verify_image_build_artifact(
+            self.built_template,
+            self.FUNCTION_LOGICAL_ID_IMAGE,
+            "ImageUri",
+            f"{self.FUNCTION_LOGICAL_ID_IMAGE.lower()}:{_tag}",
+        )
+
+        expected = {"pi": "3.14"}
+        self._verify_invoke_built_function(
+            self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
+        )
+
+        self.assertEqual(
+            _num_of_containers_before_build, _num_of_containers_after_build, "Intermediate containers are not removed"
+        )
+
 
 @skipIf(
     # Hits public ECR pull limitation, move it to canary tests
@@ -1620,7 +1654,7 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
         cmdlist.extend(["--config-file", config_file])
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertTrue(
-            "Valid cache found, copying previously built resources from function build definition of"
+            "Valid cache found, copying previously built resources for following functions"
             in str(command_result.stderr),
             "Should have built using cache",
         )
@@ -1962,7 +1996,7 @@ class TestBuildWithNestedStacks(NestedBuildIntegBase):
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         # make sure functions are deduplicated properly, in stderr they will show up in the same line.
-        self.assertRegex(command_result.stderr.decode("utf-8"), r"Building .+'Function2',.+LocalNestedStack/Function2")
+        self.assertRegex(command_result.stderr.decode("utf-8"), r"Building .+Function2,.+LocalNestedStack/Function2")
 
         function_full_paths = ["Function", "Function2", "LocalNestedStack/Function1", "LocalNestedStack/Function2"]
         stack_paths = ["", "LocalNestedStack"]

@@ -300,7 +300,7 @@ class DeployContext:
                     tags=tags,
                     on_failure=self.on_failure,
                 )
-                LOG.info(result)
+                LOG.debug(result)
 
             except deploy_exceptions.DeployFailedError as ex:
                 LOG.error(str(ex))

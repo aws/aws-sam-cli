@@ -102,20 +102,6 @@ class TestNestedStackManager(TestCase):
 
         self.assertEqual(template, result)
 
-    def test_non_existent_dependencies_dir(self):
-        resources = {"MyFunction": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"Runtime": "python3.8"}}}
-        self.stack.resources = resources
-        template = {"Resources": resources}
-        build_graph = Mock()
-        build_graph.get_function_build_definition_with_full_path.return_value = Mock(dependencies_dir="foo/bar")
-        app_build_result = ApplicationBuildResult(build_graph, {"MyFunction": "path/to/build/dir"})
-        nested_stack_manager = NestedStackManager(
-            self.stack, self.stack_name, self.build_dir, template, app_build_result
-        )
-        result = nested_stack_manager.generate_auto_dependency_layer_stack()
-
-        self.assertEqual(template, result)
-
     @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.move_template")
     @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.osutils")
     @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.os.path.isdir")
