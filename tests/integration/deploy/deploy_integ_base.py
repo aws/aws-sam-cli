@@ -122,7 +122,7 @@ class DeployIntegBase(TestCase):
         elif capabilities_list:
             command_list.append("--capabilities")
             for capability in capabilities_list:
-                command_list.append(capability)
+                command_list.append(str(capability))
         if parameter_overrides:
             command_list = command_list + ["--parameter-overrides", str(parameter_overrides)]
         if role_arn:
