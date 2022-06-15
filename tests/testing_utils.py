@@ -45,10 +45,14 @@ def get_sam_command():
 def method_to_stack_name(method_name):
     """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
     method_name = method_name.split(".")[-1]
-    return f"{method_name.replace('_', '-')}-{CFN_PYTHON_VERSION_SUFFIX}-{uuid4().hex}"[:128]
+    stack_name = f"{method_name.replace('_', '-')}-{CFN_PYTHON_VERSION_SUFFIX}-{uuid4().hex}"
+    if not stack_name.startswith("test"):
+        stack_name = f"test-{stack_name}"
+    return stack_name[:128]
 
 
 def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandResult:
+    LOG.info("Running command: %s", " ".join(command_list))
     process_execute = Popen(command_list, cwd=cwd, env=env, stdout=PIPE, stderr=PIPE)
     try:
         stdout_data, stderr_data = process_execute.communicate(timeout=timeout)
@@ -63,6 +67,8 @@ def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandRes
 
 
 def run_command_with_input(command_list, stdin_input, timeout=TIMEOUT) -> CommandResult:
+    LOG.info("Running command: %s", " ".join(command_list))
+    LOG.info("With input: %s", stdin_input)
     process_execute = Popen(command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE)
     try:
         stdout_data, stderr_data = process_execute.communicate(stdin_input, timeout=timeout)

@@ -32,15 +32,15 @@ class BuildStrategyBaseTest(TestCase):
         self.function1_1 = Mock()
         self.function1_1.inlinecode = None
         self.function1_1.get_build_dir = Mock()
-        self.function1_1.full_path = Mock()
+        self.function1_1.full_path = "function1_1"
         self.function1_2 = Mock()
         self.function1_2.inlinecode = None
         self.function1_2.get_build_dir = Mock()
-        self.function1_2.full_path = Mock()
+        self.function1_2.full_path = "function1_2"
         self.function2 = Mock()
         self.function2.inlinecode = None
         self.function2.get_build_dir = Mock()
-        self.function2.full_path = Mock()
+        self.function2.full_path = "function2"
 
         self.function_build_definition1 = FunctionBuildDefinition("runtime", "codeuri", ZIP, X86_64, {}, "handler")
         self.function_build_definition2 = FunctionBuildDefinition("runtime2", "codeuri", ZIP, X86_64, {}, "handler")
@@ -563,7 +563,7 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
     ):
         patched_experimental.return_value = experimental_enabled
         build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {}, "handler")
-        self.build_graph.put_function_build_definition(build_definition, Mock())
+        self.build_graph.put_function_build_definition(build_definition, Mock(full_path="function_full_path"))
         with patch.object(
             self.build_strategy, "_incremental_build_strategy"
         ) as patched_incremental_build_strategy, patch.object(
@@ -587,7 +587,7 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
     )
     def test_will_call_cached_build_strategy(self, mocked_read, mocked_write, runtime):
         build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {}, "handler")
-        self.build_graph.put_function_build_definition(build_definition, Mock())
+        self.build_graph.put_function_build_definition(build_definition, Mock(full_path="function_full_path"))
         with patch.object(
             self.build_strategy, "_incremental_build_strategy"
         ) as patched_incremental_build_strategy, patch.object(
