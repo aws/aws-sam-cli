@@ -49,6 +49,18 @@ class TestEventCreation(TestCase):
 
         self.assertEqual(e.exception.args[0], "Event 'SomeEventThatDoesn'tExist' does not exist.")
 
+    @patch("samcli.lib.telemetry.event.Event._verify_event")
+    @patch("samcli.lib.telemetry.event.EventType")
+    @patch("samcli.lib.telemetry.event.EventName")
+    def test_event_to_json(self, name_mock, type_mock, verify_mock):
+        name_mock.return_value = Mock(value="Testing")
+        type_mock.get_accepted_values.return_value = ["value1"]
+        verify_mock.return_value = None
+
+        test_event = Event("Testing", "value1")
+
+        self.assertEqual(test_event.to_json(), {"event_name": "Testing", "event_value": "value1"})
+
 
 class TestEventTracker(TestCase):
     @patch("samcli.lib.telemetry.event.Event")

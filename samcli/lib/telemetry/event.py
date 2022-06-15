@@ -57,6 +57,9 @@ class Event:
     def __repr__(self):
         return f"Event(event_name={self.event_name.value}, event_value={self.event_value})"
 
+    def to_json(self):
+        return {"event_name": self.event_name.value, "event_value": self.event_value}
+
     @staticmethod
     def _verify_event(event_name: str, event_value: str) -> None:
         """Raise an EventCreationError if either the event name or value is not valid."""
