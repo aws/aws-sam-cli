@@ -53,7 +53,6 @@ class TestExperimentalMetric(IntegBase):
                             "region": ANY,
                             "commandName": ANY,
                             "metricSpecificAttributes": {
-                                "experimentalAccelerate": True,
                                 "experimentalAll": False,
                                 "experimentalEsbuild": False,
                             },
@@ -104,7 +103,6 @@ class TestExperimentalMetric(IntegBase):
                             "region": ANY,
                             "commandName": ANY,
                             "metricSpecificAttributes": {
-                                "experimentalAccelerate": True,
                                 "experimentalAll": True,
                                 "experimentalEsbuild": True,
                             },
