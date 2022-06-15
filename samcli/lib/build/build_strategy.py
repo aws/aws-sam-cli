@@ -10,7 +10,6 @@ from abc import abstractmethod, ABC
 from copy import deepcopy
 from typing import Callable, Dict, List, Any, Optional, cast, Set
 
-from samcli.commands._utils.experimental import is_experimental_enabled, ExperimentalFlag
 from samcli.lib.utils import osutils
 from samcli.lib.utils.async_utils import AsyncContext
 from samcli.lib.utils.hash import dir_checksum
@@ -163,7 +162,7 @@ class DefaultBuildStrategy(BuildStrategy):
             single_build_dir,
             build_definition.metadata,
             container_env_vars,
-            build_definition.dependencies_dir if is_experimental_enabled(ExperimentalFlag.Accelerate) else None,
+            build_definition.dependencies_dir,
             build_definition.download_dependencies,
         )
         function_build_results[single_full_path] = result
@@ -210,7 +209,7 @@ class DefaultBuildStrategy(BuildStrategy):
                 layer.build_architecture,
                 single_build_dir,
                 layer_definition.env_vars,
-                layer_definition.dependencies_dir if is_experimental_enabled(ExperimentalFlag.Accelerate) else None,
+                layer_definition.dependencies_dir,
                 layer_definition.download_dependencies,
             )
         }
@@ -562,7 +561,7 @@ class CachedOrIncrementalBuildStrategyWrapper(BuildStrategy):
 
     @staticmethod
     def _is_incremental_build_supported(runtime: Optional[str]) -> bool:
-        if not runtime or not is_experimental_enabled(ExperimentalFlag.Accelerate):
+        if not runtime:
             return False
 
         for supported_runtime_prefix in CachedOrIncrementalBuildStrategyWrapper.SUPPORTED_RUNTIME_PREFIXES:

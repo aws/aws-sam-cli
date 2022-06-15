@@ -8,12 +8,6 @@ import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
-from samcli.commands._utils.experimental import (
-    ExperimentalFlag,
-    force_experimental_option,
-    experimental,
-    prompt_experimental,
-)
 from samcli.commands._utils.options import common_observability_options
 from samcli.commands.logs.validation_and_exception_handlers import (
     SAM_LOGS_ADDITIONAL_EXCEPTION_HANDLERS,
@@ -43,8 +37,6 @@ $ sam logs -n HelloWorldFunction --stack-name mystack --tail \n
 \b
 Use the --filter option to quickly find logs that match terms, phrases or values in your log events.
 $ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
-\b
-[Beta Features]
 \b
 You can now fetch logs from supported resources, by only providing --stack-name parameter
 $ sam logs --stack-name mystack \n
@@ -81,27 +73,22 @@ $ sam logs --stack-name mystack -n MyNestedStack/HelloWorldFunction
     "--include-traces",
     "-i",
     is_flag=True,
-    help="[Beta Feature] Include the XRay traces in the log output.",
+    help="Include the XRay traces in the log output.",
 )
 @click.option(
     "--cw-log-group",
     multiple=True,
-    help="[Beta Feature] "
-    "Additional CloudWatch Log group names that are not auto-discovered based upon --name parameter. "
+    help="Additional CloudWatch Log group names that are not auto-discovered based upon --name parameter. "
     "When provided, it will only tail the given CloudWatch Log groups. If you want to tail log groups related "
     "to resources, please also provide their names as well",
 )
 @common_observability_options
-@experimental
 @cli_framework_options
 @aws_creds_options
 @pass_context
 @track_command
 @check_newer_version
 @print_cmdline_args
-@force_experimental_option("include_traces", config_entry=ExperimentalFlag.Accelerate)  # pylint: disable=E1120
-@force_experimental_option("cw_log_group", config_entry=ExperimentalFlag.Accelerate)  # pylint: disable=E1120
-@force_experimental_option("output", config_entry=ExperimentalFlag.Accelerate)  # pylint: disable=E1120
 @command_exception_handler(SAM_LOGS_ADDITIONAL_EXCEPTION_HANDLERS)
 @stack_name_cw_log_group_validation
 def cli(
@@ -162,10 +149,7 @@ def do_cli(
     from samcli.lib.observability.util import OutputOption
     from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config, get_boto_resource_provider_with_config
 
-    if not names or len(names) > 1:
-        if not prompt_experimental(ExperimentalFlag.Accelerate):
-            return
-    else:
+    if names and len(names) <= 1:
         click.echo(
             "You can now use 'sam logs' without --name parameter, "
             "which will pull the logs from all supported resources in your stack."
