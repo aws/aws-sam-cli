@@ -1653,9 +1653,9 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
         cmdlist = self.get_command_list(parameter_overrides=overrides)
         cmdlist.extend(["--config-file", config_file])
         command_result = run_command(cmdlist, cwd=self.working_dir)
-        self.assertTrue(
-            "Valid cache found, copying previously built resources for following functions"
-            in str(command_result.stderr),
+        self.assertRegex(
+            str(command_result.stderr),
+            "Manifest is not changed for .* running incremental build",
             "Should have built using cache",
         )
         cmdlist.extend(["--no-cached"])
