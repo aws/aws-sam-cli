@@ -55,7 +55,7 @@ class Event:
         return self.event_name == other.event_name and self.event_value == other.event_value
 
     def __repr__(self):
-        return f"({self.event_name.value}, {self.event_value})"
+        return f"Event(event_name={self.event_name.value}, event_value={self.event_value})"
 
     @staticmethod
     def _verify_event(event_name: str, event_value: str) -> None:
