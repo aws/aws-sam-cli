@@ -66,7 +66,6 @@ class TestGuidedContext(TestCase):
             github_org=ANY_GITHUB_ORG,
             github_repo=ANY_GITHUB_REPO,
             deployment_branch=ANY_DEPLOYMENT_BRANCH,
-            create_new_oidc_provider=True,
             pipeline_execution_role_arn=ANY_PIPELINE_EXECUTION_ROLE_ARN,
             cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
             artifacts_bucket_arn=ANY_ARTIFACTS_BUCKET_ARN,

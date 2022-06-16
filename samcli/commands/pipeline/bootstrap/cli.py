@@ -110,13 +110,6 @@ LOG = logging.getLogger(__name__)
 )
 @click.option("--oidc-client-id", help="The client ID configured to use with the OIDC provider.", required=False)
 @click.option(
-    "--create-new-oidc-provider/--no-create-new-oidc-provider",
-    help="Indicates that a new Identity Provider needs to be created in IAM.",
-    required=False,
-    is_flag=True,
-    default=None,
-)
-@click.option(
     "--github-org",
     help="The GitHub organization that the repository belongs to. "
     "If there is no organization enter the Username of the repository owner instead "
@@ -163,7 +156,6 @@ def cli(
     use_oidc_provider: Optional[bool],
     oidc_provider_url: Optional[str],
     oidc_client_id: Optional[str],
-    create_new_oidc_provider: Optional[bool],
     github_org: Optional[str],
     github_repo: Optional[str],
     deployment_branch: Optional[str],
@@ -189,7 +181,6 @@ def cli(
         use_oidc_provider=use_oidc_provider,
         oidc_provider_url=oidc_provider_url,
         oidc_client_id=oidc_client_id,
-        create_new_oidc_provider=create_new_oidc_provider,
         github_org=github_org,
         github_repo=github_repo,
         deployment_branch=deployment_branch,
@@ -214,7 +205,6 @@ def do_cli(
     use_oidc_provider: Optional[bool],
     oidc_provider_url: Optional[str],
     oidc_client_id: Optional[str],
-    create_new_oidc_provider: Optional[bool],
     github_org: Optional[str],
     github_repo: Optional[str],
     deployment_branch: Optional[str],
@@ -227,15 +217,15 @@ def do_cli(
     if not pipeline_user_arn and not use_oidc_provider:
         pipeline_user_arn = _load_saved_pipeline_user_arn()
 
-    if not pipeline_user_arn and not oidc_provider_url:
+    if not oidc_provider_url:
         oidc_parameters = _load_saved_oidc_values()
-        oidc_provider = oidc_parameters[OIDC_PROVIDER]
-        oidc_provider_url = oidc_parameters[OIDC_PROVIDER_URL]
-        oidc_client_id = oidc_parameters[OIDC_CLIENT_ID]
-        github_org = oidc_parameters[GITHUB_ORG]
-        github_repo = oidc_parameters[GITHUB_REPO]
-        deployment_branch = oidc_parameters[DEPLOYMENT_BRANCH]
-        create_new_oidc_provider = len(oidc_parameters) > 0
+        if oidc_parameters:
+            oidc_provider = oidc_parameters[OIDC_PROVIDER]
+            oidc_provider_url = oidc_parameters[OIDC_PROVIDER_URL]
+            oidc_client_id = oidc_parameters[OIDC_CLIENT_ID]
+            github_org = oidc_parameters[GITHUB_ORG]
+            github_repo = oidc_parameters[GITHUB_REPO]
+            deployment_branch = oidc_parameters[DEPLOYMENT_BRANCH]
 
     if interactive:
         if standalone:
@@ -266,7 +256,6 @@ def do_cli(
             use_oidc_provider=use_oidc_provider,
             oidc_provider_url=oidc_provider_url,
             oidc_client_id=oidc_client_id,
-            create_new_oidc_provider=create_new_oidc_provider,
             oidc_provider=oidc_provider,
             github_org=github_org,
             github_repo=github_repo,
@@ -285,7 +274,6 @@ def do_cli(
         use_oidc_provider = guided_context.use_oidc_provider
         oidc_client_id = guided_context.oidc_client_id
         oidc_provider_url = guided_context.oidc_provider_url
-        create_new_oidc_provider = guided_context.create_new_oidc_provider
         github_org = guided_context.github_org
         github_repo = guided_context.github_repo
         deployment_branch = guided_context.deployment_branch
@@ -298,26 +286,26 @@ def do_cli(
             oidc_client_id=oidc_client_id,
             oidc_provider=oidc_provider,
             oidc_provider_url=oidc_provider_url,
-            create_new_oidc_provider=create_new_oidc_provider,
             missing_parameters_messages=missing_parameters_messages,
         )
         if oidc_provider == GITHUB_ACTIONS:
-            if not _check_github_actions_params(
+            _check_github_actions_params(
                 github_org=github_org,
                 github_repo=github_repo,
                 deployment_branch=deployment_branch,
                 missing_parameters_messages=missing_parameters_messages,
-            ):
-                subject_claim = _build_oidc_subject_claim(
-                    github_org=github_org,
-                    github_repo=github_repo,
-                    branch=deployment_branch,
-                )
+            )
+            subject_claim = _build_oidc_subject_claim(
+                github_org=github_org,
+                github_repo=github_repo,
+                branch=deployment_branch,
+            )
 
-        if len(missing_parameters_messages) > 0:
-            for message in missing_parameters_messages:
-                LOG.error(message)
-            return
+        error_string = ""
+        for message in missing_parameters_messages:
+            error_string += message + "\n"
+        if error_string:
+            raise click.UsageError("\n" + error_string)
 
     if not stage_configuration_name:
         raise click.UsageError("Missing required parameter '--stage'")
@@ -336,7 +324,6 @@ def do_cli(
         oidc_client_id=oidc_client_id,
         use_oidc_provider=use_oidc_provider,
         subject_claim=subject_claim,
-        create_new_oidc_provider=create_new_oidc_provider,
         oidc_provider_name=oidc_provider,
         github_org=github_org,
         github_repo=github_repo,
@@ -409,13 +396,13 @@ def _check_github_actions_params(
 ) -> bool:
     missing_parameters: bool = False
     if not github_org:
-        missing_parameters_messages.append("Error: Missing required parameter '--github-org'")
+        missing_parameters_messages.append("Missing required parameter '--github-org'")
         missing_parameters = True
     if not github_repo:
-        missing_parameters_messages.append("Error: Missing required parameter '--github-repo'")
+        missing_parameters_messages.append("Missing required parameter '--github-repo'")
         missing_parameters = True
     if not deployment_branch:
-        missing_parameters_messages.append("Error: Missing required parameter '--deployment-branch'")
+        missing_parameters_messages.append("Missing required parameter '--deployment-branch'")
         missing_parameters = True
     return missing_parameters
 
@@ -424,17 +411,14 @@ def _check_oidc_common_params(
     oidc_provider_url: Optional[str],
     oidc_client_id: Optional[str],
     oidc_provider: Optional[str],
-    create_new_oidc_provider: Optional[bool],
     missing_parameters_messages: List[str],
 ) -> None:
     if not oidc_provider_url:
-        missing_parameters_messages.append("Error: Missing required parameter '--oidc-provider-url'")
-    if create_new_oidc_provider is None:
-        missing_parameters_messages.append("Error: Missing required parameter '--create-new-oidc-provider'")
+        missing_parameters_messages.append("Missing required parameter '--oidc-provider-url'")
     if not oidc_client_id:
-        missing_parameters_messages.append("Error: Missing required parameter '--oidc-client-id'")
+        missing_parameters_messages.append("Missing required parameter '--oidc-client-id'")
     if not oidc_provider:
-        missing_parameters_messages.append("Error: Missing required parameter '--oidc-provider'")
+        missing_parameters_messages.append("Missing required parameter '--oidc-provider'")
 
 
 def _get_bootstrap_command_names() -> List[str]:

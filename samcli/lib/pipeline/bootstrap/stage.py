@@ -97,13 +97,13 @@ class Stage:
         oidc_provider_url: Optional[str] = None,
         oidc_client_id: Optional[str] = None,
         subject_claim: Optional[str] = None,
-        create_new_oidc_provider: Optional[bool] = None,
         oidc_provider_name: Optional[str] = None,
         github_org: Optional[str] = None,
         github_repo: Optional[str] = None,
         deployment_branch: Optional[str] = None,
     ) -> None:
         self.name: str = name
+        self.create_new_oidc_provider = False
         self.subject_claim = subject_claim
         self.use_oidc_provider = use_oidc_provider
         self.oidc_provider_name = oidc_provider_name
@@ -133,7 +133,17 @@ class Stage:
             comment="IAM OIDC Identity Provider",
             arn="",
         )
-        self.create_new_oidc_provider = create_new_oidc_provider
+
+    def _should_create_new_provider(self) -> bool:
+        if not self.oidc_provider.provider_url:
+            return False
+        iam_client = boto3.client("iam")
+        providers = iam_client.list_open_id_connect_providers()
+        url_to_compare = self.oidc_provider.provider_url.replace("https://", "")
+        for provider_resource in providers["OpenIDConnectProviderList"]:
+            if url_to_compare in provider_resource["Arn"]:
+                return False
+        return True
 
     def _generate_thumbprint(self) -> Optional[str]:
         # Send HTTP GET to retrieve jwks_uri field from openid-configuration document
@@ -147,7 +157,9 @@ class Stage:
         # Create connection to retrieve certificate
         address = (url_for_certificate, 443)
         ctx = SSL.Context(SSL.TLS_METHOD)
-        s = socket.create_connection(address, timeout=5)
+        # s = socket.create_connection(address, timeout=5)
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect(address)
         c = SSL.Connection(ctx, s)
         c.set_connect_state()
         c.set_tlsext_host_name(str.encode(address[0]))
@@ -226,8 +238,10 @@ class Stage:
                 click.secho(self.color.red("Canceling pipeline bootstrap creation."))
                 return False
 
-        if self.create_new_oidc_provider:
-            self.oidc_provider.thumbprint = self._generate_thumbprint()
+        if self.use_oidc_provider:
+            self.create_new_oidc_provider = self._should_create_new_provider()
+            if self.create_new_oidc_provider:
+                self.oidc_provider.thumbprint = self._generate_thumbprint()
 
         environment_resources_template_body = Stage._read_template(STAGE_RESOURCES_CFN_TEMPLATE)
         output: StackOutput = manage_stack(

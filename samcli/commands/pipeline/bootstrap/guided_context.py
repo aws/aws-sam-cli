@@ -37,7 +37,6 @@ class GuidedContext:
         use_oidc_provider: Optional[bool] = None,
         oidc_client_id: Optional[str] = None,
         oidc_provider_url: Optional[str] = None,
-        create_new_oidc_provider: Optional[bool] = None,
         oidc_provider: Optional[str] = None,
         github_org: Optional[str] = None,
         github_repo: Optional[str] = None,
@@ -55,7 +54,6 @@ class GuidedContext:
         self.use_oidc_provider = use_oidc_provider
         self.oidc_client_id = oidc_client_id
         self.oidc_provider_url = oidc_provider_url
-        self.create_new_oidc_provider = create_new_oidc_provider
         self.oidc_provider = oidc_provider
         self.github_repo = github_repo
         self.github_org = github_org
@@ -172,9 +170,6 @@ class GuidedContext:
         )
         self.use_oidc_provider = user_provider == "2"
 
-    def _prompt_create_new_provider(self) -> None:
-        self.create_new_oidc_provider = not click.confirm("Has this OIDC provider been created already in IAM?")
-
     def _prompt_oidc_provider(self) -> None:
         click.echo("Select an OIDC Provider:")
         for (key, provider) in self.SUPPORTED_OIDC_PROVIDERS.items():
@@ -211,7 +206,7 @@ class GuidedContext:
         )
 
     def _prompt_github_repo(self) -> None:
-        self.github_repo = click.prompt("Enter the name of the GitHub repository", type=click.STRING)
+        self.github_repo = click.prompt("Enter GitHub Repository name", type=click.STRING)
 
     def _prompt_github_branch(self) -> None:
         self.deployment_branch = click.prompt(
@@ -319,8 +314,6 @@ class GuidedContext:
             if not self.oidc_provider_url:
                 self._prompt_oidc_provider_url()
             self._validate_oidc_provider_url()
-            if not self.create_new_oidc_provider:
-                self._prompt_create_new_provider()
             if not self.oidc_client_id:
                 self._prompt_oidc_client_id()
             self._prompt_subject_claim()

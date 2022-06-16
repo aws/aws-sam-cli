@@ -3,6 +3,7 @@ from unittest import TestCase
 from unittest.mock import Mock, patch, call, MagicMock
 
 import OpenSSL.SSL  # type: ignore
+import boto3
 import requests
 
 from samcli.lib.pipeline.bootstrap.stage import Stage
@@ -14,6 +15,13 @@ ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN = "ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN"
 ANY_ARTIFACTS_BUCKET_ARN = "ANY_ARTIFACTS_BUCKET_ARN"
 ANY_IMAGE_REPOSITORY_ARN = "ANY_IMAGE_REPOSITORY_ARN"
 ANY_ARN = "ANY_ARN"
+ANY_OIDC_PROVIDER_URL = "ANY_OIDC_PROVIDER_URL"
+ANY_OIDC_CLIENT_ID = "ANY_OIDC_CLIENT_ID"
+ANY_OIDC_PROVIDER = "ANY_OIDC_PROVIDER"
+ANY_SUBJECT_CLAIM = "ANY_SUBJECT_CLAIM"
+ANY_GITHUB_REPO = "ANY_GITHUB_REPO"
+ANY_GITHUB_ORG = "ANY_GITHUB_ORG"
+ANY_DEPLOYMENT_BRANCH = "ANY_DEPLOYMENT_BRANCH"
 
 
 class TestStage(TestCase):
@@ -315,6 +323,71 @@ class TestStage(TestCase):
         )
         self.trigger_and_assert_save_config_calls(stage, cmd_names, expected_calls, samconfig_instance_mock.put)
 
+    @patch("samcli.lib.pipeline.bootstrap.stage.SamConfig")
+    def test_save_config_escapes_none_resources_oidc(self, samconfig_mock):
+        cmd_names = ["any", "commands"]
+        samconfig_instance_mock = Mock()
+        samconfig_mock.return_value = samconfig_instance_mock
+        stage: Stage = Stage(name=ANY_STAGE_CONFIGURATION_NAME, oidc_provider_name=ANY_OIDC_PROVIDER)
+
+        empty_ecr_call = call(
+            cmd_names=cmd_names,
+            section="parameters",
+            env=ANY_STAGE_CONFIGURATION_NAME,
+            key="image_repository",
+            value="",
+        )
+
+        expected_calls = []
+        self.trigger_and_assert_save_config_calls(
+            stage, cmd_names, expected_calls + [empty_ecr_call], samconfig_instance_mock.put
+        )
+
+        stage.use_oidc_provider = True
+        stage.oidc_provider.provider_url = ANY_OIDC_PROVIDER_URL
+        expected_calls.append(
+            call(cmd_names=cmd_names, section="parameters", key="oidc_provider_url", value=ANY_OIDC_PROVIDER_URL)
+        )
+
+        stage.oidc_provider.client_id = ANY_OIDC_CLIENT_ID
+        expected_calls.append(
+            call(cmd_names=cmd_names, section="parameters", key="oidc_client_id", value=ANY_OIDC_CLIENT_ID)
+        )
+
+        expected_calls.append(
+            call(cmd_names=cmd_names, section="parameters", key="oidc_provider", value=ANY_OIDC_PROVIDER)
+        )
+
+        self.trigger_and_assert_save_config_calls(
+            stage, cmd_names, expected_calls + [empty_ecr_call], samconfig_instance_mock.put
+        )
+        expected_calls.pop(-1)
+
+        stage.oidc_provider_name = "GitHub Actions"
+        expected_calls.append(
+            call(cmd_names=cmd_names, section="parameters", key="oidc_provider", value="GitHub Actions")
+        )
+
+        stage.github_org = ANY_GITHUB_ORG
+        expected_calls.append(
+            call(cmd_names=cmd_names, section="parameters", key="github_org", value=ANY_GITHUB_ORG)
+        )
+
+        stage.github_repo = ANY_GITHUB_REPO
+        expected_calls.append(
+            call(cmd_names=cmd_names, section="parameters", key="github_repo", value=ANY_GITHUB_REPO)
+        )
+
+        stage.deployment_branch = ANY_DEPLOYMENT_BRANCH
+        expected_calls.append(
+            call(cmd_names=cmd_names, section="parameters", key="deployment_branch", value=ANY_DEPLOYMENT_BRANCH)
+        )
+
+        self.trigger_and_assert_save_config_calls(
+            stage, cmd_names, expected_calls + [empty_ecr_call], samconfig_instance_mock.put
+        )
+
+
     def trigger_and_assert_save_config_calls(self, stage, cmd_names, expected_calls, samconfig_put_mock):
         stage.save_config(config_dir="any_config_dir", filename="any_pipeline.toml", cmd_names=cmd_names)
         self.assertEqual(len(expected_calls), samconfig_put_mock.call_count)
@@ -442,6 +515,111 @@ class TestStage(TestCase):
 
         # verify
         self.assertEqual(expected_thumbprint, actual_thumbprint)
+
+    @patch("samcli.lib.pipeline.bootstrap.stage.Stage._generate_thumbprint")
+    @patch("samcli.lib.pipeline.bootstrap.stage.boto3")
+    @patch("samcli.lib.pipeline.bootstrap.stage.click")
+    @patch("samcli.lib.pipeline.bootstrap.stage.manage_stack")
+    def test_creates_new_oidc_provider_if_needed(
+        self, manage_stack_mock, click_mock, boto3_mock, generate_thumbprint_mock
+    ):
+
+        # setup
+        stage: Stage = Stage(
+            name=ANY_STAGE_CONFIGURATION_NAME,
+            use_oidc_provider=True,
+            oidc_provider_url=ANY_OIDC_PROVIDER_URL,
+            oidc_client_id=ANY_OIDC_CLIENT_ID,
+            subject_claim=ANY_SUBJECT_CLAIM,
+            github_org=ANY_GITHUB_ORG,
+            github_repo=ANY_GITHUB_REPO,
+            deployment_branch=ANY_DEPLOYMENT_BRANCH,
+            pipeline_execution_role_arn=ANY_PIPELINE_EXECUTION_ROLE_ARN,
+            cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
+            artifacts_bucket_arn=ANY_ARTIFACTS_BUCKET_ARN,
+            create_image_repository=False,
+        )
+        stack_output = Mock()
+        stack_output.get.return_value = ANY_ARN
+        manage_stack_mock.return_value = stack_output
+        client_mock = Mock()
+        boto3_mock.client.return_value = client_mock
+        open_id_connect_providers_mock = {"OpenIDConnectProviderList": [{"Arn": ANY_ARN}]}
+        client_mock.list_open_id_connect_providers.return_value = open_id_connect_providers_mock
+
+        self.assertFalse(stage.create_new_oidc_provider)
+
+        # trigger
+        stage.bootstrap(confirm_changeset=False)
+
+        # verify
+        self.assertTrue(stage.create_new_oidc_provider)
+
+    @patch("samcli.lib.pipeline.bootstrap.stage.Stage._generate_thumbprint")
+    @patch("samcli.lib.pipeline.bootstrap.stage.boto3")
+    @patch("samcli.lib.pipeline.bootstrap.stage.click")
+    @patch("samcli.lib.pipeline.bootstrap.stage.manage_stack")
+    def test_doesnt_create_new_oidc_provider(
+        self, manage_stack_mock, click_mock, boto3_mock, generate_thumbprint_mock
+    ):
+
+        # setup
+        stage: Stage = Stage(
+            name=ANY_STAGE_CONFIGURATION_NAME,
+            use_oidc_provider=True,
+            oidc_provider_url=ANY_OIDC_PROVIDER_URL,
+            oidc_client_id=ANY_OIDC_CLIENT_ID,
+            subject_claim=ANY_SUBJECT_CLAIM,
+            github_org=ANY_GITHUB_ORG,
+            github_repo=ANY_GITHUB_REPO,
+            deployment_branch=ANY_DEPLOYMENT_BRANCH,
+            pipeline_execution_role_arn=ANY_PIPELINE_EXECUTION_ROLE_ARN,
+            cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
+            artifacts_bucket_arn=ANY_ARTIFACTS_BUCKET_ARN,
+            create_image_repository=False,
+        )
+        stack_output = Mock()
+        stack_output.get.return_value = ANY_ARN
+        manage_stack_mock.return_value = stack_output
+        client_mock = Mock()
+        boto3_mock.client.return_value = client_mock
+        open_id_connect_providers_mock = {"OpenIDConnectProviderList": [{"Arn": ANY_OIDC_PROVIDER_URL}]}
+        client_mock.list_open_id_connect_providers.return_value = open_id_connect_providers_mock
+
+        # trigger
+        stage.bootstrap(confirm_changeset=False)
+
+        # verify
+        self.assertFalse(stage.create_new_oidc_provider)
+
+    @patch("samcli.lib.pipeline.bootstrap.stage.boto3")
+    def test_should_create_new_oidc_provider_returns_true_if_no_url(self, boto3_mock):
+
+        # setup
+        stage: Stage = Stage(
+            name=ANY_STAGE_CONFIGURATION_NAME,
+            use_oidc_provider=True,
+            oidc_provider_url="",
+            oidc_client_id=ANY_OIDC_CLIENT_ID,
+            subject_claim=ANY_SUBJECT_CLAIM,
+            github_org=ANY_GITHUB_ORG,
+            github_repo=ANY_GITHUB_REPO,
+            deployment_branch=ANY_DEPLOYMENT_BRANCH,
+            pipeline_execution_role_arn=ANY_PIPELINE_EXECUTION_ROLE_ARN,
+            cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
+            artifacts_bucket_arn=ANY_ARTIFACTS_BUCKET_ARN,
+            create_image_repository=False,
+        )
+        client_mock = Mock()
+        boto3_mock.client.return_value = client_mock
+        open_id_connect_providers_mock = {"OpenIDConnectProviderList": [{"Arn": ANY_OIDC_PROVIDER_URL}]}
+        client_mock.list_open_id_connect_providers.return_value = open_id_connect_providers_mock
+
+        # trigger
+        result = stage._should_create_new_provider()
+
+        # verify
+        self.assertFalse(result)
 
     def assert_summary_has_a_message_like(self, msg, click_secho_mock):
         self.assertTrue(

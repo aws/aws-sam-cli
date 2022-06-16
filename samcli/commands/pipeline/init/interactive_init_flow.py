@@ -181,7 +181,6 @@ class InteractiveInitFlow:
                     github_org=None,
                     github_repo=None,
                     deployment_branch=None,
-                    create_new_oidc_provider=None,
                     oidc_provider=None,
                 )
                 return True
