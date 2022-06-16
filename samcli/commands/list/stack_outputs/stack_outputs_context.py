@@ -33,17 +33,6 @@ class StackOutputsContext:
 
     def get_stack_info(self):
         """
-        Returns the stack information for the stack passed in from the command line
-
-        Returns
-        -------
-            A dictionary containing the stack's information
-        """
-        cfn_client = self.cloudformation_client
-        return cfn_client.describe_stacks(StackName=self.stack_name)
-
-    def stack_exists(self):
-        """
         Returns the stack output information for the stack and raises exceptions accordingly
 
         Returns
@@ -52,7 +41,7 @@ class StackOutputsContext:
         """
 
         try:
-            response = self.get_stack_info()
+            response = self.cloudformation_client.describe_stacks(StackName=self.stack_name)
             if not response["Stacks"]:
                 raise StackDoesNotExistInRegionError(stack_name=self.stack_name, region=self.region)
             if "Outputs" not in response["Stacks"][0]:
@@ -92,5 +81,5 @@ class StackOutputsContext:
         Get the stack outputs for a stack
         """
 
-        response = self.stack_exists()
+        response = self.get_stack_info()
         click.echo(json.dumps(response["Stacks"][0]["Outputs"], indent=2))

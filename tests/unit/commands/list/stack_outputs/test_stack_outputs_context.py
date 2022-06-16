@@ -1,5 +1,5 @@
 from unittest import TestCase, mock
-from unittest.mock import patch, call, MagicMock
+from unittest.mock import patch, call, MagicMock, Mock
 from botocore.exceptions import ClientError, BotoCoreError, WaiterError, EndpointConnectionError
 import boto3
 import os
@@ -13,23 +13,17 @@ from samcli.commands.list.exceptions import StackOutputsError, NoOutputsForStack
 class TestStackOutputsContext(TestCase):
     @patch("samcli.commands.list.stack_outputs.stack_outputs_context.click.echo")
     @patch("samcli.commands.list.stack_outputs.stack_outputs_context.click.get_current_context")
-    @patch.object(
-        StackOutputsContext,
-        "get_stack_info",
-        MagicMock(
-            return_value=(
-                {
-                    "Stacks": [
-                        {"Outputs": [{"OutputKey": "HelloWorldTest", "OutputValue": "TestVal", "Description": "Test"}]}
-                    ]
-                }
-            )
-        ),
-    )
-    def test_stack_outputs_stack_exists(self, patched_click_get_current_context, patched_click_echo):
+    @patch("samcli.commands.list.stack_outputs.stack_outputs_context.get_boto_client_provider_with_config")
+    def test_stack_outputs_stack_exists(
+        self, mock_client_provider, patched_click_get_current_context, patched_click_echo
+    ):
+        mock_client_provider.return_value.return_value.describe_stacks.return_value = {
+            "Stacks": [{"Outputs": [{"OutputKey": "HelloWorldTest", "OutputValue": "TestVal", "Description": "Test"}]}]
+        }
         with StackOutputsContext(
             stack_name="test", output="json", region="us-east-1", profile=None
         ) as stack_output_context:
+
             stack_output_context.run()
             expected_click_echo_calls = [
                 call(
@@ -42,12 +36,11 @@ class TestStackOutputsContext(TestCase):
 
     @patch("samcli.commands.list.stack_outputs.stack_outputs_context.click.echo")
     @patch("samcli.commands.list.stack_outputs.stack_outputs_context.click.get_current_context")
-    @patch.object(
-        StackOutputsContext,
-        "get_stack_info",
-        MagicMock(return_value=({"Stacks": []})),
-    )
-    def test_no_stack_object_in_response(self, patched_click_get_current_context, patched_click_echo):
+    @patch("samcli.commands.list.stack_outputs.stack_outputs_context.get_boto_client_provider_with_config")
+    def test_no_stack_object_in_response(
+        self, mock_client_provider, patched_click_get_current_context, patched_click_echo
+    ):
+        mock_client_provider.return_value.return_value.describe_stacks.return_value = {"Stacks": []}
         with self.assertRaises(StackDoesNotExistInRegionError):
             with StackOutputsContext(
                 stack_name="test", output="json", region="us-east-1", profile=None
@@ -56,12 +49,11 @@ class TestStackOutputsContext(TestCase):
 
     @patch("samcli.commands.list.stack_outputs.stack_outputs_context.click.echo")
     @patch("samcli.commands.list.stack_outputs.stack_outputs_context.click.get_current_context")
-    @patch.object(
-        StackOutputsContext,
-        "get_stack_info",
-        MagicMock(return_value=({"Stacks": [{}]})),
-    )
-    def test_no_output_object_in_response(self, patched_click_get_current_context, patched_click_echo):
+    @patch("samcli.commands.list.stack_outputs.stack_outputs_context.get_boto_client_provider_with_config")
+    def test_no_output_object_in_response(
+        self, mock_client_provider, patched_click_get_current_context, patched_click_echo
+    ):
+        mock_client_provider.return_value.return_value.describe_stacks.return_value = {"Stacks": [{}]}
         with self.assertRaises(NoOutputsForStackError):
             with StackOutputsContext(
                 stack_name="test", output="json", region="us-east-1", profile=None
@@ -70,16 +62,13 @@ class TestStackOutputsContext(TestCase):
 
     @patch("samcli.commands.list.stack_outputs.stack_outputs_context.click.echo")
     @patch("samcli.commands.list.stack_outputs.stack_outputs_context.click.get_current_context")
-    @patch.object(
-        StackOutputsContext,
-        "get_stack_info",
-        MagicMock(
-            side_effect=ClientError(
-                {"Error": {"Code": "ValidationError", "Message": "Stack with id test does not exist"}}, "DescribeStacks"
-            )
-        ),
-    )
-    def test_clienterror_stack_does_not_exist_in_region(self, patched_click_get_current_context, patched_click_echo):
+    @patch("samcli.commands.list.stack_outputs.stack_outputs_context.get_boto_client_provider_with_config")
+    def test_clienterror_stack_does_not_exist_in_region(
+        self, mock_client_provider, patched_click_get_current_context, patched_click_echo
+    ):
+        mock_client_provider.return_value.return_value.describe_stacks.side_effect = ClientError(
+            {"Error": {"Code": "ValidationError", "Message": "Stack with id test does not exist"}}, "DescribeStacks"
+        )
         with self.assertRaises(StackDoesNotExistInRegionError):
             with StackOutputsContext(
                 stack_name="test", output="json", region="us-east-1", profile=None
@@ -88,12 +77,13 @@ class TestStackOutputsContext(TestCase):
 
     @patch("samcli.commands.list.stack_outputs.stack_outputs_context.click.echo")
     @patch("samcli.commands.list.stack_outputs.stack_outputs_context.click.get_current_context")
-    @patch.object(
-        StackOutputsContext,
-        "get_stack_info",
-        MagicMock(side_effect=EndpointConnectionError(endpoint_url="https://cloudformation.test.amazonaws.com/")),
-    )
-    def test_botocoreerror_invalid_region(self, patched_click_get_current_context, patched_click_echo):
+    @patch("samcli.commands.list.stack_outputs.stack_outputs_context.get_boto_client_provider_with_config")
+    def test_botocoreerror_invalid_region(
+        self, mock_client_provider, patched_click_get_current_context, patched_click_echo
+    ):
+        mock_client_provider.return_value.return_value.describe_stacks.side_effect = EndpointConnectionError(
+            endpoint_url="https://cloudformation.test.amazonaws.com/"
+        )
         with self.assertRaises(StackOutputsError):
             with StackOutputsContext(
                 stack_name="test", output="json", region="us-east-1", profile=None
