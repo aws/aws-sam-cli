@@ -1654,7 +1654,7 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
         cmdlist.extend(["--config-file", config_file])
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertTrue(
-            "Valid cache found, copying previously built resources from function build definition of"
+            "Valid cache found, copying previously built resources for following functions"
             in str(command_result.stderr),
             "Should have built using cache",
         )
@@ -1996,7 +1996,7 @@ class TestBuildWithNestedStacks(NestedBuildIntegBase):
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         # make sure functions are deduplicated properly, in stderr they will show up in the same line.
-        self.assertRegex(command_result.stderr.decode("utf-8"), r"Building .+'Function2',.+LocalNestedStack/Function2")
+        self.assertRegex(command_result.stderr.decode("utf-8"), r"Building .+Function2,.+LocalNestedStack/Function2")
 
         function_full_paths = ["Function", "Function2", "LocalNestedStack/Function1", "LocalNestedStack/Function2"]
         stack_paths = ["", "LocalNestedStack"]

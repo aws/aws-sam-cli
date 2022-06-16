@@ -155,6 +155,6 @@ class LogGroupProvider:
                     step_function_name,
                     log_group_arn,
                 )
-        LOG.warning("Logging is not configured for StepFunctions (%s)")
+        LOG.warning("Logging is not configured for StepFunctions (%s)", step_function_name)
 
         return None
