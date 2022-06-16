@@ -62,6 +62,10 @@ class Stage:
         A boolean flag that determines whether the user wants to create an ECR image repository or not
     image_repository: ECRImageRepository
         The ECR image repository to hold the image container of lambda functions with Image package-type
+    oidc_provider: OidcProvider
+        The OIDCProvider to be created/used for assuming the pipeline execution role
+    subject_claim: Optional[str]
+        The subject claim that will be returned by the OIDC Provider to assume the role
 
     Methods:
     --------
@@ -80,6 +84,12 @@ class Stage:
         the `sam pipeline init` command.
     print_resources_summary(self) -> None:
         prints to the screen(console) the ARNs of the created and provided resources.
+    _should_create_new_provider(self) -> bool:
+        checks if there are any existing OIDC Providers configured in IAM by getting a list of all OIDC Providers
+        setup in the account and seeing if the URL provided is in the ARN
+    _generate_thumbprint(self) -> Optional[str]:
+        retrieves the certificate of the top intermidate cerficate authority that signed the certificate
+        used by the external identity provider and then returns the SHA1 hash of it.
     """
 
     def __init__(

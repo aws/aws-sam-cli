@@ -369,14 +369,10 @@ class TestStage(TestCase):
         )
 
         stage.github_org = ANY_GITHUB_ORG
-        expected_calls.append(
-            call(cmd_names=cmd_names, section="parameters", key="github_org", value=ANY_GITHUB_ORG)
-        )
+        expected_calls.append(call(cmd_names=cmd_names, section="parameters", key="github_org", value=ANY_GITHUB_ORG))
 
         stage.github_repo = ANY_GITHUB_REPO
-        expected_calls.append(
-            call(cmd_names=cmd_names, section="parameters", key="github_repo", value=ANY_GITHUB_REPO)
-        )
+        expected_calls.append(call(cmd_names=cmd_names, section="parameters", key="github_repo", value=ANY_GITHUB_REPO))
 
         stage.deployment_branch = ANY_DEPLOYMENT_BRANCH
         expected_calls.append(
@@ -386,7 +382,6 @@ class TestStage(TestCase):
         self.trigger_and_assert_save_config_calls(
             stage, cmd_names, expected_calls + [empty_ecr_call], samconfig_instance_mock.put
         )
-
 
     def trigger_and_assert_save_config_calls(self, stage, cmd_names, expected_calls, samconfig_put_mock):
         stage.save_config(config_dir="any_config_dir", filename="any_pipeline.toml", cmd_names=cmd_names)
@@ -559,9 +554,7 @@ class TestStage(TestCase):
     @patch("samcli.lib.pipeline.bootstrap.stage.boto3")
     @patch("samcli.lib.pipeline.bootstrap.stage.click")
     @patch("samcli.lib.pipeline.bootstrap.stage.manage_stack")
-    def test_doesnt_create_new_oidc_provider(
-        self, manage_stack_mock, click_mock, boto3_mock, generate_thumbprint_mock
-    ):
+    def test_doesnt_create_new_oidc_provider(self, manage_stack_mock, click_mock, boto3_mock, generate_thumbprint_mock):
 
         # setup
         stage: Stage = Stage(
