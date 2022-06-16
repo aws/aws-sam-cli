@@ -131,6 +131,12 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
     help="This option separates the dependencies of individual function into another layer, for speeding up the sync"
     "process",
 )
+@click.option(
+    "--s3-bucket",
+    help="The S3 bucket to target when building and syncing objects.",
+    default=None,
+    required=False,
+)
 @stack_name_option(required=True)  # pylint: disable=E1120
 @base_dir_option
 @image_repository_option
@@ -166,6 +172,7 @@ def cli(
     parameter_overrides: dict,
     image_repository: str,
     image_repositories: Optional[Tuple[str]],
+    s3_bucket: str,
     s3_prefix: str,
     kms_key_id: str,
     capabilities: Optional[List[str]],
@@ -197,6 +204,7 @@ def cli(
         mode,
         image_repository,
         image_repositories,
+        s3_bucket,
         s3_prefix,
         kms_key_id,
         capabilities,
@@ -224,6 +232,7 @@ def do_cli(
     mode: Optional[str],
     image_repository: str,
     image_repositories: Optional[Tuple[str]],
+    s3_bucket: Optional[str],
     s3_prefix: str,
     kms_key_id: str,
     capabilities: Optional[List[str]],
@@ -253,7 +262,7 @@ def do_cli(
     set_experimental(ExperimentalFlag.Accelerate)
     update_experimental_context()
 
-    s3_bucket = manage_stack(profile=profile, region=region)
+    s3_bucket_name = s3_bucket or manage_stack(profile=profile, region=region)
 
     build_dir = DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER if dependency_layer else DEFAULT_BUILD_DIR
     LOG.debug("Using build directory as %s", build_dir)
@@ -280,7 +289,7 @@ def do_cli(
         with osutils.tempfile_platform_independent() as output_template_file:
             with PackageContext(
                 template_file=built_template,
-                s3_bucket=s3_bucket,
+                s3_bucket=s3_bucket_name,
                 image_repository=image_repository,
                 image_repositories=image_repositories,
                 s3_prefix=s3_prefix,
@@ -306,7 +315,7 @@ def do_cli(
                 with DeployContext(
                     template_file=output_template_file.name,
                     stack_name=stack_name,
-                    s3_bucket=s3_bucket,
+                    s3_bucket=s3_bucket_name,
                     image_repository=image_repository,
                     image_repositories=image_repositories,
                     no_progressbar=True,
