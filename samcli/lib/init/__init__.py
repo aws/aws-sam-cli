@@ -119,6 +119,10 @@ def generate_project(
     except TypeError as ex:
         LOG.debug("Error from cookiecutter: %s", ex)
 
+    _apply_tracing(tracing, output_dir, name)
+
+
+def _apply_tracing(tracing: bool, output_dir: str, name: str) -> None:
     if tracing:
         template_file_path = f"{output_dir}/{name}/template.yaml"
         template_modifier = XRayTracingTemplateModifier(template_file_path)
