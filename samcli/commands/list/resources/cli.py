@@ -28,11 +28,13 @@ resource will be mapped to the logical ID of each resource.
 @print_cmdline_args
 def cli(self, stack_name, output):
     """
-    Generate an event for one of the services listed below:
+    `sam list resources` command entry point
     """
 
-    do_cli(stack_name, output)
+    do_cli(stack_name=stack_name, output=output, region=self.region, profile=self.profile)
 
 
-def do_cli(stack_name, output):
-    pass
+def do_cli(stack_name, output, region, profile):
+    """
+    Implementation of the ``cli`` method
+    """
