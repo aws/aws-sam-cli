@@ -88,7 +88,6 @@ class TestStackOutputsContext(TestCase):
             with StackOutputsContext(
                 stack_name="test", output="json", region="us-east-1", profile=None
             ) as stack_output_context:
-                # patched_click_echo.raiseError.side_effect = Mock(side_effect=Exception('Test'))
                 stack_output_context.run()
 
     @patch("samcli.commands.list.stack_outputs.stack_outputs_context.click.echo")
