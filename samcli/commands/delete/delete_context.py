@@ -4,8 +4,10 @@ Delete a SAM stack
 import logging
 
 import json
-import boto3
 
+from typing import Optional
+
+import boto3
 
 import click
 from click import confirm
@@ -36,15 +38,25 @@ LOG = logging.getLogger(__name__)
 
 class DeleteContext:
     # TODO: Separate this context into 2 separate contexts guided and non-guided, just like deploy.
-    def __init__(self, stack_name: str, region: str, profile: str, config_file: str, config_env: str, no_prompts: bool):
+    def __init__(
+        self,
+        stack_name: str,
+        region: str,
+        profile: str,
+        config_file: str,
+        config_env: str,
+        no_prompts: bool,
+        s3_bucket: Optional[str],
+        s3_prefix: Optional[str],
+    ):
         self.stack_name = stack_name
         self.region = region
         self.profile = profile
         self.config_file = config_file
         self.config_env = config_env
         self.no_prompts = no_prompts
-        self.s3_bucket = None
-        self.s3_prefix = None
+        self.s3_bucket = s3_bucket
+        self.s3_prefix = s3_prefix
         self.cf_utils = None
         self.s3_uploader = None
         self.ecr_uploader = None
@@ -95,8 +107,10 @@ class DeleteContext:
                 self.region = config_options.get("region", None)
             if not self.profile:
                 self.profile = config_options.get("profile", None)
-            self.s3_bucket = config_options.get("s3_bucket", None)
-            self.s3_prefix = config_options.get("s3_prefix", None)
+            if not self.s3_bucket:
+                self.s3_bucket = config_options.get("s3_bucket", None)
+            if not self.s3_prefix:
+                self.s3_prefix = config_options.get("s3_prefix", None)
 
     def init_clients(self):
         """
@@ -142,8 +156,9 @@ class DeleteContext:
         Guided prompts asking user to delete s3 artifacts
         """
         # Note: s3_bucket and s3_prefix information is only
-        # available if a local toml file is present or if
-        # this information is obtained from the template resources and so if this
+        # available if it is provided as an option flag, a
+        # local toml file or if this information is obtained
+        # from the template resources and so if this
         # information is not found, warn the user that S3 artifacts
         # will need to be manually deleted.
 
@@ -319,12 +334,14 @@ class DeleteContext:
             self.cf_utils.delete_stack(stack_name=self.stack_name, retain_resources=retain_resources)
             self.cf_utils.wait_for_delete(self.stack_name)
 
-        # If s3_bucket information is not available, warn the user
+        # Warn the user that s3 information is missing and to use --s3 options
         if not self.s3_bucket:
-            LOG.debug("Cannot delete s3 files as no s3_bucket found")
+            LOG.debug("Cannot delete s3 objects as bucket is missing")
             click.secho(
-                "\nWarning: s3_bucket and s3_prefix information could not be obtained from local config file"
-                " or cloudformation template, delete the s3 files manually if required",
+                "\nWarning: Cannot resolve s3 bucket information from command options"
+                " , local config file or cloudformation template. Please use"
+                " --s3-bucket next time and"
+                " delete s3 files manually if required.",
                 fg="yellow",
             )
 
