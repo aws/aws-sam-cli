@@ -8,6 +8,7 @@ import click
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands._utils.cdk_support_decorators import unsupported_command_cdk
 from samcli.commands._utils.options import (
+    s3_bucket_option,
     template_option_without_build,
     parameter_override_option,
     capabilities_option,
@@ -131,16 +132,11 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
     help="This option separates the dependencies of individual function into another layer, for speeding up the sync"
     "process",
 )
-@click.option(
-    "--s3-bucket",
-    help="The S3 bucket to target when building and syncing objects.",
-    default=None,
-    required=False,
-)
 @stack_name_option(required=True)  # pylint: disable=E1120
 @base_dir_option
 @image_repository_option
 @image_repositories_option
+@s3_bucket_option(callback=False)  # pylint: disable=E1120
 @s3_prefix_option
 @kms_key_id_option
 @role_arn_option
@@ -172,7 +168,7 @@ def cli(
     parameter_overrides: dict,
     image_repository: str,
     image_repositories: Optional[Tuple[str]],
-    s3_bucket: Optional[str],
+    s3_bucket: str,
     s3_prefix: str,
     kms_key_id: str,
     capabilities: Optional[List[str]],
@@ -232,7 +228,7 @@ def do_cli(
     mode: Optional[str],
     image_repository: str,
     image_repositories: Optional[Tuple[str]],
-    s3_bucket: Optional[str],
+    s3_bucket: str,
     s3_prefix: str,
     kms_key_id: str,
     capabilities: Optional[List[str]],
