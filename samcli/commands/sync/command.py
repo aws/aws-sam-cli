@@ -172,7 +172,7 @@ def cli(
     parameter_overrides: dict,
     image_repository: str,
     image_repositories: Optional[Tuple[str]],
-    s3_bucket: str,
+    s3_bucket: Optional[str],
     s3_prefix: str,
     kms_key_id: str,
     capabilities: Optional[List[str]],
