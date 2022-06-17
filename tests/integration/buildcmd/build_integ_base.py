@@ -778,7 +778,7 @@ class DedupBuildIntegBase(BuildIntegBase):
         self.assertRegex(
             command_result.stderr.decode("utf-8"),
             "Building codeuri: .* runtime: .* metadata: .* functions: "
-            "\\['HelloWorldFunction', 'HelloMarsFunction'\\]",
+            "HelloWorldFunction, HelloMarsFunction",
         )
 
 
@@ -861,7 +861,7 @@ class IntrinsicIntegBase(BuildIntegBase):
         for function_full_path in function_full_paths:
             self.assertRegex(
                 command_result.stderr.decode("utf-8"),
-                f"Building codeuri: .* runtime: .* metadata: .* functions: \\[.*'{function_full_path}'.*\\]",
+                f"Building codeuri: .* runtime: .* metadata: .* functions:.*{function_full_path}.*",
             )
         self.assertIn(
             f"Building layer '{layer_full_path}'",
