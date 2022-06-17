@@ -29,7 +29,6 @@ Resources:
   HelloWorldLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: HelloWorldLayer
       Description: Hello World Layer
       # Currently if a base_dir option is provided, the nested stack code URIs
       # Needs to be relative to the base_dir instead of the child templates

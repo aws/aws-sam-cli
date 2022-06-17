@@ -11,6 +11,8 @@ from tests.testing_utils import run_command_with_input, read_until_string
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
 class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
     template = "template-python-no-dependencies.yaml"
+    folder = "code"
+    dependency_layer = True
 
     def test_sync_code_function_without_dependencies(self):
         # CFN Api call here to collect all the stack resources

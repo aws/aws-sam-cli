@@ -1684,7 +1684,7 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
         LOG.info("Running Command (cache should be invalid): %s", cmdlist)
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertTrue(
-            "Cache is invalid, running build and copying resources to function build definition"
+            "Cache is invalid, running build and copying resources for following functions"
             in command_result.stderr.decode("utf-8")
         )
 
@@ -1692,7 +1692,7 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
         command_result_with_cache = run_command(cmdlist, cwd=self.working_dir)
 
         self.assertTrue(
-            "Valid cache found, copying previously built resources from function build definition"
+            "Valid cache found, copying previously built resources for following functions"
             in command_result_with_cache.stderr.decode("utf-8")
         )
 
@@ -1728,8 +1728,8 @@ class TestRepeatedBuildHitsCache(BuildIntegBase):
             container_env_var="FOO=BAR" if use_container else None,
         )
 
-        cache_invalid_output = "Cache is invalid, running build and copying resources to "
-        cache_valid_output = "Valid cache found, copying previously built resources from "
+        cache_invalid_output = "Cache is invalid, running build and copying resources "
+        cache_valid_output = "Valid cache found, copying previously built resources "
 
         LOG.info("Running Command (cache should be invalid): %s", cmdlist)
         command_result = run_command(cmdlist, cwd=self.working_dir).stderr.decode("utf-8")
