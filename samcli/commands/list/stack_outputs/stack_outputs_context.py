@@ -30,3 +30,4 @@ class StackOutputsContext:
             stack_name=self.stack_name, output=self.output, region=self.region, profile=self.profile
         ) as producer:
             producer.produce()
+

@@ -106,3 +106,4 @@ class TestStackOutputsContext(TestCase):
         with StackOutputsProducer(stack_name="test", output="json", region=None, profile=None) as stack_output_producer:
             stack_output_producer.init_clients()
             self.assertEqual(stack_output_producer.region, "us-east-1")
+
