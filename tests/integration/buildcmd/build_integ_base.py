@@ -777,8 +777,7 @@ class DedupBuildIntegBase(BuildIntegBase):
         # check HelloWorld and HelloMars functions are built in the same build
         self.assertRegex(
             command_result.stderr.decode("utf-8"),
-            "Building codeuri: .* runtime: .* metadata: .* functions: "
-            "HelloWorldFunction, HelloMarsFunction",
+            "Building codeuri: .* runtime: .* metadata: .* functions: " "HelloWorldFunction, HelloMarsFunction",
         )
 
 

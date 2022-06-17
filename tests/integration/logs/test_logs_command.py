@@ -62,7 +62,7 @@ class LogsIntegTestCases(LogsIntegBase):
         stack_resource_summaries = get_resource_summaries(
             get_boto_resource_provider_with_config(),
             get_boto_client_provider_with_config(),
-            LogsIntegTestCases.stack_name
+            LogsIntegTestCases.stack_name,
         )
         LogsIntegTestCases.stack_resources = {
             resource_full_path: stack_resource_summary.physical_resource_id
