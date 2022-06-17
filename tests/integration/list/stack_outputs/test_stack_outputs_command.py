@@ -59,7 +59,8 @@ class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
   "OutputKey": "HelloWorldFunctionIamRole",
   "OutputValue": "arn:aws:iam::.*:role/.*-HelloWorldFunctionRole\-.*",
   "Description": "Implicit IAM Role created for Hello World function"
-}""", command_result.stdout.decode(),
+}""",
+                command_result.stdout.decode(),
             )
         )
         self.assertTrue(
@@ -68,7 +69,8 @@ class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
   "OutputKey": "HelloWorldApi",
   "OutputValue": "https://.*execute.*.amazonaws.com/Prod/hello/",
   "Description": "API Gateway endpoint URL for Prod stage for Hello World function"
-}""", command_result.stdout.decode(),
+}""",
+                command_result.stdout.decode(),
             )
         )
         self.assertTrue(
@@ -77,7 +79,8 @@ class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
   "OutputKey": "HelloWorldFunction",
   "OutputValue": "arn:aws:lambda:.*:.*:function:.*-HelloWorldFunction\-.*",
   "Description": "Hello World Lambda Function ARN"
-}""", command_result.stdout.decode(),
+}""",
+                command_result.stdout.decode(),
             )
         )
 
