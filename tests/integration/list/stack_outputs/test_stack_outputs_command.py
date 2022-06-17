@@ -51,35 +51,35 @@ class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
         deploy_process_execute = run_command_with_input(
             deploy_command_list, "{}\n{}\nY\nY\nY\nY\nY\n\n\nY\n".format(stack_name, region).encode()
         )
-        cmdlist = self.get_stack_outputs_command_list(stack_name=stack_name, region=region)
+        cmdlist = self.get_stack_outputs_command_list(stack_name=stack_name, region=region, output="json")
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertTrue(
             re.search(
                 """{
-    "OutputKey": "HelloWorldFunctionIamRole",
-    "OutputValue": "arn:aws:iam::.*:role/.*-HelloWorldFunctionRole\-.*",
-    "Description": "Implicit IAM Role created for Hello World function"
-  }""",
+  "OutputKey": "HelloWorldFunctionIamRole",
+  "OutputValue": "arn:aws:iam::.*:role/.*-HelloWorldFunctionRole\-.*",
+  "Description": "Implicit IAM Role created for Hello World function"
+}""",
                 command_result.stdout.decode(),
             )
         )
         self.assertTrue(
             re.search(
                 """{
-    "OutputKey": "HelloWorldApi",
-    "OutputValue": "https://.*execute.*.amazonaws.com/Prod/hello/",
-    "Description": "API Gateway endpoint URL for Prod stage for Hello World function"
-  }""",
+  "OutputKey": "HelloWorldApi",
+  "OutputValue": "https://.*execute.*.amazonaws.com/Prod/hello/",
+  "Description": "API Gateway endpoint URL for Prod stage for Hello World function"
+}""",
                 command_result.stdout.decode(),
             )
         )
         self.assertTrue(
             re.search(
                 """{
-    "OutputKey": "HelloWorldFunction",
-    "OutputValue": "arn:aws:lambda:.*:.*:function:.*-HelloWorldFunction\-.*",
-    "Description": "Hello World Lambda Function ARN"
-  }""",
+  "OutputKey": "HelloWorldFunction",
+  "OutputValue": "arn:aws:lambda:.*:.*:function:.*-HelloWorldFunction\-.*",
+  "Description": "Hello World Lambda Function ARN"
+}""",
                 command_result.stdout.decode(),
             )
         )
@@ -100,7 +100,7 @@ class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
         deploy_process_execute = run_command_with_input(
             deploy_command_list, "{}\n{}\nY\nY\nY\nY\nY\n\n\nY\n".format(stack_name, region).encode()
         )
-        cmdlist = self.get_stack_outputs_command_list(stack_name=stack_name, region=region)
+        cmdlist = self.get_stack_outputs_command_list(stack_name=stack_name, region=region, output="json")
         command_result = run_command(cmdlist, cwd=self.working_dir)
         expected_output = (
             f"Error: Outputs do not exist for the input stack {stack_name}" f" on Cloudformation in the region {region}"
@@ -114,7 +114,7 @@ class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
         stack_name = method_to_stack_name(self.id())
         config_file_name = stack_name + ".toml"
         region = boto3.Session().region_name
-        cmdlist = self.get_stack_outputs_command_list(stack_name=stack_name, region=region)
+        cmdlist = self.get_stack_outputs_command_list(stack_name=stack_name, region=region, output="json")
         command_result = run_command(cmdlist, cwd=self.working_dir)
         expected_output = (
             f"Error: The input stack {stack_name} does" f" not exist on Cloudformation in the region {region}"
