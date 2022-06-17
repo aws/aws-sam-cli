@@ -12,7 +12,7 @@ from contextlib import ExitStack
 
 from samcli.lib.build.app_builder import ApplicationBuilder
 from samcli.lib.package.utils import make_zip
-from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_by_id, Function
+from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_by_id, Function, LayerVersion
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.sync.exceptions import MissingPhysicalResourceError, NoLayerVersionsFoundError
 from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall, ApiCallTypes
@@ -176,6 +176,18 @@ class LayerSyncFlow(AbstractLayerSyncFlow):
     """SyncFlow for Lambda Layers"""
 
     _new_layer_version: Optional[int]
+    _layer: LayerVersion
+
+    def __init__(
+        self,
+        layer_identifier: str,
+        build_context: "BuildContext",
+        deploy_context: "DeployContext",
+        physical_id_mapping: Dict[str, str],
+        stacks: List[Stack],
+    ):
+        super().__init__(layer_identifier, build_context, deploy_context, physical_id_mapping, stacks)
+        self._layer = cast(LayerVersion, build_context.layer_provider.get(self._layer_identifier))
 
     def set_up(self) -> None:
         super().set_up()
@@ -207,7 +219,7 @@ class LayerSyncFlow(AbstractLayerSyncFlow):
         """Build layer and ZIP it into a temp file in self._zip_file"""
         with self._get_lock_chain():
 
-            rmtree_if_exists(self._build_context.build_dir)
+            rmtree_if_exists(self._layer.get_build_dir(self._build_context.build_dir))
             builder = ApplicationBuilder(
                 self._build_context.collect_build_resources(self._layer_identifier),
                 self._build_context.build_dir,

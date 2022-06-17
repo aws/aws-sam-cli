@@ -80,7 +80,7 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
             if self.has_locks():
                 exit_stack.enter_context(self._get_lock_chain())
 
-            rmtree_if_exists(self._build_context.build_dir)
+            rmtree_if_exists(self._function.get_build_dir(self._build_context.build_dir))
             builder = ApplicationBuilder(
                 self._build_context.collect_build_resources(self._function_identifier),
                 self._build_context.build_dir,

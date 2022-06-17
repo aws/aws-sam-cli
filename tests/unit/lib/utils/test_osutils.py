@@ -81,7 +81,6 @@ class Test_convert_files_to_unix_line_endings:
 
 
 class Test_rmtree_if_exists(TestCase):
-
     @patch("samcli.lib.utils.osutils.Path")
     @patch("samcli.lib.utils.osutils.shutil.rmtree")
     def test_must_skip_if_path_doesnt_exist(self, patched_rmtree, patched_path):
@@ -94,7 +93,7 @@ class Test_rmtree_if_exists(TestCase):
 
     @patch("samcli.lib.utils.osutils.Path")
     @patch("samcli.lib.utils.osutils.shutil.rmtree")
-    def test_must_skip_if_path_doesnt_exist(self, patched_rmtree, patched_path):
+    def test_must_delete_if_path_exist(self, patched_rmtree, patched_path):
         mock_path_obj = Mock()
         mock_path_obj.exists.return_value = True
         patched_path.return_value = mock_path_obj
