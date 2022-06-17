@@ -20,6 +20,7 @@ from samcli.lib.sync.sync_flow_executor import HELP_TEXT_FOR_SYNC_INFRA
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.hash import file_checksum
 from samcli.lib.sync.flows.function_sync_flow import wait_for_function_update_complete
+from samcli.lib.utils.osutils import rmtree_if_exists
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.build.build_context import BuildContext
@@ -205,6 +206,8 @@ class LayerSyncFlow(AbstractLayerSyncFlow):
     def gather_resources(self) -> None:
         """Build layer and ZIP it into a temp file in self._zip_file"""
         with self._get_lock_chain():
+
+            rmtree_if_exists(self._build_context.build_dir)
             builder = ApplicationBuilder(
                 self._build_context.collect_build_resources(self._layer_identifier),
                 self._build_context.build_dir,

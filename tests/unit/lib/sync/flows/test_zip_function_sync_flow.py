@@ -10,9 +10,10 @@ from samcli.lib.sync.flows.zip_function_sync_flow import ZipFunctionSyncFlow
 
 class TestZipFunctionSyncFlow(TestCase):
     def create_function_sync_flow(self):
+        self.build_context_mock = MagicMock()
         sync_flow = ZipFunctionSyncFlow(
             "Function1",
-            build_context=MagicMock(),
+            build_context=self.build_context_mock,
             deploy_context=MagicMock(),
             physical_id_mapping={},
             stacks=[MagicMock()],
@@ -34,9 +35,18 @@ class TestZipFunctionSyncFlow(TestCase):
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.make_zip")
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.tempfile.gettempdir")
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.ApplicationBuilder")
+    @patch("samcli.lib.sync.flows.zip_function_sync_flow.rmtree_if_exists")
     @patch("samcli.lib.sync.sync_flow.Session")
     def test_gather_resources(
-        self, session_mock, builder_mock, gettempdir_mock, make_zip_mock, file_checksum_mock, uuid4_mock, sha256_mock
+        self,
+        session_mock,
+        rmtree_if_exists_mock,
+        builder_mock,
+        gettempdir_mock,
+        make_zip_mock,
+        file_checksum_mock,
+        uuid4_mock,
+        sha256_mock
     ):
         get_mock = MagicMock()
         get_mock.return_value = "ArtifactFolder1"
@@ -53,6 +63,7 @@ class TestZipFunctionSyncFlow(TestCase):
         sync_flow.set_up()
         sync_flow.gather_resources()
 
+        rmtree_if_exists_mock.assert_called_once_with(self.build_context_mock.build_dir)
         get_mock.assert_called_once_with("Function1")
         self.assertEqual(sync_flow._artifact_folder, "ArtifactFolder1")
         make_zip_mock.assert_called_once_with("temp_folder" + os.sep + "data-uuid_value", "ArtifactFolder1")

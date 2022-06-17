@@ -60,8 +60,15 @@ class TestLayerSyncFlow(TestCase):
     @patch("samcli.lib.sync.flows.layer_sync_flow.make_zip")
     @patch("samcli.lib.sync.flows.layer_sync_flow.file_checksum")
     @patch("samcli.lib.sync.flows.layer_sync_flow.os")
+    @patch("samcli.lib.sync.flows.layer_sync_flow.rmtree_if_exists")
     def test_setup_gather_resources(
-        self, patched_os, patched_file_checksum, patched_make_zip, patched_tempfile, patched_app_builder
+        self,
+        patched_rmtree_if_exists,
+        patched_os,
+        patched_file_checksum,
+        patched_make_zip,
+        patched_tempfile,
+        patched_app_builder
     ):
         given_collect_build_resources = Mock()
         self.build_context_mock.collect_build_resources.return_value = given_collect_build_resources
@@ -81,6 +88,7 @@ class TestLayerSyncFlow(TestCase):
 
         self.layer_sync_flow.gather_resources()
 
+        patched_rmtree_if_exists.assert_called_with(self.build_context_mock.build_dir)
         self.build_context_mock.collect_build_resources.assert_called_with(self.layer_identifier)
 
         patched_app_builder.assert_called_with(
