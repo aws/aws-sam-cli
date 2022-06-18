@@ -20,6 +20,13 @@ The AWS Serverless Application Model (SAM) CLI is an open-source CLI tool that h
 - **Tail CloudWatch logs and X-Ray traces** with `sam log` and `sam trace`
 
 
+## Recent launches
+
+* **Speed up development with SAM Accelerate Beta** - quickly test your changges in the cloud. [Read blogpost here](https://aws.amazon.com/blogs/compute/accelerating-serverless-development-with-aws-sam-accelerate/?sc_icampaign=launch_sam-accelerate&sc_ichannel=ha&sc_icontent=awssm-9887_launch&sc_iplace=ribbon&trk=ha_awssm-9887_launch)
+* **Develop Typescript projects with SAM CLI using esbuild (Beta)** - build and deploy changes within seconds. [Read blogpost here](https://aws.amazon.com/blogs/compute/building-typescript-projects-with-aws-sam-cli/)
+* **Getting started with CI/CD? SAM pipelines can help you get started.** [This workshop](https://cicd.serverlessworkshops.io/) will walk you through the basics
+
+
 ## Get Started
 
 To get started with building SAM-based applications, use the SAM CLI. SAM CLI provides a Lambda-like execution 
