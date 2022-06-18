@@ -340,63 +340,45 @@ class TestTrackCommand(TestCase):
             "The command metrics be emitted when used as a decorator",
         )
 
+    @parameterized.expand(
+        [
+            ([],),
+            ([Mock(event_name=Mock(value="TestEvent"), event_value="TestValue")],),
+            (
+                [
+                    Mock(event_name=Mock(value="Test1"), event_value="TestValue1"),
+                    Mock(event_name=Mock(value="Test2"), event_value="TestValue2"),
+                ],
+            ),
+            (
+                [
+                    Mock(event_name=Mock(value="T1"), event_value="1"),
+                    Mock(event_name=Mock(value="T2"), event_value="2"),
+                    Mock(event_name=Mock(value="T3"), event_value="3"),
+                ],
+            ),
+            ([],),
+            ([Mock(event_name=Mock(value="BackToOneToEnsure"), event_value="ValuesAreTrulyReset")],),
+        ]
+    )
     @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_return_empty_list_of_events(self, ContextMock):
+    def test_must_return_list_of_events(self, events, ContextMock):
         ContextMock.get_current_context.return_value = self.context_mock
-
-        def func_with_no_events():
-            pass
-
-        track_command(func_with_no_events)()
-
-        args, _ = self.telemetry_instance.emit.call_args_list[0]
-        metric = args[0]
-        assert metric.get_metric_name() == "commandRun"
-        self.assertEqual(metric.get_data()["metricSpecificAttributes"]["events"], [])
-
-    @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_return_list_of_events(self, ContextMock):
-        ContextMock.get_current_context.return_value = self.context_mock
-        dummy_event = Mock(event_name=Mock(value="TestEvent"), event_value="TestValue")
-        dummy_event.to_json.return_value = Event.to_json(dummy_event)
+        for e in events:
+            e.to_json.return_value = Event.to_json(e)
 
         def func_with_event():
-            EventTracker._events.append(dummy_event)
+            for e in events:
+                EventTracker._events.append(e)
+
+        expected = [e.to_json() for e in events]
 
         track_command(func_with_event)()
 
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric = args[0]
         assert metric.get_metric_name() == "commandRun"
-        self.assertEqual(
-            metric.get_data()["metricSpecificAttributes"]["events"],
-            [{"event_name": dummy_event.event_name.value, "event_value": dummy_event.event_value}],
-        )
-
-    @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_return_list_of_multiple_events(self, ContextMock):
-        ContextMock.get_current_context.return_value = self.context_mock
-        dummy_event1 = Mock(event_name=Mock(value="Test1"), event_value="TestValue1")
-        dummy_event1.to_json.return_value = Event.to_json(dummy_event1)
-        dummy_event2 = Mock(event_name=Mock(value="TestEvent2"), event_value="TestValue2")
-        dummy_event2.to_json.return_value = Event.to_json(dummy_event2)
-
-        def func_with_event():
-            EventTracker._events.append(dummy_event1)
-            EventTracker._events.append(dummy_event2)
-
-        track_command(func_with_event)()
-
-        args, _ = self.telemetry_instance.emit.call_args_list[0]
-        metric = args[0]
-        assert metric.get_metric_name() == "commandRun"
-        self.assertEqual(
-            metric.get_data()["metricSpecificAttributes"]["events"],
-            [
-                {"event_name": dummy_event1.event_name.value, "event_value": dummy_event1.event_value},
-                {"event_name": dummy_event2.event_name.value, "event_value": dummy_event2.event_value},
-            ],
-        )
+        self.assertEqual(metric.get_data()["metricSpecificAttributes"]["events"], expected)
 
 
 class TestParameterCapture(TestCase):
