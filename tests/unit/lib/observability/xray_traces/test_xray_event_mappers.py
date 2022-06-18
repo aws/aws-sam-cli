@@ -58,7 +58,8 @@ class AbstraceXRayTraceMapperTest(TestCase):
                         ),
                     },
                 ],
-            }
+            },
+            1,
         )
 
 
@@ -76,7 +77,7 @@ class TestXRayTraceConsoleMapper(AbstraceXRayTraceMapperTest):
             event_timestamp = "2021-10-18T17:32:59.270000"
             LOG.info(mapped_event.message)
             self.assertTrue(
-                f"XRay Event at ({event_timestamp}) with id ({self.trace_event.id}) and duration ({self.trace_event.duration:.3f}s)"
+                f"XRay Event [revision 1] at ({event_timestamp}) with id ({self.trace_event.id}) and duration ({self.trace_event.duration:.3f}s)"
                 in mapped_event.message
             )
 

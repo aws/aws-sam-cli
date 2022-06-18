@@ -24,7 +24,7 @@ class Test_get_workflow_config(TestCase):
         self.assertEqual(result.manifest_name, "requirements.txt")
         self.assertIsNone(result.executable_search_paths)
 
-    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",)])
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
     def test_must_work_for_nodejs(self, runtime):
 
         result = get_workflow_config(runtime, self.code_dir, self.project_dir)

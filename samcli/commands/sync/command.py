@@ -62,7 +62,10 @@ LOG = logging.getLogger(__name__)
 HELP_TEXT = """
 [Beta Feature] Update/Sync local artifacts to AWS
 
-By default, the sync command runs a full stack update. You can specify --code or --watch to switch modes
+By default, the sync command runs a full stack update. You can specify --code or --watch to switch modes.
+\b
+Sync also supports nested stacks and nested stack resources. For example
+$ sam sync --code --stack-name {stack} --resource-id {ChildStack}/{ResourceId}
 """
 
 SYNC_CONFIRMATION_TEXT = """
@@ -113,7 +116,8 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @click.option(
     "--resource-id",
     multiple=True,
-    help="Sync code for all the resources with the ID.",
+    help="Sync code for all the resources with the ID. To sync a resource within a nested stack, "
+    "use the following pattern {ChildStack}/{logicalId}.",
 )
 @click.option(
     "--resource",
@@ -238,18 +242,6 @@ def do_cli(
     from samcli.commands.package.package_context import PackageContext
     from samcli.commands.deploy.deploy_context import DeployContext
 
-    s3_bucket = manage_stack(profile=profile, region=region)
-    click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
-
-    click.echo(f"\n\t\tDefault capabilities applied: {DEFAULT_CAPABILITIES}")
-    click.echo("To override with customized capabilities, use --capabilities flag or set it in samconfig.toml")
-
-    build_dir = DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER if dependency_layer else DEFAULT_BUILD_DIR
-    LOG.debug("Using build directory as %s", build_dir)
-
-    build_dir = DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER if dependency_layer else DEFAULT_BUILD_DIR
-    LOG.debug("Using build directory as %s", build_dir)
-
     confirmation_text = SYNC_CONFIRMATION_TEXT
 
     if not is_experimental_enabled(ExperimentalFlag.Accelerate):
@@ -260,6 +252,11 @@ def do_cli(
 
     set_experimental(ExperimentalFlag.Accelerate)
     update_experimental_context()
+
+    s3_bucket = manage_stack(profile=profile, region=region)
+
+    build_dir = DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER if dependency_layer else DEFAULT_BUILD_DIR
+    LOG.debug("Using build directory as %s", build_dir)
 
     with BuildContext(
         resource_identifier=None,
@@ -276,6 +273,7 @@ def do_cli(
         create_auto_dependency_layer=dependency_layer,
         stack_name=stack_name,
         print_success_message=False,
+        locate_layer_nested=True,
     ) as build_context:
         built_template = os.path.join(build_dir, DEFAULT_TEMPLATE_NAME)
 
@@ -295,6 +293,15 @@ def do_cli(
                 use_json=False,
                 force_upload=True,
             ) as package_context:
+
+                # 500ms of sleep time between stack checks and describe stack events.
+                DEFAULT_POLL_DELAY = 0.5
+                try:
+                    poll_delay = float(os.getenv("SAM_CLI_POLL_DELAY", str(DEFAULT_POLL_DELAY)))
+                except ValueError:
+                    poll_delay = DEFAULT_POLL_DELAY
+                if poll_delay <= 0:
+                    poll_delay = DEFAULT_POLL_DELAY
 
                 with DeployContext(
                     template_file=output_template_file.name,
@@ -319,6 +326,7 @@ def do_cli(
                     force_upload=True,
                     signing_profiles=None,
                     disable_rollback=False,
+                    poll_delay=poll_delay,
                 ) as deploy_context:
                     if watch:
                         execute_watch(template_file, build_context, package_context, deploy_context, dependency_layer)

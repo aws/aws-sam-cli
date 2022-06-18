@@ -41,7 +41,7 @@ Supported Resource Types
 Supported Runtimes
 ------------------
 1. Python 3.6, 3.7, 3.8 3.9 using PIP\n
-2. Nodejs 14.x, 12.x using NPM\n
+2. Nodejs 16.x, 14.x, 12.x using NPM\n
 3. Ruby 2.7 using Bundler\n
 4. Java 8, Java 11 using Gradle and Maven\n
 5. Dotnetcore3.1, Dotnet6 using Dotnet CLI (without --use-container flag)\n
@@ -121,6 +121,13 @@ $ sam build MyFunction
     cls=ContainerOptions,
 )
 @click.option(
+    "--exclude",
+    "-x",
+    default=None,
+    multiple=True,  # Multiple resources can be excepted from the build
+    help="Name of the resource(s) to exclude from the SAM CLI build.",
+)
+@click.option(
     "--parallel",
     "-p",
     is_flag=True,
@@ -159,6 +166,7 @@ def cli(
     container_env_var: Optional[Tuple[str]],
     container_env_var_file: Optional[str],
     build_image: Optional[Tuple[str]],
+    exclude: Optional[Tuple[str, ...]],
     skip_pull_image: bool,
     parameter_overrides: dict,
     config_file: str,
@@ -190,6 +198,7 @@ def cli(
         container_env_var,
         container_env_var_file,
         build_image,
+        exclude,
     )  # pragma: no cover
 
 
@@ -212,6 +221,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     container_env_var: Optional[Tuple[str]],
     container_env_var_file: Optional[str],
     build_image: Optional[Tuple[str]],
+    exclude: Optional[Tuple[str, ...]],
 ) -> None:
     """
     Implementation of the ``cli`` method
@@ -246,6 +256,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         container_env_var=processed_env_vars,
         container_env_var_file=container_env_var_file,
         build_images=processed_build_images,
+        excluded_resources=exclude,
         aws_region=click_ctx.region,
     ) as ctx:
         ctx.run()

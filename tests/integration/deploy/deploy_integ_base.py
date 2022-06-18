@@ -169,7 +169,7 @@ class DeployIntegBase(TestCase):
         return command_list
 
     @staticmethod
-    def get_minimal_build_command_list(self, template_file=None, build_dir=None):
+    def get_minimal_build_command_list(template_file=None, build_dir=None):
         command_list = [get_sam_command(), "build"]
 
         if template_file:

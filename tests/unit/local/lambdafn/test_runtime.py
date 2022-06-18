@@ -246,7 +246,7 @@ class LambdaRuntime_invoke(TestCase):
         stdout = "stdout"
         stderr = "stderr"
         container = Mock()
-        timer = Mock()
+        start_timer = Mock()
         debug_options = Mock()
         lambda_image_mock = Mock()
 
@@ -260,7 +260,7 @@ class LambdaRuntime_invoke(TestCase):
 
         # Configure interrupt handler
         self.runtime._configure_interrupt = Mock()
-        self.runtime._configure_interrupt.return_value = timer
+        self.runtime._configure_interrupt.return_value = start_timer
 
         LambdaContainerMock.return_value = container
         container.is_running.return_value = False
@@ -296,11 +296,10 @@ class LambdaRuntime_invoke(TestCase):
         self.manager_mock.run.assert_called_with(container)
         self.runtime._configure_interrupt.assert_called_with(self.full_path, self.DEFAULT_TIMEOUT, container, True)
         container.wait_for_result.assert_called_with(
-            event=event, full_path=self.full_path, stdout=stdout, stderr=stderr
+            event=event, full_path=self.full_path, stdout=stdout, stderr=stderr, start_timer=start_timer
         )
 
         # Finally block
-        timer.cancel.assert_called_with()
         self.manager_mock.stop.assert_called_with(container)
         self.runtime._clean_decompressed_paths.assert_called_with()
 
@@ -311,7 +310,7 @@ class LambdaRuntime_invoke(TestCase):
         stdout = "stdout"
         stderr = "stderr"
         container = Mock()
-        timer = Mock()
+        start_timer = Mock()
         layer_downloader = Mock()
 
         self.runtime = LambdaRuntime(self.manager_mock, layer_downloader)
@@ -320,7 +319,7 @@ class LambdaRuntime_invoke(TestCase):
         self.runtime._get_code_dir = MagicMock()
         self.runtime._get_code_dir.return_value = code_dir
         self.runtime._configure_interrupt = Mock()
-        self.runtime._configure_interrupt.return_value = timer
+        self.runtime._configure_interrupt.return_value = start_timer
 
         LambdaContainerMock.return_value = container
         container.is_running.return_value = False
@@ -336,8 +335,6 @@ class LambdaRuntime_invoke(TestCase):
         self.runtime._configure_interrupt.assert_not_called()
 
         # Finally block must be called
-        # But timer was not yet created. It should not be called
-        timer.cancel.assert_not_called()
         # In any case, stop the container
         self.manager_mock.stop.assert_called_with(container)
 
@@ -374,8 +371,6 @@ class LambdaRuntime_invoke(TestCase):
         self.runtime._configure_interrupt.assert_called_with(self.full_path, self.DEFAULT_TIMEOUT, container, True)
 
         # Finally block must be called
-        # Timer was created. So it must be cancelled
-        timer.cancel.assert_called_with()
         # In any case, stop the container
         self.manager_mock.stop.assert_called_with(container)
 
@@ -428,9 +423,10 @@ class TestLambdaRuntime_configure_interrupt(TestCase):
         timer_obj = Mock()
         ThreadingMock.Timer.return_value = timer_obj
 
-        result = self.runtime._configure_interrupt(self.name, self.timeout, self.container, is_debugging)
+        result_start_timer = self.runtime._configure_interrupt(self.name, self.timeout, self.container, is_debugging)
+        result_timer = result_start_timer()
 
-        self.assertEqual(result, timer_obj)
+        self.assertEqual(result_timer, timer_obj)
 
         ThreadingMock.Timer.assert_called_with(self.timeout, ANY, ())
         timer_obj.start.assert_called_with()
@@ -482,7 +478,8 @@ class TestLambdaRuntime_configure_interrupt(TestCase):
         # Fake the real method with a Lambda. Also run the handler immediately.
         ThreadingMock.Timer = fake_timer
 
-        self.runtime._configure_interrupt(self.name, self.timeout, self.container, is_debugging)
+        start_timer = self.runtime._configure_interrupt(self.name, self.timeout, self.container, is_debugging)
+        start_timer()
 
         # This method should be called from within the Timer Handler
         self.manager_mock.stop.assert_called_with(self.container)
@@ -602,7 +599,7 @@ class TestWarmLambdaRuntime_invoke(TestCase):
         stdout = "stdout"
         stderr = "stderr"
         container = Mock()
-        timer = Mock()
+        start_timer = Mock()
         debug_options = Mock()
         debug_options.debug_function = self.name
         lambda_image_mock = Mock()
@@ -615,7 +612,7 @@ class TestWarmLambdaRuntime_invoke(TestCase):
 
         # Configure interrupt handler
         self.runtime._configure_interrupt = Mock()
-        self.runtime._configure_interrupt.return_value = timer
+        self.runtime._configure_interrupt.return_value = start_timer
 
         LambdaContainerMock.return_value = container
         container.is_running.return_value = False
@@ -654,11 +651,10 @@ class TestWarmLambdaRuntime_invoke(TestCase):
         self.manager_mock.run.assert_called_with(container)
         self.runtime._configure_interrupt.assert_called_with(self.full_path, self.DEFAULT_TIMEOUT, container, True)
         container.wait_for_result.assert_called_with(
-            event=event, full_path=self.full_path, stdout=stdout, stderr=stderr
+            event=event, full_path=self.full_path, stdout=stdout, stderr=stderr, start_timer=start_timer
         )
 
         # Finally block
-        timer.cancel.assert_called_with()
         self.manager_mock.stop.assert_not_called()
 
 

@@ -16,8 +16,8 @@ environment:
   SAM_CLI_DEV: 1
 
   # Python uses $TMPDIR envvar to find root of tempdir
-  TMPDIR: '%TEMP%'
-  TMP: '%TEMP%'
+  TMPDIR: "%TEMP%"
+  TMP: "%TEMP%"
 
   # MSI Installers only use Py3.7.6. It is sufficient to test with this version here.
   PYTHON_HOME: "C:\\Python37-x64"
@@ -28,8 +28,8 @@ environment:
   HOMEDRIVE: "C:"
   HOMEPATH: 'C:\Users\appveyor'
   NOSE_PARAMETERIZED_NO_WARN: 1
-  AWS_S3: "AWS_S3_37_WIN"
-  AWS_ECR: "AWS_ECR_37"
+  AWS_S3: "AWS_S3_TESTING"
+  AWS_ECR: "AWS_ECR_TESTING"
   APPVEYOR_CONSOLE_DISABLE_PTY: true
 
 init:
@@ -63,6 +63,36 @@ install:
   # Install AWS CLI Globally via pip3
   - "pip install awscli"
 
+  # Switch to Docker Linux containers
+  - ps: Switch-DockerLinux
+
+  # Check for git executable
+  - "git --version"
+
+  # Get testing env vars
+  - ps: "
+  If (Test-Path env:BY_CANARY){
+    python -m virtualenv venv_env_vars;
+    ./venv_env_vars/Scripts/pip install boto3;
+    $test_env_var = ./venv_env_vars/Scripts/python tests/get_testing_resources.py;
+    $test_env_var_json = ConvertFrom-Json $test_env_var;
+
+    $env:CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID = $env:AWS_ACCESS_KEY_ID;
+    $env:CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY = $env:AWS_SECRET_ACCESS_KEY;
+    $env:CI_ACCESS_ROLE_AWS_SESSION_TOKEN = $env:AWS_SESSION_TOKEN;
+
+    $env:AWS_ACCESS_KEY_ID = $test_env_var_json.accessKeyID;
+    $env:AWS_SECRET_ACCESS_KEY = $test_env_var_json.secretAccessKey;
+    $env:AWS_SESSION_TOKEN = $test_env_var_json.sessionToken;
+    $env:TASK_TOKEN = $test_env_var_json.taskToken;
+    $env:AWS_S3_TESTING = $test_env_var_json.TestBucketName;
+    $env:AWS_ECR_TESTING = $test_env_var_json.TestECRURI;
+    $env:AWS_KMS_KEY = $test_env_var_json.TestKMSKeyArn;
+    $env:AWS_SIGNING_PROFILE_NAME = $test_env_var_json.TestSigningProfileName;
+    $env:AWS_SIGNING_PROFILE_VERSION_ARN = $test_env_var_json.TestSigningProfileARN;
+  }"
+
+
   # Create new virtual environment with chosen python version and activate it
   - "python -m virtualenv venv"
   - "venv\\Scripts\\activate"
@@ -74,14 +104,24 @@ install:
   # Install aws cli
   - "pip install awscli"
 
-  # Switch to Docker Linux containers
-  - ps: Switch-DockerLinux
-
-  # Check for git executable
-  - "git --version"
-
   # Echo final Path
   - "echo %PATH%"
+
+  - ps: "
+      If (Test-Path env:BY_CANARY){
+      echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
+      }"
+
+# Final clean up no matter success or failure
+on_finish:
+  - ps: "
+  If (Test-Path env:BY_CANARY){
+    $env:AWS_ACCESS_KEY_ID = $env:CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID;
+    $env:AWS_SECRET_ACCESS_KEY = $env:CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY;
+    $env:AWS_SESSION_TOKEN = $env:CI_ACCESS_ROLE_AWS_SESSION_TOKEN;
+    aws stepfunctions send-task-success --task-token \"$env:TASK_TOKEN\" --task-output \"{}\" --region us-west-2;
+  }"
+
 
 for:
   #Integ testing build, regression
@@ -91,10 +131,6 @@ for:
 
     test_script:
       # Reactivate virtualenv before running tests
-      - ps: "
-          If (Test-Path env:BY_CANARY){
-          echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
-          }"
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
@@ -107,10 +143,6 @@ for:
 
     test_script:
       # Reactivate virtualenv before running tests
-      - ps: "
-          If (Test-Path env:BY_CANARY){
-          echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
-          }"
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
@@ -123,10 +155,6 @@ for:
 
     test_script:
       # Reactivate virtualenv before running tests
-      - ps: "
-          If (Test-Path env:BY_CANARY){
-          echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
-          }"
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
@@ -139,10 +167,6 @@ for:
 
     test_script:
       # Reactivate virtualenv before running tests
-      - ps: "
-          If (Test-Path env:BY_CANARY){
-          echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
-          }"
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"

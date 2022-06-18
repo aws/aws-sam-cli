@@ -122,6 +122,153 @@ class TestStack(TestCase):
         self.assertEqual(self.expected_stack_path, self.stack.stack_path)
 
 
+class TestStackEqual(TestCase):
+    def test_stacks_are_equal(self):
+        stack1 = Stack(
+            "stack",
+            "stackLogicalId",
+            "/stack",
+            {"key": "value"},
+            {"Resources": {"func1": {"Runtime": "Python"}}},
+            {"SamResourceId": "stackCustomId"},
+        )
+        stack2 = Stack(
+            "stack",
+            "stackLogicalId",
+            "/stack",
+            {"key": "value"},
+            {"Resources": {"func1": {"Runtime": "Python"}}},
+            {"SamResourceId": "stackCustomId"},
+        )
+        self.assertTrue(stack1 == stack2)
+
+    def test_stacks_are_not_equal_different_types(self):
+        stack1 = Stack(
+            "stack",
+            "stackLogicalId",
+            "/stack",
+            {"key": "value"},
+            {"Resources": {"func1": {"Runtime": "Python"}}},
+            {"SamResourceId": "stackCustomId"},
+        )
+        not_stack = Mock()
+        self.assertFalse(stack1 == not_stack)
+
+    def test_stacks_are_not_equal_different_parent_stack_path(self):
+        stack1 = Stack(
+            "stack1",
+            "stackLogicalId",
+            "/stack",
+            {"key": "value"},
+            {"Resources": {"func1": {"Runtime": "Python"}}},
+            {"SamResourceId": "stackCustomId"},
+        )
+        stack2 = Stack(
+            "stack2",
+            "stackLogicalId",
+            "/stack",
+            {"key": "value"},
+            {"Resources": {"func1": {"Runtime": "Python"}}},
+            {"SamResourceId": "stackCustomId"},
+        )
+        self.assertFalse(stack1 == stack2)
+
+    def test_stacks_are_not_equal_different_stack_name(self):
+        stack1 = Stack(
+            "stack",
+            "stackLogicalId1",
+            "/stack",
+            {"key": "value"},
+            {"Resources": {"func1": {"Runtime": "Python"}}},
+            {"SamResourceId": "stackCustomId"},
+        )
+        stack2 = Stack(
+            "stack",
+            "stackLogicalId2",
+            "/stack",
+            {"key": "value"},
+            {"Resources": {"func1": {"Runtime": "Python"}}},
+            {"SamResourceId": "stackCustomId"},
+        )
+        self.assertFalse(stack1 == stack2)
+
+    def test_stacks_are_not_equal_different_template_path(self):
+        stack1 = Stack(
+            "stack",
+            "stackLogicalId",
+            "/stack1",
+            {"key": "value"},
+            {"Resources": {"func1": {"Runtime": "Python"}}},
+            {"SamResourceId": "stackCustomId"},
+        )
+        stack2 = Stack(
+            "stack",
+            "stackLogicalId",
+            "/stack2",
+            {"key": "value"},
+            {"Resources": {"func1": {"Runtime": "Python"}}},
+            {"SamResourceId": "stackCustomId"},
+        )
+        self.assertFalse(stack1 == stack2)
+
+    def test_stacks_are_not_equal_different_parameters(self):
+        stack1 = Stack(
+            "stack",
+            "stackLogicalId",
+            "/stack",
+            {"key1": "value1"},
+            {"Resources": {"func1": {"Runtime": "Python"}}},
+            {"SamResourceId": "stackCustomId"},
+        )
+        stack2 = Stack(
+            "stack",
+            "stackLogicalId",
+            "/stack",
+            {"key2": "value2"},
+            {"Resources": {"func1": {"Runtime": "Python"}}},
+            {"SamResourceId": "stackCustomId"},
+        )
+        self.assertFalse(stack1 == stack2)
+
+    def test_stacks_are_not_equal_different_templates(self):
+        stack1 = Stack(
+            "stack",
+            "stackLogicalId",
+            "/stack",
+            {"key": "value"},
+            {"Resources": {"func1": {"Runtime": "Python"}}},
+            {"SamResourceId": "stackCustomId"},
+        )
+        stack2 = Stack(
+            "stack",
+            "stackLogicalId",
+            "/stack",
+            {"key": "value"},
+            {"Resources": {"func2": {"Runtime": "Java"}}},
+            {"SamResourceId": "stackCustomId"},
+        )
+        self.assertFalse(stack1 == stack2)
+
+    def test_stacks_are_not_equal_different_metadata(self):
+        stack1 = Stack(
+            "stack",
+            "stackLogicalId",
+            "/stack",
+            {"key": "value"},
+            {"Resources": {"func1": {"Runtime": "Python"}}},
+            {"SamResourceId1": "stackCustomId1"},
+        )
+        stack2 = Stack(
+            "stack",
+            "stackLogicalId",
+            "/stack",
+            {"key": "value"},
+            {"Resources": {"func1": {"Runtime": "Python"}}},
+            {"SamResourceId2": "stackCustomId2"},
+        )
+        self.assertFalse(stack1 == stack2)
+
+
 class TestFunction(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -652,3 +799,42 @@ class TestGetResourceFullPathByID(TestCase):
     def test_get_resource_full_path_by_id(self, resource_id, expected_full_path):
         full_path = get_resource_full_path_by_id(self.stacks, resource_id)
         self.assertEqual(expected_full_path, full_path)
+
+
+class TestGetStack(TestCase):
+    root_stack = Stack("", "Root", "template.yaml", None, {})
+    child_stack = Stack("Root", "Child", "root_stack/template.yaml", None, {})
+    child_child_stack = Stack("Root/Child", "ChildChild", "root_stack/child_stack/template.yaml", None, {})
+
+    def test_get_parent_stack(self):
+        stack = Stack.get_parent_stack(self.child_stack, [self.root_stack, self.child_stack, self.child_child_stack])
+        self.assertEqual(stack, self.root_stack)
+
+        stack = Stack.get_parent_stack(self.root_stack, [self.root_stack, self.child_stack, self.child_child_stack])
+        self.assertIsNone(stack)
+
+    def test_get_stack_by_full_path(self):
+        stack = Stack.get_stack_by_full_path("Root/Child", [self.root_stack, self.child_stack, self.child_child_stack])
+        self.assertEqual(stack, self.child_stack)
+
+        stack = Stack.get_stack_by_full_path("Root", [self.root_stack, self.child_stack, self.child_child_stack])
+        self.assertEqual(stack, self.root_stack)
+
+        stack = Stack.get_stack_by_full_path("Child/Child", [self.root_stack, self.child_stack, self.child_child_stack])
+        self.assertIsNone(stack)
+
+    def test_get_child_stacks(self):
+        stack_list = Stack.get_child_stacks(
+            self.root_stack, [self.root_stack, self.child_stack, self.child_child_stack]
+        )
+        self.assertEqual(stack_list, [self.child_stack])
+
+        stack_list = Stack.get_child_stacks(
+            self.child_stack, [self.root_stack, self.child_stack, self.child_child_stack]
+        )
+        self.assertEqual(stack_list, [self.child_child_stack])
+
+        stack_list = Stack.get_child_stacks(
+            self.child_child_stack, [self.root_stack, self.child_stack, self.child_child_stack]
+        )
+        self.assertEqual(stack_list, [])

@@ -404,13 +404,23 @@ class ApiGatewayV2LambdaEvent:
         if not isinstance(stage_variables, dict) and stage_variables is not None:
             raise TypeError("'stage_variables' must be of type dict or None")
 
+        # convert mutlivalue queries into a comma separated list per API GW documentation for format v2
+        converted_query_string_params = None
+        if query_string_params is not None:
+            converted_query_string_params = {}
+            for k, v in query_string_params.items():
+                if isinstance(v, str):
+                    converted_query_string_params[k] = v
+                else:
+                    converted_query_string_params[k] = ",".join(v)
+
         self.version = "2.0"
         self.route_key = route_key
         self.raw_path = raw_path
         self.raw_query_string = raw_query_string
         self.cookies = cookies
         self.headers = headers
-        self.query_string_params = query_string_params
+        self.query_string_params = converted_query_string_params
         self.request_context = request_context
         self.body = body
         self.path_parameters = path_parameters
