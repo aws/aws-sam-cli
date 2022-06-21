@@ -243,16 +243,3 @@ def _load_saved_pipeline_user_arn() -> Optional[str]:
 
 def _get_bootstrap_command_names() -> List[str]:
     return ["pipeline", "bootstrap"]
-
-def _check_oidc_common_params(
-    oidc_provider_url: Optional[str],
-    oidc_client_id: Optional[str],
-    oidc_provider: Optional[str],
-    missing_parameters_messages: List[str],
-) -> None:
-    if not oidc_provider_url:
-        missing_parameters_messages.append("Missing required parameter '--oidc-provider-url'")
-    if not oidc_client_id:
-        missing_parameters_messages.append("Missing required parameter '--oidc-client-id'")
-    if not oidc_provider:
-        missing_parameters_messages.append("Missing required parameter '--oidc-provider'")

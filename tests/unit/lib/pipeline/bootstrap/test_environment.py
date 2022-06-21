@@ -1,3 +1,4 @@
+import hashlib
 from unittest import TestCase
 from unittest.mock import Mock, patch, call, MagicMock
 
@@ -10,6 +11,8 @@ ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN = "ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN"
 ANY_ARTIFACTS_BUCKET_ARN = "ANY_ARTIFACTS_BUCKET_ARN"
 ANY_IMAGE_REPOSITORY_ARN = "ANY_IMAGE_REPOSITORY_ARN"
 ANY_ARN = "ANY_ARN"
+ANY_OIDC_CLIENT_ID = "ANY_OIDC_CLIENT_ID"
+ANY_OIDC_PROVIDER_URL = "ANY_OIDC_PROVIDER_URL"
 
 
 class TestStage(TestCase):
@@ -412,6 +415,85 @@ class TestStage(TestCase):
             self.does_summary_have_a_message_like(msg, click_secho_mock),
             msg=f'stage resources summary includes "{msg}" which is unexpected',
         )
+
+    @patch("samcli.lib.pipeline.bootstrap.stage.crypto")
+    @patch("samcli.lib.pipeline.bootstrap.stage.socket")
+    @patch("samcli.lib.pipeline.bootstrap.stage.SSL")
+    @patch("samcli.lib.pipeline.bootstrap.stage.requests")
+    @patch("samcli.lib.pipeline.bootstrap.stage.click")
+    def test_generate_oidc_provider_thumbprint(self, click_mock, requests_mock, ssl_mock, socket_mock, crypto_mock):
+        # setup
+        stage: Stage = Stage(
+            name=ANY_STAGE_CONFIGURATION_NAME,
+            pipeline_user_arn=ANY_PIPELINE_USER_ARN,
+            artifacts_bucket_arn=ANY_ARTIFACTS_BUCKET_ARN,
+            create_image_repository=True,
+            image_repository_arn=ANY_IMAGE_REPOSITORY_ARN,
+        )
+        response_mock = Mock()
+        requests_mock.get.return_value = response_mock
+        response_mock.json.return_value = {"jwks_uri": "https://server.example.com/test"}
+        connection_mock = Mock()
+        ssl_mock.Connection.return_value = connection_mock
+        certificate_mock = Mock()
+        connection_mock.get_peer_cert_chain.return_value = [certificate_mock]
+        dumped_certificate = "not a real certificate object dump".encode("utf-8")
+        crypto_mock.dump_certificate.return_value = dumped_certificate
+        expected_thumbprint = hashlib.sha1(dumped_certificate).hexdigest()
+
+        # trigger
+        actual_thumbprint = stage._generate_thumbprint()
+
+        # verify
+        self.assertEqual(expected_thumbprint, actual_thumbprint)
+
+    @patch("samcli.lib.pipeline.bootstrap.stage.boto3")
+    def test_should_create_new_oidc_provider_returns_false_if_no_url(self, boto3_mock):
+
+        # setup
+        stage: Stage = Stage(
+            name=ANY_STAGE_CONFIGURATION_NAME,
+            oidc_provider_url="",
+            oidc_client_id=ANY_OIDC_CLIENT_ID,
+            pipeline_execution_role_arn=ANY_PIPELINE_EXECUTION_ROLE_ARN,
+            cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
+            artifacts_bucket_arn=ANY_ARTIFACTS_BUCKET_ARN,
+            create_image_repository=False,
+        )
+        client_mock = Mock()
+        boto3_mock.client.return_value = client_mock
+        open_id_connect_providers_mock = {"OpenIDConnectProviderList": [{"Arn": ANY_OIDC_PROVIDER_URL}]}
+        client_mock.list_open_id_connect_providers.return_value = open_id_connect_providers_mock
+
+        # trigger
+        result = stage._should_create_new_provider()
+
+        # verify
+        self.assertFalse(result)
+
+    @patch("samcli.lib.pipeline.bootstrap.stage.boto3")
+    def test_should_create_new_oidc_provider(self, boto3_mock):
+
+        # setup
+        stage: Stage = Stage(
+            name=ANY_STAGE_CONFIGURATION_NAME,
+            oidc_provider_url="NEW_OIDC_PROVIDER",
+            oidc_client_id=ANY_OIDC_CLIENT_ID,
+            pipeline_execution_role_arn=ANY_PIPELINE_EXECUTION_ROLE_ARN,
+            cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
+            artifacts_bucket_arn=ANY_ARTIFACTS_BUCKET_ARN,
+            create_image_repository=False,
+        )
+        client_mock = Mock()
+        boto3_mock.client.return_value = client_mock
+        open_id_connect_providers_mock = {"OpenIDConnectProviderList": [{"Arn": ANY_OIDC_PROVIDER_URL}]}
+        client_mock.list_open_id_connect_providers.return_value = open_id_connect_providers_mock
+
+        # trigger
+        result = stage._should_create_new_provider()
+
+        # verify
+        self.assertTrue(result)
 
     @staticmethod
     def does_summary_have_a_message_like(msg, click_secho_mock):

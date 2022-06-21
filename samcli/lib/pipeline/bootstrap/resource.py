@@ -137,6 +137,7 @@ class ECRImageRepository(Resource):
         repo_name = arn_parts.resource_id[i:]
         return f"{arn_parts.account_id}.dkr.ecr.{arn_parts.region}.amazonaws.com/{repo_name}"
 
+
 class OidcProvider(Resource):
     """
     Represents an AWS OIDC Provider resource
