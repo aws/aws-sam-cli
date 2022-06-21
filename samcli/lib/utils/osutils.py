@@ -8,7 +8,8 @@ import stat
 import sys
 import tempfile
 from contextlib import contextmanager
-from typing import List, Optional
+from pathlib import Path
+from typing import List, Optional, Union
 
 LOG = logging.getLogger(__name__)
 
@@ -67,6 +68,14 @@ def rmtree_callback(function, path, excinfo):
         os.remove(path)
     except OSError:
         LOG.debug("rmtree failed in %s for %s, details: %s", function, path, excinfo)
+
+
+def rmtree_if_exists(path: Union[str, Path]):
+    """Removes given path if the path exists"""
+    path_obj = Path(str(path))
+    if path_obj.exists():
+        LOG.debug("Cleaning up path %s", str(path))
+        shutil.rmtree(path_obj)
 
 
 def stdout():
