@@ -3,13 +3,11 @@ The producer for the 'sam list stack-outputs' command
 """
 import dataclasses
 import logging
-import boto3
-from botocore.exceptions import ClientError, BotoCoreError
-from samcli.commands.exceptions import RegionError
-from samcli.commands.list.exceptions import StackOutputsError, NoOutputsForStackError, StackDoesNotExistInRegionError
 
-from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config
-from samcli.lib.list.producer import Producer
+from botocore.exceptions import ClientError, BotoCoreError
+from samcli.commands.list.exceptions import SamListError, NoOutputsForStackError, StackDoesNotExistInRegionError
+
+from samcli.lib.list.list_interfaces import Producer
 from samcli.lib.list.stack_outputs.stack_outputs import StackOutputs
 from samcli.lib.list.mapper_consumer_factory import MapperConsumerFactory
 
@@ -17,23 +15,15 @@ LOG = logging.getLogger(__name__)
 
 
 class StackOutputsProducer(Producer):
-    def __init__(self, stack_name, output, region, profile):
+    def __init__(self, stack_name, output, region, profile, cloudformation_client):
         self.stack_name = stack_name
         self.output = output
         self.region = region
         self.profile = profile
-        self.cloudformation_client = None
+        self.cloudformation_client = cloudformation_client
         self.mapper = None
         self.consumer = None
         self.factory = None
-
-    def __enter__(self):
-        self.init_clients()
-        self.factory = MapperConsumerFactory()
-        return self
-
-    def __exit__(self, *args):
-        pass
 
     def get_stack_info(self):
         """
@@ -57,30 +47,13 @@ class StackOutputsProducer(Producer):
                 LOG.debug("Stack with id %s does not exist", self.stack_name)
                 raise StackDoesNotExistInRegionError(stack_name=self.stack_name, region=self.region) from e
             LOG.error("ClientError Exception : %s", str(e))
-            raise StackOutputsError(msg=str(e)) from e
+            raise SamListError(msg=str(e)) from e
         except BotoCoreError as e:
             LOG.error("Botocore Exception : %s", str(e))
-            raise StackOutputsError(msg=str(e)) from e
-
-    def init_clients(self) -> None:
-        """
-        Initialize the clients being used by sam list.
-        """
-        if not self.region:
-            session = boto3.Session()
-            region = session.region_name
-            if region:
-                self.region = region
-            else:
-                raise RegionError(
-                    message="No region was specified/found. "
-                    "Please provide a region via the --region parameter or by the AWS_REGION environment variable."
-                )
-
-        client_provider = get_boto_client_provider_with_config(region=self.region, profile=self.profile)
-        self.cloudformation_client = client_provider("cloudformation")
+            raise SamListError(msg=str(e)) from e
 
     def produce(self):
+        self.factory = MapperConsumerFactory()
         new_container = self.factory.create(producer="stackoutputsproducer", output=self.output)
         self.mapper = new_container.mapper
         self.consumer = new_container.consumer

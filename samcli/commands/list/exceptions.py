@@ -6,7 +6,7 @@ Exceptions for SAM list
 from samcli.commands.exceptions import UserException
 
 
-class StackOutputsError(UserException):
+class SamListError(UserException):
     def __init__(self, msg):
         self.msg = msg
 

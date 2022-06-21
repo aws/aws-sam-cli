@@ -3,7 +3,7 @@ Implementation of the data to json mapper
 """
 from typing import Dict
 import json
-from samcli.lib.list.mapper import Mapper
+from samcli.lib.list.list_interfaces import Mapper
 
 
 class DataToJsonMapper(Mapper):

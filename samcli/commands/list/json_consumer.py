@@ -2,9 +2,9 @@
 The json consumer for 'sam list'
 """
 import click
-from samcli.lib.list.consumer import Consumer
+from samcli.lib.list.list_interfaces import ListInfoPullerConsumer
 
 
-class JsonConsumer(Consumer):
+class JsonConsumer(ListInfoPullerConsumer):
     def consume(self, data: str) -> None:
         click.echo(data)
