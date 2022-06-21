@@ -3,16 +3,21 @@ import json
 import os
 import pathlib
 import re
+import socket
+import hashlib
 from itertools import chain
 from typing import Dict, List, Optional, Tuple
 
 import boto3
 import click
+import requests
+
+from OpenSSL import SSL, crypto  # type: ignore
 
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.managed_cloudformation_stack import manage_stack, StackOutput
-from samcli.lib.pipeline.bootstrap.resource import Resource, IAMUser, ECRImageRepository
+from samcli.lib.pipeline.bootstrap.resource import OidcProvider, Resource, IAMUser, ECRImageRepository
 
 CFN_TEMPLATE_PATH = str(pathlib.Path(os.path.dirname(__file__)))
 STACK_NAME_PREFIX = "aws-sam-cli-managed"
@@ -51,6 +56,8 @@ class Stage:
         A boolean flag that determines whether the user wants to create an ECR image repository or not
     image_repository: ECRImageRepository
         The ECR image repository to hold the image container of lambda functions with Image package-type
+    oidc_provider: OidcProvider
+        The OIDCProvider to be created/used for assuming the pipeline execution role
 
     Methods:
     --------
@@ -69,6 +76,12 @@ class Stage:
         the `sam pipeline init` command.
     print_resources_summary(self) -> None:
         prints to the screen(console) the ARNs of the created and provided resources.
+    _should_create_new_provider(self) -> bool:
+        checks if there are any existing OIDC Providers configured in IAM by getting a list of all OIDC Providers
+        setup in the account and seeing if the URL provided is in the ARN
+    _generate_thumbprint(self) -> Optional[str]:
+        retrieves the certificate of the top intermidate cerficate authority that signed the certificate
+        used by the external identity provider and then returns the SHA1 hash of it.
     """
 
     def __init__(
@@ -82,6 +95,8 @@ class Stage:
         artifacts_bucket_arn: Optional[str] = None,
         create_image_repository: bool = False,
         image_repository_arn: Optional[str] = None,
+        oidc_client_id: Optional[str] = None,
+        oidc_provider_url: Optional[str] = None,
     ) -> None:
         self.name: str = name
         self.aws_profile: Optional[str] = aws_profile
@@ -97,6 +112,13 @@ class Stage:
         self.create_image_repository: bool = create_image_repository
         self.image_repository: ECRImageRepository = ECRImageRepository(
             arn=image_repository_arn, comment="ECR image repository"
+        )
+        self.oidc_provider: OidcProvider = OidcProvider(
+            client_id=oidc_client_id,
+            provider_url=oidc_provider_url,
+            thumbprint="",
+            comment="IAM OIDC Identity Provider",
+            arn="",
         )
         self.color = Colored()
 
@@ -119,6 +141,46 @@ class Stage:
             ]
         )
         return "\n".join([f"\t- {comment}" for comment in resource_comments])
+
+    def _should_create_new_provider(self) -> bool:
+        if not self.oidc_provider.provider_url:
+            return False
+        iam_client = boto3.client("iam")
+        providers = iam_client.list_open_id_connect_providers()
+        url_to_compare = self.oidc_provider.provider_url.replace("https://", "")
+        for provider_resource in providers["OpenIDConnectProviderList"]:
+            if url_to_compare in provider_resource["Arn"]:
+                return False
+        return True
+
+    def _generate_thumbprint(self) -> Optional[str]:
+        # Send HTTP GET to retrieve jwks_uri field from openid-configuration document
+        oidc_config_url = "{url}/.well-known/openid-configuration".format(url=self.oidc_provider.provider_url)
+        r = requests.get(oidc_config_url, timeout=5)
+        jwks_uri = r.json()["jwks_uri"]
+        url_start = jwks_uri.find("//") + 2
+        url_end = jwks_uri[url_start:].find("/") + url_start
+        url_for_certificate = jwks_uri[url_start:url_end]
+
+        # Create connection to retrieve certificate
+        address = (url_for_certificate, 443)
+        ctx = SSL.Context(SSL.TLS_METHOD)
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect(address)
+        c = SSL.Connection(ctx, s)
+        c.set_connect_state()
+        c.set_tlsext_host_name(str.encode(address[0]))
+
+        # If we attempt to get the cert chain without exchanging some traffic it will be empty
+        c.sendall(str.encode("HEAD / HTTP/1.0\n\n"))
+        peerCertChain = c.get_peer_cert_chain()
+        cert = peerCertChain[-1]
+
+        # Dump the certificate in DER/ASN1 format so that its SHA1 hash can be computed
+        dumped_cert = crypto.dump_certificate(crypto.FILETYPE_ASN1, cert)
+        s.close()
+
+        return hashlib.sha1(dumped_cert).hexdigest()
 
     def bootstrap(self, confirm_changeset: bool = True) -> bool:
         """
