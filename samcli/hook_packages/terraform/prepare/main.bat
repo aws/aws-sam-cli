@@ -1,10 +1,11 @@
 @echo off&setlocal
+
+:: ensure the script works regardless of where it's invoked from
+for %%i in ("%~dp0.") do set "parent_path=%%~fi"
+cd %parent_path%
+
 :: redirect all stdout except for hook output to stderr
 (
-    :: ensure the script works regardless of where it's invoked from
-    for %%i in ("%~dp0.") do set "parent_path=%%~fi"
-    cd %parent_path%
-
     :: check that python 3 is installed
     py -3 --version >NUL 2>&1
     if errorlevel 1 goto errorNoPython
