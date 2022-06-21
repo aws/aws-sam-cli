@@ -252,7 +252,7 @@ def do_cli(
     if not is_experimental_enabled(ExperimentalFlag.Accelerate):
         confirmation_text = SYNC_CONFIRMATION_TEXT_WITH_BETA
 
-    if not click.confirm(Colored().yellow(confirmation_text), default=False):
+    if not click.confirm(Colored().yellow(confirmation_text), default=True):
         return
 
     set_experimental(ExperimentalFlag.Accelerate)
