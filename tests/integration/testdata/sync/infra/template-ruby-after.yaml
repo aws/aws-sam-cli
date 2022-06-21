@@ -21,7 +21,6 @@ Resources:
   HelloWorldRubyLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: HelloWorldRubyLayer
       Description: Hello World Ruby Layer
       ContentUri: after/Ruby/layer/
       CompatibleRuntimes:

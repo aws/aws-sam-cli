@@ -8,15 +8,20 @@ import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
-from samcli.commands._utils.options import common_observability_options
-from samcli.lib.telemetry.metric import track_command
-from samcli.lib.utils.version_checker import check_newer_version
 from samcli.commands._utils.experimental import (
     ExperimentalFlag,
     force_experimental_option,
     experimental,
     prompt_experimental,
 )
+from samcli.commands._utils.options import common_observability_options
+from samcli.commands.logs.validation_and_exception_handlers import (
+    SAM_LOGS_ADDITIONAL_EXCEPTION_HANDLERS,
+    stack_name_cw_log_group_validation,
+)
+from samcli.lib.telemetry.metric import track_command
+from samcli.commands._utils.command_exception_handler import command_exception_handler
+from samcli.lib.utils.version_checker import check_newer_version
 
 LOG = logging.getLogger(__name__)
 
@@ -97,6 +102,8 @@ $ sam logs --stack-name mystack -n MyNestedStack/HelloWorldFunction
 @force_experimental_option("include_traces", config_entry=ExperimentalFlag.Accelerate)  # pylint: disable=E1120
 @force_experimental_option("cw_log_group", config_entry=ExperimentalFlag.Accelerate)  # pylint: disable=E1120
 @force_experimental_option("output", config_entry=ExperimentalFlag.Accelerate)  # pylint: disable=E1120
+@command_exception_handler(SAM_LOGS_ADDITIONAL_EXCEPTION_HANDLERS)
+@stack_name_cw_log_group_validation
 def cli(
     ctx,
     name,
@@ -169,7 +176,9 @@ def do_cli(
 
     boto_client_provider = get_boto_client_provider_with_config(region=region, profile=profile)
     boto_resource_provider = get_boto_resource_provider_with_config(region=region, profile=profile)
-    resource_logical_id_resolver = ResourcePhysicalIdResolver(boto_resource_provider, stack_name, names)
+    resource_logical_id_resolver = ResourcePhysicalIdResolver(
+        boto_resource_provider, boto_client_provider, stack_name, names
+    )
 
     # only fetch all resources when no CloudWatch log group defined
     fetch_all_when_no_resource_name_given = not cw_log_groups

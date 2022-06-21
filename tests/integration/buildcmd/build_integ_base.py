@@ -777,8 +777,7 @@ class DedupBuildIntegBase(BuildIntegBase):
         # check HelloWorld and HelloMars functions are built in the same build
         self.assertRegex(
             command_result.stderr.decode("utf-8"),
-            "Building codeuri: .* runtime: .* metadata: .* functions: "
-            "\\['HelloWorldFunction', 'HelloMarsFunction'\\]",
+            "Building codeuri: .* runtime: .* metadata: .* functions: " "HelloWorldFunction, HelloMarsFunction",
         )
 
 
@@ -816,7 +815,7 @@ class NestedBuildIntegBase(BuildIntegBase):
         for function_full_path in function_full_paths:
             self.assertRegex(
                 command_result.stderr.decode("utf-8"),
-                f"Building codeuri: .* runtime: .* metadata: .* functions: \\[.*'{function_full_path}'.*\\]",
+                f"Building codeuri: .* runtime: .* metadata: .* functions: .*{function_full_path}.*",
             )
 
     def _verify_invoke_built_functions(self, template_path, overrides, function_and_expected):
@@ -861,7 +860,7 @@ class IntrinsicIntegBase(BuildIntegBase):
         for function_full_path in function_full_paths:
             self.assertRegex(
                 command_result.stderr.decode("utf-8"),
-                f"Building codeuri: .* runtime: .* metadata: .* functions: \\[.*'{function_full_path}'.*\\]",
+                f"Building codeuri: .* runtime: .* metadata: .* functions:.*{function_full_path}.*",
             )
         self.assertIn(
             f"Building layer '{layer_full_path}'",
