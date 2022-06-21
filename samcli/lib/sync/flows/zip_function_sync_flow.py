@@ -20,6 +20,7 @@ from samcli.lib.package.utils import make_zip
 
 from samcli.lib.build.app_builder import ApplicationBuilder
 from samcli.lib.sync.sync_flow import ResourceAPICall, ApiCallTypes
+from samcli.lib.utils.osutils import rmtree_if_exists
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
@@ -79,6 +80,7 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
             if self.has_locks():
                 exit_stack.enter_context(self._get_lock_chain())
 
+            rmtree_if_exists(self._function.get_build_dir(self._build_context.build_dir))
             builder = ApplicationBuilder(
                 self._build_context.collect_build_resources(self._function_identifier),
                 self._build_context.build_dir,
