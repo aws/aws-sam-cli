@@ -357,13 +357,13 @@ class TestTrackCommand(TestCase):
                     Mock(event_name=Mock(value="T3"), event_value="3"),
                 ],
             ),
-            ([],),
-            ([Mock(event_name=Mock(value="BackToOneToEnsure"), event_value="ValuesAreTrulyReset")],),
         ]
     )
     @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_return_list_of_events(self, events, ContextMock):
+    @patch("samcli.lib.telemetry.event.EventTracker.clear_trackers", side_effect=EventTracker.clear_trackers)
+    def test_must_return_list_of_events(self, events, clr_mock, ContextMock):
         ContextMock.get_current_context.return_value = self.context_mock
+        clr_mock.clear_trackers.return_value = EventTracker.clear_trackers()
         for e in events:
             e.to_json.return_value = Event.to_json(e)
 
@@ -378,7 +378,10 @@ class TestTrackCommand(TestCase):
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric = args[0]
         assert metric.get_metric_name() == "commandRun"
-        self.assertEqual(metric.get_data()["metricSpecificAttributes"]["events"], expected)
+        metric_events = metric.get_data()["metricSpecificAttributes"]["events"]
+        clr_mock.assert_called()
+        self.assertEqual(len(events), len(metric_events))
+        self.assertEqual(metric_events, expected)
 
 
 class TestParameterCapture(TestCase):
