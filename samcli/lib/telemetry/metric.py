@@ -17,6 +17,7 @@ from samcli.cli.global_config import GlobalConfig
 from samcli.lib.warnings.sam_cli_warning import TemplateWarningsChecker
 from samcli.commands.exceptions import UserException
 from samcli.lib.telemetry.cicd import CICDDetector, CICDPlatform
+from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.telemetry.project_metadata import get_git_remote_origin_url, get_project_name, get_initial_commit_hash
 from samcli.commands._utils.experimental import get_all_experimental_statues
 from .telemetry import Telemetry
@@ -158,6 +159,9 @@ def track_command(func):
             metric_specific_attributes["gitOrigin"] = get_git_remote_origin_url()
             metric_specific_attributes["projectName"] = get_project_name()
             metric_specific_attributes["initialCommit"] = get_initial_commit_hash()
+            # Event metrics
+            metric_specific_attributes["events"] = [e.to_json() for e in EventTracker.get_tracked_events()]
+            EventTracker.clear_trackers()
             metric.add_data("metricSpecificAttributes", metric_specific_attributes)
             # Metric about command's execution characteristics
             metric.add_data("duration", duration_fn())
