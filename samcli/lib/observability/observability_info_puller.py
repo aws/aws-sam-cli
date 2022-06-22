@@ -190,8 +190,7 @@ class ObservabilityCombinedPuller(ObservabilityPuller):
             async_context.run_async()
         except KeyboardInterrupt:
             LOG.info(" CTRL+C received, cancelling...")
-            for puller in self._pullers:
-                puller.stop_tailing()
+            self.stop_tailing()
 
     def load_time_period(
         self,
