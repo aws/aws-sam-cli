@@ -201,6 +201,7 @@ class ApplicationBuilder:
                         self._cache_dir,
                         self._manifest_path_override,
                         self._is_building_specific_resource,
+                        bool(self._container_manager),
                     ),
                 )
             else:
@@ -214,6 +215,7 @@ class ApplicationBuilder:
                 self._cache_dir,
                 self._manifest_path_override,
                 self._is_building_specific_resource,
+                bool(self._container_manager),
             )
 
         return ApplicationBuildResult(build_graph, build_strategy.build())
