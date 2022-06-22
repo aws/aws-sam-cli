@@ -547,6 +547,7 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
             "cache_dir",
             "manifest_path_override",
             False,
+            False,
         )
 
     @parameterized.expand(
@@ -606,7 +607,14 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
             mocked_build_graph.get_function_build_definitions.return_value = []
 
             cached_build_strategy = CachedOrIncrementalBuildStrategyWrapper(
-                mocked_build_graph, Mock(), temp_base_dir, build_dir, cache_dir, None, is_building_specific_resource
+                mocked_build_graph,
+                Mock(),
+                temp_base_dir,
+                build_dir,
+                cache_dir,
+                None,
+                is_building_specific_resource,
+                False,
             )
 
             cached_build_strategy.build()
@@ -621,3 +629,45 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
                 mocked_build_graph.clean_redundant_definitions_and_update.assert_called_once()
                 clean_cache_mock.assert_called_once()
                 clean_dep_mock.assert_called_once()
+
+    @parameterized.expand(
+        [
+            ("python", True),
+            ("ruby", True),
+            ("nodejs", True),
+            ("python", False),
+            ("ruby", False),
+            ("nodejs", False),
+        ]
+    )
+    @patch("samcli.lib.build.build_strategy.is_experimental_enabled")
+    def test_wrapper_with_or_without_container(
+        self, mocked_read, mocked_write, runtime, use_container, patched_experimental
+    ):
+        build_strategy = CachedOrIncrementalBuildStrategyWrapper(
+            self.build_graph,
+            Mock(),
+            "base_dir",
+            "build_dir",
+            "cache_dir",
+            "manifest_path_override",
+            False,
+            use_container,
+        )
+
+        patched_experimental.return_value = True
+        build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {}, "handler")
+        self.build_graph.put_function_build_definition(build_definition, Mock(full_path="function_full_path"))
+        with patch.object(
+            build_strategy, "_incremental_build_strategy"
+        ) as patched_incremental_build_strategy, patch.object(
+            build_strategy, "_cached_build_strategy"
+        ) as patched_cached_build_strategy:
+            build_strategy.build()
+
+            if not use_container:
+                patched_incremental_build_strategy.build_single_function_definition.assert_called_with(build_definition)
+                patched_cached_build_strategy.assert_not_called()
+            else:
+                patched_cached_build_strategy.build_single_function_definition.assert_called_with(build_definition)
+                patched_incremental_build_strategy.assert_not_called()
