@@ -640,9 +640,7 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
             ("nodejs", False),
         ]
     )
-    def test_wrapper_with_or_without_container(
-        self, mocked_read, mocked_write, runtime, use_container
-    ):
+    def test_wrapper_with_or_without_container(self, mocked_read, mocked_write, runtime, use_container):
         build_strategy = CachedOrIncrementalBuildStrategyWrapper(
             self.build_graph,
             Mock(),
