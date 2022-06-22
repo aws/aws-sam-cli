@@ -475,11 +475,13 @@ def stack_name_option(f, required=False, callback=None):
 
 
 def s3_bucket_click_option(disable_callback):
+    callback = None if disable_callback else partial(artifact_callback, artifact=ZIP)
+
     return click.option(
         "--s3-bucket",
         required=False,
         help="The name of the S3 bucket where this command uploads the artifacts that are referenced in your template.",
-        callback=None if disable_callback else partial(artifact_callback, artifact=ZIP),
+        callback=callback,
     )
 
 
