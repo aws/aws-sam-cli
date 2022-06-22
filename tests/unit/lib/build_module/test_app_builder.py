@@ -25,7 +25,7 @@ from samcli.lib.build.app_builder import (
     DockerConnectionError,
 )
 from samcli.commands.local.cli_common.user_exceptions import InvalidFunctionPropertyType
-from samcli.lib.telemetry.event import EventName
+from samcli.lib.telemetry.event import EventName, EventTracker
 from samcli.lib.utils.architecture import X86_64, ARM64
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
@@ -1477,6 +1477,9 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
             Mock(), "/build/dir", "/base/dir", "/cache/dir", mode="mode", stream_writer=StreamWriter(sys.stderr)
         )
 
+    def tearDown(self):
+        EventTracker.clear_trackers()
+
     @parameterized.expand([([],), (["ExpFlag1", "ExpFlag2"],)])
     @patch("samcli.lib.telemetry.event.EventType.get_accepted_values")
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
@@ -1608,6 +1611,9 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
             stream_writer=StreamWriter(sys.stderr),
         )
         self.builder._parse_builder_response = Mock()
+
+    def tearDown(self):
+        EventTracker.clear_trackers()
 
     @patch("samcli.lib.telemetry.event.EventType.get_accepted_values")
     @patch("samcli.lib.build.app_builder.LambdaBuildContainer")
