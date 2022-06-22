@@ -640,9 +640,8 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
             ("nodejs", False),
         ]
     )
-    @patch("samcli.lib.build.build_strategy.is_experimental_enabled")
     def test_wrapper_with_or_without_container(
-        self, mocked_read, mocked_write, runtime, use_container, patched_experimental
+        self, mocked_read, mocked_write, runtime, use_container
     ):
         build_strategy = CachedOrIncrementalBuildStrategyWrapper(
             self.build_graph,
@@ -655,7 +654,6 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
             use_container,
         )
 
-        patched_experimental.return_value = True
         build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {}, "handler")
         self.build_graph.put_function_build_definition(build_definition, Mock(full_path="function_full_path"))
         with patch.object(

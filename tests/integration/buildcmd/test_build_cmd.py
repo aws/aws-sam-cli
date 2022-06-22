@@ -1728,8 +1728,17 @@ class TestRepeatedBuildHitsCache(BuildIntegBase):
             container_env_var="FOO=BAR" if use_container else None,
         )
 
-        cache_invalid_output = "Cache is invalid, running build and copying resources "
-        cache_valid_output = "Valid cache found, copying previously built resources "
+        cache_invalid_output_use_container = "Cache is invalid, running build and copying resources "
+        cache_valid_output_use_container = "Valid cache found, copying previously built resources "
+
+        cache_invalid_output_no_container = "Manifest file is changed"
+        cache_valid_output_no_container = "Manifest is not changed"
+
+        cache_invalid_output, cache_valid_output = (
+            (cache_invalid_output_use_container, cache_valid_output_use_container)
+            if use_container
+            else (cache_invalid_output_no_container, cache_valid_output_no_container)
+        )
 
         LOG.info("Running Command (cache should be invalid): %s", cmdlist)
         command_result = run_command(cmdlist, cwd=self.working_dir).stderr.decode("utf-8")
