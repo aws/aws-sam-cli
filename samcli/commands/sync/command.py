@@ -222,7 +222,7 @@ def do_cli(
     from samcli.commands.package.package_context import PackageContext
     from samcli.commands.deploy.deploy_context import DeployContext
 
-    if not click.confirm(Colored().yellow(SYNC_CONFIRMATION_TEXT), default=False):
+    if not click.confirm(Colored().yellow(SYNC_CONFIRMATION_TEXT), default=True):
         return
 
     s3_bucket = manage_stack(profile=profile, region=region)
