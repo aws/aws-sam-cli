@@ -474,22 +474,18 @@ def stack_name_option(f, required=False, callback=None):
     return stack_name_click_option(required, callback)(f)
 
 
-def s3_bucket_click_option(guided):
-    kwargs = {
-        "required": False,
-        "help": "The name of the S3 bucket where this command uploads the artifacts "
-        "that are referenced in your template.",
-    }
-
-    if guided:
-        kwargs["callback"] = partial(artifact_callback, artifact=ZIP)
-
-    return click.option("--s3-bucket", **kwargs)
+def s3_bucket_click_option(disable_callback):
+    return click.option(
+        "--s3-bucket",
+        required=False,
+        help="The name of the S3 bucket where this command uploads the artifacts that are referenced in your template.",
+        callback=None if disable_callback else partial(artifact_callback, artifact=ZIP),
+    )
 
 
 @parameterized_option
-def s3_bucket_option(f, guided=False):
-    return s3_bucket_click_option(guided)(f)
+def s3_bucket_option(f, disable_callback=False):
+    return s3_bucket_click_option(disable_callback)(f)
 
 
 def build_dir_click_option():
