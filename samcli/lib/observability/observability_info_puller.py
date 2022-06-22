@@ -223,5 +223,7 @@ class ObservabilityCombinedPuller(ObservabilityPuller):
         async_context.run_async()
 
     def stop_tailing(self):
+        # if ObservabilityCombinedPuller A is a child puller in other ObservabilityCombinedPuller B, make sure A's child
+        # pullers stop as well when B stops.
         for puller in self._pullers:
             puller.stop_tailing()
