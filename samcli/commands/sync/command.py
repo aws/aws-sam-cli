@@ -122,14 +122,14 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @click.option(
     "--resource",
     multiple=True,
-    type=click.Choice(SyncCodeResources.values(), case_sensitive=False),
-    help="Sync code for all types of the resource.",
+    type=click.Choice(SyncCodeResources.values(), case_sensitive=True),
+    help=f"Sync code for all resources of the give resource type. Accepted values are {SyncCodeResources.values()}",
 )
 @click.option(
     "--dependency-layer/--no-dependency-layer",
     default=True,
     is_flag=True,
-    help="This option separates the dependencies of individual function into another layer, for speeding up the sync"
+    help="This option separates the dependencies of individual function into another layer, for speeding up the sync."
     "process",
 )
 @stack_name_option(required=True)  # pylint: disable=E1120
