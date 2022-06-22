@@ -136,7 +136,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @base_dir_option
 @image_repository_option
 @image_repositories_option
-@s3_bucket_option(callback=False)  # pylint: disable=E1120
+@s3_bucket_option()  # pylint: disable=E1120
 @s3_prefix_option
 @kms_key_id_option
 @role_arn_option
