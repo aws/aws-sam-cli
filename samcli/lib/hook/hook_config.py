@@ -6,6 +6,7 @@ from typing import Dict, Iterable, List, NamedTuple, Optional
 import jsonschema
 from .exceptions import InvalidHookPackageConfigException
 
+
 class HookFunctionalityParam(NamedTuple):
     long_name: str
     short_name: str

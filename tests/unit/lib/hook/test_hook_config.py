@@ -4,14 +4,8 @@ from copy import deepcopy
 from unittest import TestCase
 from unittest.mock import patch, MagicMock, mock_open
 
-from samcli.lib.hook.hook_config import (
-    HookFunctionalityParam,
-    HookFunctionality, 
-    HookPackageConfig
-)
-from samcli.lib.hook.exceptions import (
-    InvalidHookPackageConfigException
-)
+from samcli.lib.hook.hook_config import HookFunctionalityParam, HookFunctionality, HookPackageConfig
+from samcli.lib.hook.exceptions import InvalidHookPackageConfigException
 
 TEST_HOOK_PACKAGE_CONFIG = {
     "hook_package_id": "my_test_hook_package_id",
@@ -28,25 +22,25 @@ TEST_HOOK_PACKAGE_CONFIG = {
                     "short_name": "p1",
                     "description": "Parameter 1",
                     "mandatory": True,
-                    "type": "array"
+                    "type": "array",
                 },
                 {
                     "long_name": "param2",
                     "short_name": "p2",
                     "description": "Parameter 2",
                     "mandatory": False,
-                    "type": "array"
+                    "type": "array",
                 },
-            ]
+            ],
         }
-    }
+    },
 }
 
 
 class TestHookFunctionality(TestCase):
     def setUp(self) -> None:
         self._config = deepcopy(TEST_HOOK_PACKAGE_CONFIG)
-        
+
     def test_mandatory_parameters(self):
         prepare_dict = self._config["functionalities"]["prepare"]
         params = [HookFunctionalityParam(**param) for param in prepare_dict["parameters"]]
@@ -55,7 +49,7 @@ class TestHookFunctionality(TestCase):
 
         self.assertEqual(functionality.mandatory_parameters, expected)
 
-        
+
 class TestHookPackageConfig(TestCase):
     def setUp(self) -> None:
         self._config = deepcopy(TEST_HOOK_PACKAGE_CONFIG)
@@ -73,7 +67,7 @@ class TestHookPackageConfig(TestCase):
         self.assertEqual(hook_config.version, self._config["version"])
         self.assertEqual(hook_config.specification, self._config["hook_specification"])
         self.assertEqual(hook_config.description, self._config["description"])
-        
+
         self.assertIn("prepare", hook_config.functionalities)
         self.assertIsInstance(hook_config.functionalities["prepare"], HookFunctionality)
 
@@ -92,7 +86,6 @@ class TestHookPackageConfig(TestCase):
 
         self.assertTrue(e.exception.message.startswith("Invalid Config.json - "))
 
-
     def test_non_existent_config(self):
         package_path_mock = MagicMock(name="package_path_mock")
         config_loc_mock = MagicMock(name="config_loc_mock")
@@ -103,9 +96,4 @@ class TestHookPackageConfig(TestCase):
         with self.assertRaises(InvalidHookPackageConfigException) as e:
             HookPackageConfig(package_path_mock)
 
-        self.assertEqual(
-            e.exception.message,
-            "fake_path/Config.json is not a file or does not exist"
-        )
-
-        
+        self.assertEqual(e.exception.message, "fake_path/Config.json is not a file or does not exist")

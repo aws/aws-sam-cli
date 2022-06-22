@@ -15,7 +15,7 @@ from .exceptions import (
     InvalidHookPackageException,
     InvalidHookPackageConfigException,
     InvalidHookWrapperException,
-    HookPackageExecuteFunctionalityException
+    HookPackageExecuteFunctionalityException,
 )
 
 
@@ -24,6 +24,7 @@ LOG = logging.getLogger(__name__)
 
 class IacHookWrapper:
     """IacHookWrapper"""
+
     _config: HookPackageConfig
 
     _INTERNAL_PACKAGES_ROOT = Path(__file__).parent / ".." / ".." / "hook_packages"
@@ -44,14 +45,13 @@ class IacHookWrapper:
         params = {
             "IACProjectPath": iac_project_path if iac_project_path else str(Path.cwd()),
             "OutputDirPath": output_dir_path,
-            "Debug": debug
+            "Debug": debug,
         }
         if logs_path:
             params["LogsPath"] = logs_path
 
         output = self._execute("prepare", params)
         return output
-
 
     def _load_hook_package(self, hook_package_id: str) -> None:
         # locate hook package from internal first
@@ -70,7 +70,7 @@ class IacHookWrapper:
     def _execute(self, functionality_key: str, params: Optional[Dict] = None) -> Optional[Any]:
         if functionality_key not in self._config.functionalities:
             raise HookPackageExecuteFunctionalityException(
-                f"Functionality \"{functionality_key}\" is not defined in the hook package."
+                f'Functionality "{functionality_key}" is not defined in the hook package.'
             )
 
         functionality = self._config.functionalities[functionality_key]
@@ -96,7 +96,7 @@ class IacHookWrapper:
 
             with process.stdout:
                 output = json.load(process.stdout.read())
-            
+
             return output
         except subprocess.TimeoutExpired:
             LOG.error("Command: %s, TIMED OUT", command)
@@ -116,10 +116,9 @@ class IacHookWrapper:
     def _validate_params(self, functionality: HookFunctionality, provided_params: Dict) -> None:
         # check for missing mandatory params
         missing_params = [
-            param.long_name for param in functionality.mandatory_parameters
+            param.long_name
+            for param in functionality.mandatory_parameters
             if param.long_name not in provided_params and param.short_name not in provided_params
         ]
         if missing_params:
-            raise InvalidHookWrapperException(
-                f"Missing required parameters {', '.join(missing_params)}"
-            )
+            raise InvalidHookWrapperException(f"Missing required parameters {', '.join(missing_params)}")
