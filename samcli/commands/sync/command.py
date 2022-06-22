@@ -123,7 +123,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
     "--resource",
     multiple=True,
     type=click.Choice(SyncCodeResources.values(), case_sensitive=True),
-    help=f"Sync code for all resources of the give resource type. Accepted values are {SyncCodeResources.values()}",
+    help=f"Sync code for all resources of the given resource type. Accepted values are {SyncCodeResources.values()}",
 )
 @click.option(
     "--dependency-layer/--no-dependency-layer",
