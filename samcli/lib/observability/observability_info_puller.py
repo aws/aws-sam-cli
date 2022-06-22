@@ -88,6 +88,9 @@ class ObservabilityPuller(ABC):
             List of event ids that will be pulled
         """
 
+    def stop_tailing(self):
+        self.cancelled = True
+
 
 # pylint: disable=fixme
 # fixme add ABC parent class back once we bump the pylint to a version 2.8.2 or higher
@@ -188,7 +191,7 @@ class ObservabilityCombinedPuller(ObservabilityPuller):
         except KeyboardInterrupt:
             LOG.info(" CTRL+C received, cancelling...")
             for puller in self._pullers:
-                puller.cancelled = True
+                puller.stop_tailing()
 
     def load_time_period(
         self,
@@ -218,3 +221,7 @@ class ObservabilityCombinedPuller(ObservabilityPuller):
             async_context.add_async_task(puller.load_events, event_ids)
         LOG.debug("Running all 'load_time_period' tasks in parallel")
         async_context.run_async()
+
+    def stop_tailing(self):
+        for puller in self._pullers:
+            puller.stop_tailing()
