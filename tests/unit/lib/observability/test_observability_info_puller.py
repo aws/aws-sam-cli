@@ -85,8 +85,11 @@ class TestObservabilityCombinedPuller(TestCase):
 
         mock_puller_1 = Mock()
         mock_puller_2 = Mock()
+        mock_puller_3 = Mock()
 
-        combined_puller = ObservabilityCombinedPuller([mock_puller_1, mock_puller_2])
+        child_combined_puller = ObservabilityCombinedPuller([mock_puller_3])
+
+        combined_puller = ObservabilityCombinedPuller([mock_puller_1, mock_puller_2, child_combined_puller])
 
         given_start_time = Mock()
         given_filter_pattern = Mock()
@@ -97,12 +100,14 @@ class TestObservabilityCombinedPuller(TestCase):
             [
                 call.add_async_task(mock_puller_1.tail, given_start_time, given_filter_pattern),
                 call.add_async_task(mock_puller_2.tail, given_start_time, given_filter_pattern),
+                call.add_async_task(child_combined_puller.tail, given_start_time, given_filter_pattern),
                 call.run_async(),
             ]
         )
 
-        self.assertTrue(mock_puller_1.cancelled)
-        self.assertTrue(mock_puller_2.cancelled)
+        self.assertTrue(mock_puller_1.stop_tailing.called)
+        self.assertTrue(mock_puller_2.stop_tailing.called)
+        self.assertTrue(mock_puller_3.stop_tailing.called)
 
     @patch("samcli.lib.observability.observability_info_puller.AsyncContext")
     def test_load_time_period(self, patched_async_context):
