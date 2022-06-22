@@ -10,13 +10,13 @@ from samcli.commands.sync.sync_context import (
     _sync_state_to_toml_document,
     SYNC_STATE,
     DEPENDENCY_LAYER,
-    _toml_document_to_sync_state, SyncContext,
+    _toml_document_to_sync_state,
+    SyncContext,
 )
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 
 
 class TestSyncState(TestCase):
-
     @parameterized.expand([(True,), (False,)])
     def test_sync_state(self, dependency_layer):
         sync_state = SyncState(dependency_layer)
@@ -29,7 +29,6 @@ dependency_layer = {dependency_layer}"""
 
 
 class TestSyncStateToTomlSerde(TestCase):
-
     @parameterized.expand([(True,), (False,)])
     def test_sync_state_to_toml(self, dependency_layer):
         sync_state = SyncState(dependency_layer)
