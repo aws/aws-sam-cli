@@ -490,6 +490,7 @@ class CachedOrIncrementalBuildStrategyWrapper(BuildStrategy):
         cache_dir: str,
         manifest_path_override: Optional[str],
         is_building_specific_resource: bool,
+        use_container: bool,
     ):
         super().__init__(build_graph)
         self._incremental_build_strategy = IncrementalBuildStrategy(
@@ -506,6 +507,7 @@ class CachedOrIncrementalBuildStrategyWrapper(BuildStrategy):
             cache_dir,
         )
         self._is_building_specific_resource = is_building_specific_resource
+        self._use_container = use_container
 
     def build(self) -> Dict[str, str]:
         result = {}
@@ -514,7 +516,7 @@ class CachedOrIncrementalBuildStrategyWrapper(BuildStrategy):
         return result
 
     def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
-        if self._is_incremental_build_supported(build_definition.runtime):
+        if self._is_incremental_build_supported(build_definition.runtime, self._use_container):
             LOG.debug(
                 "Running incremental build for runtime %s for following resources (%s)",
                 build_definition.runtime,
@@ -530,7 +532,7 @@ class CachedOrIncrementalBuildStrategyWrapper(BuildStrategy):
         return self._cached_build_strategy.build_single_function_definition(build_definition)
 
     def build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
-        if self._is_incremental_build_supported(layer_definition.build_method):
+        if self._is_incremental_build_supported(layer_definition.build_method, self._use_container):
             LOG.debug(
                 "Running incremental build for runtime %s for following resources (%s)",
                 layer_definition.build_method,
@@ -561,7 +563,11 @@ class CachedOrIncrementalBuildStrategyWrapper(BuildStrategy):
             self._incremental_build_strategy._clean_redundant_dependencies()
 
     @staticmethod
-    def _is_incremental_build_supported(runtime: Optional[str]) -> bool:
+    def _is_incremental_build_supported(runtime: Optional[str], use_container: bool) -> bool:
+        # incremental build doesn't support in container build
+        if use_container:
+            return False
+
         if not runtime or not is_experimental_enabled(ExperimentalFlag.Accelerate):
             return False
 
