@@ -757,10 +757,10 @@ class ApplicationBuilder:
                 is_building_layer=is_building_layer,
                 experimental_flags=get_enabled_experimental_flags(),
             )
-            EventTracker.track_event("BuildRuntime", runtime)
         except LambdaBuilderError as ex:
             raise BuildError(wrapped_from=ex.__class__.__name__, msg=str(ex)) from ex
 
+        EventTracker.track_event("BuildRuntime", runtime)
         return artifacts_dir
 
     def _build_function_on_container(
