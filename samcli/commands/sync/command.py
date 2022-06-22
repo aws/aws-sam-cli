@@ -27,6 +27,7 @@ from samcli.commands._utils.options import (
 )
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.commands._utils.click_mutex import ClickMutex
+from samcli.commands.sync.sync_context import SyncContext
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.lib.bootstrap.bootstrap import manage_stack
@@ -328,14 +329,17 @@ def do_cli(
                     disable_rollback=False,
                     poll_delay=poll_delay,
                 ) as deploy_context:
-                    if watch:
-                        execute_watch(template_file, build_context, package_context, deploy_context, dependency_layer)
-                    elif code:
-                        execute_code_sync(
-                            template_file, build_context, deploy_context, resource_id, resource, dependency_layer
-                        )
-                    else:
-                        execute_infra_contexts(build_context, package_context, deploy_context)
+                    with SyncContext(dependency_layer, build_context.build_dir, build_context.cache_dir):
+                        if watch:
+                            execute_watch(
+                                template_file, build_context, package_context, deploy_context, dependency_layer
+                            )
+                        elif code:
+                            execute_code_sync(
+                                template_file, build_context, deploy_context, resource_id, resource, dependency_layer
+                            )
+                        else:
+                            execute_infra_contexts(build_context, package_context, deploy_context)
 
 
 def execute_infra_contexts(
