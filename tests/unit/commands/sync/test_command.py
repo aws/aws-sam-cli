@@ -568,55 +568,6 @@ class TestSyncCode(TestCase):
     @patch("samcli.commands.sync.command.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.sync.command.SyncFlowFactory")
     @patch("samcli.commands.sync.command.SyncFlowExecutor")
-    @patch("samcli.commands.sync.command.get_unique_resource_ids")
-    def test_execute_code_sync_invalid_type_resource(
-        self,
-        get_unique_resource_ids_mock,
-        sync_flow_executor_mock,
-        sync_flow_factory_mock,
-        get_stacks_mock,
-        click_mock,
-    ):
-        resource_identifier_strings = ["Function1", "Function2"]
-        resource_types = ["Type1", "Type2"]
-        sync_flows = [MagicMock(), MagicMock(), MagicMock(), MagicMock()]
-        sync_flow_factory_mock.return_value.create_sync_flow.side_effect = sync_flows
-        get_unique_resource_ids_mock.return_value = {
-            ResourceIdentifier("Function1"),
-            ResourceIdentifier("Function2"),
-            ResourceIdentifier("Function3"),
-            ResourceIdentifier("Function4"),
-        }
-        execute_code_sync(
-            self.template_file,
-            self.build_context,
-            self.deploy_context,
-            resource_identifier_strings,
-            resource_types,
-            True,
-        )
-
-        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function1"))
-        sync_flow_executor_mock.return_value.add_sync_flow.assert_any_call(sync_flows[0])
-
-        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function2"))
-        sync_flow_executor_mock.return_value.add_sync_flow.assert_any_call(sync_flows[1])
-
-        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function3"))
-        sync_flow_executor_mock.return_value.add_sync_flow.assert_any_call(sync_flows[2])
-
-        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function4"))
-        sync_flow_executor_mock.return_value.add_sync_flow.assert_any_call(sync_flows[3])
-
-        self.assertEqual(sync_flow_factory_mock.return_value.create_sync_flow.call_count, 4)
-        self.assertEqual(sync_flow_executor_mock.return_value.add_sync_flow.call_count, 4)
-
-        get_unique_resource_ids_mock.assert_any_call(get_stacks_mock.return_value[0], resource_identifier_strings, [])
-
-    @patch("samcli.commands.sync.command.click")
-    @patch("samcli.commands.sync.command.SamLocalStackProvider.get_stacks")
-    @patch("samcli.commands.sync.command.SyncFlowFactory")
-    @patch("samcli.commands.sync.command.SyncFlowExecutor")
     @patch("samcli.commands.sync.command.get_all_resource_ids")
     def test_execute_code_sync_default_all_resources(
         self,

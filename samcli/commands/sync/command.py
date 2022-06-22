@@ -122,6 +122,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @click.option(
     "--resource",
     multiple=True,
+    type=click.Choice(SyncCodeResources.values(), case_sensitive=False),
     help="Sync code for all types of the resource.",
 )
 @click.option(
@@ -392,23 +393,8 @@ def execute_code_sync(
     factory.load_physical_id_mapping()
     executor = SyncFlowExecutor()
 
-    if resource_types:
-        skipped_resources = ""
-        for resource_type in resource_types:
-            if resource_type not in SyncCodeResources.values():
-                skipped_resources += resource_type if skipped_resources == "" else (", " + resource_type)
-        if not skipped_resources == "":
-            LOG.warning(
-                "Skipping sync on invalid inputted resource type: %s. \
-Accepted --resource inputs for sync --code are: %s",
-                skipped_resources,
-                SyncCodeResources.__str__(),
-            )
-
-    accepted_resources = [item for item in resource_types if item not in skipped_resources]
-
     sync_flow_resource_ids: Set[ResourceIdentifier] = (
-        get_unique_resource_ids(stacks, resource_ids, accepted_resources)
+        get_unique_resource_ids(stacks, resource_ids, resource_types)
         if resource_ids or resource_types
         else set(get_all_resource_ids(stacks))
     )

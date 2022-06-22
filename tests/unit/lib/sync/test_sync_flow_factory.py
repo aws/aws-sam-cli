@@ -191,10 +191,3 @@ class TestSyncCodeResources(TestCase):
             AWS_STEPFUNCTIONS_STATEMACHINE,
         ]
         self.assertEqual(expected, output)
-
-    def test_print_code_resource(self):
-        output = SyncCodeResources.__str__()
-        expected = f"{AWS_SERVERLESS_FUNCTION}, {AWS_LAMBDA_FUNCTION}, {AWS_SERVERLESS_LAYERVERSION}, \
-{AWS_LAMBDA_LAYERVERSION}, {AWS_SERVERLESS_API}, {AWS_APIGATEWAY_RESTAPI}, {AWS_SERVERLESS_HTTPAPI}, \
-{AWS_APIGATEWAY_V2_API}, {AWS_SERVERLESS_STATEMACHINE}, {AWS_STEPFUNCTIONS_STATEMACHINE}"
-        self.assertEqual(expected, output)

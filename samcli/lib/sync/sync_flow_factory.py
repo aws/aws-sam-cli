@@ -57,19 +57,6 @@ class SyncCodeResources:
     ]
 
     @classmethod
-    def __str__(cls) -> str:
-        """
-        To string method for printing
-
-        Returns: str
-            A string that contains all supported resources, separated by commas
-        """
-        result = ""
-        for resource in cls._accepted_resources:
-            result += resource if result == "" else (", " + resource)
-        return result
-
-    @classmethod
     def values(cls) -> List[str]:
         """
         A class getter to retrieve the accepted resource list

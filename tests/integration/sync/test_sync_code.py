@@ -100,7 +100,7 @@ class TestSyncCode(TestSyncCodeBase):
             TestSyncCodeBase.temp_dir.joinpath("function"),
         )
 
-        self.stack_resources = self._get_stacks(TestSyncCode.stack_name)
+        self.stack_resources = self._get_stacks(TestSyncCodeBase.stack_name)
         if self.dependency_layer:
             # Test update manifest
             layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "python", 1)
@@ -119,6 +119,7 @@ class TestSyncCode(TestSyncCodeBase):
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
+            debug=True,
         )
         sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
         self.assertEqual(sync_process_execute.process.returncode, 0)
@@ -266,6 +267,27 @@ class TestSyncCode(TestSyncCodeBase):
         state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
         self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')
 
+    def test_sync_code_invalid_resource_type(self):
+        sync_command_list = self.get_sync_command_list(
+            template_file=TestSyncCodeBase.template_path,
+            code=True,
+            watch=False,
+            resource_list=["AWS::Serverless::InvalidResource"],
+            stack_name=TestSyncCodeBase.stack_name,
+            parameter_overrides="Parameter=Clarity",
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+            debug=True,
+        )
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        self.assertEqual(sync_process_execute.process.returncode, 2)
+        self.assertIn(
+            "Invalid value for '--resource': invalid choice: AWS::Serverless::InvalidResource",
+            str(sync_process_execute.stderr),
+        )
+
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
 class TestSyncCodeDotnetFunctionTemplate(TestSyncCodeBase):
@@ -315,13 +337,13 @@ class TestSyncCodeNodejsFunctionTemplate(TestSyncCodeBase):
     folder = "code"
 
     def test_sync_code_nodejs_function(self):
-        shutil.rmtree(Path(TestSyncCode.temp_dir).joinpath("nodejs_function"), ignore_errors=True)
+        shutil.rmtree(Path(TestSyncCodeBase.temp_dir).joinpath("nodejs_function"), ignore_errors=True)
         shutil.copytree(
             self.test_data_path.joinpath("code").joinpath("after").joinpath("nodejs_function"),
-            Path(TestSyncCode.temp_dir).joinpath("nodejs_function"),
+            Path(TestSyncCodeBase.temp_dir).joinpath("nodejs_function"),
         )
 
-        self.stack_resources = self._get_stacks(TestSyncCode.stack_name)
+        self.stack_resources = self._get_stacks(TestSyncCodeBase.stack_name)
         if self.dependency_layer:
             # Test update manifest
             layer_contents = self.get_dependency_layer_contents_from_arn(
@@ -336,7 +358,7 @@ class TestSyncCodeNodejsFunctionTemplate(TestSyncCodeBase):
             watch=False,
             resource_list=["AWS::Serverless::Function"],
             dependency_layer=self.dependency_layer,
-            stack_name=TestSyncCode.stack_name,
+            stack_name=TestSyncCodeBase.stack_name,
             parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
@@ -347,7 +369,7 @@ class TestSyncCodeNodejsFunctionTemplate(TestSyncCodeBase):
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         # CFN Api call here to collect all the stack resources
-        self.stack_resources = self._get_stacks(TestSyncCode.stack_name)
+        self.stack_resources = self._get_stacks(TestSyncCodeBase.stack_name)
         # Lambda Api call here, which tests both the python function and the layer
         lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
         for lambda_function in lambda_functions:
