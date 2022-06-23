@@ -490,6 +490,7 @@ class CachedOrIncrementalBuildStrategyWrapper(BuildStrategy):
         cache_dir: str,
         manifest_path_override: Optional[str],
         is_building_specific_resource: bool,
+        use_container: bool,
     ):
         super().__init__(build_graph)
         self._incremental_build_strategy = IncrementalBuildStrategy(
@@ -506,6 +507,7 @@ class CachedOrIncrementalBuildStrategyWrapper(BuildStrategy):
             cache_dir,
         )
         self._is_building_specific_resource = is_building_specific_resource
+        self._use_container = use_container
 
     def build(self) -> Dict[str, str]:
         result = {}
@@ -560,8 +562,11 @@ class CachedOrIncrementalBuildStrategyWrapper(BuildStrategy):
             self._cached_build_strategy._clean_redundant_cached()
             self._incremental_build_strategy._clean_redundant_dependencies()
 
-    @staticmethod
-    def _is_incremental_build_supported(runtime: Optional[str]) -> bool:
+    def _is_incremental_build_supported(self, runtime: Optional[str]) -> bool:
+        # incremental build doesn't support in container build
+        if self._use_container:
+            return False
+
         if not runtime or not is_experimental_enabled(ExperimentalFlag.Accelerate):
             return False
 
