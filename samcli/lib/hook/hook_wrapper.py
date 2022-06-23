@@ -113,8 +113,7 @@ class IacHookWrapper:
             except InvalidHookPackageConfigException:
                 continue
 
-        if not self._config:
-            raise InvalidHookWrapperException(f'Cannot locate hook package with hook_package_id "{hook_package_id}"')
+        raise InvalidHookWrapperException(f'Cannot locate hook package with hook_package_id "{hook_package_id}"')
 
     def _execute(self, functionality_key: str, params: Optional[Dict] = None) -> Dict:
         """

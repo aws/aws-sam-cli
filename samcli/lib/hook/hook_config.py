@@ -65,10 +65,6 @@ class HookPackageConfig:
         return cast(Dict, jsonschema_dict)
 
     @property
-    def package_dir(self) -> Path:
-        return self._package_dir
-
-    @property
     def package_id(self) -> str:
         return cast(str, self._config["hook_package_id"])
 
