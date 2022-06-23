@@ -8,8 +8,8 @@
     "functionalities": {
          "prepare": {
               "entry_method": {
-                    "module": "samcli.hook_packages.terraform.prepare.hook",
-                    "method": "hook"
+                    "module": "samcli.hook_packages.terraform.main",
+                    "method": "prepare"
               }
          }
     }
