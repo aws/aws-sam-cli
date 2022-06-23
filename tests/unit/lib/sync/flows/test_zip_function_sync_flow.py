@@ -10,9 +10,11 @@ from samcli.lib.sync.flows.zip_function_sync_flow import ZipFunctionSyncFlow
 
 class TestZipFunctionSyncFlow(TestCase):
     def create_function_sync_flow(self):
+        self.build_context_mock = MagicMock()
+        self.function_identifier = "Function1"
         sync_flow = ZipFunctionSyncFlow(
-            "Function1",
-            build_context=MagicMock(),
+            self.function_identifier,
+            build_context=self.build_context_mock,
             deploy_context=MagicMock(),
             physical_id_mapping={},
             stacks=[MagicMock()],
@@ -34,9 +36,18 @@ class TestZipFunctionSyncFlow(TestCase):
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.make_zip")
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.tempfile.gettempdir")
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.ApplicationBuilder")
+    @patch("samcli.lib.sync.flows.zip_function_sync_flow.rmtree_if_exists")
     @patch("samcli.lib.sync.sync_flow.Session")
     def test_gather_resources(
-        self, session_mock, builder_mock, gettempdir_mock, make_zip_mock, file_checksum_mock, uuid4_mock, sha256_mock
+        self,
+        session_mock,
+        rmtree_if_exists_mock,
+        builder_mock,
+        gettempdir_mock,
+        make_zip_mock,
+        file_checksum_mock,
+        uuid4_mock,
+        sha256_mock,
     ):
         get_mock = MagicMock()
         get_mock.return_value = "ArtifactFolder1"
@@ -53,6 +64,8 @@ class TestZipFunctionSyncFlow(TestCase):
         sync_flow.set_up()
         sync_flow.gather_resources()
 
+        function_object = self.build_context_mock.function_provider.get(self.function_identifier)
+        rmtree_if_exists_mock.assert_called_once_with(function_object.get_build_dir(self.build_context_mock.build_dir))
         get_mock.assert_called_once_with("Function1")
         self.assertEqual(sync_flow._artifact_folder, "ArtifactFolder1")
         make_zip_mock.assert_called_once_with("temp_folder" + os.sep + "data-uuid_value", "ArtifactFolder1")
@@ -178,7 +191,7 @@ class TestZipFunctionSyncFlow(TestCase):
         function_mock = MagicMock()
         function_mock.layers = [layer1, layer2]
         function_mock.codeuri = "CodeUri/"
-        build_context.function_provider.functions.get.return_value = function_mock
+        build_context.function_provider.get.return_value = function_mock
         sync_flow = ZipFunctionSyncFlow(
             "Function1",
             build_context=build_context,
