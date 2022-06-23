@@ -24,7 +24,6 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 import botocore
-import click
 
 from samcli.lib.deploy.utils import DeployColor
 from samcli.commands.deploy.exceptions import (
@@ -597,7 +596,7 @@ class Deployer:
                 self.wait_for_execute(stack_name, "CREATE", False)
                 msg = "\nStack creation succeeded. Sync infra completed.\n"
 
-            click.secho(msg, fg="green")
+            LOG.info(self._colored.green(msg))
 
             return result
         except botocore.exceptions.ClientError as ex:
