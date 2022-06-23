@@ -18,10 +18,15 @@ from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.defaults import get_default_aws_region
 from samcli.lib.utils.profile import list_available_profiles
 
+GITHUB_ACTIONS = "github-actions"
+OPEN_ID_CONNECT = "oidc"
+IAM = "iam"
+
 
 class GuidedContext:
 
-    SUPPORTED_OIDC_PROVIDERS = {"1": "GitHub Actions"}
+    SUPPORTED_OIDC_PROVIDERS = {"1": GITHUB_ACTIONS}
+    OIDC_PROVIDER_NAME_MAPPINGS = {GITHUB_ACTIONS: "GitHub Actions"}
 
     def __init__(
         self,
@@ -34,7 +39,7 @@ class GuidedContext:
         create_image_repository: bool = False,
         image_repository_arn: Optional[str] = None,
         region: Optional[str] = None,
-        use_oidc_provider: Optional[bool] = None,
+        permissions_provider: Optional[str] = None,
         oidc_client_id: Optional[str] = None,
         oidc_provider_url: Optional[str] = None,
         oidc_provider: Optional[str] = None,
@@ -51,7 +56,7 @@ class GuidedContext:
         self.create_image_repository = create_image_repository
         self.image_repository_arn = image_repository_arn
         self.region = region
-        self.use_oidc_provider = use_oidc_provider
+        self.permissions_provider = permissions_provider
         self.oidc_client_id = oidc_client_id
         self.oidc_provider_url = oidc_provider_url
         self.oidc_provider = oidc_provider
@@ -161,19 +166,19 @@ class GuidedContext:
         else:
             self.create_image_repository = False
 
-    def _prompt_use_oidc_provider(self) -> None:
+    def _prompt_permissions_provider(self) -> None:
         click.echo("Select a user permissions provider:")
         click.echo("\t1 - IAM (default)")
-        click.echo("\t2 - OpenID Connect")
+        click.echo("\t2 - OpenID Connect (OIDC)")
         user_provider = click.prompt(
             "", type=click.Choice((["1", "2"])), show_choices=False, show_default=False, default="1", prompt_suffix=""
         )
-        self.use_oidc_provider = user_provider == "2"
+        self.permissions_provider = OPEN_ID_CONNECT if user_provider == "2" else "iam"
 
     def _prompt_oidc_provider(self) -> None:
-        click.echo("Select an OIDC Provider:")
+        click.echo("Select an OIDC provider:")
         for (key, provider) in self.SUPPORTED_OIDC_PROVIDERS.items():
-            click.echo("\t{key} - {provider}".format(key=key, provider=provider))
+            click.echo("\t{key} - {provider}".format(key=key, provider=self.OIDC_PROVIDER_NAME_MAPPINGS[provider]))
         oidc_provider = click.prompt(
             "",
             type=click.Choice((list(self.SUPPORTED_OIDC_PROVIDERS))),
@@ -190,7 +195,7 @@ class GuidedContext:
         self.oidc_client_id = click.prompt("Enter the OIDC client ID (sometimes called audience)", type=click.STRING)
 
     def _prompt_subject_claim(self) -> None:
-        if self.oidc_provider == "GitHub Actions":
+        if self.oidc_provider == GITHUB_ACTIONS:
             if not self.github_org:
                 self._prompt_github_org()
             if not self.github_repo:
@@ -228,18 +233,18 @@ class GuidedContext:
             (f"Region: {self.region}", self._prompt_region_name),
         ]
 
-        if self.use_oidc_provider:
+        if self.permissions_provider == OPEN_ID_CONNECT:
             inputs.extend(
                 [
-                    (f"OIDC Identity Provider URL: {self.oidc_provider_url}", self._prompt_oidc_provider_url),
-                    (f"OIDC Client ID: {self.oidc_client_id}", self._prompt_oidc_client_id),
+                    (f"OIDC identity provider URL: {self.oidc_provider_url}", self._prompt_oidc_provider_url),
+                    (f"OIDC client ID: {self.oidc_client_id}", self._prompt_oidc_client_id),
                 ]
             )
             if self.oidc_provider == "GitHub Actions":
                 inputs.extend(
                     [
-                        (f"GitHub Organization: {self.github_org}", self._prompt_github_org),
-                        (f"GitHub Repository: {self.github_repo}", self._prompt_github_repo),
+                        (f"GitHub organization: {self.github_org}", self._prompt_github_org),
+                        (f"GitHub repository: {self.github_repo}", self._prompt_github_repo),
                         (f"Deployment branch:  {self.deployment_branch}", self._prompt_github_branch),
                     ]
                 )
@@ -305,10 +310,10 @@ class GuidedContext:
         if not self.region:
             self._prompt_region_name()
 
-        if not self.use_oidc_provider and not self.pipeline_user_arn:
-            self._prompt_use_oidc_provider()
+        if not self.permissions_provider == OPEN_ID_CONNECT and not self.pipeline_user_arn:
+            self._prompt_permissions_provider()
 
-        if self.use_oidc_provider:
+        if self.permissions_provider == OPEN_ID_CONNECT:
             if not self.oidc_provider:
                 self._prompt_oidc_provider()
             if not self.oidc_provider_url:

@@ -3,9 +3,9 @@ from unittest import TestCase
 from unittest.mock import Mock, patch, call, MagicMock
 
 import OpenSSL.SSL  # type: ignore
-import boto3
 import requests
 
+from samcli.commands.pipeline.bootstrap.guided_context import GITHUB_ACTIONS
 from samcli.lib.pipeline.bootstrap.stage import Stage
 
 ANY_STAGE_CONFIGURATION_NAME = "ANY_STAGE_CONFIGURATION_NAME"
@@ -343,8 +343,9 @@ class TestStage(TestCase):
             stage, cmd_names, expected_calls + [empty_ecr_call], samconfig_instance_mock.put
         )
 
-        stage.use_oidc_provider = True
+        stage.permissions_provider = "oidc"
         stage.oidc_provider.provider_url = ANY_OIDC_PROVIDER_URL
+        stage.use_oidc_provider = True
         expected_calls.append(
             call(cmd_names=cmd_names, section="parameters", key="oidc_provider_url", value=ANY_OIDC_PROVIDER_URL)
         )
@@ -363,9 +364,9 @@ class TestStage(TestCase):
         )
         expected_calls.pop(-1)
 
-        stage.oidc_provider_name = "GitHub Actions"
+        stage.oidc_provider_name = GITHUB_ACTIONS
         expected_calls.append(
-            call(cmd_names=cmd_names, section="parameters", key="oidc_provider", value="GitHub Actions")
+            call(cmd_names=cmd_names, section="parameters", key="oidc_provider", value=GITHUB_ACTIONS)
         )
 
         stage.github_org = ANY_GITHUB_ORG
@@ -506,12 +507,12 @@ class TestStage(TestCase):
         expected_thumbprint = hashlib.sha1(dumped_certificate).hexdigest()
 
         # trigger
-        actual_thumbprint = stage._generate_thumbprint()
+        actual_thumbprint = stage.generate_thumbprint("https://server.example.com")
 
         # verify
         self.assertEqual(expected_thumbprint, actual_thumbprint)
 
-    @patch("samcli.lib.pipeline.bootstrap.stage.Stage._generate_thumbprint")
+    @patch("samcli.lib.pipeline.bootstrap.stage.Stage.generate_thumbprint")
     @patch("samcli.lib.pipeline.bootstrap.stage.boto3")
     @patch("samcli.lib.pipeline.bootstrap.stage.click")
     @patch("samcli.lib.pipeline.bootstrap.stage.manage_stack")
@@ -522,7 +523,7 @@ class TestStage(TestCase):
         # setup
         stage: Stage = Stage(
             name=ANY_STAGE_CONFIGURATION_NAME,
-            use_oidc_provider=True,
+            permissions_provider="oidc",
             oidc_provider_url=ANY_OIDC_PROVIDER_URL,
             oidc_client_id=ANY_OIDC_CLIENT_ID,
             subject_claim=ANY_SUBJECT_CLAIM,
@@ -550,7 +551,7 @@ class TestStage(TestCase):
         # verify
         self.assertTrue(stage.create_new_oidc_provider)
 
-    @patch("samcli.lib.pipeline.bootstrap.stage.Stage._generate_thumbprint")
+    @patch("samcli.lib.pipeline.bootstrap.stage.Stage.generate_thumbprint")
     @patch("samcli.lib.pipeline.bootstrap.stage.boto3")
     @patch("samcli.lib.pipeline.bootstrap.stage.click")
     @patch("samcli.lib.pipeline.bootstrap.stage.manage_stack")
@@ -559,7 +560,7 @@ class TestStage(TestCase):
         # setup
         stage: Stage = Stage(
             name=ANY_STAGE_CONFIGURATION_NAME,
-            use_oidc_provider=True,
+            permissions_provider="oidc",
             oidc_provider_url=ANY_OIDC_PROVIDER_URL,
             oidc_client_id=ANY_OIDC_CLIENT_ID,
             subject_claim=ANY_SUBJECT_CLAIM,
@@ -591,7 +592,7 @@ class TestStage(TestCase):
         # setup
         stage: Stage = Stage(
             name=ANY_STAGE_CONFIGURATION_NAME,
-            use_oidc_provider=True,
+            permissions_provider="oidc",
             oidc_provider_url="",
             oidc_client_id=ANY_OIDC_CLIENT_ID,
             subject_claim=ANY_SUBJECT_CLAIM,

@@ -13,6 +13,7 @@ from samcli.commands.pipeline.bootstrap.cli import (
 )
 from samcli.commands.pipeline.bootstrap.cli import cli as bootstrap_cmd
 from samcli.commands.pipeline.bootstrap.cli import do_cli as bootstrap_cli
+from samcli.commands.pipeline.bootstrap.guided_context import GITHUB_ACTIONS
 
 ANY_REGION = "ANY_REGION"
 ANY_PROFILE = "ANY_PROFILE"
@@ -52,7 +53,7 @@ class TestCli(TestCase):
             "confirm_changeset": True,
             "config_file": ANY_CONFIG_FILE,
             "config_env": ANY_CONFIG_ENV,
-            "use_oidc_provider": False,
+            "permissions_provider": "iam",
             "oidc_provider_url": ANY_OIDC_PROVIDER_URL,
             "oidc_client_id": ANY_OIDC_CLIENT_ID,
             "oidc_provider": ANY_OIDC_PROVIDER,
@@ -84,7 +85,7 @@ class TestCli(TestCase):
             confirm_changeset=True,
             config_file="default",
             config_env="samconfig.toml",
-            use_oidc_provider=False,
+            permissions_provider="iam",
             oidc_provider_url=None,
             oidc_client_id=None,
             github_org=None,
@@ -129,7 +130,7 @@ class TestCli(TestCase):
     ):
         # setup
         gc_instance = Mock()
-        gc_instance.use_oidc_provider = False
+        gc_instance.permissions_provider = "iam"
         guided_context_mock.return_value = gc_instance
         environment_instance = Mock()
         environment_mock.return_value = environment_instance
@@ -158,7 +159,7 @@ class TestCli(TestCase):
         environment_instance = Mock()
         environment_mock.return_value = environment_instance
         self.cli_context["interactive"] = False
-        self.cli_context["use_oidc_provider"] = True
+        self.cli_context["permissions_provider"] = "oidc"
         self.cli_context["oidc_provider_url"] = None
         self.cli_context["oidc_client_id"] = None
         self.cli_context["oidc_provider"] = None
@@ -178,8 +179,8 @@ class TestCli(TestCase):
         environment_instance = Mock()
         environment_mock.return_value = environment_instance
         self.cli_context["interactive"] = False
-        self.cli_context["use_oidc_provider"] = True
-        self.cli_context["oidc_provider"] = "GitHub Actions"
+        self.cli_context["permissions_provider"] = "oidc"
+        self.cli_context["oidc_provider"] = GITHUB_ACTIONS
         self.cli_context["github_org"] = None
         self.cli_context["github_repo"] = None
         self.cli_context["deployment_branch"] = None
@@ -208,17 +209,18 @@ class TestCli(TestCase):
     ):
         # setup
         gc_instance = Mock()
-        gc_instance.oidc_provider = "GitHub Actions"
+        gc_instance.oidc_provider = GITHUB_ACTIONS
         gc_instance.github_org = ANY_GITHUB_ORG
         gc_instance.github_repo = ANY_GITHUB_REPO
         gc_instance.deployment_branch = ANY_DEPLOYMENT_BRANCH
         gc_instance.oidc_provider_url = ANY_OIDC_PROVIDER_URL
         gc_instance.oidc_client_id = ANY_OIDC_CLIENT_ID
+        gc_instance.permissions_provider = "oidc"
         guided_context_mock.return_value = gc_instance
         environment_instance = Mock()
         environment_mock.return_value = environment_instance
         self.cli_context["interactive"] = True
-        self.cli_context["use_oidc_provider"] = True
+        self.cli_context["permissions_provider"] = "oidc"
         subject_claim_mock.return_value = ANY_SUBJECT_CLAIM
         get_command_names_mock.return_value = PIPELINE_BOOTSTRAP_COMMAND_NAMES
 
@@ -442,11 +444,11 @@ class TestCli(TestCase):
     ):
         # setup
         gc_instance = Mock()
-        gc_instance.use_oidc_provider = False
+        gc_instance.permissions_provider = "iam"
         guided_context_mock.return_value = gc_instance
         environment_instance = Mock()
         environment_mock.return_value = environment_instance
-        environment_instance.use_oidc_provider = False
+        environment_instance.permissions_provider = "iam"
         load_saved_pipeline_user_arn_mock.return_value = ANY_PIPELINE_USER_ARN
         environment_instance.pipeline_user.is_user_provided = False
         self.cli_context["interactive"] = True

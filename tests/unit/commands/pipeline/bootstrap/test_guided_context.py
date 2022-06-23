@@ -3,7 +3,7 @@ from unittest.mock import patch, Mock, ANY
 
 from parameterized import parameterized
 
-from samcli.commands.pipeline.bootstrap.guided_context import GuidedContext
+from samcli.commands.pipeline.bootstrap.guided_context import GuidedContext, GITHUB_ACTIONS
 
 ANY_STAGE_CONFIGURATION_NAME = "ANY_STAGE_CONFIGURATION_NAME"
 ANY_PIPELINE_USER_ARN = "ANY_PIPELINE_USER_ARN"
@@ -13,7 +13,7 @@ ANY_ARTIFACTS_BUCKET_ARN = "ANY_ARTIFACTS_BUCKET_ARN"
 ANY_IMAGE_REPOSITORY_ARN = "ANY_IMAGE_REPOSITORY_ARN"
 ANY_ARN = "ANY_ARN"
 ANY_REGION = "us-east-2"
-ANY_OIDC_PROVIDER = "GitHub Actions"
+ANY_OIDC_PROVIDER = GITHUB_ACTIONS
 ANY_OIDC_PROVIDER_URL = "https://ANY_OIDC_PROVIDER.com"
 ANY_OIDC_CLIENT_ID = "ANY_OIDC_CLIENT_ID"
 ANY_GITHUB_ORG = "ANY_GITHUB_ORG"
@@ -59,7 +59,7 @@ class TestGuidedContext(TestCase):
         click_mock.prompt = Mock(return_value="0")
         gc: GuidedContext = GuidedContext(
             stage_configuration_name=ANY_STAGE_CONFIGURATION_NAME,
-            use_oidc_provider=True,
+            permissions_provider="oidc",
             oidc_provider_url=ANY_OIDC_PROVIDER_URL,
             oidc_provider=ANY_OIDC_PROVIDER,
             oidc_client_id=ANY_OIDC_CLIENT_ID,
@@ -113,7 +113,7 @@ class TestGuidedContext(TestCase):
         click_mock.prompt = Mock(return_value="0")
         gc: GuidedContext = GuidedContext(
             image_repository_arn=ANY_IMAGE_REPOSITORY_ARN,  # Exclude ECR repo, it has its own detailed test below
-            use_oidc_provider=True,
+            permissions_provider="oidc",
             oidc_provider=ANY_OIDC_PROVIDER,
         )
         gc.run()
@@ -133,7 +133,7 @@ class TestGuidedContext(TestCase):
     def test_guided_context_prompts_oidc_url_if_missing_or_invalid(self, click_mock):
         gc: GuidedContext = GuidedContext(
             image_repository_arn=ANY_IMAGE_REPOSITORY_ARN,  # Exclude ECR repo, it has its own detailed test below
-            use_oidc_provider=True,
+            permissions_provider="oidc",
             oidc_provider=ANY_OIDC_PROVIDER,
         )
         click_mock.prompt = Mock(return_value=ANY_OIDC_PROVIDER_URL)
@@ -150,7 +150,7 @@ class TestGuidedContext(TestCase):
     def test_guided_context_oidc_provider_prompt(self, click_mock):
         gc: GuidedContext = GuidedContext(
             image_repository_arn=ANY_IMAGE_REPOSITORY_ARN,  # Exclude ECR repo, it has its own detailed test below
-            use_oidc_provider=True,
+            permissions_provider="oidc",
         )
         click_mock.prompt = Mock(return_value="1")
 
@@ -158,7 +158,7 @@ class TestGuidedContext(TestCase):
         gc._prompt_oidc_provider()
         self.assertTrue(self.did_prompt_text_like("Select an OIDC Provider", click_mock.echo))
         self.assertTrue(self.did_prompt_text_like("1 - GitHub Actions", click_mock.echo))
-        self.assertTrue(gc.oidc_provider == "GitHub Actions")
+        self.assertTrue(gc.oidc_provider == GITHUB_ACTIONS)
 
     @patch("samcli.commands.pipeline.bootstrap.guided_context.get_current_account_id")
     @patch("samcli.commands.pipeline.bootstrap.guided_context.click")

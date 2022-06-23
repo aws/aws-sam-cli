@@ -175,7 +175,7 @@ class InteractiveInitFlow:
                     config_file=None,
                     config_env=None,
                     standalone=False,
-                    use_oidc_provider=None,
+                    permissions_provider=None,
                     oidc_client_id=None,
                     oidc_provider_url=None,
                     github_org=None,

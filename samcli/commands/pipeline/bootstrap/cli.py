@@ -23,7 +23,7 @@ from samcli.lib.pipeline.bootstrap.stage import (
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.version_checker import check_newer_version
-from .guided_context import GuidedContext
+from .guided_context import GITHUB_ACTIONS, IAM, OPEN_ID_CONNECT, GuidedContext
 from ..external_links import CONFIG_AWS_CRED_ON_CICD_URL
 
 SHORT_HELP = "Generates the required AWS resources to connect your CI/CD system."
@@ -35,7 +35,7 @@ This step must be run for each deployment stage in your pipeline, prior to runni
 
 PIPELINE_CONFIG_DIR = os.path.join(".aws-sam", "pipeline")
 PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
-GITHUB_ACTIONS = "GitHub Actions"
+PERMISSIONS_PROVIDERS = [OPEN_ID_CONNECT, IAM]
 LOG = logging.getLogger(__name__)
 
 
@@ -99,11 +99,11 @@ LOG = logging.getLogger(__name__)
     help="Prompt to confirm if the resources are to be deployed.",
 )
 @click.option(
-    "--use-oidc-provider",
-    default=False,
-    is_flag=True,
+    "--permissions-provider",
+    default=IAM,
     required=False,
-    help="Indicates to use an OIDC provider to assume the pipeline execution role. Default is to use an IAM User.",
+    type=click.Choice(PERMISSIONS_PROVIDERS),
+    help="Choose a permissions provider to assume the pipeline execution role. Default is to use an IAM User.",
 )
 @click.option(
     "--oidc-provider-url", help="The URL of the OIDC provider. Example: https://server.example.com", required=False
@@ -153,7 +153,7 @@ def cli(
     confirm_changeset: bool,
     config_file: Optional[str],
     config_env: Optional[str],
-    use_oidc_provider: Optional[bool],
+    permissions_provider: Optional[str],
     oidc_provider_url: Optional[str],
     oidc_client_id: Optional[str],
     github_org: Optional[str],
@@ -178,7 +178,7 @@ def cli(
         confirm_changeset=confirm_changeset,
         config_file=config_env,
         config_env=config_file,
-        use_oidc_provider=use_oidc_provider,
+        permissions_provider=permissions_provider,
         oidc_provider_url=oidc_provider_url,
         oidc_client_id=oidc_client_id,
         github_org=github_org,
@@ -202,7 +202,7 @@ def do_cli(
     confirm_changeset: bool,
     config_file: Optional[str],
     config_env: Optional[str],
-    use_oidc_provider: Optional[bool],
+    permissions_provider: Optional[str],
     oidc_provider_url: Optional[str],
     oidc_client_id: Optional[str],
     github_org: Optional[str],
@@ -214,7 +214,7 @@ def do_cli(
     """
     implementation of `sam pipeline bootstrap` command
     """
-    if not pipeline_user_arn and not use_oidc_provider:
+    if not pipeline_user_arn and not permissions_provider == OPEN_ID_CONNECT:
         pipeline_user_arn = _load_saved_pipeline_user_arn()
 
     if not oidc_provider_url:
@@ -253,7 +253,7 @@ def do_cli(
             create_image_repository=create_image_repository,
             image_repository_arn=image_repository_arn,
             region=region,
-            use_oidc_provider=use_oidc_provider,
+            permissions_provider=permissions_provider,
             oidc_provider_url=oidc_provider_url,
             oidc_client_id=oidc_client_id,
             oidc_provider=oidc_provider,
@@ -271,7 +271,7 @@ def do_cli(
         image_repository_arn = guided_context.image_repository_arn
         region = guided_context.region
         profile = guided_context.profile
-        use_oidc_provider = guided_context.use_oidc_provider
+        permissions_provider = guided_context.permissions_provider
         oidc_client_id = guided_context.oidc_client_id
         oidc_provider_url = guided_context.oidc_provider_url
         github_org = guided_context.github_org
@@ -281,7 +281,7 @@ def do_cli(
 
     subject_claim = None
     missing_parameters_messages: List[str] = []
-    if use_oidc_provider:
+    if permissions_provider == OPEN_ID_CONNECT:
         _check_oidc_common_params(
             oidc_client_id=oidc_client_id,
             oidc_provider=oidc_provider,
@@ -322,7 +322,7 @@ def do_cli(
         image_repository_arn=image_repository_arn,
         oidc_provider_url=oidc_provider_url,
         oidc_client_id=oidc_client_id,
-        use_oidc_provider=use_oidc_provider,
+        permissions_provider=permissions_provider,
         subject_claim=subject_claim,
         oidc_provider_name=oidc_provider,
         github_org=github_org,

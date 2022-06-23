@@ -7,12 +7,14 @@ import socket
 import hashlib
 from itertools import chain
 from typing import Dict, List, Optional, Tuple
+from urllib.parse import urlparse
 
 import boto3
 import click
 import requests
 
-from OpenSSL import SSL, crypto  # type: ignore
+from OpenSSL import SSL, crypto # type: ignore
+from samcli.commands.pipeline.bootstrap.guided_context import GITHUB_ACTIONS, OPEN_ID_CONNECT
 
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.utils.colors import Colored
@@ -87,15 +89,17 @@ class Stage:
     _should_create_new_provider(self) -> bool:
         checks if there are any existing OIDC Providers configured in IAM by getting a list of all OIDC Providers
         setup in the account and seeing if the URL provided is in the ARN
-    _generate_thumbprint(self) -> Optional[str]:
+    generate_thumbprint(oidc_provider_url) -> Optional[str]:
         retrieves the certificate of the top intermidate cerficate authority that signed the certificate
-        used by the external identity provider and then returns the SHA1 hash of it.
+        used by the external identity provider and then returns the SHA1 hash of it. For more information on
+        why the thumbprint is needed and the steps required to obtain it see the following page
+        https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc_verify-thumbprint.html
     """
 
     def __init__(
         self,
         name: str,
-        use_oidc_provider: Optional[bool] = None,
+        permissions_provider: Optional[str] = None,
         aws_profile: Optional[str] = None,
         aws_region: Optional[str] = None,
         pipeline_user_arn: Optional[str] = None,
@@ -115,7 +119,7 @@ class Stage:
         self.name: str = name
         self.create_new_oidc_provider = False
         self.subject_claim = subject_claim
-        self.use_oidc_provider = use_oidc_provider
+        self.use_oidc_provider = permissions_provider == OPEN_ID_CONNECT
         self.oidc_provider_name = oidc_provider_name
         self.github_org = github_org
         self.github_repo = github_repo
@@ -155,19 +159,17 @@ class Stage:
                 return False
         return True
 
-    def _generate_thumbprint(self) -> Optional[str]:
+    @staticmethod
+    def generate_thumbprint(oidc_provider_url: Optional[str]) -> Optional[str]:
         # Send HTTP GET to retrieve jwks_uri field from openid-configuration document
-        oidc_config_url = "{url}/.well-known/openid-configuration".format(url=self.oidc_provider.provider_url)
+        oidc_config_url = "{url}/.well-known/openid-configuration".format(url=oidc_provider_url)
         r = requests.get(oidc_config_url, timeout=5)
         jwks_uri = r.json()["jwks_uri"]
-        url_start = jwks_uri.find("//") + 2
-        url_end = jwks_uri[url_start:].find("/") + url_start
-        url_for_certificate = jwks_uri[url_start:url_end]
+        url_for_certificate = urlparse(jwks_uri).hostname
 
         # Create connection to retrieve certificate
         address = (url_for_certificate, 443)
         ctx = SSL.Context(SSL.TLS_METHOD)
-        # s = socket.create_connection(address, timeout=5)
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect(address)
         c = SSL.Connection(ctx, s)
@@ -251,7 +253,7 @@ class Stage:
         if self.use_oidc_provider:
             self.create_new_oidc_provider = self._should_create_new_provider()
             if self.create_new_oidc_provider:
-                self.oidc_provider.thumbprint = self._generate_thumbprint()
+                self.oidc_provider.thumbprint = self.generate_thumbprint(self.oidc_provider.provider_url)
 
         environment_resources_template_body = Stage._read_template(STAGE_RESOURCES_CFN_TEMPLATE)
         output: StackOutput = manage_stack(
@@ -358,7 +360,7 @@ class Stage:
                 cmd_names=cmd_names, section="parameters", key=OIDC_CLIENT_ID, value=self.oidc_provider.client_id
             )
             samconfig.put(cmd_names=cmd_names, section="parameters", key=OIDC_PROVIDER, value=self.oidc_provider_name)
-            if self.oidc_provider_name == "GitHub Actions":
+            if self.oidc_provider_name == GITHUB_ACTIONS:
                 samconfig.put(cmd_names=cmd_names, section="parameters", key=GITHUB_ORG, value=self.github_org)
                 samconfig.put(cmd_names=cmd_names, section="parameters", key=GITHUB_REPO, value=self.github_repo)
                 samconfig.put(
