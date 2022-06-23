@@ -320,7 +320,6 @@ class TestSyncInfraCDKTemplates(SyncIntegBase):
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
 @parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 class TestSyncInfraWithJava(SyncIntegBase):
-    dependency_layer = True
 
     @parameterized.expand(["infra/template-java.yaml"])
     def test_sync_infra_with_java(self, template_file):
