@@ -34,7 +34,7 @@ from samcli.lib.cli_validation.image_repository_validation import image_reposito
 from samcli.lib.telemetry.metric import track_command, track_template_warnings
 from samcli.lib.warnings.sam_cli_warning import CodeDeployWarning, CodeDeployConditionWarning
 from samcli.commands.build.command import _get_mode_value_from_envvar
-from samcli.lib.sync.sync_flow_factory import SyncFlowFactory
+from samcli.lib.sync.sync_flow_factory import SyncCodeResources, SyncFlowFactory
 from samcli.lib.sync.sync_flow_executor import SyncFlowExecutor
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.providers.provider import (
@@ -122,13 +122,14 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @click.option(
     "--resource",
     multiple=True,
-    help="Sync code for all types of the resource.",
+    type=click.Choice(SyncCodeResources.values(), case_sensitive=True),
+    help=f"Sync code for all resources of the given resource type. Accepted values are {SyncCodeResources.values()}",
 )
 @click.option(
     "--dependency-layer/--no-dependency-layer",
     default=True,
     is_flag=True,
-    help="This option separates the dependencies of individual function into another layer, for speeding up the sync"
+    help="This option separates the dependencies of individual function into another layer, for speeding up the sync."
     "process",
 )
 @stack_name_option(required=True)  # pylint: disable=E1120

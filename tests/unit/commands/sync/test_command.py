@@ -478,7 +478,7 @@ class TestSyncCode(TestCase):
     ):
 
         resource_identifier_strings = ["Function1", "Function2"]
-        resource_types = ["Type1"]
+        resource_types = ["AWS::Serverless::Function"]
         sync_flows = [MagicMock(), MagicMock(), MagicMock()]
         sync_flow_factory_mock.return_value.create_sync_flow.side_effect = sync_flows
         get_unique_resource_ids_mock.return_value = {
@@ -508,7 +508,7 @@ class TestSyncCode(TestCase):
         self.assertEqual(sync_flow_executor_mock.return_value.add_sync_flow.call_count, 3)
 
         get_unique_resource_ids_mock.assert_called_once_with(
-            get_stacks_mock.return_value[0], resource_identifier_strings, ["Type1"]
+            get_stacks_mock.return_value[0], resource_identifier_strings, ["AWS::Serverless::Function"]
         )
 
     @patch("samcli.commands.sync.command.click")
@@ -525,7 +525,7 @@ class TestSyncCode(TestCase):
         click_mock,
     ):
         resource_identifier_strings = ["Function1", "Function2"]
-        resource_types = ["Type1", "Type2"]
+        resource_types = ["AWS::Serverless::Function", "AWS::Serverless::LayerVersion"]
         sync_flows = [MagicMock(), MagicMock(), MagicMock(), MagicMock()]
         sync_flow_factory_mock.return_value.create_sync_flow.side_effect = sync_flows
         get_unique_resource_ids_mock.return_value = {
@@ -559,7 +559,9 @@ class TestSyncCode(TestCase):
         self.assertEqual(sync_flow_executor_mock.return_value.add_sync_flow.call_count, 4)
 
         get_unique_resource_ids_mock.assert_any_call(
-            get_stacks_mock.return_value[0], resource_identifier_strings, ["Type1", "Type2"]
+            get_stacks_mock.return_value[0],
+            resource_identifier_strings,
+            ["AWS::Serverless::Function", "AWS::Serverless::LayerVersion"],
         )
 
     @patch("samcli.commands.sync.command.click")
