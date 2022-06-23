@@ -13,7 +13,7 @@ class EventName(Enum):
 
     USED_FEATURE = "UsedFeature"
     DEPLOY = "Deploy"
-    BUILD_RUNTIME = "BuildRuntime"
+    BUILD_FUNCTION_RUNTIME = "BuildFunctionRuntime"
 
 
 class EventType:
@@ -32,7 +32,7 @@ class EventType:
             "CreateChangeSetFailed",
             "CreateChangeSetSuccess",
         ],
-        EventName.BUILD_RUNTIME: INIT_RUNTIMES,
+        EventName.BUILD_FUNCTION_RUNTIME: INIT_RUNTIMES,
     }
 
     @staticmethod

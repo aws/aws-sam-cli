@@ -25,7 +25,6 @@ from samcli.lib.build.build_strategy import (
     ParallelBuildStrategy,
     BuildStrategy,
 )
-from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.utils.resources import (
     AWS_CLOUDFORMATION_STACK,
     AWS_LAMBDA_FUNCTION,
@@ -760,7 +759,6 @@ class ApplicationBuilder:
         except LambdaBuilderError as ex:
             raise BuildError(wrapped_from=ex.__class__.__name__, msg=str(ex)) from ex
 
-        EventTracker.track_event("BuildRuntime", runtime)
         return artifacts_dir
 
     def _build_function_on_container(
@@ -843,7 +841,6 @@ class ApplicationBuilder:
         finally:
             self._container_manager.stop(container)
 
-        EventTracker.track_event("BuildRuntime", runtime)
         LOG.debug("Build inside container succeeded")
         return artifacts_dir
 
