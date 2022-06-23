@@ -178,31 +178,68 @@ class TestIacHookWrapper(TestCase):
 
     @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._load_hook_package")
     @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._execute")
-    def test_prepare_with_no_logs_path(self, execute_mock, load_hook_package_mock):
+    def test_prepare_with_no_defaults(self, execute_mock, load_hook_package_mock):
         hook_wrapper = IacHookWrapper("test_id")
-        execute_mock.return_value = {"foo": "bar"}
-        actual = hook_wrapper.prepare("path/to/iac_project", "path/to/output_dir", True)
-        execute_mock.assert_called_once_with(
-            "prepare", {"IACProjectPath": "path/to/iac_project", "OutputDirPath": "path/to/output_dir", "Debug": True}
+        execute_mock.return_value = {
+            "Header": {},
+            "IACApplications": {
+                "MainApplication": {
+                    "Metadata": "path/to/metadata",
+                },
+            },
+        }
+        actual = hook_wrapper.prepare(
+            "path/to/output_dir", "path/to/iac_project", True, "path/to/logs", "my_profile", "us-east-1"
         )
-        self.assertEqual(actual, {"foo": "bar"})
-
-    @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._load_hook_package")
-    @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._execute")
-    def test_prepare_with_logs_path(self, execute_mock, load_hook_package_mock):
-        hook_wrapper = IacHookWrapper("test_id")
-        execute_mock.return_value = {"foo": "bar"}
-        actual = hook_wrapper.prepare("path/to/iac_project", "path/to/output_dir", True, "path/to/log_file")
         execute_mock.assert_called_once_with(
             "prepare",
             {
                 "IACProjectPath": "path/to/iac_project",
                 "OutputDirPath": "path/to/output_dir",
                 "Debug": True,
-                "LogsPath": "path/to/log_file",
+                "LogsPath": "path/to/logs",
+                "Profile": "my_profile",
+                "Region": "us-east-1",
             },
         )
-        self.assertEqual(actual, {"foo": "bar"})
+        self.assertEqual(actual, "path/to/metadata")
+
+    @patch("samcli.lib.hook.hook_wrapper.Path.cwd")
+    @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._load_hook_package")
+    @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._execute")
+    def test_prepare_with_defaults(self, execute_mock, load_hook_package_mock, cwd_mock):
+        cwd_mock.return_value = "path/to/cwd"
+        hook_wrapper = IacHookWrapper("test_id")
+        execute_mock.return_value = {
+            "Header": {},
+            "IACApplications": {
+                "MainApplication": {
+                    "Metadata": "path/to/metadata",
+                },
+            },
+        }
+        actual = hook_wrapper.prepare("path/to/output_dir")
+        execute_mock.assert_called_once_with(
+            "prepare",
+            {
+                "IACProjectPath": "path/to/cwd",
+                "OutputDirPath": "path/to/output_dir",
+                "Debug": False,
+            },
+        )
+        self.assertEqual(actual, "path/to/metadata")
+
+    @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._load_hook_package")
+    @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._execute")
+    def test_prepare_fail(self, execute_mock, load_hook_package_mock):
+        hook_wrapper = IacHookWrapper("test_id")
+        execute_mock.return_value = {
+            "Header": {},
+        }
+        with self.assertRaises(InvalidHookWrapperException) as e:
+            hook_wrapper.prepare("path/to/iac_project", "path/to/output_dir", True, "path/to/log_file")
+
+        self.assertEqual(e.exception.message, "Metadata file path not found in the prepare hook output")
 
 
 class TestExecuteAsModule(TestCase):

@@ -8,6 +8,10 @@ from .exceptions import InvalidHookPackageConfigException
 
 
 class HookFunctionality(NamedTuple):
+    """
+    A class to represent a hook functionality (e.g. prepare)
+    """
+
     entry_method: Dict[str, str]
 
     @property
@@ -20,6 +24,10 @@ class HookFunctionality(NamedTuple):
 
 
 class HookPackageConfig:
+    """
+    A class to represent a hook package. Upon instantiation, it also validate the config against a json schema.
+    """
+
     _package_dir: Path
     _config: Dict
 
@@ -27,6 +35,12 @@ class HookPackageConfig:
     JSON_SCHEMA_PATH = Path(__file__).parent / "hook_config_schema.json"
 
     def __init__(self, package_dir: Path):
+        """
+        Parameters
+        ----------
+        package_dir: Path
+            The path of the hook package directory
+        """
         self._package_dir = package_dir
         config_loc = package_dir / self.CONFIG_FILENAME
         if not config_loc.is_file():
