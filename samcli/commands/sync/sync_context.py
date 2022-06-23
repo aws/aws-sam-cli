@@ -95,12 +95,12 @@ class SyncContext:
         """
         Cleans up build, cache and dependencies folders for clean start of the next session
         """
-        LOG.info("Cleaning up build directory %s", self._build_dir)
+        LOG.debug("Cleaning up build directory %s", self._build_dir)
         rmtree_if_exists(self._build_dir)
 
-        LOG.info("Cleaning up cache directory %s", self._cache_dir)
+        LOG.debug("Cleaning up cache directory %s", self._cache_dir)
         rmtree_if_exists(self._cache_dir)
 
         dependencies_dir = Path(DEFAULT_DEPENDENCIES_DIR)
-        LOG.info("Cleaning up dependencies directory: %s", dependencies_dir)
+        LOG.debug("Cleaning up dependencies directory: %s", dependencies_dir)
         rmtree_if_exists(dependencies_dir)
