@@ -61,11 +61,13 @@ class TestDoCli(TestCase):
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.build.command.os")
     @patch("samcli.commands.sync.command.manage_stack")
+    @patch("samcli.commands.sync.command.SyncContext")
     def test_infra_must_succeed_sync(
         self,
         code,
         watch,
         auto_dependency_layer,
+        SyncContextMock,
         manage_stack_mock,
         os_mock,
         DeployContextMock,
@@ -85,6 +87,8 @@ class TestDoCli(TestCase):
         PackageContextMock.return_value.__enter__.return_value = package_context_mock
         deploy_context_mock = Mock()
         DeployContextMock.return_value.__enter__.return_value = deploy_context_mock
+        sync_context_mock = Mock()
+        SyncContextMock.return_value.__enter__.return_value = sync_context_mock
 
         do_cli(
             self.template_file,
@@ -190,11 +194,13 @@ class TestDoCli(TestCase):
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.build.command.os")
     @patch("samcli.commands.sync.command.manage_stack")
+    @patch("samcli.commands.sync.command.SyncContext")
     def test_watch_must_succeed_sync(
         self,
         code,
         watch,
         auto_dependency_layer,
+        SyncContextMock,
         manage_stack_mock,
         os_mock,
         DeployContextMock,
@@ -214,6 +220,8 @@ class TestDoCli(TestCase):
         PackageContextMock.return_value.__enter__.return_value = package_context_mock
         deploy_context_mock = Mock()
         DeployContextMock.return_value.__enter__.return_value = deploy_context_mock
+        sync_context_mock = Mock()
+        SyncContextMock.return_value.__enter__.return_value = sync_context_mock
 
         do_cli(
             self.template_file,
@@ -317,11 +325,13 @@ class TestDoCli(TestCase):
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.build.command.os")
     @patch("samcli.commands.sync.command.manage_stack")
+    @patch("samcli.commands.sync.command.SyncContext")
     def test_code_must_succeed_sync(
         self,
         code,
         watch,
         auto_dependency_layer,
+        SyncContextMock,
         manage_stack_mock,
         os_mock,
         DeployContextMock,
@@ -341,6 +351,8 @@ class TestDoCli(TestCase):
         PackageContextMock.return_value.__enter__.return_value = package_context_mock
         deploy_context_mock = Mock()
         DeployContextMock.return_value.__enter__.return_value = deploy_context_mock
+        sync_context_mock = Mock()
+        SyncContextMock.return_value.__enter__.return_value = sync_context_mock
 
         do_cli(
             self.template_file,
