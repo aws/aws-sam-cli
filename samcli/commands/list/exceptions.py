@@ -7,6 +7,10 @@ from samcli.commands.exceptions import UserException
 
 
 class SamListError(UserException):
+    """
+    Base exception for the 'sam list' command
+    """
+
     def __init__(self, msg):
         self.msg = msg
 

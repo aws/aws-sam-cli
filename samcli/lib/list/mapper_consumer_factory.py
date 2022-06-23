@@ -12,5 +12,5 @@ class MapperConsumerFactory(MapperConsumerFactoryInterface):
         # Will add conditions here to return different sorts of containers later on
         data_to_json_mapper = DataToJsonMapper()
         json_consumer = JsonConsumer()
-        container = MapperConsumerContainer(mapper=data_to_json_mapper, consumer=json_consumer)
+        container = MapperConsumerContainer(data_to_json_mapper, json_consumer)
         return container

@@ -7,6 +7,8 @@ import boto3
 from samcli.lib.list.stack_outputs.stack_outputs_producer import StackOutputsProducer
 from samcli.commands.exceptions import RegionError
 from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config
+from samcli.lib.list.mapper_consumer_factory import MapperConsumerFactory
+from samcli.lib.list.list_interfaces import ProducersEnum
 
 LOG = logging.getLogger(__name__)
 
@@ -48,11 +50,15 @@ class StackOutputsContext:
         """
         Get the stack outputs for a stack
         """
+        factory = MapperConsumerFactory()
+        container = factory.create(producer=ProducersEnum.STACK_OUTPUTS_PRODUCER, output=self.output)
+
         producer = StackOutputsProducer(
             stack_name=self.stack_name,
             output=self.output,
             region=self.region,
-            profile=self.profile,
             cloudformation_client=self.cloudformation_client,
+            mapper=container.mapper,
+            consumer=container.consumer,
         )
         producer.produce()

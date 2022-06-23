@@ -9,21 +9,18 @@ from samcli.commands.list.exceptions import SamListError, NoOutputsForStackError
 
 from samcli.lib.list.list_interfaces import Producer
 from samcli.lib.list.stack_outputs.stack_outputs import StackOutputs
-from samcli.lib.list.mapper_consumer_factory import MapperConsumerFactory
 
 LOG = logging.getLogger(__name__)
 
 
 class StackOutputsProducer(Producer):
-    def __init__(self, stack_name, output, region, profile, cloudformation_client):
+    def __init__(self, stack_name, output, region, cloudformation_client, mapper, consumer):
         self.stack_name = stack_name
         self.output = output
         self.region = region
-        self.profile = profile
         self.cloudformation_client = cloudformation_client
-        self.mapper = None
-        self.consumer = None
-        self.factory = None
+        self.mapper = mapper
+        self.consumer = consumer
 
     def get_stack_info(self):
         """
@@ -36,11 +33,11 @@ class StackOutputsProducer(Producer):
 
         try:
             response = self.cloudformation_client.describe_stacks(StackName=self.stack_name)
-            if not response["Stacks"]:
+            if not response.get("Stacks", []):
                 raise StackDoesNotExistInRegionError(stack_name=self.stack_name, region=self.region)
-            if "Outputs" not in response["Stacks"][0]:
+            if len(response.get("Stacks", [])) > 0 and "Outputs" not in response.get("Stacks", [])[0]:
                 raise NoOutputsForStackError(stack_name=self.stack_name, region=self.region)
-            return response
+            return response["Stacks"][0]["Outputs"]
 
         except ClientError as e:
             if "Stack with id {0} does not exist".format(self.stack_name) in str(e):
@@ -53,12 +50,8 @@ class StackOutputsProducer(Producer):
             raise SamListError(msg=str(e)) from e
 
     def produce(self):
-        self.factory = MapperConsumerFactory()
-        new_container = self.factory.create(producer="stackoutputsproducer", output=self.output)
-        self.mapper = new_container.mapper
-        self.consumer = new_container.consumer
         response = self.get_stack_info()
-        for stack_output in response["Stacks"][0]["Outputs"]:
+        for stack_output in response:
             stack_output_data = StackOutputs(
                 OutputKey=stack_output["OutputKey"],
                 OutputValue=stack_output["OutputValue"],

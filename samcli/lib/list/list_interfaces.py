@@ -3,6 +3,7 @@ Interface for MapperConsumerFactory, Producer, Mapper, ListInfoPullerConsumer
 """
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
+from enum import Enum
 
 InputType = TypeVar("InputType")
 OutputType = TypeVar("OutputType")
@@ -78,3 +79,9 @@ class MapperConsumerFactoryInterface(ABC):
         MapperConsumerContainer
             A container that contains a mapper and a consumer
         """
+
+
+class ProducersEnum(Enum):
+    STACK_OUTPUTS_PRODUCER = 1
+    RESOURCES_PRODUCER = 2
+    TESTABLE_RESOURCES_PRODUCER = 3
