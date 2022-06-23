@@ -1,27 +1,22 @@
 """Hook Package Config"""
 import json
 from pathlib import Path
-from typing import Dict, Iterable, List, NamedTuple, Optional
+from typing import Dict, NamedTuple, cast
 
-import jsonschema
+import jsonschema  # type: ignore
 from .exceptions import InvalidHookPackageConfigException
 
 
-class HookFunctionalityParam(NamedTuple):
-    long_name: str
-    short_name: str
-    description: str
-    mandatory: bool
-    type: str
-
-
 class HookFunctionality(NamedTuple):
-    entry_script: str
-    parameters: Optional[List[HookFunctionalityParam]]
+    entry_method: Dict[str, str]
 
     @property
-    def mandatory_parameters(self) -> List[HookFunctionalityParam]:
-        return [params for params in self.parameters if params.mandatory]
+    def module(self) -> str:
+        return self.entry_method["module"]
+
+    @property
+    def method(self) -> str:
+        return self.entry_method["method"]
 
 
 class HookPackageConfig:
@@ -46,15 +41,14 @@ class HookPackageConfig:
             raise InvalidHookPackageConfigException(f"Invalid Config.json - {e}") from e
 
         for func, func_dict in config_dict["functionalities"].items():
-            params = [HookFunctionalityParam(**param) for param in func_dict.get("parameters", [])]
-            config_dict["functionalities"][func] = HookFunctionality(func_dict["entry_script"], params)
+            config_dict["functionalities"][func] = HookFunctionality(func_dict["entry_method"])
         self._config = config_dict
 
     @property
     def jsonschema(self) -> Dict:
         with HookPackageConfig.JSON_SCHEMA_PATH.open("r", encoding="utf-8") as f:
             jsonschema_dict = json.load(f)
-        return jsonschema_dict
+        return cast(Dict, jsonschema_dict)
 
     @property
     def package_dir(self) -> Path:
@@ -62,24 +56,24 @@ class HookPackageConfig:
 
     @property
     def package_id(self) -> str:
-        return self._config["hook_package_id"]
+        return cast(str, self._config["hook_package_id"])
 
     @property
     def use_case(self) -> str:
-        return self._config["hook_use_case"]
+        return cast(str, self._config["hook_use_case"])
 
     @property
     def version(self) -> str:
-        return self._config["version"]
+        return cast(str, self._config["version"])
 
     @property
     def specification(self) -> str:
-        return self._config["hook_specification"]
+        return cast(str, self._config["hook_specification"])
 
     @property
     def description(self) -> str:
-        return self._config["description"]
+        return cast(str, self._config["description"])
 
     @property
     def functionalities(self) -> Dict[str, HookFunctionality]:
-        return self._config["functionalities"]
+        return cast(Dict[str, HookFunctionality], self._config["functionalities"])

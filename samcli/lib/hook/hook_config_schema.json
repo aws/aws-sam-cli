@@ -1,19 +1,27 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "description": "JSON Schema for a Hook Config.json",
     "type": "object",
     "required": ["hook_package_id", "hook_use_case", "hook_specification", "version", "functionalities"],
     "$defs": {
         "functionality": {
             "type": "object",
-            "required": ["entry_script"],
+            "required": ["entry_method"],
             "properties": {
-                "entry_script": {
-                    "type": "string"
-                },
+                "entry_method": { "$ref": "#/$defs/entry_method" },
                 "parameters": {
                     "type": "array",
                     "items": { "$ref": "#/$defs/parameter" }
+                }
+            }
+        },
+        "entry_method": {
+            "type": "object",
+            "properties": {
+                "module": {
+                    "type": "string"
+                },
+                "method": {
+                    "type": "string"
                 }
             }
         },
@@ -39,7 +47,6 @@
                 }
             }
         }
-
     },
     "properties": {
         "hook_package_id": {
