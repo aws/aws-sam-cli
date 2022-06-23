@@ -12,10 +12,10 @@ attrs==20.3.0 \
     --hash=sha256:31b2eced602aa8423c2aea9c76a724617ed67cf9513173fd3a4f03e3a929c7e6 \
     --hash=sha256:832aa3cde19744e49938b91fea06d69ecb9e649c93ba974535d08ad92164f700
     # via jsonschema
-aws-lambda-builders==1.17.0 \
-    --hash=sha256:1d296dc521f3f3f356ffbe290ca204713b1e8a24612262cf1c9283ffe34dc443 \
-    --hash=sha256:3eb7ca5ab71761766586db080a8b80ab81346b307fa72d5cea64ccd69fb41efe \
-    --hash=sha256:abae4ccfc419fc5cd8eebd4cc81e335ec7610f53804ce1aa2b655159ce339610
+aws-lambda-builders==1.18.0 \
+    --hash=sha256:555c1bb72bab633deeb806cc347b40ed865d63166e536c89ff71f0ba739577b1 \
+    --hash=sha256:c0bd4b4288f0aa9cba27493065f5fb986425b5b49620b93a391620403eeb97e0 \
+    --hash=sha256:c5235699d36b8edda7e649fbc3a23ed868eda1e15c4a83528df33939bdb75754
     # via aws-sam-cli (setup.py)
 aws-sam-translator==1.46.0 \
     --hash=sha256:03cb83135c98b1c47bf2b3c15507808c7e06d4717a3ca3da1cee6e7ebcb5282b \
@@ -316,7 +316,6 @@ six==1.15.0 \
     --hash=sha256:30639c035cdb23534cd4aa2dd52c3bf48f06e5f4a941509c8bafd8ce11080259 \
     --hash=sha256:8b74bedcbbbaca38ff6d7491d76f2b06b3592611af620f8426e82dddb04a5ced
     # via
-    #   aws-lambda-builders
     #   docker
     #   jsonschema
     #   python-dateutil
