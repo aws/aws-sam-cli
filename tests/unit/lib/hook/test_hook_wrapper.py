@@ -1,13 +1,18 @@
 """Test Hook Warpper"""
+from asyncio import subprocess
 import json
 from copy import deepcopy
 from pathlib import Path
+from sys import stderr, stdin
 from unittest import TestCase
 from unittest.mock import patch, MagicMock, mock_open, Mock
 
-from samcli.lib.hook.hook_wrapper import IacHookWrapper
-from samcli.lib.hook.hook_config import HookFunctionalityParam, HookFunctionality, HookPackageConfig
-from samcli.lib.hook.exceptions import InvalidHookWrapperException, InvalidHookPackageConfigException
+from samcli.lib.hook.hook_wrapper import IacHookWrapper, _execute_as_module
+from samcli.lib.hook.exceptions import (
+    InvalidHookWrapperException,
+    InvalidHookPackageConfigException,
+    HookPackageExecuteFunctionalityException,
+)
 
 TEST_HOOK_PACKAGE_CONFIG = {
     "hook_package_id": "my_test_hook_package_id",
@@ -40,61 +45,6 @@ TEST_HOOK_PACKAGE_CONFIG = {
 
 
 class TestIacHookWrapper(TestCase):
-    @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._load_hook_package")
-    def test_validate_params_success(self, load_hook_package_mock):
-        provided_params = {"param1": "value1", "p2": "value2", "param3": ["value3a", "value3b"]}
-        functionality = HookFunctionality(
-            "main",
-            [
-                HookFunctionalityParam("param1", "p1", "description", True, "string"),
-                HookFunctionalityParam("param2", "p2", "description", True, "string"),
-                HookFunctionalityParam("param3", "p3", "description", True, "string"),
-            ],
-        )
-        hook_wrapper = IacHookWrapper("test_id")
-        result = hook_wrapper._validate_params(functionality, provided_params)
-        self.assertIsNone(result)
-
-    @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._load_hook_package")
-    def test_validate_params_fail(self, load_hook_package_mock):
-        provided_params = {
-            "param1": "value1",
-        }
-        functionality = HookFunctionality(
-            "main",
-            [
-                HookFunctionalityParam("param1", "p1", "description", True, "string"),
-                HookFunctionalityParam("param2", "p2", "description", True, "string"),
-                HookFunctionalityParam("param3", "p3", "description", True, "string"),
-            ],
-        )
-        hook_wrapper = IacHookWrapper("test_id")
-        with self.assertRaises(InvalidHookWrapperException) as e:
-            hook_wrapper._validate_params(functionality, provided_params)
-        self.assertEqual(e.exception.message, "Missing required parameters param2, param3")
-
-    @patch("samcli.lib.hook.hook_wrapper.platform")
-    @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._load_hook_package")
-    def test_get_entry_script_executable_non_windows(self, load_hook_package_mock, platform_mock):
-        platform_mock.system.return_value = "Darwin"
-        functionality = HookFunctionality("some_entry_script", None)
-        hook_wrapper = IacHookWrapper("test_id")
-        hook_wrapper._config = Mock()
-        hook_wrapper._config.package_dir = Path("/my/path")
-        entry_script_executable = hook_wrapper._get_entry_script_executable(functionality)
-        self.assertEqual(entry_script_executable, "/my/path/some_entry_script.sh")
-
-    @patch("samcli.lib.hook.hook_wrapper.platform")
-    @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._load_hook_package")
-    def test_get_entry_script_executable_windows(self, load_hook_package_mock, platform_mock):
-        platform_mock.system.return_value = "Windows"
-        functionality = HookFunctionality("some_entry_script", None)
-        hook_wrapper = IacHookWrapper("test_id")
-        hook_wrapper._config = Mock()
-        hook_wrapper._config.package_dir = Path("/my/path")
-        entry_script_executable = hook_wrapper._get_entry_script_executable(functionality)
-        self.assertEqual(entry_script_executable, "/my/path/some_entry_script.bat")
-
     @patch("samcli.lib.hook.hook_wrapper.HookPackageConfig")
     @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._INTERNAL_PACKAGES_ROOT")
     def test_instantiate_success(self, _INTERNAL_PACKAGES_ROOT_MOCK, HookPackageConfigMock):
@@ -166,3 +116,123 @@ class TestIacHookWrapper(TestCase):
 
         hook_package = IacHookWrapper("hook-package-3")
         self.assertEqual(hook_package._config, hook_package_3_config_mock)
+
+    @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._load_hook_package")
+    def test_execute_functionality_not_exist(self, load_hook_package_mock):
+        hook_wrapper = IacHookWrapper("test_id")
+        hook_wrapper._config = Mock()
+        hook_wrapper._config.package_dir = Path("/my/path")
+        hook_wrapper._config.functionalities = {
+            "prepare": Mock(),
+        }
+
+        with self.assertRaises(HookPackageExecuteFunctionalityException) as e:
+            hook_wrapper._execute("other_key")
+
+        self.assertEqual(e.exception.message, 'Functionality "other_key" is not defined in the hook package')
+
+    @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._load_hook_package")
+    @patch("samcli.lib.hook.hook_wrapper._execute_as_module")
+    def test_execute_success(self, execute_as_module_mock, load_hook_package_mock):
+        hook_wrapper = IacHookWrapper("test_id")
+        hook_wrapper._config = Mock()
+        hook_wrapper._config.package_dir = Path("/my/path")
+        prepare_mock = Mock()
+        prepare_mock.module = "x.y.z"
+        prepare_mock.method = "my_method"
+        hook_wrapper._config.functionalities = {
+            "prepare": prepare_mock,
+        }
+        execute_as_module_mock.return_value = {"foo": "bar"}
+
+        output = hook_wrapper._execute("prepare")
+        self.assertEqual(output, {"foo": "bar"})
+        execute_as_module_mock.assert_called_once_with("x.y.z", "my_method", None)
+
+    @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._load_hook_package")
+    def test_execute_with_none_config(self, load_hook_package_mock):
+        hook_wrapper = IacHookWrapper("test_id")
+        hook_wrapper._config = None
+
+        with self.assertRaises(InvalidHookWrapperException) as e:
+            hook_wrapper._execute("prepare")
+
+        self.assertEqual(e.exception.message, "Config is missing. You must instantiate a hook with a valid config")
+
+    @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._load_hook_package")
+    @patch("samcli.lib.hook.hook_wrapper._execute_as_module")
+    def test_execute_with_missing_entry_method(self, execute_as_module_mock, load_hook_package_mock):
+        hook_wrapper = IacHookWrapper("test_id")
+        hook_wrapper._config = Mock()
+        hook_wrapper._config.package_dir = Path("/my/path")
+        prepare_mock = Mock()
+        prepare_mock.entry_method = None
+        hook_wrapper._config.functionalities = {
+            "prepare": prepare_mock,
+        }
+
+        with self.assertRaises(InvalidHookWrapperException) as e:
+            hook_wrapper._execute("prepare")
+
+        self.assertEqual(e.exception.message, 'Functionality "prepare" is missing an "entry_method"')
+
+    @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._load_hook_package")
+    @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._execute")
+    def test_prepare_with_no_logs_path(self, execute_mock, load_hook_package_mock):
+        hook_wrapper = IacHookWrapper("test_id")
+        execute_mock.return_value = {"foo": "bar"}
+        actual = hook_wrapper.prepare("path/to/iac_project", "path/to/output_dir", True)
+        execute_mock.assert_called_once_with(
+            "prepare", {"IACProjectPath": "path/to/iac_project", "OutputDirPath": "path/to/output_dir", "Debug": True}
+        )
+        self.assertEqual(actual, {"foo": "bar"})
+
+    @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._load_hook_package")
+    @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._execute")
+    def test_prepare_with_logs_path(self, execute_mock, load_hook_package_mock):
+        hook_wrapper = IacHookWrapper("test_id")
+        execute_mock.return_value = {"foo": "bar"}
+        actual = hook_wrapper.prepare("path/to/iac_project", "path/to/output_dir", True, "path/to/log_file")
+        execute_mock.assert_called_once_with(
+            "prepare",
+            {
+                "IACProjectPath": "path/to/iac_project",
+                "OutputDirPath": "path/to/output_dir",
+                "Debug": True,
+                "LogsPath": "path/to/log_file",
+            },
+        )
+        self.assertEqual(actual, {"foo": "bar"})
+
+
+class TestExecuteAsModule(TestCase):
+    @patch("samcli.lib.hook.hook_wrapper.importlib.import_module")
+    def test_happy_path(self, import_module_mock):
+        def my_method(params):
+            params["foo"] = "bar"
+            return params
+
+        module_mock = Mock()
+        method_mock = Mock()
+        method_mock.side_effect = my_method
+        module_mock.my_method = method_mock
+        import_module_mock.return_value = module_mock
+
+        actual = _execute_as_module("my_module", "my_method", {"param1": "value1"})
+        self.assertEqual(actual, {"foo": "bar", "param1": "value1"})
+
+    def test_import_error(self):
+        with self.assertRaises(InvalidHookWrapperException) as e:
+            _execute_as_module("x.y.z", "my_method")
+
+        self.assertEqual(e.exception.message, 'Import error - HookFunctionality module "x.y.z"')
+
+    @patch("samcli.lib.hook.hook_wrapper.importlib.import_module")
+    @patch("samcli.lib.hook.hook_wrapper.hasattr")
+    def test_no_such_method(self, hasattr_mock, import_module_mock):
+        hasattr_mock.return_value = False
+
+        with self.assertRaises(InvalidHookWrapperException) as e:
+            _execute_as_module("x.y.z", "my_method")
+
+        self.assertEqual(e.exception.message, 'HookFunctionality module "x.y.z" has no method "my_method"')
