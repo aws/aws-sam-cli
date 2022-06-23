@@ -40,6 +40,7 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         self.lambda_client = boto3.client("lambda")
         self.api_client = boto3.client("apigateway")
         self.sfn_client = boto3.client("stepfunctions")
+        self.s3_client = boto3.client("s3")
         self.sns_arn = os.environ.get("AWS_SNS")
         self.stacks = []
         self.s3_prefix = uuid.uuid4().hex

@@ -193,6 +193,33 @@ Requires capabilities : [CAPABILITY_AUTO_EXPAND]",
             str(sync_process_execute.stderr),
         )
 
+    @parameterized.expand(["infra/template-python-before.yaml"])
+    def test_sync_infra_s3_bucket_option(self, template_file):
+        template_path = str(self.test_data_path.joinpath(template_file))
+        stack_name = self._method_to_stack_name(self.id())
+
+        sync_command_list = self.get_sync_command_list(
+            template_file=template_path,
+            code=False,
+            watch=False,
+            dependency_layer=self.dependency_layer,
+            stack_name=stack_name,
+            parameter_overrides="Parameter=Clarity",
+            image_repository=self.ecr_repo_name,
+            s3_bucket=self.bucket_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            capabilities_list=["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+
+        # Check if there are objects in S3 bucket
+        response = self.s3_client.list_objects_v2(Bucket=self.bucket_name, Prefix=self.s3_prefix)
+        self.assertNotEqual(response["KeyCount"], 0)
+
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
 class TestSyncInfraCDKTemplates(SyncIntegBase):
