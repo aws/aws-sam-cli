@@ -9,7 +9,6 @@ from typing import Optional, Dict, cast
 
 from .hook_config import HookPackageConfig
 from .exceptions import (
-    InvalidHookPackageConfigException,
     InvalidHookWrapperException,
     HookPackageExecuteFunctionalityException,
 )
