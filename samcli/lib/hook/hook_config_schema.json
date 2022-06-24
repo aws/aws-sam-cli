@@ -16,6 +16,7 @@
         },
         "entry_method": {
             "type": "object",
+            "required": ["module", "method"],
             "properties": {
                 "module": {
                     "type": "string"
