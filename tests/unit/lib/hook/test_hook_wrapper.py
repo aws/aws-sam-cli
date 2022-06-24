@@ -49,73 +49,45 @@ class TestIacHookWrapper(TestCase):
     @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._INTERNAL_PACKAGES_ROOT")
     def test_instantiate_success(self, _INTERNAL_PACKAGES_ROOT_MOCK, HookPackageConfigMock):
         _INTERNAL_PACKAGES_ROOT_MOCK.iterdir.return_value = [
-            "hook_package_1",
-            "hook_package_2",
-            "hook_package_3",
+            Path("path/to/hook_package_1"),
+            Path("path/to/hook_package_2"),
+            Path("path/to/hook_package_3"),
         ]
         hook_package_1_config_mock = Mock()
-        hook_package_1_config_mock.package_id = "hook-package-1"
         hook_package_2_config_mock = Mock()
-        hook_package_2_config_mock.package_id = "hook-package-2"
         hook_package_3_config_mock = Mock()
-        hook_package_3_config_mock.package_id = "hook-package-3"
 
-        HookPackageConfigMock.side_effect = [
-            hook_package_1_config_mock,
-            hook_package_2_config_mock,
-            hook_package_3_config_mock,
-        ]
+        HookPackageConfigMock.return_value = hook_package_3_config_mock
 
-        hook_package = IacHookWrapper("hook-package-3")
+        hook_package = IacHookWrapper("hook_package_3")
         self.assertEqual(hook_package._config, hook_package_3_config_mock)
 
-    @patch("samcli.lib.hook.hook_wrapper.HookPackageConfig")
     @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._INTERNAL_PACKAGES_ROOT")
-    def test_instantiate_package_not_found(self, _INTERNAL_PACKAGES_ROOT_MOCK, HookPackageConfigMock):
+    def test_instantiate_package_not_found(self, _INTERNAL_PACKAGES_ROOT_MOCK):
         _INTERNAL_PACKAGES_ROOT_MOCK.iterdir.return_value = [
-            "hook_package_1",
-            "hook_package_2",
-            "hook_package_3",
-        ]
-        hook_package_1_config_mock = Mock()
-        hook_package_1_config_mock.package_id = "hook-package-1"
-        hook_package_2_config_mock = Mock()
-        hook_package_2_config_mock.package_id = "hook-package-2"
-        hook_package_3_config_mock = Mock()
-        hook_package_3_config_mock.package_id = "hook-package-3"
-
-        HookPackageConfigMock.side_effect = [
-            hook_package_1_config_mock,
-            hook_package_2_config_mock,
-            hook_package_3_config_mock,
+            Path("path/to/hook_package_1"),
+            Path("path/to/hook_package_2"),
+            Path("path/to/hook_package_3"),
         ]
 
         with self.assertRaises(InvalidHookWrapperException) as e:
-            IacHookWrapper("hook-package-4")
+            IacHookWrapper("hook_package_4")
 
-        self.assertEqual(e.exception.message, 'Cannot locate hook package with hook_package_id "hook-package-4"')
+        self.assertEqual(e.exception.message, 'Cannot locate hook package with hook_package_id "hook_package_4"')
 
     @patch("samcli.lib.hook.hook_wrapper.HookPackageConfig")
     @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._INTERNAL_PACKAGES_ROOT")
-    def test_instantiate_success_with_invalid_package(self, _INTERNAL_PACKAGES_ROOT_MOCK, HookPackageConfigMock):
+    def test_instantiate_fail_with_invalid_config(self, _INTERNAL_PACKAGES_ROOT_MOCK, HookPackageConfigMock):
         _INTERNAL_PACKAGES_ROOT_MOCK.iterdir.return_value = [
-            "hook_package_1",
-            "hook_package_2",
-            "hook_package_3",
-        ]
-        hook_package_1_config_mock = Mock()
-        hook_package_1_config_mock.package_id = "hook-package-1"
-        hook_package_3_config_mock = Mock()
-        hook_package_3_config_mock.package_id = "hook-package-3"
-
-        HookPackageConfigMock.side_effect = [
-            hook_package_1_config_mock,
-            InvalidHookPackageConfigException("Invalid config"),
-            hook_package_3_config_mock,
+            Path("path/to/hook_package_1"),
+            Path("path/to/hook_package_2"),
+            Path("path/to/hook_package_3"),
         ]
 
-        hook_package = IacHookWrapper("hook-package-3")
-        self.assertEqual(hook_package._config, hook_package_3_config_mock)
+        HookPackageConfigMock.side_effect = InvalidHookPackageConfigException("Invalid config")
+
+        with self.assertRaises(InvalidHookPackageConfigException) as e:
+            IacHookWrapper("hook_package_3")
 
     @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._load_hook_package")
     def test_execute_functionality_not_exist(self, load_hook_package_mock):
@@ -188,16 +160,13 @@ class TestIacHookWrapper(TestCase):
                 },
             },
         }
-        actual = hook_wrapper.prepare(
-            "path/to/output_dir", "path/to/iac_project", True, "path/to/logs", "my_profile", "us-east-1"
-        )
+        actual = hook_wrapper.prepare("path/to/output_dir", "path/to/iac_project", True, "my_profile", "us-east-1")
         execute_mock.assert_called_once_with(
             "prepare",
             {
                 "IACProjectPath": "path/to/iac_project",
                 "OutputDirPath": "path/to/output_dir",
                 "Debug": True,
-                "LogsPath": "path/to/logs",
                 "Profile": "my_profile",
                 "Region": "us-east-1",
             },
@@ -237,7 +206,7 @@ class TestIacHookWrapper(TestCase):
             "Header": {},
         }
         with self.assertRaises(InvalidHookWrapperException) as e:
-            hook_wrapper.prepare("path/to/iac_project", "path/to/output_dir", True, "path/to/log_file")
+            hook_wrapper.prepare("path/to/iac_project", "path/to/output_dir", True)
 
         self.assertEqual(e.exception.message, "Metadata file path not found in the prepare hook output")
 

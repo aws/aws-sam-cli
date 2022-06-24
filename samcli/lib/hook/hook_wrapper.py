@@ -27,10 +27,11 @@ class IacHookWrapper:
     Example:
     ```
     hook = IacHookWrapper("terraform")
-    metadata_loc = hook.prepare("path/to/iac_project", "path/to/output", True, "path/to/logs")
+    metadata_loc = hook.prepare("path/to/iac_project", "path/to/output", True)
     ```
     """
 
+    _hook_package_id: str
     _config: Optional[HookPackageConfig]
 
     _INTERNAL_PACKAGES_ROOT = Path(__file__).parent / ".." / ".." / "hook_packages"
@@ -42,6 +43,7 @@ class IacHookWrapper:
         hook_package_id: str
             Hook package ID
         """
+        self._hook_package_id = hook_package_id
         self._config = None
         self._load_hook_package(hook_package_id)
 
@@ -50,7 +52,6 @@ class IacHookWrapper:
         output_dir_path: str,
         iac_project_path: Optional[str] = None,
         debug: bool = False,
-        logs_path: Optional[str] = None,
         aws_profile: Optional[str] = None,
         aws_region: Optional[str] = None,
     ) -> str:
@@ -65,8 +66,6 @@ class IacHookWrapper:
             the path where the hook can find the TF application. Default value in current work directory.
         debug: bool
             True/False flag to tell the hooks if should print debugging logs or not. Default is False.
-        logs_path: str
-            File path where the hooks will write its logs. Default is None (no need to write logs)
         aws_profile: str
             AWS profile to use. Default is None (use default profile)
         aws_region: str
@@ -77,13 +76,12 @@ class IacHookWrapper:
         str
             Path to the generated IaC Metadata file
         """
+        LOG.info('Executing prepare hook of hook package "%s"', self._hook_package_id)
         params = {
             "IACProjectPath": iac_project_path if iac_project_path else str(Path.cwd()),
             "OutputDirPath": output_dir_path,
             "Debug": debug,
         }
-        if logs_path:
-            params["LogsPath"] = logs_path
         if aws_profile:
             params["Profile"] = aws_profile
         if aws_region:
@@ -93,6 +91,7 @@ class IacHookWrapper:
         metadata_file_loc = output.get("IACApplications", {}).get("MainApplication", {}).get("Metadata")
         if not metadata_file_loc:
             raise InvalidHookWrapperException("Metadata file path not found in the prepare hook output")
+        LOG.debug("Metadata file location - %s", metadata_file_loc)
         return cast(str, metadata_file_loc)
 
     def _load_hook_package(self, hook_package_id: str) -> None:
@@ -104,14 +103,12 @@ class IacHookWrapper:
             Hook package ID
         """
         # locate hook package from internal first
+        LOG.debug("Looking for internal hook package")
         for child in self._INTERNAL_PACKAGES_ROOT.iterdir():
-            try:
-                hook_package_config = HookPackageConfig(child)
-                if hook_package_config.package_id == hook_package_id:
-                    self._config = hook_package_config
-                    return
-            except InvalidHookPackageConfigException:
-                continue
+            if child.name == hook_package_id:
+                LOG.info('Loaded internal hook package "%s"', hook_package_id)
+                self._config = HookPackageConfig(child)
+                return
 
         raise InvalidHookWrapperException(f'Cannot locate hook package with hook_package_id "{hook_package_id}"')
 
