@@ -87,9 +87,18 @@ class IacHookWrapper:
             params["Region"] = aws_region
 
         output = self._execute("prepare", params)
-        metadata_file_loc = output.get("IACApplications", {}).get("MainApplication", {}).get("Metadata")
+
+        metadata_file_loc = None
+        iac_applications: Dict[str, Dict] = output.get("iac_applications", {})
+        if iac_applications and len(iac_applications) == 1:
+            # NOTE: we assume there is only one application in the `iac_applications` dictionary,
+            # which is the only case we support right now
+            main_application = list(iac_applications.values())[0]
+            metadata_file_loc = main_application.get("metadata_file")
+
         if not metadata_file_loc:
             raise InvalidHookWrapperException("Metadata file path not found in the prepare hook output")
+
         LOG.debug("Metadata file location - %s", metadata_file_loc)
         return cast(str, metadata_file_loc)
 

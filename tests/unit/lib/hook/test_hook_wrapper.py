@@ -154,9 +154,9 @@ class TestIacHookWrapper(TestCase):
         hook_wrapper = IacHookWrapper("test_id")
         execute_mock.return_value = {
             "Header": {},
-            "IACApplications": {
+            "iac_applications": {
                 "MainApplication": {
-                    "Metadata": "path/to/metadata",
+                    "metadata_file": "path/to/metadata",
                 },
             },
         }
@@ -180,10 +180,10 @@ class TestIacHookWrapper(TestCase):
         cwd_mock.return_value = "path/to/cwd"
         hook_wrapper = IacHookWrapper("test_id")
         execute_mock.return_value = {
-            "Header": {},
-            "IACApplications": {
+            "header": {},
+            "iac_applications": {
                 "MainApplication": {
-                    "Metadata": "path/to/metadata",
+                    "metadata_file": "path/to/metadata",
                 },
             },
         }
