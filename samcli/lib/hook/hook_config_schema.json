@@ -7,11 +7,7 @@
             "type": "object",
             "required": ["entry_method"],
             "properties": {
-                "entry_method": { "$ref": "#/$defs/entry_method" },
-                "parameters": {
-                    "type": "array",
-                    "items": { "$ref": "#/$defs/parameter" }
-                }
+                "entry_method": { "$ref": "#/$defs/entry_method" }
             }
         },
         "entry_method": {
@@ -55,7 +51,7 @@
         },
         "hook_use_case": {
             "type": "string",
-            "enum": ["IaC", "iac"]
+            "enum": ["IaC"]
         },
         "hook_specification": {
             "type": "string",
@@ -65,7 +61,8 @@
             "type": "string"
         },
         "iac_framework": {
-            "type": "string"
+            "type": "string",
+            "enum": ["Terraform"]
         },
         "version": {
             "type": "string",

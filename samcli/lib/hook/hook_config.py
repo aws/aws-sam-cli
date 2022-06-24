@@ -1,7 +1,7 @@
 """Hook Package Config"""
 import json
 from pathlib import Path
-from typing import Dict, NamedTuple, cast
+from typing import Dict, NamedTuple, Optional, cast
 
 import jsonschema  # type: ignore
 from .exceptions import InvalidHookPackageConfigException
@@ -81,8 +81,8 @@ class HookPackageConfig:
         return cast(str, self._config["hook_specification"])
 
     @property
-    def description(self) -> str:
-        return cast(str, self._config["description"])
+    def description(self) -> Optional[str]:
+        return cast(str, self._config.get("description"))
 
     @property
     def functionalities(self) -> Dict[str, HookFunctionality]:
