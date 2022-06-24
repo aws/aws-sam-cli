@@ -13,8 +13,9 @@ import boto3
 import click
 import requests
 
-from OpenSSL import SSL, crypto # type: ignore
-from samcli.commands.pipeline.bootstrap.guided_context import GITHUB_ACTIONS, OPEN_ID_CONNECT
+from OpenSSL import SSL, crypto  # type: ignore
+from samcli.commands.pipeline.bootstrap.guided_context import OPEN_ID_CONNECT
+from samcli.commands.pipeline.bootstrap.pipeline_provider import PipelineOidcProvider
 
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.utils.colors import Colored
@@ -115,6 +116,7 @@ class Stage:
         github_org: Optional[str] = None,
         github_repo: Optional[str] = None,
         deployment_branch: Optional[str] = None,
+        pipeline_oidc_provider: Optional[PipelineOidcProvider] = None,
     ) -> None:
         self.name: str = name
         self.create_new_oidc_provider = False
@@ -124,6 +126,7 @@ class Stage:
         self.github_org = github_org
         self.github_repo = github_repo
         self.deployment_branch = deployment_branch
+        self.pipeline_oidc_provider = pipeline_oidc_provider
         self.aws_profile: Optional[str] = aws_profile
         self.aws_region: Optional[str] = aws_region
         self.pipeline_user: IAMUser = IAMUser(arn=pipeline_user_arn, comment="Pipeline IAM user")
@@ -360,12 +363,9 @@ class Stage:
                 cmd_names=cmd_names, section="parameters", key=OIDC_CLIENT_ID, value=self.oidc_provider.client_id
             )
             samconfig.put(cmd_names=cmd_names, section="parameters", key=OIDC_PROVIDER, value=self.oidc_provider_name)
-            if self.oidc_provider_name == GITHUB_ACTIONS:
-                samconfig.put(cmd_names=cmd_names, section="parameters", key=GITHUB_ORG, value=self.github_org)
-                samconfig.put(cmd_names=cmd_names, section="parameters", key=GITHUB_REPO, value=self.github_repo)
-                samconfig.put(
-                    cmd_names=cmd_names, section="parameters", key=DEPLOYMENT_BRANCH, value=self.deployment_branch
-                )
+            if self.pipeline_oidc_provider:
+                self.pipeline_oidc_provider.save_values(cmd_names=cmd_names, section="parameters", samconfig=samconfig)
+
         # Computing Artifacts bucket name and ECR image repository URL may through an exception if the ARNs are wrong
         # Let's swallow such an exception to be able to save the remaining resources
         try:

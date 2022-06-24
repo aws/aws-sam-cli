@@ -10,6 +10,7 @@ import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, aws_creds_options, print_cmdline_args
+from samcli.commands.pipeline.bootstrap.pipeline_provider import GitHubOidcProvider, PipelineOidcProvider
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.pipeline.bootstrap.stage import (
     DEPLOYMENT_BRANCH,
@@ -280,32 +281,20 @@ def do_cli(
         oidc_provider = guided_context.oidc_provider
 
     subject_claim = None
-    missing_parameters_messages: List[str] = []
-    if permissions_provider == OPEN_ID_CONNECT:
-        _check_oidc_common_params(
-            oidc_client_id=oidc_client_id,
-            oidc_provider=oidc_provider,
-            oidc_provider_url=oidc_provider_url,
-            missing_parameters_messages=missing_parameters_messages,
-        )
-        if oidc_provider == GITHUB_ACTIONS:
-            _check_github_actions_params(
-                github_org=github_org,
-                github_repo=github_repo,
-                deployment_branch=deployment_branch,
-                missing_parameters_messages=missing_parameters_messages,
-            )
-            subject_claim = _build_oidc_subject_claim(
-                github_org=github_org,
-                github_repo=github_repo,
-                branch=deployment_branch,
-            )
+    pipeline_oidc_provider: Optional[PipelineOidcProvider] = None
 
-        error_string = ""
-        for message in missing_parameters_messages:
-            error_string += message + "\n"
-        if error_string:
-            raise click.UsageError("\n" + error_string)
+    if permissions_provider == OPEN_ID_CONNECT:
+        common_oidc_params = {"--oidc-provider-url": oidc_provider_url, "--oidc-client-id": oidc_client_id}
+        if oidc_provider == GITHUB_ACTIONS:
+            github_oidc_params: dict = {
+                "--github-org": github_org,
+                "--github-repo": github_repo,
+                "--deployment-branch": deployment_branch,
+            }
+            pipeline_oidc_provider = GitHubOidcProvider(github_oidc_params, common_oidc_params)
+        else:
+            raise click.UsageError("Missing required parameter '--oidc-provider'")
+        pipeline_oidc_provider.verify_all_parameters()
 
     if not stage_configuration_name:
         raise click.UsageError("Missing required parameter '--stage'")
@@ -325,9 +314,7 @@ def do_cli(
         permissions_provider=permissions_provider,
         subject_claim=subject_claim,
         oidc_provider_name=oidc_provider,
-        github_org=github_org,
-        github_repo=github_repo,
-        deployment_branch=deployment_branch,
+        pipeline_oidc_provider=pipeline_oidc_provider,
     )
 
     bootstrapped: bool = environment.bootstrap(confirm_changeset=confirm_changeset)
