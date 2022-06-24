@@ -25,6 +25,7 @@ from samcli.lib.build.app_builder import (
     DockerConnectionError,
 )
 from samcli.commands.local.cli_common.user_exceptions import InvalidFunctionPropertyType
+from samcli.lib.telemetry.event import EventName, EventTracker
 from samcli.lib.utils.architecture import X86_64, ARM64
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
@@ -1476,13 +1477,20 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
             Mock(), "/build/dir", "/base/dir", "/cache/dir", mode="mode", stream_writer=StreamWriter(sys.stderr)
         )
 
+    def tearDown(self):
+        EventTracker.clear_trackers()
+
     @parameterized.expand([([],), (["ExpFlag1", "ExpFlag2"],)])
+    @patch("samcli.lib.telemetry.event.EventType.get_accepted_values")
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
     @patch("samcli.lib.build.app_builder.get_enabled_experimental_flags")
-    def test_must_use_lambda_builder(self, experimental_flags, experimental_flags_mock, lambda_builder_mock):
+    def test_must_use_lambda_builder(
+        self, experimental_flags, experimental_flags_mock, lambda_builder_mock, event_mock
+    ):
         experimental_flags_mock.return_value = experimental_flags
         config_mock = Mock()
         builder_instance_mock = lambda_builder_mock.return_value = Mock()
+        event_mock.return_value = ["runtime"]
 
         result = self.builder._build_function_in_process(
             config_mock,
@@ -1545,10 +1553,14 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
                 True,
             )
 
+    @patch("samcli.lib.telemetry.event.EventType.get_accepted_values")
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
     @patch("samcli.lib.build.app_builder.get_enabled_experimental_flags")
-    def test_building_with_experimental_flags(self, get_enabled_experimental_flags_mock, lambda_builder_mock):
+    def test_building_with_experimental_flags(
+        self, get_enabled_experimental_flags_mock, lambda_builder_mock, event_mock
+    ):
         get_enabled_experimental_flags_mock.return_value = ["A", "B", "C"]
+        event_mock.return_value = ["runtime"]
         config_mock = Mock()
         self.builder._build_function_in_process(
             config_mock,
@@ -1600,11 +1612,18 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
         )
         self.builder._parse_builder_response = Mock()
 
+    def tearDown(self):
+        EventTracker.clear_trackers()
+
+    @patch("samcli.lib.telemetry.event.EventType.get_accepted_values")
     @patch("samcli.lib.build.app_builder.LambdaBuildContainer")
     @patch("samcli.lib.build.app_builder.lambda_builders_protocol_version")
     @patch("samcli.lib.build.app_builder.LOG")
     @patch("samcli.lib.build.app_builder.osutils")
-    def test_must_build_in_container(self, osutils_mock, LOGMock, protocol_version_mock, LambdaBuildContainerMock):
+    def test_must_build_in_container(
+        self, osutils_mock, LOGMock, protocol_version_mock, LambdaBuildContainerMock, event_mock
+    ):
+        event_mock.return_value = "runtime"
         config = Mock()
         log_level = LOGMock.getEffectiveLevel.return_value = "foo"
         stdout_data = "container stdout response data"

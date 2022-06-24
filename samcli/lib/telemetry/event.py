@@ -5,13 +5,15 @@ Represents Events and their values.
 from enum import Enum
 from typing import List
 
+from samcli.local.common.runtime_template import INIT_RUNTIMES
+
 
 class EventName(Enum):
     """Enum for the names of available events to track."""
 
     USED_FEATURE = "UsedFeature"
     DEPLOY = "Deploy"
-    BUILD_RUNTIME = "BuildRuntime"
+    BUILD_FUNCTION_RUNTIME = "BuildFunctionRuntime"
 
 
 class EventType:
@@ -30,6 +32,7 @@ class EventType:
             "CreateChangeSetFailed",
             "CreateChangeSetSuccess",
         ],
+        EventName.BUILD_FUNCTION_RUNTIME: INIT_RUNTIMES,
     }
 
     @staticmethod
