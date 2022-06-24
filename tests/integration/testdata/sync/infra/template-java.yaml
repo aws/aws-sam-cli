@@ -11,7 +11,7 @@ Resources:
     Properties:
       CodeUri: before/Java/HelloWorldFunction
       Handler: helloworld.App::handleRequest
-      Runtime: java11
+      Runtime: java8
       MemorySize: 512
       Layers:
         - !Ref HelloWorldLayer
@@ -21,7 +21,7 @@ Resources:
     Properties:
       ContentUri: before/Java/HelloWorldLayer
       CompatibleRuntimes:
-        - java11
+        - java8
     Metadata:
-      BuildMethod: java11
+      BuildMethod: java8
       BuildArchitecture: x86_64
