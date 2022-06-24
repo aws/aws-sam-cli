@@ -146,6 +146,8 @@ def track_command(func):
             try:
                 template_dict = ctx.template_dict
                 project_type = ProjectTypes.CDK.value if is_cdk_project(template_dict) else ProjectTypes.CFN.value
+                if project_type == ProjectTypes.CDK.value:
+                    EventTracker.track_event("UsedFeature", "CDK")
                 metric_specific_attributes["projectType"] = project_type
             except AttributeError:
                 LOG.debug("Template is not provided in context, skip adding project type metric")

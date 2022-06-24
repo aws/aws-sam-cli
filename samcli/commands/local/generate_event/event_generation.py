@@ -9,6 +9,7 @@ import click
 from samcli.lib.generated_sample_events import events
 from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.options import debug_option
+from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
 
@@ -207,6 +208,7 @@ class EventTypeSubCommand(click.MultiCommand):
         """
         event = events_lib.generate_event(top_level_cmd_name, subcmd_name, kwargs)
         click.echo(event)
+        EventTracker.track_event("UsedFeature", "LocalTest")
         return event
 
 
