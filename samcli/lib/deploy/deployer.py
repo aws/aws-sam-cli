@@ -620,20 +620,23 @@ class Deployer:
             disable_rollback = False
             if on_failure == FailureMode.DO_NOTHING:
                 disable_rollback = True
+            msg = ""
 
             if exists:
                 kwargs["DisableRollback"] = disable_rollback
 
                 result = self.update_stack(**kwargs)
                 self.wait_for_execute(stack_name, "UPDATE", disable_rollback, on_failure)
-                LOG.info("\nStack update succeeded. Sync infra completed.\n")
+                msg = "\nStack update succeeded. Sync infra completed.\n"
             else:
                 # Pass string representation of enum
                 kwargs["OnFailure"] = str(on_failure)
 
                 result = self.create_stack(**kwargs)
                 self.wait_for_execute(stack_name, "CREATE", disable_rollback, on_failure)
-                LOG.info("\nStack creation succeeded. Sync infra completed.\n")
+                msg = "\nStack creation succeeded. Sync infra completed.\n"
+
+            LOG.info(self._colored.green(msg))
 
             return result
         except botocore.exceptions.ClientError as ex:
