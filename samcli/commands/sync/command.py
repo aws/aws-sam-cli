@@ -8,6 +8,7 @@ import click
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands._utils.cdk_support_decorators import unsupported_command_cdk
 from samcli.commands._utils.options import (
+    s3_bucket_option,
     template_option_without_build,
     parameter_override_option,
     capabilities_option,
@@ -27,6 +28,7 @@ from samcli.commands._utils.options import (
 )
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.commands._utils.click_mutex import ClickMutex
+from samcli.commands.sync.sync_context import SyncContext
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.lib.bootstrap.bootstrap import manage_stack
@@ -117,6 +119,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @base_dir_option
 @image_repository_option
 @image_repositories_option
+@s3_bucket_option(disable_callback=True)  # pylint: disable=E1120
 @s3_prefix_option
 @kms_key_id_option
 @role_arn_option
@@ -147,6 +150,7 @@ def cli(
     parameter_overrides: dict,
     image_repository: str,
     image_repositories: Optional[Tuple[str]],
+    s3_bucket: str,
     s3_prefix: str,
     kms_key_id: str,
     capabilities: Optional[List[str]],
@@ -178,6 +182,7 @@ def cli(
         mode,
         image_repository,
         image_repositories,
+        s3_bucket,
         s3_prefix,
         kms_key_id,
         capabilities,
@@ -205,6 +210,7 @@ def do_cli(
     mode: Optional[str],
     image_repository: str,
     image_repositories: Optional[Tuple[str]],
+    s3_bucket: str,
     s3_prefix: str,
     kms_key_id: str,
     capabilities: Optional[List[str]],
@@ -226,7 +232,7 @@ def do_cli(
     if not click.confirm(Colored().yellow(SYNC_CONFIRMATION_TEXT), default=True):
         return
 
-    s3_bucket = manage_stack(profile=profile, region=region)
+    s3_bucket_name = s3_bucket or manage_stack(profile=profile, region=region)
 
     build_dir = DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER if dependency_layer else DEFAULT_BUILD_DIR
     LOG.debug("Using build directory as %s", build_dir)
@@ -253,7 +259,7 @@ def do_cli(
         with osutils.tempfile_platform_independent() as output_template_file:
             with PackageContext(
                 template_file=built_template,
-                s3_bucket=s3_bucket,
+                s3_bucket=s3_bucket_name,
                 image_repository=image_repository,
                 image_repositories=image_repositories,
                 s3_prefix=s3_prefix,
@@ -279,7 +285,7 @@ def do_cli(
                 with DeployContext(
                     template_file=output_template_file.name,
                     stack_name=stack_name,
-                    s3_bucket=s3_bucket,
+                    s3_bucket=s3_bucket_name,
                     image_repository=image_repository,
                     image_repositories=image_repositories,
                     no_progressbar=True,
@@ -301,14 +307,17 @@ def do_cli(
                     disable_rollback=False,
                     poll_delay=poll_delay,
                 ) as deploy_context:
-                    if watch:
-                        execute_watch(template_file, build_context, package_context, deploy_context, dependency_layer)
-                    elif code:
-                        execute_code_sync(
-                            template_file, build_context, deploy_context, resource_id, resource, dependency_layer
-                        )
-                    else:
-                        execute_infra_contexts(build_context, package_context, deploy_context)
+                    with SyncContext(dependency_layer, build_context.build_dir, build_context.cache_dir):
+                        if watch:
+                            execute_watch(
+                                template_file, build_context, package_context, deploy_context, dependency_layer
+                            )
+                        elif code:
+                            execute_code_sync(
+                                template_file, build_context, deploy_context, resource_id, resource, dependency_layer
+                            )
+                        else:
+                            execute_infra_contexts(build_context, package_context, deploy_context)
 
 
 def execute_infra_contexts(
