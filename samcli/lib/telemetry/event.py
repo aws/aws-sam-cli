@@ -23,7 +23,6 @@ class EventType:
         EventName.USED_FEATURE: [
             "ESBuild",
             "Accelerate",
-            "LocalTest",
             "CDK",
         ],
         EventName.DEPLOY: [

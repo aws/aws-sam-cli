@@ -13,7 +13,6 @@ from samcli.commands.local.cli_common.options import (
     local_common_options,
 )
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
-from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
@@ -192,7 +191,6 @@ def do_cli(  # pylint: disable=R0914
 
             service = LocalApiService(lambda_invoke_context=invoke_context, port=port, host=host, static_dir=static_dir)
             service.start()
-            EventTracker.track_event("UsedFeature", "LocalTest")
 
     except NoApisDefined as ex:
         raise UserException(
