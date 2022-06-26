@@ -327,19 +327,20 @@ class Deployer:
                 stack_name=stack_name, msg="ex: {0} Status: {1}. Reason: {2}".format(ex, status, reason)
             ) from ex
 
-    def execute_changeset(self, changeset_id, stack_name, disable_rollback):
+    def execute_changeset(self, changeset_id, stack_name, disable_rollback) -> float:
         """
         Calls CloudFormation to execute changeset
 
         :param changeset_id: ID of the changeset
         :param stack_name: Name or ID of the stack
         :param disable_rollback: Preserve the state of previously provisioned resources when an operation fails.
-        :return: Response from execute-change-set call
+        :return: Changeset execution time (current time)
         """
         try:
-            return self._client.execute_change_set(
+            self._client.execute_change_set(
                 ChangeSetName=changeset_id, StackName=stack_name, DisableRollback=disable_rollback
             )
+            return time.time()
         except botocore.exceptions.ClientError as ex:
             raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
 
@@ -444,7 +445,9 @@ class Deployer:
     def _check_stack_not_in_progress(status: str) -> bool:
         return "IN_PROGRESS" not in status
 
-    def wait_for_execute(self, stack_name: str, stack_operation: str, disable_rollback: bool) -> None:
+    def wait_for_execute(
+        self, stack_name: str, stack_operation: str, disable_rollback: bool, execution_time: float
+    ) -> None:
         """
         Wait for stack operation to execute and return when execution completes.
         If the stack has "Outputs," they will be printed.
@@ -457,6 +460,8 @@ class Deployer:
             The type of the stack operation, 'CREATE' or 'UPDATE'
         disable_rollback : bool
             Preserves the state of previously provisioned resources when an operation fails
+        execution_time : float
+            Changeset execution time (current time)
         """
         sys.stdout.write(
             "\n{} - Waiting for stack create/update "
@@ -464,7 +469,7 @@ class Deployer:
         )
         sys.stdout.flush()
 
-        self.describe_stack_events(stack_name, self.get_last_event_time(stack_name))
+        self.describe_stack_events(stack_name, execution_time)
 
         # Pick the right waiter
         if stack_operation == "CREATE":
@@ -589,11 +594,11 @@ class Deployer:
 
             if exists:
                 result = self.update_stack(**kwargs)
-                self.wait_for_execute(stack_name, "UPDATE", False)
+                self.wait_for_execute(stack_name, "UPDATE", False, time.time())
                 msg = "\nStack update succeeded. Sync infra completed.\n"
             else:
                 result = self.create_stack(**kwargs)
-                self.wait_for_execute(stack_name, "CREATE", False)
+                self.wait_for_execute(stack_name, "CREATE", False, time.time())
                 msg = "\nStack creation succeeded. Sync infra completed.\n"
 
             LOG.info(self._colored.green(msg))
