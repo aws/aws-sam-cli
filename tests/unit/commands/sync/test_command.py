@@ -31,6 +31,7 @@ class TestDoCli(TestCase):
         self.image_repository = "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"
         self.image_repositories = None
         self.mode = "mode"
+        self.s3_bucket = "s3-bucket"
         self.s3_prefix = "s3-prefix"
         self.kms_key_id = "kms-key-id"
         self.notification_arns = []
@@ -104,6 +105,7 @@ class TestDoCli(TestCase):
             self.mode,
             self.image_repository,
             self.image_repositories,
+            self.s3_bucket,
             self.s3_prefix,
             self.kms_key_id,
             self.capabilities,
@@ -236,6 +238,7 @@ class TestDoCli(TestCase):
             self.mode,
             self.image_repository,
             self.image_repositories,
+            self.s3_bucket,
             self.s3_prefix,
             self.kms_key_id,
             self.capabilities,
@@ -366,6 +369,7 @@ class TestDoCli(TestCase):
             self.mode,
             self.image_repository,
             self.image_repositories,
+            self.s3_bucket,
             self.s3_prefix,
             self.kms_key_id,
             self.capabilities,
