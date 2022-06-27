@@ -1,9 +1,11 @@
 """
 Container for a mapper and a consumer
 """
+from dataclasses import dataclass
+from samcli.lib.list.list_interfaces import ListInfoPullerConsumer, Mapper
 
 
+@dataclass
 class MapperConsumerContainer:
-    def __init__(self, mapper, consumer):
-        self.mapper = mapper
-        self.consumer = consumer
+    mapper: Mapper
+    consumer: ListInfoPullerConsumer

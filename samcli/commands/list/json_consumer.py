@@ -5,7 +5,7 @@ import click
 from samcli.lib.list.list_interfaces import ListInfoPullerConsumer
 
 
-class JsonConsumer(ListInfoPullerConsumer):
+class StringConsumerJsonOutput(ListInfoPullerConsumer):
     """
     Consumes string data and outputs it in json format
     """

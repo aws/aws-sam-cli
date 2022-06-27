@@ -1,10 +1,8 @@
-from unittest import TestCase, mock
-from unittest.mock import patch, call, MagicMock, Mock
-from botocore.exceptions import ClientError, BotoCoreError, WaiterError, EndpointConnectionError
-import click
+from unittest import TestCase
+from unittest.mock import patch, call
+from botocore.exceptions import ClientError, EndpointConnectionError
 
 from samcli.commands.list.stack_outputs.stack_outputs_context import StackOutputsContext
-from samcli.lib.list.stack_outputs.stack_outputs_producer import StackOutputsProducer
 from samcli.commands.exceptions import RegionError
 from samcli.commands.list.exceptions import SamListError, NoOutputsForStackError, StackDoesNotExistInRegionError
 
