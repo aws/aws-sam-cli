@@ -116,7 +116,7 @@ class EventTracker:
         try:
             EventTracker._events.append(Event(event_name, event_value))
         except EventCreationError as e:
-            LOG.error(f"Error occurred while trying to track an event: {e}")
+            LOG.error("Error occurred while trying to track an event: %s", e)
 
     @staticmethod
     def get_tracked_events() -> List[Event]:
