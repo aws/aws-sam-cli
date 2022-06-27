@@ -559,7 +559,9 @@ class TestStage(TestCase):
         stack_output.get.return_value = ANY_ARN
         manage_stack_mock.return_value = stack_output
         client_mock = Mock()
-        boto3_mock.client.return_value = client_mock
+        session_mock = Mock()
+        boto3_mock.Session.return_value = session_mock
+        session_mock.client.return_value = client_mock
         open_id_connect_providers_mock = {"OpenIDConnectProviderList": [{"Arn": ANY_OIDC_PROVIDER_URL}]}
         client_mock.list_open_id_connect_providers.return_value = open_id_connect_providers_mock
 
