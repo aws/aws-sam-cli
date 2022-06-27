@@ -34,6 +34,10 @@ class PipelineOidcProvider:
     def save_values(self, samconfig: SamConfig, cmd_names: List[str], section: str) -> None:
         pass
 
+    @abstractmethod
+    def get_subject_claim(self) -> str:
+        pass
+
 
 class GitHubOidcProvider(PipelineOidcProvider):
 
@@ -72,3 +76,9 @@ class GitHubOidcProvider(PipelineOidcProvider):
             key="deployment_branch",
             value=self.subject_claim_parameters["--deployment-branch"],
         )
+
+    def get_subject_claim(self) -> str:
+        org = self.subject_claim_parameters["--github-org"]
+        repo = self.subject_claim_parameters["--github-repo"]
+        branch = self.subject_claim_parameters["--deployment-branch"]
+        return f"repo:{org}/{repo}:ref:refs/heads/{branch}"

@@ -154,7 +154,8 @@ class Stage:
     def _should_create_new_provider(self) -> bool:
         if not self.oidc_provider.provider_url:
             return False
-        iam_client = boto3.client("iam")
+        session = boto3.Session(profile_name=self.aws_profile, region_name=self.aws_region)
+        iam_client = session.client("iam")
         providers = iam_client.list_open_id_connect_providers()
 
         # OIDC Provider arns are of the following format

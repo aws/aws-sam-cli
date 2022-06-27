@@ -295,6 +295,7 @@ def do_cli(
         else:
             raise click.UsageError("Missing required parameter '--oidc-provider'")
         pipeline_oidc_provider.verify_all_parameters()
+        subject_claim = pipeline_oidc_provider.get_subject_claim()
 
     if not stage_configuration_name:
         raise click.UsageError("Missing required parameter '--stage'")

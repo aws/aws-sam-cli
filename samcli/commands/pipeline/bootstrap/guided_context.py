@@ -250,7 +250,7 @@ class GuidedContext:
                     (f"OIDC client ID: {self.oidc_client_id}", self._prompt_oidc_client_id),
                 ]
             )
-            if self.oidc_provider == "GitHub Actions":
+            if self.oidc_provider == GITHUB_ACTIONS:
                 inputs.extend(
                     [
                         (f"GitHub organization: {self.github_org}", self._prompt_github_org),
