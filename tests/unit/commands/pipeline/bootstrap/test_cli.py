@@ -6,7 +6,6 @@ from click.testing import CliRunner
 
 from samcli.commands.pipeline.bootstrap.cli import (
     _load_saved_pipeline_user_arn,
-    _build_oidc_subject_claim,
     _load_saved_oidc_values,
     PIPELINE_CONFIG_FILENAME,
     PIPELINE_CONFIG_DIR,
@@ -194,8 +193,8 @@ class TestCli(TestCase):
         environment_instance.print_resources_summary.assert_not_called()
         environment_instance.save_config_safe.assert_not_called()
 
-    @patch("samcli.commands.pipeline.bootstrap.cli._build_oidc_subject_claim")
-    @patch("samcli.commands.pipeline.bootstrap.cli._check_oidc_common_params")
+    @patch("samcli.commands.pipeline.bootstrap.pipeline_provider")
+    @patch("samcli.commands.pipeline.bootstrap.pipeline_provider")
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
     @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
@@ -204,7 +203,7 @@ class TestCli(TestCase):
         guided_context_mock,
         environment_mock,
         get_command_names_mock,
-        check_oidc_mock,
+        pipeline_provider_mock,
         subject_claim_mock,
     ):
         # setup
@@ -228,7 +227,6 @@ class TestCli(TestCase):
         bootstrap_cli(**self.cli_context)
 
         # verify
-        subject_claim_mock.assert_called_once()
         gc_instance.run.assert_called_once()
         environment_instance.bootstrap.assert_called_once_with(confirm_changeset=True)
         environment_instance.print_resources_summary.assert_called_once()
@@ -423,17 +421,6 @@ class TestCli(TestCase):
         self.assertEqual(oidc_values["github_org"], ANY_GITHUB_ORG)
         self.assertEqual(oidc_values["github_repo"], ANY_GITHUB_REPO)
         self.assertEqual(oidc_values["deployment_branch"], ANY_DEPLOYMENT_BRANCH)
-
-    def test_build_subject_claim_builds_the_correct_subject_claim(self):
-        # trigger
-        subject_claim = _build_oidc_subject_claim(
-            github_org=ANY_GITHUB_ORG,
-            github_repo=ANY_GITHUB_REPO,
-            branch=ANY_DEPLOYMENT_BRANCH,
-        )
-
-        # verify
-        self.assertEqual(subject_claim, ANY_BUILT_SUBJECT_CLAIM)
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")

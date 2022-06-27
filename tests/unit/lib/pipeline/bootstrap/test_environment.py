@@ -362,23 +362,6 @@ class TestStage(TestCase):
         self.trigger_and_assert_save_config_calls(
             stage, cmd_names, expected_calls + [empty_ecr_call], samconfig_instance_mock.put
         )
-        expected_calls.pop(-1)
-
-        stage.oidc_provider_name = GITHUB_ACTIONS
-        expected_calls.append(
-            call(cmd_names=cmd_names, section="parameters", key="oidc_provider", value=GITHUB_ACTIONS)
-        )
-
-        stage.github_org = ANY_GITHUB_ORG
-        expected_calls.append(call(cmd_names=cmd_names, section="parameters", key="github_org", value=ANY_GITHUB_ORG))
-
-        stage.github_repo = ANY_GITHUB_REPO
-        expected_calls.append(call(cmd_names=cmd_names, section="parameters", key="github_repo", value=ANY_GITHUB_REPO))
-
-        stage.deployment_branch = ANY_DEPLOYMENT_BRANCH
-        expected_calls.append(
-            call(cmd_names=cmd_names, section="parameters", key="deployment_branch", value=ANY_DEPLOYMENT_BRANCH)
-        )
 
         self.trigger_and_assert_save_config_calls(
             stage, cmd_names, expected_calls + [empty_ecr_call], samconfig_instance_mock.put

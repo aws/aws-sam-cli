@@ -156,6 +156,10 @@ class Stage:
             return False
         iam_client = boto3.client("iam")
         providers = iam_client.list_open_id_connect_providers()
+
+        # OIDC Provider arns are of the following format
+        # arn:aws:iam:::oidc-provider/api.bitbucket.org/2.0/workspaces//pipelines-config/identity/oidc
+        # we can check if the URL provided is already in an existing provider to see if a new one should be made
         url_to_compare = self.oidc_provider.provider_url.replace("https://", "")
         for provider_resource in providers["OpenIDConnectProviderList"]:
             if url_to_compare in provider_resource["Arn"]:
@@ -171,12 +175,14 @@ class Stage:
         url_for_certificate = urlparse(jwks_uri).hostname
 
         # Create connection to retrieve certificate
+        # Create an IPV4 socket and use TLS for the SSL connection
         address = (url_for_certificate, 443)
         ctx = SSL.Context(SSL.TLS_METHOD)
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect(address)
         c = SSL.Connection(ctx, s)
         c.set_connect_state()
+        # set the servername extension becuase not setting it can cause errors with some sites
         c.set_tlsext_host_name(str.encode(address[0]))
 
         # If we attempt to get the cert chain without exchanging some traffic it will be empty

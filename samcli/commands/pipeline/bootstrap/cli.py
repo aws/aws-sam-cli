@@ -371,42 +371,5 @@ def _load_saved_oidc_values() -> Dict[str, Optional[str]]:
     return oidc_parameters
 
 
-def _build_oidc_subject_claim(github_org: Optional[str], github_repo: Optional[str], branch: Optional[str]) -> str:
-    return "repo:{org}/{repo}:ref:refs/heads/{branch}".format(org=github_org, repo=github_repo, branch=branch)
-
-
-def _check_github_actions_params(
-    github_org: Optional[str],
-    github_repo: Optional[str],
-    deployment_branch: Optional[str],
-    missing_parameters_messages: List[str],
-) -> bool:
-    missing_parameters: bool = False
-    if not github_org:
-        missing_parameters_messages.append("Missing required parameter '--github-org'")
-        missing_parameters = True
-    if not github_repo:
-        missing_parameters_messages.append("Missing required parameter '--github-repo'")
-        missing_parameters = True
-    if not deployment_branch:
-        missing_parameters_messages.append("Missing required parameter '--deployment-branch'")
-        missing_parameters = True
-    return missing_parameters
-
-
-def _check_oidc_common_params(
-    oidc_provider_url: Optional[str],
-    oidc_client_id: Optional[str],
-    oidc_provider: Optional[str],
-    missing_parameters_messages: List[str],
-) -> None:
-    if not oidc_provider_url:
-        missing_parameters_messages.append("Missing required parameter '--oidc-provider-url'")
-    if not oidc_client_id:
-        missing_parameters_messages.append("Missing required parameter '--oidc-client-id'")
-    if not oidc_provider:
-        missing_parameters_messages.append("Missing required parameter '--oidc-provider'")
-
-
 def _get_bootstrap_command_names() -> List[str]:
     return ["pipeline", "bootstrap"]

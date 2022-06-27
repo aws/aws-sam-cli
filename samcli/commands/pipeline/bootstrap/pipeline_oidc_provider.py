@@ -34,6 +34,7 @@ class PipelineOidcProvider:
     def save_values(self, samconfig: SamConfig, cmd_names: List[str], section: str) -> None:
         pass
 
+
 class GitHubOidcProvider(PipelineOidcProvider):
 
     SUBJECT_CLAIM_PARAMETERS_NAMES = ["--github-org", "--github-repo", "--deployment-branch"]
