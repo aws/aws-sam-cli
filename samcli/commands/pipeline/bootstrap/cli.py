@@ -10,7 +10,7 @@ import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, aws_creds_options, print_cmdline_args
-from samcli.commands.pipeline.bootstrap.pipeline_provider import GitHubOidcProvider, PipelineOidcProvider
+from samcli.commands.pipeline.bootstrap.pipeline_oidc_provider import GitHubOidcProvider, PipelineOidcProvider
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.pipeline.bootstrap.stage import (
     DEPLOYMENT_BRANCH,

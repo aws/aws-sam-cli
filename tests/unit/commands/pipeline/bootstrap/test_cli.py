@@ -193,8 +193,7 @@ class TestCli(TestCase):
         environment_instance.print_resources_summary.assert_not_called()
         environment_instance.save_config_safe.assert_not_called()
 
-    @patch("samcli.commands.pipeline.bootstrap.pipeline_provider")
-    @patch("samcli.commands.pipeline.bootstrap.pipeline_provider")
+    @patch("samcli.commands.pipeline.bootstrap.pipeline_oidc_provider")
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
     @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
@@ -204,7 +203,6 @@ class TestCli(TestCase):
         environment_mock,
         get_command_names_mock,
         pipeline_provider_mock,
-        subject_claim_mock,
     ):
         # setup
         gc_instance = Mock()
@@ -220,7 +218,6 @@ class TestCli(TestCase):
         environment_mock.return_value = environment_instance
         self.cli_context["interactive"] = True
         self.cli_context["permissions_provider"] = "oidc"
-        subject_claim_mock.return_value = ANY_SUBJECT_CLAIM
         get_command_names_mock.return_value = PIPELINE_BOOTSTRAP_COMMAND_NAMES
 
         # trigger

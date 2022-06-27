@@ -15,7 +15,7 @@ import requests
 
 from OpenSSL import SSL, crypto  # type: ignore
 from samcli.commands.pipeline.bootstrap.guided_context import OPEN_ID_CONNECT
-from samcli.commands.pipeline.bootstrap.pipeline_provider import PipelineOidcProvider
+from samcli.commands.pipeline.bootstrap.pipeline_oidc_provider import PipelineOidcProvider
 
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.utils.colors import Colored

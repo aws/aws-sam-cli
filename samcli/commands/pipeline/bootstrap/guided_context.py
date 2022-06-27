@@ -27,6 +27,8 @@ class GuidedContext:
 
     SUPPORTED_OIDC_PROVIDERS = {"1": GITHUB_ACTIONS}
     OIDC_PROVIDER_NAME_MAPPINGS = {GITHUB_ACTIONS: "GitHub Actions"}
+    DEFAULT_OIDC_URLS = {GITHUB_ACTIONS: "https://token.actions.githubusercontent.com"}
+    DEFAULT_CLIENT_IDS = {GITHUB_ACTIONS: "sts.amazonaws.com"}
 
     def __init__(
         self,
@@ -189,10 +191,18 @@ class GuidedContext:
         self.oidc_provider = self.SUPPORTED_OIDC_PROVIDERS[oidc_provider]
 
     def _prompt_oidc_provider_url(self) -> None:
-        self.oidc_provider_url = click.prompt("Enter the URL of the OIDC provider", type=click.STRING)
+        self.oidc_provider_url = click.prompt(
+            "Enter the URL of the OIDC provider",
+            type=click.STRING,
+            default=self.DEFAULT_OIDC_URLS[self.oidc_provider] if self.oidc_provider else None,
+        )
 
     def _prompt_oidc_client_id(self) -> None:
-        self.oidc_client_id = click.prompt("Enter the OIDC client ID (sometimes called audience)", type=click.STRING)
+        self.oidc_client_id = click.prompt(
+            "Enter the OIDC client ID (sometimes called audience)",
+            type=click.STRING,
+            default=self.DEFAULT_CLIENT_IDS[self.oidc_provider] if self.oidc_provider else None,
+        )
 
     def _prompt_subject_claim(self) -> None:
         if self.oidc_provider == GITHUB_ACTIONS:
@@ -215,7 +225,7 @@ class GuidedContext:
 
     def _prompt_github_branch(self) -> None:
         self.deployment_branch = click.prompt(
-            "Enter the name of the branch that deployments will occur from", type=click.STRING
+            "Enter the name of the branch that deployments will occur from", type=click.STRING, default="main"
         )
 
     def _validate_oidc_provider_url(self) -> None:
