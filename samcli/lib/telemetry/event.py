@@ -11,6 +11,7 @@ from samcli.local.common.runtime_template import INIT_RUNTIMES
 
 LOG = logging.getLogger(__name__)
 
+
 class EventName(Enum):
     """Enum for the names of available events to track."""
 
