@@ -173,7 +173,7 @@ class GuidedContext:
         click.echo("\t1 - IAM (default)")
         click.echo("\t2 - OpenID Connect (OIDC)")
         user_provider = click.prompt(
-            "", type=click.Choice((["1", "2"])), show_choices=False, show_default=False, default="1", prompt_suffix=""
+            "Choice", type=click.Choice((["1", "2"])), show_default=False, default="1"
         )
         self.permissions_provider = OPEN_ID_CONNECT if user_provider == "2" else "iam"
 
@@ -182,11 +182,9 @@ class GuidedContext:
         for (key, provider) in self.SUPPORTED_OIDC_PROVIDERS.items():
             click.echo("\t{key} - {provider}".format(key=key, provider=self.OIDC_PROVIDER_NAME_MAPPINGS[provider]))
         oidc_provider = click.prompt(
-            "",
+            "Choice",
             type=click.Choice((list(self.SUPPORTED_OIDC_PROVIDERS))),
-            show_choices=False,
             show_default=False,
-            prompt_suffix="",
         )
         self.oidc_provider = self.SUPPORTED_OIDC_PROVIDERS[oidc_provider]
 
