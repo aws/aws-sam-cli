@@ -379,7 +379,6 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
 
 
 class ParallelBuildStrategyTest(BuildStrategyBaseTest):
-
     @patch("samcli.lib.build.build_strategy.AsyncContext")
     def test_given_async_context_should_call_expected_methods(self, patched_async_context):
         delegate_build_strategy = MagicMock(wraps=_TestBuildStrategy(self.build_graph))

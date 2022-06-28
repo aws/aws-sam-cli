@@ -8,7 +8,7 @@ import pathlib
 import shutil
 from abc import abstractmethod, ABC
 from copy import deepcopy
-from typing import Callable, Dict, List, Any, Optional, cast, Set
+from typing import Callable, Dict, List, Any, Optional, cast, Set, Tuple, TypeVar
 
 from samcli.commands._utils.experimental import is_experimental_enabled, ExperimentalFlag
 from samcli.lib.utils import osutils
@@ -27,6 +27,11 @@ from samcli.lib.build.exceptions import MissingBuildMethodException
 
 
 LOG = logging.getLogger(__name__)
+
+# type definition which can be used in generic types for both FunctionBuildDefinition & LayerBuildDefinition
+FunctionOrLayerBuildDefinition = TypeVar(
+    "FunctionOrLayerBuildDefinition", FunctionBuildDefinition, LayerBuildDefinition
+)
 
 
 def clean_redundant_folders(base_dir: str, uuids: Set[str]) -> None:
@@ -354,26 +359,31 @@ class ParallelBuildStrategy(BuildStrategy):
             return super().build()
 
     def _build_layers(self, build_graph: BuildGraph) -> Dict[str, str]:
-        async_context = AsyncContext()
-        for layer_definition in build_graph.get_layer_build_definitions():
-            async_context.add_async_task(self.build_single_layer_definition, layer_definition)
-        async_results = async_context.run_async()
-
-        layer_build_result: Dict[str, str] = dict()
-        for async_result in async_results:
-            layer_build_result.update(async_result)
-        return layer_build_result
+        return self._run_builds_async(self.build_single_layer_definition, build_graph.get_layer_build_definitions())
 
     def _build_functions(self, build_graph: BuildGraph) -> Dict[str, str]:
+        return self._run_builds_async(
+            self.build_single_function_definition, build_graph.get_function_build_definitions()
+        )
+
+    @staticmethod
+    def _run_builds_async(
+        build_method: Callable[[FunctionOrLayerBuildDefinition], Dict[str, str]],
+        build_definitions: Tuple[FunctionOrLayerBuildDefinition, ...],
+    ) -> Dict[str, str]:
+        """Builds given list of build definitions in async and return the result"""
+        if not build_definitions:
+            return dict()
+
         async_context = AsyncContext()
-        for function_definition in build_graph.get_function_build_definitions():
-            async_context.add_async_task(self.build_single_function_definition, function_definition)
+        for build_definition in build_definitions:
+            async_context.add_async_task(build_method, build_definition)
         async_results = async_context.run_async()
 
-        function_build_result: Dict[str, str] = dict()
+        build_result: Dict[str, str] = dict()
         for async_result in async_results:
-            function_build_result.update(async_result)
-        return function_build_result
+            build_result.update(async_result)
+        return build_result
 
     def build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
         return self._delegate_build_strategy.build_single_layer_definition(layer_definition)
