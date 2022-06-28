@@ -24,6 +24,7 @@ Parameters:
     Type: String
   UseOidcProvider:
     Type: String
+    AllowedValues: [true, false]
   SubjectClaim:
     Type: String
   CreateNewOidcProvider:

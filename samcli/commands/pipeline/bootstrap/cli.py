@@ -284,17 +284,17 @@ def do_cli(
     pipeline_oidc_provider: Optional[PipelineOidcProvider] = None
 
     if permissions_provider == OPEN_ID_CONNECT:
-        common_oidc_params = {"--oidc-provider-url": oidc_provider_url, "--oidc-client-id": oidc_client_id}
+        common_oidc_params = {"oidc-provider-url": oidc_provider_url, "oidc-client-id": oidc_client_id}
         if oidc_provider == GITHUB_ACTIONS:
             github_oidc_params: dict = {
-                "--github-org": github_org,
-                "--github-repo": github_repo,
-                "--deployment-branch": deployment_branch,
+                "github-org": github_org,
+                "github-repo": github_repo,
+                "deployment-branch": deployment_branch,
             }
             pipeline_oidc_provider = GitHubOidcProvider(github_oidc_params, common_oidc_params)
+            pipeline_oidc_provider.verify_parameters()
         else:
             raise click.UsageError("Missing required parameter '--oidc-provider'")
-        pipeline_oidc_provider.verify_all_parameters()
         subject_claim = pipeline_oidc_provider.get_subject_claim()
 
     if not stage_configuration_name:
