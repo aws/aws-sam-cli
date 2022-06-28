@@ -1812,7 +1812,7 @@ class TestParallelBuilds(DedupBuildIntegBase):
 class TestParallelBuildsJavaWithLayers(DedupBuildIntegBase):
     template = "template-java-maven-with-layers.yaml"
 
-    # @pytest.mark.flaky(reruns=3)
+    @pytest.mark.flaky(reruns=3)
     def test_dedup_build(self):
         """
         Build template above and verify that each function call returns as expected
