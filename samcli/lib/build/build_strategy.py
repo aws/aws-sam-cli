@@ -8,7 +8,7 @@ import pathlib
 import shutil
 from abc import abstractmethod, ABC
 from copy import deepcopy
-from typing import Callable, Dict, List, Any, Optional, cast, Set
+from typing import Callable, Dict, List, Any, Optional, cast, Set, Tuple, TypeVar
 
 from samcli.commands._utils.experimental import is_experimental_enabled, ExperimentalFlag
 from samcli.lib.utils import osutils
@@ -27,6 +27,11 @@ from samcli.lib.build.exceptions import MissingBuildMethodException
 
 
 LOG = logging.getLogger(__name__)
+
+# type definition which can be used in generic types for both FunctionBuildDefinition & LayerBuildDefinition
+FunctionOrLayerBuildDefinition = TypeVar(
+    "FunctionOrLayerBuildDefinition", FunctionBuildDefinition, LayerBuildDefinition
+)
 
 
 def clean_redundant_folders(base_dir: str, uuids: Set[str]) -> None:
@@ -345,45 +350,46 @@ class ParallelBuildStrategy(BuildStrategy):
         self,
         build_graph: BuildGraph,
         delegate_build_strategy: BuildStrategy,
-        async_context: Optional[AsyncContext] = None,
     ) -> None:
         super().__init__(build_graph)
         self._delegate_build_strategy = delegate_build_strategy
-        self._async_context = async_context if async_context else AsyncContext()
 
     def build(self) -> Dict[str, str]:
-        """
-        Runs all build and collects results from async context
-        """
-        result = {}
         with self._delegate_build_strategy:
-            # ignore result
-            super().build()
-            # wait for other executions to complete
+            return super().build()
 
-            async_results = self._async_context.run_async()
-            for async_result in async_results:
-                result.update(async_result)
+    def _build_layers(self, build_graph: BuildGraph) -> Dict[str, str]:
+        return self._run_builds_async(self.build_single_layer_definition, build_graph.get_layer_build_definitions())
 
-        return result
-
-    def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
-        """
-        Passes single function build into async context, no actual result returned from this function
-        """
-        self._async_context.add_async_task(
-            self._delegate_build_strategy.build_single_function_definition, build_definition
+    def _build_functions(self, build_graph: BuildGraph) -> Dict[str, str]:
+        return self._run_builds_async(
+            self.build_single_function_definition, build_graph.get_function_build_definitions()
         )
-        return {}
+
+    @staticmethod
+    def _run_builds_async(
+        build_method: Callable[[FunctionOrLayerBuildDefinition], Dict[str, str]],
+        build_definitions: Tuple[FunctionOrLayerBuildDefinition, ...],
+    ) -> Dict[str, str]:
+        """Builds given list of build definitions in async and return the result"""
+        if not build_definitions:
+            return dict()
+
+        async_context = AsyncContext()
+        for build_definition in build_definitions:
+            async_context.add_async_task(build_method, build_definition)
+        async_results = async_context.run_async()
+
+        build_result: Dict[str, str] = dict()
+        for async_result in async_results:
+            build_result.update(async_result)
+        return build_result
 
     def build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
-        """
-        Passes single layer build into async context, no actual result returned from this function
-        """
-        self._async_context.add_async_task(
-            self._delegate_build_strategy.build_single_layer_definition, layer_definition
-        )
-        return {}
+        return self._delegate_build_strategy.build_single_layer_definition(layer_definition)
+
+    def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
+        return self._delegate_build_strategy.build_single_function_definition(build_definition)
 
 
 class IncrementalBuildStrategy(BuildStrategy):
