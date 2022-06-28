@@ -172,9 +172,7 @@ class GuidedContext:
         click.echo("Select a user permissions provider:")
         click.echo("\t1 - IAM (default)")
         click.echo("\t2 - OpenID Connect (OIDC)")
-        user_provider = click.prompt(
-            "Choice", type=click.Choice((["1", "2"])), show_default=False, default="1"
-        )
+        user_provider = click.prompt("Choice", type=click.Choice((["1", "2"])), show_default=False, default="1")
         self.permissions_provider = OPEN_ID_CONNECT if user_provider == "2" else "iam"
 
     def _prompt_oidc_provider(self) -> None:
