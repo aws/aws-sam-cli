@@ -3,9 +3,13 @@ Represents Events and their values.
 """
 
 from enum import Enum
+import logging
 from typing import List
 
 from samcli.local.common.runtime_template import INIT_RUNTIMES
+
+
+LOG = logging.getLogger(__name__)
 
 
 class EventName(Enum):
@@ -23,7 +27,6 @@ class EventType:
         EventName.USED_FEATURE: [
             "ESBuild",
             "Accelerate",
-            "LocalTest",
             "CDK",
         ],
         EventName.DEPLOY: [
@@ -110,7 +113,10 @@ class EventTracker:
                 EventTracker.track_event("UsedFeature", "FeatureY")
                 return some_value
         """
-        EventTracker._events.append(Event(event_name, event_value))
+        try:
+            EventTracker._events.append(Event(event_name, event_value))
+        except EventCreationError as e:
+            LOG.debug("Error occurred while trying to track an event: %s", e)
 
     @staticmethod
     def get_tracked_events() -> List[Event]:

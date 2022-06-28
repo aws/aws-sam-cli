@@ -270,6 +270,8 @@ class BuildContext:
 
             for f in self.get_resources_to_build().functions:
                 EventTracker.track_event("BuildFunctionRuntime", f.runtime)
+                if f.metadata and f.metadata.get("BuildMethod", "") == "esbuild":
+                    EventTracker.track_event("UsedFeature", "ESBuild")
 
             click.secho("\nBuild Succeeded", fg="green")
 
