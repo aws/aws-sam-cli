@@ -371,6 +371,12 @@ class ParallelBuildStrategy(BuildStrategy):
             function_build_result.update(async_result)
         return function_build_result
 
+    def build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
+        return self._delegate_build_strategy.build_single_layer_definition(layer_definition)
+
+    def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
+        return self._delegate_build_strategy.build_single_function_definition(build_definition)
+
 
 class IncrementalBuildStrategy(BuildStrategy):
     """
