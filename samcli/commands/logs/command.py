@@ -36,7 +36,10 @@ You can also add the --tail option to wait for new logs and see them as they arr
 $ sam logs -n HelloWorldFunction --stack-name mystack --tail \n
 \b
 Use the --filter option to quickly find logs that match terms, phrases or values in your log events.
-$ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
+$ sam logs -n HelloWorldFunction --stack-name mystack --filter 'error' \n
+\b
+Fetch logs for all supported resources in your application, and additionally from the specified log groups.
+$ sam logs --cw-log-group /aws/lambda/myfunction-123 --cw-log-group /aws/lambda/myfunction-456
 \b
 You can now fetch logs from supported resources, by only providing --stack-name parameter
 $ sam logs --stack-name mystack \n
@@ -52,9 +55,9 @@ $ sam logs --stack-name mystack -n MyNestedStack/HelloWorldFunction
     "--name",
     "-n",
     multiple=True,
-    help="Name(s) of your AWS Lambda function. If this function is a part of a CloudFormation stack, "
-    "this can be the LogicalID of function resource in the CloudFormation/SAM template. "
-    "[Beta Feature] Multiple names can be provided by repeating the parameter again. "
+    help="The name of the resource for which to fetch logs. If this resource is a part of an AWS CloudFormation stack, "
+    "this can be the LogicalID of the resource in the CloudFormation/SAM template. "
+    "Multiple names can be provided by repeating the parameter again. "
     "If resource is in a nested stack, name can be prepended by nested stack name to pull logs "
     "from that resource (NestedStackLogicalId/ResourceLogicalId). "
     "If it is not provided and no --cw-log-group have been given, it will scan "
