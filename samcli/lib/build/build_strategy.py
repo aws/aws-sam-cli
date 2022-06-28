@@ -363,7 +363,7 @@ class ParallelBuildStrategy(BuildStrategy):
     def _build_functions(self, build_graph: BuildGraph) -> Dict[str, str]:
         async_context = AsyncContext()
         for function_definition in build_graph.get_function_build_definitions():
-            async_context.add_async_task(self.build_single_layer_definition, function_definition)
+            async_context.add_async_task(self.build_single_function_definition, function_definition)
         async_results = async_context.run_async()
 
         function_build_result: Dict[str, str] = dict()
