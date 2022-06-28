@@ -1,5 +1,6 @@
 import itertools
 from copy import deepcopy
+from typing import List, Dict
 from unittest import TestCase
 from unittest.mock import Mock, patch, MagicMock, call, ANY
 
@@ -378,36 +379,49 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
 
 
 class ParallelBuildStrategyTest(BuildStrategyBaseTest):
-    def test_given_async_context_should_call_expected_methods(self):
-        mock_async_context = Mock()
-        delegate_build_strategy = MagicMock(wraps=_TestBuildStrategy(self.build_graph))
-        parallel_build_strategy = ParallelBuildStrategy(self.build_graph, delegate_build_strategy, mock_async_context)
 
-        given_build_results = [
-            {"function1": "function_location1"},
-            {"function2": "function_location2"},
+    @patch("samcli.lib.build.build_strategy.AsyncContext")
+    def test_given_async_context_should_call_expected_methods(self, patched_async_context):
+        delegate_build_strategy = MagicMock(wraps=_TestBuildStrategy(self.build_graph))
+        parallel_build_strategy = ParallelBuildStrategy(self.build_graph, delegate_build_strategy)
+
+        mock_layer_async_context = Mock()
+        mock_function_async_context = Mock()
+        patched_async_context.side_effect = [mock_layer_async_context, mock_function_async_context]
+
+        layer_build_results: List[Dict[str, str]] = [
             {"layer1": "layer_location1"},
             {"layer2": "layer_location2"},
         ]
-        mock_async_context.run_async.return_value = given_build_results
+        function_build_results: List[Dict[str, str]] = [
+            {"function1": "function_location1"},
+            {"function2": "function_location2"},
+        ]
+        mock_layer_async_context.run_async.return_value = layer_build_results
+        mock_function_async_context.run_async.return_value = function_build_results
 
         results = parallel_build_strategy.build()
 
         expected_results = {}
-        for given_build_result in given_build_results:
+        for given_build_result in layer_build_results + function_build_results:
             expected_results.update(given_build_result)
         self.assertEqual(results, expected_results)
 
         # assert that result has collected
-        mock_async_context.run_async.assert_has_calls([call()])
+        mock_layer_async_context.run_async.assert_has_calls([call()])
+        mock_function_async_context.run_async.assert_has_calls([call()])
 
         # assert that delegated function calls have been registered in async context
-        mock_async_context.add_async_task.assert_has_calls(
+        mock_layer_async_context.add_async_task.assert_has_calls(
             [
-                call(delegate_build_strategy.build_single_layer_definition, self.layer_build_definition1),
-                call(delegate_build_strategy.build_single_layer_definition, self.layer_build_definition2),
-                call(delegate_build_strategy.build_single_function_definition, self.function_build_definition1),
-                call(delegate_build_strategy.build_single_function_definition, self.function_build_definition2),
+                call(parallel_build_strategy.build_single_layer_definition, self.layer_build_definition1),
+                call(parallel_build_strategy.build_single_layer_definition, self.layer_build_definition2),
+            ]
+        )
+        mock_function_async_context.add_async_task.assert_has_calls(
+            [
+                call(parallel_build_strategy.build_single_function_definition, self.function_build_definition1),
+                call(parallel_build_strategy.build_single_function_definition, self.function_build_definition2),
             ]
         )
 

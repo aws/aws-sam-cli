@@ -349,6 +349,10 @@ class ParallelBuildStrategy(BuildStrategy):
         super().__init__(build_graph)
         self._delegate_build_strategy = delegate_build_strategy
 
+    def build(self) -> Dict[str, str]:
+        with self._delegate_build_strategy:
+            return super().build()
+
     def _build_layers(self, build_graph: BuildGraph) -> Dict[str, str]:
         async_context = AsyncContext()
         for layer_definition in build_graph.get_layer_build_definitions():
