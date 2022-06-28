@@ -29,6 +29,7 @@ Parameters:
     Type: String
   CreateNewOidcProvider:
     Type: String
+    AllowedValues: [true, false]
 
 Conditions:
   MissingOidcProvider: !Equals [!Ref CreateNewOidcProvider, "true"] 
