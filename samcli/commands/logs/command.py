@@ -36,9 +36,9 @@ You can also add the --tail option to wait for new logs and see them as they arr
 $ sam logs -n HelloWorldFunction --stack-name mystack --tail \n
 \b
 Use the --filter option to quickly find logs that match terms, phrases or values in your log events.
-$ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
+$ sam logs -n HelloWorldFunction --stack-name mystack --filter 'error' \n
 \b
-# Fetch logs for all supported resources in your application, and additionally from the specified log groups.
+Fetch logs for all supported resources in your application, and additionally from the specified log groups.
 $ sam logs --cw-log-group /aws/lambda/myfunction-123 --cw-log-group /aws/lambda/myfunction-456
 \b
 You can now fetch logs from supported resources, by only providing --stack-name parameter
