@@ -362,16 +362,8 @@ class Stage:
 
         if self.pipeline_user.arn:
             samconfig.put(cmd_names=cmd_names, section="parameters", key=PIPELINE_USER, value=self.pipeline_user.arn)
-        if self.use_oidc_provider:
-            samconfig.put(
-                cmd_names=cmd_names, section="parameters", key=OIDC_PROVIDER_URL, value=self.oidc_provider.provider_url
-            )
-            samconfig.put(
-                cmd_names=cmd_names, section="parameters", key=OIDC_CLIENT_ID, value=self.oidc_provider.client_id
-            )
-            samconfig.put(cmd_names=cmd_names, section="parameters", key=OIDC_PROVIDER, value=self.oidc_provider_name)
-            if self.pipeline_oidc_provider:
-                self.pipeline_oidc_provider.save_values(cmd_names=cmd_names, section="parameters", samconfig=samconfig)
+        if self.use_oidc_provider and self.pipeline_oidc_provider:
+            self.pipeline_oidc_provider.save_values(cmd_names=cmd_names, section="parameters", samconfig=samconfig)
 
         # Computing Artifacts bucket name and ECR image repository URL may through an exception if the ARNs are wrong
         # Let's swallow such an exception to be able to save the remaining resources
