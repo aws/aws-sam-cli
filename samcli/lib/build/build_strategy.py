@@ -345,45 +345,31 @@ class ParallelBuildStrategy(BuildStrategy):
         self,
         build_graph: BuildGraph,
         delegate_build_strategy: BuildStrategy,
-        async_context: Optional[AsyncContext] = None,
     ) -> None:
         super().__init__(build_graph)
         self._delegate_build_strategy = delegate_build_strategy
-        self._async_context = async_context if async_context else AsyncContext()
 
-    def build(self) -> Dict[str, str]:
-        """
-        Runs all build and collects results from async context
-        """
-        result = {}
-        with self._delegate_build_strategy:
-            # ignore result
-            super().build()
-            # wait for other executions to complete
+    def _build_layers(self, build_graph: BuildGraph) -> Dict[str, str]:
+        async_context = AsyncContext()
+        for layer_definition in build_graph.get_layer_build_definitions():
+            async_context.add_async_task(self.build_single_layer_definition, layer_definition)
+        async_results = async_context.run_async()
 
-            async_results = self._async_context.run_async()
-            for async_result in async_results:
-                result.update(async_result)
+        layer_build_result: Dict[str, str] = dict()
+        for async_result in async_results:
+            layer_build_result.update(async_result)
+        return layer_build_result
 
-        return result
+    def _build_functions(self, build_graph: BuildGraph) -> Dict[str, str]:
+        async_context = AsyncContext()
+        for function_definition in build_graph.get_function_build_definitions():
+            async_context.add_async_task(self.build_single_layer_definition, function_definition)
+        async_results = async_context.run_async()
 
-    def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
-        """
-        Passes single function build into async context, no actual result returned from this function
-        """
-        self._async_context.add_async_task(
-            self._delegate_build_strategy.build_single_function_definition, build_definition
-        )
-        return {}
-
-    def build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
-        """
-        Passes single layer build into async context, no actual result returned from this function
-        """
-        self._async_context.add_async_task(
-            self._delegate_build_strategy.build_single_layer_definition, layer_definition
-        )
-        return {}
+        function_build_result: Dict[str, str] = dict()
+        for async_result in async_results:
+            function_build_result.update(async_result)
+        return function_build_result
 
 
 class IncrementalBuildStrategy(BuildStrategy):
