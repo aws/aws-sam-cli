@@ -5,6 +5,8 @@ with its producers and consumers
 import logging
 from typing import List, Optional
 
+from botocore.exceptions import ClientError
+
 from samcli.commands.exceptions import UserException
 from samcli.commands.logs.console_consumers import CWConsoleEventConsumer
 from samcli.commands.traces.traces_puller_factory import generate_trace_puller
@@ -25,7 +27,7 @@ from samcli.lib.observability.observability_info_puller import (
     ObservabilityCombinedPuller,
 )
 from samcli.lib.observability.util import OutputOption
-from samcli.lib.utils.boto_utils import BotoProviderType
+from samcli.lib.utils.boto_utils import BotoProviderType, get_client_error_code
 from samcli.lib.utils.cloudformation import CloudFormationResourceSummary
 from samcli.lib.utils.colors import Colored
 
@@ -101,9 +103,11 @@ def generate_puller(
     # populate puller instances for the additional CloudWatch log groups
     for cw_log_group in additional_cw_log_groups:
         consumer = generate_consumer(filter_pattern, output)
+        logs_client = boto_client_provider("logs")
+        _validate_cw_log_group_name(cw_log_group, logs_client)
         pullers.append(
             CWLogPuller(
-                boto_client_provider("logs"),
+                logs_client,
                 consumer,
                 cw_log_group,
             )
@@ -120,6 +124,14 @@ def generate_puller(
 
     # return the combined puller instance, which will pull from all pullers collected
     return ObservabilityCombinedPuller(pullers)
+
+
+def _validate_cw_log_group_name(cw_log_group, logs_client):
+    try:
+        _ = logs_client.describe_log_streams(logGroupName=cw_log_group, limit=1)
+    except ClientError as ex:
+        if get_client_error_code(ex) == "ResourceNotFoundException":
+            LOG.warning("CloudWatch log group name (%s) does not exist.", cw_log_group)
 
 
 def generate_consumer(
