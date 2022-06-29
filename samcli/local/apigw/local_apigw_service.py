@@ -1,4 +1,5 @@
 """API Gateway Local Service"""
+from gzip import GzipFile
 import io
 import json
 import logging
@@ -309,10 +310,15 @@ class LocalApigwService(BaseLocalService):
                 f'{route.payload_format_version} is not a valid value. PayloadFormatVersion must be "1.0" or "2.0"'
             )
 
-        method, endpoint = self.get_request_methods_endpoints(request)
-        if method == "OPTIONS" and self.api.cors:
+        if request.method == "OPTIONS" and self.api.cors:
             headers = Headers(cors_headers)
             return self.service_response("", headers, 200)
+
+        # Replicate API Gateway behaviour of auto-decoding the HTTP request body
+        # based on the Content-Encoding HTTP header:
+        content_encoding = request.headers.get("Content-Encoding")
+        if content_encoding == "gzip":
+            request.stream = GzipFile(fileobj=request.stream)
 
         try:
             # TODO: Rewrite the logic below to use version 2.0 when an invalid value is provided
@@ -320,8 +326,8 @@ class LocalApigwService(BaseLocalService):
             # or none, as the default value to be used is 2.0
             # https://docs.aws.amazon.com/apigatewayv2/latest/api-reference/apis-apiid-integrations.html#apis-apiid-integrations-prop-createintegrationinput-payloadformatversion
             if route.event_type == Route.HTTP and route.payload_format_version in [None, "2.0"]:
-                apigw_endpoint = PathConverter.convert_path_to_api_gateway(endpoint)
-                route_key = self._v2_route_key(method, apigw_endpoint, route.is_default_route)
+                apigw_endpoint = PathConverter.convert_path_to_api_gateway(request.endpoint)
+                route_key = self._v2_route_key(request.method, apigw_endpoint, route.is_default_route)
                 event = self._construct_v_2_0_event_http(
                     request,
                     self.port,
@@ -350,9 +356,11 @@ class LocalApigwService(BaseLocalService):
                     self.api.stage_variables,
                     None,
                 )
+        except OSError as error:
+            LOG.error("Invalid gziped HTTP body: %s", error)
+            return ServiceErrorResponses.lambda_failure_response()
         except UnicodeDecodeError as error:
             LOG.error("UnicodeDecodeError while processing HTTP request: %s", error)
-            return ServiceErrorResponses.lambda_failure_response()
 
         stdout_stream = io.BytesIO()
         stdout_stream_writer = StreamWriter(stdout_stream, auto_flush=True)
@@ -392,9 +400,7 @@ class LocalApigwService(BaseLocalService):
         :param request flask_request: Flask Request
         :return: Route matching the endpoint and method of the request
         """
-        method, endpoint = self.get_request_methods_endpoints(flask_request)
-
-        route_key = self._route_key(method, endpoint)
+        route_key = self._route_key(request.method, request.endpoint)
         route = self._dict_of_routes.get(route_key, None)
 
         if not route:
@@ -402,24 +408,13 @@ class LocalApigwService(BaseLocalService):
                 "Lambda function for the route not found. This should not happen because Flask is "
                 "already configured to serve all path/methods given to the service. "
                 "Path=%s Method=%s RouteKey=%s",
-                endpoint,
-                method,
+                request.endpoint,
+                request.method,
                 route_key,
             )
             raise KeyError("Lambda function for the route not found")
 
         return route
-
-    @staticmethod
-    def get_request_methods_endpoints(flask_request):
-        """
-        Separated out for testing requests in request handler
-        :param request flask_request: Flask Request
-        :return: the request's endpoint and method
-        """
-        endpoint = flask_request.endpoint
-        method = flask_request.method
-        return method, endpoint
 
     # Consider moving this out to its own class. Logic is started to get dense and looks messy @jfuss
     @staticmethod
