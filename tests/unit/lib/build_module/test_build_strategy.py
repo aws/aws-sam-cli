@@ -1,5 +1,6 @@
 import itertools
 from copy import deepcopy
+from typing import List, Dict
 from unittest import TestCase
 from unittest.mock import Mock, patch, MagicMock, call, ANY
 
@@ -32,15 +33,15 @@ class BuildStrategyBaseTest(TestCase):
         self.function1_1 = Mock()
         self.function1_1.inlinecode = None
         self.function1_1.get_build_dir = Mock()
-        self.function1_1.full_path = Mock()
+        self.function1_1.full_path = "function1_1"
         self.function1_2 = Mock()
         self.function1_2.inlinecode = None
         self.function1_2.get_build_dir = Mock()
-        self.function1_2.full_path = Mock()
+        self.function1_2.full_path = "function1_2"
         self.function2 = Mock()
         self.function2.inlinecode = None
         self.function2.get_build_dir = Mock()
-        self.function2.full_path = Mock()
+        self.function2.full_path = "function2"
 
         self.function_build_definition1 = FunctionBuildDefinition("runtime", "codeuri", ZIP, X86_64, {}, "handler")
         self.function_build_definition2 = FunctionBuildDefinition("runtime2", "codeuri", ZIP, X86_64, {}, "handler")
@@ -378,36 +379,48 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
 
 
 class ParallelBuildStrategyTest(BuildStrategyBaseTest):
-    def test_given_async_context_should_call_expected_methods(self):
-        mock_async_context = Mock()
+    @patch("samcli.lib.build.build_strategy.AsyncContext")
+    def test_given_async_context_should_call_expected_methods(self, patched_async_context):
         delegate_build_strategy = MagicMock(wraps=_TestBuildStrategy(self.build_graph))
-        parallel_build_strategy = ParallelBuildStrategy(self.build_graph, delegate_build_strategy, mock_async_context)
+        parallel_build_strategy = ParallelBuildStrategy(self.build_graph, delegate_build_strategy)
 
-        given_build_results = [
-            {"function1": "function_location1"},
-            {"function2": "function_location2"},
+        mock_layer_async_context = Mock()
+        mock_function_async_context = Mock()
+        patched_async_context.side_effect = [mock_layer_async_context, mock_function_async_context]
+
+        layer_build_results: List[Dict[str, str]] = [
             {"layer1": "layer_location1"},
             {"layer2": "layer_location2"},
         ]
-        mock_async_context.run_async.return_value = given_build_results
+        function_build_results: List[Dict[str, str]] = [
+            {"function1": "function_location1"},
+            {"function2": "function_location2"},
+        ]
+        mock_layer_async_context.run_async.return_value = layer_build_results
+        mock_function_async_context.run_async.return_value = function_build_results
 
         results = parallel_build_strategy.build()
 
         expected_results = {}
-        for given_build_result in given_build_results:
+        for given_build_result in layer_build_results + function_build_results:
             expected_results.update(given_build_result)
         self.assertEqual(results, expected_results)
 
         # assert that result has collected
-        mock_async_context.run_async.assert_has_calls([call()])
+        mock_layer_async_context.run_async.assert_has_calls([call()])
+        mock_function_async_context.run_async.assert_has_calls([call()])
 
         # assert that delegated function calls have been registered in async context
-        mock_async_context.add_async_task.assert_has_calls(
+        mock_layer_async_context.add_async_task.assert_has_calls(
             [
-                call(delegate_build_strategy.build_single_layer_definition, self.layer_build_definition1),
-                call(delegate_build_strategy.build_single_layer_definition, self.layer_build_definition2),
-                call(delegate_build_strategy.build_single_function_definition, self.function_build_definition1),
-                call(delegate_build_strategy.build_single_function_definition, self.function_build_definition2),
+                call(parallel_build_strategy.build_single_layer_definition, self.layer_build_definition1),
+                call(parallel_build_strategy.build_single_layer_definition, self.layer_build_definition2),
+            ]
+        )
+        mock_function_async_context.add_async_task.assert_has_calls(
+            [
+                call(parallel_build_strategy.build_single_function_definition, self.function_build_definition1),
+                call(parallel_build_strategy.build_single_function_definition, self.function_build_definition2),
             ]
         )
 
@@ -547,23 +560,19 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
             "cache_dir",
             "manifest_path_override",
             False,
+            False,
         )
 
     @parameterized.expand(
         [
-            ("python3.7", True),
-            ("nodejs12.x", True),
-            ("ruby2.7", True),
-            ("python3.7", False),
+            "python3.7",
+            "nodejs12.x",
+            "ruby2.7",
         ]
     )
-    @patch("samcli.lib.build.build_strategy.is_experimental_enabled")
-    def test_will_call_incremental_build_strategy(
-        self, mocked_read, mocked_write, runtime, experimental_enabled, patched_experimental
-    ):
-        patched_experimental.return_value = experimental_enabled
+    def test_will_call_incremental_build_strategy(self, mocked_read, mocked_write, runtime):
         build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {}, "handler")
-        self.build_graph.put_function_build_definition(build_definition, Mock())
+        self.build_graph.put_function_build_definition(build_definition, Mock(full_path="function_full_path"))
         with patch.object(
             self.build_strategy, "_incremental_build_strategy"
         ) as patched_incremental_build_strategy, patch.object(
@@ -571,12 +580,8 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
         ) as patched_cached_build_strategy:
             self.build_strategy.build()
 
-            if experimental_enabled:
-                patched_incremental_build_strategy.build_single_function_definition.assert_called_with(build_definition)
-                patched_cached_build_strategy.assert_not_called()
-            else:
-                patched_cached_build_strategy.build_single_function_definition.assert_called_with(build_definition)
-                patched_incremental_build_strategy.assert_not_called()
+            patched_incremental_build_strategy.build_single_function_definition.assert_called_with(build_definition)
+            patched_cached_build_strategy.assert_not_called()
 
     @parameterized.expand(
         [
@@ -587,7 +592,7 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
     )
     def test_will_call_cached_build_strategy(self, mocked_read, mocked_write, runtime):
         build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {}, "handler")
-        self.build_graph.put_function_build_definition(build_definition, Mock())
+        self.build_graph.put_function_build_definition(build_definition, Mock(full_path="function_full_path"))
         with patch.object(
             self.build_strategy, "_incremental_build_strategy"
         ) as patched_incremental_build_strategy, patch.object(
@@ -615,7 +620,14 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
             mocked_build_graph.get_function_build_definitions.return_value = []
 
             cached_build_strategy = CachedOrIncrementalBuildStrategyWrapper(
-                mocked_build_graph, Mock(), temp_base_dir, build_dir, cache_dir, None, is_building_specific_resource
+                mocked_build_graph,
+                Mock(),
+                temp_base_dir,
+                build_dir,
+                cache_dir,
+                None,
+                is_building_specific_resource,
+                False,
             )
 
             cached_build_strategy.build()
@@ -630,3 +642,41 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
                 mocked_build_graph.clean_redundant_definitions_and_update.assert_called_once()
                 clean_cache_mock.assert_called_once()
                 clean_dep_mock.assert_called_once()
+
+    @parameterized.expand(
+        [
+            ("python", True),
+            ("ruby", True),
+            ("nodejs", True),
+            ("python", False),
+            ("ruby", False),
+            ("nodejs", False),
+        ]
+    )
+    def test_wrapper_with_or_without_container(self, mocked_read, mocked_write, runtime, use_container):
+        build_strategy = CachedOrIncrementalBuildStrategyWrapper(
+            self.build_graph,
+            Mock(),
+            "base_dir",
+            "build_dir",
+            "cache_dir",
+            "manifest_path_override",
+            False,
+            use_container,
+        )
+
+        build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {}, "handler")
+        self.build_graph.put_function_build_definition(build_definition, Mock(full_path="function_full_path"))
+        with patch.object(
+            build_strategy, "_incremental_build_strategy"
+        ) as patched_incremental_build_strategy, patch.object(
+            build_strategy, "_cached_build_strategy"
+        ) as patched_cached_build_strategy:
+            build_strategy.build()
+
+            if not use_container:
+                patched_incremental_build_strategy.build_single_function_definition.assert_called_with(build_definition)
+                patched_cached_build_strategy.assert_not_called()
+            else:
+                patched_cached_build_strategy.build_single_function_definition.assert_called_with(build_definition)
+                patched_incremental_build_strategy.assert_not_called()

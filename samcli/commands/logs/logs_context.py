@@ -25,6 +25,12 @@ class InvalidTimestampError(UserException):
     """
 
 
+class TimeParseError(UserException):
+    """
+    Used to throw if parsing of the given time string or UTC conversion is failed
+    """
+
+
 def parse_time(time_str: str, property_name: str):
     """
     Parse the time from the given string, convert to UTC, and return the datetime object
@@ -47,14 +53,20 @@ def parse_time(time_str: str, property_name: str):
     InvalidTimestampError
         If the string cannot be parsed as a timestamp
     """
-    if not time_str:
-        return None
+    try:
+        if not time_str:
+            return None
 
-    parsed = parse_date(time_str)
-    if not parsed:
-        raise InvalidTimestampError("Unable to parse the time provided by '{}'".format(property_name))
+        parsed = parse_date(time_str)
+        if not parsed:
+            raise InvalidTimestampError(f"Unable to parse the time provided by '{property_name}'")
 
-    return to_utc(parsed)
+        return to_utc(parsed)
+    except InvalidTimestampError as ex:
+        raise ex
+    except Exception as ex:
+        LOG.error("Failed to parse given time information %s", time_str, exc_info=ex)
+        raise TimeParseError(f"Unable to parse the time information '{property_name}': '{time_str}'") from ex
 
 
 class ResourcePhysicalIdResolver:
@@ -73,11 +85,13 @@ class ResourcePhysicalIdResolver:
     def __init__(
         self,
         boto_resource_provider: BotoProviderType,
+        boto_client_provider: BotoProviderType,
         stack_name: str,
         resource_names: Optional[List[str]] = None,
         supported_resource_types: Optional[Set[str]] = None,
     ):
         self._boto_resource_provider = boto_resource_provider
+        self._boto_client_provider = boto_client_provider
         self._stack_name = stack_name
         if resource_names is None:
             resource_names = []
@@ -126,7 +140,10 @@ class ResourcePhysicalIdResolver:
         """
         LOG.debug("Getting logical id of the all resources for stack '%s'", self._stack_name)
         stack_resources = get_resource_summaries(
-            self._boto_resource_provider, self._stack_name, ResourcePhysicalIdResolver.DEFAULT_SUPPORTED_RESOURCES
+            self._boto_resource_provider,
+            self._boto_client_provider,
+            self._stack_name,
+            ResourcePhysicalIdResolver.DEFAULT_SUPPORTED_RESOURCES,
         )
 
         if selected_resource_names:
@@ -161,4 +178,10 @@ class ResourcePhysicalIdResolver:
             selected_resource = resource_summaries.get(selected_resource_name)
             if selected_resource:
                 resources.append(selected_resource)
+            else:
+                LOG.warning(
+                    "Resource name (%s) does not exist. Available resource names: %s",
+                    selected_resource_name,
+                    ", ".join(resource_summaries.keys()),
+                )
         return resources

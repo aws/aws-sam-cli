@@ -17,7 +17,7 @@ Cloudformation deploy class which also streams events and changeset information
 
 import sys
 import math
-from collections import OrderedDict
+from collections import OrderedDict, deque
 import logging
 import time
 from datetime import datetime
@@ -53,7 +53,7 @@ DESCRIBE_STACK_EVENTS_DEFAULT_ARGS = OrderedDict(
     }
 )
 
-DESCRIBE_STACK_EVENTS_TABLE_HEADER_NAME = "CloudFormation events from stack operations"
+DESCRIBE_STACK_EVENTS_TABLE_HEADER_NAME = "CloudFormation events from stack operations (refresh every {} seconds)"
 
 DESCRIBE_CHANGESET_FORMAT_STRING = "{Operation:<{0}} {LogicalResourceId:<{1}} {ResourceType:<{2}} {Replacement:<{3}}"
 DESCRIBE_CHANGESET_DEFAULT_ARGS = OrderedDict(
@@ -360,6 +360,7 @@ class Deployer:
         format_string=DESCRIBE_STACK_EVENTS_FORMAT_STRING,
         format_kwargs=DESCRIBE_STACK_EVENTS_DEFAULT_ARGS,
         table_header=DESCRIBE_STACK_EVENTS_TABLE_HEADER_NAME,
+        display_sleep=True,
     )
     def describe_stack_events(self, stack_name, time_stamp_marker, **kwargs):
         """
@@ -377,45 +378,50 @@ class Deployer:
             try:
                 # Only sleep if there have been no retry_attempts
                 time.sleep(0 if retry_attempts else self.client_sleep)
-                describe_stacks_resp = self._client.describe_stacks(StackName=stack_name)
                 paginator = self._client.get_paginator("describe_stack_events")
                 response_iterator = paginator.paginate(StackName=stack_name)
-                stack_status = describe_stacks_resp["Stacks"][0]["StackStatus"]
-                latest_time_stamp_marker = time_stamp_marker
+                new_events = deque()  # event buffer
                 for event_items in response_iterator:
                     for event in event_items["StackEvents"]:
-                        if event["EventId"] not in events and utc_to_timestamp(event["Timestamp"]) > time_stamp_marker:
-                            events.add(event["EventId"])
-                            latest_time_stamp_marker = max(
-                                latest_time_stamp_marker, utc_to_timestamp(event["Timestamp"])
-                            )
-                            row_color = self.deploy_color.get_stack_events_status_color(status=event["ResourceStatus"])
-                            pprint_columns(
-                                columns=[
-                                    event["ResourceStatus"],
-                                    event["ResourceType"],
-                                    event["LogicalResourceId"],
-                                    event.get("ResourceStatusReason", "-"),
-                                ],
-                                width=kwargs["width"],
-                                margin=kwargs["margin"],
-                                format_string=DESCRIBE_STACK_EVENTS_FORMAT_STRING,
-                                format_args=kwargs["format_args"],
-                                columns_dict=DESCRIBE_STACK_EVENTS_DEFAULT_ARGS.copy(),
-                                color=row_color,
-                            )
-                        # Skip already shown old event entries
-                        elif utc_to_timestamp(event["Timestamp"]) <= time_stamp_marker:
-                            time_stamp_marker = latest_time_stamp_marker
+                        # Skip already shown old event entries or former deployments
+                        if utc_to_timestamp(event["Timestamp"]) <= time_stamp_marker:
                             break
-                    else:  # go to next loop if not break from inside loop
-                        time_stamp_marker = latest_time_stamp_marker  # update marker if all events are new
+                        if event["EventId"] not in events:
+                            events.add(event["EventId"])
+                            # Events are in reverse chronological order
+                            # Pushing in front reverse the order to display older events first
+                            new_events.appendleft(event)
+                    else:  # go to next loop (page of events) if not break from inside loop
                         continue
                     break  # reached here only if break from inner loop!
 
-                if self._check_stack_not_in_progress(stack_status):
-                    stack_change_in_progress = False
-                    break
+                # Override timestamp marker with latest event (last in deque)
+                if len(new_events) > 0:
+                    time_stamp_marker = utc_to_timestamp(new_events[-1]["Timestamp"])
+
+                for new_event in new_events:
+                    row_color = self.deploy_color.get_stack_events_status_color(status=new_event["ResourceStatus"])
+                    pprint_columns(
+                        columns=[
+                            new_event["ResourceStatus"],
+                            new_event["ResourceType"],
+                            new_event["LogicalResourceId"],
+                            new_event.get("ResourceStatusReason", "-"),
+                        ],
+                        width=kwargs["width"],
+                        margin=kwargs["margin"],
+                        format_string=DESCRIBE_STACK_EVENTS_FORMAT_STRING,
+                        format_args=kwargs["format_args"],
+                        columns_dict=DESCRIBE_STACK_EVENTS_DEFAULT_ARGS.copy(),
+                        color=row_color,
+                    )
+                    # Skip events from another consecutive deployment triggered during sleep by another process
+                    if self._is_root_stack_event(new_event) and self._check_stack_not_in_progress(
+                        new_event["ResourceStatus"]
+                    ):
+                        stack_change_in_progress = False
+                        break
+
                 # Reset retry attempts if iteration is a success to use client_sleep again
                 retry_attempts = 0
             except botocore.exceptions.ClientError as ex:
@@ -425,6 +431,14 @@ class Deployer:
                     return
                 # Sleep in exponential backoff mode
                 time.sleep(math.pow(self.backoff, retry_attempts))
+
+    @staticmethod
+    def _is_root_stack_event(event: Dict) -> bool:
+        return bool(
+            event["ResourceType"] == "AWS::CloudFormation::Stack"
+            and event["StackName"] == event["LogicalResourceId"]
+            and event["PhysicalResourceId"] == event["StackId"]
+        )
 
     @staticmethod
     def _check_stack_not_in_progress(status: str) -> bool:
@@ -571,14 +585,18 @@ class Deployer:
         kwargs = self._process_kwargs(kwargs, s3_uploader, capabilities, role_arn, notification_arns)
 
         try:
+            msg = ""
+
             if exists:
                 result = self.update_stack(**kwargs)
                 self.wait_for_execute(stack_name, "UPDATE", False)
-                LOG.info("\nStack update succeeded. Sync infra completed.\n")
+                msg = "\nStack update succeeded. Sync infra completed.\n"
             else:
                 result = self.create_stack(**kwargs)
                 self.wait_for_execute(stack_name, "CREATE", False)
-                LOG.info("\nStack creation succeeded. Sync infra completed.\n")
+                msg = "\nStack creation succeeded. Sync infra completed.\n"
+
+            LOG.info(self._colored.green(msg))
 
             return result
         except botocore.exceptions.ClientError as ex:
