@@ -19,6 +19,18 @@ class SamListError(UserException):
         super().__init__(message=message_fmt.format(msg=msg))
 
 
+class SamListUnknownClientError(SamListError):
+    """
+    Used when boto3 API call raises an unexpected ClientError
+    """
+
+
+class SamListUnknownBotoCoreError(SamListError):
+    """
+    Used when boto3 API call raises an unexpected BotoCoreError
+    """
+
+
 class NoOutputsForStackError(UserException):
     def __init__(self, stack_name, region):
         self.stack_name = stack_name

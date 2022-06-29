@@ -5,10 +5,11 @@ import dataclasses
 import logging
 
 from botocore.exceptions import ClientError, BotoCoreError
-from samcli.commands.list.exceptions import SamListError, NoOutputsForStackError, StackDoesNotExistInRegionError
+from samcli.commands.list.exceptions import SamListUnknownClientError, SamListUnknownBotoCoreError, NoOutputsForStackError, StackDoesNotExistInRegionError
 
 from samcli.lib.list.list_interfaces import Producer
 from samcli.lib.list.stack_outputs.stack_outputs import StackOutputs
+from samcli.lib.utils.boto_utils import get_client_error_code
 
 LOG = logging.getLogger(__name__)
 
@@ -22,7 +23,7 @@ class StackOutputsProducer(Producer):
         self.mapper = mapper
         self.consumer = consumer
 
-    def get_stack_info(self):
+    def get_stack_info(self) -> dict:
         """
         Returns the stack output information for the stack and raises exceptions accordingly
 
@@ -40,14 +41,14 @@ class StackOutputsProducer(Producer):
             return response["Stacks"][0]["Outputs"]
 
         except ClientError as e:
-            if "Stack with id {0} does not exist".format(self.stack_name) in str(e):
+            if get_client_error_code(e) == "ValidationError":
                 LOG.debug("Stack with id %s does not exist", self.stack_name)
                 raise StackDoesNotExistInRegionError(stack_name=self.stack_name, region=self.region) from e
             LOG.error("ClientError Exception : %s", str(e))
-            raise SamListError(msg=str(e)) from e
+            raise SamListUnknownClientError(msg=str(e)) from e
         except BotoCoreError as e:
             LOG.error("Botocore Exception : %s", str(e))
-            raise SamListError(msg=str(e)) from e
+            raise SamListUnknownBotoCoreError(msg=str(e)) from e
 
     def produce(self):
         response = self.get_stack_info()
