@@ -31,6 +31,7 @@ class TestDoCli(TestCase):
         self.image_repository = "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"
         self.image_repositories = None
         self.mode = "mode"
+        self.s3_bucket = "s3-bucket"
         self.s3_prefix = "s3-prefix"
         self.kms_key_id = "kms-key-id"
         self.notification_arns = []
@@ -60,11 +61,13 @@ class TestDoCli(TestCase):
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.build.command.os")
     @patch("samcli.commands.sync.command.manage_stack")
+    @patch("samcli.commands.sync.command.SyncContext")
     def test_infra_must_succeed_sync(
         self,
         code,
         watch,
         auto_dependency_layer,
+        SyncContextMock,
         manage_stack_mock,
         os_mock,
         DeployContextMock,
@@ -84,6 +87,8 @@ class TestDoCli(TestCase):
         PackageContextMock.return_value.__enter__.return_value = package_context_mock
         deploy_context_mock = Mock()
         DeployContextMock.return_value.__enter__.return_value = deploy_context_mock
+        sync_context_mock = Mock()
+        SyncContextMock.return_value.__enter__.return_value = sync_context_mock
 
         do_cli(
             self.template_file,
@@ -100,6 +105,7 @@ class TestDoCli(TestCase):
             self.mode,
             self.image_repository,
             self.image_repositories,
+            self.s3_bucket,
             self.s3_prefix,
             self.kms_key_id,
             self.capabilities,
@@ -188,11 +194,13 @@ class TestDoCli(TestCase):
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.build.command.os")
     @patch("samcli.commands.sync.command.manage_stack")
+    @patch("samcli.commands.sync.command.SyncContext")
     def test_watch_must_succeed_sync(
         self,
         code,
         watch,
         auto_dependency_layer,
+        SyncContextMock,
         manage_stack_mock,
         os_mock,
         DeployContextMock,
@@ -212,6 +220,8 @@ class TestDoCli(TestCase):
         PackageContextMock.return_value.__enter__.return_value = package_context_mock
         deploy_context_mock = Mock()
         DeployContextMock.return_value.__enter__.return_value = deploy_context_mock
+        sync_context_mock = Mock()
+        SyncContextMock.return_value.__enter__.return_value = sync_context_mock
 
         do_cli(
             self.template_file,
@@ -228,6 +238,7 @@ class TestDoCli(TestCase):
             self.mode,
             self.image_repository,
             self.image_repositories,
+            self.s3_bucket,
             self.s3_prefix,
             self.kms_key_id,
             self.capabilities,
@@ -314,11 +325,13 @@ class TestDoCli(TestCase):
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.build.command.os")
     @patch("samcli.commands.sync.command.manage_stack")
+    @patch("samcli.commands.sync.command.SyncContext")
     def test_code_must_succeed_sync(
         self,
         code,
         watch,
         auto_dependency_layer,
+        SyncContextMock,
         manage_stack_mock,
         os_mock,
         DeployContextMock,
@@ -338,6 +351,8 @@ class TestDoCli(TestCase):
         PackageContextMock.return_value.__enter__.return_value = package_context_mock
         deploy_context_mock = Mock()
         DeployContextMock.return_value.__enter__.return_value = deploy_context_mock
+        sync_context_mock = Mock()
+        SyncContextMock.return_value.__enter__.return_value = sync_context_mock
 
         do_cli(
             self.template_file,
@@ -354,6 +369,7 @@ class TestDoCli(TestCase):
             self.mode,
             self.image_repository,
             self.image_repositories,
+            self.s3_bucket,
             self.s3_prefix,
             self.kms_key_id,
             self.capabilities,

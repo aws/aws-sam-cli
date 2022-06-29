@@ -109,7 +109,7 @@ LOG = logging.getLogger(__name__)
     help="Preserves the state of previously provisioned resources when an operation fails.",
 )
 @stack_name_option(callback=guided_deploy_stack_name)  # pylint: disable=E1120
-@s3_bucket_option(guided=True)  # pylint: disable=E1120
+@s3_bucket_option(disable_callback=True)  # pylint: disable=E1120
 @image_repository_option
 @image_repositories_option
 @force_upload_option
