@@ -1,7 +1,7 @@
 """
 The producer for the 'sam list stack-outputs' command
 """
-from typing import Any, Optional, Dict
+from typing import Any, Optional
 import dataclasses
 import logging
 
@@ -29,7 +29,7 @@ class StackOutputsProducer(Producer):
         self.mapper = mapper
         self.consumer = consumer
 
-    def get_stack_info(self) -> Optional[Dict[Any, Any]]:
+    def get_stack_info(self) -> Optional[Any]:
         """
         Returns the stack output information for the stack and raises exceptions accordingly
 
