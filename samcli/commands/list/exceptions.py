@@ -6,13 +6,29 @@ Exceptions for SAM list
 from samcli.commands.exceptions import UserException
 
 
-class StackOutputsError(UserException):
+class SamListError(UserException):
+    """
+    Base exception for the 'sam list' command
+    """
+
     def __init__(self, msg):
         self.msg = msg
 
         message_fmt = "{msg}"
 
         super().__init__(message=message_fmt.format(msg=msg))
+
+
+class SamListUnknownClientError(SamListError):
+    """
+    Used when boto3 API call raises an unexpected ClientError
+    """
+
+
+class SamListUnknownBotoCoreError(SamListError):
+    """
+    Used when boto3 API call raises an unexpected BotoCoreError
+    """
 
 
 class NoOutputsForStackError(UserException):

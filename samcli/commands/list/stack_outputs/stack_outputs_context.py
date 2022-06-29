@@ -2,16 +2,13 @@
 Display the Outputs of a SAM stack
 """
 import logging
-import json
 from typing import Optional
 import boto3
-import click
-from botocore.exceptions import ClientError, BotoCoreError
-
+from samcli.lib.list.stack_outputs.stack_outputs_producer import StackOutputsProducer
 from samcli.commands.exceptions import RegionError
-from samcli.commands.list.exceptions import StackOutputsError, NoOutputsForStackError, StackDoesNotExistInRegionError
 from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config
-
+from samcli.lib.list.mapper_consumer_factory import MapperConsumerFactory
+from samcli.lib.list.list_interfaces import ProducersEnum
 
 LOG = logging.getLogger(__name__)
 
@@ -30,33 +27,6 @@ class StackOutputsContext:
 
     def __exit__(self, *args):
         pass
-
-    def get_stack_info(self):
-        """
-        Returns the stack output information for the stack and raises exceptions accordingly
-
-        Returns
-        -------
-            A dictionary containing the stack's information
-        """
-
-        try:
-            response = self.cloudformation_client.describe_stacks(StackName=self.stack_name)
-            if not response["Stacks"]:
-                raise StackDoesNotExistInRegionError(stack_name=self.stack_name, region=self.region)
-            if "Outputs" not in response["Stacks"][0]:
-                raise NoOutputsForStackError(stack_name=self.stack_name, region=self.region)
-            return response
-
-        except ClientError as e:
-            if "Stack with id {0} does not exist".format(self.stack_name) in str(e):
-                LOG.debug("Stack with id %s does not exist", self.stack_name)
-                raise StackDoesNotExistInRegionError(stack_name=self.stack_name, region=self.region) from e
-            LOG.error("ClientError Exception : %s", str(e))
-            raise StackOutputsError(msg=str(e)) from e
-        except BotoCoreError as e:
-            LOG.error("Botocore Exception : %s", str(e))
-            raise StackOutputsError(msg=str(e)) from e
 
     def init_clients(self) -> None:
         """
@@ -80,6 +50,15 @@ class StackOutputsContext:
         """
         Get the stack outputs for a stack
         """
+        factory = MapperConsumerFactory()
+        container = factory.create(producer=ProducersEnum.STACK_OUTPUTS_PRODUCER, output=self.output)
 
-        response = self.get_stack_info()
-        click.echo(json.dumps(response["Stacks"][0]["Outputs"], indent=2))
+        producer = StackOutputsProducer(
+            stack_name=self.stack_name,
+            output=self.output,
+            region=self.region,
+            cloudformation_client=self.cloudformation_client,
+            mapper=container.mapper,
+            consumer=container.consumer,
+        )
+        producer.produce()
