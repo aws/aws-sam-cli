@@ -1818,6 +1818,35 @@ class TestParallelBuilds(DedupBuildIntegBase):
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+class TestParallelBuildsJavaWithLayers(DedupBuildIntegBase):
+    template = "template-java-maven-with-layers.yaml"
+
+    @pytest.mark.flaky(reruns=3)
+    def test_dedup_build(self):
+        """
+        Build template above and verify that each function call returns as expected
+        """
+
+        cmdlist = self.get_command_list(parallel=True)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        self.assertEqual(command_result.process.returncode, 0)
+        self._verify_build_artifact(self.default_build_dir, "HelloWorldFunction")
+        self._verify_build_artifact(self.default_build_dir, "HelloWorldLayer")
+
+        if not SKIP_DOCKER_TESTS:
+            self._verify_invoke_built_function(
+                self.built_template,
+                "HelloWorldFunction",
+                None,
+                "hello world. sum is 12.",
+            )
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
 class TestBuildWithInlineCode(BuildIntegBase):
     template = "inline_template.yaml"
 
