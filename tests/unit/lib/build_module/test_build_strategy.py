@@ -565,17 +565,12 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
 
     @parameterized.expand(
         [
-            ("python3.7", True),
-            ("nodejs12.x", True),
-            ("ruby2.7", True),
-            ("python3.7", False),
+            "python3.7",
+            "nodejs12.x",
+            "ruby2.7",
         ]
     )
-    @patch("samcli.lib.build.build_strategy.is_experimental_enabled")
-    def test_will_call_incremental_build_strategy(
-        self, mocked_read, mocked_write, runtime, experimental_enabled, patched_experimental
-    ):
-        patched_experimental.return_value = experimental_enabled
+    def test_will_call_incremental_build_strategy(self, mocked_read, mocked_write, runtime):
         build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {}, "handler")
         self.build_graph.put_function_build_definition(build_definition, Mock(full_path="function_full_path"))
         with patch.object(
@@ -585,12 +580,8 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
         ) as patched_cached_build_strategy:
             self.build_strategy.build()
 
-            if experimental_enabled:
-                patched_incremental_build_strategy.build_single_function_definition.assert_called_with(build_definition)
-                patched_cached_build_strategy.assert_not_called()
-            else:
-                patched_cached_build_strategy.build_single_function_definition.assert_called_with(build_definition)
-                patched_incremental_build_strategy.assert_not_called()
+            patched_incremental_build_strategy.build_single_function_definition.assert_called_with(build_definition)
+            patched_cached_build_strategy.assert_not_called()
 
     @parameterized.expand(
         [
@@ -662,10 +653,7 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
             ("nodejs", False),
         ]
     )
-    @patch("samcli.lib.build.build_strategy.is_experimental_enabled")
-    def test_wrapper_with_or_without_container(
-        self, mocked_read, mocked_write, runtime, use_container, patched_experimental
-    ):
+    def test_wrapper_with_or_without_container(self, mocked_read, mocked_write, runtime, use_container):
         build_strategy = CachedOrIncrementalBuildStrategyWrapper(
             self.build_graph,
             Mock(),
@@ -677,7 +665,6 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
             use_container,
         )
 
-        patched_experimental.return_value = True
         build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {}, "handler")
         self.build_graph.put_function_build_definition(build_definition, Mock(full_path="function_full_path"))
         with patch.object(
