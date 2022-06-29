@@ -123,12 +123,14 @@ class EventTracker:
 
     @staticmethod
     def get_tracked_events() -> List[Event]:
-        return EventTracker._events
+        with EventTracker._event_lock:
+            return EventTracker._events
 
     @staticmethod
     def clear_trackers():
         """Clear the current list of tracked Events before the next session."""
-        EventTracker._events = []
+        with EventTracker._event_lock:
+            EventTracker._events = []
 
 
 class EventCreationError(Exception):
