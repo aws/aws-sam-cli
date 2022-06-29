@@ -6,8 +6,9 @@ import os
 import sys
 
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from samcli.lib.utils import osutils
+from samcli.lib.utils.osutils import rmtree_if_exists
 
 
 class Test_mkdir_temp(TestCase):
@@ -77,3 +78,25 @@ class Test_convert_files_to_unix_line_endings:
         patched_open.assert_any_call(os.path.join("b", target_file), "rb")
         patched_open.assert_any_call(os.path.join("a", target_file), "wb")
         patched_open.assert_any_call(os.path.join("b", target_file), "wb")
+
+
+class Test_rmtree_if_exists(TestCase):
+    @patch("samcli.lib.utils.osutils.Path")
+    @patch("samcli.lib.utils.osutils.shutil.rmtree")
+    def test_must_skip_if_path_doesnt_exist(self, patched_rmtree, patched_path):
+        mock_path_obj = Mock()
+        mock_path_obj.exists.return_value = False
+        patched_path.return_value = mock_path_obj
+
+        rmtree_if_exists(Mock())
+        patched_rmtree.assert_not_called()
+
+    @patch("samcli.lib.utils.osutils.Path")
+    @patch("samcli.lib.utils.osutils.shutil.rmtree")
+    def test_must_delete_if_path_exist(self, patched_rmtree, patched_path):
+        mock_path_obj = Mock()
+        mock_path_obj.exists.return_value = True
+        patched_path.return_value = mock_path_obj
+
+        rmtree_if_exists(Mock())
+        patched_rmtree.assert_called_with(mock_path_obj)

@@ -1653,9 +1653,9 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
         cmdlist = self.get_command_list(parameter_overrides=overrides)
         cmdlist.extend(["--config-file", config_file])
         command_result = run_command(cmdlist, cwd=self.working_dir)
-        self.assertTrue(
-            "Valid cache found, copying previously built resources from function build definition of"
-            in str(command_result.stderr),
+        self.assertRegex(
+            str(command_result.stderr),
+            "Manifest is not changed for .* running incremental build",
             "Should have built using cache",
         )
         cmdlist.extend(["--no-cached"])
@@ -1684,7 +1684,7 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
         LOG.info("Running Command (cache should be invalid): %s", cmdlist)
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertTrue(
-            "Cache is invalid, running build and copying resources to function build definition"
+            "Cache is invalid, running build and copying resources for following functions"
             in command_result.stderr.decode("utf-8")
         )
 
@@ -1692,7 +1692,7 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
         command_result_with_cache = run_command(cmdlist, cwd=self.working_dir)
 
         self.assertTrue(
-            "Valid cache found, copying previously built resources from function build definition"
+            "Valid cache found, copying previously built resources for following functions"
             in command_result_with_cache.stderr.decode("utf-8")
         )
 
@@ -1728,8 +1728,17 @@ class TestRepeatedBuildHitsCache(BuildIntegBase):
             container_env_var="FOO=BAR" if use_container else None,
         )
 
-        cache_invalid_output = "Cache is invalid, running build and copying resources to "
-        cache_valid_output = "Valid cache found, copying previously built resources from "
+        cache_invalid_output_use_container = "Cache is invalid, running build and copying resources "
+        cache_valid_output_use_container = "Valid cache found, copying previously built resources "
+
+        cache_invalid_output_no_container = "Manifest file is changed"
+        cache_valid_output_no_container = "Manifest is not changed"
+
+        cache_invalid_output, cache_valid_output = (
+            (cache_invalid_output_use_container, cache_valid_output_use_container)
+            if use_container
+            else (cache_invalid_output_no_container, cache_valid_output_no_container)
+        )
 
         LOG.info("Running Command (cache should be invalid): %s", cmdlist)
         command_result = run_command(cmdlist, cwd=self.working_dir).stderr.decode("utf-8")
@@ -1802,6 +1811,35 @@ class TestParallelBuilds(DedupBuildIntegBase):
         if not SKIP_DOCKER_TESTS:
             self._verify_build_and_invoke_functions(
                 expected_messages, command_result, self._make_parameter_override_arg(overrides)
+            )
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestParallelBuildsJavaWithLayers(DedupBuildIntegBase):
+    template = "template-java-maven-with-layers.yaml"
+
+    @pytest.mark.flaky(reruns=3)
+    def test_dedup_build(self):
+        """
+        Build template above and verify that each function call returns as expected
+        """
+
+        cmdlist = self.get_command_list(parallel=True)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        self.assertEqual(command_result.process.returncode, 0)
+        self._verify_build_artifact(self.default_build_dir, "HelloWorldFunction")
+        self._verify_build_artifact(self.default_build_dir, "HelloWorldLayer")
+
+        if not SKIP_DOCKER_TESTS:
+            self._verify_invoke_built_function(
+                self.built_template,
+                "HelloWorldFunction",
+                None,
+                "hello world. sum is 12.",
             )
 
 
@@ -1996,7 +2034,7 @@ class TestBuildWithNestedStacks(NestedBuildIntegBase):
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         # make sure functions are deduplicated properly, in stderr they will show up in the same line.
-        self.assertRegex(command_result.stderr.decode("utf-8"), r"Building .+'Function2',.+LocalNestedStack/Function2")
+        self.assertRegex(command_result.stderr.decode("utf-8"), r"Building .+Function2,.+LocalNestedStack/Function2")
 
         function_full_paths = ["Function", "Function2", "LocalNestedStack/Function1", "LocalNestedStack/Function2"]
         stack_paths = ["", "LocalNestedStack"]

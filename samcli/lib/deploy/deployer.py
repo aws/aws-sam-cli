@@ -585,14 +585,18 @@ class Deployer:
         kwargs = self._process_kwargs(kwargs, s3_uploader, capabilities, role_arn, notification_arns)
 
         try:
+            msg = ""
+
             if exists:
                 result = self.update_stack(**kwargs)
                 self.wait_for_execute(stack_name, "UPDATE", False)
-                LOG.info("\nStack update succeeded. Sync infra completed.\n")
+                msg = "\nStack update succeeded. Sync infra completed.\n"
             else:
                 result = self.create_stack(**kwargs)
                 self.wait_for_execute(stack_name, "CREATE", False)
-                LOG.info("\nStack creation succeeded. Sync infra completed.\n")
+                msg = "\nStack creation succeeded. Sync infra completed.\n"
+
+            LOG.info(self._colored.green(msg))
 
             return result
         except botocore.exceptions.ClientError as ex:

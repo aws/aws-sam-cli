@@ -3,6 +3,7 @@ import logging
 
 from abc import ABC, abstractmethod
 from enum import Enum
+from pathlib import Path
 from threading import Lock
 from typing import Any, Dict, List, NamedTuple, Optional, TYPE_CHECKING, cast, Set
 from boto3.session import Session
@@ -315,3 +316,40 @@ class SyncFlow(ABC):
             dependencies = self.gather_dependencies()
         LOG.debug("%sFinished", self.log_prefix)
         return dependencies
+
+
+def get_definition_path(
+    resource: Dict, identifier: str, use_base_dir: bool, base_dir: str, stacks: List[Stack]
+) -> Optional[Path]:
+    """
+    A helper method used by non-function sync flows to resolve definition file path
+    that are relative to the child stack to absolute path for nested stacks
+
+    Parameters
+    -------
+    resource: Dict
+        The resource's template dict
+    identifier: str
+        The logical ID identifier of the resource
+    use_base_dir: bool
+        Whether or not the base_dir option was used
+    base_dir: str
+        Base directory if provided, otherwise the root template directory
+    stacks: List[Stack]
+        The list of stacks for the application
+
+    Returns
+    -------
+    Optional[Path]
+        A resolved absolute path for the definition file
+    """
+    properties = resource.get("Properties", {})
+    definition_file = properties.get("DefinitionUri")
+    definition_path = None
+    if definition_file:
+        definition_path = Path(base_dir).joinpath(definition_file)
+        if not use_base_dir:
+            child_stack = Stack.get_stack_by_full_path(ResourceIdentifier(identifier).stack_path, stacks)
+            if child_stack:
+                definition_path = Path(child_stack.location).parent.joinpath(definition_file)
+    return definition_path

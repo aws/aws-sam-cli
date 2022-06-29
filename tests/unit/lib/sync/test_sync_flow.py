@@ -1,9 +1,9 @@
-from samcli.lib.providers.provider import ResourceIdentifier
+from pathlib import Path
+from samcli.lib.providers.provider import ResourceIdentifier, Stack
 from unittest import TestCase
-from unittest.mock import MagicMock, call, patch, Mock
+from unittest.mock import MagicMock, patch, Mock
 
-from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall, ApiCallTypes
-from samcli.lib.utils.lock_distributor import LockChain
+from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall, ApiCallTypes, get_definition_path
 from parameterized import parameterized
 
 
@@ -148,3 +148,21 @@ class TestSyncFlow(TestCase):
         sync_flow._equality_keys = MagicMock()
         sync_flow._equality_keys.return_value = "A"
         self.assertEqual(hash(sync_flow), hash((type(sync_flow), "A")))
+
+    @patch("samcli.lib.sync.sync_flow.Stack.get_stack_by_full_path")
+    def test_get_definition_path(self, get_stack_mock):
+        resource = {"Properties": {"DefinitionUri": "test_uri"}}
+        get_stack_mock.return_value = Stack("parent_path", "stack_name", "location/template.yaml", None, {})
+
+        definition_path = get_definition_path(resource, "identifier", False, "base_dir", [])
+        self.assertEqual(definition_path, Path("location").joinpath("test_uri"))
+
+        resource = {"Properties": {"DefinitionUri": ""}}
+        definition_path = get_definition_path(resource, "identifier", False, "base_dir", [])
+        self.assertEqual(definition_path, None)
+
+    def test_get_definition_file_with_base_dir(self):
+        resource = {"Properties": {"DefinitionUri": "test_uri"}}
+
+        definition_path = get_definition_path(resource, "identifier", True, "base_dir", [])
+        self.assertEqual(definition_path, Path("base_dir").joinpath("test_uri"))
