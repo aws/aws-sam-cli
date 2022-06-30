@@ -152,7 +152,7 @@ def do_cli(  # pylint: disable=R0914
     from samcli.lib.providers.exceptions import InvalidLayerReference
     from samcli.commands.exceptions import UserException
     from samcli.commands.local.lib.local_api_service import LocalApiService
-    from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+    from samcli.lib.translate.exceptions import InvalidSamDocumentException
     from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
     from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
 

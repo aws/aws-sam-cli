@@ -6,15 +6,16 @@ from botocore.exceptions import NoCredentialsError
 
 from samcli.commands.exceptions import UserException
 from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException, InvalidSamTemplateException
-from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
-from samcli.commands.validate.validate import do_cli, _read_sam_file
+from samcli.lib.translate.exceptions import InvalidSamDocumentException
+from samcli.commands.validate.validate import do_cli
+from samcli.lib.translate.translate_utils import _read_sam_file
 
 ctx_mock = namedtuple("ctx", ["profile", "region"])
 
 
 class TestValidateCli(TestCase):
-    @patch("samcli.commands.validate.validate.click")
-    @patch("samcli.commands.validate.validate.os.path.exists")
+    @patch("samcli.lib.translate.translate_utils.click")
+    @patch("samcli.lib.translate.translate_utils.os.path.exists")
     def test_file_not_found(self, path_exists_patch, click_patch):
         template_path = "path_to_template"
 
@@ -24,8 +25,8 @@ class TestValidateCli(TestCase):
             _read_sam_file(template_path)
 
     @patch("samcli.yamlhelper.yaml_parse")
-    @patch("samcli.commands.validate.validate.click")
-    @patch("samcli.commands.validate.validate.os.path.exists")
+    @patch("samcli.lib.translate.translate_utils.click")
+    @patch("samcli.lib.translate.translate_utils.os.path.exists")
     def test_file_parsed(self, path_exists_patch, click_patch, yaml_parse_patch):
         template_path = "path_to_template"
 
@@ -37,7 +38,7 @@ class TestValidateCli(TestCase):
 
         self.assertEqual(actual_template, {"a": "b"})
 
-    @patch("samcli.commands.validate.lib.sam_template_validator.SamTemplateValidator")
+    @patch("samcli.lib.translate.sam_template_validator.SamTemplateValidator")
     @patch("samcli.commands.validate.validate.click")
     @patch("samcli.commands.validate.validate._read_sam_file")
     def test_template_fails_validation(self, read_sam_file_patch, click_patch, template_valiadator):
@@ -51,7 +52,7 @@ class TestValidateCli(TestCase):
         with self.assertRaises(InvalidSamTemplateException):
             do_cli(ctx=ctx_mock(profile="profile", region="region"), template=template_path)
 
-    @patch("samcli.commands.validate.lib.sam_template_validator.SamTemplateValidator")
+    @patch("samcli.lib.translate.sam_template_validator.SamTemplateValidator")
     @patch("samcli.commands.validate.validate.click")
     @patch("samcli.commands.validate.validate._read_sam_file")
     def test_no_credentials_provided(self, read_sam_file_patch, click_patch, template_valiadator):
@@ -65,7 +66,7 @@ class TestValidateCli(TestCase):
         with self.assertRaises(UserException):
             do_cli(ctx=ctx_mock(profile="profile", region="region"), template=template_path)
 
-    @patch("samcli.commands.validate.lib.sam_template_validator.SamTemplateValidator")
+    @patch("samcli.lib.translate.sam_template_validator.SamTemplateValidator")
     @patch("samcli.commands.validate.validate.click")
     @patch("samcli.commands.validate.validate._read_sam_file")
     def test_template_passes_validation(self, read_sam_file_patch, click_patch, template_valiadator):

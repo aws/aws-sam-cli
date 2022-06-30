@@ -6,7 +6,7 @@ from parameterized import parameterized
 from samcli.commands.local.start_lambda.cli import do_cli as start_lambda_cli
 from samcli.lib.providers.exceptions import InvalidLayerReference
 from samcli.commands.local.cli_common.user_exceptions import UserException
-from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+from samcli.lib.translate.exceptions import InvalidSamDocumentException
 from samcli.local.docker.exceptions import ContainerNotStartableException
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError, InvalidIntermediateImageError
 from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported

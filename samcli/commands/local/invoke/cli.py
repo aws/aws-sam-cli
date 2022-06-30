@@ -138,7 +138,7 @@ def do_cli(  # pylint: disable=R0914
     from samcli.lib.providers.exceptions import InvalidLayerReference
     from samcli.commands.local.cli_common.invoke_context import InvokeContext
     from samcli.local.lambdafn.exceptions import FunctionNotFound
-    from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+    from samcli.lib.translate.exceptions import InvalidSamDocumentException
     from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError, NoPrivilegeException
     from samcli.local.docker.manager import DockerImagePullFailedException
     from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported

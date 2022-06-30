@@ -6,7 +6,7 @@ from unittest import TestCase
 from unittest.mock import patch, Mock
 from parameterized import parameterized
 
-from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+from samcli.lib.translate.exceptions import InvalidSamDocumentException
 from samcli.lib.providers.api_provider import ApiProvider
 from samcli.lib.providers.provider import Cors, Stack
 from samcli.local.apigw.local_apigw_service import Route

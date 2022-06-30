@@ -198,6 +198,7 @@ class SamLocalStackProvider(SamBaseProvider):
         parameter_overrides: Optional[Dict] = None,
         global_parameter_overrides: Optional[Dict] = None,
         metadata: Optional[Dict] = None,
+        template_dict_format: Optional[Dict] = None,
     ) -> Tuple[List[Stack], List[str]]:
         """
         Recursively extract stacks from a template file.
@@ -218,6 +219,8 @@ class SamLocalStackProvider(SamBaseProvider):
             that might want to get substituted within the template and its child templates
         metadata: Optional[Dict]
             Optional dictionary of nested stack resource metadata values.
+        template_dict_format: Optional[Dict]
+            Optional dictionary representing the sam template file to be used instead of the template file
 
         Returns
         -------
@@ -226,7 +229,11 @@ class SamLocalStackProvider(SamBaseProvider):
         remote_stack_full_paths : List[str]
             The list of full paths of detected remote stacks
         """
-        template_dict = get_template_data(template_file)
+        template_dict: dict
+        if not template_dict_format:
+            template_dict = get_template_data(template_file)
+        else:
+            template_dict = template_dict_format
         stacks = [
             Stack(
                 stack_path,

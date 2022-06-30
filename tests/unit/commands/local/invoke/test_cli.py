@@ -9,7 +9,7 @@ from parameterized import parameterized, param
 from samcli.local.docker.exceptions import ContainerNotStartableException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.lib.providers.exceptions import InvalidLayerReference
-from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+from samcli.lib.translate.exceptions import InvalidSamDocumentException
 from samcli.commands.exceptions import UserException
 from samcli.commands.local.invoke.cli import do_cli as invoke_cli, _get_event as invoke_cli_get_event
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError, InvalidIntermediateImageError

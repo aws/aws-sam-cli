@@ -16,7 +16,7 @@ from samcli.lib.providers.provider import (
     CORS_MAX_AGE_HEADER,
 )
 from samcli.local.apigw.local_apigw_service import Route
-from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+from samcli.lib.translate.exceptions import InvalidSamDocumentException
 
 LOG = logging.getLogger(__name__)
 

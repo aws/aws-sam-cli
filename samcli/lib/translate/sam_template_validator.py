@@ -13,7 +13,7 @@ from samtranslator.translator.translator import Translator
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION
 from samcli.yamlhelper import yaml_dump
-from .exceptions import InvalidSamDocumentException
+from samcli.lib.translate.exceptions import InvalidSamDocumentException
 
 LOG = logging.getLogger(__name__)
 
@@ -44,6 +44,37 @@ class SamTemplateValidator:
         self.managed_policy_loader = managed_policy_loader
         self.sam_parser = parser.Parser()
         self.boto3_session = Session(profile_name=profile, region_name=region)
+
+    def get_translated_template(self):
+        """
+        Runs the SAM Translator to determine if the template provided is valid and then
+        returns the translated template if it is
+
+        Returns
+        -------
+        dict
+            A dictionary representing the translated template file
+        """
+        managed_policy_map = self.managed_policy_loader.load()
+
+        sam_translator = Translator(
+            managed_policy_map=managed_policy_map,
+            sam_parser=self.sam_parser,
+            plugins=[],
+            boto_session=self.boto3_session,
+        )
+
+        self._replace_local_codeuri()
+        self._replace_local_image()
+
+        try:
+            template = sam_translator.translate(sam_template=self.sam_template, parameter_values={})
+            LOG.debug("Translated template is:\n%s", yaml_dump(template))
+            return yaml_dump(template)
+        except InvalidDocumentException as e:
+            raise InvalidSamDocumentException(
+                functools.reduce(lambda message, error: message + " " + str(error), e.causes, str(e))
+            ) from e
 
     def is_valid(self):
         """

@@ -5,7 +5,7 @@ from typing import List, Optional, Dict, Tuple, cast, Union
 
 from samcli.lib.providers.api_collector import ApiCollector
 from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
-from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+from samcli.lib.translate.exceptions import InvalidSamDocumentException
 from samcli.lib.providers.provider import Stack
 from samcli.lib.utils.colors import Colored
 from samcli.local.apigw.local_apigw_service import Route
