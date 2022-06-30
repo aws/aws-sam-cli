@@ -116,13 +116,13 @@ def __getPermissions(resourceArn: str) -> List[str]:
 
 
 def __generateBaseTestRunnerTemplateJSON(
-    jinjaTemplateJsonString,
-    bucketName,
-    ecsTaskExecRoleArn,
-    imageUri,
-    vpcId,
-    cpu,
-    memory,
+    jinjaTemplateJsonString: str,
+    bucketName: str,
+    ecsTaskExecRoleArn: str,
+    imageUri: str,
+    vpcId: str,
+    cpu: int,
+    memory: int,
 ) -> dict:
     """
     Renders a base jinja template with a set of parameters needed to create the Test Runner Stack.
@@ -188,6 +188,8 @@ def __queryTaggingApi(tagFilters: dict) -> dict:
     tagFilters : dict
         The tag filters to restrict output to only those resources with the given tags.
 
+        NOTE: https://docs.aws.amazon.com/cli/latest/reference/resourcegroupstaggingapi/get-resources.html#options
+
     Returns
     -------
     dict
@@ -200,7 +202,7 @@ def __queryTaggingApi(tagFilters: dict) -> dict:
     return boto3.client("resourcegroupstaggingapi").get_resources(TagFilters=tagFilters)
 
 
-def __generateStatementList(tagFilters) -> List[dict]:
+def __generateStatementList(tagFilters: dict) -> List[dict]:
     """
     Generates a list of IAM statements with default action permissions for resources with the given tags.
 
@@ -208,6 +210,8 @@ def __generateStatementList(tagFilters) -> List[dict]:
     ----------
     tagFilters : dict
         The tag filters to restrict output to only those resources with the given tags.
+
+        NOTE: https://docs.aws.amazon.com/cli/latest/reference/resourcegroupstaggingapi/get-resources.html#options
 
     Returns
     -------
@@ -261,14 +265,14 @@ def __commentOutDefaultOptions(rawYamlString: str) -> str:
 
 
 def generateTestRunnerTemplateString(
-    jinjaTemplateJsonString,
-    bucketName,
-    ecsTaskExecRoleArn,
-    imageUri,
-    vpcId,
-    tagFilters,
-    cpu=256,
-    memory=512,
+    jinjaTemplateJsonString: str,
+    bucketName: str,
+    ecsTaskExecRoleArn: str,
+    imageUri: str,
+    vpcId: str,
+    tagFilters: dict,
+    cpu: int = 256,
+    memory: int = 512,
 ) -> str:
 
     """
@@ -307,6 +311,8 @@ def generateTestRunnerTemplateString(
 
     tagFilters : dict
         The tag filters to restrict generating default IAM action permissions to those resources with the given tags.
+
+        NOTE: https://docs.aws.amazon.com/cli/latest/reference/resourcegroupstaggingapi/get-resources.html#options
 
     Returns
     -------
