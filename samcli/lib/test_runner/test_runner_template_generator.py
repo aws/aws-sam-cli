@@ -227,9 +227,6 @@ def __generate_statement_list(tag_filters: dict) -> List[dict]:
         }
         arn = resource["ResourceARN"]
 
-        # CloudFormation will not accept IAM Policies with empty Action lists.
-        # Adding this placeholder will not grant any permissions, but will allow the Test Runner Stack to deploy
-        new_statement["Action"].append("placeholder:DeleteThis")
         new_statement["Action"].extend(
             # Default permissions are commented out
             ["# " + action for action in __get_permissions(arn)]

@@ -7,7 +7,7 @@ from samcli.lib.test_runner.base_template import base_template_json
 
 class Test_TemplateGenerator(unittest.TestCase):
     def setUp(self):
-
+        self.maxDiff = None
         self.test_params = {
             "jinja_template_json_string": json.dumps(base_template_json),
             "bucket_name": "cloud-test-bucket-unique-name",
@@ -110,7 +110,6 @@ class Test_TemplateGenerator(unittest.TestCase):
         expected_statements = [
             "              - Effect: Allow\n",
             "                Action:\n",
-            "                  - placeholder:DeleteThis\n",
             "                  # - lambda:InvokeFunction\n",
             "                Resource: arn:aws:lambda:us-east-1:123456789123:function:lambda-sample-SampleLambda-KWsMLA204T0i\n",
         ]
@@ -137,7 +136,6 @@ class Test_TemplateGenerator(unittest.TestCase):
         expected_statements = [
             "              - Effect: Allow\n",
             "                Action:\n",
-            "                  - placeholder:DeleteThis\n",
             "                  # - execute-api:Invoke\n",
             "                Resource: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:4p1000/<STAGE>/GET/<RESOURCE_PATH>\n",
         ]
@@ -164,7 +162,6 @@ class Test_TemplateGenerator(unittest.TestCase):
         expected_statements = [
             "              - Effect: Allow\n",
             "                Action:\n",
-            "                  - placeholder:DeleteThis\n",
             "                  # - execute-api:Invoke\n",
             "                Resource: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:r3st4p1/<STAGE>/GET/<RESOURCE_PATH>\n",
         ]
@@ -191,7 +188,6 @@ class Test_TemplateGenerator(unittest.TestCase):
         expected_statements = [
             "              - Effect: Allow\n",
             "                Action:\n",
-            "                  - placeholder:DeleteThis\n",
             "                  # - sqs:SendMessage\n",
             "                Resource: arn:aws:sqs:us-east-2:444455556666:queue1\n",
         ]
@@ -219,7 +215,6 @@ class Test_TemplateGenerator(unittest.TestCase):
         expected_statements = [
             "              - Effect: Allow\n",
             "                Action:\n",
-            "                  - placeholder:DeleteThis\n",
             "                  # - s3:PutObject\n",
             "                  # - s3:GetObject\n",
             "                Resource: arn:aws:s3:::my-very-big-s3-bucket\n",
@@ -248,7 +243,6 @@ class Test_TemplateGenerator(unittest.TestCase):
         expected_statements = [
             "              - Effect: Allow\n",
             "                Action:\n",
-            "                  - placeholder:DeleteThis\n",
             "                  # - dynamodb:GetItem\n",
             "                  # - dynamodb:PutItem\n",
             "                Resource: arn:aws:dynamodb:us-east-1:123456789012:table/Books\n",
@@ -277,7 +271,6 @@ class Test_TemplateGenerator(unittest.TestCase):
         expected_statements = [
             "              - Effect: Allow\n",
             "                Action:\n",
-            "                  - placeholder:DeleteThis\n",
             "                  # - stepfunction:StartExecution\n",
             "                  # - stepfunction:StopExecution\n",
             "                Resource: arn:aws:states:us-east-1:123456789012:stateMachine:stateMachineName\n",
@@ -305,8 +298,7 @@ class Test_TemplateGenerator(unittest.TestCase):
 
         expected_statements = [
             "              - Effect: Allow\n",
-            "                Action:\n",
-            "                  - placeholder:DeleteThis\n",
+            "                Action: []\n",
             "                Resource: arn:aws:logs:us-west-1:123456789012:log-group:/mystack-testgroup-12ABC1AB12A1:*\n",
         ]
 
