@@ -1,7 +1,7 @@
 import unittest
 import json
 from unittest.mock import patch
-from samcli.lib.test_runner.test_runner_template_generator import generateTestRunnerTemplateString
+from samcli.lib.test_runner.test_runner_template_generator import generate_test_runner_string
 from samcli.lib.test_runner.base_template import base_template_json
 
 
@@ -9,18 +9,18 @@ class Test_TemplateGenerator(unittest.TestCase):
     def setUp(self):
 
         self.test_params = {
-            "jinjaTemplateJsonString": json.dumps(base_template_json),
-            "bucketName": "cloud-test-bucket-unique-name",
-            "ecsTaskExecRoleArn": "arn:aws:iam::123456789123:role/ecsTaskExecutionRole",
-            "imageUri": "123456789123.dkr.ecr.us-east-1.amazonaws.com/cloud-test-repo",
-            "vpcId": "vpc-xxxxxxxxxxxxxxxxx",
-            "tagFilters": [{"Key": "Test_Key", "Values": ["Test_Value"]}],
+            "jinja_template_json_string": json.dumps(base_template_json),
+            "bucket_name": "cloud-test-bucket-unique-name",
+            "ecs_task_exec_role_arn": "arn:aws:iam::123456789123:role/ecsTaskExecutionRole",
+            "image_uri": "123456789123.dkr.ecr.us-east-1.amazonaws.com/cloud-test-repo",
+            "vpc_id": "vpc-xxxxxxxxxxxxxxxxx",
+            "tag_filters": [{"Key": "Test_Key", "Values": ["Test_Value"]}],
         }
 
         # To avoid repeated lines:
         # These parts of the template will be the same no matter what resource is being tested
         # In between will be the generated IAM policy statments, which will depend on the resource being tested
-        self.generatedTemplateExpectedFirstHalf = [
+        self.generated_template_expected_first_half = [
             "AWSTemplateFormatVersion: 2010-09-09\n",
             "Description: Sample Template to deploy and run test container with Fargate\n",
             "Resources:\n",
@@ -51,7 +51,7 @@ class Test_TemplateGenerator(unittest.TestCase):
             "                  - arn:aws:s3:::${bucket}/*\n",
             "                  - bucket: !Ref S3Bucket\n",
         ]
-        self.generatedTemplateExpectedSecondHalf = [
+        self.generated_template_expected_second_half = [
             "  TaskDefinition:\n",
             "    Type: AWS::ECS::TaskDefinition\n",
             "    Properties:\n",
@@ -94,10 +94,10 @@ class Test_TemplateGenerator(unittest.TestCase):
             "      BucketName: cloud-test-bucket-unique-name\n",
         ]
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator.__queryTaggingApi")
-    def test_lambda_function(self, queryTaggingApiPatch):
+    @patch("samcli.lib.test_runner.test_runner_template_generator.__query_tagging_api")
+    def test_lambda_function(self, query_tagging_api_patch):
 
-        queryTaggingApiPatch.return_value = {
+        query_tagging_api_patch.return_value = {
             "ResourceTagMappingList": [
                 {
                     "ResourceARN": "arn:aws:lambda:us-east-1:123456789123:function:lambda-sample-SampleLambda-KWsMLA204T0i",
@@ -105,7 +105,7 @@ class Test_TemplateGenerator(unittest.TestCase):
             ]
         }
 
-        result = generateTestRunnerTemplateString(**self.test_params)
+        result = generate_test_runner_string(**self.test_params)
 
         expected_statements = [
             "              - Effect: Allow\n",
@@ -116,13 +116,15 @@ class Test_TemplateGenerator(unittest.TestCase):
         ]
 
         expected_result = "".join(
-            self.generatedTemplateExpectedFirstHalf + expected_statements + self.generatedTemplateExpectedSecondHalf
+            self.generated_template_expected_first_half
+            + expected_statements
+            + self.generated_template_expected_second_half
         )
         self.assertEqual(result, expected_result)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator.__queryTaggingApi")
-    def test_apigw_httpapi(self, queryTaggingApiPatch):
-        queryTaggingApiPatch.return_value = {
+    @patch("samcli.lib.test_runner.test_runner_template_generator.__query_tagging_api")
+    def test_apigw_httpapi(self, query_tagging_api_patch):
+        query_tagging_api_patch.return_value = {
             "ResourceTagMappingList": [
                 {
                     "ResourceARN": "arn:aws-us-gov:apigateway:us-west-1::/apis/4p1000",
@@ -130,7 +132,7 @@ class Test_TemplateGenerator(unittest.TestCase):
             ]
         }
 
-        result = generateTestRunnerTemplateString(**self.test_params)
+        result = generate_test_runner_string(**self.test_params)
 
         expected_statements = [
             "              - Effect: Allow\n",
@@ -141,13 +143,15 @@ class Test_TemplateGenerator(unittest.TestCase):
         ]
 
         expected_result = "".join(
-            self.generatedTemplateExpectedFirstHalf + expected_statements + self.generatedTemplateExpectedSecondHalf
+            self.generated_template_expected_first_half
+            + expected_statements
+            + self.generated_template_expected_second_half
         )
         self.assertEqual(result, expected_result)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator.__queryTaggingApi")
-    def test_apigw_restapi(self, queryTaggingApiPatch):
-        queryTaggingApiPatch.return_value = {
+    @patch("samcli.lib.test_runner.test_runner_template_generator.__query_tagging_api")
+    def test_apigw_restapi(self, query_tagging_api_patch):
+        query_tagging_api_patch.return_value = {
             "ResourceTagMappingList": [
                 {
                     "ResourceARN": "arn:aws-us-gov:apigateway:us-west-1::/restapis/r3st4p1",
@@ -155,7 +159,7 @@ class Test_TemplateGenerator(unittest.TestCase):
             ]
         }
 
-        result = generateTestRunnerTemplateString(**self.test_params)
+        result = generate_test_runner_string(**self.test_params)
 
         expected_statements = [
             "              - Effect: Allow\n",
@@ -166,13 +170,15 @@ class Test_TemplateGenerator(unittest.TestCase):
         ]
 
         expected_result = "".join(
-            self.generatedTemplateExpectedFirstHalf + expected_statements + self.generatedTemplateExpectedSecondHalf
+            self.generated_template_expected_first_half
+            + expected_statements
+            + self.generated_template_expected_second_half
         )
         self.assertEqual(result, expected_result)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator.__queryTaggingApi")
-    def test_sqs_queue(self, queryTaggingApiPatch):
-        queryTaggingApiPatch.return_value = {
+    @patch("samcli.lib.test_runner.test_runner_template_generator.__query_tagging_api")
+    def test_sqs_queue(self, query_tagging_api_patch):
+        query_tagging_api_patch.return_value = {
             "ResourceTagMappingList": [
                 {
                     "ResourceARN": "arn:aws:sqs:us-east-2:444455556666:queue1",
@@ -180,7 +186,7 @@ class Test_TemplateGenerator(unittest.TestCase):
             ]
         }
 
-        result = generateTestRunnerTemplateString(**self.test_params)
+        result = generate_test_runner_string(**self.test_params)
 
         expected_statements = [
             "              - Effect: Allow\n",
@@ -191,14 +197,16 @@ class Test_TemplateGenerator(unittest.TestCase):
         ]
 
         expected_result = "".join(
-            self.generatedTemplateExpectedFirstHalf + expected_statements + self.generatedTemplateExpectedSecondHalf
+            self.generated_template_expected_first_half
+            + expected_statements
+            + self.generated_template_expected_second_half
         )
         self.maxDiff = None
         self.assertEqual(result, expected_result)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator.__queryTaggingApi")
-    def test_s3_bucket(self, queryTaggingApiPatch):
-        queryTaggingApiPatch.return_value = {
+    @patch("samcli.lib.test_runner.test_runner_template_generator.__query_tagging_api")
+    def test_s3_bucket(self, query_tagging_api_patch):
+        query_tagging_api_patch.return_value = {
             "ResourceTagMappingList": [
                 {
                     "ResourceARN": "arn:aws:s3:::my-very-big-s3-bucket",
@@ -206,7 +214,7 @@ class Test_TemplateGenerator(unittest.TestCase):
             ]
         }
 
-        result = generateTestRunnerTemplateString(**self.test_params)
+        result = generate_test_runner_string(**self.test_params)
 
         expected_statements = [
             "              - Effect: Allow\n",
@@ -218,14 +226,16 @@ class Test_TemplateGenerator(unittest.TestCase):
         ]
 
         expected_result = "".join(
-            self.generatedTemplateExpectedFirstHalf + expected_statements + self.generatedTemplateExpectedSecondHalf
+            self.generated_template_expected_first_half
+            + expected_statements
+            + self.generated_template_expected_second_half
         )
         self.maxDiff = None
         self.assertEqual(result, expected_result)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator.__queryTaggingApi")
-    def test_dynamodb_table(self, queryTaggingApiPatch):
-        queryTaggingApiPatch.return_value = {
+    @patch("samcli.lib.test_runner.test_runner_template_generator.__query_tagging_api")
+    def test_dynamodb_table(self, query_tagging_api_patch):
+        query_tagging_api_patch.return_value = {
             "ResourceTagMappingList": [
                 {
                     "ResourceARN": "arn:aws:dynamodb:us-east-1:123456789012:table/Books",
@@ -233,7 +243,7 @@ class Test_TemplateGenerator(unittest.TestCase):
             ]
         }
 
-        result = generateTestRunnerTemplateString(**self.test_params)
+        result = generate_test_runner_string(**self.test_params)
 
         expected_statements = [
             "              - Effect: Allow\n",
@@ -245,14 +255,16 @@ class Test_TemplateGenerator(unittest.TestCase):
         ]
 
         expected_result = "".join(
-            self.generatedTemplateExpectedFirstHalf + expected_statements + self.generatedTemplateExpectedSecondHalf
+            self.generated_template_expected_first_half
+            + expected_statements
+            + self.generated_template_expected_second_half
         )
         self.maxDiff = None
         self.assertEqual(result, expected_result)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator.__queryTaggingApi")
-    def test_step_function(self, queryTaggingApiPatch):
-        queryTaggingApiPatch.return_value = {
+    @patch("samcli.lib.test_runner.test_runner_template_generator.__query_tagging_api")
+    def test_step_function(self, query_tagging_api_patch):
+        query_tagging_api_patch.return_value = {
             "ResourceTagMappingList": [
                 {
                     "ResourceARN": "arn:aws:states:us-east-1:123456789012:stateMachine:stateMachineName",
@@ -260,7 +272,7 @@ class Test_TemplateGenerator(unittest.TestCase):
             ]
         }
 
-        result = generateTestRunnerTemplateString(**self.test_params)
+        result = generate_test_runner_string(**self.test_params)
 
         expected_statements = [
             "              - Effect: Allow\n",
@@ -272,14 +284,16 @@ class Test_TemplateGenerator(unittest.TestCase):
         ]
 
         expected_result = "".join(
-            self.generatedTemplateExpectedFirstHalf + expected_statements + self.generatedTemplateExpectedSecondHalf
+            self.generated_template_expected_first_half
+            + expected_statements
+            + self.generated_template_expected_second_half
         )
         self.maxDiff = None
         self.assertEqual(result, expected_result)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator.__queryTaggingApi")
-    def test_log_group(self, queryTaggingApiPatch):
-        queryTaggingApiPatch.return_value = {
+    @patch("samcli.lib.test_runner.test_runner_template_generator.__query_tagging_api")
+    def test_no_iam_actions_supported(self, query_tagging_api_patch):
+        query_tagging_api_patch.return_value = {
             "ResourceTagMappingList": [
                 {
                     "ResourceARN": "arn:aws:logs:us-west-1:123456789012:log-group:/mystack-testgroup-12ABC1AB12A1:*",
@@ -287,7 +301,7 @@ class Test_TemplateGenerator(unittest.TestCase):
             ]
         }
 
-        result = generateTestRunnerTemplateString(**self.test_params)
+        result = generate_test_runner_string(**self.test_params)
 
         expected_statements = [
             "              - Effect: Allow\n",
@@ -297,6 +311,48 @@ class Test_TemplateGenerator(unittest.TestCase):
         ]
 
         expected_result = "".join(
-            self.generatedTemplateExpectedFirstHalf + expected_statements + self.generatedTemplateExpectedSecondHalf
+            self.generated_template_expected_first_half
+            + expected_statements
+            + self.generated_template_expected_second_half
         )
+        self.assertEqual(result, expected_result)
+
+    @patch("samcli.lib.test_runner.test_runner_template_generator.__query_tagging_api")
+    def test_failed_tag_api_query(self, query_tagging_api_patch):
+        query_tagging_api_patch.return_value = None
+
+        result = generate_test_runner_string(**self.test_params)
+
+        expected_statements = [""]
+
+        expected_result = "".join(
+            self.generated_template_expected_first_half
+            + expected_statements
+            + self.generated_template_expected_second_half
+        )
+        self.assertEqual(result, expected_result)
+
+    @patch("samcli.lib.test_runner.test_runner_template_generator.__query_tagging_api")
+    def test_malformed_jinja_template(self, query_tagging_api_patch):
+        query_tagging_api_patch.return_value = {
+            "ResourceTagMappingList": [
+                {
+                    "ResourceARN": "arn:aws:lambda:us-east-1:123456789123:function:lambda-sample-SampleLambda-KWsMLA204T0i",
+                }
+            ]
+        }
+
+        malformed_params = {
+            "jinja_template_json_string": "This is not a jinja template!",
+            "bucket_name": "cloud-test-bucket-unique-name",
+            "ecs_task_exec_role_arn": "arn:aws:iam::123456789123:role/ecsTaskExecutionRole",
+            "image_uri": "123456789123.dkr.ecr.us-east-1.amazonaws.com/cloud-test-repo",
+            "vpc_id": "vpc-xxxxxxxxxxxxxxxxx",
+            "tag_filters": [{"Key": "Test_Key", "Values": ["Test_Value"]}],
+        }
+
+        result = generate_test_runner_string(**malformed_params)
+
+        expected_result = None
+
         self.assertEqual(result, expected_result)
