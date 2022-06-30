@@ -1,11 +1,12 @@
 from unittest import TestCase
 from unittest.mock import patch, call, Mock
+from botocore.exceptions import ClientError
 
 from samcli.commands.list.resources.resources_context import ResourcesContext
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
 from samcli.lib.translate.exceptions import InvalidSamDocumentException
 from samcli.commands.exceptions import RegionError
-from samcli.commands.list.exceptions import SamListError
+from samcli.commands.list.exceptions import SamListError, SamListLocalResourcesNotFoundError, SamListUnknownClientError
 from samtranslator.public.exceptions import InvalidDocumentException
 from samcli.lib.translate.sam_template_validator import SamTemplateValidator
 
@@ -151,7 +152,23 @@ class TestResourcesContext(TestCase):
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
     @patch("samcli.lib.list.resources.resource_mapping_producer._read_sam_file")
     @patch("samcli.lib.list.resources.resource_mapping_producer.SamTemplateValidator.get_translated_template")
-    def test_get_translate_dict_clienterror(
+    def test_clienterror_exception(
+        self, mock_get_translated_template, mock_sam_file_reader, patched_click_get_current_context, patched_click_echo
+    ):
+        mock_get_translated_template.side_effect = ClientError(
+            {"Error": {"Code": "ExpiredToken", "Message": "The security token included in the request is expired"}}, "DescribeStacks"
+        )
+        with self.assertRaises(SamListUnknownClientError):
+            with ResourcesContext(
+                stack_name=None, output="json", region="us-east-1", profile=None, template_file=None
+            ) as resources_context:
+                resources_context.run()
+
+    @patch("samcli.commands.list.json_consumer.click.echo")
+    @patch("samcli.commands.list.json_consumer.click.get_current_context")
+    @patch("samcli.lib.list.resources.resource_mapping_producer._read_sam_file")
+    @patch("samcli.lib.list.resources.resource_mapping_producer.SamTemplateValidator.get_translated_template")
+    def test_get_translate_dict_invalid_template_error(
         self, mock_get_translated_template, mock_sam_file_reader, patched_click_get_current_context, patched_click_echo
     ):
         mock_sam_file_reader.return_value = {
@@ -249,7 +266,7 @@ class TestResourcesContext(TestCase):
         mock_get_translated_dict.return_value = {}
         mock_sam_file_reader.return_value = {}
         mock_get_stacks.return_value = ([], [])
-        with self.assertRaises(SamListError):
+        with self.assertRaises(SamListLocalResourcesNotFoundError):
             with ResourcesContext(
                 stack_name=None, output="json", region="us-east-1", profile=None, template_file=None
             ) as resources_context:

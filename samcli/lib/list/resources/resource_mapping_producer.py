@@ -66,13 +66,12 @@ class ResourceMappingProducer(Producer):
 
         translated_dict = self.get_translated_dict(template_file_dict=sam_template)
 
-        stacks, stack_paths = SamLocalStackProvider.get_stacks(template_file="", template_dict_format=translated_dict)
-        if stack_paths:
-            pass
-        if not stacks or len(stacks) < 1 or not stacks[0].resources:
+        stacks, _ = SamLocalStackProvider.get_stacks(template_file="", template_dict_format=translated_dict)
+        if not stacks or not stacks[0].resources:
             raise SamListLocalResourcesNotFoundError(msg="No local resources found.")
         resources_dict = {}
         for local_resource in stacks[0].resources:
+            # Set the PhysicalID to "-" if there is no corresponding PhysicalID
             resources_dict[local_resource] = "-"
 
         for logical_id, physical_id in resources_dict.items():
