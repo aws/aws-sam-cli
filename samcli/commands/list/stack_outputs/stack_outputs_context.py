@@ -3,18 +3,17 @@ Display the Outputs of a SAM stack
 """
 import logging
 from typing import Optional
-import boto3
 from samcli.lib.list.stack_outputs.stack_outputs_producer import StackOutputsProducer
-from samcli.commands.exceptions import RegionError
-from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config
+from samcli.commands.list.cli_common.list_common_context import ListContext
 from samcli.lib.list.mapper_consumer_factory import MapperConsumerFactory
 from samcli.lib.list.list_interfaces import ProducersEnum
 
 LOG = logging.getLogger(__name__)
 
 
-class StackOutputsContext:
+class StackOutputsContext(ListContext):
     def __init__(self, stack_name: str, output: str, region: Optional[str], profile: Optional[str]):
+        super().__init__()
         self.stack_name = stack_name
         self.output = output
         self.region = region
@@ -27,24 +26,6 @@ class StackOutputsContext:
 
     def __exit__(self, *args):
         pass
-
-    def init_clients(self) -> None:
-        """
-        Initialize the clients being used by sam list.
-        """
-        if not self.region:
-            session = boto3.Session()
-            region = session.region_name
-            if region:
-                self.region = region
-            else:
-                raise RegionError(
-                    message="No region was specified/found. "
-                    "Please provide a region via the --region parameter or by the AWS_REGION environment variable."
-                )
-
-        client_provider = get_boto_client_provider_with_config(region=self.region, profile=self.profile)
-        self.cloudformation_client = client_provider("cloudformation")
 
     def run(self) -> None:
         """
