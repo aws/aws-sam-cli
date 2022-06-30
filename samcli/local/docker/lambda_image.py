@@ -29,6 +29,7 @@ RAPID_IMAGE_TAG_PREFIX = "rapid"
 class Runtime(Enum):
     nodejs12x = "nodejs12.x"
     nodejs14x = "nodejs14.x"
+    nodejs16x = "nodejs16.x"
     python36 = "python3.6"
     python37 = "python3.7"
     python38 = "python3.8"
@@ -86,17 +87,19 @@ class LambdaImage:
 
         Parameters
         ----------
-        runtime str
+        runtime : str
             Name of the Lambda runtime
-        packagetype str
+        packagetype : str
             Packagetype for the Lambda
-        image str
+        image : str
             Pre-defined invocation image.
-        layers list(samcli.commands.local.lib.provider.Layer)
+        layers : list(samcli.commands.local.lib.provider.Layer)
             List of layers
-        architecture
+        architecture : str
             Architecture type either x86_64 or arm64 on AWS lambda
-        function_name str
+        stream : io.RawIOBase
+            stream to write
+        function_name : str
             The name of the function that the image is building for
 
         Returns

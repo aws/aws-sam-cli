@@ -288,6 +288,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=ZIP,
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="",
                 ),
             ),
@@ -313,6 +314,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=ZIP,
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="",
                 ),
             ),
@@ -338,6 +340,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=ZIP,
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="",
                 ),
             ),
@@ -370,6 +373,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     },
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="",
                 ),
             ),
@@ -400,6 +404,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     },
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="",
                 ),
             ),
@@ -431,6 +436,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     },
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="",
                 ),
             ),
@@ -456,6 +462,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=ZIP,
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="",
                 ),
             ),
@@ -487,6 +494,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=IMAGE,
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="",
                 ),
             ),
@@ -517,6 +525,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=IMAGE,
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="",
                 ),
             ),
@@ -548,6 +557,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=IMAGE,
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="",
                 ),
             ),
@@ -573,6 +583,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageconfig=None,
                     packagetype=ZIP,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="",
                 ),
             ),
@@ -598,6 +609,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageconfig=None,
                     packagetype=ZIP,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="",
                 ),
             ),
@@ -623,6 +635,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=ZIP,
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="",
                 ),
             ),
@@ -648,6 +661,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=ZIP,
                     codesign_config_arn="codeSignConfigArn",
                     architectures=None,
+                    function_url_config=None,
                     stack_path="",
                 ),
             ),
@@ -673,6 +687,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=ZIP,
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="ChildStack",
                 ),
             ),
@@ -698,6 +713,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=ZIP,
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="ChildStack",
                 ),
             ),
@@ -728,6 +744,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=IMAGE,
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="ChildStack",
                 ),
             ),
@@ -753,6 +770,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=ZIP,
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="",
                 ),
             ),
@@ -778,6 +796,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=ZIP,
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="",
                 ),
             ),
@@ -809,6 +828,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=ZIP,
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="",
                 ),
             ),
@@ -840,6 +860,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=ZIP,
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="",
                 ),
             ),
@@ -871,6 +892,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=ZIP,
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="ChildStack",
                 ),
             ),
@@ -902,6 +924,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=ZIP,
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="ChildStack",
                 ),
             ),
@@ -933,6 +956,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=ZIP,
                     codesign_config_arn=None,
                     architectures=None,
+                    function_url_config=None,
                     stack_path="ChildStack",
                 ),
             ),
@@ -992,7 +1016,7 @@ class TestSamFunctionProvider_init(TestCase):
         stack = make_root_stack(template, self.parameter_overrides)
         provider = SamFunctionProvider([stack])
 
-        extract_mock.assert_called_with([stack], False, False)
+        extract_mock.assert_called_with([stack], False, False, False)
         get_template_mock.assert_called_with(template, self.parameter_overrides)
         self.assertEqual(provider.functions, extract_result)
 
@@ -1007,7 +1031,22 @@ class TestSamFunctionProvider_init(TestCase):
         stack = make_root_stack(template, self.parameter_overrides)
         provider = SamFunctionProvider([stack])
 
-        extract_mock.assert_called_with([stack], False, False)  # Empty Resources value must be passed
+        extract_mock.assert_called_with([stack], False, False, False)  # Empty Resources value must be passed
+        self.assertEqual(provider.functions, extract_result)
+
+    @patch.object(SamFunctionProvider, "_extract_functions")
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_search_layer_flag(self, get_template_mock, extract_mock):
+        extract_result = {"foo": "bar"}
+        extract_mock.return_value = extract_result
+
+        template = {"Resources": {"a": "b"}}
+        get_template_mock.return_value = template
+        stack = make_root_stack(template, self.parameter_overrides)
+        provider = SamFunctionProvider([stack], locate_layer_nested=True)
+
+        extract_mock.assert_called_with([stack], False, False, True)
+        get_template_mock.assert_called_with(template, self.parameter_overrides)
         self.assertEqual(provider.functions, extract_result)
 
 
@@ -1112,6 +1151,130 @@ class TestSamFunctionProvider_extract_functions(TestCase):
                 call(stack_root, "Func1", {"a": "b"}, [], False),
                 call(stack_child, "Func1", {"a": "b"}, [], False),
             ]
+        )
+
+    @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
+    @patch.object(SamFunctionProvider, "_parse_layer_info")
+    @patch.object(SamFunctionProvider, "_convert_lambda_function_resource")
+    def test_must_work_for_lambda_function_search_layer(self, convert_mock, parse_layer_mock, resources_mock):
+        convertion_result = Mock()
+        convertion_result.full_path = "A/B/C/Func1"
+        convert_mock.return_value = convertion_result
+        parse_layer_mock.return_value = []
+
+        resources_mock.return_value = {
+            "Func1": {"Type": "AWS::Lambda::Function", "Properties": {"a": "b"}, "Metadata": {"SamResourceId": "id"}}
+        }
+
+        expected = {"A/B/C/Func1": convertion_result}
+
+        stack = make_root_stack(None)
+        result = SamFunctionProvider._extract_functions([stack], locate_layer_nested=True)
+        self.assertEqual(expected, result)
+        convert_mock.assert_called_with(stack, "Func1", {"a": "b", "Metadata": {"SamResourceId": "id"}}, [], False)
+        parse_layer_mock.assert_called_with(
+            stack,
+            [],
+            False,
+            ignore_code_extraction_warnings=False,
+            locate_layer_nested=True,
+            stacks=[stack],
+            function_id="id",
+        )
+
+    @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
+    @patch.object(SamFunctionProvider, "_parse_layer_info")
+    @patch.object(SamFunctionProvider, "_convert_sam_function_resource")
+    def test_must_work_for_serverless_function_search_layer(self, convert_mock, parse_layer_mock, resources_mock):
+        convertion_result = Mock()
+        convertion_result.full_path = "A/B/C/Func1"
+        convert_mock.return_value = convertion_result
+        parse_layer_mock.return_value = []
+
+        resources_mock.return_value = {
+            "Func1": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"a": "b"},
+                "Metadata": {"SamResourceId": "id"},
+            }
+        }
+
+        expected = {"A/B/C/Func1": convertion_result}
+
+        stack = make_root_stack(None)
+        result = SamFunctionProvider._extract_functions([stack], locate_layer_nested=True)
+        self.assertEqual(expected, result)
+        convert_mock.assert_called_with(stack, "Func1", {"a": "b", "Metadata": {"SamResourceId": "id"}}, [], False)
+        parse_layer_mock.assert_called_with(
+            stack,
+            [],
+            False,
+            ignore_code_extraction_warnings=False,
+            locate_layer_nested=True,
+            stacks=[stack],
+            function_id="id",
+        )
+
+    @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
+    @patch.object(SamFunctionProvider, "_parse_layer_info")
+    @patch.object(SamFunctionProvider, "_convert_lambda_function_resource")
+    def test_must_work_for_lambda_function_no_search_layer(self, convert_mock, parse_layer_mock, resources_mock):
+        convertion_result = Mock()
+        convertion_result.full_path = "A/B/C/Func1"
+        convert_mock.return_value = convertion_result
+        parse_layer_mock.return_value = []
+
+        resources_mock.return_value = {
+            "Func1": {"Type": "AWS::Lambda::Function", "Properties": {"a": "b"}, "Metadata": {"SamResourceId": "id"}}
+        }
+
+        expected = {"A/B/C/Func1": convertion_result}
+
+        stack = make_root_stack(None)
+        result = SamFunctionProvider._extract_functions([stack])
+        self.assertEqual(expected, result)
+        convert_mock.assert_called_with(stack, "Func1", {"a": "b", "Metadata": {"SamResourceId": "id"}}, [], False)
+        parse_layer_mock.assert_called_with(
+            stack,
+            [],
+            False,
+            ignore_code_extraction_warnings=False,
+            locate_layer_nested=False,
+            stacks=None,
+            function_id=None,
+        )
+
+    @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
+    @patch.object(SamFunctionProvider, "_parse_layer_info")
+    @patch.object(SamFunctionProvider, "_convert_sam_function_resource")
+    def test_must_work_for_serverless_function_no_search_layer(self, convert_mock, parse_layer_mock, resources_mock):
+        convertion_result = Mock()
+        convertion_result.full_path = "A/B/C/Func1"
+        convert_mock.return_value = convertion_result
+        parse_layer_mock.return_value = []
+
+        resources_mock.return_value = {
+            "Func1": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"a": "b"},
+                "Metadata": {"SamResourceId": "id"},
+            }
+        }
+
+        expected = {"A/B/C/Func1": convertion_result}
+
+        stack = make_root_stack(None)
+        result = SamFunctionProvider._extract_functions([stack])
+        self.assertEqual(expected, result)
+        convert_mock.assert_called_with(stack, "Func1", {"a": "b", "Metadata": {"SamResourceId": "id"}}, [], False)
+        parse_layer_mock.assert_called_with(
+            stack,
+            [],
+            False,
+            ignore_code_extraction_warnings=False,
+            locate_layer_nested=False,
+            stacks=None,
+            function_id=None,
         )
 
 
@@ -1220,6 +1383,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             packagetype=ZIP,
             codesign_config_arn=None,
             architectures=[X86_64],
+            function_url_config=None,
             stack_path=STACK_PATH,
         )
 
@@ -1262,6 +1426,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             packagetype=IMAGE,
             codesign_config_arn=None,
             architectures=None,
+            function_url_config=None,
             stack_path=STACK_PATH,
         )
 
@@ -1294,6 +1459,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             packagetype=ZIP,
             codesign_config_arn=None,
             architectures=None,
+            function_url_config=None,
             stack_path=STACK_PATH,
         )
 
@@ -1341,6 +1507,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             packagetype=ZIP,
             codesign_config_arn=None,
             architectures=[X86_64],
+            function_url_config=None,
             stack_path=STACK_PATH,
         )
 
@@ -1381,6 +1548,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             packagetype=ZIP,
             codesign_config_arn=None,
             architectures=[ARM64],
+            function_url_config=None,
             stack_path=STACK_PATH,
         )
 
@@ -1437,6 +1605,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             packagetype=ZIP,
             codesign_config_arn=None,
             architectures=None,
+            function_url_config=None,
             stack_path=STACK_PATH,
         )
 
@@ -1477,6 +1646,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             packagetype=ZIP,
             codesign_config_arn=None,
             architectures=[ARM64],
+            function_url_config=None,
             stack_path=STACK_PATH,
         )
 
@@ -1509,6 +1679,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             packagetype=ZIP,
             codesign_config_arn=None,
             architectures=None,
+            function_url_config=None,
             stack_path=STACK_PATH,
         )
 
@@ -1591,6 +1762,34 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
 
         self.assertEqual(actual, [])
 
+    @patch.object(SamFunctionProvider, "_locate_layer_from_nested")
+    def test_layers_with_search_layer(self, locate_layer_mock):
+        layer = {"Ref", "layer"}
+        func_temp = {"Properties": {"Layers": [layer]}}
+
+        resources = {"Layer": {"Type": "AWS::Lambda::LayerVersion", "Properties": {"Content": "/somepath"}}}
+
+        list_of_layers = [{"Ref": "Layer"}]
+
+        locate_layer_mock.return_value = LayerVersion("Layer", "/somepath", stack_path=STACK_PATH)
+
+        mock_stack = Mock(
+            stack_path=STACK_PATH,
+            location="template.yaml",
+            resources=resources,
+            template_dict={"Resources": {"function_id": func_temp}},
+        )
+
+        expected_layer = [locate_layer_mock.return_value]
+
+        actual = SamFunctionProvider._parse_layer_info(
+            mock_stack, list_of_layers, stacks=[mock_stack], function_id="function_id", locate_layer_nested=True
+        )
+
+        locate_layer_mock.assert_called_with(mock_stack, [mock_stack], layer, False, False)
+
+        self.assertEqual(actual, expected_layer)
+
 
 class TestSamFunctionProvider_get(TestCase):
     def test_raise_on_invalid_name(self):
@@ -1622,6 +1821,7 @@ class TestSamFunctionProvider_get(TestCase):
             packagetype=None,
             codesign_config_arn=None,
             architectures=None,
+            function_url_config=None,
             stack_path=STACK_PATH,
         )
         provider.functions = {"func1": function}
@@ -1651,6 +1851,7 @@ class TestSamFunctionProvider_get(TestCase):
             packagetype=None,
             codesign_config_arn=None,
             architectures=None,
+            function_url_config=None,
             stack_path=posixpath.join("this_is", "stack_path_C"),
         )
 
@@ -1674,6 +1875,7 @@ class TestSamFunctionProvider_get(TestCase):
             packagetype=None,
             codesign_config_arn=None,
             architectures=None,
+            function_url_config=None,
             stack_path=posixpath.join("this_is", "stack_path_B"),
         )
 
@@ -1697,6 +1899,7 @@ class TestSamFunctionProvider_get(TestCase):
             packagetype=None,
             codesign_config_arn=None,
             architectures=None,
+            function_url_config=None,
             stack_path=posixpath.join("this_is", "stack_path_A"),
         )
 
@@ -1720,6 +1923,7 @@ class TestSamFunctionProvider_get(TestCase):
             packagetype=None,
             codesign_config_arn=None,
             architectures=None,
+            function_url_config=None,
             stack_path=posixpath.join("this_is", "stack_path_D"),
         )
         provider.functions = {"func1": function1, "func2": function2, "func3": function3, "func4": function4}
@@ -1776,7 +1980,7 @@ class TestRefreshableSamFunctionProvider(TestCase):
             [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
         )
 
-        extract_mock.assert_called_with([stack, stack2], False, False)
+        extract_mock.assert_called_with([stack, stack2], False, False, False)
         get_template_mock.assert_called_with(template, self.parameter_overrides)
         self.assertEqual(provider.functions, extract_result)
 
@@ -2127,3 +2331,97 @@ class TestRefreshableSamFunctionProvider(TestCase):
         provider.stop_observer()
 
         self.file_observer.stop.assert_called_once()
+
+
+class TestSamFunctionProvider_search_layer(TestCase):
+    root_stack_template = {
+        "Resources": {
+            "LayerStack": {
+                "Type": "AWS::Serverless::Application",
+                "Properties": {"Location": "child_layer/template.yaml"},
+            },
+            "FunctionStack": {
+                "Type": "AWS::Serverless::Application",
+                "Properties": {
+                    "Location": "child_function/template.yaml",
+                    "Parameters": {"Layer": {"Fn::GetAtt": ["LayerStack", "Outputs.LayerName"]}},
+                },
+            },
+        }
+    }
+
+    layer_stack_template = {
+        "Resources": {
+            "SamLayer": {
+                "Type": "AWS::Serverless::LayerVersion",
+                "Properties": {
+                    "LayerName": "SamLayer",
+                    "Description": "Sam",
+                    "ContentUri": "layer/",
+                    "CompatibleRuntimes": ["python3.7"],
+                },
+            }
+        },
+        "Outputs": {"LayerName": {"Description": "The name of the layer", "Value": {"Ref": "SamLayer"}}},
+    }
+
+    function_stack_template = {
+        "Parameters": {"Layer": {"Type": "String"}},
+        "Resources": {
+            "SamFunctions": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {
+                    "FunctionName": "SamFunc1",
+                    "CodeUri": "/usr/foo/bar",
+                    "Runtime": "nodejs4.3",
+                    "Handler": "index.handler",
+                    "Layers": {"Ref": "Layer"},
+                },
+            }
+        },
+    }
+
+    @patch.object(SamFunctionProvider, "_locate_layer_from_ref")
+    def test_search_layer_with_layer_arn(self, locate_layer_ref_mock):
+        stack = Stack("", "", "template.yaml", None, self.root_stack_template)
+        layer_version = SamFunctionProvider._locate_layer_from_nested(stack, [stack], "layer_arn")
+        self.assertIsNone(layer_version)
+        locate_layer_ref_mock.assert_not_called()
+
+    @patch.object(SamFunctionProvider, "_locate_layer_from_ref")
+    def test_search_layer_in_outputs(self, locate_layer_ref_mock):
+        stack = Stack("", "", "template.yaml", None, self.layer_stack_template)
+        SamFunctionProvider._locate_layer_from_nested(stack, [stack], "LayerName")
+        locate_layer_ref_mock.assert_called_with(stack, {"Ref": "SamLayer"}, False, False)
+
+    @patch.object(SamFunctionProvider, "_locate_layer_from_ref")
+    def test_search_layer_ref_in_current_stack(self, locate_layer_ref_mock):
+        stack = Stack("", "", "template.yaml", None, self.layer_stack_template)
+        SamFunctionProvider._locate_layer_from_nested(stack, [stack], {"Ref": "SamLayer"})
+        locate_layer_ref_mock.assert_called_with(stack, {"Ref": "SamLayer"}, False, False)
+
+    @patch.object(SamFunctionProvider, "_locate_layer_from_ref")
+    def test_search_layer_fn_get(self, locate_layer_ref_mock):
+        root_stack = Stack("", "root", "template.yaml", None, self.root_stack_template)
+        child_layer_stack = Stack("root", "LayerStack", "template.yaml", None, self.layer_stack_template)
+        child_function_stack = Stack("root", "FunctionStack", "template.yaml", None, self.function_stack_template)
+        SamFunctionProvider._locate_layer_from_nested(
+            child_function_stack, [root_stack, child_layer_stack, child_function_stack], {"Ref": "Layer"}
+        )
+        locate_layer_ref_mock.assert_called_with(child_layer_stack, {"Ref": "SamLayer"}, False, False)
+
+    def test_validate_layer_get_attr_format(self):
+        valid_layer = {"Fn::GetAtt": ["LayerStackName", "Outputs.LayerName"]}
+        self.assertTrue(SamFunctionProvider._validate_layer_get_attr_format(valid_layer))
+
+        invalid_layer_not_list = {"Fn::GetAtt": ""}
+        self.assertFalse(SamFunctionProvider._validate_layer_get_attr_format(invalid_layer_not_list))
+
+        invalid_layer_empty_list = {"Fn::GetAtt": []}
+        self.assertFalse(SamFunctionProvider._validate_layer_get_attr_format(invalid_layer_empty_list))
+
+        invalid_layer_str_format = {"Fn::GetAtt": ["LayerStackName", ""]}
+        self.assertFalse(SamFunctionProvider._validate_layer_get_attr_format(invalid_layer_str_format))
+
+        invalid_layer_str_format = {"Fn::GetAtt": ["LayerStackName", "Outputs.invalid.format"]}
+        self.assertFalse(SamFunctionProvider._validate_layer_get_attr_format(invalid_layer_str_format))

@@ -3,14 +3,12 @@ Testing local lambda runner
 """
 import os
 import posixpath
-from platform import architecture
 from unittest import TestCase
 from unittest.mock import Mock, patch
 from parameterized import parameterized, param
 
 from samcli.lib.utils.architecture import X86_64, ARM64
 
-from samcli.commands.local.cli_common.user_exceptions import InvokeContextException
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.lib.providers.provider import Function
 from samcli.lib.utils.packagetype import ZIP, IMAGE
@@ -247,6 +245,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             packagetype=ZIP,
             architectures=[X86_64],
             codesign_config_arn=None,
+            function_url_config=None,
         )
 
         self.local_lambda.env_vars_values = env_vars_values
@@ -298,6 +297,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             packagetype=ZIP,
             architectures=[X86_64],
             codesign_config_arn=None,
+            function_url_config=None,
         )
 
         self.local_lambda.env_vars_values = env_vars_values
@@ -339,6 +339,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             packagetype=ZIP,
             architectures=[X86_64],
             codesign_config_arn=None,
+            function_url_config=None,
         )
 
         self.local_lambda.env_vars_values = {}
@@ -416,6 +417,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             packagetype=ZIP,
             architectures=[ARM64],
             codesign_config_arn=None,
+            function_url_config=None,
         )
 
         config = "someconfig"
@@ -480,6 +482,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             imageconfig=None,
             packagetype=ZIP,
             architectures=[X86_64],
+            function_url_config=None,
             codesign_config_arn=None,
         )
 

@@ -1,5 +1,5 @@
 import os
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch, mock_open
 from unittest import TestCase
 from samcli.cli.global_config import ConfigEntry, DefaultEntry, GlobalConfig
 from pathlib import Path
@@ -52,6 +52,26 @@ class TestGlobalConfig(TestCase):
     def tearDown(self):
         # Force singleton to recreate after each test
         GlobalConfig._Singleton__instance = None
+
+    def test_config_write_error(self):
+        self.path_write_mock.side_effect = IOError("fail")
+        gc = GlobalConfig()
+        installation_id = gc.installation_id
+        self.assertIsNotNone(installation_id)
+
+    def test_unable_to_create_dir(self):
+        self.path_exists_mock.return_value = False
+        self.path_mkdir_mock.side_effect = OSError("Permission DENIED")
+        gc = GlobalConfig()
+        installation_id = gc.installation_id
+        self.assertIsNotNone(installation_id)
+        telemetry_enabled = gc.telemetry_enabled
+        self.assertFalse(telemetry_enabled)
+
+    def test_setter_cannot_open_path(self):
+        self.path_read_mock.side_effect = IOError("fail")
+        gc = GlobalConfig()
+        gc.telemetry_enabled = True
 
     def test_singleton(self):
         gc1 = GlobalConfig()
@@ -229,6 +249,16 @@ class TestGlobalConfig(TestCase):
         self.path_exists_mock.return_value = False
         GlobalConfig()._persistent_fields = ["a"]
         GlobalConfig()._config_data = {"a": 1}
+        GlobalConfig()._write_config()
+        self.json_mock.dumps.assert_called_once()
+        self.path_mkdir_mock.assert_called_once()
+        self.path_write_mock.assert_called_once()
+
+    def test_write_config_error(self):
+        self.path_exists_mock.return_value = False
+        GlobalConfig()._persistent_fields = ["a"]
+        GlobalConfig()._config_data = {"a": 1}
+        self.path_write_mock.side_effect = ValueError()
         GlobalConfig()._write_config()
         self.json_mock.dumps.assert_called_once()
         self.path_mkdir_mock.assert_called_once()

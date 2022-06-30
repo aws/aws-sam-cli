@@ -16,9 +16,9 @@ def resolve_code_path(cwd, codeuri):
 
     Parameters
     ----------
-    cwd str
+    cwd : str
         Current working directory
-    codeuri
+    codeuri : str
         CodeURI of the function. This should contain the path to the function code
 
     Returns

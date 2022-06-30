@@ -11,6 +11,8 @@ from subprocess import Popen, PIPE, TimeoutExpired
 from queue import Queue
 
 import shutil
+from uuid import uuid4
+
 import psutil  # type: ignore
 
 IS_WINDOWS = platform.system().lower() == "windows"
@@ -33,9 +35,24 @@ LOG = logging.getLogger(__name__)
 
 CommandResult = namedtuple("CommandResult", "process stdout stderr")
 TIMEOUT = 600
+CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
+
+
+def get_sam_command():
+    return "samdev" if os.getenv("SAM_CLI_DEV") else "sam"
+
+
+def method_to_stack_name(method_name):
+    """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
+    method_name = method_name.split(".")[-1]
+    stack_name = f"{method_name.replace('_', '-')}-{CFN_PYTHON_VERSION_SUFFIX}-{uuid4().hex}"
+    if not stack_name.startswith("test"):
+        stack_name = f"test-{stack_name}"
+    return stack_name[:128]
 
 
 def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandResult:
+    LOG.info("Running command: %s", " ".join(command_list))
     process_execute = Popen(command_list, cwd=cwd, env=env, stdout=PIPE, stderr=PIPE)
     try:
         stdout_data, stderr_data = process_execute.communicate(timeout=timeout)
@@ -50,6 +67,8 @@ def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandRes
 
 
 def run_command_with_input(command_list, stdin_input, timeout=TIMEOUT) -> CommandResult:
+    LOG.info("Running command: %s", " ".join(command_list))
+    LOG.info("With input: %s", stdin_input)
     process_execute = Popen(command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE)
     try:
         stdout_data, stderr_data = process_execute.communicate(stdin_input, timeout=timeout)
@@ -106,8 +125,8 @@ def read_until_string(process: Popen, expected_output: str, timeout: int = 5) ->
     Throws TimeoutError if times out
     """
 
-    def _compare_output(output, outputs):
-        return output == expected_output
+    def _compare_output(output, _: List[str]) -> bool:
+        return bool(output == expected_output)
 
     try:
         read_until(process, _compare_output, timeout)
@@ -118,7 +137,7 @@ def read_until_string(process: Popen, expected_output: str, timeout: int = 5) ->
         ) from ex
 
 
-def read_until(process: Popen, callback: Callable[[str, List[str]], None], timeout: int = 5):
+def read_until(process: Popen, callback: Callable[[str, List[str]], bool], timeout: int = 5):
     """Read output from process until callback returns True or timeout is reached
 
     Parameters

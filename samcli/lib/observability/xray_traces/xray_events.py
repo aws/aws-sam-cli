@@ -3,7 +3,7 @@ Keeps XRay event definitions
 """
 import json
 import operator
-from typing import List
+from typing import List, Optional
 
 from samcli.lib.observability.observability_info_puller import ObservabilityEvent
 from samcli.lib.utils.hash import str_checksum
@@ -18,9 +18,12 @@ class XRayTraceEvent(ObservabilityEvent[dict]):
     See XRayTracePuller
     """
 
-    def __init__(self, event: dict):
+    def __init__(self, event: dict, revision: Optional[int] = None):
         super().__init__(event, 0)
         self.id = event.get("Id", "")
+        # A revision number will be passed to link with the event
+        # The same x-ray event will differ in information on different revisions
+        self.revision = revision
         self.duration = event.get("Duration", 0.0)
         self.message = json.dumps(event)
         self.segments: List[XRayTraceSegment] = []

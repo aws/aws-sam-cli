@@ -62,4 +62,4 @@ class HttpApiSyncFlow(GenericApiSyncFlow):
             response = self._api_client.reimport_api(ApiId=api_physical_id, Body=self._swagger_body.decode())
             LOG.debug("%sImport HttpApi Result: %s", self.log_prefix, response)
         else:
-            LOG.debug("%sEmpty OpenApi definition, skipping the skip for %s", self.log_prefix, self._api_identifier)
+            LOG.debug("%sEmpty OpenApi definition, skipping the sync for %s", self.log_prefix, self._api_identifier)

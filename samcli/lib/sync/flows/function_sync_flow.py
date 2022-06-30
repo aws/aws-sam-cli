@@ -1,6 +1,10 @@
 """Base SyncFlow for Lambda Function"""
+from enum import Enum
 import logging
+
+import time
 from typing import Any, Dict, List, TYPE_CHECKING, cast
+from botocore.client import BaseClient
 
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.sync.flows.alias_version_sync_flow import AliasVersionSyncFlow
@@ -14,6 +18,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.build.build_context import BuildContext
 
 LOG = logging.getLogger(__name__)
+FUNCTION_SLEEP = 1  # used to wait for lambda function last update to be successful
 
 
 class FunctionSyncFlow(SyncFlow):
@@ -55,7 +60,7 @@ class FunctionSyncFlow(SyncFlow):
         )
         self._function_identifier = function_identifier
         self._function_provider = self._build_context.function_provider
-        self._function = cast(Function, self._function_provider.functions.get(self._function_identifier))
+        self._function = cast(Function, self._function_provider.get(self._function_identifier))
         self._lambda_client = None
         self._lambda_waiter = None
         self._lambda_waiter_config = {"Delay": 1, "MaxAttempts": 60}
@@ -100,3 +105,34 @@ class FunctionSyncFlow(SyncFlow):
 
     def _equality_keys(self):
         return self._function_identifier
+
+
+class FunctionUpdateStatus(Enum):
+    """Function update return types"""
+
+    SUCCESS = "Successful"
+    FAILED = "Failed"
+    IN_PROGRESS = "InProgress"
+
+
+def wait_for_function_update_complete(lambda_client: BaseClient, physical_id: str) -> None:
+    """
+    Checks on cloud side to wait for the function update status to be complete
+
+    Parameters
+    ----------
+    lambda_client : boto.core.BaseClient
+        Lambda client that performs get_function API call.
+    physical_id : str
+        Physical identifier of the function resource
+    """
+
+    status = FunctionUpdateStatus.IN_PROGRESS.value
+    while status == FunctionUpdateStatus.IN_PROGRESS.value:
+        response = lambda_client.get_function(FunctionName=physical_id)  # type: ignore
+        status = response.get("Configuration", {}).get("LastUpdateStatus", "")
+
+        if status == FunctionUpdateStatus.IN_PROGRESS.value:
+            time.sleep(FUNCTION_SLEEP)
+
+    LOG.debug("Function update status on %s is now %s on cloud.", physical_id, status)

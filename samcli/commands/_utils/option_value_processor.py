@@ -63,7 +63,7 @@ def process_image_options(image_args: Optional[Tuple[str]]) -> Dict:
         Function as key and the corresponding image URI as value.
         Global default image URI is contained in the None key.
     """
-    images: Dict[Optional[str], str] = dict()
+    images: Dict[Optional[str], str] = {}
     if image_args:
         for image_string in image_args:
             function_name, image_uri = _parse_key_value_pair(image_string)

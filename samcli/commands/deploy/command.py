@@ -2,6 +2,7 @@
 CLI command for "deploy" command
 """
 import logging
+import os
 
 import click
 
@@ -42,6 +43,10 @@ SHORT_HELP = "Deploy an AWS SAM application."
 
 
 HELP_TEXT = """The sam deploy command creates a Cloudformation Stack and deploys your resources.
+
+\b
+Set SAM_CLI_POLL_DELAY Environment Vairable with a value of seconds in your shell to configure 
+how often SAM CLI checks the Stack state, which is useful when seeing throttling from CloudFormation.
 
 \b
 e.g. sam deploy --template-file packaged.yaml --stack-name sam-app --capabilities CAPABILITY_IAM
@@ -104,7 +109,7 @@ LOG = logging.getLogger(__name__)
     help="Preserves the state of previously provisioned resources when an operation fails.",
 )
 @stack_name_option(callback=guided_deploy_stack_name)  # pylint: disable=E1120
-@s3_bucket_option(guided=True)  # pylint: disable=E1120
+@s3_bucket_option(disable_callback=True)  # pylint: disable=E1120
 @image_repository_option
 @image_repositories_option
 @force_upload_option
@@ -290,6 +295,15 @@ def do_cli(
         ) as package_context:
             package_context.run()
 
+        # 500ms of sleep time between stack checks and describe stack events.
+        DEFAULT_POLL_DELAY = 0.5
+        try:
+            poll_delay = float(os.getenv("SAM_CLI_POLL_DELAY", str(DEFAULT_POLL_DELAY)))
+        except ValueError:
+            poll_delay = DEFAULT_POLL_DELAY
+        if poll_delay <= 0:
+            poll_delay = DEFAULT_POLL_DELAY
+
         with DeployContext(
             template_file=output_template_file.name,
             stack_name=guided_context.guided_stack_name if guided else stack_name,
@@ -315,5 +329,6 @@ def do_cli(
             signing_profiles=guided_context.signing_profiles if guided else signing_profiles,
             use_changeset=True,
             disable_rollback=guided_context.disable_rollback if guided else disable_rollback,
+            poll_delay=poll_delay,
         ) as deploy_context:
             deploy_context.run()

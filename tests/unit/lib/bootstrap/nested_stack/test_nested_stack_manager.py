@@ -9,6 +9,7 @@ from samcli.lib.bootstrap.nested_stack.nested_stack_manager import (
     NestedStackManager,
 )
 from samcli.lib.build.app_builder import ApplicationBuildResult
+from samcli.lib.providers.provider import Stack
 from samcli.lib.sync.exceptions import InvalidRuntimeDefinitionForFunction
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.lib.utils.resources import AWS_SQS_QUEUE, AWS_SERVERLESS_FUNCTION
@@ -18,69 +19,84 @@ class TestNestedStackManager(TestCase):
     def setUp(self) -> None:
         self.stack_name = "stack_name"
         self.build_dir = "build_dir"
-        self.stack_location = "stack_location"
+        self.stack = Mock(
+            wraps=Stack("", "", "", template_dict={}, parameters={}), stack_path="", location="foo/bar", resources={}
+        )
 
     def test_nothing_to_add(self):
         template = {}
         app_build_result = ApplicationBuildResult(Mock(), {})
         nested_stack_manager = NestedStackManager(
-            self.stack_name, self.build_dir, self.stack_location, template, app_build_result
+            self.stack, self.stack_name, self.build_dir, template, app_build_result
         )
         result = nested_stack_manager.generate_auto_dependency_layer_stack()
 
         self.assertEqual(template, result)
 
     def test_unsupported_resource(self):
-        template = {"Resources": {"MySqsQueue": {"Type": AWS_SQS_QUEUE}}}
+        resources = {"MySqsQueue": {"Type": AWS_SQS_QUEUE}}
+        self.stack.resources = resources
+        template = {"Resources": resources}
         app_build_result = ApplicationBuildResult(Mock(), {})
         nested_stack_manager = NestedStackManager(
-            self.stack_name, self.build_dir, self.stack_location, template, app_build_result
+            self.stack, self.stack_name, self.build_dir, template, app_build_result
         )
         result = nested_stack_manager.generate_auto_dependency_layer_stack()
 
         self.assertEqual(template, result)
 
     def test_image_function(self):
-        template = {
-            "Resources": {
-                "MyFunction": {
-                    "Type": AWS_SERVERLESS_FUNCTION,
-                    "Properties": {"Runtime": "unsupported_runtime", "PackageType": "IMAGE"},
-                }
+        resources = {
+            "MyFunction": {
+                "Type": AWS_SERVERLESS_FUNCTION,
+                "Properties": {"Runtime": "unsupported_runtime", "PackageType": "Image"},
             }
         }
+        self.stack.resources = resources
+        template = {"Resources": resources}
         app_build_result = ApplicationBuildResult(Mock(), {"MyFunction": "path/to/build/dir"})
         nested_stack_manager = NestedStackManager(
-            self.stack_name, self.build_dir, self.stack_location, template, app_build_result
+            self.stack, self.stack_name, self.build_dir, template, app_build_result
         )
         result = nested_stack_manager.generate_auto_dependency_layer_stack()
 
         self.assertEqual(template, result)
 
     def test_unsupported_runtime(self):
-        template = {
-            "Resources": {
-                "MyFunction": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"Runtime": "unsupported_runtime"}}
-            }
-        }
+        resources = {"MyFunction": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"Runtime": "unsupported_runtime"}}}
+        self.stack.resources = resources
+        template = {"Resources": resources}
         app_build_result = ApplicationBuildResult(Mock(), {"MyFunction": "path/to/build/dir"})
         nested_stack_manager = NestedStackManager(
-            self.stack_name, self.build_dir, self.stack_location, template, app_build_result
+            self.stack, self.stack_name, self.build_dir, template, app_build_result
         )
         result = nested_stack_manager.generate_auto_dependency_layer_stack()
 
         self.assertEqual(template, result)
 
-    @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.osutils")
-    def test_no_dependencies_dir(self, patched_osutils):
-        template = {
-            "Resources": {"MyFunction": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"Runtime": "python3.8"}}}
-        }
+    def test_no_function_build_definition(self):
+        resources = {"MyFunction": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"Runtime": "python3.8"}}}
+        self.stack.resources = resources
+        template = {"Resources": resources}
         build_graph = Mock()
         build_graph.get_function_build_definition_with_full_path.return_value = None
         app_build_result = ApplicationBuildResult(build_graph, {"MyFunction": "path/to/build/dir"})
         nested_stack_manager = NestedStackManager(
-            self.stack_name, self.build_dir, self.stack_location, template, app_build_result
+            self.stack, self.stack_name, self.build_dir, template, app_build_result
+        )
+        result = nested_stack_manager.generate_auto_dependency_layer_stack()
+
+        self.assertEqual(template, result)
+
+    def test_function_build_definition_without_dependencies_dir(self):
+        resources = {"MyFunction": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"Runtime": "python3.8"}}}
+        self.stack.resources = resources
+        template = {"Resources": resources}
+        build_graph = Mock()
+        build_graph.get_function_build_definition_with_full_path.return_value = Mock(dependencies_dir=None)
+        app_build_result = ApplicationBuildResult(build_graph, {"MyFunction": "path/to/build/dir"})
+        nested_stack_manager = NestedStackManager(
+            self.stack, self.stack_name, self.build_dir, template, app_build_result
         )
         result = nested_stack_manager.generate_auto_dependency_layer_stack()
 
@@ -90,9 +106,9 @@ class TestNestedStackManager(TestCase):
     @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.osutils")
     @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.os.path.isdir")
     def test_with_zip_function(self, patched_isdir, patched_osutils, patched_move_template):
-        template = {
-            "Resources": {"MyFunction": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"Runtime": "python3.8"}}}
-        }
+        resources = {"MyFunction": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"Runtime": "python3.8"}}}
+        self.stack.resources = resources
+        template = {"Resources": resources}
 
         # prepare build graph
         dependencies_dir = Mock()
@@ -106,14 +122,14 @@ class TestNestedStackManager(TestCase):
         patched_isdir.return_value = True
 
         nested_stack_manager = NestedStackManager(
-            self.stack_name, self.build_dir, self.stack_location, template, app_build_result
+            self.stack, self.stack_name, self.build_dir, template, app_build_result
         )
 
         with patch.object(nested_stack_manager, "_add_layer_readme_info") as patched_add_readme:
             result = nested_stack_manager.generate_auto_dependency_layer_stack()
 
             patched_move_template.assert_called_with(
-                self.stack_location, os.path.join(self.build_dir, "nested_template.yaml"), ANY
+                self.stack.location, os.path.join(self.build_dir, "adl_nested_template.yaml"), ANY
             )
             self.assertNotEqual(template, result)
 

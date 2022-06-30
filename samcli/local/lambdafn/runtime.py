@@ -171,18 +171,14 @@ class LambdaRuntime:
             Interface that Docker host binds ports to
         :raises Keyboard
         """
-        timer = None
         container = None
         try:
             # Start the container. This call returns immediately after the container starts
             container = self.create(function_config, debug_context, container_host, container_host_interface)
             container = self.run(container, function_config, debug_context)
-            # Setup appropriate interrupt - timeout or Ctrl+C - before function starts executing.
-            #
-            # Start the timer **after** container starts. Container startup takes several seconds, only after which,
-            # our Lambda function code will run. Starting the timer is a reasonable approximation that function has
-            # started running.
-            timer = self._configure_interrupt(
+            # Setup appropriate interrupt - timeout or Ctrl+C - before function starts executing and
+            # get callback function to start timeout timer
+            start_timer = self._configure_interrupt(
                 function_config.full_path, function_config.timeout, container, bool(debug_context)
             )
 
@@ -190,7 +186,9 @@ class LambdaRuntime:
             # Block on waiting for result from the init process on the container, below method also
             # starts another thread to stream logs. This method will terminate
             # either successfully or be killed by one of the interrupt handlers above.
-            container.wait_for_result(full_path=function_config.full_path, event=event, stdout=stdout, stderr=stderr)
+            container.wait_for_result(
+                full_path=function_config.full_path, event=event, stdout=stdout, stderr=stderr, start_timer=start_timer
+            )
 
         except KeyboardInterrupt:
             # When user presses Ctrl+C, we receive a Keyboard Interrupt. This is especially very common when
@@ -200,11 +198,7 @@ class LambdaRuntime:
 
         finally:
             # We will be done with execution, if either the execution completed or an interrupt was fired
-            # Any case, cleanup the timer and container.
-            #
-            # If we are in debugging mode, timer would not be created. So skip cleanup of the timer
-            if timer:
-                timer.cancel()
+            # Any case, cleanup the container.
             self._on_invoke_done(container)
 
     def _on_invoke_done(self, container):
@@ -230,8 +224,15 @@ class LambdaRuntime:
         :param integer timeout: Timeout in seconds
         :param samcli.local.docker.container.Container container: Instance of a container to terminate
         :param bool is_debugging: Are we debugging?
-        :return threading.Timer: Timer object, if we setup a timer. None otherwise
+        :return func: function to start timer, if we set one up. None otherwise
         """
+
+        def start_timer():
+            # Start a timer, we'll use this to abort the function if it runs beyond the specified timeout
+            LOG.debug("Starting a timer for %s seconds for function '%s'", timeout, function_full_path)
+            timer = threading.Timer(timeout, timer_handler, ())
+            timer.start()
+            return timer
 
         def timer_handler():
             # NOTE: This handler runs in a separate thread. So don't try to mutate any non-thread-safe data structures
@@ -248,11 +249,7 @@ class LambdaRuntime:
             signal.signal(signal.SIGTERM, signal_handler)
             return None
 
-        # Start a timer, we'll use this to abort the function if it runs beyond the specified timeout
-        LOG.debug("Starting a timer for %s seconds for function '%s'", timeout, function_full_path)
-        timer = threading.Timer(timeout, timer_handler, ())
-        timer.start()
-        return timer
+        return start_timer
 
     def _get_code_dir(self, code_path: str) -> str:
         """
@@ -437,6 +434,13 @@ class WarmLambdaRuntime(LambdaRuntime):
             Timer object, if we setup a timer. None otherwise
         """
 
+        def start_timer():
+            # Start a timer, we'll use this to abort the function if it runs beyond the specified timeout
+            LOG.debug("Starting a timer for %s seconds for function '%s'", timeout, function_full_path)
+            timer = threading.Timer(timeout, timer_handler, ())
+            timer.start()
+            return timer
+
         def timer_handler():
             # NOTE: This handler runs in a separate thread. So don't try to mutate any non-thread-safe data structures
             LOG.info("Function '%s' timed out after %d seconds", function_full_path, timeout)
@@ -450,11 +454,7 @@ class WarmLambdaRuntime(LambdaRuntime):
             signal.signal(signal.SIGTERM, signal_handler)
             return None
 
-        # Start a timer, we'll use this to abort the function if it runs beyond the specified timeout
-        LOG.debug("Starting a timer for %s seconds for function '%s'", timeout, function_full_path)
-        timer = threading.Timer(timeout, timer_handler, ())
-        timer.start()
-        return timer
+        return start_timer
 
     def clean_running_containers_and_related_resources(self):
         """

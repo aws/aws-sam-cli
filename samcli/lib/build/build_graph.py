@@ -6,6 +6,7 @@ import copy
 import logging
 import os
 import threading
+from abc import abstractmethod
 from pathlib import Path
 from typing import Sequence, Tuple, List, Any, Optional, Dict, cast, NamedTuple
 from copy import deepcopy
@@ -324,15 +325,20 @@ class BuildGraph:
         during the process of reading and modifying the hash value
         """
         with BuildGraph.__toml_lock:
-            stored_definitions = copy.deepcopy(self._function_build_definitions)
-            stored_layers = copy.deepcopy(self._layer_build_definitions)
+            stored_function_definitions = copy.deepcopy(self._function_build_definitions)
+            stored_layer_definitions = copy.deepcopy(self._layer_build_definitions)
             self._read()
 
-            function_content = BuildGraph._compare_hash_changes(stored_definitions, self._function_build_definitions)
-            layer_content = BuildGraph._compare_hash_changes(stored_layers, self._layer_build_definitions)
+            function_content = BuildGraph._compare_hash_changes(
+                stored_function_definitions, self._function_build_definitions
+            )
+            layer_content = BuildGraph._compare_hash_changes(stored_layer_definitions, self._layer_build_definitions)
 
             if function_content or layer_content:
                 self._write_source_hash(function_content, layer_content)
+
+            self._function_build_definitions = stored_function_definitions
+            self._layer_build_definitions = stored_layer_definitions
 
     @staticmethod
     def _compare_hash_changes(
@@ -365,7 +371,7 @@ class BuildGraph:
         """
         document = {}
         if not self._filepath.exists():
-            open(self._filepath, "a+").close()
+            open(self._filepath, "a+").close()  # pylint: disable=consider-using-with
 
         txt = self._filepath.read_text()
         # .loads() returns a TOMLDocument,
@@ -457,7 +463,7 @@ class BuildGraph:
         document.add(BuildGraph.LAYER_BUILD_DEFINITIONS, cast(tomlkit.items.Item, layer_build_definitions_table))
 
         if not self._filepath.exists():
-            open(self._filepath, "a+").close()
+            open(self._filepath, "a+").close()  # pylint: disable=consider-using-with
 
         self._filepath.write_text(tomlkit.dumps(document))
 
@@ -496,6 +502,10 @@ class AbstractBuildDefinition:
     def env_vars(self) -> Dict:
         return deepcopy(self._env_vars)
 
+    @abstractmethod
+    def get_resource_full_paths(self) -> str:
+        """Returns string representation of resources' full path information for this build definition"""
+
 
 class LayerBuildDefinition(AbstractBuildDefinition):
     """
@@ -521,6 +531,12 @@ class LayerBuildDefinition(AbstractBuildDefinition):
         # Note(xinhol): In our code, we assume "layer" is never None. We should refactor
         # this and move "layer" out of LayerBuildDefinition to take advantage of type check.
         self.layer: LayerVersion = None  # type: ignore
+
+    def get_resource_full_paths(self) -> str:
+        if not self.layer:
+            LOG.debug("LayerBuildDefinition with uuid (%s) doesn't have a layer assigned to it", self.uuid)
+            return ""
+        return self.layer.full_path
 
     def __str__(self) -> str:
         return (
@@ -610,6 +626,10 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         """
         self._validate_functions()
         return self.functions[0].get_build_dir(artifact_root_dir)
+
+    def get_resource_full_paths(self) -> str:
+        """Returns list of functions' full path information as a list of str"""
+        return ", ".join([function.full_path for function in self.functions])
 
     def _validate_functions(self) -> None:
         if not self.functions:

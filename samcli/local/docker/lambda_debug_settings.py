@@ -129,6 +129,20 @@ class LambdaDebugSettings:
                     **_container_env_vars,
                 },
             ),
+            Runtime.nodejs16x.value: lambda: DebugSettings(
+                entry
+                + ["/var/lang/bin/node"]
+                + debug_args_list
+                + ["--no-lazy", "--expose-gc"]
+                + ["/var/runtime/index.mjs"],
+                container_env_vars={
+                    "NODE_PATH": "/opt/nodejs/node_modules:/opt/nodejs/node16/node_modules:/var/runtime/node_modules:"
+                    "/var/runtime:/var/task",
+                    "NODE_OPTIONS": f"--inspect-brk=0.0.0.0:{str(debug_port)} --max-http-header-size 81920",
+                    "AWS_EXECUTION_ENV": "AWS_Lambda_nodejs16.x",
+                    **_container_env_vars,
+                },
+            ),
             Runtime.python36.value: lambda: DebugSettings(
                 entry + ["/var/lang/bin/python3.6"] + debug_args_list + ["/var/runtime/bootstrap.py"],
                 container_env_vars=_container_env_vars,

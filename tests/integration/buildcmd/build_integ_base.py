@@ -13,6 +13,7 @@ import docker
 import jmespath
 from pathlib import Path
 
+from samcli.lib.utils import osutils
 from samcli.lib.utils.architecture import X86_64, has_runtime_multi_arch_image
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from samcli.yamlhelper import yaml_parse
@@ -75,6 +76,7 @@ class BuildIntegBase(TestCase):
         container_env_var=None,
         container_env_var_file=None,
         build_image=None,
+        exclude=None,
         region=None,
     ):
 
@@ -121,6 +123,10 @@ class BuildIntegBase(TestCase):
         if build_image:
             command_list += ["--build-image", build_image]
 
+        if exclude:
+            for f in exclude:
+                command_list += ["--exclude", f]
+
         if region:
             command_list += ["--region", region]
 
@@ -134,6 +140,13 @@ class BuildIntegBase(TestCase):
             all=True, filters={"ancestor": f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{runtime}"}
         )
         self.assertFalse(bool(samcli_containers), "Build containers have not been removed")
+
+    def get_number_of_created_containers(self):
+        if IS_WINDOWS:
+            time.sleep(1)
+        docker_client = docker.from_env()
+        containers = docker_client.containers.list(all=True)
+        return len(containers)
 
     def verify_pulled_image(self, runtime, architecture=X86_64):
         docker_client = docker.from_env()
@@ -499,7 +512,7 @@ class BuildIntegJavaBase(BuildIntegBase):
             osutils.convert_to_unix_line_ending(os.path.join(self.test_data_path, self.USING_GRADLEW_PATH, "gradlew"))
 
         LOG.info("Running Command: {}".format(cmdlist))
-        run_command(cmdlist, cwd=self.working_dir)
+        run_command(cmdlist, cwd=self.working_dir, timeout=900)
 
         self._verify_built_artifact(
             self.default_build_dir, self.FUNCTION_LOGICAL_ID, expected_files, expected_dependencies
@@ -764,8 +777,7 @@ class DedupBuildIntegBase(BuildIntegBase):
         # check HelloWorld and HelloMars functions are built in the same build
         self.assertRegex(
             command_result.stderr.decode("utf-8"),
-            "Building codeuri: .* runtime: .* metadata: .* functions: "
-            "\\['HelloWorldFunction', 'HelloMarsFunction'\\]",
+            "Building codeuri: .* runtime: .* metadata: .* functions: " "HelloWorldFunction, HelloMarsFunction",
         )
 
 
@@ -803,7 +815,7 @@ class NestedBuildIntegBase(BuildIntegBase):
         for function_full_path in function_full_paths:
             self.assertRegex(
                 command_result.stderr.decode("utf-8"),
-                f"Building codeuri: .* runtime: .* metadata: .* functions: \\[.*'{function_full_path}'.*\\]",
+                f"Building codeuri: .* runtime: .* metadata: .* functions: .*{function_full_path}.*",
             )
 
     def _verify_invoke_built_functions(self, template_path, overrides, function_and_expected):
@@ -848,7 +860,7 @@ class IntrinsicIntegBase(BuildIntegBase):
         for function_full_path in function_full_paths:
             self.assertRegex(
                 command_result.stderr.decode("utf-8"),
-                f"Building codeuri: .* runtime: .* metadata: .* functions: \\[.*'{function_full_path}'.*\\]",
+                f"Building codeuri: .* runtime: .* metadata: .* functions:.*{function_full_path}.*",
             )
         self.assertIn(
             f"Building layer '{layer_full_path}'",

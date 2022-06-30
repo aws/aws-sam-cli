@@ -1,12 +1,11 @@
 import os
 import tempfile
+from pathlib import Path
 from unittest import skipIf
 
 from click.testing import CliRunner
-from samcli.commands.init import cli as init_cmd
-from pathlib import Path
 
-from samcli.lib.utils.packagetype import ZIP
+from samcli.commands.init import cli as init_cmd
 from tests.integration.init.schemas.schemas_test_data_setup import SchemaTestDataSetup
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 
@@ -23,6 +22,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
         # 2: Java Runtime (java11)
         # 2: Maven
         # 2: select event-bridge app from scratch
+        # N: disable adding xray tracing
         # test-project: response to name
         # Y: Use default aws configuration
         # 1: select schema from cli_paginator
@@ -35,6 +35,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
 2
 2
 2
+N
 eb-app-maven
 Y
 1
@@ -61,6 +62,7 @@ Y
         # 2: Java Runtime
         # 2: Maven
         # 2: select event-bridge app from scratch
+        # N: disable adding xray tracing
         # test-project: response to name
         # Y: Use default aws configuration
         # 3: partner registry
@@ -72,6 +74,7 @@ Y
 2
 2
 2
+N
 eb-app-maven
 Y
 3
@@ -108,6 +111,7 @@ Y
         # 2: Java Runtime
         # 2: Maven
         # 2: select event-bridge app from scratch
+        # N: disable adding xray tracing
         # eb-app-maven: response to name
         # Y: Use default aws configuration
         # 4: select pagination-registry as registries
@@ -121,6 +125,7 @@ Y
 2
 2
 2
+N
 eb-app-maven
 Y
 4
@@ -148,6 +153,7 @@ P
         # 2: Java Runtime
         # 2: Maven
         # 2: select event-bridge app from scratch
+        # N: disable adding xray tracing
         # eb-app-maven: response to name
         # Y: Use default aws configuration
         # 2: select 2p-schema other-schema
@@ -159,6 +165,7 @@ P
 2
 2
 2
+N
 eb-app-maven
 Y
 2
@@ -194,6 +201,7 @@ Y
         # 7: Infrastructure event management - Use case
         # 6: Python 3.8
         # 2: select event-bridge app from scratch
+        # N: disable adding xray tracing
         # eb-app-python38: response to name
         # Y: Use default aws configuration
         # 4: select aws.events as registries
@@ -204,6 +212,7 @@ Y
 7
 6
 2
+N
 eb-app-python38
 Y
 1
@@ -226,6 +235,7 @@ Y
         # 7: Infrastructure event management - Use case
         # 1: Go 1.x
         # 2: select event-bridge app from scratch
+        # N: disable adding xray tracing
         # eb-app-go: response to name
         # Y: Use default aws configuration
         # 4: select aws.events as registries
@@ -236,6 +246,7 @@ Y
 7
 1
 2
+N
 eb-app-go
 Y
 4
@@ -258,6 +269,7 @@ Y
         # 3: Infrastructure event management - Use case
         # 6: Python 3.8
         # 2: select event-bridge app from scratch
+        # N: disable adding xray tracing
         # eb-app-python38: response to name
         # N: Use default profile
         # 2: uses second profile from displayed one (myprofile)
@@ -270,6 +282,7 @@ Y
 7
 6
 2
+N
 eb-app-python38
 3
 N
@@ -297,6 +310,7 @@ us-east-1
         # 7: Infrastructure event management - Use case
         # 6: Python 3.8
         # 2: select event-bridge app from scratch
+        # N: disable adding xray tracing
         # eb-app-python38: response to name
         # Y: Use default profile
         # 1: select aws.events as registries
@@ -307,6 +321,7 @@ us-east-1
 7
 6
 2
+N
 eb-app-python38
 Y
 1
@@ -317,10 +332,3 @@ Y
             result = runner.invoke(init_cmd, ["--output-dir", temp], input=user_input)
             self.assertTrue(result.exception)
             self._tear_down_custom_config()
-
-
-def _get_command():
-    command = "sam"
-    if os.getenv("SAM_CLI_DEV"):
-        command = "samdev"
-    return command

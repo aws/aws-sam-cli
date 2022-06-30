@@ -16,6 +16,7 @@ ARM64 = "arm64"
 SUPPORTED_RUNTIMES: Dict[str, List[str]] = {
     "nodejs12.x": [ARM64, X86_64],
     "nodejs14.x": [ARM64, X86_64],
+    "nodejs16.x": [ARM64, X86_64],
     "python3.6": [X86_64],
     "python3.7": [X86_64],
     "python3.8": [ARM64, X86_64],
