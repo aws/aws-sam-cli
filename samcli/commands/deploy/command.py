@@ -45,7 +45,7 @@ SHORT_HELP = "Deploy an AWS SAM application."
 HELP_TEXT = """The sam deploy command creates a Cloudformation Stack and deploys your resources.
 
 \b
-Set SAM_CLI_POLL_DELAY Environment Vairable with a value of seconds in your shell to configure 
+Set SAM_CLI_POLL_DELAY Environment Variable with a value of seconds in your shell to configure 
 how often SAM CLI checks the Stack state, which is useful when seeing throttling from CloudFormation.
 
 \b
