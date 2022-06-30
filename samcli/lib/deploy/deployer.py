@@ -446,7 +446,7 @@ class Deployer:
         return "IN_PROGRESS" not in status
 
     def wait_for_execute(
-        self, stack_name: str, stack_operation: str, disable_rollback: bool, execution_time: float
+        self, stack_name: str, stack_operation: str, disable_rollback: bool, execution_time: float = time.time()
     ) -> None:
         """
         Wait for stack operation to execute and return when execution completes.
@@ -461,7 +461,8 @@ class Deployer:
         disable_rollback : bool
             Preserves the state of previously provisioned resources when an operation fails
         execution_time : float
-            Changeset execution time (current time)
+            Time of the last stack change execution request (like `execute_change_set`, `update_stack`, `create_stack`)
+            Prevents missing events if the event streaming is delayed from the change request by any action in between
         """
         sys.stdout.write(
             "\n{} - Waiting for stack create/update "
