@@ -1,0 +1,19 @@
+name: Merge the develop branch into the list-command branch
+
+on:
+  schedule:
+    - cron: '0 7 * * *'
+
+jobs:
+  update-branch:
+    if: github.repository == 'aws/aws-sam-cli'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Merge develop -> list-command
+        uses:  devmasx/merge-branch@master
+        with:
+          type: now
+          from_branch: develop
+          target_branch: list-command
+          github_token: ${{ secrets.GITHUB_TOKEN }}
