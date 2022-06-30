@@ -8,17 +8,17 @@ import yaml
 import click
 
 from botocore.exceptions import ClientError, NoCredentialsError
-from samcli.commands.list.exceptions import SamListLocalResourcesNotFoundError, SamListUnknownClientError
+from samtranslator.translator.managed_policy_translator import ManagedPolicyLoader
+from samtranslator.translator.arn_generator import NoRegionFound
 
+from samcli.commands.list.exceptions import SamListLocalResourcesNotFoundError, SamListUnknownClientError
 from samcli.lib.list.list_interfaces import Producer
 from samcli.lib.list.resources.resources_def import ResourcesDef
 from samcli.lib.translate.sam_template_validator import SamTemplateValidator
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
-from samtranslator.translator.managed_policy_translator import ManagedPolicyLoader
 from samcli.lib.translate.translate_utils import _read_sam_file
 from samcli.lib.translate.exceptions import InvalidSamDocumentException
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
-from samtranslator.translator.arn_generator import NoRegionFound
 from samcli.commands.exceptions import UserException
 
 LOG = logging.getLogger(__name__)
@@ -67,7 +67,8 @@ class ResourceMappingProducer(Producer):
         translated_dict = self.get_translated_dict(template_file_dict=sam_template)
 
         stacks, stack_paths = SamLocalStackProvider.get_stacks(template_file="", template_dict_format=translated_dict)
-
+        if stack_paths:
+            pass
         if not stacks or len(stacks) < 1 or not stacks[0].resources:
             raise SamListLocalResourcesNotFoundError(msg="No local resources found.")
         resources_dict = {}
