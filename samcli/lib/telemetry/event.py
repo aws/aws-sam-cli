@@ -4,6 +4,7 @@ Represents Events and their values.
 
 from enum import Enum
 import logging
+import threading
 from typing import List
 
 from samcli.local.common.runtime_template import INIT_RUNTIMES
@@ -84,6 +85,7 @@ class EventTracker:
     """Class to track and recreate Events as they occur."""
 
     _events: List[Event] = []
+    _event_lock = threading.Lock()
 
     @staticmethod
     def track_event(event_name: str, event_value: str):
@@ -114,18 +116,21 @@ class EventTracker:
                 return some_value
         """
         try:
-            EventTracker._events.append(Event(event_name, event_value))
+            with EventTracker._event_lock:
+                EventTracker._events.append(Event(event_name, event_value))
         except EventCreationError as e:
             LOG.debug("Error occurred while trying to track an event: %s", e)
 
     @staticmethod
     def get_tracked_events() -> List[Event]:
-        return EventTracker._events
+        with EventTracker._event_lock:
+            return EventTracker._events
 
     @staticmethod
     def clear_trackers():
         """Clear the current list of tracked Events before the next session."""
-        EventTracker._events = []
+        with EventTracker._event_lock:
+            EventTracker._events = []
 
 
 class EventCreationError(Exception):
