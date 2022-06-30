@@ -66,22 +66,22 @@ def __getPermissionsMap() -> dict:
 
     defaultPermissionsMap = {
         # AWS::Lambda::Function
-        f"^arn:{partitionEx}:lambda:{regionEx}:{accountEx}:function:[\\w-]+(:\\d+)?$": ["lambda:InvokeFunction"],
+        rf"^arn:{partitionEx}:lambda:{regionEx}:{accountEx}:function:[\w-]+(:\d+)?$": ["lambda:InvokeFunction"],
         # AWS::ApiGateway::Api
-        f"^arn:{partitionEx}:apigateway:{regionEx}::\/apis\/\\w+$": ["execute-api:Invoke"],
+        rf"^arn:{partitionEx}:apigateway:{regionEx}::\/apis\/\w+$": ["execute-api:Invoke"],
         # AWS::ApiGateway::RestApi
-        f"^arn:{partitionEx}:apigateway:{regionEx}::\/restapis\/\\w+$": ["execute-api:Invoke"],
+        rf"^arn:{partitionEx}:apigateway:{regionEx}::\/restapis\/\w+$": ["execute-api:Invoke"],
         # AWS::SQS::Queue
-        f"^arn:{partitionEx}:sqs:{regionEx}:{accountEx}:[\\w-]+$": ["sqs:SendMessage"],
+        rf"^arn:{partitionEx}:sqs:{regionEx}:{accountEx}:[\w-]+$": ["sqs:SendMessage"],
         # AWS::S3::Bucket
-        f"^arn:{partitionEx}:s3:::[\\w-]+$": ["s3:PutObject", "s3:GetObject"],
+        rf"^arn:{partitionEx}:s3:::[\w-]+$": ["s3:PutObject", "s3:GetObject"],
         # AWS::Dynamodb::Table
-        f"^arn:{partitionEx}:dynamodb:{regionEx}:{accountEx}:table\/[\\w-]+$": [
+        rf"^arn:{partitionEx}:dynamodb:{regionEx}:{accountEx}:table\/[\w-]+$": [
             "dynamodb:GetItem",
             "dynamodb:PutItem",
         ],
         # AWS::StepFunctions::StateMachine
-        f"^arn:{partitionEx}:states:{regionEx}:{accountEx}:stateMachine:[\\w-]+$": [
+        rf"^arn:{partitionEx}:states:{regionEx}:{accountEx}:stateMachine:[\w-]+$": [
             "stepfunction:StartExecution",
             "stepfunction:StopExecution",
         ],
