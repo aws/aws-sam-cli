@@ -156,7 +156,8 @@ class TestResourcesContext(TestCase):
         self, mock_get_translated_template, mock_sam_file_reader, patched_click_get_current_context, patched_click_echo
     ):
         mock_get_translated_template.side_effect = ClientError(
-            {"Error": {"Code": "ExpiredToken", "Message": "The security token included in the request is expired"}}, "DescribeStacks"
+            {"Error": {"Code": "ExpiredToken", "Message": "The security token included in the request is expired"}},
+            "DescribeStacks",
         )
         with self.assertRaises(SamListUnknownClientError):
             with ResourcesContext(
