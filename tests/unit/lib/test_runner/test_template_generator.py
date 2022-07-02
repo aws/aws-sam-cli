@@ -94,16 +94,14 @@ class Test_TemplateGenerator(unittest.TestCase):
             "      BucketName: cloud-test-bucket-unique-name\n",
         ]
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator.__query_tagging_api")
+    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
     def test_lambda_function(self, query_tagging_api_patch):
 
-        query_tagging_api_patch.return_value = {
-            "ResourceTagMappingList": [
-                {
-                    "ResourceARN": "arn:aws:lambda:us-east-1:123456789123:function:lambda-sample-SampleLambda-KWsMLA204T0i",
-                }
-            ]
-        }
+        query_tagging_api_patch.return_value = [
+            {
+                "ResourceARN": "arn:aws:lambda:us-east-1:123456789123:function:lambda-sample-SampleLambda-KWsMLA204T0i",
+            }
+        ]
 
         result = generate_test_runner_string(**self.test_params)
 
@@ -121,15 +119,13 @@ class Test_TemplateGenerator(unittest.TestCase):
         )
         self.assertEqual(result, expected_result)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator.__query_tagging_api")
+    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
     def test_apigw_httpapi(self, query_tagging_api_patch):
-        query_tagging_api_patch.return_value = {
-            "ResourceTagMappingList": [
-                {
-                    "ResourceARN": "arn:aws-us-gov:apigateway:us-west-1::/apis/4p1000",
-                }
-            ]
-        }
+        query_tagging_api_patch.return_value = [
+            {
+                "ResourceARN": "arn:aws-us-gov:apigateway:us-west-1::/apis/4p1000",
+            }
+        ]
 
         result = generate_test_runner_string(**self.test_params)
 
@@ -147,15 +143,13 @@ class Test_TemplateGenerator(unittest.TestCase):
         )
         self.assertEqual(result, expected_result)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator.__query_tagging_api")
+    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
     def test_apigw_restapi(self, query_tagging_api_patch):
-        query_tagging_api_patch.return_value = {
-            "ResourceTagMappingList": [
-                {
-                    "ResourceARN": "arn:aws-us-gov:apigateway:us-west-1::/restapis/r3st4p1",
-                }
-            ]
-        }
+        query_tagging_api_patch.return_value = [
+            {
+                "ResourceARN": "arn:aws-us-gov:apigateway:us-west-1::/restapis/r3st4p1",
+            }
+        ]
 
         result = generate_test_runner_string(**self.test_params)
 
@@ -173,15 +167,13 @@ class Test_TemplateGenerator(unittest.TestCase):
         )
         self.assertEqual(result, expected_result)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator.__query_tagging_api")
+    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
     def test_sqs_queue(self, query_tagging_api_patch):
-        query_tagging_api_patch.return_value = {
-            "ResourceTagMappingList": [
-                {
-                    "ResourceARN": "arn:aws:sqs:us-east-2:444455556666:queue1",
-                }
-            ]
-        }
+        query_tagging_api_patch.return_value = [
+            {
+                "ResourceARN": "arn:aws:sqs:us-east-2:444455556666:queue1",
+            }
+        ]
 
         result = generate_test_runner_string(**self.test_params)
 
@@ -200,15 +192,13 @@ class Test_TemplateGenerator(unittest.TestCase):
         self.maxDiff = None
         self.assertEqual(result, expected_result)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator.__query_tagging_api")
+    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
     def test_s3_bucket(self, query_tagging_api_patch):
-        query_tagging_api_patch.return_value = {
-            "ResourceTagMappingList": [
-                {
-                    "ResourceARN": "arn:aws:s3:::my-very-big-s3-bucket",
-                }
-            ]
-        }
+        query_tagging_api_patch.return_value = [
+            {
+                "ResourceARN": "arn:aws:s3:::my-very-big-s3-bucket",
+            }
+        ]
 
         result = generate_test_runner_string(**self.test_params)
 
@@ -228,15 +218,13 @@ class Test_TemplateGenerator(unittest.TestCase):
         self.maxDiff = None
         self.assertEqual(result, expected_result)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator.__query_tagging_api")
+    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
     def test_dynamodb_table(self, query_tagging_api_patch):
-        query_tagging_api_patch.return_value = {
-            "ResourceTagMappingList": [
-                {
-                    "ResourceARN": "arn:aws:dynamodb:us-east-1:123456789012:table/Books",
-                }
-            ]
-        }
+        query_tagging_api_patch.return_value = [
+            {
+                "ResourceARN": "arn:aws:dynamodb:us-east-1:123456789012:table/Books",
+            }
+        ]
 
         result = generate_test_runner_string(**self.test_params)
 
@@ -256,15 +244,13 @@ class Test_TemplateGenerator(unittest.TestCase):
         self.maxDiff = None
         self.assertEqual(result, expected_result)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator.__query_tagging_api")
+    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
     def test_step_function(self, query_tagging_api_patch):
-        query_tagging_api_patch.return_value = {
-            "ResourceTagMappingList": [
-                {
-                    "ResourceARN": "arn:aws:states:us-east-1:123456789012:stateMachine:stateMachineName",
-                }
-            ]
-        }
+        query_tagging_api_patch.return_value = [
+            {
+                "ResourceARN": "arn:aws:states:us-east-1:123456789012:stateMachine:stateMachineName",
+            }
+        ]
 
         result = generate_test_runner_string(**self.test_params)
 
@@ -284,15 +270,13 @@ class Test_TemplateGenerator(unittest.TestCase):
         self.maxDiff = None
         self.assertEqual(result, expected_result)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator.__query_tagging_api")
+    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
     def test_no_iam_actions_supported(self, query_tagging_api_patch):
-        query_tagging_api_patch.return_value = {
-            "ResourceTagMappingList": [
-                {
-                    "ResourceARN": "arn:aws:logs:us-west-1:123456789012:log-group:/mystack-testgroup-12ABC1AB12A1:*",
-                }
-            ]
-        }
+        query_tagging_api_patch.return_value = [
+            {
+                "ResourceARN": "arn:aws:logs:us-west-1:123456789012:log-group:/mystack-testgroup-12ABC1AB12A1:*",
+            }
+        ]
 
         result = generate_test_runner_string(**self.test_params)
 
@@ -309,7 +293,7 @@ class Test_TemplateGenerator(unittest.TestCase):
         )
         self.assertEqual(result, expected_result)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator.__query_tagging_api")
+    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
     def test_failed_tag_api_query(self, query_tagging_api_patch):
         query_tagging_api_patch.return_value = None
 
@@ -324,15 +308,13 @@ class Test_TemplateGenerator(unittest.TestCase):
         )
         self.assertEqual(result, expected_result)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator.__query_tagging_api")
+    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
     def test_malformed_jinja_template(self, query_tagging_api_patch):
-        query_tagging_api_patch.return_value = {
-            "ResourceTagMappingList": [
-                {
-                    "ResourceARN": "arn:aws:lambda:us-east-1:123456789123:function:lambda-sample-SampleLambda-KWsMLA204T0i",
-                }
-            ]
-        }
+        query_tagging_api_patch.return_value = [
+            {
+                "ResourceARN": "arn:aws:lambda:us-east-1:123456789123:function:lambda-sample-SampleLambda-KWsMLA204T0i",
+            }
+        ]
 
         malformed_params = {
             "jinja_template_json_string": "This is not a jinja template!",

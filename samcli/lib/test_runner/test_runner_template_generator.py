@@ -9,7 +9,7 @@ from typing import *
 LOG = logging.getLogger(__name__)
 
 
-def __extract_api_id_from_arn(api_arn: str) -> str:
+def _extract_api_id_from_arn(api_arn: str) -> str:
     """
     Extracts an api id from an HTTP or REST api arn.
 
@@ -33,7 +33,7 @@ def __extract_api_id_from_arn(api_arn: str) -> str:
     return api_arn[api_arn.rindex("/") + 1 :]
 
 
-def __get_permissions_map() -> dict:
+def _get_permissions_map() -> dict:
     """
     Returns a dictionary mapping a Regular Expression representing the arn of a specific resource to the default permissions generated for that resource.
 
@@ -43,9 +43,9 @@ def __get_permissions_map() -> dict:
         A dictionary mapping a Regular Expression representing the arn of a resource to a list of IAM Action permissions generated for that resource.
     """
 
-    partition_ex = "(aws|aws-cn|aws-us-gov)"
-    region_ex = "\w+-\w+-\d"
-    account_ex = "\d{12}"
+    partition_ex = r"(aws|aws-cn|aws-us-gov)"
+    region_ex = r"(us(-gov)?|ap|ca|cn|eu|sa)-(central|(north|south)?(east|west)?)-\d"
+    account_ex = r"\d{12}"
 
     default_permissions_map = {
         # AWS::Lambda::Function
@@ -72,7 +72,7 @@ def __get_permissions_map() -> dict:
     return default_permissions_map
 
 
-def __get_permissions(resource_arn: str) -> List[str]:
+def _get_permissions(resource_arn: str) -> List[str]:
     """
     Returns a list of IAM Action permissions to generate given a resource arn.
 
@@ -89,17 +89,17 @@ def __get_permissions(resource_arn: str) -> List[str]:
         The list of IAM Action permissions to generate for a given resource.
     """
 
-    permissions_map = __get_permissions_map()
+    permissions_map = _get_permissions_map()
 
-    for arnExp in permissions_map.keys():
-        if re.search(arnExp, resource_arn) is not None:
-            LOG.info("Matched ARN `%s` to IAM actions %s", resource_arn, str(permissions_map[arnExp]))
-            return permissions_map[arnExp]
+    for arn_exp, action_list in permissions_map.items():
+        if re.search(arn_exp, resource_arn) is not None:
+            LOG.info("Matched ARN `%s` to IAM actions %s", resource_arn, str(action_list))
+            return action_list
     LOG.info("No IAM actions supported for ARN `%s`", resource_arn)
     return []
 
 
-def __generate_base_test_runner_template_json(
+def _generate_base_test_runner_template_json(
     jinja_template_json_string: str,
     bucket_name: str,
     ecs_task_exec_role_arn: str,
@@ -165,7 +165,7 @@ def __generate_base_test_runner_template_json(
         return None
 
 
-def __query_tagging_api(tag_filters: dict) -> dict:
+def _query_tagging_api(tag_filters: dict) -> dict:
     """
     Queries the Tagging API to retrieve the ARNs of every resource with the given tags.
 
@@ -181,20 +181,20 @@ def __query_tagging_api(tag_filters: dict) -> dict:
     Returns
     -------
     dict
-        A response object containing ResourceTagMappingList, which contains a list of resource ARNs and tags associated with each.
+        A ResourceTagMappingList, which contains a list of resource ARNs and tags associated with each.
 
         NOTE: https://docs.aws.amazon.com/cli/latest/reference/resourcegroupstaggingapi/get-resources.html#output
 
 
     """
     try:
-        return boto3.client("resourcegroupstaggingapi").get_resources(tag_filters=tag_filters)
+        return boto3.client("resourcegroupstaggingapi").get_resources(tag_filters=tag_filters)["ResourceTagMappingList"]
     except Exception as query_error:
         LOG.error("Failed to call get_resources from resource group tagging api: %s", query_error)
         return None
 
 
-def __generate_statement_list(tag_filters: dict) -> List[dict]:
+def _generate_statement_list(tag_filters: dict) -> List[dict]:
     """
     Generates a list of IAM statements with default action permissions for resources with the given tags.
 
@@ -211,15 +211,15 @@ def __generate_statement_list(tag_filters: dict) -> List[dict]:
         The list of JSON objects representing IAM statements corresponding to the resources specified by the given tags.
     """
 
-    tagging_api_response = __query_tagging_api(tag_filters)
+    resource_tag_mapping_list = _query_tagging_api(tag_filters)
 
-    if tagging_api_response is None:
+    if resource_tag_mapping_list is None:
         LOG.error("Failed to receive get_resources response, cannot generate any IAM statements.")
         return []
 
     iam_statements = []
 
-    for resource in tagging_api_response["ResourceTagMappingList"]:
+    for resource in resource_tag_mapping_list:
         new_statement = {
             "Effect": "Allow",
             "Action": [],
@@ -229,12 +229,12 @@ def __generate_statement_list(tag_filters: dict) -> List[dict]:
 
         new_statement["Action"].extend(
             # Default permissions are commented out
-            ["# " + action for action in __get_permissions(arn)]
+            ["# " + action for action in _get_permissions(arn)]
         )
 
         # https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-control-access-using-iam-policies-to-invoke-api.html
         if "# execute-api:Invoke" in new_statement["Action"]:
-            apiId = __extract_api_id_from_arn(arn)
+            apiId = _extract_api_id_from_arn(arn)
             new_statement[
                 "Resource"
             ] = f"!Sub arn:${{AWS::Partition}}:execute-api:${{AWS::Region}}:${{AWS::AccountId}}:{apiId}/<STAGE>/GET/<RESOURCE_PATH>"
@@ -245,7 +245,7 @@ def __generate_statement_list(tag_filters: dict) -> List[dict]:
     return iam_statements
 
 
-def __comment_out_default_actions(raw_yaml_string: str) -> str:
+def _comment_out_default_actions(raw_yaml_string: str) -> str:
     """
     Formats the given YAML string to remove quotes and move `#` to the other side of the list item `-`.
 
@@ -320,7 +320,7 @@ def generate_test_runner_string(
 
     """
 
-    test_runner_template = __generate_base_test_runner_template_json(
+    test_runner_template = _generate_base_test_runner_template_json(
         jinja_template_json_string,
         bucket_name,
         ecs_task_exec_role_arn,
@@ -333,7 +333,7 @@ def generate_test_runner_string(
         LOG.exception("Failed to receive base template, aborting template generation.")
         return None
 
-    iam_statements = __generate_statement_list(tag_filters)
+    iam_statements = _generate_statement_list(tag_filters)
 
     # Attach the generated IAM statements to the Container IAM Role
     test_runner_template["Resources"]["ContainerIAMRole"]["Properties"]["Policies"][0]["PolicyDocument"][
@@ -342,6 +342,6 @@ def generate_test_runner_string(
 
     raw_yaml_template_string = to_yaml(json.dumps(test_runner_template))
 
-    processed_yaml_template_string = __comment_out_default_actions(raw_yaml_template_string)
+    processed_yaml_template_string = _comment_out_default_actions(raw_yaml_template_string)
 
     return processed_yaml_template_string
