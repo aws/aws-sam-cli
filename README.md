@@ -12,8 +12,8 @@
 
 The AWS Serverless Application Model (SAM) CLI is an open-source CLI tool that helps you develop serverless applications containing [Lambda functions](https://aws.amazon.com/lambda/), [Step Functions](https://aws.amazon.com/step-functions/), [API Gateway](https://aws.amazon.com/api-gateway/), [EventBridge](https://aws.amazon.com/eventbridge/), [SQS](https://aws.amazon.com/sqs/), [SNS](https://aws.amazon.com/sns/) and more. Some of the features it provides are:
 - **Initialize serverless applications** in minutes with AWS-provided infrastructure templates with `sam init`
-- **Compile, build, and package** Lambda functions with provided runtimes and with custom Makefile workflows, for zipping and image types of Lambda functions with `sam build`
-- **Locally test** a Lambda function and API Gateway quickly in a Docker container with `sam local` commands on SAM and CDK applications
+- **Compile, build, and package** Lambda functions with provided runtimes and with custom Makefile workflows, for zip and image types of Lambda functions with `sam build`
+- **Locally test** a Lambda function and API Gateway easily in a Docker container with `sam local` commands on SAM and CDK applications
 - **Sync and test your changes in the cloud** with `sam sync` in your developer environments
 - **Deploy** your SAM and CloudFormation templates using `sam deploy`
 - Quickly **create pipelines** with prebuilt templates with popular CI/CD systems using `sam pipeline init`
@@ -34,7 +34,7 @@ environment that lets you locally build, test, debug, and deploy [AWS serverless
 
 **Next Steps:** Learn to build a more complex serverless application.
 * [Extract text from images and store it in a database](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-example-s3.html) using Amazon S3 and Amazon Rekognition services.
-* [Detect when records added to a database](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-example-ddb.html) using Amazon DynamoDB database and asynchronous stream processing.
+* [Detect when records are added to a database](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-example-ddb.html) using Amazon DynamoDB database and asynchronous stream processing.
 * [Explore popular patterns](https://serverlessland.com/patterns)
 
 
@@ -42,7 +42,7 @@ environment that lets you locally build, test, debug, and deploy [AWS serverless
 This Github repository contains source code for SAM CLI. Here is the development team talking about this code:
 
 > SAM CLI code is written in Python. Source code is well documented, very modular, with 95% unit test coverage. 
-It uses this excellent Python library called Click to manage the command line interaction and uses Docker to run Lambda functions locally.
+It uses this awesome Python library called Click to manage the command line interaction and uses Docker to run Lambda functions locally.
 We think you'll like the code base. Clone it and run `make pr` or `./Make -pr` on Windows!
 
 
