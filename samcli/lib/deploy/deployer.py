@@ -708,7 +708,7 @@ class Deployer:
                 LOG.info("Stack %s failed to update, rolling back stack to previous state", stack_name)
 
                 self._client.rollback_stack(**kwargs)
-                self.wait_for_execute(stack_name, "ROLLBACK", False, FailureMode.DELETE)
+                self.wait_for_execute(stack_name, "ROLLBACK", False, time.time(), FailureMode.DELETE)
 
             # Delete the stack if rollback failed or if we initially failed stack create
             rollback_stack_status = self._get_stack_status(stack_name)
@@ -716,7 +716,7 @@ class Deployer:
                 LOG.info("Stack %s failed to create, deleting stack", stack_name)
 
                 self._client.delete_stack(**kwargs)
-                self.wait_for_execute(stack_name, "DELETE", False, FailureMode.DELETE)
+                self.wait_for_execute(stack_name, "DELETE", False, time.time(), FailureMode.DELETE)
 
         except botocore.exceptions.ClientError as ex:
             raise DeployStackStatusMissingError(stack_name) from ex
