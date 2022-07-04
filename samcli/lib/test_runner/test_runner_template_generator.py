@@ -267,7 +267,7 @@ def _comment_out_default_actions(raw_yaml_string: str) -> str:
     return raw_yaml_string.replace("'", "").replace("- # ", "# - ")
 
 
-def generate_test_runner_string(
+def generate_test_runner_template_string(
     jinja_template_json_string: str,
     bucket_name: str,
     ecs_task_exec_role_arn: str,

@@ -1,7 +1,7 @@
 import unittest
 import json
 from unittest.mock import patch
-from samcli.lib.test_runner.test_runner_template_generator import generate_test_runner_string
+from samcli.lib.test_runner.test_runner_template_generator import generate_test_runner_template_string
 from samcli.lib.test_runner.base_template import base_template_json
 
 
@@ -103,7 +103,7 @@ class Test_TemplateGenerator(unittest.TestCase):
             }
         ]
 
-        result = generate_test_runner_string(**self.test_params)
+        result = generate_test_runner_template_string(**self.test_params)
 
         expected_statements = [
             "              - Effect: Allow\n",
@@ -127,7 +127,7 @@ class Test_TemplateGenerator(unittest.TestCase):
             }
         ]
 
-        result = generate_test_runner_string(**self.test_params)
+        result = generate_test_runner_template_string(**self.test_params)
 
         expected_statements = [
             "              - Effect: Allow\n",
@@ -151,7 +151,7 @@ class Test_TemplateGenerator(unittest.TestCase):
             }
         ]
 
-        result = generate_test_runner_string(**self.test_params)
+        result = generate_test_runner_template_string(**self.test_params)
 
         expected_statements = [
             "              - Effect: Allow\n",
@@ -175,7 +175,7 @@ class Test_TemplateGenerator(unittest.TestCase):
             }
         ]
 
-        result = generate_test_runner_string(**self.test_params)
+        result = generate_test_runner_template_string(**self.test_params)
 
         expected_statements = [
             "              - Effect: Allow\n",
@@ -200,7 +200,7 @@ class Test_TemplateGenerator(unittest.TestCase):
             }
         ]
 
-        result = generate_test_runner_string(**self.test_params)
+        result = generate_test_runner_template_string(**self.test_params)
 
         expected_statements = [
             "              - Effect: Allow\n",
@@ -226,7 +226,7 @@ class Test_TemplateGenerator(unittest.TestCase):
             }
         ]
 
-        result = generate_test_runner_string(**self.test_params)
+        result = generate_test_runner_template_string(**self.test_params)
 
         expected_statements = [
             "              - Effect: Allow\n",
@@ -252,7 +252,7 @@ class Test_TemplateGenerator(unittest.TestCase):
             }
         ]
 
-        result = generate_test_runner_string(**self.test_params)
+        result = generate_test_runner_template_string(**self.test_params)
 
         expected_statements = [
             "              - Effect: Allow\n",
@@ -278,7 +278,7 @@ class Test_TemplateGenerator(unittest.TestCase):
             }
         ]
 
-        result = generate_test_runner_string(**self.test_params)
+        result = generate_test_runner_template_string(**self.test_params)
 
         expected_statements = [
             "              - Effect: Allow\n",
@@ -297,7 +297,7 @@ class Test_TemplateGenerator(unittest.TestCase):
     def test_failed_tag_api_query(self, query_tagging_api_patch):
         query_tagging_api_patch.return_value = None
 
-        result = generate_test_runner_string(**self.test_params)
+        result = generate_test_runner_template_string(**self.test_params)
 
         expected_statements = [""]
 
@@ -325,7 +325,7 @@ class Test_TemplateGenerator(unittest.TestCase):
             "tag_filters": [{"Key": "Test_Key", "Values": ["Test_Value"]}],
         }
 
-        result = generate_test_runner_string(**malformed_params)
+        result = generate_test_runner_template_string(**malformed_params)
 
         expected_result = None
 
