@@ -2,7 +2,7 @@ name: Merge the develop branch into the list-command branch
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/6 * * * *'
 #test comment
 jobs:
   update-branch:
@@ -14,6 +14,11 @@ jobs:
       - run: |
           curl --request POST \
           --url https://api.github.com/repos/andrew-zhan139/aws-sam-cli/merges \
-          --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
+          --header 'authorization: token ${{ secrets.GITHUB_TOKEN }}' \
           --header 'content-type: application/json' \
-          --data '{"base":"test-branch","head":"test-list-command","commit_message":"merge test-list-command into test-branch"}'
+          --data '{
+            "base":"test-branch",
+            "head":"test-list-command",
+            "commit_message":"merge test-list-command into test-branch"
+            }' \
+          --fail
