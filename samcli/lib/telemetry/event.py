@@ -77,7 +77,7 @@ class Event:
             "event_name": self.event_name.value,
             "event_value": self.event_value,
             "thread_id": self.thread_id,
-            "timestamp": self.timestamp,
+            "timestamp": str(self.timestamp),
         }
 
     @staticmethod
