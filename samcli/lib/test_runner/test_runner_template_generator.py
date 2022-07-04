@@ -130,9 +130,7 @@ def _create_iam_statment(resource_arn: str) -> List[str]:
 def _generate_base_test_runner_template_json(
     jinja_template_json_string: str,
     bucket_name: str,
-    ecs_task_exec_role_arn: str,
     image_uri: str,
-    vpc_id: str,
     cpu: int,
     memory: int,
 ) -> dict:
@@ -147,18 +145,8 @@ def _generate_base_test_runner_template_json(
     bucket_name : str
         The name of the S3 bucket used by the Test Runner Stack.
 
-    ecs_task_exec_role_arn : str
-        The ARN of the AWS ECS Task Execution Role used by the Test Runner Stack.
-
-        NOTE: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_execution_IAM_role.html
-
     image_uri : str
         The URI of the Image to be used by the Test Runner Fargate task definition.
-
-    vpc_id : str
-        The ID of the VPC associated with the Test Runner security group.
-
-        NOTE: The security group (and associated VPC) is required to invoke the runTask API and run tests
 
     cpu : int
         The CPU used by the Test Runner Task Definition.
@@ -179,8 +167,6 @@ def _generate_base_test_runner_template_json(
     data = {
         "cpu": cpu,
         "memory": memory,
-        "vpc_id": vpc_id,
-        "ecs_task_exec_role_arn": ecs_task_exec_role_arn,
         "image_uri": image_uri,
         "s3_bucket_name": bucket_name,
     }
@@ -270,9 +256,7 @@ def _comment_out_default_actions(raw_yaml_string: str) -> str:
 def generate_test_runner_template_string(
     jinja_template_json_string: str,
     bucket_name: str,
-    ecs_task_exec_role_arn: str,
     image_uri: str,
-    vpc_id: str,
     tag_filters: dict,
     cpu: int = 256,
     memory: int = 512,
@@ -289,18 +273,8 @@ def generate_test_runner_template_string(
     bucket_name : str
         The name of the S3 bucket used by the Test Runner Stack.
 
-    ecs_task_exec_role_arn : str
-        The ARN of the AWS ECS Task Execution Role used by the Test Runner Stack.
-
-        NOTE: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_execution_IAM_role.html
-
     image_uri : str
         The URI of the Image to be used by the Test Runner Fargate task definition.
-
-    vpc_id : str
-        The ID of the VPC associated with the Test Runner security group.
-
-        NOTE: The security group (and associated VPC) is required to invoke the runTask API and run tests.
 
     cpu : int
         The CPU used by the Test Runner Task Definition. (DEFAULT = 256)
@@ -327,9 +301,7 @@ def generate_test_runner_template_string(
     test_runner_template = _generate_base_test_runner_template_json(
         jinja_template_json_string,
         bucket_name,
-        ecs_task_exec_role_arn,
         image_uri,
-        vpc_id,
         cpu,
         memory,
     )

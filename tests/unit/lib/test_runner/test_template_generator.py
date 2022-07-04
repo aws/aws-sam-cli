@@ -11,9 +11,7 @@ class Test_TemplateGenerator(unittest.TestCase):
         self.test_params = {
             "jinja_template_json_string": json.dumps(base_template_json),
             "bucket_name": "cloud-test-bucket-unique-name",
-            "ecs_task_exec_role_arn": "arn:aws:iam::123456789123:role/ecsTaskExecutionRole",
             "image_uri": "123456789123.dkr.ecr.us-east-1.amazonaws.com/cloud-test-repo",
-            "vpc_id": "vpc-xxxxxxxxxxxxxxxxx",
             "tag_filters": [{"Key": "Test_Key", "Values": ["Test_Value"]}],
         }
 
@@ -57,7 +55,7 @@ class Test_TemplateGenerator(unittest.TestCase):
             "    Properties:\n",
             "      RequiresCompatibilities:\n",
             "        - FARGATE\n",
-            "      ExecutionRoleArn: arn:aws:iam::123456789123:role/ecsTaskExecutionRole\n",
+            "      ExecutionRoleArn: !Sub arn:aws:iam::${AWS::AccountId}:role/ecsTaskExecutionRole\n",
             "      TaskRoleArn: !Ref ContainerIAMRole\n",
             "      Cpu: 256\n",
             "      Memory: 512\n",
@@ -82,12 +80,6 @@ class Test_TemplateGenerator(unittest.TestCase):
             "    Type: AWS::ECS::Cluster\n",
             "    Properties:\n",
             "      ClusterName: cloud-test-fargate-cluster\n",
-            "  SecurityGroup:\n",
-            "    Type: AWS::EC2::SecurityGroup\n",
-            "    Properties:\n",
-            "      GroupDescription: cloud-test security group\n",
-            "      GroupName: cloud-test-security-group\n",
-            "      VpcId: vpc-xxxxxxxxxxxxxxxxx\n",
             "  S3Bucket:\n",
             "    Type: AWS::S3::Bucket\n",
             "    Properties:\n",
@@ -319,9 +311,7 @@ class Test_TemplateGenerator(unittest.TestCase):
         malformed_params = {
             "jinja_template_json_string": "This is not a jinja template!",
             "bucket_name": "cloud-test-bucket-unique-name",
-            "ecs_task_exec_role_arn": "arn:aws:iam::123456789123:role/ecsTaskExecutionRole",
             "image_uri": "123456789123.dkr.ecr.us-east-1.amazonaws.com/cloud-test-repo",
-            "vpc_id": "vpc-xxxxxxxxxxxxxxxxx",
             "tag_filters": [{"Key": "Test_Key", "Values": ["Test_Value"]}],
         }
 

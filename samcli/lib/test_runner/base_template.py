@@ -40,7 +40,7 @@ base_template_json = {
             "Type": "AWS::ECS::TaskDefinition",
             "Properties": {
                 "RequiresCompatibilities": ["FARGATE"],
-                "ExecutionRoleArn": "{{ ecs_task_exec_role_arn }}",
+                "ExecutionRoleArn": {"Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/ecsTaskExecutionRole"},
                 "TaskRoleArn": {"Ref": "ContainerIAMRole"},
                 "Cpu": "{{ cpu }}",
                 "Memory": "{{ memory }}",
@@ -64,14 +64,6 @@ base_template_json = {
         },
         "LogGroup": {"Type": "AWS::Logs::LogGroup", "Properties": {"LogGroupName": "cloud-test-loggroup"}},
         "ECSCluster": {"Type": "AWS::ECS::Cluster", "Properties": {"ClusterName": "cloud-test-fargate-cluster"}},
-        "SecurityGroup": {
-            "Type": "AWS::EC2::SecurityGroup",
-            "Properties": {
-                "GroupDescription": "cloud-test security group",
-                "GroupName": "cloud-test-security-group",
-                "VpcId": "{{ vpc_id }}",
-            },
-        },
         "S3Bucket": {"Type": "AWS::S3::Bucket", "Properties": {"BucketName": "{{ s3_bucket_name }}"}},
     },
 }
