@@ -35,12 +35,12 @@ def _extract_api_id_from_arn(api_arn: str) -> str:
 
 def _get_permissions_map() -> dict:
     """
-    Returns a dictionary mapping a Regular Expression representing the arn of a specific resource to the default permissions generated for that resource.
+    Returns a dictionary mapping a Regular Expression representing the arn of a specific resource to the AWS Resource Type and the default permissions generated for that resource.
 
     Returns
     -------
     default_permissions_map : dict
-        A dictionary mapping a Regular Expression representing the arn of a resource to a list of IAM Action permissions generated for that resource.
+        A dictionary mapping a Regular Expression representing the arn of a resource to an object containing the AWS Resource Type and the list of IAM Action permissions generated for that resource.
     """
 
     partition_ex = r"(aws|aws-cn|aws-us-gov)"
@@ -48,35 +48,49 @@ def _get_permissions_map() -> dict:
     account_ex = r"\d{12}"
 
     default_permissions_map = {
-        # AWS::Lambda::Function
-        rf"^arn:{partition_ex}:lambda:{region_ex}:{account_ex}:function:[\w-]+(:\d+)?$": ["lambda:InvokeFunction"],
-        # AWS::ApiGateway::Api
-        rf"^arn:{partition_ex}:apigateway:{region_ex}::\/apis\/\w+$": ["execute-api:Invoke"],
-        # AWS::ApiGateway::RestApi
-        rf"^arn:{partition_ex}:apigateway:{region_ex}::\/restapis\/\w+$": ["execute-api:Invoke"],
-        # AWS::SQS::Queue
-        rf"^arn:{partition_ex}:sqs:{region_ex}:{account_ex}:[\w-]+$": ["sqs:SendMessage"],
-        # AWS::S3::Bucket
-        rf"^arn:{partition_ex}:s3:::[\w-]+$": ["s3:PutObject", "s3:GetObject"],
-        # AWS::Dynamodb::Table
-        rf"^arn:{partition_ex}:dynamodb:{region_ex}:{account_ex}:table\/[\w-]+$": [
-            "dynamodb:GetItem",
-            "dynamodb:PutItem",
-        ],
-        # AWS::StepFunctions::StateMachine
-        rf"^arn:{partition_ex}:states:{region_ex}:{account_ex}:stateMachine:[\w-]+$": [
-            "stepfunction:StartExecution",
-            "stepfunction:StopExecution",
-        ],
+        rf"^arn:{partition_ex}:lambda:{region_ex}:{account_ex}:function:[\w-]+(:\d+)?$": {
+            "Resource": "AWS::Lambda::Function",
+            "Action": ["lambda:InvokeFunction"],
+        },
+        rf"^arn:{partition_ex}:apigateway:{region_ex}::\/apis\/\w+$": {
+            "Resource": "AWS::ApiGateway::Api",
+            "Action": ["execute-api:Invoke"],
+        },
+        rf"^arn:{partition_ex}:apigateway:{region_ex}::\/restapis\/\w+$": {
+            "Resource": "AWS::ApiGateway::RestApi",
+            "Action": ["execute-api:Invoke"],
+        },
+        rf"^arn:{partition_ex}:sqs:{region_ex}:{account_ex}:[\w-]+$": {
+            "Resource": "AWS::SQS::Queue",
+            "Action": ["sqs:SendMessage"],
+        },
+        rf"^arn:{partition_ex}:s3:::[\w-]+$": {
+            "Resource": "AWS::S3::Bucket",
+            "Action": ["s3:PutObject", "s3:GetObject"],
+        },
+        rf"^arn:{partition_ex}:dynamodb:{region_ex}:{account_ex}:table\/[\w-]+$": {
+            "Resource": "AWS::Dynamodb::Table",
+            "Action": [
+                "dynamodb:GetItem",
+                "dynamodb:PutItem",
+            ],
+        },
+        rf"^arn:{partition_ex}:states:{region_ex}:{account_ex}:stateMachine:[\w-]+$": {
+            "Resource": "AWS::StepFunctions::StateMachine",
+            "Action": [
+                "stepfunction:StartExecution",
+                "stepfunction:StopExecution",
+            ],
+        },
     }
     return default_permissions_map
 
 
-def _get_permissions(resource_arn: str) -> List[str]:
+def _create_iam_statment(resource_arn: str) -> List[str]:
     """
-    Returns a list of IAM Action permissions to generate given a resource arn.
+    Returns an IAM Statement corresponding to the supplied resource ARN.
 
-    An empty list is returned if there are no IAM Action permissions to generate for the given resource.
+    The Action list is empty if there are no IAM Action permissions to generate for the given resource.
 
     Parameters
     ----------
@@ -91,12 +105,26 @@ def _get_permissions(resource_arn: str) -> List[str]:
 
     permissions_map = _get_permissions_map()
 
-    for arn_exp, action_list in permissions_map.items():
+    new_statement = {
+        "Effect": "Allow",
+        "Action": [],
+        "Resource": resource_arn,
+    }
+
+    for arn_exp, mapping in permissions_map.items():
         if re.search(arn_exp, resource_arn) is not None:
-            LOG.info("Matched ARN `%s` to IAM actions %s", resource_arn, str(action_list))
-            return action_list
-    LOG.info("No IAM actions supported for ARN `%s`", resource_arn)
-    return []
+            LOG.info("Matched ARN `%s` to IAM actions %s", resource_arn, mapping["Action"])
+            # Mark generated actions to be commented out
+            new_statement["Action"] = ["# " + action for action in mapping["Action"]]
+
+            # https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-control-access-using-iam-policies-to-invoke-api.html
+            if mapping["Resource"] in ("AWS::ApiGateway::Api", "AWS::ApiGateway::RestApi"):
+                apiId = _extract_api_id_from_arn(resource_arn)
+                new_statement[
+                    "Resource"
+                ] = f"!Sub arn:${{AWS::Partition}}:execute-api:${{AWS::Region}}:${{AWS::AccountId}}:{apiId}/<STAGE>/GET/<RESOURCE_PATH>"
+
+    return new_statement
 
 
 def _generate_base_test_runner_template_json(
@@ -217,31 +245,7 @@ def _generate_statement_list(tag_filters: dict) -> List[dict]:
         LOG.error("Failed to receive get_resources response, cannot generate any IAM statements.")
         return []
 
-    iam_statements = []
-
-    for resource in resource_tag_mapping_list:
-        new_statement = {
-            "Effect": "Allow",
-            "Action": [],
-            "Resource": "",
-        }
-        arn = resource["ResourceARN"]
-
-        new_statement["Action"].extend(
-            # Default permissions are commented out
-            ["# " + action for action in _get_permissions(arn)]
-        )
-
-        # https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-control-access-using-iam-policies-to-invoke-api.html
-        if "# execute-api:Invoke" in new_statement["Action"]:
-            apiId = _extract_api_id_from_arn(arn)
-            new_statement[
-                "Resource"
-            ] = f"!Sub arn:${{AWS::Partition}}:execute-api:${{AWS::Region}}:${{AWS::AccountId}}:{apiId}/<STAGE>/GET/<RESOURCE_PATH>"
-        else:
-            new_statement["Resource"] = arn
-
-        iam_statements.append(new_statement)
+    iam_statements = [_create_iam_statment(resource["ResourceARN"]) for resource in resource_tag_mapping_list]
     return iam_statements
 
 
