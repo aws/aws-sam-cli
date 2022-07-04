@@ -1,4 +1,4 @@
-name: Merge the develop branch into the list-command branch
+name: Test Merge the develop branch into the list-command branch
 
 on:
   schedule:
