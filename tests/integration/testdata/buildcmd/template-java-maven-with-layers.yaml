@@ -1,0 +1,27 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Timeout: 30
+
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: Java/maven-with-layer/HelloWorldFunction
+      Handler: helloworld.App::handleRequest
+      Runtime: java8
+      MemorySize: 512
+      Layers:
+        - !Ref HelloWorldLayer
+
+  HelloWorldLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: Java/maven-with-layer/HelloWorldLayer
+      CompatibleRuntimes:
+        - java8
+    Metadata:
+      BuildMethod: java8
+      BuildArchitecture: x86_64
