@@ -216,7 +216,7 @@ def _query_tagging_api(tag_filters: dict) -> dict:
 
     """
     try:
-        return boto3.client("resourcegroupstaggingapi").get_resources(tag_filters=tag_filters)["ResourceTagMappingList"]
+        return boto3.client("resourcegroupstaggingapi").get_resources(TagFilters=tag_filters)["ResourceTagMappingList"]
     except Exception as query_error:
         LOG.error("Failed to call get_resources from resource group tagging api: %s", query_error)
         return None
