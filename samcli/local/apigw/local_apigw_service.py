@@ -314,11 +314,7 @@ class LocalApigwService(BaseLocalService):
             headers = Headers(cors_headers)
             return self.service_response("", headers, 200)
 
-        # Replicate API Gateway behaviour of auto-decoding the HTTP request body
-        # based on the Content-Encoding HTTP header:
-        content_encoding = request.headers.get("Content-Encoding")
-        if content_encoding == "gzip":
-            request.stream = GzipFile(fileobj=request.stream)
+        self._handle_request_content_encoding()
 
         try:
             # TODO: Rewrite the logic below to use version 2.0 when an invalid value is provided
@@ -361,6 +357,7 @@ class LocalApigwService(BaseLocalService):
             return ServiceErrorResponses.lambda_failure_response()
         except UnicodeDecodeError as error:
             LOG.error("UnicodeDecodeError while processing HTTP request: %s", error)
+            return ServiceErrorResponses.lambda_failure_response()
 
         stdout_stream = io.BytesIO()
         stdout_stream_writer = StreamWriter(stdout_stream, auto_flush=True)
@@ -971,3 +968,11 @@ class LocalApigwService(BaseLocalService):
 
         """
         return request_mimetype in binary_types or "*/*" in binary_types
+
+    @staticmethod
+    def _handle_request_content_encoding():
+        # Replicate API Gateway behaviour of auto-decoding the HTTP request body
+        # based on the Content-Encoding HTTP header:
+        content_encoding = request.headers.get("Content-Encoding")
+        if content_encoding == "gzip":
+            request.stream = GzipFile(fileobj=request.stream)
