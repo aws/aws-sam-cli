@@ -169,6 +169,15 @@ class Stage:
 
     @staticmethod
     def generate_thumbprint(oidc_provider_url: Optional[str]) -> Optional[str]:
+        """
+        retrieves the certificate of the top intermidate cerficate authority that signed the certificate
+        used by the external identity provider and then returns the SHA1 hash of it. For more information on
+        why the thumbprint is needed and the steps required to obtain it see the following page
+        https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc_verify-thumbprint.html
+        -------
+        oidc_provider_url : Optional[str]
+            The URL of the OIDC provider that will be used for authentication.
+        """
         # Send HTTP GET to retrieve jwks_uri field from openid-configuration document
         oidc_config_url = "{url}/.well-known/openid-configuration".format(url=oidc_provider_url)
         r = requests.get(oidc_config_url, timeout=5)

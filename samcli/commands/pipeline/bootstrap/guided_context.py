@@ -211,13 +211,13 @@ class GuidedContext:
 
     def _prompt_github_org(self) -> None:
         self.github_org = click.prompt(
-            "Enter the GitHub Organization that the code repository belongs to."
+            "Enter the GitHub organization that the code repository belongs to."
             " If there is no organization enter your username instead",
             type=click.STRING,
         )
 
     def _prompt_github_repo(self) -> None:
-        self.github_repo = click.prompt("Enter GitHub Repository name", type=click.STRING)
+        self.github_repo = click.prompt("Enter GitHub repository name", type=click.STRING)
 
     def _prompt_github_branch(self) -> None:
         self.deployment_branch = click.prompt(

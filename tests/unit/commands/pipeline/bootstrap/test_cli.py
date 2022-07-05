@@ -261,7 +261,7 @@ class TestCli(TestCase):
     def test_bootstrap_will_try_loading_oidc_values_if_not_provided(
         self, guided_context_mock, environment_mock, load_saved_oidc_values_arn_mock, get_command_names_mock
     ):
-        self.cli_context["oidc_provider_url"] = None
+        self.cli_context["oidc_provider"] = None
         bootstrap_cli(**self.cli_context)
         load_saved_oidc_values_arn_mock.assert_called_once()
 

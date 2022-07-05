@@ -218,15 +218,15 @@ def do_cli(
     if not pipeline_user_arn and not permissions_provider == OPEN_ID_CONNECT:
         pipeline_user_arn = _load_saved_pipeline_user_arn()
 
-    if not oidc_provider_url:
+    if not oidc_provider:
         oidc_parameters = _load_saved_oidc_values()
         if oidc_parameters:
-            oidc_provider = oidc_parameters[OIDC_PROVIDER]
-            oidc_provider_url = oidc_parameters[OIDC_PROVIDER_URL]
-            oidc_client_id = oidc_parameters[OIDC_CLIENT_ID]
-            github_org = oidc_parameters[GITHUB_ORG]
-            github_repo = oidc_parameters[GITHUB_REPO]
-            deployment_branch = oidc_parameters[DEPLOYMENT_BRANCH]
+            oidc_provider = oidc_parameters.get(OIDC_PROVIDER)
+            oidc_provider_url = oidc_parameters.get(OIDC_PROVIDER_URL)
+            oidc_client_id = oidc_parameters.get(OIDC_CLIENT_ID)
+            github_org = oidc_parameters.get(GITHUB_ORG)
+            github_repo = oidc_parameters.get(GITHUB_REPO)
+            deployment_branch = oidc_parameters.get(DEPLOYMENT_BRANCH)
 
     if interactive:
         if standalone:
@@ -291,8 +291,7 @@ def do_cli(
                 "github-repo": github_repo,
                 "deployment-branch": deployment_branch,
             }
-            pipeline_oidc_provider = GitHubOidcProvider(github_oidc_params, common_oidc_params)
-            pipeline_oidc_provider.verify_parameters()
+            pipeline_oidc_provider = GitHubOidcProvider(github_oidc_params, common_oidc_params, GITHUB_ACTIONS)
         else:
             raise click.UsageError("Missing required parameter '--oidc-provider'")
         subject_claim = pipeline_oidc_provider.get_subject_claim()
@@ -357,19 +356,12 @@ def _load_saved_pipeline_user_arn() -> Optional[str]:
     return config.get("pipeline_user")
 
 
-def _load_saved_oidc_values() -> Dict[str, Optional[str]]:
+def _load_saved_oidc_values() -> Dict[str, str]:
     samconfig: SamConfig = SamConfig(config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME)
     if not samconfig.exists():
         return {}
     config: Dict[str, str] = samconfig.get_all(cmd_names=_get_bootstrap_command_names(), section="parameters")
-    oidc_parameters: Dict[str, Optional[str]] = {}
-    oidc_parameters[OIDC_PROVIDER] = config.get(OIDC_PROVIDER)
-    oidc_parameters[OIDC_PROVIDER_URL] = config.get(OIDC_PROVIDER_URL)
-    oidc_parameters[OIDC_CLIENT_ID] = config.get(OIDC_CLIENT_ID)
-    oidc_parameters[GITHUB_ORG] = config.get(GITHUB_ORG)
-    oidc_parameters[GITHUB_REPO] = config.get(GITHUB_REPO)
-    oidc_parameters[DEPLOYMENT_BRANCH] = config.get(DEPLOYMENT_BRANCH)
-    return oidc_parameters
+    return config
 
 
 def _get_bootstrap_command_names() -> List[str]:
