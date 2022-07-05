@@ -42,8 +42,8 @@ base_template_json = {
                 "RequiresCompatibilities": ["FARGATE"],
                 "ExecutionRoleArn": {"Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/ecsTaskExecutionRole"},
                 "TaskRoleArn": {"Ref": "ContainerIAMRole"},
-                "Cpu": "{{ cpu }}",
-                "Memory": "{{ memory }}",
+                "Cpu": 256,
+                "Memory": 512,
                 "NetworkMode": "awsvpc",
                 "ContainerDefinitions": [
                     {

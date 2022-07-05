@@ -131,8 +131,6 @@ def _generate_base_test_runner_template_json(
     jinja_template_json_string: str,
     bucket_name: str,
     image_uri: str,
-    cpu: int,
-    memory: int,
 ) -> dict:
     """
     Renders a base jinja template with a set of parameters needed to create the Test Runner Stack.
@@ -148,16 +146,6 @@ def _generate_base_test_runner_template_json(
     image_uri : str
         The URI of the Image to be used by the Test Runner Fargate task definition.
 
-    cpu : int
-        The CPU used by the Test Runner Task Definition.
-
-        NOTE: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#task_size
-
-    memory : int
-        The memory used by the Test Runner Task Definition.
-
-        NOTE: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#task_sizes
-
     Returns
     -------
     dict
@@ -165,8 +153,6 @@ def _generate_base_test_runner_template_json(
 
     """
     data = {
-        "cpu": cpu,
-        "memory": memory,
         "image_uri": image_uri,
         "s3_bucket_name": bucket_name,
     }
@@ -258,8 +244,6 @@ def generate_test_runner_template_string(
     bucket_name: str,
     image_uri: str,
     tag_filters: dict,
-    cpu: int = 256,
-    memory: int = 512,
 ) -> str:
 
     """
@@ -275,16 +259,6 @@ def generate_test_runner_template_string(
 
     image_uri : str
         The URI of the Image to be used by the Test Runner Fargate task definition.
-
-    cpu : int
-        The CPU used by the Test Runner Task Definition. (DEFAULT = 256)
-
-        NOTE: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#task_size
-
-    memory : int
-        The memory used by the Test Runner Task Definition. (DEFAULT = 512)
-
-        NOTE: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#task_sizes
 
     tag_filters : dict
         The tag filters to restrict generating default IAM action permissions to those resources with the given tags.
@@ -302,8 +276,6 @@ def generate_test_runner_template_string(
         jinja_template_json_string,
         bucket_name,
         image_uri,
-        cpu,
-        memory,
     )
     if test_runner_template is None:
         LOG.exception("Failed to receive base template, aborting template generation.")
