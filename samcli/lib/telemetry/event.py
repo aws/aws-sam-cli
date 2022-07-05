@@ -77,7 +77,7 @@ class Event:
             "event_name": self.event_name.value,
             "event_value": self.event_value,
             "thread_id": self.thread_id,
-            "timestamp": str(self.timestamp)[:-3],
+            "timestamp": str(self.timestamp)[:-3],  # cut time's microseconds from 6 -> 3 figures to allow SQL casting
         }
 
     @staticmethod
