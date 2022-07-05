@@ -215,6 +215,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "file",
                 (),
                 (),
+                (),
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -267,6 +268,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 (),
                 "env_vars_file",
+                (),
                 (),
                 (),
             )

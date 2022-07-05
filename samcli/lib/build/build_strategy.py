@@ -170,9 +170,7 @@ class DefaultBuildStrategy(BuildStrategy):
             single_build_dir,
             build_definition.metadata,
             container_env_vars,
-            dir_mounting
             container_dir_mounts,
-            build_definition.dependencies_dir if is_experimental_enabled(ExperimentalFlag.Accelerate) else None,
             build_definition.dependencies_dir,
             build_definition.download_dependencies,
         )
@@ -221,7 +219,6 @@ class DefaultBuildStrategy(BuildStrategy):
                 single_build_dir,
                 layer_definition.env_vars,
                 layer_definition.dir_mounts,
-                layer_definition.dependencies_dir if is_experimental_enabled(ExperimentalFlag.Accelerate) else None,
                 layer_definition.dependencies_dir,
                 layer_definition.download_dependencies,
             )
