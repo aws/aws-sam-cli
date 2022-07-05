@@ -1,9 +1,10 @@
-from samcli.lib.providers.provider import ResourceIdentifier
+from pathlib import Path
+from samcli.lib.providers.provider import ResourceIdentifier, Stack
 from unittest import TestCase
-from unittest.mock import MagicMock, call, patch, Mock
+from unittest.mock import MagicMock, patch, Mock
 
-from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall
-from samcli.lib.utils.lock_distributor import LockChain
+from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall, ApiCallTypes, get_definition_path
+from parameterized import parameterized
 
 
 class TestSyncFlow(TestCase):
@@ -85,12 +86,25 @@ class TestSyncFlow(TestCase):
         sync_flow.set_locks_with_distributor(distributor)
         self.assertEqual(locks, sync_flow._locks)
 
+    @parameterized.expand([({"A": 1, "B": 2}, True), ({"A": 1}, True), ({}, False)])
+    @patch.multiple(SyncFlow, __abstractmethods__=set())
+    def test_has_locks(self, locks, expected_result):
+        sync_flow = self.create_sync_flow()
+        distributor = MagicMock()
+        distributor.get_locks.return_value = locks
+        sync_flow.set_locks_with_distributor(distributor)
+        has_locks = sync_flow.has_locks()
+        self.assertEqual(has_locks, expected_result)
+
     @patch.multiple(SyncFlow, __abstractmethods__=set())
     def test_get_lock_keys(self):
         sync_flow = self.create_sync_flow()
-        sync_flow._get_resource_api_calls.return_value = [ResourceAPICall("A", "1"), ResourceAPICall("B", "2")]
+        sync_flow._get_resource_api_calls.return_value = [
+            ResourceAPICall("A", [ApiCallTypes.BUILD]),
+            ResourceAPICall("B", [ApiCallTypes.UPDATE_FUNCTION_CONFIGURATION]),
+        ]
         result = sync_flow.get_lock_keys()
-        self.assertEqual(result, ["A_1", "B_2"])
+        self.assertEqual(sorted(result), sorted(["A_Build", "B_UpdateFunctionConfiguration"]))
 
     @patch("samcli.lib.sync.sync_flow.LockChain")
     @patch("samcli.lib.sync.sync_flow.Session")
@@ -134,3 +148,21 @@ class TestSyncFlow(TestCase):
         sync_flow._equality_keys = MagicMock()
         sync_flow._equality_keys.return_value = "A"
         self.assertEqual(hash(sync_flow), hash((type(sync_flow), "A")))
+
+    @patch("samcli.lib.sync.sync_flow.Stack.get_stack_by_full_path")
+    def test_get_definition_path(self, get_stack_mock):
+        resource = {"Properties": {"DefinitionUri": "test_uri"}}
+        get_stack_mock.return_value = Stack("parent_path", "stack_name", "location/template.yaml", None, {})
+
+        definition_path = get_definition_path(resource, "identifier", False, "base_dir", [])
+        self.assertEqual(definition_path, Path("location").joinpath("test_uri"))
+
+        resource = {"Properties": {"DefinitionUri": ""}}
+        definition_path = get_definition_path(resource, "identifier", False, "base_dir", [])
+        self.assertEqual(definition_path, None)
+
+    def test_get_definition_file_with_base_dir(self):
+        resource = {"Properties": {"DefinitionUri": "test_uri"}}
+
+        definition_path = get_definition_path(resource, "identifier", True, "base_dir", [])
+        self.assertEqual(definition_path, Path("base_dir").joinpath("test_uri"))

@@ -1,0 +1,31 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  ModeEnvVariable:
+    Type: String
+  LayerArn:
+    Default: arn:aws:lambda:us-west-2:111111111111:layer:layer:1
+    Type: String
+
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main-layers.custom_layer_handler
+      Runtime: python3.6
+      FunctionName: customname
+      CodeUri: .
+      Timeout: 600
+      Environment:
+        Variables:
+          MODE: !Ref ModeEnvVariable
+      Layers:
+        # Test remote layers with warm containers.
+        - Ref: LayerArn
+      Events:
+        BasePath:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /

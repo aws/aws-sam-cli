@@ -997,7 +997,6 @@ class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
 class TestBadLayerVersion(InvokeIntegBase):
     template = Path("layers", "layer-bad-template.yaml")
     region = "us-west-2"
-    layer_utils = LayerUtils(region=region)
 
     def test_unresolved_layer_due_to_bad_instrinsic(self):
         command_list = self.get_command_list(

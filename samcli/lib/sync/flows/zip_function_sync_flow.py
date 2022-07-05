@@ -5,20 +5,22 @@ import os
 import base64
 import tempfile
 import uuid
-
 from contextlib import ExitStack
+
 from typing import Any, Dict, List, Optional, TYPE_CHECKING, cast
 
 from samcli.lib.build.build_graph import BuildGraph
 from samcli.lib.providers.provider import Stack
 
-from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow
+from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow, wait_for_function_update_complete
 from samcli.lib.package.s3_uploader import S3Uploader
+from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.hash import file_checksum
 from samcli.lib.package.utils import make_zip
 
 from samcli.lib.build.app_builder import ApplicationBuilder
-from samcli.lib.sync.sync_flow import ResourceAPICall
+from samcli.lib.sync.sync_flow import ResourceAPICall, ApiCallTypes
+from samcli.lib.utils.osutils import rmtree_if_exists
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
@@ -66,6 +68,7 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
         self._zip_file = None
         self._local_sha = None
         self._build_graph = None
+        self._color = Colored()
 
     def set_up(self) -> None:
         super().set_up()
@@ -74,9 +77,10 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
     def gather_resources(self) -> None:
         """Build function and ZIP it into a temp file in self._zip_file"""
         with ExitStack() as exit_stack:
-            if self._function.layers:
+            if self.has_locks():
                 exit_stack.enter_context(self._get_lock_chain())
 
+            rmtree_if_exists(self._function.get_build_dir(self._build_context.build_dir))
             builder = ApplicationBuilder(
                 self._build_context.collect_build_resources(self._function_identifier),
                 self._build_context.build_dir,
@@ -117,9 +121,22 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
             LOG.debug("%sUploading Function Directly", self.log_prefix)
             with open(self._zip_file, "rb") as zip_file:
                 data = zip_file.read()
-                self._lambda_client.update_function_code(
-                    FunctionName=self.get_physical_id(self._function_identifier), ZipFile=data
-                )
+
+                with ExitStack() as exit_stack:
+                    if self.has_locks():
+                        exit_stack.enter_context(self._get_lock_chain())
+
+                    self._lambda_client.update_function_code(
+                        FunctionName=self.get_physical_id(self._function_identifier), ZipFile=data
+                    )
+
+                    # We need to wait for the cloud side update to finish
+                    # Otherwise even if the call is finished and lockchain is released
+                    # It is still possible that we have a race condition on cloud updating the same function
+                    wait_for_function_update_complete(
+                        self._lambda_client, self.get_physical_id(self._function_identifier)
+                    )
+
         else:
             # Upload to S3 first for oversized ZIPs
             LOG.debug("%sUploading Function Through S3", self.log_prefix)
@@ -133,20 +150,54 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
             )
             s3_url = uploader.upload_with_dedup(self._zip_file)
             s3_key = s3_url[5:].split("/", 1)[1]
-            self._lambda_client.update_function_code(
-                FunctionName=self.get_physical_id(self._function_identifier),
-                S3Bucket=self._deploy_context.s3_bucket,
-                S3Key=s3_key,
-            )
+
+            with ExitStack() as exit_stack:
+                if self.has_locks():
+                    exit_stack.enter_context(self._get_lock_chain())
+
+                self._lambda_client.update_function_code(
+                    FunctionName=self.get_physical_id(self._function_identifier),
+                    S3Bucket=self._deploy_context.s3_bucket,
+                    S3Key=s3_key,
+                )
+
+                # We need to wait for the cloud side update to finish
+                # Otherwise even if the call is finished and lockchain is released
+                # It is still possible that we have a race condition on cloud updating the same function
+                wait_for_function_update_complete(self._lambda_client, self.get_physical_id(self._function_identifier))
 
         if os.path.exists(self._zip_file):
             os.remove(self._zip_file)
 
     def _get_resource_api_calls(self) -> List[ResourceAPICall]:
         resource_calls = list()
-        for layer in self._function.layers:
-            resource_calls.append(ResourceAPICall(layer.full_path, ["Build"]))
+        resource_calls.extend(self._get_layers_api_calls())
+        resource_calls.extend(self._get_codeuri_api_calls())
+        resource_calls.extend(self._get_function_api_calls())
         return resource_calls
+
+    def _get_layers_api_calls(self) -> List[ResourceAPICall]:
+        layer_api_calls = list()
+        for layer in self._function.layers:
+            layer_api_calls.append(ResourceAPICall(layer.full_path, [ApiCallTypes.BUILD]))
+        return layer_api_calls
+
+    def _get_codeuri_api_calls(self) -> List[ResourceAPICall]:
+        codeuri_api_call = list()
+        if self._function.codeuri:
+            codeuri_api_call.append(ResourceAPICall(self._function.codeuri, [ApiCallTypes.BUILD]))
+        return codeuri_api_call
+
+    def _get_function_api_calls(self) -> List[ResourceAPICall]:
+        # We need to acquire lock for both API calls since they would conflict on cloud
+        # Any UPDATE_FUNCTION_CODE and UPDATE_FUNCTION_CONFIGURATION on the same function
+        # Cannot take place in parallel
+        return [
+            ResourceAPICall(
+                self._function_identifier,
+                [ApiCallTypes.UPDATE_FUNCTION_CODE, ApiCallTypes.UPDATE_FUNCTION_CONFIGURATION],
+            )
+        ]
 
     @staticmethod
     def _combine_dependencies() -> bool:

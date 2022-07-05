@@ -37,6 +37,7 @@ class TestDoCli(TestCase):
             "container_env_var_file",
             ["/local/dir:/container/dir"],
             (),
+            (),
         )
 
         BuildContextMock.assert_called_with(
@@ -58,6 +59,7 @@ class TestDoCli(TestCase):
             container_env_var_file="container_env_var_file",
             container_dir_mount={"/local/dir": "/container/dir"},
             build_images={},
+            excluded_resources=(),
             aws_region=ctx_mock.region,
         )
         ctx_mock.run.assert_called_with()

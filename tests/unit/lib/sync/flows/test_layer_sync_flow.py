@@ -1,13 +1,12 @@
 import base64
-import hashlib
 from unittest import TestCase
 from unittest.mock import MagicMock, Mock, patch, call, ANY, mock_open, PropertyMock
 
-from parameterized import parameterized
 
 from samcli.lib.sync.exceptions import MissingPhysicalResourceError, NoLayerVersionsFoundError
+from samcli.lib.sync.flows.function_sync_flow import wait_for_function_update_complete
 from samcli.lib.sync.flows.layer_sync_flow import LayerSyncFlow, FunctionLayerReferenceSync
-from samcli.lib.sync.sync_flow import SyncFlow
+from samcli.lib.sync.sync_flow import SyncFlow, ApiCallTypes
 
 
 class TestLayerSyncFlow(TestCase):
@@ -61,8 +60,15 @@ class TestLayerSyncFlow(TestCase):
     @patch("samcli.lib.sync.flows.layer_sync_flow.make_zip")
     @patch("samcli.lib.sync.flows.layer_sync_flow.file_checksum")
     @patch("samcli.lib.sync.flows.layer_sync_flow.os")
+    @patch("samcli.lib.sync.flows.layer_sync_flow.rmtree_if_exists")
     def test_setup_gather_resources(
-        self, patched_os, patched_file_checksum, patched_make_zip, patched_tempfile, patched_app_builder
+        self,
+        patched_rmtree_if_exists,
+        patched_os,
+        patched_file_checksum,
+        patched_make_zip,
+        patched_tempfile,
+        patched_app_builder,
     ):
         given_collect_build_resources = Mock()
         self.build_context_mock.collect_build_resources.return_value = given_collect_build_resources
@@ -82,6 +88,8 @@ class TestLayerSyncFlow(TestCase):
 
         self.layer_sync_flow.gather_resources()
 
+        layer_object = self.build_context_mock.layer_provider.get(self.layer_identifier)
+        patched_rmtree_if_exists.assert_called_with(layer_object.get_build_dir(self.build_context_mock.build_dir))
         self.build_context_mock.collect_build_resources.assert_called_with(self.layer_identifier)
 
         patched_app_builder.assert_called_with(
@@ -330,7 +338,7 @@ class TestLayerSyncFlow(TestCase):
     def test_get_resource_api_calls(self, resource_api_call_mock):
         result = self.layer_sync_flow._get_resource_api_calls()
         self.assertEqual(len(result), 1)
-        resource_api_call_mock.assert_called_once_with(self.layer_identifier, ["Build"])
+        resource_api_call_mock.assert_called_once_with(self.layer_identifier, [ApiCallTypes.BUILD])
 
 
 class TestFunctionLayerReferenceSync(TestCase):
@@ -353,7 +361,8 @@ class TestFunctionLayerReferenceSync(TestCase):
                 patched_super_setup.assert_called_once()
                 client_provider_mock.return_value.assert_called_with("lambda")
 
-    def test_sync(self):
+    @patch("samcli.lib.sync.flows.layer_sync_flow.wait_for_function_update_complete")
+    def test_sync(self, wait_for_function_mock):
         given_lambda_client = Mock()
         self.function_layer_sync._lambda_client = given_lambda_client
 
@@ -362,27 +371,28 @@ class TestFunctionLayerReferenceSync(TestCase):
         given_lambda_client.get_function.return_value = given_function_result
 
         with patch.object(self.function_layer_sync, "get_physical_id") as patched_get_physical_id:
-            with patch.object(self.function_layer_sync, "_locks") as patched_locks:
-                given_physical_id = Mock()
-                patched_get_physical_id.return_value = given_physical_id
+            self.function_layer_sync._get_lock_chain = MagicMock()
+            self.function_layer_sync.has_locks = MagicMock()
 
-                self.function_layer_sync.sync()
+            given_physical_id = Mock()
+            patched_get_physical_id.return_value = given_physical_id
 
-                patched_get_physical_id.assert_called_with(self.function_identifier)
+            self.function_layer_sync.sync()
 
-                patched_locks.get.assert_called_with(
-                    SyncFlow._get_lock_key(
-                        self.function_identifier, FunctionLayerReferenceSync.UPDATE_FUNCTION_CONFIGURATION
-                    )
-                )
+            patched_get_physical_id.assert_called_with(self.function_identifier)
 
-                given_lambda_client.get_function.assert_called_with(FunctionName=given_physical_id)
+            given_lambda_client.get_function.assert_called_with(FunctionName=given_physical_id)
 
-                given_lambda_client.update_function_configuration.assert_called_with(
-                    FunctionName=given_physical_id, Layers=[other_layer_version_arn, "Layer1:2"]
-                )
+            self.function_layer_sync._get_lock_chain.assert_called_once()
+            self.function_layer_sync._get_lock_chain.return_value.__enter__.assert_called_once()
+            given_lambda_client.update_function_configuration.assert_called_with(
+                FunctionName=given_physical_id, Layers=[other_layer_version_arn, "Layer1:2"]
+            )
+            wait_for_function_mock.assert_called_once_with(given_lambda_client, given_physical_id)
+            self.function_layer_sync._get_lock_chain.return_value.__exit__.assert_called_once()
 
-    def test_sync_with_existing_new_layer_version_arn(self):
+    @patch("samcli.lib.sync.flows.layer_sync_flow.wait_for_function_update_complete")
+    def test_sync_with_existing_new_layer_version_arn(self, wait_for_function_mock):
         given_lambda_client = Mock()
         self.function_layer_sync._lambda_client = given_lambda_client
 
@@ -390,23 +400,23 @@ class TestFunctionLayerReferenceSync(TestCase):
         given_lambda_client.get_function.return_value = given_function_result
 
         with patch.object(self.function_layer_sync, "get_physical_id") as patched_get_physical_id:
-            with patch.object(self.function_layer_sync, "_locks") as patched_locks:
-                given_physical_id = Mock()
-                patched_get_physical_id.return_value = given_physical_id
+            self.function_layer_sync._get_lock_chain = MagicMock()
+            self.function_layer_sync.has_locks = MagicMock()
 
-                self.function_layer_sync.sync()
+            given_physical_id = Mock()
+            patched_get_physical_id.return_value = given_physical_id
 
-                patched_locks.get.assert_called_with(
-                    SyncFlow._get_lock_key(
-                        self.function_identifier, FunctionLayerReferenceSync.UPDATE_FUNCTION_CONFIGURATION
-                    )
-                )
+            self.function_layer_sync.sync()
 
-                patched_get_physical_id.assert_called_with(self.function_identifier)
+            patched_get_physical_id.assert_called_with(self.function_identifier)
 
-                given_lambda_client.get_function.assert_called_with(FunctionName=given_physical_id)
+            given_lambda_client.get_function.assert_called_with(FunctionName=given_physical_id)
 
-                given_lambda_client.update_function_configuration.assert_not_called()
+            self.function_layer_sync._get_lock_chain.assert_not_called()
+            self.function_layer_sync._get_lock_chain.return_value.__enter__.assert_not_called()
+            given_lambda_client.update_function_configuration.assert_not_called()
+            wait_for_function_mock.assert_not_called()
+            self.function_layer_sync._get_lock_chain.return_value.__exit__.assert_not_called()
 
     def test_equality_keys(self):
         self.assertEqual(

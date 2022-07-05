@@ -1,6 +1,9 @@
 import base64
+import shutil
 import uuid
 import random
+from pathlib import Path
+from typing import Dict
 
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -12,6 +15,7 @@ from parameterized import parameterized_class
 from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
 from samcli.local.apigw.local_apigw_service import Route
 from .start_api_integ_base import StartApiIntegBaseClass, WatchWarmContainersIntegBaseClass
+from ..invoke.layer_utils import LayerUtils
 
 
 @parameterized_class(
@@ -1120,6 +1124,51 @@ class TestServiceRequests(StartApiIntegBaseClass):
         self.assertEqual(response_data.get("multiValueHeaders").get("X-Forwarded-Proto"), ["http"])
         self.assertEqual(response_data.get("headers").get("X-Forwarded-Port"), self.port)
         self.assertEqual(response_data.get("multiValueHeaders").get("X-Forwarded-Port"), [self.port])
+
+
+class TestServiceRequestsWithHttpApi(StartApiIntegBaseClass):
+    """
+    Test Class centered around the different requests that can happen; specifically testing the change
+    in format for mulivalue query parameters in payload format v2 (HTTP APIs)
+    """
+
+    template_path = "/testdata/start_api/swagger-template-http-api.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_request_with_multi_value_headers(self):
+        response = requests.get(
+            self.url + "/echoeventbody",
+            headers={"Content-Type": "application/x-www-form-urlencoded, image/gif"},
+            timeout=300,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+        self.assertEqual(response_data.get("version"), "2.0")
+        self.assertIsNone(response_data.get("multiValueHeaders"))
+        self.assertEqual(
+            response_data.get("headers").get("Content-Type"), "application/x-www-form-urlencoded, image/gif"
+        )
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_request_with_list_of_query_params(self):
+        """
+        Query params given should be put into the Event to Lambda
+        """
+        response = requests.get(self.url + "/echoeventbody", params={"key": ["value", "value2"]}, timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+
+        response_data = response.json()
+
+        self.assertEqual(response_data.get("version"), "2.0")
+        self.assertEqual(response_data.get("queryStringParameters"), {"key": "value,value2"})
+        self.assertIsNone(response_data.get("multiValueQueryStringParameters"))
 
 
 class TestStartApiWithStage(StartApiIntegBaseClass):
@@ -2794,3 +2843,59 @@ class TestServiceWithCustomInvokeImages(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+
+
+class WarmContainersWithRemoteLayersBase(TestWarmContainersBaseClass):
+    layer_utils = LayerUtils()
+    layer_cache_base_dir = str(Path().home().joinpath("integ_layer_cache"))
+    parameter_overrides: Dict[str, str] = {}
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerArn", "layer1.zip")
+        for key, val in cls.layer_utils.parameters_overrides.items():
+            cls.parameter_overrides[key] = val
+        super().setUpClass()
+
+    @classmethod
+    def tearDownClass(self) -> None:
+        self.layer_utils.delete_layers()
+        integ_layer_cache_dir = Path().home().joinpath("integ_layer_cache")
+        if integ_layer_cache_dir.exists():
+            shutil.rmtree(str(integ_layer_cache_dir))
+        super().tearDownClass()
+
+
+class TestWarmContainersRemoteLayers(WarmContainersWithRemoteLayersBase):
+    template_path = "/testdata/start_api/template-warm-containers-layers.yaml"
+    container_mode = ContainersInitializationMode.EAGER.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_all_containers_are_initialized_before_any_invoke(self):
+        initiated_containers = self.count_running_containers()
+        # Ensure only one function has spun up, remote layer shouldn't create another container
+        self.assertEqual(initiated_containers, 1)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_can_invoke_lambda_layer_successfully(self):
+        response = requests.get(self.url + "/", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content.decode("utf-8"), '"Layer1"')
+
+
+class TestWarmContainersRemoteLayersLazyInvoke(WarmContainersWithRemoteLayersBase):
+    template_path = "/testdata/start_api/template-warm-containers-layers.yaml"
+    container_mode = ContainersInitializationMode.LAZY.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_can_invoke_lambda_layer_successfully(self):
+        response = requests.get(self.url + "/", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content.decode("utf-8"), '"Layer1"')

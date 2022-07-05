@@ -205,6 +205,7 @@ class ApplicationBuilder:
                         self._cache_dir,
                         self._manifest_path_override,
                         self._is_building_specific_resource,
+                        bool(self._container_manager),
                     ),
                 )
             else:
@@ -218,6 +219,7 @@ class ApplicationBuilder:
                 self._cache_dir,
                 self._manifest_path_override,
                 self._is_building_specific_resource,
+                bool(self._container_manager),
             )
 
         return ApplicationBuildResult(build_graph, build_strategy.build())
@@ -422,6 +424,7 @@ class ApplicationBuilder:
             "buildargs": docker_build_args,
             "decode": True,
             "platform": get_docker_platform(architecture),
+            "rm": True,
         }
         if docker_build_target:
             build_args["target"] = cast(str, docker_build_target)

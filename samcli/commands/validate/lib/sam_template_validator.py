@@ -4,10 +4,11 @@ Library for Validating Sam Templates
 import logging
 import functools
 
+from boto3.session import Session
+
 from samtranslator.public.exceptions import InvalidDocumentException
 from samtranslator.parser import parser
 from samtranslator.translator.translator import Translator
-from boto3.session import Session
 
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION

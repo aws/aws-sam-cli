@@ -4,7 +4,7 @@ Interfaces and generic implementations for observability events (like CW logs)
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import List, Optional, Generic, TypeVar, Any, Sequence
+from typing import Dict, List, Optional, Generic, TypeVar, Any, Sequence, Union
 
 from samcli.lib.utils.async_utils import AsyncContext
 
@@ -78,15 +78,18 @@ class ObservabilityPuller(ABC):
         """
 
     @abstractmethod
-    def load_events(self, event_ids: List[Any]):
+    def load_events(self, event_ids: Union[List[Any], Dict]):
         """
         This method will load specific events which is given by the event_ids parameter
 
         Parameters
         ----------
-        event_ids : List[str]
+        event_ids : List[str] or Dict
             List of event ids that will be pulled
         """
+
+    def stop_tailing(self):
+        self.cancelled = True
 
 
 # pylint: disable=fixme
@@ -187,8 +190,7 @@ class ObservabilityCombinedPuller(ObservabilityPuller):
             async_context.run_async()
         except KeyboardInterrupt:
             LOG.info(" CTRL+C received, cancelling...")
-            for puller in self._pullers:
-                puller.cancelled = True
+            self.stop_tailing()
 
     def load_time_period(
         self,
@@ -207,7 +209,7 @@ class ObservabilityCombinedPuller(ObservabilityPuller):
         LOG.debug("Running all 'load_time_period' tasks in parallel")
         async_context.run_async()
 
-    def load_events(self, event_ids: List[Any]):
+    def load_events(self, event_ids: Union[List[Any], Dict]):
         """
         Implementation of ObservabilityPuller.load_events method with AsyncContext.
         It will create tasks by calling load_events methods of all given pullers, and execute them in async
@@ -218,3 +220,9 @@ class ObservabilityCombinedPuller(ObservabilityPuller):
             async_context.add_async_task(puller.load_events, event_ids)
         LOG.debug("Running all 'load_time_period' tasks in parallel")
         async_context.run_async()
+
+    def stop_tailing(self):
+        # if ObservabilityCombinedPuller A is a child puller in other ObservabilityCombinedPuller B, make sure A's child
+        # pullers stop as well when B stops.
+        for puller in self._pullers:
+            puller.stop_tailing()

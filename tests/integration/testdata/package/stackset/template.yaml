@@ -1,0 +1,22 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: A hello world application.
+
+Resources:
+  FunctionA:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main_a.handler
+      Runtime: python3.7
+      CodeUri: FunctionA
+      Timeout: 600
+
+  StackSetA:
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      StackSetName: StackSetA
+      Description: Test Stack Set
+      PermissionModel: SELF_MANAGED
+      Capabilities:
+        - CAPABILITY_AUTO_EXPAND
+      TemplateURL: ./StackSetA/template.yaml

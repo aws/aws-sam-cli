@@ -9,14 +9,13 @@ import click
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands._utils.options import common_observability_options
-from samcli.lib.telemetry.metric import track_command
-from samcli.lib.utils.version_checker import check_newer_version
-from samcli.commands._utils.experimental import (
-    ExperimentalFlag,
-    force_experimental_option,
-    experimental,
-    prompt_experimental,
+from samcli.commands.logs.validation_and_exception_handlers import (
+    SAM_LOGS_ADDITIONAL_EXCEPTION_HANDLERS,
+    stack_name_cw_log_group_validation,
 )
+from samcli.lib.telemetry.metric import track_command
+from samcli.commands._utils.command_exception_handler import command_exception_handler
+from samcli.lib.utils.version_checker import check_newer_version
 
 LOG = logging.getLogger(__name__)
 
@@ -37,7 +36,16 @@ You can also add the --tail option to wait for new logs and see them as they arr
 $ sam logs -n HelloWorldFunction --stack-name mystack --tail \n
 \b
 Use the --filter option to quickly find logs that match terms, phrases or values in your log events.
-$ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
+$ sam logs -n HelloWorldFunction --stack-name mystack --filter 'error' \n
+\b
+Fetch logs for all supported resources in your application, and additionally from the specified log groups.
+$ sam logs --cw-log-group /aws/lambda/myfunction-123 --cw-log-group /aws/lambda/myfunction-456
+\b
+You can now fetch logs from supported resources, by only providing --stack-name parameter
+$ sam logs --stack-name mystack \n
+\b
+You can also fetch logs from a resource which is defined in a nested stack.
+$ sam logs --stack-name mystack -n MyNestedStack/HelloWorldFunction
 """
 
 
@@ -47,11 +55,13 @@ $ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
     "--name",
     "-n",
     multiple=True,
-    help="Name(s) of your AWS Lambda function. If this function is a part of a CloudFormation stack, "
-    "this can be the LogicalID of function resource in the CloudFormation/SAM template. "
-    "[Beta Feature] Multiple names can be provided by repeating the parameter again. "
+    help="The name of the resource for which to fetch logs. If this resource is a part of an AWS CloudFormation stack, "
+    "this can be the LogicalID of the resource in the CloudFormation/SAM template. "
+    "Multiple names can be provided by repeating the parameter again. "
+    "If resource is in a nested stack, name can be prepended by nested stack name to pull logs "
+    "from that resource (NestedStackLogicalId/ResourceLogicalId). "
     "If it is not provided and no --cw-log-group have been given, it will scan "
-    "given stack and find all possible resources, and start pulling log information from them.",
+    "given stack and find all supported resources, and start pulling log information from them.",
 )
 @click.option("--stack-name", default=None, help="Name of the AWS CloudFormation stack that the function is a part of.")
 @click.option(
@@ -66,27 +76,24 @@ $ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
     "--include-traces",
     "-i",
     is_flag=True,
-    help="[Beta Feature] Include the XRay traces in the log output.",
+    help="Include the XRay traces in the log output.",
 )
 @click.option(
     "--cw-log-group",
     multiple=True,
-    help="[Beta Feature] "
-    "Additional CloudWatch Log group names that are not auto-discovered based upon --name parameter. "
+    help="Additional CloudWatch Log group names that are not auto-discovered based upon --name parameter. "
     "When provided, it will only tail the given CloudWatch Log groups. If you want to tail log groups related "
     "to resources, please also provide their names as well",
 )
 @common_observability_options
-@experimental
 @cli_framework_options
 @aws_creds_options
 @pass_context
 @track_command
 @check_newer_version
 @print_cmdline_args
-@force_experimental_option("include_traces", config_entry=ExperimentalFlag.Accelerate)  # pylint: disable=E1120
-@force_experimental_option("cw_log_group", config_entry=ExperimentalFlag.Accelerate)  # pylint: disable=E1120
-@force_experimental_option("output", config_entry=ExperimentalFlag.Accelerate)  # pylint: disable=E1120
+@command_exception_handler(SAM_LOGS_ADDITIONAL_EXCEPTION_HANDLERS)
+@stack_name_cw_log_group_validation
 def cli(
     ctx,
     name,
@@ -145,10 +152,7 @@ def do_cli(
     from samcli.lib.observability.util import OutputOption
     from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config, get_boto_resource_provider_with_config
 
-    if not names or len(names) > 1:
-        if not prompt_experimental(ExperimentalFlag.Accelerate):
-            return
-    else:
+    if names and len(names) <= 1:
         click.echo(
             "You can now use 'sam logs' without --name parameter, "
             "which will pull the logs from all supported resources in your stack."
@@ -159,7 +163,9 @@ def do_cli(
 
     boto_client_provider = get_boto_client_provider_with_config(region=region, profile=profile)
     boto_resource_provider = get_boto_resource_provider_with_config(region=region, profile=profile)
-    resource_logical_id_resolver = ResourcePhysicalIdResolver(boto_resource_provider, stack_name, names)
+    resource_logical_id_resolver = ResourcePhysicalIdResolver(
+        boto_resource_provider, boto_client_provider, stack_name, names
+    )
 
     # only fetch all resources when no CloudWatch log group defined
     fetch_all_when_no_resource_name_given = not cw_log_groups

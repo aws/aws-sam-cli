@@ -21,11 +21,12 @@ import json
 from typing import cast, Dict, Optional
 from botocore.compat import OrderedDict
 import yaml
-from samtranslator.utils.py27hash_fix import Py27Dict, Py27UniStr
 
 # ScalarNode and SequenceNode are not declared in __all__,
 # TODO: we need to double check whether they are public and stable
 from yaml.resolver import ScalarNode, SequenceNode  # type: ignore
+
+from samtranslator.utils.py27hash_fix import Py27Dict, Py27UniStr
 
 TAG_STR = "tag:yaml.org,2002:str"
 

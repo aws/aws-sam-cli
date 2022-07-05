@@ -13,9 +13,10 @@ def file_checksum(file_name: str, hash_generator: Any = None) -> str:
 
     Parameters
     ----------
-    file_name: file name of the file for which md5 checksum is required.
-
-    hash_generator: hashlib _Hash object for generating hashes. Defaults to hashlib.md5.
+    file_name : str
+        file name of the file for which md5 checksum is required.
+    hash_generator : hashlib._Hash
+        hashlib _Hash object for generating hashes. Defaults to hashlib.md5.
 
     Returns
     -------
@@ -48,10 +49,14 @@ def dir_checksum(
 
     Parameters
     ----------
-    directory : A directory with an absolute path
-    followlinks: Follow symbolic links through the given directory
-    ignore_list: The list of file/directory names to ignore in checksum
-    hash_generator: The hashing method (hashlib _Hash object) that generates checksum. Defaults to hashlib.md5.
+    directory : dict
+        A directory with an absolute path
+    followlinks : bool
+        Follow symbolic links through the given directory
+    ignore_list : list(str)
+        The list of file/directory names to ignore in checksum
+    hash_generator : hashlib._Hash
+        The hashing method (hashlib _Hash object) that generates checksum. Defaults to hashlib.md5.
 
     Returns
     -------

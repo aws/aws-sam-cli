@@ -201,9 +201,10 @@ def get_cmd_names(cmd_name, ctx) -> List[str]:
 
     Parameters
     ----------
-    cmd_name : name of current command
-
+    cmd_name : str
+        name of current command
     ctx : click.Context
+        click context
 
     Returns
     -------

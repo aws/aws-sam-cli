@@ -96,3 +96,9 @@ class InvalidMountedPathException(UserException):
     """
     Value provided to --container-dir-mount is invalid
     """
+
+
+class InvalidStackNameException(UserException):
+    """
+    Value provided to --stack-name is invalid
+    """

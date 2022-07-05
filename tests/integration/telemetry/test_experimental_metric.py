@@ -2,6 +2,7 @@ import os
 import platform
 import time
 from pathlib import Path
+from unittest import skip
 from unittest.mock import ANY
 
 from .integ_base import IntegBase, TelemetryServer
@@ -13,6 +14,10 @@ class TestExperimentalMetric(IntegBase):
     Validates the basic tenets/contract Telemetry module needs to adhere to
     """
 
+    @skip(
+        "Accelerate are not in experimental any more, just skip this test. If we have new experimental commands, "
+        "we can update this test"
+    )
     def test_must_send_experimental_metrics_if_experimental_command(self):
         """
         Metrics should be sent if "Disabled via config file but Enabled via Envvar"
@@ -53,9 +58,7 @@ class TestExperimentalMetric(IntegBase):
                             "region": ANY,
                             "commandName": ANY,
                             "metricSpecificAttributes": {
-                                "experimentalAccelerate": True,
                                 "experimentalAll": False,
-                                "experimentalMavenScopeAndLayer": False,
                                 "experimentalEsbuild": False,
                             },
                             "duration": ANY,
@@ -68,6 +71,10 @@ class TestExperimentalMetric(IntegBase):
             self.assertEqual(request["data"], expected_data)
         os.environ["SAM_CLI_BETA_ACCELERATE"] = "0"
 
+    @skip(
+        "Accelerate are not in experimental any more, just skip this test. If we have new experimental commands, "
+        "we can update this test"
+    )
     def test_must_send_experimental_metrics_if_experimental_option(self):
         """
         Metrics should be sent if "Disabled via config file but Enabled via Envvar"
@@ -82,7 +89,7 @@ class TestExperimentalMetric(IntegBase):
             process = self.run_cmd(cmd_list=[self.cmd, "logs", "--include-traces"], optout_envvar_value="1")
             process.communicate()
 
-            self.assertEqual(process.returncode, 1, "Command should fail")
+            self.assertEqual(process.returncode, 2, "Command should fail")
             all_requests = server.get_all_requests()
             self.assertEqual(1, len(all_requests), "Command run metric must be sent")
             request = all_requests[0]
@@ -105,9 +112,7 @@ class TestExperimentalMetric(IntegBase):
                             "region": ANY,
                             "commandName": ANY,
                             "metricSpecificAttributes": {
-                                "experimentalAccelerate": True,
                                 "experimentalAll": True,
-                                "experimentalMavenScopeAndLayer": True,
                                 "experimentalEsbuild": True,
                             },
                             "duration": ANY,
@@ -190,7 +195,7 @@ class TestExperimentalMetric(IntegBase):
             process = self.run_cmd(cmd_list=[self.cmd, "logs", "--name", "abc"], optout_envvar_value="1")
             process.communicate()
 
-            self.assertEqual(process.returncode, 1, "Command should fail")
+            self.assertEqual(process.returncode, 2, "Command should fail")
             all_requests = server.get_all_requests()
             self.assertEqual(1, len(all_requests), "Command run metric must be sent")
             request = all_requests[0]

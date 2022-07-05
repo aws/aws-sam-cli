@@ -56,7 +56,10 @@ def manage_stack(
     parameter_overrides: Optional[Dict[str, Union[str, List[str]]]]
         Values of template parameters, if any.
 
-    Returns: Stack output section(list of OutputKey, OutputValue pairs)
+    Returns
+    -------
+    StackOutput:
+        Stack output section(list of OutputKey, OutputValue pairs)
     """
     try:
         if profile:
