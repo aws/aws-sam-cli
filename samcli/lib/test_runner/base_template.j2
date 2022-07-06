@@ -30,7 +30,7 @@ Resources:
                         {% for statement in generated_statements -%}
                         {% filter indent(2, first=True) -%}
                           {{ statement | indent(6 * 4) }}
-                        {%- endfilter -%}
+                        {%- endfilter %}
                         {%- endfor %}
     TaskDefinition:
         Type: AWS::ECS::TaskDefinition
