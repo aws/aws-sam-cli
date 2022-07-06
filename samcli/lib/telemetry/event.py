@@ -8,6 +8,8 @@ import logging
 import threading
 from typing import List
 
+# from samcli.cli.context import Context
+from samcli.lib.telemetry.telemetry import Telemetry
 from samcli.local.common.runtime_template import INIT_RUNTIMES
 
 
@@ -54,12 +56,13 @@ class Event:
     event_name: EventName
     event_value: str  # Validated by EventType.get_accepted_values to never be an arbitrary string
     thread_id = threading.get_ident()  # The thread ID; used to group Events from the same command run
-    timestamp = datetime.utcnow()
+    timestamp: str
 
     def __init__(self, event_name: str, event_value: str):
         Event._verify_event(event_name, event_value)
         self.event_name = EventName(event_name)
         self.event_value = event_value
+        self.timestamp = str(datetime.utcnow())[:-3]  # format microseconds from 6 -> 3 figures to allow SQL casting
 
     def __eq__(self, other):
         return self.event_name == other.event_name and self.event_value == other.event_value
@@ -77,7 +80,7 @@ class Event:
             "event_name": self.event_name.value,
             "event_value": self.event_value,
             "thread_id": self.thread_id,
-            "timestamp": str(self.timestamp)[:-3],  # cut time's microseconds from 6 -> 3 figures to allow SQL casting
+            "timestamp": self.timestamp,
         }
 
     @staticmethod
@@ -99,6 +102,8 @@ class EventTracker:
 
     _events: List[Event] = []
     _event_lock = threading.Lock()
+
+    MAX_EVENTS: int = 50  # Maximum number of events to store before sending
 
     @staticmethod
     def track_event(event_name: str, event_value: str):
@@ -129,8 +134,13 @@ class EventTracker:
                 return some_value
         """
         try:
+            should_send: bool = False
             with EventTracker._event_lock:
                 EventTracker._events.append(Event(event_name, event_value))
+                if len(EventTracker._events) >= EventTracker.MAX_EVENTS:
+                    should_send = True
+            if should_send:
+                EventTracker.send_events()
         except EventCreationError as e:
             LOG.debug("Error occurred while trying to track an event: %s", e)
 
@@ -144,6 +154,21 @@ class EventTracker:
         """Clear the current list of tracked Events before the next session."""
         with EventTracker._event_lock:
             EventTracker._events = []
+
+    @staticmethod
+    def send_events():
+        """Sends the current list of events via Telemetry."""
+        from samcli.lib.telemetry.metric import Metric  # creates circular import otherwise
+
+        telemetry = Telemetry()
+        try:
+            # ctx = Context.get_current_context()
+            metric = Metric("events")
+            metric.add_data("events", [e.to_json() for e in EventTracker.get_tracked_events()])
+            telemetry.emit(metric)
+            EventTracker.clear_trackers()
+        except RuntimeError:
+            LOG.debug("Unable to find Click Context for getting session_id.")
 
 
 class EventCreationError(Exception):
