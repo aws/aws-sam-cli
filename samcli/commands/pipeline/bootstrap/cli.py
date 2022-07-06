@@ -10,7 +10,11 @@ import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, aws_creds_options, print_cmdline_args
-from samcli.commands.pipeline.bootstrap.pipeline_oidc_provider import GitHubOidcProvider, GitLabOidcProvider, PipelineOidcProvider
+from samcli.commands.pipeline.bootstrap.pipeline_oidc_provider import (
+    GitHubOidcProvider,
+    GitLabOidcProvider,
+    PipelineOidcProvider,
+)
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.pipeline.bootstrap.stage import (
     DEPLOYMENT_BRANCH,
@@ -312,11 +316,11 @@ def do_cli(
                 "deployment-branch": deployment_branch,
             }
             pipeline_oidc_provider = GitHubOidcProvider(github_oidc_params, common_oidc_params, GITHUB_ACTIONS)
-        if oidc_provider == GITLAB:
+        elif oidc_provider == GITLAB:
             gitlab_oidc_params: dict = {
                 "gitlab-project": gitlab_project,
                 "gitlab-group": gitlab_group,
-                "deployment-branch": deployment_branch
+                "deployment-branch": deployment_branch,
             }
             pipeline_oidc_provider = GitLabOidcProvider(gitlab_oidc_params, common_oidc_params, GITLAB)
         else:
