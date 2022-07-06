@@ -1,9 +1,7 @@
-import json
 import boto3
 import re
 import logging
-from jinja2 import Template
-from cfn_flip import to_yaml
+import jinja2
 from typing import *
 
 LOG = logging.getLogger(__name__)
@@ -86,86 +84,82 @@ def _get_permissions_map() -> dict:
     return default_permissions_map
 
 
-def _create_iam_statment(resource_arn: str) -> List[str]:
+def _get_action_mapping(resource_arn: str) -> Union[dict, None]:
+
     """
-    Returns an IAM Statement corresponding to the supplied resource ARN.
+    Returns a dictionary mapping a Resource type to a list of IAM actions generated for that resource.
+
+    Returns `None` if the supplied ARN is for a Resource type without any IAM actions supported.
+
+    Parameters
+    ----------
+    resource_arn:
+        The arn of the resource for which the mapping is returned.
+
+    Returns
+    -------
+    dict:
+        A dictionary containing two keys: `'Resource'` and `'Action'`. `'Resource'` contains the AWS Resource for which the IAM actions list contained in `'Action'` maps to.
+
+        For example `{"Resource": "AWS::S3::Bucket", "Action": ["s3:PutObject", "s3:GetObject"]}`
+
+    """
+
+    permissions_map = _get_permissions_map()
+
+    for arn_exp, mapping in permissions_map.items():
+        if re.search(arn_exp, resource_arn) is not None:
+            LOG.info("Matched ARN `%s` to IAM actions %s", resource_arn, mapping["Action"])
+            return mapping
+
+    # If the supplied ARN is for a resource without any default actions supported
+    return None
+
+
+def _create_iam_statment_string(resource_arn: str) -> str:
+    """
+    Returns an IAM Statement in the form of a YAML string corresponding to the supplied resource ARN.
+
+    The generated Actions are commented out to establish a barrier of consent, preventing customers from accidentally granting permissions that they did not mean to.
 
     The Action list is empty if there are no IAM Action permissions to generate for the given resource.
 
     Parameters
     ----------
     resource_arn : str
-        The arn of the resource for which IAM Action permissions are returned.
+        The arn of the resource for which the IAM statement is generated.
 
     Returns
     -------
-    List[str]
-        The list of IAM Action permissions to generate for a given resource.
+    str:
+        An IAM Statement in the form of a YAML string.
     """
 
-    permissions_map = _get_permissions_map()
+    # NOTE: The spacing within these strings is needed to keep the resulting YAML indentation valid
+    new_statement_template = (
+        "- Effect: Allow\n"
+        "  Action:\n"
+        "   {%- for action in action_list %}\n"
+        "     # - {{action}}\n"
+        "   {%- endfor %}\n"
+        "  Resource: {{arn}}\n"
+    )
+    mapping = _get_action_mapping(resource_arn)
 
-    new_statement = {
-        "Effect": "Allow",
-        "Action": [],
-        "Resource": resource_arn,
-    }
+    if mapping is None:
+        return jinja2.Template(new_statement_template).render(action_list=[], arn=resource_arn).rstrip()
 
-    for arn_exp, mapping in permissions_map.items():
-        if re.search(arn_exp, resource_arn) is not None:
-            LOG.info("Matched ARN `%s` to IAM actions %s", resource_arn, mapping["Action"])
-            # Mark generated actions to be commented out
-            new_statement["Action"] = ["# " + action for action in mapping["Action"]]
+    if mapping["Resource"] in ("AWS::ApiGateway::Api", "AWS::ApiGateway::RestApi"):
+        apiId = _extract_api_id_from_arn(resource_arn)
+        execute_api_arn = f"!Sub arn:${{AWS::Partition}}:execute-api:${{AWS::Region}}:${{AWS::AccountId}}:{apiId}/<STAGE>/GET/<RESOURCE_PATH>"
+        return (
+            jinja2.Template(new_statement_template).render(action_list=mapping["Action"], arn=execute_api_arn).rstrip()
+        )
 
-            # https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-control-access-using-iam-policies-to-invoke-api.html
-            if mapping["Resource"] in ("AWS::ApiGateway::Api", "AWS::ApiGateway::RestApi"):
-                apiId = _extract_api_id_from_arn(resource_arn)
-                new_statement[
-                    "Resource"
-                ] = f"!Sub arn:${{AWS::Partition}}:execute-api:${{AWS::Region}}:${{AWS::AccountId}}:{apiId}/<STAGE>/GET/<RESOURCE_PATH>"
-
-    return new_statement
-
-
-def _generate_base_test_runner_template_json(
-    jinja_template_json_string: str,
-    bucket_name: str,
-    image_uri: str,
-) -> dict:
-    """
-    Renders a base jinja template with a set of parameters needed to create the Test Runner Stack.
-
-    Parameters
-    ----------
-    jinja_template_json_string : str
-        The base jinja template to which parameters are substituted.
-
-    bucket_name : str
-        The name of the S3 bucket used by the Test Runner Stack.
-
-    image_uri : str
-        The URI of the Image to be used by the Test Runner Fargate task definition.
-
-    Returns
-    -------
-    dict
-        A JSON object representing the CloudFormation Template for the Test Runner Stack with all parameters substituted in.
-
-    """
-    data = {
-        "image_uri": image_uri,
-        "s3_bucket_name": bucket_name,
-    }
-
-    try:
-        rendered_template_string = Template(jinja_template_json_string).render(data)
-        return json.loads(rendered_template_string)
-    except Exception as render_error:
-        LOG.exception("Failed to render jinja template: %s", render_error)
-        return None
+    return jinja2.Template(new_statement_template).render(action_list=mapping["Action"], arn=resource_arn).rstrip()
 
 
-def _query_tagging_api(tag_filters: dict) -> dict:
+def _query_tagging_api(tag_filters: dict) -> Union[dict, None]:
     """
     Queries the Tagging API to retrieve the ARNs of every resource with the given tags.
 
@@ -194,9 +188,9 @@ def _query_tagging_api(tag_filters: dict) -> dict:
         return None
 
 
-def _generate_statement_list(tag_filters: dict) -> List[dict]:
+def _generate_statement_list(tag_filters: dict) -> List[str]:
     """
-    Generates a list of IAM statements with default action permissions for resources with the given tags.
+    Generates a list of IAM statements in the form of YAML strings with default action permissions for resources with the given tags.
 
     Parameters
     ----------
@@ -207,54 +201,32 @@ def _generate_statement_list(tag_filters: dict) -> List[dict]:
 
     Returns
     -------
-    List[dict]
-        The list of JSON objects representing IAM statements corresponding to the resources specified by the given tags.
+    List[str]
+        The list of IAM statements in the form of YAML strings corresponding to the resources specified by the given tags.
     """
 
     resource_tag_mapping_list = _query_tagging_api(tag_filters)
 
     if resource_tag_mapping_list is None:
         LOG.error("Failed to receive get_resources response, cannot generate any IAM statements.")
-        return []
+        return ["# Failed to query tagging api, can't generate IAM permissions for your resources."]
 
-    iam_statements = [_create_iam_statment(resource["ResourceARN"]) for resource in resource_tag_mapping_list]
+    iam_statements = [_create_iam_statment_string(resource["ResourceARN"]) for resource in resource_tag_mapping_list]
     return iam_statements
 
 
-def _comment_out_default_actions(raw_yaml_string: str) -> str:
-    """
-    Formats the given YAML string to remove quotes and move `#` to the other side of the list item `-`.
-
-    This is to allow default permissions to actually be commented out.
-    This string replacement will produce deterministic results, since the `raw_yaml_string` is deterministic.
-    There will be no other instances of `- # ` other than the ones created during the template generation process.
-
-    The purpose is to establish a barrier of consent, to prevent customers from accidentally granting permissions that they did not mean to.
-
-    e.g.
-
-        `- '# lambda:InvokeFunction'` => `# - lambda:InvokeFunction`
-    """
-    # Move comment hashtag to be in front of list items so they're properly commented out
-    return raw_yaml_string.replace("'", "").replace("- # ", "# - ")
-
-
 def generate_test_runner_template_string(
-    jinja_template_json_string: str,
-    bucket_name: str,
-    image_uri: str,
-    tag_filters: dict,
-) -> str:
-
+    jinja_base_template: str, s3_bucket_name: str, image_uri: str, tag_filters: dict
+) -> Union[dict, None]:
     """
-    Generates a Test Runner CloudFormation Template based on a base jinja template and given parameters.
+    Renders a base jinja template with a set of parameters needed to create the Test Runner Stack.
 
     Parameters
     ----------
-    jinja_template_json_string : str
-        The base jinja template to which parameters are substituted.
+    jinja_base_template : str
+        The jinja YAML template to which parameters are substituted.
 
-    bucket_name : str
+    s3_bucket_name : str
         The name of the S3 bucket used by the Test Runner Stack.
 
     image_uri : str
@@ -267,29 +239,17 @@ def generate_test_runner_template_string(
 
     Returns
     -------
-    str
-        A YAML string representing a complete Test Runner CloudFormation Template
+    dict
+        The Test Runner CloudFormation template in the form of a YAML string.
 
     """
 
-    test_runner_template = _generate_base_test_runner_template_json(
-        jinja_template_json_string,
-        bucket_name,
-        image_uri,
-    )
-    if test_runner_template is None:
-        LOG.exception("Failed to receive base template, aborting template generation.")
+    generated_statements = _generate_statement_list(tag_filters)
+
+    data = {"image_uri": image_uri, "s3_bucket_name": s3_bucket_name, "generated_statements": generated_statements}
+
+    try:
+        return jinja2.Template(jinja_base_template).render(data)
+    except Exception as render_error:
+        LOG.exception("Failed to render jinja template: %s", render_error)
         return None
-
-    iam_statements = _generate_statement_list(tag_filters)
-
-    # Attach the generated IAM statements to the Container IAM Role
-    test_runner_template["Resources"]["ContainerIAMRole"]["Properties"]["Policies"][0]["PolicyDocument"][
-        "Statement"
-    ].extend(iam_statements)
-
-    raw_yaml_template_string = to_yaml(json.dumps(test_runner_template))
-
-    processed_yaml_template_string = _comment_out_default_actions(raw_yaml_template_string)
-
-    return processed_yaml_template_string
