@@ -2,7 +2,7 @@ name: Test Merge the develop branch into the list-command branch
 
 on:
   schedule:
-    - cron: '1 * 1 * *'
+    - cron: '*/5 * * * *'
 #test comment
 jobs:
   update-branch:
