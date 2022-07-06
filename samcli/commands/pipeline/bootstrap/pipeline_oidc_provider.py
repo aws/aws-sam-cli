@@ -70,3 +70,33 @@ class GitHubOidcProvider(PipelineOidcProvider):
         repo = self.oidc_parameters["github-repo"]
         branch = self.oidc_parameters["deployment-branch"]
         return f"repo:{org}/{repo}:ref:refs/heads/{branch}"
+
+
+class GitLabOidcProvider(PipelineOidcProvider):
+
+    GITLAB_PROJECT_PARAMETER_NAME = "gitlab-project"
+    GITLAB_GROUP_PARAMETER_NAME = "gitlab-group"
+    DEPLOYMENT_BRANCH_PARAMETER_NAME = "deployment-branch"
+
+    def __init__(self, subject_claim_parameters: dict, oidc_parameters: dict, oidc_provider_name: str) -> None:
+        all_oidc_parameters = {**oidc_parameters, **subject_claim_parameters}
+        all_oidc_parameter_names = [
+            self.GITLAB_PROJECT_PARAMETER_NAME,
+            self.GITLAB_GROUP_PARAMETER_NAME,
+            self.DEPLOYMENT_BRANCH_PARAMETER_NAME,
+        ]
+        super().__init__(all_oidc_parameters, all_oidc_parameter_names, oidc_provider_name)
+
+    def get_subject_claim(self) -> str:
+        """
+        Returns the subject claim that will be used to establish trust between the OIDC provider and AWS.
+        To read more about OIDC claims see the following: https://openid.net/specs/openid-connect-core-1_0.html#Claims
+        https://docs.gitlab.com/ee/ci/cloud_services/aws/#configure-a-role-and-trust
+        To learn more about configuring a role to work with GitLab OIDC through claims see the following
+        https://docs.gitlab.com/ee/ci/cloud_services/index.html#configure-a-conditional-role-with-oidc-claims
+        -------
+        """
+        group = self.oidc_parameters["gitlab-group"]
+        project = self.oidc_parameters["gitlab-project"]
+        branch = self.oidc_parameters["deployment-branch"]
+        return f"project_path:{group}/{project}:ref_type:branch:ref:{branch}"

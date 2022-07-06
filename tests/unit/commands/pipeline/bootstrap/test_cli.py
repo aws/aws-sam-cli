@@ -31,8 +31,13 @@ ANY_OIDC_PROVIDER = "ANY_OIDC_PROVIDER"
 ANY_GITHUB_ORG = "ANY_GITHUB_ORG"
 ANY_GITHUB_REPO = "ANY_GITHUB_REPO"
 ANY_DEPLOYMENT_BRANCH = "ANY_DEPLOYMENT_BRANCH"
+ANY_GITLAB_PROJECT = "ANY_GITLAB_PROJECT"
+ANY_GITLAB_GROUP = "ANY_GITLAB_GROUP"
 ANY_SUBJECT_CLAIM = "ANY_SUBJECT_CLAIM"
 ANY_BUILT_SUBJECT_CLAIM = "repo:ANY_GITHUB_ORG/ANY_GITHUB_REPO:ref:refs/heads/ANY_DEPLOYMENT_BRANCH"
+ANY_BUILT_GITLAB_SUBJECT_CLAIM = (
+    "project_path:ANY_GITLAB_GROUP/ANY_GITLAB_PROJECT:ref_type:branch:ref" ":ANY_DEPLOYMENT_BRANCH"
+)
 PIPELINE_BOOTSTRAP_COMMAND_NAMES = ["pipeline", "bootstrap"]
 
 
@@ -58,6 +63,8 @@ class TestCli(TestCase):
             "oidc_provider": ANY_OIDC_PROVIDER,
             "github_org": ANY_GITHUB_ORG,
             "github_repo": ANY_GITHUB_REPO,
+            "gitlab_project": ANY_GITLAB_PROJECT,
+            "gitlab_group": ANY_GITLAB_GROUP,
             "deployment_branch": ANY_DEPLOYMENT_BRANCH,
         }
 
@@ -91,6 +98,8 @@ class TestCli(TestCase):
             github_repo=None,
             deployment_branch=None,
             oidc_provider=None,
+            gitlab_group=None,
+            gitlab_project=None,
         )
 
     @patch("samcli.commands.pipeline.bootstrap.cli.do_cli")

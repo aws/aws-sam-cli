@@ -10,7 +10,7 @@ import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, aws_creds_options, print_cmdline_args
-from samcli.commands.pipeline.bootstrap.pipeline_oidc_provider import GitHubOidcProvider, PipelineOidcProvider
+from samcli.commands.pipeline.bootstrap.pipeline_oidc_provider import GitHubOidcProvider, GitLabOidcProvider, PipelineOidcProvider
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.pipeline.bootstrap.stage import (
     DEPLOYMENT_BRANCH,
@@ -24,7 +24,7 @@ from samcli.lib.pipeline.bootstrap.stage import (
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.version_checker import check_newer_version
-from .guided_context import GITHUB_ACTIONS, IAM, OPEN_ID_CONNECT, GuidedContext
+from .guided_context import GITHUB_ACTIONS, GITLAB, IAM, OPEN_ID_CONNECT, GuidedContext
 from ..external_links import CONFIG_AWS_CRED_ON_CICD_URL
 
 SHORT_HELP = "Generates the required AWS resources to connect your CI/CD system."
@@ -132,7 +132,17 @@ LOG = logging.getLogger(__name__)
 @click.option(
     "--oidc-provider",
     help="The name of the CI/CD system that will be used for OIDC permissions",
-    type=click.Choice([GITHUB_ACTIONS]),
+    type=click.Choice([GITHUB_ACTIONS, GITLAB]),
+    required=False,
+)
+@click.option(
+    "--gitlab-group",
+    help="The GitLab Group that the repository belongs to. " "Only used if using GitLab OIDC for permissions",
+    required=False,
+)
+@click.option(
+    "--gitlab-project",
+    help="The GitLab Project name. " "Only used if using GitLab OIDC for permissions",
     required=False,
 )
 @common_options
@@ -161,6 +171,8 @@ def cli(
     github_repo: Optional[str],
     deployment_branch: Optional[str],
     oidc_provider: Optional[str],
+    gitlab_group: Optional[str],
+    gitlab_project: Optional[str],
 ) -> None:
     """
     `sam pipeline bootstrap` command entry point
@@ -186,6 +198,8 @@ def cli(
         github_repo=github_repo,
         deployment_branch=deployment_branch,
         oidc_provider=oidc_provider,
+        gitlab_group=gitlab_group,
+        gitlab_project=gitlab_project,
     )  # pragma: no cover
 
 
@@ -210,6 +224,8 @@ def do_cli(
     github_repo: Optional[str],
     deployment_branch: Optional[str],
     oidc_provider: Optional[str],
+    gitlab_group: Optional[str],
+    gitlab_project: Optional[str],
     standalone: bool = True,
 ) -> None:
     """
@@ -261,6 +277,8 @@ def do_cli(
             github_org=github_org,
             github_repo=github_repo,
             deployment_branch=deployment_branch,
+            gitlab_group=gitlab_group,
+            gitlab_project=gitlab_project,
         )
         guided_context.run()
         stage_configuration_name = guided_context.stage_configuration_name
@@ -279,6 +297,8 @@ def do_cli(
         github_repo = guided_context.github_repo
         deployment_branch = guided_context.deployment_branch
         oidc_provider = guided_context.oidc_provider
+        gitlab_project = guided_context.gitlab_group
+        gitlab_group = guided_context.gitlab_project
 
     subject_claim = None
     pipeline_oidc_provider: Optional[PipelineOidcProvider] = None
@@ -292,6 +312,13 @@ def do_cli(
                 "deployment-branch": deployment_branch,
             }
             pipeline_oidc_provider = GitHubOidcProvider(github_oidc_params, common_oidc_params, GITHUB_ACTIONS)
+        if oidc_provider == GITLAB:
+            gitlab_oidc_params: dict = {
+                "gitlab-project": gitlab_project,
+                "gitlab-group": gitlab_group,
+                "deployment-branch": deployment_branch
+            }
+            pipeline_oidc_provider = GitLabOidcProvider(gitlab_oidc_params, common_oidc_params, GITLAB)
         else:
             raise click.UsageError("Missing required parameter '--oidc-provider'")
         subject_claim = pipeline_oidc_provider.get_subject_claim()
@@ -313,7 +340,6 @@ def do_cli(
         oidc_client_id=oidc_client_id,
         permissions_provider=permissions_provider,
         subject_claim=subject_claim,
-        oidc_provider_name=oidc_provider,
         pipeline_oidc_provider=pipeline_oidc_provider,
     )
 

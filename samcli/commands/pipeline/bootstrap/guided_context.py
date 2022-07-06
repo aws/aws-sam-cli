@@ -19,16 +19,17 @@ from samcli.lib.utils.defaults import get_default_aws_region
 from samcli.lib.utils.profile import list_available_profiles
 
 GITHUB_ACTIONS = "github-actions"
+GITLAB = "gitlab"
 OPEN_ID_CONNECT = "oidc"
 IAM = "iam"
 
 
 class GuidedContext:
 
-    SUPPORTED_OIDC_PROVIDERS = {"1": GITHUB_ACTIONS}
-    OIDC_PROVIDER_NAME_MAPPINGS = {GITHUB_ACTIONS: "GitHub Actions"}
-    DEFAULT_OIDC_URLS = {GITHUB_ACTIONS: "https://token.actions.githubusercontent.com"}
-    DEFAULT_CLIENT_IDS = {GITHUB_ACTIONS: "sts.amazonaws.com"}
+    SUPPORTED_OIDC_PROVIDERS = {"1": GITHUB_ACTIONS, "2": GITLAB}
+    OIDC_PROVIDER_NAME_MAPPINGS = {GITHUB_ACTIONS: "GitHub Actions", GITLAB: "GitLab"}
+    DEFAULT_OIDC_URLS = {GITHUB_ACTIONS: "https://token.actions.githubusercontent.com", GITLAB: "https://gitlab.com"}
+    DEFAULT_CLIENT_IDS = {GITHUB_ACTIONS: "sts.amazonaws.com", GITLAB: "https://gitlab.com"}
 
     def __init__(
         self,
@@ -47,6 +48,8 @@ class GuidedContext:
         oidc_provider: Optional[str] = None,
         github_org: Optional[str] = None,
         github_repo: Optional[str] = None,
+        gitlab_group: Optional[str] = None,
+        gitlab_project: Optional[str] = None,
         deployment_branch: Optional[str] = None,
     ) -> None:
         self.profile = profile
@@ -65,6 +68,8 @@ class GuidedContext:
         self.github_repo = github_repo
         self.github_org = github_org
         self.deployment_branch = deployment_branch
+        self.gitlab_group = gitlab_group
+        self.gitlab_project = gitlab_project
         self.color = Colored()
 
     def _prompt_account_id(self) -> None:
@@ -207,7 +212,24 @@ class GuidedContext:
             if not self.github_repo:
                 self._prompt_github_repo()
             if not self.deployment_branch:
-                self._prompt_github_branch()
+                self._prompt_deployment_branch()
+        elif self.oidc_provider == GITLAB:
+            if not self.gitlab_group:
+                self._prompt_gitlab_group()
+            if not self.gitlab_project:
+                self._prompt_gitlab_project()
+            if not self.deployment_branch:
+                self._prompt_deployment_branch()
+
+    def _prompt_gitlab_group(self) -> None:
+        self.gitlab_group = click.prompt(
+            "Enter the GitLab group that the code repository belongs to."
+            " If there is no group enter your username instead",
+            type=click.STRING,
+        )
+
+    def _prompt_gitlab_project(self) -> None:
+        self.gitlab_project = click.prompt("Enter GitLab project name", type=click.STRING)
 
     def _prompt_github_org(self) -> None:
         self.github_org = click.prompt(
@@ -219,7 +241,7 @@ class GuidedContext:
     def _prompt_github_repo(self) -> None:
         self.github_repo = click.prompt("Enter GitHub repository name", type=click.STRING)
 
-    def _prompt_github_branch(self) -> None:
+    def _prompt_deployment_branch(self) -> None:
         self.deployment_branch = click.prompt(
             "Enter the name of the branch that deployments will occur from", type=click.STRING, default="main"
         )
@@ -251,7 +273,15 @@ class GuidedContext:
                     [
                         (f"GitHub organization: {self.github_org}", self._prompt_github_org),
                         (f"GitHub repository: {self.github_repo}", self._prompt_github_repo),
-                        (f"Deployment branch:  {self.deployment_branch}", self._prompt_github_branch),
+                        (f"Deployment branch:  {self.deployment_branch}", self._prompt_deployment_branch),
+                    ]
+                )
+            elif self.oidc_provider == GITLAB:
+                inputs.extend(
+                    [
+                        (f"GitLab group: {self.gitlab_group}", self._prompt_gitlab_group),
+                        (f"GitLab project: {self.gitlab_project}", self._prompt_gitlab_project),
+                        (f"Deployment branch:  {self.deployment_branch}", self._prompt_deployment_branch),
                     ]
                 )
         else:
