@@ -36,6 +36,8 @@ OIDC_CLIENT_ID = "oidc_client_id"
 OIDC_PROVIDER = "oidc_provider"
 GITHUB_ORG = "github_org"
 GITHUB_REPO = "github_repo"
+GITLAB_GROUP = "gitlab_group"
+GITLAB_PROJECT = "gitlab_project"
 DEPLOYMENT_BRANCH = "deployment_branch"
 REGION = "region"
 
@@ -112,20 +114,12 @@ class Stage:
         oidc_provider_url: Optional[str] = None,
         oidc_client_id: Optional[str] = None,
         subject_claim: Optional[str] = None,
-        oidc_provider_name: Optional[str] = None,
-        github_org: Optional[str] = None,
-        github_repo: Optional[str] = None,
-        deployment_branch: Optional[str] = None,
         pipeline_oidc_provider: Optional[PipelineOidcProvider] = None,
     ) -> None:
         self.name: str = name
         self.create_new_oidc_provider = False
         self.subject_claim = subject_claim
         self.use_oidc_provider = permissions_provider == OPEN_ID_CONNECT
-        self.oidc_provider_name = oidc_provider_name
-        self.github_org = github_org
-        self.github_repo = github_repo
-        self.deployment_branch = deployment_branch
         self.pipeline_oidc_provider = pipeline_oidc_provider
         self.aws_profile: Optional[str] = aws_profile
         self.aws_region: Optional[str] = aws_region
