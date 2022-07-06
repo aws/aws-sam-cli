@@ -5,16 +5,26 @@ import os
 from textwrap import dedent
 from typing import Any, Dict, List, Optional
 
+import logging
 import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, aws_creds_options, print_cmdline_args
+from samcli.commands.pipeline.bootstrap.pipeline_oidc_provider import GitHubOidcProvider, PipelineOidcProvider
 from samcli.lib.config.samconfig import SamConfig
-from samcli.lib.pipeline.bootstrap.stage import Stage
+from samcli.lib.pipeline.bootstrap.stage import (
+    DEPLOYMENT_BRANCH,
+    GITHUB_ORG,
+    GITHUB_REPO,
+    OIDC_CLIENT_ID,
+    OIDC_PROVIDER,
+    OIDC_PROVIDER_URL,
+    Stage,
+)
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.version_checker import check_newer_version
-from .guided_context import GuidedContext
+from .guided_context import GITHUB_ACTIONS, IAM, OPEN_ID_CONNECT, GuidedContext
 from ..external_links import CONFIG_AWS_CRED_ON_CICD_URL
 
 SHORT_HELP = "Generates the required AWS resources to connect your CI/CD system."
@@ -26,6 +36,8 @@ This step must be run for each deployment stage in your pipeline, prior to runni
 
 PIPELINE_CONFIG_DIR = os.path.join(".aws-sam", "pipeline")
 PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
+PERMISSIONS_PROVIDERS = [OPEN_ID_CONNECT, IAM]
+LOG = logging.getLogger(__name__)
 
 
 @click.command("bootstrap", short_help=SHORT_HELP, help=HELP_TEXT, context_settings=dict(max_content_width=120))
@@ -87,6 +99,42 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
     is_flag=True,
     help="Prompt to confirm if the resources are to be deployed.",
 )
+@click.option(
+    "--permissions-provider",
+    default=IAM,
+    required=False,
+    type=click.Choice(PERMISSIONS_PROVIDERS),
+    help="Choose a permissions provider to assume the pipeline execution role. Default is to use an IAM User.",
+)
+@click.option(
+    "--oidc-provider-url", help="The URL of the OIDC provider. Example: https://server.example.com", required=False
+)
+@click.option("--oidc-client-id", help="The client ID configured to use with the OIDC provider.", required=False)
+@click.option(
+    "--github-org",
+    help="The GitHub organization that the repository belongs to. "
+    "If there is no organization enter the Username of the repository owner instead "
+    "Only used if using GitHub Actions OIDC for user permissions",
+    required=False,
+)
+@click.option(
+    "--github-repo",
+    help="The name of the GitHub Repository that deployments will occur from. "
+    "Only used if using GitHub Actions OIDC for permissions",
+    required=False,
+)
+@click.option(
+    "--deployment-branch",
+    help="The name of the branch that deployments will occur from. "
+    "Only used if using GitHub Actions OIDC for permissions",
+    required=False,
+)
+@click.option(
+    "--oidc-provider",
+    help="The name of the CI/CD system that will be used for OIDC permissions",
+    type=click.Choice([GITHUB_ACTIONS]),
+    required=False,
+)
 @common_options
 @aws_creds_options
 @pass_context
@@ -106,6 +154,13 @@ def cli(
     confirm_changeset: bool,
     config_file: Optional[str],
     config_env: Optional[str],
+    permissions_provider: Optional[str],
+    oidc_provider_url: Optional[str],
+    oidc_client_id: Optional[str],
+    github_org: Optional[str],
+    github_repo: Optional[str],
+    deployment_branch: Optional[str],
+    oidc_provider: Optional[str],
 ) -> None:
     """
     `sam pipeline bootstrap` command entry point
@@ -124,6 +179,13 @@ def cli(
         confirm_changeset=confirm_changeset,
         config_file=config_env,
         config_env=config_file,
+        permissions_provider=permissions_provider,
+        oidc_provider_url=oidc_provider_url,
+        oidc_client_id=oidc_client_id,
+        github_org=github_org,
+        github_repo=github_repo,
+        deployment_branch=deployment_branch,
+        oidc_provider=oidc_provider,
     )  # pragma: no cover
 
 
@@ -141,13 +203,30 @@ def do_cli(
     confirm_changeset: bool,
     config_file: Optional[str],
     config_env: Optional[str],
+    permissions_provider: Optional[str],
+    oidc_provider_url: Optional[str],
+    oidc_client_id: Optional[str],
+    github_org: Optional[str],
+    github_repo: Optional[str],
+    deployment_branch: Optional[str],
+    oidc_provider: Optional[str],
     standalone: bool = True,
 ) -> None:
     """
     implementation of `sam pipeline bootstrap` command
     """
-    if not pipeline_user_arn:
+    if not pipeline_user_arn and not permissions_provider == OPEN_ID_CONNECT:
         pipeline_user_arn = _load_saved_pipeline_user_arn()
+
+    if not oidc_provider:
+        oidc_parameters = _load_saved_oidc_values()
+        if oidc_parameters:
+            oidc_provider = oidc_parameters.get(OIDC_PROVIDER)
+            oidc_provider_url = oidc_parameters.get(OIDC_PROVIDER_URL)
+            oidc_client_id = oidc_parameters.get(OIDC_CLIENT_ID)
+            github_org = oidc_parameters.get(GITHUB_ORG)
+            github_repo = oidc_parameters.get(GITHUB_REPO)
+            deployment_branch = oidc_parameters.get(DEPLOYMENT_BRANCH)
 
     if interactive:
         if standalone:
@@ -175,6 +254,13 @@ def do_cli(
             create_image_repository=create_image_repository,
             image_repository_arn=image_repository_arn,
             region=region,
+            permissions_provider=permissions_provider,
+            oidc_provider_url=oidc_provider_url,
+            oidc_client_id=oidc_client_id,
+            oidc_provider=oidc_provider,
+            github_org=github_org,
+            github_repo=github_repo,
+            deployment_branch=deployment_branch,
         )
         guided_context.run()
         stage_configuration_name = guided_context.stage_configuration_name
@@ -186,6 +272,29 @@ def do_cli(
         image_repository_arn = guided_context.image_repository_arn
         region = guided_context.region
         profile = guided_context.profile
+        permissions_provider = guided_context.permissions_provider
+        oidc_client_id = guided_context.oidc_client_id
+        oidc_provider_url = guided_context.oidc_provider_url
+        github_org = guided_context.github_org
+        github_repo = guided_context.github_repo
+        deployment_branch = guided_context.deployment_branch
+        oidc_provider = guided_context.oidc_provider
+
+    subject_claim = None
+    pipeline_oidc_provider: Optional[PipelineOidcProvider] = None
+
+    if permissions_provider == OPEN_ID_CONNECT:
+        common_oidc_params = {"oidc-provider-url": oidc_provider_url, "oidc-client-id": oidc_client_id}
+        if oidc_provider == GITHUB_ACTIONS:
+            github_oidc_params: dict = {
+                "github-org": github_org,
+                "github-repo": github_repo,
+                "deployment-branch": deployment_branch,
+            }
+            pipeline_oidc_provider = GitHubOidcProvider(github_oidc_params, common_oidc_params, GITHUB_ACTIONS)
+        else:
+            raise click.UsageError("Missing required parameter '--oidc-provider'")
+        subject_claim = pipeline_oidc_provider.get_subject_claim()
 
     if not stage_configuration_name:
         raise click.UsageError("Missing required parameter '--stage'")
@@ -200,6 +309,12 @@ def do_cli(
         artifacts_bucket_arn=artifacts_bucket_arn,
         create_image_repository=create_image_repository,
         image_repository_arn=image_repository_arn,
+        oidc_provider_url=oidc_provider_url,
+        oidc_client_id=oidc_client_id,
+        permissions_provider=permissions_provider,
+        subject_claim=subject_claim,
+        oidc_provider_name=oidc_provider,
+        pipeline_oidc_provider=pipeline_oidc_provider,
     )
 
     bootstrapped: bool = environment.bootstrap(confirm_changeset=confirm_changeset)
@@ -221,7 +336,7 @@ def do_cli(
             )
         )
 
-        if not environment.pipeline_user.is_user_provided:
+        if not environment.pipeline_user.is_user_provided and not environment.use_oidc_provider:
             click.secho(
                 dedent(
                     f"""\
@@ -239,6 +354,14 @@ def _load_saved_pipeline_user_arn() -> Optional[str]:
         return None
     config: Dict[str, str] = samconfig.get_all(cmd_names=_get_bootstrap_command_names(), section="parameters")
     return config.get("pipeline_user")
+
+
+def _load_saved_oidc_values() -> Dict[str, str]:
+    samconfig: SamConfig = SamConfig(config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME)
+    if not samconfig.exists():
+        return {}
+    config: Dict[str, str] = samconfig.get_all(cmd_names=_get_bootstrap_command_names(), section="parameters")
+    return config
 
 
 def _get_bootstrap_command_names() -> List[str]:
