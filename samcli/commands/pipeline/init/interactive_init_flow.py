@@ -175,6 +175,13 @@ class InteractiveInitFlow:
                     config_file=None,
                     config_env=None,
                     standalone=False,
+                    permissions_provider=None,
+                    oidc_client_id=None,
+                    oidc_provider_url=None,
+                    github_org=None,
+                    github_repo=None,
+                    deployment_branch=None,
+                    oidc_provider=None,
                 )
                 return True
         else:

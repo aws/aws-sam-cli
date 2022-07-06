@@ -6,12 +6,13 @@ from click.testing import CliRunner
 
 from samcli.commands.pipeline.bootstrap.cli import (
     _load_saved_pipeline_user_arn,
-    _get_bootstrap_command_names,
+    _load_saved_oidc_values,
     PIPELINE_CONFIG_FILENAME,
     PIPELINE_CONFIG_DIR,
 )
 from samcli.commands.pipeline.bootstrap.cli import cli as bootstrap_cmd
 from samcli.commands.pipeline.bootstrap.cli import do_cli as bootstrap_cli
+from samcli.commands.pipeline.bootstrap.guided_context import GITHUB_ACTIONS
 
 ANY_REGION = "ANY_REGION"
 ANY_PROFILE = "ANY_PROFILE"
@@ -24,6 +25,14 @@ ANY_IMAGE_REPOSITORY_ARN = "ANY_IMAGE_REPOSITORY_ARN"
 ANY_ARN = "ANY_ARN"
 ANY_CONFIG_FILE = "ANY_CONFIG_FILE"
 ANY_CONFIG_ENV = "ANY_CONFIG_ENV"
+ANY_OIDC_PROVIDER_URL = "ANY_OIDC_PROVIDER_URL"
+ANY_OIDC_CLIENT_ID = "ANY_OIDC_CLIENT_ID"
+ANY_OIDC_PROVIDER = "ANY_OIDC_PROVIDER"
+ANY_GITHUB_ORG = "ANY_GITHUB_ORG"
+ANY_GITHUB_REPO = "ANY_GITHUB_REPO"
+ANY_DEPLOYMENT_BRANCH = "ANY_DEPLOYMENT_BRANCH"
+ANY_SUBJECT_CLAIM = "ANY_SUBJECT_CLAIM"
+ANY_BUILT_SUBJECT_CLAIM = "repo:ANY_GITHUB_ORG/ANY_GITHUB_REPO:ref:refs/heads/ANY_DEPLOYMENT_BRANCH"
 PIPELINE_BOOTSTRAP_COMMAND_NAMES = ["pipeline", "bootstrap"]
 
 
@@ -43,6 +52,13 @@ class TestCli(TestCase):
             "confirm_changeset": True,
             "config_file": ANY_CONFIG_FILE,
             "config_env": ANY_CONFIG_ENV,
+            "permissions_provider": "iam",
+            "oidc_provider_url": ANY_OIDC_PROVIDER_URL,
+            "oidc_client_id": ANY_OIDC_CLIENT_ID,
+            "oidc_provider": ANY_OIDC_PROVIDER,
+            "github_org": ANY_GITHUB_ORG,
+            "github_repo": ANY_GITHUB_REPO,
+            "deployment_branch": ANY_DEPLOYMENT_BRANCH,
         }
 
     @patch("samcli.commands.pipeline.bootstrap.cli.do_cli")
@@ -68,6 +84,13 @@ class TestCli(TestCase):
             confirm_changeset=True,
             config_file="default",
             config_env="samconfig.toml",
+            permissions_provider="iam",
+            oidc_provider_url=None,
+            oidc_client_id=None,
+            github_org=None,
+            github_repo=None,
+            deployment_branch=None,
+            oidc_provider=None,
         )
 
     @patch("samcli.commands.pipeline.bootstrap.cli.do_cli")
@@ -106,6 +129,7 @@ class TestCli(TestCase):
     ):
         # setup
         gc_instance = Mock()
+        gc_instance.permissions_provider = "iam"
         guided_context_mock.return_value = gc_instance
         environment_instance = Mock()
         environment_mock.return_value = environment_instance
@@ -119,6 +143,87 @@ class TestCli(TestCase):
 
         # verify
         load_saved_pipeline_user_arn_mock.assert_called_once()
+        gc_instance.run.assert_called_once()
+        environment_instance.bootstrap.assert_called_once_with(confirm_changeset=True)
+        environment_instance.print_resources_summary.assert_called_once()
+        environment_instance.save_config_safe.assert_called_once_with(
+            config_dir=PIPELINE_CONFIG_DIR,
+            filename=PIPELINE_CONFIG_FILENAME,
+            cmd_names=PIPELINE_BOOTSTRAP_COMMAND_NAMES,
+        )
+
+    @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
+    def test_bootstrapping_oidc_non_interactive_fails_if_missing_parameters(self, environment_mock):
+        # setup
+        environment_instance = Mock()
+        environment_mock.return_value = environment_instance
+        self.cli_context["interactive"] = False
+        self.cli_context["permissions_provider"] = "oidc"
+        self.cli_context["oidc_provider_url"] = None
+        self.cli_context["oidc_client_id"] = None
+        self.cli_context["oidc_provider"] = None
+
+        # trigger
+        with self.assertRaises(click.UsageError):
+            bootstrap_cli(**self.cli_context)
+
+        # verify
+        environment_instance.bootstrap.assert_not_called()
+        environment_instance.print_resources_summary.assert_not_called()
+        environment_instance.save_config_safe.assert_not_called()
+
+    @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
+    def test_bootstrapping_oidc_non_interactive_fails_if_missing_github_parameters(self, environment_mock):
+        # setup
+        environment_instance = Mock()
+        environment_mock.return_value = environment_instance
+        self.cli_context["interactive"] = False
+        self.cli_context["permissions_provider"] = "oidc"
+        self.cli_context["oidc_provider"] = GITHUB_ACTIONS
+        self.cli_context["github_org"] = None
+        self.cli_context["github_repo"] = None
+        self.cli_context["deployment_branch"] = None
+
+        # trigger
+        with self.assertRaises(click.UsageError):
+            bootstrap_cli(**self.cli_context)
+
+        # verify
+        environment_instance.bootstrap.assert_not_called()
+        environment_instance.print_resources_summary.assert_not_called()
+        environment_instance.save_config_safe.assert_not_called()
+
+    @patch("samcli.commands.pipeline.bootstrap.pipeline_oidc_provider")
+    @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
+    @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
+    @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
+    def test_bootstrapping_oidc_interactive_flow(
+        self,
+        guided_context_mock,
+        environment_mock,
+        get_command_names_mock,
+        pipeline_provider_mock,
+    ):
+        # setup
+        gc_instance = Mock()
+        gc_instance.oidc_provider = GITHUB_ACTIONS
+        gc_instance.github_org = ANY_GITHUB_ORG
+        gc_instance.github_repo = ANY_GITHUB_REPO
+        gc_instance.deployment_branch = ANY_DEPLOYMENT_BRANCH
+        gc_instance.oidc_provider_url = ANY_OIDC_PROVIDER_URL
+        gc_instance.oidc_client_id = ANY_OIDC_CLIENT_ID
+        gc_instance.permissions_provider = "oidc"
+        guided_context_mock.return_value = gc_instance
+        environment_instance = Mock()
+        environment_mock.return_value = environment_instance
+        self.cli_context["interactive"] = True
+        self.cli_context["permissions_provider"] = "oidc"
+        get_command_names_mock.return_value = PIPELINE_BOOTSTRAP_COMMAND_NAMES
+
+        # trigger
+        bootstrap_cli(**self.cli_context)
+
+        # verify
         gc_instance.run.assert_called_once()
         environment_instance.bootstrap.assert_called_once_with(confirm_changeset=True)
         environment_instance.print_resources_summary.assert_called_once()
@@ -148,6 +253,17 @@ class TestCli(TestCase):
         self.cli_context["pipeline_user_arn"] = None
         bootstrap_cli(**self.cli_context)
         load_saved_pipeline_user_arn_mock.assert_called_once()
+
+    @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
+    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_oidc_values")
+    @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
+    @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
+    def test_bootstrap_will_try_loading_oidc_values_if_not_provided(
+        self, guided_context_mock, environment_mock, load_saved_oidc_values_arn_mock, get_command_names_mock
+    ):
+        self.cli_context["oidc_provider"] = None
+        bootstrap_cli(**self.cli_context)
+        load_saved_oidc_values_arn_mock.assert_called_once()
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
@@ -274,3 +390,65 @@ class TestCli(TestCase):
 
         # verify
         self.assertEqual(pipeline_user_arn, ANY_PIPELINE_USER_ARN)
+
+    @patch("samcli.commands.pipeline.bootstrap.cli.SamConfig")
+    @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
+    def test_load_saved_oidc_values_returns_values_from_file(self, get_command_names_mock, sam_config_mock):
+        # setup
+        get_command_names_mock.return_value = PIPELINE_BOOTSTRAP_COMMAND_NAMES
+        sam_config_instance_mock = Mock()
+        sam_config_mock.return_value = sam_config_instance_mock
+        sam_config_instance_mock.exists.return_value = True
+        sam_config_instance_mock.get_all.return_value = {
+            "oidc_provider_url": ANY_OIDC_PROVIDER_URL,
+            "oidc_provider": ANY_OIDC_PROVIDER,
+            "oidc_client_id": ANY_OIDC_CLIENT_ID,
+            "github_org": ANY_GITHUB_ORG,
+            "github_repo": ANY_GITHUB_REPO,
+            "deployment_branch": ANY_DEPLOYMENT_BRANCH,
+        }
+
+        # trigger
+        oidc_values = _load_saved_oidc_values()
+
+        # verify
+        self.assertEqual(oidc_values["oidc_provider_url"], ANY_OIDC_PROVIDER_URL)
+        self.assertEqual(oidc_values["oidc_provider"], ANY_OIDC_PROVIDER)
+        self.assertEqual(oidc_values["oidc_client_id"], ANY_OIDC_CLIENT_ID)
+        self.assertEqual(oidc_values["github_org"], ANY_GITHUB_ORG)
+        self.assertEqual(oidc_values["github_repo"], ANY_GITHUB_REPO)
+        self.assertEqual(oidc_values["deployment_branch"], ANY_DEPLOYMENT_BRANCH)
+
+    @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
+    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
+    @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
+    @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
+    def test_bootstrapping_normal_interactive_flow_with_non_user_provided_user(
+        self, guided_context_mock, environment_mock, load_saved_pipeline_user_arn_mock, get_command_names_mock
+    ):
+        # setup
+        gc_instance = Mock()
+        gc_instance.permissions_provider = "iam"
+        guided_context_mock.return_value = gc_instance
+        environment_instance = Mock()
+        environment_mock.return_value = environment_instance
+        environment_instance.permissions_provider = "iam"
+        load_saved_pipeline_user_arn_mock.return_value = ANY_PIPELINE_USER_ARN
+        environment_instance.pipeline_user.is_user_provided = False
+        self.cli_context["interactive"] = True
+        self.cli_context["pipeline_user_arn"] = None
+        get_command_names_mock.return_value = PIPELINE_BOOTSTRAP_COMMAND_NAMES
+
+        # trigger
+        bootstrap_cli(**self.cli_context)
+
+        # verify
+        load_saved_pipeline_user_arn_mock.assert_called_once()
+        gc_instance.run.assert_called_once()
+        environment_instance.bootstrap.assert_called_once_with(confirm_changeset=True)
+        environment_instance.print_resources_summary.assert_called_once()
+        environment_instance.save_config_safe.assert_called_once_with(
+            config_dir=PIPELINE_CONFIG_DIR,
+            filename=PIPELINE_CONFIG_FILENAME,
+            cmd_names=PIPELINE_BOOTSTRAP_COMMAND_NAMES,
+        )

@@ -1,6 +1,11 @@
+import hashlib
 from unittest import TestCase
 from unittest.mock import Mock, patch, call, MagicMock
 
+import OpenSSL.SSL  # type: ignore
+import requests
+
+from samcli.commands.pipeline.bootstrap.guided_context import GITHUB_ACTIONS
 from samcli.lib.pipeline.bootstrap.stage import Stage
 
 ANY_STAGE_CONFIGURATION_NAME = "ANY_STAGE_CONFIGURATION_NAME"
@@ -10,6 +15,13 @@ ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN = "ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN"
 ANY_ARTIFACTS_BUCKET_ARN = "ANY_ARTIFACTS_BUCKET_ARN"
 ANY_IMAGE_REPOSITORY_ARN = "ANY_IMAGE_REPOSITORY_ARN"
 ANY_ARN = "ANY_ARN"
+ANY_OIDC_PROVIDER_URL = "ANY_OIDC_PROVIDER_URL"
+ANY_OIDC_CLIENT_ID = "ANY_OIDC_CLIENT_ID"
+ANY_OIDC_PROVIDER = "ANY_OIDC_PROVIDER"
+ANY_SUBJECT_CLAIM = "ANY_SUBJECT_CLAIM"
+ANY_GITHUB_REPO = "ANY_GITHUB_REPO"
+ANY_GITHUB_ORG = "ANY_GITHUB_ORG"
+ANY_DEPLOYMENT_BRANCH = "ANY_DEPLOYMENT_BRANCH"
 
 
 class TestStage(TestCase):
@@ -189,6 +201,13 @@ class TestStage(TestCase):
             "ArtifactsBucketArn": ANY_ARTIFACTS_BUCKET_ARN,
             "CreateImageRepository": "true",
             "ImageRepositoryArn": ANY_IMAGE_REPOSITORY_ARN,
+            "UseOidcProvider": "false",
+            "CreateNewOidcProvider": "false",
+            "IdentityProviderThumbprint": "",
+            "OidcClientId": "",
+            "OidcProviderUrl": "",
+            "SubjectClaim": "",
+            "UseOidcProvider": "false",
         }
         self.assertEqual(expected_parameter_overrides, kwargs["parameter_overrides"])
 
@@ -400,6 +419,142 @@ class TestStage(TestCase):
         stage_without_provided_pipeline_user.print_resources_summary()
         self.assert_summary_has_a_message_like("AWS_ACCESS_KEY_ID", click_mock.secho)
         self.assert_summary_has_a_message_like("AWS_SECRET_ACCESS_KEY", click_mock.secho)
+
+    @patch("samcli.lib.pipeline.bootstrap.stage.crypto")
+    @patch("samcli.lib.pipeline.bootstrap.stage.socket")
+    @patch("samcli.lib.pipeline.bootstrap.stage.SSL")
+    @patch("samcli.lib.pipeline.bootstrap.stage.requests")
+    @patch("samcli.lib.pipeline.bootstrap.stage.click")
+    def test_generate_oidc_provider_thumbprint(self, click_mock, requests_mock, ssl_mock, socket_mock, crypto_mock):
+        # setup
+        stage: Stage = Stage(
+            name=ANY_STAGE_CONFIGURATION_NAME,
+            pipeline_user_arn=ANY_PIPELINE_USER_ARN,
+            artifacts_bucket_arn=ANY_ARTIFACTS_BUCKET_ARN,
+            create_image_repository=True,
+            image_repository_arn=ANY_IMAGE_REPOSITORY_ARN,
+        )
+        response_mock = Mock(requests.Response)
+        requests_mock.get.return_value = response_mock
+        response_mock.json.return_value = {"jwks_uri": "https://server.example.com/test"}
+        connection_mock = Mock(OpenSSL.SSL.Connection)
+        ssl_mock.Connection.return_value = connection_mock
+        certificate_mock = Mock(OpenSSL.crypto.x509)
+        connection_mock.get_peer_cert_chain.return_value = [certificate_mock]
+        dumped_certificate = "not a real certificate object dump".encode("utf-8")
+        crypto_mock.dump_certificate.return_value = dumped_certificate
+        expected_thumbprint = hashlib.sha1(dumped_certificate).hexdigest()
+
+        # trigger
+        actual_thumbprint = stage.generate_thumbprint("https://server.example.com")
+
+        # verify
+        self.assertEqual(expected_thumbprint, actual_thumbprint)
+
+    @patch("samcli.lib.pipeline.bootstrap.stage.Stage.generate_thumbprint")
+    @patch("samcli.lib.pipeline.bootstrap.stage.boto3")
+    @patch("samcli.lib.pipeline.bootstrap.stage.click")
+    @patch("samcli.lib.pipeline.bootstrap.stage.manage_stack")
+    def test_creates_new_oidc_provider_if_needed(
+        self, manage_stack_mock, click_mock, boto3_mock, generate_thumbprint_mock
+    ):
+
+        # setup
+        stage: Stage = Stage(
+            name=ANY_STAGE_CONFIGURATION_NAME,
+            permissions_provider="oidc",
+            oidc_provider_url=ANY_OIDC_PROVIDER_URL,
+            oidc_client_id=ANY_OIDC_CLIENT_ID,
+            subject_claim=ANY_SUBJECT_CLAIM,
+            github_org=ANY_GITHUB_ORG,
+            github_repo=ANY_GITHUB_REPO,
+            deployment_branch=ANY_DEPLOYMENT_BRANCH,
+            pipeline_execution_role_arn=ANY_PIPELINE_EXECUTION_ROLE_ARN,
+            cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
+            artifacts_bucket_arn=ANY_ARTIFACTS_BUCKET_ARN,
+            create_image_repository=False,
+        )
+        stack_output = Mock()
+        stack_output.get.return_value = ANY_ARN
+        manage_stack_mock.return_value = stack_output
+        client_mock = Mock()
+        boto3_mock.client.return_value = client_mock
+        open_id_connect_providers_mock = {"OpenIDConnectProviderList": [{"Arn": ANY_ARN}]}
+        client_mock.list_open_id_connect_providers.return_value = open_id_connect_providers_mock
+
+        self.assertFalse(stage.create_new_oidc_provider)
+
+        # trigger
+        stage.bootstrap(confirm_changeset=False)
+
+        # verify
+        self.assertTrue(stage.create_new_oidc_provider)
+
+    @patch("samcli.lib.pipeline.bootstrap.stage.Stage.generate_thumbprint")
+    @patch("samcli.lib.pipeline.bootstrap.stage.boto3")
+    @patch("samcli.lib.pipeline.bootstrap.stage.click")
+    @patch("samcli.lib.pipeline.bootstrap.stage.manage_stack")
+    def test_doesnt_create_new_oidc_provider(self, manage_stack_mock, click_mock, boto3_mock, generate_thumbprint_mock):
+
+        # setup
+        stage: Stage = Stage(
+            name=ANY_STAGE_CONFIGURATION_NAME,
+            permissions_provider="oidc",
+            oidc_provider_url=ANY_OIDC_PROVIDER_URL,
+            oidc_client_id=ANY_OIDC_CLIENT_ID,
+            subject_claim=ANY_SUBJECT_CLAIM,
+            github_org=ANY_GITHUB_ORG,
+            github_repo=ANY_GITHUB_REPO,
+            deployment_branch=ANY_DEPLOYMENT_BRANCH,
+            pipeline_execution_role_arn=ANY_PIPELINE_EXECUTION_ROLE_ARN,
+            cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
+            artifacts_bucket_arn=ANY_ARTIFACTS_BUCKET_ARN,
+            create_image_repository=False,
+        )
+        stack_output = Mock()
+        stack_output.get.return_value = ANY_ARN
+        manage_stack_mock.return_value = stack_output
+        client_mock = Mock()
+        session_mock = Mock()
+        boto3_mock.Session.return_value = session_mock
+        session_mock.client.return_value = client_mock
+        open_id_connect_providers_mock = {"OpenIDConnectProviderList": [{"Arn": ANY_OIDC_PROVIDER_URL}]}
+        client_mock.list_open_id_connect_providers.return_value = open_id_connect_providers_mock
+
+        # trigger
+        stage.bootstrap(confirm_changeset=False)
+
+        # verify
+        self.assertFalse(stage.create_new_oidc_provider)
+
+    @patch("samcli.lib.pipeline.bootstrap.stage.boto3")
+    def test_should_create_new_oidc_provider_returns_true_if_no_url(self, boto3_mock):
+
+        # setup
+        stage: Stage = Stage(
+            name=ANY_STAGE_CONFIGURATION_NAME,
+            permissions_provider="oidc",
+            oidc_provider_url="",
+            oidc_client_id=ANY_OIDC_CLIENT_ID,
+            subject_claim=ANY_SUBJECT_CLAIM,
+            github_org=ANY_GITHUB_ORG,
+            github_repo=ANY_GITHUB_REPO,
+            deployment_branch=ANY_DEPLOYMENT_BRANCH,
+            pipeline_execution_role_arn=ANY_PIPELINE_EXECUTION_ROLE_ARN,
+            cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
+            artifacts_bucket_arn=ANY_ARTIFACTS_BUCKET_ARN,
+            create_image_repository=False,
+        )
+        client_mock = Mock()
+        boto3_mock.client.return_value = client_mock
+        open_id_connect_providers_mock = {"OpenIDConnectProviderList": [{"Arn": ANY_OIDC_PROVIDER_URL}]}
+        client_mock.list_open_id_connect_providers.return_value = open_id_connect_providers_mock
+
+        # trigger
+        result = stage._should_create_new_provider()
+
+        # verify
+        self.assertFalse(result)
 
     def assert_summary_has_a_message_like(self, msg, click_secho_mock):
         self.assertTrue(
