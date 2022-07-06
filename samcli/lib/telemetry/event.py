@@ -2,6 +2,7 @@
 Represents Events and their values.
 """
 
+from datetime import datetime
 from enum import Enum
 import logging
 import threading
@@ -52,6 +53,8 @@ class Event:
 
     event_name: EventName
     event_value: str  # Validated by EventType.get_accepted_values to never be an arbitrary string
+    thread_id = threading.get_ident()  # The thread ID; used to group Events from the same command run
+    timestamp = datetime.utcnow()
 
     def __init__(self, event_name: str, event_value: str):
         Event._verify_event(event_name, event_value)
@@ -62,10 +65,20 @@ class Event:
         return self.event_name == other.event_name and self.event_value == other.event_value
 
     def __repr__(self):
-        return f"Event(event_name={self.event_name.value}, event_value={self.event_value})"
+        return (
+            f"Event(event_name={self.event_name.value}, "
+            f"event_value={self.event_value}, "
+            f"thread_id={self.thread_id}, "
+            f"timestamp={self.timestamp})"
+        )
 
     def to_json(self):
-        return {"event_name": self.event_name.value, "event_value": self.event_value}
+        return {
+            "event_name": self.event_name.value,
+            "event_value": self.event_value,
+            "thread_id": self.thread_id,
+            "timestamp": str(self.timestamp)[:-3],  # cut time's microseconds from 6 -> 3 figures to allow SQL casting
+        }
 
     @staticmethod
     def _verify_event(event_name: str, event_value: str) -> None:

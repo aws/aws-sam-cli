@@ -3,8 +3,9 @@ Module for testing the event.py methods and classes.
 """
 
 from enum import Enum
+import threading
 from unittest import TestCase
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, patch
 
 from samcli.lib.telemetry.event import Event, EventCreationError, EventTracker
 
@@ -29,6 +30,7 @@ class TestEventCreation(TestCase):
         name_mock.assert_called_once()
         self.assertEqual(test_event.event_name.value, "TestOne")
         self.assertEqual(test_event.event_value, "value1")
+        self.assertEqual(test_event.thread_id, threading.get_ident())  # Should be on the same thread
 
     @patch("samcli.lib.telemetry.event.EventType")
     @patch("samcli.lib.telemetry.event.EventName")
@@ -59,14 +61,17 @@ class TestEventCreation(TestCase):
 
         test_event = Event("Testing", "value1")
 
-        self.assertEqual(test_event.to_json(), {"event_name": "Testing", "event_value": "value1"})
+        self.assertEqual(
+            test_event.to_json(),
+            {"event_name": "Testing", "event_value": "value1", "thread_id": threading.get_ident(), "timestamp": ANY},
+        )
 
 
 class TestEventTracker(TestCase):
     @patch("samcli.lib.telemetry.event.Event")
     def test_track_event(self, event_mock):
         # Test that an event can be tracked
-        dummy_event = Mock(event_name="Test", event_value="SomeValue")
+        dummy_event = Mock(event_name="Test", event_value="SomeValue", thread_id=threading.get_ident(), timestamp=ANY)
         event_mock.return_value = dummy_event
 
         EventTracker.track_event("Test", "SomeValue")
