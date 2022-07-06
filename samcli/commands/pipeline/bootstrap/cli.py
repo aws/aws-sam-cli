@@ -20,6 +20,8 @@ from samcli.lib.pipeline.bootstrap.stage import (
     DEPLOYMENT_BRANCH,
     GITHUB_ORG,
     GITHUB_REPO,
+    GITLAB_GROUP,
+    GITLAB_PROJECT,
     OIDC_CLIENT_ID,
     OIDC_PROVIDER,
     OIDC_PROVIDER_URL,
@@ -247,6 +249,8 @@ def do_cli(
             github_org = oidc_parameters.get(GITHUB_ORG)
             github_repo = oidc_parameters.get(GITHUB_REPO)
             deployment_branch = oidc_parameters.get(DEPLOYMENT_BRANCH)
+            gitlab_group = oidc_parameters.get(GITLAB_GROUP)
+            gitlab_project = oidc_parameters.get(GITLAB_PROJECT)
 
     if interactive:
         if standalone:
@@ -301,8 +305,8 @@ def do_cli(
         github_repo = guided_context.github_repo
         deployment_branch = guided_context.deployment_branch
         oidc_provider = guided_context.oidc_provider
-        gitlab_project = guided_context.gitlab_group
-        gitlab_group = guided_context.gitlab_project
+        gitlab_project = guided_context.gitlab_project
+        gitlab_group = guided_context.gitlab_group
 
     subject_claim = None
     pipeline_oidc_provider: Optional[PipelineOidcProvider] = None
