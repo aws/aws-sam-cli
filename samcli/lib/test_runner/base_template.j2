@@ -1,6 +1,7 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Sample Template to deploy and run test container with Fargate
 Resources:
+
     ContainerIAMRole:
         Type: AWS::IAM::Role
         Properties:
@@ -27,11 +28,8 @@ Resources:
                             Resource: !Sub
                                 - arn:aws:s3:::${bucket}/*
                                 - bucket: !Ref S3Bucket
-                        {% for statement in generated_statements -%}
-                        {% filter indent(2, first=True) -%}
-                          {{ statement | indent(6 * 4) }}
-                        {%- endfilter %}
-                        {%- endfor %}
+                        # Generated IAM Actions #
+                          {{ generated_statements | indent(6 * 4 + 2) }}
     TaskDefinition:
         Type: AWS::ECS::TaskDefinition
         Properties:
@@ -54,14 +52,17 @@ Resources:
                           awslogs-region: !Ref AWS::Region
                           awslogs-group: !Ref LogGroup
                           awslogs-stream-prefix: ecs
+
     LogGroup:
         Type: AWS::Logs::LogGroup
         Properties:
             LogGroupName: cloud-test-loggroup
+
     ECSCluster:
         Type: AWS::ECS::Cluster
         Properties:
             ClusterName: cloud-test-fargate-cluster
+
     S3Bucket:
         Type: AWS::S3::Bucket
         Properties:

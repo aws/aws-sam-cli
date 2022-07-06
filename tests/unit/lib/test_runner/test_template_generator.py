@@ -21,7 +21,7 @@ class Test_TemplateGenerator(unittest.TestCase):
             "AWSTemplateFormatVersion: 2010-09-09\n",
             "Description: Sample Template to deploy and run test container with Fargate\n",
             "Resources:\n",
-            "    ContainerIAMRole:\n",
+            "\n" "    ContainerIAMRole:\n",
             "        Type: AWS::IAM::Role\n",
             "        Properties:\n",
             "            Description: Allows Fargate task to access S3 bucket to download tests and upload results\n",
@@ -47,8 +47,10 @@ class Test_TemplateGenerator(unittest.TestCase):
             "                            Resource: !Sub\n",
             "                                - arn:aws:s3:::${bucket}/*\n",
             "                                - bucket: !Ref S3Bucket\n",
+            "                        # Generated IAM Actions #\n",
         ]
         self.generated_template_expected_second_half = [
+            "\n",
             "    TaskDefinition:\n",
             "        Type: AWS::ECS::TaskDefinition\n",
             "        Properties:\n",
@@ -71,14 +73,17 @@ class Test_TemplateGenerator(unittest.TestCase):
             "                          awslogs-region: !Ref AWS::Region\n",
             "                          awslogs-group: !Ref LogGroup\n",
             "                          awslogs-stream-prefix: ecs\n",
+            "\n",
             "    LogGroup:\n",
             "        Type: AWS::Logs::LogGroup\n",
             "        Properties:\n",
             "            LogGroupName: cloud-test-loggroup\n",
+            "\n",
             "    ECSCluster:\n",
             "        Type: AWS::ECS::Cluster\n",
             "        Properties:\n",
             "            ClusterName: cloud-test-fargate-cluster\n",
+            "\n",
             "    S3Bucket:\n",
             "        Type: AWS::S3::Bucket\n",
             "        Properties:\n",
@@ -291,7 +296,53 @@ class Test_TemplateGenerator(unittest.TestCase):
         result = generate_test_runner_template_string(**self.test_params)
 
         expected_statements = [
-            "                          # Failed to query tagging api, can't generate IAM permissions for your resources.\n"
+            "                          # Failed to query tagging api, cannot generate any IAM permissions.\n"
+        ]
+
+        expected_result = "".join(
+            self.generated_template_expected_first_half
+            + expected_statements
+            + self.generated_template_expected_second_half
+        )
+        self.assertEqual(result, expected_result)
+
+    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
+    def test_empty_tag_api_query_response(self, query_tagging_api_patch):
+        query_tagging_api_patch.return_value = []
+
+        result = generate_test_runner_template_string(**self.test_params)
+
+        expected_statements = [
+            "                          # No resources match the specified tag, cannot generate any IAM permissions.\n"
+        ]
+
+        expected_result = "".join(
+            self.generated_template_expected_first_half
+            + expected_statements
+            + self.generated_template_expected_second_half
+        )
+        self.assertEqual(result, expected_result)
+
+    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
+    def test_multiple_generated_statements(self, query_tagging_api_patch):
+        query_tagging_api_patch.return_value = [
+            {"ResourceARN": "arn:aws:states:us-east-1:123456789012:stateMachine:stateMachineName"},
+            {"ResourceARN": "arn:aws:s3:::my-very-big-s3-bucket"},
+        ]
+
+        result = generate_test_runner_template_string(**self.test_params)
+
+        expected_statements = [
+            "                          - Effect: Allow\n",
+            "                            Action:\n",
+            "                               # - stepfunction:StartExecution\n",
+            "                               # - stepfunction:StopExecution\n",
+            "                            Resource: arn:aws:states:us-east-1:123456789012:stateMachine:stateMachineName\n",
+            "                          - Effect: Allow\n",
+            "                            Action:\n",
+            "                               # - s3:PutObject\n",
+            "                               # - s3:GetObject\n",
+            "                            Resource: arn:aws:s3:::my-very-big-s3-bucket\n",
         ]
 
         expected_result = "".join(

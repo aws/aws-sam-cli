@@ -147,16 +147,20 @@ def _create_iam_statment_string(resource_arn: str) -> str:
     mapping = _get_action_mapping(resource_arn)
 
     if mapping is None:
-        return jinja2.Template(new_statement_template).render(action_list=[], arn=resource_arn).rstrip()
+        return jinja2.Template(source=new_statement_template, keep_trailing_newline=True).render(
+            action_list=[], arn=resource_arn
+        )
 
     if mapping["Resource"] in ("AWS::ApiGateway::Api", "AWS::ApiGateway::RestApi"):
         apiId = _extract_api_id_from_arn(resource_arn)
         execute_api_arn = f"!Sub arn:${{AWS::Partition}}:execute-api:${{AWS::Region}}:${{AWS::AccountId}}:{apiId}/<STAGE>/GET/<RESOURCE_PATH>"
-        return (
-            jinja2.Template(new_statement_template).render(action_list=mapping["Action"], arn=execute_api_arn).rstrip()
+        return jinja2.Template(source=new_statement_template, keep_trailing_newline=True).render(
+            action_list=mapping["Action"], arn=execute_api_arn
         )
 
-    return jinja2.Template(new_statement_template).render(action_list=mapping["Action"], arn=resource_arn).rstrip()
+    return jinja2.Template(source=new_statement_template, keep_trailing_newline=True).render(
+        action_list=mapping["Action"], arn=resource_arn
+    )
 
 
 def _query_tagging_api(tag_filters: dict) -> Union[dict, None]:
@@ -188,9 +192,11 @@ def _query_tagging_api(tag_filters: dict) -> Union[dict, None]:
         return None
 
 
-def _generate_statement_list(tag_filters: dict) -> List[str]:
+def _generate_statement_string(tag_filters: dict) -> str:
     """
-    Generates a list of IAM statements in the form of YAML strings with default action permissions for resources with the given tags.
+    Generates a list of IAM statements in the form of a single YAML string with default action permissions for resources with the given tags.
+
+    Returns a YAML comment error message if no IAM statements could be generated.
 
     Parameters
     ----------
@@ -201,18 +207,24 @@ def _generate_statement_list(tag_filters: dict) -> List[str]:
 
     Returns
     -------
-    List[str]
-        The list of IAM statements in the form of YAML strings corresponding to the resources specified by the given tags.
+    str:
+        The list of IAM statements in the form of a single YAML string corresponding to the resources specified by the given tags.
+
+        Returns a YAML comment error message if no IAM statements could be generated.
     """
 
     resource_tag_mapping_list = _query_tagging_api(tag_filters)
 
     if resource_tag_mapping_list is None:
-        LOG.error("Failed to receive get_resources response, cannot generate any IAM statements.")
-        return ["# Failed to query tagging api, can't generate IAM permissions for your resources."]
+        LOG.exception("Failed to query tagging api, cannot generate any IAM permissions.")
+        return "# Failed to query tagging api, cannot generate any IAM permissions.\n"
+
+    if len(resource_tag_mapping_list) == 0:
+        LOG.error("No resources match the specified tag, cannot generate any IAM permissions.")
+        return "# No resources match the specified tag, cannot generate any IAM permissions.\n"
 
     iam_statements = [_create_iam_statment_string(resource["ResourceARN"]) for resource in resource_tag_mapping_list]
-    return iam_statements
+    return "".join(iam_statements)
 
 
 def generate_test_runner_template_string(
@@ -244,7 +256,7 @@ def generate_test_runner_template_string(
 
     """
 
-    generated_statements = _generate_statement_list(tag_filters)
+    generated_statements = _generate_statement_string(tag_filters)
 
     data = {"image_uri": image_uri, "s3_bucket_name": s3_bucket_name, "generated_statements": generated_statements}
 
