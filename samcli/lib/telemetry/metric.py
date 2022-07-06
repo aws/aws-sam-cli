@@ -161,14 +161,12 @@ def track_command(func):
             metric_specific_attributes["gitOrigin"] = get_git_remote_origin_url()
             metric_specific_attributes["projectName"] = get_project_name()
             metric_specific_attributes["initialCommit"] = get_initial_commit_hash()
-            # Event metrics
-            metric_specific_attributes["events"] = [e.to_json() for e in EventTracker.get_tracked_events()]
-            EventTracker.clear_trackers()
             metric.add_data("metricSpecificAttributes", metric_specific_attributes)
             # Metric about command's execution characteristics
             metric.add_data("duration", duration_fn())
             metric.add_data("exitReason", exit_reason)
             metric.add_data("exitCode", exit_code)
+            EventTracker.send_events()
             telemetry.emit(metric)
         except RuntimeError:
             LOG.debug("Unable to find Click Context for getting session_id.")

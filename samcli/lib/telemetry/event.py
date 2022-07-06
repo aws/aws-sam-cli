@@ -8,7 +8,6 @@ import logging
 import threading
 from typing import List
 
-# from samcli.cli.context import Context
 from samcli.lib.telemetry.telemetry import Telemetry
 from samcli.local.common.runtime_template import INIT_RUNTIMES
 
@@ -56,13 +55,13 @@ class Event:
     event_name: EventName
     event_value: str  # Validated by EventType.get_accepted_values to never be an arbitrary string
     thread_id = threading.get_ident()  # The thread ID; used to group Events from the same command run
-    timestamp: str
+    time_stamp: str
 
     def __init__(self, event_name: str, event_value: str):
         Event._verify_event(event_name, event_value)
         self.event_name = EventName(event_name)
         self.event_value = event_value
-        self.timestamp = str(datetime.utcnow())[:-3]  # format microseconds from 6 -> 3 figures to allow SQL casting
+        self.time_stamp = str(datetime.utcnow())[:-3]  # format microseconds from 6 -> 3 figures to allow SQL casting
 
     def __eq__(self, other):
         return self.event_name == other.event_name and self.event_value == other.event_value
@@ -72,7 +71,7 @@ class Event:
             f"Event(event_name={self.event_name.value}, "
             f"event_value={self.event_value}, "
             f"thread_id={self.thread_id}, "
-            f"timestamp={self.timestamp})"
+            f"timestamp={self.time_stamp})"
         )
 
     def to_json(self):
@@ -80,7 +79,7 @@ class Event:
             "event_name": self.event_name.value,
             "event_value": self.event_value,
             "thread_id": self.thread_id,
-            "timestamp": self.timestamp,
+            "timestamp": self.time_stamp,
         }
 
     @staticmethod
@@ -158,11 +157,14 @@ class EventTracker:
     @staticmethod
     def send_events():
         """Sends the current list of events via Telemetry."""
+        if not EventTracker.get_tracked_events():  # Don't do anything if there are no events to send
+            return
+
         from samcli.lib.telemetry.metric import Metric  # creates circular import otherwise
 
         telemetry = Telemetry()
+
         try:
-            # ctx = Context.get_current_context()
             metric = Metric("events")
             metric.add_data("events", [e.to_json() for e in EventTracker.get_tracked_events()])
             telemetry.emit(metric)
