@@ -3,6 +3,7 @@ import re
 import logging
 import jinja2
 from typing import *
+from botocore.exceptions import ClientError
 
 LOG = logging.getLogger(__name__)
 
@@ -33,12 +34,14 @@ def _extract_api_id_from_arn(api_arn: str) -> str:
 
 def _get_permissions_map() -> dict:
     """
-    Returns a dictionary mapping a Regular Expression representing the arn of a specific resource to the AWS Resource Type and the default permissions generated for that resource.
+    Returns a dictionary mapping a Regular Expression representing the arn of a specific resource
+    to the AWS Resource Type and the default permissions generated for that resource.
 
     Returns
     -------
     default_permissions_map : dict
-        A dictionary mapping a Regular Expression representing the arn of a resource to an object containing the AWS Resource Type and the list of IAM Action permissions generated for that resource.
+        A dictionary mapping a Regular Expression representing the arn of a resource to an object
+        containing the AWS Resource Type and the list of IAM Action permissions generated for that resource.
     """
 
     partition_ex = r"(aws|aws-cn|aws-us-gov)"
@@ -187,16 +190,21 @@ def _query_tagging_api(tag_filters: dict) -> Union[dict, None]:
     """
     try:
         return boto3.client("resourcegroupstaggingapi").get_resources(TagFilters=tag_filters)["ResourceTagMappingList"]
-    except Exception as query_error:
-        LOG.error("Failed to call get_resources from resource group tagging api: %s", query_error)
-        return None
+    # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/error-handling.html#parsing-error-responses-and-catching-exceptions-from-aws-services
+    except ClientError as client_error:
+        LOG.exception(
+            "Failed to query tagging API. Error code: %s, Message: %s",
+            client_error.response["Error"]["Code"],
+            client_error.response["Error"]["Message"],
+        )
+        raise RuntimeError from client_error
 
 
-def _generate_statement_string(tag_filters: dict) -> str:
+def _generate_statement_string(tag_filters: dict) -> Union[str, None]:
     """
     Generates a list of IAM statements in the form of a single YAML string with default action permissions for resources with the given tags.
 
-    Returns a YAML comment error message if no IAM statements could be generated.
+    Returns a YAML comment error message if no resources match the tag, returns None if the tagging api call fails.
 
     Parameters
     ----------
@@ -210,14 +218,12 @@ def _generate_statement_string(tag_filters: dict) -> str:
     str:
         The list of IAM statements in the form of a single YAML string corresponding to the resources specified by the given tags.
 
-        Returns a YAML comment error message if no IAM statements could be generated.
+        Returns a YAML comment error message if no resources match the tag, returns None if the tagging api call fails.
     """
-
-    resource_tag_mapping_list = _query_tagging_api(tag_filters)
-
-    if resource_tag_mapping_list is None:
-        LOG.exception("Failed to query tagging api, cannot generate any IAM permissions.")
-        return "# Failed to query tagging api, cannot generate any IAM permissions.\n"
+    try:
+        resource_tag_mapping_list = _query_tagging_api(tag_filters)
+    except RuntimeError as err:
+        raise RuntimeError from err
 
     if len(resource_tag_mapping_list) == 0:
         LOG.error("No resources match the specified tag, cannot generate any IAM permissions.")
@@ -256,12 +262,16 @@ def generate_test_runner_template_string(
 
     """
 
-    generated_statements = _generate_statement_string(tag_filters)
+    try:
+        generated_statements = _generate_statement_string(tag_filters)
+    except RuntimeError as err:
+        LOG.exception("Aborting template generation since IAM statement generation failed: %s", err)
+        return None
 
     data = {"image_uri": image_uri, "s3_bucket_name": s3_bucket_name, "generated_statements": generated_statements}
 
     try:
-        return jinja2.Template(jinja_base_template).render(data)
-    except Exception as render_error:
-        LOG.exception("Failed to render jinja template: %s", render_error)
+        return jinja2.Template(jinja_base_template, undefined=jinja2.StrictUndefined).render(data)
+    except jinja2.exceptions.TemplateError as template_error:
+        LOG.exception("Failed to render jinja template: %s", template_error)
         return None

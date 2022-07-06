@@ -1,9 +1,10 @@
-import unittest
+from botocore.exceptions import ClientError
 from unittest.mock import patch
+from unittest import TestCase
 from samcli.lib.test_runner.test_runner_template_generator import generate_test_runner_template_string
 
 
-class Test_TemplateGenerator(unittest.TestCase):
+class Test_TemplateGenerator(TestCase):
     def setUp(self):
         self.maxDiff = None
         with open("samcli/lib/test_runner/base_template.j2") as jinja_template:
@@ -267,63 +268,6 @@ class Test_TemplateGenerator(unittest.TestCase):
         self.assertEqual(result, expected_result)
 
     @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
-    def test_no_iam_actions_supported(self, query_tagging_api_patch):
-        query_tagging_api_patch.return_value = [
-            {
-                "ResourceARN": "arn:aws:logs:us-west-1:123456789012:log-group:/mystack-testgroup-12ABC1AB12A1:*",
-            }
-        ]
-
-        result = generate_test_runner_template_string(**self.test_params)
-
-        expected_statements = [
-            "                          - Effect: Allow\n",
-            "                            Action:\n",
-            "                            Resource: arn:aws:logs:us-west-1:123456789012:log-group:/mystack-testgroup-12ABC1AB12A1:*\n",
-        ]
-
-        expected_result = "".join(
-            self.generated_template_expected_first_half
-            + expected_statements
-            + self.generated_template_expected_second_half
-        )
-        self.assertEqual(result, expected_result)
-
-    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
-    def test_failed_tag_api_query(self, query_tagging_api_patch):
-        query_tagging_api_patch.return_value = None
-
-        result = generate_test_runner_template_string(**self.test_params)
-
-        expected_statements = [
-            "                          # Failed to query tagging api, cannot generate any IAM permissions.\n"
-        ]
-
-        expected_result = "".join(
-            self.generated_template_expected_first_half
-            + expected_statements
-            + self.generated_template_expected_second_half
-        )
-        self.assertEqual(result, expected_result)
-
-    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
-    def test_empty_tag_api_query_response(self, query_tagging_api_patch):
-        query_tagging_api_patch.return_value = []
-
-        result = generate_test_runner_template_string(**self.test_params)
-
-        expected_statements = [
-            "                          # No resources match the specified tag, cannot generate any IAM permissions.\n"
-        ]
-
-        expected_result = "".join(
-            self.generated_template_expected_first_half
-            + expected_statements
-            + self.generated_template_expected_second_half
-        )
-        self.assertEqual(result, expected_result)
-
-    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
     def test_multiple_generated_statements(self, query_tagging_api_patch):
         query_tagging_api_patch.return_value = [
             {"ResourceARN": "arn:aws:states:us-east-1:123456789012:stateMachine:stateMachineName"},
@@ -350,4 +294,61 @@ class Test_TemplateGenerator(unittest.TestCase):
             + expected_statements
             + self.generated_template_expected_second_half
         )
+        self.assertEqual(result, expected_result)
+
+    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
+    def test_no_iam_actions_supported(self, query_tagging_api_patch):
+        query_tagging_api_patch.return_value = [
+            {
+                "ResourceARN": "arn:aws:logs:us-west-1:123456789012:log-group:/mystack-testgroup-12ABC1AB12A1:*",
+            }
+        ]
+
+        result = generate_test_runner_template_string(**self.test_params)
+
+        expected_statements = [
+            "                          - Effect: Allow\n",
+            "                            Action:\n",
+            "                            Resource: arn:aws:logs:us-west-1:123456789012:log-group:/mystack-testgroup-12ABC1AB12A1:*\n",
+        ]
+
+        expected_result = "".join(
+            self.generated_template_expected_first_half
+            + expected_statements
+            + self.generated_template_expected_second_half
+        )
+        self.assertEqual(result, expected_result)
+
+    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
+    def test_empty_tag_api_query_response(self, query_tagging_api_patch):
+        query_tagging_api_patch.return_value = []
+
+        result = generate_test_runner_template_string(**self.test_params)
+
+        expected_statements = [
+            "                          # No resources match the specified tag, cannot generate any IAM permissions.\n"
+        ]
+
+        expected_result = "".join(
+            self.generated_template_expected_first_half
+            + expected_statements
+            + self.generated_template_expected_second_half
+        )
+        self.assertEqual(result, expected_result)
+
+    @patch("samcli.lib.test_runner.test_runner_template_generator.boto3.client")
+    def test_failed_tag_api_query(self, mock_boto_client):
+
+        mock_boto_client.return_value = mock_boto_client
+
+        client_error_response = {"Error": {"Code": "Error Code", "Message": "Error Message"}}
+
+        mock_boto_client.get_resources.side_effect = ClientError(
+            error_response=client_error_response, operation_name="get_resources"
+        )
+
+        result = generate_test_runner_template_string(**self.test_params)
+
+        expected_result = None
+
         self.assertEqual(result, expected_result)
