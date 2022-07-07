@@ -237,6 +237,8 @@ class SamLocalStackProvider(SamBaseProvider):
             template_file = ""
         else:
             raise MissingTemplateFile()
+            template_file = ""
+            template_dict = {}
 
         stacks = [
             Stack(
