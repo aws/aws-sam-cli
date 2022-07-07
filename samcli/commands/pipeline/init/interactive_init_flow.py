@@ -198,6 +198,8 @@ class InteractiveInitFlow:
                     github_repo=None,
                     deployment_branch=None,
                     oidc_provider=None,
+                    gitlab_group=None,
+                    gitlab_project=None,
                 )
                 return True
         else:
