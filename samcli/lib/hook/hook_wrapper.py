@@ -80,11 +80,9 @@ class IacHookWrapper:
             "IACProjectPath": iac_project_path if iac_project_path else str(Path.cwd()),
             "OutputDirPath": output_dir_path,
             "Debug": debug,
+            "Profile": aws_profile,
+            "Region": aws_region,
         }
-        if aws_profile:
-            params["Profile"] = aws_profile
-        if aws_region:
-            params["Region"] = aws_region
 
         output = self._execute("prepare", params)
 
