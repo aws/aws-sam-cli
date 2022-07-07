@@ -186,18 +186,14 @@ def _query_tagging_api(tag_filters: dict) -> Union[dict, None]:
 
         NOTE: https://docs.aws.amazon.com/cli/latest/reference/resourcegroupstaggingapi/get-resources.html#output
 
+    Throws
+    ------
+    botocore.ClientError
+        If the `get_resources` call fails.
 
+        See # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/error-handling.html#parsing-error-responses-and-catching-exceptions-from-aws-services
     """
-    try:
-        return boto3.client("resourcegroupstaggingapi").get_resources(TagFilters=tag_filters)["ResourceTagMappingList"]
-    # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/error-handling.html#parsing-error-responses-and-catching-exceptions-from-aws-services
-    except ClientError as client_error:
-        LOG.exception(
-            "Failed to query tagging API. Error code: %s, Message: %s",
-            client_error.response["Error"]["Code"],
-            client_error.response["Error"]["Message"],
-        )
-        raise RuntimeError from client_error
+    return boto3.client("resourcegroupstaggingapi").get_resources(TagFilters=tag_filters)["ResourceTagMappingList"]
 
 
 def _generate_statement_string(tag_filters: dict) -> Union[str, None]:
@@ -220,10 +216,8 @@ def _generate_statement_string(tag_filters: dict) -> Union[str, None]:
 
         Returns a YAML comment error message if no resources match the tag, returns None if the tagging api call fails.
     """
-    try:
-        resource_tag_mapping_list = _query_tagging_api(tag_filters)
-    except RuntimeError as err:
-        raise RuntimeError from err
+
+    resource_tag_mapping_list = _query_tagging_api(tag_filters)
 
     if len(resource_tag_mapping_list) == 0:
         LOG.error("No resources match the specified tag, cannot generate any IAM permissions.")
@@ -264,8 +258,13 @@ def generate_test_runner_template_string(
 
     try:
         generated_statements = _generate_statement_string(tag_filters)
-    except RuntimeError as err:
-        LOG.exception("Aborting template generation since IAM statement generation failed: %s", err)
+    # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/error-handling.html#parsing-error-responses-and-catching-exceptions-from-aws-services
+    except ClientError as client_error:
+        LOG.exception(
+            "Failed to query tagging API. Error code: %s, Message: %s",
+            client_error.response["Error"]["Code"],
+            client_error.response["Error"]["Message"],
+        )
         return None
 
     data = {"image_uri": image_uri, "s3_bucket_name": s3_bucket_name, "generated_statements": generated_statements}
