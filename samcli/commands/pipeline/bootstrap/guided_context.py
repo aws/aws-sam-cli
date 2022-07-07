@@ -281,7 +281,7 @@ class GuidedContext:
                     [
                         (f"GitLab group: {self.gitlab_group}", self._prompt_gitlab_group),
                         (f"GitLab project: {self.gitlab_project}", self._prompt_gitlab_project),
-                        (f"Deployment branch:  {self.deployment_branch}", self._prompt_deployment_branch),
+                        (f"Deployment branch: {self.deployment_branch}", self._prompt_deployment_branch),
                     ]
                 )
         else:

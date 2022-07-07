@@ -143,12 +143,12 @@ LOG = logging.getLogger(__name__)
 )
 @click.option(
     "--gitlab-group",
-    help="The GitLab Group that the repository belongs to. " "Only used if using GitLab OIDC for permissions",
+    help="The GitLab group that the repository belongs to. Only used if using GitLab OIDC for permissions",
     required=False,
 )
 @click.option(
     "--gitlab-project",
-    help="The GitLab Project name. " "Only used if using GitLab OIDC for permissions",
+    help="The GitLab project name. Only used if using GitLab OIDC for permissions",
     required=False,
 )
 @common_options
@@ -315,16 +315,16 @@ def do_cli(
         common_oidc_params = {"oidc-provider-url": oidc_provider_url, "oidc-client-id": oidc_client_id}
         if oidc_provider == GITHUB_ACTIONS:
             github_oidc_params: dict = {
-                "github-org": github_org,
-                "github-repo": github_repo,
-                "deployment-branch": deployment_branch,
+                GitHubOidcProvider.GITHUB_ORG_PARAMETER_NAME: github_org,
+                GitHubOidcProvider.GITHUB_REPO_PARAMETER_NAME: github_repo,
+                GitHubOidcProvider.DEPLOYMENT_BRANCH_PARAMETER_NAME: deployment_branch,
             }
             pipeline_oidc_provider = GitHubOidcProvider(github_oidc_params, common_oidc_params, GITHUB_ACTIONS)
         elif oidc_provider == GITLAB:
             gitlab_oidc_params: dict = {
-                "gitlab-project": gitlab_project,
-                "gitlab-group": gitlab_group,
-                "deployment-branch": deployment_branch,
+                GitLabOidcProvider.GITLAB_PROJECT_PARAMETER_NAME: gitlab_project,
+                GitLabOidcProvider.GITLAB_GROUP_PARAMETER_NAME: gitlab_group,
+                GitLabOidcProvider.DEPLOYMENT_BRANCH_PARAMETER_NAME: deployment_branch,
             }
             pipeline_oidc_provider = GitLabOidcProvider(gitlab_oidc_params, common_oidc_params, GITLAB)
         else:
