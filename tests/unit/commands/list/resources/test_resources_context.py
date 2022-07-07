@@ -14,7 +14,7 @@ from samcli.lib.translate.sam_template_validator import SamTemplateValidator
 class TestResourcesContext(TestCase):
     @patch("samcli.commands.list.json_consumer.click.echo")
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
-    @patch("samcli.lib.list.resources.resource_mapping_producer._read_sam_file")
+    @patch("samcli.lib.list.resources.resource_mapping_producer.read_sam_file")
     @patch("samcli.lib.list.resources.resource_mapping_producer.ResourceMappingProducer.get_translated_dict")
     def test_resources_local_only_no_stack_name(
         self, mock_get_translated_dict, mock_sam_file_reader, patched_click_get_current_context, patched_click_echo
@@ -150,12 +150,16 @@ class TestResourcesContext(TestCase):
 
     @patch("samcli.commands.list.json_consumer.click.echo")
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
-    @patch("samcli.lib.list.resources.resource_mapping_producer._read_sam_file")
-    @patch("samcli.lib.list.resources.resource_mapping_producer.SamTemplateValidator.get_translated_template")
+    @patch("samcli.lib.list.resources.resource_mapping_producer.read_sam_file")
+    @patch("samcli.lib.list.resources.resource_mapping_producer.SamTemplateValidator.get_translated_template_if_valid")
     def test_clienterror_exception(
-        self, mock_get_translated_template, mock_sam_file_reader, patched_click_get_current_context, patched_click_echo
+        self,
+        mock_get_translated_template_if_valid,
+        mock_sam_file_reader,
+        patched_click_get_current_context,
+        patched_click_echo,
     ):
-        mock_get_translated_template.side_effect = ClientError(
+        mock_get_translated_template_if_valid.side_effect = ClientError(
             {"Error": {"Code": "ExpiredToken", "Message": "The security token included in the request is expired"}},
             "DescribeStacks",
         )
@@ -167,10 +171,14 @@ class TestResourcesContext(TestCase):
 
     @patch("samcli.commands.list.json_consumer.click.echo")
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
-    @patch("samcli.lib.list.resources.resource_mapping_producer._read_sam_file")
-    @patch("samcli.lib.list.resources.resource_mapping_producer.SamTemplateValidator.get_translated_template")
+    @patch("samcli.lib.list.resources.resource_mapping_producer.read_sam_file")
+    @patch("samcli.lib.list.resources.resource_mapping_producer.SamTemplateValidator.get_translated_template_if_valid")
     def test_get_translate_dict_invalid_template_error(
-        self, mock_get_translated_template, mock_sam_file_reader, patched_click_get_current_context, patched_click_echo
+        self,
+        mock_get_translated_template_if_valid,
+        mock_sam_file_reader,
+        patched_click_get_current_context,
+        patched_click_echo,
     ):
         mock_sam_file_reader.return_value = {
             "AWSTemplateFormatVersion": "2010-09-09",
@@ -190,7 +198,7 @@ class TestResourcesContext(TestCase):
                 }
             },
         }
-        mock_get_translated_template.side_effect = InvalidSamDocumentException()
+        mock_get_translated_template_if_valid.side_effect = InvalidSamDocumentException()
         with self.assertRaises(InvalidSamTemplateException):
             with ResourcesContext(
                 stack_name=None, output="json", region="us-east-1", profile=None, template_file=None
@@ -223,7 +231,7 @@ class TestResourcesContext(TestCase):
     @patch("samcli.lib.translate.sam_template_validator.Session")
     @patch("samcli.lib.translate.sam_template_validator.Translator")
     @patch("samcli.lib.translate.sam_template_validator.parser")
-    def test_get_translated_template_raises_exception(self, sam_parser, sam_translator, boto_session_patch):
+    def test_get_translated_template_if_valid_raises_exception(self, sam_parser, sam_translator, boto_session_patch):
         managed_policy_mock = Mock()
         managed_policy_mock.load.return_value = {"policy": "SomePolicy"}
         template = {"a": "b"}
@@ -241,7 +249,7 @@ class TestResourcesContext(TestCase):
         validator = SamTemplateValidator(template, managed_policy_mock)
 
         with self.assertRaises(InvalidSamDocumentException):
-            validator.get_translated_template()
+            validator.get_translated_template_if_valid()
 
         sam_translator.assert_called_once_with(
             managed_policy_map={"policy": "SomePolicy"}, sam_parser=parser, plugins=[], boto_session=boto_session_mock
@@ -253,7 +261,7 @@ class TestResourcesContext(TestCase):
 
     @patch("samcli.commands.list.json_consumer.click.echo")
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
-    @patch("samcli.lib.list.resources.resource_mapping_producer._read_sam_file")
+    @patch("samcli.lib.list.resources.resource_mapping_producer.read_sam_file")
     @patch("samcli.lib.list.resources.resource_mapping_producer.ResourceMappingProducer.get_translated_dict")
     @patch("samcli.lib.list.resources.resource_mapping_producer.SamLocalStackProvider.get_stacks")
     def test_resources_get_stacks_returns_empty(

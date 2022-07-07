@@ -30,7 +30,7 @@ class TestSamTemplateValidator(TestCase):
         validator = SamTemplateValidator(template, managed_policy_mock, profile="profile", region="region")
 
         # Should not throw an Exception
-        validator.is_valid()
+        validator.get_translated_template_if_valid()
 
         boto_session_patch.assert_called_once_with(profile_name="profile", region_name="region")
         sam_translator.assert_called_once_with(
@@ -60,7 +60,7 @@ class TestSamTemplateValidator(TestCase):
         validator = SamTemplateValidator(template, managed_policy_mock)
 
         with self.assertRaises(InvalidSamDocumentException):
-            validator.is_valid()
+            validator.get_translated_template_if_valid()
 
         sam_translator.assert_called_once_with(
             managed_policy_map={"policy": "SomePolicy"}, sam_parser=parser, plugins=[], boto_session=boto_session_mock

@@ -13,7 +13,7 @@ from samcli.commands._utils.options import template_option_without_build
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
-from samcli.lib.translate.translate_utils import _read_sam_file
+from samcli.commands.translate.translate_utils import read_sam_file
 
 
 @click.command("validate", short_help="Validate an AWS SAM template.")
@@ -49,7 +49,7 @@ def do_cli(ctx, template):
     from samcli.lib.translate.exceptions import InvalidSamDocumentException
     from samcli.lib.translate.sam_template_validator import SamTemplateValidator
 
-    sam_template = _read_sam_file(template)
+    sam_template = read_sam_file(template)
 
     iam_client = boto3.client("iam")
     validator = SamTemplateValidator(
@@ -57,7 +57,7 @@ def do_cli(ctx, template):
     )
 
     try:
-        validator.is_valid()
+        validator.get_translated_template_if_valid()
     except InvalidSamDocumentException as e:
         click.secho("Template provided at '{}' was invalid SAM Template.".format(template), bg="red")
         raise InvalidSamTemplateException(str(e)) from e

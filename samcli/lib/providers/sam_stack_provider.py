@@ -7,7 +7,7 @@ from typing import Optional, Dict, cast, List, Iterator, Tuple, Union
 from urllib.parse import unquote, urlparse
 
 from samcli.commands._utils.template import get_template_data
-from samcli.lib.providers.exceptions import RemoteStackLocationNotSupported
+from samcli.lib.providers.exceptions import RemoteStackLocationNotSupported, MissingTemplateFile
 from samcli.lib.providers.provider import Stack, get_full_path
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.utils.resources import AWS_CLOUDFORMATION_STACK, AWS_SERVERLESS_APPLICATION
@@ -192,13 +192,13 @@ class SamLocalStackProvider(SamBaseProvider):
 
     @staticmethod
     def get_stacks(
-        template_file: str,
+        template_file: Optional[str],
         stack_path: str = "",
         name: str = "",
         parameter_overrides: Optional[Dict] = None,
         global_parameter_overrides: Optional[Dict] = None,
         metadata: Optional[Dict] = None,
-        template_dict_format: Optional[Dict] = None,
+        template_dict: Optional[Dict] = None,
     ) -> Tuple[List[Stack], List[str]]:
         """
         Recursively extract stacks from a template file.
@@ -206,7 +206,7 @@ class SamLocalStackProvider(SamBaseProvider):
         Parameters
         ----------
         template_file: str
-            the file path of the template to extract stacks from
+            the file path of the template to extract stacks from. Only one of either template_dict or template_file is required
         stack_path: str
             the stack path of the parent stack, for root stack, it is ""
         name: str
@@ -219,8 +219,8 @@ class SamLocalStackProvider(SamBaseProvider):
             that might want to get substituted within the template and its child templates
         metadata: Optional[Dict]
             Optional dictionary of nested stack resource metadata values.
-        template_dict_format: Optional[Dict]
-            Optional dictionary representing the sam template file to be used instead of the template file
+        template_dict: Optional[Dict]
+            dictionary representing the sam template. Only one of either template_dict or template_file is required
 
         Returns
         -------
@@ -229,11 +229,11 @@ class SamLocalStackProvider(SamBaseProvider):
         remote_stack_full_paths : List[str]
             The list of full paths of detected remote stacks
         """
-        template_dict: dict
-        if not template_dict_format:
+        if not template_dict:
+            if not template_file:
+                raise MissingTemplateFile()
             template_dict = get_template_data(template_file)
-        else:
-            template_dict = template_dict_format
+
         stacks = [
             Stack(
                 stack_path,

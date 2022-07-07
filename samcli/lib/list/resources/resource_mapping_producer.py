@@ -1,22 +1,21 @@
 """
-in progress
+The producer for the 'sam list resources' command
 """
 from typing import Optional, Any
 import dataclasses
 import logging
 import yaml
-import click
 
 from botocore.exceptions import ClientError, NoCredentialsError
 from samtranslator.translator.managed_policy_translator import ManagedPolicyLoader
 from samtranslator.translator.arn_generator import NoRegionFound
 
 from samcli.commands.list.exceptions import SamListLocalResourcesNotFoundError, SamListUnknownClientError
-from samcli.lib.list.list_interfaces import Producer
+from samcli.lib.list.list_interfaces import Producer, Mapper, ListInfoPullerConsumer
 from samcli.lib.list.resources.resources_def import ResourcesDef
 from samcli.lib.translate.sam_template_validator import SamTemplateValidator
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
-from samcli.lib.translate.translate_utils import _read_sam_file
+from samcli.commands.translate.translate_utils import read_sam_file
 from samcli.lib.translate.exceptions import InvalidSamDocumentException
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
 from samcli.commands.exceptions import UserException
@@ -26,7 +25,16 @@ LOG = logging.getLogger(__name__)
 
 class ResourceMappingProducer(Producer):
     def __init__(
-        self, stack_name, output, region, profile, template_file, cloudformation_client, iam_client, mapper, consumer
+        self,
+        stack_name,
+        output,
+        region,
+        profile,
+        template_file,
+        cloudformation_client,
+        iam_client,
+        mapper,
+        consumer,
     ):
         self.stack_name = stack_name
         self.output = output
@@ -38,15 +46,14 @@ class ResourceMappingProducer(Producer):
         self.mapper = mapper
         self.consumer = consumer
 
-    def get_translated_dict(self, template_file_dict) -> Optional[Any]:
+    def get_translated_dict(self, template_file_dict: dict) -> Optional[Any]:
         try:
             validator = SamTemplateValidator(
                 template_file_dict, ManagedPolicyLoader(self.iam_client), profile=self.profile, region=self.region
             )
-            translated_dict = yaml.load(validator.get_translated_template(), Loader=yaml.FullLoader)
+            translated_dict = yaml.load(validator.get_translated_template_if_valid(), Loader=yaml.FullLoader)
             return translated_dict
         except InvalidSamDocumentException as e:
-            click.echo("Template provided was invalid SAM Template.")
             raise InvalidSamTemplateException(str(e)) from e
         except NoRegionFound as no_region_found_e:
             raise UserException(
@@ -62,19 +69,19 @@ class ResourceMappingProducer(Producer):
             raise SamListUnknownClientError(msg=str(e)) from e
 
     def produce(self):
-        sam_template = _read_sam_file(self.template_file)
+        sam_template = read_sam_file(self.template_file)
 
         translated_dict = self.get_translated_dict(template_file_dict=sam_template)
 
-        stacks, _ = SamLocalStackProvider.get_stacks(template_file="", template_dict_format=translated_dict)
+        stacks, _ = SamLocalStackProvider.get_stacks(template_file="", template_dict=translated_dict)
         if not stacks or not stacks[0].resources:
             raise SamListLocalResourcesNotFoundError(msg="No local resources found.")
         resources_dict = {}
         for local_resource in stacks[0].resources:
             # Set the PhysicalID to "-" if there is no corresponding PhysicalID
             resources_dict[local_resource] = "-"
-
-        for logical_id, physical_id in resources_dict.items():
-            resource_data = ResourcesDef(LogicalResourceId=logical_id, PhysicalResourceId=physical_id)
+            resource_data = ResourcesDef(
+                LogicalResourceId=local_resource, PhysicalResourceId=resources_dict[local_resource]
+            )
             mapped_output = self.mapper.map(dataclasses.asdict(resource_data))
             self.consumer.consume(mapped_output)

@@ -84,3 +84,12 @@ class MissingLocalDefinition(Exception):
     @property
     def property_name(self) -> str:
         return self._property_name
+
+
+class MissingTemplateFile(Exception):
+    """
+    Raised when a required template file is missing
+    """
+
+    def __init__(self) -> None:
+        super().__init__("A template file is required but missing.")

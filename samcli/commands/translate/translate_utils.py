@@ -1,5 +1,5 @@
 """
-Library for Validating Sam Templates
+Utils for performing Sam translates
 """
 import os
 import logging
@@ -9,7 +9,7 @@ import click
 LOG = logging.getLogger(__name__)
 
 
-def _read_sam_file(template):
+def read_sam_file(template):
     """
     Reads the file (json and yaml supported) provided and returns the dictionary representation of the file.
 
