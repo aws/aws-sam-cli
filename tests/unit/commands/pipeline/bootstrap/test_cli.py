@@ -12,7 +12,7 @@ from samcli.commands.pipeline.bootstrap.cli import (
 )
 from samcli.commands.pipeline.bootstrap.cli import cli as bootstrap_cmd
 from samcli.commands.pipeline.bootstrap.cli import do_cli as bootstrap_cli
-from samcli.commands.pipeline.bootstrap.guided_context import GITHUB_ACTIONS
+from samcli.commands.pipeline.bootstrap.guided_context import GITHUB_ACTIONS, GITLAB
 
 ANY_REGION = "ANY_REGION"
 ANY_PROFILE = "ANY_PROFILE"
@@ -31,8 +31,13 @@ ANY_OIDC_PROVIDER = "ANY_OIDC_PROVIDER"
 ANY_GITHUB_ORG = "ANY_GITHUB_ORG"
 ANY_GITHUB_REPO = "ANY_GITHUB_REPO"
 ANY_DEPLOYMENT_BRANCH = "ANY_DEPLOYMENT_BRANCH"
+ANY_GITLAB_PROJECT = "ANY_GITLAB_PROJECT"
+ANY_GITLAB_GROUP = "ANY_GITLAB_GROUP"
 ANY_SUBJECT_CLAIM = "ANY_SUBJECT_CLAIM"
 ANY_BUILT_SUBJECT_CLAIM = "repo:ANY_GITHUB_ORG/ANY_GITHUB_REPO:ref:refs/heads/ANY_DEPLOYMENT_BRANCH"
+ANY_BUILT_GITLAB_SUBJECT_CLAIM = (
+    "project_path:ANY_GITLAB_GROUP/ANY_GITLAB_PROJECT:ref_type:branch:ref" ":ANY_DEPLOYMENT_BRANCH"
+)
 PIPELINE_BOOTSTRAP_COMMAND_NAMES = ["pipeline", "bootstrap"]
 
 
@@ -58,6 +63,8 @@ class TestCli(TestCase):
             "oidc_provider": ANY_OIDC_PROVIDER,
             "github_org": ANY_GITHUB_ORG,
             "github_repo": ANY_GITHUB_REPO,
+            "gitlab_project": ANY_GITLAB_PROJECT,
+            "gitlab_group": ANY_GITLAB_GROUP,
             "deployment_branch": ANY_DEPLOYMENT_BRANCH,
         }
 
@@ -91,6 +98,8 @@ class TestCli(TestCase):
             github_repo=None,
             deployment_branch=None,
             oidc_provider=None,
+            gitlab_group=None,
+            gitlab_project=None,
         )
 
     @patch("samcli.commands.pipeline.bootstrap.cli.do_cli")
@@ -209,6 +218,46 @@ class TestCli(TestCase):
         gc_instance.oidc_provider = GITHUB_ACTIONS
         gc_instance.github_org = ANY_GITHUB_ORG
         gc_instance.github_repo = ANY_GITHUB_REPO
+        gc_instance.deployment_branch = ANY_DEPLOYMENT_BRANCH
+        gc_instance.oidc_provider_url = ANY_OIDC_PROVIDER_URL
+        gc_instance.oidc_client_id = ANY_OIDC_CLIENT_ID
+        gc_instance.permissions_provider = "oidc"
+        guided_context_mock.return_value = gc_instance
+        environment_instance = Mock()
+        environment_mock.return_value = environment_instance
+        self.cli_context["interactive"] = True
+        self.cli_context["permissions_provider"] = "oidc"
+        get_command_names_mock.return_value = PIPELINE_BOOTSTRAP_COMMAND_NAMES
+
+        # trigger
+        bootstrap_cli(**self.cli_context)
+
+        # verify
+        gc_instance.run.assert_called_once()
+        environment_instance.bootstrap.assert_called_once_with(confirm_changeset=True)
+        environment_instance.print_resources_summary.assert_called_once()
+        environment_instance.save_config_safe.assert_called_once_with(
+            config_dir=PIPELINE_CONFIG_DIR,
+            filename=PIPELINE_CONFIG_FILENAME,
+            cmd_names=PIPELINE_BOOTSTRAP_COMMAND_NAMES,
+        )
+
+    @patch("samcli.commands.pipeline.bootstrap.pipeline_oidc_provider")
+    @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
+    @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
+    @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
+    def test_bootstrapping_oidc_interactive_flow_gitlab(
+        self,
+        guided_context_mock,
+        environment_mock,
+        get_command_names_mock,
+        pipeline_provider_mock,
+    ):
+        # setup
+        gc_instance = Mock()
+        gc_instance.oidc_provider = GITLAB
+        gc_instance.gitlab_project = ANY_GITLAB_PROJECT
+        gc_instance.gitlab_group = ANY_GITLAB_GROUP
         gc_instance.deployment_branch = ANY_DEPLOYMENT_BRANCH
         gc_instance.oidc_provider_url = ANY_OIDC_PROVIDER_URL
         gc_instance.oidc_client_id = ANY_OIDC_CLIENT_ID
