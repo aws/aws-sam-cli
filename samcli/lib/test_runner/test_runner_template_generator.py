@@ -4,6 +4,7 @@ import logging
 import jinja2
 from typing import *
 from botocore.exceptions import ClientError
+from tomlkit import value
 
 LOG = logging.getLogger(__name__)
 
@@ -220,8 +221,7 @@ def _generate_statement_string(tag_filters: dict) -> Union[str, None]:
     resource_tag_mapping_list = _query_tagging_api(tag_filters)
 
     if len(resource_tag_mapping_list) == 0:
-        LOG.error("No resources match the specified tag, cannot generate any IAM permissions.")
-        return "# No resources match the specified tag, cannot generate any IAM permissions.\n"
+        raise KeyError("No resources match the tag: %s, cannot generate any IAM permissions.", str(tag_filters))
 
     iam_statements = [_create_iam_statment_string(resource["ResourceARN"]) for resource in resource_tag_mapping_list]
     return "".join(iam_statements)
@@ -265,6 +265,9 @@ def generate_test_runner_template_string(
             client_error.response["Error"]["Code"],
             client_error.response["Error"]["Message"],
         )
+        return None
+    except KeyError as value_error:
+        LOG.exception(value_error)
         return None
 
     data = {"image_uri": image_uri, "s3_bucket_name": s3_bucket_name, "generated_statements": generated_statements}

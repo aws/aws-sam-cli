@@ -325,15 +325,8 @@ class Test_TemplateGenerator(TestCase):
 
         result = generate_test_runner_template_string(**self.test_params)
 
-        expected_statements = [
-            "                          # No resources match the specified tag, cannot generate any IAM permissions.\n"
-        ]
+        expected_result = None
 
-        expected_result = "".join(
-            self.generated_template_expected_first_half
-            + expected_statements
-            + self.generated_template_expected_second_half
-        )
         self.assertEqual(result, expected_result)
 
     @patch("samcli.lib.test_runner.test_runner_template_generator.boto3.client")
