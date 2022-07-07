@@ -75,6 +75,36 @@ class SamTemplateValidator:
                 functools.reduce(lambda message, error: message + " " + str(error), e.causes, str(e))
             ) from e
 
+    def create_template(self):
+        """
+        Runs the SAM Translator to return a Tranformed Version of the provided template. Similar functionality to the
+        the commmand "sam validate --template {name_of_template} --region {region_given} --debug" though it ONLY returns 
+        the Transformed Template. Will not run if the template is invalid, and throw the InvalidSamDocummentException.
+
+        Raises
+        -------
+        InvalidSamDocumentException
+             If the template is not valid, an InvalidSamDocumentException is raised
+        """
+
+        sam_translator = Translator(
+            managed_policy_map='Local_transformation',
+            sam_parser=self.sam_parser,
+            plugins=[],
+            boto_session=self.boto3_session,
+        )
+
+        self._replace_local_codeuri()
+        self._replace_local_image()
+
+        try:
+            template = sam_translator.translate(sam_template=self.sam_template, parameter_values={})
+            return (yaml_dump(template))
+        except InvalidDocumentException as e:
+            raise InvalidSamDocumentException(
+                functools.reduce(lambda message, error: message + " " + str(error), e.causes, str(e))
+            ) from e
+
     def _replace_local_codeuri(self):
         """
         Replaces the CodeUri in AWS::Serverless::Function and DefinitionUri in AWS::Serverless::Api and
