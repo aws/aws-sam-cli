@@ -230,11 +230,13 @@ class SamLocalStackProvider(SamBaseProvider):
         remote_stack_full_paths : List[str]
             The list of full paths of detected remote stacks
         """
-        str(template_file)
-        if not template_dict:
-            if not template_file:
-                raise MissingTemplateFile()
+
+        if template_file:
             template_dict = get_template_data(template_file)
+        elif template_dict:
+            template_file = ""
+        else:
+            raise MissingTemplateFile()
 
         stacks = [
             Stack(
