@@ -22,7 +22,8 @@ class Test_TemplateGenerator(TestCase):
             "AWSTemplateFormatVersion: 2010-09-09\n",
             "Description: Sample Template to deploy and run test container with Fargate\n",
             "Resources:\n",
-            "\n" "    ContainerIAMRole:\n",
+            "\n",
+            "    ContainerIAMRole:\n",
             "        Type: AWS::IAM::Role\n",
             "        Properties:\n",
             "            Description: Allows Fargate task to access S3 bucket to download tests and upload results\n",
@@ -91,23 +92,21 @@ class Test_TemplateGenerator(TestCase):
             "            BucketName: cloud-test-bucket-unique-name",
         ]
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
-    def test_lambda_function(self, query_tagging_api_patch):
-
+    def do_compare(self, resource_arn, expected_actions, query_tagging_api_patch):
         query_tagging_api_patch.return_value = [
             {
-                "ResourceARN": "arn:aws:lambda:us-east-1:123456789123:function:lambda-sample-SampleLambda-KWsMLA204T0i",
+                "ResourceARN": resource_arn,
             }
         ]
-
         result = generate_test_runner_template_string(**self.test_params)
 
         expected_statements = [
-            "                          - Effect: Allow\n",
-            "                            Action:\n",
-            "                               # - lambda:InvokeFunction\n",
-            "                            Resource: arn:aws:lambda:us-east-1:123456789123:function:lambda-sample-SampleLambda-KWsMLA204T0i\n",
-        ]
+                "                          - Effect: Allow\n",
+                "                            Action:\n",
+            ]
+        expected_statements.extend(expected_actions)
+        expected_statements.append(f"                            Resource: {resource_arn}\n")
+    
 
         expected_result = "".join(
             self.generated_template_expected_first_half
@@ -115,6 +114,75 @@ class Test_TemplateGenerator(TestCase):
             + self.generated_template_expected_second_half
         )
         self.assertEqual(result, expected_result)
+
+    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
+    def test_lambda_function(self, query_tagging_api_patch):
+        resource_arn = "arn:aws:lambda:us-east-1:123456789123:function:lambda-sample-SampleLambda-KWsMLA204T0i"
+        expected_actions = ["                               # - lambda:InvokeFunction\n"]
+        self.do_compare(
+            resource_arn,
+            expected_actions,
+            query_tagging_api_patch,
+        )
+
+    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
+    def test_sqs_queue(self, query_tagging_api_patch):
+        resource_arn = "arn:aws:sqs:us-east-2:444455556666:queue1"
+        expected_actions = ["                               # - sqs:SendMessage\n"]
+        self.do_compare(
+            resource_arn,
+            expected_actions,
+            query_tagging_api_patch,
+        )
+
+    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
+    def test_s3_bucket(self, query_tagging_api_patch):
+        resource_arn = "arn:aws:s3:::my-very-big-s3-bucket"
+        expected_actions = [
+            "                               # - s3:PutObject\n",
+            "                               # - s3:GetObject\n",
+        ]
+        self.do_compare(
+            resource_arn,
+            expected_actions,
+            query_tagging_api_patch,
+        )
+
+    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
+    def test_dynamodb_table(self, query_tagging_api_patch):
+        resource_arn = "arn:aws:dynamodb:us-east-1:123456789012:table/Books"
+        expected_actions = [
+            "                               # - dynamodb:GetItem\n",
+            "                               # - dynamodb:PutItem\n",
+        ]
+        self.do_compare(
+            resource_arn,
+            expected_actions,
+            query_tagging_api_patch,
+        )
+
+    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
+    def test_step_function(self, query_tagging_api_patch):
+        resource_arn = "arn:aws:states:us-east-1:123456789012:stateMachine:stateMachineName"
+        expected_actions = [
+            "                               # - stepfunction:StartExecution\n",
+            "                               # - stepfunction:StopExecution\n",
+        ]
+        self.do_compare(
+            resource_arn,
+            expected_actions,
+            query_tagging_api_patch,
+        )
+
+    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
+    def test_no_iam_actions_supported(self, query_tagging_api_patch):
+        resource_arn = "arn:aws:logs:us-west-1:123456789012:log-group:/mystack-testgroup-12ABC1AB12A1:*"
+        expected_actions = []
+        self.do_compare(
+            resource_arn,
+            expected_actions,
+            query_tagging_api_patch,
+        )
 
     @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
     def test_apigw_httpapi(self, query_tagging_api_patch):
@@ -130,7 +198,7 @@ class Test_TemplateGenerator(TestCase):
             "                          - Effect: Allow\n",
             "                            Action:\n",
             "                               # - execute-api:Invoke\n",
-            "                            Resource: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:4p1000/<STAGE>/GET/<RESOURCE_PATH>\n",
+            "                            Resource: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:4p1000/*/GET/*\n",
         ]
 
         expected_result = "".join(
@@ -154,7 +222,7 @@ class Test_TemplateGenerator(TestCase):
             "                          - Effect: Allow\n",
             "                            Action:\n",
             "                               # - execute-api:Invoke\n",
-            "                            Resource: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:r3st4p1/<STAGE>/GET/<RESOURCE_PATH>\n",
+            "                            Resource: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:r3st4p1/*/GET/*\n",
         ]
 
         expected_result = "".join(
@@ -162,116 +230,16 @@ class Test_TemplateGenerator(TestCase):
             + expected_statements
             + self.generated_template_expected_second_half
         )
-        self.assertEqual(result, expected_result)
-
-    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
-    def test_sqs_queue(self, query_tagging_api_patch):
-        query_tagging_api_patch.return_value = [
-            {
-                "ResourceARN": "arn:aws:sqs:us-east-2:444455556666:queue1",
-            }
-        ]
-
-        result = generate_test_runner_template_string(**self.test_params)
-
-        expected_statements = [
-            "                          - Effect: Allow\n",
-            "                            Action:\n",
-            "                               # - sqs:SendMessage\n",
-            "                            Resource: arn:aws:sqs:us-east-2:444455556666:queue1\n",
-        ]
-
-        expected_result = "".join(
-            self.generated_template_expected_first_half
-            + expected_statements
-            + self.generated_template_expected_second_half
-        )
-        self.maxDiff = None
-        self.assertEqual(result, expected_result)
-
-    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
-    def test_s3_bucket(self, query_tagging_api_patch):
-        query_tagging_api_patch.return_value = [
-            {
-                "ResourceARN": "arn:aws:s3:::my-very-big-s3-bucket",
-            }
-        ]
-
-        result = generate_test_runner_template_string(**self.test_params)
-
-        expected_statements = [
-            "                          - Effect: Allow\n",
-            "                            Action:\n",
-            "                               # - s3:PutObject\n",
-            "                               # - s3:GetObject\n",
-            "                            Resource: arn:aws:s3:::my-very-big-s3-bucket\n",
-        ]
-
-        expected_result = "".join(
-            self.generated_template_expected_first_half
-            + expected_statements
-            + self.generated_template_expected_second_half
-        )
-        self.maxDiff = None
-        self.assertEqual(result, expected_result)
-
-    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
-    def test_dynamodb_table(self, query_tagging_api_patch):
-        query_tagging_api_patch.return_value = [
-            {
-                "ResourceARN": "arn:aws:dynamodb:us-east-1:123456789012:table/Books",
-            }
-        ]
-
-        result = generate_test_runner_template_string(**self.test_params)
-
-        expected_statements = [
-            "                          - Effect: Allow\n",
-            "                            Action:\n",
-            "                               # - dynamodb:GetItem\n",
-            "                               # - dynamodb:PutItem\n",
-            "                            Resource: arn:aws:dynamodb:us-east-1:123456789012:table/Books\n",
-        ]
-
-        expected_result = "".join(
-            self.generated_template_expected_first_half
-            + expected_statements
-            + self.generated_template_expected_second_half
-        )
-        self.maxDiff = None
-        self.assertEqual(result, expected_result)
-
-    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
-    def test_step_function(self, query_tagging_api_patch):
-        query_tagging_api_patch.return_value = [
-            {
-                "ResourceARN": "arn:aws:states:us-east-1:123456789012:stateMachine:stateMachineName",
-            }
-        ]
-
-        result = generate_test_runner_template_string(**self.test_params)
-
-        expected_statements = [
-            "                          - Effect: Allow\n",
-            "                            Action:\n",
-            "                               # - stepfunction:StartExecution\n",
-            "                               # - stepfunction:StopExecution\n",
-            "                            Resource: arn:aws:states:us-east-1:123456789012:stateMachine:stateMachineName\n",
-        ]
-
-        expected_result = "".join(
-            self.generated_template_expected_first_half
-            + expected_statements
-            + self.generated_template_expected_second_half
-        )
-        self.maxDiff = None
         self.assertEqual(result, expected_result)
 
     @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
     def test_multiple_generated_statements(self, query_tagging_api_patch):
+        arn_1 = "arn:aws:states:us-east-1:123456789012:stateMachine:stateMachineName"
+        arn_2 = "arn:aws:s3:::my-very-big-s3-bucket"
+
         query_tagging_api_patch.return_value = [
-            {"ResourceARN": "arn:aws:states:us-east-1:123456789012:stateMachine:stateMachineName"},
-            {"ResourceARN": "arn:aws:s3:::my-very-big-s3-bucket"},
+            {"ResourceARN": arn_1},
+            {"ResourceARN": arn_2},
         ]
 
         result = generate_test_runner_template_string(**self.test_params)
@@ -281,35 +249,12 @@ class Test_TemplateGenerator(TestCase):
             "                            Action:\n",
             "                               # - stepfunction:StartExecution\n",
             "                               # - stepfunction:StopExecution\n",
-            "                            Resource: arn:aws:states:us-east-1:123456789012:stateMachine:stateMachineName\n",
+            f"                            Resource: {arn_1}\n",
             "                          - Effect: Allow\n",
             "                            Action:\n",
             "                               # - s3:PutObject\n",
             "                               # - s3:GetObject\n",
-            "                            Resource: arn:aws:s3:::my-very-big-s3-bucket\n",
-        ]
-
-        expected_result = "".join(
-            self.generated_template_expected_first_half
-            + expected_statements
-            + self.generated_template_expected_second_half
-        )
-        self.assertEqual(result, expected_result)
-
-    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
-    def test_no_iam_actions_supported(self, query_tagging_api_patch):
-        query_tagging_api_patch.return_value = [
-            {
-                "ResourceARN": "arn:aws:logs:us-west-1:123456789012:log-group:/mystack-testgroup-12ABC1AB12A1:*",
-            }
-        ]
-
-        result = generate_test_runner_template_string(**self.test_params)
-
-        expected_statements = [
-            "                          - Effect: Allow\n",
-            "                            Action:\n",
-            "                            Resource: arn:aws:logs:us-west-1:123456789012:log-group:/mystack-testgroup-12ABC1AB12A1:*\n",
+            f"                            Resource: {arn_2}\n",
         ]
 
         expected_result = "".join(

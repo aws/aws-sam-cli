@@ -45,39 +45,39 @@ def _get_permissions_map() -> dict:
         containing the AWS Resource Type and the list of IAM Action permissions generated for that resource.
     """
 
-    partition_ex = r"(aws|aws-cn|aws-us-gov)"
-    region_ex = r"(us(-gov)?|ap|ca|cn|eu|sa)-(central|(north|south)?(east|west)?)-\d"
-    account_ex = r"\d{12}"
+    partition_regex = r"(aws|aws-cn|aws-us-gov)"
+    region_regex = r"(us(-gov)?|ap|ca|cn|eu|sa)-(central|(north|south)?(east|west)?)-\d"
+    account_regex = r"\d{12}"
 
     default_permissions_map = {
-        rf"^arn:{partition_ex}:lambda:{region_ex}:{account_ex}:function:[\w-]+(:\d+)?$": {
+        rf"^arn:{partition_regex}:lambda:{region_regex}:{account_regex}:function:[\w-]+(:\d+)?$": {
             "Resource": "AWS::Lambda::Function",
             "Action": ["lambda:InvokeFunction"],
         },
-        rf"^arn:{partition_ex}:apigateway:{region_ex}::\/apis\/\w+$": {
+        rf"^arn:{partition_regex}:apigateway:{region_regex}::\/apis\/\w+$": {
             "Resource": "AWS::ApiGateway::Api",
             "Action": ["execute-api:Invoke"],
         },
-        rf"^arn:{partition_ex}:apigateway:{region_ex}::\/restapis\/\w+$": {
+        rf"^arn:{partition_regex}:apigateway:{region_regex}::\/restapis\/\w+$": {
             "Resource": "AWS::ApiGateway::RestApi",
             "Action": ["execute-api:Invoke"],
         },
-        rf"^arn:{partition_ex}:sqs:{region_ex}:{account_ex}:[\w-]+$": {
+        rf"^arn:{partition_regex}:sqs:{region_regex}:{account_regex}:[\w-]+$": {
             "Resource": "AWS::SQS::Queue",
             "Action": ["sqs:SendMessage"],
         },
-        rf"^arn:{partition_ex}:s3:::[\w-]+$": {
+        rf"^arn:{partition_regex}:s3:::[\w-]+$": {
             "Resource": "AWS::S3::Bucket",
             "Action": ["s3:PutObject", "s3:GetObject"],
         },
-        rf"^arn:{partition_ex}:dynamodb:{region_ex}:{account_ex}:table\/[\w-]+$": {
+        rf"^arn:{partition_regex}:dynamodb:{region_regex}:{account_regex}:table\/[\w-]+$": {
             "Resource": "AWS::Dynamodb::Table",
             "Action": [
                 "dynamodb:GetItem",
                 "dynamodb:PutItem",
             ],
         },
-        rf"^arn:{partition_ex}:states:{region_ex}:{account_ex}:stateMachine:[\w-]+$": {
+        rf"^arn:{partition_regex}:states:{region_regex}:{account_regex}:stateMachine:[\w-]+$": {
             "Resource": "AWS::StepFunctions::StateMachine",
             "Action": [
                 "stepfunction:StartExecution",
@@ -111,12 +111,13 @@ def _get_action_mapping(resource_arn: str) -> Union[dict, None]:
 
     permissions_map = _get_permissions_map()
 
-    for arn_exp, mapping in permissions_map.items():
-        if re.search(arn_exp, resource_arn) is not None:
+    for arn_regex, mapping in permissions_map.items():
+        if re.search(arn_regex, resource_arn) is not None:
             LOG.info("Matched ARN `%s` to IAM actions %s", resource_arn, mapping["Action"])
             return mapping
 
     # If the supplied ARN is for a resource without any default actions supported
+    LOG.info("Found no match for ARN `%s` to any IAM actions.", resource_arn)
     return None
 
 
@@ -157,7 +158,7 @@ def _create_iam_statment_string(resource_arn: str) -> str:
 
     if mapping["Resource"] in ("AWS::ApiGateway::Api", "AWS::ApiGateway::RestApi"):
         apiId = _extract_api_id_from_arn(resource_arn)
-        execute_api_arn = f"!Sub arn:${{AWS::Partition}}:execute-api:${{AWS::Region}}:${{AWS::AccountId}}:{apiId}/<STAGE>/GET/<RESOURCE_PATH>"
+        execute_api_arn = f"!Sub arn:${{AWS::Partition}}:execute-api:${{AWS::Region}}:${{AWS::AccountId}}:{apiId}/*/GET/*"
         return jinja2.Template(source=new_statement_template, keep_trailing_newline=True).render(
             action_list=mapping["Action"], arn=execute_api_arn
         )
@@ -217,7 +218,6 @@ def _generate_statement_string(tag_filters: dict) -> Union[str, None]:
 
         Returns a YAML comment error message if no resources match the tag, returns None if the tagging api call fails.
     """
-
     resource_tag_mapping_list = _query_tagging_api(tag_filters)
 
     if len(resource_tag_mapping_list) == 0:
