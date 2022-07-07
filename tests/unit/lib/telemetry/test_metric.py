@@ -8,7 +8,7 @@ from parameterized import parameterized
 import samcli
 
 from unittest import TestCase
-from unittest.mock import patch, Mock, ANY, call
+from unittest.mock import MagicMock, patch, Mock, ANY, call
 from samcli.lib.telemetry.event import Event, EventTracker
 
 import samcli.lib.telemetry.metric
@@ -339,49 +339,6 @@ class TestTrackCommand(TestCase):
             [call(ANY)],
             "The command metrics be emitted when used as a decorator",
         )
-
-    @parameterized.expand(
-        [
-            ([],),
-            ([Mock(event_name=Mock(value="TestEvent"), event_value="TestValue")],),
-            (
-                [
-                    Mock(event_name=Mock(value="Test1"), event_value="TestValue1"),
-                    Mock(event_name=Mock(value="Test2"), event_value="TestValue2"),
-                ],
-            ),
-            (
-                [
-                    Mock(event_name=Mock(value="T1"), event_value="1"),
-                    Mock(event_name=Mock(value="T2"), event_value="2"),
-                    Mock(event_name=Mock(value="T3"), event_value="3"),
-                ],
-            ),
-        ]
-    )
-    @patch("samcli.lib.telemetry.metric.Context")
-    @patch("samcli.lib.telemetry.event.EventTracker.clear_trackers", side_effect=EventTracker.clear_trackers)
-    def test_must_return_list_of_events(self, events, clr_mock, ContextMock):
-        ContextMock.get_current_context.return_value = self.context_mock
-        clr_mock.clear_trackers.return_value = EventTracker.clear_trackers()
-        for e in events:
-            e.to_json.return_value = Event.to_json(e)
-
-        def func_with_event():
-            for e in events:
-                EventTracker._events.append(e)
-
-        expected = [e.to_json() for e in events]
-
-        track_command(func_with_event)()
-
-        args, _ = self.telemetry_instance.emit.call_args_list[0]
-        metric = args[0]
-        assert metric.get_metric_name() == "commandRun"
-        metric_events = metric.get_data()["metricSpecificAttributes"]["events"]
-        clr_mock.assert_called()
-        self.assertEqual(len(events), len(metric_events))
-        self.assertEqual(metric_events, expected)
 
 
 class TestParameterCapture(TestCase):

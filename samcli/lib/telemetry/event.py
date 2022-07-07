@@ -71,7 +71,7 @@ class Event:
             f"Event(event_name={self.event_name.value}, "
             f"event_value={self.event_value}, "
             f"thread_id={self.thread_id}, "
-            f"timestamp={self.time_stamp})"
+            f"time_stamp={self.time_stamp})"
         )
 
     def to_json(self):
@@ -79,7 +79,7 @@ class Event:
             "event_name": self.event_name.value,
             "event_value": self.event_value,
             "thread_id": self.thread_id,
-            "timestamp": self.time_stamp,
+            "time_stamp": self.time_stamp,
         }
 
     @staticmethod
@@ -157,10 +157,10 @@ class EventTracker:
     @staticmethod
     def send_events():
         """Sends the current list of events via Telemetry."""
+        from samcli.lib.telemetry.metric import Metric  # pylint: disable=cyclic-import
+
         if not EventTracker.get_tracked_events():  # Don't do anything if there are no events to send
             return
-
-        from samcli.lib.telemetry.metric import Metric  # creates circular import otherwise
 
         telemetry = Telemetry()
 
