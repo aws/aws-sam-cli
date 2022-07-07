@@ -24,9 +24,9 @@ class SamLocalStackProvider(SamBaseProvider):
 
     def __init__(
         self,
-        template_file: Optional[str],
+        template_file: str,
         stack_path: str,
-        template_dict: Optional[Dict],
+        template_dict: Dict,
         parameter_overrides: Optional[Dict] = None,
         global_parameter_overrides: Optional[Dict] = None,
     ):
@@ -230,6 +230,7 @@ class SamLocalStackProvider(SamBaseProvider):
         remote_stack_full_paths : List[str]
             The list of full paths of detected remote stacks
         """
+        str(template_file)
         if not template_dict:
             if not template_file:
                 raise MissingTemplateFile()
