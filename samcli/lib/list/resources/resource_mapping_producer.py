@@ -73,7 +73,7 @@ class ResourceMappingProducer(Producer):
 
         translated_dict = self.get_translated_dict(template_file_dict=sam_template)
 
-        stacks, _ = SamLocalStackProvider.get_stacks(template_file="", template_dict=translated_dict)
+        stacks, _ = SamLocalStackProvider.get_stacks(template_file="", template_dictionary=translated_dict)
         if not stacks or not stacks[0].resources:
             raise SamListLocalResourcesNotFoundError(msg="No local resources found.")
         resources_dict = {}
