@@ -206,7 +206,8 @@ class SamLocalStackProvider(SamBaseProvider):
         Parameters
         ----------
         template_file: str
-            the file path of the template to extract stacks from. Only one of either template_dict or template_file is required
+            the file path of the template to extract stacks from. Only one of either template_dict or template_file
+            is required
         stack_path: str
             the stack path of the parent stack, for root stack, it is ""
         name: str

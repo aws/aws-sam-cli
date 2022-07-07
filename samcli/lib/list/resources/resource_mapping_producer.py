@@ -11,7 +11,7 @@ from samtranslator.translator.managed_policy_translator import ManagedPolicyLoad
 from samtranslator.translator.arn_generator import NoRegionFound
 
 from samcli.commands.list.exceptions import SamListLocalResourcesNotFoundError, SamListUnknownClientError
-from samcli.lib.list.list_interfaces import Producer, Mapper, ListInfoPullerConsumer
+from samcli.lib.list.list_interfaces import Producer
 from samcli.lib.list.resources.resources_def import ResourcesDef
 from samcli.lib.translate.sam_template_validator import SamTemplateValidator
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
