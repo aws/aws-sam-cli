@@ -508,9 +508,9 @@ class Stack:
         self,
         parent_stack_path: str,
         name: str,
-        location: str,
+        location: Optional[str],
         parameters: Optional[Dict],
-        template_dict: Dict,
+        template_dict: Optional[Dict],
         metadata: Optional[Dict] = None,
     ):
         self.parent_stack_path = parent_stack_path

@@ -24,9 +24,9 @@ class SamLocalStackProvider(SamBaseProvider):
 
     def __init__(
         self,
-        template_file: str,
+        template_file: Optional[str],
         stack_path: str,
-        template_dict: Dict,
+        template_dict: Optional[Dict],
         parameter_overrides: Optional[Dict] = None,
         global_parameter_overrides: Optional[Dict] = None,
     ):
@@ -192,7 +192,7 @@ class SamLocalStackProvider(SamBaseProvider):
 
     @staticmethod
     def get_stacks(
-        template_file: Optional[str],
+        template_file: Optional[str] = None,
         stack_path: str = "",
         name: str = "",
         parameter_overrides: Optional[Dict] = None,
