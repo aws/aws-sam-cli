@@ -1,10 +1,9 @@
-import boto3
 import re
 import logging
 import jinja2
 from typing import *
 from botocore.exceptions import ClientError
-from tomlkit import value
+from samcli.lib.utils.boto_utils import BotoProviderType
 
 LOG = logging.getLogger(__name__)
 
@@ -158,7 +157,9 @@ def _create_iam_statment_string(resource_arn: str) -> str:
 
     if mapping["Resource"] in ("AWS::ApiGateway::Api", "AWS::ApiGateway::RestApi"):
         apiId = _extract_api_id_from_arn(resource_arn)
-        execute_api_arn = f"!Sub arn:${{AWS::Partition}}:execute-api:${{AWS::Region}}:${{AWS::AccountId}}:{apiId}/*/GET/*"
+        execute_api_arn = (
+            f"!Sub arn:${{AWS::Partition}}:execute-api:${{AWS::Region}}:${{AWS::AccountId}}:{apiId}/*/GET/*"
+        )
         return jinja2.Template(source=new_statement_template, keep_trailing_newline=True).render(
             action_list=mapping["Action"], arn=execute_api_arn
         )
@@ -168,7 +169,7 @@ def _create_iam_statment_string(resource_arn: str) -> str:
     )
 
 
-def _query_tagging_api(tag_filters: dict) -> Union[dict, None]:
+def _query_tagging_api(tag_filters: dict, boto_client_provider: BotoProviderType) -> Union[dict, None]:
     """
     Queries the Tagging API to retrieve the ARNs of every resource with the given tags.
 
@@ -180,6 +181,9 @@ def _query_tagging_api(tag_filters: dict) -> Union[dict, None]:
         The tag filters to restrict output to only those resources with the given tags.
 
         NOTE: https://docs.aws.amazon.com/cli/latest/reference/resourcegroupstaggingapi/get-resources.html#options
+
+    boto_client_provider : BotoProviderType
+        Provides a boto3 client in order to query tagging API
 
     Returns
     -------
@@ -195,10 +199,12 @@ def _query_tagging_api(tag_filters: dict) -> Union[dict, None]:
 
         See # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/error-handling.html#parsing-error-responses-and-catching-exceptions-from-aws-services
     """
-    return boto3.client("resourcegroupstaggingapi").get_resources(TagFilters=tag_filters)["ResourceTagMappingList"]
+    return boto_client_provider("resourcegroupstaggingapi").get_resources(TagFilters=tag_filters)[
+        "ResourceTagMappingList"
+    ]
 
 
-def _generate_statement_string(tag_filters: dict) -> Union[str, None]:
+def _generate_statement_string(tag_filters: dict, boto_client_provider: BotoProviderType) -> Union[str, None]:
     """
     Generates a list of IAM statements in the form of a single YAML string with default action permissions for resources with the given tags.
 
@@ -211,6 +217,9 @@ def _generate_statement_string(tag_filters: dict) -> Union[str, None]:
 
         NOTE: https://docs.aws.amazon.com/cli/latest/reference/resourcegroupstaggingapi/get-resources.html#options
 
+    boto_client_provider : BotoProviderType
+        Provides a boto3 client in order to query tagging API
+
     Returns
     -------
     str:
@@ -218,7 +227,7 @@ def _generate_statement_string(tag_filters: dict) -> Union[str, None]:
 
         Returns a YAML comment error message if no resources match the tag, returns None if the tagging api call fails.
     """
-    resource_tag_mapping_list = _query_tagging_api(tag_filters)
+    resource_tag_mapping_list = _query_tagging_api(tag_filters, boto_client_provider)
 
     if len(resource_tag_mapping_list) == 0:
         raise KeyError("No resources match the tag: %s, cannot generate any IAM permissions.", str(tag_filters))
@@ -228,13 +237,21 @@ def _generate_statement_string(tag_filters: dict) -> Union[str, None]:
 
 
 def generate_test_runner_template_string(
-    jinja_base_template: str, s3_bucket_name: str, image_uri: str, tag_filters: dict
+    boto_client_provider: BotoProviderType,
+    jinja_base_template: str,
+    s3_bucket_name: str,
+    image_uri: str,
+    tag_filters: dict,
 ) -> Union[dict, None]:
     """
     Renders a base jinja template with a set of parameters needed to create the Test Runner Stack.
 
     Parameters
     ----------
+
+    boto_client_provider : BotoProviderType
+        Provides a boto3 client in order to query tagging API
+        
     jinja_base_template : str
         The jinja YAML template to which parameters are substituted.
 
@@ -257,7 +274,7 @@ def generate_test_runner_template_string(
     """
 
     try:
-        generated_statements = _generate_statement_string(tag_filters)
+        generated_statements = _generate_statement_string(tag_filters, boto_client_provider)
     # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/error-handling.html#parsing-error-responses-and-catching-exceptions-from-aws-services
     except ClientError as client_error:
         LOG.exception(

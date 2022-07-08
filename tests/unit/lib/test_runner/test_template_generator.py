@@ -9,6 +9,7 @@ class Test_TemplateGenerator(TestCase):
         self.maxDiff = None
         with open("samcli/lib/test_runner/base_template.j2") as jinja_template:
             self.test_params = {
+                "boto_client_provider": None, # Patched
                 "jinja_base_template": jinja_template.read(),
                 "s3_bucket_name": "cloud-test-bucket-unique-name",
                 "image_uri": "123456789123.dkr.ecr.us-east-1.amazonaws.com/cloud-test-repo",
@@ -274,14 +275,12 @@ class Test_TemplateGenerator(TestCase):
 
         self.assertEqual(result, expected_result)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator.boto3.client")
-    def test_failed_tag_api_query(self, mock_boto_client):
-
-        mock_boto_client.return_value = mock_boto_client
+    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
+    def test_failed_tag_api_query(self, query_tagging_api_patch):
 
         client_error_response = {"Error": {"Code": "Error Code", "Message": "Error Message"}}
 
-        mock_boto_client.get_resources.side_effect = ClientError(
+        query_tagging_api_patch.side_effect = ClientError(
             error_response=client_error_response, operation_name="get_resources"
         )
 
