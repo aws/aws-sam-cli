@@ -2,23 +2,23 @@
 Creates and encrypts metadata regarding SAM CLI projects.
 """
 
+import hashlib
 from os import getcwd
 import re
 import subprocess
 from typing import List, Optional
-from uuid import uuid5, NAMESPACE_URL
 
 from samcli.cli.global_config import GlobalConfig
 
 
-def get_git_remote_origin_url() -> Optional[str]:
+def get_git_remote_origin_url() -> Optional[bytes]:
     """
     Retrieve an encrypted version of the project's git remote origin url, if it exists.
 
     Returns
     -------
-    str | None
-        A UUID5 encrypted string of the git remote origin url, formatted such that the
+    bytes | None
+        A SHA256 byte string of the git remote origin url, formatted such that the
         encrypted value follows the pattern <hostname>/<owner>/<project_name>.git.
         If telemetry is opted out of by the user, or the `.git` folder is not found
         (the directory is not a git repository), returns None
@@ -39,14 +39,14 @@ def get_git_remote_origin_url() -> Optional[str]:
     return _encrypt_value(git_url)
 
 
-def get_project_name() -> Optional[str]:
+def get_project_name() -> Optional[bytes]:
     """
     Retrieve an encrypted version of the project's name, as defined by the .git folder (or directory name if no .git).
 
     Returns
     -------
-    str | None
-        A UUID5 encrypted string of either the name of the project, or the name of the
+    bytes | None
+        A SHA256 byte string of either the name of the project, or the name of the
         current working directory that the command is running in.
         If telemetry is opted out of by the user, returns None
     """
@@ -65,14 +65,14 @@ def get_project_name() -> Optional[str]:
     return _encrypt_value(project_name)
 
 
-def get_initial_commit_hash() -> Optional[str]:
+def get_initial_commit_hash() -> Optional[bytes]:
     """
     Retrieve an encrypted version of the project's initial commit hash, if it exists.
 
     Returns
     -------
-    str | None
-        A UUID5 encrypted string of the git project's initial commit hash.
+    bytes | None
+        A SHA256 byte string of the git project's initial commit hash.
         If telemetry is opted out of by the user, or the `.git` folder is not found
         (the directory is not a git repository), returns None.
     """
@@ -104,6 +104,8 @@ def _parse_remote_origin_url(url: str) -> List[str]:
     return [str(item) for item in pattern.findall(url)[0]]
 
 
-def _encrypt_value(value: str) -> str:
-    """Encrypt a string, and then return the encrypted value as a string."""
-    return str(uuid5(NAMESPACE_URL, value))
+def _encrypt_value(value: str) -> bytes:
+    """Encrypt a string, and then return the encrypted value as a byte string."""
+    h = hashlib.sha256()
+    h.update(value.encode("utf-8"))
+    return h.digest()

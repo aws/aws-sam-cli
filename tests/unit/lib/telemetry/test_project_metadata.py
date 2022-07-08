@@ -2,8 +2,8 @@
 Module for testing the project_metadata.py methods.
 """
 
+import hashlib
 from subprocess import CompletedProcess, CalledProcessError
-from uuid import uuid5, NAMESPACE_URL
 from unittest.mock import patch, Mock
 from unittest import TestCase
 
@@ -49,7 +49,9 @@ class TestProjectMetadata(TestCase):
         sp_mock.return_value = CompletedProcess(["git", "config", "--get", "remote.origin.url"], 0, stdout=origin)
 
         git_origin = get_git_remote_origin_url()
-        self.assertEqual(git_origin, str(uuid5(NAMESPACE_URL, expected)))
+        expected_hash = hashlib.sha256()
+        expected_hash.update(expected.encode("utf-8"))
+        self.assertEqual(git_origin, expected_hash.digest())
 
     @patch("samcli.lib.telemetry.project_metadata.subprocess.run")
     def test_retrieve_git_origin_when_not_a_repo(self, sp_mock):
@@ -73,7 +75,9 @@ class TestProjectMetadata(TestCase):
         sp_mock.return_value = CompletedProcess(["git", "config", "--get", "remote.origin.url"], 0, stdout=origin)
 
         project_name = get_project_name()
-        self.assertEqual(project_name, str(uuid5(NAMESPACE_URL, expected)))
+        expected_hash = hashlib.sha256()
+        expected_hash.update(expected.encode("utf-8"))
+        self.assertEqual(project_name, expected_hash.digest())
 
     @parameterized.expand(
         [
@@ -94,7 +98,9 @@ class TestProjectMetadata(TestCase):
         cwd_mock.return_value = cwd
 
         project_name = get_project_name()
-        self.assertEqual(project_name, str(uuid5(NAMESPACE_URL, cwd.replace("\\", "/"))))
+        expected_hash = hashlib.sha256()
+        expected_hash.update(cwd.replace("\\", "/").encode("utf-8"))
+        self.assertEqual(project_name, expected_hash.digest())
 
     @parameterized.expand(
         [
@@ -108,4 +114,6 @@ class TestProjectMetadata(TestCase):
         sp_mock.return_value = CompletedProcess(["git", "rev-list", "--max-parents=0", "HEAD"], 0, stdout=git_hash)
 
         initial_commit = get_initial_commit_hash()
-        self.assertEqual(initial_commit, str(uuid5(NAMESPACE_URL, git_hash)))
+        expected_hash = hashlib.sha256()
+        expected_hash.update(git_hash.encode("utf-8"))
+        self.assertEqual(initial_commit, expected_hash.digest())
