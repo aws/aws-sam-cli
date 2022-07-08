@@ -166,7 +166,7 @@ class EventTracker:
 
         try:
             metric = Metric("events")
-            metric.add_data("events", [e.to_json() for e in EventTracker.get_tracked_events()])
+            metric.add_data("metricSpecificAttributes", [e.to_json() for e in EventTracker.get_tracked_events()])
             telemetry.emit(metric)
             EventTracker.clear_trackers()
         except RuntimeError:
