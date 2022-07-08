@@ -8,8 +8,7 @@ from parameterized import parameterized
 import samcli
 
 from unittest import TestCase
-from unittest.mock import MagicMock, patch, Mock, ANY, call
-from samcli.lib.telemetry.event import Event, EventTracker
+from unittest.mock import patch, Mock, ANY, call
 
 import samcli.lib.telemetry.metric
 from samcli.lib.telemetry.cicd import CICDPlatform

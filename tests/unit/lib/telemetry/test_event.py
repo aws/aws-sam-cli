@@ -3,7 +3,6 @@ Module for testing the event.py methods and classes.
 """
 
 from enum import Enum
-from re import X
 import threading
 from unittest import TestCase
 from unittest.mock import ANY, Mock, patch
