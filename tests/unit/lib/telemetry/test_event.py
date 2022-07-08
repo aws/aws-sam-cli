@@ -130,16 +130,19 @@ class TestEventTracker(TestCase):
             "ci": ANY,
             "pyversion": ANY,
             "samcliVersion": ANY,
-            "events": [
-                {
-                    "event_name": "Test",
-                    "event_value": "SomeValue",
-                    "thread_id": ANY,
-                    "time_stamp": ANY,
-                }
-            ],
+            "metricSpecificAttributes": {
+                "events": [
+                    {
+                        "event_name": "Test",
+                        "event_value": "SomeValue",
+                        "thread_id": ANY,
+                        "time_stamp": ANY,
+                    }
+                ]
+            }
         }
-        self.assertEqual(len(metric_data["events"]), 1)  # There is one metric captured
+        print(metric_data)
+        self.assertEqual(len(metric_data["metricSpecificAttributes"]["events"]), 1)  # There is one event captured
         self.assertEqual(metric_data, expected_data)
         self.assertEqual(len(EventTracker._events), 0)  # Events should have been sent and cleared
 
