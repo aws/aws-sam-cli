@@ -264,8 +264,8 @@ class DeployContext:
                     if not click.confirm(f"{self.MSG_CONFIRM_CHANGESET}", default=False):
                         return
 
-                self.deployer.execute_changeset(result["Id"], stack_name, disable_rollback)
-                self.deployer.wait_for_execute(stack_name, changeset_type, disable_rollback)
+                execution_time = self.deployer.execute_changeset(result["Id"], stack_name, disable_rollback)
+                self.deployer.wait_for_execute(stack_name, changeset_type, disable_rollback, execution_time)
                 click.echo(self.MSG_EXECUTE_SUCCESS.format(stack_name=stack_name, region=region))
 
             except deploy_exceptions.ChangeEmptyError as ex:
