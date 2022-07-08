@@ -139,7 +139,7 @@ class TestEventTracker(TestCase):
                         "time_stamp": ANY,
                     }
                 ]
-            }
+            },
         }
         print(metric_data)
         self.assertEqual(len(metric_data["metricSpecificAttributes"]["events"]), 1)  # There is one event captured

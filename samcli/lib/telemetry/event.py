@@ -167,7 +167,7 @@ class EventTracker:
         try:
             metric = Metric("events")
             msa = {}
-            msa['events'] = [e.to_json() for e in EventTracker.get_tracked_events()]
+            msa["events"] = [e.to_json() for e in EventTracker.get_tracked_events()]
             metric.add_data("metricSpecificAttributes", msa)
             telemetry.emit(metric)
             EventTracker.clear_trackers()
