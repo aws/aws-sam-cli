@@ -59,7 +59,6 @@ class TestExperimentalMetric(IntegBase):
                                 "gitOrigin": ANY,
                                 "projectName": ANY,
                                 "initialCommit": ANY,
-                                "events": ANY,
                             },
                             "duration": ANY,
                             "exitReason": ANY,
@@ -114,7 +113,6 @@ class TestExperimentalMetric(IntegBase):
                                 "gitOrigin": ANY,
                                 "projectName": ANY,
                                 "initialCommit": ANY,
-                                "events": ANY,
                             },
                             "duration": ANY,
                             "exitReason": ANY,
@@ -152,7 +150,7 @@ class TestExperimentalMetric(IntegBase):
             process.communicate()
 
             all_requests = server.get_all_requests()
-            self.assertEqual(1, len(all_requests), "Command run metric must be sent")
+            self.assertGreaterEqual(1, len(all_requests), "Command run metric must be sent")
             request = all_requests[0]
             self.assertIn("Content-Type", request["headers"])
             self.assertEqual(request["headers"]["Content-Type"], "application/json")
@@ -177,7 +175,6 @@ class TestExperimentalMetric(IntegBase):
                                 "gitOrigin": ANY,
                                 "projectName": ANY,
                                 "initialCommit": ANY,
-                                "events": ANY,
                             },
                             "duration": ANY,
                             "exitReason": ANY,
