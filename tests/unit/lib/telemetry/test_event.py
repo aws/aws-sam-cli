@@ -68,8 +68,12 @@ class TestEventCreation(TestCase):
 
 
 class TestEventTracker(TestCase):
+    @patch("samcli.lib.telemetry.event.EventTracker._event_lock")
     @patch("samcli.lib.telemetry.event.Event")
-    def test_track_event(self, event_mock):
+    def test_track_event(self, event_mock, lock_mock):
+        lock_mock.__enter__ = Mock()
+        lock_mock.__exit__ = Mock()
+
         # Test that an event can be tracked
         dummy_event = Mock(event_name="Test", event_value="SomeValue", thread_id=threading.get_ident(), timestamp=ANY)
         event_mock.return_value = dummy_event
@@ -78,11 +82,17 @@ class TestEventTracker(TestCase):
 
         self.assertEqual(len(EventTracker._events), 1)
         self.assertEqual(EventTracker._events[0], dummy_event)
+        lock_mock.__enter__.assert_called()  # Lock should have been accessed
+        lock_mock.__exit__.assert_called()
+        lock_mock.__enter__.reset_mock()
+        lock_mock.__exit__.reset_mock()
 
         # Test that the Event list will be cleared
         EventTracker.clear_trackers()
 
         self.assertEqual(len(EventTracker._events), 0)
+        lock_mock.__enter__.assert_called()  # Lock should have been accessed
+        lock_mock.__exit__.assert_called()
 
     @patch("samcli.lib.telemetry.event.Telemetry")
     def test_events_get_sent(self, telemetry_mock):
