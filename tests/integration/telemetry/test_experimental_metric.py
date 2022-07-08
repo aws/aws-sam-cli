@@ -150,7 +150,7 @@ class TestExperimentalMetric(IntegBase):
             process.communicate()
 
             all_requests = server.get_all_requests()
-            self.assertGreaterEqual(1, len(all_requests), "Command run metric must be sent")
+            self.assertGreaterEqual(len(all_requests), 1, "Command run metric must be sent")
             request = all_requests[0]
             self.assertIn("Content-Type", request["headers"])
             self.assertEqual(request["headers"]["Content-Type"], "application/json")
