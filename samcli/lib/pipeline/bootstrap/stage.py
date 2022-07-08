@@ -39,6 +39,7 @@ GITHUB_REPO = "github_repo"
 GITLAB_GROUP = "gitlab_group"
 GITLAB_PROJECT = "gitlab_project"
 DEPLOYMENT_BRANCH = "deployment_branch"
+BITBUCKET_REPO_UUID = "bitbucket_repo_uuid"
 REGION = "region"
 
 

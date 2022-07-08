@@ -20,16 +20,21 @@ from samcli.lib.utils.profile import list_available_profiles
 
 GITHUB_ACTIONS = "github-actions"
 GITLAB = "gitlab"
+BITBUCKET = "bitbucket"
 OPEN_ID_CONNECT = "oidc"
 IAM = "iam"
 
 
 class GuidedContext:
 
-    SUPPORTED_OIDC_PROVIDERS = {"1": GITHUB_ACTIONS, "2": GITLAB}
-    OIDC_PROVIDER_NAME_MAPPINGS = {GITHUB_ACTIONS: "GitHub Actions", GITLAB: "GitLab"}
-    DEFAULT_OIDC_URLS = {GITHUB_ACTIONS: "https://token.actions.githubusercontent.com", GITLAB: "https://gitlab.com"}
-    DEFAULT_CLIENT_IDS = {GITHUB_ACTIONS: "sts.amazonaws.com", GITLAB: "https://gitlab.com"}
+    SUPPORTED_OIDC_PROVIDERS = {"1": GITHUB_ACTIONS, "2": GITLAB, "3": BITBUCKET}
+    OIDC_PROVIDER_NAME_MAPPINGS = {GITHUB_ACTIONS: "GitHub Actions", GITLAB: "GitLab", BITBUCKET: "Bitbucket"}
+    DEFAULT_OIDC_URLS = {
+        GITHUB_ACTIONS: "https://token.actions.githubusercontent.com",
+        GITLAB: "https://gitlab.com",
+        BITBUCKET: None,
+    }
+    DEFAULT_CLIENT_IDS = {GITHUB_ACTIONS: "sts.amazonaws.com", GITLAB: "https://gitlab.com", BITBUCKET: None}
 
     def __init__(
         self,
@@ -51,6 +56,7 @@ class GuidedContext:
         gitlab_group: Optional[str] = None,
         gitlab_project: Optional[str] = None,
         deployment_branch: Optional[str] = None,
+        bitbucket_repo_uuid: Optional[str] = None,
     ) -> None:
         self.profile = profile
         self.stage_configuration_name = stage_configuration_name
@@ -70,6 +76,7 @@ class GuidedContext:
         self.deployment_branch = deployment_branch
         self.gitlab_group = gitlab_group
         self.gitlab_project = gitlab_project
+        self.bitbucket_repo_uuid = bitbucket_repo_uuid
         self.color = Colored()
 
     def _prompt_account_id(self) -> None:
@@ -220,6 +227,12 @@ class GuidedContext:
                 self._prompt_gitlab_project()
             if not self.deployment_branch:
                 self._prompt_deployment_branch()
+        elif self.oidc_provider == BITBUCKET:
+            if not self.bitbucket_repo_uuid:
+                self._prompt_bitbucket_repo_uuid()
+
+    def _prompt_bitbucket_repo_uuid(self) -> None:
+        self.bitbucket_repo_uuid = click.prompt("Enter the Bitbucket Repository UUID", type=click.STRING)
 
     def _prompt_gitlab_group(self) -> None:
         self.gitlab_group = click.prompt(
@@ -282,6 +295,12 @@ class GuidedContext:
                         (f"GitLab group: {self.gitlab_group}", self._prompt_gitlab_group),
                         (f"GitLab project: {self.gitlab_project}", self._prompt_gitlab_project),
                         (f"Deployment branch: {self.deployment_branch}", self._prompt_deployment_branch),
+                    ]
+                )
+            elif self.oidc_provider == BITBUCKET:
+                inputs.extend(
+                    [
+                        (f"Bitbucket Repo UUID: {self.bitbucket_repo_uuid}", self._prompt_bitbucket_repo_uuid),
                     ]
                 )
         else:

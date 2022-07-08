@@ -33,6 +33,7 @@ ANY_GITHUB_REPO = "ANY_GITHUB_REPO"
 ANY_DEPLOYMENT_BRANCH = "ANY_DEPLOYMENT_BRANCH"
 ANY_GITLAB_PROJECT = "ANY_GITLAB_PROJECT"
 ANY_GITLAB_GROUP = "ANY_GITLAB_GROUP"
+ANY_BITBUCKET_REPO_UUID = "ANY_BITBUCKET_REPO_UUID"
 ANY_SUBJECT_CLAIM = "ANY_SUBJECT_CLAIM"
 ANY_BUILT_SUBJECT_CLAIM = "repo:ANY_GITHUB_ORG/ANY_GITHUB_REPO:ref:refs/heads/ANY_DEPLOYMENT_BRANCH"
 ANY_BUILT_GITLAB_SUBJECT_CLAIM = (
@@ -65,6 +66,7 @@ class TestCli(TestCase):
             "github_repo": ANY_GITHUB_REPO,
             "gitlab_project": ANY_GITLAB_PROJECT,
             "gitlab_group": ANY_GITLAB_GROUP,
+            "bitbucket_repo_uuid": ANY_BITBUCKET_REPO_UUID,
             "deployment_branch": ANY_DEPLOYMENT_BRANCH,
         }
 
@@ -100,6 +102,7 @@ class TestCli(TestCase):
             oidc_provider=None,
             gitlab_group=None,
             gitlab_project=None,
+            bitbucket_repo_uuid=None,
         )
 
     @patch("samcli.commands.pipeline.bootstrap.cli.do_cli")

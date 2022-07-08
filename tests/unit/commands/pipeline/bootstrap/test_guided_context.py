@@ -114,6 +114,32 @@ class TestGuidedContext(TestCase):
         prompt_account_id_mock.assert_called_once()
         click_mock.prompt.assert_called_once()
 
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.GuidedContext._validate_oidc_provider_url")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.get_current_account_id")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.click")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.GuidedContext._prompt_account_id")
+    def test_guided_context_will_prompt_for_fields_that_are_not_provided_oidc_bitbucket(
+        self, prompt_account_id_mock, click_mock, account_id_mock, oidc_url_validate_mock
+    ):
+        account_id_mock.return_value = "1234567890"
+        click_mock.confirm.return_value = False
+        click_mock.prompt = Mock(return_value="0")
+        gc: GuidedContext = GuidedContext(
+            image_repository_arn=ANY_IMAGE_REPOSITORY_ARN,  # Exclude ECR repo, it has its own detailed test below
+            permissions_provider="oidc",
+            oidc_provider="bitbucket",
+        )
+        gc.run()
+        prompt_account_id_mock.assert_called_once()
+        self.assertTrue(self.did_prompt_text_like("Stage configuration Name", click_mock.prompt))
+        self.assertTrue(self.did_prompt_text_like("Pipeline execution role", click_mock.prompt))
+        self.assertTrue(self.did_prompt_text_like("CloudFormation execution role", click_mock.prompt))
+        self.assertTrue(self.did_prompt_text_like("Artifact bucket", click_mock.prompt))
+        self.assertTrue(self.did_prompt_text_like("region", click_mock.prompt))
+        self.assertTrue(self.did_prompt_text_like("URL of the OIDC provider", click_mock.prompt))
+        self.assertTrue(self.did_prompt_text_like("OIDC Client ID", click_mock.prompt))
+        self.assertTrue(self.did_prompt_text_like("Repository UUID", click_mock.prompt))
+
     @patch("samcli.commands.pipeline.bootstrap.guided_context.get_current_account_id")
     @patch("samcli.commands.pipeline.bootstrap.guided_context.click")
     @patch("samcli.commands.pipeline.bootstrap.guided_context.GuidedContext._prompt_account_id")

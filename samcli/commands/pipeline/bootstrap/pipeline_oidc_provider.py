@@ -100,3 +100,26 @@ class GitLabOidcProvider(PipelineOidcProvider):
         project = self.oidc_parameters["gitlab-project"]
         branch = self.oidc_parameters["deployment-branch"]
         return f"project_path:{group}/{project}:ref_type:branch:ref:{branch}"
+
+
+class BitbucketOidcProvider(PipelineOidcProvider):
+
+    BITBUCKET_REPO_UUID_PARAMETER_NAME = "bitbucket-repo-uuid"
+
+    def __init__(self, subject_claim_parameters: dict, oidc_parameters: dict, oidc_provider_name: str) -> None:
+        all_oidc_parameters = {**oidc_parameters, **subject_claim_parameters}
+        all_oidc_parameter_names = [
+            self.BITBUCKET_REPO_UUID_PARAMETER_NAME,
+        ]
+        super().__init__(all_oidc_parameters, all_oidc_parameter_names, oidc_provider_name)
+
+    def get_subject_claim(self) -> str:
+        """
+        Returns the subject claim that will be used to establish trust between the OIDC provider and AWS.
+        To read more about OIDC claims see the following: https://openid.net/specs/openid-connect-core-1_0.html#Claims
+        To learn more about configuring a role to work with GitLab OIDC through claims see the following
+        tinyurl.com/bitbucket-oidc-claims
+        -------
+        """
+        repo_uuid = self.oidc_parameters[self.BITBUCKET_REPO_UUID_PARAMETER_NAME]
+        return f"{repo_uuid}:*"

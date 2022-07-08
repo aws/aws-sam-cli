@@ -184,6 +184,7 @@ class InteractiveInitFlow:
                     oidc_provider=None,
                     gitlab_group=None,
                     gitlab_project=None,
+                    bitbucket_repo_uuid=None,
                 )
                 return True
         else:
