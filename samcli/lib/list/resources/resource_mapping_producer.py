@@ -1,7 +1,7 @@
 """
 The producer for the 'sam list resources' command
 """
-from typing import Optional, Any
+from typing import Optional, Any, Dict
 import dataclasses
 import logging
 import yaml
@@ -15,10 +15,10 @@ from samcli.lib.list.list_interfaces import Producer
 from samcli.lib.list.resources.resources_def import ResourcesDef
 from samcli.lib.translate.sam_template_validator import SamTemplateValidator
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
-from samcli.commands.translate.translate_utils import read_sam_file
-from samcli.lib.translate.exceptions import InvalidSamDocumentException
+from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
 from samcli.commands.exceptions import UserException
+from samcli.commands._utils.template import get_template_data
 
 LOG = logging.getLogger(__name__)
 
@@ -27,7 +27,6 @@ class ResourceMappingProducer(Producer):
     def __init__(
         self,
         stack_name,
-        output,
         region,
         profile,
         template_file,
@@ -37,7 +36,6 @@ class ResourceMappingProducer(Producer):
         consumer,
     ):
         self.stack_name = stack_name
-        self.output = output
         self.region = region
         self.profile = profile
         self.template_file = template_file
@@ -46,8 +44,23 @@ class ResourceMappingProducer(Producer):
         self.mapper = mapper
         self.consumer = consumer
 
-    def get_translated_dict(self, template_file_dict: dict) -> Optional[Any]:
+    def get_translated_dict(self, template_file_dict: Dict[Any, Any]) -> Optional[Any]:
+        """
+        Performs a sam translate on a template and returns the translated template in the form of a dictionary or
+        raises exceptions accordingly
+
+        Parameters
+        ----------
+        template_file_dict: Dict[Any, Any]
+            The template in dictionary format to be translated
+
+        Returns
+        -------
+        response: Dict[Any, Any]
+            The dictionary representing the translated template
+        """
         try:
+            # Note to check if IAM can be mocked to get around doing a translate without it
             validator = SamTemplateValidator(
                 template_file_dict, ManagedPolicyLoader(self.iam_client), profile=self.profile, region=self.region
             )
@@ -69,7 +82,10 @@ class ResourceMappingProducer(Producer):
             raise SamListUnknownClientError(msg=str(e)) from e
 
     def produce(self):
-        sam_template = read_sam_file(self.template_file)
+        """
+        Produces the resource data to be printed
+        """
+        sam_template = get_template_data(self.template_file)
 
         translated_dict = self.get_translated_dict(template_file_dict=sam_template)
 

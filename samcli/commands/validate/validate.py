@@ -1,6 +1,7 @@
 """
 CLI Command for Validating a SAM Template
 """
+import os
 import boto3
 from botocore.exceptions import NoCredentialsError
 import click
@@ -13,7 +14,6 @@ from samcli.commands._utils.options import template_option_without_build
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
-from samcli.commands.translate.translate_utils import read_sam_file
 
 
 @click.command("validate", short_help="Validate an AWS SAM template.")
@@ -46,10 +46,10 @@ def do_cli(ctx, template):
 
     from samcli.commands.exceptions import UserException
     from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
-    from samcli.lib.translate.exceptions import InvalidSamDocumentException
+    from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
     from samcli.lib.translate.sam_template_validator import SamTemplateValidator
 
-    sam_template = read_sam_file(template)
+    sam_template = _read_sam_file(template)
 
     iam_client = boto3.client("iam")
     validator = SamTemplateValidator(
@@ -72,3 +72,25 @@ def do_cli(ctx, template):
         ) from e
 
     click.secho("{} is a valid SAM Template".format(template), fg="green")
+
+
+def _read_sam_file(template):
+    """
+    Reads the file (json and yaml supported) provided and returns the dictionary representation of the file.
+
+    :param str template: Path to the template file
+    :return dict: Dictionary representing the SAM Template
+    :raises: SamTemplateNotFoundException when the template file does not exist
+    """
+
+    from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
+    from samcli.yamlhelper import yaml_parse
+
+    if not os.path.exists(template):
+        click.secho("SAM Template Not Found", bg="red")
+        raise SamTemplateNotFoundException("Template at {} is not found".format(template))
+
+    with click.open_file(template, "r", encoding="utf-8") as sam_template:
+        sam_template = yaml_parse(sam_template.read())
+
+    return sam_template

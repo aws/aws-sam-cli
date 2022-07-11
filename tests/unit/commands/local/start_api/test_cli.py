@@ -11,7 +11,7 @@ from samcli.commands.local.start_api.cli import do_cli as start_api_cli
 from samcli.commands.local.lib.exceptions import NoApisDefined, InvalidIntermediateImageError
 from samcli.lib.providers.exceptions import InvalidLayerReference
 from samcli.commands.exceptions import UserException
-from samcli.lib.translate.exceptions import InvalidSamDocumentException
+from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
 from samcli.local.docker.exceptions import ContainerNotStartableException
 from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported

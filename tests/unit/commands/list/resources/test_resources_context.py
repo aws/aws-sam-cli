@@ -4,9 +4,9 @@ from botocore.exceptions import ClientError
 
 from samcli.commands.list.resources.resources_context import ResourcesContext
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
-from samcli.lib.translate.exceptions import InvalidSamDocumentException
+from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.exceptions import RegionError
-from samcli.commands.list.exceptions import SamListError, SamListLocalResourcesNotFoundError, SamListUnknownClientError
+from samcli.commands.list.exceptions import SamListLocalResourcesNotFoundError, SamListUnknownClientError
 from samtranslator.public.exceptions import InvalidDocumentException
 from samcli.lib.translate.sam_template_validator import SamTemplateValidator
 
@@ -14,7 +14,7 @@ from samcli.lib.translate.sam_template_validator import SamTemplateValidator
 class TestResourcesContext(TestCase):
     @patch("samcli.commands.list.json_consumer.click.echo")
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
-    @patch("samcli.lib.list.resources.resource_mapping_producer.read_sam_file")
+    @patch("samcli.lib.list.resources.resource_mapping_producer.get_template_data")
     @patch("samcli.lib.list.resources.resource_mapping_producer.ResourceMappingProducer.get_translated_dict")
     def test_resources_local_only_no_stack_name(
         self, mock_get_translated_dict, mock_sam_file_reader, patched_click_get_current_context, patched_click_echo
@@ -150,7 +150,7 @@ class TestResourcesContext(TestCase):
 
     @patch("samcli.commands.list.json_consumer.click.echo")
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
-    @patch("samcli.lib.list.resources.resource_mapping_producer.read_sam_file")
+    @patch("samcli.lib.list.resources.resource_mapping_producer.get_template_data")
     @patch("samcli.lib.list.resources.resource_mapping_producer.SamTemplateValidator.get_translated_template_if_valid")
     def test_clienterror_exception(
         self,
@@ -171,7 +171,7 @@ class TestResourcesContext(TestCase):
 
     @patch("samcli.commands.list.json_consumer.click.echo")
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
-    @patch("samcli.lib.list.resources.resource_mapping_producer.read_sam_file")
+    @patch("samcli.lib.list.resources.resource_mapping_producer.get_template_data")
     @patch("samcli.lib.list.resources.resource_mapping_producer.SamTemplateValidator.get_translated_template_if_valid")
     def test_get_translate_dict_invalid_template_error(
         self,
@@ -261,7 +261,7 @@ class TestResourcesContext(TestCase):
 
     @patch("samcli.commands.list.json_consumer.click.echo")
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
-    @patch("samcli.lib.list.resources.resource_mapping_producer.read_sam_file")
+    @patch("samcli.lib.list.resources.resource_mapping_producer.get_template_data")
     @patch("samcli.lib.list.resources.resource_mapping_producer.ResourceMappingProducer.get_translated_dict")
     @patch("samcli.lib.list.resources.resource_mapping_producer.SamLocalStackProvider.get_stacks")
     def test_resources_get_stacks_returns_empty(

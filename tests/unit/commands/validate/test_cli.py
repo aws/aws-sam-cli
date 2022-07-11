@@ -6,27 +6,26 @@ from botocore.exceptions import NoCredentialsError
 
 from samcli.commands.exceptions import UserException
 from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException, InvalidSamTemplateException
-from samcli.lib.translate.exceptions import InvalidSamDocumentException
-from samcli.commands.validate.validate import do_cli
-from samcli.commands.translate.translate_utils import read_sam_file
+from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+from samcli.commands.validate.validate import do_cli, _read_sam_file
 
 ctx_mock = namedtuple("ctx", ["profile", "region"])
 
 
 class TestValidateCli(TestCase):
-    @patch("samcli.commands.translate.translate_utils.click")
-    @patch("samcli.commands.translate.translate_utils.os.path.exists")
+    @patch("samcli.commands.validate.validate.click")
+    @patch("samcli.commands.validate.validate.os.path.exists")
     def test_file_not_found(self, path_exists_patch, click_patch):
         template_path = "path_to_template"
 
         path_exists_patch.return_value = False
 
         with self.assertRaises(SamTemplateNotFoundException):
-            read_sam_file(template_path)
+            _read_sam_file(template_path)
 
     @patch("samcli.yamlhelper.yaml_parse")
-    @patch("samcli.commands.translate.translate_utils.click")
-    @patch("samcli.commands.translate.translate_utils.os.path.exists")
+    @patch("samcli.commands.validate.validate.click")
+    @patch("samcli.commands.validate.validate.os.path.exists")
     def test_file_parsed(self, path_exists_patch, click_patch, yaml_parse_patch):
         template_path = "path_to_template"
 
@@ -34,16 +33,16 @@ class TestValidateCli(TestCase):
 
         yaml_parse_patch.return_value = {"a": "b"}
 
-        actual_template = read_sam_file(template_path)
+        actual_template = _read_sam_file(template_path)
 
         self.assertEqual(actual_template, {"a": "b"})
 
     @patch("samcli.lib.translate.sam_template_validator.SamTemplateValidator")
     @patch("samcli.commands.validate.validate.click")
-    @patch("samcli.commands.validate.validate.read_sam_file")
-    def test_template_fails_validation(self, read_sam_file_patch, click_patch, template_valiadator):
+    @patch("samcli.commands.validate.validate._read_sam_file")
+    def test_template_fails_validation(self, _read_sam_file_patch, click_patch, template_valiadator):
         template_path = "path_to_template"
-        read_sam_file_patch.return_value = {"a": "b"}
+        _read_sam_file_patch.return_value = {"a": "b"}
 
         get_translated_template_if_valid_mock = Mock()
         get_translated_template_if_valid_mock.get_translated_template_if_valid.side_effect = InvalidSamDocumentException
@@ -54,10 +53,10 @@ class TestValidateCli(TestCase):
 
     @patch("samcli.lib.translate.sam_template_validator.SamTemplateValidator")
     @patch("samcli.commands.validate.validate.click")
-    @patch("samcli.commands.validate.validate.read_sam_file")
-    def test_no_credentials_provided(self, read_sam_file_patch, click_patch, template_valiadator):
+    @patch("samcli.commands.validate.validate._read_sam_file")
+    def test_no_credentials_provided(self, _read_sam_file_patch, click_patch, template_valiadator):
         template_path = "path_to_template"
-        read_sam_file_patch.return_value = {"a": "b"}
+        _read_sam_file_patch.return_value = {"a": "b"}
 
         get_translated_template_if_valid_mock = Mock()
         get_translated_template_if_valid_mock.get_translated_template_if_valid.side_effect = NoCredentialsError
@@ -68,10 +67,10 @@ class TestValidateCli(TestCase):
 
     @patch("samcli.lib.translate.sam_template_validator.SamTemplateValidator")
     @patch("samcli.commands.validate.validate.click")
-    @patch("samcli.commands.validate.validate.read_sam_file")
-    def test_template_passes_validation(self, read_sam_file_patch, click_patch, template_valiadator):
+    @patch("samcli.commands.validate.validate._read_sam_file")
+    def test_template_passes_validation(self, _read_sam_file_patch, click_patch, template_valiadator):
         template_path = "path_to_template"
-        read_sam_file_patch.return_value = {"a": "b"}
+        _read_sam_file_patch.return_value = {"a": "b"}
 
         get_translated_template_if_valid_mock = Mock()
         get_translated_template_if_valid_mock.get_translated_template_if_valid.return_value = True

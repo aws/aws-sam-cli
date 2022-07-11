@@ -13,7 +13,7 @@ from samtranslator.translator.translator import Translator
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION
 from samcli.yamlhelper import yaml_dump
-from samcli.lib.translate.exceptions import InvalidSamDocumentException
+from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 
 LOG = logging.getLogger(__name__)
 

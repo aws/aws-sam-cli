@@ -46,7 +46,6 @@ class ResourcesContext(ListContext):
         container = factory.create(producer=ProducersEnum.RESOURCES_PRODUCER, output=self.output)
         resource_producer = ResourceMappingProducer(
             stack_name=self.stack_name,
-            output=self.output,
             region=self.region,
             profile=self.profile,
             template_file=self.template_file,

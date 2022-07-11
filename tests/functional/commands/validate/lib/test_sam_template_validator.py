@@ -6,7 +6,7 @@ from parameterized import parameterized
 import samcli.yamlhelper as yamlhelper
 
 from samcli.lib.translate.sam_template_validator import SamTemplateValidator
-from samcli.lib.translate.exceptions import InvalidSamDocumentException
+from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 
 # Out of TestValidate's scope because https://stackoverflow.com/a/47224266
 TEMPLATE_DIR = "tests/functional/commands/validate/lib/models"

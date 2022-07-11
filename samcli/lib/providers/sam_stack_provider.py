@@ -7,10 +7,11 @@ from typing import Optional, Dict, cast, List, Iterator, Tuple, Union
 from urllib.parse import unquote, urlparse
 
 from samcli.commands._utils.template import get_template_data
-from samcli.lib.providers.exceptions import RemoteStackLocationNotSupported, MissingTemplateFile
+from samcli.lib.providers.exceptions import RemoteStackLocationNotSupported
 from samcli.lib.providers.provider import Stack, get_full_path
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.utils.resources import AWS_CLOUDFORMATION_STACK, AWS_SERVERLESS_APPLICATION
+from samcli.commands._utils.template import TemplateNotFoundException
 
 LOG = logging.getLogger(__name__)
 
@@ -237,7 +238,9 @@ class SamLocalStackProvider(SamBaseProvider):
             template_file = ""
             template_dict = template_dictionary
         else:
-            raise MissingTemplateFile()
+            raise TemplateNotFoundException(
+                message="A template file or a template dict is required but both are missing."
+            )
 
         stacks = [
             Stack(

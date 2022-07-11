@@ -3,7 +3,6 @@ Exceptions used by providers
 """
 
 from typing import TYPE_CHECKING
-from samcli.commands.exceptions import UserException
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.lib.providers.provider import ResourceIdentifier
@@ -84,12 +83,3 @@ class MissingLocalDefinition(Exception):
     @property
     def property_name(self) -> str:
         return self._property_name
-
-
-class MissingTemplateFile(UserException):
-    """
-    Raised when a required template file is missing
-    """
-
-    def __init__(self) -> None:
-        super().__init__(message="A template file or a template dict is required but both are missing.")

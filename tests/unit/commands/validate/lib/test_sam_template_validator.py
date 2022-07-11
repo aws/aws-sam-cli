@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 from samcli.lib.utils.packagetype import IMAGE
 from samtranslator.public.exceptions import InvalidDocumentException
 
-from samcli.lib.translate.exceptions import InvalidSamDocumentException
+from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.translate.sam_template_validator import SamTemplateValidator
 
 
