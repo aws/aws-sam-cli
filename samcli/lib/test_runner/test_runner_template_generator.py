@@ -3,7 +3,6 @@ import logging
 import jinja2
 from typing import *
 from botocore.exceptions import ClientError
-from tomlkit import key
 from samcli.lib.utils.boto_utils import BotoProviderType
 from samcli.commands.exceptions import TestRunnerTemplateGenerationException
 
