@@ -12,4 +12,4 @@ jobs:
       - name: Merge develop -> list-command
         uses: actions/checkout@v3
       - run: |
-          curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/andrew-zhan139/aws-sam-cli/merges -d '{"base":"test-branch","head":"test-list-command","commit_message":"merge test-list-command into test-branch"}'
+          curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/andrew-zhan139/aws-sam-cli/merges -d '{"base":"test-branch","head":"test-list-command","commit_message":"merge test-list-command into test-branch"}' -i
