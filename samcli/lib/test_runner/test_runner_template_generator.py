@@ -3,7 +3,9 @@ import logging
 import jinja2
 from typing import *
 from botocore.exceptions import ClientError
+from tomlkit import key
 from samcli.lib.utils.boto_utils import BotoProviderType
+from samcli.commands.exceptions import TestRunnerTemplateGenerationException
 
 LOG = logging.getLogger(__name__)
 
@@ -49,6 +51,11 @@ def _create_iam_statment_string(resource_arn: str) -> dict:
     -------
     str:
         An IAM Statement in the form of a YAML string.
+
+    Raises
+    ------
+    jinja2.exceptions.TemplateError:
+        If the IAM Statement template render fails.
     """
 
     partition_regex = r"(aws|aws-cn|aws-us-gov)"
@@ -139,7 +146,7 @@ def _query_tagging_api(tag_filters: dict, boto_client_provider: BotoProviderType
 
         NOTE: https://docs.aws.amazon.com/cli/latest/reference/resourcegroupstaggingapi/get-resources.html#output
 
-    Throws
+    Raises
     ------
     botocore.ClientError
         If the `get_resources` call fails.
@@ -173,11 +180,16 @@ def _generate_statement_string(tag_filters: dict, boto_client_provider: BotoProv
         The list of IAM statements in the form of a single YAML string corresponding to the resources specified by the given tags.
 
         Returns a YAML comment error message if no resources match the tag, returns None if the tagging api call fails.
+
+    Raises
+    ------
+    KeyError:
+        If the specified tag does not match any resources.
     """
     resource_tag_mapping_list = _query_tagging_api(tag_filters, boto_client_provider)
 
     if len(resource_tag_mapping_list) == 0:
-        raise KeyError("No resources match the tag: %s, cannot generate any IAM permissions.", str(tag_filters))
+        raise KeyError(f"No resources match the tag: {tag_filters}, cannot generate any IAM permissions.")
 
     iam_statements = [_create_iam_statment_string(resource["ResourceARN"]) for resource in resource_tag_mapping_list]
     return "".join(iam_statements)
@@ -218,6 +230,16 @@ def generate_test_runner_template_string(
     dict
         The Test Runner CloudFormation template in the form of a YAML string.
 
+    Raises
+    ------
+    KeyError:
+        If the specified tag does not match any resources.
+
+    jinja2.exceptions.TemplateError:
+        If the IAM Statement template render fails, or if the overall template render fails.
+
+    botocore.ClientError
+        If the `get_resources` call fails.
     """
     if tag_filters:
         try:
@@ -226,14 +248,14 @@ def generate_test_runner_template_string(
         # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/error-handling.html#parsing-error-responses-and-catching-exceptions-from-aws-services
         except ClientError as client_error:
             LOG.exception(
-                "Failed to query tagging API. Error code: %s, Message: %s",
-                client_error.response["Error"]["Code"],
-                client_error.response["Error"]["Message"],
+                f"""Failed to query tagging API. Error code: {client_error.response["Error"]["Code"]}, Message:{client_error.response["Error"]["Message"]}"""
             )
-            return None
-        except KeyError as value_error:
-            LOG.exception(value_error)
-            return None
+            raise TestRunnerTemplateGenerationException(
+                f"""Failed to query tagging API. Error code: {client_error.response["Error"]["Code"]}, Message:{client_error.response["Error"]["Message"]}"""
+            ) from client_error
+        except KeyError as key_error:
+            LOG.exception(key_error)
+            raise TestRunnerTemplateGenerationException(str(key_error)) from key_error
 
         data = {"image_uri": image_uri, "s3_bucket_name": s3_bucket_name, "generated_statements": generated_statements}
     else:
@@ -244,5 +266,7 @@ def generate_test_runner_template_string(
             jinja_base_template, undefined=jinja2.StrictUndefined, trim_blocks=True, lstrip_blocks=True
         ).render(data)
     except jinja2.exceptions.TemplateError as template_error:
-        LOG.exception("Failed to render jinja template: %s", template_error)
-        return None
+        LOG.exception(f"Failed to render jinja template: {template_error}", template_error)
+        raise TestRunnerTemplateGenerationException(
+            f"Failed to render jinja template: {template_error}"
+        ) from template_error

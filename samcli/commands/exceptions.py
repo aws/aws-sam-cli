@@ -96,3 +96,9 @@ class InvalidStackNameException(UserException):
     """
     Value provided to --stack-name is invalid
     """
+
+
+class TestRunnerTemplateGenerationException(UserException):
+    """
+    Exception class when the generation of a Test Runner CloudFormation Template fails during `sam test_runner init`
+    """

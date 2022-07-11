@@ -2,6 +2,7 @@ from botocore.exceptions import ClientError
 from unittest.mock import patch
 from unittest import TestCase
 from samcli.lib.test_runner.test_runner_template_generator import generate_test_runner_template_string
+from samcli.commands.exceptions import TestRunnerTemplateGenerationException
 
 
 class Test_TemplateGenerator(TestCase):
@@ -269,11 +270,8 @@ class Test_TemplateGenerator(TestCase):
     def test_empty_tag_api_query_response(self, query_tagging_api_patch):
         query_tagging_api_patch.return_value = []
 
-        result = generate_test_runner_template_string(**self.test_params)
-
-        expected_result = None
-
-        self.assertEqual(result, expected_result)
+        with self.assertRaises(TestRunnerTemplateGenerationException):
+            generate_test_runner_template_string(**self.test_params)
 
     @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
     def test_failed_tag_api_query(self, query_tagging_api_patch):
@@ -284,11 +282,8 @@ class Test_TemplateGenerator(TestCase):
             error_response=client_error_response, operation_name="get_resources"
         )
 
-        result = generate_test_runner_template_string(**self.test_params)
-
-        expected_result = None
-
-        self.assertEqual(result, expected_result)
+        with self.assertRaises(TestRunnerTemplateGenerationException):
+            generate_test_runner_template_string(**self.test_params)
 
     def test_no_tag_supplied(self):
 
