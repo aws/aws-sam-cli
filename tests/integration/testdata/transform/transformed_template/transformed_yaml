@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  HelloWorldFunction:
+    Properties:
+      Code:
+        S3Bucket: bucket
+        S3Key: value
+      Handler: app.lambdaHandler
+      Role:
+        Fn::GetAtt:
+        - HelloWorldFunctionRole
+        - Arn
+      Runtime: nodejs14.x
+      Tags:
+      - Key: lambda:createdBy
+        Value: SAM
+    Type: AWS::Lambda::Function
+  HelloWorldFunctionRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+        Version: '2012-10-17'
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Tags:
+      - Key: lambda:createdBy
+        Value: SAM
+    Type: AWS::IAM::Role
+
