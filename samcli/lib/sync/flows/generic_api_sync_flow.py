@@ -1,9 +1,9 @@
 """SyncFlow interface for HttpApi and RestApi"""
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, cast
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
-from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall
+from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall, get_definition_path
 from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIdentifier
 
 # BuildContext and DeployContext will only be imported for type checking to improve performance
@@ -20,7 +20,7 @@ class GenericApiSyncFlow(SyncFlow):
 
     _api_client: Any
     _api_identifier: str
-    _definition_uri: Optional[str]
+    _definition_uri: Optional[Path]
     _stacks: List[Stack]
     _swagger_body: Optional[bytes]
 
@@ -65,19 +65,21 @@ class GenericApiSyncFlow(SyncFlow):
     def _process_definition_file(self) -> Optional[bytes]:
         if self._definition_uri is None:
             return None
-        with open(self._definition_uri, "rb") as swagger_file:
+        with open(str(self._definition_uri), "rb") as swagger_file:
             swagger_body = swagger_file.read()
             return swagger_body
 
-    def _get_definition_file(self, api_identifier: str) -> Optional[str]:
+    def _get_definition_file(self, api_identifier: str) -> Optional[Path]:
         api_resource = get_resource_by_id(self._stacks, ResourceIdentifier(api_identifier))
-        if api_resource is None:
+        if not api_resource:
             return None
-        properties = api_resource.get("Properties", {})
-        definition_file = properties.get("DefinitionUri")
-        if self._build_context.base_dir and definition_file:
-            definition_file = str(Path(self._build_context.base_dir).joinpath(definition_file))
-        return cast(Optional[str], definition_file)
+        return get_definition_path(
+            api_resource,
+            self._api_identifier,
+            self._build_context.use_base_dir,
+            self._build_context.base_dir,
+            self._stacks,
+        )
 
     def compare_remote(self) -> bool:
         return False

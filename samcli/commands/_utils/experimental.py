@@ -43,10 +43,6 @@ class ExperimentalFlag:
     """Class for storing all experimental related ConfigEntries"""
 
     All = ExperimentalEntry("experimentalAll", EXPERIMENTAL_ENV_VAR_PREFIX + "FEATURES")
-    Accelerate = ExperimentalEntry("experimentalAccelerate", EXPERIMENTAL_ENV_VAR_PREFIX + "ACCELERATE")
-    JavaMavenBuildScope = ExperimentalEntry(
-        "experimentalMavenScopeAndLayer", EXPERIMENTAL_ENV_VAR_PREFIX + "MAVEN_SCOPE_AND_LAYER"
-    )
     Esbuild = ExperimentalEntry("experimentalEsbuild", EXPERIMENTAL_ENV_VAR_PREFIX + "ESBUILD")
 
 
@@ -243,7 +239,7 @@ def prompt_experimental(
     if is_experimental_enabled(config_entry):
         update_experimental_context()
         return True
-    confirmed = click.confirm(prompt, default=False)
+    confirmed = click.confirm(Colored().yellow(prompt), default=False)
     if confirmed:
         set_experimental(config_entry=config_entry, enabled=True)
         update_experimental_context()

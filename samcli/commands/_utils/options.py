@@ -367,12 +367,11 @@ def common_observability_click_options():
             "-t",
             is_flag=True,
             help="Tail events. This will ignore the end time argument and continue to fetch events as they "
-            "become available. [Beta Feature] If in beta --tail without a --name will pull from all possible resources",
+            "become available. If option --tail without a --name will pull from all possible resources",
         ),
         click.option(
             "--output",
             help="""
-            [Beta Feature]
             The formatting style of the command output. Following options are available:\n
             TEXT: Prints information as regular text with some formatting (default option)\n
             JSON: Prints each line as JSON without formatting
@@ -474,19 +473,20 @@ def stack_name_option(f, required=False, callback=None):
     return stack_name_click_option(required, callback)(f)
 
 
-def s3_bucket_click_option(guided):
-    callback = None if guided else partial(artifact_callback, artifact=ZIP)
+def s3_bucket_click_option(disable_callback):
+    callback = None if disable_callback else partial(artifact_callback, artifact=ZIP)
+
     return click.option(
         "--s3-bucket",
         required=False,
-        callback=callback,
         help="The name of the S3 bucket where this command uploads the artifacts that are referenced in your template.",
+        callback=callback,
     )
 
 
 @parameterized_option
-def s3_bucket_option(f, guided=False):
-    return s3_bucket_click_option(guided)(f)
+def s3_bucket_option(f, disable_callback=False):
+    return s3_bucket_click_option(disable_callback)(f)
 
 
 def build_dir_click_option():
@@ -551,8 +551,10 @@ def manifest_option(f):
 
 def cached_click_option():
     return click.option(
-        "--cached",
+        "--cached/--no-cached",
         "-c",
+        default=False,
+        required=False,
         is_flag=True,
         help="Enable cached builds. Use this flag to reuse build artifacts that have not changed from previous builds. "
         "AWS SAM evaluates whether you have made any changes to files in your project directory. \n\n"

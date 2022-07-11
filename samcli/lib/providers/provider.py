@@ -578,6 +578,71 @@ class Stack:
             )
         return False
 
+    @staticmethod
+    def get_parent_stack(child_stack: "Stack", stacks: List["Stack"]) -> Optional["Stack"]:
+        """
+        Return parent stack for the given child stack
+        Parameters
+        ----------
+        child_stack Stack
+            the child stack
+        stacks : List[Stack]
+            a list of stack for searching
+        Returns
+        -------
+        Stack
+            parent stack of the given child stack, if the child stack is root, return None
+        """
+        if child_stack.is_root_stack:
+            return None
+
+        parent_stack_path = child_stack.parent_stack_path
+        for stack in stacks:
+            if stack.stack_path == parent_stack_path:
+                return stack
+        return None
+
+    @staticmethod
+    def get_stack_by_full_path(full_path: str, stacks: List["Stack"]) -> Optional["Stack"]:
+        """
+        Return the stack with given full path
+        Parameters
+        ----------
+        full_path str
+            full path of the stack like ChildStack/ChildChildStack
+        stacks : List[Stack]
+            a list of stack for searching
+        Returns
+        -------
+        Stack
+            The stack with the given full path
+        """
+        for stack in stacks:
+            if stack.stack_path == full_path:
+                return stack
+        return None
+
+    @staticmethod
+    def get_child_stacks(stack: "Stack", stacks: List["Stack"]) -> List["Stack"]:
+        """
+        Return child stacks for the given parent stack
+        Parameters
+        ----------
+        stack Stack
+            the parent stack
+        stacks : List[Stack]
+            a list of stack for searching
+        Returns
+        -------
+        List[Stack]
+            child stacks of the given parent stack
+        """
+        child_stacks = []
+        for child in stacks:
+            if not child.is_root_stack and child.parent_stack_path == stack.stack_path:
+                child_stacks.append(child)
+        return child_stacks
+
 
 class ResourceIdentifier:
     """Resource identifier for representing a resource with nested stack support"""

@@ -72,6 +72,7 @@ class DeployContext:
         signing_profiles,
         use_changeset,
         disable_rollback,
+        poll_delay,
     ):
         self.template_file = template_file
         self.stack_name = stack_name
@@ -101,6 +102,7 @@ class DeployContext:
         self.signing_profiles = signing_profiles
         self.use_changeset = use_changeset
         self.disable_rollback = disable_rollback
+        self.poll_delay = poll_delay
 
     def __enter__(self):
         return self
@@ -142,7 +144,7 @@ class DeployContext:
                 s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload, self.no_progressbar
             )
 
-        self.deployer = Deployer(cloudformation_client)
+        self.deployer = Deployer(cloudformation_client, client_sleep=self.poll_delay)
 
         region = s3_client._client_config.region_name if s3_client else self.region  # pylint: disable=W0212
         display_parameter_overrides = hide_noecho_parameter_overrides(template_dict, self.parameter_overrides)
@@ -262,8 +264,8 @@ class DeployContext:
                     if not click.confirm(f"{self.MSG_CONFIRM_CHANGESET}", default=False):
                         return
 
-                self.deployer.execute_changeset(result["Id"], stack_name, disable_rollback)
-                self.deployer.wait_for_execute(stack_name, changeset_type, disable_rollback)
+                execution_time = self.deployer.execute_changeset(result["Id"], stack_name, disable_rollback)
+                self.deployer.wait_for_execute(stack_name, changeset_type, disable_rollback, execution_time)
                 click.echo(self.MSG_EXECUTE_SUCCESS.format(stack_name=stack_name, region=region))
 
             except deploy_exceptions.ChangeEmptyError as ex:
@@ -283,7 +285,7 @@ class DeployContext:
                     s3_uploader=s3_uploader,
                     tags=tags,
                 )
-                LOG.info(result)
+                LOG.debug(result)
 
             except deploy_exceptions.DeployFailedError as ex:
                 LOG.error(str(ex))

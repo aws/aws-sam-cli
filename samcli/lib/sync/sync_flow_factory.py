@@ -4,7 +4,6 @@ from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, cast
 
 from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NestedStackManager
 from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIdentifier
-from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 from samcli.lib.sync.flows.auto_dependency_layer_sync_flow import AutoDependencyLayerParentSyncFlow
 from samcli.lib.sync.flows.layer_sync_flow import LayerSyncFlow
 from samcli.lib.utils.packagetype import ZIP, IMAGE
@@ -17,8 +16,8 @@ from samcli.lib.sync.flows.image_function_sync_flow import ImageFunctionSyncFlow
 from samcli.lib.sync.flows.rest_api_sync_flow import RestApiSyncFlow
 from samcli.lib.sync.flows.http_api_sync_flow import HttpApiSyncFlow
 from samcli.lib.sync.flows.stepfunctions_sync_flow import StepFunctionsSyncFlow
-from samcli.lib.utils.boto_utils import get_boto_resource_provider_with_config
-from samcli.lib.utils.cloudformation import get_physical_id_mapping
+from samcli.lib.utils.boto_utils import get_boto_resource_provider_with_config, get_boto_client_provider_with_config
+from samcli.lib.utils.cloudformation import get_resource_summaries
 from samcli.lib.utils.resources import (
     AWS_SERVERLESS_FUNCTION,
     AWS_LAMBDA_FUNCTION,
@@ -37,6 +36,35 @@ if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.build.build_context import BuildContext
 
 LOG = logging.getLogger(__name__)
+
+
+class SyncCodeResources:
+    """
+    A class that records the supported resource types that can perform sync --code
+    """
+
+    _accepted_resources = [
+        AWS_SERVERLESS_FUNCTION,
+        AWS_LAMBDA_FUNCTION,
+        AWS_SERVERLESS_LAYERVERSION,
+        AWS_LAMBDA_LAYERVERSION,
+        AWS_SERVERLESS_API,
+        AWS_APIGATEWAY_RESTAPI,
+        AWS_SERVERLESS_HTTPAPI,
+        AWS_APIGATEWAY_V2_API,
+        AWS_SERVERLESS_STATEMACHINE,
+        AWS_STEPFUNCTIONS_STATEMACHINE,
+    ]
+
+    @classmethod
+    def values(cls) -> List[str]:
+        """
+        A class getter to retrieve the accepted resource list
+
+        Returns: List[str]
+            The accepted resources list
+        """
+        return cls._accepted_resources
 
 
 class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1136
@@ -75,30 +103,22 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
     def load_physical_id_mapping(self) -> None:
         """Load physical IDs of the stack resources from remote"""
         LOG.debug("Loading physical ID mapping")
-        self._physical_id_mapping = get_physical_id_mapping(
-            get_boto_resource_provider_with_config(
-                region=self._deploy_context.region,
-                profile=self._deploy_context.profile,
-            ),
-            self._deploy_context.stack_name,
+        resource_provider = get_boto_resource_provider_with_config(
+            region=self._deploy_context.region, profile=self._deploy_context.profile
+        )
+        client_provider = get_boto_client_provider_with_config(
+            region=self._deploy_context.region, profile=self._deploy_context.profile
         )
 
-        # extend physical id mapping to contain resource ids as well
-        resource_id_mapping = {}
-        for stack in self._stacks:
-            # currently we care only about the root stack, as we did not load the nested stacks resources
-            if stack.is_root_stack:
-                for logical_id, physical_id in self._physical_id_mapping.items():
-                    resource = stack.resources.get(logical_id, {})
-                    if not resource:
-                        # this means that this resource is not in the template, one example is the serverless templates
-                        continue
-                    resource_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)
-                    resource_id_mapping[resource_id] = physical_id
-                break
+        resource_mapping = get_resource_summaries(
+            boto_resource_provider=resource_provider,
+            boto_client_provider=client_provider,
+            stack_name=self._deploy_context.stack_name,
+        )
+
+        # get the resource_id -> physical_id mapping
         self._physical_id_mapping = {
-            **self._physical_id_mapping,
-            **resource_id_mapping,
+            resource_id: summary.physical_resource_id for resource_id, summary in resource_mapping.items()
         }
 
     def _create_lambda_flow(
