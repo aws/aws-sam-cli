@@ -44,7 +44,7 @@ class ResourceMappingProducer(Producer):
         self.mapper = mapper
         self.consumer = consumer
 
-    def get_translated_dict(self, template_file_dict: Dict[Any, Any]) -> Dict[Any, Any]:
+    def get_translated_dict(self, template_file_dict: Dict[Any, Any]) -> Any:
         """
         Performs a sam translate on a template and returns the translated template in the form of a dictionary or
         raises exceptions accordingly
