@@ -20,6 +20,10 @@ class PipelineOidcProvider:
         self.verify_parameters()
 
     def verify_parameters(self) -> None:
+        """
+        Makes sure that all required parameters have been provided
+        -------
+        """
         error_string = ""
         for parameter_name in self.oidc_parameter_names:
             if not self.oidc_parameters[parameter_name]:
@@ -28,6 +32,10 @@ class PipelineOidcProvider:
             raise click.UsageError("\n" + error_string)
 
     def save_values(self, samconfig: SamConfig, cmd_names: List[str], section: str) -> None:
+        """
+        Saves provided values into config file so they can be reused for future calls to bootstrap
+        -------
+        """
         for parameter_name in self.oidc_parameter_names:
             samconfig.put(
                 cmd_names=cmd_names,
@@ -43,6 +51,17 @@ class PipelineOidcProvider:
 
 
 class GitHubOidcProvider(PipelineOidcProvider):
+    """
+    Represents a GitHub Actions OIDC provider
+    https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/about-security-hardening-with-openid-connect
+    ----------
+    subject_claim_parameters: dict
+        Parameters specific to building the subject claim for this provider.
+    oidc_parameters: dict
+        Parameters common to all providers.
+    oidc_provider_name: str
+        Name of the oidc_provider to be saved in the config file
+    """
 
     GITHUB_ORG_PARAMETER_NAME = "github-org"
     GITHUB_REPO_PARAMETER_NAME = "github-repo"
@@ -73,6 +92,17 @@ class GitHubOidcProvider(PipelineOidcProvider):
 
 
 class GitLabOidcProvider(PipelineOidcProvider):
+    """
+    Represents a GitLab OIDC provider
+    https://docs.gitlab.com/ee/integration/openid_connect_provider.html
+    ----------
+    subject_claim_parameters: dict
+        Parameters specific to building the subject claim for this provider.
+    oidc_parameters: dict
+        Parameters common to all providers.
+    oidc_provider_name: str
+        Name of the oidc_provider to be saved in the config file
+    """
 
     GITLAB_PROJECT_PARAMETER_NAME = "gitlab-project"
     GITLAB_GROUP_PARAMETER_NAME = "gitlab-group"
@@ -103,6 +133,17 @@ class GitLabOidcProvider(PipelineOidcProvider):
 
 
 class BitbucketOidcProvider(PipelineOidcProvider):
+    """
+    Represents a Bitbucket OIDC provider
+    https://support.atlassian.com/bitbucket-cloud/docs/integrate-pipelines-with-resource-servers-using-oidc/
+    ----------
+    subject_claim_parameters: dict
+        Parameters specific to building the subject claim for this provider.
+    oidc_parameters: dict
+        Parameters common to all providers.
+    oidc_provider_name: str
+        Name of the oidc_provider to be saved in the config file
+    """
 
     BITBUCKET_REPO_UUID_PARAMETER_NAME = "bitbucket-repo-uuid"
 

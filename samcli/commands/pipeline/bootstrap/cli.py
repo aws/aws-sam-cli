@@ -115,7 +115,12 @@ LOG = logging.getLogger(__name__)
     help="Choose a permissions provider to assume the pipeline execution role. Default is to use an IAM User.",
 )
 @click.option(
-    "--oidc-provider-url", help="The URL of the OIDC provider. Example: https://server.example.com", required=False
+    "--oidc-provider-url",
+    help="The URL of the OIDC provider. "
+    "Github Actions: https://token.actions.githubusercontent.com "
+    "GitLab: https//:<GITLAB INSTANCE> "
+    "Bitbucket: https://bitbucket.org/<WORKSPACE>/<REPOSITORY>/admin/addon/admin/pipelines/openid-connect",
+    required=False,
 )
 @click.option("--oidc-client-id", help="The client ID configured to use with the OIDC provider.", required=False)
 @click.option(
@@ -155,7 +160,8 @@ LOG = logging.getLogger(__name__)
 )
 @click.option(
     "--bitbucket-repo-uuid",
-    help="The UUID of the Bitbucket Repository. Only used if using Bitbucket OIDC for permissions",
+    help="The UUID of the Bitbucket Repository. Only used if using Bitbucket OIDC for permissions. "
+    "Found at https://bitbucket.org/<WORKSPACE>/<REPOSITORY>/admin/addon/admin/pipelines/openid-connect",
     required=False,
 )
 @common_options
