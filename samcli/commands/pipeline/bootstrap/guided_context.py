@@ -232,7 +232,7 @@ class GuidedContext:
                 self._prompt_bitbucket_repo_uuid()
 
     def _prompt_bitbucket_repo_uuid(self) -> None:
-        self.bitbucket_repo_uuid = click.prompt("Enter the Bitbucket Repository UUID", type=click.STRING)
+        self.bitbucket_repo_uuid = click.prompt("Enter the Bitbucket repository UUID", type=click.STRING)
 
     def _prompt_gitlab_group(self) -> None:
         self.gitlab_group = click.prompt(
@@ -300,7 +300,7 @@ class GuidedContext:
             elif self.oidc_provider == BITBUCKET:
                 inputs.extend(
                     [
-                        (f"Bitbucket Repo UUID: {self.bitbucket_repo_uuid}", self._prompt_bitbucket_repo_uuid),
+                        (f"Bitbucket repository UUID: {self.bitbucket_repo_uuid}", self._prompt_bitbucket_repo_uuid),
                     ]
                 )
         else:
