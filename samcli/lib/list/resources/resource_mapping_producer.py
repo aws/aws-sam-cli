@@ -44,7 +44,7 @@ class ResourceMappingProducer(Producer):
         self.mapper = mapper
         self.consumer = consumer
 
-    def get_translated_dict(self, template_file_dict: Dict[Any, Any]) -> Any:
+    def get_translated_dict(self, template_file_dict: Dict[Any, Any]) -> Dict[Any, Any]:
         """
         Performs a sam translate on a template and returns the translated template in the form of a dictionary or
         raises exceptions accordingly
@@ -64,6 +64,7 @@ class ResourceMappingProducer(Producer):
             validator = SamTemplateValidator(
                 template_file_dict, ManagedPolicyLoader(self.iam_client), profile=self.profile, region=self.region
             )
+            translated_dict: dict
             translated_dict = yaml.load(validator.get_translated_template_if_valid(), Loader=yaml.FullLoader)
             return translated_dict
         except InvalidSamDocumentException as e:
