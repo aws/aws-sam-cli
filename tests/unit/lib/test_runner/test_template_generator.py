@@ -8,13 +8,15 @@ class Test_TemplateGenerator(TestCase):
     def setUp(self):
         self.maxDiff = None
         with open("samcli/lib/test_runner/base_template.j2") as jinja_template:
-            self.test_params = {
-                "boto_client_provider": None, # Patched
-                "jinja_base_template": jinja_template.read(),
-                "s3_bucket_name": "cloud-test-bucket-unique-name",
-                "image_uri": "123456789123.dkr.ecr.us-east-1.amazonaws.com/cloud-test-repo",
-                "tag_filters": [{"Key": "Test_Key", "Values": ["Test_Value"]}],
-            }
+            self.jinja_template = jinja_template.read()
+
+        self.test_params = {
+            "boto_client_provider": None,  # Patched
+            "jinja_base_template": self.jinja_template,
+            "s3_bucket_name": "cloud-test-bucket-unique-name",
+            "image_uri": "123456789123.dkr.ecr.us-east-1.amazonaws.com/cloud-test-repo",
+            "tag_filters": [{"Key": "Test_Key", "Values": ["Test_Value"]}],
+        }
 
         # To avoid repeated lines:
         # These parts of the template will be the same no matter what resource is being tested
@@ -50,7 +52,6 @@ class Test_TemplateGenerator(TestCase):
             "                            Resource: !Sub\n",
             "                                - arn:aws:s3:::${bucket}/*\n",
             "                                - bucket: !Ref S3Bucket\n",
-            "                        # Generated IAM Actions #\n",
         ]
         self.generated_template_expected_second_half = [
             "\n",
@@ -102,12 +103,11 @@ class Test_TemplateGenerator(TestCase):
         result = generate_test_runner_template_string(**self.test_params)
 
         expected_statements = [
-                "                          - Effect: Allow\n",
-                "                            Action:\n",
-            ]
+            "                          - Effect: Allow\n",
+            "                            Action:\n",
+        ]
         expected_statements.extend(expected_actions)
         expected_statements.append(f"                            Resource: {resource_arn}\n")
-    
 
         expected_result = "".join(
             self.generated_template_expected_first_half
@@ -287,5 +287,23 @@ class Test_TemplateGenerator(TestCase):
         result = generate_test_runner_template_string(**self.test_params)
 
         expected_result = None
+
+        self.assertEqual(result, expected_result)
+
+    def test_no_tag_supplied(self):
+
+        no_tags_params = {
+            "boto_client_provider": None,  # Patched
+            "jinja_base_template": self.jinja_template,
+            "s3_bucket_name": "cloud-test-bucket-unique-name",
+            "image_uri": "123456789123.dkr.ecr.us-east-1.amazonaws.com/cloud-test-repo",
+            "tag_filters": None,
+        }
+
+        result = generate_test_runner_template_string(**no_tags_params)
+
+        expected_result = "".join(
+            self.generated_template_expected_first_half + self.generated_template_expected_second_half
+        )
 
         self.assertEqual(result, expected_result)

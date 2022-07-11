@@ -28,8 +28,10 @@ Resources:
                             Resource: !Sub
                                 - arn:aws:s3:::${bucket}/*
                                 - bucket: !Ref S3Bucket
-                        # Generated IAM Actions #
+                          {% if generated_statements is defined %}
                           {{ generated_statements | indent(6 * 4 + 2) }}
+                          {% endif %}
+
     TaskDefinition:
         Type: AWS::ECS::TaskDefinition
         Properties:
