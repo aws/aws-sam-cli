@@ -7,7 +7,7 @@ import json
 import os
 from subprocess import run, CalledProcessError
 from tempfile import NamedTemporaryFile
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, List, Optional
 import hashlib
 from samcli.lib.hook.exceptions import PrepareHookException
 from samcli.lib.hook.hooks import Hooks
@@ -18,14 +18,13 @@ from samcli.lib.utils.resources import (
 )
 
 TF_AWS_LAMBDA_FUNCTION = "aws_lambda_function"
-SUPPORTED_RESOURCE_TYPES = [TF_AWS_LAMBDA_FUNCTION]
 PROVIDER_NAME = "registry.terraform.io/hashicorp/aws"
 
 # max logical id len is 255
 LOGICAL_ID_HASH_LEN = 8
 LOGICAL_ID_MAX_HUMAN_LEN = 247
 
-PropertyBuilder = Callable[["TerraformHooks", dict], Any]
+PropertyBuilder = Callable[[dict], Any]
 PropertyBuilderMapping = Dict[str, PropertyBuilder]
 
 
@@ -51,7 +50,7 @@ def _translate_to_cfn(tf_json: dict) -> dict:
     """
     # setup root_module and cfn dict
     root_module = tf_json.get("planned_values", {}).get("root_module")
-    cfn_dict = {"AWSTemplateFormatVersion": "2010-09-09", "Resources": {}}
+    cfn_dict: dict = {"AWSTemplateFormatVersion": "2010-09-09", "Resources": {}}
     if not root_module:
         return cfn_dict
 
@@ -75,17 +74,20 @@ def _translate_to_cfn(tf_json: dict) -> dict:
             resource_type = resource.get("type")
             resource_values = resource.get("values")
 
-            # only process if supported
+            # only process supported provider
             if provider != PROVIDER_NAME:
                 continue
-            if resource_type not in SUPPORTED_RESOURCE_TYPES:
-                if resource_type == "aws_s3_object":
-                    obj_hash = _get_s3_object_hash(resource_values.get("bucket"), resource_values.get("key"))
-                    s3_hash_to_source[obj_hash] = resource_values.get("source")
-                continue
 
-            # translate TF resource "values" to CFN properties
+            # store S3 sources
+            if resource_type == "aws_s3_object":
+                obj_hash = _get_s3_object_hash(resource_values.get("bucket"), resource_values.get("key"))
+                s3_hash_to_source[obj_hash] = resource_values.get("source")
+
             resource_translator = RESOURCE_TRANSLATOR_MAPPING.get(resource_type)
+            # resource type not supported
+            if not resource_translator:
+                continue
+            # translate TF resource "values" to CFN properties
             translated_properties = _translate_properties(resource_values, resource_translator.property_builder_mapping)
 
             # build CFN logical ID from resource address
@@ -100,7 +102,7 @@ def _translate_to_cfn(tf_json: dict) -> dict:
             }
 
     # map s3 object sources to respective functions
-    _map_s3_sources_to_functions(s3_hash_to_source, cfn_dict.get("Resources"))
+    _map_s3_sources_to_functions(s3_hash_to_source, cfn_dict["Resources"])
 
     return cfn_dict
 
@@ -122,9 +124,8 @@ def _translate_properties(tf_properties: dict, property_builder_mapping: Propert
         The CloudFormation properties resulting from translating tf_properties
     """
     cfn_properties = {}
-    for cfn_property_name in property_builder_mapping:
-        build_cfn_property = property_builder_mapping.get(cfn_property_name)
-        cfn_property_value = build_cfn_property(tf_properties)
+    for cfn_property_name, cfn_property_builder in property_builder_mapping.items():
+        cfn_property_value = cfn_property_builder(tf_properties)
         if cfn_property_value is not None:
             cfn_properties[cfn_property_name] = cfn_property_value
     return cfn_properties
@@ -147,7 +148,7 @@ def _get_property_extractor(property_name: str) -> PropertyBuilder:
     return lambda properties: properties.get(property_name)
 
 
-def _build_lambda_function_environment_property(tf_properties: dict) -> dict:
+def _build_lambda_function_environment_property(tf_properties: dict) -> Optional[dict]:
     """
     Builds the Environment property of a CloudFormation AWS Lambda Function out of the
     properties of the equivalent terraform resource
@@ -224,7 +225,7 @@ def _build_cfn_logical_id(tf_address: str) -> str:
     """
     # ignores non-alphanumericals, makes uppercase the first alphanumerical char and the
     # alphanumerical char right after a non-alphanumerical char
-    chars = []
+    chars: List[str] = []
     nextCharUppercase = True
     for char in tf_address:
         if len(chars) == LOGICAL_ID_MAX_HUMAN_LEN:
@@ -267,7 +268,7 @@ def _get_s3_object_hash(bucket: str, key: str) -> str:
     return md5.hexdigest()
 
 
-def _map_s3_sources_to_functions(s3_hash_to_source: Dict[str, str], cfn_resources: dict) -> None:
+def _map_s3_sources_to_functions(s3_hash_to_source: Dict[str, str], cfn_resources: Dict[str, Any]) -> None:
     """
     Maps the source property of terraform AWS S3 object resources into the the Code property of
     CloudFormation AWS Lambda Function resources
@@ -317,6 +318,8 @@ class TerraformHooks(Hooks):
         """
         try:
             output_dir_path = params.get("OutputDirPath")
+            if not output_dir_path:
+                raise PrepareHookException("OutputDirPath was not supplied")
 
             # initialize terraform application
             run(["terraform", "init", "-upgrade"], check=True, capture_output=True)

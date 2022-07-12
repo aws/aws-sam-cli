@@ -1,5 +1,4 @@
 """Test Terraform Hooks"""
-from dataclasses import asdict
 from subprocess import CalledProcessError
 from unittest import TestCase
 from unittest.mock import Mock, call, patch
@@ -7,8 +6,6 @@ from parameterized import parameterized
 
 from samcli.hook_packages.terraform.hooks import (
     AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING,
-    RESOURCE_TRANSLATOR_MAPPING,
-    SUPPORTED_RESOURCE_TYPES,
     PROVIDER_NAME,
     _get_s3_object_hash,
     _build_cfn_logical_id,
@@ -27,12 +24,10 @@ from samcli.lib.utils.resources import (
 
 
 class TestPrepareHook(TestCase):
-    maxDiff = None
-
     def setUp(self) -> None:
         self.mock_logical_id_hash = "12AB34CD"
 
-        self.tf_function_common_properties = {
+        self.tf_function_common_properties: dict = {
             "function_name": "myfunc",
             "architectures": ["x86_64"],
             "environment": {"variables": {"foo": "bar", "hello": "world"}},
@@ -41,7 +36,7 @@ class TestPrepareHook(TestCase):
             "runtime": "python3.7",
             "layers": ["layer_arn1", "layer_arn2"],
         }
-        self.expected_cfn_function_common_properties = {
+        self.expected_cfn_function_common_properties: dict = {
             "FunctionName": "myfunc",
             "Architectures": ["x86_64"],
             "Environment": {"Variables": {"foo": "bar", "hello": "world"}},
@@ -51,39 +46,39 @@ class TestPrepareHook(TestCase):
             "Layers": ["layer_arn1", "layer_arn2"],
         }
 
-        self.tf_zip_function_properties = {
+        self.tf_zip_function_properties: dict = {
             **self.tf_function_common_properties,
             "filename": "file.zip",
         }
-        self.expected_cfn_zip_function_properties = {
+        self.expected_cfn_zip_function_properties: dict = {
             **self.expected_cfn_function_common_properties,
             "Code": {"ZipFile": "file.zip"},
         }
 
-        self.tf_s3_function_properties = {
+        self.tf_s3_function_properties: dict = {
             **self.tf_function_common_properties,
             "function_name": "myfuncS3",
             "s3_bucket": "mybucket",
             "s3_key": "mykey",
         }
-        self.expected_cfn_s3_function_properties = {
+        self.expected_cfn_s3_function_properties: dict = {
             **self.expected_cfn_function_common_properties,
             "FunctionName": "myfuncS3",
             "Code": {"S3Bucket": "mybucket", "S3Key": "mykey"},
         }
 
-        self.tf_function_properties_with_missing_or_none = {
+        self.tf_function_properties_with_missing_or_none: dict = {
             "function_name": "myfunc",
             "filename": "file.zip",
             "environment": None,
             "layers": None,
         }
-        self.expected_cfn_function_properties_with_missing_or_none = {
+        self.expected_cfn_function_properties_with_missing_or_none: dict = {
             "FunctionName": "myfunc",
             "Code": {"ZipFile": "file.zip"},
         }
 
-        self.tf_zip_function_properties_2 = {
+        self.tf_zip_function_properties_2: dict = {
             "function_name": "myfunc2",
             "architectures": ["x86_64"],
             "environment": {"variables": {"hi": "there"}},
@@ -93,7 +88,7 @@ class TestPrepareHook(TestCase):
             "layers": ["layer_arn"],
             "filename": "file2.zip",
         }
-        self.expected_cfn_zip_function_properties_2 = {
+        self.expected_cfn_zip_function_properties_2: dict = {
             "FunctionName": "myfunc2",
             "Architectures": ["x86_64"],
             "Environment": {"Variables": {"hi": "there"}},
@@ -104,83 +99,83 @@ class TestPrepareHook(TestCase):
             "Code": {"ZipFile": "file2.zip"},
         }
 
-        self.tf_zip_function_properties_3 = {**self.tf_zip_function_properties_2, "function_name": "myfunc3"}
-        self.expected_cfn_zip_function_properties_3 = {
+        self.tf_zip_function_properties_3: dict = {**self.tf_zip_function_properties_2, "function_name": "myfunc3"}
+        self.expected_cfn_zip_function_properties_3: dict = {
             **self.expected_cfn_zip_function_properties_2,
             "FunctionName": "myfunc3",
         }
-        self.tf_zip_function_properties_4 = {**self.tf_zip_function_properties_2, "function_name": "myfunc4"}
-        self.expected_cfn_zip_function_properties_4 = {
+        self.tf_zip_function_properties_4: dict = {**self.tf_zip_function_properties_2, "function_name": "myfunc4"}
+        self.expected_cfn_zip_function_properties_4: dict = {
             **self.expected_cfn_zip_function_properties_2,
             "FunctionName": "myfunc4",
         }
 
-        self.tf_lambda_function_resource_common_attributes = {
+        self.tf_lambda_function_resource_common_attributes: dict = {
             "type": "aws_lambda_function",
             "provider_name": PROVIDER_NAME,
         }
 
-        self.tf_lambda_function_resource_zip = {
+        self.tf_lambda_function_resource_zip: dict = {
             **self.tf_lambda_function_resource_common_attributes,
             "values": self.tf_zip_function_properties,
             "address": "aws_lambda_function.myfunc",
             "name": "myfunc",
         }
-        self.expected_cfn_lambda_function_resource_zip = {
+        self.expected_cfn_lambda_function_resource_zip: dict = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
             "Properties": self.expected_cfn_zip_function_properties,
             "Metadata": {"SamResourceId": "aws_lambda_function.myfunc", "SkipBuild": True},
         }
 
-        self.tf_lambda_function_resource_zip_2 = {
+        self.tf_lambda_function_resource_zip_2: dict = {
             **self.tf_lambda_function_resource_common_attributes,
             "values": self.tf_zip_function_properties_2,
             "address": "aws_lambda_function.myfunc2",
             "name": "myfunc2",
         }
-        self.expected_cfn_lambda_function_resource_zip_2 = {
+        self.expected_cfn_lambda_function_resource_zip_2: dict = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
             "Properties": self.expected_cfn_zip_function_properties_2,
             "Metadata": {"SamResourceId": "aws_lambda_function.myfunc2", "SkipBuild": True},
         }
 
-        self.tf_lambda_function_resource_zip_3 = {
+        self.tf_lambda_function_resource_zip_3: dict = {
             **self.tf_lambda_function_resource_common_attributes,
             "values": self.tf_zip_function_properties_3,
             "address": "aws_lambda_function.myfunc3",
             "name": "myfunc3",
         }
-        self.expected_cfn_lambda_function_resource_zip_3 = {
+        self.expected_cfn_lambda_function_resource_zip_3: dict = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
             "Properties": self.expected_cfn_zip_function_properties_3,
             "Metadata": {"SamResourceId": "aws_lambda_function.myfunc3", "SkipBuild": True},
         }
 
-        self.tf_lambda_function_resource_zip_4 = {
+        self.tf_lambda_function_resource_zip_4: dict = {
             **self.tf_lambda_function_resource_common_attributes,
             "values": self.tf_zip_function_properties_4,
             "address": "aws_lambda_function.myfunc4",
             "name": "myfunc4",
         }
-        self.expected_cfn_lambda_function_resource_zip_4 = {
+        self.expected_cfn_lambda_function_resource_zip_4: dict = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
             "Properties": self.expected_cfn_zip_function_properties_4,
             "Metadata": {"SamResourceId": "aws_lambda_function.myfunc4", "SkipBuild": True},
         }
 
-        self.tf_lambda_function_resource_s3 = {
+        self.tf_lambda_function_resource_s3: dict = {
             **self.tf_lambda_function_resource_common_attributes,
             "values": self.tf_s3_function_properties,
             "address": "aws_lambda_function.myfuncS3",
             "name": "myfuncS3",
         }
-        self.expected_cfn_lambda_function_resource_s3 = {
+        self.expected_cfn_lambda_function_resource_s3: dict = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
             "Properties": self.expected_cfn_s3_function_properties,
             "Metadata": {"SamResourceId": "aws_lambda_function.myfuncS3", "SkipBuild": True},
         }
 
-        self.tf_lambda_function_resource_s3_2 = {
+        self.tf_lambda_function_resource_s3_2: dict = {
             **self.tf_lambda_function_resource_common_attributes,
             "values": {
                 **self.tf_s3_function_properties,
@@ -191,7 +186,7 @@ class TestPrepareHook(TestCase):
             "address": "module.mymodule.aws_lambda_function.myfuncS3_2",
             "name": "myfuncS3_2",
         }
-        self.expected_cfn_lambda_function_resource_s3_2 = {
+        self.expected_cfn_lambda_function_resource_s3_2: dict = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
             "Properties": {
                 **self.expected_cfn_function_common_properties,
@@ -201,7 +196,7 @@ class TestPrepareHook(TestCase):
             "Metadata": {"SamResourceId": "module.mymodule.aws_lambda_function.myfuncS3_2", "SkipBuild": True},
         }
 
-        self.tf_json_with_root_module_only = {
+        self.tf_json_with_root_module_only: dict = {
             "planned_values": {
                 "root_module": {
                     "resources": [
@@ -211,7 +206,7 @@ class TestPrepareHook(TestCase):
                 }
             }
         }
-        self.expected_cfn_with_root_module_only = {
+        self.expected_cfn_with_root_module_only: dict = {
             "AWSTemplateFormatVersion": "2010-09-09",
             "Resources": {
                 f"AwsLambdaFunctionMyfunc{self.mock_logical_id_hash}": self.expected_cfn_lambda_function_resource_zip,
@@ -219,7 +214,7 @@ class TestPrepareHook(TestCase):
             },
         }
 
-        self.tf_json_with_child_modules = {
+        self.tf_json_with_child_modules: dict = {
             "planned_values": {
                 "root_module": {
                     "resources": [
@@ -256,7 +251,7 @@ class TestPrepareHook(TestCase):
                 }
             }
         }
-        self.expected_cfn_with_child_modules = {
+        self.expected_cfn_with_child_modules: dict = {
             "AWSTemplateFormatVersion": "2010-09-09",
             "Resources": {
                 f"AwsLambdaFunctionMyfunc{self.mock_logical_id_hash}": self.expected_cfn_lambda_function_resource_zip,
@@ -281,7 +276,7 @@ class TestPrepareHook(TestCase):
             },
         }
 
-        self.tf_json_with_unsupported_provider = {
+        self.tf_json_with_unsupported_provider: dict = {
             "planned_values": {
                 "root_module": {
                     "resources": [
@@ -292,7 +287,7 @@ class TestPrepareHook(TestCase):
                 }
             }
         }
-        self.expected_cfn_with_unsupported_provider = {
+        self.expected_cfn_with_unsupported_provider: dict = {
             "AWSTemplateFormatVersion": "2010-09-09",
             "Resources": {
                 f"AwsLambdaFunctionMyfunc{self.mock_logical_id_hash}": self.expected_cfn_lambda_function_resource_zip,
@@ -300,7 +295,7 @@ class TestPrepareHook(TestCase):
             },
         }
 
-        self.tf_json_with_unsupported_resource_type = {
+        self.tf_json_with_unsupported_resource_type: dict = {
             "planned_values": {
                 "root_module": {
                     "resources": [
@@ -311,7 +306,7 @@ class TestPrepareHook(TestCase):
                 }
             }
         }
-        self.expected_cfn_with_unsupported_resource_type = {
+        self.expected_cfn_with_unsupported_resource_type: dict = {
             "AWSTemplateFormatVersion": "2010-09-09",
             "Resources": {
                 f"AwsLambdaFunctionMyfunc{self.mock_logical_id_hash}": self.expected_cfn_lambda_function_resource_zip,
@@ -319,7 +314,7 @@ class TestPrepareHook(TestCase):
             },
         }
 
-        self.tf_json_with_child_modules_and_s3_source_mapping = {
+        self.tf_json_with_child_modules_and_s3_source_mapping: dict = {
             "planned_values": {
                 "root_module": {
                     "resources": [
@@ -357,7 +352,7 @@ class TestPrepareHook(TestCase):
                 }
             }
         }
-        self.expected_cfn_with_child_modules_and_s3_source_mapping = {
+        self.expected_cfn_with_child_modules_and_s3_source_mapping: dict = {
             "AWSTemplateFormatVersion": "2010-09-09",
             "Resources": {
                 f"AwsLambdaFunctionMyfunc{self.mock_logical_id_hash}": self.expected_cfn_lambda_function_resource_zip,
@@ -388,7 +383,7 @@ class TestPrepareHook(TestCase):
             },
         }
 
-        self.prepare_params = {
+        self.prepare_params: dict = {
             "IACProjectPath": "iac/project/path",
             "OutputDirPath": "output/dir/path",
             "Debug": False,
@@ -486,10 +481,6 @@ class TestPrepareHook(TestCase):
             self.tf_function_properties_with_missing_or_none, AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING
         )
         self.assertEqual(translated_cfn_properties, self.expected_cfn_function_properties_with_missing_or_none)
-
-    def test_ensure_all_supported_resources_types_are_in_translator_mapping(self):
-        for resource_type in SUPPORTED_RESOURCE_TYPES:
-            self.assertIsNotNone(RESOURCE_TRANSLATOR_MAPPING.get(resource_type))
 
     @patch("samcli.hook_packages.terraform.hooks.hashlib")
     def test_map_s3_sources_to_functions(self, mock_hashlib):
@@ -630,3 +621,8 @@ class TestPrepareHook(TestCase):
         tf_hooks = TerraformHooks()
         with self.assertRaises(PrepareHookException):
             tf_hooks.prepare(self.prepare_params)
+
+    def test_prepare_with_no_output_dir_path(self):
+        tf_hooks = TerraformHooks()
+        with self.assertRaises(PrepareHookException, msg="OutputDirPath was not supplied"):
+            tf_hooks.prepare({})
