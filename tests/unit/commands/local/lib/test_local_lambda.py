@@ -3,14 +3,12 @@ Testing local lambda runner
 """
 import os
 import posixpath
-from platform import architecture
 from unittest import TestCase
 from unittest.mock import Mock, patch
 from parameterized import parameterized, param
 
 from samcli.lib.utils.architecture import X86_64, ARM64
 
-from samcli.commands.local.cli_common.user_exceptions import InvokeContextException
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.lib.providers.provider import Function
 from samcli.lib.utils.packagetype import ZIP, IMAGE

@@ -616,7 +616,9 @@ class SamFunctionProvider(SamBaseProvider):
             LOG.debug("Search layer %s in child stack", layer_reference)
 
             child_stacks = Stack.get_child_stacks(stack, stacks)
-            child_stack = Stack.get_stack_by_logical_id(layer_stack_reference, child_stacks)
+            stack_prefix = stack.stack_path + "/" if stack.stack_path else ""
+            stack_path = stack_prefix + layer_stack_reference
+            child_stack = Stack.get_stack_by_full_path(stack_path, child_stacks)
             if not child_stack:
                 LOG.debug("Child stack not found, layer can not be located in templates")
                 return None

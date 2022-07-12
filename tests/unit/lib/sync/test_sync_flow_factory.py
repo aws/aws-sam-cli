@@ -1,8 +1,20 @@
 from unittest import TestCase
 from unittest.mock import MagicMock, patch, Mock
 
-from samcli.lib.sync.sync_flow_factory import SyncFlowFactory
+from samcli.lib.sync.sync_flow_factory import SyncCodeResources, SyncFlowFactory
 from samcli.lib.utils.cloudformation import CloudFormationResourceSummary
+from samcli.lib.utils.resources import (
+    AWS_SERVERLESS_FUNCTION,
+    AWS_LAMBDA_FUNCTION,
+    AWS_SERVERLESS_LAYERVERSION,
+    AWS_LAMBDA_LAYERVERSION,
+    AWS_SERVERLESS_API,
+    AWS_APIGATEWAY_RESTAPI,
+    AWS_SERVERLESS_HTTPAPI,
+    AWS_APIGATEWAY_V2_API,
+    AWS_SERVERLESS_STATEMACHINE,
+    AWS_STEPFUNCTIONS_STATEMACHINE,
+)
 
 
 class TestSyncFlowFactory(TestCase):
@@ -31,7 +43,10 @@ class TestSyncFlowFactory(TestCase):
 
     @patch("samcli.lib.sync.sync_flow_factory.get_resource_summaries")
     @patch("samcli.lib.sync.sync_flow_factory.get_boto_resource_provider_with_config")
-    def test_load_physical_id_mapping(self, get_boto_resource_provider_mock, get_resource_summaries_mock):
+    @patch("samcli.lib.sync.sync_flow_factory.get_boto_client_provider_with_config")
+    def test_load_physical_id_mapping(
+        self, get_boto_client_provider_mock, get_boto_resource_provider_mock, get_resource_summaries_mock
+    ):
         resource_summary_1 = CloudFormationResourceSummary(
             resource_type="", logical_resource_id="", physical_resource_id="PhysicalResource1"
         )
@@ -158,3 +173,21 @@ class TestSyncFlowFactory(TestCase):
         factory._get_generator_function = get_generator_function_mock
 
         self.assertIsNone(factory.create_sync_flow(resource_identifier))
+
+
+class TestSyncCodeResources(TestCase):
+    def test_values(self):
+        output = SyncCodeResources.values()
+        expected = [
+            AWS_SERVERLESS_FUNCTION,
+            AWS_LAMBDA_FUNCTION,
+            AWS_SERVERLESS_LAYERVERSION,
+            AWS_LAMBDA_LAYERVERSION,
+            AWS_SERVERLESS_API,
+            AWS_APIGATEWAY_RESTAPI,
+            AWS_SERVERLESS_HTTPAPI,
+            AWS_APIGATEWAY_V2_API,
+            AWS_SERVERLESS_STATEMACHINE,
+            AWS_STEPFUNCTIONS_STATEMACHINE,
+        ]
+        self.assertEqual(expected, output)

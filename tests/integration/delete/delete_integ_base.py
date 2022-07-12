@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Optional
 from unittest import TestCase
 
 
@@ -22,10 +23,19 @@ class DeleteIntegBase(TestCase):
         return command
 
     def get_delete_command_list(
-        self, stack_name=None, region=None, config_file=None, config_env=None, profile=None, no_prompts=None
+        self,
+        stack_name=None,
+        region=None,
+        config_file=None,
+        config_env=None,
+        profile=None,
+        no_prompts=None,
+        s3_bucket=None,
+        s3_prefix=None,
     ):
         command_list = [self.base_command(), "delete"]
 
+        # Convert all values as string to make behaviour uniform across platforms
         if stack_name:
             command_list += ["--stack-name", str(stack_name)]
         if region:
@@ -38,5 +48,9 @@ class DeleteIntegBase(TestCase):
             command_list += ["--profile", str(profile)]
         if no_prompts:
             command_list += ["--no-prompts"]
+        if s3_bucket:
+            command_list += ["--s3-bucket", str(s3_bucket)]
+        if s3_prefix:
+            command_list += ["--s3-prefix", str(s3_prefix)]
 
         return command_list
