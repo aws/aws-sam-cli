@@ -122,11 +122,11 @@ def _translate_properties(tf_properties: dict, property_builder_mapping: Propert
         The CloudFormation properties resulting from translating tf_properties
     """
     cfn_properties = {}
-    for cfn_prop_name in property_builder_mapping:
-        property_builder = property_builder_mapping.get(cfn_prop_name)
-        cfn_prop_value = property_builder(tf_properties)
-        if cfn_prop_value is not None:
-            cfn_properties[cfn_prop_name] = cfn_prop_value
+    for cfn_property_name in property_builder_mapping:
+        build_cfn_property = property_builder_mapping.get(cfn_property_name)
+        cfn_property_value = build_cfn_property(tf_properties)
+        if cfn_property_value is not None:
+            cfn_properties[cfn_property_name] = cfn_property_value
     return cfn_properties
 
 
