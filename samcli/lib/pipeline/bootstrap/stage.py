@@ -40,6 +40,7 @@ GITLAB_GROUP = "gitlab_group"
 GITLAB_PROJECT = "gitlab_project"
 DEPLOYMENT_BRANCH = "deployment_branch"
 BITBUCKET_REPO_UUID = "bitbucket_repo_uuid"
+PERMISSIONS_PROVIDER = "permissions_provider"
 REGION = "region"
 
 
@@ -372,6 +373,7 @@ class Stage:
 
         if self.pipeline_user.arn:
             samconfig.put(cmd_names=cmd_names, section="parameters", key=PIPELINE_USER, value=self.pipeline_user.arn)
+            samconfig.put(cmd_names=cmd_names, section="parameters", key=PERMISSIONS_PROVIDER, value="IAM")
         if self.use_oidc_provider and self.pipeline_oidc_provider:
             self.pipeline_oidc_provider.save_values(cmd_names=cmd_names, section="parameters", samconfig=samconfig)
 

@@ -6,7 +6,7 @@ from click.testing import CliRunner
 
 from samcli.commands.pipeline.bootstrap.cli import (
     _load_saved_pipeline_user_arn,
-    _load_saved_oidc_values,
+    _load_config_values,
     PIPELINE_CONFIG_FILENAME,
     PIPELINE_CONFIG_DIR,
 )
@@ -307,7 +307,7 @@ class TestCli(TestCase):
         load_saved_pipeline_user_arn_mock.assert_called_once()
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
-    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_oidc_values")
+    @patch("samcli.commands.pipeline.bootstrap.cli._load_config_values")
     @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
     @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
     def test_bootstrap_will_try_loading_oidc_values_if_not_provided(
@@ -443,33 +443,53 @@ class TestCli(TestCase):
         # verify
         self.assertEqual(pipeline_user_arn, ANY_PIPELINE_USER_ARN)
 
+    @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
+    @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
     @patch("samcli.commands.pipeline.bootstrap.cli.SamConfig")
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
-    def test_load_saved_oidc_values_returns_values_from_file(self, get_command_names_mock, sam_config_mock):
+    def test_load_saved_oidc_values_returns_values_from_file(
+        self, get_command_names_mock, sam_config_mock, guided_context_mock, stage_mock
+    ):
         # setup
         get_command_names_mock.return_value = PIPELINE_BOOTSTRAP_COMMAND_NAMES
         sam_config_instance_mock = Mock()
         sam_config_mock.return_value = sam_config_instance_mock
         sam_config_instance_mock.exists.return_value = True
         sam_config_instance_mock.get_all.return_value = {
-            "oidc_provider_url": ANY_OIDC_PROVIDER_URL,
-            "oidc_provider": ANY_OIDC_PROVIDER,
-            "oidc_client_id": ANY_OIDC_CLIENT_ID,
-            "github_org": ANY_GITHUB_ORG,
-            "github_repo": ANY_GITHUB_REPO,
-            "deployment_branch": ANY_DEPLOYMENT_BRANCH,
+            "oidc_provider_url": "saved_url",
+            "oidc_provider": "saved_provider",
+            "oidc_client_id": "saved_client_id",
+            "github_org": "saved_org",
+            "github_repo": "saved_repo",
+            "deployment_branch": "saved_branch",
+            "permissions_provider": "OpenID Connect",
         }
 
         # trigger
-        oidc_values = _load_saved_oidc_values()
+        bootstrap_cli(**self.cli_context)
 
         # verify
-        self.assertEqual(oidc_values["oidc_provider_url"], ANY_OIDC_PROVIDER_URL)
-        self.assertEqual(oidc_values["oidc_provider"], ANY_OIDC_PROVIDER)
-        self.assertEqual(oidc_values["oidc_client_id"], ANY_OIDC_CLIENT_ID)
-        self.assertEqual(oidc_values["github_org"], ANY_GITHUB_ORG)
-        self.assertEqual(oidc_values["github_repo"], ANY_GITHUB_REPO)
-        self.assertEqual(oidc_values["deployment_branch"], ANY_DEPLOYMENT_BRANCH)
+        guided_context_mock.assert_called_with(
+            oidc_provider_url="saved_url",
+            oidc_provider="saved_provider",
+            oidc_client_id="saved_client_id",
+            github_org="saved_org",
+            github_repo="saved_repo",
+            deployment_branch="saved_branch",
+            permissions_provider="oidc",
+            profile=ANY_PROFILE,
+            stage_configuration_name=ANY_STAGE_CONFIGURATION_NAME,
+            pipeline_user_arn=ANY_PIPELINE_USER_ARN,
+            pipeline_execution_role_arn=ANY_PIPELINE_EXECUTION_ROLE_ARN,
+            cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
+            artifacts_bucket_arn=ANY_ARTIFACTS_BUCKET_ARN,
+            create_image_repository=True,
+            image_repository_arn=ANY_IMAGE_REPOSITORY_ARN,
+            region=ANY_REGION,
+            gitlab_group=None,
+            gitlab_project=None,
+            bitbucket_repo_uuid=None,
+        )
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")

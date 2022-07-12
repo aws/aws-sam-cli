@@ -44,6 +44,7 @@ class PipelineOidcProvider:
                 value=self.oidc_parameters[parameter_name],
             )
         samconfig.put(cmd_names=cmd_names, section=section, key="oidc_provider", value=self.oidc_provider_name)
+        samconfig.put(cmd_names=cmd_names, section=section, key="permissions_provider", value="OpenID Connect")
 
     @abstractmethod
     def get_subject_claim(self) -> str:

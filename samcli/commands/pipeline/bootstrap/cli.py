@@ -27,6 +27,7 @@ from samcli.lib.pipeline.bootstrap.stage import (
     OIDC_CLIENT_ID,
     OIDC_PROVIDER,
     OIDC_PROVIDER_URL,
+    PERMISSIONS_PROVIDER,
     Stage,
 )
 from samcli.lib.telemetry.metric import track_command
@@ -256,18 +257,22 @@ def do_cli(
     if not pipeline_user_arn and not permissions_provider == OPEN_ID_CONNECT:
         pipeline_user_arn = _load_saved_pipeline_user_arn()
 
-    if not oidc_provider:
-        oidc_parameters = _load_saved_oidc_values()
-        if oidc_parameters:
-            oidc_provider = oidc_parameters.get(OIDC_PROVIDER)
-            oidc_provider_url = oidc_parameters.get(OIDC_PROVIDER_URL)
-            oidc_client_id = oidc_parameters.get(OIDC_CLIENT_ID)
-            github_org = oidc_parameters.get(GITHUB_ORG)
-            github_repo = oidc_parameters.get(GITHUB_REPO)
-            deployment_branch = oidc_parameters.get(DEPLOYMENT_BRANCH)
-            gitlab_group = oidc_parameters.get(GITLAB_GROUP)
-            gitlab_project = oidc_parameters.get(GITLAB_PROJECT)
-            bitbucket_repo_uuid = oidc_parameters.get(BITBUCKET_REPO_UUID)
+    config_parameters = _load_config_values()
+    if config_parameters:
+        saved_provider = config_parameters.get(PERMISSIONS_PROVIDER)
+        if saved_provider == "OpenID Connect":
+            permissions_provider = OPEN_ID_CONNECT
+            oidc_provider = config_parameters.get(OIDC_PROVIDER)
+            oidc_provider_url = config_parameters.get(OIDC_PROVIDER_URL)
+            oidc_client_id = config_parameters.get(OIDC_CLIENT_ID)
+            github_org = config_parameters.get(GITHUB_ORG)
+            github_repo = config_parameters.get(GITHUB_REPO)
+            deployment_branch = config_parameters.get(DEPLOYMENT_BRANCH)
+            gitlab_group = config_parameters.get(GITLAB_GROUP)
+            gitlab_project = config_parameters.get(GITLAB_PROJECT)
+            bitbucket_repo_uuid = config_parameters.get(BITBUCKET_REPO_UUID)
+        elif saved_provider == "IAM":
+            permissions_provider = IAM
 
     if interactive:
         if standalone:
@@ -335,7 +340,7 @@ def do_cli(
         pipeline_oidc_provider = _get_pipeline_oidc_provider(
             common_oidc_params=common_oidc_params,
             oidc_provider=oidc_provider,
-            github_org=github_repo,
+            github_org=github_org,
             github_repo=github_repo,
             deployment_branch=deployment_branch,
             gitlab_group=gitlab_group,
@@ -433,7 +438,7 @@ def _load_saved_pipeline_user_arn() -> Optional[str]:
     return config.get("pipeline_user")
 
 
-def _load_saved_oidc_values() -> Dict[str, str]:
+def _load_config_values() -> Dict[str, str]:
     samconfig: SamConfig = SamConfig(config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME)
     if not samconfig.exists():
         return {}
