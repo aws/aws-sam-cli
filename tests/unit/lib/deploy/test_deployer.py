@@ -1336,7 +1336,8 @@ class TestDeployer(CustomTestCase):
         self.deployer._client.delete_stack.assert_called_with(StackName="test")
 
     def test_rollback_stack_update_stack_delete(self):
-        self.deployer._client.describe_stacks = MagicMock(return_value={"Stacks": [{"StackStatus": "UPDATE_FAILED"}]})
+        self.deployer._get_stack_status = MagicMock(return_value="UPDATE_FAILED")
+        self.deployer._wait_for_rollback = MagicMock(return_value="ROLLBACK_COMPLETE")
         self.deployer.wait_for_execute = MagicMock()
 
         self.deployer.rollback_stack("test")
