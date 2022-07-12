@@ -625,7 +625,8 @@ class TestPrepareHook(TestCase):
     def test_prepare_with_os_error(
         self, mock_subprocess_run, mock_json, mock_os, named_temporary_file_mock, mock_translate_to_cfn
     ):
-        mock_os.side_effect = OSError
+        mock_os.path.exists.return_value = False
+        mock_os.mkdir.side_effect = OSError()
         tf_hooks = TerraformHooks()
         with self.assertRaises(PrepareHookException):
             tf_hooks.prepare(self.prepare_params)
