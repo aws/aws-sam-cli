@@ -10,7 +10,7 @@ from samcli.commands.list.exceptions import SamListError, NoOutputsForStackError
 class TestStackOutputsContext(TestCase):
     @patch("samcli.commands.list.json_consumer.click.echo")
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
-    @patch("samcli.commands.list.stack_outputs.stack_outputs_context.get_boto_client_provider_with_config")
+    @patch("samcli.commands.list.cli_common.list_common_context.get_boto_client_provider_with_config")
     def test_stack_outputs_stack_exists(
         self, mock_client_provider, patched_click_get_current_context, patched_click_echo
     ):
@@ -31,7 +31,7 @@ class TestStackOutputsContext(TestCase):
 
     @patch("samcli.commands.list.json_consumer.click.echo")
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
-    @patch("samcli.commands.list.stack_outputs.stack_outputs_context.get_boto_client_provider_with_config")
+    @patch("samcli.commands.list.cli_common.list_common_context.get_boto_client_provider_with_config")
     def test_no_stack_object_in_response(
         self, mock_client_provider, patched_click_get_current_context, patched_click_echo
     ):
@@ -44,7 +44,7 @@ class TestStackOutputsContext(TestCase):
 
     @patch("samcli.commands.list.json_consumer.click.echo")
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
-    @patch("samcli.commands.list.stack_outputs.stack_outputs_context.get_boto_client_provider_with_config")
+    @patch("samcli.commands.list.cli_common.list_common_context.get_boto_client_provider_with_config")
     def test_no_output_object_in_response(
         self, mock_client_provider, patched_click_get_current_context, patched_click_echo
     ):
@@ -57,7 +57,7 @@ class TestStackOutputsContext(TestCase):
 
     @patch("samcli.commands.list.json_consumer.click.echo")
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
-    @patch("samcli.commands.list.stack_outputs.stack_outputs_context.get_boto_client_provider_with_config")
+    @patch("samcli.commands.list.cli_common.list_common_context.get_boto_client_provider_with_config")
     def test_clienterror_stack_does_not_exist_in_region(
         self, mock_client_provider, patched_click_get_current_context, patched_click_echo
     ):
@@ -72,7 +72,7 @@ class TestStackOutputsContext(TestCase):
 
     @patch("samcli.commands.list.json_consumer.click.echo")
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
-    @patch("samcli.commands.list.stack_outputs.stack_outputs_context.get_boto_client_provider_with_config")
+    @patch("samcli.commands.list.cli_common.list_common_context.get_boto_client_provider_with_config")
     def test_botocoreerror_invalid_region(
         self, mock_client_provider, patched_click_get_current_context, patched_click_echo
     ):

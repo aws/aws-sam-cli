@@ -58,7 +58,6 @@ class StackOutputsProducer(Producer):
 
     def produce(self):
         response = self.get_stack_info()
-        print(response)
         for stack_output in response:
             stack_output_data = StackOutputs(
                 OutputKey=stack_output["OutputKey"],

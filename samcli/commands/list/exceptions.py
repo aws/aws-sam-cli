@@ -31,6 +31,12 @@ class SamListUnknownBotoCoreError(SamListError):
     """
 
 
+class SamListLocalResourcesNotFoundError(SamListError):
+    """
+    Used when unable to retrieve local resources after performing a transform
+    """
+
+
 class NoOutputsForStackError(UserException):
     def __init__(self, stack_name, region):
         self.stack_name = stack_name
