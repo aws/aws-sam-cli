@@ -4,6 +4,7 @@ Represents a pipeline OIDC provider
 from abc import abstractmethod
 from typing import List
 import click
+from samcli.commands.pipeline.bootstrap.guided_context import BITBUCKET, GITHUB_ACTIONS, GITLAB
 
 from samcli.lib.config.samconfig import SamConfig
 
@@ -68,14 +69,14 @@ class GitHubOidcProvider(PipelineOidcProvider):
     GITHUB_REPO_PARAMETER_NAME = "github-repo"
     DEPLOYMENT_BRANCH_PARAMETER_NAME = "deployment-branch"
 
-    def __init__(self, subject_claim_parameters: dict, oidc_parameters: dict, oidc_provider_name: str) -> None:
+    def __init__(self, subject_claim_parameters: dict, oidc_parameters: dict) -> None:
         all_oidc_parameters = {**oidc_parameters, **subject_claim_parameters}
         all_oidc_parameter_names = [
             self.GITHUB_ORG_PARAMETER_NAME,
             self.GITHUB_REPO_PARAMETER_NAME,
             self.DEPLOYMENT_BRANCH_PARAMETER_NAME,
         ]
-        super().__init__(all_oidc_parameters, all_oidc_parameter_names, oidc_provider_name)
+        super().__init__(all_oidc_parameters, all_oidc_parameter_names, GITHUB_ACTIONS)
 
     def get_subject_claim(self) -> str:
         """
@@ -109,14 +110,14 @@ class GitLabOidcProvider(PipelineOidcProvider):
     GITLAB_GROUP_PARAMETER_NAME = "gitlab-group"
     DEPLOYMENT_BRANCH_PARAMETER_NAME = "deployment-branch"
 
-    def __init__(self, subject_claim_parameters: dict, oidc_parameters: dict, oidc_provider_name: str) -> None:
+    def __init__(self, subject_claim_parameters: dict, oidc_parameters: dict) -> None:
         all_oidc_parameters = {**oidc_parameters, **subject_claim_parameters}
         all_oidc_parameter_names = [
             self.GITLAB_PROJECT_PARAMETER_NAME,
             self.GITLAB_GROUP_PARAMETER_NAME,
             self.DEPLOYMENT_BRANCH_PARAMETER_NAME,
         ]
-        super().__init__(all_oidc_parameters, all_oidc_parameter_names, oidc_provider_name)
+        super().__init__(all_oidc_parameters, all_oidc_parameter_names, GITLAB)
 
     def get_subject_claim(self) -> str:
         """
@@ -148,12 +149,12 @@ class BitbucketOidcProvider(PipelineOidcProvider):
 
     BITBUCKET_REPO_UUID_PARAMETER_NAME = "bitbucket-repo-uuid"
 
-    def __init__(self, subject_claim_parameters: dict, oidc_parameters: dict, oidc_provider_name: str) -> None:
+    def __init__(self, subject_claim_parameters: dict, oidc_parameters: dict) -> None:
         all_oidc_parameters = {**oidc_parameters, **subject_claim_parameters}
         all_oidc_parameter_names = [
             self.BITBUCKET_REPO_UUID_PARAMETER_NAME,
         ]
-        super().__init__(all_oidc_parameters, all_oidc_parameter_names, oidc_provider_name)
+        super().__init__(all_oidc_parameters, all_oidc_parameter_names, BITBUCKET)
 
     def get_subject_claim(self) -> str:
         """

@@ -413,17 +413,17 @@ def _get_pipeline_oidc_provider(
             GitHubOidcProvider.GITHUB_REPO_PARAMETER_NAME: github_repo,
             GitHubOidcProvider.DEPLOYMENT_BRANCH_PARAMETER_NAME: deployment_branch,
         }
-        return GitHubOidcProvider(github_oidc_params, common_oidc_params, GITHUB_ACTIONS)
+        return GitHubOidcProvider(github_oidc_params, common_oidc_params)
     if oidc_provider == GITLAB:
         gitlab_oidc_params: dict = {
             GitLabOidcProvider.GITLAB_PROJECT_PARAMETER_NAME: gitlab_project,
             GitLabOidcProvider.GITLAB_GROUP_PARAMETER_NAME: gitlab_group,
             GitLabOidcProvider.DEPLOYMENT_BRANCH_PARAMETER_NAME: deployment_branch,
         }
-        return GitLabOidcProvider(gitlab_oidc_params, common_oidc_params, GITLAB)
+        return GitLabOidcProvider(gitlab_oidc_params, common_oidc_params)
     if oidc_provider == BITBUCKET:
         bitbucket_oidc_params: dict = {BitbucketOidcProvider.BITBUCKET_REPO_UUID_PARAMETER_NAME: bitbucket_repo_uuid}
-        return BitbucketOidcProvider(bitbucket_oidc_params, common_oidc_params, BITBUCKET)
+        return BitbucketOidcProvider(bitbucket_oidc_params, common_oidc_params)
     raise click.UsageError("Missing required parameter '--oidc-provider'")
 
 
