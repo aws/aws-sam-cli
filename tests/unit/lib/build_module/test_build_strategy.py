@@ -155,7 +155,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
         )
 
         default_build_strategy.build()
-        print("HERE!!!!!" + str(self.function_build_definition1))
+
         # assert that build function has been called
         given_build_function.assert_has_calls(
             [
