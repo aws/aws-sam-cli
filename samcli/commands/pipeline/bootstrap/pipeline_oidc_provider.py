@@ -61,8 +61,6 @@ class GitHubOidcProvider(PipelineOidcProvider):
         Parameters specific to building the subject claim for this provider.
     oidc_parameters: dict
         Parameters common to all providers.
-    oidc_provider_name: str
-        Name of the oidc_provider to be saved in the config file
     """
 
     GITHUB_ORG_PARAMETER_NAME = "github-org"
@@ -102,8 +100,6 @@ class GitLabOidcProvider(PipelineOidcProvider):
         Parameters specific to building the subject claim for this provider.
     oidc_parameters: dict
         Parameters common to all providers.
-    oidc_provider_name: str
-        Name of the oidc_provider to be saved in the config file
     """
 
     GITLAB_PROJECT_PARAMETER_NAME = "gitlab-project"
@@ -143,8 +139,6 @@ class BitbucketOidcProvider(PipelineOidcProvider):
         Parameters specific to building the subject claim for this provider.
     oidc_parameters: dict
         Parameters common to all providers.
-    oidc_provider_name: str
-        Name of the oidc_provider to be saved in the config file
     """
 
     BITBUCKET_REPO_UUID_PARAMETER_NAME = "bitbucket-repo-uuid"
