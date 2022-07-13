@@ -126,7 +126,7 @@ class DefaultBuildStrategy(BuildStrategy):
         build_dir: str,
         build_function: Callable[[str, str, str, str, str, Optional[str], str, dict, dict, Optional[str], bool], str],
         build_layer: Callable[[str, str, str, List[str], str, str, dict, Optional[str], bool], str],
-        cached: bool = True,
+        cached: bool = False,
     ) -> None:
         super().__init__(build_graph)
         self._build_dir = build_dir

@@ -146,7 +146,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
         given_build_layer = Mock()
         given_build_dir = "build_dir"
         default_build_strategy = DefaultBuildStrategy(
-            self.build_graph, given_build_dir, given_build_function, given_build_layer
+            self.build_graph, given_build_dir, given_build_function, given_build_layer, cached=True
         )
 
         default_build_strategy.build()
@@ -476,7 +476,7 @@ class TestIncrementalBuildStrategy(TestCase):
         self.build_layer = Mock()
         self.build_graph = Mock()
         self.delegate_build_strategy = DefaultBuildStrategy(
-            self.build_graph, Mock(), self.build_function, self.build_layer
+            self.build_graph, Mock(), self.build_function, self.build_layer, cached=True
         )
         self.build_strategy = IncrementalBuildStrategy(
             self.build_graph,
