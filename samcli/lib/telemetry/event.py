@@ -165,15 +165,12 @@ class EventTracker:
 
             telemetry = Telemetry()
 
-            try:
-                metric = Metric("events")
-                msa = {}
-                msa["events"] = [e.to_json() for e in EventTracker._events]
-                metric.add_data("metricSpecificAttributes", msa)
-                telemetry.emit(metric)
-                EventTracker._events = []  # Manual clear_trackers() since we're within the lock
-            except RuntimeError:
-                LOG.debug("Unable to find Click Context for getting session_id.")
+            metric = Metric("events")
+            msa = {}
+            msa["events"] = [e.to_json() for e in EventTracker._events]
+            metric.add_data("metricSpecificAttributes", msa)
+            telemetry.emit(metric)
+            EventTracker._events = []  # Manual clear_trackers() since we're within the lock
 
 
 class EventCreationError(Exception):

@@ -339,6 +339,18 @@ class TestTrackCommand(TestCase):
             "The command metrics be emitted when used as a decorator",
         )
 
+    @patch("samcli.lib.telemetry.event.EventTracker.send_events", return_value=None)
+    @patch("samcli.lib.telemetry.metric.Context")
+    def test_must_send_events(self, ContextMock, send_mock):
+        ContextMock.get_current_context.return_value = self.context_mock
+
+        def real_fn():
+            pass
+
+        track_command(real_fn)()
+
+        send_mock.assert_called()
+
 
 class TestParameterCapture(TestCase):
     def setUp(self):

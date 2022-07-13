@@ -98,8 +98,8 @@ class TestEventTracker(TestCase):
     def test_events_get_sent(self, telemetry_mock):
         # Create fake emit to capture tracked events
         dummy_telemetry = Mock()
-        tracked_events = []
-        mock_emit = lambda x: tracked_events.append(x)
+        emitted_events = []
+        mock_emit = lambda x: emitted_events.append(x)
         dummy_telemetry.emit.return_value = None
         dummy_telemetry.emit.side_effect = mock_emit
         telemetry_mock.return_value = dummy_telemetry
@@ -107,7 +107,7 @@ class TestEventTracker(TestCase):
         # Verify that no events are sent if tracker is empty
         EventTracker.send_events()
 
-        self.assertEqual(tracked_events, [])  # No events should have been collected
+        self.assertEqual(emitted_events, [])  # No events should have been collected
         dummy_telemetry.emit.assert_not_called()  # Nothing should have been sent (empty list)
 
         # Verify that events get sent when they exist in tracker
@@ -120,8 +120,8 @@ class TestEventTracker(TestCase):
         EventTracker.send_events()
 
         dummy_telemetry.emit.assert_called()
-        self.assertEqual(len(tracked_events), 1)  # The list of metrics (1) is copied into tracked_events
-        metric_data = tracked_events[0].get_data()
+        self.assertEqual(len(emitted_events), 1)  # The list of metrics (1) is copied into emitted_events
+        metric_data = emitted_events[0].get_data()
         expected_data = {
             "requestId": ANY,
             "installationId": ANY,
@@ -141,7 +141,6 @@ class TestEventTracker(TestCase):
                 ]
             },
         }
-        print(metric_data)
         self.assertEqual(len(metric_data["metricSpecificAttributes"]["events"]), 1)  # There is one event captured
         self.assertEqual(metric_data, expected_data)
         self.assertEqual(len(EventTracker._events), 0)  # Events should have been sent and cleared
@@ -149,10 +148,9 @@ class TestEventTracker(TestCase):
     @patch(
         "samcli.lib.telemetry.event.EventTracker.send_events",
         return_value=None,
-        side_effect=EventTracker.clear_trackers,
     )
     @patch("samcli.lib.telemetry.event.Event")
-    def test_send_events_when_capacity_reached(self, event_mock, send_mock):
+    def test_track_event_events_sent_when_capacity_reached(self, event_mock, send_mock):
         # Create dummy Event creator to bypass verification
         def make_mock_event(name, value):
             dummy = Mock(event_name=Mock(value=name), event_value=value, thread_id=ANY, time_stamp=ANY)
@@ -172,4 +170,3 @@ class TestEventTracker(TestCase):
         EventTracker.track_event("TheStrawThat", "BreaksTheCamel'sBack")
 
         send_mock.assert_called()
-        self.assertEqual(len(EventTracker._events), 0)  # List of events is reset upon hitting capacity
