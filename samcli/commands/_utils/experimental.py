@@ -44,8 +44,8 @@ class ExperimentalFlag:
 
     All = ExperimentalEntry("experimentalAll", EXPERIMENTAL_ENV_VAR_PREFIX + "FEATURES")
     Esbuild = ExperimentalEntry("experimentalEsbuild", EXPERIMENTAL_ENV_VAR_PREFIX + "ESBUILD")
-    BuildImprovementsMay22 = ExperimentalEntry(
-        "experimentalBuildImprovementsMay22", EXPERIMENTAL_ENV_VAR_PREFIX + "BUILD_IMPROVEMENTS_MAY_22"
+    BuildImprovements22 = ExperimentalEntry(
+        "experimentalBuildImprovements22", EXPERIMENTAL_ENV_VAR_PREFIX + "BUILD_IMPROVEMENTS_22"
     )
 
 

@@ -363,7 +363,7 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
     @patch("samcli.lib.build.build_strategy.osutils.copytree")
     @patch("samcli.lib.build.build_strategy.pathlib.Path.exists")
     @patch("samcli.lib.build.build_strategy.dir_checksum")
-    @patch("samcli.lib.build.build_strategy.os")
+    @patch("samcli.lib.utils.osutils.os")
     @patch("samcli.lib.build.build_strategy.is_experimental_enabled")
     def test_if_cached_valid_when_build_single_function_definition_with_build_improvements_may_22(
         self, should_raise_os_error, patch_is_experimental, patch_os, dir_checksum_mock, exists_mock, copytree_mock
@@ -390,6 +390,7 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
             func1.name = "func1_name"
             func1.full_path = "func1_full_path"
             func1.inlinecode = None
+            func1.get_build_dir.return_value = "func1/build/dir"
             func2 = Mock()
             func2.name = "func2_name"
             func2.full_path = "func2_full_path"
@@ -401,6 +402,7 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
             layer = Mock()
             layer.name = "layer_name"
             layer.full_path = "layer_full_path"
+            layer.get_build_dir.return_value = "layer/build/dir"
             build_graph.put_layer_build_definition(layer_definition, layer)
             cached_build_strategy.build_single_function_definition(build_definition)
             cached_build_strategy.build_single_layer_definition(layer_definition)
@@ -424,13 +426,15 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
                     [
                         call(
                             cache_dir.joinpath(build_graph.get_function_build_definitions()[0].uuid),
-                            build_graph.get_function_build_definitions()[0].functions[0].get_build_dir(build_dir),
-                            target_is_directory=True,
+                            Path(
+                                build_graph.get_function_build_definitions()[0].functions[0].get_build_dir(build_dir)
+                            ).absolute(),
                         ),
                         call(
                             cache_dir.joinpath(build_graph.get_layer_build_definitions()[0].uuid),
-                            build_graph.get_layer_build_definitions()[0].layer.get_build_dir(build_dir),
-                            target_is_directory=True,
+                            Path(
+                                build_graph.get_layer_build_definitions()[0].layer.get_build_dir(build_dir)
+                            ).absolute(),
                         ),
                     ]
                 )

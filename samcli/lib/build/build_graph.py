@@ -627,7 +627,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         """
         self._validate_functions()
         build_dir = self.functions[0].get_build_dir(artifact_root_dir)
-        if is_experimental_enabled(ExperimentalFlag.BuildImprovementsMay22) and len(self.functions) > 1:
+        if is_experimental_enabled(ExperimentalFlag.BuildImprovements22) and len(self.functions) > 1:
             build_dir = f"{build_dir}-Shared"
         return build_dir
 
