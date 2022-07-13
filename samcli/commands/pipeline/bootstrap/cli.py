@@ -117,10 +117,7 @@ LOG = logging.getLogger(__name__)
 )
 @click.option(
     "--oidc-provider-url",
-    help="The URL of the OIDC provider. "
-    "Github Actions: https://token.actions.githubusercontent.com "
-    "GitLab: https//:<GITLAB INSTANCE> "
-    "Bitbucket: https://bitbucket.org/<WORKSPACE>/<REPOSITORY>/admin/addon/admin/pipelines/openid-connect",
+    help="The URL of the OIDC provider.",
     required=False,
 )
 @click.option("--oidc-client-id", help="The client ID configured to use with the OIDC provider.", required=False)
@@ -161,7 +158,7 @@ LOG = logging.getLogger(__name__)
 )
 @click.option(
     "--bitbucket-repo-uuid",
-    help="The UUID of the Bitbucket Repository. Only used if using Bitbucket OIDC for permissions. "
+    help="The UUID of the Bitbucket repository. Only used if using Bitbucket OIDC for permissions. "
     "Found at https://bitbucket.org/<WORKSPACE>/<REPOSITORY>/admin/addon/admin/pipelines/openid-connect",
     required=False,
 )
