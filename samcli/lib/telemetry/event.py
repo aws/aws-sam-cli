@@ -159,20 +159,21 @@ class EventTracker:
         """Sends the current list of events via Telemetry."""
         from samcli.lib.telemetry.metric import Metric  # pylint: disable=cyclic-import
 
-        if not EventTracker.get_tracked_events():  # Don't do anything if there are no events to send
-            return
+        with EventTracker._event_lock:
+            if not EventTracker._events:  # Don't do anything if there are no events to send
+                return
 
-        telemetry = Telemetry()
+            telemetry = Telemetry()
 
-        try:
-            metric = Metric("events")
-            msa = {}
-            msa["events"] = [e.to_json() for e in EventTracker.get_tracked_events()]
-            metric.add_data("metricSpecificAttributes", msa)
-            telemetry.emit(metric)
-            EventTracker.clear_trackers()
-        except RuntimeError:
-            LOG.debug("Unable to find Click Context for getting session_id.")
+            try:
+                metric = Metric("events")
+                msa = {}
+                msa["events"] = [e.to_json() for e in EventTracker._events]
+                metric.add_data("metricSpecificAttributes", msa)
+                telemetry.emit(metric)
+                EventTracker._events = []  # Manual clear_trackers() since we're within the lock
+            except RuntimeError:
+                LOG.debug("Unable to find Click Context for getting session_id.")
 
 
 class EventCreationError(Exception):
