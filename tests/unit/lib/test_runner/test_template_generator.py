@@ -302,3 +302,11 @@ class Test_TemplateGenerator(TestCase):
         )
 
         self.assertEqual(result, expected_result)
+
+    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
+    def test_unexpected_tag_api_response(self, query_tagging_api_patch):
+
+        query_tagging_api_patch.return_value = None
+
+        with self.assertRaises(TestRunnerTemplateGenerationException):
+            generate_test_runner_template_string(**self.test_params)

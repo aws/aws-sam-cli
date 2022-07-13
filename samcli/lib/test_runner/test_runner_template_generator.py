@@ -119,8 +119,6 @@ def _create_iam_statment_string(resource_arn: str) -> dict:
         action_list=[], arn=resource_arn
     )
 
-    return default_permissions_map
-
 
 def _query_tagging_api(tag_filters: dict, boto_client_provider: BotoProviderType) -> Union[dict, None]:
     """
@@ -152,9 +150,11 @@ def _query_tagging_api(tag_filters: dict, boto_client_provider: BotoProviderType
 
         See # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/error-handling.html#parsing-error-responses-and-catching-exceptions-from-aws-services
     """
-    return boto_client_provider("resourcegroupstaggingapi").get_resources(TagFilters=tag_filters)[
-        "ResourceTagMappingList"
-    ]
+    return (
+        boto_client_provider("resourcegroupstaggingapi")
+        .get_resources(TagFilters=tag_filters)
+        .get("ResourceTagMappingList")
+    )
 
 
 def _generate_statement_string(tag_filters: dict, boto_client_provider: BotoProviderType) -> Union[str, None]:
@@ -186,6 +186,11 @@ def _generate_statement_string(tag_filters: dict, boto_client_provider: BotoProv
         If the specified tag does not match any resources.
     """
     resource_tag_mapping_list = _query_tagging_api(tag_filters, boto_client_provider)
+
+    if resource_tag_mapping_list is None:
+        raise KeyError(
+            "Got unexpected response from resource group tagging api. Response did not contain `ResourceTagMappingList` key."
+        )
 
     if len(resource_tag_mapping_list) == 0:
         raise KeyError(f"No resources match the tag: {tag_filters}, cannot generate any IAM permissions.")
