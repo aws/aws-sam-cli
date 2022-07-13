@@ -12,7 +12,7 @@ from pathlib import Path, WindowsPath
 from parameterized import parameterized
 
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
-from samcli.lib.providers.provider import ResourcesToBuildCollector, Function, LayerVersion
+from samcli.lib.providers.provider import ResourcesToBuildCollector, Function
 from samcli.lib.build.app_builder import (
     ApplicationBuilder,
     UnsupportedBuilderLibraryVersionError,
