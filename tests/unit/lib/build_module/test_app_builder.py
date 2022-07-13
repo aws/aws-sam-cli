@@ -508,7 +508,7 @@ class TestApplicationBuilder_build(TestCase):
         builder.build()
 
         builder._build_function.assert_called_with(
-            "name", "codeuri", ZIP, "runtime", X86_64, "handler", "builddir/name", {}, {}, None, True
+            "name", "codeuri", ZIP, "runtime", X86_64, "handler", str(Path("builddir/name")), {}, {}, None, True
         )
 
 
