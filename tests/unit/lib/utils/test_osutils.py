@@ -103,7 +103,6 @@ class Test_rmtree_if_exists(TestCase):
 
 
 class Test_create_symlink_or_copy(TestCase):
-
     @patch("samcli.lib.utils.osutils.Path")
     @patch("samcli.lib.utils.osutils.os")
     @patch("samcli.lib.utils.osutils.copytree")
@@ -113,8 +112,7 @@ class Test_create_symlink_or_copy(TestCase):
         osutils.create_symlink_or_copy(source_path, destination_path)
 
         pathced_os.symlink.assert_called_with(
-            patched_path(source_path).absolute(),
-            patched_path(destination_path).absolute()
+            patched_path(source_path).absolute(), patched_path(destination_path).absolute()
         )
         patched_copy_tree.assert_not_called()
 

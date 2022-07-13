@@ -1448,13 +1448,10 @@ class TestBuildWithBuildMethod(BuildIntegBase):
     "Skip build tests on windows when running in CI unless overridden",
 )
 # remove following parameterized_class when BuildImprovements22 experimental flag is removed
-@parameterized_class(
-    ("beta_features",),
-    [(True,), (False,)]
-)
+@parameterized_class(("beta_features",), [(True,), (False,)])
 class TestBuildWithDedupBuilds(DedupBuildIntegBase):
     template = "dedup-functions-template.yaml"
-    beta_features = False # parameterized
+    beta_features = False  # parameterized
 
     @parameterized.expand(
         [
@@ -1556,13 +1553,10 @@ class TestBuildWithDedupImageBuilds(DedupBuildIntegBase):
     "Skip build tests on windows when running in CI unless overridden",
 )
 # remove following parameterized_class when BuildImprovements22 experimental flag is removed
-@parameterized_class(
-    ("beta_features",),
-    [(True,), (False,)]
-)
+@parameterized_class(("beta_features",), [(True,), (False,)])
 class TestBuildWithDedupBuildsMakefile(DedupBuildIntegBase):
     template = "dedup-functions-makefile-template.yaml"
-    beta_features = False # parameterized
+    beta_features = False  # parameterized
 
     @pytest.mark.flaky(reruns=3)
     def test_dedup_build_makefile(self):
@@ -1592,13 +1586,10 @@ class TestBuildWithDedupBuildsMakefile(DedupBuildIntegBase):
     "Skip build tests on windows when running in CI unless overridden",
 )
 # remove following parameterized_class when BuildImprovements22 experimental flag is removed
-@parameterized_class(
-    ("beta_features",),
-    [(True,), (False,)]
-)
+@parameterized_class(("beta_features",), [(True,), (False,)])
 class TestBuildWithCacheBuilds(CachedBuildIntegBase):
     template = "dedup-functions-template.yaml"
-    beta_features = False # parameterized
+    beta_features = False  # parameterized
 
     @parameterized.expand(
         [
@@ -1778,13 +1769,10 @@ class TestRepeatedBuildHitsCache(BuildIntegBase):
     "Skip build tests on windows when running in CI unless overridden",
 )
 # remove following parameterized_class when BuildImprovements22 experimental flag is removed
-@parameterized_class(
-    ("beta_features",),
-    [(True,), (False,)]
-)
+@parameterized_class(("beta_features",), [(True,), (False,)])
 class TestParallelBuilds(DedupBuildIntegBase):
     template = "dedup-functions-template.yaml"
-    beta_features = False # parameterized
+    beta_features = False  # parameterized
 
     @parameterized.expand(
         [
@@ -1849,13 +1837,10 @@ class TestParallelBuilds(DedupBuildIntegBase):
     "Skip build tests on windows when running in CI unless overridden",
 )
 # remove following parameterized_class when BuildImprovements22 experimental flag is removed
-@parameterized_class(
-    ("beta_features",),
-    [(True,), (False,)]
-)
+@parameterized_class(("beta_features",), [(True,), (False,)])
 class TestParallelBuildsJavaWithLayers(DedupBuildIntegBase):
     template = "template-java-maven-with-layers.yaml"
-    beta_features = False # parameterized
+    beta_features = False  # parameterized
 
     @pytest.mark.flaky(reruns=3)
     def test_dedup_build(self):

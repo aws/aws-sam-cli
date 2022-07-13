@@ -782,9 +782,13 @@ class DedupBuildIntegBase(BuildIntegBase):
         self.assertIn(function_logical_id, template_dict.get("Resources", {}).keys())
 
         # confirm build folder for the function exist in the build directory
-        built_folder = template_dict.get("Resources", {}).get(function_logical_id, {}).get("Properties", {}).get("CodeUri")
+        built_folder = (
+            template_dict.get("Resources", {}).get(function_logical_id, {}).get("Properties", {}).get("CodeUri")
+        )
         if not built_folder:
-            built_folder = template_dict.get("Resources", {}).get(function_logical_id, {}).get("Properties", {}).get("ContentUri")
+            built_folder = (
+                template_dict.get("Resources", {}).get(function_logical_id, {}).get("Properties", {}).get("ContentUri")
+            )
         self.assertIn(built_folder, build_dir_files)
 
     def _verify_process_code_and_output(self, command_result):
