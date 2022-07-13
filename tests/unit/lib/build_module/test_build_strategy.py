@@ -232,7 +232,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
         )
 
         build_result = default_build_strategy.build()
-        # with May 22 release improvements, functions with same build definitions should point to same artifact folder
+        # with 22 build improvements, functions with same build definitions should point to same artifact folder
         self.assertEqual(
             build_result.get(self.function_build_definition1.functions[0].full_path),
             build_result.get(self.function_build_definition1.functions[1].full_path),
@@ -365,7 +365,7 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
     @patch("samcli.lib.build.build_strategy.dir_checksum")
     @patch("samcli.lib.utils.osutils.os")
     @patch("samcli.lib.build.build_strategy.is_experimental_enabled")
-    def test_if_cached_valid_when_build_single_function_definition_with_build_improvements_may_22(
+    def test_if_cached_valid_when_build_single_function_definition_with_build_improvements_22(
         self, should_raise_os_error, patch_is_experimental, patch_os, dir_checksum_mock, exists_mock, copytree_mock
     ):
         patch_is_experimental.return_value = True
