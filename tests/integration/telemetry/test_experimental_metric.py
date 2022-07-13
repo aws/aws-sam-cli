@@ -151,10 +151,7 @@ class TestExperimentalMetric(IntegBase):
 
             all_requests = server.get_all_requests()
             self.assertGreaterEqual(len(all_requests), 1, "Command run metric must be sent")
-            request = None
-            for req in all_requests:
-                print(req["data"])
-                request = req if "commandRun" in req["data"]["metrics"][0].keys() else all_requests[-1]
+            request = all_requests[-1]  # commandRun metric is last bc of ordering 'send_events' vs 'telemetry.emit'
             self.assertIn("Content-Type", request["headers"])
             self.assertEqual(request["headers"]["Content-Type"], "application/json")
 

@@ -166,7 +166,7 @@ def track_command(func):
             metric.add_data("duration", duration_fn())
             metric.add_data("exitReason", exit_reason)
             metric.add_data("exitCode", exit_code)
-            EventTracker.send_events()
+            EventTracker.send_events()  # Sends Event metrics to Telemetry before commandRun metrics
             telemetry.emit(metric)
         except RuntimeError:
             LOG.debug("Unable to find Click Context for getting session_id.")
