@@ -347,7 +347,8 @@ class LocalApigwService(BaseLocalService):
                     self.api.stage_variables,
                     None,
                 )
-        except UnicodeDecodeError:
+        except UnicodeDecodeError as error:
+            LOG.error("UnicodeDecodeError while processing HTTP request: %s", error)
             return ServiceErrorResponses.lambda_failure_response()
 
         stdout_stream = io.BytesIO()

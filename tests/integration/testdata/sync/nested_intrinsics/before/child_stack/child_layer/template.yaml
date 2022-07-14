@@ -5,7 +5,6 @@ Resources:
   HelloWorldLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: HelloWorldLayer
       Description: Hello World Layer
       ContentUri: layer/
       CompatibleRuntimes:

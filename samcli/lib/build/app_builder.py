@@ -186,7 +186,7 @@ class ApplicationBuilder:
         """
         build_graph = self._get_build_graph(self._container_env_var, self._container_env_var_file)
         build_strategy: BuildStrategy = DefaultBuildStrategy(
-            build_graph, self._build_dir, self._build_function, self._build_layer
+            build_graph, self._build_dir, self._build_function, self._build_layer, self._cached
         )
 
         if self._parallel:
@@ -201,6 +201,7 @@ class ApplicationBuilder:
                         self._cache_dir,
                         self._manifest_path_override,
                         self._is_building_specific_resource,
+                        bool(self._container_manager),
                     ),
                 )
             else:
@@ -214,6 +215,7 @@ class ApplicationBuilder:
                 self._cache_dir,
                 self._manifest_path_override,
                 self._is_building_specific_resource,
+                bool(self._container_manager),
             )
 
         return ApplicationBuildResult(build_graph, build_strategy.build())
