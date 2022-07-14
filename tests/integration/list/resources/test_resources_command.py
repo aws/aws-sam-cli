@@ -41,46 +41,28 @@ class TestResources(DeployIntegBase, ResourcesIntegBase):
         )
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertIn(
-            """{
-    "LogicalResourceId": "HelloWorldFunction",
-    "PhysicalResourceId": "-"
-  }""",
+            """{\n    "LogicalResourceId": "HelloWorldFunction",\n    "PhysicalResourceId": "-"\n  }""",
             command_result.stdout.decode(),
         )
         self.assertIn(
-            """{
-    "LogicalResourceId": "HelloWorldFunctionRole",
-    "PhysicalResourceId": "-"
-  }""",
+            """{\n    "LogicalResourceId": "HelloWorldFunctionRole",\n    "PhysicalResourceId": "-"\n  }""",
             command_result.stdout.decode(),
         )
         self.assertIn(
-            """{
-    "LogicalResourceId": "HelloWorldFunctionHelloWorldPermissionProd",
-    "PhysicalResourceId": "-"
-  }""",
+            """{\n    "LogicalResourceId": "HelloWorldFunctionHelloWorldPermissionProd",\n    "PhysicalResourceId": "-"\n  }""",
             command_result.stdout.decode(),
         )
         self.assertIn(
-            """{
-    "LogicalResourceId": "ServerlessRestApi",
-    "PhysicalResourceId": "-"
-  }""",
+            """{\n    "LogicalResourceId": "ServerlessRestApi",\n    "PhysicalResourceId": "-"\n  }""",
             command_result.stdout.decode(),
         )
         self.assertIn(
-            """{
-    "LogicalResourceId": "ServerlessRestApiProdStage",
-    "PhysicalResourceId": "-"
-  }""",
+            """{\n    "LogicalResourceId": "ServerlessRestApiProdStage",\n    "PhysicalResourceId": "-"\n  }""",
             command_result.stdout.decode(),
         )
         self.assertTrue(
             re.search(
-                """{
-    "LogicalResourceId": "ServerlessRestApiDeployment.*",
-    "PhysicalResourceId": "-"
-  }""",
+                """{\n    "LogicalResourceId": "ServerlessRestApiDeployment.*",\n    "PhysicalResourceId": "-"\n  }""",
                 command_result.stdout.decode(),
             )
         )
@@ -119,55 +101,37 @@ class TestResources(DeployIntegBase, ResourcesIntegBase):
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertTrue(
             re.search(
-                """{
-    "LogicalResourceId": "HelloWorldFunction",
-    "PhysicalResourceId": ".*HelloWorldFunction.*"
-  }""",
+                """{\n    "LogicalResourceId": "HelloWorldFunction",\n    "PhysicalResourceId": ".*HelloWorldFunction.*"\n  }""",
                 command_result.stdout.decode(),
             )
         )
         self.assertTrue(
             re.search(
-                """{
-    "LogicalResourceId": "HelloWorldFunctionRole",
-    "PhysicalResourceId": ".*HelloWorldFunctionRole.*"
-  }""",
+                """{\n    "LogicalResourceId": "HelloWorldFunctionRole",\n    "PhysicalResourceId": ".*HelloWorldFunctionRole.*"\n  }""",
                 command_result.stdout.decode(),
             )
         )
         self.assertTrue(
             re.search(
-                """{
-    "LogicalResourceId": "HelloWorldFunctionHelloWorldPermissionProd",
-    "PhysicalResourceId": ".*HelloWorldFunctionHelloWorldPermissionProd.*"
-  }""",
+                """{\n    "LogicalResourceId": "HelloWorldFunctionHelloWorldPermissionProd",\n    "PhysicalResourceId": ".*HelloWorldFunctionHelloWorldPermissionProd.*"\n  }""",
                 command_result.stdout.decode(),
             )
         )
         self.assertTrue(
             re.search(
-                """{
-    "LogicalResourceId": "ServerlessRestApi",
-    "PhysicalResourceId": ".*"
-  }""",
+                """{\n    "LogicalResourceId": "ServerlessRestApi",\n    "PhysicalResourceId": ".*"\n  }""",
                 command_result.stdout.decode(),
             )
         )
         self.assertTrue(
             re.search(
-                """{
-    "LogicalResourceId": "ServerlessRestApiProdStage",
-    "PhysicalResourceId": ".*"
-  }""",
+                """{\n    "LogicalResourceId": "ServerlessRestApiProdStage",\n    "PhysicalResourceId": ".*"\n  }""",
                 command_result.stdout.decode(),
             )
         )
         self.assertTrue(
             re.search(
-                """{
-    "LogicalResourceId": "ServerlessRestApiDeployment.*",
-    "PhysicalResourceId": ".*"
-  }""",
+                """{\n    "LogicalResourceId": "ServerlessRestApiDeployment.*",\n    "PhysicalResourceId": ".*"\n  }""",
                 command_result.stdout.decode(),
             )
         )
