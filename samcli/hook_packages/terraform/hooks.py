@@ -9,12 +9,15 @@ from subprocess import run, CalledProcessError
 from tempfile import NamedTemporaryFile
 from typing import Any, Callable, Dict, List, Optional, Union
 import hashlib
-from samcli.lib.hook.exceptions import PrepareHookException
+import logging
 
+from samcli.lib.hook.exceptions import PrepareHookException
 from samcli.lib.utils.hash import str_checksum
 from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
 )
+
+LOG = logging.getLogger(__name__)
 
 TF_AWS_LAMBDA_FUNCTION = "aws_lambda_function"
 PROVIDER_NAME = "registry.terraform.io/hashicorp/aws"
@@ -114,12 +117,13 @@ def _translate_to_cfn(tf_json: dict) -> dict:
         # iterate over resources for current module
         resources = curr_module.get("resources", {})
         for resource in resources:
-            provider = resource.get("provider_name")
+            resource_provider = resource.get("provider_name")
             resource_type = resource.get("type")
             resource_values = resource.get("values")
+            resource_address = resource.get("address")
 
             # only process supported provider
-            if provider != PROVIDER_NAME:
+            if resource_provider != PROVIDER_NAME:
                 continue
 
             # store S3 sources
@@ -131,22 +135,27 @@ def _translate_to_cfn(tf_json: dict) -> dict:
             # resource type not supported
             if not resource_translator:
                 continue
+
             # translate TF resource "values" to CFN properties
+            LOG.debug("Translating resource: %s", resource_address)
             translated_properties = _translate_properties(resource_values, resource_translator.property_builder_mapping)
-
-            # build CFN logical ID from resource address
-            resource_address = resource.get("address")
-            logical_id = _build_cfn_logical_id(resource_address)
-
-            # Add resource to cfn dict
-            cfn_dict["Resources"][logical_id] = {
+            translated_resource = {
                 "Type": resource_translator.cfn_name,
                 "Properties": translated_properties,
                 "Metadata": {"SamResourceId": resource_address, "SkipBuild": True},
             }
+            LOG.debug("Translated resource: %s", translated_resource)
 
-    # map s3 object sources to respective functions
+            # build CFN logical ID from resource address
+            logical_id = _build_cfn_logical_id(resource_address)
+
+            # Add resource to cfn dict
+            cfn_dict["Resources"][logical_id] = translated_resource
+
+    # map s3 object sources to corresponding functions
+    LOG.debug("Mapping S3 object sources to corresponding functions")
     _map_s3_sources_to_functions(s3_hash_to_source, cfn_dict["Resources"])
+    LOG.debug("Final translated CloudFormation: %s", cfn_dict)
 
     return cfn_dict
 
