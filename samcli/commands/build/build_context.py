@@ -1,6 +1,7 @@
 """
 Context object used by build command
 """
+from copy import deepcopy
 import logging
 import os
 import pathlib
@@ -265,6 +266,9 @@ class BuildContext:
                         stack, self._stack_name, self.build_dir, modified_template, build_result
                     )
                     modified_template = nested_stack_manager.generate_auto_dependency_layer_stack()
+
+                modified_template = self._enable_source_maps(modified_template)
+
                 move_template(stack.location, output_template_path, modified_template)
 
             click.secho("\nBuild Succeeded", fg="green")
@@ -306,6 +310,91 @@ class BuildContext:
             deep_wrap = getattr(ex, "wrapped_from", None)
             wrapped_from = deep_wrap if deep_wrap else ex.__class__.__name__
             raise UserException(str(ex), wrapped_from=wrapped_from) from ex
+
+    def _enable_source_maps(self, old_template: Dict) -> Dict:
+        """
+        Appends the --enable-source-maps NODE_OPTIONS if Sourcemap is set to true and vice versa
+
+        template: Dict
+            The old template template
+        returns: Dict
+            The new template with function level NODE_OPTIONS set
+        """
+        new_template = deepcopy(old_template)
+        resources = old_template.get("Resources", {})
+
+        global_node_option = self._is_enable_source_map_set(template=old_template)
+        using_source_maps = global_node_option
+
+        for name, resource in resources.items():
+            metadata = resource.get("Metadata", {})
+
+            if metadata.get("BuildMethod", "") != "esbuild":
+                continue
+
+            function_node_option = self._is_enable_source_map_set(function=resource)
+
+            # check if Sourcemap is provided and append --enable-source-map if not set
+            build_properties = metadata.get("BuildProperties", {})
+            source_map = build_properties.get("Sourcemap", None)
+
+            if source_map and not (function_node_option or global_node_option):
+                LOG.debug("Sourcemap set without --enable-source-maps, adding")
+
+                new_template_properties = new_template["Resources"][name]["Properties"]
+
+                new_template_properties.setdefault("Environment", {})
+                new_template_properties["Environment"].setdefault("Variables", {})
+                existing_options = new_template_properties["Environment"]["Variables"].setdefault("NODE_OPTIONS", "")
+                new_template_properties["Environment"]["Variables"]["NODE_OPTIONS"] = "".join(
+                    [existing_options, "--enable-source-maps"]
+                )
+
+                using_source_maps = True
+
+            # check if --enable-source-map is provided and append Sourcemap: true if it is not set
+            if (global_node_option or function_node_option) and source_map is None:
+                LOG.debug("--enable-source-maps set without Sourcemap, adding")
+
+                new_template_metadata = new_template["Resources"][name]
+
+                new_template_metadata.setdefault("Metadata", {})
+                new_template_metadata["Metadata"].setdefault("BuildProperties", {})
+                new_template_metadata["Metadata"]["BuildProperties"]["Sourcemap"] = True
+
+                using_source_maps = True
+
+        if using_source_maps:
+            click.secho(
+                "\nYou are using source maps, note that this comes with a performance hit!"
+                " Remove Sourcemap: true or set it to false, or remove"
+                " NODE_OPTIONS: --enable-source-maps to disable source maps.",
+                fg="yellow",
+            )
+
+        return new_template
+
+    @staticmethod
+    def _is_enable_source_map_set(template: Optional[Dict] = None, function: Optional[Dict] = None) -> bool:
+        """
+        Checks if the template has NODE_OPTIONS --enable-source-maps set, one
+        of ``template`` or ``function`` must be provided.
+
+        template: Dict
+            The template to search
+        function: Dict
+            The function to search in
+        returns: bool
+        """
+        try:
+            if template:
+                node_options = template["Globals"]["Function"]["Environment"]["Variables"]["NODE_OPTIONS"]
+            elif function:
+                node_options = function["Properties"]["Environment"]["Variables"]["NODE_OPTIONS"]
+
+            return "--enable-source-maps" in node_options.split()
+        except KeyError:
+            return False
 
     @staticmethod
     def gen_success_msg(artifacts_dir: str, output_template_path: str, is_default_build_dir: bool) -> str:

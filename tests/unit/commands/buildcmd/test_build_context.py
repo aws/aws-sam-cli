@@ -636,8 +636,10 @@ class TestBuildContext__enter__(TestCase):
     @patch("samcli.commands.build.build_context.move_template")
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.os")
+    @patch("samcli.commands.build.build_context.BuildContext._enable_source_maps")
     def test_run_sync_build_context(
         self,
+        source_maps_mock,
         os_mock,
         get_template_data_mock,
         move_template_mock,
@@ -892,9 +894,11 @@ class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.move_template")
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.os")
+    @patch("samcli.commands.build.build_context.BuildContext._enable_source_maps")
     def test_run_build_context(
         self,
         auto_dependency_layer,
+        source_map_mock,
         os_mock,
         get_template_data_mock,
         move_template_mock,
@@ -946,6 +950,8 @@ class TestBuildContext_run(TestCase):
             modified_template_child,
         ]
         nested_stack_manager_mock.return_value = given_nested_stack_manager
+
+        source_map_mock.side_effect = [modified_template_root, modified_template_child]
 
         with BuildContext(
             resource_identifier="function_identifier",
