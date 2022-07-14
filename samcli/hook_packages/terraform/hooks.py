@@ -47,13 +47,13 @@ def prepare(params: dict) -> dict:
     dict
         information of the generated metadata files
     """
-    try:
-        output_dir_path = params.get("OutputDirPath")
-        if not output_dir_path:
-            raise PrepareHookException("OutputDirPath was not supplied")
+    output_dir_path = params.get("OutputDirPath")
+    if not output_dir_path:
+        raise PrepareHookException("OutputDirPath was not supplied")
 
+    try:
         # initialize terraform application
-        run(["terraform", "init", "-upgrade"], check=True, capture_output=True)
+        run(["terraform", "init"], check=True, capture_output=True)
 
         # get json output of terraform plan
         with NamedTemporaryFile() as temp_file:

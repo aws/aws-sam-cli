@@ -599,7 +599,7 @@ class TestPrepareHook(TestCase):
 
         mock_subprocess_run.assert_has_calls(
             [
-                call(["terraform", "init", "-upgrade"], check=True, capture_output=True),
+                call(["terraform", "init"], check=True, capture_output=True),
                 call(["terraform", "plan", "-out", tf_plan_filename], check=True, capture_output=True),
                 call(["terraform", "show", "-json", tf_plan_filename], check=True, capture_output=True),
             ]
@@ -610,7 +610,7 @@ class TestPrepareHook(TestCase):
 
     @patch("samcli.hook_packages.terraform.hooks.run")
     def test_prepare_with_called_process_error(self, mock_subprocess_run):
-        mock_subprocess_run.side_effect = CalledProcessError(-2, "terraform init -upgrade")
+        mock_subprocess_run.side_effect = CalledProcessError(-2, "terraform init")
         with self.assertRaises(PrepareHookException):
             prepare(self.prepare_params)
 
