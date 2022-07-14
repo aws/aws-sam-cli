@@ -9,6 +9,7 @@ import samcli
 
 from unittest import TestCase
 from unittest.mock import patch, Mock, ANY, call
+from samcli.lib.telemetry.event import EventTracker
 
 import samcli.lib.telemetry.metric
 from samcli.lib.telemetry.cicd import CICDPlatform
@@ -132,6 +133,7 @@ class TestTrackCommand(TestCase):
         GlobalConfigClassMock = Mock()
         self.telemetry_instance = TelemetryClassMock.return_value = Mock()
         self.gc_instance_mock = GlobalConfigClassMock.return_value = Mock()
+        EventTracker.clear_trackers()
 
         self.telemetry_class_patcher = patch("samcli.lib.telemetry.metric.Telemetry", TelemetryClassMock)
         self.gc_patcher = patch("samcli.lib.telemetry.metric.GlobalConfig", GlobalConfigClassMock)
