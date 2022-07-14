@@ -31,7 +31,7 @@ class TestPrepareHook(TestCase):
         self.tf_function_common_properties: dict = {
             "function_name": "myfunc",
             "architectures": ["x86_64"],
-            "environment": {"variables": {"foo": "bar", "hello": "world"}},
+            "environment": [{"variables": {"foo": "bar", "hello": "world"}}],
             "handler": "index.handler",
             "package_type": "Zip",
             "runtime": "python3.7",
@@ -82,7 +82,7 @@ class TestPrepareHook(TestCase):
         self.tf_zip_function_properties_2: dict = {
             "function_name": "myfunc2",
             "architectures": ["x86_64"],
-            "environment": {"variables": {"hi": "there"}},
+            "environment": [{"variables": {"hi": "there"}}],
             "handler": "index.handler2",
             "package_type": "Zip",
             "runtime": "python3.8",

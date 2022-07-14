@@ -210,7 +210,11 @@ def _build_lambda_function_environment_property(tf_properties: dict) -> Optional
     environment = tf_properties.get("environment")
     if not environment:
         return None
-    return {"Variables": environment.get("variables")}
+
+    for env in environment:
+        variables = env.get("variables")
+        if variables:
+            return {"Variables": variables}
 
 
 def _build_lambda_function_code_property(tf_properties: dict) -> dict:
