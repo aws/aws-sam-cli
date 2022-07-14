@@ -81,7 +81,7 @@ class TestResources(DeployIntegBase, ResourcesIntegBase):
     "LogicalResourceId": "ServerlessRestApiDeployment.*",
     "PhysicalResourceId": "-"
   }""",
-                command_result.stdout.decode(),
+            command_result.stdout.decode(),
             )
         )
 

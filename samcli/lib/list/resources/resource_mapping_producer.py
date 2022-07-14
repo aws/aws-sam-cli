@@ -16,6 +16,7 @@ from samcli.commands.list.exceptions import (
     StackDoesNotExistInRegionError,
     SamListUnknownBotoCoreError,
 )
+
 from samcli.lib.list.list_interfaces import Producer
 from samcli.lib.list.resources.resources_def import ResourcesDef
 from samcli.lib.translate.sam_template_validator import SamTemplateValidator
