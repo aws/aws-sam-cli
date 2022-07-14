@@ -2,8 +2,8 @@
 from subprocess import CalledProcessError
 from unittest import TestCase
 from unittest.mock import Mock, call, patch
-from parameterized import parameterized
 import copy
+from parameterized import parameterized
 
 from samcli.hook_packages.terraform.hooks.prepare import (
     AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING,
