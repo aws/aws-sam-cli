@@ -45,7 +45,7 @@ SHORT_HELP = "Deploy an AWS SAM application."
 HELP_TEXT = """The sam deploy command creates a Cloudformation Stack and deploys your resources.
 
 \b
-Set SAM_CLI_POLL_DELAY Environment Vairable with a value of seconds in your shell to configure 
+Set SAM_CLI_POLL_DELAY Environment Variable with a value of seconds in your shell to configure 
 how often SAM CLI checks the Stack state, which is useful when seeing throttling from CloudFormation.
 
 \b
@@ -109,7 +109,7 @@ LOG = logging.getLogger(__name__)
     help="Preserves the state of previously provisioned resources when an operation fails.",
 )
 @stack_name_option(callback=guided_deploy_stack_name)  # pylint: disable=E1120
-@s3_bucket_option(guided=True)  # pylint: disable=E1120
+@s3_bucket_option(disable_callback=True)  # pylint: disable=E1120
 @image_repository_option
 @image_repositories_option
 @force_upload_option
