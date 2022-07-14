@@ -7,7 +7,7 @@ import json
 import os
 from subprocess import run, CalledProcessError
 from tempfile import NamedTemporaryFile
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional
 import hashlib
 import logging
 
@@ -225,8 +225,11 @@ def _build_lambda_function_environment_property(tf_properties: dict) -> Optional
         if variables:
             return {"Variables": variables}
 
+    # no variables
+    return None
 
-def _build_lambda_function_code_property(tf_properties: dict) -> Union[str, dict]:
+
+def _build_lambda_function_code_property(tf_properties: dict) -> Any:
     """
     Builds the Code property of a CloudFormation AWS Lambda Function out of the
     properties of the equivalent terraform resource
