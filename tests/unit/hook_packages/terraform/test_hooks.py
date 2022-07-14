@@ -3,10 +3,12 @@ from subprocess import CalledProcessError
 from unittest import TestCase
 from unittest.mock import Mock, call, patch
 from parameterized import parameterized
+import copy
 
 from samcli.hook_packages.terraform.hooks import (
     AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING,
     PROVIDER_NAME,
+    prepare,
     _get_s3_object_hash,
     _build_cfn_logical_id,
     _get_property_extractor,
@@ -15,7 +17,6 @@ from samcli.hook_packages.terraform.hooks import (
     _translate_properties,
     _translate_to_cfn,
     _map_s3_sources_to_functions,
-    TerraformHooks,
 )
 from samcli.lib.hook.exceptions import PrepareHookException
 from samcli.lib.utils.resources import (
@@ -482,29 +483,29 @@ class TestPrepareHook(TestCase):
         )
         self.assertEqual(translated_cfn_properties, self.expected_cfn_function_properties_with_missing_or_none)
 
-    @patch("samcli.hook_packages.terraform.hooks.hashlib")
-    def test_map_s3_sources_to_functions(self, mock_hashlib):
-        mock_md5 = Mock()
-        mock_hashlib.md5.return_value = mock_md5
-        mock_md5.hexdigest.side_effect = ["hash1", "hash2"]
+    @patch("samcli.hook_packages.terraform.hooks._get_s3_object_hash")
+    def test_map_s3_sources_to_functions(self, mock_get_s3_object_hash):
+        mock_get_s3_object_hash.side_effect = ["hash1", "hash2"]
 
         s3_hash_to_source = {"hash1": "source1.zip", "hash2": "source2.zip"}
         cfn_resources = {
-            "s3Function1": self.expected_cfn_lambda_function_resource_s3,
-            "s3Function2": self.expected_cfn_lambda_function_resource_s3_2,
+            "s3Function1": copy.deepcopy(self.expected_cfn_lambda_function_resource_s3),
+            "s3Function2": copy.deepcopy(self.expected_cfn_lambda_function_resource_s3_2),
             "nonS3Function": self.expected_cfn_lambda_function_resource_zip,
         }
 
         expected_cfn_resources_after_mapping_s3_sources = {
             "s3Function1": {
                 **self.expected_cfn_lambda_function_resource_s3,
-                "Properties": {**self.expected_cfn_s3_function_properties, "Code": {"ZipFile": "source1.zip"}},
+                "Properties": {
+                    **self.expected_cfn_lambda_function_resource_s3["Properties"],
+                    "Code": {"ZipFile": "source1.zip"},
+                },
             },
             "s3Function2": {
                 **self.expected_cfn_lambda_function_resource_s3_2,
                 "Properties": {
-                    **self.expected_cfn_s3_function_properties,
-                    "FunctionName": self.expected_cfn_lambda_function_resource_s3_2["Properties"]["FunctionName"],
+                    **self.expected_cfn_lambda_function_resource_s3_2["Properties"],
                     "Code": {"ZipFile": "source2.zip"},
                 },
             },
@@ -512,6 +513,14 @@ class TestPrepareHook(TestCase):
         }
         _map_s3_sources_to_functions(s3_hash_to_source, cfn_resources)
 
+        s3Function1CodeBeforeMapping = self.expected_cfn_lambda_function_resource_s3["Properties"]["Code"]
+        s3Function2CodeBeforeMapping = self.expected_cfn_lambda_function_resource_s3_2["Properties"]["Code"]
+        mock_get_s3_object_hash.assert_has_calls(
+            [
+                call(s3Function1CodeBeforeMapping["S3Bucket"], s3Function1CodeBeforeMapping["S3Key"]),
+                call(s3Function2CodeBeforeMapping["S3Bucket"], s3Function2CodeBeforeMapping["S3Key"]),
+            ]
+        )
         self.assertEqual(cfn_resources, expected_cfn_resources_after_mapping_s3_sources)
 
     def test_translate_to_cfn_empty(self):
@@ -585,10 +594,8 @@ class TestPrepareHook(TestCase):
         mock_os.path.join.return_value = metadata_file_path
         mock_open.return_value.__enter__.return_value = mock_metadata_file
 
-        tf_hooks = TerraformHooks()
-
         expected_prepare_output_dict = {"iac_applications": {"MainApplication": {"metadata_file": metadata_file_path}}}
-        iac_prepare_output = tf_hooks.prepare(self.prepare_params)
+        iac_prepare_output = prepare(self.prepare_params)
 
         mock_subprocess_run.assert_has_calls(
             [
@@ -604,9 +611,8 @@ class TestPrepareHook(TestCase):
     @patch("samcli.hook_packages.terraform.hooks.run")
     def test_prepare_with_called_process_error(self, mock_subprocess_run):
         mock_subprocess_run.side_effect = CalledProcessError(-2, "terraform init -upgrade")
-        tf_hooks = TerraformHooks()
         with self.assertRaises(PrepareHookException):
-            tf_hooks.prepare(self.prepare_params)
+            prepare(self.prepare_params)
 
     @patch("samcli.hook_packages.terraform.hooks._translate_to_cfn")
     @patch("samcli.hook_packages.terraform.hooks.NamedTemporaryFile")
@@ -618,11 +624,9 @@ class TestPrepareHook(TestCase):
     ):
         mock_os.path.exists.return_value = False
         mock_os.mkdir.side_effect = OSError()
-        tf_hooks = TerraformHooks()
         with self.assertRaises(PrepareHookException):
-            tf_hooks.prepare(self.prepare_params)
+            prepare(self.prepare_params)
 
     def test_prepare_with_no_output_dir_path(self):
-        tf_hooks = TerraformHooks()
         with self.assertRaises(PrepareHookException, msg="OutputDirPath was not supplied"):
-            tf_hooks.prepare({})
+            prepare({})

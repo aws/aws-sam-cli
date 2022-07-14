@@ -1,5 +1,5 @@
 """
-Terraform hooks implementation
+Terraform hooks implementation module
 """
 
 from dataclasses import dataclass
@@ -10,7 +10,6 @@ from tempfile import NamedTemporaryFile
 from typing import Any, Callable, Dict, List, Optional
 import hashlib
 from samcli.lib.hook.exceptions import PrepareHookException
-from samcli.lib.hook.hooks import Hooks
 
 from samcli.lib.utils.hash import str_checksum
 from samcli.lib.utils.resources import (
@@ -32,6 +31,51 @@ PropertyBuilderMapping = Dict[str, PropertyBuilder]
 class ResourceTranslator:
     cfn_name: str
     property_builder_mapping: PropertyBuilderMapping
+
+
+def prepare(params: dict) -> dict:
+    """
+    Prepares a terraform application for use with the SAM CLI
+
+    Parameters
+    ----------
+    params: dict
+        Parameters of the IaC application
+
+    Returns
+    -------
+    dict
+        information of the generated metadata files
+    """
+    try:
+        output_dir_path = params.get("OutputDirPath")
+        if not output_dir_path:
+            raise PrepareHookException("OutputDirPath was not supplied")
+
+        # initialize terraform application
+        run(["terraform", "init", "-upgrade"], check=True, capture_output=True)
+
+        # get json output of terraform plan
+        with NamedTemporaryFile() as temp_file:
+            run(["terraform", "plan", "-out", temp_file.name], check=True, capture_output=True)
+            result = run(["terraform", "show", "-json", temp_file.name], check=True, capture_output=True)
+        tf_json = json.loads(result.stdout)
+
+        # convert terraform to cloudformation
+        cfn_dict = _translate_to_cfn(tf_json)
+
+        # store in supplied output dir
+        if not os.path.exists(output_dir_path):
+            os.mkdir(output_dir_path)
+        metadataFilePath = os.path.join(output_dir_path, "template.json")
+        with open(metadataFilePath, "w+") as metadata_file:
+            json.dump(cfn_dict, metadata_file)
+
+        return {"iac_applications": {"MainApplication": {"metadata_file": metadataFilePath}}}
+
+    except (CalledProcessError, OSError) as e:
+        # one of the subprocess.run calls resulted in non-zero exit code or some OS error
+        raise PrepareHookException("There was an error while preparing the Terraform application.") from e
 
 
 def _translate_to_cfn(tf_json: dict) -> dict:
@@ -292,56 +336,3 @@ def _map_s3_sources_to_functions(s3_hash_to_source: Dict[str, str], cfn_resource
                     code["ZipFile"] = source
                     del code["S3Bucket"]
                     del code["S3Key"]
-
-
-class TerraformHooks(Hooks):
-    """
-    Hooks implementation for Terraform
-    """
-
-    def __init__(self):
-        pass
-
-    def prepare(self, params: dict) -> dict:
-        """
-        Prepares a terraform application for use with the SAM CLI
-
-        Parameters
-        ----------
-        params: dict
-            Parameters of the IaC application
-
-        Returns
-        -------
-        dict
-            information of the generated metadata files
-        """
-        try:
-            output_dir_path = params.get("OutputDirPath")
-            if not output_dir_path:
-                raise PrepareHookException("OutputDirPath was not supplied")
-
-            # initialize terraform application
-            run(["terraform", "init", "-upgrade"], check=True, capture_output=True)
-
-            # get json output of terraform plan
-            with NamedTemporaryFile() as temp_file:
-                run(["terraform", "plan", "-out", temp_file.name], check=True, capture_output=True)
-                result = run(["terraform", "show", "-json", temp_file.name], check=True, capture_output=True)
-            tf_json = json.loads(result.stdout)
-
-            # convert terraform to cloudformation
-            cfn_dict = _translate_to_cfn(tf_json)
-
-            # store in supplied output dir
-            if not os.path.exists(output_dir_path):
-                os.mkdir(output_dir_path)
-            metadataFilePath = os.path.join(output_dir_path, "template.json")
-            with open(metadataFilePath, "w+") as metadata_file:
-                json.dump(cfn_dict, metadata_file)
-
-            return {"iac_applications": {"MainApplication": {"metadata_file": metadataFilePath}}}
-
-        except (CalledProcessError, OSError) as e:
-            # one of the subprocess.run calls resulted in non-zero exit code or some OS error
-            raise PrepareHookException("There was an error while preparing the Terraform application.") from e
