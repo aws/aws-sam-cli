@@ -1,11 +1,11 @@
-"""Test Terraform Hooks"""
+"""Test Terraform prepare hook"""
 from subprocess import CalledProcessError
 from unittest import TestCase
 from unittest.mock import Mock, call, patch
 from parameterized import parameterized
 import copy
 
-from samcli.hook_packages.terraform.hooks import (
+from samcli.hook_packages.terraform.hooks.prepare import (
     AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING,
     PROVIDER_NAME,
     prepare,
@@ -426,7 +426,7 @@ class TestPrepareHook(TestCase):
             ),
         ]
     )
-    @patch("samcli.hook_packages.terraform.hooks.str_checksum")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
     def test_build_cfn_logical_id(self, tf_address, expected_logical_id_human_part, checksum_mock):
         checksum_mock.return_value = self.mock_logical_id_hash
 
@@ -485,7 +485,7 @@ class TestPrepareHook(TestCase):
         )
         self.assertEqual(translated_cfn_properties, self.expected_cfn_function_properties_with_missing_or_none)
 
-    @patch("samcli.hook_packages.terraform.hooks._get_s3_object_hash")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_s3_object_hash")
     def test_map_s3_sources_to_functions(self, mock_get_s3_object_hash):
         mock_get_s3_object_hash.side_effect = ["hash1", "hash2"]
 
@@ -544,42 +544,42 @@ class TestPrepareHook(TestCase):
             translated_cfn_dict = _translate_to_cfn(tf_json)
             self.assertEqual(translated_cfn_dict, expected_empty_cfn_dict)
 
-    @patch("samcli.hook_packages.terraform.hooks.str_checksum")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
     def test_translate_to_cfn_with_root_module_only(self, checksum_mock):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(self.tf_json_with_root_module_only)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_root_module_only)
 
-    @patch("samcli.hook_packages.terraform.hooks.str_checksum")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
     def test_translate_to_cfn_with_child_modules(self, checksum_mock):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(self.tf_json_with_child_modules)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_child_modules)
 
-    @patch("samcli.hook_packages.terraform.hooks.str_checksum")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
     def test_translate_to_cfn_with_unsupported_provider(self, checksum_mock):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(self.tf_json_with_unsupported_provider)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_unsupported_provider)
 
-    @patch("samcli.hook_packages.terraform.hooks.str_checksum")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
     def test_translate_to_cfn_with_unsupported_resource_type(self, checksum_mock):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(self.tf_json_with_unsupported_resource_type)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_unsupported_resource_type)
 
-    @patch("samcli.hook_packages.terraform.hooks.str_checksum")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
     def test_translate_to_cfn_with_mapping_s3_source_to_function(self, checksum_mock):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(self.tf_json_with_child_modules_and_s3_source_mapping)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_child_modules_and_s3_source_mapping)
 
-    @patch("samcli.hook_packages.terraform.hooks._translate_to_cfn")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._translate_to_cfn")
     @patch("builtins.open")
-    @patch("samcli.hook_packages.terraform.hooks.NamedTemporaryFile")
-    @patch("samcli.hook_packages.terraform.hooks.os")
-    @patch("samcli.hook_packages.terraform.hooks.json")
-    @patch("samcli.hook_packages.terraform.hooks.run")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.NamedTemporaryFile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.os")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.json")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.run")
     def test_prepare(
         self, mock_subprocess_run, mock_json, mock_os, named_temporary_file_mock, mock_open, mock_translate_to_cfn
     ):
@@ -610,17 +610,17 @@ class TestPrepareHook(TestCase):
         mock_json.dump.assert_called_once_with(mock_cfn_dict, mock_metadata_file)
         self.assertEqual(expected_prepare_output_dict, iac_prepare_output)
 
-    @patch("samcli.hook_packages.terraform.hooks.run")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.run")
     def test_prepare_with_called_process_error(self, mock_subprocess_run):
         mock_subprocess_run.side_effect = CalledProcessError(-2, "terraform init")
         with self.assertRaises(PrepareHookException):
             prepare(self.prepare_params)
 
-    @patch("samcli.hook_packages.terraform.hooks._translate_to_cfn")
-    @patch("samcli.hook_packages.terraform.hooks.NamedTemporaryFile")
-    @patch("samcli.hook_packages.terraform.hooks.os")
-    @patch("samcli.hook_packages.terraform.hooks.json")
-    @patch("samcli.hook_packages.terraform.hooks.run")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._translate_to_cfn")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.NamedTemporaryFile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.os")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.json")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.run")
     def test_prepare_with_os_error(
         self, mock_subprocess_run, mock_json, mock_os, named_temporary_file_mock, mock_translate_to_cfn
     ):

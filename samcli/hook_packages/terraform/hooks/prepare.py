@@ -1,5 +1,5 @@
 """
-Terraform hooks implementation module
+Terraform prepare hook implementation
 """
 
 from dataclasses import dataclass
