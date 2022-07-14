@@ -6,11 +6,16 @@ import dataclasses
 import logging
 import yaml
 
-from botocore.exceptions import ClientError, NoCredentialsError
+from botocore.exceptions import ClientError, NoCredentialsError, BotoCoreError
 from samtranslator.translator.managed_policy_translator import ManagedPolicyLoader
 from samtranslator.translator.arn_generator import NoRegionFound
 
-from samcli.commands.list.exceptions import SamListLocalResourcesNotFoundError, SamListUnknownClientError
+from samcli.commands.list.exceptions import (
+    SamListLocalResourcesNotFoundError,
+    SamListUnknownClientError,
+    StackDoesNotExistInRegionError,
+    SamListUnknownBotoCoreError,
+)
 from samcli.lib.list.list_interfaces import Producer
 from samcli.lib.list.resources.resources_def import ResourcesDef
 from samcli.lib.translate.sam_template_validator import SamTemplateValidator
@@ -19,6 +24,8 @@ from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
 from samcli.commands.exceptions import UserException
 from samcli.commands._utils.template import get_template_data
+from samcli.lib.utils.boto_utils import get_client_error_code
+
 
 LOG = logging.getLogger(__name__)
 
@@ -43,6 +50,30 @@ class ResourceMappingProducer(Producer):
         self.iam_client = iam_client
         self.mapper = mapper
         self.consumer = consumer
+
+    def get_resources_info(self):
+        """
+        Returns the stack resources information for the stack and raises exceptions accordingly
+
+        Returns
+        -------
+            A dictionary containing information about the stack's resources
+        """
+
+        try:
+            response = self.cloudformation_client.describe_stack_resources(StackName=self.stack_name)
+            if "StackResources" not in response:
+                return {"StackResources": []}
+            return response
+        except ClientError as e:
+            if get_client_error_code(e) == "ValidationError":
+                LOG.debug("Stack with id %s does not exist", self.stack_name)
+                raise StackDoesNotExistInRegionError(stack_name=self.stack_name, region=self.region) from e
+            LOG.error("ClientError Exception : %s", str(e))
+            raise SamListUnknownClientError(msg=str(e)) from e
+        except BotoCoreError as e:
+            LOG.error("Botocore Exception : %s", str(e))
+            raise SamListUnknownBotoCoreError(msg=str(e)) from e
 
     def get_translated_dict(self, template_file_dict: Dict[Any, Any]) -> Dict[Any, Any]:
         """
@@ -93,12 +124,25 @@ class ResourceMappingProducer(Producer):
         stacks, _ = SamLocalStackProvider.get_stacks(template_file="", template_dictionary=translated_dict)
         if not stacks or not stacks[0].resources:
             raise SamListLocalResourcesNotFoundError(msg="No local resources found.")
-        resources_dict = {}
-        for local_resource in stacks[0].resources:
-            # Set the PhysicalID to "-" if there is no corresponding PhysicalID
-            resources_dict[local_resource] = "-"
-            resource_data = ResourcesDef(
-                LogicalResourceId=local_resource, PhysicalResourceId=resources_dict[local_resource]
-            )
-            mapped_output = self.mapper.map(dataclasses.asdict(resource_data))
-            self.consumer.consume(mapped_output)
+        seen_resources = set()
+        resources_list = []
+        if self.stack_name:
+            response = self.get_resources_info()
+            for deployed_resource in response["StackResources"]:
+                resource_data = ResourcesDef(
+                    LogicalResourceId=deployed_resource["LogicalResourceId"],
+                    PhysicalResourceId=deployed_resource["PhysicalResourceId"],
+                )
+                resources_list.append(dataclasses.asdict(resource_data))
+                seen_resources.add(deployed_resource["LogicalResourceId"])
+            for local_resource in stacks[0].resources:
+                if local_resource not in seen_resources:
+                    resource_data = ResourcesDef(LogicalResourceId=local_resource, PhysicalResourceId="-")
+                    resources_list.append(dataclasses.asdict(resource_data))
+        else:
+            for local_resource in stacks[0].resources:
+                # Set the PhysicalID to "-" if there is no corresponding PhysicalID
+                resource_data = ResourcesDef(LogicalResourceId=local_resource, PhysicalResourceId="-")
+                resources_list.append(dataclasses.asdict(resource_data))
+        mapped_output = self.mapper.map(resources_list)
+        self.consumer.consume(mapped_output)
