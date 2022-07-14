@@ -473,13 +473,13 @@ class TestPrepareHook(TestCase):
         translated_cfn_property = _build_lambda_function_code_property(self.tf_s3_function_properties)
         self.assertEqual(translated_cfn_property, expected_cfn_property)
 
-    def test_translate_resource_zip_function(self):
+    def test_translate_properties_function(self):
         translated_cfn_properties = _translate_properties(
             self.tf_zip_function_properties, AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING
         )
         self.assertEqual(translated_cfn_properties, self.expected_cfn_zip_function_properties)
 
-    def test_translate_resource_function_with_missing_or_none_properties(self):
+    def test_translate_properties_function_with_missing_or_none_properties(self):
         translated_cfn_properties = _translate_properties(
             self.tf_function_properties_with_missing_or_none, AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING
         )
