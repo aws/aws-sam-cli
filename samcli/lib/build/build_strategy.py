@@ -126,11 +126,13 @@ class DefaultBuildStrategy(BuildStrategy):
         build_dir: str,
         build_function: Callable[[str, str, str, str, str, Optional[str], str, dict, dict, Optional[str], bool], str],
         build_layer: Callable[[str, str, str, List[str], str, str, dict, Optional[str], bool], str],
+        cached: bool = False,
     ) -> None:
         super().__init__(build_graph)
         self._build_dir = build_dir
         self._build_function = build_function
         self._build_layer = build_layer
+        self._cached = cached
 
     def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
         """
@@ -167,7 +169,7 @@ class DefaultBuildStrategy(BuildStrategy):
             single_build_dir,
             build_definition.metadata,
             container_env_vars,
-            build_definition.dependencies_dir,
+            build_definition.dependencies_dir if self._cached else None,
             build_definition.download_dependencies,
         )
         function_build_results[single_full_path] = result
@@ -214,7 +216,7 @@ class DefaultBuildStrategy(BuildStrategy):
                 layer.build_architecture,
                 single_build_dir,
                 layer_definition.env_vars,
-                layer_definition.dependencies_dir,
+                layer_definition.dependencies_dir if self._cached else None,
                 layer_definition.download_dependencies,
             )
         }
