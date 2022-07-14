@@ -36,6 +36,7 @@ class TestPrepareHook(TestCase):
             "package_type": "Zip",
             "runtime": "python3.7",
             "layers": ["layer_arn1", "layer_arn2"],
+            "timeout": 3,
         }
         self.expected_cfn_function_common_properties: dict = {
             "FunctionName": "myfunc",
@@ -45,6 +46,7 @@ class TestPrepareHook(TestCase):
             "PackageType": "Zip",
             "Runtime": "python3.7",
             "Layers": ["layer_arn1", "layer_arn2"],
+            "Timeout": 3,
         }
 
         self.tf_zip_function_properties: dict = {

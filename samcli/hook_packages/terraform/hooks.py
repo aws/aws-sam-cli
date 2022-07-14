@@ -254,6 +254,7 @@ AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
     "PackageType": _get_property_extractor("package_type"),
     "Runtime": _get_property_extractor("runtime"),
     "Layers": _get_property_extractor("layers"),
+    "Timeout": _get_property_extractor("timeout"),
 }
 
 RESOURCE_TRANSLATOR_MAPPING: Dict[str, ResourceTranslator] = {
