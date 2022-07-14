@@ -7,7 +7,7 @@ import json
 import os
 from subprocess import run, CalledProcessError
 from tempfile import NamedTemporaryFile
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 import hashlib
 from samcli.lib.hook.exceptions import PrepareHookException
 
@@ -217,7 +217,7 @@ def _build_lambda_function_environment_property(tf_properties: dict) -> Optional
             return {"Variables": variables}
 
 
-def _build_lambda_function_code_property(tf_properties: dict) -> dict:
+def _build_lambda_function_code_property(tf_properties: dict) -> Union[str, dict]:
     """
     Builds the Code property of a CloudFormation AWS Lambda Function out of the
     properties of the equivalent terraform resource
@@ -232,8 +232,12 @@ def _build_lambda_function_code_property(tf_properties: dict) -> dict:
     dict
         The built Code property of a CloudFormation AWS Lambda Function resource
     """
+    filename = tf_properties.get("filename")
+    if filename:
+        return filename
+
     code = {}
-    tf_cfn_prop_names = [("filename", "ZipFile"), ("s3_bucket", "S3Bucket"), ("s3_key", "S3Key")]
+    tf_cfn_prop_names = [("s3_bucket", "S3Bucket"), ("s3_key", "S3Key")]
     for tf_prop_name, cfn_prop_name in tf_cfn_prop_names:
         tf_prop_value = tf_properties.get(tf_prop_name)
         if tf_prop_value is not None:
@@ -331,12 +335,13 @@ def _map_s3_sources_to_functions(s3_hash_to_source: Dict[str, str], cfn_resource
     for _, resource in cfn_resources.items():
         if resource.get("Type") == CFN_AWS_LAMBDA_FUNCTION:
             code = resource.get("Properties").get("Code")
+            if isinstance(code, str):
+                continue
+
             bucket = code.get("S3Bucket")
             key = code.get("S3Key")
             if bucket and key:
                 obj_hash = _get_s3_object_hash(bucket, key)
                 source = s3_hash_to_source.get(obj_hash)
                 if source:
-                    code["ZipFile"] = source
-                    del code["S3Bucket"]
-                    del code["S3Key"]
+                    resource["Properties"]["Code"] = source

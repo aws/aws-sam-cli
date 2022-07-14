@@ -53,7 +53,7 @@ class TestPrepareHook(TestCase):
         }
         self.expected_cfn_zip_function_properties: dict = {
             **self.expected_cfn_function_common_properties,
-            "Code": {"ZipFile": "file.zip"},
+            "Code": "file.zip",
         }
 
         self.tf_s3_function_properties: dict = {
@@ -76,7 +76,7 @@ class TestPrepareHook(TestCase):
         }
         self.expected_cfn_function_properties_with_missing_or_none: dict = {
             "FunctionName": "myfunc",
-            "Code": {"ZipFile": "file.zip"},
+            "Code": "file.zip",
         }
 
         self.tf_zip_function_properties_2: dict = {
@@ -97,7 +97,7 @@ class TestPrepareHook(TestCase):
             "PackageType": "Zip",
             "Runtime": "python3.8",
             "Layers": ["layer_arn"],
-            "Code": {"ZipFile": "file2.zip"},
+            "Code": "file2.zip",
         }
 
         self.tf_zip_function_properties_3: dict = {**self.tf_zip_function_properties_2, "function_name": "myfunc3"}
@@ -499,14 +499,14 @@ class TestPrepareHook(TestCase):
                 **self.expected_cfn_lambda_function_resource_s3,
                 "Properties": {
                     **self.expected_cfn_lambda_function_resource_s3["Properties"],
-                    "Code": {"ZipFile": "source1.zip"},
+                    "Code": "source1.zip",
                 },
             },
             "s3Function2": {
                 **self.expected_cfn_lambda_function_resource_s3_2,
                 "Properties": {
                     **self.expected_cfn_lambda_function_resource_s3_2["Properties"],
-                    "Code": {"ZipFile": "source2.zip"},
+                    "Code": "source2.zip",
                 },
             },
             "nonS3Function": self.expected_cfn_lambda_function_resource_zip,  # should be unchanged
