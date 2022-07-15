@@ -59,7 +59,6 @@ class TestExperimentalMetric(IntegBase):
                                 "gitOrigin": ANY,
                                 "projectName": ANY,
                                 "initialCommit": ANY,
-                                "events": ANY,
                             },
                             "duration": ANY,
                             "exitReason": ANY,
@@ -114,7 +113,6 @@ class TestExperimentalMetric(IntegBase):
                                 "gitOrigin": ANY,
                                 "projectName": ANY,
                                 "initialCommit": ANY,
-                                "events": ANY,
                             },
                             "duration": ANY,
                             "exitReason": ANY,
@@ -152,8 +150,8 @@ class TestExperimentalMetric(IntegBase):
             process.communicate()
 
             all_requests = server.get_all_requests()
-            self.assertEqual(1, len(all_requests), "Command run metric must be sent")
-            request = all_requests[0]
+            self.assertGreaterEqual(len(all_requests), 1, "Command run metric must be sent")
+            request = all_requests[-1]  # commandRun metric is last bc of ordering 'send_events' vs 'telemetry.emit'
             self.assertIn("Content-Type", request["headers"])
             self.assertEqual(request["headers"]["Content-Type"], "application/json")
 
@@ -177,7 +175,6 @@ class TestExperimentalMetric(IntegBase):
                                 "gitOrigin": ANY,
                                 "projectName": ANY,
                                 "initialCommit": ANY,
-                                "events": ANY,
                             },
                             "duration": ANY,
                             "exitReason": ANY,

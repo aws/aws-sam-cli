@@ -9,7 +9,7 @@ import samcli
 
 from unittest import TestCase
 from unittest.mock import patch, Mock, ANY, call
-from samcli.lib.telemetry.event import Event, EventTracker
+from samcli.lib.telemetry.event import EventTracker
 
 import samcli.lib.telemetry.metric
 from samcli.lib.telemetry.cicd import CICDPlatform
@@ -133,6 +133,7 @@ class TestTrackCommand(TestCase):
         GlobalConfigClassMock = Mock()
         self.telemetry_instance = TelemetryClassMock.return_value = Mock()
         self.gc_instance_mock = GlobalConfigClassMock.return_value = Mock()
+        EventTracker.clear_trackers()
 
         self.telemetry_class_patcher = patch("samcli.lib.telemetry.metric.Telemetry", TelemetryClassMock)
         self.gc_patcher = patch("samcli.lib.telemetry.metric.GlobalConfig", GlobalConfigClassMock)
@@ -340,48 +341,17 @@ class TestTrackCommand(TestCase):
             "The command metrics be emitted when used as a decorator",
         )
 
-    @parameterized.expand(
-        [
-            ([],),
-            ([Mock(event_name=Mock(value="TestEvent"), event_value="TestValue")],),
-            (
-                [
-                    Mock(event_name=Mock(value="Test1"), event_value="TestValue1"),
-                    Mock(event_name=Mock(value="Test2"), event_value="TestValue2"),
-                ],
-            ),
-            (
-                [
-                    Mock(event_name=Mock(value="T1"), event_value="1"),
-                    Mock(event_name=Mock(value="T2"), event_value="2"),
-                    Mock(event_name=Mock(value="T3"), event_value="3"),
-                ],
-            ),
-        ]
-    )
+    @patch("samcli.lib.telemetry.event.EventTracker.send_events", return_value=None)
     @patch("samcli.lib.telemetry.metric.Context")
-    @patch("samcli.lib.telemetry.event.EventTracker.clear_trackers", side_effect=EventTracker.clear_trackers)
-    def test_must_return_list_of_events(self, events, clr_mock, ContextMock):
+    def test_must_send_events(self, ContextMock, send_mock):
         ContextMock.get_current_context.return_value = self.context_mock
-        clr_mock.clear_trackers.return_value = EventTracker.clear_trackers()
-        for e in events:
-            e.to_json.return_value = Event.to_json(e)
 
-        def func_with_event():
-            for e in events:
-                EventTracker._events.append(e)
+        def real_fn():
+            pass
 
-        expected = [e.to_json() for e in events]
+        track_command(real_fn)()
 
-        track_command(func_with_event)()
-
-        args, _ = self.telemetry_instance.emit.call_args_list[0]
-        metric = args[0]
-        assert metric.get_metric_name() == "commandRun"
-        metric_events = metric.get_data()["metricSpecificAttributes"]["events"]
-        clr_mock.assert_called()
-        self.assertEqual(len(events), len(metric_events))
-        self.assertEqual(metric_events, expected)
+        send_mock.assert_called()
 
 
 class TestParameterCapture(TestCase):
