@@ -26,8 +26,8 @@ def get_subnets(boto_client_provider: BotoProviderType) -> List[str]:
         If the describe_subnets call fails
     """
     ec2_client = boto_client_provider("ec2")
-    subnets = ec2_client.describe_subnets()["Subnets"]
-    return [subnet['SubnetId'] for subnet in subnets]
+    subnets = ec2_client.describe_subnets().get("Subnets")
+    return [subnet["SubnetId"] for subnet in subnets]
 
 
 def invoke_testsuite(
@@ -78,7 +78,7 @@ def invoke_testsuite(
         Options to be passed to the test command.
 
         For example, '--maxfail=2
-        
+
     do_await : Optional[bool]
         If enabled, wait for the task to finish and for results to appear in the bucket.
 
@@ -88,24 +88,25 @@ def invoke_testsuite(
         If get_subnets, run_task, or waiters fail
     """
 
-    ecs_client = boto_client_provider("ecs")
-
-
     # If the customer specifies their own subnet, use it, otherwise query describe-subnets.
 
     subnets = other_env_vars.get("subnets") or get_subnets(boto_client_provider)
 
     container_env_vars = [
-                            {"name": "BUCKET", "value": bucket},
-                            {"name": "TEST_RUN_ID", "value": path_in_bucket},
-                            {"name": "OPTIONS", "value": test_command_options},
-                        ]
+        {"name": "BUCKET", "value": bucket},
+        {"name": "TEST_RUN_ID", "value": path_in_bucket},
+        {"name": "OPTIONS", "value": test_command_options},
+    ]
 
-    for key,value in other_env_vars.keys():
-        if key in ('BUCKET','TEST_RUN_ID','OPTIONS'):
-            raise ReservedEnvironmentVariableException(f"{key} is a reserved environment variable, ensure that it is not present in your environment variables file.")
+    for key, value in other_env_vars.items():
+        if key in ("BUCKET", "TEST_RUN_ID", "OPTIONS"):
+            raise ReservedEnvironmentVariableException(
+                f"{key} is a reserved environment variable, ensure that it is not present in your environment variables file."
+            )
 
-        container_env_vars.append({'name':key, 'value': value})
+        container_env_vars.append({"name": key, "value": value})
+
+    ecs_client = boto_client_provider("ecs")
 
     response = ecs_client.run_task(
         cluster=ecs_cluster,
@@ -123,7 +124,6 @@ def invoke_testsuite(
     )
 
     click.secho("Successfully kicked off testsuite!\n", fg="green")
-
 
     # If await is specified, wait for the task to finish and the results.tar.gz to appear in the bucket
     if do_await:
