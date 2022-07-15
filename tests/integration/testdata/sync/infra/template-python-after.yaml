@@ -31,7 +31,6 @@ Resources:
   HelloWorldLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: HelloWorldLayer
       Description: Hello World Layer
       ContentUri: after/Python/layer/
       CompatibleRuntimes:

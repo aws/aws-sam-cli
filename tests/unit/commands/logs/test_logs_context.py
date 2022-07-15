@@ -47,6 +47,16 @@ class TestLogsCommandContext(TestCase):
 
         self.assertEqual(str(ctx.exception), "Unable to parse the time provided by 'some prop'")
 
+    @patch("samcli.commands.logs.logs_context.parse_date")
+    def test_parse_time_internal_call_raises_exception(self, parse_date_mock):
+        given_input = "some time"
+        parse_date_mock.side_effect = ValueError("Invalid date time")
+
+        with self.assertRaises(UserException) as ctx:
+            parse_time(given_input, "some prop")
+
+        self.assertEqual(str(ctx.exception), "Unable to parse the time information 'some prop': 'some time'")
+
     def test_parse_time_empty_time(self):
         result = parse_time(None, "some prop")
         self.assertIsNone(result)
@@ -54,7 +64,7 @@ class TestLogsCommandContext(TestCase):
 
 class TestResourcePhysicalIdResolver(TestCase):
     def test_get_resource_information_with_resources(self):
-        resource_physical_id_resolver = ResourcePhysicalIdResolver(Mock(), "stack_name", ["resource_name"])
+        resource_physical_id_resolver = ResourcePhysicalIdResolver(Mock(), Mock(), "stack_name", ["resource_name"])
         with mock.patch(
             "samcli.commands.logs.logs_context.ResourcePhysicalIdResolver._fetch_resources_from_stack"
         ) as mocked_fetch:
