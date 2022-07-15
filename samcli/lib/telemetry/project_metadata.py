@@ -11,14 +11,14 @@ from typing import List, Optional
 from samcli.cli.global_config import GlobalConfig
 
 
-def get_git_remote_origin_url() -> Optional[bytes]:
+def get_git_remote_origin_url() -> Optional[str]:
     """
     Retrieve an encrypted version of the project's git remote origin url, if it exists.
 
     Returns
     -------
-    bytes | None
-        A SHA256 byte string of the git remote origin url, formatted such that the
+    str | None
+        A SHA256 hexdigest string of the git remote origin url, formatted such that the
         encrypted value follows the pattern <hostname>/<owner>/<project_name>.git.
         If telemetry is opted out of by the user, or the `.git` folder is not found
         (the directory is not a git repository), returns None
@@ -39,14 +39,14 @@ def get_git_remote_origin_url() -> Optional[bytes]:
     return _encrypt_value(git_url)
 
 
-def get_project_name() -> Optional[bytes]:
+def get_project_name() -> Optional[str]:
     """
     Retrieve an encrypted version of the project's name, as defined by the .git folder (or directory name if no .git).
 
     Returns
     -------
-    bytes | None
-        A SHA256 byte string of either the name of the project, or the name of the
+    str | None
+        A SHA256 hexdigest string of either the name of the project, or the name of the
         current working directory that the command is running in.
         If telemetry is opted out of by the user, returns None
     """
@@ -65,14 +65,14 @@ def get_project_name() -> Optional[bytes]:
     return _encrypt_value(project_name)
 
 
-def get_initial_commit_hash() -> Optional[bytes]:
+def get_initial_commit_hash() -> Optional[str]:
     """
     Retrieve an encrypted version of the project's initial commit hash, if it exists.
 
     Returns
     -------
-    bytes | None
-        A SHA256 byte string of the git project's initial commit hash.
+    str | None
+        A SHA256 hexdigest string of the git project's initial commit hash.
         If telemetry is opted out of by the user, or the `.git` folder is not found
         (the directory is not a git repository), returns None.
     """
@@ -104,8 +104,8 @@ def _parse_remote_origin_url(url: str) -> List[str]:
     return [str(item) for item in pattern.findall(url)[0]]
 
 
-def _encrypt_value(value: str) -> bytes:
+def _encrypt_value(value: str) -> str:
     """Encrypt a string, and then return the encrypted value as a byte string."""
     h = hashlib.sha256()
     h.update(value.encode("utf-8"))
-    return h.digest()
+    return h.hexdigest()

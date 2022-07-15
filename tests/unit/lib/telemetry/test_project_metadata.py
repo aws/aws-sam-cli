@@ -51,7 +51,7 @@ class TestProjectMetadata(TestCase):
         git_origin = get_git_remote_origin_url()
         expected_hash = hashlib.sha256()
         expected_hash.update(expected.encode("utf-8"))
-        self.assertEqual(git_origin, expected_hash.digest())
+        self.assertEqual(git_origin, expected_hash.hexdigest())
 
     @patch("samcli.lib.telemetry.project_metadata.subprocess.run")
     def test_retrieve_git_origin_when_not_a_repo(self, sp_mock):
@@ -77,7 +77,7 @@ class TestProjectMetadata(TestCase):
         project_name = get_project_name()
         expected_hash = hashlib.sha256()
         expected_hash.update(expected.encode("utf-8"))
-        self.assertEqual(project_name, expected_hash.digest())
+        self.assertEqual(project_name, expected_hash.hexdigest())
 
     @parameterized.expand(
         [
@@ -100,7 +100,7 @@ class TestProjectMetadata(TestCase):
         project_name = get_project_name()
         expected_hash = hashlib.sha256()
         expected_hash.update(cwd.replace("\\", "/").encode("utf-8"))
-        self.assertEqual(project_name, expected_hash.digest())
+        self.assertEqual(project_name, expected_hash.hexdigest())
 
     @parameterized.expand(
         [
@@ -116,4 +116,4 @@ class TestProjectMetadata(TestCase):
         initial_commit = get_initial_commit_hash()
         expected_hash = hashlib.sha256()
         expected_hash.update(git_hash.encode("utf-8"))
-        self.assertEqual(initial_commit, expected_hash.digest())
+        self.assertEqual(initial_commit, expected_hash.hexdigest())
