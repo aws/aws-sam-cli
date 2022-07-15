@@ -25,8 +25,6 @@ from samcli.lib.utils.resources import (
 
 
 class TestPrepareHook(TestCase):
-    maxDiff = None
-
     def setUp(self) -> None:
         self.mock_logical_id_hash = "12AB34CD"
 

@@ -56,29 +56,42 @@ def prepare(params: dict) -> dict:
 
     try:
         # initialize terraform application
+        LOG.info("Initializing Terraform application")
         run(["terraform", "init"], check=True, capture_output=True)
 
         # get json output of terraform plan
+        LOG.info("Creating terraform plan and getting JSON output")
         with NamedTemporaryFile() as temp_file:
             run(["terraform", "plan", "-out", temp_file.name], check=True, capture_output=True)
             result = run(["terraform", "show", "-json", temp_file.name], check=True, capture_output=True)
         tf_json = json.loads(result.stdout)
 
         # convert terraform to cloudformation
+        LOG.info("Converting Terraform to CloudFormation")
         cfn_dict = _translate_to_cfn(tf_json)
+        LOG.info("Finished converting Terraform to CloudFormation")
 
         # store in supplied output dir
         if not os.path.exists(output_dir_path):
             os.mkdir(output_dir_path)
         metadataFilePath = os.path.join(output_dir_path, "template.json")
+        LOG.info("Storing CloudFormation in %s", metadataFilePath)
         with open(metadataFilePath, "w+") as metadata_file:
             json.dump(cfn_dict, metadata_file)
 
         return {"iac_applications": {"MainApplication": {"metadata_file": metadataFilePath}}}
 
-    except (CalledProcessError, OSError) as e:
+    except CalledProcessError as e:
         # one of the subprocess.run calls resulted in non-zero exit code or some OS error
+        LOG.debug(
+            "Error running terraform command: \n" "cmd: %s \n" "stdout: %s \n" "stderr: %s \n",
+            e.cmd,
+            e.stdout,
+            e.stderr,
+        )
         raise PrepareHookException("There was an error while preparing the Terraform application.") from e
+    except OSError as e:
+        raise PrepareHookException(f"Unable to create directory {output_dir_path}") from e
 
 
 def _translate_to_cfn(tf_json: dict) -> dict:
@@ -137,14 +150,13 @@ def _translate_to_cfn(tf_json: dict) -> dict:
                 continue
 
             # translate TF resource "values" to CFN properties
-            LOG.debug("Translating resource: %s", resource_address)
+            LOG.debug("Translating resource %s", resource_address)
             translated_properties = _translate_properties(resource_values, resource_translator.property_builder_mapping)
             translated_resource = {
                 "Type": resource_translator.cfn_name,
                 "Properties": translated_properties,
                 "Metadata": {"SamResourceId": resource_address, "SkipBuild": True},
             }
-            LOG.debug("Translated resource: %s", translated_resource)
 
             # build CFN logical ID from resource address
             logical_id = _build_cfn_logical_id(resource_address)
@@ -155,7 +167,6 @@ def _translate_to_cfn(tf_json: dict) -> dict:
     # map s3 object sources to corresponding functions
     LOG.debug("Mapping S3 object sources to corresponding functions")
     _map_s3_sources_to_functions(s3_hash_to_source, cfn_dict["Resources"])
-    LOG.debug("Final translated CloudFormation: %s", cfn_dict)
 
     return cfn_dict
 
@@ -348,6 +359,8 @@ def _map_s3_sources_to_functions(s3_hash_to_source: Dict[str, str], cfn_resource
     for _, resource in cfn_resources.items():
         if resource.get("Type") == CFN_AWS_LAMBDA_FUNCTION:
             code = resource.get("Properties").get("Code")
+
+            # mapping not possible if function doesn't have bucket and key
             if isinstance(code, str):
                 continue
 
@@ -357,4 +370,11 @@ def _map_s3_sources_to_functions(s3_hash_to_source: Dict[str, str], cfn_resource
                 obj_hash = _get_s3_object_hash(bucket, key)
                 source = s3_hash_to_source.get(obj_hash)
                 if source:
+                    tf_address = resource.get("Metadata", {}).get("SamResourceId")
+                    LOG.debug(
+                        "Found S3 object resource with matching bucket and key for function %s."
+                        " Setting function's Code property to the matching S3 object's source: %s",
+                        tf_address,
+                        source,
+                    )
                     resource["Properties"]["Code"] = source
