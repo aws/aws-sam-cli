@@ -148,7 +148,8 @@ LOG = logging.getLogger(__name__)
 )
 @click.option(
     "--oidc-provider",
-    help="The name of the CI/CD system that will be used for OIDC permissions",
+    help="The name of the CI/CD system that will be used for OIDC permissions "
+    "we currently only support GitLab, GitHub, and Bitbucket",
     type=click.Choice([GITHUB_ACTIONS, GITLAB, BITBUCKET]),
     required=False,
 )
