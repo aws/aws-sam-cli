@@ -4,8 +4,7 @@ Hooks Wrapper Class
 import logging
 import importlib
 from pathlib import Path
-from typing import Optional, Dict, cast
-
+from typing import Optional, Dict, cast, List
 
 from .hook_config import HookPackageConfig
 from .exceptions import (
@@ -15,6 +14,7 @@ from .exceptions import (
 
 
 LOG = logging.getLogger(__name__)
+_INTERNAL_PACKAGES_ROOT = Path(__file__).parent / ".." / ".." / "hook_packages"
 
 
 class IacHookWrapper:
@@ -32,8 +32,6 @@ class IacHookWrapper:
 
     _hook_package_id: str
     _config: Optional[HookPackageConfig]
-
-    _INTERNAL_PACKAGES_ROOT = Path(__file__).parent / ".." / ".." / "hook_packages"
 
     def __init__(self, hook_package_id: str):
         """
@@ -112,7 +110,7 @@ class IacHookWrapper:
         """
         # locate hook package from internal first
         LOG.debug("Looking for internal hook package")
-        for child in self._INTERNAL_PACKAGES_ROOT.iterdir():
+        for child in _INTERNAL_PACKAGES_ROOT.iterdir():
             if child.name == hook_package_id:
                 LOG.info('Loaded internal hook package "%s"', hook_package_id)
                 self._config = HookPackageConfig(child)
@@ -179,3 +177,20 @@ def _execute_as_module(module: str, method: str, params: Optional[Dict] = None) 
 
     result = getattr(mod, method)(params)
     return cast(Dict, result)
+
+
+def get_available_hook_packages_ids() -> List[str]:
+    """
+    return a list of available hook packages ids.
+
+    Returns
+    -------
+    List
+        The available hook packages ids.
+    """
+    LOG.debug("Return available internal hook packages")
+    hook_packages_ids = []
+    for child in _INTERNAL_PACKAGES_ROOT.iterdir():
+        hook_packages_ids.append(child.name)
+
+    return hook_packages_ids

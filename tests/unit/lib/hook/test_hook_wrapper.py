@@ -7,7 +7,7 @@ from sys import stderr, stdin
 from unittest import TestCase
 from unittest.mock import patch, MagicMock, mock_open, Mock
 
-from samcli.lib.hook.hook_wrapper import IacHookWrapper, _execute_as_module
+from samcli.lib.hook.hook_wrapper import IacHookWrapper, _execute_as_module, get_available_hook_packages_ids
 from samcli.lib.hook.exceptions import (
     InvalidHookWrapperException,
     InvalidHookPackageConfigException,
@@ -46,7 +46,7 @@ TEST_HOOK_PACKAGE_CONFIG = {
 
 class TestIacHookWrapper(TestCase):
     @patch("samcli.lib.hook.hook_wrapper.HookPackageConfig")
-    @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._INTERNAL_PACKAGES_ROOT")
+    @patch("samcli.lib.hook.hook_wrapper._INTERNAL_PACKAGES_ROOT")
     def test_instantiate_success(self, _INTERNAL_PACKAGES_ROOT_MOCK, HookPackageConfigMock):
         _INTERNAL_PACKAGES_ROOT_MOCK.iterdir.return_value = [
             Path("path/to/hook_package_1"),
@@ -62,7 +62,7 @@ class TestIacHookWrapper(TestCase):
         hook_package = IacHookWrapper("hook_package_3")
         self.assertEqual(hook_package._config, hook_package_3_config_mock)
 
-    @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._INTERNAL_PACKAGES_ROOT")
+    @patch("samcli.lib.hook.hook_wrapper._INTERNAL_PACKAGES_ROOT")
     def test_instantiate_package_not_found(self, _INTERNAL_PACKAGES_ROOT_MOCK):
         _INTERNAL_PACKAGES_ROOT_MOCK.iterdir.return_value = [
             Path("path/to/hook_package_1"),
@@ -76,7 +76,7 @@ class TestIacHookWrapper(TestCase):
         self.assertEqual(e.exception.message, 'Cannot locate hook package with hook_package_id "hook_package_4"')
 
     @patch("samcli.lib.hook.hook_wrapper.HookPackageConfig")
-    @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._INTERNAL_PACKAGES_ROOT")
+    @patch("samcli.lib.hook.hook_wrapper._INTERNAL_PACKAGES_ROOT")
     def test_instantiate_fail_with_invalid_config(self, _INTERNAL_PACKAGES_ROOT_MOCK, HookPackageConfigMock):
         _INTERNAL_PACKAGES_ROOT_MOCK.iterdir.return_value = [
             Path("path/to/hook_package_1"),
@@ -242,3 +242,15 @@ class TestExecuteAsModule(TestCase):
             _execute_as_module("x.y.z", "my_method")
 
         self.assertEqual(e.exception.message, 'HookFunctionality module "x.y.z" has no method "my_method"')
+
+
+class TestGetAvailableHookPackagesIds(TestCase):
+
+    @patch("samcli.lib.hook.hook_wrapper._INTERNAL_PACKAGES_ROOT")
+    def test_get_available_hook_pacakges(self, _INTERNAL_PACKAGES_ROOT_MOCK):
+        _INTERNAL_PACKAGES_ROOT_MOCK.iterdir.return_value = [
+            Path("path/to/hook_package_1"),
+            Path("path/to/hook_package_2"),
+            Path("path/to/hook_package_3"),
+        ]
+        self.assertEqual(get_available_hook_packages_ids(), ["hook_package_1", "hook_package_2", "hook_package_3"])
