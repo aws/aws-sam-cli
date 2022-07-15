@@ -291,7 +291,7 @@ def do_cli(
                 deployment_branch=config_parameters.get(DEPLOYMENT_BRANCH),
             )
             bitbucket_config.update_values(bitbucket_repo_uuid=config_parameters.get(BITBUCKET_REPO_UUID))
-        elif saved_provider == "IAM":
+        elif saved_provider == "AWS IAM":
             permissions_provider = IAM
 
     if interactive:
