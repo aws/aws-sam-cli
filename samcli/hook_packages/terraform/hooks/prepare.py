@@ -67,15 +67,14 @@ def prepare(params: dict) -> dict:
         tf_json = json.loads(result.stdout)
 
         # convert terraform to cloudformation
-        LOG.info("Converting Terraform to CloudFormation")
+        LOG.info("Generating metadata file")
         cfn_dict = _translate_to_cfn(tf_json)
-        LOG.info("Finished converting Terraform to CloudFormation")
 
         # store in supplied output dir
         if not os.path.exists(output_dir_path):
             os.mkdir(output_dir_path)
         metadataFilePath = os.path.join(output_dir_path, "template.json")
-        LOG.info("Storing CloudFormation in %s", metadataFilePath)
+        LOG.info("Finished generating metadata file. Storing in %s", metadataFilePath)
         with open(metadataFilePath, "w+") as metadata_file:
             json.dump(cfn_dict, metadata_file)
 
@@ -150,7 +149,7 @@ def _translate_to_cfn(tf_json: dict) -> dict:
                 continue
 
             # translate TF resource "values" to CFN properties
-            LOG.debug("Translating resource %s", resource_address)
+            LOG.debug("Processing resource %s", resource_address)
             translated_properties = _translate_properties(resource_values, resource_translator.property_builder_mapping)
             translated_resource = {
                 "Type": resource_translator.cfn_name,
