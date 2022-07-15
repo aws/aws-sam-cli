@@ -245,7 +245,6 @@ class TestExecuteAsModule(TestCase):
 
 
 class TestGetAvailableHookPackagesIds(TestCase):
-
     @patch("samcli.lib.hook.hook_wrapper._INTERNAL_PACKAGES_ROOT")
     def test_get_available_hook_pacakges(self, _INTERNAL_PACKAGES_ROOT_MOCK):
         _INTERNAL_PACKAGES_ROOT_MOCK.iterdir.return_value = [

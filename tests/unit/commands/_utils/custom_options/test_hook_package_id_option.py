@@ -53,17 +53,14 @@ class TestHookPackageIdOption(TestCase):
             invalid_coexist_options=invalid_coexist_options,
         )
         ctx = MagicMock()
-        opts = {
-            "hook_package_id": hook_package_id,
-            "template_file": "any/path/template.yaml"
-        }
+        opts = {"hook_package_id": hook_package_id, "template_file": "any/path/template.yaml"}
         args = []
         with self.assertRaises(click.BadParameter) as e:
             hook_package_id_option.handle_parse_result(ctx, opts, args)
 
         self.assertEqual(
             e.exception.message,
-            f"Parameters hook-package-id, and {','.join(invalid_coexist_options)} could not be used together"
+            f"Parameters hook-package-id, and {','.join(invalid_coexist_options)} could not be used together",
         )
 
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.getcwd")
@@ -92,11 +89,7 @@ class TestHookPackageIdOption(TestCase):
         args = []
         hook_package_id_option.handle_parse_result(ctx, opts, args)
         iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
-            os.path.join(".aws-sam", "iacs_metadata"),
-            cwd_path,
-            False,
-            None,
-            None
+            os.path.join(".aws-sam", "iacs_metadata"), cwd_path, False, None, None
         )
         self.assertEqual(opts.get("template_file"), metadata_path)
 
@@ -140,7 +133,9 @@ class TestHookPackageIdOption(TestCase):
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.path.exists")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.IacHookWrapper")
-    def test_valid_hook_package_with_skipping_prepare_hook_and_built_path_exists(self, iac_hook_wrapper_mock, path_exists_mock, getcwd_mock):
+    def test_valid_hook_package_with_skipping_prepare_hook_and_built_path_exists(
+        self, iac_hook_wrapper_mock, path_exists_mock, getcwd_mock
+    ):
         hook_package_id = "terraform"
         metadata_path = "path/metadata.json"
         cwd_path = "path/current"
@@ -171,8 +166,9 @@ class TestHookPackageIdOption(TestCase):
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.path.exists")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.IacHookWrapper")
-    def test_valid_hook_package_with_skipping_prepare_hook_and_built_path_doesnot_exist(self, iac_hook_wrapper_mock,
-                                                                                 path_exists_mock, getcwd_mock):
+    def test_valid_hook_package_with_skipping_prepare_hook_and_built_path_doesnot_exist(
+        self, iac_hook_wrapper_mock, path_exists_mock, getcwd_mock
+    ):
         hook_package_id = "terraform"
         metadata_path = "path/metadata.json"
         cwd_path = "path/current"
@@ -198,10 +194,6 @@ class TestHookPackageIdOption(TestCase):
         args = []
         hook_package_id_option.handle_parse_result(ctx, opts, args)
         iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
-            os.path.join(".aws-sam", "iacs_metadata"),
-            cwd_path,
-            False,
-            None,
-            None
+            os.path.join(".aws-sam", "iacs_metadata"), cwd_path, False, None, None
         )
         self.assertEqual(opts.get("template_file"), metadata_path)
