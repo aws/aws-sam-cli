@@ -29,6 +29,8 @@ class GuidedContext:
 
     SUPPORTED_OIDC_PROVIDERS = {"1": GITHUB_ACTIONS, "2": GITLAB, "3": BITBUCKET}
     OIDC_PROVIDER_NAME_MAPPINGS = {GITHUB_ACTIONS: "GitHub Actions", GITLAB: "GitLab", BITBUCKET: "Bitbucket"}
+    # GitHub defaults: https://tinyurl.com/github-defaults
+    # GitLab defaults: https://docs.gitlab.com/ee/ci/cloud_services/aws/#add-the-identity-provider
     DEFAULT_OIDC_URLS = {
         GITHUB_ACTIONS: "https://token.actions.githubusercontent.com",
         GITLAB: "https://gitlab.com",

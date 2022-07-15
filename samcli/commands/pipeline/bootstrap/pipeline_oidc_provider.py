@@ -35,7 +35,6 @@ class PipelineOidcProvider:
     def save_values(self, samconfig: SamConfig, cmd_names: List[str], section: str) -> None:
         """
         Saves provided values into config file so they can be reused for future calls to bootstrap
-        -------
         """
         for parameter_name in self.oidc_parameter_names:
             samconfig.put(
@@ -45,7 +44,7 @@ class PipelineOidcProvider:
                 value=self.oidc_parameters[parameter_name],
             )
         samconfig.put(cmd_names=cmd_names, section=section, key="oidc_provider", value=self.oidc_provider_name)
-        samconfig.put(cmd_names=cmd_names, section=section, key="permissions_provider", value="OpenID Connect")
+        samconfig.put(cmd_names=cmd_names, section=section, key="permissions_provider", value="OpenID Connect (OIDC)")
 
     @abstractmethod
     def get_subject_claim(self) -> str:

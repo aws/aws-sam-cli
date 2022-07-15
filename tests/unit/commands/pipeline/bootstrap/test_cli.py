@@ -462,7 +462,7 @@ class TestCli(TestCase):
             "github_org": "saved_org",
             "github_repo": "saved_repo",
             "deployment_branch": "saved_branch",
-            "permissions_provider": "OpenID Connect",
+            "permissions_provider": "OpenID Connect (OIDC)",
         }
 
         # trigger
@@ -486,9 +486,9 @@ class TestCli(TestCase):
             create_image_repository=True,
             image_repository_arn=ANY_IMAGE_REPOSITORY_ARN,
             region=ANY_REGION,
-            gitlab_group=None,
-            gitlab_project=None,
-            bitbucket_repo_uuid=None,
+            gitlab_group=ANY_GITLAB_GROUP,
+            gitlab_project=ANY_GITLAB_PROJECT,
+            bitbucket_repo_uuid=ANY_BITBUCKET_REPO_UUID,
         )
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
