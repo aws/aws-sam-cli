@@ -1268,3 +1268,196 @@ class TestBuildContext_exclude_warning(TestCase):
             log_mock.warning.assert_called_once_with(BuildContext._EXCLUDE_WARNING_MESSAGE)
         else:
             log_mock.warning.assert_not_called()
+
+
+class TestBuildContext_is_enable_source_map_set(TestCase):
+    @parameterized.expand(
+        [
+            (
+                {"Globals": {"Function": {"Environment": {"Variables": {"NODE_OPTIONS": "--enable-source-maps"}}}}},
+                True,
+            ),
+            (
+                {"Globals": {"Function": {"Environment": {"Variables": {"NODE_OPTIONS": "nothing"}}}}},
+                False,
+            ),
+            (
+                {"Properties": {"Environment": {"Variables": {"NODE_OPTIONS": "--enable-source-maps"}}}},
+                True,
+            ),
+            (
+                {"Properties": {"Environment": {"Variables": {"NODE_OPTIONS": "nothing"}}}},
+                False,
+            ),
+        ]
+    )
+    def test_is_enable_source_map_set(self, template, source_map_set):
+        build_context = BuildContext(
+            resource_identifier="resource_id",
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            cached=False,
+            parallel=False,
+            mode="mode",
+        )
+
+        self.assertEqual(build_context._is_enable_source_map_set(template), source_map_set)
+
+    def test_enable_source_map_missing(self):
+        build_context = BuildContext(
+            resource_identifier="resource_id",
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            cached=False,
+            parallel=False,
+            mode="mode",
+        )
+
+        self.assertFalse(build_context._is_enable_source_map_set({"Properties": {}}))
+
+
+class TestBuildContext_enable_source_maps(TestCase):
+    @parameterized.expand(
+        [
+            (  # test global node option + sourcemap true
+                {
+                    "Globals": {"Function": {"Environment": {"Variables": {"NODE_OPTIONS": "--enable-source-maps"}}}},
+                    "Resources": {
+                        "a": {"Metadata": {"BuildMethod": "esbuild", "BuildProperties": {"Sourcemap": True}}}
+                    },
+                },
+                True,
+                False,
+                True,
+            ),
+            (  # test function node option + sourcemap true
+                {
+                    "Resources": {
+                        "a": {
+                            "Properties": {
+                                "Environment": {"Variables": {"NODE_OPTIONS": "--enable-source-maps"}},
+                            },
+                            "Metadata": {"BuildMethod": "esbuild", "BuildProperties": {"Sourcemap": True}},
+                        }
+                    },
+                },
+                True,
+                False,
+                True,
+            ),
+            (  # test global node option + sourcemap false
+                {
+                    "Globals": {"Function": {"Environment": {"Variables": {"NODE_OPTIONS": "--enable-source-maps"}}}},
+                    "Resources": {
+                        "a": {"Metadata": {"BuildMethod": "esbuild", "BuildProperties": {"Sourcemap": False}}}
+                    },
+                },
+                True,
+                False,
+                True,
+            ),
+            (  # test function node option + sourcemap false
+                {
+                    "Resources": {
+                        "a": {
+                            "Properties": {
+                                "Environment": {"Variables": {"NODE_OPTIONS": "--enable-source-maps"}},
+                            },
+                            "Metadata": {"BuildMethod": "esbuild", "BuildProperties": {"Sourcemap": False}},
+                        }
+                    },
+                },
+                True,
+                False,
+                True,
+            ),
+            (  # test global node option + no source map
+                {
+                    "Globals": {"Function": {"Environment": {"Variables": {"NODE_OPTIONS": "--enable-source-maps"}}}},
+                    "Resources": {"a": {"Metadata": {"BuildMethod": "esbuild"}}},
+                },
+                True,
+                True,
+                True,
+            ),
+            (  # test function node option + no source map
+                {
+                    "Resources": {
+                        "a": {
+                            "Properties": {
+                                "Environment": {"Variables": {"NODE_OPTIONS": "--enable-source-maps"}},
+                            },
+                            "Metadata": {"BuildMethod": "esbuild"},
+                        }
+                    },
+                },
+                True,
+                True,
+                True,
+            ),
+            (  # test no node option + source map true
+                {
+                    "Resources": {
+                        "a": {
+                            "Properties": {},
+                            "Metadata": {"BuildMethod": "esbuild", "BuildProperties": {"Sourcemap": True}},
+                        }
+                    },
+                },
+                True,
+                True,
+                False,
+            ),
+            (  # test no node option + no source map
+                {
+                    "Resources": {
+                        "a": {
+                            "Metadata": {"BuildMethod": "esbuild"},
+                        }
+                    },
+                },
+                False,
+                False,
+                False,
+            ),
+            (  # test non esbuild
+                {"Resources": {"a": {}}},
+                False,
+                False,
+                False,
+            ),
+        ]
+    )
+    @patch("samcli.commands.build.build_context.BuildContext._is_enable_source_map_set")
+    @patch("samcli.commands.build.build_context.click.secho")
+    def test_enable_source_maps(
+        self, template, should_warn, should_modify, enable_map_set, click_mock, is_enable_map_mock
+    ):
+        build_context = BuildContext(
+            resource_identifier="resource_id",
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            cached=False,
+            parallel=False,
+            mode="mode",
+        )
+
+        is_enable_map_mock.return_value = enable_map_set
+
+        result_template = build_context._enable_source_maps(template)
+
+        if should_warn:
+            click_mock.assert_called()
+        else:
+            click_mock.assert_not_called()
+
+        if should_modify:
+            self.assertNotEqual(template, result_template)
+        else:
+            self.assertEqual(template, result_template)

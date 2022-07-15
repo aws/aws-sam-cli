@@ -323,7 +323,7 @@ class BuildContext:
         new_template = deepcopy(old_template)
         resources = old_template.get("Resources", {})
 
-        global_node_option = self._is_enable_source_map_set(template=old_template)
+        global_node_option = self._is_enable_source_map_set(old_template)
         using_source_maps = global_node_option
 
         for name, resource in resources.items():
@@ -332,7 +332,7 @@ class BuildContext:
             if metadata.get("BuildMethod", "") != "esbuild":
                 continue
 
-            function_node_option = self._is_enable_source_map_set(function=resource)
+            function_node_option = self._is_enable_source_map_set(resource)
 
             # check if Sourcemap is provided and append --enable-source-map if not set
             build_properties = metadata.get("BuildProperties", {})
@@ -375,22 +375,25 @@ class BuildContext:
         return new_template
 
     @staticmethod
-    def _is_enable_source_map_set(template: Optional[Dict] = None, function: Optional[Dict] = None) -> bool:
+    def _is_enable_source_map_set(template: Dict) -> bool:
         """
-        Checks if the template has NODE_OPTIONS --enable-source-maps set, one
-        of ``template`` or ``function`` must be provided.
+        Checks if the template has NODE_OPTIONS --enable-source-maps set
 
         template: Dict
-            The template to search
-        function: Dict
-            The function to search in
+            The properties to search in, this should be the entire template or a single resource
         returns: bool
         """
         try:
-            if template:
-                node_options = template["Globals"]["Function"]["Environment"]["Variables"]["NODE_OPTIONS"]
-            elif function:
-                node_options = function["Properties"]["Environment"]["Variables"]["NODE_OPTIONS"]
+            props = {}
+
+            if template.get("Globals"):
+                # full template
+                props = template["Globals"]["Function"]
+            elif template.get("Properties"):
+                # resource only
+                props = template["Properties"]
+
+            node_options = props["Environment"]["Variables"]["NODE_OPTIONS"]
 
             return "--enable-source-maps" in node_options.split()
         except KeyError:
