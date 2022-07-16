@@ -6,6 +6,7 @@ import logging
 import os
 import click
 
+from samcli.commands._utils.options import DEFAULT_BUILT_TEMPLATE_PATH
 from samcli.lib.hook.exceptions import InvalidHookWrapperException
 from samcli.lib.hook.hook_wrapper import IacHookWrapper, get_available_hook_packages_ids
 
@@ -48,7 +49,7 @@ class HookPackageIdOption(click.Option):
                     )
 
             # call prepare hook
-            built_template_path = os.path.join(".aws-sam", "build", "template.yaml")
+            built_template_path = DEFAULT_BUILT_TEMPLATE_PATH
             if not self._force_prepare and os.path.exists(built_template_path):
                 LOG.info("Skip Running Prepare hook. The current application is already prepared.")
             else:

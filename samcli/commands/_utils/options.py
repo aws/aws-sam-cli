@@ -31,6 +31,7 @@ DEFAULT_STACK_NAME = "sam-app"
 DEFAULT_BUILD_DIR = os.path.join(".aws-sam", "build")
 DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER = os.path.join(".aws-sam", "auto-dependency-layer")
 DEFAULT_CACHE_DIR = os.path.join(".aws-sam", "cache")
+DEFAULT_BUILT_TEMPLATE_PATH = os.path.join(".aws-sam", "build", "template.yaml")
 
 LOG = logging.getLogger(__name__)
 
@@ -90,7 +91,7 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
     search_paths = ["template.yaml", "template.yml", "template.json"]
 
     if include_build:
-        search_paths.insert(0, os.path.join(".aws-sam", "build", "template.yaml"))
+        search_paths.insert(0, DEFAULT_BUILT_TEMPLATE_PATH)
 
     if provided_value == _TEMPLATE_OPTION_DEFAULT_VALUE:
         # "--template" is an alias of "--template-file", however, only the first option name "--template-file" in
