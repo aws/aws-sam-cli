@@ -265,7 +265,7 @@ class ResourceMetadataNormalizer:
             return logical_id
 
         cdk_resource_id = (
-            cdk_path_partitions[-2]
+            "_".join(cdk_path_partitions[1:-1])
             if cdk_path_partitions[-1] == "Resource"
             or (
                 resource_properties.get("Type", "") == AWS_CLOUDFORMATION_STACK

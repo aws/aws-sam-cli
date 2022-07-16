@@ -421,6 +421,7 @@ class TestResourceMetadataNormalizerGetResourceId(TestCase):
     @parameterized.expand(
         [
             ("stack_id/func_cdk_id/Resource", "func_cdk_id"),
+            ("stack_id/some_construct/func_cdk_id/Resource", "some_construct_func_cdk_id"),
             ("stack_id/serverless_func_cdk_id", "serverless_func_cdk_id"),
         ]
     )
