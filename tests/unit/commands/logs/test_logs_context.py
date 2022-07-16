@@ -47,6 +47,16 @@ class TestLogsCommandContext(TestCase):
 
         self.assertEqual(str(ctx.exception), "Unable to parse the time provided by 'some prop'")
 
+    @patch("samcli.commands.logs.logs_context.parse_date")
+    def test_parse_time_internal_call_raises_exception(self, parse_date_mock):
+        given_input = "some time"
+        parse_date_mock.side_effect = ValueError("Invalid date time")
+
+        with self.assertRaises(UserException) as ctx:
+            parse_time(given_input, "some prop")
+
+        self.assertEqual(str(ctx.exception), "Unable to parse the time information 'some prop': 'some time'")
+
     def test_parse_time_empty_time(self):
         result = parse_time(None, "some prop")
         self.assertIsNone(result)

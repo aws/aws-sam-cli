@@ -17,7 +17,6 @@ class TracesIntegBase(TestCase):
         end_time: Optional[str] = None,
         tail: bool = False,
         output: Optional[str] = None,
-        beta_features: bool = False,
     ):
         command_list = [get_sam_command(), "traces"]
 
@@ -31,7 +30,5 @@ class TracesIntegBase(TestCase):
             command_list += ["--output", output]
         if tail:
             command_list += ["--tail"]
-        if beta_features:
-            command_list += ["--beta-features"]
 
         return command_list

@@ -5,12 +5,14 @@ from unittest import skipIf
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION
 from tests.integration.sync.test_sync_code import TestSyncCodeBase, SKIP_SYNC_TESTS, TestSyncCode
 from tests.integration.sync.test_sync_watch import TestSyncWatchBase
-from tests.testing_utils import run_command_with_input, read_until_string
+from tests.testing_utils import run_command_with_input, read_until_string, IS_WINDOWS
 
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
 class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
     template = "template-python-no-dependencies.yaml"
+    folder = "code"
+    dependency_layer = True
 
     def test_sync_code_function_without_dependencies(self):
         # CFN Api call here to collect all the stack resources
@@ -103,7 +105,7 @@ class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
         self.assertIn("extra_message", lambda_response)
 
 
-@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@skipIf(SKIP_SYNC_TESTS or IS_WINDOWS, "Skip sync tests in CI/CD only")
 class TestSyncAdlWithWatchStartWithNoDependencies(TestSyncWatchBase):
     @classmethod
     def setUpClass(cls):
