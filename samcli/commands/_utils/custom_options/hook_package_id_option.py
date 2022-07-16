@@ -6,7 +6,7 @@ import logging
 import os
 import click
 
-from samcli.commands._utils.options import DEFAULT_BUILT_TEMPLATE_PATH
+from samcli.commands._utils.constants import DEFAULT_BUILT_TEMPLATE_PATH
 from samcli.lib.hook.exceptions import InvalidHookWrapperException
 from samcli.lib.hook.hook_wrapper import IacHookWrapper, get_available_hook_packages_ids
 

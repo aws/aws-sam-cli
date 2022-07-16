@@ -10,6 +10,12 @@ import types
 import click
 from click.types import FuncParamType
 
+from samcli.commands._utils.constants import (
+    DEFAULT_STACK_NAME,
+    DEFAULT_BUILD_DIR,
+    DEFAULT_CACHE_DIR,
+    DEFAULT_BUILT_TEMPLATE_PATH,
+)
 from samcli.commands._utils.custom_options.hook_package_id_option import HookPackageIdOption
 from samcli.commands._utils.template import get_template_data, TemplateNotFoundException
 from samcli.cli.types import (
@@ -27,11 +33,6 @@ from samcli.lib.observability.util import OutputOption
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml|json]"
-DEFAULT_STACK_NAME = "sam-app"
-DEFAULT_BUILD_DIR = os.path.join(".aws-sam", "build")
-DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER = os.path.join(".aws-sam", "auto-dependency-layer")
-DEFAULT_CACHE_DIR = os.path.join(".aws-sam", "cache")
-DEFAULT_BUILT_TEMPLATE_PATH = os.path.join(".aws-sam", "build", "template.yaml")
 
 LOG = logging.getLogger(__name__)
 

@@ -5,10 +5,10 @@ from parameterized import parameterized
 
 from samcli.commands.sync.command import do_cli, execute_code_sync, execute_watch
 from samcli.lib.providers.provider import ResourceIdentifier
-from samcli.commands._utils.options import (
+from samcli.commands._utils.constants import (
     DEFAULT_BUILD_DIR,
-    DEFAULT_CACHE_DIR,
     DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
+    DEFAULT_CACHE_DIR,
 )
 
 
