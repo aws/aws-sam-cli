@@ -6,7 +6,7 @@ from samcli.commands.exceptions import ReservedEnvironmentVariableException
 from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config
 
 
-class Test_TemplateGenerator(TestCase):
+class Test_InvokeTestsuite(TestCase):
 
     @patch("samcli.lib.test_runner.invoke_testsuite.get_subnets")
     def test_specify_reserved_variable(self, get_subnets_patch):
