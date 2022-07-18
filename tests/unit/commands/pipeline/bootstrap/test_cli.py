@@ -13,6 +13,12 @@ from samcli.commands.pipeline.bootstrap.cli import (
 from samcli.commands.pipeline.bootstrap.cli import cli as bootstrap_cmd
 from samcli.commands.pipeline.bootstrap.cli import do_cli as bootstrap_cli
 from samcli.commands.pipeline.bootstrap.guided_context import GITHUB_ACTIONS, GITLAB
+from samcli.commands.pipeline.bootstrap.oidc_config import (
+    GitHubOidcConfig,
+    OidcConfig,
+    GitLabOidcConfig,
+    BitbucketOidcConfig,
+)
 
 ANY_REGION = "ANY_REGION"
 ANY_PROFILE = "ANY_PROFILE"
@@ -61,7 +67,7 @@ class TestCli(TestCase):
             "permissions_provider": "iam",
             "oidc_provider_url": ANY_OIDC_PROVIDER_URL,
             "oidc_client_id": ANY_OIDC_CLIENT_ID,
-            "oidc_provider": ANY_OIDC_PROVIDER,
+            "oidc_provider": GITHUB_ACTIONS,
             "github_org": ANY_GITHUB_ORG,
             "github_repo": ANY_GITHUB_REPO,
             "gitlab_project": ANY_GITLAB_PROJECT,
@@ -205,6 +211,7 @@ class TestCli(TestCase):
         environment_instance.print_resources_summary.assert_not_called()
         environment_instance.save_config_safe.assert_not_called()
 
+    # @patch("samcli.commands.pipeline.bootstrap.cli.OidcConfig")
     @patch("samcli.commands.pipeline.bootstrap.pipeline_oidc_provider")
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
@@ -218,16 +225,13 @@ class TestCli(TestCase):
     ):
         # setup
         gc_instance = Mock()
-        gc_instance.oidc_provider = GITHUB_ACTIONS
-        gc_instance.github_org = ANY_GITHUB_ORG
-        gc_instance.github_repo = ANY_GITHUB_REPO
-        gc_instance.deployment_branch = ANY_DEPLOYMENT_BRANCH
-        gc_instance.oidc_provider_url = ANY_OIDC_PROVIDER_URL
-        gc_instance.oidc_client_id = ANY_OIDC_CLIENT_ID
         gc_instance.permissions_provider = "oidc"
         guided_context_mock.return_value = gc_instance
         environment_instance = Mock()
         environment_mock.return_value = environment_instance
+        """ oidc_config_instance = Mock()
+        oidc_config_instance.oidc_provider = "github-actions"
+        oidc_config_mock.return_value = oidc_config_instance"""
         self.cli_context["interactive"] = True
         self.cli_context["permissions_provider"] = "oidc"
         get_command_names_mock.return_value = PIPELINE_BOOTSTRAP_COMMAND_NAMES
@@ -258,18 +262,13 @@ class TestCli(TestCase):
     ):
         # setup
         gc_instance = Mock()
-        gc_instance.oidc_provider = GITLAB
-        gc_instance.gitlab_project = ANY_GITLAB_PROJECT
-        gc_instance.gitlab_group = ANY_GITLAB_GROUP
-        gc_instance.deployment_branch = ANY_DEPLOYMENT_BRANCH
-        gc_instance.oidc_provider_url = ANY_OIDC_PROVIDER_URL
-        gc_instance.oidc_client_id = ANY_OIDC_CLIENT_ID
         gc_instance.permissions_provider = "oidc"
         guided_context_mock.return_value = gc_instance
         environment_instance = Mock()
         environment_mock.return_value = environment_instance
         self.cli_context["interactive"] = True
         self.cli_context["permissions_provider"] = "oidc"
+        self.cli_context["oidc_provider"] = "gitlab"
         get_command_names_mock.return_value = PIPELINE_BOOTSTRAP_COMMAND_NAMES
 
         # trigger
@@ -464,18 +463,25 @@ class TestCli(TestCase):
             "deployment_branch": "saved_branch",
             "permissions_provider": "OpenID Connect (OIDC)",
         }
-
+        github_config = GitHubOidcConfig(
+            github_repo="saved_repo", github_org="saved_org", deployment_branch="saved_branch"
+        )
+        oidc_config = OidcConfig(
+            oidc_provider="saved_provider", oidc_client_id="saved_client_id", oidc_provider_url="saved_url"
+        )
+        gitlab_config = GitLabOidcConfig(
+            gitlab_group=ANY_GITLAB_GROUP, gitlab_project=ANY_GITLAB_PROJECT, deployment_branch="saved_branch"
+        )
+        bitbucket_config = BitbucketOidcConfig(ANY_BITBUCKET_REPO_UUID)
         # trigger
         bootstrap_cli(**self.cli_context)
 
         # verify
         guided_context_mock.assert_called_with(
-            oidc_provider_url="saved_url",
-            oidc_provider="saved_provider",
-            oidc_client_id="saved_client_id",
-            github_org="saved_org",
-            github_repo="saved_repo",
-            deployment_branch="saved_branch",
+            github_config=github_config,
+            gitlab_config=gitlab_config,
+            oidc_config=oidc_config,
+            bitbucket_config=bitbucket_config,
             permissions_provider="oidc",
             profile=ANY_PROFILE,
             stage_configuration_name=ANY_STAGE_CONFIGURATION_NAME,
@@ -486,9 +492,6 @@ class TestCli(TestCase):
             create_image_repository=True,
             image_repository_arn=ANY_IMAGE_REPOSITORY_ARN,
             region=ANY_REGION,
-            gitlab_group=ANY_GITLAB_GROUP,
-            gitlab_project=ANY_GITLAB_PROJECT,
-            bitbucket_repo_uuid=ANY_BITBUCKET_REPO_UUID,
         )
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")

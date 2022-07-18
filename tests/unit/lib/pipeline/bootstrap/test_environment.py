@@ -265,7 +265,9 @@ class TestStage(TestCase):
         expected_calls.append(
             call(cmd_names=cmd_names, section="parameters", key="pipeline_user", value=ANY_PIPELINE_USER_ARN)
         )
-        expected_calls.append(call(cmd_names=cmd_names, section="parameters", key="permissions_provider", value="IAM"))
+        expected_calls.append(
+            call(cmd_names=cmd_names, section="parameters", key="permissions_provider", value="AWS IAM")
+        )
         self.trigger_and_assert_save_config_calls(
             stage, cmd_names, expected_calls + [empty_ecr_call], samconfig_instance_mock.put
         )

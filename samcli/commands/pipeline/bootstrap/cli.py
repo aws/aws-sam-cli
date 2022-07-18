@@ -322,17 +322,10 @@ def do_cli(
             image_repository_arn=image_repository_arn,
             region=region,
             permissions_provider=permissions_provider,
-            oidc_provider_url=oidc_config.oidc_provider_url,
-            oidc_client_id=oidc_config.oidc_client_id,
-            oidc_provider=oidc_config.oidc_provider,
-            github_org=github_config.github_org,
-            github_repo=github_config.github_repo,
-            deployment_branch=github_config.deployment_branch
-            if github_config.deployment_branch
-            else gitlab_config.deployment_branch,
-            gitlab_group=gitlab_config.gitlab_group,
-            gitlab_project=gitlab_config.gitlab_project,
-            bitbucket_repo_uuid=bitbucket_config.bitbucket_repo_uuid,
+            oidc_config=oidc_config,
+            github_config=github_config,
+            gitlab_config=gitlab_config,
+            bitbucket_config=bitbucket_config,
         )
         guided_context.run()
         stage_configuration_name = guided_context.stage_configuration_name
@@ -345,16 +338,6 @@ def do_cli(
         region = guided_context.region
         profile = guided_context.profile
         permissions_provider = guided_context.permissions_provider
-        oidc_config.oidc_client_id = guided_context.oidc_client_id
-        oidc_config.oidc_provider_url = guided_context.oidc_provider_url
-        oidc_config.oidc_provider = guided_context.oidc_provider
-        github_config.github_org = guided_context.github_org
-        github_config.github_repo = guided_context.github_repo
-        github_config.deployment_branch = guided_context.deployment_branch
-        gitlab_config.deployment_branch = guided_context.deployment_branch
-        gitlab_config.gitlab_project = guided_context.gitlab_project
-        gitlab_config.gitlab_group = guided_context.gitlab_group
-        bitbucket_config.bitbucket_repo_uuid = guided_context.bitbucket_repo_uuid
 
     subject_claim = None
     pipeline_oidc_provider: Optional[PipelineOidcProvider] = None
