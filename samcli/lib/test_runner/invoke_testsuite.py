@@ -92,19 +92,19 @@ def invoke_testsuite(
 
     subnets = other_env_vars.get("subnets") or get_subnets(boto_client_provider)
 
-    container_env_vars = [
-        {"name": "BUCKET", "value": bucket},
-        {"name": "TEST_RUN_ID", "value": path_in_bucket},
-        {"name": "OPTIONS", "value": test_command_options},
-    ]
+    container_env_vars = {
+        "TEST_RUNNER_BUCKET": bucket,
+        "TEST_COMMAND_OPTIONS": test_command_options,
+        "TEST_RUN_ID": path_in_bucket,
+    }
 
-    for key, value in other_env_vars.items():
-        if key in ("BUCKET", "TEST_RUN_ID", "OPTIONS"):
+    for key in other_env_vars.keys():
+        if key in container_env_vars.keys():
             raise ReservedEnvironmentVariableException(
                 f"{key} is a reserved environment variable, ensure that it is not present in your environment variables file."
             )
 
-        container_env_vars.append({"name": key, "value": value})
+    container_env_vars.update(other_env_vars)
 
     ecs_client = boto_client_provider("ecs")
 
@@ -116,7 +116,7 @@ def invoke_testsuite(
             "containerOverrides": [
                 {
                     "name": container_name,
-                    "environment": container_env_vars,
+                    "environment": [{"name": key, "value": val} for key, val in container_env_vars.items()],
                 }
             ]
         },
@@ -129,12 +129,10 @@ def invoke_testsuite(
     if do_await:
         click.secho("Awaiting testsuite completion...\n", fg="yellow")
 
-        task_arn = response.get("tasks")[0].get("taskArn")
         task_waiter = ecs_client.get_waiter("tasks_running")
+        task_arn = response.get("tasks")[0].get("taskArn")
+        task_waiter.wait(cluster=ecs_cluster, tasks=[task_arn])
 
         s3_client = boto_client_provider("s3")
-
         results_upload_waiter = s3_client.get_waiter("object_exists")
         results_upload_waiter.wait(Bucket=bucket, Key=path_in_bucket + "/results.tar.gz")
-
-        task_waiter.wait(cluster=ecs_cluster, tasks=[task_arn])
