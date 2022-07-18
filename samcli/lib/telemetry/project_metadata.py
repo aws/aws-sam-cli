@@ -2,11 +2,11 @@
 Creates and encrypts metadata regarding SAM CLI projects.
 """
 
+import hashlib
 from os import getcwd
 import re
 import subprocess
 from typing import List, Optional
-from uuid import uuid5, NAMESPACE_URL
 
 from samcli.cli.global_config import GlobalConfig
 
@@ -18,7 +18,7 @@ def get_git_remote_origin_url() -> Optional[str]:
     Returns
     -------
     str | None
-        A UUID5 encrypted string of the git remote origin url, formatted such that the
+        A SHA256 hexdigest string of the git remote origin url, formatted such that the
         encrypted value follows the pattern <hostname>/<owner>/<project_name>.git.
         If telemetry is opted out of by the user, or the `.git` folder is not found
         (the directory is not a git repository), returns None
@@ -46,7 +46,7 @@ def get_project_name() -> Optional[str]:
     Returns
     -------
     str | None
-        A UUID5 encrypted string of either the name of the project, or the name of the
+        A SHA256 hexdigest string of either the name of the project, or the name of the
         current working directory that the command is running in.
         If telemetry is opted out of by the user, returns None
     """
@@ -72,7 +72,7 @@ def get_initial_commit_hash() -> Optional[str]:
     Returns
     -------
     str | None
-        A UUID5 encrypted string of the git project's initial commit hash.
+        A SHA256 hexdigest string of the git project's initial commit hash.
         If telemetry is opted out of by the user, or the `.git` folder is not found
         (the directory is not a git repository), returns None.
     """
@@ -105,5 +105,7 @@ def _parse_remote_origin_url(url: str) -> List[str]:
 
 
 def _encrypt_value(value: str) -> str:
-    """Encrypt a string, and then return the encrypted value as a string."""
-    return str(uuid5(NAMESPACE_URL, value))
+    """Encrypt a string, and then return the encrypted value as a byte string."""
+    h = hashlib.sha256()
+    h.update(value.encode("utf-8"))
+    return h.hexdigest()
