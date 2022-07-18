@@ -44,8 +44,7 @@ class HookPackageIdOption(click.Option):
                 invalid_opt_name = invalid_opt.replace("-", "_")
                 if invalid_opt_name in opts:
                     raise click.BadParameter(
-                        f"Parameters {opt_name}, and {','.join(self._invalid_coexist_options)} could not be used "
-                        f"together"
+                        f"Parameters {opt_name}, and {','.join(self._invalid_coexist_options)} can not be used together"
                     )
 
             # call prepare hook

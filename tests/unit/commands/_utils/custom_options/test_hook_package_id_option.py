@@ -60,7 +60,7 @@ class TestHookPackageIdOption(TestCase):
 
         self.assertEqual(
             e.exception.message,
-            f"Parameters hook-package-id, and {','.join(invalid_coexist_options)} could not be used together",
+            f"Parameters hook-package-id, and {','.join(invalid_coexist_options)} can not be used together",
         )
 
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.getcwd")
