@@ -200,6 +200,7 @@ class InteractiveInitFlow:
                     oidc_provider=None,
                     gitlab_group=None,
                     gitlab_project=None,
+                    bitbucket_repo_uuid=None,
                 )
                 return True
         else:
@@ -271,6 +272,8 @@ def _load_pipeline_bootstrap_resources() -> Tuple[List[str], Dict[str, str]]:
             # create an index alias for each stage name
             # so that if customers type "1," it is equivalent to the first stage name
             context[str([str(index + 1), key])] = value
+    for key, value in config.get_all(_get_bootstrap_command_names(), section, "default").items():
+        context[str(["default", key])] = value
 
     # pre-load the list of stage names detected from pipelineconfig.toml
     stage_names_message = (

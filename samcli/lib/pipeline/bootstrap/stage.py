@@ -39,6 +39,8 @@ GITHUB_REPO = "github_repo"
 GITLAB_GROUP = "gitlab_group"
 GITLAB_PROJECT = "gitlab_project"
 DEPLOYMENT_BRANCH = "deployment_branch"
+BITBUCKET_REPO_UUID = "bitbucket_repo_uuid"
+PERMISSIONS_PROVIDER = "permissions_provider"
 REGION = "region"
 
 
@@ -146,15 +148,21 @@ class Stage:
         )
 
     def _should_create_new_provider(self) -> bool:
+        """
+        Checks if there is an existing Identity Provider in the account already
+        whos ARN contains the URL provided by the user.
+
+        OIDC Provider arns are of the following format
+        arn:aws:iam:::oidc-provider/api.bitbucket.org/2.0/workspaces//pipelines-config/identity/oidc
+        we can check if the URL provided is already in an existing provider to see if a new one should be made
+        -------
+        """
         if not self.oidc_provider.provider_url:
             return False
         session = boto3.Session(profile_name=self.aws_profile, region_name=self.aws_region)
         iam_client = session.client("iam")
         providers = iam_client.list_open_id_connect_providers()
 
-        # OIDC Provider arns are of the following format
-        # arn:aws:iam:::oidc-provider/api.bitbucket.org/2.0/workspaces//pipelines-config/identity/oidc
-        # we can check if the URL provided is already in an existing provider to see if a new one should be made
         url_to_compare = self.oidc_provider.provider_url.replace("https://", "")
         for provider_resource in providers["OpenIDConnectProviderList"]:
             if url_to_compare in provider_resource["Arn"]:
@@ -365,6 +373,7 @@ class Stage:
 
         if self.pipeline_user.arn:
             samconfig.put(cmd_names=cmd_names, section="parameters", key=PIPELINE_USER, value=self.pipeline_user.arn)
+            samconfig.put(cmd_names=cmd_names, section="parameters", key=PERMISSIONS_PROVIDER, value="AWS IAM")
         if self.use_oidc_provider and self.pipeline_oidc_provider:
             self.pipeline_oidc_provider.save_values(cmd_names=cmd_names, section="parameters", samconfig=samconfig)
 
