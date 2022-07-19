@@ -346,9 +346,14 @@ class BuildContext:
                 new_template_properties.setdefault("Environment", {})
                 new_template_properties["Environment"].setdefault("Variables", {})
                 existing_options = new_template_properties["Environment"]["Variables"].setdefault("NODE_OPTIONS", "")
-                new_template_properties["Environment"]["Variables"]["NODE_OPTIONS"] = "".join(
-                    [existing_options, "--enable-source-maps"]
-                )
+
+                # make sure the NODE_OPTIONS is a string
+                if not isinstance(existing_options, str):
+                    self._warn_invalid_node_options()
+                else:
+                    new_template_properties["Environment"]["Variables"]["NODE_OPTIONS"] = "".join(
+                        [existing_options, "--enable-source-maps"]
+                    )
 
                 using_source_maps = True
 
@@ -367,7 +372,7 @@ class BuildContext:
         if using_source_maps:
             click.secho(
                 "\nYou are using source maps, note that this comes with a performance hit!"
-                " Remove Sourcemap: true or set it to false, or remove"
+                " Set Sourcemap to false, or remove"
                 " NODE_OPTIONS: --enable-source-maps to disable source maps.",
                 fg="yellow",
             )
@@ -396,8 +401,17 @@ class BuildContext:
             node_options = props["Environment"]["Variables"]["NODE_OPTIONS"]
 
             return "--enable-source-maps" in node_options.split()
-        except KeyError:
+        except (KeyError, AttributeError):
             return False
+
+    @staticmethod
+    def _warn_invalid_node_options():
+        click.secho(
+            "\nNODE_OPTIONS is not a string! As a result, the NODE_OPTIONS environment variable will "
+            "not be set correctly, please make sure it is a string. "
+            "Visit https://nodejs.org/api/cli.html#node_optionsoptions for more details.",
+            fg="yellow",
+        )
 
     @staticmethod
     def gen_success_msg(artifacts_dir: str, output_template_path: str, is_default_build_dir: bool) -> str:

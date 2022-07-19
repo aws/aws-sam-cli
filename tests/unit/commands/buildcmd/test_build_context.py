@@ -1461,3 +1461,33 @@ class TestBuildContext_enable_source_maps(TestCase):
             self.assertNotEqual(template, result_template)
         else:
             self.assertEqual(template, result_template)
+
+    @patch("samcli.commands.build.build_context.BuildContext._is_enable_source_map_set")
+    @patch("samcli.commands.build.build_context.click.secho")
+    def test_non_string_node_options(self, click_mock, is_enable_sm_set_mock):
+        build_context = BuildContext(
+            resource_identifier="resource_id",
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            cached=False,
+            parallel=False,
+            mode="mode",
+        )
+
+        template = {
+            "Resources": {
+                "a": {
+                    "Properties": {
+                        "Environment": {"Variables": {"NODE_OPTIONS": ["--something"]}},
+                    },
+                    "Metadata": {"BuildMethod": "esbuild", "BuildProperties": {"Sourcemap": True}},
+                }
+            },
+        }
+
+        is_enable_sm_set_mock.return_value = False
+        result_template = build_context._enable_source_maps(template)
+
+        self.assertEqual(click_mock.call_count, 2)
