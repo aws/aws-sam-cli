@@ -35,7 +35,7 @@ from samcli.lib.build.app_builder import (
     UnsupportedBuilderLibraryVersionError,
     ContainerBuildNotSupported,
 )
-from samcli.commands._utils.options import DEFAULT_BUILD_DIR
+from samcli.commands._utils.constants import DEFAULT_BUILD_DIR
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands._utils.template import move_template
