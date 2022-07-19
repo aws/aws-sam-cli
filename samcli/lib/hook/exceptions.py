@@ -16,3 +16,7 @@ class HookPackageExecuteFunctionalityException(UserException):
 
 class InvalidHookPackageConfigException(UserException):
     pass
+
+
+class PrepareHookException(UserException):
+    pass

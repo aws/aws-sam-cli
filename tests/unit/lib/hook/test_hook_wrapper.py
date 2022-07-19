@@ -1,11 +1,7 @@
 """Test Hook Warpper"""
-from asyncio import subprocess
-import json
-from copy import deepcopy
 from pathlib import Path
-from sys import stderr, stdin
 from unittest import TestCase
-from unittest.mock import patch, MagicMock, mock_open, Mock
+from unittest.mock import patch, Mock
 
 from samcli.lib.hook.hook_wrapper import IacHookWrapper, _execute_as_module, get_available_hook_packages_ids
 from samcli.lib.hook.exceptions import (
