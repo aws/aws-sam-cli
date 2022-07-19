@@ -4,6 +4,7 @@ Represents a pipeline OIDC provider
 from abc import abstractmethod
 from typing import List
 import click
+from samcli.commands.pipeline.bootstrap.guided_context import BITBUCKET, GITHUB_ACTIONS, GITLAB
 
 from samcli.lib.config.samconfig import SamConfig
 
@@ -20,6 +21,10 @@ class PipelineOidcProvider:
         self.verify_parameters()
 
     def verify_parameters(self) -> None:
+        """
+        Makes sure that all required parameters have been provided
+        -------
+        """
         error_string = ""
         for parameter_name in self.oidc_parameter_names:
             if not self.oidc_parameters[parameter_name]:
@@ -28,6 +33,9 @@ class PipelineOidcProvider:
             raise click.UsageError("\n" + error_string)
 
     def save_values(self, samconfig: SamConfig, cmd_names: List[str], section: str) -> None:
+        """
+        Saves provided values into config file so they can be reused for future calls to bootstrap
+        """
         for parameter_name in self.oidc_parameter_names:
             samconfig.put(
                 cmd_names=cmd_names,
@@ -36,6 +44,7 @@ class PipelineOidcProvider:
                 value=self.oidc_parameters[parameter_name],
             )
         samconfig.put(cmd_names=cmd_names, section=section, key="oidc_provider", value=self.oidc_provider_name)
+        samconfig.put(cmd_names=cmd_names, section=section, key="permissions_provider", value="OpenID Connect (OIDC)")
 
     @abstractmethod
     def get_subject_claim(self) -> str:
@@ -43,19 +52,28 @@ class PipelineOidcProvider:
 
 
 class GitHubOidcProvider(PipelineOidcProvider):
+    """
+    Represents a GitHub Actions OIDC provider
+    https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/about-security-hardening-with-openid-connect
+    ----------
+    subject_claim_parameters: dict
+        Parameters specific to building the subject claim for this provider.
+    oidc_parameters: dict
+        Parameters common to all providers.
+    """
 
     GITHUB_ORG_PARAMETER_NAME = "github-org"
     GITHUB_REPO_PARAMETER_NAME = "github-repo"
     DEPLOYMENT_BRANCH_PARAMETER_NAME = "deployment-branch"
 
-    def __init__(self, subject_claim_parameters: dict, oidc_parameters: dict, oidc_provider_name: str) -> None:
+    def __init__(self, subject_claim_parameters: dict, oidc_parameters: dict) -> None:
         all_oidc_parameters = {**oidc_parameters, **subject_claim_parameters}
         all_oidc_parameter_names = [
             self.GITHUB_ORG_PARAMETER_NAME,
             self.GITHUB_REPO_PARAMETER_NAME,
             self.DEPLOYMENT_BRANCH_PARAMETER_NAME,
         ]
-        super().__init__(all_oidc_parameters, all_oidc_parameter_names, oidc_provider_name)
+        super().__init__(all_oidc_parameters, all_oidc_parameter_names, GITHUB_ACTIONS)
 
     def get_subject_claim(self) -> str:
         """
@@ -73,19 +91,28 @@ class GitHubOidcProvider(PipelineOidcProvider):
 
 
 class GitLabOidcProvider(PipelineOidcProvider):
+    """
+    Represents a GitLab OIDC provider
+    https://docs.gitlab.com/ee/integration/openid_connect_provider.html
+    ----------
+    subject_claim_parameters: dict
+        Parameters specific to building the subject claim for this provider.
+    oidc_parameters: dict
+        Parameters common to all providers.
+    """
 
     GITLAB_PROJECT_PARAMETER_NAME = "gitlab-project"
     GITLAB_GROUP_PARAMETER_NAME = "gitlab-group"
     DEPLOYMENT_BRANCH_PARAMETER_NAME = "deployment-branch"
 
-    def __init__(self, subject_claim_parameters: dict, oidc_parameters: dict, oidc_provider_name: str) -> None:
+    def __init__(self, subject_claim_parameters: dict, oidc_parameters: dict) -> None:
         all_oidc_parameters = {**oidc_parameters, **subject_claim_parameters}
         all_oidc_parameter_names = [
             self.GITLAB_PROJECT_PARAMETER_NAME,
             self.GITLAB_GROUP_PARAMETER_NAME,
             self.DEPLOYMENT_BRANCH_PARAMETER_NAME,
         ]
-        super().__init__(all_oidc_parameters, all_oidc_parameter_names, oidc_provider_name)
+        super().__init__(all_oidc_parameters, all_oidc_parameter_names, GITLAB)
 
     def get_subject_claim(self) -> str:
         """
@@ -100,3 +127,35 @@ class GitLabOidcProvider(PipelineOidcProvider):
         project = self.oidc_parameters["gitlab-project"]
         branch = self.oidc_parameters["deployment-branch"]
         return f"project_path:{group}/{project}:ref_type:branch:ref:{branch}"
+
+
+class BitbucketOidcProvider(PipelineOidcProvider):
+    """
+    Represents a Bitbucket OIDC provider
+    https://support.atlassian.com/bitbucket-cloud/docs/integrate-pipelines-with-resource-servers-using-oidc/
+    ----------
+    subject_claim_parameters: dict
+        Parameters specific to building the subject claim for this provider.
+    oidc_parameters: dict
+        Parameters common to all providers.
+    """
+
+    BITBUCKET_REPO_UUID_PARAMETER_NAME = "bitbucket-repo-uuid"
+
+    def __init__(self, subject_claim_parameters: dict, oidc_parameters: dict) -> None:
+        all_oidc_parameters = {**oidc_parameters, **subject_claim_parameters}
+        all_oidc_parameter_names = [
+            self.BITBUCKET_REPO_UUID_PARAMETER_NAME,
+        ]
+        super().__init__(all_oidc_parameters, all_oidc_parameter_names, BITBUCKET)
+
+    def get_subject_claim(self) -> str:
+        """
+        Returns the subject claim that will be used to establish trust between the OIDC provider and AWS.
+        To read more about OIDC claims see the following: https://openid.net/specs/openid-connect-core-1_0.html#Claims
+        To learn more about configuring a role to work with GitLab OIDC through claims see the following
+        tinyurl.com/bitbucket-oidc-claims
+        -------
+        """
+        repo_uuid = self.oidc_parameters[self.BITBUCKET_REPO_UUID_PARAMETER_NAME]
+        return f"{repo_uuid}:*"

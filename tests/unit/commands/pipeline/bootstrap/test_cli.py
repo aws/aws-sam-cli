@@ -6,13 +6,19 @@ from click.testing import CliRunner
 
 from samcli.commands.pipeline.bootstrap.cli import (
     _load_saved_pipeline_user_arn,
-    _load_saved_oidc_values,
+    _load_config_values,
     PIPELINE_CONFIG_FILENAME,
     PIPELINE_CONFIG_DIR,
 )
 from samcli.commands.pipeline.bootstrap.cli import cli as bootstrap_cmd
 from samcli.commands.pipeline.bootstrap.cli import do_cli as bootstrap_cli
 from samcli.commands.pipeline.bootstrap.guided_context import GITHUB_ACTIONS, GITLAB
+from samcli.commands.pipeline.bootstrap.oidc_config import (
+    GitHubOidcConfig,
+    OidcConfig,
+    GitLabOidcConfig,
+    BitbucketOidcConfig,
+)
 
 ANY_REGION = "ANY_REGION"
 ANY_PROFILE = "ANY_PROFILE"
@@ -33,6 +39,7 @@ ANY_GITHUB_REPO = "ANY_GITHUB_REPO"
 ANY_DEPLOYMENT_BRANCH = "ANY_DEPLOYMENT_BRANCH"
 ANY_GITLAB_PROJECT = "ANY_GITLAB_PROJECT"
 ANY_GITLAB_GROUP = "ANY_GITLAB_GROUP"
+ANY_BITBUCKET_REPO_UUID = "ANY_BITBUCKET_REPO_UUID"
 ANY_SUBJECT_CLAIM = "ANY_SUBJECT_CLAIM"
 ANY_BUILT_SUBJECT_CLAIM = "repo:ANY_GITHUB_ORG/ANY_GITHUB_REPO:ref:refs/heads/ANY_DEPLOYMENT_BRANCH"
 ANY_BUILT_GITLAB_SUBJECT_CLAIM = (
@@ -60,11 +67,12 @@ class TestCli(TestCase):
             "permissions_provider": "iam",
             "oidc_provider_url": ANY_OIDC_PROVIDER_URL,
             "oidc_client_id": ANY_OIDC_CLIENT_ID,
-            "oidc_provider": ANY_OIDC_PROVIDER,
+            "oidc_provider": GITHUB_ACTIONS,
             "github_org": ANY_GITHUB_ORG,
             "github_repo": ANY_GITHUB_REPO,
             "gitlab_project": ANY_GITLAB_PROJECT,
             "gitlab_group": ANY_GITLAB_GROUP,
+            "bitbucket_repo_uuid": ANY_BITBUCKET_REPO_UUID,
             "deployment_branch": ANY_DEPLOYMENT_BRANCH,
         }
 
@@ -100,6 +108,7 @@ class TestCli(TestCase):
             oidc_provider=None,
             gitlab_group=None,
             gitlab_project=None,
+            bitbucket_repo_uuid=None,
         )
 
     @patch("samcli.commands.pipeline.bootstrap.cli.do_cli")
@@ -202,6 +211,7 @@ class TestCli(TestCase):
         environment_instance.print_resources_summary.assert_not_called()
         environment_instance.save_config_safe.assert_not_called()
 
+    # @patch("samcli.commands.pipeline.bootstrap.cli.OidcConfig")
     @patch("samcli.commands.pipeline.bootstrap.pipeline_oidc_provider")
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
@@ -215,16 +225,13 @@ class TestCli(TestCase):
     ):
         # setup
         gc_instance = Mock()
-        gc_instance.oidc_provider = GITHUB_ACTIONS
-        gc_instance.github_org = ANY_GITHUB_ORG
-        gc_instance.github_repo = ANY_GITHUB_REPO
-        gc_instance.deployment_branch = ANY_DEPLOYMENT_BRANCH
-        gc_instance.oidc_provider_url = ANY_OIDC_PROVIDER_URL
-        gc_instance.oidc_client_id = ANY_OIDC_CLIENT_ID
         gc_instance.permissions_provider = "oidc"
         guided_context_mock.return_value = gc_instance
         environment_instance = Mock()
         environment_mock.return_value = environment_instance
+        """ oidc_config_instance = Mock()
+        oidc_config_instance.oidc_provider = "github-actions"
+        oidc_config_mock.return_value = oidc_config_instance"""
         self.cli_context["interactive"] = True
         self.cli_context["permissions_provider"] = "oidc"
         get_command_names_mock.return_value = PIPELINE_BOOTSTRAP_COMMAND_NAMES
@@ -255,18 +262,13 @@ class TestCli(TestCase):
     ):
         # setup
         gc_instance = Mock()
-        gc_instance.oidc_provider = GITLAB
-        gc_instance.gitlab_project = ANY_GITLAB_PROJECT
-        gc_instance.gitlab_group = ANY_GITLAB_GROUP
-        gc_instance.deployment_branch = ANY_DEPLOYMENT_BRANCH
-        gc_instance.oidc_provider_url = ANY_OIDC_PROVIDER_URL
-        gc_instance.oidc_client_id = ANY_OIDC_CLIENT_ID
         gc_instance.permissions_provider = "oidc"
         guided_context_mock.return_value = gc_instance
         environment_instance = Mock()
         environment_mock.return_value = environment_instance
         self.cli_context["interactive"] = True
         self.cli_context["permissions_provider"] = "oidc"
+        self.cli_context["oidc_provider"] = "gitlab"
         get_command_names_mock.return_value = PIPELINE_BOOTSTRAP_COMMAND_NAMES
 
         # trigger
@@ -304,7 +306,7 @@ class TestCli(TestCase):
         load_saved_pipeline_user_arn_mock.assert_called_once()
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
-    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_oidc_values")
+    @patch("samcli.commands.pipeline.bootstrap.cli._load_config_values")
     @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
     @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
     def test_bootstrap_will_try_loading_oidc_values_if_not_provided(
@@ -440,33 +442,57 @@ class TestCli(TestCase):
         # verify
         self.assertEqual(pipeline_user_arn, ANY_PIPELINE_USER_ARN)
 
+    @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
+    @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
     @patch("samcli.commands.pipeline.bootstrap.cli.SamConfig")
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
-    def test_load_saved_oidc_values_returns_values_from_file(self, get_command_names_mock, sam_config_mock):
+    def test_load_saved_oidc_values_returns_values_from_file(
+        self, get_command_names_mock, sam_config_mock, guided_context_mock, stage_mock
+    ):
         # setup
         get_command_names_mock.return_value = PIPELINE_BOOTSTRAP_COMMAND_NAMES
         sam_config_instance_mock = Mock()
         sam_config_mock.return_value = sam_config_instance_mock
         sam_config_instance_mock.exists.return_value = True
         sam_config_instance_mock.get_all.return_value = {
-            "oidc_provider_url": ANY_OIDC_PROVIDER_URL,
-            "oidc_provider": ANY_OIDC_PROVIDER,
-            "oidc_client_id": ANY_OIDC_CLIENT_ID,
-            "github_org": ANY_GITHUB_ORG,
-            "github_repo": ANY_GITHUB_REPO,
-            "deployment_branch": ANY_DEPLOYMENT_BRANCH,
+            "oidc_provider_url": "saved_url",
+            "oidc_provider": "saved_provider",
+            "oidc_client_id": "saved_client_id",
+            "github_org": "saved_org",
+            "github_repo": "saved_repo",
+            "deployment_branch": "saved_branch",
+            "permissions_provider": "OpenID Connect (OIDC)",
         }
-
+        github_config = GitHubOidcConfig(
+            github_repo="saved_repo", github_org="saved_org", deployment_branch="saved_branch"
+        )
+        oidc_config = OidcConfig(
+            oidc_provider="saved_provider", oidc_client_id="saved_client_id", oidc_provider_url="saved_url"
+        )
+        gitlab_config = GitLabOidcConfig(
+            gitlab_group=ANY_GITLAB_GROUP, gitlab_project=ANY_GITLAB_PROJECT, deployment_branch="saved_branch"
+        )
+        bitbucket_config = BitbucketOidcConfig(ANY_BITBUCKET_REPO_UUID)
         # trigger
-        oidc_values = _load_saved_oidc_values()
+        bootstrap_cli(**self.cli_context)
 
         # verify
-        self.assertEqual(oidc_values["oidc_provider_url"], ANY_OIDC_PROVIDER_URL)
-        self.assertEqual(oidc_values["oidc_provider"], ANY_OIDC_PROVIDER)
-        self.assertEqual(oidc_values["oidc_client_id"], ANY_OIDC_CLIENT_ID)
-        self.assertEqual(oidc_values["github_org"], ANY_GITHUB_ORG)
-        self.assertEqual(oidc_values["github_repo"], ANY_GITHUB_REPO)
-        self.assertEqual(oidc_values["deployment_branch"], ANY_DEPLOYMENT_BRANCH)
+        guided_context_mock.assert_called_with(
+            github_config=github_config,
+            gitlab_config=gitlab_config,
+            oidc_config=oidc_config,
+            bitbucket_config=bitbucket_config,
+            permissions_provider="oidc",
+            profile=ANY_PROFILE,
+            stage_configuration_name=ANY_STAGE_CONFIGURATION_NAME,
+            pipeline_user_arn=ANY_PIPELINE_USER_ARN,
+            pipeline_execution_role_arn=ANY_PIPELINE_EXECUTION_ROLE_ARN,
+            cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
+            artifacts_bucket_arn=ANY_ARTIFACTS_BUCKET_ARN,
+            create_image_repository=True,
+            image_repository_arn=ANY_IMAGE_REPOSITORY_ARN,
+            region=ANY_REGION,
+        )
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")

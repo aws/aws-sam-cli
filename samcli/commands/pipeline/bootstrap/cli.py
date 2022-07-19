@@ -10,13 +10,21 @@ import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, aws_creds_options, print_cmdline_args
+from samcli.commands.pipeline.bootstrap.oidc_config import (
+    BitbucketOidcConfig,
+    GitHubOidcConfig,
+    OidcConfig,
+    GitLabOidcConfig,
+)
 from samcli.commands.pipeline.bootstrap.pipeline_oidc_provider import (
+    BitbucketOidcProvider,
     GitHubOidcProvider,
     GitLabOidcProvider,
     PipelineOidcProvider,
 )
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.pipeline.bootstrap.stage import (
+    BITBUCKET_REPO_UUID,
     DEPLOYMENT_BRANCH,
     GITHUB_ORG,
     GITHUB_REPO,
@@ -25,12 +33,13 @@ from samcli.lib.pipeline.bootstrap.stage import (
     OIDC_CLIENT_ID,
     OIDC_PROVIDER,
     OIDC_PROVIDER_URL,
+    PERMISSIONS_PROVIDER,
     Stage,
 )
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.version_checker import check_newer_version
-from .guided_context import GITHUB_ACTIONS, GITLAB, IAM, OPEN_ID_CONNECT, GuidedContext
+from .guided_context import BITBUCKET, GITHUB_ACTIONS, GITLAB, IAM, OPEN_ID_CONNECT, GuidedContext
 from ..external_links import CONFIG_AWS_CRED_ON_CICD_URL
 
 SHORT_HELP = "Generates the required AWS resources to connect your CI/CD system."
@@ -113,7 +122,9 @@ LOG = logging.getLogger(__name__)
     help="Choose a permissions provider to assume the pipeline execution role. Default is to use an IAM User.",
 )
 @click.option(
-    "--oidc-provider-url", help="The URL of the OIDC provider. Example: https://server.example.com", required=False
+    "--oidc-provider-url",
+    help="The URL of the OIDC provider.",
+    required=False,
 )
 @click.option("--oidc-client-id", help="The client ID configured to use with the OIDC provider.", required=False)
 @click.option(
@@ -137,8 +148,9 @@ LOG = logging.getLogger(__name__)
 )
 @click.option(
     "--oidc-provider",
-    help="The name of the CI/CD system that will be used for OIDC permissions",
-    type=click.Choice([GITHUB_ACTIONS, GITLAB]),
+    help="The name of the CI/CD system that will be used for OIDC permissions "
+    "we currently only support GitLab, GitHub, and Bitbucket",
+    type=click.Choice([GITHUB_ACTIONS, GITLAB, BITBUCKET]),
     required=False,
 )
 @click.option(
@@ -149,6 +161,12 @@ LOG = logging.getLogger(__name__)
 @click.option(
     "--gitlab-project",
     help="The GitLab project name. Only used if using GitLab OIDC for permissions",
+    required=False,
+)
+@click.option(
+    "--bitbucket-repo-uuid",
+    help="The UUID of the Bitbucket repository. Only used if using Bitbucket OIDC for permissions. "
+    "Found at https://bitbucket.org/<WORKSPACE>/<REPOSITORY>/admin/addon/admin/pipelines/openid-connect",
     required=False,
 )
 @common_options
@@ -179,6 +197,7 @@ def cli(
     oidc_provider: Optional[str],
     gitlab_group: Optional[str],
     gitlab_project: Optional[str],
+    bitbucket_repo_uuid: Optional[str],
 ) -> None:
     """
     `sam pipeline bootstrap` command entry point
@@ -206,6 +225,7 @@ def cli(
         oidc_provider=oidc_provider,
         gitlab_group=gitlab_group,
         gitlab_project=gitlab_project,
+        bitbucket_repo_uuid=bitbucket_repo_uuid,
     )  # pragma: no cover
 
 
@@ -232,6 +252,7 @@ def do_cli(
     oidc_provider: Optional[str],
     gitlab_group: Optional[str],
     gitlab_project: Optional[str],
+    bitbucket_repo_uuid: Optional[str],
     standalone: bool = True,
 ) -> None:
     """
@@ -240,17 +261,39 @@ def do_cli(
     if not pipeline_user_arn and not permissions_provider == OPEN_ID_CONNECT:
         pipeline_user_arn = _load_saved_pipeline_user_arn()
 
-    if not oidc_provider:
-        oidc_parameters = _load_saved_oidc_values()
-        if oidc_parameters:
-            oidc_provider = oidc_parameters.get(OIDC_PROVIDER)
-            oidc_provider_url = oidc_parameters.get(OIDC_PROVIDER_URL)
-            oidc_client_id = oidc_parameters.get(OIDC_CLIENT_ID)
-            github_org = oidc_parameters.get(GITHUB_ORG)
-            github_repo = oidc_parameters.get(GITHUB_REPO)
-            deployment_branch = oidc_parameters.get(DEPLOYMENT_BRANCH)
-            gitlab_group = oidc_parameters.get(GITLAB_GROUP)
-            gitlab_project = oidc_parameters.get(GITLAB_PROJECT)
+    config_parameters = _load_config_values()
+    oidc_config = OidcConfig(
+        oidc_client_id=oidc_client_id, oidc_provider=oidc_provider, oidc_provider_url=oidc_provider_url
+    )
+    gitlab_config = GitLabOidcConfig(
+        gitlab_group=gitlab_group, gitlab_project=gitlab_project, deployment_branch=deployment_branch
+    )
+    github_config = GitHubOidcConfig(
+        github_org=github_org, github_repo=github_repo, deployment_branch=deployment_branch
+    )
+    bitbucket_config = BitbucketOidcConfig(bitbucket_repo_uuid=bitbucket_repo_uuid)
+    if config_parameters:
+        saved_provider = config_parameters.get(PERMISSIONS_PROVIDER)
+        if saved_provider == "OpenID Connect (OIDC)":
+            permissions_provider = OPEN_ID_CONNECT
+            oidc_config.update_values(
+                oidc_provider=config_parameters.get(OIDC_PROVIDER),
+                oidc_provider_url=config_parameters.get(OIDC_PROVIDER_URL),
+                oidc_client_id=config_parameters.get(OIDC_CLIENT_ID),
+            )
+            github_config.update_values(
+                github_org=config_parameters.get(GITHUB_ORG),
+                github_repo=config_parameters.get(GITHUB_REPO),
+                deployment_branch=config_parameters.get(DEPLOYMENT_BRANCH),
+            )
+            gitlab_config.update_values(
+                gitlab_group=config_parameters.get(GITLAB_GROUP),
+                gitlab_project=config_parameters.get(GITLAB_PROJECT),
+                deployment_branch=config_parameters.get(DEPLOYMENT_BRANCH),
+            )
+            bitbucket_config.update_values(bitbucket_repo_uuid=config_parameters.get(BITBUCKET_REPO_UUID))
+        elif saved_provider == "AWS IAM":
+            permissions_provider = IAM
 
     if interactive:
         if standalone:
@@ -279,14 +322,10 @@ def do_cli(
             image_repository_arn=image_repository_arn,
             region=region,
             permissions_provider=permissions_provider,
-            oidc_provider_url=oidc_provider_url,
-            oidc_client_id=oidc_client_id,
-            oidc_provider=oidc_provider,
-            github_org=github_org,
-            github_repo=github_repo,
-            deployment_branch=deployment_branch,
-            gitlab_group=gitlab_group,
-            gitlab_project=gitlab_project,
+            oidc_config=oidc_config,
+            github_config=github_config,
+            gitlab_config=gitlab_config,
+            bitbucket_config=bitbucket_config,
         )
         guided_context.run()
         stage_configuration_name = guided_context.stage_configuration_name
@@ -299,36 +338,17 @@ def do_cli(
         region = guided_context.region
         profile = guided_context.profile
         permissions_provider = guided_context.permissions_provider
-        oidc_client_id = guided_context.oidc_client_id
-        oidc_provider_url = guided_context.oidc_provider_url
-        github_org = guided_context.github_org
-        github_repo = guided_context.github_repo
-        deployment_branch = guided_context.deployment_branch
-        oidc_provider = guided_context.oidc_provider
-        gitlab_project = guided_context.gitlab_project
-        gitlab_group = guided_context.gitlab_group
 
     subject_claim = None
     pipeline_oidc_provider: Optional[PipelineOidcProvider] = None
 
     if permissions_provider == OPEN_ID_CONNECT:
-        common_oidc_params = {"oidc-provider-url": oidc_provider_url, "oidc-client-id": oidc_client_id}
-        if oidc_provider == GITHUB_ACTIONS:
-            github_oidc_params: dict = {
-                GitHubOidcProvider.GITHUB_ORG_PARAMETER_NAME: github_org,
-                GitHubOidcProvider.GITHUB_REPO_PARAMETER_NAME: github_repo,
-                GitHubOidcProvider.DEPLOYMENT_BRANCH_PARAMETER_NAME: deployment_branch,
-            }
-            pipeline_oidc_provider = GitHubOidcProvider(github_oidc_params, common_oidc_params, GITHUB_ACTIONS)
-        elif oidc_provider == GITLAB:
-            gitlab_oidc_params: dict = {
-                GitLabOidcProvider.GITLAB_PROJECT_PARAMETER_NAME: gitlab_project,
-                GitLabOidcProvider.GITLAB_GROUP_PARAMETER_NAME: gitlab_group,
-                GitLabOidcProvider.DEPLOYMENT_BRANCH_PARAMETER_NAME: deployment_branch,
-            }
-            pipeline_oidc_provider = GitLabOidcProvider(gitlab_oidc_params, common_oidc_params, GITLAB)
-        else:
-            raise click.UsageError("Missing required parameter '--oidc-provider'")
+        pipeline_oidc_provider = _get_pipeline_oidc_provider(
+            oidc_config=oidc_config,
+            github_config=github_config,
+            gitlab_config=gitlab_config,
+            bitbucket_config=bitbucket_config,
+        )
         subject_claim = pipeline_oidc_provider.get_subject_claim()
 
     if not stage_configuration_name:
@@ -344,8 +364,8 @@ def do_cli(
         artifacts_bucket_arn=artifacts_bucket_arn,
         create_image_repository=create_image_repository,
         image_repository_arn=image_repository_arn,
-        oidc_provider_url=oidc_provider_url,
-        oidc_client_id=oidc_client_id,
+        oidc_provider_url=oidc_config.oidc_provider_url,
+        oidc_client_id=oidc_config.oidc_client_id,
         permissions_provider=permissions_provider,
         subject_claim=subject_claim,
         pipeline_oidc_provider=pipeline_oidc_provider,
@@ -382,6 +402,34 @@ def do_cli(
             )
 
 
+def _get_pipeline_oidc_provider(
+    oidc_config: OidcConfig,
+    github_config: GitHubOidcConfig,
+    gitlab_config: GitLabOidcConfig,
+    bitbucket_config: BitbucketOidcConfig,
+) -> PipelineOidcProvider:
+    if oidc_config.oidc_provider == GITHUB_ACTIONS:
+        github_oidc_params: dict = {
+            GitHubOidcProvider.GITHUB_ORG_PARAMETER_NAME: github_config.github_org,
+            GitHubOidcProvider.GITHUB_REPO_PARAMETER_NAME: github_config.github_repo,
+            GitHubOidcProvider.DEPLOYMENT_BRANCH_PARAMETER_NAME: github_config.deployment_branch,
+        }
+        return GitHubOidcProvider(github_oidc_params, oidc_config.get_oidc_parameters())
+    if oidc_config.oidc_provider == GITLAB:
+        gitlab_oidc_params: dict = {
+            GitLabOidcProvider.GITLAB_PROJECT_PARAMETER_NAME: gitlab_config.gitlab_project,
+            GitLabOidcProvider.GITLAB_GROUP_PARAMETER_NAME: gitlab_config.gitlab_group,
+            GitLabOidcProvider.DEPLOYMENT_BRANCH_PARAMETER_NAME: gitlab_config.deployment_branch,
+        }
+        return GitLabOidcProvider(gitlab_oidc_params, oidc_config.get_oidc_parameters())
+    if oidc_config.oidc_provider == BITBUCKET:
+        bitbucket_oidc_params: dict = {
+            BitbucketOidcProvider.BITBUCKET_REPO_UUID_PARAMETER_NAME: bitbucket_config.bitbucket_repo_uuid
+        }
+        return BitbucketOidcProvider(bitbucket_oidc_params, oidc_config.get_oidc_parameters())
+    raise click.UsageError("Missing required parameter '--oidc-provider'")
+
+
 def _load_saved_pipeline_user_arn() -> Optional[str]:
     samconfig: SamConfig = SamConfig(config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME)
     if not samconfig.exists():
@@ -390,7 +438,7 @@ def _load_saved_pipeline_user_arn() -> Optional[str]:
     return config.get("pipeline_user")
 
 
-def _load_saved_oidc_values() -> Dict[str, str]:
+def _load_config_values() -> Dict[str, str]:
     samconfig: SamConfig = SamConfig(config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME)
     if not samconfig.exists():
         return {}
