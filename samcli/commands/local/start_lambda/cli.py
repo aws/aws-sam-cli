@@ -6,6 +6,7 @@ import logging
 import click
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
+from samcli.commands._utils.options import hook_package_id_click_option
 from samcli.commands.local.cli_common.options import (
     invoke_common_options,
     service_common_options,
@@ -58,6 +59,9 @@ Here is a Python example:
     help=HELP_TEXT,
     short_help="Starts a local endpoint you can use to invoke your local Lambda functions.",
 )
+@hook_package_id_click_option(
+    force_prepare=False, invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"]
+)
 @configuration_option(provider=TomlProvider(section="parameters"))
 @service_common_options(3001)
 @invoke_common_options
@@ -96,6 +100,7 @@ def cli(
     container_host,
     container_host_interface,
     invoke_image,
+    hook_package_id,
 ):
     """
     `sam local start-lambda` command entry point
@@ -125,6 +130,7 @@ def cli(
         container_host,
         container_host_interface,
         invoke_image,
+        hook_package_id,
     )  # pragma: no cover
 
 
@@ -151,6 +157,7 @@ def do_cli(  # pylint: disable=R0914
     container_host,
     container_host_interface,
     invoke_image,
+    hook_package_id,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
