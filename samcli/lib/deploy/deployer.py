@@ -335,7 +335,7 @@ class Deployer:
         :param changeset_id: ID of the changeset
         :param stack_name: Name or ID of the stack
         :param disable_rollback: Preserve the state of previously provisioned resources when an operation fails.
-        :return: Changeset execution time (current time)
+        :return: Changeset execution time (unix time in seconds)
         """
         try:
             self._client.execute_change_set(
@@ -344,19 +344,6 @@ class Deployer:
             return time.time()
         except botocore.exceptions.ClientError as ex:
             raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
-
-    def get_last_event_time(self, stack_name):
-        """
-        Finds the last event time stamp thats present for the stack, if not get the current time
-        :param stack_name: Name or ID of the stack
-        :return: unix epoch
-        """
-        try:
-            return utc_to_timestamp(
-                self._client.describe_stack_events(StackName=stack_name)["StackEvents"][0]["Timestamp"]
-            )
-        except KeyError:
-            return time.time()
 
     @pprint_column_names(
         format_string=DESCRIBE_STACK_EVENTS_FORMAT_STRING,
@@ -459,12 +446,7 @@ class Deployer:
         return "IN_PROGRESS" not in status
 
     def wait_for_execute(
-        self,
-        stack_name: str,
-        stack_operation: str,
-        disable_rollback: bool,
-        execution_time: float = time.time(),
-        on_failure: FailureMode = FailureMode.ROLLBACK,
+        self, stack_name: str, stack_operation: str, disable_rollback: bool, execution_time: float = time.time() * 1000, on_failure: FailureMode = FailureMode.ROLLBACK
     ) -> None:
         """
         Wait for stack operation to execute and return when execution completes.
@@ -479,7 +461,8 @@ class Deployer:
         disable_rollback : bool
             Preserves the state of previously provisioned resources when an operation fails
         execution_time : float
-            Time of the last stack change execution request (like `execute_change_set`, `update_stack`, `create_stack`)
+            Time in milliseconds of the last stack change execution request
+            (like `execute_change_set`, `update_stack`, `create_stack`).
             Prevents missing events if the event streaming is delayed from the change request by any action in between
         on_failure : FailureMode
             The action to take when the operation fails
@@ -631,14 +614,14 @@ class Deployer:
                 kwargs["DisableRollback"] = disable_rollback
 
                 result = self.update_stack(**kwargs)
-                self.wait_for_execute(stack_name, "UPDATE", disable_rollback, time.time(), on_failure)
+                self.wait_for_execute(stack_name, "UPDATE", disable_rollback, on_failure=on_failure)
                 msg = "\nStack update succeeded. Sync infra completed.\n"
             else:
                 # Pass string representation of enum
                 kwargs["OnFailure"] = str(on_failure)
 
                 result = self.create_stack(**kwargs)
-                self.wait_for_execute(stack_name, "CREATE", disable_rollback, time.time(), on_failure)
+                self.wait_for_execute(stack_name, "CREATE", disable_rollback, on_failure=on_failure)
                 msg = "\nStack creation succeeded. Sync infra completed.\n"
 
             LOG.info(self._colored.green(msg))
