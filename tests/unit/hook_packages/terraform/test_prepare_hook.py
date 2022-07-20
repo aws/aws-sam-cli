@@ -1,7 +1,7 @@
 """Test Terraform prepare hook"""
 from subprocess import CalledProcessError
 from unittest import TestCase
-from unittest.mock import Mock, call, patch
+from unittest.mock import Mock, call, patch, MagicMock
 import copy
 from parameterized import parameterized
 
@@ -17,6 +17,7 @@ from samcli.hook_packages.terraform.hooks.prepare import (
     _translate_properties,
     _translate_to_cfn,
     _map_s3_sources_to_functions,
+    _update_resources_paths,
 )
 from samcli.lib.hook.exceptions import PrepareHookException
 from samcli.lib.utils.resources import (
@@ -636,6 +637,7 @@ class TestPrepareHook(TestCase):
         translated_cfn_dict = _translate_to_cfn(self.tf_json_with_child_modules_and_s3_source_mapping)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_child_modules_and_s3_source_mapping)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare._update_resources_paths")
     @patch("samcli.hook_packages.terraform.hooks.prepare._translate_to_cfn")
     @patch("builtins.open")
     @patch("samcli.hook_packages.terraform.hooks.prepare.NamedTemporaryFile")
@@ -643,13 +645,22 @@ class TestPrepareHook(TestCase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.json")
     @patch("samcli.hook_packages.terraform.hooks.prepare.run")
     def test_prepare(
-        self, mock_subprocess_run, mock_json, mock_os, named_temporary_file_mock, mock_open, mock_translate_to_cfn
+        self,
+        mock_subprocess_run,
+        mock_json,
+        mock_os,
+        named_temporary_file_mock,
+        mock_open,
+        mock_translate_to_cfn,
+        mock_update_resources_paths,
     ):
         tf_plan_filename = "tf_plan"
         output_dir_path = self.prepare_params.get("OutputDirPath")
         metadata_file_path = f"{output_dir_path}/template.json"
         mock_cfn_dict = Mock()
         mock_metadata_file = Mock()
+        mock_cfn_dict_resources = Mock()
+        mock_cfn_dict.get.return_value = mock_cfn_dict_resources
 
         named_temporary_file_mock.return_value.__enter__.return_value.name = tf_plan_filename
         mock_json.loads.return_value = self.tf_json_with_child_modules_and_s3_source_mapping
@@ -663,13 +674,24 @@ class TestPrepareHook(TestCase):
 
         mock_subprocess_run.assert_has_calls(
             [
-                call(["terraform", "init"], check=True, capture_output=True),
-                call(["terraform", "plan", "-out", tf_plan_filename], check=True, capture_output=True),
-                call(["terraform", "show", "-json", tf_plan_filename], check=True, capture_output=True),
+                call(["terraform", "init"], check=True, capture_output=True, cwd="iac/project/path"),
+                call(
+                    ["terraform", "plan", "-out", tf_plan_filename],
+                    check=True,
+                    capture_output=True,
+                    cwd="iac/project/path",
+                ),
+                call(
+                    ["terraform", "show", "-json", tf_plan_filename],
+                    check=True,
+                    capture_output=True,
+                    cwd="iac/project/path",
+                ),
             ]
         )
         mock_translate_to_cfn.assert_called_once_with(self.tf_json_with_child_modules_and_s3_source_mapping)
         mock_json.dump.assert_called_once_with(mock_cfn_dict, mock_metadata_file)
+        mock_update_resources_paths.assert_called_once_with(mock_cfn_dict_resources, "iac/project/path")
         self.assertEqual(expected_prepare_output_dict, iac_prepare_output)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.run")
@@ -694,3 +716,71 @@ class TestPrepareHook(TestCase):
     def test_prepare_with_no_output_dir_path(self):
         with self.assertRaises(PrepareHookException, msg="OutputDirPath was not supplied"):
             prepare({})
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.os")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.Path")
+    def test_update_resources_paths(self, mock_path, mock_os):
+        abs_path = "/abs/path/value"
+        relative_path = "relative/path/value"
+        terraform_application_root = "/path/terraform/app/root"
+
+        def side_effect_func(value):
+            return value == abs_path
+
+        mock_os.path.isabs = MagicMock(side_effect=side_effect_func)
+        updated_relative_path = f"{terraform_application_root}/{relative_path}"
+        mock_path_init = Mock()
+        mock_path.return_value = mock_path_init
+        mock_path_init.joinpath.return_value = updated_relative_path
+        resources = {
+            "AbsResource1": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {"Code": abs_path, "Timeout": 10, "Handler": "app.func"},
+            },
+            "S3Resource1": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {
+                    "Code": {
+                        "S3Bucket": "s3_bucket_name",
+                        "S3Key": "s3_key_name",
+                    },
+                    "Timeout": 10,
+                    "Handler": "app.func",
+                },
+            },
+            "RelativeResource1": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {"Code": relative_path, "Timeout": 10, "Handler": "app.func"},
+            },
+            "OtherResource1": {
+                "Type": "AWS::Lambda::NotFunction",
+                "Properties": {"Code": relative_path, "Timeout": 10, "Handler": "app.func"},
+            },
+        }
+        expected_resources = {
+            "AbsResource1": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {"Code": abs_path, "Timeout": 10, "Handler": "app.func"},
+            },
+            "S3Resource1": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {
+                    "Code": {
+                        "S3Bucket": "s3_bucket_name",
+                        "S3Key": "s3_key_name",
+                    },
+                    "Timeout": 10,
+                    "Handler": "app.func",
+                },
+            },
+            "RelativeResource1": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {"Code": updated_relative_path, "Timeout": 10, "Handler": "app.func"},
+            },
+            "OtherResource1": {
+                "Type": "AWS::Lambda::NotFunction",
+                "Properties": {"Code": relative_path, "Timeout": 10, "Handler": "app.func"},
+            },
+        }
+        _update_resources_paths(resources, terraform_application_root)
+        self.assertDictEqual(resources, expected_resources)
