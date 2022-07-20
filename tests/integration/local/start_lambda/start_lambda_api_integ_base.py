@@ -32,15 +32,19 @@ class StartLambdaIntegBaseClass(TestCase):
     binary_data_file: Optional[str] = None
     integration_dir = str(Path(__file__).resolve().parents[2])
     invoke_image: Optional[List] = None
+    hook_package_id: Optional[str] = None
 
     build_before_invoke = False
     build_overrides: Optional[Dict[str, str]] = None
+
+    working_dir: Optional[str] = None
 
     @classmethod
     def setUpClass(cls):
         # This is the directory for tests/integration which will be used to file the testdata
         # files for integ tests
         cls.template = cls.integration_dir + cls.template_path
+        cls.working_dir = str(Path(cls.template).resolve().parents[0])
         cls.port = str(StartLambdaIntegBaseClass.random_port())
         cls.env_var_path = cls.integration_dir + "/testdata/invoke/vars.json"
 
@@ -68,8 +72,9 @@ class StartLambdaIntegBaseClass(TestCase):
                 ["ParameterKey={},ParameterValue={}".format(key, value) for key, value in cls.build_overrides.items()]
             )
             command_list += ["--parameter-overrides", overrides_arg]
-        working_dir = str(Path(cls.template).resolve().parents[0])
-        run_command(command_list, cwd=working_dir)
+        if cls.hook_package_id:
+            command_list += ["--hook-package-id", cls.hook_package_id]
+        run_command(command_list, cwd=cls.working_dir)
 
     @classmethod
     def start_lambda(cls, wait_time=5):
@@ -81,13 +86,15 @@ class StartLambdaIntegBaseClass(TestCase):
             command,
             "local",
             "start-lambda",
-            "-t",
-            cls.template,
             "-p",
             cls.port,
             "--env-vars",
             cls.env_var_path,
         ]
+
+        if cls.template:
+            command_list += ["-t", cls.template]
+
         if cls.container_mode:
             command_list += ["--warm-containers", cls.container_mode]
 
@@ -98,10 +105,14 @@ class StartLambdaIntegBaseClass(TestCase):
             for image in cls.invoke_image:
                 command_list += ["--invoke-image", image]
 
-        cls.start_lambda_process = Popen(command_list, stderr=PIPE)
+        if cls.hook_package_id:
+            command_list += ["--hook-package-id", cls.hook_package_id]
+
+        cls.start_lambda_process = Popen(command_list, stderr=PIPE, cwd=cls.working_dir)
 
         while True:
             line = cls.start_lambda_process.stderr.readline()
+            print(f"{line}\n")
             if "(Press CTRL+C to quit)" in str(line):
                 break
 
