@@ -2,8 +2,11 @@
 Kicks off a testsuite in a Fargate container
 """
 from typing import List
+import logging
 from samcli.commands.exceptions import ReservedEnvironmentVariableException
+from samcli.lib.utils.colors import Colored
 
+LOG = logging.getLogger(__name__)
 
 class SuiteRunner:
     def __init__(self, boto_ecs_client, boto_s3_client):
@@ -105,6 +108,8 @@ class SuiteRunner:
             },
             taskDefinition=task_definition_arn,
         )
+
+        LOG.info(Colored().yellow("=> Successfully kicked off testsuite, waiting for completion...\n"))
 
         results_upload_waiter = self.boto_s3_client.get_waiter("object_exists")
         results_upload_waiter.wait(Bucket=bucket, Key=path_in_bucket + "/results.tar.gz")
