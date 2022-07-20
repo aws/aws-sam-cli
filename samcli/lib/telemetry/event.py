@@ -173,5 +173,79 @@ class EventTracker:
             EventTracker._events = []  # Manual clear_trackers() since we're within the lock
 
 
+def track_long_event(start_event_name: str, start_event_value: str, end_event_name: str, end_event_value: str):
+    """Decorator for tracking events that occur at start and end of a function.
+
+    The decorator tracks two Events total, where the first Event occurs
+    at the start of the decorated function's execution (prior to its
+    first line) and the second Event occurs after the function has ended
+    (after the final line of the function has executed).
+
+    Parameters
+    ----------
+    start_event_name: str
+        The name of the Event that is executed at the start of the
+        decorated function's execution. Must be a valid EventName
+        value or the decorator will not run.
+    start_event_value: str
+        The value of the Event that is executed at the start of the
+        decorated function's execution. Must be a valid EventType
+        value for the passed `start_event_name` or the decorator
+        will not run.
+    end_event_name: str
+        The name of the Event that is executed at the end of the
+        decorated function's execution. Must be a valid EventName
+        value or the decorator will not run.
+    end_event_value: str
+        The value of the Event that is executed at the end of the
+        decorated function's execution. Must be a valid EventType
+        value for the passed `end_event_name` or the decorator
+        will not run.
+
+    Examples
+    --------
+    >>> @track_long_event("FuncStart", "Func1", "FuncEnd", "Func1")
+        def func1(...):
+            # do things
+
+    >>> @track_long_event("FuncStart", "Func2", "FuncEnd", "Func2")
+        def func2(...):
+            # do things
+    """
+    should_track = True
+    try:
+        # Check that passed values are valid Events
+        Event(start_event_name, start_event_value)
+        Event(end_event_name, end_event_value)
+    except EventCreationError as e:
+        LOG.debug("Error occurred while trying to track an event: %s\nDecorator not run.", e)
+        should_track = False
+
+    def decorator_for_events(func):
+        """The actual decorator"""
+
+        def wrapped(*args, **kwargs):
+            if should_track:
+                EventTracker.track_event(start_event_name, start_event_value)
+            exception = None
+
+            try:
+                return_value = func(*args, **kwargs)
+            except Exception as e:
+                exception = e
+
+            if should_track:
+                EventTracker.track_event(end_event_name, end_event_value)
+                EventTracker.send_events()  # Ensure Events are sent at the end of execution
+            if exception:
+                raise exception
+
+            return return_value
+
+        return wrapped
+
+    return decorator_for_events
+
+
 class EventCreationError(Exception):
     """Exception called when an Event is not properly created."""

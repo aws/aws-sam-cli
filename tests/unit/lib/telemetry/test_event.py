@@ -4,10 +4,11 @@ Module for testing the event.py methods and classes.
 
 from enum import Enum
 import threading
+from typing import List, Tuple
 from unittest import TestCase
 from unittest.mock import ANY, Mock, patch
 
-from samcli.lib.telemetry.event import Event, EventCreationError, EventTracker
+from samcli.lib.telemetry.event import Event, EventCreationError, EventTracker, track_long_event
 
 
 class DummyEventName(Enum):
@@ -170,3 +171,63 @@ class TestEventTracker(TestCase):
         EventTracker.track_event("TheStrawThat", "BreaksTheCamel'sBack")
 
         send_mock.assert_called()
+
+
+class TestTrackLongEvent(TestCase):
+    @patch("samcli.lib.telemetry.event.EventTracker.send_events")
+    @patch("samcli.lib.telemetry.event.EventTracker.track_event")
+    @patch("samcli.lib.telemetry.event.Event", return_value=None)
+    def test_long_event_is_tracked(self, event_mock, track_mock, send_mock):
+        mock_tracker = {}
+        mock_tracker["tracked_events"]: List[Tuple[str, str]] = []  # Tuple to bypass Event verification
+        mock_tracker["emitted_events"]: List[Tuple[str, str]] = []
+
+        def mock_track(name, value):
+            mock_tracker["tracked_events"].append((name, value))
+
+        def mock_send():
+            mock_tracker["emitted_events"] = mock_tracker["tracked_events"]
+            mock_tracker["tracked_events"] = []  # Mimic clear_trackers()
+
+        track_mock.side_effect = mock_track
+        send_mock.side_effect = mock_send
+
+        @track_long_event("StartEvent", "StartValue", "EndEvent", "EndValue")
+        def func():
+            self.assertEqual(len(mock_tracker["tracked_events"]), 1, "Starting event not tracked.")
+            self.assertIn(("StartEvent", "StartValue"), mock_tracker["tracked_events"], "Incorrect starting event.")
+
+        func()
+
+        self.assertEqual(len(mock_tracker["tracked_events"]), 0, "Tracked events not reset; send_events not called.")
+        self.assertEqual(len(mock_tracker["emitted_events"]), 2, "Unexpected number of emitted events.")
+        self.assertIn(("StartEvent", "StartValue"), mock_tracker["emitted_events"], "Starting event not tracked.")
+        self.assertIn(("EndEvent", "EndValue"), mock_tracker["emitted_events"], "Ending event not tracked.")
+
+    @patch("samcli.lib.telemetry.event.EventTracker.send_events")
+    @patch("samcli.lib.telemetry.event.EventTracker.track_event")
+    def test_nothing_tracked_if_invalid_events(self, track_mock, send_mock):
+        mock_tracker = {}
+        mock_tracker["tracked_events"]: List[Tuple[str, str]] = []  # Tuple to bypass Event verification
+        mock_tracker["emitted_events"]: List[Tuple[str, str]] = []
+
+        def mock_track(name, value):
+            mock_tracker["tracked_events"].append((name, value))
+
+        def mock_send():
+            mock_tracker["emitted_events"] = mock_tracker["tracked_events"]
+            mock_tracker["tracked_events"] = []  # Mimic clear_trackers()
+
+        track_mock.side_effect = mock_track
+        send_mock.side_effect = mock_send
+
+        @track_long_event("DefinitelyNotARealEvent", "Nope", "ThisEventDoesntExist", "NuhUh")
+        def func():
+            self.assertEqual(len(mock_tracker["tracked_events"]), 0, "Events should not have been tracked.")
+
+        func()
+
+        self.assertEqual(len(mock_tracker["tracked_events"]), 0, "Events should not have been tracked.")
+        self.assertEqual(len(mock_tracker["emitted_events"]), 0, "Events should not have been emitted.")
+        track_mock.assert_not_called()  # Tracker should not have been called
+        send_mock.assert_not_called()  # Sender should not have been called
