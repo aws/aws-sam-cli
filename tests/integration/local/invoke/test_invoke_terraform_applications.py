@@ -45,7 +45,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
 
     def tearDown(self) -> None:
         try:
-            shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".aws-sam")))
+            shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".aws-sam")))  # type: ignore
         except FileNotFoundError:
             pass
 

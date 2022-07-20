@@ -83,7 +83,7 @@ def prepare(params: dict) -> dict:
         cfn_dict = _translate_to_cfn(tf_json)
 
         if cfn_dict.get("Resources"):
-            _update_resources_paths(cfn_dict.get("Resources"), terraform_application_dir)
+            _update_resources_paths(cfn_dict.get("Resources"), terraform_application_dir)  # type: ignore
 
         # store in supplied output dir
         if not os.path.exists(output_dir_path):
@@ -121,7 +121,7 @@ def _update_resources_paths(cfn_resources: Dict[str, Any], terraform_application
         The terraform application root directory where all paths will be relative to it
     """
     resources_attributes_to_be_updated = {CFN_AWS_LAMBDA_FUNCTION: ["Code"]}
-    for logical_id, resource in cfn_resources.items():
+    for _, resource in cfn_resources.items():
         if resource.get("Type") in resources_attributes_to_be_updated:
             for attribute in resources_attributes_to_be_updated[resource["Type"]]:
                 original_path = resource["Properties"].get(attribute)
