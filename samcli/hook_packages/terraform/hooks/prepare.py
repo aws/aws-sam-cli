@@ -295,12 +295,47 @@ def _build_lambda_function_code_property(tf_properties: dict) -> Any:
         return filename
 
     code = {}
-    tf_cfn_prop_names = [("s3_bucket", "S3Bucket"), ("s3_key", "S3Key")]
+    tf_cfn_prop_names = [("s3_bucket", "S3Bucket"), ("s3_key", "S3Key"), ("image_uri", "ImageUri")]
     for tf_prop_name, cfn_prop_name in tf_cfn_prop_names:
         tf_prop_value = tf_properties.get(tf_prop_name)
         if tf_prop_value is not None:
             code[cfn_prop_name] = tf_prop_value
     return code
+
+
+def _build_lambda_function_image_config_property(tf_properties: dict) -> Optional[dict]:
+    """
+    Builds the ImageConfig property of a CloudFormation AWS Lambda Function out of the
+    properties of the equivalent terraform resource
+
+    Parameters
+    ----------
+    tf_properties: dict
+        Properties of the terraform AWS Lambda function resource
+
+    Returns
+    -------
+    dict
+        The built ImageConfig property of a CloudFormation AWS Lambda Function resource
+    """
+    image_config = tf_properties.get("image_config")
+    if not image_config:
+        return None
+    image_config = image_config[0]
+
+    cfn_image_config = {}
+    tf_cfn_prop_names = [
+        ("command", "Command"),
+        ("entry_point", "EntryPoint"),
+        ("working_directory", "WorkingDirectory"),
+    ]
+
+    for tf_prop_name, cfn_prop_name in tf_cfn_prop_names:
+        tf_prop_value = image_config.get(tf_prop_name)
+        if tf_prop_value is not None:
+            cfn_image_config[cfn_prop_name] = tf_prop_value
+
+    return cfn_image_config
 
 
 AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
@@ -313,6 +348,7 @@ AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
     "Runtime": _get_property_extractor("runtime"),
     "Layers": _get_property_extractor("layers"),
     "Timeout": _get_property_extractor("timeout"),
+    "ImageConfig": _build_lambda_function_image_config_property,
 }
 
 RESOURCE_TRANSLATOR_MAPPING: Dict[str, ResourceTranslator] = {
