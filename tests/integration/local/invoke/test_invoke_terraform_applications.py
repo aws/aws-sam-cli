@@ -23,7 +23,9 @@ class InvokeTerraformApplicationIntegBase(InvokeIntegBase):
         cls.terraform_application_path = str(cls.test_data_path.joinpath("invoke", cls.terraform_application))
 
     def run_command(self, command_list, env=None, input=None):
-        process = Popen(command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE, env=env, cwd=self.terraform_application_path)
+        process = Popen(
+            command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE, env=env, cwd=self.terraform_application_path
+        )
         try:
             (stdout, stderr) = process.communicate(input=input, timeout=TIMEOUT)
             return stdout, stderr, process.returncode
@@ -79,14 +81,14 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
         local_invoke_command_list = self.get_command_list(
             function_to_invoke="s3_lambda_function", hook_package_id="terraform"
         )
-        stdout, _, return_code = self.run_command(local_invoke_command_list, input=b'Y\n\n')
+        stdout, _, return_code = self.run_command(local_invoke_command_list, input=b"Y\n\n")
 
         terraform_beta_feature_prompted_text = (
             "Supporting Terraform applications is a beta feature.\n"
             "Please confirm if you would like to proceed using SAM CLI with terraform application.\n"
             "You can also enable this beta feature with 'sam local invoke --beta-features'."
         )
-        self.assertRegex(stdout.decode("utf-8"),terraform_beta_feature_prompted_text )
+        self.assertRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
         response = json.loads(stdout.decode("utf-8").split("\n")[2][85:].strip())
         expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"hello world\\"}"}')
 
@@ -102,7 +104,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
         local_invoke_command_list = self.get_command_list(
             function_to_invoke="s3_lambda_function", hook_package_id="terraform"
         )
-        stdout, stderr, return_code = self.run_command(local_invoke_command_list, input=b'N\n\n')
+        stdout, stderr, return_code = self.run_command(local_invoke_command_list, input=b"N\n\n")
 
         terraform_beta_feature_prompted_text = (
             "Supporting Terraform applications is a beta feature.\n"
