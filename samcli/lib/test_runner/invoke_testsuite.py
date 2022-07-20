@@ -1,103 +1,110 @@
+"""
+Kicks off a testsuite in a Fargate container
+"""
 from typing import List
 from samcli.commands.exceptions import ReservedEnvironmentVariableException
 
 
-def invoke_testsuite(
-    boto_ecs_client,
-    boto_s3_client,
-    bucket: str,
-    path_in_bucket: str,
-    ecs_cluster: str,
-    container_name: str,
-    task_definition_arn: str,
-    other_env_vars: dict,
-    test_command_options: str,
-    subnets: List[str],
-) -> None:
+class SuiteRunner:
+    def __init__(self, boto_ecs_client, boto_s3_client):
+        self.boto_ecs_client = boto_ecs_client
+        self.boto_s3_client = boto_s3_client
 
-    """
-    Kicks off a testsuite by making a runTask query.
+    def invoke_testsuite(
+        self,
+        bucket: str,
+        path_in_bucket: str,
+        ecs_cluster: str,
+        container_name: str,
+        task_definition_arn: str,
+        other_env_vars: dict,
+        test_command_options: str,
+        subnets: List[str],
+    ) -> None:
 
-    NOTE: https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_RunTask.html
+        """
+        Kicks off a testsuite by making a runTask query.
 
-    Parameters
-    ----------
-    boto_client_provider : BotoProviderType
-        Provides a boto3 client in order to make a runTask query.
+        NOTE: https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_RunTask.html
 
-        Also used for waiting for results to appear in the s3 bucket.
+        Parameters
+        ----------
+        boto_client_provider : BotoProviderType
+            Provides a boto3 client in order to make a runTask query.
 
-    bucket : str
-        The name of the bucket used to store results.
+            Also used for waiting for results to appear in the s3 bucket.
 
-    path_in_bucket : str
-        The path within the bucket where results are stored.
+        bucket : str
+            The name of the bucket used to store results.
 
-    ecs_cluster : str
-        The name of the ECS Cluster to run the task on.
+        path_in_bucket : str
+            The path within the bucket where results are stored.
 
-    container_name : str
-        The name of the container in which the testsuite runs.
+        ecs_cluster : str
+            The name of the ECS Cluster to run the task on.
 
-        This is required to specify environment variables in a containerOverride.
+        container_name : str
+            The name of the container in which the testsuite runs.
 
-    task_definition_arn : str
-        The ARN of the task definition to run.
+            This is required to specify environment variables in a containerOverride.
 
-    other_env_vars : dict
-        Other environment variables to be sent to the container.
+        task_definition_arn : str
+            The ARN of the task definition to run.
 
-    test_command_options : str
-        Options to be passed to the test command.
+        other_env_vars : dict
+            Other environment variables to be sent to the container.
 
-        For example, '--maxfail=2
+        test_command_options : str
+            Options to be passed to the test command.
 
-    do_await : Optional[bool]
-        If enabled, wait for the task to finish and for results to appear in the bucket.
+            For example, '--maxfail=2
 
-    Raises
-    ------
-    botocore.ClientError
-        If run_task fails
+        do_await : Optional[bool]
+            If enabled, wait for the task to finish and for results to appear in the bucket.
 
-    botocore.WaiterError
-        If the results.tar.gz fails to appear in the bucket
-    """
+        Raises
+        ------
+        botocore.ClientError
+            If run_task fails
 
-    container_env_vars = {
-        "TEST_RUNNER_BUCKET": bucket,
-        "TEST_COMMAND_OPTIONS": test_command_options,
-        "TEST_RUN_ID": path_in_bucket,
-    }
+        botocore.WaiterError
+            If the results.tar.gz fails to appear in the bucket
+        """
 
-    reserved_vars = []
-    for key in other_env_vars.keys():
-        if key in container_env_vars.keys():
-            reserved_vars.append(key)
-        if not str.isidentifier(key):
-            raise ValueError(f"{key} is not a valid environment variable name.")
+        container_env_vars = {
+            "TEST_RUNNER_BUCKET": bucket,
+            "TEST_COMMAND_OPTIONS": test_command_options,
+            "TEST_RUN_ID": path_in_bucket,
+        }
 
-    if len(reserved_vars) > 0:
-        raise ReservedEnvironmentVariableException(
-            f"The following are reserved environment variable, ensure they are not present in your environment variables file: {reserved_vars}"
+        reserved_vars = []
+        for key in other_env_vars.keys():
+            if key in container_env_vars.keys():
+                reserved_vars.append(key)
+            if not str.isidentifier(key):
+                raise ValueError(f"{key} is not a valid environment variable name.")
+
+        if len(reserved_vars) > 0:
+            raise ReservedEnvironmentVariableException(
+                f"The following are reserved environment variable, ensure they are not present in your environment variables file: {reserved_vars}"
+            )
+
+        container_env_vars.update(other_env_vars)
+
+        self.boto_ecs_client.run_task(
+            cluster=ecs_cluster,
+            launchType="FARGATE",
+            networkConfiguration={"awsvpcConfiguration": {"subnets": subnets, "assignPublicIp": "ENABLED"}},
+            overrides={
+                "containerOverrides": [
+                    {
+                        "name": container_name,
+                        "environment": [{"name": key, "value": val} for key, val in container_env_vars.items()],
+                    }
+                ]
+            },
+            taskDefinition=task_definition_arn,
         )
 
-    container_env_vars.update(other_env_vars)
-
-    boto_ecs_client.run_task(
-        cluster=ecs_cluster,
-        launchType="FARGATE",
-        networkConfiguration={"awsvpcConfiguration": {"subnets": subnets, "assignPublicIp": "ENABLED"}},
-        overrides={
-            "containerOverrides": [
-                {
-                    "name": container_name,
-                    "environment": [{"name": key, "value": val} for key, val in container_env_vars.items()],
-                }
-            ]
-        },
-        taskDefinition=task_definition_arn,
-    )
-
-    results_upload_waiter = boto_s3_client.get_waiter("object_exists")
-    results_upload_waiter.wait(Bucket=bucket, Key=path_in_bucket + "/results.tar.gz")
+        results_upload_waiter = self.boto_s3_client.get_waiter("object_exists")
+        results_upload_waiter.wait(Bucket=bucket, Key=path_in_bucket + "/results.tar.gz")

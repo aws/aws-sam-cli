@@ -1,15 +1,14 @@
 from botocore.exceptions import ClientError, WaiterError
 from unittest import TestCase
 from unittest.mock import Mock
-from samcli.lib.test_runner.invoke_testsuite import invoke_testsuite
+from samcli.lib.test_runner.invoke_testsuite import SuiteRunner
 from samcli.commands.exceptions import ReservedEnvironmentVariableException
 
 
 class Test_InvokeTestsuite(TestCase):
     def setUp(self):
+        self.runner = SuiteRunner(None, None)
         self.params = {
-            "boto_ecs_client": None,
-            "boto_s3_client": None,
             "bucket": "test-bucket-name",
             "path_in_bucket": "test_bucket_path",
             "ecs_cluster": "test-cluster-name",
@@ -21,25 +20,26 @@ class Test_InvokeTestsuite(TestCase):
         }
 
     def test_invalid_var_names(self):
+
         self.params["other_env_vars"] = {r"0variable_name": "value", r"\othervariable_name": "othervalue"}
 
         with self.assertRaises(ValueError):
-            invoke_testsuite(**self.params)
+            self.runner.invoke_testsuite(**self.params)
 
     def test_specify_variable_bucket(self):
         self.params["other_env_vars"] = {"TEST_RUNNER_BUCKET": "oh-no"}
         with self.assertRaises(ReservedEnvironmentVariableException):
-            invoke_testsuite(**self.params)
+            self.runner.invoke_testsuite(**self.params)
 
     def test_specify_variable_run_id(self):
         self.params["other_env_vars"] = {"TEST_RUN_ID": "oh-no"}
         with self.assertRaises(ReservedEnvironmentVariableException):
-            invoke_testsuite(**self.params)
+            self.runner.invoke_testsuite(**self.params)
 
     def test_specify_variable_command_options(self):
         self.params["other_env_vars"] = {"TEST_COMMAND_OPTIONS": "oh-no"}
         with self.assertRaises(ReservedEnvironmentVariableException):
-            invoke_testsuite(**self.params)
+            self.runner.invoke_testsuite(**self.params)
 
     def test_bad_runtask(self):
         boto_ecs_client_mock = Mock()
@@ -50,10 +50,10 @@ class Test_InvokeTestsuite(TestCase):
             error_response=client_error_response, operation_name="run_task"
         )
 
-        self.params["boto_ecs_client"] = boto_ecs_client_mock
+        self.runner.boto_ecs_client = boto_ecs_client_mock
 
         with self.assertRaises(ClientError):
-            invoke_testsuite(**self.params)
+            self.runner.invoke_testsuite(**self.params)
 
     def test_results_waiter_fails(self):
         boto_ecs_client_mock = Mock()
@@ -68,8 +68,8 @@ class Test_InvokeTestsuite(TestCase):
         )
         boto_s3_client_mock.get_waiter.return_value = s3_waiter_mock
 
-        self.params["boto_ecs_client"] = boto_ecs_client_mock
-        self.params["boto_s3_client"] = boto_s3_client_mock
+        self.runner.boto_ecs_client = boto_ecs_client_mock
+        self.runner.boto_s3_client = boto_s3_client_mock
 
         with self.assertRaises(WaiterError):
-            invoke_testsuite(**self.params)
+            self.runner.invoke_testsuite(**self.params)
