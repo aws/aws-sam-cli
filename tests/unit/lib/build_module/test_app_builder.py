@@ -469,6 +469,48 @@ class TestApplicationBuilder_build(TestCase):
                 artifact_dir="artifact_dir",
             )
 
+    def test_must_not_use_dep_layer_for_non_cached(self):
+        mocked_default_build_strategy = Mock()
+        mocked_default_build_strategy.return_value = mocked_default_build_strategy
+
+        function = Function(
+            function_id="name",
+            name="name",
+            functionname="function_name",
+            runtime="runtime",
+            memory="memory",
+            timeout="timeout",
+            handler="handler",
+            imageuri="imageuri",
+            packagetype=ZIP,
+            imageconfig="imageconfig",
+            codeuri="codeuri",
+            environment="environment",
+            rolearn="rolearn",
+            layers="layers",
+            events="events",
+            codesign_config_arn="codesign_config_arn",
+            metadata=None,
+            inlinecode=None,
+            architectures=[X86_64],
+            stack_path="",
+            function_url_config=None,
+        )
+
+        resources_to_build_collector = ResourcesToBuildCollector()
+        resources_to_build_collector.add_functions([function])
+
+        builder = ApplicationBuilder(
+            resources_to_build_collector, "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr)
+        )
+        builder._build_function = Mock()
+
+        builder.build()
+
+        builder._build_function.assert_called_with(
+            "name", "codeuri", ZIP, "runtime", X86_64, "handler", str(Path("builddir/name")), {}, {}, None, True
+        )
+
 
 class PathValidator:
     def __init__(self, path):
