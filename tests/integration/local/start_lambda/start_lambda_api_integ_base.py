@@ -112,7 +112,6 @@ class StartLambdaIntegBaseClass(TestCase):
 
         while True:
             line = cls.start_lambda_process.stderr.readline()
-            print(f"{line}\n")
             if "(Press CTRL+C to quit)" in str(line):
                 break
 
