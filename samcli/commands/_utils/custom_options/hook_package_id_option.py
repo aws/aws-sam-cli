@@ -7,6 +7,7 @@ import os
 import click
 
 from samcli.commands._utils.constants import DEFAULT_BUILT_TEMPLATE_PATH
+from samcli.commands._utils.experimental import prompt_experimental, ExperimentalFlag
 from samcli.lib.hook.exceptions import InvalidHookWrapperException
 from samcli.lib.hook.hook_wrapper import IacHookWrapper, get_available_hook_packages_ids
 
@@ -28,6 +29,9 @@ class HookPackageIdOption(click.Option):
     def handle_parse_result(self, ctx, opts, args):
         opt_name = self.name.replace("_", "-")
         if self.name in opts:
+            command_name = ctx.command.name
+            if command_name in ["invoke", "start-lambda", "start-api"]:
+                command_name = f"local {command_name}"
             # validate the hook_package_id value exists
             hook_package_id = opts[self.name]
             iac_hook_wrapper = None
@@ -46,6 +50,20 @@ class HookPackageIdOption(click.Option):
                     raise click.BadParameter(
                         f"Parameters {opt_name}, and {','.join(self._invalid_coexist_options)} can not be used together"
                     )
+            # check beta-feature
+            beta_features = opts.get("beta_features")
+            if beta_features is None:
+                terraform_support_message = (
+                    "Supporting Terraform applications is a beta feature.\n"
+                    "Please confirm if you would like to proceed using SAM CLI with terraform application.\n"
+                    f"You can also enable this beta feature with 'sam {command_name} --beta-features'."
+                )
+                if not prompt_experimental(ExperimentalFlag.TerraformSupport, terraform_support_message):
+                    LOG.debug("Experimental flag is disabled, return, and do not run the prepare hook")
+                    return super().handle_parse_result(ctx, opts, args)
+            elif not beta_features:
+                LOG.debug("beta-feature flag is disabled, return, and do not run the prepare hook")
+                return super().handle_parse_result(ctx, opts, args)
 
             # call prepare hook
             built_template_path = DEFAULT_BUILT_TEMPLATE_PATH

@@ -11,7 +11,7 @@ import click
 from samcli.cli.context import Context
 
 from samcli.cli.global_config import ConfigEntry, GlobalConfig
-from samcli.commands._utils.options import parameterized_option
+from samcli.commands._utils.parameterized_option import parameterized_option
 from samcli.lib.utils.colors import Colored
 
 LOG = logging.getLogger(__name__)
@@ -44,6 +44,9 @@ class ExperimentalFlag:
 
     All = ExperimentalEntry("experimentalAll", EXPERIMENTAL_ENV_VAR_PREFIX + "FEATURES")
     Esbuild = ExperimentalEntry("experimentalEsbuild", EXPERIMENTAL_ENV_VAR_PREFIX + "ESBUILD")
+    TerraformSupport = ExperimentalEntry(
+        "experimentalTerraformSupport", EXPERIMENTAL_ENV_VAR_PREFIX + "TERRAFORM_SUPPORT"
+    )
 
 
 def is_experimental_enabled(config_entry: ExperimentalEntry) -> bool:

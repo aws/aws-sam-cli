@@ -6,6 +6,7 @@ import logging
 import click
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
+from samcli.commands._utils.experimental import experimental, is_experimental_enabled, ExperimentalFlag
 from samcli.commands._utils.options import hook_package_id_click_option
 from samcli.commands.local.cli_common.options import invoke_common_options, local_common_options
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
@@ -48,6 +49,7 @@ STDIN_FILE_NAME = "-"
 )
 @click.option("--no-event", is_flag=True, default=True, help="DEPRECATED: By default no event is assumed.", hidden=True)
 @invoke_common_options
+@experimental
 @local_common_options
 @cli_framework_options
 @aws_creds_options
@@ -149,6 +151,10 @@ def do_cli(  # pylint: disable=R0914
     from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError, NoPrivilegeException
     from samcli.local.docker.manager import DockerImagePullFailedException
     from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
+
+    if hook_package_id and not is_experimental_enabled(ExperimentalFlag.TerraformSupport):
+        LOG.info("Terraform Support beta feature is not enabled.")
+        return
 
     LOG.debug("local invoke command is called")
 

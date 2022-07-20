@@ -112,7 +112,7 @@ class IacHookWrapper:
         LOG.debug("Looking for internal hook package")
         for child in _INTERNAL_PACKAGES_ROOT.iterdir():
             if child.name == hook_package_id:
-                LOG.info('Loaded internal hook package "%s"', hook_package_id)
+                LOG.debug('Loaded internal hook package "%s"', hook_package_id)
                 self._config = HookPackageConfig(child)
                 return
 

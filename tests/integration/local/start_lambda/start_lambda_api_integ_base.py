@@ -33,6 +33,8 @@ class StartLambdaIntegBaseClass(TestCase):
     integration_dir = str(Path(__file__).resolve().parents[2])
     invoke_image: Optional[List] = None
     hook_package_id: Optional[str] = None
+    beta_features: Optional[bool] = None
+    collect_start_lambda_process_output: bool = False
 
     build_before_invoke = False
     build_overrides: Optional[Dict[str, str]] = None
@@ -77,7 +79,7 @@ class StartLambdaIntegBaseClass(TestCase):
         run_command(command_list, cwd=cls.working_dir)
 
     @classmethod
-    def start_lambda(cls, wait_time=5):
+    def start_lambda(cls, wait_time=5, input=None):
         command = "sam"
         if os.getenv("SAM_CLI_DEV"):
             command = "samdev"
@@ -108,11 +110,21 @@ class StartLambdaIntegBaseClass(TestCase):
         if cls.hook_package_id:
             command_list += ["--hook-package-id", cls.hook_package_id]
 
-        cls.start_lambda_process = Popen(command_list, stderr=PIPE, cwd=cls.working_dir)
+        if cls.beta_features is not None:
+            command_list += ["--beta-features" if cls.beta_features else "--no-beta-features"]
+
+        cls.start_lambda_process = Popen(command_list, stderr=PIPE, stdin=PIPE, cwd=cls.working_dir)
+        cls.start_lambda_process_output = ""
+
+        if input:
+            cls.start_lambda_process.stdin.write(input)
+            cls.start_lambda_process.stdin.close()
 
         while True:
             line = cls.start_lambda_process.stderr.readline()
-            if "(Press CTRL+C to quit)" in str(line):
+            if cls.collect_start_lambda_process_output:
+                cls.start_lambda_process_output += f"{line.decode('utf-8')}\n"
+            if "(Press CTRL+C to quit)" in str(line) or "Terraform Support beta feature is not enabled." in str(line):
                 break
 
         cls.stop_reading_thread = False

@@ -49,6 +49,7 @@ class InvokeIntegBase(TestCase):
         docker_network=None,
         invoke_image=None,
         hook_package_id=None,
+        beta_features=None,
     ):
         command_list = [self.cmd, "local", "invoke", function_to_invoke]
 
@@ -87,6 +88,9 @@ class InvokeIntegBase(TestCase):
 
         if hook_package_id:
             command_list = command_list + ["--hook-package-id", hook_package_id]
+
+        if beta_features is not None:
+            command_list = command_list + ["--beta-features" if beta_features else "--no-beta-features"]
 
         return command_list
 
