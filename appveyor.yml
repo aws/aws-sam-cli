@@ -146,13 +146,11 @@ for:
       - sh: "PATH=/opt/gradle/gradle-5.5/bin:$PATH"
 
       # install Terraform
-      - sh: "sudo apt-get update && sudo apt-get install -y gnupg software-properties-common"
-      - sh: "wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg"
-      - sh: "gpg --no-default-keyring --keyring /usr/share/keyrings/hashicorp-archive-keyring.gpg --fingerprint"
-      - sh: "echo $(lsb_release -cs)"
-      - sh: "echo 'deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main' | sudo tee /etc/apt/sources.list.d/hashicorp.list"
       - sh: "sudo apt update"
-      - sh: "sudo apt-get install terraform"
+      - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \"\,\v | awk '{$1=$1};1'`"
+      - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
+      - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
+      - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
       - sh: "terraform -version"
 
       # Install AWS CLI
