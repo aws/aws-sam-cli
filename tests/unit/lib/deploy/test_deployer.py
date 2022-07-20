@@ -370,25 +370,6 @@ class TestDeployer(CustomTestCase):
         with self.assertRaises(DeployFailedError):
             self.deployer.execute_changeset("id", "test", True)
 
-    def test_get_last_event_time(self):
-        timestamp = datetime.utcnow()
-        self.deployer._client.describe_stack_events = MagicMock(
-            return_value={"StackEvents": [{"Timestamp": timestamp}]}
-        )
-        self.assertEqual(self.deployer.get_last_event_time("test"), utc_to_timestamp(timestamp))
-
-    def test_get_last_event_time_unknown_last_time(self):
-        current_timestamp = datetime.utcnow()
-        self.deployer._client.describe_stack_events = MagicMock(side_effect=KeyError)
-        # Convert to milliseconds from seconds
-        last_stack_event_timestamp = to_datetime(self.deployer.get_last_event_time("test") * 1000)
-        self.assertEqual(last_stack_event_timestamp.year, current_timestamp.year)
-        self.assertEqual(last_stack_event_timestamp.month, current_timestamp.month)
-        self.assertEqual(last_stack_event_timestamp.day, current_timestamp.day)
-        self.assertEqual(last_stack_event_timestamp.hour, current_timestamp.hour)
-        self.assertEqual(last_stack_event_timestamp.minute, current_timestamp.minute)
-        self.assertEqual(last_stack_event_timestamp.second, current_timestamp.second)
-
     @patch("time.sleep")
     @patch("samcli.lib.deploy.deployer.pprint_columns")
     def test_describe_stack_events_chronological_order(self, patched_pprint_columns, patched_time):
