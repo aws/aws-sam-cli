@@ -99,42 +99,21 @@ class TestResources(DeployIntegBase, ResourcesIntegBase):
             stack_name=stack_name, region=region, output="json", template_file=template_path
         )
         command_result = run_command(cmdlist, cwd=self.working_dir)
-        self.assertTrue(
-            re.search(
-                """{\n    "LogicalResourceId": "HelloWorldFunction",\n    "PhysicalResourceId": ".*HelloWorldFunction.*"\n  }""",
-                command_result.stdout.decode(),
+        expression_list = [
+            """{\n    "LogicalResourceId": "HelloWorldFunction",\n    "PhysicalResourceId": ".*HelloWorldFunction.*"\n  }""",
+            """{\n    "LogicalResourceId": "HelloWorldFunctionRole",\n    "PhysicalResourceId": ".*HelloWorldFunctionRole.*"\n  }""",
+            """{\n    "LogicalResourceId": "HelloWorldFunctionHelloWorldPermissionProd",\n    "PhysicalResourceId": ".*HelloWorldFunctionHelloWorldPermissionProd.*"\n  }""",
+            """{\n    "LogicalResourceId": "ServerlessRestApi",\n    "PhysicalResourceId": ".*"\n  }""",
+            """{\n    "LogicalResourceId": "ServerlessRestApiProdStage",\n    "PhysicalResourceId": ".*"\n  }""",
+            """{\n    "LogicalResourceId": "ServerlessRestApiDeployment.*",\n    "PhysicalResourceId": ".*"\n  }""",
+        ]
+        for expression in expression_list:
+            self.assertTrue(
+                re.search(
+                    expression,
+                    command_result.stdout.decode(),
+                )
             )
-        )
-        self.assertTrue(
-            re.search(
-                """{\n    "LogicalResourceId": "HelloWorldFunctionRole",\n    "PhysicalResourceId": ".*HelloWorldFunctionRole.*"\n  }""",
-                command_result.stdout.decode(),
-            )
-        )
-        self.assertTrue(
-            re.search(
-                """{\n    "LogicalResourceId": "HelloWorldFunctionHelloWorldPermissionProd",\n    "PhysicalResourceId": ".*HelloWorldFunctionHelloWorldPermissionProd.*"\n  }""",
-                command_result.stdout.decode(),
-            )
-        )
-        self.assertTrue(
-            re.search(
-                """{\n    "LogicalResourceId": "ServerlessRestApi",\n    "PhysicalResourceId": ".*"\n  }""",
-                command_result.stdout.decode(),
-            )
-        )
-        self.assertTrue(
-            re.search(
-                """{\n    "LogicalResourceId": "ServerlessRestApiProdStage",\n    "PhysicalResourceId": ".*"\n  }""",
-                command_result.stdout.decode(),
-            )
-        )
-        self.assertTrue(
-            re.search(
-                """{\n    "LogicalResourceId": "ServerlessRestApiDeployment.*",\n    "PhysicalResourceId": ".*"\n  }""",
-                command_result.stdout.decode(),
-            )
-        )
 
     def test_stack_does_not_exist(self):
         template_path = self.list_test_data_path.joinpath("test_stack_creation_template.yaml")

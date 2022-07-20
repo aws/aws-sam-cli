@@ -136,19 +136,25 @@ SAM_FILE_READER_RETURN = {
 class TestResourcesContext(TestCase):
     @patch("samcli.commands.list.json_consumer.click.echo")
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
-    @patch("samcli.commands.list.resources.resources_context.ResourceMappingProducer.produce")
+    @patch("samcli.lib.list.resources.resource_mapping_producer.get_template_data")
+    @patch("samcli.lib.list.resources.resource_mapping_producer.ResourceMappingProducer.get_translated_dict")
     def test_resources_context_run_local_only_no_stack_name(
-        self, mock_produce, patched_click_get_current_context, patched_click_echo
+        self, mock_get_translated_dict, mock_sam_file_reader, patched_click_get_current_context, patched_click_echo
     ):
-        mock_produce.return_value = '[\n  {\n    "LogicalResourceId": "HelloWorldFunction",\n    "PhysicalResourceId": "-"\n  },\n  {\n    "LogicalResourceId": "HelloWorldFunctionRole",\n    "PhysicalResourceId": "-"\n  },\n  {\n    "LogicalResourceId": "HelloWorldFunctionHelloWorldPermissionProd",\n    "PhysicalResourceId": "-"\n  },\n  {\n    "LogicalResourceId": "ServerlessRestApi",\n    "PhysicalResourceId": "-"\n  },\n  {\n    "LogicalResourceId": "ServerlessRestApiDeploymentf5716dc08b",\n    "PhysicalResourceId": "-"\n  },\n  {\n    "LogicalResourceId": "ServerlessRestApiProdStage",\n    "PhysicalResourceId": "-"\n  }\n]'
+        mock_get_translated_dict.return_value = TRANSLATED_DICT_RETURN
 
+        mock_sam_file_reader.return_value = SAM_FILE_READER_RETURN
         with ResourcesContext(
             stack_name=None, output="json", region="us-east-1", profile=None, template_file=None
         ) as resources_context:
             resources_context.run()
-            expected_output = '[\n  {\n    "LogicalResourceId": "HelloWorldFunction",\n    "PhysicalResourceId": "-"\n  },\n  {\n    "LogicalResourceId": "HelloWorldFunctionRole",\n    "PhysicalResourceId": "-"\n  },\n  {\n    "LogicalResourceId": "HelloWorldFunctionHelloWorldPermissionProd",\n    "PhysicalResourceId": "-"\n  },\n  {\n    "LogicalResourceId": "ServerlessRestApi",\n    "PhysicalResourceId": "-"\n  },\n  {\n    "LogicalResourceId": "ServerlessRestApiDeploymentf5716dc08b",\n    "PhysicalResourceId": "-"\n  },\n  {\n    "LogicalResourceId": "ServerlessRestApiProdStage",\n    "PhysicalResourceId": "-"\n  }\n]'
-
-            self.assertEqual(expected_output, mock_produce.return_value)
+            expected_output = [
+                call(
+                    '[\n  {\n    "LogicalResourceId": "HelloWorldFunction",\n    "PhysicalResourceId": "-"\n  },\n  {\n    "LogicalResourceId": "HelloWorldFunctionRole",\n    "PhysicalResourceId": "-"\n  },\n  {\n    "LogicalResourceId": "HelloWorldFunctionHelloWorldPermissionProd",\n    "PhysicalResourceId": "-"\n  },\n  {\n    "LogicalResourceId": "ServerlessRestApi",\n    "PhysicalResourceId": "-"\n  },\n  {\n    "LogicalResourceId": "ServerlessRestApiDeploymentf5716dc08b",\n    "PhysicalResourceId": "-"\n  },\n  {\n    "LogicalResourceId": "ServerlessRestApiProdStage",\n    "PhysicalResourceId": "-"\n  }\n]'
+                )
+            ]
+            print(patched_click_echo.call_args_list)
+            self.assertEqual(expected_output, patched_click_echo.call_args_list)
 
 
 class TestResourceMappingProducerProduce(TestCase):
