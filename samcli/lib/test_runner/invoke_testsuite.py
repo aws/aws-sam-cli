@@ -1,11 +1,10 @@
-import click
 from typing import List
 from samcli.commands.exceptions import ReservedEnvironmentVariableException
-from samcli.lib.utils.boto_utils import BotoProviderType
 
 
 def invoke_testsuite(
-    boto_client_provider: BotoProviderType,
+    boto_ecs_client,
+    boto_s3_client,
     bucket: str,
     path_in_bucket: str,
     ecs_cluster: str,
@@ -14,7 +13,6 @@ def invoke_testsuite(
     other_env_vars: dict,
     test_command_options: str,
     subnets: List[str],
-    do_await: bool = False,
 ) -> None:
 
     """
@@ -60,7 +58,10 @@ def invoke_testsuite(
     Raises
     ------
     botocore.ClientError
-        If get_subnets, run_task, or waiters fail
+        If run_task fails
+
+    botocore.WaiterError
+        If the results.tar.gz fails to appear in the bucket
     """
 
     container_env_vars = {
@@ -69,17 +70,21 @@ def invoke_testsuite(
         "TEST_RUN_ID": path_in_bucket,
     }
 
+    reserved_vars = []
     for key in other_env_vars.keys():
         if key in container_env_vars.keys():
-            raise ReservedEnvironmentVariableException(
-                f"{key} is a reserved environment variable, ensure that it is not present in your environment variables file."
-            )
+            reserved_vars.append(key)
+        if not str.isidentifier(key):
+            raise ValueError(f"{key} is not a valid environment variable name.")
+
+    if len(reserved_vars) > 0:
+        raise ReservedEnvironmentVariableException(
+            f"The following are reserved environment variable, ensure they are not present in your environment variables file: {reserved_vars}"
+        )
 
     container_env_vars.update(other_env_vars)
 
-    ecs_client = boto_client_provider("ecs")
-
-    response = ecs_client.run_task(
+    boto_ecs_client.run_task(
         cluster=ecs_cluster,
         launchType="FARGATE",
         networkConfiguration={"awsvpcConfiguration": {"subnets": subnets, "assignPublicIp": "ENABLED"}},
@@ -94,16 +99,5 @@ def invoke_testsuite(
         taskDefinition=task_definition_arn,
     )
 
-    click.secho("Successfully kicked off testsuite!\n", fg="green")
-
-    # If await is specified, wait for the task to finish and the results.tar.gz to appear in the bucket
-    if do_await:
-        click.secho("Awaiting testsuite completion...\n", fg="yellow")
-
-        task_waiter = ecs_client.get_waiter("tasks_running")
-        task_arn = response.get("tasks")[0].get("taskArn")
-        task_waiter.wait(cluster=ecs_cluster, tasks=[task_arn])
-
-        s3_client = boto_client_provider("s3")
-        results_upload_waiter = s3_client.get_waiter("object_exists")
-        results_upload_waiter.wait(Bucket=bucket, Key=path_in_bucket + "/results.tar.gz")
+    results_upload_waiter = boto_s3_client.get_waiter("object_exists")
+    results_upload_waiter.wait(Bucket=bucket, Key=path_in_bucket + "/results.tar.gz")
