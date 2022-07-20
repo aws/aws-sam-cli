@@ -1,33 +1,7 @@
-from typing import List
 import click
-from samcli.lib.utils.boto_utils import BotoProviderType
+from typing import List
 from samcli.commands.exceptions import ReservedEnvironmentVariableException
-
-
-def get_subnets(boto_client_provider: BotoProviderType) -> List[str]:
-    """
-    Queries describe-subnets to get subnets associated with the customer account.
-
-    NOTE: https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeSubnets.html
-
-    Parameters
-    ----------
-    boto_client_provider : BotoProviderType
-        Provides a boto3 client in order to query the describe-subnets API
-
-    Returns
-    -------
-    List[str]
-        A list of subnet ids associated with a customer account.
-
-    Raises
-    ------
-    botocore.ClientError
-        If the describe_subnets call fails
-    """
-    ec2_client = boto_client_provider("ec2")
-    subnets = ec2_client.describe_subnets().get("Subnets")
-    return [subnet["SubnetId"] for subnet in subnets]
+from samcli.lib.utils.boto_utils import BotoProviderType
 
 
 def invoke_testsuite(
@@ -39,6 +13,7 @@ def invoke_testsuite(
     task_definition_arn: str,
     other_env_vars: dict,
     test_command_options: str,
+    subnets: List[str],
     do_await: bool = False,
 ) -> None:
 
@@ -87,10 +62,6 @@ def invoke_testsuite(
     botocore.ClientError
         If get_subnets, run_task, or waiters fail
     """
-
-    # If the customer specifies their own subnet, use it, otherwise query describe-subnets.
-
-    subnets = other_env_vars.get("subnets") or get_subnets(boto_client_provider)
 
     container_env_vars = {
         "TEST_RUNNER_BUCKET": bucket,
