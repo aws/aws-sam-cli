@@ -344,6 +344,19 @@ class Deployer:
         except botocore.exceptions.ClientError as ex:
             raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
 
+    def get_last_event_time(self, stack_name):
+        """
+        Finds the last event time stamp thats present for the stack, if not get the current time
+        :param stack_name: Name or ID of the stack
+        :return: unix epoch
+        """
+        try:
+            return utc_to_timestamp(
+                self._client.describe_stack_events(StackName=stack_name)["StackEvents"][0]["Timestamp"]
+            )
+        except KeyError:
+            return time.time()
+
     @pprint_column_names(
         format_string=DESCRIBE_STACK_EVENTS_FORMAT_STRING,
         format_kwargs=DESCRIBE_STACK_EVENTS_DEFAULT_ARGS,
