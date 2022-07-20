@@ -8,6 +8,7 @@ from samcli.lib.utils.colors import Colored
 
 LOG = logging.getLogger(__name__)
 
+
 class SuiteRunner:
     def __init__(self, boto_ecs_client, boto_s3_client):
         self.boto_ecs_client = boto_ecs_client
