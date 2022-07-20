@@ -1,4 +1,4 @@
-from typing import *
+from typing import List
 import click
 from samcli.lib.utils.boto_utils import BotoProviderType
 from samcli.commands.exceptions import ReservedEnvironmentVariableException
