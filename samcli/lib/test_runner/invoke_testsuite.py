@@ -3,16 +3,17 @@ Kicks off a testsuite in a Fargate container
 """
 from typing import List
 import logging
-from samcli.commands.exceptions import ReservedEnvironmentVariableException
+from samcli.commands.exceptions import InvalidEnvironmentVariableNameException, ReservedEnvironmentVariableException
 from samcli.lib.utils.colors import Colored
 
 LOG = logging.getLogger(__name__)
 
 
-class SuiteRunner:
-    def __init__(self, boto_ecs_client, boto_s3_client):
+class FargateTestsuiteRunner:
+    def __init__(self, boto_ecs_client, boto_s3_client, color=Colored()):
         self.boto_ecs_client = boto_ecs_client
         self.boto_s3_client = boto_s3_client
+        self.color = color
 
     def invoke_testsuite(
         self,
@@ -86,7 +87,7 @@ class SuiteRunner:
             if key in container_env_vars.keys():
                 reserved_vars.append(key)
             if not str.isidentifier(key):
-                raise ValueError(f"{key} is not a valid environment variable name.")
+                raise InvalidEnvironmentVariableNameException(f"{key} is not a valid environment variable name.")
 
         if len(reserved_vars) > 0:
             raise ReservedEnvironmentVariableException(
@@ -110,7 +111,7 @@ class SuiteRunner:
             taskDefinition=task_definition_arn,
         )
 
-        LOG.info(Colored().yellow("=> Successfully kicked off testsuite, waiting for completion...\n"))
+        LOG.info(self.color.yellow("=> Successfully kicked off testsuite, waiting for completion...\n"))
 
         results_upload_waiter = self.boto_s3_client.get_waiter("object_exists")
         results_upload_waiter.wait(Bucket=bucket, Key=path_in_bucket + "/results.tar.gz")

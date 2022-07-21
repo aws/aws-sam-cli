@@ -1,13 +1,14 @@
 from botocore.exceptions import ClientError, WaiterError
 from unittest import TestCase
 from unittest.mock import Mock
-from samcli.lib.test_runner.invoke_testsuite import SuiteRunner
-from samcli.commands.exceptions import ReservedEnvironmentVariableException
+from samcli.lib.test_runner.invoke_testsuite import FargateTestsuiteRunner
+from samcli.commands.exceptions import InvalidEnvironmentVariableNameException, ReservedEnvironmentVariableException
+from parameterized import parameterized
 
 
 class Test_InvokeTestsuite(TestCase):
     def setUp(self):
-        self.runner = SuiteRunner(None, None)
+        self.runner = FargateTestsuiteRunner(None, None)
         self.params = {
             "bucket": "test-bucket-name",
             "path_in_bucket": "test_bucket_path",
@@ -21,21 +22,12 @@ class Test_InvokeTestsuite(TestCase):
 
     def test_invalid_var_names(self):
         self.params["other_env_vars"] = {r"0variable_name": "value", r"\othervariable_name": "othervalue"}
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidEnvironmentVariableNameException):
             self.runner.invoke_testsuite(**self.params)
 
-    def test_specify_variable_bucket(self):
-        self.params["other_env_vars"] = {"TEST_RUNNER_BUCKET": "oh-no"}
-        with self.assertRaises(ReservedEnvironmentVariableException):
-            self.runner.invoke_testsuite(**self.params)
-
-    def test_specify_variable_run_id(self):
-        self.params["other_env_vars"] = {"TEST_RUN_ID": "oh-no"}
-        with self.assertRaises(ReservedEnvironmentVariableException):
-            self.runner.invoke_testsuite(**self.params)
-
-    def test_specify_variable_command_options(self):
-        self.params["other_env_vars"] = {"TEST_COMMAND_OPTIONS": "oh-no"}
+    @parameterized.expand(["TEST_RUNNER_BUCKET", "TEST_RUN_ID", "TEST_COMMAND_OPTIONS"])
+    def test_reserved_name_specified(self, reserved_name: str):
+        self.params["other_env_vars"] = {reserved_name: "oh-no"}
         with self.assertRaises(ReservedEnvironmentVariableException):
             self.runner.invoke_testsuite(**self.params)
 
