@@ -1,7 +1,6 @@
 """
 Context object used by build command
 """
-from copy import deepcopy
 import logging
 import os
 import pathlib
@@ -223,6 +222,9 @@ class BuildContext:
         if is_sam_template:
             SamApiProvider.check_implicit_api_resource_ids(self.stacks)
 
+        # modify the stack resources to support source maps
+        self._enable_source_maps()
+
         try:
             builder = ApplicationBuilder(
                 self.get_resources_to_build(),
@@ -267,8 +269,6 @@ class BuildContext:
                     )
                     modified_template = nested_stack_manager.generate_auto_dependency_layer_stack()
 
-                modified_template = self._enable_source_maps(modified_template)
-
                 move_template(stack.location, output_template_path, modified_template)
 
             click.secho("\nBuild Succeeded", fg="green")
@@ -311,94 +311,76 @@ class BuildContext:
             wrapped_from = deep_wrap if deep_wrap else ex.__class__.__name__
             raise UserException(str(ex), wrapped_from=wrapped_from) from ex
 
-    def _enable_source_maps(self, old_template: Dict) -> Dict:
+    def _enable_source_maps(self):
         """
         Appends the --enable-source-maps NODE_OPTIONS if Sourcemap is set to true and vice versa
-
-        template: Dict
-            The old template template
-        returns: Dict
-            The new template with function level NODE_OPTIONS set
         """
-        new_template = deepcopy(old_template)
-        resources = old_template.get("Resources", {})
+        using_source_maps = False
+        incorrect_node_option = False
 
-        global_node_option = self._is_enable_source_map_set(old_template)
-        using_source_maps = global_node_option
+        for stack in self.stacks:
+            for _, resource in stack.resources.items():
+                metadata = resource.get("Metadata", {})
+                if metadata.get("BuildMethod", "") != "esbuild":
+                    continue
 
-        for name, resource in resources.items():
-            metadata = resource.get("Metadata", {})
+                node_option_set = self._is_node_option_set(resource)
 
-            if metadata.get("BuildMethod", "") != "esbuild":
-                continue
+                # check if Sourcemap is provided and append --enable-source-map if not set
+                build_properties = metadata.get("BuildProperties", {})
+                source_map = build_properties.get("Sourcemap", None)
 
-            function_node_option = self._is_enable_source_map_set(resource)
+                if source_map and not node_option_set:
+                    LOG.debug("Sourcemap set without --enable-source-maps, adding")
 
-            # check if Sourcemap is provided and append --enable-source-map if not set
-            build_properties = metadata.get("BuildProperties", {})
-            source_map = build_properties.get("Sourcemap", None)
+                    resource.setdefault("Properties", {})
+                    resource["Properties"].setdefault("Environment", {})
+                    resource["Properties"]["Environment"].setdefault("Variables", {})
+                    existing_options = resource["Properties"]["Environment"]["Variables"].setdefault("NODE_OPTIONS", "")
 
-            if source_map and not (function_node_option or global_node_option):
-                LOG.debug("Sourcemap set without --enable-source-maps, adding")
+                    # make sure the NODE_OPTIONS is a string
+                    if not isinstance(existing_options, str):
+                        incorrect_node_option = True
+                    else:
+                        resource["Properties"]["Environment"]["Variables"]["NODE_OPTIONS"] = "".join(
+                            [existing_options, "--enable-source-maps"]
+                        )
 
-                new_template_properties = new_template["Resources"][name]["Properties"]
+                    using_source_maps = True
 
-                new_template_properties.setdefault("Environment", {})
-                new_template_properties["Environment"].setdefault("Variables", {})
-                existing_options = new_template_properties["Environment"]["Variables"].setdefault("NODE_OPTIONS", "")
+                # check if --enable-source-map is provided and append Sourcemap: true if it is not set
+                if source_map is None and node_option_set:
+                    LOG.debug("--enable-source-maps set without Sourcemap, adding")
 
-                # make sure the NODE_OPTIONS is a string
-                if not isinstance(existing_options, str):
-                    self._warn_invalid_node_options()
-                else:
-                    new_template_properties["Environment"]["Variables"]["NODE_OPTIONS"] = "".join(
-                        [existing_options, "--enable-source-maps"]
-                    )
+                    resource.setdefault("Metadata", {})
+                    resource["Metadata"].setdefault("BuildProperties", {})
+                    resource["Metadata"]["BuildProperties"]["Sourcemap"] = True
 
-                using_source_maps = True
-
-            # check if --enable-source-map is provided and append Sourcemap: true if it is not set
-            if (global_node_option or function_node_option) and source_map is None:
-                LOG.debug("--enable-source-maps set without Sourcemap, adding")
-
-                new_template_metadata = new_template["Resources"][name]
-
-                new_template_metadata.setdefault("Metadata", {})
-                new_template_metadata["Metadata"].setdefault("BuildProperties", {})
-                new_template_metadata["Metadata"]["BuildProperties"]["Sourcemap"] = True
-
-                using_source_maps = True
+                    using_source_maps = True
 
         if using_source_maps:
-            click.secho(
-                "\nYou are using source maps, note that this comes with a performance hit!"
-                " Set Sourcemap to false, or remove"
-                " NODE_OPTIONS: --enable-source-maps to disable source maps.",
-                fg="yellow",
-            )
+            self._warn_using_source_maps()
 
-        return new_template
+        if incorrect_node_option:
+            self._warn_invalid_node_options()
 
     @staticmethod
-    def _is_enable_source_map_set(template: Dict) -> bool:
+    def _is_node_option_set(resource: Dict) -> bool:
         """
         Checks if the template has NODE_OPTIONS --enable-source-maps set
 
-        template: Dict
-            The properties to search in, this should be the entire template or a single resource
-        returns: bool
+        Parameters
+        ----------
+        resource : Dict
+            The resource dictionary to lookup if --enable-source-maps is set
+
+        Returns
+        -------
+        bool
+            True if --enable-source-maps is set, otherwise false
         """
         try:
-            props = {}
-
-            if template.get("Globals"):
-                # full template
-                props = template["Globals"]["Function"]
-            elif template.get("Properties"):
-                # resource only
-                props = template["Properties"]
-
-            node_options = props["Environment"]["Variables"]["NODE_OPTIONS"]
+            node_options = resource["Properties"]["Environment"]["Variables"]["NODE_OPTIONS"]
 
             return "--enable-source-maps" in node_options.split()
         except (KeyError, AttributeError):
@@ -409,7 +391,16 @@ class BuildContext:
         click.secho(
             "\nNODE_OPTIONS is not a string! As a result, the NODE_OPTIONS environment variable will "
             "not be set correctly, please make sure it is a string. "
-            "Visit https://nodejs.org/api/cli.html#node_optionsoptions for more details.",
+            "Visit https://nodejs.org/api/cli.html#node_optionsoptions for more details.\n",
+            fg="yellow",
+        )
+
+    @staticmethod
+    def _warn_using_source_maps():
+        click.secho(
+            "\nYou are using source maps, note that this comes with a performance hit!"
+            " Set Sourcemap to false, or remove"
+            " NODE_OPTIONS: --enable-source-maps to disable source maps.",
             fg="yellow",
         )
 
