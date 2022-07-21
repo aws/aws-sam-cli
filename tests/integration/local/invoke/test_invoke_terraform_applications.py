@@ -1,3 +1,4 @@
+import json
 import shutil
 from pathlib import Path
 from subprocess import Popen, PIPE, TimeoutExpired
@@ -6,7 +7,6 @@ from unittest import skipIf
 
 import pytest
 from parameterized import parameterized
-from pip._vendor.rich import json
 
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase, TIMEOUT
 from tests.testing_utils import CI_OVERRIDE

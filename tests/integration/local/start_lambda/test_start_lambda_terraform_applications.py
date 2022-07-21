@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 from subprocess import Popen, PIPE, TimeoutExpired
@@ -13,7 +14,6 @@ import docker
 import pytest
 from docker.errors import APIError
 from parameterized import parameterized
-from pip._vendor.rich import json
 
 from tests.integration.local.start_lambda.start_lambda_api_integ_base import StartLambdaIntegBaseClass
 from tests.testing_utils import CI_OVERRIDE
