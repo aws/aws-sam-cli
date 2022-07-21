@@ -640,7 +640,7 @@ class TestPrepareHook(TestCase):
     @patch("samcli.hook_packages.terraform.hooks.prepare._update_resources_paths")
     @patch("samcli.hook_packages.terraform.hooks.prepare._translate_to_cfn")
     @patch("builtins.open")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.NamedTemporaryFile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.osutils.tempfile_platform_independent")
     @patch("samcli.hook_packages.terraform.hooks.prepare.os")
     @patch("samcli.hook_packages.terraform.hooks.prepare.json")
     @patch("samcli.hook_packages.terraform.hooks.prepare.run")
@@ -701,7 +701,7 @@ class TestPrepareHook(TestCase):
             prepare(self.prepare_params)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare._translate_to_cfn")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.NamedTemporaryFile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.osutils.tempfile_platform_independent")
     @patch("samcli.hook_packages.terraform.hooks.prepare.os")
     @patch("samcli.hook_packages.terraform.hooks.prepare.json")
     @patch("samcli.hook_packages.terraform.hooks.prepare.run")
