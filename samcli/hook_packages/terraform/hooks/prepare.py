@@ -110,8 +110,10 @@ def prepare(params: dict) -> dict:
 
 def _update_resources_paths(cfn_resources: Dict[str, Any], terraform_application_dir: str) -> None:
     """
-    Update the CFN resources paths to be absolute paths, and change relative paths to be relative to the terraform
-    application root directory
+    As Sam Cli and terraform handles the relative paths differently. Sam Cli handles the relative paths to be relative
+    to the template, but terraform handles them to be relative to the project root directory. This Function purpose is
+    to update the CFN resources paths to be absolute paths, and change relative paths to be relative to the terraform
+    application root directory.
 
     Parameters
     ----------
