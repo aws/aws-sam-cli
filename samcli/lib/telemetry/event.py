@@ -21,6 +21,8 @@ class EventName(Enum):
     USED_FEATURE = "UsedFeature"
     DEPLOY = "Deploy"
     BUILD_FUNCTION_RUNTIME = "BuildFunctionRuntime"
+    SYNC_USED = "SyncUsed"
+    SYNC_FLOW = "SyncFlow"
 
 
 class EventType:
@@ -39,6 +41,23 @@ class EventType:
             "CreateChangeSetSuccess",
         ],
         EventName.BUILD_FUNCTION_RUNTIME: INIT_RUNTIMES,
+        EventName.SYNC_USED: [
+            "Start",
+            "End",
+        ],
+        EventName.SYNC_FLOW: [
+            "AliasVersion",
+            "AutoDependencyLayer",
+            "AutoDependencyLayerParent",
+            "Function",
+            "FunctionLayerReference",
+            "HttpApi",
+            "ImageFunction",
+            "Layer",
+            "RestApi",
+            "StepFunctions",
+            "ZipFunction",
+        ],
     }
 
     @staticmethod
