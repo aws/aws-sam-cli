@@ -40,26 +40,18 @@ class TestResources(DeployIntegBase, ResourcesIntegBase):
             stack_name=None, region=region, output="json", template_file=template_path
         )
         command_result = run_command(cmdlist, cwd=self.working_dir)
-        self.assertIn(
+        expression_list = [
             """{\n    "LogicalResourceId": "HelloWorldFunction",\n    "PhysicalResourceId": "-"\n  }""",
-            command_result.stdout.decode(),
-        )
-        self.assertIn(
             """{\n    "LogicalResourceId": "HelloWorldFunctionRole",\n    "PhysicalResourceId": "-"\n  }""",
-            command_result.stdout.decode(),
-        )
-        self.assertIn(
             """{\n    "LogicalResourceId": "HelloWorldFunctionHelloWorldPermissionProd",\n    "PhysicalResourceId": "-"\n  }""",
-            command_result.stdout.decode(),
-        )
-        self.assertIn(
             """{\n    "LogicalResourceId": "ServerlessRestApi",\n    "PhysicalResourceId": "-"\n  }""",
-            command_result.stdout.decode(),
-        )
-        self.assertIn(
             """{\n    "LogicalResourceId": "ServerlessRestApiProdStage",\n    "PhysicalResourceId": "-"\n  }""",
-            command_result.stdout.decode(),
-        )
+        ]
+        for expression in expression_list:
+            self.assertIn(
+                expression,
+                command_result.stdout.decode(),
+            )
         self.assertTrue(
             re.search(
                 """{\n    "LogicalResourceId": "ServerlessRestApiDeployment.*",\n    "PhysicalResourceId": "-"\n  }""",
