@@ -1,3 +1,4 @@
+import json
 import shutil
 from pathlib import Path
 from subprocess import Popen, PIPE, TimeoutExpired
@@ -8,7 +9,6 @@ import docker
 import pytest
 from docker.errors import APIError
 from parameterized import parameterized
-from pip._vendor.rich import json
 
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase, TIMEOUT
 from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUNNING_ON_CI
