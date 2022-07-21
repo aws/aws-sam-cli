@@ -7,12 +7,12 @@ import json
 import os
 from pathlib import Path
 from subprocess import run, CalledProcessError
-from tempfile import NamedTemporaryFile
 from typing import Any, Callable, Dict, List, Optional
 import hashlib
 import logging
 
 from samcli.lib.hook.exceptions import PrepareHookException
+from samcli.lib.utils import osutils
 from samcli.lib.utils.hash import str_checksum
 from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
@@ -63,7 +63,8 @@ def prepare(params: dict) -> dict:
 
         # get json output of terraform plan
         LOG.info("Creating terraform plan and getting JSON output")
-        with NamedTemporaryFile() as temp_file:
+
+        with osutils.tempfile_platform_independent() as temp_file:
             run(
                 ["terraform", "plan", "-out", temp_file.name],
                 check=True,
