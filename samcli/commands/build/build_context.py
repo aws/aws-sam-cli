@@ -342,7 +342,7 @@ class BuildContext:
                     if not isinstance(existing_options, str):
                         incorrect_node_option = True
                     else:
-                        resource["Properties"]["Environment"]["Variables"]["NODE_OPTIONS"] = "".join(
+                        resource["Properties"]["Environment"]["Variables"]["NODE_OPTIONS"] = " ".join(
                             [existing_options, "--enable-source-maps"]
                         )
 
