@@ -102,3 +102,16 @@ class TestRunnerTemplateGenerationException(UserException):
     """
     Exception class when the generation of a Test Runner CloudFormation Template fails during `sam test_runner init`
     """
+
+
+class ReservedEnvironmentVariableException(UserException):
+    """
+    Exception class when the user attempts to override a reserved environment variable during `sam test_runner run`
+    """
+
+
+class InvalidEnvironmentVariableNameException(UserException):
+    """
+    Exception class when the user attempts to specify environment variables that have invalid
+    identifier names in the ARN map file passed to `sam test_runner run`
+    """
