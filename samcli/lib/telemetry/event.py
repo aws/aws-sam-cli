@@ -139,7 +139,8 @@ class EventTracker:
                 if len(EventTracker._events) >= EventTracker.MAX_EVENTS:
                     should_send = True
             if should_send:
-                EventTracker.send_events()
+                send_thread = threading.Thread(target=EventTracker.send_events)
+                send_thread.start()
         except EventCreationError as e:
             LOG.debug("Error occurred while trying to track an event: %s", e)
 

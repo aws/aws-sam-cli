@@ -170,6 +170,12 @@ class TestEventTracker(TestCase):
         # Add one more event to trigger sending all events
         EventTracker.track_event("TheStrawThat", "BreaksTheCamel'sBack")
 
+        # Wait for all threads to complete
+        for thread in threading.enumerate():
+            if thread is threading.main_thread():
+                continue
+            thread.join()
+
         send_mock.assert_called()
 
 
