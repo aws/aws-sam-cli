@@ -194,7 +194,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     "Handler": "index.handler",
                 },
                 "Metadata": {
-                    "aws:cdk:path": "Stack/LambdaCFKFunction-x/Resource",
+                    "aws:cdk:path": "Stack/LambdaCDKFunction-x/Resource",
                     "aws:asset:path": "/usr/foo/bar",
                     "aws:asset:property": "Code",
                 },
@@ -801,11 +801,11 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                 ),
             ),
             (
-                "LambdaCFKFunction-x",
+                "LambdaCDKFunction-x",
                 Function(
-                    function_id="LambdaCFKFunction-x",
-                    name="LambdaCDKFunc",
-                    functionname="LambdaCDKFunc",
+                    function_id="LambdaCDKFunc",
+                    name="LambdaCDKFunction-x",
+                    functionname="LambdaCDKFunction-x",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri="/usr/foo/bar",
@@ -816,11 +816,11 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     layers=[],
                     events=None,
                     metadata={
-                        "aws:cdk:path": "Stack/LambdaCFKFunction-x/Resource",
+                        "aws:cdk:path": "Stack/LambdaCDKFunction-x/Resource",
                         "aws:asset:path": "/usr/foo/bar",
                         "aws:asset:property": "Code",
                         "SamNormalized": True,
-                        "SamResourceId": "LambdaCFKFunction-x",
+                        "SamResourceId": "LambdaCDKFunc",
                     },
                     inlinecode=None,
                     imageuri=None,
@@ -835,9 +835,9 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "LambdaCDKFunc",
                 Function(
-                    function_id="LambdaCFKFunction-x",
-                    name="LambdaCDKFunc",
-                    functionname="LambdaCDKFunc",
+                    function_id="LambdaCDKFunc",
+                    name="LambdaCDKFunction-x",
+                    functionname="LambdaCDKFunction-x",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri="/usr/foo/bar",
@@ -848,11 +848,11 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     layers=[],
                     events=None,
                     metadata={
-                        "aws:cdk:path": "Stack/LambdaCFKFunction-x/Resource",
+                        "aws:cdk:path": "Stack/LambdaCDKFunction-x/Resource",
                         "aws:asset:path": "/usr/foo/bar",
                         "aws:asset:property": "Code",
                         "SamNormalized": True,
-                        "SamResourceId": "LambdaCFKFunction-x",
+                        "SamResourceId": "LambdaCDKFunc",
                     },
                     inlinecode=None,
                     imageuri=None,
@@ -867,9 +867,9 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "LambdaCDKFuncInChild-x",
                 Function(
-                    function_id="LambdaCDKFuncInChild-x",
-                    name="LambdaCDKFuncInChild",
-                    functionname="LambdaCDKFuncInChild",
+                    function_id="LambdaCDKFuncInChild",
+                    name="LambdaCDKFuncInChild-x",
+                    functionname="LambdaCDKFuncInChild-x",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri="/usr/foo/bar",
@@ -884,7 +884,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                         "aws:asset:path": "/usr/foo/bar",
                         "aws:asset:property": "Code",
                         "SamNormalized": True,
-                        "SamResourceId": "LambdaCDKFuncInChild-x",
+                        "SamResourceId": "LambdaCDKFuncInChild",
                     },
                     inlinecode=None,
                     imageuri=None,
@@ -899,9 +899,9 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "LambdaCDKFuncInChild",
                 Function(
-                    function_id="LambdaCDKFuncInChild-x",
-                    name="LambdaCDKFuncInChild",
-                    functionname="LambdaCDKFuncInChild",
+                    function_id="LambdaCDKFuncInChild",
+                    name="LambdaCDKFuncInChild-x",
+                    functionname="LambdaCDKFuncInChild-x",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri="/usr/foo/bar",
@@ -916,7 +916,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                         "aws:asset:path": "/usr/foo/bar",
                         "aws:asset:property": "Code",
                         "SamNormalized": True,
-                        "SamResourceId": "LambdaCDKFuncInChild-x",
+                        "SamResourceId": "LambdaCDKFuncInChild",
                     },
                     inlinecode=None,
                     imageuri=None,
@@ -931,9 +931,9 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 posixpath.join("ChildStack", "LambdaCDKFuncInChild-x"),
                 Function(
-                    function_id="LambdaCDKFuncInChild-x",
-                    name="LambdaCDKFuncInChild",
-                    functionname="LambdaCDKFuncInChild",
+                    function_id="LambdaCDKFuncInChild",
+                    name="LambdaCDKFuncInChild-x",
+                    functionname="LambdaCDKFuncInChild-x",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri="/usr/foo/bar",
@@ -948,7 +948,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                         "aws:asset:path": "/usr/foo/bar",
                         "aws:asset:property": "Code",
                         "SamNormalized": True,
-                        "SamResourceId": "LambdaCDKFuncInChild-x",
+                        "SamResourceId": "LambdaCDKFuncInChild",
                     },
                     inlinecode=None,
                     imageuri=None,
@@ -961,15 +961,40 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                 ),
             ),
             (
-                # resource_Iac_id is used to build full_path, so logical id will not be used in full_path if
-                # resource_iac_id exists
                 posixpath.join("ChildStack", "LambdaCDKFuncInChild"),
-                None,
+                Function(
+                    function_id="LambdaCDKFuncInChild",
+                    name="LambdaCDKFuncInChild-x",
+                    functionname="LambdaCDKFuncInChild-x",
+                    runtime="nodejs4.3",
+                    handler="index.handler",
+                    codeuri="/usr/foo/bar",
+                    memory=None,
+                    timeout=None,
+                    environment=None,
+                    rolearn=None,
+                    layers=[],
+                    events=None,
+                    metadata={
+                        "aws:cdk:path": "Stack/LambdaCDKFuncInChild-x/Resource",
+                        "aws:asset:path": "/usr/foo/bar",
+                        "aws:asset:property": "Code",
+                        "SamNormalized": True,
+                        "SamResourceId": "LambdaCDKFuncInChild",
+                    },
+                    inlinecode=None,
+                    imageuri=None,
+                    imageconfig=None,
+                    packagetype=ZIP,
+                    codesign_config_arn=None,
+                    architectures=None,
+                    function_url_config=None,
+                    stack_path="ChildStack",
+                ),
             ),
         ]
     )
     def test_get_must_return_each_function(self, name, expected_output):
-
         actual = self.provider.get(name)
         self.assertEqual(actual, expected_output)
 
@@ -991,11 +1016,11 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             "LambdaFuncWithFunctionNameOverride",
             "LambdaFuncWithCodeSignConfig",
             "LambdaFunctionCustomId-x",
-            "LambdaCFKFunction-x",
+            "LambdaCDKFunc",
             posixpath.join("ChildStack", "SamFunctionsInChild"),
             posixpath.join("ChildStack", "SamFunctionsInChildAbsPath"),
             posixpath.join("ChildStack", "SamImageFunctionsInChild"),
-            posixpath.join("ChildStack", "LambdaCDKFuncInChild-x"),
+            posixpath.join("ChildStack", "LambdaCDKFuncInChild"),
         }
 
         self.assertEqual(expected, result)

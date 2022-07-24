@@ -740,7 +740,7 @@ class TestApplicationBuilder_update_template(TestCase):
         built_artifacts = {
             "MyFunction1": "/path/to/build/MyFunction1",
             "MyFunction2": "/path/to/build/MyFunction2",
-            "CDKFunc": "/path/to/build/MyCDKFunction",
+            "MyCDKFunction": "/path/to/build/MyCDKFunction",
             "CustomIdFunc": "/path/to/build/MyCustomIdFunction",
             "MyServerlessLayer": "/path/to/build/ServerlessLayer",
             "MyLambdaLayer": "/path/to/build/LambdaLayer",
@@ -845,7 +845,7 @@ class TestApplicationBuilder_update_template(TestCase):
             "ChildStackXXX/MyLambdaLayer": "/path/to/build/ChildStackXXX/LambdaLayer",
             "ChildStackXXX/MyFunction1": "/path/to/build/ChildStackXXX/MyFunction1",
             "ChildStackXXX/MyFunction2": "/path/to/build/ChildStackXXX/MyFunction2",
-            "ChildStackXXX/CDKFunc": "/path/to/build/ChildStackXXX/MyCDKFunction",
+            "ChildStackXXX/MyCDKFunction": "/path/to/build/ChildStackXXX/MyCDKFunction",
             "ChildStackXXX/CustomIdFunc": "/path/to/build/ChildStackXXX/MyCustomIdFunction",
             "ChildStackXXX/MyImageFunction1": "myimagefunction1:Tag",
         }

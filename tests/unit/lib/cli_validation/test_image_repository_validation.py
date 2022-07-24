@@ -985,8 +985,8 @@ class TestIsAllImageFunctionsProvided(TestCase):
                     ),
                 ],
                 {
-                    "CDKLambdaImageFunction1": "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunction1",
-                    "CDKLambdaImageFunction2": "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunction2",
+                    "LambdaImageFunction1": "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunction1",
+                    "LambdaImageFunction2": "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunction2",
                 },
                 True,
             ),
@@ -1056,7 +1056,7 @@ class TestIsAllImageFunctionsProvided(TestCase):
                 ],
                 {
                     "LambdaImageFunction1": "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunction1",
-                    "CDKLambdaImageFunction2": "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunction2",
+                    "LambdaImageFunction2": "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunction2",
                 },
                 True,
             ),
@@ -1384,10 +1384,10 @@ class TestIsAllImageFunctionsProvided(TestCase):
                     ),
                 ],
                 {
-                    "CDKLambdaImageFunction1": "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunction1",
-                    "CDKLambdaImageFunction2": "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunction2",
-                    "CDKLambdaImageFunctionInChild1": "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunctionInChild1",
-                    "CDKLambdaImageFunctionInChild2": "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunctionInChild2",
+                    "LambdaImageFunction1": "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunction1",
+                    "LambdaImageFunction2": "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunction2",
+                    "LambdaImageFunctionInChild1": "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunctionInChild1",
+                    "LambdaImageFunctionInChild2": "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunctionInChild2",
                 },
                 True,
             ),
@@ -1516,13 +1516,13 @@ class TestIsAllImageFunctionsProvided(TestCase):
                     ),
                 ],
                 {
-                    "CDKLambdaImageFunction1": "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunction1",
-                    "CDKLambdaImageFunction2": "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunction2",
+                    "LambdaImageFunction1": "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunction1",
+                    "LambdaImageFunction2": "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunction2",
                     posixpath.join(
-                        "childStack", "CDKLambdaImageFunctionInChild1"
+                        "childStack", "LambdaImageFunctionInChild1"
                     ): "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunctionInChild1",
                     posixpath.join(
-                        "childStack", "CDKLambdaImageFunctionInChild2"
+                        "childStack", "LambdaImageFunctionInChild2"
                     ): "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunctionInChild2",
                 },
                 True,
@@ -1652,12 +1652,12 @@ class TestIsAllImageFunctionsProvided(TestCase):
                     ),
                 ],
                 {
-                    "CDKLambdaImageFunction1": "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunction1",
+                    "LambdaImageFunction1": "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunction1",
                     "LambdaImageFunction2": "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunction2",
                     posixpath.join(
-                        "childStack", "CDKLambdaImageFunctionInChild1"
+                        "childStack", "LambdaImageFunctionInChild1"
                     ): "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunctionInChild1",
-                    "CDKLambdaImageFunctionInChild2": "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunctionInChild2",
+                    "LambdaImageFunctionInChild2": "123456789012.dkr.ecr.us-east-1.amazonaws.com/LambdaImageFunctionInChild2",
                 },
                 True,
             ),

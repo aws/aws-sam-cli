@@ -18,6 +18,7 @@ from samcli.lib.providers.exceptions import InvalidLayerReference
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.file_observer import FileObserver
+from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 from .provider import Function, LayerVersion, Stack
 from .sam_base_provider import SamBaseProvider
 from .sam_stack_provider import SamLocalStackProvider
@@ -108,7 +109,7 @@ class SamFunctionProvider(SamBaseProvider):
             found_fs = []
 
             for f in self.get_all():
-                if name in (f.function_id, f.name, f.functionname):
+                if name in (f.function_id, f.name, f.functionname, f.full_name):
                     found_fs.append(f)
 
             # If multiple functions are found, only return one of them
@@ -370,6 +371,9 @@ class SamFunctionProvider(SamBaseProvider):
         elif packagetype == IMAGE:
             imageuri = SamFunctionProvider._extract_lambda_function_imageuri(resource_properties, "Code")
             LOG.debug("Found Lambda function with name='%s' and Imageuri='%s'", name, imageuri)
+
+        # If the function from CDK, name will be CDK resource id.
+        name = ResourceMetadataNormalizer.get_resource_name(resource_properties, name)
 
         return SamFunctionProvider._build_function_configuration(
             stack, function_id, name, codeuri, resource_properties, layers, inlinecode, imageuri, use_raw_codeuri

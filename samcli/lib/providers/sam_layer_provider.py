@@ -3,6 +3,7 @@ Class that provides layers from a given SAM template
 """
 import logging
 from typing import List, Dict, Optional
+from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 
 from samcli.lib.utils.resources import AWS_LAMBDA_LAYERVERSION, AWS_SERVERLESS_LAYERVERSION
 from .provider import LayerVersion, Stack
@@ -60,7 +61,7 @@ class SamLayerProvider(SamBaseProvider):
             raise ValueError("Layer name is required")
 
         for layer in self._layers:
-            if name in (layer.full_path, layer.layer_id, layer.name):
+            if name in (layer.full_path, layer.layer_id, layer.name, layer.full_name):
                 return layer
         return None
 
@@ -85,6 +86,10 @@ class SamLayerProvider(SamBaseProvider):
                 # When running locally, we need to follow that Ref so we can extract the local path to the layer code.
                 resource_type = resource.get("Type")
                 resource_properties = resource.get("Properties", {})
+                resource_metadata = resource.get("Metadata", None)
+                # Add extra metadata information to properties under a separate field.
+                if resource_metadata:
+                    resource_properties["Metadata"] = resource_metadata
 
                 if resource_type in [AWS_LAMBDA_LAYERVERSION, AWS_SERVERLESS_LAYERVERSION]:
                     code_property_key = SamBaseProvider.CODE_PROPERTY_KEYS[resource_type]
@@ -97,10 +102,9 @@ class SamLayerProvider(SamBaseProvider):
                     compatible_runtimes = resource_properties.get("CompatibleRuntimes")
                     compatible_architectures = resource_properties.get("CompatibleArchitectures", None)
 
-                    metadata = resource.get("Metadata", None)
                     layers.append(
                         self._convert_lambda_layer_resource(
-                            stack, name, codeuri, compatible_runtimes, metadata, compatible_architectures
+                            stack, name, resource_properties, codeuri, compatible_runtimes, resource_metadata, compatible_architectures
                         )
                     )
         return layers
@@ -109,6 +113,7 @@ class SamLayerProvider(SamBaseProvider):
         self,
         stack: Stack,
         layer_logical_id: str,
+        resource_properties: Dict,
         codeuri: str,
         compatible_runtimes: Optional[List[str]],
         metadata: Optional[Dict],
@@ -121,6 +126,8 @@ class SamLayerProvider(SamBaseProvider):
         stack
         layer_logical_id
             LogicalID of resource.
+        resource_properties str
+            Properties of this resource
         codeuri
             codeuri of the layer
         compatible_runtimes
@@ -138,11 +145,21 @@ class SamLayerProvider(SamBaseProvider):
             LOG.debug("--base-dir is not presented, adjusting uri %s relative to %s", codeuri, stack.location)
             codeuri = SamLocalStackProvider.normalize_resource_path(stack.location, codeuri)
 
+        # If the layer from CDK, name will be CDK resource id.
+        # Normally, LayerVersion will infer the name and layer id from the arn,
+        # but if the logical id is different from the name,
+        # specify the name and layer id in LayerVersion to use that name.
+        name = ResourceMetadataNormalizer.get_resource_name(resource_properties, layer_logical_id)
+        name = name if name != layer_logical_id else None
+        layer_id = layer_logical_id if name is not None else None
+
         return LayerVersion(
-            layer_logical_id,
-            codeuri,
-            compatible_runtimes,
-            metadata,
+            arn=layer_logical_id,
+            codeuri=codeuri,
+            compatible_runtimes=compatible_runtimes,
+            metadata=metadata,
             compatible_architectures=compatible_architectures,
             stack_path=stack.stack_path,
+            layer_id=layer_id,
+            name=name,
         )

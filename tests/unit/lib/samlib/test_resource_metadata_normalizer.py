@@ -27,7 +27,7 @@ class TestResourceMetadataNormalizer(TestCase):
         self.assertEqual(True, template_data["Resources"]["Function1"]["Metadata"]["SamNormalized"])
         self.assertEqual("Function1", template_data["Resources"]["Function1"]["Metadata"]["SamResourceId"])
 
-    def test_cdk_resource_id_is_used(self):
+    def test_logical_id_is_used(self):
         template_data = {
             "Resources": {
                 "Function1": {
@@ -50,7 +50,7 @@ class TestResourceMetadataNormalizer(TestCase):
 
         self.assertEqual("new path", template_data["Resources"]["Function1"]["Properties"]["Code"])
         self.assertEqual(True, template_data["Resources"]["Function1"]["Metadata"]["SamNormalized"])
-        self.assertEqual("CDKFunction1", template_data["Resources"]["Function1"]["Metadata"]["SamResourceId"])
+        self.assertEqual("Function1", template_data["Resources"]["Function1"]["Metadata"]["SamResourceId"])
 
     def test_replace_all_resources_that_contain_metadata(self):
         template_data = {
@@ -418,47 +418,6 @@ class TestResourceMetadataNormalizer(TestCase):
 
 
 class TestResourceMetadataNormalizerGetResourceId(TestCase):
-    @parameterized.expand(
-        [
-            ("stack_id/func_cdk_id/Resource", "func_cdk_id"),
-            ("stack_id/some_construct/func_cdk_id/Resource", "some_construct_func_cdk_id"),
-            ("stack_id/serverless_func_cdk_id", "serverless_func_cdk_id"),
-        ]
-    )
-    def test_use_cdk_id_as_resource_id(self, cdk_path, expected_resource_id):
-        resource_id = ResourceMetadataNormalizer.get_resource_id(
-            {
-                "Type": "any:value",
-                "Properties": {"key": "value"},
-                "Metadata": {"aws:cdk:path": cdk_path},
-            },
-            "logical_id",
-        )
-
-        self.assertEquals(expected_resource_id, resource_id)
-
-    def test_use_logical_id_as_resource_id_incase_of_invalid_cdk_path(self):
-        resource_id = ResourceMetadataNormalizer.get_resource_id(
-            {"Type": "any:value", "Properties": {"key": "value"}, "Metadata": {"aws:cdk:path": "func_cdk_id"}},
-            "logical_id",
-        )
-
-        self.assertEquals("logical_id", resource_id)
-
-    def test_use_cdk_id_as_resource_id_for_nested_stack(self):
-        resource_id = ResourceMetadataNormalizer.get_resource_id(
-            {
-                "Type": "AWS::CloudFormation::Stack",
-                "Properties": {"key": "value"},
-                "Metadata": {
-                    "aws:cdk:path": "parent_stack_id/nested_stack_id.NestedStack/nested_stack_id.NestedStackResource"
-                },
-            },
-            "logical_id",
-        )
-
-        self.assertEquals("nested_stack_id", resource_id)
-
     def test_use_provided_customer_defined_id(self):
         resource_id = ResourceMetadataNormalizer.get_resource_id(
             {
@@ -500,6 +459,61 @@ class TestResourceMetadataNormalizerGetResourceId(TestCase):
 
         self.assertEquals("logical_id", resource_id)
 
+class TestResourceMetadataNormalizerGetResourceName(TestCase):
+    @parameterized.expand(
+        [
+            ("stack_id/func_cdk_id/Resource", "func_cdk_id"),
+            ("stack_id/some_construct/func_cdk_id/Resource", "func_cdk_id"),
+            ("stack_id/serverless_func_cdk_id", "serverless_func_cdk_id"),
+        ]
+    )
+    def test_use_cdk_id_as_resource_name(self, cdk_path, expected_resource_id):
+        resource_id = ResourceMetadataNormalizer.get_resource_name(
+            {
+                "Type": "any:value",
+                "Properties": {"key": "value"},
+                "Metadata": {"aws:cdk:path": cdk_path},
+            },
+            "logical_id",
+        )
+
+        self.assertEqual(expected_resource_id, resource_id)
+
+    def test_use_logical_id_as_resource_name_incase_of_invalid_cdk_path(self):
+        resource_id = ResourceMetadataNormalizer.get_resource_name(
+            {"Type": "any:value", "Properties": {"key": "value"}, "Metadata": {"aws:cdk:path": "func_cdk_id"}},
+            "logical_id",
+        )
+
+        self.assertEqual("logical_id", resource_id)
+
+    def test_use_cdk_id_as_resource_name_for_nested_stack(self):
+        resource_id = ResourceMetadataNormalizer.get_resource_name(
+            {
+                "Type": "AWS::CloudFormation::Stack",
+                "Properties": {"key": "value"},
+                "Metadata": {
+                    "aws:cdk:path": "parent_stack_id/nested_stack_id.NestedStack/nested_stack_id.NestedStackResource"
+                },
+            },
+            "logical_id",
+        )
+
+        self.assertEqual("nested_stack_id", resource_id)
+
+    def test_use_logical_id_if_metadata_is_not_therer(self):
+        resource_id = ResourceMetadataNormalizer.get_resource_name(
+            {"Type": "any:value", "Properties": {"key": "value"}}, "logical_id"
+        )
+
+        self.assertEqual("logical_id", resource_id)
+
+    def test_use_logical_id_if_cdk_path_not_exist(self):
+        resource_id = ResourceMetadataNormalizer.get_resource_name(
+            {"Type": "any:value", "Properties": {"key": "value"}, "Metadata": {}}, "logical_id"
+        )
+
+        self.assertEqual("logical_id", resource_id)
 
 class TestResourceMetadataNormalizerBuildPropertiesNormalizer(TestCase):
     def test_converts_pascal_case_to_snake_case(self):

@@ -216,8 +216,8 @@ class ResourceMetadataNormalizer:
     def get_resource_id(resource_properties, logical_id):
         """
         Get unique id for a resource.
-        for any resource, the resource id can be the customer defined id if exist, if not exist it can be the
-        cdk-defined resource id, or the logical id if the resource id is not found.
+        for any resource, the resource id can be the customer defined id if exist,
+        if not exist it can be the logical id.
 
         Parameters
         ----------
@@ -242,17 +242,40 @@ class ResourceMetadataNormalizer:
             )
             return customer_defined_id
 
+        return logical_id
+
+    @staticmethod
+    def get_resource_name(resource_properties, logical_id):
+        """
+        Gets the name of the resource.
+        If aws:cdk:path is defined, the resource ID is obtained from aws:cdk:path.
+        otherwise, the logical ID is obtained.
+
+        Parameters
+        ----------
+        resource_properties dict
+            Properties of this resource
+        logical_id str
+            LogicalID of the resource
+
+        Returns
+        -------
+        str
+            The resource name not a phisical name
+        """
+        resource_metadata = resource_properties.get("Metadata", {})
         resource_cdk_path = resource_metadata.get(RESOURCE_CDK_PATH_METADATA_KEY)
 
         if not isinstance(resource_cdk_path, str) or not resource_cdk_path:
             LOG.debug(
-                "There is no customer defined id or cdk path defined for resource %s, so we will use the resource "
-                "logical id as the resource id",
+                "There is no cdk path defined for resource %s, so we will use the resource "
+                "logical id as the resource name",
                 logical_id,
             )
             return logical_id
 
-        # aws:cdk:path metadata format of functions: {stack_id}/{function_id}/Resource
+        # aws:cdk:path metadata format of functions:
+        # {stack_id}/{function_id}/Resource or {stack_id}/{construct_id}/{function_id}/Resource
         # Design doc of CDK path: https://github.com/aws/aws-cdk/blob/master/design/construct-tree.md
         cdk_path_partitions = resource_cdk_path.split("/")
 
@@ -260,12 +283,13 @@ class ResourceMetadataNormalizer:
 
         if len(cdk_path_partitions) < 2:
             LOG.warning(
-                "Cannot detect function id from aws:cdk:path metadata '%s', using default logical id", resource_cdk_path
+                "Cannot detect function name from aws:cdk:path metadata '%s', using default logical id",
+                resource_cdk_path,
             )
             return logical_id
 
-        cdk_resource_id = (
-            "_".join(cdk_path_partitions[1:-1])
+        cdk_resource_name = (
+            cdk_path_partitions[-2]
             if cdk_path_partitions[-1] == "Resource"
             or (
                 resource_properties.get("Type", "") == AWS_CLOUDFORMATION_STACK
@@ -275,12 +299,12 @@ class ResourceMetadataNormalizer:
         )
 
         # Check if the Resource is nested Stack
-        if resource_properties.get("Type", "") == AWS_CLOUDFORMATION_STACK and cdk_resource_id.endswith(
+        if resource_properties.get("Type", "") == AWS_CLOUDFORMATION_STACK and cdk_resource_name.endswith(
             CDK_NESTED_STACK_RESOURCE_ID_SUFFIX
         ):
-            cdk_resource_id = cdk_resource_id[: -len(CDK_NESTED_STACK_RESOURCE_ID_SUFFIX)]
+            cdk_resource_name = cdk_resource_name[: -len(CDK_NESTED_STACK_RESOURCE_ID_SUFFIX)]
 
-        return cdk_resource_id
+        return cdk_resource_name
 
     @staticmethod
     def normalize_build_properties(build_props) -> Dict:

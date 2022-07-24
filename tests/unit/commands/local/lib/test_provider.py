@@ -748,7 +748,7 @@ class TestGetResourceFullPathByID(TestCase):
                         "CDKResource1": {
                             "Properties": {"Body"},
                             "Metadata": {
-                                "SamResource": "CDKResource1-x",
+                                "SamResource": "CDKResource1",
                                 "aws:cdk:path": "Stack/CDKResource1-x/Resource",
                             },
                         },
@@ -767,7 +767,7 @@ class TestGetResourceFullPathByID(TestCase):
                     "Resources": {
                         "CDKResourceInChild1": {
                             "Metadata": {
-                                "SamResource": "CDKResourceInChild1-x",
+                                "SamResource": "CDKResourceInChild1",
                                 "aws:cdk:path": "Stack/CDKResourceInChild1-x/Resource",
                             },
                         },
@@ -782,18 +782,16 @@ class TestGetResourceFullPathByID(TestCase):
     @parameterized.expand(
         [
             (ResourceIdentifier("CFNResource1"), "CFNResource1"),
-            (ResourceIdentifier("CDKResource1"), "CDKResource1-x"),
-            (ResourceIdentifier("CDKResource1-x"), "CDKResource1-x"),
+            (ResourceIdentifier("CDKResource1"), "CDKResource1"),
+            (ResourceIdentifier("CDKResource1-x"), "CDKResource1"),
             (ResourceIdentifier("CFNResourceInChild1"), "childStack/CFNResourceInChild1"),
             (ResourceIdentifier("childStack/CFNResourceInChild1"), "childStack/CFNResourceInChild1"),
-            (ResourceIdentifier("CDKResourceInChild1"), "childStack/CDKResourceInChild1-x"),
-            (ResourceIdentifier("CDKResourceInChild1-x"), "childStack/CDKResourceInChild1-x"),
-            (ResourceIdentifier("childStack/CDKResourceInChild1-x"), "childStack/CDKResourceInChild1-x"),
+            (ResourceIdentifier("CDKResourceInChild1"), "childStack/CDKResourceInChild1"),
+            (ResourceIdentifier("CDKResourceInChild1-x"), "childStack/CDKResourceInChild1"),
+            (ResourceIdentifier("childStack/CDKResourceInChild1"), "childStack/CDKResourceInChild1"),
+            (ResourceIdentifier("childStack/CDKResourceInChild1-x"), "childStack/CDKResourceInChild1"),
             (ResourceIdentifier("InvalidResourceId"), None),
             (ResourceIdentifier("InvalidStackId/CFNResourceInChild1"), None),
-            # we should use iac_resource_id to define full path, could not use resource logical id in full path although
-            # cdk id is there
-            (ResourceIdentifier("childStack/CDKResourceInChild1"), None),
         ]
     )
     def test_get_resource_full_path_by_id(self, resource_id, expected_full_path):

@@ -88,13 +88,23 @@ class Function(NamedTuple):
     @property
     def full_path(self) -> str:
         """
-        Return the path-like identifier of this Function. If it is in root stack, full_path = name.
+        Return the path-like identifier of this Function. If it is in root stack, full_path = function_id.
         This path is guaranteed to be unique in a multi-stack situation.
         Example:
             "HelloWorldFunction"
             "ChildStackA/GrandChildStackB/AFunctionInNestedStack"
         """
         return get_full_path(self.stack_path, self.function_id)
+
+    @property
+    def full_name(self) -> str:
+        """
+        Return the path-like name of this Function. If it is in root stack, full_name = name.
+        Example:
+            "HelloWorldFunction"
+            "ChildStackA/GrandChildStackB/AFunctionInNestedStack"
+        """
+        return get_full_name(self.stack_path, self.name)
 
     @property
     def skip_build(self) -> bool:
@@ -188,6 +198,8 @@ class LayerVersion:
         metadata: Optional[Dict] = None,
         compatible_architectures: Optional[List[str]] = None,
         stack_path: str = "",
+        layer_id: Optional[str] = None,
+        name: Optional[str] = None,
     ) -> None:
         """
         Parameters
@@ -217,6 +229,8 @@ class LayerVersion:
         self._compatible_architectures = compatible_architectures
         self._skip_build = bool(metadata.get(SAM_METADATA_SKIP_BUILD_KEY, False))
         self._custom_layer_id = metadata.get(SAM_RESOURCE_ID_KEY)
+        self._name = name
+        self._layer_id = layer_id
 
     @staticmethod
     def _compute_layer_version(is_defined_within_template: bool, arn: str) -> Optional[int]:
@@ -360,13 +374,23 @@ class LayerVersion:
     @property
     def full_path(self) -> str:
         """
-        Return the path-like identifier of this Layer. If it is in root stack, full_path = name.
+        Return the path-like identifier of this Layer. If it is in root stack, full_path = layer_id.
         This path is guaranteed to be unique in a multi-stack situation.
         Example:
             "HelloWorldLayer"
             "ChildStackA/GrandChildStackB/ALayerInNestedStack"
         """
         return get_full_path(self.stack_path, self.layer_id)
+
+    @property
+    def full_name(self) -> str:
+        """
+        Return the path-like name of this Layer. If it is in root stack, full_name = name.
+        Example:
+            "HelloWorldLayer"
+            "ChildStackA/GrandChildStackB/ALayerInNestedStack"
+        """
+        return get_full_name(self.stack_path, self.name)
 
     @property
     def build_architecture(self) -> str:
@@ -709,6 +733,14 @@ def get_full_path(stack_path: str, resource_id: str) -> str:
         return resource_id
     return posixpath.join(stack_path, resource_id)
 
+def get_full_name(stack_path: str, resource_name: str) -> str:
+    """
+    Return the posix path-like name
+    while will used for name a resource from resources in a multi-stack situation
+    """
+    if not stack_path:
+        return resource_name
+    return posixpath.join(stack_path, resource_name)
 
 def get_resource_by_id(
     stacks: List[Stack], identifier: ResourceIdentifier, explicit_nested: bool = False
@@ -768,7 +800,8 @@ def get_resource_full_path_by_id(stacks: List[Stack], identifier: ResourceIdenti
             continue
         for logical_id, resource in stack.resources.items():
             resource_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)
-            if resource_id == identifier.resource_iac_id or (
+            resource_name = ResourceMetadataNormalizer.get_resource_name(resource, logical_id)
+            if identifier.resource_iac_id in [resource_id, resource_name] or (
                 not identifier.stack_path and logical_id == identifier.resource_iac_id
             ):
                 return get_full_path(stack.stack_path, resource_id)

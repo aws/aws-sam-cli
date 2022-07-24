@@ -233,9 +233,11 @@ class TestSamLayerProvider(TestCase):
                         "aws:cdk:path": "stack/CDKLambdaLayer-x/Resource",
                         "aws:asset:path": "PyLayer/",
                         "aws:asset:property": "Content",
-                        "SamResourceId": "CDKLambdaLayer-x",
+                        "SamResourceId": "CDKLambdaLayer",
                     },
                     stack_path="",
+                    layer_id="CDKLambdaLayer",
+                    name="CDKLambdaLayer-x",
                 ),
             ),
             (
@@ -249,9 +251,11 @@ class TestSamLayerProvider(TestCase):
                         "aws:cdk:path": "stack/CDKLambdaLayer-x/Resource",
                         "aws:asset:path": "PyLayer/",
                         "aws:asset:property": "Content",
-                        "SamResourceId": "CDKLambdaLayer-x",
+                        "SamResourceId": "CDKLambdaLayer",
                     },
                     stack_path="",
+                    layer_id="CDKLambdaLayer",
+                    name="CDKLambdaLayer-x",
                 ),
             ),
             (
@@ -265,9 +269,11 @@ class TestSamLayerProvider(TestCase):
                         "aws:cdk:path": "stack/CDKLambdaLayerInChild-x/Resource",
                         "aws:asset:path": "PyLayer/",
                         "aws:asset:property": "Content",
-                        "SamResourceId": "CDKLambdaLayerInChild-x",
+                        "SamResourceId": "CDKLambdaLayerInChild",
                     },
                     stack_path="ChildStack",
+                    layer_id="CDKLambdaLayerInChild",
+                    name="ChildStack/CDKLambdaLayerInChild-x",
                 ),
             ),
             (
@@ -281,9 +287,11 @@ class TestSamLayerProvider(TestCase):
                         "aws:cdk:path": "stack/CDKLambdaLayerInChild-x/Resource",
                         "aws:asset:path": "PyLayer/",
                         "aws:asset:property": "Content",
-                        "SamResourceId": "CDKLambdaLayerInChild-x",
+                        "SamResourceId": "CDKLambdaLayerInChild",
                     },
                     stack_path="ChildStack",
+                    layer_id="CDKLambdaLayerInChild",
+                    name="ChildStack/CDKLambdaLayerInChild-x",
                 ),
             ),
             (
@@ -297,16 +305,30 @@ class TestSamLayerProvider(TestCase):
                         "aws:cdk:path": "stack/CDKLambdaLayerInChild-x/Resource",
                         "aws:asset:path": "PyLayer/",
                         "aws:asset:property": "Content",
-                        "SamResourceId": "CDKLambdaLayerInChild-x",
+                        "SamResourceId": "CDKLambdaLayerInChild",
                     },
                     stack_path="ChildStack",
+                    layer_id="CDKLambdaLayerInChild",
+                    name="CDKLambdaLayerInChild-x",
                 ),
             ),
             (
-                # resource_Iac_id is used to build full_path, so logical id could not be used in full_path if
-                # resource_iac_id exists
                 posixpath.join("ChildStack", "CDKLambdaLayerInChild"),
-                None,
+                LayerVersion(
+                    "CDKLambdaLayerInChild",
+                    os.path.join("child", "PyLayer"),
+                    ["python3.8", "python3.6"],
+                    {
+                        "BuildMethod": "python3.8",
+                        "aws:cdk:path": "stack/CDKLambdaLayerInChild-x/Resource",
+                        "aws:asset:path": "PyLayer/",
+                        "aws:asset:property": "Content",
+                        "SamResourceId": "CDKLambdaLayerInChild",
+                    },
+                    stack_path="ChildStack",
+                    layer_id="CDKLambdaLayerInChild",
+                    name="CDKLambdaLayerInChild-x",
+                ),
             ),
         ]
     )
@@ -320,11 +342,11 @@ class TestSamLayerProvider(TestCase):
             "ServerlessLayer",
             "LambdaLayer",
             "LambdaLayerWithCustomId-x",
-            "CDKLambdaLayer-x",
+            "CDKLambdaLayer",
             "ServerlessLayerNoBuild",
             "LambdaLayerNoBuild",
             posixpath.join("ChildStack", "SamLayerInChild"),
-            posixpath.join("ChildStack", "CDKLambdaLayerInChild-x"),
+            posixpath.join("ChildStack", "CDKLambdaLayerInChild"),
         ]
 
         self.assertEqual(expected, result)
