@@ -894,4 +894,4 @@ def _get_build_dir(resource: Union[Function, LayerVersion], build_root: str) -> 
     Return the build directory to place build artifact
     """
     # stack_path is always posix path, we need to convert it to path that matches the OS
-    return os.path.join(build_root, resource.stack_path.replace(posixpath.sep, os.path.sep), resource.name)
+    return os.path.join(build_root, resource.stack_path.replace(posixpath.sep, os.path.sep), resource.function_id)
