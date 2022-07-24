@@ -733,6 +733,7 @@ def get_full_path(stack_path: str, resource_id: str) -> str:
         return resource_id
     return posixpath.join(stack_path, resource_id)
 
+
 def get_full_name(stack_path: str, resource_name: str) -> str:
     """
     Return the posix path-like name
@@ -741,6 +742,7 @@ def get_full_name(stack_path: str, resource_name: str) -> str:
     if not stack_path:
         return resource_name
     return posixpath.join(stack_path, resource_name)
+
 
 def get_resource_by_id(
     stacks: List[Stack], identifier: ResourceIdentifier, explicit_nested: bool = False

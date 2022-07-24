@@ -459,6 +459,7 @@ class TestResourceMetadataNormalizerGetResourceId(TestCase):
 
         self.assertEquals("logical_id", resource_id)
 
+
 class TestResourceMetadataNormalizerGetResourceName(TestCase):
     @parameterized.expand(
         [
@@ -514,6 +515,7 @@ class TestResourceMetadataNormalizerGetResourceName(TestCase):
         )
 
         self.assertEqual("logical_id", resource_id)
+
 
 class TestResourceMetadataNormalizerBuildPropertiesNormalizer(TestCase):
     def test_converts_pascal_case_to_snake_case(self):

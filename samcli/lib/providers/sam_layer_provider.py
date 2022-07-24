@@ -87,9 +87,7 @@ class SamLayerProvider(SamBaseProvider):
                 resource_type = resource.get("Type")
                 resource_properties = resource.get("Properties", {})
                 resource_metadata = resource.get("Metadata", None)
-                # Add extra metadata information to properties under a separate field.
-                if resource_metadata:
-                    resource_properties["Metadata"] = resource_metadata
+                resource_properties["Metadata"] = resource_metadata
 
                 if resource_type in [AWS_LAMBDA_LAYERVERSION, AWS_SERVERLESS_LAYERVERSION]:
                     code_property_key = SamBaseProvider.CODE_PROPERTY_KEYS[resource_type]
@@ -104,7 +102,13 @@ class SamLayerProvider(SamBaseProvider):
 
                     layers.append(
                         self._convert_lambda_layer_resource(
-                            stack, name, resource_properties, codeuri, compatible_runtimes, resource_metadata, compatible_architectures
+                            stack,
+                            name,
+                            resource_properties,
+                            codeuri,
+                            compatible_runtimes,
+                            resource_metadata,
+                            compatible_architectures,
                         )
                     )
         return layers
