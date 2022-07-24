@@ -1,5 +1,6 @@
 import os
 import posixpath
+from typing import Type, Union
 from unittest import TestCase
 from unittest.mock import MagicMock, Mock, patch
 
@@ -26,19 +27,28 @@ from samcli.commands.local.cli_common.user_exceptions import (
 )
 
 
-def make_resource(stack_path, name):
-    resource = Mock()
+def make_resource(
+    stack_path: str,
+    spec: Union[Type[Function], Type[LayerVersion]],
+    function_id: str = "",
+    layer_id: str = "",
+):
+    resource = Mock(spec=spec)
     resource.stack_path = stack_path
-    resource.name = name
+    resource.function_id = function_id
+    resource.layer_id = layer_id
     return resource
 
 
 class TestProvider(TestCase):
     @parameterized.expand(
         [
-            (make_resource("", "A"), os.path.join("builddir", "A")),
-            (make_resource("A", "B"), os.path.join("builddir", "A", "B")),
-            (make_resource("A/B", "C"), os.path.join("builddir", "A", "B", "C")),
+            (make_resource(stack_path="", spec=Function, function_id="A"), os.path.join("builddir", "A")),
+            (make_resource(stack_path="", spec=LayerVersion, layer_id="A"), os.path.join("builddir", "A")),
+            (make_resource(stack_path="A", spec=Function, function_id="B"), os.path.join("builddir", "A", "B")),
+            (make_resource(stack_path="A", spec=LayerVersion, layer_id="B"), os.path.join("builddir", "A", "B")),
+            (make_resource(stack_path="A/B", spec=Function, function_id="C"), os.path.join("builddir", "A", "B", "C")),
+            (make_resource(stack_path="A/B", spec=LayerVersion, layer_id="C"), os.path.join("builddir", "A", "B", "C")),
         ]
     )
     def test_stack_build_dir(self, resource, output_build_dir):
