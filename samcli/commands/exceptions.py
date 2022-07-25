@@ -119,5 +119,6 @@ class InvalidEnvironmentVariableNameException(UserException):
 
 class NoResourcesMatchTagException(UserException):
     """
-    Exception class when the user supplies a tag that matches no resources on their account during `sam test_runner init`
+    Exception class when the user supplies a tag that matches no resources on
+    their account during `sam test_runner init`
     """

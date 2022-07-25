@@ -25,13 +25,13 @@ class Test_TemplateGenerator(TestCase):
         # In between will be the generated IAM policy statments, which will depend on the resource being tested
         self.generated_template_expected_first_half = [
             "AWSTemplateFormatVersion: 2010-09-09\n",
-            "Description: Sample Template to deploy and run test container with Fargate\n",
+            "Description: SAM Test Runner Stack, used to deploy and run tests using Fargate\n",
             "Resources:\n",
             "\n",
             "    ContainerIAMRole:\n",
             "        Type: AWS::IAM::Role\n",
             "        Properties:\n",
-            "            Description: Allows Fargate task to access S3 bucket to download tests and upload results\n",
+            "            Description: IAM Permissions granted to the Fargate instance so that it can invoke and test deployed resources\n",
             "            AssumeRolePolicyDocument:\n",
             "                Version: 2012-10-17\n",
             "                Statement:\n",
@@ -82,12 +82,12 @@ class Test_TemplateGenerator(TestCase):
             "    LogGroup:\n",
             "        Type: AWS::Logs::LogGroup\n",
             "        Properties:\n",
-            "            LogGroupName: cloud-test-loggroup\n",
+            "            LogGroupName: test-runner-loggroup\n",
             "\n",
             "    ECSCluster:\n",
             "        Type: AWS::ECS::Cluster\n",
             "        Properties:\n",
-            "            ClusterName: cloud-test-fargate-cluster\n",
+            "            ClusterName: test-runner-fargate-cluster\n",
             "\n",
             "    S3Bucket:\n",
             "        Type: AWS::S3::Bucket\n",
@@ -254,12 +254,15 @@ class Test_TemplateGenerator(TestCase):
         self.assertEqual(result, expected_result)
 
     def test_statement_jinja_exception(self):
-
         def faulty_create_iam_statement_string(obj, arn):
             raise jinja2.exceptions.TemplateError("Template render failed for some reason!")
 
-        with unittest.mock.patch.object(FargateRunnerCFNTemplateGenerator, '_create_iam_statement_string', new=faulty_create_iam_statement_string):
-            self.template_generator.resource_arn_list = ["arn:aws:lambda:us-east-1:123456789123:function:valid-lambda-arn"]
+        with unittest.mock.patch.object(
+            FargateRunnerCFNTemplateGenerator, "_create_iam_statement_string", new=faulty_create_iam_statement_string
+        ):
+            self.template_generator.resource_arn_list = [
+                "arn:aws:lambda:us-east-1:123456789123:function:valid-lambda-arn"
+            ]
             with self.assertRaises(TestRunnerTemplateGenerationException):
                 self.template_generator.generate_test_runner_template_string(self.TEST_IMAGE_URI)
 
@@ -275,11 +278,14 @@ class Test_TemplateGenerator(TestCase):
         self.assertEqual(result, expected_result)
 
     def test_jinja_template_not_found(self):
-
         def faulty_get_jinja_template_string(obj):
             raise FileNotFoundError()
 
-        with unittest.mock.patch.object(FargateRunnerCFNTemplateGenerator, '_get_jinja_template_string', new=faulty_get_jinja_template_string):
-            self.template_generator.resource_arn_list = ["arn:aws:lambda:us-east-1:123456789123:function:valid-lambda-arn"]
+        with unittest.mock.patch.object(
+            FargateRunnerCFNTemplateGenerator, "_get_jinja_template_string", new=faulty_get_jinja_template_string
+        ):
+            self.template_generator.resource_arn_list = [
+                "arn:aws:lambda:us-east-1:123456789123:function:valid-lambda-arn"
+            ]
             with self.assertRaises(TestRunnerTemplateGenerationException):
                 self.template_generator.generate_test_runner_template_string(self.TEST_IMAGE_URI)

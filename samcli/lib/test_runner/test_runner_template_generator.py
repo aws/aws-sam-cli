@@ -144,7 +144,7 @@ class FargateRunnerCFNTemplateGenerator:
             action_list=[], arn=resource_arn
         )
 
-    def _get_default_bucket_name(self):
+    def _get_default_bucket_name(self) -> str:
         """
         Returns a guaranteed unique default S3 Bucket name
         """
