@@ -1,23 +1,24 @@
-from botocore.exceptions import ClientError
-from unittest.mock import patch
+import unittest
+from unittest.mock import Mock, patch
 from unittest import TestCase
-from samcli.lib.test_runner.test_runner_template_generator import generate_test_runner_template_string
+import jinja2
+from samcli.lib.test_runner.test_runner_template_generator import FargateRunnerCFNTemplateGenerator
 from samcli.commands.exceptions import TestRunnerTemplateGenerationException
 
 
 class Test_TemplateGenerator(TestCase):
+
+    TEST_BUCKET_NAME = "test-bucket"
+    TEST_IMAGE_URI = "test-image-uri"
+
     def setUp(self):
         self.maxDiff = None
-        with open("samcli/lib/test_runner/base_template.j2") as jinja_template:
-            self.jinja_template = jinja_template.read()
+        self.template_generator = FargateRunnerCFNTemplateGenerator([])
 
-        self.test_params = {
-            "boto_client_provider": None,  # Patched
-            "jinja_base_template": self.jinja_template,
-            "s3_bucket_name": "cloud-test-bucket-unique-name",
-            "image_uri": "123456789123.dkr.ecr.us-east-1.amazonaws.com/cloud-test-repo",
-            "tag_filters": [{"Key": "Test_Key", "Values": ["Test_Value"]}],
-        }
+        # Mock the bucket name, since it will contain a random UUID
+        _get_default_bucket_name_mock = Mock()
+        _get_default_bucket_name_mock.return_value = self.TEST_BUCKET_NAME
+        self.template_generator._get_default_bucket_name = _get_default_bucket_name_mock
 
         # To avoid repeated lines:
         # These parts of the template will be the same no matter what resource is being tested
@@ -55,8 +56,7 @@ class Test_TemplateGenerator(TestCase):
             "                                - bucket: !Ref S3Bucket\n",
         ]
         self.generated_template_expected_second_half = [
-            "\n",
-            "    TaskDefinition:\n",
+            "\n" "    TaskDefinition:\n",
             "        Type: AWS::ECS::TaskDefinition\n",
             "        Properties:\n",
             "            RequiresCompatibilities:\n",
@@ -68,7 +68,7 @@ class Test_TemplateGenerator(TestCase):
             "            NetworkMode: awsvpc\n",
             "            ContainerDefinitions:\n",
             "                - Name: cloud-test-python-container\n",
-            "                  Image: 123456789123.dkr.ecr.us-east-1.amazonaws.com/cloud-test-repo\n",
+            f"                  Image: {self.TEST_IMAGE_URI}\n",
             "                  PortMappings:\n",
             "                      - ContainerPort: 8080\n",
             "                        Protocol: tcp\n",
@@ -92,17 +92,16 @@ class Test_TemplateGenerator(TestCase):
             "    S3Bucket:\n",
             "        Type: AWS::S3::Bucket\n",
             "        Properties:\n",
-            "            BucketName: cloud-test-bucket-unique-name",
+            f"            BucketName: {self.TEST_BUCKET_NAME}",
         ]
 
-    def do_compare(self, resource_arn, expected_actions, query_tagging_api_patch):
-        query_tagging_api_patch.return_value = [
-            {
-                "ResourceARN": resource_arn,
-            }
-        ]
-        result = generate_test_runner_template_string(**self.test_params)
-
+    def do_compare(
+        self,
+        resource_arn,
+        expected_actions,
+    ):
+        self.template_generator.resource_arn_list = [resource_arn]
+        result = self.template_generator.generate_test_runner_template_string(self.TEST_IMAGE_URI)
         expected_statements = [
             "                          - Effect: Allow\n",
             "                            Action:\n",
@@ -117,84 +116,52 @@ class Test_TemplateGenerator(TestCase):
         )
         self.assertEqual(result, expected_result)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
-    def test_lambda_function(self, query_tagging_api_patch):
+    def test_lambda_function(self):
         resource_arn = "arn:aws:lambda:us-east-1:123456789123:function:lambda-sample-SampleLambda-KWsMLA204T0i"
         expected_actions = ["                               # - lambda:InvokeFunction\n"]
-        self.do_compare(
-            resource_arn,
-            expected_actions,
-            query_tagging_api_patch,
-        )
+        self.do_compare(resource_arn, expected_actions)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
-    def test_sqs_queue(self, query_tagging_api_patch):
+    def test_sqs_queue(self):
         resource_arn = "arn:aws:sqs:us-east-2:444455556666:queue1"
         expected_actions = ["                               # - sqs:SendMessage\n"]
         self.do_compare(
             resource_arn,
             expected_actions,
-            query_tagging_api_patch,
         )
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
-    def test_s3_bucket(self, query_tagging_api_patch):
+    def test_s3_bucket(self):
         resource_arn = "arn:aws:s3:::my-very-big-s3-bucket"
         expected_actions = [
             "                               # - s3:PutObject\n",
             "                               # - s3:GetObject\n",
         ]
-        self.do_compare(
-            resource_arn,
-            expected_actions,
-            query_tagging_api_patch,
-        )
+        self.do_compare(resource_arn, expected_actions)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
-    def test_dynamodb_table(self, query_tagging_api_patch):
+    def test_dynamodb_table(self):
         resource_arn = "arn:aws:dynamodb:us-east-1:123456789012:table/Books"
         expected_actions = [
             "                               # - dynamodb:GetItem\n",
             "                               # - dynamodb:PutItem\n",
         ]
-        self.do_compare(
-            resource_arn,
-            expected_actions,
-            query_tagging_api_patch,
-        )
+        self.do_compare(resource_arn, expected_actions)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
-    def test_step_function(self, query_tagging_api_patch):
+    def test_step_function(self):
         resource_arn = "arn:aws:states:us-east-1:123456789012:stateMachine:stateMachineName"
         expected_actions = [
             "                               # - stepfunction:StartExecution\n",
             "                               # - stepfunction:StopExecution\n",
         ]
-        self.do_compare(
-            resource_arn,
-            expected_actions,
-            query_tagging_api_patch,
-        )
+        self.do_compare(resource_arn, expected_actions)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
-    def test_no_iam_actions_supported(self, query_tagging_api_patch):
+    def test_no_iam_actions_supported(self):
         resource_arn = "arn:aws:logs:us-west-1:123456789012:log-group:/mystack-testgroup-12ABC1AB12A1:*"
         expected_actions = []
-        self.do_compare(
-            resource_arn,
-            expected_actions,
-            query_tagging_api_patch,
-        )
+        self.do_compare(resource_arn, expected_actions)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
-    def test_apigw_httpapi(self, query_tagging_api_patch):
-        query_tagging_api_patch.return_value = [
-            {
-                "ResourceARN": "arn:aws-us-gov:apigateway:us-west-1::/apis/4p1000",
-            }
-        ]
+    def test_apigw_httpapi(self):
+        self.template_generator.resource_arn_list = ["arn:aws-us-gov:apigateway:us-west-1::/apis/4p1000"]
 
-        result = generate_test_runner_template_string(**self.test_params)
+        result = self.template_generator.generate_test_runner_template_string(self.TEST_IMAGE_URI)
 
         expected_statements = [
             "                          - Effect: Allow\n",
@@ -210,15 +177,12 @@ class Test_TemplateGenerator(TestCase):
         )
         self.assertEqual(result, expected_result)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
-    def test_apigw_restapi(self, query_tagging_api_patch):
-        query_tagging_api_patch.return_value = [
-            {
-                "ResourceARN": "arn:aws-us-gov:apigateway:us-west-1::/restapis/r3st4p1",
-            }
+    def test_apigw_restapi(self):
+        self.template_generator.resource_arn_list = [
+            "arn:aws-us-gov:apigateway:us-west-1::/restapis/r3st4p1",
         ]
 
-        result = generate_test_runner_template_string(**self.test_params)
+        result = self.template_generator.generate_test_runner_template_string(self.TEST_IMAGE_URI)
 
         expected_statements = [
             "                          - Effect: Allow\n",
@@ -234,17 +198,13 @@ class Test_TemplateGenerator(TestCase):
         )
         self.assertEqual(result, expected_result)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
-    def test_multiple_generated_statements(self, query_tagging_api_patch):
+    def test_multiple_generated_statements(self):
         arn_1 = "arn:aws:states:us-east-1:123456789012:stateMachine:stateMachineName"
         arn_2 = "arn:aws:s3:::my-very-big-s3-bucket"
 
-        query_tagging_api_patch.return_value = [
-            {"ResourceARN": arn_1},
-            {"ResourceARN": arn_2},
-        ]
+        self.template_generator.resource_arn_list = [arn_1, arn_2]
 
-        result = generate_test_runner_template_string(**self.test_params)
+        result = self.template_generator.generate_test_runner_template_string(self.TEST_IMAGE_URI)
 
         expected_statements = [
             "                          - Effect: Allow\n",
@@ -266,47 +226,60 @@ class Test_TemplateGenerator(TestCase):
         )
         self.assertEqual(result, expected_result)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
-    def test_empty_tag_api_query_response(self, query_tagging_api_patch):
-        query_tagging_api_patch.return_value = []
+    def test_iam_resource(self):
+        self.template_generator.resource_arn_list = ["arn:aws:iam::123456789012:root"]
 
-        with self.assertRaises(TestRunnerTemplateGenerationException):
-            generate_test_runner_template_string(**self.test_params)
+        result = self.template_generator.generate_test_runner_template_string(self.TEST_IMAGE_URI)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
-    def test_failed_tag_api_query(self, query_tagging_api_patch):
-
-        client_error_response = {"Error": {"Code": "Error Code", "Message": "Error Message"}}
-
-        query_tagging_api_patch.side_effect = ClientError(
-            error_response=client_error_response, operation_name="get_resources"
-        )
-
-        with self.assertRaises(TestRunnerTemplateGenerationException):
-            generate_test_runner_template_string(**self.test_params)
-
-    def test_no_tag_supplied(self):
-
-        no_tags_params = {
-            "boto_client_provider": None,  # Patched
-            "jinja_base_template": self.jinja_template,
-            "s3_bucket_name": "cloud-test-bucket-unique-name",
-            "image_uri": "123456789123.dkr.ecr.us-east-1.amazonaws.com/cloud-test-repo",
-            "tag_filters": None,
-        }
-
-        result = generate_test_runner_template_string(**no_tags_params)
+        expected_statements = []
 
         expected_result = "".join(
-            self.generated_template_expected_first_half + self.generated_template_expected_second_half
+            self.generated_template_expected_first_half
+            + expected_statements
+            + self.generated_template_expected_second_half
         )
-
         self.assertEqual(result, expected_result)
 
-    @patch("samcli.lib.test_runner.test_runner_template_generator._query_tagging_api")
-    def test_unexpected_tag_api_response(self, query_tagging_api_patch):
+    def test_sts_resource(self):
+        self.template_generator.resource_arn_list = ["arn:aws:sts::123456789012:federated-user/user-name "]
 
-        query_tagging_api_patch.return_value = None
+        result = self.template_generator.generate_test_runner_template_string(self.TEST_IMAGE_URI)
+        expected_statements = []
 
-        with self.assertRaises(TestRunnerTemplateGenerationException):
-            generate_test_runner_template_string(**self.test_params)
+        expected_result = "".join(
+            self.generated_template_expected_first_half
+            + expected_statements
+            + self.generated_template_expected_second_half
+        )
+        self.assertEqual(result, expected_result)
+
+    def test_statement_jinja_exception(self):
+
+        def faulty_create_iam_statement_string(obj, arn):
+            raise jinja2.exceptions.TemplateError("Template render failed for some reason!")
+
+        with unittest.mock.patch.object(FargateRunnerCFNTemplateGenerator, '_create_iam_statement_string', new=faulty_create_iam_statement_string):
+            self.template_generator.resource_arn_list = ["arn:aws:lambda:us-east-1:123456789123:function:valid-lambda-arn"]
+            with self.assertRaises(TestRunnerTemplateGenerationException):
+                self.template_generator.generate_test_runner_template_string(self.TEST_IMAGE_URI)
+
+    def test_no_arns_supplied(self):
+        result = self.template_generator.generate_test_runner_template_string(self.TEST_IMAGE_URI)
+        expected_statements = []
+
+        expected_result = "".join(
+            self.generated_template_expected_first_half
+            + expected_statements
+            + self.generated_template_expected_second_half
+        )
+        self.assertEqual(result, expected_result)
+
+    def test_jinja_template_not_found(self):
+
+        def faulty_get_jinja_template_string(obj):
+            raise FileNotFoundError()
+
+        with unittest.mock.patch.object(FargateRunnerCFNTemplateGenerator, '_get_jinja_template_string', new=faulty_get_jinja_template_string):
+            self.template_generator.resource_arn_list = ["arn:aws:lambda:us-east-1:123456789123:function:valid-lambda-arn"]
+            with self.assertRaises(TestRunnerTemplateGenerationException):
+                self.template_generator.generate_test_runner_template_string(self.TEST_IMAGE_URI)

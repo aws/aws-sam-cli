@@ -1,11 +1,11 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: Sample Template to deploy and run test container with Fargate
+Description: SAM Test Runner Stack, used to deploy and run tests using Fargate
 Resources:
 
     ContainerIAMRole:
         Type: AWS::IAM::Role
         Properties:
-            Description: Allows Fargate task to access S3 bucket to download tests and upload results
+            Description: IAM Permissions granted to the Fargate instance so that it can invoke and test deployed resources
             AssumeRolePolicyDocument:
                 Version: 2012-10-17
                 Statement:
@@ -58,12 +58,12 @@ Resources:
     LogGroup:
         Type: AWS::Logs::LogGroup
         Properties:
-            LogGroupName: cloud-test-loggroup
+            LogGroupName: test-runner-loggroup
 
     ECSCluster:
         Type: AWS::ECS::Cluster
         Properties:
-            ClusterName: cloud-test-fargate-cluster
+            ClusterName: test-runner-fargate-cluster
 
     S3Bucket:
         Type: AWS::S3::Bucket
