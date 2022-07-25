@@ -75,8 +75,9 @@ class FargateRunnerCFNTemplateGenerator:
             If the IAM Statement template render fails.
         """
 
-        partition_regex = r"(aws|aws-cn|aws-us-gov)"
-        region_regex = r"(us(-gov)?|ap|ca|cn|eu|sa)-(central|(north|south)?(east|west)?)-\d"
+        # We keep partition and region general to avoid the burden of maintaining new regions & partitions.
+        partition_regex = r"[\w-]+"
+        region_regex = r"[\w-]+"
         account_regex = r"\d{12}"
 
         # We want to explcitly avoid generating permissions for IAM or STS resources
