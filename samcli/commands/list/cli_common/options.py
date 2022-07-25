@@ -24,7 +24,7 @@ def stack_name_option(f):
 def output_click_option():
     return click.option(
         "--output",
-        help=("Output the results from the command in a given " "output format (json, yaml, table or text). "),
+        help="Output the results from the command in a given " "output format (json or table). ",
         type=click.Choice(["json", "table"], case_sensitive=False),
     )
 
