@@ -15,8 +15,7 @@ from docker.errors import APIError
 from parameterized import parameterized
 
 from tests.integration.local.start_lambda.start_lambda_api_integ_base import StartLambdaIntegBaseClass
-from tests.testing_utils import CI_OVERRIDE
-
+from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUNNING_ON_CI
 
 LOG = logging.getLogger(__name__)
 
@@ -144,3 +143,73 @@ class TestLocalStartLambdaInvalidUsecasesTerraform(StartLambdaTerraformApplicati
         except TimeoutExpired:
             process.kill()
             raise
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip local start-lambda terraform applications tests on windows when running in CI unless overridden",
+)
+class TestLocalStartLambdaTerraformApplicationWithLocalImageUri(StartLambdaTerraformApplicationIntegBase):
+    terraform_application = "/testdata/invoke/terraform/image_lambda_function_local_image_uri"
+    template_path = None
+    hook_package_id = "terraform"
+    functions = [
+        "image_lambda_function",
+        "aws_lambda_function.image_lambda",
+    ]
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+        self.lambda_client = boto3.client(
+            "lambda",
+            endpoint_url=self.url,
+            region_name="us-east-1",
+            use_ssl=False,
+            verify=False,
+            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
+        )
+
+    @classmethod
+    def setUpClass(cls):
+        if cls.template_path:
+            cls.template = cls.integration_dir + cls.template_path
+
+        if cls.terraform_application:
+            cls.working_dir = cls.integration_dir + cls.terraform_application
+
+        cls.port = str(StartLambdaIntegBaseClass.random_port())
+        cls.env_var_path = cls.integration_dir + "/testdata/invoke/vars.json"
+
+        if cls.build_before_invoke:
+            cls.build()
+
+        cls.docker_client = docker.from_env()
+        cls.image_name = "sam-test-lambdaimage"
+        cls.docker_tag = f"{cls.image_name}:v1"
+        cls.test_data_invoke_path = str(Path(__file__).resolve().parents[2].joinpath("testdata", "invoke"))
+        # Directly build an image that will be used across all local invokes in this class.
+        for log in cls.docker_client.api.build(
+            path=cls.test_data_invoke_path, dockerfile="Dockerfile", tag=cls.docker_tag, decode=True
+        ):
+            print(log)
+
+        cls.start_lambda()
+
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            cls.docker_client.api.remove_image(cls.docker_tag)
+        except APIError:
+            pass
+
+    @parameterized.expand(functions)
+    @pytest.mark.flaky(reruns=3)
+    def test_start_lambda_image_function(self, function_name):
+        response = self.lambda_client.invoke(
+            FunctionName=function_name, Payload='{"key1": "value1","key2": "value2","key3": "value3"}'
+        )
+
+        response_body = json.loads(response.get("Payload").read().decode("utf-8"))
+
+        self.assertEqual(response_body, "Hello world")
+        self.assertEqual(response.get("StatusCode"), 200)
