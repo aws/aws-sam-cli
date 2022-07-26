@@ -169,6 +169,7 @@ class TestLocalStartLambdaInvalidUsecasesTerraform(StartLambdaTerraformApplicati
         # As we test the invalid scenarios in this class, so we do not expect that sam local lambda command will work
         # fine, and so we do any process to kill, or docker image to clean.
         pass
+
     def setUp(self):
         self.integration_dir = str(Path(__file__).resolve().parents[2])
         terraform_application = "/testdata/invoke/terraform/simple_application_no_building_logic"
