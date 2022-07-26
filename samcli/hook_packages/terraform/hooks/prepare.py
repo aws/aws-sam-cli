@@ -127,7 +127,7 @@ def _update_resources_paths(cfn_resources: Dict[str, Any], terraform_application
     for _, resource in cfn_resources.items():
         if resource.get("Type") in resources_attributes_to_be_updated and isinstance(resource.get("Properties"), dict):
             for attribute in resources_attributes_to_be_updated[resource["Type"]]:
-                original_path = resource["Properties"].get(attribute)
+                original_path = resource.get("Properties", {}).get(attribute)
                 if isinstance(original_path, str) and not os.path.isabs(original_path):
                     resource["Properties"][attribute] = str(Path(terraform_application_dir).joinpath(original_path))
 

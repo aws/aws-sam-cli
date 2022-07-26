@@ -1,9 +1,8 @@
 import json
-import os
 from pathlib import Path
 from subprocess import Popen, PIPE, TimeoutExpired
 from typing import Optional
-from unittest import skipIf, TestCase
+from unittest import skipIf
 
 import logging
 
@@ -94,19 +93,26 @@ class TestLocalStartLambdaTerraformApplicationWithoutBuild(StartLambdaTerraformA
         self.assertEqual(response.get("StatusCode"), 200)
 
 
-class TestLocalStartLambdaInvalidUsecasesTerraform(TestCase):
+class TestLocalStartLambdaInvalidUsecasesTerraform(StartLambdaTerraformApplicationIntegBase):
+    @classmethod
+    def setUpClass(cls):
+        # As we test the invalid scenarios in this class, so we do not expect that sam local lambda command will work
+        # fine, and so we do not need to setup any port or any other setup.
+        pass
+
+    @classmethod
+    def tearDownClass(cls):
+        # As we test the invalid scenarios in this class, so we do not expect that sam local lambda command will work
+        # fine, and so we do not need to setup any port or any other setup.
+        pass
+
     def setUp(self):
         self.integration_dir = str(Path(__file__).resolve().parents[2])
         terraform_application = "/testdata/invoke/terraform/simple_application_no_building_logic"
         self.terraform_application_path = self.integration_dir + terraform_application
 
     def test_invalid_hook_package_id(self):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
-
-        command_list = [command, "local", "start-lambda", "--hook-package-id", "tf"]
-
+        command_list = self.get_start_lambda_command(hook_package_id="tf")
         _, stderr, return_code = self._run_command(command_list, tf_application=self.terraform_application_path)
 
         process_stderr = stderr.strip()
@@ -117,12 +123,8 @@ class TestLocalStartLambdaInvalidUsecasesTerraform(TestCase):
         self.assertNotEqual(return_code, 0)
 
     def test_invalid_coexist_parameters(self):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
 
-        command_list = [command, "local", "start-lambda", "--hook-package-id", "terraform", "-t", "path/template.yaml"]
-
+        command_list = self.get_start_lambda_command(hook_package_id="terraform", template_path="path/template.yaml")
         _, stderr, return_code = self._run_command(command_list, tf_application=self.terraform_application_path)
 
         process_stderr = stderr.strip()
