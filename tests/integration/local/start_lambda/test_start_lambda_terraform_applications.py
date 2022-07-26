@@ -104,7 +104,7 @@ class TestLocalStartLambdaInvalidUsecasesTerraform(StartLambdaTerraformApplicati
     @classmethod
     def tearDownClass(cls):
         # As we test the invalid scenarios in this class, so we do not expect that sam local lambda command will work
-        # fine, and so we do not need to setup any port or any other setup.
+        # fine, and so we do any process to kill, or docker image to clean.
         pass
 
     def setUp(self):
