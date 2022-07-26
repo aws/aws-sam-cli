@@ -5,11 +5,13 @@ from subprocess import Popen, PIPE, TimeoutExpired
 from typing import Optional
 from unittest import skipIf
 
+import docker
 import pytest
+from docker.errors import APIError
 from parameterized import parameterized
 
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase, TIMEOUT
-from tests.testing_utils import CI_OVERRIDE
+from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUNNING_ON_CI
 
 
 class InvokeTerraformApplicationIntegBase(InvokeIntegBase):
@@ -90,3 +92,48 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
             "not be used together",
         )
         self.assertNotEqual(return_code, 0)
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip local invoke terraform application tests on windows when running in CI unless overridden",
+)
+class TestInvokeTerraformApplicationWithLocalImageUri(InvokeTerraformApplicationIntegBase):
+    terraform_application = Path("terraform/image_lambda_function_local_image_uri")
+    functions = [
+        "image_lambda_function",
+        "aws_lambda_function.image_lambda",
+    ]
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestInvokeTerraformApplicationWithLocalImageUri, cls).setUpClass()
+        cls.client = docker.from_env()
+        cls.image_name = "sam-test-lambdaimage"
+        cls.docker_tag = f"{cls.image_name}:v1"
+        cls.test_data_invoke_path = str(Path(__file__).resolve().parents[2].joinpath("testdata", "invoke"))
+        # Directly build an image that will be used across all local invokes in this class.
+        for log in cls.client.api.build(
+            path=cls.test_data_invoke_path, dockerfile="Dockerfile", tag=cls.docker_tag, decode=True
+        ):
+            print(log)
+
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            cls.client.api.remove_image(cls.docker_tag)
+        except APIError:
+            pass
+
+    @parameterized.expand(functions)
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_image_function(self, function_name):
+        local_invoke_command_list = self.get_command_list(
+            function_to_invoke=function_name, hook_package_id="terraform", event_path=self.event_path
+        )
+        stdout, _, return_code = self.run_command(local_invoke_command_list)
+
+        # Get the response without the sam-cli prompts that proceed it
+        self.assertEqual(return_code, 0)
+        process_stdout = stdout.strip()
+        self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')

@@ -18,6 +18,8 @@ from samcli.hook_packages.terraform.hooks.prepare import (
     _translate_to_cfn,
     _map_s3_sources_to_functions,
     _update_resources_paths,
+    _build_lambda_function_image_config_property,
+    _check_image_config_value,
 )
 from samcli.lib.hook.exceptions import PrepareHookException
 from samcli.lib.utils.resources import (
@@ -42,6 +44,7 @@ class TestPrepareHook(TestCase):
         self.zip_function_name_4 = "myfunc4"
         self.s3_function_name = "myfuncS3"
         self.s3_function_name_2 = "myfuncS3_2"
+        self.image_function_name = "image_func"
 
         self.tf_function_common_properties: dict = {
             "function_name": self.zip_function_name,
@@ -64,6 +67,21 @@ class TestPrepareHook(TestCase):
             "Timeout": 3,
         }
 
+        self.tf_image_package_type_function_common_properties: dict = {
+            "function_name": self.image_function_name,
+            "architectures": ["x86_64"],
+            "environment": [{"variables": {"foo": "bar", "hello": "world"}}],
+            "package_type": "Image",
+            "timeout": 3,
+        }
+        self.expected_cfn_image_package_type_function_common_properties: dict = {
+            "FunctionName": self.image_function_name,
+            "Architectures": ["x86_64"],
+            "Environment": {"Variables": {"foo": "bar", "hello": "world"}},
+            "PackageType": "Image",
+            "Timeout": 3,
+        }
+
         self.tf_zip_function_properties: dict = {
             **self.tf_function_common_properties,
             "filename": "file.zip",
@@ -71,6 +89,29 @@ class TestPrepareHook(TestCase):
         self.expected_cfn_zip_function_properties: dict = {
             **self.expected_cfn_function_common_properties,
             "Code": "file.zip",
+        }
+
+        self.tf_image_package_type_function_properties: dict = {
+            **self.tf_image_package_type_function_common_properties,
+            "image_config": [
+                {
+                    "command": ["cmd1", "cmd2"],
+                    "entry_point": ["entry1", "entry2"],
+                    "working_directory": "/working/dir/path",
+                }
+            ],
+            "image_uri": "image/uri:tag",
+        }
+        self.expected_cfn_image_package_function_properties: dict = {
+            **self.expected_cfn_image_package_type_function_common_properties,
+            "ImageConfig": {
+                "Command": ["cmd1", "cmd2"],
+                "EntryPoint": ["entry1", "entry2"],
+                "WorkingDirectory": "/working/dir/path",
+            },
+            "Code": {
+                "ImageUri": "image/uri:tag",
+            },
         }
 
         self.tf_s3_function_properties: dict = {
@@ -209,6 +250,18 @@ class TestPrepareHook(TestCase):
             "Metadata": {"SamResourceId": f"aws_lambda_function.{self.zip_function_name_4}", "SkipBuild": True},
         }
 
+        self.tf_image_package_type_lambda_function_resource: dict = {
+            **self.tf_lambda_function_resource_common_attributes,
+            "values": self.tf_image_package_type_function_properties,
+            "address": f"aws_lambda_function.{self.image_function_name}",
+            "name": self.image_function_name,
+        }
+        self.expected_cfn_image_package_type_lambda_function_resource: dict = {
+            "Type": CFN_AWS_LAMBDA_FUNCTION,
+            "Properties": self.expected_cfn_image_package_function_properties,
+            "Metadata": {"SamResourceId": f"aws_lambda_function.{self.image_function_name}", "SkipBuild": True},
+        }
+
         self.tf_lambda_function_resource_s3: dict = {
             **self.tf_lambda_function_resource_common_attributes,
             "values": self.tf_s3_function_properties,
@@ -266,6 +319,7 @@ class TestPrepareHook(TestCase):
                     "resources": [
                         self.tf_lambda_function_resource_zip,
                         self.tf_lambda_function_resource_zip_2,
+                        self.tf_image_package_type_lambda_function_resource,
                     ]
                 }
             }
@@ -275,6 +329,7 @@ class TestPrepareHook(TestCase):
             "Resources": {
                 f"AwsLambdaFunctionMyfunc{self.mock_logical_id_hash}": self.expected_cfn_lambda_function_resource_zip,
                 f"AwsLambdaFunctionMyfunc2{self.mock_logical_id_hash}": self.expected_cfn_lambda_function_resource_zip_2,
+                f"AwsLambdaFunctionImageFunc{self.mock_logical_id_hash}": self.expected_cfn_image_package_type_lambda_function_resource,
             },
         }
 
@@ -542,6 +597,43 @@ class TestPrepareHook(TestCase):
         translated_cfn_property = _build_lambda_function_code_property(self.tf_s3_function_properties)
         self.assertEqual(translated_cfn_property, expected_cfn_property)
 
+    def test_build_lambda_function_code_property_image(self):
+        expected_cfn_property = self.expected_cfn_image_package_function_properties["Code"]
+        translated_cfn_property = _build_lambda_function_code_property(self.tf_image_package_type_function_properties)
+        self.assertEqual(translated_cfn_property, expected_cfn_property)
+
+    def test_build_lambda_function_image_config_property(self):
+        expected_cfn_property = self.expected_cfn_image_package_function_properties["ImageConfig"]
+        translated_cfn_property = _build_lambda_function_image_config_property(
+            self.tf_image_package_type_function_properties
+        )
+        self.assertEqual(translated_cfn_property, expected_cfn_property)
+
+    def test_build_lambda_function_image_config_property_no_image_config(self):
+        tf_properties = {**self.tf_image_package_type_function_properties}
+        del tf_properties["image_config"]
+        translated_cfn_property = _build_lambda_function_image_config_property(tf_properties)
+        self.assertEqual(translated_cfn_property, None)
+
+    def test_build_lambda_function_image_config_property_empty_image_config_list(self):
+        tf_properties = {**self.tf_image_package_type_function_properties}
+        tf_properties["image_config"] = []
+        translated_cfn_property = _build_lambda_function_image_config_property(tf_properties)
+        self.assertEqual(translated_cfn_property, None)
+
+    @parameterized.expand(
+        [("command", "Command"), ("entry_point", "EntryPoint"), ("working_directory", "WorkingDirectory")]
+    )
+    def test_build_lambda_function_image_config_property_not_all_properties_exist(
+        self, missing_tf_property, missing_cfn_property
+    ):
+        expected_cfn_property = {**self.expected_cfn_image_package_function_properties["ImageConfig"]}
+        del expected_cfn_property[missing_cfn_property]
+        tf_properties = {**self.tf_image_package_type_function_properties}
+        del tf_properties["image_config"][0][missing_tf_property]
+        translated_cfn_property = _build_lambda_function_image_config_property(tf_properties)
+        self.assertEqual(translated_cfn_property, expected_cfn_property)
+
     def test_translate_properties_function(self):
         translated_cfn_properties = _translate_properties(
             self.tf_zip_function_properties, AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING
@@ -784,3 +876,43 @@ class TestPrepareHook(TestCase):
         }
         _update_resources_paths(resources, terraform_application_root)
         self.assertDictEqual(resources, expected_resources)
+
+    def test_check_image_config_value_valid(self):
+        image_config = [
+            {
+                "command": ["cmd1", "cmd2"],
+                "entry_point": ["entry1", "entry2"],
+                "working_directory": "/working/dir/path",
+            }
+        ]
+        res = _check_image_config_value(image_config)
+        self.assertTrue(res)
+
+    def test_check_image_config_value_invalid_type(self):
+        image_config = {
+            "command": ["cmd1", "cmd2"],
+            "entry_point": ["entry1", "entry2"],
+            "working_directory": "/working/dir/path",
+        }
+        expected_message = f"SAM CLI expects that the value of image_config of aws_lambda_function resource in "
+        f"the terraform plan output to be of type list instead of {type(image_config)}"
+        with self.assertRaises(PrepareHookException, msg=expected_message):
+            _check_image_config_value(image_config)
+
+    def test_check_image_config_value_invalid_length(self):
+        image_config = [
+            {
+                "command": ["cmd1", "cmd2"],
+                "entry_point": ["entry1", "entry2"],
+                "working_directory": "/working/dir/path",
+            },
+            {
+                "command": ["cmd1", "cmd2"],
+                "entry_point": ["entry1", "entry2"],
+                "working_directory": "/working/dir/path",
+            },
+        ]
+        expected_message = f"SAM CLI expects that there is only one item in the  image_config property of "
+        f"aws_lambda_function resource in the terraform plan output, but there are {len(image_config)} items"
+        with self.assertRaises(PrepareHookException, msg=expected_message):
+            _check_image_config_value(image_config)
