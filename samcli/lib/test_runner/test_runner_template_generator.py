@@ -129,7 +129,7 @@ class FargateRunnerCFNTemplateGenerator:
                 if arn_regex in (APIGW_API_REGEX, APIGW_RESTAPI_REGEX):
                     apiId = self._extract_api_id_from_arn(resource_arn)
                     execute_api_arn = (
-                        f"!Sub arn:${{AWS::Partition}}:execute-api:${{AWS::Region}}:${{AWS::AccountId}}:{apiId}/*/GET/*"
+                        f"!Sub arn:${{AWS::Partition}}:execute-api:${{AWS::Region}}:${{AWS::AccountId}}:{apiId}/*"
                     )
                     return jinja2.Template(source=new_statement_template, keep_trailing_newline=True).render(
                         action_list=action_list, arn=execute_api_arn

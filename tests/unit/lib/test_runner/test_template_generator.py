@@ -167,7 +167,7 @@ class Test_TemplateGenerator(TestCase):
             "                          - Effect: Allow\n",
             "                            Action:\n",
             "                               # - execute-api:Invoke\n",
-            "                            Resource: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:4p1000/*/GET/*\n",
+            "                            Resource: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:4p1000/*\n",
         ]
 
         expected_result = "".join(
@@ -188,7 +188,7 @@ class Test_TemplateGenerator(TestCase):
             "                          - Effect: Allow\n",
             "                            Action:\n",
             "                               # - execute-api:Invoke\n",
-            "                            Resource: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:r3st4p1/*/GET/*\n",
+            "                            Resource: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:r3st4p1/*\n",
         ]
 
         expected_result = "".join(
