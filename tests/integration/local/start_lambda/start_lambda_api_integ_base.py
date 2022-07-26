@@ -135,6 +135,7 @@ class StartLambdaIntegBaseClass(TestCase):
             parameter_overrides=cls.parameter_overrides,
             invoke_image=cls.invoke_image,
             hook_package_id=cls.hook_package_id,
+            beta_features=cls.beta_features,
         )
 
         cls.start_lambda_process = Popen(command_list, stderr=PIPE, stdin=PIPE, cwd=cls.working_dir)
