@@ -33,8 +33,6 @@ class StartLambdaIntegBaseClass(TestCase):
     integration_dir = str(Path(__file__).resolve().parents[2])
     invoke_image: Optional[List] = None
     hook_package_id: Optional[str] = None
-    beta_features: Optional[bool] = None
-    collect_start_lambda_process_output: bool = False
 
     build_before_invoke = False
     build_overrides: Optional[Dict[str, str]] = None
@@ -64,10 +62,16 @@ class StartLambdaIntegBaseClass(TestCase):
         cls.start_lambda()
 
     @classmethod
-    def build(cls):
+    def base_command(cls):
         command = "sam"
         if os.getenv("SAM_CLI_DEV"):
             command = "samdev"
+        return command
+
+    @classmethod
+    def build(cls):
+        command = cls.base_command()
+
         command_list = [command, "build"]
         if cls.build_overrides:
             overrides_arg = " ".join(
@@ -79,52 +83,59 @@ class StartLambdaIntegBaseClass(TestCase):
         run_command(command_list, cwd=cls.working_dir)
 
     @classmethod
-    def start_lambda(cls, wait_time=5, input=None):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
+    def get_start_lambda_command(
+        cls,
+        port=None,
+        template_path=None,
+        env_var_path=None,
+        container_mode=None,
+        parameter_overrides=None,
+        invoke_image=None,
+        hook_package_id=None,
+    ):
+        command_list = [cls.base_command(), "local", "start-lambda"]
 
-        command_list = [
-            command,
-            "local",
-            "start-lambda",
-            "-p",
-            cls.port,
-            "--env-vars",
-            cls.env_var_path,
-        ]
+        if port:
+            command_list += ["-p", port]
 
-        if cls.template:
-            command_list += ["-t", cls.template]
+        if template_path:
+            command_list += ["-t", template_path]
 
-        if cls.container_mode:
-            command_list += ["--warm-containers", cls.container_mode]
+        if env_var_path:
+            command_list += ["--env-vars", env_var_path]
 
-        if cls.parameter_overrides:
-            command_list += ["--parameter-overrides", cls._make_parameter_override_arg(cls.parameter_overrides)]
+        if container_mode:
+            command_list += ["--warm-containers", container_mode]
 
-        if cls.invoke_image:
-            for image in cls.invoke_image:
+        if parameter_overrides:
+            command_list += ["--parameter-overrides", cls._make_parameter_override_arg(parameter_overrides)]
+
+        if invoke_image:
+            for image in invoke_image:
                 command_list += ["--invoke-image", image]
 
-        if cls.hook_package_id:
-            command_list += ["--hook-package-id", cls.hook_package_id]
+        if hook_package_id:
+            command_list += ["--hook-package-id", hook_package_id]
 
-        if cls.beta_features is not None:
-            command_list += ["--beta-features" if cls.beta_features else "--no-beta-features"]
+        return command_list
 
-        cls.start_lambda_process = Popen(command_list, stderr=PIPE, stdin=PIPE, cwd=cls.working_dir)
-        cls.start_lambda_process_output = ""
+    @classmethod
+    def start_lambda(cls, wait_time=5):
+        command_list = cls.get_start_lambda_command(
+            port=cls.port,
+            template_path=cls.template,
+            env_var_path=cls.env_var_path,
+            container_mode=cls.container_mode,
+            parameter_overrides=cls.parameter_overrides,
+            invoke_image=cls.invoke_image,
+            hook_package_id=cls.hook_package_id,
+        )
 
-        if input:
-            cls.start_lambda_process.stdin.write(input)
-            cls.start_lambda_process.stdin.close()
+        cls.start_lambda_process = Popen(command_list, stderr=PIPE, cwd=cls.working_dir)
 
         while True:
             line = cls.start_lambda_process.stderr.readline()
-            if cls.collect_start_lambda_process_output:
-                cls.start_lambda_process_output += f"{line.decode('utf-8')}\n"
-            if "(Press CTRL+C to quit)" in str(line) or "Terraform Support beta feature is not enabled." in str(line):
+            if "(Press CTRL+C to quit)" in str(line):
                 break
 
         cls.stop_reading_thread = False

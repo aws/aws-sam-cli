@@ -1,9 +1,8 @@
 import json
-import os
 from pathlib import Path
 from subprocess import Popen, PIPE, TimeoutExpired
 from typing import Optional
-from unittest import skipIf, TestCase
+from unittest import skipIf
 
 import logging
 
@@ -23,7 +22,6 @@ LOG = logging.getLogger(__name__)
 
 class StartLambdaTerraformApplicationIntegBase(StartLambdaIntegBaseClass):
     terraform_application: Optional[str] = None
-    input: Optional[bytes] = None
 
     @classmethod
     def setUpClass(cls):
@@ -49,14 +47,13 @@ class StartLambdaTerraformApplicationIntegBase(StartLambdaIntegBaseClass):
             except APIError as ex:
                 LOG.error("Failed to remove container %s", container, exc_info=ex)
 
-        cls.start_lambda(input=cls.input)
+        cls.start_lambda()
 
 
 class TestLocalStartLambdaTerraformApplicationWithoutBuild(StartLambdaTerraformApplicationIntegBase):
     terraform_application = "/testdata/invoke/terraform/simple_application_no_building_logic"
     template_path = None
     hook_package_id = "terraform"
-    beta_features = True
 
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
@@ -96,81 +93,26 @@ class TestLocalStartLambdaTerraformApplicationWithoutBuild(StartLambdaTerraformA
         self.assertEqual(response.get("StatusCode"), 200)
 
 
-class TestLocalStartLambdaTerraformApplicationWithExperimentalPromptYes(StartLambdaTerraformApplicationIntegBase):
-    terraform_application = "/testdata/invoke/terraform/simple_application_no_building_logic"
-    template_path = None
-    hook_package_id = "terraform"
-    input = b"Y\n"
+class TestLocalStartLambdaInvalidUsecasesTerraform(StartLambdaTerraformApplicationIntegBase):
+    @classmethod
+    def setUpClass(cls):
+        # As we test the invalid scenarios in this class, so we do not expect that sam local lambda command will work
+        # fine, and so we do not need to setup any port or any other setup.
+        pass
 
-    def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-        self.lambda_client = boto3.client(
-            "lambda",
-            endpoint_url=self.url,
-            region_name="us-east-1",
-            use_ssl=False,
-            verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
-        )
+    @classmethod
+    def tearDownClass(cls):
+        # As we test the invalid scenarios in this class, so we do not expect that sam local lambda command will work
+        # fine, and so we do not need to setup any port or any other setup.
+        pass
 
-    @skipIf(
-        not CI_OVERRIDE,
-        "Skip Terraform test cases unless running in CI",
-    )
-    @pytest.mark.flaky(reruns=3)
-    def test_invoke_function(self):
-        response = self.lambda_client.invoke(FunctionName="s3_lambda_function")
-
-        response_body = json.loads(response.get("Payload").read().decode("utf-8"))
-        expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"hello world\\"}"}')
-
-        self.assertEqual(response_body, expected_response)
-        self.assertEqual(response.get("StatusCode"), 200)
-
-
-class TestLocalStartLambdaTerraformApplicationWithExperimentalPromptNo(StartLambdaTerraformApplicationIntegBase):
-    terraform_application = "/testdata/invoke/terraform/simple_application_no_building_logic"
-    template_path = None
-    hook_package_id = "terraform"
-    input = b"N\n"
-    collect_start_lambda_process_output = True
-
-    def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-        self.lambda_client = boto3.client(
-            "lambda",
-            endpoint_url=self.url,
-            region_name="us-east-1",
-            use_ssl=False,
-            verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
-        )
-
-    @skipIf(
-        not CI_OVERRIDE,
-        "Skip Terraform test cases unless running in CI",
-    )
-    @pytest.mark.flaky(reruns=3)
-    def test_invoke_function(self):
-        self.assertRegex(
-            self.start_lambda_process_output,
-            "Terraform Support beta feature is not enabled.",
-        )
-
-
-class TestLocalStartLambdaInvalidUseCasesTerraform(TestCase):
     def setUp(self):
         self.integration_dir = str(Path(__file__).resolve().parents[2])
         terraform_application = "/testdata/invoke/terraform/simple_application_no_building_logic"
         self.terraform_application_path = self.integration_dir + terraform_application
 
     def test_invalid_hook_package_id(self):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
-
-        command_list = [command, "local", "start-lambda", "--hook-package-id", "tf"]
-
+        command_list = self.get_start_lambda_command(hook_package_id="tf")
         _, stderr, return_code = self._run_command(command_list, tf_application=self.terraform_application_path)
 
         process_stderr = stderr.strip()
@@ -180,29 +122,9 @@ class TestLocalStartLambdaInvalidUseCasesTerraform(TestCase):
         )
         self.assertNotEqual(return_code, 0)
 
-    def test_start_lambda_with_no_beta_feature(self):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
-
-        command_list = [command, "local", "start-lambda", "--hook-package-id", "terraform", "--no-beta-features"]
-
-        _, stderr, return_code = self._run_command(command_list, tf_application=self.terraform_application_path)
-
-        process_stderr = stderr.strip()
-        self.assertRegex(
-            process_stderr.decode("utf-8"),
-            "Terraform Support beta feature is not enabled.",
-        )
-        self.assertEqual(return_code, 0)
-
     def test_invalid_coexist_parameters(self):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
 
-        command_list = [command, "local", "start-lambda", "--hook-package-id", "terraform", "-t", "path/template.yaml"]
-
+        command_list = self.get_start_lambda_command(hook_package_id="terraform", template_path="path/template.yaml")
         _, stderr, return_code = self._run_command(command_list, tf_application=self.terraform_application_path)
 
         process_stderr = stderr.strip()
@@ -231,7 +153,6 @@ class TestLocalStartLambdaTerraformApplicationWithLocalImageUri(StartLambdaTerra
     terraform_application = "/testdata/invoke/terraform/image_lambda_function_local_image_uri"
     template_path = None
     hook_package_id = "terraform"
-    beta_features = True
     functions = [
         "image_lambda_function",
         "aws_lambda_function.image_lambda",
