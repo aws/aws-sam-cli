@@ -62,10 +62,16 @@ class StartLambdaIntegBaseClass(TestCase):
         cls.start_lambda()
 
     @classmethod
-    def build(cls):
+    def base_command(cls):
         command = "sam"
         if os.getenv("SAM_CLI_DEV"):
             command = "samdev"
+        return command
+
+    @classmethod
+    def build(cls):
+        command = cls.base_command()
+
         command_list = [command, "build"]
         if cls.build_overrides:
             overrides_arg = " ".join(
@@ -77,36 +83,53 @@ class StartLambdaIntegBaseClass(TestCase):
         run_command(command_list, cwd=cls.working_dir)
 
     @classmethod
-    def start_lambda(cls, wait_time=5):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
+    def get_start_lambda_command(
+        cls,
+        port=None,
+        template_path=None,
+        env_var_path=None,
+        container_mode=None,
+        parameter_overrides=None,
+        invoke_image=None,
+        hook_package_id=None,
+    ):
+        command_list = [cls.base_command(), "local", "start-lambda"]
 
-        command_list = [
-            command,
-            "local",
-            "start-lambda",
-            "-p",
-            cls.port,
-            "--env-vars",
-            cls.env_var_path,
-        ]
+        if port:
+            command_list += ["-p", port]
 
-        if cls.template:
-            command_list += ["-t", cls.template]
+        if template_path:
+            command_list += ["-t", template_path]
 
-        if cls.container_mode:
-            command_list += ["--warm-containers", cls.container_mode]
+        if env_var_path:
+            command_list += ["--env-vars", env_var_path]
 
-        if cls.parameter_overrides:
-            command_list += ["--parameter-overrides", cls._make_parameter_override_arg(cls.parameter_overrides)]
+        if container_mode:
+            command_list += ["--warm-containers", container_mode]
 
-        if cls.invoke_image:
-            for image in cls.invoke_image:
+        if parameter_overrides:
+            command_list += ["--parameter-overrides", cls._make_parameter_override_arg(parameter_overrides)]
+
+        if invoke_image:
+            for image in invoke_image:
                 command_list += ["--invoke-image", image]
 
-        if cls.hook_package_id:
-            command_list += ["--hook-package-id", cls.hook_package_id]
+        if hook_package_id:
+            command_list += ["--hook-package-id", hook_package_id]
+
+        return command_list
+
+    @classmethod
+    def start_lambda(cls, wait_time=5):
+        command_list = cls.get_start_lambda_command(
+            port=cls.port,
+            template_path=cls.template,
+            env_var_path=cls.env_var_path,
+            container_mode=cls.container_mode,
+            parameter_overrides=cls.parameter_overrides,
+            invoke_image=cls.invoke_image,
+            hook_package_id=cls.hook_package_id,
+        )
 
         cls.start_lambda_process = Popen(command_list, stderr=PIPE, cwd=cls.working_dir)
 
