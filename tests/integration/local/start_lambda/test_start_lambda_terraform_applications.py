@@ -22,7 +22,7 @@ LOG = logging.getLogger(__name__)
 
 class StartLambdaTerraformApplicationIntegBase(StartLambdaIntegBaseClass):
     terraform_application: Optional[str] = None
-    input: Optional[str] = None
+    input: Optional[bytes] = None
 
     @classmethod
     def setUpClass(cls):
@@ -99,7 +99,7 @@ class TestLocalStartLambdaTerraformApplicationWithExperimentalPromptYes(StartLam
     terraform_application = "/testdata/invoke/terraform/simple_application_no_building_logic"
     template_path = None
     hook_package_id = "terraform"
-    input = b'Y\n'
+    input = b"Y\n"
 
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
@@ -131,7 +131,7 @@ class TestLocalStartLambdaTerraformApplicationWithExperimentalPromptNo(StartLamb
     terraform_application = "/testdata/invoke/terraform/simple_application_no_building_logic"
     template_path = None
     hook_package_id = "terraform"
-    input = b'N\n'
+    input = b"N\n"
     collect_start_lambda_process_output = True
 
     def setUp(self):
