@@ -17,8 +17,6 @@ from tests.testing_utils import (
     SKIP_DOCKER_MESSAGE,
     run_command,
     kill_process,
-    start_persistent_process,
-    read_until_string,
 )
 
 LOG = logging.getLogger(__name__)
