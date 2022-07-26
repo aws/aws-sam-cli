@@ -19,6 +19,7 @@ from samcli.hook_packages.terraform.hooks.prepare import (
     _map_s3_sources_to_functions,
     _update_resources_paths,
     _build_lambda_function_image_config_property,
+    _check_image_config_value,
 )
 from samcli.lib.hook.exceptions import PrepareHookException
 from samcli.lib.utils.resources import (
@@ -875,3 +876,43 @@ class TestPrepareHook(TestCase):
         }
         _update_resources_paths(resources, terraform_application_root)
         self.assertDictEqual(resources, expected_resources)
+
+    def test_check_image_config_value_valid(self):
+        image_config = [
+            {
+                "command": ["cmd1", "cmd2"],
+                "entry_point": ["entry1", "entry2"],
+                "working_directory": "/working/dir/path",
+            }
+        ]
+        res = _check_image_config_value(image_config)
+        self.assertTrue(res)
+
+    def test_check_image_config_value_invalid_type(self):
+        image_config = {
+            "command": ["cmd1", "cmd2"],
+            "entry_point": ["entry1", "entry2"],
+            "working_directory": "/working/dir/path",
+        }
+        expected_message = f"SAM CLI expects that the value of image_config of aws_lambda_function resource in "
+        f"the terraform plan output to be of type list instead of {type(image_config)}"
+        with self.assertRaises(PrepareHookException, msg=expected_message):
+            _check_image_config_value(image_config)
+
+    def test_check_image_config_value_invalid_length(self):
+        image_config = [
+            {
+                "command": ["cmd1", "cmd2"],
+                "entry_point": ["entry1", "entry2"],
+                "working_directory": "/working/dir/path",
+            },
+            {
+                "command": ["cmd1", "cmd2"],
+                "entry_point": ["entry1", "entry2"],
+                "working_directory": "/working/dir/path",
+            },
+        ]
+        expected_message = f"SAM CLI expects that there is only one item in the  image_config property of "
+        f"aws_lambda_function resource in the terraform plan output, but there are {len(image_config)} items"
+        with self.assertRaises(PrepareHookException, msg=expected_message):
+            _check_image_config_value(image_config)
