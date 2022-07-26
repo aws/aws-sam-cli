@@ -2,7 +2,9 @@ from tests.integration.list.list_integ_base import ListIntegBase
 
 
 class TestableResourcesIntegBase(ListIntegBase):
-    def get_testable_resources_command_list(self, stack_name=None, output=None, region=None, profile=None, help=False):
+    def get_testable_resources_command_list(
+        self, stack_name=None, output=None, region=None, profile=None, template_file=None, help=False
+    ):
         command_list = [self.base_command(), "list", "testable-resources"]
         if stack_name:
             command_list += ["--stack-name", str(stack_name)]
@@ -15,6 +17,9 @@ class TestableResourcesIntegBase(ListIntegBase):
 
         if profile:
             command_list += ["--profile", str(profile)]
+
+        if template_file:
+            command_list += ["--template-file", str(template_file)]
 
         if help:
             command_list += ["--help"]

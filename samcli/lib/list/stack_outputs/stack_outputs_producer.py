@@ -58,11 +58,13 @@ class StackOutputsProducer(Producer):
 
     def produce(self):
         response = self.get_stack_info()
+        output_list = []
         for stack_output in response:
             stack_output_data = StackOutputs(
                 OutputKey=stack_output["OutputKey"],
                 OutputValue=stack_output["OutputValue"],
                 Description=stack_output["Description"],
             )
-            mapped_output = self.mapper.map(dataclasses.asdict(stack_output_data))
-            self.consumer.consume(mapped_output)
+            output_list.append(dataclasses.asdict(stack_output_data))
+        mapped_output = self.mapper.map(output_list)
+        self.consumer.consume(data=mapped_output)
