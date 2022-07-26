@@ -183,14 +183,7 @@ class TestLocalStartLambdaTerraformApplicationWithLocalImageUri(StartLambdaTerra
         if cls.build_before_invoke:
             cls.build()
 
-        # remove all containers if there
         cls.docker_client = docker.from_env()
-        for container in cls.docker_client.api.containers():
-            try:
-                cls.docker_client.api.remove_container(container, force=True)
-            except APIError as ex:
-                LOG.error("Failed to remove container %s", container, exc_info=ex)
-
         cls.image_name = "sam-test-lambdaimage"
         cls.docker_tag = f"{cls.image_name}:v1"
         cls.test_data_invoke_path = str(Path(__file__).resolve().parents[2].joinpath("testdata", "invoke"))

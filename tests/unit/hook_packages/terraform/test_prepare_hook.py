@@ -90,7 +90,7 @@ class TestPrepareHook(TestCase):
             "Code": "file.zip",
         }
 
-        self.tf_iamge_package_type_function_properties: dict = {
+        self.tf_image_package_type_function_properties: dict = {
             **self.tf_image_package_type_function_common_properties,
             "image_config": [
                 {
@@ -251,7 +251,7 @@ class TestPrepareHook(TestCase):
 
         self.tf_image_package_type_lambda_function_resource: dict = {
             **self.tf_lambda_function_resource_common_attributes,
-            "values": self.tf_iamge_package_type_function_properties,
+            "values": self.tf_image_package_type_function_properties,
             "address": f"aws_lambda_function.{self.image_function_name}",
             "name": self.image_function_name,
         }
@@ -598,24 +598,24 @@ class TestPrepareHook(TestCase):
 
     def test_build_lambda_function_code_property_image(self):
         expected_cfn_property = self.expected_cfn_image_package_function_properties["Code"]
-        translated_cfn_property = _build_lambda_function_code_property(self.tf_iamge_package_type_function_properties)
+        translated_cfn_property = _build_lambda_function_code_property(self.tf_image_package_type_function_properties)
         self.assertEqual(translated_cfn_property, expected_cfn_property)
 
     def test_build_lambda_function_image_config_property(self):
         expected_cfn_property = self.expected_cfn_image_package_function_properties["ImageConfig"]
         translated_cfn_property = _build_lambda_function_image_config_property(
-            self.tf_iamge_package_type_function_properties
+            self.tf_image_package_type_function_properties
         )
         self.assertEqual(translated_cfn_property, expected_cfn_property)
 
     def test_build_lambda_function_image_config_property_no_image_config(self):
-        tf_properties = {**self.tf_iamge_package_type_function_properties}
+        tf_properties = {**self.tf_image_package_type_function_properties}
         del tf_properties["image_config"]
         translated_cfn_property = _build_lambda_function_image_config_property(tf_properties)
         self.assertEqual(translated_cfn_property, None)
 
     def test_build_lambda_function_image_config_property_empty_image_config_list(self):
-        tf_properties = {**self.tf_iamge_package_type_function_properties}
+        tf_properties = {**self.tf_image_package_type_function_properties}
         tf_properties["image_config"] = []
         translated_cfn_property = _build_lambda_function_image_config_property(tf_properties)
         self.assertEqual(translated_cfn_property, None)
@@ -628,7 +628,7 @@ class TestPrepareHook(TestCase):
     ):
         expected_cfn_property = {**self.expected_cfn_image_package_function_properties["ImageConfig"]}
         del expected_cfn_property[missing_cfn_property]
-        tf_properties = {**self.tf_iamge_package_type_function_properties}
+        tf_properties = {**self.tf_image_package_type_function_properties}
         del tf_properties["image_config"][0][missing_tf_property]
         translated_cfn_property = _build_lambda_function_image_config_property(tf_properties)
         self.assertEqual(translated_cfn_property, expected_cfn_property)
