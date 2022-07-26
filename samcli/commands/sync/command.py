@@ -27,7 +27,7 @@ from samcli.commands._utils.options import (
 )
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.commands._utils.click_mutex import ClickMutex
-from samcli.lib.telemetry.event import EventName, EventTracker, EventType, track_long_event
+from samcli.lib.telemetry.event import EventTracker, track_long_event
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.lib.bootstrap.bootstrap import manage_stack
@@ -404,16 +404,10 @@ def execute_code_sync(
         else set(get_all_resource_ids(stacks))
     )
 
-    sync_types = EventType.get_accepted_values(EventName.SYNC_FLOW)
-
     for resource_id in sync_flow_resource_ids:
         sync_flow = factory.create_sync_flow(resource_id)
         if sync_flow:
             executor.add_sync_flow(sync_flow)
-            # Track the type of sync flow
-            sync_type = type(sync_flow).__name__
-            if sync_type in sync_types:
-                EventTracker.track_event("SyncFlow", sync_type)
         else:
             LOG.warning("Cannot create SyncFlow for %s. Skipping.", resource_id)
     executor.execute()

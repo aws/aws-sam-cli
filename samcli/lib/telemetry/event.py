@@ -22,12 +22,26 @@ class EventName(Enum):
     DEPLOY = "Deploy"
     BUILD_FUNCTION_RUNTIME = "BuildFunctionRuntime"
     SYNC_USED = "SyncUsed"
-    SYNC_FLOW = "SyncFlow"
+    SYNC_FLOW_START = "SyncFlowStart"
+    SYNC_FLOW_END = "SyncFlowEnd"
 
 
 class EventType:
     """Class for Events and the types of values they may have."""
 
+    _SYNC_FLOWS = [
+        "AliasVersionSyncFlow",
+        "AutoDependencyLayerSyncFlow",
+        "AutoDependencyLayerParentSyncFlow",
+        "FunctionSyncFlow",
+        "FunctionLayerReferenceSync",
+        "HttpApiSyncFlow",
+        "ImageFunctionSyncFlow",
+        "LayerSyncFlow",
+        "RestApiSyncFlow",
+        "StepFunctionsSyncFlow",
+        "ZipFunctionSyncFlow",
+    ]
     _events = {
         EventName.USED_FEATURE: [
             "ESBuild",
@@ -45,19 +59,8 @@ class EventType:
             "Start",
             "End",
         ],
-        EventName.SYNC_FLOW: [
-            "AliasVersionSyncFlow",
-            "AutoDependencyLayerSyncFlow",
-            "AutoDependencyLayerParentSyncFlow",
-            "FunctionSyncFlow",
-            "FunctionLayerReferenceSync",
-            "HttpApiSyncFlow",
-            "ImageFunctionSyncFlow",
-            "LayerSyncFlow",
-            "RestApiSyncFlow",
-            "StepFunctionsSyncFlow",
-            "ZipFunctionSyncFlow",
-        ],
+        EventName.SYNC_FLOW_START: _SYNC_FLOWS,
+        EventName.SYNC_FLOW_END: _SYNC_FLOWS,
     }
 
     @staticmethod
