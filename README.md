@@ -11,7 +11,7 @@
 [Installation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) | [Blogs](https://serverlessland.com/blog?tag=AWS%20SAM) | [Videos](https://serverlessland.com/video?tag=AWS%20SAM) | [AWS Docs](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) | [Roadmap](https://github.com/aws/aws-sam-cli/wiki/SAM-CLI-Roadmap) | [Try It Out](https://s12d.com/Tq9ZE-Br)
 
 The AWS Serverless Application Model (SAM) CLI is an open-source CLI tool that helps you develop serverless applications containing [Lambda functions](https://aws.amazon.com/lambda/), [Step Functions](https://aws.amazon.com/step-functions/), [API Gateway](https://aws.amazon.com/api-gateway/), [EventBridge](https://aws.amazon.com/eventbridge/), [SQS](https://aws.amazon.com/sqs/), [SNS](https://aws.amazon.com/sns/) and more. Some of the features it provides are:
-- **Initialize serverless applications** in minutes with AWS provided infrastructure templates with `sam init`
+- **Initialize serverless applications** in minutes with AWS-provided infrastructure templates with `sam init`
 - **Compile, build, and package** Lambda functions with provided runtimes and with custom Makefile workflows, for zip and image types of Lambda functions with `sam build`
 - **Locally test** a Lambda function and API Gateway easily in a Docker container with `sam local` commands on SAM and CDK applications
 - **Sync and test your changes in the cloud** with `sam sync` in your developer environments
@@ -19,6 +19,16 @@ The AWS Serverless Application Model (SAM) CLI is an open-source CLI tool that h
 - Quickly **create pipelines** with prebuilt templates with popular CI/CD systems using `sam pipeline init`
 - **Tail CloudWatch logs and X-Ray traces** with `sam log` and `sam trace`
 
+
+## Recent blogposts and workshops
+
+* **Develop Node projects with SAM CLI using esbuild (Beta)** - and use SAM Accelerate on Typescript projects. [Read blogpost here](https://s12d.com/5Aa6u0o7).
+
+* **Speed up development with SAM Accelerate** - quickly test your changes in the cloud. [Read docs here](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/accelerate.html).
+
+* **Getting started with CI/CD? SAM pipelines can help you get started** - [This workshop](https://s12d.com/_JQ48d5T) walks you through the basics.
+
+* **Get started with Serverless Application development using SAM CLI** - [This workshop](https://s12d.com/Tq9ZE-Br) walks you through the basics.
 
 ## Get Started
 
@@ -33,13 +43,13 @@ environment that lets you locally build, test, debug, and deploy [AWS serverless
 
 
 **Next Steps:** Learn to build a more complex serverless application.
-* [Extract text from images and store in a database](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-example-s3.html) using Amazon S3 and Amazon Rekognition services.
+* [Extract text from images and store it in a database](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-example-s3.html) using Amazon S3 and Amazon Rekognition services.
 * [Detect when records are added to a database](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-example-ddb.html) using Amazon DynamoDB database and asynchronous stream processing.
 * [Explore popular patterns](https://serverlessland.com/patterns)
 
 
 ## What is this Github repository? 💻
-This Github Repository contains source code for SAM CLI. Here is the development team talking about this code:
+This Github repository contains source code for SAM CLI. Here is the development team talking about this code:
 
 > SAM CLI code is written in Python. Source code is well documented, very modular, with 95% unit test coverage. 
 It uses this awesome Python library called Click to manage the command line interaction and uses Docker to run Lambda functions locally.
@@ -70,17 +80,16 @@ to get started.
     
 **Strengthen SAM CLI**
 
-Add new commands or enhance existing ones, report bugs, or request new features for the SAM CLI.
+Add new commands, enhance existing ones, report bugs, or request new features for the SAM CLI.
 Source code is located on Github at [awslabs/aws-sam-cli](https://github.com/awslabs/aws-sam-cli). Read the [SAM CLI Contributing Guide](https://github.com/awslabs/aws-sam-cli/blob/develop/CONTRIBUTING.md) to 
 get started. 
 
 **Update SAM Developer Guide**
 
-[SAM Developer Guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/index.html) provides comprehensive getting started guide and reference documentation.
+[SAM Developer Guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/index.html) provides a comprehensive getting started guide and reference documentation.
 Source code is located on Github at [awsdocs/aws-sam-developer-guide](https://github.com/awsdocs/aws-sam-developer-guide).
 Read the [SAM Documentation Contribution Guide](https://github.com/awsdocs/aws-sam-developer-guide/blob/master/CONTRIBUTING.md) to get
 started. 
 
 ### Join the SAM Community on Slack
 [Join the SAM developers channel (#samdev)](https://join.slack.com/t/awsdevelopers/shared_invite/zt-idww18e8-Z1kXhI7GNuDewkweCF3YjA) on Slack to collaborate with fellow community members and the AWS SAM team.
-

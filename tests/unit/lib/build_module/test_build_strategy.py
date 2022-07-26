@@ -45,6 +45,11 @@ class BuildStrategyBaseTest(TestCase):
 
         self.function_build_definition1 = FunctionBuildDefinition("runtime", "codeuri", ZIP, X86_64, {}, "handler")
         self.function_build_definition2 = FunctionBuildDefinition("runtime2", "codeuri", ZIP, X86_64, {}, "handler")
+
+        self.function_build_definition1.add_function(self.function1_1)
+        self.function_build_definition1.add_function(self.function1_2)
+        self.function_build_definition2.add_function(self.function2)
+
         self.build_graph.put_function_build_definition(self.function_build_definition1, self.function1_1)
         self.build_graph.put_function_build_definition(self.function_build_definition1, self.function1_2)
         self.build_graph.put_function_build_definition(self.function_build_definition2, self.function2)
@@ -164,7 +169,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     self.function_build_definition1.get_build_dir(given_build_dir),
                     self.function_build_definition1.metadata,
                     self.function_build_definition1.env_vars,
-                    self.function_build_definition1.dependencies_dir,
+                    None,
                     True,
                 ),
                 call(
@@ -177,7 +182,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     self.function_build_definition2.get_build_dir(given_build_dir),
                     self.function_build_definition2.metadata,
                     self.function_build_definition2.env_vars,
-                    self.function_build_definition2.dependencies_dir,
+                    None,
                     True,
                 ),
             ]
@@ -194,7 +199,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     self.layer1.build_architecture,
                     self.layer1.get_build_dir(given_build_dir),
                     self.layer_build_definition1.env_vars,
-                    self.layer_build_definition1.dependencies_dir,
+                    None,
                     True,
                 ),
                 call(
@@ -205,7 +210,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     self.layer2.build_architecture,
                     self.layer2.get_build_dir(given_build_dir),
                     self.layer_build_definition2.env_vars,
-                    self.layer_build_definition2.dependencies_dir,
+                    None,
                     True,
                 ),
             ]
@@ -476,7 +481,7 @@ class TestIncrementalBuildStrategy(TestCase):
         self.build_layer = Mock()
         self.build_graph = Mock()
         self.delegate_build_strategy = DefaultBuildStrategy(
-            self.build_graph, Mock(), self.build_function, self.build_layer
+            self.build_graph, Mock(), self.build_function, self.build_layer, cached=True
         )
         self.build_strategy = IncrementalBuildStrategy(
             self.build_graph,

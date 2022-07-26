@@ -153,6 +153,7 @@ class TestResourcesContext(TestCase):
                     '[\n  {\n    "LogicalResourceId": "HelloWorldFunction",\n    "PhysicalResourceId": "-"\n  },\n  {\n    "LogicalResourceId": "HelloWorldFunctionRole",\n    "PhysicalResourceId": "-"\n  },\n  {\n    "LogicalResourceId": "HelloWorldFunctionHelloWorldPermissionProd",\n    "PhysicalResourceId": "-"\n  },\n  {\n    "LogicalResourceId": "ServerlessRestApi",\n    "PhysicalResourceId": "-"\n  },\n  {\n    "LogicalResourceId": "ServerlessRestApiDeploymentf5716dc08b",\n    "PhysicalResourceId": "-"\n  },\n  {\n    "LogicalResourceId": "ServerlessRestApiProdStage",\n    "PhysicalResourceId": "-"\n  }\n]'
                 )
             ]
+            print(patched_click_echo.call_args_list)
             self.assertEqual(expected_output, patched_click_echo.call_args_list)
 
 
