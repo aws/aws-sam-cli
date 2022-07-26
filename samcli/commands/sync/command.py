@@ -27,13 +27,7 @@ from samcli.commands._utils.options import (
 )
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.commands._utils.click_mutex import ClickMutex
-from samcli.lib.sync.flows.auto_dependency_layer_sync_flow import (
-    AutoDependencyLayerParentSyncFlow,
-    AutoDependencyLayerSyncFlow,
-)
-from samcli.lib.sync.flows.image_function_sync_flow import ImageFunctionSyncFlow
-from samcli.lib.sync.flows.zip_function_sync_flow import ZipFunctionSyncFlow
-from samcli.lib.telemetry.event import EventTracker, track_long_event
+from samcli.lib.telemetry.event import EventName, EventTracker, EventType, track_long_event
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.lib.bootstrap.bootstrap import manage_stack
@@ -410,39 +404,16 @@ def execute_code_sync(
         else set(get_all_resource_ids(stacks))
     )
 
-    sync_function_event_mapper = {
-        AutoDependencyLayerParentSyncFlow: "AutoDependencyLayerParent",
-        ImageFunctionSyncFlow: "ImageFunction",
-        ZipFunctionSyncFlow: "ZipFunction",
-    }
-    sync_misc_event_mapper = {
-        "Alias": "AliasVersion",
-        "Function Layer Reference Sync": "FunctionLayerReference",
-        "HttpApi": "HttpApi",
-        "RestApi": "RestApi",
-        "StepFunctions": "StepFunctions",
-    }
+    sync_types = EventType.get_accepted_values(EventName.SYNC_FLOW)
 
     for resource_id in sync_flow_resource_ids:
         sync_flow = factory.create_sync_flow(resource_id)
         if sync_flow:
             executor.add_sync_flow(sync_flow)
             # Track the type of sync flow
-            name = sync_flow.log_name
-            if name.startswith("Lambda Function"):
-                if type(sync_flow) in sync_function_event_mapper:
-                    EventTracker.track_event("SyncFlow", sync_function_event_mapper[type(sync_flow)])
-                else:
-                    EventTracker.track_event("SyncFlow", "Function")
-            elif name.startswith("Layer"):
-                if isinstance(sync_flow, AutoDependencyLayerSyncFlow):
-                    EventTracker.track_event("SyncFlow", "AutoDependencyLayer")
-                else:
-                    EventTracker.track_event("SyncFlow", "Layer")
-            else:
-                for prefix, event_value in sync_misc_event_mapper.items():
-                    if name.startswith(prefix):
-                        EventTracker.track_event("SyncFlow", event_value)
+            sync_type = type(sync_flow).__name__
+            if sync_type in sync_types:
+                EventTracker.track_event("SyncFlow", sync_type)
         else:
             LOG.warning("Cannot create SyncFlow for %s. Skipping.", resource_id)
     executor.execute()
