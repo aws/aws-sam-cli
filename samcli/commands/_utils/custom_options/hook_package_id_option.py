@@ -54,8 +54,10 @@ class HookPackageIdOption(click.Option):
             else:
                 LOG.info("Running Prepare Hook to prepare the current application")
 
-                output_dir_path = os.path.join(".aws-sam", "iacs_metadata")
                 iac_project_path = os.getcwd()
+                output_dir_path = os.path.join(iac_project_path, ".aws-sam", "iacs_metadata")
+                if not os.path.exists(output_dir_path):
+                    os.makedirs(output_dir_path, exist_ok=True)
                 debug = opts.get("debug", False)
                 aws_profile = opts.get("profile")
                 aws_region = opts.get("region")

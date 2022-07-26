@@ -89,7 +89,7 @@ class TestHookPackageIdOption(TestCase):
         args = []
         hook_package_id_option.handle_parse_result(ctx, opts, args)
         iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
-            os.path.join(".aws-sam", "iacs_metadata"), cwd_path, False, None, None
+            os.path.join(cwd_path, ".aws-sam", "iacs_metadata"), cwd_path, False, None, None
         )
         self.assertEqual(opts.get("template_file"), metadata_path)
 
@@ -122,7 +122,7 @@ class TestHookPackageIdOption(TestCase):
         args = []
         hook_package_id_option.handle_parse_result(ctx, opts, args)
         iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
-            os.path.join(".aws-sam", "iacs_metadata"),
+            os.path.join(cwd_path, ".aws-sam", "iacs_metadata"),
             cwd_path,
             True,
             "test",
@@ -194,6 +194,6 @@ class TestHookPackageIdOption(TestCase):
         args = []
         hook_package_id_option.handle_parse_result(ctx, opts, args)
         iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
-            os.path.join(".aws-sam", "iacs_metadata"), cwd_path, False, None, None
+            os.path.join(cwd_path, ".aws-sam", "iacs_metadata"), cwd_path, False, None, None
         )
         self.assertEqual(opts.get("template_file"), metadata_path)

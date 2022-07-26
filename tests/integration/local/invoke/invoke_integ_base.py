@@ -17,7 +17,8 @@ class InvokeIntegBase(TestCase):
     def setUpClass(cls):
         cls.cmd = cls.base_command()
         cls.test_data_path = cls.get_integ_dir().joinpath("testdata")
-        cls.template_path = str(cls.test_data_path.joinpath("invoke", cls.template))
+        if cls.template:
+            cls.template_path = str(cls.test_data_path.joinpath("invoke", cls.template))
         cls.event_path = str(cls.test_data_path.joinpath("invoke", "event.json"))
         cls.event_utf8_path = str(cls.test_data_path.joinpath("invoke", "event_utf8.json"))
         cls.env_var_path = str(cls.test_data_path.joinpath("invoke", "vars.json"))
@@ -47,6 +48,7 @@ class InvokeIntegBase(TestCase):
         layer_cache=None,
         docker_network=None,
         invoke_image=None,
+        hook_package_id=None,
     ):
         command_list = [self.cmd, "local", "invoke", function_to_invoke]
 
@@ -82,6 +84,9 @@ class InvokeIntegBase(TestCase):
 
         if invoke_image:
             command_list = command_list + ["--invoke-image", invoke_image]
+
+        if hook_package_id:
+            command_list = command_list + ["--hook-package-id", hook_package_id]
 
         return command_list
 

@@ -243,9 +243,21 @@ class TestExecuteAsModule(TestCase):
 class TestGetAvailableHookPackagesIds(TestCase):
     @patch("samcli.lib.hook.hook_wrapper._INTERNAL_PACKAGES_ROOT")
     def test_get_available_hook_pacakges(self, _INTERNAL_PACKAGES_ROOT_MOCK):
+        path1_mock = Mock()
+        path1_mock.name = "hook_package_1"
+        path1_mock.is_dir.return_value = True
+
+        path2_mock = Mock()
+        path2_mock.name = "hook_package_2"
+        path2_mock.is_dir.return_value = True
+
+        path3_mock = Mock()
+        path3_mock.name = "hook_package_3"
+        path3_mock.is_dir.return_value = False
+
         _INTERNAL_PACKAGES_ROOT_MOCK.iterdir.return_value = [
-            Path("path/to/hook_package_1"),
-            Path("path/to/hook_package_2"),
-            Path("path/to/hook_package_3"),
+            path1_mock,
+            path2_mock,
+            path3_mock,
         ]
-        self.assertEqual(get_available_hook_packages_ids(), ["hook_package_1", "hook_package_2", "hook_package_3"])
+        self.assertEqual(get_available_hook_packages_ids(), ["hook_package_1", "hook_package_2"])

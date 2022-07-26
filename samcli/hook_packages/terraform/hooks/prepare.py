@@ -5,13 +5,14 @@ Terraform prepare hook implementation
 from dataclasses import dataclass
 import json
 import os
+from pathlib import Path
 from subprocess import run, CalledProcessError
-from tempfile import NamedTemporaryFile
 from typing import Any, Callable, Dict, List, Optional
 import hashlib
 import logging
 
 from samcli.lib.hook.exceptions import PrepareHookException
+from samcli.lib.utils import osutils
 from samcli.lib.utils.hash import str_checksum
 from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
@@ -51,24 +52,39 @@ def prepare(params: dict) -> dict:
         information of the generated metadata files
     """
     output_dir_path = params.get("OutputDirPath")
+    terraform_application_dir = params.get("IACProjectPath", os.getcwd())
     if not output_dir_path:
         raise PrepareHookException("OutputDirPath was not supplied")
 
     try:
         # initialize terraform application
         LOG.info("Initializing Terraform application")
-        run(["terraform", "init"], check=True, capture_output=True)
+        run(["terraform", "init"], check=True, capture_output=True, cwd=terraform_application_dir)
 
         # get json output of terraform plan
         LOG.info("Creating terraform plan and getting JSON output")
-        with NamedTemporaryFile() as temp_file:
-            run(["terraform", "plan", "-out", temp_file.name], check=True, capture_output=True)
-            result = run(["terraform", "show", "-json", temp_file.name], check=True, capture_output=True)
+
+        with osutils.tempfile_platform_independent() as temp_file:
+            run(
+                ["terraform", "plan", "-out", temp_file.name],
+                check=True,
+                capture_output=True,
+                cwd=terraform_application_dir,
+            )
+            result = run(
+                ["terraform", "show", "-json", temp_file.name],
+                check=True,
+                capture_output=True,
+                cwd=terraform_application_dir,
+            )
         tf_json = json.loads(result.stdout)
 
         # convert terraform to cloudformation
         LOG.info("Generating metadata file")
         cfn_dict = _translate_to_cfn(tf_json)
+
+        if cfn_dict.get("Resources"):
+            _update_resources_paths(cfn_dict.get("Resources"), terraform_application_dir)  # type: ignore
 
         # store in supplied output dir
         if not os.path.exists(output_dir_path):
@@ -91,6 +107,29 @@ def prepare(params: dict) -> dict:
         raise PrepareHookException("There was an error while preparing the Terraform application.") from e
     except OSError as e:
         raise PrepareHookException(f"Unable to create directory {output_dir_path}") from e
+
+
+def _update_resources_paths(cfn_resources: Dict[str, Any], terraform_application_dir: str) -> None:
+    """
+    As Sam Cli and terraform handles the relative paths differently. Sam Cli handles the relative paths to be relative
+    to the template, but terraform handles them to be relative to the project root directory. This Function purpose is
+    to update the CFN resources paths to be absolute paths, and change relative paths to be relative to the terraform
+    application root directory.
+
+    Parameters
+    ----------
+    cfn_resources: dict
+        CloudFormation resources
+    terraform_application_dir: str
+        The terraform application root directory where all paths will be relative to it
+    """
+    resources_attributes_to_be_updated = {CFN_AWS_LAMBDA_FUNCTION: ["Code"]}
+    for _, resource in cfn_resources.items():
+        if resource.get("Type") in resources_attributes_to_be_updated and isinstance(resource.get("Properties"), dict):
+            for attribute in resources_attributes_to_be_updated[resource["Type"]]:
+                original_path = resource.get("Properties", {}).get(attribute)
+                if isinstance(original_path, str) and not os.path.isabs(original_path):
+                    resource["Properties"][attribute] = str(Path(terraform_application_dir).joinpath(original_path))
 
 
 def _translate_to_cfn(tf_json: dict) -> dict:

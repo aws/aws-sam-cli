@@ -191,6 +191,7 @@ def get_available_hook_packages_ids() -> List[str]:
     LOG.debug("Return available internal hook packages")
     hook_packages_ids = []
     for child in _INTERNAL_PACKAGES_ROOT.iterdir():
-        hook_packages_ids.append(child.name)
+        if child.is_dir():
+            hook_packages_ids.append(child.name)
 
     return hook_packages_ids
