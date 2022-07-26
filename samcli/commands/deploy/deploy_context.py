@@ -272,8 +272,8 @@ class DeployContext:
                     self.on_failure in [FailureMode.DO_NOTHING, FailureMode.DELETE] or disable_rollback
                 )
 
-                execution_time = self.deployer.execute_changeset(result["Id"], stack_name, disable_rollback)
-                self.deployer.wait_for_execute(stack_name, changeset_type, disable_rollback, execution_time * 1000, self.on_failure)
+                self.deployer.execute_changeset(result["Id"], stack_name, do_disable_rollback)
+                self.deployer.wait_for_execute(stack_name, changeset_type, do_disable_rollback, self.on_failure)
                 click.echo(self.MSG_EXECUTE_SUCCESS.format(stack_name=stack_name, region=region))
 
             except deploy_exceptions.ChangeEmptyError as ex:

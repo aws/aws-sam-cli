@@ -328,20 +328,18 @@ class Deployer:
                 stack_name=stack_name, msg="ex: {0} Status: {1}. Reason: {2}".format(ex, status, reason)
             ) from ex
 
-    def execute_changeset(self, changeset_id, stack_name, disable_rollback) -> float:
+    def execute_changeset(self, changeset_id, stack_name, disable_rollback):
         """
         Calls CloudFormation to execute changeset
 
         :param changeset_id: ID of the changeset
         :param stack_name: Name or ID of the stack
         :param disable_rollback: Preserve the state of previously provisioned resources when an operation fails.
-        :return: Changeset execution time (unix time in seconds)
         """
         try:
             self._client.execute_change_set(
                 ChangeSetName=changeset_id, StackName=stack_name, DisableRollback=disable_rollback
             )
-            return time.time()
         except botocore.exceptions.ClientError as ex:
             raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
 
@@ -459,7 +457,11 @@ class Deployer:
         return "IN_PROGRESS" not in status
 
     def wait_for_execute(
-        self, stack_name: str, stack_operation: str, disable_rollback: bool, execution_time: float = time.time() * 1000, on_failure: FailureMode = FailureMode.ROLLBACK
+        self,
+        stack_name: str,
+        stack_operation: str,
+        disable_rollback: bool,
+        on_failure: FailureMode = FailureMode.ROLLBACK,
     ) -> None:
         """
         Wait for stack operation to execute and return when execution completes.
@@ -473,10 +475,6 @@ class Deployer:
             The type of the stack operation, 'CREATE' or 'UPDATE'
         disable_rollback : bool
             Preserves the state of previously provisioned resources when an operation fails
-        execution_time : float
-            Time in milliseconds of the last stack change execution request
-            (like `execute_change_set`, `update_stack`, `create_stack`).
-            Prevents missing events if the event streaming is delayed from the change request by any action in between
         on_failure : FailureMode
             The action to take when the operation fails
         """
@@ -486,7 +484,7 @@ class Deployer:
         )
         sys.stdout.flush()
 
-        self.describe_stack_events(stack_name, execution_time, on_failure)
+        self.describe_stack_events(stack_name, time.time() * 1000, on_failure)
 
         # Pick the right waiter
         if stack_operation == "CREATE":
