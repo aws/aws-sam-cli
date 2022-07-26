@@ -317,7 +317,7 @@ class BuildContext:
         and sets Sourcemap to true if ``NODE_OPTIONS: --enable-source-maps`` is provided.
         """
         using_source_maps = False
-        incorrect_node_option = False
+        invalid_node_option = False
 
         for stack in self.stacks:
             for _, resource in stack.resources.items():
@@ -341,7 +341,7 @@ class BuildContext:
 
                     # make sure the NODE_OPTIONS is a string
                     if not isinstance(existing_options, str):
-                        incorrect_node_option = True
+                        invalid_node_option = True
                     else:
                         resource["Properties"]["Environment"]["Variables"]["NODE_OPTIONS"] = " ".join(
                             [existing_options, "--enable-source-maps"]
@@ -362,7 +362,7 @@ class BuildContext:
         if using_source_maps:
             self._warn_using_source_maps()
 
-        if incorrect_node_option:
+        if invalid_node_option:
             self._warn_invalid_node_options()
 
     @staticmethod
