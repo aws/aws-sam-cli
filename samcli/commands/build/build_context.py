@@ -313,7 +313,8 @@ class BuildContext:
 
     def _enable_source_maps(self):
         """
-        Appends the --enable-source-maps NODE_OPTIONS if Sourcemap is set to true and vice versa
+        Appends ``NODE_OPTIONS: --enable-source-maps``, if Sourcemap is set to true
+        and sets Sourcemap to true if ``NODE_OPTIONS: --enable-source-maps`` is provided.
         """
         using_source_maps = False
         incorrect_node_option = False
@@ -331,7 +332,7 @@ class BuildContext:
                 source_map = build_properties.get("Sourcemap", None)
 
                 if source_map and not node_option_set:
-                    LOG.debug("Sourcemap set without --enable-source-maps, adding")
+                    LOG.debug("Sourcemap set without --enable-source-maps, adding Sourcemap to Metadata BuildProperties")
 
                     resource.setdefault("Properties", {})
                     resource["Properties"].setdefault("Environment", {})
