@@ -98,12 +98,6 @@ class InvalidStackNameException(UserException):
     """
 
 
-class TestRunnerTemplateGenerationException(UserException):
-    """
-    Exception class when the generation of a Test Runner CloudFormation Template fails during `sam test_runner init`
-    """
-
-
 class ReservedEnvironmentVariableException(UserException):
     """
     Exception class when the user attempts to override a reserved environment variable during `sam test_runner run`

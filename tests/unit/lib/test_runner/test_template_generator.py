@@ -1,9 +1,6 @@
-import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 from unittest import TestCase
-import jinja2
 from samcli.lib.test_runner.test_runner_template_generator import FargateRunnerCFNTemplateGenerator
-from samcli.commands.exceptions import TestRunnerTemplateGenerationException
 
 
 class Test_TemplateGenerator(TestCase):
@@ -253,19 +250,6 @@ class Test_TemplateGenerator(TestCase):
         )
         self.assertEqual(result, expected_result)
 
-    def test_statement_jinja_exception(self):
-        def faulty_create_iam_statement_string(obj, arn):
-            raise jinja2.exceptions.TemplateError("Template render failed for some reason!")
-
-        with unittest.mock.patch.object(
-            FargateRunnerCFNTemplateGenerator, "_create_iam_statement_string", new=faulty_create_iam_statement_string
-        ):
-            self.template_generator.resource_arn_list = [
-                "arn:aws:lambda:us-east-1:123456789123:function:valid-lambda-arn"
-            ]
-            with self.assertRaises(TestRunnerTemplateGenerationException):
-                self.template_generator.generate_test_runner_template_string(self.TEST_IMAGE_URI)
-
     def test_no_arns_supplied(self):
         result = self.template_generator.generate_test_runner_template_string(self.TEST_IMAGE_URI)
         expected_statements = []
@@ -276,16 +260,3 @@ class Test_TemplateGenerator(TestCase):
             + self.generated_template_expected_second_half
         )
         self.assertEqual(result, expected_result)
-
-    def test_jinja_template_not_found(self):
-        def faulty_get_jinja_template_string(obj):
-            raise FileNotFoundError()
-
-        with unittest.mock.patch.object(
-            FargateRunnerCFNTemplateGenerator, "_get_jinja_template_string", new=faulty_get_jinja_template_string
-        ):
-            self.template_generator.resource_arn_list = [
-                "arn:aws:lambda:us-east-1:123456789123:function:valid-lambda-arn"
-            ]
-            with self.assertRaises(TestRunnerTemplateGenerationException):
-                self.template_generator.generate_test_runner_template_string(self.TEST_IMAGE_URI)
