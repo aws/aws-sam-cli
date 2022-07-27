@@ -109,10 +109,3 @@ class InvalidEnvironmentVariableNameException(UserException):
     Exception class when the user attempts to specify environment variables that have invalid
     identifier names in the ARN map file passed to `sam test_runner run`
     """
-
-
-class NoResourcesMatchTagException(UserException):
-    """
-    Exception class when the user supplies a tag that matches no resources on
-    their account during `sam test_runner init`
-    """
