@@ -491,10 +491,6 @@ class Deployer:
             waiter = self._client.get_waiter("stack_create_complete")
         elif stack_operation == "UPDATE":
             waiter = self._client.get_waiter("stack_update_complete")
-        elif stack_operation == "ROLLBACK":
-            waiter = self._client.get_waiter("stack_rollback_complete")
-        elif stack_operation == "DELETE":
-            waiter = self._client.get_waiter("stack_delete_complete")
         else:
             raise RuntimeError("Invalid stack operation type {0}".format(stack_operation))
 
@@ -682,9 +678,9 @@ class Deployer:
         except botocore.exceptions.ClientError as ex:
             raise DeployStackOutPutFailedError(stack_name=stack_name, msg=str(ex)) from ex
 
-    def rollback_stack(self, stack_name: str):
+    def rollback_delete_stack(self, stack_name: str):
         """
-        Rolls back the stack if there was a previous valid state, otherwise it will delete the stack
+        Try to rollback the stack to a sucessful state, if there is no good state then delete the stack
 
         Parameters
         ----------
@@ -695,28 +691,36 @@ class Deployer:
             "StackName": stack_name,
         }
 
-        invalid_states = ["CREATE_FAILED", "UPDATE_FAILED", "ROLLBACK_COMPLETE"]
+        current_state = self._get_stack_status(stack_name)
 
         try:
-            # Try to rollback stack if it had good previous state
-            initial_stack_status = self._get_stack_status(stack_name)
-            if initial_stack_status == "UPDATE_FAILED":
+            if current_state == "UPDATE_FAILED":
                 LOG.info("Stack %s failed to update, rolling back stack to previous state...", stack_name)
 
                 self._client.rollback_stack(**kwargs)
-                self.wait_for_execute(stack_name, "ROLLBACK", True, time.time())
+                self.describe_stack_events(stack_name, time.time() * 1000, FailureMode.DELETE)
+                self._rollback_wait(stack_name)
 
-            # Delete the stack if rollback failed or if we initially failed stack create
-            if initial_stack_status in invalid_states or self._get_stack_status(stack_name) in invalid_states:
+                current_state = self._get_stack_status(stack_name)
+
+            failed_states = ["CREATE_FAILED", "UPDATE_FAILED", "ROLLBACK_COMPLETE", "ROLLBACK_FAILED"]
+
+            if current_state in failed_states:
                 LOG.info("Stack %s failed to create/update correctly, deleting stack", stack_name)
 
                 self._client.delete_stack(**kwargs)
-                self.wait_for_execute(stack_name, "DELETE", True, time.time())
+
+                # only a stack that failed to create will have stack events, deleting
+                # from a ROLLBACK_COMPLETE state will not return anything
+                if current_state == "CREATE_FAILED":
+                    self.describe_stack_events(stack_name, time.time() * 1000, FailureMode.DELETE)
+
+                waiter = self._client.get_waiter("stack_delete_complete")
+                waiter.wait(StackName=stack_name, WaiterConfig={"Delay": 30, "MaxAttempts": 120})
 
                 LOG.info("\nStack %s has been deleted", stack_name)
             else:
                 LOG.info("Stack %s has rolled back successfully", stack_name)
-
         except botocore.exceptions.ClientError as ex:
             raise DeployStackStatusMissingError(stack_name) from ex
         except KeyError:
@@ -726,8 +730,13 @@ class Deployer:
         """
         Returns the status of the stack
 
+        Parameters
+        ----------
         :param stack_name: str
             The name of the stack
+
+        Parameters
+        ----------
         :return: str
             A string representing the status of the stack
         """
@@ -735,6 +744,29 @@ class Deployer:
         stack_status = str(stack["Stacks"][0]["StackStatus"])
 
         return stack_status
+
+    def _rollback_wait(self, stack_name: str, wait_time: int = 30, max_retries: int = 120):
+        """
+        Manual waiter for rollback status, waits until we get *_ROLLBACK_COMPLETE or ROLLBACK_FAILED
+
+        Parameters
+        ----------
+        :param stack_name: str
+            The name of the stack
+        :param wait_time: int
+            The time to wait between polls, default 30 seconds
+        :param max_retries: int
+            The number of polls before timing out
+        """
+        retries = 0
+        while retries < max_retries:
+            status = self._get_stack_status(stack_name)
+
+            if "ROLLBACK_COMPLETE" in status or status == "ROLLBACK_FAILED":
+                break
+
+            retries = retries + 1
+            time.sleep(wait_time)
 
     @staticmethod
     def _gen_deploy_failed_with_rollback_disabled_msg(stack_name):

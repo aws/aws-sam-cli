@@ -222,12 +222,12 @@ class TestSamDeployCommand(TestCase):
             )
 
     @patch("boto3.Session")
-    @patch.object(Deployer, "rollback_stack", MagicMock())
+    @patch.object(Deployer, "rollback_delete_stack", MagicMock())
     @patch.object(
         Deployer, "execute_changeset", MagicMock(side_effect=DeployFailedError("stack-name", "failed to deploy"))
     )
     @patch.object(Deployer, "wait_for_execute", MagicMock())
-    def test_template_valid_on_failure_delete_rollback_stack(self, patched_boto):
+    def test_on_failure_delete_rollback_stack(self, patched_boto):
         with tempfile.NamedTemporaryFile(delete=False) as template_file:
             template_file.write(b"{}")
             template_file.flush()
@@ -237,4 +237,22 @@ class TestSamDeployCommand(TestCase):
 
             self.deploy_command_context.run()
 
-            self.assertEqual(self.deploy_command_context.deployer.rollback_stack.call_count, 1)
+            self.assertEqual(self.deploy_command_context.deployer.rollback_delete_stack.call_count, 1)
+
+    @patch("boto3.Session")
+    @patch.object(Deployer, "execute_changeset", MagicMock())
+    @patch.object(Deployer, "wait_for_execute", MagicMock())
+    @patch.object(Deployer, "create_and_wait_for_changeset", MagicMock(return_value=({"Id": "test"}, "CREATE")))
+    def test_on_failure_do_nothing(self, patched_boto):
+        with tempfile.NamedTemporaryFile(delete=False) as template_file:
+            template_file.write(b"{}")
+            template_file.flush()
+            self.deploy_command_context.template_file = template_file.name
+
+            self.deploy_command_context.on_failure = FailureMode.DO_NOTHING
+
+            self.deploy_command_context.run()
+
+            self.deploy_command_context.deployer.wait_for_execute.assert_called_with(
+                ANY, "CREATE", True, FailureMode.DO_NOTHING
+            )

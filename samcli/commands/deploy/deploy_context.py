@@ -285,7 +285,7 @@ class DeployContext:
                 if self.on_failure != FailureMode.DELETE:
                     raise
 
-                self.deployer.rollback_stack(stack_name)
+                self.deployer.rollback_delete_stack(stack_name)
 
         else:
             try:

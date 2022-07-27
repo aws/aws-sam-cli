@@ -1009,8 +1009,6 @@ class TestDeployer(CustomTestCase):
         self.deployer._client.get_waiter = MagicMock(return_value=MockCreateUpdateWaiter())
         self.deployer.wait_for_execute("test", "CREATE", False)
         self.deployer.wait_for_execute("test", "UPDATE", True)
-        self.deployer.wait_for_execute("test", "ROLLBACK", False)
-        self.deployer.wait_for_execute("test", "DELETE", True)
         with self.assertRaises(RuntimeError):
             self.deployer.wait_for_execute("test", "DESTRUCT", False)
 
@@ -1326,33 +1324,32 @@ class TestDeployer(CustomTestCase):
     def test_rollback_stack_new_stack_failed(self):
         self.deployer._client.describe_stacks = MagicMock(return_value={"Stacks": [{"StackStatus": "CREATE_FAILED"}]})
         self.deployer.wait_for_execute = MagicMock()
+        self.deployer.describe_stack_events = MagicMock()
 
-        self.deployer.rollback_stack("test")
+        self.deployer.rollback_delete_stack("test")
 
         self.assertEqual(self.deployer._client.rollback_stack.call_count, 0)
         self.assertEqual(self.deployer._client.delete_stack.call_count, 1)
-        self.deployer._client.delete_stack.assert_called_with(StackName="test")
 
     def test_rollback_stack_update_stack_delete(self):
-        self.deployer._get_stack_status = MagicMock(return_value="UPDATE_FAILED")
-        self.deployer._wait_for_rollback = MagicMock(return_value="ROLLBACK_COMPLETE")
+        self.deployer._get_stack_status = MagicMock(side_effect=["UPDATE_FAILED", "ROLLBACK_COMPLETE"])
+        self.deployer._rollback_wait = MagicMock()
         self.deployer.wait_for_execute = MagicMock()
+        self.deployer.describe_stack_events = MagicMock()
 
-        self.deployer.rollback_stack("test")
+        self.deployer.rollback_delete_stack("test")
 
         self.assertEqual(self.deployer._client.rollback_stack.call_count, 1)
-        self.deployer._client.delete_stack.assert_called_with(StackName="test")
-
         self.assertEqual(self.deployer._client.delete_stack.call_count, 1)
-        self.deployer._client.delete_stack.assert_called_with(StackName="test")
+        self.assertEqual(self.deployer._client.describe_stack_events.call_count, 0)
 
     def test_rollback_invalid_stack_name(self):
         self.deployer._client.describe_stacks = MagicMock(
             side_effect=ClientError(error_response={"Error": {"Message": "Error"}}, operation_name="describe_stacks")
         )
 
-        with self.assertRaises(DeployStackStatusMissingError):
-            self.deployer.rollback_stack("test")
+        with self.assertRaises(ClientError):
+            self.deployer.rollback_delete_stack("test")
 
     def test_get_stack_status(self):
         self.deployer._client.describe_stacks = MagicMock(return_value={"Stacks": [{"StackStatus": "CREATE_FAILED"}]})
