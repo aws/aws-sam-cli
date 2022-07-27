@@ -52,17 +52,20 @@ class HookPackageIdOption(click.Option):
                     )
             # check beta-feature
             beta_features = opts.get("beta_features")
-            if beta_features is None:
-                terraform_support_message = (
-                    "Supporting Terraform applications is a beta feature.\n"
-                    "Please confirm if you would like to proceed using SAM CLI with terraform application.\n"
-                    f"You can also enable this beta feature with 'sam {command_name} --beta-features'."
-                )
-                if not prompt_experimental(ExperimentalFlag.TerraformSupport, terraform_support_message):
-                    LOG.debug("Experimental flag is disabled, return, and do not run the prepare hook")
+
+            # check if beta feature flag is required for a specific hook package
+            # The IaCs support experimental flag map will contain only the beta IaCs. In case we support the external
+            # hooks, we need to first know that the hook package is an external, and to handle the beta feature of it
+            # using different approach
+            experimental_entry = ExperimentalFlag.IaCsSupport.get(hook_package_id)
+            if beta_features is None and experimental_entry is not None:
+
+                terraform_support_message = _get_iac_support_experimental_prompt_message(hook_package_id, command_name)
+                if not prompt_experimental(experimental_entry, terraform_support_message):
+                    LOG.debug("Experimental flag is disabled and prepare hook is not run")
                     return super().handle_parse_result(ctx, opts, args)
             elif not beta_features:
-                LOG.debug("beta-feature flag is disabled, return, and do not run the prepare hook")
+                LOG.debug("beta-feature flag is disabled and prepare hook is not run")
                 return super().handle_parse_result(ctx, opts, args)
 
             # call prepare hook
@@ -86,3 +89,30 @@ class HookPackageIdOption(click.Option):
                 LOG.info("Prepare Hook is done, and metadata file generated at %s", metadata_file)
                 opts["template_file"] = metadata_file
         return super().handle_parse_result(ctx, opts, args)
+
+
+def _get_iac_support_experimental_prompt_message(hook_package_id: str, command: str) -> str:
+    """
+    return the customer prompt message for a specific hook package.
+
+    Parameters
+    ----------
+    hook_package_id: str
+        the hook package id to determine what is the supported iac
+
+    command: str
+        the current sam command
+    Returns
+    -------
+    str
+        the customer prompt message for a specific IaC.
+    """
+
+    supported_iacs_messages = {
+        "terraform": (
+            "Supporting Terraform applications is a beta feature.\n"
+            "Please confirm if you would like to proceed using SAM CLI with terraform application.\n"
+            f"You can also enable this beta feature with 'sam {command} --beta-features'."
+        )
+    }
+    return supported_iacs_messages.get(hook_package_id, "")

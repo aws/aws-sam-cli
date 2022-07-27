@@ -152,7 +152,11 @@ def do_cli(  # pylint: disable=R0914
     from samcli.local.docker.manager import DockerImagePullFailedException
     from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
 
-    if hook_package_id and not is_experimental_enabled(ExperimentalFlag.TerraformSupport):
+    if (
+        hook_package_id
+        and ExperimentalFlag.IaCsSupport.get(hook_package_id) is not None
+        and not is_experimental_enabled(ExperimentalFlag.IaCsSupport.get(hook_package_id))
+    ):
         LOG.info("Terraform Support beta feature is not enabled.")
         return
 
