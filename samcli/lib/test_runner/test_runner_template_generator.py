@@ -1,12 +1,47 @@
+from enum import Enum
 import re
 import logging
 import uuid
 from typing import Optional, List, Union
 
+from pkg_resources import resource_stream
+
 LOG = logging.getLogger(__name__)
 
 
+class ResourceType(Enum):
+    """
+    Tracks which resources to generate default IAM actions for
+    """
+
+    LAMBDA_FUNCTION = ("AWS::Lambda::Function",)
+    DDB_TABLE = ("AWS::DynamoDB::Table",)
+    SQS_QUEUE = ("AWS::SQS::Queue",)
+    S3_BUCKET = ("AWS::S3::Bucket",)
+    STEPFUNCTION_SM = ("AWS::StepFunction::StateMachine",)
+    APIGW_API = ("AWS::ApiGateway::Api",)
+    APIGW_REST_API = ("AWS::ApiGateway::RestApi",)
+    # We need to be aware of IAM resources to explicitly avoid generating an IAM statement alltogether
+    IAM = "AWS::IAM::*"
+
+
 class FargateRunnerCFNTemplateGenerator:
+
+    actions_map = {
+        ResourceType.LAMBDA_FUNCTION: ["lambda:InvokeFunction"],
+        ResourceType.DDB_TABLE: [
+            "dynamodb:GetItem",
+            "dynamodb:PutItem",
+        ],
+        ResourceType.STEPFUNCTION_SM: [
+            "stepfunction:StartExecution",
+            "stepfunction:StopExecution",
+        ],
+        ResourceType.S3_BUCKET: ["s3:PutObject", "s3:GetObject"],
+        ResourceType.SQS_QUEUE: ["sqs:SendMessage"],
+        ResourceType.APIGW_API: ["execute-api:Invoke"],
+        ResourceType.APIGW_REST_API: ["execute-api:Invoke"],
+    }
 
     TEST_RUNNER_TEMPLATE_STRING = """AWSTemplateFormatVersion: 2010-09-09
 Description: SAM Test Runner Stack, used to deploy and run tests using Fargate
@@ -106,6 +141,48 @@ Resources:
     def _indent_string(self, input_string: str, tabs: int) -> str:
         return "    " * tabs + input_string
 
+    def _get_resource_actions(self, resource_type: ResourceType) -> List[str]:
+        """
+        Returns the list of default IAM actions corresponding to a given resource_type
+        """
+        return self.actions_map.get(resource_type) or []
+
+    def _get_resource_type(self, resource_arn: str) -> Union[ResourceType, None]:
+        """
+        Determines the type of resource given that resource_arn.
+
+        Returns `None` if the resource type is not one included in the ResourceType enum
+        """
+        # We keep partition and region general to avoid the burden of maintaining new regions & partitions.
+        partition_regex = r"[\w-]+"
+        region_regex = r"[\w-]+"
+        account_regex = r"\d{12}"
+
+        LAMBDA_FUNCTION_REGEX = rf"^arn:{partition_regex}:lambda:{region_regex}:{account_regex}:function:[\w-]+(:\d+)?$"
+        APIGW_API_REGEX = rf"^arn:{partition_regex}:apigateway:{region_regex}::\/apis\/\w+$"
+        APIGW_RESTAPI_REGEX = rf"^arn:{partition_regex}:apigateway:{region_regex}::\/restapis\/\w+$"
+        SQS_QUEUE_REGEX = rf"^arn:{partition_regex}:sqs:{region_regex}:{account_regex}:[\w-]+$"
+        S3_BUCKET_REGEX = rf"^arn:{partition_regex}:s3:::[\w-]+$"
+        DYNAMODB_TABLE_REGEX = rf"^arn:{partition_regex}:dynamodb:{region_regex}:{account_regex}:table\/[\w-]+$"
+        STEPFUNCTION_REGEX = rf"^arn:{partition_regex}:states:{region_regex}:{account_regex}:stateMachine:[\w-]+$"
+        # We want to explcitly avoid generating permissions for IAM or STS resources
+        IAM_PREFIX_REGEX = rf"^arn:{partition_regex}:(iam|sts)"
+
+        resource_type_map = {
+            LAMBDA_FUNCTION_REGEX: ResourceType.LAMBDA_FUNCTION,
+            APIGW_API_REGEX: ResourceType.APIGW_API,
+            APIGW_RESTAPI_REGEX: ResourceType.APIGW_REST_API,
+            SQS_QUEUE_REGEX: ResourceType.SQS_QUEUE,
+            S3_BUCKET_REGEX: ResourceType.S3_BUCKET,
+            DYNAMODB_TABLE_REGEX: ResourceType.DDB_TABLE,
+            STEPFUNCTION_REGEX: ResourceType.STEPFUNCTION_SM,
+            IAM_PREFIX_REGEX: ResourceType.IAM,
+        }
+
+        for arn_regex, resource_type in resource_type_map.items():
+            if re.search(arn_regex, resource_arn) is not None:
+                return resource_type
+
     def _create_iam_statement_string(self, resource_arn: str) -> Union[str, None]:
         """
         Returns an IAM Statement in the form of a YAML string corresponding to the supplied resource ARN.
@@ -128,68 +205,31 @@ Resources:
 
             `None` if the `resource_arn` corresponds to an IAM or STS resource.
         """
-
-        # We keep partition and region general to avoid the burden of maintaining new regions & partitions.
-        partition_regex = r"[\w-]+"
-        region_regex = r"[\w-]+"
-        account_regex = r"\d{12}"
-
-        # We want to explcitly avoid generating permissions for IAM or STS resources
-        IAM_PREFIX_REGEX = rf"^arn:{partition_regex}:(iam|sts)"
-
-        if re.search(IAM_PREFIX_REGEX, resource_arn):
+        resource_type = self._get_resource_type(resource_arn)
+        if resource_type == ResourceType.IAM:
             LOG.debug("ARN `%s` is for an IAM or STS resource, will not generate permissions.", resource_arn)
             return None
 
-        LAMBDA_FUNCTION_REGEX = rf"^arn:{partition_regex}:lambda:{region_regex}:{account_regex}:function:[\w-]+(:\d+)?$"
-        APIGW_API_REGEX = rf"^arn:{partition_regex}:apigateway:{region_regex}::\/apis\/\w+$"
-        APIGW_RESTAPI_REGEX = rf"^arn:{partition_regex}:apigateway:{region_regex}::\/restapis\/\w+$"
-        SQS_QUEUE_REGEX = rf"^arn:{partition_regex}:sqs:{region_regex}:{account_regex}:[\w-]+$"
-        S3_BUCKET_REGEX = rf"^arn:{partition_regex}:s3:::[\w-]+$"
-        DYNAMODB_TABLE_REGEX = rf"^arn:{partition_regex}:dynamodb:{region_regex}:{account_regex}:table\/[\w-]+$"
-        STEPFUNCTION_REGEX = rf"^arn:{partition_regex}:states:{region_regex}:{account_regex}:stateMachine:[\w-]+$"
+        action_list = self._get_resource_actions(resource_type)
 
-        default_permissions_map = {
-            LAMBDA_FUNCTION_REGEX: ["lambda:InvokeFunction"],
-            APIGW_API_REGEX: ["execute-api:Invoke"],
-            APIGW_RESTAPI_REGEX: ["execute-api:Invoke"],
-            SQS_QUEUE_REGEX: ["sqs:SendMessage"],
-            S3_BUCKET_REGEX: ["s3:PutObject", "s3:GetObject"],
-            DYNAMODB_TABLE_REGEX: [
-                "dynamodb:GetItem",
-                "dynamodb:PutItem",
-            ],
-            STEPFUNCTION_REGEX: [
-                "stepfunction:StartExecution",
-                "stepfunction:StopExecution",
-            ],
-        }
+        if action_list:
+            LOG.debug("Matched ARN `%s` to IAM actions %s", resource_arn, action_list)
+        else:
+            # If the supplied ARN is for a resource without any default actions supported
+            LOG.debug("Found no match for ARN `%s` to any IAM actions.", resource_arn)
 
-        new_statement_prefix = self._indent_string("  - Effect: Allow\n", 6) + self._indent_string("Action:\n", 7)
+        new_statement = self._indent_string("  - Effect: Allow\n", 6) + self._indent_string("Action:\n", 7)
+        for action in action_list:
+            new_statement += self._indent_string(f"   # - {action}\n", 7)
 
-        for arn_regex, action_list in default_permissions_map.items():
-            if re.search(arn_regex, resource_arn) is not None:
-                LOG.debug("Matched ARN `%s` to IAM actions %s", resource_arn, action_list)
+        # APIGW API IAM Statements:
+        # https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-control-access-using-iam-policies-to-invoke-api.html
+        if resource_type in (ResourceType.APIGW_API, ResourceType.APIGW_REST_API):
+            apiId = self._extract_api_id_from_arn(resource_arn)
+            execute_api_arn = f"!Sub arn:${{AWS::Partition}}:execute-api:${{AWS::Region}}:${{AWS::AccountId}}:{apiId}/*"
+            return new_statement + self._indent_string(f"Resource: {execute_api_arn}\n", 7)
 
-                new_statement = new_statement_prefix
-                for action in action_list:
-                    new_statement += self._indent_string(f"   # - {action}\n", 7)
-
-                # APIGW API IAM Statements:
-                # https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-control-access-using-iam-policies-to-invoke-api.html
-                if arn_regex in (APIGW_API_REGEX, APIGW_RESTAPI_REGEX):
-                    apiId = self._extract_api_id_from_arn(resource_arn)
-                    execute_api_arn = (
-                        f"!Sub arn:${{AWS::Partition}}:execute-api:${{AWS::Region}}:${{AWS::AccountId}}:{apiId}/*"
-                    )
-
-                    return new_statement + self._indent_string(f"Resource: {execute_api_arn}\n", 7)
-                else:
-                    return new_statement + self._indent_string(f"Resource: {resource_arn}\n", 7)
-
-        # If the supplied ARN is for a resource without any default actions supported
-        LOG.debug("Found no match for ARN `%s` to any IAM actions.", resource_arn)
-        return new_statement_prefix + self._indent_string(f"Resource: {resource_arn}\n", 7)
+        return new_statement + self._indent_string(f"Resource: {resource_arn}\n", 7)
 
     def _get_default_bucket_name(self) -> str:
         """
