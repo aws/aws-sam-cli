@@ -14,13 +14,13 @@ class ResourceType(Enum):
     Tracks which resources to generate default IAM actions for
     """
 
-    LAMBDA_FUNCTION = ("AWS::Lambda::Function",)
-    DDB_TABLE = ("AWS::DynamoDB::Table",)
-    SQS_QUEUE = ("AWS::SQS::Queue",)
-    S3_BUCKET = ("AWS::S3::Bucket",)
-    STEPFUNCTION_SM = ("AWS::StepFunction::StateMachine",)
-    APIGW_API = ("AWS::ApiGateway::Api",)
-    APIGW_REST_API = ("AWS::ApiGateway::RestApi",)
+    LAMBDA_FUNCTION = "AWS::Lambda::Function"
+    DDB_TABLE = "AWS::DynamoDB::Table"
+    SQS_QUEUE = "AWS::SQS::Queue"
+    S3_BUCKET = "AWS::S3::Bucket"
+    STEPFUNCTION_SM = "AWS::StepFunction::StateMachine"
+    APIGW_API = "AWS::ApiGateway::Api"
+    APIGW_REST_API = "AWS::ApiGateway::RestApi"
     # We need to be aware of IAM resources to explicitly avoid generating an IAM statement alltogether
     IAM = "AWS::IAM::*"
 
