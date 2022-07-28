@@ -5,7 +5,6 @@ Common CLI options shared by various commands
 import os
 import logging
 from functools import partial
-import types
 
 import click
 from click.types import FuncParamType
@@ -17,6 +16,7 @@ from samcli.commands._utils.constants import (
     DEFAULT_BUILT_TEMPLATE_PATH,
 )
 from samcli.commands._utils.custom_options.hook_package_id_option import HookPackageIdOption
+from samcli.commands._utils.parameterized_option import parameterized_option
 from samcli.commands._utils.template import get_template_data, TemplateNotFoundException
 from samcli.cli.types import (
     CfnParameterOverridesType,
@@ -35,43 +35,6 @@ from samcli.lib.utils.packagetype import ZIP, IMAGE
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml|json]"
 
 LOG = logging.getLogger(__name__)
-
-
-def parameterized_option(option):
-    """Meta decorator for option decorators.
-    This adds the ability to specify optional parameters for option decorators.
-
-    Usage:
-        @parameterized_option
-        def some_option(f, required=False)
-            ...
-
-        @some_option
-        def command(...)
-
-        or
-
-        @some_option(required=True)
-        def command(...)
-    """
-
-    def parameter_wrapper(*args, **kwargs):
-        if len(args) == 1 and isinstance(args[0], types.FunctionType):
-            # Case when option decorator does not have parameter
-            # @stack_name_option
-            # def command(...)
-            return option(args[0])
-
-        # Case when option decorator does have parameter
-        # @stack_name_option("a", "b")
-        # def command(...)
-
-        def option_wrapper(f):
-            return option(f, *args, **kwargs)
-
-        return option_wrapper
-
-    return parameter_wrapper
 
 
 def get_or_default_template_file_name(ctx, param, provided_value, include_build):

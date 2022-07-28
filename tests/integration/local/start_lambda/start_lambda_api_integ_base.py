@@ -17,8 +17,6 @@ from tests.testing_utils import (
     SKIP_DOCKER_MESSAGE,
     run_command,
     kill_process,
-    start_persistent_process,
-    read_until_string,
 )
 
 LOG = logging.getLogger(__name__)
@@ -33,6 +31,8 @@ class StartLambdaIntegBaseClass(TestCase):
     integration_dir = str(Path(__file__).resolve().parents[2])
     invoke_image: Optional[List] = None
     hook_package_id: Optional[str] = None
+    beta_features: Optional[bool] = None
+    collect_start_lambda_process_output: bool = False
 
     build_before_invoke = False
     build_overrides: Optional[Dict[str, str]] = None
@@ -92,6 +92,7 @@ class StartLambdaIntegBaseClass(TestCase):
         parameter_overrides=None,
         invoke_image=None,
         hook_package_id=None,
+        beta_features=None,
     ):
         command_list = [cls.base_command(), "local", "start-lambda"]
 
@@ -117,10 +118,13 @@ class StartLambdaIntegBaseClass(TestCase):
         if hook_package_id:
             command_list += ["--hook-package-id", hook_package_id]
 
+        if beta_features is not None:
+            command_list += ["--beta-features" if beta_features else "--no-beta-features"]
+
         return command_list
 
     @classmethod
-    def start_lambda(cls, wait_time=5):
+    def start_lambda(cls, wait_time=5, input=None):
         command_list = cls.get_start_lambda_command(
             port=cls.port,
             template_path=cls.template,
@@ -129,13 +133,21 @@ class StartLambdaIntegBaseClass(TestCase):
             parameter_overrides=cls.parameter_overrides,
             invoke_image=cls.invoke_image,
             hook_package_id=cls.hook_package_id,
+            beta_features=cls.beta_features,
         )
 
-        cls.start_lambda_process = Popen(command_list, stderr=PIPE, cwd=cls.working_dir)
+        cls.start_lambda_process = Popen(command_list, stderr=PIPE, stdin=PIPE, cwd=cls.working_dir)
+        cls.start_lambda_process_output = ""
+
+        if input:
+            cls.start_lambda_process.stdin.write(input)
+            cls.start_lambda_process.stdin.close()
 
         while True:
             line = cls.start_lambda_process.stderr.readline()
-            if "(Press CTRL+C to quit)" in str(line):
+            if cls.collect_start_lambda_process_output:
+                cls.start_lambda_process_output += f"{line.decode('utf-8')}\n"
+            if "(Press CTRL+C to quit)" in str(line) or "Terraform Support beta feature is not enabled." in str(line):
                 break
 
         cls.stop_reading_thread = False

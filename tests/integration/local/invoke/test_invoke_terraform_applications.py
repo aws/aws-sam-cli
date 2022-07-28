@@ -22,10 +22,12 @@ class InvokeTerraformApplicationIntegBase(InvokeIntegBase):
         super(InvokeTerraformApplicationIntegBase, cls).setUpClass()
         cls.terraform_application_path = str(cls.test_data_path.joinpath("invoke", cls.terraform_application))
 
-    def run_command(self, command_list, env=None):
-        process = Popen(command_list, stdout=PIPE, stderr=PIPE, env=env, cwd=self.terraform_application_path)
+    def run_command(self, command_list, env=None, input=None):
+        process = Popen(
+            command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE, env=env, cwd=self.terraform_application_path
+        )
         try:
-            (stdout, stderr) = process.communicate(timeout=TIMEOUT)
+            (stdout, stderr) = process.communicate(input=input, timeout=TIMEOUT)
             return stdout, stderr, process.returncode
         except TimeoutExpired:
             process.kill()
@@ -58,7 +60,9 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
     @parameterized.expand(functions)
     @pytest.mark.flaky(reruns=3)
     def test_invoke_function(self, function_name):
-        local_invoke_command_list = self.get_command_list(function_to_invoke=function_name, hook_package_id="terraform")
+        local_invoke_command_list = self.get_command_list(
+            function_to_invoke=function_name, hook_package_id="terraform", beta_features=True
+        )
         stdout, _, return_code = self.run_command(local_invoke_command_list)
 
         # Get the response without the sam-cli prompts that proceed it
@@ -67,6 +71,55 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
 
         self.assertEqual(return_code, 0)
         self.assertEqual(response, expected_response)
+
+    @skipIf(
+        not CI_OVERRIDE,
+        "Skip Terraform test cases unless running in CI",
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_function_get_experimental_prompted(self):
+        local_invoke_command_list = self.get_command_list(
+            function_to_invoke="s3_lambda_function", hook_package_id="terraform"
+        )
+        stdout, _, return_code = self.run_command(local_invoke_command_list, input=b"Y\n\n")
+
+        terraform_beta_feature_prompted_text = (
+            "Supporting Terraform applications is a beta feature.\n"
+            "Please confirm if you would like to proceed using SAM CLI with terraform application.\n"
+            "You can also enable this beta feature with 'sam local invoke --beta-features'."
+        )
+        self.assertRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
+        response = json.loads(stdout.decode("utf-8").split("\n")[2][85:].strip())
+        expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"hello world\\"}"}')
+
+        self.assertEqual(return_code, 0)
+        self.assertEqual(response, expected_response)
+
+    @skipIf(
+        not CI_OVERRIDE,
+        "Skip Terraform test cases unless running in CI",
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_function_get_experimental_prompted_input_no(self):
+        local_invoke_command_list = self.get_command_list(
+            function_to_invoke="s3_lambda_function", hook_package_id="terraform"
+        )
+        stdout, stderr, return_code = self.run_command(local_invoke_command_list, input=b"N\n\n")
+
+        terraform_beta_feature_prompted_text = (
+            "Supporting Terraform applications is a beta feature.\n"
+            "Please confirm if you would like to proceed using SAM CLI with terraform application.\n"
+            "You can also enable this beta feature with 'sam local invoke --beta-features'."
+        )
+        self.assertRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
+
+        process_stderr = stderr.strip()
+        self.assertRegex(
+            process_stderr.decode("utf-8"),
+            "Terraform Support beta feature is not enabled.",
+        )
+
+        self.assertEqual(return_code, 0)
 
     def test_invalid_hook_package_id(self):
         local_invoke_command_list = self.get_command_list("func", hook_package_id="tf")
@@ -78,6 +131,19 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
             "Error: Invalid value: tf is not a valid hook package id.",
         )
         self.assertNotEqual(return_code, 0)
+
+    def test_invoke_terraform_with_no_beta_feature_option(self):
+        local_invoke_command_list = self.get_command_list(
+            function_to_invoke="func", hook_package_id="terraform", beta_features=False
+        )
+        _, stderr, return_code = self.run_command(local_invoke_command_list)
+
+        process_stderr = stderr.strip()
+        self.assertRegex(
+            process_stderr.decode("utf-8"),
+            "Terraform Support beta feature is not enabled.",
+        )
+        self.assertEqual(return_code, 0)
 
     def test_invalid_coexist_parameters(self):
         local_invoke_command_list = self.get_command_list(
@@ -129,7 +195,10 @@ class TestInvokeTerraformApplicationWithLocalImageUri(InvokeTerraformApplication
     @pytest.mark.flaky(reruns=3)
     def test_invoke_image_function(self, function_name):
         local_invoke_command_list = self.get_command_list(
-            function_to_invoke=function_name, hook_package_id="terraform", event_path=self.event_path
+            function_to_invoke=function_name,
+            hook_package_id="terraform",
+            event_path=self.event_path,
+            beta_features=True,
         )
         stdout, _, return_code = self.run_command(local_invoke_command_list)
 

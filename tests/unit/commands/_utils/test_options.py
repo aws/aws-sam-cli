@@ -17,11 +17,11 @@ from samcli.commands._utils.options import (
     _TEMPLATE_OPTION_DEFAULT_VALUE,
     guided_deploy_stack_name,
     artifact_callback,
-    parameterized_option,
     resolve_s3_callback,
     image_repositories_callback,
     _space_separated_list_func_type,
 )
+from samcli.commands._utils.parameterized_option import parameterized_option
 from samcli.commands.package.exceptions import PackageResolveS3AndS3SetError, PackageResolveS3AndS3NotSetError
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from tests.unit.cli.test_cli_config_file import MockContext
