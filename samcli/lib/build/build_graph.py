@@ -6,6 +6,7 @@ import copy
 import logging
 import os
 import threading
+from abc import abstractmethod
 from pathlib import Path
 from typing import Sequence, Tuple, List, Any, Optional, Dict, cast, NamedTuple
 from copy import deepcopy
@@ -501,6 +502,10 @@ class AbstractBuildDefinition:
     def env_vars(self) -> Dict:
         return deepcopy(self._env_vars)
 
+    @abstractmethod
+    def get_resource_full_paths(self) -> str:
+        """Returns string representation of resources' full path information for this build definition"""
+
 
 class LayerBuildDefinition(AbstractBuildDefinition):
     """
@@ -526,6 +531,12 @@ class LayerBuildDefinition(AbstractBuildDefinition):
         # Note(xinhol): In our code, we assume "layer" is never None. We should refactor
         # this and move "layer" out of LayerBuildDefinition to take advantage of type check.
         self.layer: LayerVersion = None  # type: ignore
+
+    def get_resource_full_paths(self) -> str:
+        if not self.layer:
+            LOG.debug("LayerBuildDefinition with uuid (%s) doesn't have a layer assigned to it", self.uuid)
+            return ""
+        return self.layer.full_path
 
     def __str__(self) -> str:
         return (
@@ -615,6 +626,10 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         """
         self._validate_functions()
         return self.functions[0].get_build_dir(artifact_root_dir)
+
+    def get_resource_full_paths(self) -> str:
+        """Returns list of functions' full path information as a list of str"""
+        return ", ".join([function.full_path for function in self.functions])
 
     def _validate_functions(self) -> None:
         if not self.functions:

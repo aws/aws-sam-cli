@@ -90,3 +90,9 @@ class InvalidImageException(UserException):
     """
     Value provided to --build-image or --invoke-image is invalid URI
     """
+
+
+class InvalidStackNameException(UserException):
+    """
+    Value provided to --stack-name is invalid
+    """

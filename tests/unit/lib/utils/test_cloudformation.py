@@ -7,6 +7,7 @@ from samcli.lib.utils.cloudformation import (
     CloudFormationResourceSummary,
     get_resource_summaries,
     get_resource_summary,
+    list_active_stack_names,
 )
 from samcli.lib.utils.resources import AWS_CLOUDFORMATION_STACK
 
@@ -31,6 +32,7 @@ class TestCloudFormationResourceSummary(TestCase):
 class TestCloudformationUtils(TestCase):
     def test_get_resource_summaries(self):
         resource_provider_mock = Mock()
+        client_provider_mock = Mock()
         given_stack_name = "stack_name"
         given_resource_types = {"ResourceType0"}
 
@@ -68,7 +70,9 @@ class TestCloudformationUtils(TestCase):
             given_nested_stack_resource_array,
         ]
 
-        resource_summaries = get_resource_summaries(resource_provider_mock, given_stack_name, given_resource_types)
+        resource_summaries = get_resource_summaries(
+            resource_provider_mock, client_provider_mock, given_stack_name, given_resource_types
+        )
 
         self.assertEqual(len(resource_summaries), 4)
         self.assertEqual(
@@ -127,3 +131,47 @@ class TestCloudformationUtils(TestCase):
         resource_summary = get_resource_summary(resource_provider_mock, given_stack_name, given_resource_logical_id)
 
         self.assertIsNone(resource_summary)
+
+    @patch("samcli.lib.utils.cloudformation.LOG")
+    @patch("samcli.lib.utils.cloudformation.list_active_stack_names")
+    def test_get_resource_summaries_invalid_stack(self, patched_list_active_stack_names, patched_log):
+        resource_provider_mock = Mock()
+        client_provider_mock = Mock()
+        patched_log.isEnabledFor.return_value = True
+        patched_list_active_stack_names.return_value = []
+
+        resource_provider_mock.side_effect = ClientError({"Error": {"Code": "ValidationError"}}, "operation")
+
+        with self.assertRaises(ClientError):
+            get_resource_summaries(resource_provider_mock, client_provider_mock, "invalid-stack")
+            patched_log.debug.assert_called_with(
+                "Invalid stack name (%s). Available stack names: %s", "invalid-stack", ", ".join([])
+            )
+
+    def test_list_active_stack_names(self):
+        cfn_client_mock = Mock()
+        cfn_client_mock.list_stacks.side_effect = [
+            {
+                "StackSummaries": [{"StackName": "A"}, {"StackName": "B"}, {"StackName": "C", "RootId": "A"}],
+                "NextToken": "X",
+            },
+            {"StackSummaries": [{"StackName": "D"}, {"StackName": "E"}, {"StackName": "F", "RootId": "A"}]},
+        ]
+        client_provider_mock = Mock()
+        client_provider_mock.return_value = cfn_client_mock
+
+        self.assertEqual(["A", "B", "D", "E"], list(list_active_stack_names(client_provider_mock)))
+
+    def test_list_active_stack_names_with_nested_stacks(self):
+        cfn_client_mock = Mock()
+        cfn_client_mock.list_stacks.side_effect = [
+            {
+                "StackSummaries": [{"StackName": "A"}, {"StackName": "B"}, {"StackName": "C", "RootId": "A"}],
+                "NextToken": "X",
+            },
+            {"StackSummaries": [{"StackName": "D"}, {"StackName": "E"}, {"StackName": "F", "RootId": "A"}]},
+        ]
+        client_provider_mock = Mock()
+        client_provider_mock.return_value = cfn_client_mock
+
+        self.assertEqual(["A", "B", "C", "D", "E", "F"], list(list_active_stack_names(client_provider_mock, True)))
