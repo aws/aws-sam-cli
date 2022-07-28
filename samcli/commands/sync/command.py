@@ -27,7 +27,7 @@ from samcli.commands._utils.options import (
 )
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.commands._utils.click_mutex import ClickMutex
-from samcli.lib.telemetry.event import EventTracker
+from samcli.lib.telemetry.event import EventTracker, track_long_event
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.lib.bootstrap.bootstrap import manage_stack
@@ -144,6 +144,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @capabilities_option(default=DEFAULT_CAPABILITIES)  # pylint: disable=E1120
 @experimental
 @pass_context
+@track_long_event("SyncUsed", "Start", "SyncUsed", "End")
 @track_command
 @image_repository_validation
 @track_template_warnings([CodeDeployWarning.__name__, CodeDeployConditionWarning.__name__])

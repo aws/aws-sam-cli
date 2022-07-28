@@ -21,11 +21,28 @@ class EventName(Enum):
     USED_FEATURE = "UsedFeature"
     DEPLOY = "Deploy"
     BUILD_FUNCTION_RUNTIME = "BuildFunctionRuntime"
+    SYNC_USED = "SyncUsed"
+    SYNC_FLOW_START = "SyncFlowStart"
+    SYNC_FLOW_END = "SyncFlowEnd"
 
 
 class EventType:
     """Class for Events and the types of values they may have."""
 
+    _SYNC_FLOWS = [
+        "AliasVersionSyncFlow",
+        "AutoDependencyLayerSyncFlow",
+        "AutoDependencyLayerParentSyncFlow",
+        "FunctionSyncFlow",
+        "FunctionLayerReferenceSync",
+        "GenericApiSyncFlow",
+        "HttpApiSyncFlow",
+        "ImageFunctionSyncFlow",
+        "LayerSyncFlow",
+        "RestApiSyncFlow",
+        "StepFunctionsSyncFlow",
+        "ZipFunctionSyncFlow",
+    ]
     _events = {
         EventName.USED_FEATURE: [
             "ESBuild",
@@ -39,6 +56,12 @@ class EventType:
             "CreateChangeSetSuccess",
         ],
         EventName.BUILD_FUNCTION_RUNTIME: INIT_RUNTIMES,
+        EventName.SYNC_USED: [
+            "Start",
+            "End",
+        ],
+        EventName.SYNC_FLOW_START: _SYNC_FLOWS,
+        EventName.SYNC_FLOW_END: _SYNC_FLOWS,
     }
 
     @staticmethod
