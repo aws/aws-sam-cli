@@ -755,15 +755,23 @@ class Deployer:
         :param max_retries: int
             The number of polls before timing out
         """
+        status = ""
         retries = 0
+
         while retries < max_retries:
             status = self._get_stack_status(stack_name)
 
             if "ROLLBACK_COMPLETE" in status or status == "ROLLBACK_FAILED":
-                break
+                return
 
             retries = retries + 1
             time.sleep(wait_time)
+
+        LOG.error(
+            "Stack %s never reached a *_ROLLBACK_COMPLETE or ROLLBACK_FAILED state, we got %s instead.",
+            stack_name,
+            status,
+        )
 
     @staticmethod
     def _gen_deploy_failed_with_rollback_disabled_msg(stack_name):

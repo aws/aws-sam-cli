@@ -1357,3 +1357,21 @@ class TestDeployer(CustomTestCase):
         result = self.deployer._get_stack_status("test")
 
         self.assertEqual(result, "CREATE_FAILED")
+
+    @patch("samcli.lib.deploy.deployer.LOG.error")
+    @patch("samcli.lib.deploy.deployer.time.sleep")
+    def test_rollback_wait(self, time_mock, log_mock):
+        self.deployer._get_stack_status = MagicMock(return_value="UPDATE_ROLLBACK_COMPLETE")
+
+        self.deployer._rollback_wait("test")
+
+        self.assertEqual(log_mock.call_count, 0)
+
+    @patch("samcli.lib.deploy.deployer.LOG.error")
+    @patch("samcli.lib.deploy.deployer.time.sleep")
+    def test_rollback_wait_timeout(self, time_mock, log_mock):
+        self.deployer._get_stack_status = MagicMock(return_value="CREATE_FAILED")
+
+        self.deployer._rollback_wait("test")
+
+        self.assertEqual(log_mock.call_count, 1)
