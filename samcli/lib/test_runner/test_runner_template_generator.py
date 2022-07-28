@@ -239,7 +239,7 @@ Resources:
 
     def generate_test_runner_template_string(self, image_uri: str) -> Union[dict, None]:
         """
-        Renders a base jinja template to create the Test Runner Stack.
+        Creates a CloudFormation (YAML) Template string to create the Test Runner Stack.
 
         Parameters
         ---------
