@@ -179,7 +179,7 @@ class DefaultBuildStrategy(BuildStrategy):
                 if function.full_path != single_full_path:
                     # for zip function we need to refer over the result
                     # artifacts directory which have built as the action above
-                    if is_experimental_enabled(ExperimentalFlag.BuildImprovements22):
+                    if is_experimental_enabled(ExperimentalFlag.BuildPerformance):
                         LOG.debug(
                             "Using previously build shared location %s for function %s", result, function.full_path
                         )
@@ -291,7 +291,7 @@ class CachedBuildStrategy(BuildStrategy):
                 "Valid cache found, copying previously built resources for following functions (%s)",
                 build_definition.get_resource_full_paths(),
             )
-            if is_experimental_enabled(ExperimentalFlag.BuildImprovements22):
+            if is_experimental_enabled(ExperimentalFlag.BuildPerformance):
                 first_function_artifacts_dir: Optional[str] = None
                 for function in build_definition.functions:
                     if not first_function_artifacts_dir:
@@ -351,7 +351,7 @@ class CachedBuildStrategy(BuildStrategy):
             # artifacts directory will be created by the builder
             artifacts_dir = layer_definition.layer.get_build_dir(self._build_dir)
 
-            if is_experimental_enabled(ExperimentalFlag.BuildImprovements22):
+            if is_experimental_enabled(ExperimentalFlag.BuildPerformance):
                 LOG.debug("Linking artifacts folder from %s to %s", cache_function_dir, artifacts_dir)
                 osutils.create_symlink_or_copy(str(cache_function_dir), artifacts_dir)
             else:

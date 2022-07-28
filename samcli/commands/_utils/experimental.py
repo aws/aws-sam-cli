@@ -44,8 +44,8 @@ class ExperimentalFlag:
 
     All = ExperimentalEntry("experimentalAll", EXPERIMENTAL_ENV_VAR_PREFIX + "FEATURES")
     Esbuild = ExperimentalEntry("experimentalEsbuild", EXPERIMENTAL_ENV_VAR_PREFIX + "ESBUILD")
-    BuildImprovements22 = ExperimentalEntry(
-        "experimentalBuildImprovements22", EXPERIMENTAL_ENV_VAR_PREFIX + "BUILD_IMPROVEMENTS_22"
+    BuildPerformance = ExperimentalEntry(
+        "experimentalBuildPerformance", EXPERIMENTAL_ENV_VAR_PREFIX + "BUILD_PERFORMANCE"
     )
 
 
