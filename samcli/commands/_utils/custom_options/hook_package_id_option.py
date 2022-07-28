@@ -60,8 +60,8 @@ class HookPackageIdOption(click.Option):
             experimental_entry = ExperimentalFlag.IaCsSupport.get(hook_package_id)
             if beta_features is None and experimental_entry is not None:
 
-                terraform_support_message = _get_iac_support_experimental_prompt_message(hook_package_id, command_name)
-                if not prompt_experimental(experimental_entry, terraform_support_message):
+                iac_support_message = _get_iac_support_experimental_prompt_message(hook_package_id, command_name)
+                if not prompt_experimental(experimental_entry, iac_support_message):
                     LOG.debug("Experimental flag is disabled and prepare hook is not run")
                     return super().handle_parse_result(ctx, opts, args)
             elif not beta_features:
