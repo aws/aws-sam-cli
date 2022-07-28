@@ -431,10 +431,7 @@ class Deployer:
                 # Reset retry attempts if iteration is a success to use client_sleep again
                 retry_attempts = 0
             except botocore.exceptions.ClientError as ex:
-                if (
-                    "Stack with id {0} does not exist".format(stack_name) in str(ex)
-                    and on_failure == FailureMode.DELETE
-                ):
+                if "Stack with id {0} does not exist".format(stack_name) in str(ex) or on_failure == FailureMode.DELETE:
                     return
 
                 retry_attempts = retry_attempts + 1
