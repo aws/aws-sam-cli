@@ -35,6 +35,7 @@ class EventType:
         "AutoDependencyLayerParentSyncFlow",
         "FunctionSyncFlow",
         "FunctionLayerReferenceSync",
+        "GenericApiSyncFlow",
         "HttpApiSyncFlow",
         "ImageFunctionSyncFlow",
         "LayerSyncFlow",
