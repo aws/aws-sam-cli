@@ -467,6 +467,7 @@ class TestBuildContext__enter__(TestCase):
         self.assertEqual(context.stacks, [stack])
         self.assertEqual(context.manifest_path_override, os.path.abspath("manifest_path"))
         self.assertEqual(context.mode, "buildmode")
+        self.assertFalse(context.use_base_dir)
         self.assertFalse(context.is_building_specific_resource)
         resources_to_build = context.resources_to_build
         self.assertEqual(resources_to_build.functions, [func1, func2, func6])

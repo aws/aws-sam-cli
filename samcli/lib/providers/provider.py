@@ -603,22 +603,22 @@ class Stack:
         return None
 
     @staticmethod
-    def get_stack_by_logical_id(logical_id: str, stacks: List["Stack"]) -> Optional["Stack"]:
+    def get_stack_by_full_path(full_path: str, stacks: List["Stack"]) -> Optional["Stack"]:
         """
-        Return the stack with given logical id
+        Return the stack with given full path
         Parameters
         ----------
-        logical_id str
-            logical_id of the stack
+        full_path str
+            full path of the stack like ChildStack/ChildChildStack
         stacks : List[Stack]
             a list of stack for searching
         Returns
         -------
         Stack
-            The stack with the given logical id
+            The stack with the given full path
         """
         for stack in stacks:
-            if stack.name == logical_id:
+            if stack.stack_path == full_path:
                 return stack
         return None
 
