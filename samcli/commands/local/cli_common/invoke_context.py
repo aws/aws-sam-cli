@@ -8,7 +8,7 @@ import logging
 import os
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, IO, cast, Tuple, Any, Type
+from typing import Dict, List, Optional, IO, cast, Tuple, Any, Type, Union
 
 from samcli.commands.local.cli_common.user_exceptions import InvokeContextException, DebugContextException
 from samcli.lib.utils import osutils
@@ -407,18 +407,44 @@ class InvokeContext:
         """
 
         class StreamCombo:
-            def __init__(self, write_stream, readable_stream):
+            def __init__(self, write_stream: Union[IO, io.BytesIO], readable_stream: io.BytesIO):
+                """
+                Instatiates new StreamCombo
+                ----------
+                write_stream Union[IO, io.BytesIO]
+                    Writable stream
+                readable_stream io.BytesIO
+                    Readable stream
+                """
                 self._write_stream = write_stream
                 self._readable_stream = readable_stream
 
-            def write(self, value):
+            def write(self, value: bytes) -> None:
+                """
+                Writes specified text to streams
+
+                Parameters
+                ----------
+                value bytes-like object
+                Bytes to write
+                """
                 self._write_stream.write(value)
                 self._readable_stream.write(value)
 
-            def getvalue(self):
+            def getvalue(self) -> bytes:
+                """
+                Gets value from readable stream
+
+                Returns
+                ----------
+                bytes-like object
+                """
                 return self._readable_stream.getvalue()
 
-            def flush(self):
+            def flush(self) -> None:
+                """
+                Flush writable and readable streams
+                """
                 self._write_stream.flush()
                 self._readable_stream.flush()
 
