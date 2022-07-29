@@ -2,6 +2,7 @@
 Reads CLI arguments and performs necessary preparation to be able to run the function
 """
 import errno
+import io
 import json
 import logging
 import os
@@ -404,8 +405,25 @@ class InvokeContext:
         samcli.lib.utils.stream_writer.StreamWriter
             Stream writer for stderr
         """
+
+        class StreamCombo:
+            def __init__(self, write_stream, readable_stream):
+                self._write_stream = write_stream
+                self._readable_stream = readable_stream
+
+            def write(self, value):
+                self._write_stream.write(value)
+                self._readable_stream.write(value)
+
+            def getvalue(self):
+                return self._readable_stream.getvalue()
+
+            def flush(self):
+                self._write_stream.flush()
+                self._readable_stream.flush()
+
         stream = self._log_file_handle if self._log_file_handle else osutils.stderr()
-        return StreamWriter(stream, auto_flush=True)
+        return StreamWriter(StreamCombo(stream, io.BytesIO()), auto_flush=True)
 
     @property
     def stacks(self) -> List[Stack]:
