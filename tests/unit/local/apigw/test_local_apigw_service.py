@@ -425,6 +425,37 @@ class TestApiGatewayService(TestCase):
 
         self.assertEqual(result, failure_response_mock)
 
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
+    @patch("samcli.local.apigw.local_apigw_service.ServiceErrorResponses")
+    def test_request_handler_errors_already_reserved_retry(
+        self, service_error_responses_patch, request_mock
+    ):
+        make_response_mock = Mock()
+
+        self.api_service.service_response = make_response_mock
+        self.api_service._get_current_route = MagicMock()
+        self.api_service._construct_v_1_0_event = Mock()
+        self.api_service._get_current_route.methods = []
+        self.api_service._get_current_route.return_value.payload_format_version = "1.0"
+
+        parse_output_mock = Mock()
+        parse_output_mock.side_effect = [LambdaResponseParseException(), ("status_code", Headers({"headers": "headers"}), "body")]
+        self.api_service._parse_v1_payload_format_lambda_output = parse_output_mock
+
+        service_response_mock = Mock()
+        service_response_mock.return_value = make_response_mock
+        self.api_service.service_response = service_response_mock
+
+        failure_response_mock = Mock()
+        service_error_responses_patch.lambda_failure_response.return_value = failure_response_mock
+        self.stderr.stream.getvalue.return_value = b'[ERROR] (rapid) Failed to reserve: AlreadyReserved'
+
+        request_mock.return_value = ("test", "test")
+        result = self.api_service._request_handler()
+
+        self.stderr.stream.getvalue.assert_called_once()
+        self.assertEqual(result, make_response_mock)
+
     @patch("samcli.local.apigw.local_apigw_service.ServiceErrorResponses")
     def test_request_handler_errors_when_get_current_route_fails(self, service_error_responses_patch):
         get_current_route = Mock()
