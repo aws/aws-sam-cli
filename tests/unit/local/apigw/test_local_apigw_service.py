@@ -420,6 +420,7 @@ class TestApiGatewayService(TestCase):
         self.api_service._get_current_route.return_value.payload_format_version = "1.0"
 
         request_mock.return_value = ("test", "test")
+        self.stderr.stream.getvalue.return_value = b'ERROR'
         result = self.api_service._request_handler()
 
         self.assertEqual(result, failure_response_mock)
