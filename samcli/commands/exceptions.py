@@ -100,12 +100,24 @@ class InvalidStackNameException(UserException):
 
 class ReservedEnvironmentVariableException(UserException):
     """
-    Exception class when the user attempts to override a reserved environment variable during `sam test_runner run`
+    Exception class when the user attempts to override a reserved environment variable during `sam test-runner run`
     """
 
 
 class InvalidEnvironmentVariableNameException(UserException):
     """
     Exception class when the user attempts to specify environment variables that have invalid
-    identifier names in the ARN map file passed to `sam test_runner run`
+    identifier names in the ARN map file passed to `sam test-runner run`
+    """
+
+
+class NoResourcesMatchGivenTagException(UserException):
+    """
+    Exception class when the user supplies tags that do not match any resources to `sam test-runner init`
+    """
+
+
+class FailedArnParseException(UserException):
+    """
+    Exception class when `sam test-runner init` fails to extract a resource name/id from an ARN.
     """

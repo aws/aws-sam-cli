@@ -251,11 +251,6 @@ Resources:
         -------
         dict
             The Test Runner CloudFormation template in the form of a YAML string.
-
-        Raises
-        ------
-        TestRunnerTemplateGenerationException
-            If the template generation process fails
         """
 
         default_bucket_name = self._get_default_bucket_name()
