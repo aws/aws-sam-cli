@@ -19,6 +19,7 @@ class TestCli(TestCase):
                 tag_value=None,
                 template_name=self.TEST_TEMPLATE_NAME,
                 env_file=self.TEST_ENV_FILE_NAME,
+                image_uri="test_image_uri",
                 runtime="python3.8",
             )
         finally:
@@ -35,6 +36,7 @@ class TestCli(TestCase):
                 tag_value=None,
                 template_name=self.TEST_TEMPLATE_NAME,
                 env_file=self.TEST_ENV_FILE_NAME,
+                image_uri="test_image_uri",
                 runtime="python3.8",
             )
         self.assertFalse(os.path.exists(self.TEST_TEMPLATE_NAME))
@@ -47,6 +49,7 @@ class TestCli(TestCase):
             tag_value=None,
             template_name=self.TEST_TEMPLATE_NAME,
             env_file=self.TEST_ENV_FILE_NAME,
+            image_uri="test_image_uri",
             runtime="python3.8",
         )
         write_file_patch.assert_not_called()
@@ -59,6 +62,7 @@ class TestCli(TestCase):
             tag_value="some-value",
             template_name=self.TEST_TEMPLATE_NAME,
             env_file=self.TEST_ENV_FILE_NAME,
+            image_uri="test_image_uri",
             runtime="python3.8",
         )
         write_file_patch.assert_not_called()
@@ -79,6 +83,7 @@ class TestCli(TestCase):
                 tag_value="some-value",
                 template_name=self.TEST_TEMPLATE_NAME,
                 env_file=self.TEST_ENV_FILE_NAME,
+                image_uri="test_image_uri",
                 runtime="python3.8",
             )
 
@@ -105,6 +110,7 @@ class TestCli(TestCase):
                 tag_value="some-value",
                 template_name=self.TEST_TEMPLATE_NAME,
                 env_file=self.TEST_ENV_FILE_NAME,
+                image_uri="test_image_uri",
                 runtime="python3.8",
             )
 
@@ -126,6 +132,7 @@ class TestCli(TestCase):
                 tag_value="some-value",
                 template_name=self.TEST_TEMPLATE_NAME,
                 env_file=self.TEST_ENV_FILE_NAME,
+                image_uri="test_image_uri",
                 runtime="python3.8",
             )
         finally:

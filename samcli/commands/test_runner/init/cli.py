@@ -2,6 +2,7 @@
 CLI command for "test-runner init" command
 """
 from asyncore import write
+from email.mime import image
 import click
 import logging
 from typing import Optional, Any
@@ -85,21 +86,45 @@ Specify the name of the generated resource-ARN map YAML file. This file can be p
     help=f"Specify the runtime with which to run tests.",
     default="python3.8",
 )
+@click.option(
+    "--image-uri",
+    required=True,
+    type=str,
+    help="THIS IS A TEMPORARY OPTION. Supply an image URI for Fargate to create a container to run tests.",
+)
 @pass_context
 def cli(
-    ctx: Any, tag_key: Optional[str], tag_value: Optional[str], template_name: str, env_file: str, runtime: str
+    ctx: Any,
+    tag_key: Optional[str],
+    tag_value: Optional[str],
+    template_name: str,
+    env_file: str,
+    runtime: str,
+    image_uri: str,
 ) -> None:
     """
     `sam test-runner init` command entry point
     """
 
     do_cli(
-        ctx=ctx, tag_key=tag_key, tag_value=tag_value, template_name=template_name, env_file=env_file, runtime=runtime
+        ctx=ctx,
+        tag_key=tag_key,
+        tag_value=tag_value,
+        template_name=template_name,
+        env_file=env_file,
+        runtime=runtime,
+        image_uri=image_uri,
     )
 
 
 def do_cli(
-    ctx: Any, tag_key: Optional[str], tag_value: Optional[str], template_name: str, env_file: str, runtime: str
+    ctx: Any,
+    tag_key: Optional[str],
+    tag_value: Optional[str],
+    template_name: str,
+    env_file: str,
+    runtime: str,
+    image_uri: str,
 ) -> None:
     """
     implementation of the `sam test-runner init` command
@@ -119,7 +144,9 @@ def do_cli(
     else:
         tag_filters = None
 
-    image_uri = get_image_uri(runtime)
+    # TODO: When ready, public ECR repositories will be created holding images capable of running tests for each available runtime.
+    #       Until ready for public images, image URIs are supplied by option
+    # image_uri = get_image_uri(runtime)
 
     if tag_filters is not None:
         boto_client_provider = get_boto_client_provider_with_config(region=ctx.region, profile=ctx.profile)

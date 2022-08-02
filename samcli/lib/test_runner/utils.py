@@ -3,8 +3,9 @@ from samcli.lib.utils.boto_utils import BotoProviderType
 
 
 def get_image_uri(runtime: str) -> str:
-    # TODO: Public ECR repository is not yet set up, will fill in as soon as it is.
-    return "placeholder-uri"
+    # TODO: Public ECR repositories not yet set up.
+    #       When ready, public test-running image URIs will be returned corresponding to the specified runtime
+    pass
 
 
 def write_file(filename: str, contents: str) -> None:
