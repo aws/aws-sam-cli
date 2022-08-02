@@ -10,6 +10,7 @@ from samcli.cli.main import pass_context
 from samcli.commands.exceptions import NoResourcesMatchGivenTagException
 from samcli.lib.test_runner.generate_env_vars import FargateRunnerArnMapGenerator
 from samcli.lib.test_runner.test_runner_template_generator import FargateRunnerCFNTemplateGenerator
+from samcli.lib.test_runner.invoke_testsuite import FargateTestsuiteRunner
 from samcli.lib.test_runner.utils import query_tagging_api, write_file
 from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config
 from samcli.lib.utils.colors import Colored
@@ -169,7 +170,7 @@ def do_cli(
         LOG.info(
             COLOR.yellow(
                 "These environment variables hold the ARNs of your testable resources, and passing this file to `sam test_runner run` will make them available in the container running your tests.\n\n"
-                "Feel free to change them, or add new variables, but keep in mind that the test runner reserves the keys TEST_RUNNER_BUCKET, TEST_COMMAND_OPTIONS, and TEST_RUN_ID, and will throw an Exception if they are specified.\n\n"
+                f"Feel free to change them, or add new variables, but keep in mind that the test runner reserves the keys {FargateTestsuiteRunner.RESERVED_ENV_VAR_NAMES}, and will throw an Exception if they are specified.\n\n"
                 "If you add new resources or change existing ones, you can use `sam test-runner get-arns` to generate an updated environment variable specification file.\n"
             )
         )
