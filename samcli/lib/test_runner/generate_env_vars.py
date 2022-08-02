@@ -4,6 +4,42 @@ from samcli.commands.exceptions import FailedArnParseException
 
 
 class FargateRunnerArnMapGenerator:
+    def _extract_resource_id(self, resource_arn: str) -> str:
+        """
+        Extract a resource-id from a resource ARN.
+
+        NOTE: https://docs.aws.amazon.com/quicksight/latest/APIReference/qs-arn-format.html
+
+        Parameters
+        ----------
+        resource_arn : str
+            The resource ARN from which the resource-id is extracted
+
+        Raises
+        ------
+        FailedArnParseException
+            If a resource name/id could not be extracted from the resource_arn.
+
+        """
+
+        # Extract resource-id from ARN
+        # Cases:
+        # 1) arn:partition:service:region:account-id:resource-id
+        # 2) arn:partition:service:region:account-id:resource-type/resource-id
+        # 3) arn:partition:service:region:account-id:resource-type:resource-id
+        components = resource_arn.split(":")
+
+        if len(components) < 5:
+            raise FailedArnParseException(f"Failed to parse {resource_arn}, too few colon separated components.")
+
+        resource = components[5] if len(components) == 6 else components[6]
+
+        if "/" in resource:
+            last_slash = resource.rindex("/")
+            return resource[last_slash + 1 :]
+
+        return resource
+
     def _get_env_var_name(self, resource_arn: str) -> str:
         """
         Generates a valid environment variable name from a given resource ARN.
@@ -30,24 +66,7 @@ class FargateRunnerArnMapGenerator:
             NOTE: https://docs.aws.amazon.com/quicksight/latest/APIReference/qs-arn-format.html
         """
 
-        # Extract resource-id from ARN
-        # Cases:
-        # 1) arn:partition:service:region:account-id:resource-id
-        # 2) arn:partition:service:region:account-id:resource-type/resource-id
-        # 3) arn:partition:service:region:account-id:resource-type:resource-id
-        components = resource_arn.split(":")
-
-        if len(components) < 5:
-            raise FailedArnParseException(f"Failed to parse {resource_arn}, too few colon separated components.")
-
-        resource = components[5] if len(components) == 6 else components[6]
-
-        if "/" in resource:
-            last_slash = resource.rindex("/")
-            resource_id = resource[last_slash + 1 :]
-
-        else:
-            resource_id = resource
+        resource_id = self._extract_resource_id(resource_arn)
 
         # Format the resource-id into a valid environment variable name
         # Replace dashes and prepend an underscore in case the name starts with a number

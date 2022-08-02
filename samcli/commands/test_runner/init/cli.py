@@ -1,21 +1,18 @@
 """
 CLI command for "test-runner init" command
 """
-from asyncore import write
-from email.mime import image
-import click
+from typing import Any, Optional
 import logging
-from typing import Optional, Any
-from samcli.lib.test_runner.utils import get_image_uri
-from samcli.lib.test_runner.test_runner_template_generator import FargateRunnerCFNTemplateGenerator
-from samcli.commands.exceptions import NoResourcesMatchGivenTagException
-from samcli.cli.main import pass_context
-from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config
-from samcli.lib.test_runner.utils import write_file
-from samcli.lib.test_runner.utils import query_tagging_api
-from samcli.lib.test_runner.generate_env_vars import FargateRunnerArnMapGenerator
-from samcli.lib.utils.colors import Colored
 
+import click
+
+from samcli.cli.main import pass_context
+from samcli.commands.exceptions import NoResourcesMatchGivenTagException
+from samcli.lib.test_runner.generate_env_vars import FargateRunnerArnMapGenerator
+from samcli.lib.test_runner.test_runner_template_generator import FargateRunnerCFNTemplateGenerator
+from samcli.lib.test_runner.utils import query_tagging_api, write_file
+from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config
+from samcli.lib.utils.colors import Colored
 
 SHORT_HELP = "Generates a Test Runner CloudFormation Template in YAML format, as well as a resource-ARN map."
 HELP_TEXT = """
@@ -180,6 +177,13 @@ def do_cli(
         # If no tags were provided we cannot pass resource ARNs to the template generator to generate IAM statements
         # We also cannot generate a resource ARN map
         template_generator = FargateRunnerCFNTemplateGenerator([])
+
+        LOG.info(
+            COLOR.yellow(
+                "No tags were provided, so a resource-ARN map was not created. You can still specify and send environment variables to the Fargate container running your tests by "
+                "placing your desired NAME : VALUE pairs in a YAML file, and passing that YAML file to `sam test-runner run` with the --env option."
+            )
+        )
     test_runner_cfn_contents = template_generator.generate_test_runner_template_string(image_uri)
     write_file(template_name, test_runner_cfn_contents)
 
