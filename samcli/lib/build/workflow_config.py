@@ -4,97 +4,24 @@ Contains Builder Workflow Configs for different Runtimes
 
 import os
 import logging
-from collections import namedtuple
 from typing import Dict, List, Optional, Tuple, Union, cast
 
+from samcli.lib.build.workflows import (
+    CONFIG,
+    PYTHON_PIP_CONFIG,
+    NODEJS_NPM_CONFIG,
+    RUBY_BUNDLER_CONFIG,
+    JAVA_GRADLE_CONFIG,
+    JAVA_KOTLIN_GRADLE_CONFIG,
+    JAVA_MAVEN_CONFIG,
+    DOTNET_CLIPACKAGE_CONFIG,
+    GO_MOD_CONFIG,
+    PROVIDED_MAKE_CONFIG,
+    NODEJS_NPM_ESBUILD_CONFIG,
+)
 from samcli.lib.telemetry.event import EventTracker
 
 LOG = logging.getLogger(__name__)
-
-CONFIG = namedtuple(
-    "Capability",
-    ["language", "dependency_manager", "application_framework", "manifest_name", "executable_search_paths"],
-)
-
-PYTHON_PIP_CONFIG = CONFIG(
-    language="python",
-    dependency_manager="pip",
-    application_framework=None,
-    manifest_name="requirements.txt",
-    executable_search_paths=None,
-)
-
-NODEJS_NPM_CONFIG = CONFIG(
-    language="nodejs",
-    dependency_manager="npm",
-    application_framework=None,
-    manifest_name="package.json",
-    executable_search_paths=None,
-)
-
-RUBY_BUNDLER_CONFIG = CONFIG(
-    language="ruby",
-    dependency_manager="bundler",
-    application_framework=None,
-    manifest_name="Gemfile",
-    executable_search_paths=None,
-)
-
-JAVA_GRADLE_CONFIG = CONFIG(
-    language="java",
-    dependency_manager="gradle",
-    application_framework=None,
-    manifest_name="build.gradle",
-    executable_search_paths=None,
-)
-
-JAVA_KOTLIN_GRADLE_CONFIG = CONFIG(
-    language="java",
-    dependency_manager="gradle",
-    application_framework=None,
-    manifest_name="build.gradle.kts",
-    executable_search_paths=None,
-)
-
-JAVA_MAVEN_CONFIG = CONFIG(
-    language="java",
-    dependency_manager="maven",
-    application_framework=None,
-    manifest_name="pom.xml",
-    executable_search_paths=None,
-)
-
-DOTNET_CLIPACKAGE_CONFIG = CONFIG(
-    language="dotnet",
-    dependency_manager="cli-package",
-    application_framework=None,
-    manifest_name=".csproj",
-    executable_search_paths=None,
-)
-
-GO_MOD_CONFIG = CONFIG(
-    language="go",
-    dependency_manager="modules",
-    application_framework=None,
-    manifest_name="go.mod",
-    executable_search_paths=None,
-)
-
-PROVIDED_MAKE_CONFIG = CONFIG(
-    language="provided",
-    dependency_manager=None,
-    application_framework=None,
-    manifest_name="Makefile",
-    executable_search_paths=None,
-)
-
-NODEJS_NPM_ESBUILD_CONFIG = CONFIG(
-    language="nodejs",
-    dependency_manager="npm-esbuild",
-    application_framework=None,
-    manifest_name="package.json",
-    executable_search_paths=None,
-)
 
 
 class UnsupportedRuntimeException(Exception):
@@ -281,8 +208,7 @@ def get_workflow_config(
         # Identify workflow configuration from the workflow selector.
         config = cast(WorkFlowSelector, selector).get_config(code_dir, project_dir)
 
-        EventTracker.track_event("WorkflowLanguage", config.language)
-        EventTracker.track_event("WorkflowDependencyManager", config.dependency_manager)
+        EventTracker.track_event("WorkflowUsed", f"{config.language}-{config.dependency_manager}")
         if config.dependency_manager == "npm-esbuild":
             EventTracker.track_event("UsedFeature", "ESBuild")
 

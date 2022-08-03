@@ -8,6 +8,7 @@ import logging
 import threading
 from typing import List
 
+from samcli.lib.build.workflows import ALL_CONFIGS
 from samcli.lib.telemetry.telemetry import Telemetry
 from samcli.local.common.runtime_template import INIT_RUNTIMES
 
@@ -23,8 +24,7 @@ class EventName(Enum):
     SYNC_USED = "SyncUsed"
     SYNC_FLOW_START = "SyncFlowStart"
     SYNC_FLOW_END = "SyncFlowEnd"
-    WORKFLOW_LANGUAGE = "WorkflowLanguage"
-    WORKFLOW_DEPENDENCY_MANAGER = "WorkflowDependencyManager"
+    WORKFLOW_USED = "WorkflowUsed"
 
 
 class EventType:
@@ -44,25 +44,7 @@ class EventType:
         "StepFunctionsSyncFlow",
         "ZipFunctionSyncFlow",
     ]
-    _WORKFLOW_LANGUAGES = [
-        "python",
-        "nodejs",
-        "ruby",
-        "java",
-        "dotnet",
-        "go",
-        "provided",
-    ]
-    _WORKFLOW_DEPENDENCY_MANAGERS = [
-        "pip",
-        "npm",
-        "bundler",
-        "gradle",
-        "maven",
-        "cli-package",
-        "modules",
-        "npm-esbuild",
-    ]
+    _WORKFLOWS = [f"{config.language}-{config.dependency_manager}" for config in ALL_CONFIGS]
     _events = {
         EventName.USED_FEATURE: [
             "ESBuild",
@@ -76,8 +58,7 @@ class EventType:
         ],
         EventName.SYNC_FLOW_START: _SYNC_FLOWS,
         EventName.SYNC_FLOW_END: _SYNC_FLOWS,
-        EventName.WORKFLOW_LANGUAGE: _WORKFLOW_LANGUAGES,
-        EventName.WORKFLOW_DEPENDENCY_MANAGER: _WORKFLOW_DEPENDENCY_MANAGERS,
+        EventName.WORKFLOW_USED: _WORKFLOWS,
     }
 
     @staticmethod
