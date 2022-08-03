@@ -19,11 +19,12 @@ class EventName(Enum):
     """Enum for the names of available events to track."""
 
     USED_FEATURE = "UsedFeature"
-    DEPLOY = "Deploy"
     BUILD_FUNCTION_RUNTIME = "BuildFunctionRuntime"
     SYNC_USED = "SyncUsed"
     SYNC_FLOW_START = "SyncFlowStart"
     SYNC_FLOW_END = "SyncFlowEnd"
+    WORKFLOW_LANGUAGE = "WorkflowLanguage"
+    WORKFLOW_DEPENDENCY_MANAGER = "WorkflowDependencyManager"
 
 
 class EventType:
@@ -43,17 +44,30 @@ class EventType:
         "StepFunctionsSyncFlow",
         "ZipFunctionSyncFlow",
     ]
+    _WORKFLOW_LANGUAGES = [
+        "python",
+        "nodejs",
+        "ruby",
+        "java",
+        "dotnet",
+        "go",
+        "provided",
+    ]
+    _WORKFLOW_DEPENDENCY_MANAGERS = [
+        "pip",
+        "npm",
+        "bundler",
+        "gradle",
+        "maven",
+        "cli-package",
+        "modules",
+        "npm-esbuild",
+    ]
     _events = {
         EventName.USED_FEATURE: [
             "ESBuild",
             "Accelerate",
             "CDK",
-        ],
-        EventName.DEPLOY: [
-            "CreateChangeSetStart",
-            "CreateChangeSetInProgress",
-            "CreateChangeSetFailed",
-            "CreateChangeSetSuccess",
         ],
         EventName.BUILD_FUNCTION_RUNTIME: INIT_RUNTIMES,
         EventName.SYNC_USED: [
@@ -62,6 +76,8 @@ class EventType:
         ],
         EventName.SYNC_FLOW_START: _SYNC_FLOWS,
         EventName.SYNC_FLOW_END: _SYNC_FLOWS,
+        EventName.WORKFLOW_LANGUAGE: _WORKFLOW_LANGUAGES,
+        EventName.WORKFLOW_DEPENDENCY_MANAGER: _WORKFLOW_DEPENDENCY_MANAGERS,
     }
 
     @staticmethod

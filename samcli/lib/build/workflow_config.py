@@ -7,6 +7,8 @@ import logging
 from collections import namedtuple
 from typing import Dict, List, Optional, Tuple, Union, cast
 
+from samcli.lib.telemetry.event import EventTracker
+
 LOG = logging.getLogger(__name__)
 
 CONFIG = namedtuple(
@@ -278,6 +280,12 @@ def get_workflow_config(
 
         # Identify workflow configuration from the workflow selector.
         config = cast(WorkFlowSelector, selector).get_config(code_dir, project_dir)
+
+        EventTracker.track_event("WorkflowLanguage", config.language)
+        EventTracker.track_event("WorkflowDependencyManager", config.dependency_manager)
+        if config.dependency_manager == "npm-esbuild":
+            EventTracker.track_event("UsedFeature", "ESBuild")
+
         return config
     except ValueError as ex:
         raise UnsupportedRuntimeException(
