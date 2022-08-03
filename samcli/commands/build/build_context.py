@@ -405,7 +405,7 @@ class BuildContext:
     def _warn_using_source_maps():
         click.secho(
             "\nYou are using source maps, note that this comes with a performance hit!"
-            " Set Sourcemap to false, or remove"
+            " Set Sourcemap to false and remove"
             " NODE_OPTIONS: --enable-source-maps to disable source maps.\n",
             fg="yellow",
         )
