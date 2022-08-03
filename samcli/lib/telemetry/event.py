@@ -179,18 +179,19 @@ class EventTracker:
         """Sends the current list of events via Telemetry."""
         from samcli.lib.telemetry.metric import Metric  # pylint: disable=cyclic-import
 
+        msa = {}
+
         with EventTracker._event_lock:
             if not EventTracker._events:  # Don't do anything if there are no events to send
                 return
 
-            telemetry = Telemetry()
-
-            metric = Metric("events")
-            msa = {}
             msa["events"] = [e.to_json() for e in EventTracker._events]
-            metric.add_data("metricSpecificAttributes", msa)
-            telemetry.emit(metric)
             EventTracker._events = []  # Manual clear_trackers() since we're within the lock
+
+        telemetry = Telemetry()
+        metric = Metric("events")
+        metric.add_data("metricSpecificAttributes", msa)
+        telemetry.emit(metric)
 
 
 def track_long_event(start_event_name: str, start_event_value: str, end_event_name: str, end_event_value: str):
