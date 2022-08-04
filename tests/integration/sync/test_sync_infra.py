@@ -417,15 +417,11 @@ class TestSyncInfraWithEsbuild(SyncIntegBase):
         stack_name = self._method_to_stack_name(self.id())
         self.stacks.append({"name": stack_name})
 
-        self._run_sync_and_validate_lambda_call(self.dependency_layer, template_path, stack_name)
-        self._run_sync_and_validate_lambda_call(not self.dependency_layer, template_path, stack_name)
-
-    def _run_sync_and_validate_lambda_call(self, dependency_layer: bool, template_path: str, stack_name: str) -> None:
         sync_command_list = self.get_sync_command_list(
             template_file=template_path,
             code=False,
             watch=False,
-            dependency_layer=dependency_layer,
+            dependency_layer=self.dependency_layer,
             stack_name=stack_name,
             parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
