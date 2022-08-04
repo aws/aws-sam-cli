@@ -10,6 +10,7 @@ from unittest import skipIf
 
 import pytest
 from parameterized import parameterized, parameterized_class
+from samcli.commands._utils.experimental import ExperimentalFlag, set_experimental
 
 from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_RESTAPI,
@@ -410,6 +411,8 @@ class TestSyncInfraWithJava(SyncIntegBase):
 class TestSyncInfraWithEsbuild(SyncIntegBase):
     @parameterized.expand(["code/before/template-esbuild.yaml"])
     def test_sync_infra_esbuild(self, template_file):
+        set_experimental(ExperimentalFlag.Esbuild)
+
         template_path = str(self.test_data_path.joinpath(template_file))
         stack_name = self._method_to_stack_name(self.id())
         self.stacks.append({"name": stack_name})
@@ -431,7 +434,7 @@ class TestSyncInfraWithEsbuild(SyncIntegBase):
             capabilities_list=["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\ny\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertIn("Sync infra completed.", str(sync_process_execute.stderr))
 

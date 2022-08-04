@@ -643,7 +643,6 @@ class TestSyncCodeEsbuildFunctionTemplate(TestSyncCodeBase):
                 self.stack_resources, str(Path("nodejs", "node_modules")), 1
             )
             self.assertNotIn("@faker-js", layer_contents)
-            self.assertIn("esbuild", layer_contents)
 
         # Run code sync
         sync_command_list = self.get_sync_command_list(
@@ -678,4 +677,3 @@ class TestSyncCodeEsbuildFunctionTemplate(TestSyncCodeBase):
                 self.stack_resources, str(Path("nodejs", "node_modules")), 2
             )
             self.assertIn("@faker-js", layer_contents)
-            self.assertIn("esbuild", layer_contents)
