@@ -45,19 +45,19 @@ class TestTestableResources(DeployIntegBase, TestableResourcesIntegBase):
             """{
     "LogicalResourceId": "HelloWorldFunction",
     "PhysicalResourceId": "-",
-    "CloudEndpointOrFURL": "-",
+    "CloudEndpointOrFunctionURL": "-",
     "Methods": "-"
   }""",
             """{
     "LogicalResourceId": "TestAPI",
     "PhysicalResourceId": "-",
-    "CloudEndpointOrFURL": "-",
+    "CloudEndpointOrFunctionURL": "-",
     "Methods": []
   }""",
             """{
     "LogicalResourceId": "ServerlessRestApi",
     "PhysicalResourceId": "-",
-    "CloudEndpointOrFURL": "-",
+    "CloudEndpointOrFunctionURL": "-",
     "Methods": [
       "/hello2['get']",
       "/hello['get']"
@@ -91,13 +91,13 @@ class TestTestableResources(DeployIntegBase, TestableResourcesIntegBase):
             """{
     "LogicalResourceId": "HelloWorldFunction",
     "PhysicalResourceId": "test-has-stack-name.*",
-    "CloudEndpointOrFURL": "https://.*.lambda-url..*.on.aws/",
+    "CloudEndpointOrFunctionURL": "https://.*.lambda-url..*.on.aws/",
     "Methods": "-"
   }""",
             """  {
     "LogicalResourceId": "ServerlessRestApi",
     "PhysicalResourceId": ".*",
-    "CloudEndpointOrFURL": .*
+    "CloudEndpointOrFunctionURL": .*
       "https://.*.execute-api..*.amazonaws.com/Prod",
       "https://.*.execute-api..*.amazonaws.com/Stage"
     .*,
@@ -109,7 +109,7 @@ class TestTestableResources(DeployIntegBase, TestableResourcesIntegBase):
             """  {
     "LogicalResourceId": "TestAPI",
     "PhysicalResourceId": ".*",
-    "CloudEndpointOrFURL": .
+    "CloudEndpointOrFunctionURL": .
       "https://.*.execute-api..*.amazonaws.com/Test2"
     .,
     "Methods": ..
