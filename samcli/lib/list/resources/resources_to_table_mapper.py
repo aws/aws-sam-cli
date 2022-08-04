@@ -1,15 +1,30 @@
 """
 Implementation of the resources to table mapper
 """
+from typing import Dict, Any
+from collections import OrderedDict
 from samcli.lib.list.list_interfaces import Mapper
-from samcli.views.concrete_views.rich_table import RichTable
 
 
 class ResourcesToTableMapper(Mapper):
-    def map(self, data: list) -> RichTable:
-        output = RichTable(title="Resources", table_options={"show_lines": True})
-        output.add_column("Logical ID", {"justify": "center", "no_wrap": True})
-        output.add_column("Physical ID", {"justify": "center", "no_wrap": True})
+    def map(self, data: list) -> Dict[Any, Any]:
+        entry_list = []
         for resource in data:
-            output.add_row([resource["LogicalResourceId"], resource["PhysicalResourceId"]])
-        return output
+            entry_list.append(
+                [
+                    resource.get("LogicalResourceId", "-"),
+                    resource.get("PhysicalResourceId", "-"),
+                ]
+            )
+        table_data = {
+            "format_string": "{Logical ID:<{0}} {Physical ID:<{1}}",
+            "format_args": OrderedDict(
+                {
+                    "Logical ID": "Logical ID",
+                    "Physical ID": "Physical ID",
+                }
+            ),
+            "table_name": "Resources",
+            "data": entry_list,
+        }
+        return table_data

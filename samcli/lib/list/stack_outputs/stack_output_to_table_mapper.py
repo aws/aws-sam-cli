@@ -1,16 +1,28 @@
 """
 Implementation of the stack output to table mapper
 """
+from typing import Dict, Any
+from collections import OrderedDict
 from samcli.lib.list.list_interfaces import Mapper
-from samcli.views.concrete_views.rich_table import RichTable
 
 
 class StackOutputToTableMapper(Mapper):
-    def map(self, data: list) -> RichTable:
-        output = RichTable(title="Stack Outputs", table_options={"show_lines": True})
-        output.add_column("OutputKey", {"justify": "center", "no_wrap": True})
-        output.add_column("OutputValue", {"justify": "center", "no_wrap": True})
-        output.add_column("Description", {"justify": "center", "no_wrap": True})
+    def map(self, data: list) -> Dict[Any, Any]:
+        entry_list = []
         for stack_output in data:
-            output.add_row([stack_output["OutputKey"], stack_output["OutputValue"], stack_output["Description"]])
-        return output
+            entry_list.append(
+                [
+                    stack_output.get("OutputKey", "-"),
+                    stack_output.get("OutputValue", "-"),
+                    stack_output.get("Description", "-"),
+                ]
+            )
+        table_data = {
+            "format_string": "{OutputKey:<{0}} {OutputValue:<{1}} {Description:<{2}}",
+            "format_args": OrderedDict(
+                {"OutputKey": "OutputKey", "OutputValue": "OutputValue", "Description": "Description"}
+            ),
+            "table_name": "Stack Outputs",
+            "data": entry_list,
+        }
+        return table_data

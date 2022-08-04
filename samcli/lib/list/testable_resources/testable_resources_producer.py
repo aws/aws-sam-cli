@@ -21,6 +21,19 @@ from samcli.lib.list.resources.resource_mapping_producer import ResourceMappingP
 from samcli.lib.utils.boto_utils import get_client_error_code
 
 LOG = logging.getLogger(__name__)
+TESTABLE_RESOURCE_TYPES = {"AWS::Lambda::Function", "AWS::ApiGateway::RestApi", "AWS::ApiGatewayV2::Api"}
+RESOURCE_DESCRIPTION = "ResourceDescription"
+PROPERTIES = "Properties"
+FUNCTION_URL = "FunctionUrl"
+STACK_RESOURCES = "StackResources"
+RESOURCE_TYPE = "ResourceType"
+PHYSICAL_RESOURCE_ID = "PhysicalResourceId"
+LOGICAL_RESOURCE_ID = "LogicalResourceId"
+REST_API_ID = "RestApiId"
+API_ID = "ApiId"
+DOMAIN_NAME = "DomainName"
+BODY = "Body"
+PATHS = "paths"
 
 
 class APIGatewayEnum(Enum):
@@ -74,10 +87,10 @@ class TestableResourcesProducer(ResourceMappingProducer, Producer):
         """
         try:
             response = self.cloudcontrol_client.get_resource(TypeName="AWS::Lambda::Url", Identifier=identifier)
-            if not response.get("ResourceDescription", {}).get("Properties", {}):
+            if not response.get(RESOURCE_DESCRIPTION, {}).get(PROPERTIES, {}):
                 return "-"
-            response_dict = json.loads(response.get("ResourceDescription", {}).get("Properties", {}))
-            furl = response_dict.get("FunctionUrl", "-")
+            response_dict = json.loads(response.get(RESOURCE_DESCRIPTION, {}).get(PROPERTIES, {}))
+            furl = response_dict.get(FUNCTION_URL, "-")
             return furl
         except ClientError as e:
             if get_client_error_code(e) == "ResourceNotFoundException":
@@ -111,7 +124,7 @@ class TestableResourcesProducer(ResourceMappingProducer, Producer):
                 response = self.apigateway_client.get_stages(restApiId=api_id)
                 search_key = "item"
                 stage_name_key = "stageName"
-            else:
+            elif api_type == APIGatewayEnum.API_GATEWAY_V2:
                 response = self.apigatewayv2_client.get_stages(ApiId=api_id)
                 search_key = "Items"
                 stage_name_key = "StageName"
@@ -131,11 +144,98 @@ class TestableResourcesProducer(ResourceMappingProducer, Producer):
             raise SamListUnknownBotoCoreError(msg=str(e)) from e
 
     def build_api_gw_endpoints(self, physical_id: str, stages: list) -> list:
+        """
+        Builds the default api gateway endpoints
+
+        Parameters
+        ----------
+        physical_id: str
+            The physical ID of the api resource
+        stages: list
+            A list of stages for the api resource
+
+        Returns
+        -------
+        api_list: List[Any]
+            The list of default api gateway endpoints
+        """
         api_list = []
         for stage in stages:
 
             api_list.append(f"https://{physical_id}.execute-api.{self.region}.amazonaws.com/{stage}")
         return api_list
+
+    def get_cloud_testable_resources(self, stacks: list) -> list:
+        """
+        Gets a list of cloud testable resources
+
+        Parameters
+        ----------
+        stacks: list
+            A list containing the local stack
+
+        Returns
+        -------
+        testable_resources_list: List[Any]
+            A list of cloud testable resources
+        """
+        testable_resources_list = []
+        local_stack = stacks[0]
+        local_stack_resources = local_stack.resources
+        seen_testable_resources = set()
+        response = self.get_resources_info()
+        response_domain_dict = get_response_domain_dict(response)
+        custom_domain_substitute_dict = get_custom_domain_substitute_list(response, stacks, response_domain_dict)
+
+        for deployed_resource in response.get(STACK_RESOURCES, {}):
+            if deployed_resource.get(RESOURCE_TYPE, "") in TESTABLE_RESOURCE_TYPES:
+                endpoint_function_url: Any
+                paths_and_methods: Any
+                endpoint_function_url = "-"
+                paths_and_methods = "-"
+                if deployed_resource.get(RESOURCE_TYPE, "") == "AWS::Lambda::Function":
+                    endpoint_function_url = self.get_function_url(deployed_resource.get(PHYSICAL_RESOURCE_ID, ""))
+
+                elif deployed_resource.get(RESOURCE_TYPE, "") in ("AWS::ApiGateway::RestApi", "AWS::ApiGatewayV2::Api"):
+                    stages = self.get_stage_list(
+                        deployed_resource.get(PHYSICAL_RESOURCE_ID, ""),
+                        get_api_type_enum(deployed_resource.get(RESOURCE_TYPE, "")),
+                    )
+                    if deployed_resource.get(LOGICAL_RESOURCE_ID, "") in custom_domain_substitute_dict:
+                        endpoint_function_url = custom_domain_substitute_dict.get(
+                            deployed_resource.get(LOGICAL_RESOURCE_ID, ""), "-"
+                        )
+                    else:
+                        endpoint_function_url = self.build_api_gw_endpoints(
+                            deployed_resource.get(PHYSICAL_RESOURCE_ID, ""), stages
+                        )
+                    paths_and_methods = get_methods_and_paths(
+                        deployed_resource.get(LOGICAL_RESOURCE_ID, ""), local_stack
+                    )
+
+                testable_resource_data = TestableResDef(
+                    LogicalResourceId=deployed_resource.get(LOGICAL_RESOURCE_ID, "-"),
+                    PhysicalResourceId=deployed_resource.get(PHYSICAL_RESOURCE_ID, "-"),
+                    CloudEndpointOrFunctionURL=endpoint_function_url,
+                    Methods=paths_and_methods,
+                )
+                testable_resources_list.append(dataclasses.asdict(testable_resource_data))
+                seen_testable_resources.add(deployed_resource.get(LOGICAL_RESOURCE_ID, ""))
+        for local_resource in local_stack_resources:
+            local_resource_type = local_stack_resources.get(local_resource, {}).get("Type", "")
+            paths_and_methods = "-"
+            if local_resource_type in TESTABLE_RESOURCE_TYPES and local_resource not in seen_testable_resources:
+                if local_resource_type in ("AWS::ApiGateway::RestApi", "AWS::ApiGatewayV2::Api"):
+                    paths_and_methods = get_methods_and_paths(local_resource, local_stack)
+                testable_resource_data = TestableResDef(
+                    LogicalResourceId=local_resource,
+                    PhysicalResourceId="-",
+                    CloudEndpointOrFunctionURL="-",
+                    Methods=paths_and_methods,
+                )
+                testable_resources_list.append(dataclasses.asdict(testable_resource_data))
+
+        return testable_resources_list
 
     def produce(self):
         """
@@ -146,59 +246,13 @@ class TestableResourcesProducer(ResourceMappingProducer, Producer):
         translated_dict = self.get_translated_dict(template_file_dict=sam_template)
         stacks, _ = SamLocalStackProvider.get_stacks(template_file="", template_dictionary=translated_dict)
         validate_stack(stacks)
-        seen_testable_resources = set()
-        testable_resources_list = []
-        testable_resource_types = {"AWS::Lambda::Function", "AWS::ApiGateway::RestApi", "AWS::ApiGatewayV2::Api"}
+
+        testable_resources_list: list
+
         if self.stack_name:
-            response = self.get_resources_info()
-            response_domain_dict = get_response_domain_dict(response)
-            custom_domain_substitute_dict = get_custom_domain_substitute_list(response, stacks, response_domain_dict)
-
-            for deployed_resource in response["StackResources"]:
-                if deployed_resource["ResourceType"] in testable_resource_types:
-                    endpoint_function_url = "-"
-                    paths_and_methods = "-"
-                    if deployed_resource["ResourceType"] == "AWS::Lambda::Function":
-                        endpoint_function_url = self.get_function_url(deployed_resource["PhysicalResourceId"])
-
-                    elif deployed_resource["ResourceType"] in ("AWS::ApiGateway::RestApi", "AWS::ApiGatewayV2::Api"):
-                        stages = self.get_stage_list(
-                            deployed_resource["PhysicalResourceId"],
-                            get_api_type_enum(deployed_resource["ResourceType"]),
-                        )
-                        if deployed_resource["LogicalResourceId"] in custom_domain_substitute_dict:
-                            endpoint_function_url = custom_domain_substitute_dict[
-                                deployed_resource["LogicalResourceId"]
-                            ]
-                        else:
-                            endpoint_function_url = self.build_api_gw_endpoints(
-                                deployed_resource["PhysicalResourceId"], stages
-                            )
-                        paths_and_methods = get_methods_and_paths(deployed_resource["LogicalResourceId"], stacks[0])
-
-                    testable_resource_data = TestableResDef(
-                        LogicalResourceId=deployed_resource["LogicalResourceId"],
-                        PhysicalResourceId=deployed_resource["PhysicalResourceId"],
-                        CloudEndpointOrFURL=endpoint_function_url,
-                        Methods=paths_and_methods,
-                    )
-                    testable_resources_list.append(dataclasses.asdict(testable_resource_data))
-                    seen_testable_resources.add(deployed_resource["LogicalResourceId"])
-            for local_resource in stacks[0].resources:
-                local_resource_type = stacks[0].resources[local_resource]["Type"]
-                paths_and_methods = "-"
-                if local_resource_type in testable_resource_types and local_resource not in seen_testable_resources:
-                    if local_resource_type in ("AWS::ApiGateway::RestApi", "AWS::ApiGatewayV2::Api"):
-                        paths_and_methods = get_methods_and_paths(local_resource, stacks[0])
-                    testable_resource_data = TestableResDef(
-                        LogicalResourceId=local_resource,
-                        PhysicalResourceId="-",
-                        CloudEndpointOrFURL="-",
-                        Methods=paths_and_methods,
-                    )
-                    testable_resources_list.append(dataclasses.asdict(testable_resource_data))
+            testable_resources_list = self.get_cloud_testable_resources(stacks)
         else:
-            testable_resources_list = get_local_testable_resources(stacks, testable_resource_types)
+            testable_resources_list = get_local_testable_resources(stacks)
         mapped_output = self.mapper.map(testable_resources_list)
         self.consumer.consume(mapped_output)
 
@@ -212,11 +266,12 @@ def validate_stack(stacks: list):
     stacks: list
         A list containing the stack
     """
-    if not stacks or not stacks[0].resources:
+
+    if not stacks or not hasattr(stacks[0], "resources") or not stacks[0].resources:
         raise SamListLocalResourcesNotFoundError(msg="No local resources found.")
 
 
-def get_local_testable_resources(stacks: list, testable_resource_types: set) -> list:
+def get_local_testable_resources(stacks: list) -> list:
     """
     Gets a list of local testable resources based on the local stack
 
@@ -224,8 +279,6 @@ def get_local_testable_resources(stacks: list, testable_resource_types: set) -> 
     ----------
     stacks: list
         A list containing the stack
-    testable_resource_types: set
-        A set of resources types that should be displayed by testable resources
 
     Returns
     -------
@@ -234,17 +287,19 @@ def get_local_testable_resources(stacks: list, testable_resource_types: set) -> 
     """
     testable_resources_list = []
     paths_and_methods: Any
-    for local_resource in stacks[0].resources:
-        local_resource_type = stacks[0].resources[local_resource]["Type"]
-        if local_resource_type in testable_resource_types:
+    local_stack = stacks[0]
+    local_stack_resources = local_stack.resources
+    for local_resource in local_stack_resources:
+        local_resource_type = local_stack_resources.get(local_resource, {}).get("Type", "")
+        if local_resource_type in TESTABLE_RESOURCE_TYPES:
             paths_and_methods = "-"
             if local_resource_type in ("AWS::ApiGateway::RestApi", "AWS::ApiGatewayV2::Api"):
-                paths_and_methods = get_methods_and_paths(local_resource, stacks[0])
+                paths_and_methods = get_methods_and_paths(local_resource, local_stack)
             # Set the PhysicalID to "-" if there is no corresponding PhysicalID
             testable_resource_data = TestableResDef(
                 LogicalResourceId=local_resource,
                 PhysicalResourceId="-",
-                CloudEndpointOrFURL="-",
+                CloudEndpointOrFunctionURL="-",
                 Methods=paths_and_methods,
             )
             testable_resources_list.append(dataclasses.asdict(testable_resource_data))
@@ -289,25 +344,27 @@ def get_custom_domain_substitute_list(
         A dict containing the custom domain lists mapped to the original apis
     """
     custom_domain_substitute_dict = {}
-    for resource in response["StackResources"]:
-        if resource["ResourceType"] == "AWS::ApiGateway::BasePathMapping":
-            local_mapping = stacks[0].resources[resource["LogicalResourceId"]]["Properties"]
-            rest_api_id = local_mapping["RestApiId"]
-            domain_id = local_mapping["DomainName"]
+    local_stack = stacks[0]
+    local_stack_resources = local_stack.resources
+    for resource in response.get(STACK_RESOURCES, {}):
+        if resource.get(RESOURCE_TYPE, "") == "AWS::ApiGateway::BasePathMapping":
+            local_mapping = local_stack_resources.get(resource.get(LOGICAL_RESOURCE_ID, ""), {}).get(PROPERTIES, {})
+            rest_api_id = local_mapping.get(REST_API_ID, "")
+            domain_id = local_mapping.get(DOMAIN_NAME, "")
             if domain_id in response_domain_dict:
                 if rest_api_id not in custom_domain_substitute_dict:
-                    custom_domain_substitute_dict[rest_api_id] = [response_domain_dict[domain_id]]
+                    custom_domain_substitute_dict[rest_api_id] = [response_domain_dict.get(domain_id, None)]
                 else:
-                    custom_domain_substitute_dict[rest_api_id].append(response_domain_dict[domain_id])
-        elif resource["ResourceType"] == "AWS::ApiGatewayV2::ApiMapping":
-            local_mapping = stacks[0].resources[resource["LogicalResourceId"]]["Properties"]
-            rest_api_id = local_mapping["ApiId"]
-            domain_id = local_mapping["DomainName"]
+                    custom_domain_substitute_dict[rest_api_id].append(response_domain_dict.get(domain_id, None))
+        elif resource.get(RESOURCE_TYPE, "") == "AWS::ApiGatewayV2::ApiMapping":
+            local_mapping = local_stack_resources.get(resource.get(LOGICAL_RESOURCE_ID, ""), {}).get(PROPERTIES, {})
+            rest_api_id = local_mapping.get(API_ID, "")
+            domain_id = local_mapping.get(DOMAIN_NAME, "")
             if domain_id in response_domain_dict:
                 if rest_api_id not in custom_domain_substitute_dict:
-                    custom_domain_substitute_dict[rest_api_id] = [response_domain_dict[domain_id]]
+                    custom_domain_substitute_dict[rest_api_id] = [response_domain_dict.get(domain_id, None)]
                 else:
-                    custom_domain_substitute_dict[rest_api_id].append(response_domain_dict[domain_id])
+                    custom_domain_substitute_dict[rest_api_id].append(response_domain_dict.get(domain_id, None))
     return custom_domain_substitute_dict
 
 
@@ -326,12 +383,14 @@ def get_response_domain_dict(response: Dict[Any, Any]) -> Dict[str, str]:
         A dict containing the custom domains
     """
     response_domain_dict = {}
-    for resource in response["StackResources"]:
+    for resource in response.get(STACK_RESOURCES, {}):
         if (
-            resource["ResourceType"] == "AWS::ApiGateway::DomainName"
-            or resource["ResourceType"] == "AWS::ApiGatewayV2::DomainName"
+            resource.get(RESOURCE_TYPE, "") == "AWS::ApiGateway::DomainName"
+            or resource.get(RESOURCE_TYPE, "") == "AWS::ApiGatewayV2::DomainName"
         ):
-            response_domain_dict[resource["LogicalResourceId"]] = "https://" + resource["PhysicalResourceId"]
+            response_domain_dict[
+                resource.get(LOGICAL_RESOURCE_ID, "")
+            ] = f'https://{resource.get(PHYSICAL_RESOURCE_ID, "")}'
     return response_domain_dict
 
 
@@ -355,12 +414,12 @@ def get_methods_and_paths(logical_id: str, stack: Stack) -> list:
     method_paths_list = []
     if not stack.resources:
         raise SamListLocalResourcesNotFoundError(msg="No local resources found.")
-    if not stack.resources.get(logical_id, {}).get("Properties", {}).get("Body", {}).get("paths", {}):
+    if not stack.resources.get(logical_id, {}).get(PROPERTIES, {}).get(BODY, {}).get(PATHS, {}):
         return method_paths_list
-    paths_dict = stack.resources.get(logical_id, {}).get("Properties", {}).get("Body", {}).get("paths", {})
+    paths_dict = stack.resources.get(logical_id, {}).get(PROPERTIES, {}).get(BODY, {}).get(PATHS, {})
     for path in paths_dict:
         method_list = []
-        for method in paths_dict[path]:
+        for method in paths_dict.get(path, ""):
             method_list.append(method)
         path_item = path + f"{method_list}"
         method_paths_list.append(path_item)

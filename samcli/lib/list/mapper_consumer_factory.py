@@ -14,7 +14,6 @@ from samcli.lib.list.list_interfaces import ProducersEnum, Mapper
 
 class MapperConsumerFactory(MapperConsumerFactoryInterface):
     def create(self, producer: ProducersEnum, output: str) -> MapperConsumerContainer:
-        # Will add conditions here to return different sorts of containers later on
         if output == "json":
             data_to_json_mapper = DataToJsonMapper()
             json_consumer = StringConsumerJsonOutput()
@@ -24,10 +23,9 @@ class MapperConsumerFactory(MapperConsumerFactoryInterface):
         table_consumer = StringConsumerTableOutput()
         if producer == ProducersEnum.STACK_OUTPUTS_PRODUCER:
             table_mapper = StackOutputToTableMapper()
-        # add conditional for when adding in the testable resources table
         elif producer == ProducersEnum.RESOURCES_PRODUCER:
             table_mapper = ResourcesToTableMapper()
-        else:
+        elif producer == ProducersEnum.TESTABLE_RESOURCES_PRODUCER:
             table_mapper = TestableResourcesToTableMapper()
         container = MapperConsumerContainer(table_mapper, table_consumer)
         return container

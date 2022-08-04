@@ -9,5 +9,5 @@ from dataclasses import dataclass
 class TestableResDef:
     LogicalResourceId: str
     PhysicalResourceId: str
-    CloudEndpointOrFURL: Any
+    CloudEndpointOrFunctionURL: Any
     Methods: Any

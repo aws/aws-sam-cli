@@ -27,7 +27,6 @@ class TestStackOutputsContext(TestCase):
                     '[\n  {\n    "OutputKey": "HelloWorldTest",\n    "OutputValue": "TestVal",\n    "Description": "Test"\n  }\n]'
                 )
             ]
-            print(patched_click_echo.call_args_list)
             self.assertEqual(
                 expected_click_echo_calls, patched_click_echo.call_args_list, "Stack and stack outputs should exist"
             )

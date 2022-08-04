@@ -2,13 +2,29 @@
 The table consumer for 'sam list'
 """
 from samcli.lib.list.list_interfaces import ListInfoPullerConsumer
-from samcli.views.concrete_views.rich_table import RichTable
+from samcli.commands._utils.table_print import pprint_column_names, pprint_columns
 
 
 class StringConsumerTableOutput(ListInfoPullerConsumer):
     """
-    Consumes a Rich table and outputs it in table format
+    Outputs data in table format
     """
 
-    def consume(self, data: RichTable) -> None:
-        data.print()
+    def consume(self, data: dict) -> None:
+        @pprint_column_names(
+            format_string=data["format_string"],
+            format_kwargs=data["format_args"],
+            table_header=data["table_name"],
+        )
+        def print_table(**kwargs):
+            for entry in data["data"]:
+                pprint_columns(
+                    columns=entry,
+                    width=kwargs["width"],
+                    margin=kwargs["margin"],
+                    format_string=data["format_string"],
+                    format_args=kwargs["format_args"],
+                    columns_dict=data["format_args"].copy(),
+                )
+
+        print_table()
