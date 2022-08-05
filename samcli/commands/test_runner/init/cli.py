@@ -137,10 +137,9 @@ def do_cli(
         LOG.info(COLOR.red("Specified tag value without a tag key."))
         return
 
+    tag_filters = None
     if tag_value and tag_key:
         tag_filters = [{"Key": tag_key, "Values": [tag_value]}]
-    else:
-        tag_filters = None
 
     # TODO: When ready, public ECR repositories will be created holding images capable of running tests for each available runtime.
     #       Until ready for public images, image URIs are supplied by option

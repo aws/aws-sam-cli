@@ -1,10 +1,8 @@
-from enum import Enum
-import re
 import logging
+import re
 import uuid
-from typing import Optional, List, Union
-
-from pkg_resources import resource_stream
+from enum import Enum
+from typing import List, Optional, Union
 
 LOG = logging.getLogger(__name__)
 

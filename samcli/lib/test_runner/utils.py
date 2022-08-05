@@ -1,4 +1,5 @@
 from typing import List, Union
+
 from samcli.lib.utils.boto_utils import BotoProviderType
 
 

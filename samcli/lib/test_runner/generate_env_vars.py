@@ -1,5 +1,7 @@
-import yaml
 from typing import List
+
+import yaml
+
 from samcli.commands.exceptions import FailedArnParseException
 
 

@@ -1,8 +1,9 @@
 """
 Kicks off a testsuite in a Fargate container
 """
-from typing import List
 import logging
+from typing import List
+
 from samcli.commands.exceptions import InvalidEnvironmentVariableNameException, ReservedEnvironmentVariableException
 from samcli.lib.utils.colors import Colored
 
