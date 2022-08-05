@@ -1,20 +1,21 @@
 """
 CLI command for "test-runner init" command
 """
-from typing import Any, Optional
 import logging
+from typing import Any, List, Optional
 
 import click
 
 from samcli.cli.main import pass_context
+from samcli.cli.types import CfnTags
+from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 from samcli.commands.exceptions import NoResourcesMatchGivenTagException
 from samcli.lib.test_runner.generate_env_vars import FargateRunnerArnMapGenerator
-from samcli.lib.test_runner.test_runner_template_generator import FargateRunnerCFNTemplateGenerator
 from samcli.lib.test_runner.invoke_testsuite import FargateTestsuiteRunner
+from samcli.lib.test_runner.test_runner_template_generator import FargateRunnerCFNTemplateGenerator
 from samcli.lib.test_runner.utils import query_tagging_api, write_file
 from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config
 from samcli.lib.utils.colors import Colored
-from typing import List
 
 SHORT_HELP = "Generates a Test Runner CloudFormation Template in YAML format, as well as a resource-ARN map."
 HELP_TEXT = """
@@ -41,27 +42,37 @@ COLOR = Colored()
 
 @click.command("init", help=HELP_TEXT, short_help=SHORT_HELP)
 @click.option(
-    "--tag-key",
-    type=str,
+    "--tags",
+    cls=OptionNargs,
+    type=CfnTags(),
     required=False,
-    help="""
-Specify the key of the tag used to discover resources.
-
-Discovered resources will have IAM statement templates generated within the Test Runner CloudFormation Template,
-and a mapping between that resource name and its ARN included in the environment variable specification file.
-""",
+    help="A list of tags used to discover resources. "
+    "Discovered resources will have IAM statement templates generated within the Test Runner CloudFormation Template, "
+    "and a mapping between that resource name and its ARN included in the environment variable specification file.\n\n"
+    "Enter as tags in the form KEY1=VALUE1 KEY2=VALUE2 ...",
 )
-@click.option(
-    "--tag-value",
-    type=str,
-    required=False,
-    help="""
-Specify the value of the tag used to discover resources.
+# @click.option(
+#     "--tag-key",
+#     type=str,
+#     required=False,
+#     help="""
+# Specify the key of the tag used to discover resources.
 
-Discovered resources will have IAM statement templates generated within the Test Runner CloudFormation Template,
-and a mapping between that resource name and its ARN included in the environment variable specification file.
-""",
-)
+# Discovered resources will have IAM statement templates generated within the Test Runner CloudFormation Template,
+# and a mapping between that resource name and its ARN included in the environment variable specification file.
+# """,
+# )
+# @click.option(
+#     "--tag-value",
+#     type=str,
+#     required=False,
+#     help="""
+# Specify the value of the tag used to discover resources.
+
+# Discovered resources will have IAM statement templates generated within the Test Runner CloudFormation Template,
+# and a mapping between that resource name and its ARN included in the environment variable specification file.
+# """,
+# )
 @click.option(
     "--template-name",
     required=False,
@@ -94,8 +105,7 @@ Specify the name of the generated resource-ARN map YAML file. This file can be p
 @pass_context
 def cli(
     ctx: Any,
-    tag_key: Optional[str],
-    tag_value: Optional[str],
+    tags: Optional[dict],
     template_name: str,
     env_file: str,
     runtime: str,
@@ -107,8 +117,7 @@ def cli(
 
     do_cli(
         ctx=ctx,
-        tag_key=tag_key,
-        tag_value=tag_value,
+        tags=tags,
         template_name=template_name,
         env_file=env_file,
         runtime=runtime,
@@ -118,8 +127,7 @@ def cli(
 
 def do_cli(
     ctx: Any,
-    tag_key: Optional[str],
-    tag_value: Optional[str],
+    tags: Optional[dict],
     template_name: str,
     env_file: str,
     runtime: str,
@@ -128,25 +136,11 @@ def do_cli(
     """
     implementation of the `sam test-runner init` command
     """
-
-    # TODO: Merge these two options into one to follow AWS CLI (if we can get access to their parser)
-    if tag_key and not tag_value:
-        LOG.info(COLOR.red("Specified tag key without a tag value."))
-        return
-
-    if tag_value and not tag_key:
-        LOG.info(COLOR.red("Specified tag value without a tag key."))
-        return
-
-    tag_filters = None
-    if tag_value and tag_key:
-        tag_filters = [{"Key": tag_key, "Values": [tag_value]}]
-
     # TODO: When ready, public ECR repositories will be created holding images capable of running tests for each available runtime.
     #       Until ready for public images, image URIs are supplied by option
     # image_uri = get_image_uri(runtime)
 
-    if tag_filters is None:
+    if not tags:
         # If no tags were provided we cannot pass resource ARNs to the template generator to generate IAM statements
         # We also cannot generate a resource ARN map
         _create_test_runner_template(image_uri=image_uri, template_name=template_name, resource_arn_list=[])
@@ -159,11 +153,11 @@ def do_cli(
         return
 
     boto_client_provider = get_boto_client_provider_with_config(region=ctx.region, profile=ctx.profile)
-    resource_arn_list = query_tagging_api(tag_filters, boto_client_provider)
+    resource_arn_list = query_tagging_api(tags, boto_client_provider)
 
     if not resource_arn_list:
         raise NoResourcesMatchGivenTagException(
-            f"Given tags `Key={tag_key},Value={tag_value}` do not match any resources, were they entered incorrectly?"
+            f"Given tags {tags} do not match any resources, were they entered incorrectly?"
         )
 
     _create_test_runner_template(image_uri, template_name, resource_arn_list)

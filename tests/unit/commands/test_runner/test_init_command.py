@@ -1,9 +1,11 @@
+import os
 from unittest import TestCase
 from unittest.mock import Mock, patch
-from samcli.commands.test_runner.init.cli import do_cli
-from samcli.commands.exceptions import NoResourcesMatchGivenTagException
-import os
+
 import botocore.exceptions
+
+from samcli.commands.exceptions import NoResourcesMatchGivenTagException
+from samcli.commands.test_runner.init.cli import do_cli
 
 
 class TestCli(TestCase):
@@ -15,8 +17,7 @@ class TestCli(TestCase):
         try:
             do_cli(
                 ctx=None,
-                tag_key=None,
-                tag_value=None,
+                tags=None,
                 template_name=self.TEST_TEMPLATE_NAME,
                 env_file=self.TEST_ENV_FILE_NAME,
                 image_uri="test_image_uri",
@@ -32,40 +33,13 @@ class TestCli(TestCase):
         with self.assertRaises(OSError):
             do_cli(
                 ctx=None,
-                tag_key=None,
-                tag_value=None,
+                tags=None,
                 template_name=self.TEST_TEMPLATE_NAME,
                 env_file=self.TEST_ENV_FILE_NAME,
                 image_uri="test_image_uri",
                 runtime="python3.8",
             )
         self.assertFalse(os.path.exists(self.TEST_TEMPLATE_NAME))
-
-    @patch("samcli.commands.test_runner.init.cli.write_file")
-    def test_given_tag_key_no_value(self, write_file_patch):
-        do_cli(
-            ctx=None,
-            tag_key="some-key",
-            tag_value=None,
-            template_name=self.TEST_TEMPLATE_NAME,
-            env_file=self.TEST_ENV_FILE_NAME,
-            image_uri="test_image_uri",
-            runtime="python3.8",
-        )
-        write_file_patch.assert_not_called()
-
-    @patch("samcli.commands.test_runner.init.cli.write_file")
-    def test_given_tag_value_no_key(self, write_file_patch):
-        do_cli(
-            ctx=None,
-            tag_key=None,
-            tag_value="some-value",
-            template_name=self.TEST_TEMPLATE_NAME,
-            env_file=self.TEST_ENV_FILE_NAME,
-            image_uri="test_image_uri",
-            runtime="python3.8",
-        )
-        write_file_patch.assert_not_called()
 
     @patch("samcli.commands.test_runner.init.cli.write_file")
     @patch("samcli.commands.test_runner.init.cli.query_tagging_api")
@@ -79,8 +53,7 @@ class TestCli(TestCase):
         with self.assertRaises(NoResourcesMatchGivenTagException):
             do_cli(
                 ctx=mock_ctx,
-                tag_key="some-key",
-                tag_value="some-value",
+                tags={"Key": "Value"},
                 template_name=self.TEST_TEMPLATE_NAME,
                 env_file=self.TEST_ENV_FILE_NAME,
                 image_uri="test_image_uri",
@@ -106,8 +79,7 @@ class TestCli(TestCase):
         with self.assertRaises(botocore.exceptions.ClientError):
             do_cli(
                 ctx=mock_ctx,
-                tag_key="some-key",
-                tag_value="some-value",
+                tags={"Key": "Value"},
                 template_name=self.TEST_TEMPLATE_NAME,
                 env_file=self.TEST_ENV_FILE_NAME,
                 image_uri="test_image_uri",
@@ -128,8 +100,7 @@ class TestCli(TestCase):
         try:
             do_cli(
                 ctx=mock_ctx,
-                tag_key="some-key",
-                tag_value="some-value",
+                tags={"Key": "Value"},
                 template_name=self.TEST_TEMPLATE_NAME,
                 env_file=self.TEST_ENV_FILE_NAME,
                 image_uri="test_image_uri",
