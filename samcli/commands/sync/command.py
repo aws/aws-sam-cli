@@ -306,6 +306,7 @@ def do_cli(
                     signing_profiles=None,
                     disable_rollback=False,
                     poll_delay=poll_delay,
+                    on_failure=None,
                 ) as deploy_context:
                     with SyncContext(dependency_layer, build_context.build_dir, build_context.cache_dir):
                         if watch:
