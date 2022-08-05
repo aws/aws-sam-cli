@@ -12,6 +12,7 @@ from unittest import skipIf
 import boto3
 from botocore.config import Config
 from parameterized import parameterized_class
+from samcli.commands._utils.experimental import ExperimentalFlag, set_experimental
 
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
 from samcli.lib.utils.resources import (
@@ -144,6 +145,49 @@ class TestSyncWatchBase(SyncIntegBase):
         # SFN
         state_machine = resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
         self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')
+
+
+@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+class TestSyncWatchEsbuildBase(TestSyncWatchBase):
+    @classmethod
+    def setUpClass(cls):
+        PackageIntegBase.setUpClass()
+        cls.test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "sync")
+
+    def setUp(self):
+        super().setUp()
+
+    def _setup_verify_infra(self):
+        set_experimental(ExperimentalFlag.Esbuild)
+
+        template_path = self.test_dir.joinpath(self.template_before)
+        self.stacks.append({"name": self.stack_name})
+
+        # Start watch
+        sync_command_list = self.get_sync_command_list(
+            template_file=str(template_path),
+            code=False,
+            watch=True,
+            dependency_layer=self.dependency_layer,
+            stack_name=self.stack_name,
+            parameter_overrides="Parameter=Clarity",
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+        self.watch_process = start_persistent_process(sync_command_list, cwd=self.test_dir)
+
+        read_until_string(self.watch_process, "Enter Y to proceed with the command, or enter N to cancel:\n")
+        self.watch_process.stdin.write("y\n")
+
+        read_until_string(self.watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n", timeout=600)
+
+        self.stack_resources = self._get_stacks(self.stack_name)
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertEqual(lambda_response.get("message"), "hello world")
 
 
 @parameterized_class(
@@ -345,3 +389,49 @@ class TestSyncCodeWatchNestedStacks(TestSyncWatchBase):
         state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
         time.sleep(SFN_SLEEP)
         self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')
+
+
+@parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
+class TestSyncWatchCodeEsbuild(TestSyncWatchEsbuildBase):
+    template_before = str(Path("code", "before", "template-esbuild.yaml"))
+
+    def test_sync_watch_code(self):
+        self.stack_resources = self._get_stacks(self.stack_name)
+
+        if self.dependency_layer:
+            dep_dir = str(Path("nodejs", "node_modules"))
+
+            # Test update manifest
+            layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, dep_dir, 1)
+            self.assertNotIn("@faker-js", layer_contents)
+            self.update_file(
+                self.test_dir.joinpath("code", "after", "esbuild_function", "package.json"),
+                self.test_dir.joinpath("code", "before", "esbuild_function", "package.json"),
+            )
+            read_until_string(
+                self.watch_process,
+                "\x1b[32mFinished syncing Function Layer Reference Sync HelloWorldFunction.\x1b[0m\n",
+                timeout=45,
+            )
+            layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, dep_dir, 2)
+            self.assertIn("@faker-js", layer_contents)
+
+        # Test Lambda Function
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertNotIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "hello world")
+
+        self.update_file(
+            self.test_dir.joinpath("code", "after", "esbuild_function", "app.ts"),
+            self.test_dir.joinpath("code", "before", "esbuild_function", "app.ts"),
+        )
+        read_until_string(
+            self.watch_process, "\x1b[32mFinished syncing Lambda Function HelloWorldFunction.\x1b[0m\n", timeout=30
+        )
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "Hello world!")
