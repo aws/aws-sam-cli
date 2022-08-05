@@ -424,8 +424,8 @@ class TestSyncWatchCodeEsbuild(TestSyncWatchEsbuildBase):
             self.assertEqual(lambda_response.get("message"), "hello world")
 
         self.update_file(
-            self.test_dir.joinpath("code", "after", "esbuild_function", "app.js"),
-            self.test_dir.joinpath("code", "before", "esbuild_function", "app.js"),
+            self.test_dir.joinpath("code", "after", "esbuild_function", "app.ts"),
+            self.test_dir.joinpath("code", "before", "esbuild_function", "app.ts"),
         )
         read_until_string(
             self.watch_process, "\x1b[32mFinished syncing Lambda Function HelloWorldFunction.\x1b[0m\n", timeout=30

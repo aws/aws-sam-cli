@@ -1,8 +1,8 @@
-const axios = require("axios");
+import axios from "axios";
 
-let response;
-
-exports.lambdaHandler = async (event, context) => {
+export const lambdaHandler = async (): Promise<object> => {
+    let response: object;
+    
     try {
         response = {
             'statusCode': 200,
@@ -13,7 +13,13 @@ exports.lambdaHandler = async (event, context) => {
         }
     } catch (err) {
         console.log(err);
-        return err;
+
+        response = {
+            'statusCode': 500,
+            'body': JSON.stringify({
+                message: 'exception happened'
+            })
+        }
     }
 
     return response;
