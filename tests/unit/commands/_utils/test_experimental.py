@@ -59,13 +59,13 @@ class TestExperimental(TestCase):
         self.gc_mock.return_value.set_value.assert_called_once_with(config_entry, False, is_flag=True, flush=False)
 
     def test_get_all_experimental(self):
-        self.assertEqual(len(get_all_experimental()), 2)
+        self.assertEqual(len(get_all_experimental()), 3)
 
     def test_get_all_experimental_statues(self):
-        self.assertEqual(len(get_all_experimental_statues()), 2)
+        self.assertEqual(len(get_all_experimental_statues()), 3)
 
     def test_get_enabled_experimental_flags(self):
-        self.assertEqual(len(get_enabled_experimental_flags()), 2)
+        self.assertEqual(len(get_enabled_experimental_flags()), 3)
 
     @patch("samcli.commands._utils.experimental.set_experimental")
     @patch("samcli.commands._utils.experimental.get_all_experimental")
