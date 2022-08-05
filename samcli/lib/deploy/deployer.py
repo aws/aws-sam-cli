@@ -431,7 +431,10 @@ class Deployer:
                 # Reset retry attempts if iteration is a success to use client_sleep again
                 retry_attempts = 0
             except botocore.exceptions.ClientError as ex:
-                if "Stack with id {0} does not exist".format(stack_name) in str(ex) or on_failure == FailureMode.DELETE:
+                if (
+                    "Stack with id {0} does not exist".format(stack_name) in str(ex)
+                    and on_failure == FailureMode.DELETE
+                ):
                     return
 
                 retry_attempts = retry_attempts + 1
@@ -500,6 +503,7 @@ class Deployer:
         except botocore.exceptions.WaiterError as ex:
             LOG.debug("Execute stack waiter exception", exc_info=ex)
             if disable_rollback and on_failure is not FailureMode.DELETE:
+                # This will only display the message if disable rollback is set or if DO_NOTHING is specified
                 msg = self._gen_deploy_failed_with_rollback_disabled_msg(stack_name)
                 LOG.info(self._colored.red(msg))
 
@@ -511,7 +515,7 @@ class Deployer:
                 self._display_stack_outputs(outputs)
         except DeployStackOutPutFailedError as ex:
             # Show exception if we aren't deleting stacks
-            if not stack_operation == "DELETE":
+            if on_failure != FailureMode.DELETE:
                 raise ex
 
     def create_and_wait_for_changeset(
@@ -709,6 +713,7 @@ class Deployer:
 
                 # only a stack that failed to create will have stack events, deleting
                 # from a ROLLBACK_COMPLETE state will not return anything
+                # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/cloudformation.html#CloudFormation.Client.delete_stack
                 if current_state == "CREATE_FAILED":
                     self.describe_stack_events(stack_name, time.time() * 1000, FailureMode.DELETE)
 
@@ -720,6 +725,11 @@ class Deployer:
                 LOG.info("Stack %s has rolled back successfully", stack_name)
         except botocore.exceptions.ClientError as ex:
             raise DeployStackStatusMissingError(stack_name) from ex
+        except botocore.exceptions.WaiterError:
+            LOG.error(
+                "\nStack %s failed to delete properly! Please manually clean up any persistent resources.",
+                stack_name,
+            )
         except KeyError:
             LOG.info("Stack %s is not found, skipping", stack_name)
 

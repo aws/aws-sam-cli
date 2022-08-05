@@ -268,6 +268,7 @@ class DeployContext:
                         return
 
                 # Stop the rollback in the case of DO_NOTHING or if this is a new stack and DELETE is specified
+                # DO_NOTHING behaves the same disable_rollback, they both preserve the current state of the stack
                 do_disable_rollback = (
                     self.on_failure in [FailureMode.DO_NOTHING, FailureMode.DELETE] or disable_rollback
                 )
