@@ -8,6 +8,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Dict, Optional, cast
 
+from samcli.commands._utils.experimental import is_experimental_enabled, ExperimentalFlag
 from samcli.commands._utils.template import move_template
 from samcli.lib.bootstrap.nested_stack.nested_stack_builder import NestedStackBuilder
 from samcli.lib.build.app_builder import ApplicationBuildResult
@@ -158,9 +159,13 @@ class NestedStackManager:
         if layer_root_folder.exists():
             shutil.rmtree(layer_root_folder)
         layer_contents_folder = layer_root_folder.joinpath(get_layer_subfolder(function_runtime))
-        layer_contents_folder.mkdir(BUILD_DIR_PERMISSIONS, parents=True)
         if os.path.isdir(dependencies_dir):
-            osutils.copytree(dependencies_dir, str(layer_contents_folder))
+            if is_experimental_enabled(ExperimentalFlag.BuildPerformance):
+                layer_root_folder.mkdir(BUILD_DIR_PERMISSIONS, parents=True)
+                osutils.create_symlink_or_copy(dependencies_dir, str(layer_contents_folder))
+            else:
+                layer_contents_folder.mkdir(BUILD_DIR_PERMISSIONS, parents=True)
+                osutils.copytree(dependencies_dir, str(layer_contents_folder))
         NestedStackManager._add_layer_readme_info(str(layer_root_folder), function_logical_id)
         return str(layer_root_folder)
 
