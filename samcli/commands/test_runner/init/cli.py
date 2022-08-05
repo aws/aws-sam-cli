@@ -14,6 +14,7 @@ from samcli.lib.test_runner.invoke_testsuite import FargateTestsuiteRunner
 from samcli.lib.test_runner.utils import query_tagging_api, write_file
 from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config
 from samcli.lib.utils.colors import Colored
+from typing import List
 
 SHORT_HELP = "Generates a Test Runner CloudFormation Template in YAML format, as well as a resource-ARN map."
 HELP_TEXT = """
@@ -145,54 +146,56 @@ def do_cli(
     #       Until ready for public images, image URIs are supplied by option
     # image_uri = get_image_uri(runtime)
 
-    if tag_filters is not None:
-        boto_client_provider = get_boto_client_provider_with_config(region=ctx.region, profile=ctx.profile)
-        resource_arn_list = query_tagging_api(tag_filters, boto_client_provider)
-
-        if not resource_arn_list:
-            raise NoResourcesMatchGivenTagException(
-                f"Given tags `Key={tag_key},Value={tag_value}` do not match any resources, were they entered incorrectly?"
-            )
-
-        template_generator = FargateRunnerCFNTemplateGenerator(resource_arn_list)
-        arn_map_generator = FargateRunnerArnMapGenerator()
-
-        resource_arn_map_yaml_string = arn_map_generator.generate_env_vars_yaml_string(resource_arn_list)
-
-        write_file(env_file, resource_arn_map_yaml_string)
-
-        LOG.info(
-            COLOR.green(
-                f"✓ Sucessfully generated an environment variable specification file `test_runner_arn_map.yaml`.\n"
-            )
-        )
-        LOG.info(
-            COLOR.yellow(
-                "These environment variables hold the ARNs of your testable resources, and passing this file to `sam test_runner run` will make them available in the container running your tests.\n\n"
-                f"Feel free to change them, or add new variables, but keep in mind that the test runner reserves the keys {FargateTestsuiteRunner.RESERVED_ENV_VAR_NAMES}, and will throw an Exception if they are specified.\n\n"
-                "If you add new resources or change existing ones, you can use `sam test-runner get-arns` to generate an updated environment variable specification file.\n"
-            )
-        )
-    else:
+    if tag_filters is None:
         # If no tags were provided we cannot pass resource ARNs to the template generator to generate IAM statements
         # We also cannot generate a resource ARN map
-        template_generator = FargateRunnerCFNTemplateGenerator([])
-
+        _create_test_runner_template(image_uri=image_uri, template_name=template_name, resource_arn_list=[])
         LOG.info(
             COLOR.yellow(
                 "No tags were provided, so a resource-ARN map was not created. You can still specify and send environment variables to the Fargate container running your tests by "
                 "placing your desired NAME : VALUE pairs in a YAML file, and passing that YAML file to `sam test-runner run` with the --env option."
             )
         )
+        return
+
+    boto_client_provider = get_boto_client_provider_with_config(region=ctx.region, profile=ctx.profile)
+    resource_arn_list = query_tagging_api(tag_filters, boto_client_provider)
+
+    if not resource_arn_list:
+        raise NoResourcesMatchGivenTagException(
+            f"Given tags `Key={tag_key},Value={tag_value}` do not match any resources, were they entered incorrectly?"
+        )
+
+    _create_test_runner_template(image_uri, template_name, resource_arn_list)
+    _create_arn_map_file(env_file, resource_arn_list)
+
+
+def _create_arn_map_file(env_file: str, resource_arn_list: List[str]) -> None:
+    arn_map_generator = FargateRunnerArnMapGenerator()
+    resource_arn_map_yaml_string = arn_map_generator.generate_env_vars_yaml_string(resource_arn_list)
+    write_file(env_file, resource_arn_map_yaml_string)
+
+    LOG.info(
+        COLOR.green(f"✓ Sucessfully generated an environment variable specification file `test_runner_arn_map.yaml`.\n")
+    )
+    LOG.info(
+        COLOR.yellow(
+            "These environment variables hold the ARNs of your testable resources, and passing this file to `sam test_runner run` will make them available in the container running your tests.\n\n"
+            f"Feel free to change them, or add new variables, but keep in mind that the test runner reserves the keys {FargateTestsuiteRunner.RESERVED_ENV_VAR_NAMES}, and will throw an Exception if they are specified.\n\n"
+            "If you add new resources or change existing ones, you can use `sam test-runner get-arns` to generate an updated environment variable specification file.\n"
+        )
+    )
+
+
+def _create_test_runner_template(image_uri: str, template_name: str, resource_arn_list: List[str]) -> None:
+    template_generator = FargateRunnerCFNTemplateGenerator(resource_arn_list)
     test_runner_cfn_contents = template_generator.generate_test_runner_template_string(image_uri)
     write_file(template_name, test_runner_cfn_contents)
-
     LOG.info(
         COLOR.green(f"\n✓ Successfully generated a Test Runner CloudFormation Template named `{template_name}`!\n")
     )
-
-    if tag_filters:
-        # Only print this hint if the customer provided tags (and thus the corresponding resource ARN list)
+    if resource_arn_list:
+        # Only print this hint if resources were discovered and statements were generated.
         LOG.info(
             COLOR.yellow(
                 "Make sure to enable any necessary auto generated IAM actions for your resources, by removing the `#` in front of the action. For example:\n\n"
