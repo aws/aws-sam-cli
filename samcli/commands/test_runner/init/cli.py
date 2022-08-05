@@ -51,28 +51,6 @@ COLOR = Colored()
     "and a mapping between that resource name and its ARN included in the environment variable specification file.\n\n"
     "Enter as tags in the form KEY1=VALUE1 KEY2=VALUE2 ...",
 )
-# @click.option(
-#     "--tag-key",
-#     type=str,
-#     required=False,
-#     help="""
-# Specify the key of the tag used to discover resources.
-
-# Discovered resources will have IAM statement templates generated within the Test Runner CloudFormation Template,
-# and a mapping between that resource name and its ARN included in the environment variable specification file.
-# """,
-# )
-# @click.option(
-#     "--tag-value",
-#     type=str,
-#     required=False,
-#     help="""
-# Specify the value of the tag used to discover resources.
-
-# Discovered resources will have IAM statement templates generated within the Test Runner CloudFormation Template,
-# and a mapping between that resource name and its ARN included in the environment variable specification file.
-# """,
-# )
 @click.option(
     "--template-name",
     required=False,
