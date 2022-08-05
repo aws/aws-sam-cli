@@ -44,6 +44,9 @@ class ExperimentalFlag:
 
     All = ExperimentalEntry("experimentalAll", EXPERIMENTAL_ENV_VAR_PREFIX + "FEATURES")
     Esbuild = ExperimentalEntry("experimentalEsbuild", EXPERIMENTAL_ENV_VAR_PREFIX + "ESBUILD")
+    BuildPerformance = ExperimentalEntry(
+        "experimentalBuildPerformance", EXPERIMENTAL_ENV_VAR_PREFIX + "BUILD_PERFORMANCE"
+    )
 
 
 def is_experimental_enabled(config_entry: ExperimentalEntry) -> bool:
