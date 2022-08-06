@@ -5,13 +5,32 @@ from unittest.mock import Mock, patch
 import botocore.exceptions
 
 from samcli.commands.exceptions import NoResourcesMatchGivenTagException
-from samcli.commands.test_runner.init.cli import do_cli
+from samcli.commands.test_runner.init.cli import do_cli, query_tagging_api
 
 
 class TestCli(TestCase):
 
     TEST_TEMPLATE_NAME = "test-template-name"
     TEST_ENV_FILE_NAME = "test-envs"
+
+    def test_query_tagging_api(self):
+        boto_client_provider_mock = Mock()
+        tagging_api_client_mock = Mock()
+        boto_client_provider_mock.return_value = tagging_api_client_mock
+
+        sample_arn = "arn:aws:inspector:us-west-2:123456789012:target/0-nvgVhaxX/template/0-7sbz2Kz0"
+        tags = {"Key": "Environment", "Value": "Production"}
+
+        tagging_api_client_mock.get_resources.return_value = {
+            "ResourceTagMappingList": [
+                {
+                    "ResourceARN": sample_arn,
+                    "Tags": [{"Key": "Environment", "Value": "Production"}],
+                }
+            ]
+        }
+        arn_list = query_tagging_api(tags, boto_client_provider_mock)
+        self.assertEqual(arn_list, [sample_arn])
 
     def test_no_tags_provided(self):
         try:
@@ -27,7 +46,7 @@ class TestCli(TestCase):
             self.assertTrue(os.path.exists(self.TEST_TEMPLATE_NAME))
             os.remove(self.TEST_TEMPLATE_NAME)
 
-    @patch("samcli.commands.test_runner.init.cli.write_file")
+    @patch("samcli.commands.test_runner.init.cli._write_file")
     def test_template_create_failure(self, write_file_patch):
         write_file_patch.side_effect = OSError()
         with self.assertRaises(OSError):
@@ -41,7 +60,7 @@ class TestCli(TestCase):
             )
         self.assertFalse(os.path.exists(self.TEST_TEMPLATE_NAME))
 
-    @patch("samcli.commands.test_runner.init.cli.write_file")
+    @patch("samcli.commands.test_runner.init.cli._write_file")
     @patch("samcli.commands.test_runner.init.cli.query_tagging_api")
     @patch("samcli.commands.test_runner.init.cli.get_boto_client_provider_with_config")
     def test_no_resources_match_tags(self, boto_client_provider_patch, query_tagging_api_patch, write_file_patch):
@@ -62,7 +81,7 @@ class TestCli(TestCase):
 
         write_file_patch.assert_not_called()
 
-    @patch("samcli.commands.test_runner.init.cli.write_file")
+    @patch("samcli.commands.test_runner.init.cli._write_file")
     @patch("samcli.commands.test_runner.init.cli.query_tagging_api")
     @patch("samcli.commands.test_runner.init.cli.get_boto_client_provider_with_config")
     def test_failed_tagging_api_query(self, boto_client_provider_patch, query_tagging_api_patch, write_file_patch):
