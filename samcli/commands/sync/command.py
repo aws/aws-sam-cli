@@ -7,6 +7,7 @@ import click
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands._utils.cdk_support_decorators import unsupported_command_cdk
+from samcli.commands._utils.custom_options.option_help import ReplaceHelpSummaryOption
 from samcli.commands._utils.options import (
     s3_bucket_option,
     template_option_without_build,
@@ -79,7 +80,7 @@ DEFAULT_TEMPLATE_NAME = "template.yaml"
 DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 
 
-@click.command("sync", help=HELP_TEXT, short_help=SHORT_HELP)
+@click.command("sync", short_help=SHORT_HELP, help=HELP_TEXT, context_settings=dict(max_content_width=120))
 @configuration_option(provider=TomlProvider(section="parameters"))
 @template_option_without_build
 @click.option(
@@ -106,6 +107,8 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
     "--resource",
     multiple=True,
     type=click.Choice(SyncCodeResources.values(), case_sensitive=True),
+    cls=ReplaceHelpSummaryOption,
+    replace_help_option="--resource ACCEPTED_VALUE",
     help=f"Sync code for all resources of the given resource type. Accepted values are {SyncCodeResources.values()}",
 )
 @click.option(

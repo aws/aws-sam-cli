@@ -10,7 +10,7 @@ import types
 import click
 from click.types import FuncParamType
 
-from samcli.commands._utils.custom_options.option_color_help_text_required_option import RequiredOptionColorTextOption
+from samcli.commands._utils.custom_options.option_help import RequiredOptionColorTextOption
 from samcli.commands._utils.template import get_template_data, TemplateNotFoundException
 from samcli.cli.types import (
     CfnParameterOverridesType,
