@@ -149,13 +149,23 @@ class SamLayerProvider(SamBaseProvider):
             LOG.debug("--base-dir is not presented, adjusting uri %s relative to %s", codeuri, stack.location)
             codeuri = SamLocalStackProvider.normalize_resource_path(stack.location, codeuri)
 
-        # If the layer from CDK, name will be CDK resource id.
-        # Normally, LayerVersion will infer the name and layer id from the arn,
-        # but if the logical id is different from the name,
-        # specify the name and layer id in LayerVersion to use that name.
+        # LayerVersion extracts the name and layer ID from arn,
+        # but for CDK resources, must specify the CDK resource name in name
+        # and the logical ID in layer ID to support the ability to find layers by CDK resource name.
+        # Specify name and layer ID at initialization to avoid extraction from arn.
         name = ResourceMetadataNormalizer.get_resource_name(resource_properties, layer_logical_id)
-        name = name if name != layer_logical_id else None
-        layer_id = layer_logical_id if name is not None else None
+        is_cdk_resource = name != layer_logical_id
+        if is_cdk_resource:
+            return LayerVersion(
+                arn=layer_logical_id,
+                codeuri=codeuri,
+                compatible_runtimes=compatible_runtimes,
+                metadata=metadata,
+                compatible_architectures=compatible_architectures,
+                stack_path=stack.stack_path,
+                layer_id=layer_logical_id,
+                name=name,
+            )
 
         return LayerVersion(
             arn=layer_logical_id,
@@ -164,6 +174,4 @@ class SamLayerProvider(SamBaseProvider):
             metadata=metadata,
             compatible_architectures=compatible_architectures,
             stack_path=stack.stack_path,
-            layer_id=layer_id,
-            name=name,
         )
