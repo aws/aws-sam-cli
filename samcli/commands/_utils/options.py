@@ -10,6 +10,7 @@ import types
 import click
 from click.types import FuncParamType
 
+from samcli.commands._utils.custom_options.option_color_help_text_required_option import RequiredOptionColorTextOption
 from samcli.commands._utils.template import get_template_data, TemplateNotFoundException
 from samcli.cli.types import (
     CfnParameterOverridesType,
@@ -22,6 +23,7 @@ from samcli.cli.types import (
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 from samcli.commands._utils.template import get_template_artifacts_format
 from samcli.lib.observability.util import OutputOption
+from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml|json]"
@@ -462,6 +464,7 @@ def stack_name_click_option(required, callback):
         "--stack-name",
         required=required,
         callback=callback,
+        cls=RequiredOptionColorTextOption,
         help="The name of the AWS CloudFormation stack you're deploying to. "
         "If you specify an existing stack, the command updates the stack. "
         "If you specify a new stack, the command creates it.",
