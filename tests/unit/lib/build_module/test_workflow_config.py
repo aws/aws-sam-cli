@@ -109,9 +109,8 @@ class Test_get_workflow_config(TestCase):
         self.assertEqual(result.application_framework, None)
         self.assertEqual(result.manifest_name, "package.json")
         self.assertIsNone(result.executable_search_paths)
-        self.assertEqual(len(EventTracker.get_tracked_events()), 2)
+        self.assertEqual(len(EventTracker.get_tracked_events()), 1)
         self.assertIn(Event("WorkflowUsed", "nodejs-npm-esbuild"), EventTracker.get_tracked_events())
-        self.assertIn(Event("UsedFeature", "ESBuild"), EventTracker.get_tracked_events())
 
     @parameterized.expand([("java8", "unknown.manifest")])
     @patch("samcli.lib.build.workflow_config.os")
