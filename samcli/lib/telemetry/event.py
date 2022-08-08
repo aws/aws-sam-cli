@@ -8,6 +8,7 @@ import logging
 import threading
 from typing import List
 
+from samcli.lib.build.workflows import ALL_CONFIGS
 from samcli.lib.telemetry.telemetry import Telemetry
 from samcli.local.common.runtime_template import INIT_RUNTIMES
 
@@ -19,11 +20,11 @@ class EventName(Enum):
     """Enum for the names of available events to track."""
 
     USED_FEATURE = "UsedFeature"
-    DEPLOY = "Deploy"
     BUILD_FUNCTION_RUNTIME = "BuildFunctionRuntime"
     SYNC_USED = "SyncUsed"
     SYNC_FLOW_START = "SyncFlowStart"
     SYNC_FLOW_END = "SyncFlowEnd"
+    BUILD_WORKFLOW_USED = "BuildWorkflowUsed"
 
 
 class EventType:
@@ -43,17 +44,11 @@ class EventType:
         "StepFunctionsSyncFlow",
         "ZipFunctionSyncFlow",
     ]
+    _WORKFLOWS = [f"{config.language}-{config.dependency_manager}" for config in ALL_CONFIGS]
     _events = {
         EventName.USED_FEATURE: [
-            "ESBuild",
             "Accelerate",
             "CDK",
-        ],
-        EventName.DEPLOY: [
-            "CreateChangeSetStart",
-            "CreateChangeSetInProgress",
-            "CreateChangeSetFailed",
-            "CreateChangeSetSuccess",
         ],
         EventName.BUILD_FUNCTION_RUNTIME: INIT_RUNTIMES,
         EventName.SYNC_USED: [
@@ -62,6 +57,7 @@ class EventType:
         ],
         EventName.SYNC_FLOW_START: _SYNC_FLOWS,
         EventName.SYNC_FLOW_END: _SYNC_FLOWS,
+        EventName.BUILD_WORKFLOW_USED: _WORKFLOWS,
     }
 
     @staticmethod

@@ -69,6 +69,9 @@ class TestEventCreation(TestCase):
 
 
 class TestEventTracker(TestCase):
+    def setUp(self):
+        EventTracker.clear_trackers()
+
     @patch("samcli.lib.telemetry.event.EventTracker._event_lock")
     @patch("samcli.lib.telemetry.event.Event")
     def test_track_event(self, event_mock, lock_mock):
