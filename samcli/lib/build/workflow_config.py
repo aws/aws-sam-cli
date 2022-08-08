@@ -208,7 +208,7 @@ def get_workflow_config(
         # Identify workflow configuration from the workflow selector.
         config = cast(WorkFlowSelector, selector).get_config(code_dir, project_dir)
 
-        EventTracker.track_event("WorkflowUsed", f"{config.language}-{config.dependency_manager}")
+        EventTracker.track_event("BuildWorkflowUsed", f"{config.language}-{config.dependency_manager}")
 
         return config
     except ValueError as ex:

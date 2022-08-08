@@ -24,7 +24,7 @@ class EventName(Enum):
     SYNC_USED = "SyncUsed"
     SYNC_FLOW_START = "SyncFlowStart"
     SYNC_FLOW_END = "SyncFlowEnd"
-    WORKFLOW_USED = "WorkflowUsed"
+    BUILD_WORKFLOW_USED = "BuildWorkflowUsed"
 
 
 class EventType:
@@ -57,7 +57,7 @@ class EventType:
         ],
         EventName.SYNC_FLOW_START: _SYNC_FLOWS,
         EventName.SYNC_FLOW_END: _SYNC_FLOWS,
-        EventName.WORKFLOW_USED: _WORKFLOWS,
+        EventName.BUILD_WORKFLOW_USED: _WORKFLOWS,
     }
 
     @staticmethod
