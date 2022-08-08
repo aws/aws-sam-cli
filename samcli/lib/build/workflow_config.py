@@ -209,8 +209,6 @@ def get_workflow_config(
         config = cast(WorkFlowSelector, selector).get_config(code_dir, project_dir)
 
         EventTracker.track_event("WorkflowUsed", f"{config.language}-{config.dependency_manager}")
-        if config.dependency_manager == "npm-esbuild":
-            EventTracker.track_event("UsedFeature", "ESBuild")
 
         return config
     except ValueError as ex:

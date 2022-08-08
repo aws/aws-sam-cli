@@ -47,7 +47,6 @@ class EventType:
     _WORKFLOWS = [f"{config.language}-{config.dependency_manager}" for config in ALL_CONFIGS]
     _events = {
         EventName.USED_FEATURE: [
-            "ESBuild",
             "Accelerate",
             "CDK",
         ],
