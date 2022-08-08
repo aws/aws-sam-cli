@@ -42,8 +42,8 @@ class TestCli(TestCase):
                 image_uri="test_image_uri",
                 runtime="python3.8",
             )
-        finally:
             self.assertTrue(os.path.exists(self.TEST_TEMPLATE_NAME))
+        finally:
             os.remove(self.TEST_TEMPLATE_NAME)
 
     @patch("samcli.commands.test_runner.init.cli._write_file")
@@ -125,8 +125,8 @@ class TestCli(TestCase):
                 image_uri="test_image_uri",
                 runtime="python3.8",
             )
-        finally:
             self.assertTrue(os.path.exists(self.TEST_TEMPLATE_NAME))
             self.assertTrue(os.path.exists(self.TEST_ENV_FILE_NAME))
+        finally:
             os.remove(self.TEST_TEMPLATE_NAME)
             os.remove(self.TEST_ENV_FILE_NAME)
