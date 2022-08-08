@@ -1,8 +1,7 @@
 from typing import List
 
-import yaml
-
 from samcli.commands.exceptions import FailedArnParseException
+from samcli.yamlhelper import yaml_dump
 
 
 class FargateRunnerArnMapGenerator:
@@ -112,4 +111,4 @@ class FargateRunnerArnMapGenerator:
             env_var_name = self._get_env_var_name(arn)
             env_vars_map[env_var_name] = arn
 
-        return yaml.safe_dump(env_vars_map)
+        return yaml_dump(env_vars_map)

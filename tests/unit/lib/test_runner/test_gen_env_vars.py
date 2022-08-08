@@ -1,8 +1,10 @@
-import yaml
-from parameterized import parameterized
 from unittest import TestCase
-from samcli.lib.test_runner.generate_env_vars import FargateRunnerArnMapGenerator
+
+from parameterized import parameterized
+
 from samcli.commands.exceptions import FailedArnParseException
+from samcli.lib.test_runner.generate_env_vars import FargateRunnerArnMapGenerator
+from samcli.yamlhelper import yaml_parse
 
 
 class Test_GenEnvVars(TestCase):
@@ -33,7 +35,7 @@ class Test_GenEnvVars(TestCase):
     def test_get_env_var_name(self, arn, expected_name):
         expected_object = {expected_name: arn}
         output_yaml = self.arn_map_generator.generate_env_vars_yaml_string([arn])
-        self.assertEqual(yaml.safe_load(output_yaml), expected_object)
+        self.assertEqual(yaml_parse(output_yaml), expected_object)
 
     def test_bad_arn(self):
         bad_arn = "arn:aws:resource:bad"

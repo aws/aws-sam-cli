@@ -62,7 +62,7 @@ class TestCli(TestCase):
 
     @patch("samcli.commands.test_runner.init.cli._write_file")
     @patch("samcli.commands.test_runner.init.cli.query_tagging_api")
-    @patch("samcli.commands.test_runner.init.cli.get_boto_client_provider_with_config")
+    @patch("samcli.lib.utils.boto_utils.get_boto_client_provider_with_config")
     def test_no_resources_match_tags(self, boto_client_provider_patch, query_tagging_api_patch, write_file_patch):
         mock_ctx = Mock()
         mock_ctx.region = "test-region"
@@ -83,7 +83,7 @@ class TestCli(TestCase):
 
     @patch("samcli.commands.test_runner.init.cli._write_file")
     @patch("samcli.commands.test_runner.init.cli.query_tagging_api")
-    @patch("samcli.commands.test_runner.init.cli.get_boto_client_provider_with_config")
+    @patch("samcli.lib.utils.boto_utils.get_boto_client_provider_with_config")
     def test_failed_tagging_api_query(self, boto_client_provider_patch, query_tagging_api_patch, write_file_patch):
         mock_ctx = Mock()
         mock_ctx.region = "test-region"
@@ -108,7 +108,7 @@ class TestCli(TestCase):
         write_file_patch.assert_not_called()
 
     @patch("samcli.commands.test_runner.init.cli.query_tagging_api")
-    @patch("samcli.commands.test_runner.init.cli.get_boto_client_provider_with_config")
+    @patch("samcli.lib.utils.boto_utils.get_boto_client_provider_with_config")
     def test_valid_tagging_api_response(self, boto_client_provider_patch, query_tagging_api_patch):
         mock_ctx = Mock()
         mock_ctx.region = "test-region"

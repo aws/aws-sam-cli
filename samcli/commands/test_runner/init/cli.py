@@ -9,11 +9,7 @@ import click
 from samcli.cli.main import pass_context
 from samcli.cli.types import CfnTags
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
-from samcli.commands.exceptions import NoResourcesMatchGivenTagException
-from samcli.lib.test_runner.generate_env_vars import FargateRunnerArnMapGenerator
-from samcli.lib.test_runner.invoke_testsuite import FargateTestsuiteRunner
-from samcli.lib.test_runner.test_runner_template_generator import FargateRunnerCFNTemplateGenerator
-from samcli.lib.utils.boto_utils import BotoProviderType, get_boto_client_provider_with_config
+from samcli.lib.utils.boto_utils import BotoProviderType
 from samcli.lib.utils.colors import Colored
 
 SHORT_HELP = "Generates a Test Runner CloudFormation Template in YAML format, as well as a resource-ARN map."
@@ -113,6 +109,9 @@ def do_cli(
     """
     implementation of the `sam test-runner init` command
     """
+    from samcli.commands.exceptions import NoResourcesMatchGivenTagException
+    from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config
+
     # TODO: When ready, public ECR repositories will be created holding images capable of running tests for each available runtime.
     #       Until ready for public images, image URIs are supplied by option
     # image_uri = get_image_uri(runtime)
@@ -142,6 +141,9 @@ def do_cli(
 
 
 def _create_arn_map_file(env_file: str, resource_arn_list: List[str]) -> None:
+    from samcli.lib.test_runner.generate_env_vars import FargateRunnerArnMapGenerator
+    from samcli.lib.test_runner.invoke_testsuite import FargateTestsuiteRunner
+
     arn_map_generator = FargateRunnerArnMapGenerator()
     resource_arn_map_yaml_string = arn_map_generator.generate_env_vars_yaml_string(resource_arn_list)
     _write_file(env_file, resource_arn_map_yaml_string)
@@ -159,6 +161,8 @@ def _create_arn_map_file(env_file: str, resource_arn_list: List[str]) -> None:
 
 
 def _create_test_runner_template(image_uri: str, template_name: str, resource_arn_list: List[str]) -> None:
+    from samcli.lib.test_runner.test_runner_template_generator import FargateRunnerCFNTemplateGenerator
+
     template_generator = FargateRunnerCFNTemplateGenerator(resource_arn_list)
     test_runner_cfn_contents = template_generator.generate_test_runner_template_string(image_uri)
     _write_file(template_name, test_runner_cfn_contents)
