@@ -1,8 +1,9 @@
 """
 Kicks off a testsuite in a Fargate container
 """
-from typing import List
 import logging
+from typing import List
+
 from samcli.commands.exceptions import InvalidEnvironmentVariableNameException, ReservedEnvironmentVariableException
 from samcli.lib.utils.colors import Colored
 
@@ -10,6 +11,10 @@ LOG = logging.getLogger(__name__)
 
 
 class FargateTestsuiteRunner:
+
+    # Keep reserved names in one place so that we don't have to change info messages that inform customers of said reserved names
+    RESERVED_ENV_VAR_NAMES = {"TEST_RUNNER_BUCKET", "TEST_COMMAND_OPTIONS", "TEST_RUN_ID"}
+
     def __init__(self, boto_ecs_client, boto_s3_client, color=Colored()):
         self.boto_ecs_client = boto_ecs_client
         self.boto_s3_client = boto_s3_client
@@ -84,7 +89,7 @@ class FargateTestsuiteRunner:
 
         reserved_vars = []
         for key in other_env_vars.keys():
-            if key in container_env_vars.keys():
+            if key in self.RESERVED_ENV_VAR_NAMES:
                 reserved_vars.append(key)
             if not str.isidentifier(key):
                 raise InvalidEnvironmentVariableNameException(f"{key} is not a valid environment variable name.")

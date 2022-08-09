@@ -25,7 +25,7 @@ class Test_InvokeTestsuite(TestCase):
         with self.assertRaises(InvalidEnvironmentVariableNameException):
             self.runner.invoke_testsuite(**self.params)
 
-    @parameterized.expand(["TEST_RUNNER_BUCKET", "TEST_RUN_ID", "TEST_COMMAND_OPTIONS"])
+    @parameterized.expand(list(FargateTestsuiteRunner.RESERVED_ENV_VAR_NAMES))
     def test_reserved_name_specified(self, reserved_name: str):
         self.params["other_env_vars"] = {reserved_name: "oh-no"}
         with self.assertRaises(ReservedEnvironmentVariableException):
