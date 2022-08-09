@@ -39,7 +39,7 @@ class TestableResourcesToTableMapper(Mapper):
                 {
                     "Resource ID": "Resource ID",
                     "Physical ID": "Physical ID",
-                    "Cloud Endpoint/FURL": "Cloud Endpoint/FURL",
+                    "Cloud Endpoint/FURL": "Cloud Endpoint/Function URL",
                     "Methods": "Methods",
                 }
             ),
