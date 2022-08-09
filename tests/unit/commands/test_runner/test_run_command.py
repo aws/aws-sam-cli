@@ -1,0 +1,110 @@
+import os
+from unittest import TestCase
+from unittest.mock import Mock, patch
+from parameterized import parameterized
+from samcli.commands.exceptions import InvalidEnvironmentVariableException
+from samcli.commands.exceptions import ReservedEnvironmentVariableException
+from samcli.lib.test_runner.fargate_testsuite_runner import FargateTestsuiteRunner
+from samcli.commands.test_runner.run.cli import _validate_other_env_vars, do_cli
+
+
+class TestEnvVarValidation(TestCase):
+    def test_invalid_var_names(self):
+        other_env_vars = {r"0variable_name": "value", r"\othervariable_name": "othervalue"}
+        with self.assertRaises(InvalidEnvironmentVariableException):
+            _validate_other_env_vars(other_env_vars, FargateTestsuiteRunner.RESERVED_ENV_VAR_NAMES)
+
+    def test_none_value(self):
+        other_env_vars = {"key": None}
+        with self.assertRaises(InvalidEnvironmentVariableException):
+            _validate_other_env_vars(other_env_vars, FargateTestsuiteRunner.RESERVED_ENV_VAR_NAMES)
+
+    def test_object_value(self):
+        other_env_vars = {"key": {"otherkey": "otherval"}}
+        with self.assertRaises(InvalidEnvironmentVariableException):
+            _validate_other_env_vars(other_env_vars, FargateTestsuiteRunner.RESERVED_ENV_VAR_NAMES)
+
+    def test_list_value(self):
+        other_env_vars = {"key": [1, 2, 3]}
+        with self.assertRaises(InvalidEnvironmentVariableException):
+            _validate_other_env_vars(other_env_vars, FargateTestsuiteRunner.RESERVED_ENV_VAR_NAMES)
+
+    @parameterized.expand(list(FargateTestsuiteRunner.RESERVED_ENV_VAR_NAMES))
+    def test_reserved_name_specified(self, reserved_name):
+        other_env_vars = {reserved_name: "oh-no"}
+        with self.assertRaises(ReservedEnvironmentVariableException):
+            _validate_other_env_vars(other_env_vars, FargateTestsuiteRunner.RESERVED_ENV_VAR_NAMES)
+
+    def test_empty_env_vars(self):
+        _validate_other_env_vars({}, FargateTestsuiteRunner.RESERVED_ENV_VAR_NAMES)
+
+    def test_valid_env_vars(self):
+        other_env_vars = {"key1": 5, "key2": 3.14, "key3": "this is a string"}
+        _validate_other_env_vars(other_env_vars, FargateTestsuiteRunner.RESERVED_ENV_VAR_NAMES)
+
+
+class TestCli(TestCase):
+    def setUp(self):
+        mock_context = Mock()
+        mock_context.profile = "test-profile"
+        mock_context.region = "test-region"
+        self.do_cli_params = {
+            "ctx": mock_context,
+            "runner_stack_name": "test-stack-name",
+            "runner_template_path": "fake/path/template.yaml",
+            "env_file": "fake/path/env_vars.yaml",
+            "test_command_options": "--option",
+            "tests_path": "fake/path/tests",
+            "requirements_file_path": "fake/path/requirements.txt",
+            "bucket_override": None,
+            "path_in_bucket": "fake/path/in/bucket",
+            "ecs_cluster_override": None,
+            "subnets_override": None,
+        }
+
+    def test_bad_yaml_file(self):
+        temp_yaml_name = "test-yaml-file.yaml"
+        with open(temp_yaml_name, "w") as f:
+            f.write("KEYnovalue")
+
+        self.do_cli_params["env_file"] = temp_yaml_name
+        try:
+            with self.assertRaises(ValueError):
+                do_cli(**self.do_cli_params)
+        finally:
+            os.remove(temp_yaml_name)
+
+    @patch("samcli.lib.test_runner.fargate_testsuite_runner.FargateTestsuiteRunner")
+    @patch("samcli.lib.utils.boto_utils.get_boto_client_provider_with_config")
+    def test_good_run(self, get_boto_client_provider_patch, FargateTestsuiteRunnerPatch):
+        temp_yaml_name = "test-good-yaml.yaml"
+        with open(temp_yaml_name, "w") as f:
+            f.write("KEY1: VALUE1")
+
+        try:
+            self.do_cli_params["env_file"] = temp_yaml_name
+            boto_client_provider_mock = Mock()
+            get_boto_client_provider_patch.return_value = boto_client_provider_mock
+            runnerMock = Mock()
+            runnerMock.do_testsuite = Mock()
+            FargateTestsuiteRunnerPatch.return_value = runnerMock
+
+            do_cli(**self.do_cli_params)
+
+            get_boto_client_provider_patch.assert_called_with(region="test-region", profile="test-profile")
+            FargateTestsuiteRunnerPatch.assert_called_with(
+                boto_client_provider=boto_client_provider_mock,
+                runner_stack_name=self.do_cli_params["runner_stack_name"],
+                tests_path=self.do_cli_params["tests_path"],
+                requirements_file_path=self.do_cli_params["requirements_file_path"],
+                path_in_bucket=self.do_cli_params["path_in_bucket"],
+                other_env_vars={"KEY1": "VALUE1"},
+                bucket_override=self.do_cli_params["bucket_override"],
+                ecs_cluster_override=self.do_cli_params["ecs_cluster_override"],
+                subnets_override=self.do_cli_params["subnets_override"],
+                test_command_options=self.do_cli_params["test_command_options"],
+                runner_template_path=self.do_cli_params["runner_template_path"],
+            )
+            runnerMock.do_testsuite.assert_called_once()
+        finally:
+            os.remove(temp_yaml_name)
