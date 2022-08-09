@@ -225,6 +225,27 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
             self.function1_2.get_build_dir(given_build_dir),
         )
 
+    @patch("samcli.lib.build.build_strategy.is_experimental_enabled")
+    def test_dedup_build_functions_with_symlink(self, patched_is_experimental, mock_copy_tree):
+        patched_is_experimental.return_value = True
+        given_build_function = Mock()
+        given_build_function.inlinecode = None
+        given_build_layer = Mock()
+        given_build_dir = "build_dir"
+        default_build_strategy = DefaultBuildStrategy(
+            self.build_graph, given_build_dir, given_build_function, given_build_layer
+        )
+
+        build_result = default_build_strategy.build()
+        # with 22 build improvements, functions with same build definitions should point to same artifact folder
+        self.assertEqual(
+            build_result.get(self.function_build_definition1.functions[0].full_path),
+            build_result.get(self.function_build_definition1.functions[1].full_path),
+        )
+
+        # assert that copy operation is not called
+        mock_copy_tree.assert_not_called()
+
     def test_build_single_function_definition_image_functions_with_same_metadata(self, mock_copy_tree):
         given_build_function = Mock()
         built_image = Mock()
@@ -342,6 +363,86 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
             cached_build_strategy.build_single_function_definition(build_definition)
             cached_build_strategy.build_single_layer_definition(layer_definition)
             self.assertEqual(copytree_mock.call_count, 3)
+
+    @parameterized.expand([(True,), (False,)])
+    @patch("samcli.lib.build.build_strategy.osutils.copytree")
+    @patch("samcli.lib.build.build_strategy.pathlib.Path.exists")
+    @patch("samcli.lib.build.build_strategy.dir_checksum")
+    @patch("samcli.lib.utils.osutils.os")
+    @patch("samcli.lib.build.build_strategy.is_experimental_enabled")
+    def test_if_cached_valid_when_build_single_function_definition_with_build_improvements_22(
+        self, should_raise_os_error, patch_is_experimental, patch_os, dir_checksum_mock, exists_mock, copytree_mock
+    ):
+        patch_is_experimental.return_value = True
+        if should_raise_os_error:
+            patch_os.symlink.side_effect = OSError()
+        with osutils.mkdir_temp() as temp_base_dir:
+            build_dir = Path(temp_base_dir, ".aws-sam", "build")
+            build_dir.mkdir(parents=True)
+            cache_dir = Path(temp_base_dir, ".aws-sam", "cache")
+            cache_dir.mkdir(parents=True)
+
+            exists_mock.return_value = True
+            dir_checksum_mock.return_value = CachedBuildStrategyTest.SOURCE_HASH
+
+            build_graph_path = Path(build_dir.parent, "build.toml")
+            build_graph_path.write_text(CachedBuildStrategyTest.BUILD_GRAPH_CONTENTS)
+            build_graph = BuildGraph(str(build_dir))
+            cached_build_strategy = CachedBuildStrategy(
+                build_graph, DefaultBuildStrategy, temp_base_dir, build_dir, cache_dir
+            )
+            func1 = Mock()
+            func1.name = "func1_name"
+            func1.full_path = "func1_full_path"
+            func1.inlinecode = None
+            func1.get_build_dir.return_value = "func1/build/dir"
+            func2 = Mock()
+            func2.name = "func2_name"
+            func2.full_path = "func2_full_path"
+            func2.inlinecode = None
+            build_definition = build_graph.get_function_build_definitions()[0]
+            layer_definition = build_graph.get_layer_build_definitions()[0]
+            build_graph.put_function_build_definition(build_definition, func1)
+            build_graph.put_function_build_definition(build_definition, func2)
+            layer = Mock()
+            layer.name = "layer_name"
+            layer.full_path = "layer_full_path"
+            layer.get_build_dir.return_value = "layer/build/dir"
+            build_graph.put_layer_build_definition(layer_definition, layer)
+            cached_build_strategy.build_single_function_definition(build_definition)
+            cached_build_strategy.build_single_layer_definition(layer_definition)
+
+            if should_raise_os_error:
+                copytree_mock.assert_has_calls(
+                    [
+                        call(
+                            str(cache_dir.joinpath(build_graph.get_function_build_definitions()[0].uuid)),
+                            build_graph.get_function_build_definitions()[0].functions[0].get_build_dir(build_dir),
+                        ),
+                        call(
+                            str(cache_dir.joinpath(build_graph.get_layer_build_definitions()[0].uuid)),
+                            build_graph.get_layer_build_definitions()[0].layer.get_build_dir(build_dir),
+                        ),
+                    ]
+                )
+            else:
+                copytree_mock.assert_not_called()
+                patch_os.symlink.assert_has_calls(
+                    [
+                        call(
+                            cache_dir.joinpath(build_graph.get_function_build_definitions()[0].uuid),
+                            Path(
+                                build_graph.get_function_build_definitions()[0].functions[0].get_build_dir(build_dir)
+                            ).absolute(),
+                        ),
+                        call(
+                            cache_dir.joinpath(build_graph.get_layer_build_definitions()[0].uuid),
+                            Path(
+                                build_graph.get_layer_build_definitions()[0].layer.get_build_dir(build_dir)
+                            ).absolute(),
+                        ),
+                    ]
+                )
 
     @patch("samcli.lib.build.build_strategy.osutils.copytree")
     @patch("samcli.lib.build.build_strategy.DefaultBuildStrategy.build_single_function_definition")
