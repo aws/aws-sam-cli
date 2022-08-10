@@ -239,7 +239,7 @@ class CfnTags(click.ParamType):
 
         return result
 
-    def _add_value(self, result, key, new_value):
+    def _add_value(self, result : dict, key : str, new_value : str):
         """
         Add a given value to a given key in the result map.
         """
