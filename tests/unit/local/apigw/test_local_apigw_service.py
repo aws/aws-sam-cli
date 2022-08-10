@@ -449,15 +449,15 @@ class TestApiGatewayService(TestCase):
         self.api_service._parse_v1_payload_format_lambda_output = parse_output_mock
 
         request_mock.endpoint = "test"
-        request_mock.host = request_mock.remote_addr =  "test"
+        request_mock.host = request_mock.remote_addr = "test"
         request_mock.method = "POST"
-        request_mock.path = '/'
-        request_mock.scheme = 'http'
+        request_mock.path = "/"
+        request_mock.scheme = "http"
         request_mock.environ = request_mock.view_args = {}
         request_mock.headers = Headers({"Content-Encoding": "gzip"})
         request_mock.stream = io.BytesIO(gzip.compress(b"Hello world!"))
         request_mock.get_data = lambda: request_mock.stream.read()  # replicates werkzeug.wrappers.Request.get_data
-        
+
         result = self.api_service._request_handler()
         self.assertEqual(result.status_code, 200)
 
@@ -479,15 +479,15 @@ class TestApiGatewayService(TestCase):
         service_error_responses_patch.lambda_failure_response.return_value = failure_response_mock
 
         request_mock.endpoint = "test"
-        request_mock.host = request_mock.remote_addr =  "test"
+        request_mock.host = request_mock.remote_addr = "test"
         request_mock.method = "POST"
-        request_mock.path = '/'
-        request_mock.scheme = 'http'
+        request_mock.path = "/"
+        request_mock.scheme = "http"
         request_mock.environ = request_mock.view_args = {}
         request_mock.headers = Headers({"Content-Encoding": "gzip"})
         request_mock.stream = io.BytesIO(b"INVALID COMPRESSED DATA")
         request_mock.get_data = lambda: request_mock.stream.read()  # replicates werkzeug.wrappers.Request.get_data
-        
+
         result = self.api_service._request_handler()
         self.assertEqual(result, failure_response_mock)
 
