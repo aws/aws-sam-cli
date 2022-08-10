@@ -8,6 +8,7 @@ import logging
 import threading
 from typing import List
 
+from samcli.cli.context import Context
 from samcli.lib.build.workflows import ALL_CONFIGS
 from samcli.lib.telemetry.telemetry import Telemetry
 from samcli.local.common.runtime_template import INIT_RUNTIMES
@@ -121,6 +122,7 @@ class EventTracker:
 
     _events: List[Event] = []
     _event_lock = threading.Lock()
+    _session_id = None
 
     MAX_EVENTS: int = 50  # Maximum number of events to store before sending
 
@@ -156,6 +158,12 @@ class EventTracker:
             should_send: bool = False
             with EventTracker._event_lock:
                 EventTracker._events.append(Event(event_name, event_value))
+                # Get the session ID (needed for multithreading sending)
+                if not EventTracker._session_id:
+                    try:
+                        EventTracker._session_id = Context.get_current_context().session_id
+                    except RuntimeError:
+                        pass
                 if len(EventTracker._events) >= EventTracker.MAX_EVENTS:
                     should_send = True
             if should_send:
@@ -198,6 +206,7 @@ class EventTracker:
 
         telemetry = Telemetry()
         metric = Metric("events")
+        metric.add_data("sessionId", EventTracker._session_id)
         metric.add_data("metricSpecificAttributes", msa)
         telemetry.emit(metric)
 
