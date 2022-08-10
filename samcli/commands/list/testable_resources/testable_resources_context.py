@@ -13,9 +13,27 @@ LOG = logging.getLogger(__name__)
 
 
 class TestableResourcesContext(ListContext):
+    """
+    Context class for testable resources
+    """
+
     def __init__(
         self, stack_name: str, output: str, region: Optional[str], profile: Optional[str], template_file: Optional[str]
     ):
+        """
+        Parameters
+        ----------
+        stack_name: str
+            The name of the stack
+        output: str
+            The format of the output, either json or table
+        region: Optional[str]
+            The region of the stack
+        profile: Optional[str]
+            Optional profile to be used
+        template_file: Optional[str]
+            The location of the template file. If one is not specified, the default will be "template.yaml" in the CWD
+        """
         super().__init__()
         self.stack_name = stack_name
         self.output = output

@@ -56,6 +56,32 @@ class TestableResourcesProducer(ResourceMappingProducer, Producer):
         mapper,
         consumer,
     ):
+        """
+        Parameters
+        ----------
+        stack_name: str
+            The name of the stack
+        region: Optional[str]
+            The region of the stack
+        profile: Optional[str]
+            Optional profile to be used
+        template_file: Optional[str]
+            The location of the template file. If one is not specified, the default will be "template.yaml" in the CWD
+        cloudformation_client: CloudFormation
+            The CloudFormation client
+        iam_client: IAM
+            The IAM client
+        cloudcontrol_client: CloudControl
+            The CloudControl client
+        apigateway_client: APIGateway
+            The APIGateway client
+        apigatewayv2_client: APIGatewayV2
+            The APIGatewayV2 client
+        mapper: Mapper
+            The mapper used to map data to the format needed for the consumer provided
+        consumer: ListInfoPullerConsumer
+            The consumer used to output the data
+        """
         super().__init__(
             stack_name, region, profile, template_file, cloudformation_client, iam_client, mapper, consumer
         )
@@ -165,6 +191,37 @@ class TestableResourcesProducer(ResourceMappingProducer, Producer):
             api_list.append(f"https://{physical_id}.execute-api.{self.region}.amazonaws.com/{stage}")
         return api_list
 
+    def get_api_gateway_endpoint(
+        self, deployed_resource: Dict[Any, Any], custom_domain_substitute_dict: Dict[Any, Any]
+    ) -> Any:
+        """
+        Gets the API gateway endpoints for APIGateway and APIGatewayV2 APIs
+
+        Parameters
+        ----------
+        deployed_resource: Dict[Any, Any]
+            Dictionary containing the resource info of the deployed API
+        custom_domain_substitute_dict: Dict[Any, Any]
+            Dictionary containing the mappings of the custom domains for APIs
+
+        Returns
+        -------
+        endpoint: Any
+            The endpoint(s) of the current API resource
+        """
+        endpoint: Any
+        stages = self.get_stage_list(
+            deployed_resource.get(PHYSICAL_RESOURCE_ID, ""),
+            get_api_type_enum(deployed_resource.get(RESOURCE_TYPE, "")),
+        )
+        if deployed_resource.get(LOGICAL_RESOURCE_ID, "") in custom_domain_substitute_dict:
+            endpoint = custom_domain_substitute_dict.get(
+                deployed_resource.get(LOGICAL_RESOURCE_ID, ""), "-"
+            )
+        else:
+            endpoint = self.build_api_gw_endpoints(deployed_resource.get(PHYSICAL_RESOURCE_ID, ""), stages)
+        return endpoint
+
     def get_cloud_testable_resources(self, stacks: list) -> list:
         """
         Gets a list of cloud testable resources
@@ -197,18 +254,9 @@ class TestableResourcesProducer(ResourceMappingProducer, Producer):
                     endpoint_function_url = self.get_function_url(deployed_resource.get(PHYSICAL_RESOURCE_ID, ""))
 
                 elif deployed_resource.get(RESOURCE_TYPE, "") in ("AWS::ApiGateway::RestApi", "AWS::ApiGatewayV2::Api"):
-                    stages = self.get_stage_list(
-                        deployed_resource.get(PHYSICAL_RESOURCE_ID, ""),
-                        get_api_type_enum(deployed_resource.get(RESOURCE_TYPE, "")),
+                    endpoint_function_url = self.get_api_gateway_endpoint(
+                        deployed_resource, custom_domain_substitute_dict
                     )
-                    if deployed_resource.get(LOGICAL_RESOURCE_ID, "") in custom_domain_substitute_dict:
-                        endpoint_function_url = custom_domain_substitute_dict.get(
-                            deployed_resource.get(LOGICAL_RESOURCE_ID, ""), "-"
-                        )
-                    else:
-                        endpoint_function_url = self.build_api_gw_endpoints(
-                            deployed_resource.get(PHYSICAL_RESOURCE_ID, ""), stages
-                        )
                     paths_and_methods = get_methods_and_paths(
                         deployed_resource.get(LOGICAL_RESOURCE_ID, ""), local_stack
                     )

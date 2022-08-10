@@ -13,7 +13,27 @@ from samcli.lib.list.list_interfaces import ProducersEnum, Mapper
 
 
 class MapperConsumerFactory(MapperConsumerFactoryInterface):
+    """
+    Factory class to create factory objects that map a given producer and output format to a mapper and a consumer
+    """
+
     def create(self, producer: ProducersEnum, output: str) -> MapperConsumerContainer:
+        """
+        Creates a MapperConsumerContainer that contains the resulting mapper and consumer given
+        the producer and output format
+
+        Parameters
+        ----------
+        producer: ProducersEnum
+            An enum representing the producers (stack-outputs, resources, or testable-resources producer)
+        output: str
+            The output format, either json or table
+
+        Returns
+        -------
+        container: MapperConsumerContainer
+            A MapperConsumerContainer containing the resulting mapper and consumer to be used by the producer
+        """
         if output == "json":
             data_to_json_mapper = DataToJsonMapper()
             json_consumer = StringConsumerJsonOutput()

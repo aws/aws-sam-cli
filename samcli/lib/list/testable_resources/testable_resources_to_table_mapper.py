@@ -7,7 +7,25 @@ from samcli.lib.list.list_interfaces import Mapper
 
 
 class TestableResourcesToTableMapper(Mapper):
+    """
+    Mapper class for mapping testable-resources data for table output
+    """
+
     def map(self, data: list) -> Dict[Any, Any]:
+        """
+        Maps data to the format needed for consumption by the table consumer
+
+        Parameters
+        ----------
+        data: list
+            List of dictionaries containing the entries of the testable resources data
+
+        Returns
+        -------
+        table_data: Dict[Any, Any]
+            Dictionary containing the information and data needed for the table consumer
+            to output the data in table format
+        """
         entry_list = []
         for testable_resource in data:
             cloud_endpoint_furl_string = testable_resource.get("CloudEndpointOrFunctionURL", "-")
