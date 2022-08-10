@@ -1,13 +1,13 @@
+import os
+import tarfile
+import uuid
+from pathlib import Path
 from unittest import TestCase
 from unittest.mock import Mock
-from samcli.lib.test_runner.fargate_testsuite_runner import FargateTestsuiteRunner
-from samcli.commands.exceptions import MissingTestRunnerTemplateException, InvalidTestRunnerTemplateException
-from parameterized import parameterized
+
 from samcli.commands.deploy.exceptions import DeployFailedError
-import os
-from pathlib import Path
-import uuid
-import tarfile
+from samcli.commands.exceptions import InvalidTestRunnerTemplateException, MissingTestRunnerTemplateException
+from samcli.lib.test_runner.fargate_testsuite_runner import FargateTestsuiteRunner
 
 
 class MockDeployer:

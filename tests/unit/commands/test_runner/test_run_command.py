@@ -1,11 +1,12 @@
 import os
 from unittest import TestCase
 from unittest.mock import Mock, patch
+
 from parameterized import parameterized
-from samcli.commands.exceptions import InvalidEnvironmentVariableException
-from samcli.commands.exceptions import ReservedEnvironmentVariableException
-from samcli.lib.test_runner.fargate_testsuite_runner import FargateTestsuiteRunner
+
+from samcli.commands.exceptions import InvalidEnvironmentVariableException, ReservedEnvironmentVariableException
 from samcli.commands.test_runner.run.cli import _validate_other_env_vars, do_cli
+from samcli.lib.test_runner.fargate_testsuite_runner import FargateTestsuiteRunner
 
 
 class TestEnvVarValidation(TestCase):

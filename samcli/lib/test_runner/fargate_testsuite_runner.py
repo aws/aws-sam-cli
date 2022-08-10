@@ -9,11 +9,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from samcli.commands.deploy.exceptions import DeployFailedError
-from samcli.commands.exceptions import (
-    MissingTestRunnerTemplateException,
-    ReservedEnvironmentVariableException,
-    InvalidTestRunnerTemplateException,
-)
+from samcli.commands.exceptions import MissingTestRunnerTemplateException, InvalidTestRunnerTemplateException
 from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.utils.boto_utils import BotoProviderType
 from samcli.lib.utils.colors import Colored
@@ -35,14 +31,14 @@ class FargateTestsuiteRunner:
         self,
         boto_client_provider: BotoProviderType,
         runner_stack_name: str,
-        tests_path: Path,
-        requirements_file_path: Path,
-        path_in_bucket: Path,
+        tests_path: str,
+        requirements_file_path: str,
+        path_in_bucket: str,
         other_env_vars: dict,
         bucket_override: Optional[str],
         ecs_cluster_override: Optional[str],
         subnets_override: Optional[List[str]],
-        runner_template_path: Optional[Path],
+        runner_template_path: Optional[str],
         test_command_options: Optional[str],
         color=Colored(),
     ):
@@ -59,7 +55,7 @@ class FargateTestsuiteRunner:
         self.bucket_override = bucket_override
         self.ecs_cluster_override = ecs_cluster_override
         self.subnets_override = subnets_override
-        self.runner_template_path = runner_template_path
+        self.runner_template_path = Path(runner_template_path)
         self.other_env_vars = other_env_vars
         self.test_command_options = test_command_options
 
