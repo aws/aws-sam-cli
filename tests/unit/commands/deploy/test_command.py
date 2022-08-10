@@ -51,6 +51,7 @@ class TestDeployCliCommand(TestCase):
         self.use_changeset = True
         self.resolve_image_repos = False
         self.disable_rollback = False
+        self.on_failure = None
         MOCK_SAM_CONFIG.reset_mock()
 
         self.companion_stack_manager_patch = patch("samcli.commands.deploy.guided_context.CompanionStackManager")
@@ -103,6 +104,7 @@ class TestDeployCliCommand(TestCase):
             config_file=self.config_file,
             resolve_image_repos=self.resolve_image_repos,
             disable_rollback=self.disable_rollback,
+            on_failure=self.on_failure,
         )
 
         mock_deploy_context.assert_called_with(
@@ -129,6 +131,7 @@ class TestDeployCliCommand(TestCase):
             use_changeset=self.use_changeset,
             disable_rollback=self.disable_rollback,
             poll_delay=10,
+            on_failure=self.on_failure,
         )
 
         context_mock.run.assert_called_with()
@@ -217,6 +220,7 @@ class TestDeployCliCommand(TestCase):
                     config_file=self.config_file,
                     resolve_image_repos=self.resolve_image_repos,
                     disable_rollback=self.disable_rollback,
+                    on_failure=self.on_failure,
                 )
 
     @patch("samcli.commands.package.command.click")
@@ -310,6 +314,7 @@ class TestDeployCliCommand(TestCase):
                 config_file=self.config_file,
                 resolve_image_repos=self.resolve_image_repos,
                 disable_rollback=self.disable_rollback,
+                on_failure=self.on_failure,
             )
 
             mock_deploy_context.assert_called_with(
@@ -336,6 +341,7 @@ class TestDeployCliCommand(TestCase):
                 use_changeset=self.use_changeset,
                 disable_rollback=True,
                 poll_delay=0.5,
+                on_failure=self.on_failure,
             )
 
             context_mock.run.assert_called_with()
@@ -454,6 +460,7 @@ class TestDeployCliCommand(TestCase):
             config_file=self.config_file,
             resolve_image_repos=self.resolve_image_repos,
             disable_rollback=self.disable_rollback,
+            on_failure=self.on_failure,
         )
 
         mock_deploy_context.assert_called_with(
@@ -484,6 +491,7 @@ class TestDeployCliCommand(TestCase):
             use_changeset=self.use_changeset,
             disable_rollback=True,
             poll_delay=0.5,
+            on_failure=self.on_failure,
         )
 
         context_mock.run.assert_called_with()
@@ -610,6 +618,7 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             resolve_image_repos=self.resolve_image_repos,
             disable_rollback=self.disable_rollback,
+            on_failure=self.on_failure,
         )
 
         mock_deploy_context.assert_called_with(
@@ -636,6 +645,7 @@ class TestDeployCliCommand(TestCase):
             use_changeset=self.use_changeset,
             disable_rollback=True,
             poll_delay=0.5,
+            on_failure=self.on_failure,
         )
 
         context_mock.run.assert_called_with()
@@ -747,6 +757,7 @@ class TestDeployCliCommand(TestCase):
                 signing_profiles=self.signing_profiles,
                 resolve_image_repos=self.resolve_image_repos,
                 disable_rollback=self.disable_rollback,
+                on_failure=self.on_failure,
             )
 
             mock_deploy_context.assert_called_with(
@@ -773,6 +784,7 @@ class TestDeployCliCommand(TestCase):
                 use_changeset=self.use_changeset,
                 disable_rollback=self.disable_rollback,
                 poll_delay=0.5,
+                on_failure=self.on_failure,
             )
 
             context_mock.run.assert_called_with()
@@ -821,6 +833,7 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             resolve_image_repos=self.resolve_image_repos,
             disable_rollback=self.disable_rollback,
+            on_failure=self.on_failure,
         )
 
         mock_deploy_context.assert_called_with(
@@ -847,6 +860,7 @@ class TestDeployCliCommand(TestCase):
             use_changeset=self.use_changeset,
             disable_rollback=self.disable_rollback,
             poll_delay=0.5,
+            on_failure=self.on_failure,
         )
 
         context_mock.run.assert_called_with()
@@ -883,6 +897,7 @@ class TestDeployCliCommand(TestCase):
                 signing_profiles=self.signing_profiles,
                 resolve_image_repos=self.resolve_image_repos,
                 disable_rollback=self.disable_rollback,
+                on_failure=self.on_failure,
             )
 
     @patch("samcli.commands.package.command.click")
@@ -933,6 +948,7 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             resolve_image_repos=True,
             disable_rollback=self.disable_rollback,
+            on_failure=self.on_failure,
         )
 
         mock_deploy_context.assert_called_with(
@@ -959,6 +975,7 @@ class TestDeployCliCommand(TestCase):
             use_changeset=True,
             disable_rollback=self.disable_rollback,
             poll_delay=0.5,
+            on_failure=self.on_failure,
         )
 
         context_mock.run.assert_called_with()

@@ -25,12 +25,13 @@ from typing import Dict, List, Optional
 
 import botocore
 
-from samcli.lib.deploy.utils import DeployColor
+from samcli.lib.deploy.utils import DeployColor, FailureMode
 from samcli.commands.deploy.exceptions import (
     DeployFailedError,
     ChangeSetError,
     DeployStackOutPutFailedError,
     DeployBucketInDifferentRegionError,
+    DeployStackStatusMissingError,
 )
 from samcli.commands._utils.table_print import pprint_column_names, pprint_columns, newline_per_item, MIN_OFFSET
 from samcli.commands.deploy import exceptions as deploy_exceptions
@@ -327,20 +328,18 @@ class Deployer:
                 stack_name=stack_name, msg="ex: {0} Status: {1}. Reason: {2}".format(ex, status, reason)
             ) from ex
 
-    def execute_changeset(self, changeset_id, stack_name, disable_rollback) -> float:
+    def execute_changeset(self, changeset_id, stack_name, disable_rollback):
         """
         Calls CloudFormation to execute changeset
 
         :param changeset_id: ID of the changeset
         :param stack_name: Name or ID of the stack
         :param disable_rollback: Preserve the state of previously provisioned resources when an operation fails.
-        :return: Changeset execution time (current time)
         """
         try:
             self._client.execute_change_set(
                 ChangeSetName=changeset_id, StackName=stack_name, DisableRollback=disable_rollback
             )
-            return time.time()
         except botocore.exceptions.ClientError as ex:
             raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
 
@@ -363,11 +362,14 @@ class Deployer:
         table_header=DESCRIBE_STACK_EVENTS_TABLE_HEADER_NAME,
         display_sleep=True,
     )
-    def describe_stack_events(self, stack_name, time_stamp_marker, **kwargs):
+    def describe_stack_events(
+        self, stack_name: str, time_stamp_marker: float, on_failure: FailureMode = FailureMode.ROLLBACK, **kwargs
+    ):
         """
         Calls CloudFormation to get current stack events
         :param stack_name: Name or ID of the stack
         :param time_stamp_marker: last event time on the stack to start streaming events from.
+        :param on_failure: The action to take if the stack fails to deploy
         :param kwargs: Other arguments to pass to pprint_columns()
         """
 
@@ -381,7 +383,10 @@ class Deployer:
                 time.sleep(0 if retry_attempts else self.client_sleep)
                 paginator = self._client.get_paginator("describe_stack_events")
                 response_iterator = paginator.paginate(StackName=stack_name)
-                new_events = deque()  # event buffer
+
+                # Event buffer
+                new_events = deque()  # type: deque
+
                 for event_items in response_iterator:
                     for event in event_items["StackEvents"]:
                         # Skip already shown old event entries or former deployments
@@ -426,6 +431,12 @@ class Deployer:
                 # Reset retry attempts if iteration is a success to use client_sleep again
                 retry_attempts = 0
             except botocore.exceptions.ClientError as ex:
+                if (
+                    "Stack with id {0} does not exist".format(stack_name) in str(ex)
+                    and on_failure == FailureMode.DELETE
+                ):
+                    return
+
                 retry_attempts = retry_attempts + 1
                 if retry_attempts > self.max_attempts:
                     LOG.error("Describing stack events for %s failed: %s", stack_name, str(ex))
@@ -446,7 +457,11 @@ class Deployer:
         return "IN_PROGRESS" not in status
 
     def wait_for_execute(
-        self, stack_name: str, stack_operation: str, disable_rollback: bool, execution_time: float = time.time()
+        self,
+        stack_name: str,
+        stack_operation: str,
+        disable_rollback: bool,
+        on_failure: FailureMode = FailureMode.ROLLBACK,
     ) -> None:
         """
         Wait for stack operation to execute and return when execution completes.
@@ -460,9 +475,8 @@ class Deployer:
             The type of the stack operation, 'CREATE' or 'UPDATE'
         disable_rollback : bool
             Preserves the state of previously provisioned resources when an operation fails
-        execution_time : float
-            Time of the last stack change execution request (like `execute_change_set`, `update_stack`, `create_stack`)
-            Prevents missing events if the event streaming is delayed from the change request by any action in between
+        on_failure : FailureMode
+            The action to take when the operation fails
         """
         sys.stdout.write(
             "\n{} - Waiting for stack create/update "
@@ -470,7 +484,7 @@ class Deployer:
         )
         sys.stdout.flush()
 
-        self.describe_stack_events(stack_name, execution_time)
+        self.describe_stack_events(stack_name, time.time() * 1000, on_failure)
 
         # Pick the right waiter
         if stack_operation == "CREATE":
@@ -488,15 +502,21 @@ class Deployer:
             waiter.wait(StackName=stack_name, WaiterConfig=waiter_config)
         except botocore.exceptions.WaiterError as ex:
             LOG.debug("Execute stack waiter exception", exc_info=ex)
-            if disable_rollback:
+            if disable_rollback and on_failure is not FailureMode.DELETE:
+                # This will only display the message if disable rollback is set or if DO_NOTHING is specified
                 msg = self._gen_deploy_failed_with_rollback_disabled_msg(stack_name)
                 LOG.info(self._colored.red(msg))
 
             raise deploy_exceptions.DeployFailedError(stack_name=stack_name, msg=str(ex))
 
-        outputs = self.get_stack_outputs(stack_name=stack_name, echo=False)
-        if outputs:
-            self._display_stack_outputs(outputs)
+        try:
+            outputs = self.get_stack_outputs(stack_name=stack_name, echo=False)
+            if outputs:
+                self._display_stack_outputs(outputs)
+        except DeployStackOutPutFailedError as ex:
+            # Show exception if we aren't deleting stacks
+            if on_failure != FailureMode.DELETE:
+                raise ex
 
     def create_and_wait_for_changeset(
         self, stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
@@ -549,6 +569,7 @@ class Deployer:
         notification_arns: Optional[List[str]],
         s3_uploader: Optional[S3Uploader],
         tags: Optional[Dict],
+        on_failure: FailureMode,
     ):
         """
         Call the sync command to directly update stack or create stack
@@ -563,6 +584,7 @@ class Deployer:
         :param notification_arns: Arns for sending notifications
         :param s3_uploader: S3Uploader object to upload files to S3 buckets
         :param tags: Array of tags passed to CloudFormation
+        :param on_failure: FailureMode enum indicating the action to take on stack creation failure
         :return:
         """
         exists = self.has_stack(stack_name)
@@ -591,15 +613,23 @@ class Deployer:
         kwargs = self._process_kwargs(kwargs, s3_uploader, capabilities, role_arn, notification_arns)
 
         try:
+            disable_rollback = False
+            if on_failure == FailureMode.DO_NOTHING:
+                disable_rollback = True
             msg = ""
 
             if exists:
+                kwargs["DisableRollback"] = disable_rollback
+
                 result = self.update_stack(**kwargs)
-                self.wait_for_execute(stack_name, "UPDATE", False, time.time())
+                self.wait_for_execute(stack_name, "UPDATE", disable_rollback, on_failure=on_failure)
                 msg = "\nStack update succeeded. Sync infra completed.\n"
             else:
+                # Pass string representation of enum
+                kwargs["OnFailure"] = str(on_failure)
+
                 result = self.create_stack(**kwargs)
-                self.wait_for_execute(stack_name, "CREATE", False, time.time())
+                self.wait_for_execute(stack_name, "CREATE", disable_rollback, on_failure=on_failure)
                 msg = "\nStack creation succeeded. Sync infra completed.\n"
 
             LOG.info(self._colored.green(msg))
@@ -648,6 +678,110 @@ class Deployer:
 
         except botocore.exceptions.ClientError as ex:
             raise DeployStackOutPutFailedError(stack_name=stack_name, msg=str(ex)) from ex
+
+    def rollback_delete_stack(self, stack_name: str):
+        """
+        Try to rollback the stack to a sucessful state, if there is no good state then delete the stack
+
+        Parameters
+        ----------
+        :param stack_name: str
+            The name of the stack
+        """
+        kwargs = {
+            "StackName": stack_name,
+        }
+
+        current_state = self._get_stack_status(stack_name)
+
+        try:
+            if current_state == "UPDATE_FAILED":
+                LOG.info("Stack %s failed to update, rolling back stack to previous state...", stack_name)
+
+                self._client.rollback_stack(**kwargs)
+                self.describe_stack_events(stack_name, time.time() * 1000, FailureMode.DELETE)
+                self._rollback_wait(stack_name)
+
+                current_state = self._get_stack_status(stack_name)
+
+            failed_states = ["CREATE_FAILED", "UPDATE_FAILED", "ROLLBACK_COMPLETE", "ROLLBACK_FAILED"]
+
+            if current_state in failed_states:
+                LOG.info("Stack %s failed to create/update correctly, deleting stack", stack_name)
+
+                self._client.delete_stack(**kwargs)
+
+                # only a stack that failed to create will have stack events, deleting
+                # from a ROLLBACK_COMPLETE state will not return anything
+                # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/cloudformation.html#CloudFormation.Client.delete_stack
+                if current_state == "CREATE_FAILED":
+                    self.describe_stack_events(stack_name, time.time() * 1000, FailureMode.DELETE)
+
+                waiter = self._client.get_waiter("stack_delete_complete")
+                waiter.wait(StackName=stack_name, WaiterConfig={"Delay": 30, "MaxAttempts": 120})
+
+                LOG.info("\nStack %s has been deleted", stack_name)
+            else:
+                LOG.info("Stack %s has rolled back successfully", stack_name)
+        except botocore.exceptions.ClientError as ex:
+            raise DeployStackStatusMissingError(stack_name) from ex
+        except botocore.exceptions.WaiterError:
+            LOG.error(
+                "\nStack %s failed to delete properly! Please manually clean up any persistent resources.",
+                stack_name,
+            )
+        except KeyError:
+            LOG.info("Stack %s is not found, skipping", stack_name)
+
+    def _get_stack_status(self, stack_name: str) -> str:
+        """
+        Returns the status of the stack
+
+        Parameters
+        ----------
+        :param stack_name: str
+            The name of the stack
+
+        Parameters
+        ----------
+        :return: str
+            A string representing the status of the stack
+        """
+        stack = self._client.describe_stacks(StackName=stack_name)
+        stack_status = str(stack["Stacks"][0]["StackStatus"])
+
+        return stack_status
+
+    def _rollback_wait(self, stack_name: str, wait_time: int = 30, max_retries: int = 120):
+        """
+        Manual waiter for rollback status, waits until we get *_ROLLBACK_COMPLETE or ROLLBACK_FAILED
+
+        Parameters
+        ----------
+        :param stack_name: str
+            The name of the stack
+        :param wait_time: int
+            The time to wait between polls, default 30 seconds
+        :param max_retries: int
+            The number of polls before timing out
+        """
+        status = ""
+        retries = 0
+
+        while retries < max_retries:
+            status = self._get_stack_status(stack_name)
+
+            if "ROLLBACK_COMPLETE" in status or status == "ROLLBACK_FAILED":
+                return
+
+            retries = retries + 1
+            time.sleep(wait_time)
+
+        LOG.error(
+            "Stack %s never reached a *_ROLLBACK_COMPLETE or ROLLBACK_FAILED state, we got %s instead.",
+            stack_name,
+            status,
+        )
 
     @staticmethod
     def _gen_deploy_failed_with_rollback_disabled_msg(stack_name):
