@@ -45,7 +45,8 @@ class EventType:
         "ZipFunctionSyncFlow",
     ]
     _WORKFLOWS = [f"{config.language}-{config.dependency_manager}" for config in ALL_CONFIGS]
-    _events = {
+
+    _event_values = {  # Contains allowable values for Events
         EventName.USED_FEATURE: [
             "Accelerate",
             "CDK",
@@ -63,9 +64,9 @@ class EventType:
     @staticmethod
     def get_accepted_values(event_name: EventName) -> List[str]:
         """Get all acceptable values for a given Event name."""
-        if event_name not in EventType._events:
+        if event_name not in EventType._event_values:
             return []
-        return EventType._events[event_name]
+        return EventType._event_values[event_name]
 
 
 class Event:
@@ -158,13 +159,13 @@ class EventTracker:
                 if len(EventTracker._events) >= EventTracker.MAX_EVENTS:
                     should_send = True
             if should_send:
-                send_thread = threading.Thread(target=EventTracker.send_events)
-                send_thread.start()
+                EventTracker.send_events()
         except EventCreationError as e:
             LOG.debug("Error occurred while trying to track an event: %s", e)
 
     @staticmethod
     def get_tracked_events() -> List[Event]:
+        """Retrieve a list of all currently tracked Events."""
         with EventTracker._event_lock:
             return EventTracker._events
 
@@ -176,8 +177,15 @@ class EventTracker:
 
     @staticmethod
     def send_events():
-        """Sends the current list of events via Telemetry."""
-        from samcli.lib.telemetry.metric import Metric  # pylint: disable=cyclic-import
+        """Call a thread to send the current list of Events via Telemetry."""
+        send_thread = threading.Thread(target=EventTracker._send_events_in_thread)
+        send_thread.start()
+        return send_thread
+
+    @staticmethod
+    def _send_events_in_thread():
+        """Send the current list of Events via Telemetry."""
+        from samcli.lib.telemetry.metric import Metric
 
         msa = {}
 
@@ -201,6 +209,11 @@ def track_long_event(start_event_name: str, start_event_value: str, end_event_na
     at the start of the decorated function's execution (prior to its
     first line) and the second Event occurs after the function has ended
     (after the final line of the function has executed).
+    If this decorator is being placed in a function that also contains the
+    `track_command` decorator, ensure that this decorator is placed BELOW
+    `track_command`. Otherwise, the current list of Events will be sent
+    before the end_event will be added, resulting in an additional 'events'
+    metric with only that single Event.
 
     Parameters
     ----------
@@ -246,15 +259,16 @@ def track_long_event(start_event_name: str, start_event_value: str, end_event_na
         """The actual decorator"""
 
         def wrapped(*args, **kwargs):
+            # Track starting event
             if should_track:
                 EventTracker.track_event(start_event_name, start_event_value)
             exception = None
-
+            # Run the function
             try:
                 return_value = func(*args, **kwargs)
             except Exception as e:
                 exception = e
-
+            # Track ending event
             if should_track:
                 EventTracker.track_event(end_event_name, end_event_value)
                 EventTracker.send_events()  # Ensure Events are sent at the end of execution
