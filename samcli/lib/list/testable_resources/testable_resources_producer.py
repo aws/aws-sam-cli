@@ -215,9 +215,7 @@ class TestableResourcesProducer(ResourceMappingProducer, Producer):
             get_api_type_enum(deployed_resource.get(RESOURCE_TYPE, "")),
         )
         if deployed_resource.get(LOGICAL_RESOURCE_ID, "") in custom_domain_substitute_dict:
-            endpoint = custom_domain_substitute_dict.get(
-                deployed_resource.get(LOGICAL_RESOURCE_ID, ""), "-"
-            )
+            endpoint = custom_domain_substitute_dict.get(deployed_resource.get(LOGICAL_RESOURCE_ID, ""), "-")
         else:
             endpoint = self.build_api_gw_endpoints(deployed_resource.get(PHYSICAL_RESOURCE_ID, ""), stages)
         return endpoint
