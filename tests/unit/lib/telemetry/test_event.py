@@ -109,7 +109,9 @@ class TestEventTracker(TestCase):
         telemetry_mock.return_value = dummy_telemetry
 
         # Verify that no events are sent if tracker is empty
-        EventTracker.send_events()
+        # Note we are using the in-line version of the method, as the regular send_events will
+        # simply call this method in a new thread
+        EventTracker._send_events_in_thread()
 
         self.assertEqual(emitted_events, [])  # No events should have been collected
         dummy_telemetry.emit.assert_not_called()  # Nothing should have been sent (empty list)
@@ -121,7 +123,7 @@ class TestEventTracker(TestCase):
         dummy_event.to_json.return_value = Event.to_json(dummy_event)
         EventTracker._events.append(dummy_event)
 
-        EventTracker.send_events()
+        EventTracker._send_events_in_thread()
 
         dummy_telemetry.emit.assert_called()
         self.assertEqual(len(emitted_events), 1)  # The list of metrics (1) is copied into emitted_events

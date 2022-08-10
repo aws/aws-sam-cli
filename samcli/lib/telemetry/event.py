@@ -6,7 +6,7 @@ from datetime import datetime
 from enum import Enum
 import logging
 import threading
-from typing import List
+from typing import List, Optional
 
 from samcli.cli.context import Context
 from samcli.lib.build.workflows import ALL_CONFIGS
@@ -122,7 +122,7 @@ class EventTracker:
 
     _events: List[Event] = []
     _event_lock = threading.Lock()
-    _session_id = None
+    _session_id: Optional[str] = None
 
     MAX_EVENTS: int = 50  # Maximum number of events to store before sending
 
@@ -161,7 +161,9 @@ class EventTracker:
                 # Get the session ID (needed for multithreading sending)
                 if not EventTracker._session_id:
                     try:
-                        EventTracker._session_id = Context.get_current_context().session_id
+                        ctx = Context.get_current_context()
+                        if ctx:
+                            EventTracker._session_id = ctx.session_id
                     except RuntimeError:
                         pass
                 if len(EventTracker._events) >= EventTracker.MAX_EVENTS:
@@ -184,7 +186,7 @@ class EventTracker:
             EventTracker._events = []
 
     @staticmethod
-    def send_events():
+    def send_events() -> threading.Thread:
         """Call a thread to send the current list of Events via Telemetry."""
         send_thread = threading.Thread(target=EventTracker._send_events_in_thread)
         send_thread.start()
@@ -193,7 +195,7 @@ class EventTracker:
     @staticmethod
     def _send_events_in_thread():
         """Send the current list of Events via Telemetry."""
-        from samcli.lib.telemetry.metric import Metric
+        from samcli.lib.telemetry.metric import Metric  # pylint: disable=cyclic-import
 
         msa = {}
 
