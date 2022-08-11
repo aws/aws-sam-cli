@@ -292,6 +292,9 @@ docs/_build/
 # pyenv
 .python-version
 
+# pyright
+pyrightconfig.json
+
 # celery beat schedule file
 celerybeat-schedule.*
 
