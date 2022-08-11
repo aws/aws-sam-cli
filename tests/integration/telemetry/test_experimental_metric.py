@@ -136,8 +136,6 @@ class TestExperimentalMetric(IntegBase):
         """
         Metrics should be sent if "Disabled via config file but Enabled via Envvar"
         """
-        event_mock = Mock()
-        event_mock.return_value = None
         # Disable it via configuration file
         self.unset_config()
         self.set_config(telemetry_enabled=True)
@@ -152,6 +150,7 @@ class TestExperimentalMetric(IntegBase):
             .joinpath("cdk_template.yaml")
         )
         with TelemetryServer() as server:
+            event_mock = Mock(return_value=None, side_effect=None)
             # Run without any envvar.Should not publish metrics
             process = self.run_cmd(
                 cmd_list=[self.cmd, "build", "--build-dir", self.config_dir, "--template", str(template_path)],
@@ -160,7 +159,7 @@ class TestExperimentalMetric(IntegBase):
             process.communicate()
 
             all_requests = server.get_all_requests()
-            self.assertGreaterEqual(len(all_requests), 1, "Command run metric must be sent")
+            self.assertEqual(len(all_requests), 1, "Command run metric must be sent")
             request = all_requests[0]
             self.assertIn("Content-Type", request["headers"])
             self.assertEqual(request["headers"]["Content-Type"], "application/json")
