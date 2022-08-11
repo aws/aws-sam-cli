@@ -42,8 +42,8 @@ class TestSyncInfra(SyncIntegBase):
         "Skip sync ruby tests in windows",
     )
     @pytest.mark.flaky(reruns=3)
-    @parameterized.expand(["ruby", "python"])
-    def test_sync_infra(self, runtime):
+    @parameterized.expand([["ruby", False], ["python", False], ["python", True]])
+    def test_sync_infra(self, runtime, use_container):
         template_before = f"infra/template-{runtime}-before.yaml"
         template_path = str(self.test_data_path.joinpath(template_before))
         stack_name = self._method_to_stack_name(self.id())
@@ -61,6 +61,7 @@ class TestSyncInfra(SyncIntegBase):
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
+            use_container=use_container,
         )
 
         sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
@@ -98,6 +99,7 @@ class TestSyncInfra(SyncIntegBase):
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
+            use_container=use_container,
         )
 
         sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())

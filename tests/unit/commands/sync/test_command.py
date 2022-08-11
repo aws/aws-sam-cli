@@ -44,6 +44,7 @@ class TestDoCli(TestCase):
         self.profile = None
         self.base_dir = None
         self.clean = True
+        self.use_container = True
         self.config_env = "mock-default-env"
         self.config_file = "mock-default-filename"
         MOCK_SAM_CONFIG.reset_mock()
@@ -111,6 +112,7 @@ class TestDoCli(TestCase):
             self.notification_arns,
             self.tags,
             self.metadata,
+            self.use_container,
             self.config_file,
             self.config_env,
         )
@@ -123,7 +125,7 @@ class TestDoCli(TestCase):
             build_dir=build_dir,
             cache_dir=DEFAULT_CACHE_DIR,
             clean=True,
-            use_container=False,
+            use_container=True,
             parallel=True,
             parameter_overrides=self.parameter_overrides,
             mode=self.mode,
@@ -243,6 +245,7 @@ class TestDoCli(TestCase):
             self.notification_arns,
             self.tags,
             self.metadata,
+            self.use_container,
             self.config_file,
             self.config_env,
         )
@@ -254,7 +257,7 @@ class TestDoCli(TestCase):
             build_dir=DEFAULT_BUILD_DIR,
             cache_dir=DEFAULT_CACHE_DIR,
             clean=True,
-            use_container=False,
+            use_container=True,
             parallel=True,
             parameter_overrides=self.parameter_overrides,
             mode=self.mode,
@@ -373,6 +376,7 @@ class TestDoCli(TestCase):
             self.notification_arns,
             self.tags,
             self.metadata,
+            self.use_container,
             self.config_file,
             self.config_env,
         )

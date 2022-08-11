@@ -91,7 +91,13 @@ class TestSyncCodeBase(SyncIntegBase):
 
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
-@parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
+@parameterized_class(
+    [
+        {"dependency_layer": True, "use_container": True},
+        {"dependency_layer": True, "use_container": False},
+        {"dependency_layer": False, "use_container": False},
+    ]
+)
 class TestSyncCode(TestSyncCodeBase):
     template = "template-python.yaml"
     folder = "code"
@@ -122,6 +128,7 @@ class TestSyncCode(TestSyncCodeBase):
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
+            use_container=self.use_container,
         )
         sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
         self.assertEqual(sync_process_execute.process.returncode, 0)
@@ -159,6 +166,7 @@ class TestSyncCode(TestSyncCodeBase):
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
+            use_container=self.use_container,
         )
         sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
         self.assertEqual(sync_process_execute.process.returncode, 0)

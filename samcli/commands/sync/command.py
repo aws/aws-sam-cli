@@ -17,6 +17,7 @@ from samcli.commands._utils.options import (
     tags_option,
     stack_name_option,
     base_dir_option,
+    use_container_build_option,
     image_repository_option,
     image_repositories_option,
     s3_prefix_option,
@@ -117,6 +118,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 )
 @stack_name_option(required=True)  # pylint: disable=E1120
 @base_dir_option
+@use_container_build_option
 @image_repository_option
 @image_repositories_option
 @s3_bucket_option(disable_callback=True)  # pylint: disable=E1120
@@ -158,6 +160,7 @@ def cli(
     notification_arns: Optional[List[str]],
     tags: dict,
     metadata: dict,
+    use_container: bool,
     config_file: str,
     config_env: str,
 ) -> None:
@@ -190,6 +193,7 @@ def cli(
         notification_arns,
         tags,
         metadata,
+        use_container,
         config_file,
         config_env,
     )  # pragma: no cover
@@ -218,6 +222,7 @@ def do_cli(
     notification_arns: Optional[List[str]],
     tags: dict,
     metadata: dict,
+    use_container: bool,
     config_file: str,
     config_env: str,
 ) -> None:
@@ -244,7 +249,7 @@ def do_cli(
         build_dir=build_dir,
         cache_dir=DEFAULT_CACHE_DIR,
         clean=True,
-        use_container=False,
+        use_container=use_container,
         cached=True,
         parallel=True,
         parameter_overrides=parameter_overrides,
