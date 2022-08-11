@@ -133,7 +133,7 @@ class TestExperimentalMetric(IntegBase):
             self.assertEqual(request["data"], expected_data)
         os.environ["SAM_CLI_BETA_FEATURES"] = "0"
 
-    def test_must_send_cdk_project_type_metrics(self, event_mock):
+    def test_must_send_cdk_project_type_metrics(self):
         """
         Metrics should be sent if "Disabled via config file but Enabled via Envvar"
         """
