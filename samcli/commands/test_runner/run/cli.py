@@ -56,11 +56,7 @@ If a Test Runner Stack with this name does exist, and a template is provided, th
     "--tests",
     "tests_path",
     required=True,
-    type=click.Path(
-        exists=True,
-        file_okay=True,
-        dir_okay=True,
-    ),
+    type=click.Path(exists=True, file_okay=True, dir_okay=True),
     help="""
 The file/directory containing the tests you wish to run. These tests will be compressed and uploaded to the S3 Bucket in order for the Fargate task to download and run them.
 """,
@@ -203,7 +199,7 @@ def _validate_other_env_vars(other_env_vars: dict, reserved_var_names: List[str]
 
     if len(reserved_vars) > 0:
         raise ReservedEnvironmentVariableException(
-            f"The following are reserved environment variable, ensure they are not present in your environment variables file: {reserved_vars}"
+            f"The following are reserved environment variables, ensure they are not present in your environment variables file: {reserved_vars}"
         )
 
     for key, value in other_env_vars.items():

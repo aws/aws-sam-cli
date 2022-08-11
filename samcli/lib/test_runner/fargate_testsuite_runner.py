@@ -64,8 +64,7 @@ class FargateTestsuiteRunner:
         self.deployer = Deployer(cloudformation_client=self.boto_cloudformation_client)
 
     def _read_file(self, filename: str) -> str:
-        with open(filename, "r") as f:
-            return f.read()
+        return Path(filename).read_text()
 
     def _create_new_test_runner_stack(self, template_body: str) -> None:
         """
@@ -157,10 +156,8 @@ class FargateTestsuiteRunner:
                     "To have a Test Runner CloudFormation template generated, run `sam test_runner init`.\n",
                 )
             self._create_new_test_runner_stack(template_body=self._read_file(self.runner_template_path))
-            return
 
-        # Stack exists, but a template was also provided, so update
-        if self.runner_template_path:
+        elif self.runner_template_path:
             self._update_exisiting_test_runner_stack(template_body=self._read_file(self.runner_template_path))
 
     def _get_resource_list(self) -> List[dict]:
@@ -348,6 +345,9 @@ class FargateTestsuiteRunner:
             self.color.green(f"✓ Results sucessfully downloaded and saved into {self.COMPRESSED_RESULTS_FILE_NAME}  \n")
         )
 
+        # The Fargate container packages all result files into a directory before tarring it,
+        # so when the results are expanded, a single directory will be created,
+        # and we will not have all the result files spilling into the current directory
         with tarfile.open(self.COMPRESSED_RESULTS_FILE_NAME) as results_tar:
             results_tar.extractall(".")
 
