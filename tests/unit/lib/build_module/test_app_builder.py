@@ -571,7 +571,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
     @patch("samcli.lib.build.app_builder.osutils")
     @patch("samcli.lib.build.app_builder.get_layer_subfolder")
     def test_must_custom_build_layer_with_custom_working_dir_metadata_in_process(
-            self, get_layer_subfolder_mock, osutils_mock, get_workflow_config_mock
+        self, get_layer_subfolder_mock, osutils_mock, get_workflow_config_mock
     ):
         get_layer_subfolder_mock.return_value = ""
         config_mock = Mock()
@@ -632,7 +632,6 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             source_code_path=PathValidator(os.path.join("basedir", "code_uri")),
             scratch_dir="scratch",
         )
-
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")
@@ -696,7 +695,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             "basedir",
             None,
             metadata=metadata,
-            source_code_path=PathValidator(os.path.join("src","code","path")),
+            source_code_path=PathValidator(os.path.join("src", "code", "path")),
             scratch_dir="scratch",
         )
 
@@ -704,7 +703,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
     @patch("samcli.lib.build.app_builder.osutils")
     @patch("samcli.lib.build.app_builder.get_layer_subfolder")
     def test_must_custom_build_layer_with_all_metadata_in_process(
-            self, get_layer_subfolder_mock, osutils_mock, get_workflow_config_mock
+        self, get_layer_subfolder_mock, osutils_mock, get_workflow_config_mock
     ):
         get_layer_subfolder_mock.return_value = ""
         config_mock = Mock()
@@ -894,7 +893,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             "basedir",
             None,
             metadata=metadata,
-            source_code_path=PathValidator(os.path.join("src","code","path")),
+            source_code_path=PathValidator(os.path.join("src", "code", "path")),
             scratch_dir="scratch",
         )
 
@@ -1663,7 +1662,9 @@ class TestApplicationBuilder_build_function(TestCase):
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")
-    def test_must_custom_build_function_with_working_dir_metadata_in_process(self, osutils_mock, get_workflow_config_mock):
+    def test_must_custom_build_function_with_working_dir_metadata_in_process(
+        self, osutils_mock, get_workflow_config_mock
+    ):
         function_name = "function_name"
         codeuri = "path/to/source"
         packagetype = ZIP
@@ -1737,7 +1738,9 @@ class TestApplicationBuilder_build_function(TestCase):
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")
-    def test_must_custom_build_function_with_custom_makefile_and_custom_project_root_metadata_properties_in_process(self, osutils_mock, get_workflow_config_mock):
+    def test_must_custom_build_function_with_custom_makefile_and_custom_project_root_metadata_properties_in_process(
+        self, osutils_mock, get_workflow_config_mock
+    ):
         function_name = "function_name"
         codeuri = "path/to/source"
         packagetype = ZIP
@@ -1805,13 +1808,15 @@ class TestApplicationBuilder_build_function(TestCase):
             handler,
             dependency_manager_mock,
             metadata,
-            source_code_path=PathValidator(os.path.join("src","code","path")),
+            source_code_path=PathValidator(os.path.join("src", "code", "path")),
             scratch_dir="scratch",
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")
-    def test_must_custom_build_function_with_all_metadata_sutom_paths_properties_in_process(self, osutils_mock, get_workflow_config_mock):
+    def test_must_custom_build_function_with_all_metadata_sutom_paths_properties_in_process(
+        self, osutils_mock, get_workflow_config_mock
+    ):
         function_name = "function_name"
         codeuri = "path/to/source"
         packagetype = ZIP
@@ -2032,7 +2037,7 @@ class TestApplicationBuilder_build_function(TestCase):
             handler,
             dependency_manager_mock,
             metadata,
-            source_code_path=PathValidator(os.path.join("src","code","path")),
+            source_code_path=PathValidator(os.path.join("src", "code", "path")),
             scratch_dir="scratch",
         )
 
@@ -2778,13 +2783,13 @@ class TestApplicationBuilderGetWorkingDirectoryPath(TestCase):
     @patch("samcli.lib.build.app_builder.os.path")
     def test_metadata_with_working_dir_not_child_source_dir(self, os_path_mock, pathlib_mock):
         metadata = {
-            "WorkingDirectory": str(os.path.join("working","dir")),
+            "WorkingDirectory": str(os.path.join("working", "dir")),
         }
         os_path_mock.commonpath.return_value = "/not/source/dir"
         os_path_mock.normpath.return_value = "source_dir"
         path_mock = Mock()
         pathlib_mock.Path.return_value = path_mock
-        path_mock.resolve.return_value = str(os.path.join("working","dir"))
+        path_mock.resolve.return_value = str(os.path.join("working", "dir"))
         working_dir = ApplicationBuilder._get_working_directory_path("base_dir", metadata, "source_dir", "scratch_dir")
         self.assertEquals(working_dir, PathValidator(str(os.path.join("working", "dir"))))
 
@@ -2792,10 +2797,10 @@ class TestApplicationBuilderGetWorkingDirectoryPath(TestCase):
     @patch("samcli.lib.build.app_builder.os.path")
     def test_metadata_with_working_dir_child_source_dir(self, os_path_mock, pathlib_mock):
         metadata = {
-            "WorkingDirectory": str(os.path.join("source_dir","working","dir")),
+            "WorkingDirectory": str(os.path.join("source_dir", "working", "dir")),
         }
         os_path_mock.commonpath.return_value = "source_dir"
-        os_path_mock.normpath.side_effect = ["source_dir", os.path.join("source_dir","working","dir")]
+        os_path_mock.normpath.side_effect = ["source_dir", os.path.join("source_dir", "working", "dir")]
         os_path_mock.relpath.return_value = "./working/dir"
         os_path_mock.join.return_value = "source_dir/working/dir"
         path_mock = Mock()
@@ -2803,4 +2808,4 @@ class TestApplicationBuilderGetWorkingDirectoryPath(TestCase):
         path_mock.resolve.return_value = str(os.path.join("source_dir", "working", "dir"))
 
         working_dir = ApplicationBuilder._get_working_directory_path("base_dir", metadata, "source_dir", "scratch_dir")
-        self.assertEquals(working_dir, PathValidator(str(os.path.join("source_dir","working","dir"))))
+        self.assertEquals(working_dir, PathValidator(str(os.path.join("source_dir", "working", "dir"))))
