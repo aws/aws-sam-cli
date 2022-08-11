@@ -3,7 +3,7 @@ import platform
 import time
 from pathlib import Path
 from unittest import skip
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, Mock, patch
 
 from .integ_base import IntegBase, TelemetryServer
 from samcli import __version__ as SAM_CLI_VERSION
@@ -131,11 +131,13 @@ class TestExperimentalMetric(IntegBase):
             self.assertEqual(request["data"], expected_data)
         os.environ["SAM_CLI_BETA_FEATURES"] = "0"
 
-    @patch("samcli.lib.telemetry.event.EventTracker.send_events", return_value=None)  # Don't send Event metrics
+    @patch("samcli.lib.telemetry.event.EventTracker.send_events")  # Don't send Event metrics
     def test_must_send_cdk_project_type_metrics(self, event_mock):
         """
         Metrics should be sent if "Disabled via config file but Enabled via Envvar"
         """
+        event_mock = Mock()
+        event_mock.return_value = None
         # Disable it via configuration file
         self.unset_config()
         self.set_config(telemetry_enabled=True)
