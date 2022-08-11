@@ -3,9 +3,7 @@ import platform
 import time
 from pathlib import Path
 from unittest import skip
-from unittest.mock import ANY, Mock, patch
-
-from samcli.lib.telemetry.event import EventTracker
+from unittest.mock import ANY
 
 from .integ_base import IntegBase, TelemetryServer
 from samcli import __version__ as SAM_CLI_VERSION
