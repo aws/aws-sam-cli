@@ -13,14 +13,14 @@ from samcli.cli.cli_config_file import configuration_option, TomlProvider
 
 
 HELP_TEXT = """
-Get a summary of the testable resources in the stack.\n
+Get a summary of the cloud endpoints in the stack.\n
 This command will show both the cloud and local endpoints that can
-be used with sam local and sam sync. Currently the testable resources
+be used with sam local and sam sync. Currently the endpoint resources
 are lambda functions and API Gateway API resources.
 """
 
 
-@click.command(name="testable-resources", help=HELP_TEXT)
+@click.command(name="endpoints", help=HELP_TEXT)
 @configuration_option(provider=TomlProvider(section="parameters"))
 @stack_name_option
 @output_option
@@ -33,7 +33,7 @@ are lambda functions and API Gateway API resources.
 @print_cmdline_args
 def cli(self, stack_name, output, template_file, config_file, config_env):
     """
-    `sam list testable-resources` command entry point
+    `sam list endpoints` command entry point
     """
     do_cli(stack_name=stack_name, output=output, region=self.region, profile=self.profile, template_file=template_file)
 
@@ -42,9 +42,9 @@ def do_cli(stack_name, output, region, profile, template_file):
     """
     Implementation of the ``cli`` method
     """
-    from samcli.commands.list.testable_resources.testable_resources_context import TestableResourcesContext
+    from samcli.commands.list.endpoints.endpoints_context import EndpointsContext
 
-    with TestableResourcesContext(
+    with EndpointsContext(
         stack_name=stack_name, output=output, region=region, profile=profile, template_file=template_file
-    ) as testable_resources_context:
-        testable_resources_context.run()
+    ) as endpoints_context:
+        endpoints_context.run()

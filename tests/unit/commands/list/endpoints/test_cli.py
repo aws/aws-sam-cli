@@ -1,6 +1,6 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch
-from samcli.commands.list.testable_resources.cli import do_cli
+from samcli.commands.list.endpoints.cli import do_cli
 
 
 class TestCli(TestCase):
@@ -11,11 +11,11 @@ class TestCli(TestCase):
         self.profile = None
         self.template_file = None
 
-    @patch("samcli.commands.list.testable_resources.cli.click")
-    @patch("samcli.commands.list.testable_resources.testable_resources_context.TestableResourcesContext")
-    def test_cli_base_command(self, mock_testable_resources_context, mock_testable_resources_click):
+    @patch("samcli.commands.list.endpoints.cli.click")
+    @patch("samcli.commands.list.endpoints.endpoints_context.EndpointsContext")
+    def test_cli_base_command(self, mock_endpoints_context, mock_endpoints_click):
         context_mock = Mock()
-        mock_testable_resources_context.return_value.__enter__.return_value = context_mock
+        mock_endpoints_context.return_value.__enter__.return_value = context_mock
         do_cli(
             stack_name=self.stack_name,
             output=self.output,
@@ -24,7 +24,7 @@ class TestCli(TestCase):
             template_file=self.template_file,
         )
 
-        mock_testable_resources_context.assert_called_with(
+        mock_endpoints_context.assert_called_with(
             stack_name=self.stack_name,
             output=self.output,
             region=self.region,

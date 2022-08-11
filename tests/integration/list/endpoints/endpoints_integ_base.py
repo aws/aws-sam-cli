@@ -1,11 +1,11 @@
 from tests.integration.list.list_integ_base import ListIntegBase
 
 
-class TestableResourcesIntegBase(ListIntegBase):
-    def get_testable_resources_command_list(
+class EndpointsIntegBase(ListIntegBase):
+    def get_endpoints_command_list(
         self, stack_name=None, output=None, region=None, profile=None, template_file=None, help=False
     ):
-        command_list = [self.base_command(), "list", "testable-resources"]
+        command_list = [self.base_command(), "list", "endpoints"]
         if stack_name:
             command_list += ["--stack-name", str(stack_name)]
 

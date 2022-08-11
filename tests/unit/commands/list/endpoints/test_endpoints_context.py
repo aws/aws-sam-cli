@@ -3,7 +3,7 @@ from unittest.mock import patch, call, Mock
 from botocore.exceptions import ClientError, EndpointConnectionError, NoCredentialsError, BotoCoreError
 from samtranslator.translator.arn_generator import NoRegionFound
 
-from samcli.commands.list.testable_resources.testable_resources_context import TestableResourcesContext
+from samcli.commands.list.endpoints.endpoints_context import EndpointsContext
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.exceptions import RegionError, UserException
@@ -16,14 +16,14 @@ from samcli.commands.list.exceptions import (
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samtranslator.public.exceptions import InvalidDocumentException
 from samcli.lib.translate.sam_template_validator import SamTemplateValidator
-from samcli.lib.list.testable_resources.testable_resources_producer import TestableResourcesProducer, APIGatewayEnum
+from samcli.lib.list.endpoints.endpoints_producer import EndpointsProducer, APIGatewayEnum
 from samcli.lib.list.data_to_json_mapper import DataToJsonMapper
 from samcli.commands.list.json_consumer import StringConsumerJsonOutput
 from samcli.lib.providers.provider import Stack
 from samcli.lib.list.data_to_json_mapper import DataToJsonMapper
 from samcli.commands.list.json_consumer import StringConsumerJsonOutput
 from samcli.commands.list.table_consumer import StringConsumerTableOutput
-from samcli.lib.list.testable_resources.testable_resources_to_table_mapper import TestableResourcesToTableMapper
+from samcli.lib.list.endpoints.endpoints_to_table_mapper import EndpointsToTableMapper
 
 
 TRANSLATED_DICT_RETURN = {
@@ -471,16 +471,16 @@ SAM_FILE_READER_RETURN = {
 }
 
 
-class TestTestableResourcesInitClients(TestCase):
+class TestEndpointsInitClients(TestCase):
     @patch("samcli.commands.list.json_consumer.click.echo")
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
     @patch("boto3.Session.region_name", None)
     def test_init_clients_no_region(self, patched_click_get_current_context, patched_click_echo):
         with self.assertRaises(RegionError):
-            with TestableResourcesContext(
+            with EndpointsContext(
                 stack_name="test", output="json", region=None, profile=None, template_file=None
-            ) as testable_resources_context:
-                testable_resources_context.init_clients()
+            ) as endpoints_context:
+                endpoints_context.init_clients()
 
     @patch("samcli.commands.list.json_consumer.click.echo")
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
@@ -488,11 +488,11 @@ class TestTestableResourcesInitClients(TestCase):
     def test_init_clients_no_input_region_get_region_from_session(
         self, patched_click_get_current_context, patched_click_echo
     ):
-        with TestableResourcesContext(
+        with EndpointsContext(
             stack_name="test", output="json", region=None, profile=None, template_file=None
-        ) as testable_resources_context:
-            testable_resources_context.init_clients()
-            self.assertEqual(testable_resources_context.region, "us-east-1")
+        ) as endpoints_context:
+            endpoints_context.init_clients()
+            self.assertEqual(endpoints_context.region, "us-east-1")
 
 
 class TestGetFunctionUrl(TestCase):
@@ -509,7 +509,7 @@ class TestGetFunctionUrl(TestCase):
             {"Error": {"Code": "ResourceNotFoundException", "Message": "The resource you requested does not exist"}},
             "GetResources",
         )
-        testable_resource_producer = TestableResourcesProducer(
+        endpoint_producer = EndpointsProducer(
             stack_name=None,
             region="us-east-1",
             profile=None,
@@ -522,7 +522,7 @@ class TestGetFunctionUrl(TestCase):
             mapper=None,
             consumer=None,
         )
-        response = testable_resource_producer.get_function_url("testID")
+        response = endpoint_producer.get_function_url("testID")
         self.assertEqual(response, "-")
 
     @patch("samcli.commands.list.json_consumer.click.echo")
@@ -539,7 +539,7 @@ class TestGetFunctionUrl(TestCase):
             "DescribeStacks",
         )
         with self.assertRaises(SamListUnknownClientError):
-            testable_resource_producer = TestableResourcesProducer(
+            endpoint_producer = EndpointsProducer(
                 stack_name=None,
                 region="us-east-1",
                 profile=None,
@@ -552,7 +552,7 @@ class TestGetFunctionUrl(TestCase):
                 mapper=None,
                 consumer=None,
             )
-            testable_resource_producer.get_function_url("testID")
+            endpoint_producer.get_function_url("testID")
 
     @patch("samcli.commands.list.json_consumer.click.echo")
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
@@ -564,7 +564,7 @@ class TestGetFunctionUrl(TestCase):
         patched_click_echo,
     ):
         mock_client_provider.return_value.return_value.get_resource.return_value = {}
-        testable_resource_producer = TestableResourcesProducer(
+        endpoint_producer = EndpointsProducer(
             stack_name=None,
             region="us-east-1",
             profile=None,
@@ -577,7 +577,7 @@ class TestGetFunctionUrl(TestCase):
             mapper=None,
             consumer=None,
         )
-        response = testable_resource_producer.get_function_url("testID")
+        response = endpoint_producer.get_function_url("testID")
         self.assertEqual(response, "-")
 
     @patch("samcli.commands.list.json_consumer.click.echo")
@@ -607,7 +607,7 @@ class TestGetFunctionUrl(TestCase):
                 "RetryAttempts": 0,
             },
         }
-        testable_resource_producer = TestableResourcesProducer(
+        endpoint_producer = EndpointsProducer(
             stack_name=None,
             region="us-east-1",
             profile=None,
@@ -620,7 +620,7 @@ class TestGetFunctionUrl(TestCase):
             mapper=None,
             consumer=None,
         )
-        response = testable_resource_producer.get_function_url("testID")
+        response = endpoint_producer.get_function_url("testID")
         self.assertEqual(response, "https://test.lambda-url.us-east-1.on.aws/")
 
 
@@ -661,7 +661,7 @@ class TestGetStages(TestCase):
                 }
             ],
         }
-        testable_resource_producer = TestableResourcesProducer(
+        endpoint_producer = EndpointsProducer(
             stack_name=None,
             region="us-east-1",
             profile=None,
@@ -674,7 +674,7 @@ class TestGetStages(TestCase):
             mapper=None,
             consumer=None,
         )
-        response = testable_resource_producer.get_stage_list("testID", APIGatewayEnum.API_GATEWAY_V2)
+        response = endpoint_producer.get_stage_list("testID", APIGatewayEnum.API_GATEWAY_V2)
         self.assertEqual(response, ["$default"])
 
     @patch("samcli.commands.list.json_consumer.click.echo")
@@ -720,7 +720,7 @@ class TestGetStages(TestCase):
                 },
             ],
         }
-        testable_resource_producer = TestableResourcesProducer(
+        endpoint_producer = EndpointsProducer(
             stack_name=None,
             region="us-east-1",
             profile=None,
@@ -733,7 +733,7 @@ class TestGetStages(TestCase):
             mapper=None,
             consumer=None,
         )
-        response = testable_resource_producer.get_stage_list("testID", APIGatewayEnum.API_GATEWAY)
+        response = endpoint_producer.get_stage_list("testID", APIGatewayEnum.API_GATEWAY)
         self.assertEqual(response, ["Prod", "Stage"])
 
     @patch("samcli.commands.list.json_consumer.click.echo")
@@ -760,7 +760,7 @@ class TestGetStages(TestCase):
                 "RetryAttempts": 0,
             },
         }
-        testable_resource_producer = TestableResourcesProducer(
+        endpoint_producer = EndpointsProducer(
             stack_name=None,
             region="us-east-1",
             profile=None,
@@ -773,7 +773,7 @@ class TestGetStages(TestCase):
             mapper=None,
             consumer=None,
         )
-        response = testable_resource_producer.get_stage_list("testID", APIGatewayEnum.API_GATEWAY)
+        response = endpoint_producer.get_stage_list("testID", APIGatewayEnum.API_GATEWAY)
         self.assertEqual(response, [])
 
     @patch("samcli.commands.list.json_consumer.click.echo")
@@ -790,7 +790,7 @@ class TestGetStages(TestCase):
             "DescribeStacks",
         )
         with self.assertRaises(SamListUnknownClientError):
-            testable_resource_producer = TestableResourcesProducer(
+            endpoint_producer = EndpointsProducer(
                 stack_name=None,
                 region="us-east-1",
                 profile=None,
@@ -803,7 +803,7 @@ class TestGetStages(TestCase):
                 mapper=None,
                 consumer=None,
             )
-            testable_resource_producer.get_stage_list("testID", APIGatewayEnum.API_GATEWAY)
+            endpoint_producer.get_stage_list("testID", APIGatewayEnum.API_GATEWAY)
 
     @patch("samcli.commands.list.json_consumer.click.echo")
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
@@ -818,7 +818,7 @@ class TestGetStages(TestCase):
             {"Error": {"Code": "NotFoundException", "Message": ""}},
             "DescribeStacks",
         )
-        testable_resource_producer = TestableResourcesProducer(
+        endpoint_producer = EndpointsProducer(
             stack_name=None,
             region="us-east-1",
             profile=None,
@@ -831,7 +831,7 @@ class TestGetStages(TestCase):
             mapper=None,
             consumer=None,
         )
-        response = testable_resource_producer.get_stage_list("testID", APIGatewayEnum.API_GATEWAY)
+        response = endpoint_producer.get_stage_list("testID", APIGatewayEnum.API_GATEWAY)
         self.assertEqual(response, [])
 
     @patch("samcli.commands.list.json_consumer.click.echo")
@@ -847,7 +847,7 @@ class TestGetStages(TestCase):
             endpoint_url="https://cloudformation.test.amazonaws.com/"
         )
         with self.assertRaises(SamListUnknownBotoCoreError):
-            testable_resource_producer = TestableResourcesProducer(
+            endpoint_producer = EndpointsProducer(
                 stack_name=None,
                 region="us-east-1",
                 profile=None,
@@ -860,7 +860,7 @@ class TestGetStages(TestCase):
                 mapper=None,
                 consumer=None,
             )
-            testable_resource_producer.get_stage_list("testID", APIGatewayEnum.API_GATEWAY)
+            endpoint_producer.get_stage_list("testID", APIGatewayEnum.API_GATEWAY)
 
 
 class TestBuildAPIGWEndpoints(TestCase):
@@ -871,7 +871,7 @@ class TestBuildAPIGWEndpoints(TestCase):
         patched_click_get_current_context,
         patched_click_echo,
     ):
-        testable_resource_producer = TestableResourcesProducer(
+        endpoint_producer = EndpointsProducer(
             stack_name=None,
             region="us-east-1",
             profile=None,
@@ -884,20 +884,18 @@ class TestBuildAPIGWEndpoints(TestCase):
             mapper=None,
             consumer=None,
         )
-        repsonse1 = testable_resource_producer.build_api_gw_endpoints("testID", [])
+        repsonse1 = endpoint_producer.build_api_gw_endpoints("testID", [])
         self.assertEqual(repsonse1, [])
-        repsonse2 = testable_resource_producer.build_api_gw_endpoints("testID", ["Prod"])
+        repsonse2 = endpoint_producer.build_api_gw_endpoints("testID", ["Prod"])
         self.assertEqual(repsonse2, ["https://testID.execute-api.us-east-1.amazonaws.com/Prod"])
 
 
-class TestTestableResourcesProducerProduce(TestCase):
+class TestEndpointsProducerProduce(TestCase):
     @patch("samcli.commands.list.json_consumer.click.echo")
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
-    @patch("samcli.lib.list.testable_resources.testable_resources_producer.SamLocalStackProvider.get_stacks")
-    @patch("samcli.lib.list.testable_resources.testable_resources_producer.get_template_data")
-    @patch(
-        "samcli.lib.list.testable_resources.testable_resources_producer.TestableResourcesProducer.get_translated_dict"
-    )
+    @patch("samcli.lib.list.endpoints.endpoints_producer.SamLocalStackProvider.get_stacks")
+    @patch("samcli.lib.list.endpoints.endpoints_producer.get_template_data")
+    @patch("samcli.lib.list.endpoints.endpoints_producer.EndpointsProducer.get_translated_dict")
     def test_produce_resources_not_found_error(
         self,
         mock_get_translated_dict,
@@ -909,7 +907,7 @@ class TestTestableResourcesProducerProduce(TestCase):
         mock_get_template_data.return_value = {}
         mock_get_translated_dict.return_value = {}
         mock_get_stacks.return_value = ([], [])
-        testable_resource_producer = TestableResourcesProducer(
+        endpoint_producer = EndpointsProducer(
             stack_name=None,
             region="us-east-1",
             profile=None,
@@ -923,14 +921,12 @@ class TestTestableResourcesProducerProduce(TestCase):
             consumer=None,
         )
         with self.assertRaises(SamListLocalResourcesNotFoundError):
-            testable_resource_producer.produce()
+            endpoint_producer.produce()
 
     @patch("samcli.commands.list.json_consumer.click.echo")
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
-    @patch("samcli.lib.list.testable_resources.testable_resources_producer.get_template_data")
-    @patch(
-        "samcli.lib.list.testable_resources.testable_resources_producer.TestableResourcesProducer.get_translated_dict"
-    )
+    @patch("samcli.lib.list.endpoints.endpoints_producer.get_template_data")
+    @patch("samcli.lib.list.endpoints.endpoints_producer.EndpointsProducer.get_translated_dict")
     def test_produce_no_stack_name_json(
         self,
         mock_get_translated_dict,
@@ -944,7 +940,7 @@ class TestTestableResourcesProducerProduce(TestCase):
         stacks = SamLocalStackProvider.get_stacks(
             template_file="", template_dictionary=mock_get_translated_dict.return_value
         )
-        testable_resource_producer = TestableResourcesProducer(
+        endpoint_producer = EndpointsProducer(
             stack_name=None,
             region="us-east-1",
             profile=None,
@@ -957,25 +953,21 @@ class TestTestableResourcesProducerProduce(TestCase):
             mapper=DataToJsonMapper(),
             consumer=StringConsumerJsonOutput(),
         )
-        testable_resource_producer.produce()
+        endpoint_producer.produce()
         expected_output = [
             call(
-                '[\n  {\n    "LogicalResourceId": "HelloWorldFunction",\n    "PhysicalResourceId": "-",\n    "CloudEndpointOrFunctionURL": "-",\n    "Methods": "-"\n  },\n  {\n    "LogicalResourceId": "TestResource2",\n    "PhysicalResourceId": "-",\n    "CloudEndpointOrFunctionURL": "-",\n    "Methods": []\n  },\n  {\n    "LogicalResourceId": "TestResource5",\n    "PhysicalResourceId": "-",\n    "CloudEndpointOrFunctionURL": "-",\n    "Methods": []\n  },\n  {\n    "LogicalResourceId": "TestResource4",\n    "PhysicalResourceId": "-",\n    "CloudEndpointOrFunctionURL": "-",\n    "Methods": []\n  },\n  {\n    "LogicalResourceId": "ServerlessRestApi",\n    "PhysicalResourceId": "-",\n    "CloudEndpointOrFunctionURL": "-",\n    "Methods": [\n      "/hello2[\'get, put\']",\n      "/hello[\'get\']"\n    ]\n  }\n]'
+                '[\n  {\n    "LogicalResourceId": "HelloWorldFunction",\n    "PhysicalResourceId": "-",\n    "CloudEndpoint": "-",\n    "Methods": "-"\n  },\n  {\n    "LogicalResourceId": "TestResource2",\n    "PhysicalResourceId": "-",\n    "CloudEndpoint": "-",\n    "Methods": []\n  },\n  {\n    "LogicalResourceId": "TestResource5",\n    "PhysicalResourceId": "-",\n    "CloudEndpoint": "-",\n    "Methods": []\n  },\n  {\n    "LogicalResourceId": "TestResource4",\n    "PhysicalResourceId": "-",\n    "CloudEndpoint": "-",\n    "Methods": []\n  },\n  {\n    "LogicalResourceId": "ServerlessRestApi",\n    "PhysicalResourceId": "-",\n    "CloudEndpoint": "-",\n    "Methods": [\n      "/hello2[\'get, put\']",\n      "/hello[\'get\']"\n    ]\n  }\n]'
             )
         ]
         self.assertEqual(patched_click_echo.call_args_list, expected_output)
 
     @patch("samcli.commands.list.json_consumer.click.echo")
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
-    @patch("samcli.lib.list.testable_resources.testable_resources_producer.get_template_data")
-    @patch(
-        "samcli.lib.list.testable_resources.testable_resources_producer.TestableResourcesProducer.get_translated_dict"
-    )
-    @patch(
-        "samcli.lib.list.testable_resources.testable_resources_producer.TestableResourcesProducer.get_resources_info"
-    )
-    @patch("samcli.lib.list.testable_resources.testable_resources_producer.TestableResourcesProducer.get_function_url")
-    @patch("samcli.lib.list.testable_resources.testable_resources_producer.TestableResourcesProducer.get_stage_list")
+    @patch("samcli.lib.list.endpoints.endpoints_producer.get_template_data")
+    @patch("samcli.lib.list.endpoints.endpoints_producer.EndpointsProducer.get_translated_dict")
+    @patch("samcli.lib.list.endpoints.endpoints_producer.EndpointsProducer.get_resources_info")
+    @patch("samcli.lib.list.endpoints.endpoints_producer.EndpointsProducer.get_function_url")
+    @patch("samcli.lib.list.endpoints.endpoints_producer.EndpointsProducer.get_stage_list")
     def test_produce_has_stack_name_(
         self,
         mock_get_stages_list,
@@ -995,7 +987,7 @@ class TestTestableResourcesProducerProduce(TestCase):
         stacks = SamLocalStackProvider.get_stacks(
             template_file="", template_dictionary=mock_get_translated_dict.return_value
         )
-        testable_resource_producer = TestableResourcesProducer(
+        endpoint_producer = EndpointsProducer(
             stack_name="sam-app-hello6",
             region="us-east-1",
             profile=None,
@@ -1008,10 +1000,10 @@ class TestTestableResourcesProducerProduce(TestCase):
             mapper=DataToJsonMapper(),
             consumer=StringConsumerJsonOutput(),
         )
-        testable_resource_producer.produce()
+        endpoint_producer.produce()
         expected_output = [
             call(
-                '[\n  {\n    "LogicalResourceId": "HelloWorldFunction",\n    "PhysicalResourceId": "sam-app-hello6-HelloWorldFunction-testID",\n    "CloudEndpointOrFunctionURL": "test.function.url",\n    "Methods": "-"\n  },\n  {\n    "LogicalResourceId": "ServerlessRestApi",\n    "PhysicalResourceId": "jwompba769",\n    "CloudEndpointOrFunctionURL": [\n      "https://jwompba769.execute-api.us-east-1.amazonaws.com/testStage"\n    ],\n    "Methods": [\n      "/hello2[\'get, put\']",\n      "/hello[\'get\']"\n    ]\n  },\n  {\n    "LogicalResourceId": "TestResource2",\n    "PhysicalResourceId": "erj31jdyw5",\n    "CloudEndpointOrFunctionURL": [\n      "https://erj31jdyw5.execute-api.us-east-1.amazonaws.com/testStage"\n    ],\n    "Methods": []\n  },\n  {\n    "LogicalResourceId": "TestResource4",\n    "PhysicalResourceId": "5u9ekr1d32",\n    "CloudEndpointOrFunctionURL": [\n      "https://5u9ekr1d32.execute-api.us-east-1.amazonaws.com/testStage"\n    ],\n    "Methods": []\n  },\n  {\n    "LogicalResourceId": "test_apigw_restapi",\n    "PhysicalResourceId": "testPID",\n    "CloudEndpointOrFunctionURL": [\n      "https://test.custom.bpmapping.domain"\n    ],\n    "Methods": []\n  },\n  {\n    "LogicalResourceId": "TestResource5",\n    "PhysicalResourceId": "-",\n    "CloudEndpointOrFunctionURL": "-",\n    "Methods": []\n  }\n]'
+                '[\n  {\n    "LogicalResourceId": "HelloWorldFunction",\n    "PhysicalResourceId": "sam-app-hello6-HelloWorldFunction-testID",\n    "CloudEndpoint": "test.function.url",\n    "Methods": "-"\n  },\n  {\n    "LogicalResourceId": "ServerlessRestApi",\n    "PhysicalResourceId": "jwompba769",\n    "CloudEndpoint": [\n      "https://jwompba769.execute-api.us-east-1.amazonaws.com/testStage"\n    ],\n    "Methods": [\n      "/hello2[\'get, put\']",\n      "/hello[\'get\']"\n    ]\n  },\n  {\n    "LogicalResourceId": "TestResource2",\n    "PhysicalResourceId": "erj31jdyw5",\n    "CloudEndpoint": [\n      "https://erj31jdyw5.execute-api.us-east-1.amazonaws.com/testStage"\n    ],\n    "Methods": []\n  },\n  {\n    "LogicalResourceId": "TestResource4",\n    "PhysicalResourceId": "5u9ekr1d32",\n    "CloudEndpoint": [\n      "https://5u9ekr1d32.execute-api.us-east-1.amazonaws.com/testStage"\n    ],\n    "Methods": []\n  },\n  {\n    "LogicalResourceId": "test_apigw_restapi",\n    "PhysicalResourceId": "testPID",\n    "CloudEndpoint": [\n      "https://test.custom.bpmapping.domain"\n    ],\n    "Methods": []\n  },\n  {\n    "LogicalResourceId": "TestResource5",\n    "PhysicalResourceId": "-",\n    "CloudEndpoint": "-",\n    "Methods": []\n  }\n]'
             )
         ]
         self.assertEqual(patched_click_echo.call_args_list, expected_output)
