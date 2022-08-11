@@ -162,7 +162,7 @@ class TestExperimentalMetric(IntegBase):
             self.assertGreaterEqual(len(all_requests), 1, "Command run metric must be sent")
             request = all_requests[0]
             for req in all_requests:
-                if "commandRun" in req["data"]["metrics"]:
+                if "commandRun" in req["data"]["metrics"][0]:
                     request = req  # We're only testing the commandRun metric
             self.assertIn("Content-Type", request["headers"])
             self.assertEqual(request["headers"]["Content-Type"], "application/json")
