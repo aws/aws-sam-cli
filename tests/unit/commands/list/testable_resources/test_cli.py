@@ -9,13 +9,28 @@ class TestCli(TestCase):
         self.output = "json"
         self.region = None
         self.profile = None
+        self.template_file = None
 
     @patch("samcli.commands.list.testable_resources.cli.click")
-    def test_cli_base_command(self, mock_testable_resources_click):
+    @patch("samcli.commands.list.testable_resources.testable_resources_context.TestableResourcesContext")
+    def test_cli_base_command(self, mock_testable_resources_context, mock_testable_resources_click):
         context_mock = Mock()
+        mock_testable_resources_context.return_value.__enter__.return_value = context_mock
         do_cli(
             stack_name=self.stack_name,
             output=self.output,
             region=self.region,
             profile=self.profile,
+            template_file=self.template_file,
         )
+
+        mock_testable_resources_context.assert_called_with(
+            stack_name=self.stack_name,
+            output=self.output,
+            region=self.region,
+            profile=self.profile,
+            template_file=self.template_file,
+        )
+
+        context_mock.run.assert_called_with()
+        self.assertEqual(context_mock.run.call_count, 1)

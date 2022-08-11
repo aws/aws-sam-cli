@@ -9,12 +9,12 @@ from samcli.commands.list.resources.cli import HELP_TEXT
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 from tests.testing_utils import run_command, run_command_with_input, method_to_stack_name
 
-SKIP_STACK_OUTPUTS_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
+SKIP_RESOURCES_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 CFN_SLEEP = 3
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
 
 
-@skipIf(SKIP_STACK_OUTPUTS_TESTS, "Skip stack-outputs tests in CI/CD only")
+@skipIf(SKIP_RESOURCES_TESTS, "Skip resources tests in CI/CD only")
 class TestResources(DeployIntegBase, ResourcesIntegBase):
     @classmethod
     def setUpClass(cls):
