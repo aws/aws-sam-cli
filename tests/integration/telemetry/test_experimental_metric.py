@@ -150,8 +150,6 @@ class TestExperimentalMetric(IntegBase):
             .joinpath("cdk")
             .joinpath("cdk_template.yaml")
         )
-        temp = EventTracker.send_events
-        EventTracker.send_events = None  # Temporarily disable EventTracker
         with TelemetryServer() as server:
             # Run without any envvar.Should not publish metrics
             process = self.run_cmd(
@@ -161,9 +159,11 @@ class TestExperimentalMetric(IntegBase):
             process.communicate()
 
             all_requests = server.get_all_requests()
-            EventTracker.send_events = temp  # Re-enable EventTracker
-            self.assertEqual(len(all_requests), 1, "Command run metric must be sent")
+            self.assertGreaterEqual(len(all_requests), 1, "Command run metric must be sent")
             request = all_requests[0]
+            for req in all_requests:
+                if "commandRun" in req["data"]["metrics"]:
+                    request = req  # We're only testing the commandRun metric
             self.assertIn("Content-Type", request["headers"])
             self.assertEqual(request["headers"]["Content-Type"], "application/json")
 
