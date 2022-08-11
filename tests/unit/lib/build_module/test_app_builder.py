@@ -95,6 +95,7 @@ class TestApplicationBuilder_build(TestCase):
             layer_env_vars,
             dependencies_dir,
             download_dependencies,
+            layer_metadata,
         ):
             return f"{layer_name}_location"
 
@@ -181,6 +182,7 @@ class TestApplicationBuilder_build(TestCase):
                     ANY,
                     ANY,
                     True,
+                    ANY,
                 ),
                 call(
                     self.layer2.name,
@@ -192,6 +194,7 @@ class TestApplicationBuilder_build(TestCase):
                     ANY,
                     ANY,
                     True,
+                    ANY,
                 ),
             ]
         )
@@ -202,7 +205,7 @@ class TestApplicationBuilder_build(TestCase):
             return call(ANY, ANY, ANY, ANY, ANY, ANY, artifact_dir, ANY, ANY, ANY, True)
 
         def get_layer_call_with_artifact_dir(artifact_dir):
-            return call(ANY, ANY, ANY, ANY, ANY, artifact_dir, ANY, ANY, True)
+            return call(ANY, ANY, ANY, ANY, ANY, artifact_dir, ANY, ANY, True, ANY)
 
         build_function_mock = Mock()
         build_layer_mock = Mock()
@@ -525,10 +528,10 @@ class TestApplicationBuilderForLayerBuild(TestCase):
         self.layer1 = Mock()
         self.layer2 = Mock()
         self.container_manager = Mock()
-        resources_to_build_collector = ResourcesToBuildCollector()
-        resources_to_build_collector.add_layers([self.layer1, self.layer2])
+        self.resources_to_build_collector = ResourcesToBuildCollector()
+        self.resources_to_build_collector.add_layers([self.layer1, self.layer2])
         self.builder = ApplicationBuilder(
-            resources_to_build_collector, "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr)
+            self.resources_to_build_collector, "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr)
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -562,6 +565,249 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             True,
             True,
             is_building_layer=True,
+        )
+
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    @patch("samcli.lib.build.app_builder.get_layer_subfolder")
+    def test_must_custom_build_layer_with_metadata_in_process(
+        self, get_layer_subfolder_mock, osutils_mock, get_workflow_config_mock
+    ):
+        get_layer_subfolder_mock.return_value = ""
+        config_mock = Mock()
+        config_mock.manifest_name = "Makefile"
+        config_mock.language = "provided"
+
+        scratch_dir = "scratch"
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=scratch_dir)
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        get_workflow_config_mock.return_value = config_mock
+        build_function_in_process_mock = Mock()
+
+        metadata = {
+            "ProjectRootDirectory": "/src/code/path",
+            "ContextPath": "/make/file/dir",
+        }
+        options_mock = {
+            "logical_id": "layer1",
+        }
+
+        get_build_options_mock = Mock()
+        get_build_options_mock.return_value = options_mock
+
+        builder = ApplicationBuilder(
+            self.resources_to_build_collector, "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr)
+        )
+
+        get_build_options = ApplicationBuilder._get_build_options
+        ApplicationBuilder._get_build_options = get_build_options_mock
+        builder._build_function_in_process = build_function_in_process_mock
+        builder._build_layer(
+            "layer_name", "code_uri", "provided", ["python3.8"], ARM64, "full_path", layer_metadata=metadata
+        )
+        ApplicationBuilder._get_build_options = get_build_options
+
+        build_function_in_process_mock.assert_called_once_with(
+            config_mock,
+            PathValidator(os.path.join("src", "code", "path")),
+            PathValidator("full_path"),
+            "scratch",
+            PathValidator(os.path.join("make", "file", "dir", "Makefile")),
+            "provided",
+            ARM64,
+            options_mock,
+            None,
+            True,
+            True,
+            is_building_layer=True,
+        )
+
+        get_build_options_mock.assert_called_once_with(
+            "layer_name",
+            "provided",
+            None,
+        )
+
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    @patch("samcli.lib.build.app_builder.get_layer_subfolder")
+    def test_must_custom_build_layer_with_context_path_metadata_in_process(
+        self, get_layer_subfolder_mock, osutils_mock, get_workflow_config_mock
+    ):
+        get_layer_subfolder_mock.return_value = ""
+        config_mock = Mock()
+        config_mock.manifest_name = "Makefile"
+        config_mock.language = "provided"
+
+        scratch_dir = "scratch"
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=scratch_dir)
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        get_workflow_config_mock.return_value = config_mock
+        build_function_in_process_mock = Mock()
+
+        metadata = {
+            "ContextPath": "/make/file/dir",
+        }
+        options_mock = {
+            "logical_id": "layer1",
+        }
+
+        get_build_options_mock = Mock()
+        get_build_options_mock.return_value = options_mock
+
+        builder = ApplicationBuilder(
+            self.resources_to_build_collector, "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr)
+        )
+
+        get_build_options = ApplicationBuilder._get_build_options
+        ApplicationBuilder._get_build_options = get_build_options_mock
+        builder._build_function_in_process = build_function_in_process_mock
+        builder._build_layer(
+            "layer_name", "code_uri", "provided", ["python3.8"], ARM64, "full_path", layer_metadata=metadata
+        )
+        ApplicationBuilder._get_build_options = get_build_options
+
+        build_function_in_process_mock.assert_called_once_with(
+            config_mock,
+            PathValidator("code_uri"),
+            PathValidator("full_path"),
+            "scratch",
+            PathValidator(os.path.join("make", "file", "dir", "Makefile")),
+            "provided",
+            ARM64,
+            options_mock,
+            None,
+            True,
+            True,
+            is_building_layer=True,
+        )
+
+        get_build_options_mock.assert_called_once_with(
+            "layer_name",
+            "provided",
+            None,
+        )
+
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    @patch("samcli.lib.build.app_builder.get_layer_subfolder")
+    def test_must_custom_build_layer_with_project_root_directory_only_metadata_in_process(
+        self, get_layer_subfolder_mock, osutils_mock, get_workflow_config_mock
+    ):
+        get_layer_subfolder_mock.return_value = ""
+        config_mock = Mock()
+        config_mock.manifest_name = "Makefile"
+        config_mock.language = "provided"
+
+        scratch_dir = "scratch"
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=scratch_dir)
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        get_workflow_config_mock.return_value = config_mock
+        build_function_in_process_mock = Mock()
+
+        metadata = {
+            "ProjectRootDirectory": "/src/code/path",
+        }
+        options_mock = {
+            "logical_id": "layer1",
+        }
+
+        get_build_options_mock = Mock()
+        get_build_options_mock.return_value = options_mock
+
+        builder = ApplicationBuilder(
+            self.resources_to_build_collector, "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr)
+        )
+
+        get_build_options = ApplicationBuilder._get_build_options
+        ApplicationBuilder._get_build_options = get_build_options_mock
+        builder._build_function_in_process = build_function_in_process_mock
+        builder._build_layer(
+            "layer_name", "code_uri", "provided", ["python3.8"], ARM64, "full_path", layer_metadata=metadata
+        )
+        ApplicationBuilder._get_build_options = get_build_options
+
+        build_function_in_process_mock.assert_called_once_with(
+            config_mock,
+            PathValidator(os.path.join("src", "code", "path")),
+            PathValidator("full_path"),
+            "scratch",
+            PathValidator(os.path.join("src", "code", "path", "Makefile")),
+            "provided",
+            ARM64,
+            options_mock,
+            None,
+            True,
+            True,
+            is_building_layer=True,
+        )
+
+        get_build_options_mock.assert_called_once_with(
+            "layer_name",
+            "provided",
+            None,
+        )
+
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    @patch("samcli.lib.build.app_builder.get_layer_subfolder")
+    def test_must_custom_build_layer_with_empty_metadata_in_process(
+        self, get_layer_subfolder_mock, osutils_mock, get_workflow_config_mock
+    ):
+        get_layer_subfolder_mock.return_value = ""
+        config_mock = Mock()
+        config_mock.manifest_name = "Makefile"
+        config_mock.language = "provided"
+
+        scratch_dir = "scratch"
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=scratch_dir)
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        get_workflow_config_mock.return_value = config_mock
+        build_function_in_process_mock = Mock()
+
+        metadata = {}
+        options_mock = {
+            "logical_id": "layer1",
+        }
+
+        get_build_options_mock = Mock()
+        get_build_options_mock.return_value = options_mock
+
+        builder = ApplicationBuilder(
+            self.resources_to_build_collector, "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr)
+        )
+
+        get_build_options = ApplicationBuilder._get_build_options
+        ApplicationBuilder._get_build_options = get_build_options_mock
+        builder._build_function_in_process = build_function_in_process_mock
+        builder._build_layer(
+            "layer_name", "code_uri", "provided", ["python3.8"], ARM64, "full_path", layer_metadata=metadata
+        )
+        ApplicationBuilder._get_build_options = get_build_options
+
+        build_function_in_process_mock.assert_called_once_with(
+            config_mock,
+            PathValidator("code_uri"),
+            PathValidator("full_path"),
+            "scratch",
+            PathValidator(os.path.join("code_uri", "Makefile")),
+            "provided",
+            ARM64,
+            options_mock,
+            None,
+            True,
+            True,
+            is_building_layer=True,
+        )
+
+        get_build_options_mock.assert_called_once_with(
+            "layer_name",
+            "provided",
+            None,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -971,7 +1217,6 @@ class TestApplicationBuilder_update_template_windows(TestCase):
         }
 
         # Force os.path to be ntpath instead of posixpath on unix systems
-        import ntpath
 
         self.saved_os_path_module = sys.modules["os.path"]
         os.path = sys.modules["ntpath"]
@@ -1263,6 +1508,290 @@ class TestApplicationBuilder_build_function(TestCase):
             None,
             True,
             True,
+        )
+
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_must_custom_build_function_with_metadata_in_process(self, osutils_mock, get_workflow_config_mock):
+        function_name = "function_name"
+        codeuri = "path/to/source"
+        packagetype = ZIP
+        runtime = "provided"
+        architecture = X86_64
+        scratch_dir = "scratch"
+        handler = "handler.handle"
+
+        config_mock = Mock()
+        config_mock.manifest_name = "Makefile"
+        config_mock.language = "provided"
+        dependency_manager_mock = Mock()
+        config_mock.dependency_manager = dependency_manager_mock
+
+        code_dir = str(Path("/base/dir/path/to/source").resolve())
+        artifacts_dir = str(Path("/build/dir/function_full_path"))
+        manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
+
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=scratch_dir)
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        get_workflow_config_mock.return_value = config_mock
+        build_function_in_process_mock = Mock()
+
+        metadata = {
+            "ProjectRootDirectory": "/src/code/path",
+            "ContextPath": "/make/file/dir",
+        }
+        options_mock = {
+            "logical_id": function_name,
+        }
+
+        get_build_options_mock = Mock()
+        get_build_options_mock.return_value = options_mock
+
+        builder = ApplicationBuilder(
+            Mock(), "/build/dir", "/base/dir", "cachedir", stream_writer=StreamWriter(sys.stderr)
+        )
+
+        get_build_options = ApplicationBuilder._get_build_options
+        ApplicationBuilder._get_build_options = get_build_options_mock
+        builder._build_function_in_process = build_function_in_process_mock
+        builder._build_function(function_name, codeuri, ZIP, runtime, architecture, handler, artifacts_dir, metadata)
+
+        ApplicationBuilder._get_build_options = get_build_options
+
+        build_function_in_process_mock.assert_called_once_with(
+            config_mock,
+            PathValidator(os.path.join("src", "code", "path")),
+            PathValidator("function_full_path"),
+            "scratch",
+            PathValidator(os.path.join("make", "file", "dir", "Makefile")),
+            "provided",
+            architecture,
+            options_mock,
+            None,
+            True,
+            True,
+        )
+
+        get_build_options_mock.assert_called_once_with(
+            function_name,
+            "provided",
+            handler,
+            dependency_manager_mock,
+            metadata,
+        )
+
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_must_custom_build_function_with_only_context_path_metadata_in_process(
+        self, osutils_mock, get_workflow_config_mock
+    ):
+        function_name = "function_name"
+        codeuri = "path/to/source"
+        packagetype = ZIP
+        runtime = "provided"
+        architecture = X86_64
+        scratch_dir = "scratch"
+        handler = "handler.handle"
+
+        config_mock = Mock()
+        config_mock.manifest_name = "Makefile"
+        config_mock.language = "provided"
+        dependency_manager_mock = Mock()
+        config_mock.dependency_manager = dependency_manager_mock
+
+        code_dir = str(Path("/base/dir/path/to/source").resolve())
+        artifacts_dir = str(Path("/build/dir/function_full_path"))
+        manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
+
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=scratch_dir)
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        get_workflow_config_mock.return_value = config_mock
+        build_function_in_process_mock = Mock()
+
+        metadata = {
+            "ContextPath": "/make/file/dir",
+        }
+        options_mock = {
+            "logical_id": function_name,
+            "working_directory": "working_dir",
+        }
+
+        get_build_options_mock = Mock()
+        get_build_options_mock.return_value = options_mock
+
+        builder = ApplicationBuilder(
+            Mock(), "/build/dir", "/base/dir", "cachedir", stream_writer=StreamWriter(sys.stderr)
+        )
+
+        get_build_options = ApplicationBuilder._get_build_options
+        ApplicationBuilder._get_build_options = get_build_options_mock
+        builder._build_function_in_process = build_function_in_process_mock
+        builder._build_function(function_name, codeuri, ZIP, runtime, architecture, handler, artifacts_dir, metadata)
+
+        ApplicationBuilder._get_build_options = get_build_options
+
+        build_function_in_process_mock.assert_called_once_with(
+            config_mock,
+            code_dir,
+            PathValidator("function_full_path"),
+            "scratch",
+            PathValidator(os.path.join("make", "file", "dir", "Makefile")),
+            "provided",
+            architecture,
+            options_mock,
+            None,
+            True,
+            True,
+        )
+
+        get_build_options_mock.assert_called_once_with(
+            function_name,
+            "provided",
+            handler,
+            dependency_manager_mock,
+            metadata,
+        )
+
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_must_custom_build_function_with_only_project_root_dir_metadata_in_process(
+        self, osutils_mock, get_workflow_config_mock
+    ):
+        function_name = "function_name"
+        codeuri = "path/to/source"
+        packagetype = ZIP
+        runtime = "provided"
+        architecture = X86_64
+        scratch_dir = "scratch"
+        handler = "handler.handle"
+
+        config_mock = Mock()
+        config_mock.manifest_name = "Makefile"
+        config_mock.language = "provided"
+        dependency_manager_mock = Mock()
+        config_mock.dependency_manager = dependency_manager_mock
+
+        code_dir = str(Path("/base/dir/path/to/source").resolve())
+        artifacts_dir = str(Path("/build/dir/function_full_path"))
+        manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
+
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=scratch_dir)
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        get_workflow_config_mock.return_value = config_mock
+        build_function_in_process_mock = Mock()
+
+        metadata = {
+            "ProjectRootDirectory": "/src/code/path",
+        }
+        options_mock = {
+            "logical_id": function_name,
+        }
+
+        get_build_options_mock = Mock()
+        get_build_options_mock.return_value = options_mock
+
+        builder = ApplicationBuilder(
+            Mock(), "/build/dir", "/base/dir", "cachedir", stream_writer=StreamWriter(sys.stderr)
+        )
+
+        get_build_options = ApplicationBuilder._get_build_options
+        ApplicationBuilder._get_build_options = get_build_options_mock
+        builder._build_function_in_process = build_function_in_process_mock
+        builder._build_function(function_name, codeuri, ZIP, runtime, architecture, handler, artifacts_dir, metadata)
+
+        ApplicationBuilder._get_build_options = get_build_options
+
+        build_function_in_process_mock.assert_called_once_with(
+            config_mock,
+            PathValidator(os.path.join("src", "code", "path")),
+            PathValidator("function_full_path"),
+            "scratch",
+            PathValidator(os.path.join("src", "code", "path", "Makefile")),
+            "provided",
+            architecture,
+            options_mock,
+            None,
+            True,
+            True,
+        )
+
+        get_build_options_mock.assert_called_once_with(
+            function_name,
+            "provided",
+            handler,
+            dependency_manager_mock,
+            metadata,
+        )
+
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_must_custom_build_function_with_empty_metadata_in_process(self, osutils_mock, get_workflow_config_mock):
+        function_name = "function_name"
+        codeuri = "path/to/source"
+        packagetype = ZIP
+        runtime = "provided"
+        architecture = X86_64
+        scratch_dir = "scratch"
+        handler = "handler.handle"
+
+        config_mock = Mock()
+        config_mock.manifest_name = "Makefile"
+        config_mock.language = "provided"
+        dependency_manager_mock = Mock()
+        config_mock.dependency_manager = dependency_manager_mock
+
+        code_dir = str(Path("/base/dir/path/to/source").resolve())
+        artifacts_dir = str(Path("/build/dir/function_full_path"))
+        manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
+
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=scratch_dir)
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        get_workflow_config_mock.return_value = config_mock
+        build_function_in_process_mock = Mock()
+
+        metadata = {}
+        options_mock = {
+            "logical_id": function_name,
+        }
+
+        get_build_options_mock = Mock()
+        get_build_options_mock.return_value = options_mock
+
+        builder = ApplicationBuilder(
+            Mock(), "/build/dir", "/base/dir", "cachedir", stream_writer=StreamWriter(sys.stderr)
+        )
+
+        get_build_options = ApplicationBuilder._get_build_options
+        ApplicationBuilder._get_build_options = get_build_options_mock
+        builder._build_function_in_process = build_function_in_process_mock
+        builder._build_function(function_name, codeuri, ZIP, runtime, architecture, handler, artifacts_dir, metadata)
+
+        ApplicationBuilder._get_build_options = get_build_options
+
+        build_function_in_process_mock.assert_called_once_with(
+            config_mock,
+            code_dir,
+            PathValidator("function_full_path"),
+            "scratch",
+            manifest_path,
+            "provided",
+            architecture,
+            options_mock,
+            None,
+            True,
+            True,
+        )
+
+        get_build_options_mock.assert_called_once_with(
+            function_name,
+            "provided",
+            handler,
+            dependency_manager_mock,
+            metadata,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -1802,53 +2331,6 @@ class TestApplicationBuilder_parse_builder_response(TestCase):
             self.builder._parse_builder_response(json.dumps(data), self.image_name)
 
         self.assertEqual(str(ctx.exception), msg)
-
-
-class TestApplicationBuilder_make_env_vars(TestCase):
-    def test_make_env_vars_with_env_file(self):
-        function1 = generate_function(name="Function1")
-        file_env_vars = {
-            "Parameters": {"ENV_VAR1": "1"},
-            "Function1": {"ENV_VAR2": "2"},
-            "Function2": {"ENV_VAR3": "3"},
-        }
-        result = ApplicationBuilder._make_env_vars(function1, file_env_vars, {})
-        self.assertEqual(result, {"ENV_VAR1": "1", "ENV_VAR2": "2"})
-
-    def test_make_env_vars_with_function_precedence(self):
-        function1 = generate_function(name="Function1")
-        file_env_vars = {
-            "Parameters": {"ENV_VAR1": "1"},
-            "Function1": {"ENV_VAR1": "2"},
-            "Function2": {"ENV_VAR3": "3"},
-        }
-        result = ApplicationBuilder._make_env_vars(function1, file_env_vars, {})
-        self.assertEqual(result, {"ENV_VAR1": "2"})
-
-    def test_make_env_vars_with_inline_env(self):
-        function1 = generate_function(name="Function1")
-        inline_env_vars = {
-            "Parameters": {"ENV_VAR1": "1"},
-            "Function1": {"ENV_VAR2": "2"},
-            "Function2": {"ENV_VAR3": "3"},
-        }
-        result = ApplicationBuilder._make_env_vars(function1, {}, inline_env_vars)
-        self.assertEqual(result, {"ENV_VAR1": "1", "ENV_VAR2": "2"})
-
-    def test_make_env_vars_with_both(self):
-        function1 = generate_function(name="Function1")
-        file_env_vars = {
-            "Parameters": {"ENV_VAR1": "1"},
-            "Function1": {"ENV_VAR2": "2"},
-            "Function2": {"ENV_VAR3": "3"},
-        }
-        inline_env_vars = {
-            "Parameters": {"ENV_VAR1": "2"},
-            "Function1": {"ENV_VAR2": "3"},
-            "Function2": {"ENV_VAR3": "3"},
-        }
-        result = ApplicationBuilder._make_env_vars(function1, file_env_vars, inline_env_vars)
-        self.assertEqual(result, {"ENV_VAR1": "2", "ENV_VAR2": "3"})
 
 
 class TestApplicationBuilder_get_build_options(TestCase):

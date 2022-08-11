@@ -201,6 +201,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     self.layer_build_definition1.env_vars,
                     None,
                     True,
+                    self.layer1.metadata,
                 ),
                 call(
                     self.layer2.name,
@@ -212,6 +213,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     self.layer_build_definition2.env_vars,
                     None,
                     True,
+                    self.layer2.metadata,
                 ),
             ]
         )
@@ -548,7 +550,9 @@ class TestIncrementalBuildStrategy(TestCase):
         download_dependencies = manifest_hash != build_toml_manifest_hash or not dependency_dir_exist
 
         self.build_strategy.build()
-        self.build_layer.assert_called_with(ANY, ANY, ANY, ANY, ANY, ANY, ANY, dependency_dir, download_dependencies)
+        self.build_layer.assert_called_with(
+            ANY, ANY, ANY, ANY, ANY, ANY, ANY, dependency_dir, download_dependencies, ANY
+        )
 
 
 @patch("samcli.lib.build.build_graph.BuildGraph._write")
