@@ -14,7 +14,6 @@ import click
 from samcli.cli.global_config import GlobalConfig
 
 from samcli.commands.exceptions import (
-    AppPipelineTemplateManifestException,
     AppPipelineTemplateMetadataException,
     PipelineTemplateCloneException,
 )
@@ -122,7 +121,7 @@ class InteractiveInitFlow:
                     pipeline_template_git_location, tempdir_path, CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME
                 )
 
-        try:
+        if os.path.exists(pipeline_template_local_dir.joinpath("manifest.yaml")):
             pipeline_templates_manifest: PipelineTemplatesManifest = _read_app_pipeline_templates_manifest(
                 pipeline_template_local_dir
             )
@@ -133,7 +132,7 @@ class InteractiveInitFlow:
             selected_pipeline_template_dir: Path = pipeline_template_local_dir.joinpath(
                 selected_pipeline_template_metadata.location
             )
-        except AppPipelineTemplateManifestException:
+        else:
             # If the repository does not contain a manifest, treat it as a pipeline template directory.
             selected_pipeline_template_dir = pipeline_template_local_dir
 
