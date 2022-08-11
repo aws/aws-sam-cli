@@ -2,6 +2,7 @@
 CLI command for the "test_runner run" command
 """
 import logging
+from datetime import datetime
 from typing import Optional, List
 
 import click
@@ -16,6 +17,23 @@ SHORT_HELP = "Run your testsuite on Fargate! Test results will automatically be 
 HELP_TEXT = """
 This command takes a Test Runner CloudFormation template, deploys it (updates if it already exists), and executes your testsuite on Fargate"
 """
+
+
+def _get_unique_bucket_directory_name() -> str:
+    """
+    Creates a unqiue test-run directory name using a formatted ISO 8601 string.
+
+    This directory is created at the top level of the S3 bucket (to store tests and results) if the customer does not specify a bucket path.
+
+    E.g. test_run_2022_08_11T10_53_54
+    """
+    current_date = datetime.now().isoformat()
+    # Remove the microsends, too long
+    current_date = current_date[: current_date.index(".")]
+    # Replace the dashes and colons with underscores for consistency
+    current_date = current_date.replace("-", "_").replace(":", "_")
+
+    return f"test_run_{current_date}"
 
 
 @click.command("run", help=HELP_TEXT, short_help=SHORT_HELP)
@@ -79,10 +97,15 @@ The Python Requirements file, commonly named `requirements.txt` containing the d
 )
 @click.option(
     "--path-in-bucket",
-    required=True,
+    required=False,
     type=str,
-    help="""
-Specify the path within the S3 bucket where the tests, requirements, and results will be stored. 
+    default=_get_unique_bucket_directory_name(),
+    help=f"""
+Specify the path within the S3 bucket where the tests, requirements, and results will be stored.
+
+By default, a top level directory named test_run_<ISO 8601 date>/ is created and used.
+
+For example, right now it would be {_get_unique_bucket_directory_name()}/
 """,
 )
 @click.option(
@@ -102,7 +125,7 @@ Specify the path within the S3 bucket where the tests, requirements, and results
 Specify a space separated list of subnets to use when starting the test-running task.
 If not specified, the Test Runner will automatically use subnets associated with your account.
 
-E.g. --subnets subnet-0bb1c79de3EXAMPLE subnet-2da1f45df2EXAMPLE
+E.g. --subnets subnet-1 subnet-2
 """,
 )
 @pass_context

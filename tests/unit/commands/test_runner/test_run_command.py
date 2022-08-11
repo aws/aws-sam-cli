@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 from parameterized import parameterized
 
 from samcli.commands.exceptions import InvalidEnvironmentVariableException, ReservedEnvironmentVariableException
-from samcli.commands.test_runner.run.cli import _validate_other_env_vars, do_cli
+from samcli.commands.test_runner.run.cli import _validate_other_env_vars, do_cli, _get_unique_bucket_directory_name
 from samcli.lib.test_runner.fargate_testsuite_runner import FargateTestsuiteRunner
 
 
@@ -42,6 +42,18 @@ class TestEnvVarValidation(TestCase):
     def test_valid_env_vars(self):
         other_env_vars = {"key1": 5, "key2": 3.14, "key3": "this is a string"}
         _validate_other_env_vars(other_env_vars, FargateTestsuiteRunner.RESERVED_ENV_VAR_NAMES)
+
+
+class TestDefaultDirectoryName(TestCase):
+    @patch("samcli.commands.test_runner.run.cli.datetime")
+    def test_get_unique_bucket_directory_name(self, datetime_patch) -> str:
+        # Example date
+        # Patching datetime.now().isoformat()
+        datetime_patch.now.return_value.isoformat.return_value = "2022-08-11T11:13:07.793055"
+
+        result = _get_unique_bucket_directory_name()
+
+        self.assertEqual(result, "test_run_2022_08_11T11_13_07")
 
 
 class TestCli(TestCase):
