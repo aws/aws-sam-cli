@@ -110,6 +110,25 @@ class TestCliConfiguration(TestCase):
             self.assertIn(arg, self.saved_callback.call_args[0])
         self.assertNotIn(self.value, self.saved_callback.call_args[0])
 
+    def test_callback_with_invalid_config_file(self):
+        mock_context1 = MockContext(info_name="sam", parent=None)
+        mock_context2 = MockContext(info_name="local", parent=mock_context1)
+        mock_context3 = MockContext(info_name="start-api", parent=mock_context2)
+        self.ctx.parent = mock_context3
+        self.ctx.info_name = "test_info"
+        self.ctx.params = {"config_file": "invalid_config_file"}
+        setattr(self.ctx, "samconfig_dir", None)
+        with self.assertRaises(ConfigException):
+            configuration_callback(
+                cmd_name=self.cmd_name,
+                option_name=self.option_name,
+                saved_callback=self.saved_callback,
+                provider=self.provider,
+                ctx=self.ctx,
+                param=self.param,
+                value=self.value,
+            )
+
     def test_configuration_option(self):
         toml_provider = TomlProvider()
         click_option = configuration_option(provider=toml_provider)
