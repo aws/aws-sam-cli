@@ -159,9 +159,9 @@ class TestExperimentalMetric(IntegBase):
                 optout_envvar_value="1",
             )
             process.communicate()
-            EventTracker.send_events = temp  # Re-enable EventTracker
 
             all_requests = server.get_all_requests()
+            EventTracker.send_events = temp  # Re-enable EventTracker
             self.assertEqual(len(all_requests), 1, "Command run metric must be sent")
             request = all_requests[0]
             self.assertIn("Content-Type", request["headers"])
