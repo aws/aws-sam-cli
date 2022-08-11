@@ -256,3 +256,37 @@ class TestCDKLayerVersion(TestLayerVersionBase):
         expected_output = '"This is a Layer Ping from simple_python"'
 
         self.assertEqual(process_stdout.decode("utf-8"), expected_output)
+
+
+class TestCDKSimilarPathsTemplate(InvokeIntegBase):
+    template = Path("cdk/cdk_similar_paths_template.yaml")
+
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_by_logical_id(self):
+        command_list = self.get_command_list(
+            "FunctionWrapper2FnFFBA90E9", event_path=self.event_path, template_path=self.template_path
+        )
+        stdout, _, return_code = self.run_command(command_list)
+        response = json.loads(stdout.decode("utf-8").split("\n", maxsplit=1)[0])
+        expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\":\\"hello world\\"}"}')
+
+        self.assertEqual(return_code, 0)
+        self.assertEqual(response, expected_response)
+
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_by_cdk_id(self):
+        command_list = self.get_command_list("Fn", event_path=self.event_path, template_path=self.template_path)
+        stdout, stderr, return_code = self.run_command(command_list)
+        response = json.loads(stdout.decode("utf-8").split("\n", maxsplit=1)[0])
+        expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\":\\"hello world\\"}"}')
+        expected_message = "\x1b[33mMultiple functions found with keyword Fn! "
+        expected_message += "Function FunctionWrapper1Fn61D796A9 will be invoked! "
+        expected_message += "If it's not the function you are going to invoke, "
+        expected_message += "please choose one of them from below:\x1b[0m\n"
+        expected_message += "\x1b[33mFunctionWrapper1Fn61D796A9\x1b[0m\n"
+        expected_message += "\x1b[33mFunctionWrapper2FnFFBA90E9\x1b[0m\n"
+        expected_message += "\x1b[33mFunctionWrapper3Fn2BA36547\x1b[0m\n"
+
+        self.assertEqual(return_code, 0)
+        self.assertEqual(response, expected_response)
+        self.assertIn(expected_message, stderr.decode("utf-8"))

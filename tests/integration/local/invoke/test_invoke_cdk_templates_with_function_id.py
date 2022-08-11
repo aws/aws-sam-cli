@@ -34,7 +34,7 @@ class TestCDKSynthesizedTemplatesFunctionIdentifies(InvokeIntegBase):
 
             # Get the response without the sam-cli prompts that proceed it
             response = json.loads(stdout.decode("utf-8").split("\n")[0])
-            expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\":\\"%s\\"}"}' % logical_id)
+            expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\":\\"%s\\"}"}' % function_id)
 
             self.assertEqual(return_code, 0)
             self.assertEqual(response, expected_response)
@@ -55,7 +55,7 @@ class TestCDKSynthesizedTemplatesNestedFunctionIdentifies(InvokeIntegBase):
 
         # Get the response without the sam-cli prompts that proceed it
         response = json.loads(stdout.decode("utf-8").split("\n")[0])
-        expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\":\\"%s\\"}"}' % logical_id)
+        expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\":\\"%s\\"}"}' % function_id_part)
 
         self.assertEqual(return_code, 0)
         self.assertEqual(response, expected_response)
@@ -75,7 +75,61 @@ class TestCDKSynthesizedTemplatesNestedFunctionIdentifies(InvokeIntegBase):
 
         # Get the response without the sam-cli prompts that proceed it
         response = json.loads(stdout.decode("utf-8").split("\n")[0])
-        expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\":\\"%s\\"}"}' % expected_logical_id)
+        expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\":\\"%s\\"}"}' % duplicated_function_id)
+
+        self.assertEqual(return_code, 0)
+        self.assertEqual(response, expected_response)
+
+    @parameterized.expand(
+        [
+            (
+                "SubAppA/LambdaWithFunctionName",
+                "LambdaWithFunctionName",
+            ),
+            (
+                "SubAppB/LambdaWithFunctionName",
+                "LambdaWithFunctionName",
+            ),
+        ]
+    )
+    @pytest.mark.flaky(reruns=0)
+    def test_invoke_function_with_full_name(self, full_name, function_id):
+        self.teardown_function_name = ["StandardZipFunctionWithFunctionNameA", "StandardZipFunctionWithFunctionNameB"]
+        local_invoke_command_list = self.get_command_list(
+            function_to_invoke=full_name, template_path=self.template_path
+        )
+        stdout, _, return_code = self.run_command(local_invoke_command_list)
+
+        # Get the response without the sam-cli prompts that proceed it
+        response = json.loads(stdout.decode("utf-8").split("\n")[0])
+        expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\":\\"%s\\"}"}' % function_id)
+
+        self.assertEqual(return_code, 0)
+        self.assertEqual(response, expected_response)
+
+    @parameterized.expand(
+        [
+            (
+                "SubAppA/StandardZipFunctionWithFunctionNameA",
+                "LambdaWithFunctionName",
+            ),
+            (
+                "SubAppB/StandardZipFunctionWithFunctionNameB",
+                "LambdaWithFunctionName",
+            ),
+        ]
+    )
+    @pytest.mark.flaky(reruns=0)
+    def test_invoke_function_with_full_path(self, full_name, function_id):
+        self.teardown_function_name = ["StandardZipFunctionWithFunctionNameA", "StandardZipFunctionWithFunctionNameB"]
+        local_invoke_command_list = self.get_command_list(
+            function_to_invoke=full_name, template_path=self.template_path
+        )
+        stdout, _, return_code = self.run_command(local_invoke_command_list)
+
+        # Get the response without the sam-cli prompts that proceed it
+        response = json.loads(stdout.decode("utf-8").split("\n")[0])
+        expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\":\\"%s\\"}"}' % function_id)
 
         self.assertEqual(return_code, 0)
         self.assertEqual(response, expected_response)
