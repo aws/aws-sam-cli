@@ -289,6 +289,8 @@ class FargateTestsuiteRunner:
         )
 
         # Compress tests into a temporary tarfile to send to S3 bucket
+        # We set arcname to the stem of the tests_path to avoid including all the parent directories in the tarfile
+        # E.g. If the customer specifies tests_path as a/b/c/tests, we want the tar to expand as tests, not a
         with tarfile.open(temp_tarfile_name, "w:gz") as tar:
             tar.add(self.tests_path, arcname=self.tests_path.stem)
 
