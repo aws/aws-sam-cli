@@ -131,7 +131,7 @@ class TestExperimentalMetric(IntegBase):
             self.assertEqual(request["data"], expected_data)
         os.environ["SAM_CLI_BETA_FEATURES"] = "0"
 
-    @patch("samcli.lib.telemetry.event.EventTracker", return_value=None)  # Don't send Event metrics
+    @patch("samcli.lib.telemetry.event.EventTracker.send_events", return_value=None)  # Don't send Event metrics
     def test_must_send_cdk_project_type_metrics(self, event_mock):
         """
         Metrics should be sent if "Disabled via config file but Enabled via Envvar"
