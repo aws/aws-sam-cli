@@ -159,9 +159,9 @@ class NestedStackManager:
         if layer_root_folder.exists():
             shutil.rmtree(layer_root_folder)
         layer_contents_folder = layer_root_folder.joinpath(get_layer_subfolder(function_runtime))
+        layer_root_folder.mkdir(BUILD_DIR_PERMISSIONS, parents=True)
         if os.path.isdir(dependencies_dir):
             if is_experimental_enabled(ExperimentalFlag.BuildPerformance):
-                layer_root_folder.mkdir(BUILD_DIR_PERMISSIONS, parents=True)
                 osutils.create_symlink_or_copy(dependencies_dir, str(layer_contents_folder))
             else:
                 layer_contents_folder.mkdir(BUILD_DIR_PERMISSIONS, parents=True)
