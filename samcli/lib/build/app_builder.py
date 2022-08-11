@@ -6,18 +6,16 @@ import io
 import json
 import logging
 import pathlib
-from typing import List, Optional, Dict, cast, Union, NamedTuple, Set
+from typing import List, Optional, Dict, cast, NamedTuple
 
 import docker
 import docker.errors
 from aws_lambda_builders import (
     RPC_PROTOCOL_VERSION as lambda_builders_protocol_version,
-    __version__ as lambda_builders_version,
 )
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
 
-from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
 from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition, BuildGraph
 from samcli.lib.build.build_strategy import (
     DefaultBuildStrategy,
@@ -25,6 +23,8 @@ from samcli.lib.build.build_strategy import (
     ParallelBuildStrategy,
     BuildStrategy,
 )
+from samcli.lib.build.constants import DEPRECATED_RUNTIMES, BUILD_PROPERTIES
+from samcli.lib.build.utils import _make_env_vars
 from samcli.lib.utils.resources import (
     AWS_CLOUDFORMATION_STACK,
     AWS_LAMBDA_FUNCTION,
@@ -35,7 +35,7 @@ from samcli.lib.utils.resources import (
 )
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 from samcli.lib.docker.log_streamer import LogStreamer, LogStreamError
-from samcli.lib.providers.provider import ResourcesToBuildCollector, Function, get_full_path, Stack, LayerVersion
+from samcli.lib.providers.provider import ResourcesToBuildCollector, get_full_path, Stack
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils import osutils
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -63,18 +63,6 @@ from samcli.lib.build.workflow_config import (
 )
 
 LOG = logging.getLogger(__name__)
-
-DEPRECATED_RUNTIMES: Set[str] = {
-    "nodejs4.3",
-    "nodejs6.10",
-    "nodejs8.10",
-    "nodejs10.x",
-    "dotnetcore2.0",
-    "dotnetcore2.1",
-    "python2.7",
-    "ruby2.5",
-}
-BUILD_PROPERTIES = "BuildProperties"
 
 
 class ApplicationBuildResult(NamedTuple):
@@ -242,7 +230,7 @@ class ApplicationBuilder:
                 ) from ex
 
         for function in functions:
-            container_env_vars = self._make_env_vars(function, file_env_vars, inline_env_vars)
+            container_env_vars = _make_env_vars(function, file_env_vars, inline_env_vars)
             function_build_details = FunctionBuildDefinition(
                 function.runtime,
                 function.codeuri,
@@ -255,7 +243,7 @@ class ApplicationBuilder:
             build_graph.put_function_build_definition(function_build_details, function)
 
         for layer in layers:
-            container_env_vars = self._make_env_vars(layer, file_env_vars, inline_env_vars)
+            container_env_vars = _make_env_vars(layer, file_env_vars, inline_env_vars)
 
             layer_build_details = LayerBuildDefinition(
                 layer.full_path,
@@ -463,6 +451,7 @@ class ApplicationBuilder:
         container_env_vars: Optional[Dict] = None,
         dependencies_dir: Optional[str] = None,
         download_dependencies: bool = True,
+        layer_metadata: Optional[Dict] = None,
     ) -> str:
         """
         Given the layer information, this method will build the Lambda layer. Depending on the configuration
@@ -491,6 +480,8 @@ class ApplicationBuilder:
         download_dependencies: bool
             An optional boolean parameter to inform lambda builders whether download dependencies or use previously
             downloaded ones. Default value is True.
+        layer_metadata: Optional[Dict]
+            An optional dictionary that contain the layer version metadata information.
 
         Returns
         -------
@@ -503,12 +494,23 @@ class ApplicationBuilder:
 
         config = get_workflow_config(None, code_dir, self._base_dir, specified_workflow)
         subfolder = get_layer_subfolder(specified_workflow)
+        if (
+            config.language == "provided"
+            and isinstance(layer_metadata, dict)
+            and layer_metadata.get("ProjectRootDirectory")
+        ):
+            code_dir = str(pathlib.Path(self._base_dir, layer_metadata.get("ProjectRootDirectory", code_dir)).resolve())
 
         # artifacts directory will be created by the builder
         artifact_subdir = str(pathlib.Path(artifact_dir, subfolder))
 
         with osutils.mkdir_temp() as scratch_dir:
-            manifest_path = self._manifest_path_override or os.path.join(code_dir, config.manifest_name)
+            manifest_context_path = code_dir
+            if config.language == "provided" and isinstance(layer_metadata, dict) and layer_metadata.get("ContextPath"):
+                manifest_context_path = str(
+                    pathlib.Path(self._base_dir, layer_metadata.get("ContextPath", code_dir)).resolve()
+                )
+            manifest_path = self._manifest_path_override or os.path.join(manifest_context_path, config.manifest_name)
 
             # By default prefer to build in-process for speed
             build_runtime = specified_workflow
@@ -630,8 +632,18 @@ class ApplicationBuilder:
 
             config = get_workflow_config(runtime, code_dir, self._base_dir, specified_workflow=specified_build_workflow)
 
+            if config.language == "provided" and isinstance(metadata, dict) and metadata.get("ProjectRootDirectory"):
+                code_dir = str(pathlib.Path(self._base_dir, metadata.get("ProjectRootDirectory", code_dir)).resolve())
+
             with osutils.mkdir_temp() as scratch_dir:
-                manifest_path = self._manifest_path_override or os.path.join(code_dir, config.manifest_name)
+                manifest_context_path = code_dir
+                if config.language == "provided" and isinstance(metadata, dict) and metadata.get("ContextPath"):
+                    manifest_context_path = str(
+                        pathlib.Path(self._base_dir, metadata.get("ContextPath", code_dir)).resolve()
+                    )
+                manifest_path = self._manifest_path_override or os.path.join(
+                    manifest_context_path, config.manifest_name
+                )
 
                 options = ApplicationBuilder._get_build_options(
                     function_name, config.language, handler, config.dependency_manager, metadata
@@ -684,7 +696,7 @@ class ApplicationBuilder:
         Parameters
         ----------
         function_name str
-            currrent function resource name
+            current function resource name
         language str
             language of the runtime
         handler str
@@ -886,65 +898,3 @@ class ApplicationBuilder:
             raise ValueError(msg)
 
         return cast(Dict, response)
-
-    @staticmethod
-    def _make_env_vars(
-        resource: Union[Function, LayerVersion], file_env_vars: Dict, inline_env_vars: Optional[Dict]
-    ) -> Dict:
-        """Returns the environment variables configuration for this function
-
-        Priority order (high to low):
-        1. Function specific env vars from command line
-        2. Function specific env vars from json file
-        3. Global env vars from command line
-        4. Global env vars from json file
-
-        Parameters
-        ----------
-        resource : Union[Function, LayerVersion]
-            Lambda function or layer to generate the configuration for
-        file_env_vars : Dict
-            The dictionary of environment variables loaded from the file
-        inline_env_vars : Optional[Dict]
-            The optional dictionary of environment variables defined inline
-
-
-        Returns
-        -------
-        dictionary
-            Environment variable configuration for this function
-
-        Raises
-        ------
-        samcli.commands.local.lib.exceptions.OverridesNotWellDefinedError
-            If the environment dict is in the wrong format to process environment vars
-
-        """
-
-        name = resource.name
-        result = {}
-
-        # validate and raise OverridesNotWellDefinedError
-        for env_var in list((file_env_vars or {}).values()) + list((inline_env_vars or {}).values()):
-            if not isinstance(env_var, dict):
-                reason = "Environment variables {} in incorrect format".format(env_var)
-                LOG.debug(reason)
-                raise OverridesNotWellDefinedError(reason)
-
-        if file_env_vars:
-            parameter_result = file_env_vars.get("Parameters", {})
-            result.update(parameter_result)
-
-        if inline_env_vars:
-            inline_parameter_result = inline_env_vars.get("Parameters", {})
-            result.update(inline_parameter_result)
-
-        if file_env_vars:
-            specific_result = file_env_vars.get(name, {})
-            result.update(specific_result)
-
-        if inline_env_vars:
-            inline_specific_result = inline_env_vars.get(name, {})
-            result.update(inline_specific_result)
-
-        return result
