@@ -362,7 +362,7 @@ class Test_InvokeTestsuite(TestCase):
         with self.assertRaises(MissingTestRunnerTemplateException):
             self.runner._update_or_create_test_runner_stack()
 
-    @patch('samcli.lib.test_runner.fargate_testsuite_runner.Path.read_text')
+    @patch("samcli.lib.test_runner.fargate_testsuite_runner.Path.read_text")
     def test_stack_not_exists_and_template(self, file_read_patch):
         self.runner.deployer = MockDeployer(has_stack_return_value=False)
         self.runner.runner_template_path = "path/that/is/defined"
@@ -378,7 +378,7 @@ class Test_InvokeTestsuite(TestCase):
         self.runner._create_new_test_runner_stack.assert_called_once_with(template_body="test-template-contents")
         self.runner._update_exisiting_test_runner_stack.assert_not_called()
 
-    @patch('samcli.lib.test_runner.fargate_testsuite_runner.Path.read_text')
+    @patch("samcli.lib.test_runner.fargate_testsuite_runner.Path.read_text")
     def test_stack_exists_and_template(self, file_read_patch):
         self.runner.deployer = MockDeployer(has_stack_return_value=True)
         self.runner.runner_template_path = "path/that/is/defined"
