@@ -10,6 +10,7 @@ from abc import abstractmethod, ABC
 from copy import deepcopy
 from typing import Callable, Dict, List, Any, Optional, cast, Set, Tuple, TypeVar
 
+from samcli.commands._utils.experimental import is_experimental_enabled, ExperimentalFlag
 from samcli.lib.utils import osutils
 from samcli.lib.utils.async_utils import AsyncContext
 from samcli.lib.utils.hash import dir_checksum
@@ -178,12 +179,20 @@ class DefaultBuildStrategy(BuildStrategy):
         if build_definition.packagetype == ZIP:
             for function in build_definition.functions:
                 if function.full_path != single_full_path:
-                    # for zip function we need to copy over the artifacts
-                    # artifacts directory will be created by the builder
-                    artifacts_dir = function.get_build_dir(self._build_dir)
-                    LOG.debug("Copying artifacts from %s to %s", single_build_dir, artifacts_dir)
-                    osutils.copytree(single_build_dir, artifacts_dir)
-                    function_build_results[function.full_path] = artifacts_dir
+                    # for zip function we need to refer over the result
+                    # artifacts directory which have built as the action above
+                    if is_experimental_enabled(ExperimentalFlag.BuildPerformance):
+                        LOG.debug(
+                            "Using previously build shared location %s for function %s", result, function.full_path
+                        )
+                        function_build_results[function.full_path] = result
+                    else:
+                        # for zip function we need to copy over the artifacts
+                        # artifacts directory will be created by the builder
+                        artifacts_dir = function.get_build_dir(self._build_dir)
+                        LOG.debug("Copying artifacts from %s to %s", single_build_dir, artifacts_dir)
+                        osutils.copytree(single_build_dir, artifacts_dir)
+                        function_build_results[function.full_path] = artifacts_dir
         elif build_definition.packagetype == IMAGE:
             for function in build_definition.functions:
                 if function.full_path != single_full_path:
@@ -277,19 +286,37 @@ class CachedBuildStrategy(BuildStrategy):
             build_definition.source_hash = source_hash
             # Since all the build contents are same for a build definition, just copy any one of them into the cache
             for _, value in build_result.items():
-                osutils.copytree(value, cache_function_dir)
+                osutils.copytree(value, str(cache_function_dir))
                 break
         else:
             LOG.info(
                 "Valid cache found, copying previously built resources for following functions (%s)",
                 build_definition.get_resource_full_paths(),
             )
-            for function in build_definition.functions:
-                # artifacts directory will be created by the builder
-                artifacts_dir = function.get_build_dir(self._build_dir)
-                LOG.debug("Copying artifacts from %s to %s", cache_function_dir, artifacts_dir)
-                osutils.copytree(cache_function_dir, artifacts_dir)
-                function_build_results[function.full_path] = artifacts_dir
+            if is_experimental_enabled(ExperimentalFlag.BuildPerformance):
+                first_function_artifacts_dir: Optional[str] = None
+                for function in build_definition.functions:
+                    if not first_function_artifacts_dir:
+                        # artifacts directory will be created by the builder
+                        artifacts_dir = build_definition.get_build_dir(self._build_dir)
+                        LOG.debug("Linking artifacts from %s to %s", cache_function_dir, artifacts_dir)
+                        osutils.create_symlink_or_copy(str(cache_function_dir), artifacts_dir)
+                        function_build_results[function.full_path] = artifacts_dir
+                        first_function_artifacts_dir = artifacts_dir
+                    else:
+                        LOG.debug(
+                            "Function (%s) build folder is updated to %s",
+                            function.full_path,
+                            first_function_artifacts_dir,
+                        )
+                        function_build_results[function.full_path] = first_function_artifacts_dir
+            else:
+                for function in build_definition.functions:
+                    # artifacts directory will be created by the builder
+                    artifacts_dir = function.get_build_dir(self._build_dir)
+                    LOG.debug("Copying artifacts from %s to %s", cache_function_dir, artifacts_dir)
+                    osutils.copytree(str(cache_function_dir), artifacts_dir)
+                    function_build_results[function.full_path] = artifacts_dir
 
         return function_build_results
 
@@ -316,7 +343,7 @@ class CachedBuildStrategy(BuildStrategy):
             layer_definition.source_hash = source_hash
             # Since all the build contents are same for a build definition, just copy any one of them into the cache
             for _, value in build_result.items():
-                osutils.copytree(value, cache_function_dir)
+                osutils.copytree(value, str(cache_function_dir))
                 break
         else:
             LOG.info(
@@ -324,9 +351,14 @@ class CachedBuildStrategy(BuildStrategy):
                 layer_definition.get_resource_full_paths(),
             )
             # artifacts directory will be created by the builder
-            artifacts_dir = str(pathlib.Path(self._build_dir, layer_definition.layer.full_path))
-            LOG.debug("Copying artifacts from %s to %s", cache_function_dir, artifacts_dir)
-            osutils.copytree(cache_function_dir, artifacts_dir)
+            artifacts_dir = layer_definition.layer.get_build_dir(self._build_dir)
+
+            if is_experimental_enabled(ExperimentalFlag.BuildPerformance):
+                LOG.debug("Linking artifacts folder from %s to %s", cache_function_dir, artifacts_dir)
+                osutils.create_symlink_or_copy(str(cache_function_dir), artifacts_dir)
+            else:
+                LOG.debug("Copying artifacts from %s to %s", cache_function_dir, artifacts_dir)
+                osutils.copytree(str(cache_function_dir), artifacts_dir)
             layer_build_result[layer_definition.layer.full_path] = artifacts_dir
 
         return layer_build_result

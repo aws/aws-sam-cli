@@ -174,6 +174,7 @@ class TestDoCli(TestCase):
             signing_profiles=None,
             disable_rollback=False,
             poll_delay=10,
+            on_failure=None,
         )
         build_context_mock.run.assert_called_once_with()
         package_context_mock.run.assert_called_once_with()
@@ -304,6 +305,7 @@ class TestDoCli(TestCase):
             signing_profiles=None,
             disable_rollback=False,
             poll_delay=0.5,
+            on_failure=None,
         )
         execute_watch_mock.assert_called_once_with(
             self.template_file, build_context_mock, package_context_mock, deploy_context_mock, auto_dependency_layer
