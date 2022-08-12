@@ -164,9 +164,8 @@ class EventTracker:
                         ctx = Context.get_current_context()
                         if ctx:
                             EventTracker._session_id = ctx.session_id
-                            LOG.debug("EventTracker: Obtained session ID '%s'", EventTracker._session_id)
                     except RuntimeError:
-                        pass
+                        LOG.debug("EventTracker: Unable to obtain session ID")
                 if len(EventTracker._events) >= EventTracker.MAX_EVENTS:
                     should_send = True
             if should_send:
