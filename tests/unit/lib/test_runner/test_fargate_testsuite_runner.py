@@ -3,7 +3,7 @@ import tarfile
 import uuid
 from pathlib import Path
 from unittest import TestCase
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from samcli.commands.deploy.exceptions import DeployFailedError
 from samcli.commands.exceptions import InvalidTestRunnerTemplateException, MissingTestRunnerTemplateException
@@ -362,33 +362,33 @@ class Test_InvokeTestsuite(TestCase):
         with self.assertRaises(MissingTestRunnerTemplateException):
             self.runner._update_or_create_test_runner_stack()
 
-    def test_stack_not_exists_and_template(self):
+    @patch('samcli.lib.test_runner.fargate_testsuite_runner.Path.read_text')
+    def test_stack_not_exists_and_template(self, file_read_patch):
         self.runner.deployer = MockDeployer(has_stack_return_value=False)
         self.runner.runner_template_path = "path/that/is/defined"
 
         self.runner._create_new_test_runner_stack = Mock()
         self.runner._update_exisiting_test_runner_stack = Mock()
-        self.runner._read_file = Mock()
-        self.runner._read_file.return_value = "test-template-contents"
+        file_read_patch.return_value = "test-template-contents"
 
         self.runner._update_or_create_test_runner_stack()
-        self.runner._read_file.assert_called_once_with("path/that/is/defined")
+        file_read_patch.assert_called_once_with("path/that/is/defined")
 
         # Create but not update
         self.runner._create_new_test_runner_stack.assert_called_once_with(template_body="test-template-contents")
         self.runner._update_exisiting_test_runner_stack.assert_not_called()
 
-    def test_stack_exists_and_template(self):
+    @patch('samcli.lib.test_runner.fargate_testsuite_runner.Path.read_text')
+    def test_stack_exists_and_template(self, file_read_patch):
         self.runner.deployer = MockDeployer(has_stack_return_value=True)
         self.runner.runner_template_path = "path/that/is/defined"
 
         self.runner._update_exisiting_test_runner_stack = Mock()
         self.runner._create_new_test_runner_stack = Mock()
-        self.runner._read_file = Mock()
-        self.runner._read_file.return_value = "test-template-contents"
+        file_read_patch.return_value = "test-template-contents"
 
         self.runner._update_or_create_test_runner_stack()
-        self.runner._read_file.assert_called_once_with("path/that/is/defined")
+        file_read_patch.assert_called_once_with("path/that/is/defined")
 
         # Update but not create
         self.runner._update_exisiting_test_runner_stack.assert_called_once_with(template_body="test-template-contents")

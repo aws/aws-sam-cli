@@ -63,9 +63,6 @@ class FargateTestsuiteRunner:
 
         self.deployer = Deployer(cloudformation_client=self.boto_cloudformation_client)
 
-    def _read_file(self, filename: str) -> str:
-        return Path(filename).read_text()
-
     def _create_new_test_runner_stack(self, template_body: str) -> None:
         """
         Creates a new Test Runner stack using SAM Deployer, and displays log messages.
@@ -155,10 +152,10 @@ class FargateTestsuiteRunner:
                     f"There does not exist a stack named '{self.runner_stack_name}'. Please provide a Test Runner CloudFormation template with `--runner-template`, and the stack will be created.\n"
                     "To have a Test Runner CloudFormation template generated, run `sam test_runner init`.\n",
                 )
-            self._create_new_test_runner_stack(template_body=self._read_file(self.runner_template_path))
+            self._create_new_test_runner_stack(template_body=Path.read_text(self.runner_template_path))
 
         elif self.runner_template_path:
-            self._update_exisiting_test_runner_stack(template_body=self._read_file(self.runner_template_path))
+            self._update_exisiting_test_runner_stack(template_body=Path.read_text(self.runner_template_path))
 
     def _get_resource_list(self) -> List[dict]:
         """
@@ -363,7 +360,7 @@ class FargateTestsuiteRunner:
         # The decompressed tarfile contents will be the basename of the path-in-bucket directory
         # E.g. Setting path-in-bucket to sample/path/run_01 => results will be in directory named run_01
         results_stdout_path = Path(self.path_in_bucket.stem).joinpath(self.RESULTS_STDOUT_FILE_NAME)
-        results_stdout = self._read_file(results_stdout_path)
+        results_stdout = Path.read_text(results_stdout_path)
         LOG.info(self.color.yellow(results_stdout))
 
     def _invoke_testsuite(
