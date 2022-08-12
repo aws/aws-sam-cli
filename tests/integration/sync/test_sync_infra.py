@@ -10,6 +10,7 @@ from unittest import skipIf
 
 import pytest
 from parameterized import parameterized, parameterized_class
+from samcli.commands._utils.experimental import ExperimentalFlag, set_experimental
 
 from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_RESTAPI,
@@ -403,3 +404,38 @@ class TestSyncInfraWithJava(SyncIntegBase):
             self.assertIn("sum", lambda_response)
             self.assertEqual(lambda_response.get("message"), "hello world")
             self.assertEqual(lambda_response.get("sum"), 12)
+
+
+@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
+class TestSyncInfraWithEsbuild(SyncIntegBase):
+    @parameterized.expand(["code/before/template-esbuild.yaml"])
+    def test_sync_infra_esbuild(self, template_file):
+        set_experimental(ExperimentalFlag.Esbuild)
+
+        template_path = str(self.test_data_path.joinpath(template_file))
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        sync_command_list = self.get_sync_command_list(
+            template_file=template_path,
+            code=False,
+            watch=False,
+            dependency_layer=self.dependency_layer,
+            stack_name=stack_name,
+            parameter_overrides="Parameter=Clarity",
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            capabilities_list=["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+        self.assertIn("Sync infra completed.", str(sync_process_execute.stderr))
+
+        self.stack_resources = self._get_stacks(stack_name)
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertEqual(lambda_response.get("message"), "hello world")

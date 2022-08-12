@@ -3,12 +3,12 @@ import shutil
 import tempfile
 import time
 import uuid
-import json
 
 from pathlib import Path
 from unittest import skipIf
 
 import boto3
+import botocore
 from botocore.exceptions import ClientError
 import docker
 from botocore.config import Config
@@ -20,7 +20,6 @@ from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.integration.package.package_integ_base import PackageIntegBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 from tests.testing_utils import run_command, run_command_with_input
-from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack
 
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
@@ -1285,3 +1284,301 @@ to create a managed default bucket, or run sam deploy --guided",
         deploy_process_execute = run_command(deploy_command_list)
         self.assertIn(warning_message, deploy_process_execute.stdout)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+    @parameterized.expand(["aws-dynamodb-error.yaml"])
+    def test_deploy_on_failure_do_nothing_new_invalid_stack(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix=self.s3_prefix,
+            s3_bucket=self.s3_bucket.name,
+            image_repository=self.ecr_repo_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="ShardCountParameter=1",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+            on_failure="DO_NOTHING",
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 1)
+
+        stderr = deploy_process_execute.stderr.strip()
+        self.assertIn(
+            bytes(
+                f"Error: Failed to create/update the stack: {stack_name}, Waiter StackCreateComplete failed: "
+                f'Waiter encountered a terminal failure state: For expression "Stacks[].StackStatus" '
+                f'we matched expected path: "CREATE_FAILED" at least once',
+                encoding="utf-8",
+            ),
+            stderr,
+        )
+
+    @parameterized.expand(["aws-serverless-function.yaml"])
+    def test_deploy_on_failure_do_nothing_existing_stack(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        # First deploy a simple template that should work
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix=self.s3_prefix,
+            s3_bucket=self.s3_bucket.name,
+            image_repository=self.ecr_repo_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+        # Failing template
+        template_path = self.test_data_path.joinpath("aws-dynamodb-error.yaml")
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix=self.s3_prefix,
+            s3_bucket=self.s3_bucket.name,
+            image_repository=self.ecr_repo_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="ShardCountParameter=1",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+            on_failure="DO_NOTHING",
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 1)
+
+        stderr = deploy_process_execute.stderr.strip()
+        self.assertIn(
+            bytes(
+                f"Error: Failed to create/update the stack: {stack_name}, Waiter StackUpdateComplete failed: "
+                f'Waiter encountered a terminal failure state: For expression "Stacks[].StackStatus" '
+                f'we matched expected path: "UPDATE_FAILED" at least once',
+                encoding="utf-8",
+            ),
+            stderr,
+        )
+
+    @parameterized.expand(["aws-dynamodb-error.yaml"])
+    def test_deploy_on_failure_delete_new_stack(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix=self.s3_prefix,
+            s3_bucket=self.s3_bucket.name,
+            image_repository=self.ecr_repo_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="ShardCountParameter=1",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+            on_failure="DELETE",
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+        # Check if the stack is deleted from CloudFormation
+        stack_exists = True
+        try:
+            self.cfn_client.describe_stacks(StackName=stack_name)
+        except botocore.exceptions.ClientError:
+            stack_exists = False
+
+        self.assertFalse(stack_exists)
+
+    @parameterized.expand(["aws-serverless-function.yaml"])
+    def test_deploy_on_failure_delete_existing_stack(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        # First deploy a simple template that should work
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix=self.s3_prefix,
+            s3_bucket=self.s3_bucket.name,
+            image_repository=self.ecr_repo_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+        # Failing template
+        template_path = self.test_data_path.joinpath("aws-dynamodb-error.yaml")
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix=self.s3_prefix,
+            s3_bucket=self.s3_bucket.name,
+            image_repository=self.ecr_repo_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="ShardCountParameter=1",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+            on_failure="DELETE",
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+        # Check if the stack rolled back successfully
+        result = self.cfn_client.describe_stacks(StackName=stack_name)
+        self.assertEqual(str(result["Stacks"][0]["StackStatus"]), "UPDATE_ROLLBACK_COMPLETE")
+
+    @parameterized.expand(["aws-dynamodb-error.yaml"])
+    def test_deploy_on_failure_delete_existing_stack_fails(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        # Deploy bad stack with no rollback
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix=self.s3_prefix,
+            s3_bucket=self.s3_bucket.name,
+            image_repository=self.ecr_repo_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+            disable_rollback=True,
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+
+        # Failing template
+        template_path = self.test_data_path.joinpath(template_file)
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix=self.s3_prefix,
+            s3_bucket=self.s3_bucket.name,
+            image_repository=self.ecr_repo_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="ShardCountParameter=1",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+            on_failure="DELETE",
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+        # Check if the stack is deleted from CloudFormation
+        stack_exists = True
+        try:
+            self.cfn_client.describe_stacks(StackName=stack_name)
+        except botocore.exceptions.ClientError:
+            stack_exists = False
+
+        self.assertFalse(stack_exists)
+
+    @parameterized.expand(["aws-serverless-function.yaml"])
+    def test_update_stack_correct_stack_outputs(self, template):
+        template_path = self.test_data_path.joinpath(template)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        # Deploy template that creates single resource
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix=self.s3_prefix,
+            s3_bucket=self.s3_bucket.name,
+            image_repository=self.ecr_repo_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+        # Deploy template that modifies existing resource, this should only UPDATE
+        template_path = self.test_data_path.joinpath("aws-serverless-function-cdk.yaml")
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix=self.s3_prefix,
+            s3_bucket=self.s3_bucket.name,
+            image_repository=self.ecr_repo_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+        # Check we don't have any instances of CREATE_COMPLETE since we are only updating
+        process_stdout = deploy_process_execute.stdout.decode()
+        self.assertNotRegex(process_stdout, r"CREATE_COMPLETE.+HelloWorldFunction")
+        self.assertRegex(process_stdout, r"UPDATE_COMPLETE.+HelloWorldFunction")

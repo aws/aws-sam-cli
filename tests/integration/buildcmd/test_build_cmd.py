@@ -1447,8 +1447,11 @@ class TestBuildWithBuildMethod(BuildIntegBase):
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+# remove following parameterized_class when BuildImprovements22 experimental flag is removed
+@parameterized_class(("beta_features",), [(True,), (False,)])
 class TestBuildWithDedupBuilds(DedupBuildIntegBase):
     template = "dedup-functions-template.yaml"
+    beta_features = False  # parameterized
 
     @parameterized.expand(
         [
@@ -1492,7 +1495,9 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
             "Function2Handler": function2_handler,
             "FunctionRuntime": runtime,
         }
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, beta_features=self.beta_features
+        )
 
         LOG.info("Running Command: {}".format(cmdlist))
         # Built using `native` python-pip builder for a python project.
@@ -1547,15 +1552,18 @@ class TestBuildWithDedupImageBuilds(DedupBuildIntegBase):
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+# remove following parameterized_class when BuildImprovements22 experimental flag is removed
+@parameterized_class(("beta_features",), [(True,), (False,)])
 class TestBuildWithDedupBuildsMakefile(DedupBuildIntegBase):
     template = "dedup-functions-makefile-template.yaml"
+    beta_features = False  # parameterized
 
     @pytest.mark.flaky(reruns=3)
     def test_dedup_build_makefile(self):
         """
         Build template above in the container and verify that each function call returns as expected
         """
-        cmdlist = self.get_command_list()
+        cmdlist = self.get_command_list(beta_features=self.beta_features)
 
         LOG.info("Running Command: {}".format(cmdlist))
         # Built using `native` python-pip builder for a python project.
@@ -1577,8 +1585,11 @@ class TestBuildWithDedupBuildsMakefile(DedupBuildIntegBase):
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+# remove following parameterized_class when BuildImprovements22 experimental flag is removed
+@parameterized_class(("beta_features",), [(True,), (False,)])
 class TestBuildWithCacheBuilds(CachedBuildIntegBase):
     template = "dedup-functions-template.yaml"
+    beta_features = False  # parameterized
 
     @parameterized.expand(
         [
@@ -1622,7 +1633,9 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
             "Function2Handler": function2_handler,
             "FunctionRuntime": runtime,
         }
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides, cached=True)
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, cached=True, beta_features=self.beta_features
+        )
 
         LOG.info("Running Command: %s", cmdlist)
         # Built using `native` python-pip builder for a python project.
@@ -1755,8 +1768,11 @@ class TestRepeatedBuildHitsCache(BuildIntegBase):
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+# remove following parameterized_class when BuildImprovements22 experimental flag is removed
+@parameterized_class(("beta_features",), [(True,), (False,)])
 class TestParallelBuilds(DedupBuildIntegBase):
     template = "dedup-functions-template.yaml"
+    beta_features = False  # parameterized
 
     @parameterized.expand(
         [
@@ -1800,7 +1816,9 @@ class TestParallelBuilds(DedupBuildIntegBase):
             "Function2Handler": function2_handler,
             "FunctionRuntime": runtime,
         }
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides, parallel=True)
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, parallel=True, beta_features=self.beta_features
+        )
 
         LOG.info("Running Command: %s", cmdlist)
         # Built using `native` python-pip builder for a python project.
@@ -1818,8 +1836,11 @@ class TestParallelBuilds(DedupBuildIntegBase):
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+# remove following parameterized_class when BuildImprovements22 experimental flag is removed
+@parameterized_class(("beta_features",), [(True,), (False,)])
 class TestParallelBuildsJavaWithLayers(DedupBuildIntegBase):
     template = "template-java-maven-with-layers.yaml"
+    beta_features = False  # parameterized
 
     @pytest.mark.flaky(reruns=3)
     def test_dedup_build(self):
@@ -1827,7 +1848,7 @@ class TestParallelBuildsJavaWithLayers(DedupBuildIntegBase):
         Build template above and verify that each function call returns as expected
         """
 
-        cmdlist = self.get_command_list(parallel=True)
+        cmdlist = self.get_command_list(parallel=True, beta_features=self.beta_features)
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         self.assertEqual(command_result.process.returncode, 0)
