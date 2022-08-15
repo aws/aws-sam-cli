@@ -1,17 +1,17 @@
 """
-The container for Testable Resources
+The container for Endpoints
 """
 from typing import Any
 from dataclasses import dataclass
 
 
 @dataclass
-class TestableResDef:
+class EndpointsDef:
     """
-    Dataclass for containing entries of testable resources data
+    Dataclass for containing entries of endpoints data
     """
 
     LogicalResourceId: str
     PhysicalResourceId: str
-    CloudEndpointOrFunctionURL: Any
+    CloudEndpoint: Any
     Methods: Any

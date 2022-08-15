@@ -5,7 +5,7 @@ from samcli.lib.list.resources.resources_to_table_mapper import ResourcesToTable
 from samcli.lib.list.stack_outputs.stack_output_to_table_mapper import StackOutputToTableMapper
 from samcli.lib.list.data_to_json_mapper import DataToJsonMapper
 from samcli.commands.list.json_consumer import StringConsumerJsonOutput
-from samcli.lib.list.testable_resources.testable_resources_to_table_mapper import TestableResourcesToTableMapper
+from samcli.lib.list.endpoints.endpoints_to_table_mapper import EndpointsToTableMapper
 from samcli.lib.list.mapper_consumer_factory import MapperConsumerFactory
 from samcli.lib.list.list_interfaces import ProducersEnum
 from samcli.commands.list.table_consumer import StringConsumerTableOutput
@@ -27,37 +27,37 @@ class TestResourcesToTableMapper(TestCase):
         self.assertEqual(output.get("table_name", ""), "Resources")
 
 
-class TestTestableResourcesToTableMapper(TestCase):
+class TestEndpointsToTableMapper(TestCase):
     def test_map(self):
         data = [
             {
                 "LogicalResourceId": "LID_1",
                 "PhysicalResourceId": "PID_1",
-                "CloudEndpointOrFunctionURL": "test.url",
+                "CloudEndpoint": "test.url",
                 "Methods": "-",
             },
             {
                 "LogicalResourceId": "LID_1",
                 "PhysicalResourceId": "PID_1",
-                "CloudEndpointOrFunctionURL": "-",
+                "CloudEndpoint": "-",
                 "Methods": "-",
             },
             {
                 "LogicalResourceId": "LID_1",
                 "PhysicalResourceId": "PID_1",
-                "CloudEndpointOrFunctionURL": ["api.url1"],
+                "CloudEndpoint": ["api.url1"],
                 "Methods": "-",
             },
             {
                 "LogicalResourceId": "LID_1",
                 "PhysicalResourceId": "PID_1",
-                "CloudEndpointOrFunctionURL": ["api.url1", "api.url2", "api.url3"],
+                "CloudEndpoint": ["api.url1", "api.url2", "api.url3"],
                 "Methods": ["/hello2['get, put']", "/hello['get']"],
             },
         ]
-        testable_resources_to_table_mapper = TestableResourcesToTableMapper()
-        output = testable_resources_to_table_mapper.map(data)
-        self.assertEqual(output.get("table_name", ""), "Testable Resources")
+        endpoints_to_table_mapper = EndpointsToTableMapper()
+        output = endpoints_to_table_mapper.map(data)
+        self.assertEqual(output.get("table_name", ""), "Endpoints")
 
 
 class TestMapperConsumerFactory(TestCase):
@@ -79,10 +79,10 @@ class TestMapperConsumerFactory(TestCase):
         self.assertIsInstance(container.mapper, ResourcesToTableMapper)
         self.assertIsInstance(container.consumer, StringConsumerTableOutput)
 
-    def test_create_testable_resources_table_output(self):
+    def test_create_endpoints_table_output(self):
         factory = MapperConsumerFactory()
-        container = factory.create(ProducersEnum.TESTABLE_RESOURCES_PRODUCER, "table")
-        self.assertIsInstance(container.mapper, TestableResourcesToTableMapper)
+        container = factory.create(ProducersEnum.ENDPOINTS_PRODUCER, "table")
+        self.assertIsInstance(container.mapper, EndpointsToTableMapper)
         self.assertIsInstance(container.consumer, StringConsumerTableOutput)
 
 

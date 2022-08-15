@@ -8,7 +8,7 @@ from samcli.commands.list.table_consumer import StringConsumerTableOutput
 from samcli.lib.list.mapper_consumer_container import MapperConsumerContainer
 from samcli.lib.list.stack_outputs.stack_output_to_table_mapper import StackOutputToTableMapper
 from samcli.lib.list.resources.resources_to_table_mapper import ResourcesToTableMapper
-from samcli.lib.list.testable_resources.testable_resources_to_table_mapper import TestableResourcesToTableMapper
+from samcli.lib.list.endpoints.endpoints_to_table_mapper import EndpointsToTableMapper
 from samcli.lib.list.list_interfaces import ProducersEnum, Mapper
 
 
@@ -25,7 +25,7 @@ class MapperConsumerFactory(MapperConsumerFactoryInterface):
         Parameters
         ----------
         producer: ProducersEnum
-            An enum representing the producers (stack-outputs, resources, or testable-resources producer)
+            An enum representing the producers (stack-outputs, resources, or endpoints producer)
         output: str
             The output format, either json or table
 
@@ -45,7 +45,7 @@ class MapperConsumerFactory(MapperConsumerFactoryInterface):
             table_mapper = StackOutputToTableMapper()
         elif producer == ProducersEnum.RESOURCES_PRODUCER:
             table_mapper = ResourcesToTableMapper()
-        elif producer == ProducersEnum.TESTABLE_RESOURCES_PRODUCER:
-            table_mapper = TestableResourcesToTableMapper()
+        elif producer == ProducersEnum.ENDPOINTS_PRODUCER:
+            table_mapper = EndpointsToTableMapper()
         container = MapperConsumerContainer(table_mapper, table_consumer)
         return container

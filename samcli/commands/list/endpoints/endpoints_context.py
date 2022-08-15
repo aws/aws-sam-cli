@@ -1,20 +1,20 @@
 """
-Display of the Testable Resources of a SAM stack
+Display of the Endpoints of a SAM stack
 """
 import logging
 from typing import Optional
 
 from samcli.commands.list.cli_common.list_common_context import ListContext
-from samcli.lib.list.testable_resources.testable_resources_producer import TestableResourcesProducer
+from samcli.lib.list.endpoints.endpoints_producer import EndpointsProducer
 from samcli.lib.list.mapper_consumer_factory import MapperConsumerFactory
 from samcli.lib.list.list_interfaces import ProducersEnum
 
 LOG = logging.getLogger(__name__)
 
 
-class TestableResourcesContext(ListContext):
+class EndpointsContext(ListContext):
     """
-    Context class for testable resources
+    Context class for sam list endpoints
     """
 
     def __init__(
@@ -67,8 +67,8 @@ class TestableResourcesContext(ListContext):
         Get the resources for a stack
         """
         factory = MapperConsumerFactory()
-        container = factory.create(producer=ProducersEnum.TESTABLE_RESOURCES_PRODUCER, output=self.output)
-        testable_resource_producer = TestableResourcesProducer(
+        container = factory.create(producer=ProducersEnum.ENDPOINTS_PRODUCER, output=self.output)
+        endpoints_producer = EndpointsProducer(
             stack_name=self.stack_name,
             region=self.region,
             profile=self.profile,
@@ -81,4 +81,4 @@ class TestableResourcesContext(ListContext):
             mapper=container.mapper,
             consumer=container.consumer,
         )
-        testable_resource_producer.produce()
+        endpoints_producer.produce()

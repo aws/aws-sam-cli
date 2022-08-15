@@ -1,5 +1,5 @@
 """
-The producer for the 'sam list testable-resources' command
+The producer for the 'sam list endpoints' command
 """
 import dataclasses
 import logging
@@ -16,12 +16,12 @@ from samcli.lib.list.list_interfaces import Producer
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.providers.provider import Stack
 from samcli.commands._utils.template import get_template_data
-from samcli.lib.list.testable_resources.testable_res_def import TestableResDef
+from samcli.lib.list.endpoints.endpoints_def import EndpointsDef
 from samcli.lib.list.resources.resource_mapping_producer import ResourceMappingProducer
 from samcli.lib.utils.boto_utils import get_client_error_code
 
 LOG = logging.getLogger(__name__)
-TESTABLE_RESOURCE_TYPES = {"AWS::Lambda::Function", "AWS::ApiGateway::RestApi", "AWS::ApiGatewayV2::Api"}
+ENDPOINT_RESOURCE_TYPES = {"AWS::Lambda::Function", "AWS::ApiGateway::RestApi", "AWS::ApiGatewayV2::Api"}
 RESOURCE_DESCRIPTION = "ResourceDescription"
 PROPERTIES = "Properties"
 FUNCTION_URL = "FunctionUrl"
@@ -41,7 +41,7 @@ class APIGatewayEnum(Enum):
     API_GATEWAY_V2 = 2
 
 
-class TestableResourcesProducer(ResourceMappingProducer, Producer):
+class EndpointsProducer(ResourceMappingProducer, Producer):
     def __init__(
         self,
         stack_name,
@@ -220,9 +220,9 @@ class TestableResourcesProducer(ResourceMappingProducer, Producer):
             endpoint = self.build_api_gw_endpoints(deployed_resource.get(PHYSICAL_RESOURCE_ID, ""), stages)
         return endpoint
 
-    def get_cloud_testable_resources(self, stacks: list) -> list:
+    def get_cloud_endpoints(self, stacks: list) -> list:
         """
-        Gets a list of cloud testable resources
+        Gets a list of cloud endpoints resources
 
         Parameters
         ----------
@@ -231,19 +231,19 @@ class TestableResourcesProducer(ResourceMappingProducer, Producer):
 
         Returns
         -------
-        testable_resources_list: List[Any]
-            A list of cloud testable resources
+        endpoints_list: List[Any]
+            A list of cloud endpoints resources
         """
-        testable_resources_list = []
+        endpoints_list = []
         local_stack = stacks[0]
         local_stack_resources = local_stack.resources
-        seen_testable_resources = set()
+        seen_endpoints = set()
         response = self.get_resources_info()
         response_domain_dict = get_response_domain_dict(response)
         custom_domain_substitute_dict = get_custom_domain_substitute_list(response, stacks, response_domain_dict)
 
         for deployed_resource in response.get(STACK_RESOURCES, {}):
-            if deployed_resource.get(RESOURCE_TYPE, "") in TESTABLE_RESOURCE_TYPES:
+            if deployed_resource.get(RESOURCE_TYPE, "") in ENDPOINT_RESOURCE_TYPES:
                 endpoint_function_url: Any
                 paths_and_methods: Any
                 endpoint_function_url = "-"
@@ -259,33 +259,33 @@ class TestableResourcesProducer(ResourceMappingProducer, Producer):
                         deployed_resource.get(LOGICAL_RESOURCE_ID, ""), local_stack
                     )
 
-                testable_resource_data = TestableResDef(
+                endpoint_data = EndpointsDef(
                     LogicalResourceId=deployed_resource.get(LOGICAL_RESOURCE_ID, "-"),
                     PhysicalResourceId=deployed_resource.get(PHYSICAL_RESOURCE_ID, "-"),
-                    CloudEndpointOrFunctionURL=endpoint_function_url,
+                    CloudEndpoint=endpoint_function_url,
                     Methods=paths_and_methods,
                 )
-                testable_resources_list.append(dataclasses.asdict(testable_resource_data))
-                seen_testable_resources.add(deployed_resource.get(LOGICAL_RESOURCE_ID, ""))
+                endpoints_list.append(dataclasses.asdict(endpoint_data))
+                seen_endpoints.add(deployed_resource.get(LOGICAL_RESOURCE_ID, ""))
         for local_resource in local_stack_resources:
             local_resource_type = local_stack_resources.get(local_resource, {}).get("Type", "")
             paths_and_methods = "-"
-            if local_resource_type in TESTABLE_RESOURCE_TYPES and local_resource not in seen_testable_resources:
+            if local_resource_type in ENDPOINT_RESOURCE_TYPES and local_resource not in seen_endpoints:
                 if local_resource_type in ("AWS::ApiGateway::RestApi", "AWS::ApiGatewayV2::Api"):
                     paths_and_methods = get_methods_and_paths(local_resource, local_stack)
-                testable_resource_data = TestableResDef(
+                endpoint_data = EndpointsDef(
                     LogicalResourceId=local_resource,
                     PhysicalResourceId="-",
-                    CloudEndpointOrFunctionURL="-",
+                    CloudEndpoint="-",
                     Methods=paths_and_methods,
                 )
-                testable_resources_list.append(dataclasses.asdict(testable_resource_data))
+                endpoints_list.append(dataclasses.asdict(endpoint_data))
 
-        return testable_resources_list
+        return endpoints_list
 
     def produce(self):
         """
-        The producer function for the testable resources command
+        The producer function for the endpoints resources command
         """
         sam_template = get_template_data(self.template_file)
 
@@ -293,13 +293,13 @@ class TestableResourcesProducer(ResourceMappingProducer, Producer):
         stacks, _ = SamLocalStackProvider.get_stacks(template_file="", template_dictionary=translated_dict)
         validate_stack(stacks)
 
-        testable_resources_list: list
+        endpoints_list: list
 
         if self.stack_name:
-            testable_resources_list = self.get_cloud_testable_resources(stacks)
+            endpoints_list = self.get_cloud_endpoints(stacks)
         else:
-            testable_resources_list = get_local_testable_resources(stacks)
-        mapped_output = self.mapper.map(testable_resources_list)
+            endpoints_list = get_local_endpoints(stacks)
+        mapped_output = self.mapper.map(endpoints_list)
         self.consumer.consume(mapped_output)
 
 
@@ -317,9 +317,9 @@ def validate_stack(stacks: list):
         raise SamListLocalResourcesNotFoundError(msg="No local resources found.")
 
 
-def get_local_testable_resources(stacks: list) -> list:
+def get_local_endpoints(stacks: list) -> list:
     """
-    Gets a list of local testable resources based on the local stack
+    Gets a list of local endpoints resources based on the local stack
 
     Parameters
     ----------
@@ -328,28 +328,28 @@ def get_local_testable_resources(stacks: list) -> list:
 
     Returns
     -------
-    testable_resources_list: list
-        A list containing the testable resources and their information
+    endpoints_list: list
+        A list containing the endpoints resources and their information
     """
-    testable_resources_list = []
+    endpoints_list = []
     paths_and_methods: Any
     local_stack = stacks[0]
     local_stack_resources = local_stack.resources
     for local_resource in local_stack_resources:
         local_resource_type = local_stack_resources.get(local_resource, {}).get("Type", "")
-        if local_resource_type in TESTABLE_RESOURCE_TYPES:
+        if local_resource_type in ENDPOINT_RESOURCE_TYPES:
             paths_and_methods = "-"
             if local_resource_type in ("AWS::ApiGateway::RestApi", "AWS::ApiGatewayV2::Api"):
                 paths_and_methods = get_methods_and_paths(local_resource, local_stack)
             # Set the PhysicalID to "-" if there is no corresponding PhysicalID
-            testable_resource_data = TestableResDef(
+            endpoint_data = EndpointsDef(
                 LogicalResourceId=local_resource,
                 PhysicalResourceId="-",
-                CloudEndpointOrFunctionURL="-",
+                CloudEndpoint="-",
                 Methods=paths_and_methods,
             )
-            testable_resources_list.append(dataclasses.asdict(testable_resource_data))
-    return testable_resources_list
+            endpoints_list.append(dataclasses.asdict(endpoint_data))
+    return endpoints_list
 
 
 def get_api_type_enum(resource_type: str) -> APIGatewayEnum:

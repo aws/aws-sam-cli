@@ -6,7 +6,7 @@ import click
 
 from samcli.commands.list.resources.cli import cli as resources_cli
 from samcli.commands.list.stack_outputs.cli import cli as stack_outputs_cli
-from samcli.commands.list.testable_resources.cli import cli as testable_resources_cli
+from samcli.commands.list.endpoints.cli import cli as testable_resources_cli
 
 
 @click.group()

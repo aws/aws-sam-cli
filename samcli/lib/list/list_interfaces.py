@@ -84,4 +84,4 @@ class MapperConsumerFactoryInterface(ABC):
 class ProducersEnum(Enum):
     STACK_OUTPUTS_PRODUCER = 1
     RESOURCES_PRODUCER = 2
-    TESTABLE_RESOURCES_PRODUCER = 3
+    ENDPOINTS_PRODUCER = 3
