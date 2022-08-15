@@ -132,8 +132,8 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @tags_option
 @capabilities_option(default=DEFAULT_CAPABILITIES)  # pylint: disable=E1120
 @pass_context
-@track_long_event("SyncUsed", "Start", "SyncUsed", "End")
 @track_command
+@track_long_event("SyncUsed", "Start", "SyncUsed", "End")
 @image_repository_validation
 @track_template_warnings([CodeDeployWarning.__name__, CodeDeployConditionWarning.__name__])
 @check_newer_version

@@ -6,8 +6,9 @@ from datetime import datetime
 from enum import Enum
 import logging
 import threading
-from typing import List
+from typing import List, Optional
 
+from samcli.cli.context import Context
 from samcli.lib.build.workflows import ALL_CONFIGS
 from samcli.lib.telemetry.telemetry import Telemetry
 from samcli.local.common.runtime_template import INIT_RUNTIMES
@@ -45,7 +46,8 @@ class EventType:
         "ZipFunctionSyncFlow",
     ]
     _WORKFLOWS = [f"{config.language}-{config.dependency_manager}" for config in ALL_CONFIGS]
-    _events = {
+
+    _event_values = {  # Contains allowable values for Events
         EventName.USED_FEATURE: [
             "Accelerate",
             "CDK",
@@ -63,9 +65,9 @@ class EventType:
     @staticmethod
     def get_accepted_values(event_name: EventName) -> List[str]:
         """Get all acceptable values for a given Event name."""
-        if event_name not in EventType._events:
+        if event_name not in EventType._event_values:
             return []
-        return EventType._events[event_name]
+        return EventType._event_values[event_name]
 
 
 class Event:
@@ -120,6 +122,7 @@ class EventTracker:
 
     _events: List[Event] = []
     _event_lock = threading.Lock()
+    _session_id: Optional[str] = None
 
     MAX_EVENTS: int = 50  # Maximum number of events to store before sending
 
@@ -155,16 +158,24 @@ class EventTracker:
             should_send: bool = False
             with EventTracker._event_lock:
                 EventTracker._events.append(Event(event_name, event_value))
+                # Get the session ID (needed for multithreading sending)
+                if not EventTracker._session_id:
+                    try:
+                        ctx = Context.get_current_context()
+                        if ctx:
+                            EventTracker._session_id = ctx.session_id
+                    except RuntimeError:
+                        LOG.debug("EventTracker: Unable to obtain session ID")
                 if len(EventTracker._events) >= EventTracker.MAX_EVENTS:
                     should_send = True
             if should_send:
-                send_thread = threading.Thread(target=EventTracker.send_events)
-                send_thread.start()
+                EventTracker.send_events()
         except EventCreationError as e:
             LOG.debug("Error occurred while trying to track an event: %s", e)
 
     @staticmethod
     def get_tracked_events() -> List[Event]:
+        """Retrieve a list of all currently tracked Events."""
         with EventTracker._event_lock:
             return EventTracker._events
 
@@ -175,8 +186,15 @@ class EventTracker:
             EventTracker._events = []
 
     @staticmethod
-    def send_events():
-        """Sends the current list of events via Telemetry."""
+    def send_events() -> threading.Thread:
+        """Call a thread to send the current list of Events via Telemetry."""
+        send_thread = threading.Thread(target=EventTracker._send_events_in_thread)
+        send_thread.start()
+        return send_thread
+
+    @staticmethod
+    def _send_events_in_thread():
+        """Send the current list of Events via Telemetry."""
         from samcli.lib.telemetry.metric import Metric  # pylint: disable=cyclic-import
 
         msa = {}
@@ -190,6 +208,7 @@ class EventTracker:
 
         telemetry = Telemetry()
         metric = Metric("events")
+        metric.add_data("sessionId", EventTracker._session_id)
         metric.add_data("metricSpecificAttributes", msa)
         telemetry.emit(metric)
 
@@ -201,6 +220,11 @@ def track_long_event(start_event_name: str, start_event_value: str, end_event_na
     at the start of the decorated function's execution (prior to its
     first line) and the second Event occurs after the function has ended
     (after the final line of the function has executed).
+    If this decorator is being placed in a function that also contains the
+    `track_command` decorator, ensure that this decorator is placed BELOW
+    `track_command`. Otherwise, the current list of Events will be sent
+    before the end_event will be added, resulting in an additional 'events'
+    metric with only that single Event.
 
     Parameters
     ----------
@@ -246,15 +270,16 @@ def track_long_event(start_event_name: str, start_event_value: str, end_event_na
         """The actual decorator"""
 
         def wrapped(*args, **kwargs):
+            # Track starting event
             if should_track:
                 EventTracker.track_event(start_event_name, start_event_value)
             exception = None
-
+            # Run the function
             try:
                 return_value = func(*args, **kwargs)
             except Exception as e:
                 exception = e
-
+            # Track ending event
             if should_track:
                 EventTracker.track_event(end_event_name, end_event_value)
                 EventTracker.send_events()  # Ensure Events are sent at the end of execution
