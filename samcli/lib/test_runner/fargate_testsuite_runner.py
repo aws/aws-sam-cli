@@ -198,13 +198,14 @@ class FargateTestsuiteRunner:
 
         if len(target_resources) > 1:
             raise InvalidTestRunnerTemplateException(
-                f"The Test Runner Stack {self.runner_stack_name} does not contain a {resource_type}."
+                f"The Test Runner Stack {self.runner_stack_name} contains more than one {resource_type}."
             )
 
         if not target_resources:
             raise InvalidTestRunnerTemplateException(
-                f"The Test Runner Stack {self.runner_stack_name} contains more than one {resource_type}."
+                f"The Test Runner Stack {self.runner_stack_name} does not contain a {resource_type}."
             )
+
         return target_resources[0]
 
     def _get_container_name(self, task_definition_arn: str) -> str:
