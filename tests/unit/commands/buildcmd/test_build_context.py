@@ -713,9 +713,8 @@ class TestBuildContext__enter__(TestCase):
             print_success_message=False,
         ) as build_context:
             with patch("samcli.commands.build.build_context.BuildContext.gen_success_msg") as mock_message:
-                with patch("samcli.commands.build.build_context.BuildContext._check_esbuild_warning"):
-                    build_context.run()
-                    mock_message.assert_not_called()
+                build_context.run()
+                mock_message.assert_not_called()
 
 
 class TestBuildContext_setup_build_dir(TestCase):
@@ -1216,37 +1215,6 @@ class TestBuildContext_run(TestCase):
                 build_context.run()
 
         self.assertEqual(str(ctx.exception), "Function Not Found")
-
-
-class TestBuildContext_esbuild_warning(TestCase):
-    @parameterized.expand(
-        [
-            ([], False),
-            ([DummyFunction("Esbuild", metadata={"BuildMethod": "esbuild"})], True),
-            ([DummyFunction("NotEsbuild", metadata={"BuildMethod": "Makefile"})], False),
-        ]
-    )
-    @patch("samcli.commands.build.build_context.prompt_experimental")
-    def test_check_esbuild_warning(self, functions, should_print, mocked_click):
-        build_context = BuildContext(
-            resource_identifier="function_identifier",
-            template_file="template_file",
-            base_dir="base_dir",
-            build_dir="build_dir",
-            cache_dir="cache_dir",
-            cached=False,
-            clean=False,
-            parallel=False,
-            mode="mode",
-        )
-        with patch.object(build_context, "get_resources_to_build") as mocked_resources_to_build:
-            mocked_resources_to_build.return_value = Mock(functions=functions)
-            build_context._check_esbuild_warning()
-
-        if should_print:
-            mocked_click.assert_called_with(ExperimentalFlag.Esbuild, BuildContext._ESBUILD_WARNING_MESSAGE)
-        else:
-            mocked_click.assert_not_called()
 
 
 class TestBuildContext_exclude_warning(TestCase):

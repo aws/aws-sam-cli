@@ -46,8 +46,6 @@ class TestSyncCodeBase(SyncIntegBase):
 
     @pytest.fixture(scope="class")
     def execute_infra_sync(self):
-        set_experimental(ExperimentalFlag.Esbuild)
-
         with tempfile.TemporaryDirectory() as temp:
             TestSyncCodeBase.temp_dir = Path(temp).joinpath(self.folder)
             shutil.copytree(self.test_data_path.joinpath(self.folder).joinpath("before"), TestSyncCodeBase.temp_dir)
