@@ -122,3 +122,37 @@ class TestResources(DeployIntegBase, ResourcesIntegBase):
         self.assertIn(
             expected_output, command_result.stderr.decode(), "Should have raised error that outputs do not exist"
         )
+
+    def test_successful_transform_table_output(self):
+        template_path = self.list_test_data_path.joinpath("test_stack_creation_template.yaml")
+        region = boto3.Session().region_name
+        cmdlist = self.get_resources_command_list(
+            stack_name=None, region=region, template_file=template_path
+        )
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        header_string = "R\n*e\n*s\n*o\n*u\n*r\n*c\n*e\n*s\n-+(-|\n)+L\n*o\n*g\n*i\n*c\n*a\n*l\n*( )*\n*I\n*D\n*( )*\n*P\n*h\n*y\n*s\n*i\n*c\n*a\n*l\n*( )*\n*I\n*D\n*( )*\n*-+(-|\n)+"
+        expression_list = [
+            "H\n*e\n*l\n*l\n*o\n*W\n*o\n*r\n*l\n*d\n*F\n*u\n*n\n*c\n*t\n*i\n*o\n*n\n*( |\n)*-( )*",
+            "H\n*e\n*l\n*l\n*o\n*W\n*o\n*r\n*l\n*d\n*F\n*u\n*n\n*c\n*t\n*i\n*o\n*n\n*R\n*o\n*l\n*e\n*( |\n)*-\n*( |\n)*",
+            "H\n*e\n*l\n*l\n*o\n*W\n*o\n*r\n*l\n*d\n*F\n*u\n*n\n*c\n*t\n*i\n*o\n*n\n*H\n*e\n*l\n*l\n*o\n*W\n*o\n*r\n*l\n*d\n*P\n*e\n*r\n*m\n*i\n*s\n*s\n*i\n*o\n*n\n*P\n*r\n*o\n*d\n*( |\n)*-\n*( |\n)*",
+            "S\n*e\n*r\n*v\n*e\n*r\n*l\n*e\n*s\n*s\n*R\n*e\n*s\n*t\n*A\n*p\n*i\n*( |\n)*-\n*( |\n)*",
+            "S\n*e\n*r\n*v\n*e\n*r\n*l\n*e\n*s\n*s\n*R\n*e\n*s\n*t\n*A\n*p\n*i\n*D\n*e\n*p\n*l\n*o\n*y\n*m\n*e\n*n\n*t\n*.*( |\n)*-\n*( |\n)*",
+            "S\n*e\n*r\n*v\n*e\n*r\n*l\n*e\n*s\n*s\n*R\n*e\n*s\n*t\n*A\n*p\n*i\n*P\n*r\n*o\n*d\n*S\n*t\n*a\n*g\n*e\n*( |\n)*-\n*( |\n)*"
+        ]
+        print(command_result.stdout.decode())
+        self.assertTrue(
+            re.search(
+                header_string,
+                command_result.stdout.decode(),
+            )
+        )
+        for expression in expression_list:
+            self.assertTrue(
+                re.search(
+                    expression,
+                    command_result.stdout.decode(),
+                )
+            )
+
+
+
