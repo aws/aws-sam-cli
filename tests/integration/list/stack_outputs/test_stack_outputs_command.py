@@ -146,7 +146,7 @@ class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
         expression_list = [
             "H\n*e\n*l\n*l\n*o\n*W\n*o\n*r\n*l\n*d\n*F\n*u\n*n\n*c\n*t\n*i\n*o\n*n\n*I\n*a\n*m\n*R\n*o\n*l\n*e\n*( |\n)*a\n*r\n*n\n*:\n*a\n*w\n*s\n*:\n*i\n*a\n*m\n*:\n*:\n*.*\n*:\n*r\n*o\n*l\n*e\n*.*( |\n)*I\n*m\n*p\n*l\n*i\n*c\n*i\n*t\n*( |\n)*I\n*A\n*M\n*( |\n)*R\n*o\n*l\n*e\n*( |\n)*c\n*r\n*e\n*a\n*t\n*e\n*d\n*( |\n)*f\n*o\n*r\n*",
             "H\n*e\n*l\n*l\n*o\n*W\n*o\n*r\n*l\n*d\n*A\n*p\n*i\n*( |\n)*h\n*t\n*t\n*p\n*s\n*:\n*/\n*/\n*.*\n*.\n*e\n*x\n*e\n*c\n*u\n*t\n*e\n*.*\n*( |\n)*A\n*P\n*I\n*( |\n)*G\n*a\n*t\n*e\n*w\n*a\n*y\n*( |\n)*e\n*n\n*d\n*p\n*o\n*i\n*n\n*t\n*( |\n)*U\n*R\n*L\n*( |\n)*f\n*o\n*r\n*",
-            "H\n*e\n*l\n*l\n*o\n*W\n*o\n*r\n*l\n*d\n*F\n*u\n*n\n*c\n*t\n*i\n*o\n*n\n*( |\n)*a\n*r\n*n\n*:\n*a\n*w\n*s\n*:\n*l\n*a\n*m\n*b\n*d\n*a\n*:\n*.*\n*( |\n)*H\n*e\n*l\n*l\n*o\n*( |\n)*W\n*o\n*r\n*l\n*d\n*( |\n)*L\n*a\n*m\n*b\n*d\n*a\n*( |\n)*F\n*u\n*n\n*c\n*t\n*i\n*o\n*n\n*"
+            "H\n*e\n*l\n*l\n*o\n*W\n*o\n*r\n*l\n*d\n*F\n*u\n*n\n*c\n*t\n*i\n*o\n*n\n*( |\n)*a\n*r\n*n\n*:\n*a\n*w\n*s\n*:\n*l\n*a\n*m\n*b\n*d\n*a\n*:\n*.*\n*( |\n)*H\n*e\n*l\n*l\n*o\n*( |\n)*W\n*o\n*r\n*l\n*d\n*( |\n)*L\n*a\n*m\n*b\n*d\n*a\n*( |\n)*F\n*u\n*n\n*c\n*t\n*i\n*o\n*n\n*",
         ]
         self.assertTrue(
             re.search(
