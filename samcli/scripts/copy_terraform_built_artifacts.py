@@ -170,8 +170,7 @@ class Searcher(object):
 if __name__ == "__main__":
     # Gather inputs and clean them
     argparser = argparse.ArgumentParser(
-        description="Copy built artifacts referenced in a json file "
-        "(passed via stdin) matching a search pattern"
+        description="Copy built artifacts referenced in a json file " "(passed via stdin) matching a search pattern"
     )
     argparser.add_argument(
         "--expression",
