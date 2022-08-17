@@ -151,6 +151,7 @@ class TestEndpoints(DeployIntegBase, EndpointsIntegBase):
         )
         cmdlist = self.get_endpoints_command_list(stack_name=stack_name, region=region, template_file=template_path)
         command_result = run_command(cmdlist, cwd=self.working_dir)
+        # Regex string generated using tools in tests/integration/list/regex_table_utils
         header_string = "-+(-|\n)+R\n*e\n*s\n*o\n*u\n*r\n*c\n*e\n*( |\n)*I\n*D\n*( |\n)*P\n*h\n*y\n*s\n*i\n*c\n*a\n*l\n*( |\n)*I\n*D\n*( |\n)*C\n*l\n*o\n*u\n*d\n*( |\n)*E\n*n\n*d\n*p\n*o\n*i\n*n\n*t\n*s\n*( |\n)*M\n*e\n*t\n*h\n*o\n*d\n*s\n*( |\n)*-+(-|\n)+"
         expression_list = [
             "H\n*e\n*l\n*l\n*o\n*W\n*o\n*r\n*l\n*d\n*F\n*u\n*n\n*c\n*t\n*i\n*o\n*n\n*( |\n)*t\n*e\n*s\n*t\n*.*( |\n)*h\n*t\n*t\n*p\n*s\n*:\n*/\n*/\n*.*( |\n)*-\n*( |\n)*",

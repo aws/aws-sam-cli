@@ -142,6 +142,7 @@ class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
         cmdlist = self.get_stack_outputs_command_list(stack_name=stack_name, region=region)
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
+        # Regex string generated using tools in tests/integration/list/regex_table_utils
         header_string = "S\n*t\n*a\n*c\n*k\n*( )\n*O\n*u\n*t\n*p\n*u\n*t\n*s\n-+(-|\n)+O\n*u\n*t\n*p\n*u\n*t\n*K\n*e\n*y\n*( |\n)*O\n*u\n*t\n*p\n*u\n*t\n*V\n*a\n*l\n*u\n*e\n*( |\n)*D\n*e\n*s\n*c\n*r\n*i\n*p\n*t\n*i\n*o\n*n\n*( |\n)*-+(-|\n)+"
         expression_list = [
             "H\n*e\n*l\n*l\n*o\n*W\n*o\n*r\n*l\n*d\n*F\n*u\n*n\n*c\n*t\n*i\n*o\n*n\n*I\n*a\n*m\n*R\n*o\n*l\n*e\n*( |\n)*a\n*r\n*n\n*:\n*a\n*w\n*s\n*:\n*i\n*a\n*m\n*:\n*:\n*.*\n*:\n*r\n*o\n*l\n*e\n*.*( |\n)*I\n*m\n*p\n*l\n*i\n*c\n*i\n*t\n*( |\n)*I\n*A\n*M\n*( |\n)*R\n*o\n*l\n*e\n*( |\n)*c\n*r\n*e\n*a\n*t\n*e\n*d\n*( |\n)*f\n*o\n*r\n*",

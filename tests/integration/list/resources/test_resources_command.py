@@ -128,6 +128,7 @@ class TestResources(DeployIntegBase, ResourcesIntegBase):
         region = boto3.Session().region_name
         cmdlist = self.get_resources_command_list(stack_name=None, region=region, template_file=template_path)
         command_result = run_command(cmdlist, cwd=self.working_dir)
+        # Regex string generated using tools in tests/integration/list/regex_table_utils
         header_string = "R\n*e\n*s\n*o\n*u\n*r\n*c\n*e\n*s\n-+(-|\n)+L\n*o\n*g\n*i\n*c\n*a\n*l\n*( )*\n*I\n*D\n*( )*\n*P\n*h\n*y\n*s\n*i\n*c\n*a\n*l\n*( )*\n*I\n*D\n*( )*\n*-+(-|\n)+"
         expression_list = [
             "H\n*e\n*l\n*l\n*o\n*W\n*o\n*r\n*l\n*d\n*F\n*u\n*n\n*c\n*t\n*i\n*o\n*n\n*( |\n)*-( )*",
