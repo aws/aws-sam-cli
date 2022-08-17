@@ -39,7 +39,7 @@ COLOR = Colored()
 @click.option(
     "--tags",
     cls=OptionNargs,
-    type=CfnTags(),
+    type=CfnTags(multiple_values_per_key=True),
     required=False,
     help="A list of tags used to discover resources. "
     "Discovered resources will have IAM statement templates generated within the Test Runner CloudFormation Template, "
@@ -225,7 +225,7 @@ def query_tagging_api(tags: dict, boto_client_provider: BotoProviderType) -> Uni
     """
     # Convert tag format into one that the API accepts
     # NOTE: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/resourcegroupstaggingapi.html#ResourceGroupsTaggingAPI.Client.get_resources
-    tag_filters = [{"Key": k, "Values": [v]} for k, v in tags.items()]
+    tag_filters = [{"Key": k, "Values": v_list} for k, v_list in tags.items()]
     resource_tag_mapping_list = (
         boto_client_provider("resourcegroupstaggingapi")
         .get_resources(TagFilters=tag_filters)
