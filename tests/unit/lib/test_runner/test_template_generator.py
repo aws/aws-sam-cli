@@ -96,9 +96,10 @@ class Test_TemplateGenerator(TestCase):
         self,
         resource_arn,
         expected_actions,
+        allow_iam=False,
     ):
         self.template_generator.resource_arn_list = [resource_arn]
-        result = self.template_generator.generate_test_runner_template_string(self.TEST_IMAGE_URI)
+        result = self.template_generator.generate_test_runner_template_string(self.TEST_IMAGE_URI, allow_iam)
         expected_statements = [
             "                          - Effect: Allow\n",
             "                            Action:\n",
@@ -213,6 +214,60 @@ class Test_TemplateGenerator(TestCase):
             "                            Action:\n",
             "                               # - s3:PutObject\n",
             "                               # - s3:GetObject\n",
+            f"                            Resource: {arn_2}\n",
+        ]
+
+        expected_result = "".join(
+            self.generated_template_expected_first_half
+            + expected_statements
+            + self.generated_template_expected_second_half
+        )
+        self.assertEqual(result, expected_result)
+
+    def test_allow_iam_single_statement(self):
+        resource_arn = "arn:aws:lambda:us-east-1:123456789123:function:lambda-sample-SampleLambda-KWsMLA204T0i"
+        expected_actions = ["                               - lambda:InvokeFunction\n"]
+        self.do_compare(resource_arn, expected_actions, allow_iam=True)
+
+    def test_allow_iam_with_apigw_resource(self):
+        self.template_generator.resource_arn_list = [
+            "arn:aws-us-gov:apigateway:us-west-1::/restapis/r3st4p1",
+        ]
+
+        result = self.template_generator.generate_test_runner_template_string(self.TEST_IMAGE_URI, allow_iam=True)
+
+        expected_statements = [
+            "                          - Effect: Allow\n",
+            "                            Action:\n",
+            "                               - execute-api:Invoke\n",
+            "                            Resource: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:r3st4p1/*\n",
+        ]
+
+        expected_result = "".join(
+            self.generated_template_expected_first_half
+            + expected_statements
+            + self.generated_template_expected_second_half
+        )
+        self.assertEqual(result, expected_result)
+
+    def test_allow_iam_multiple_statements(self):
+        arn_1 = "arn:aws:states:us-east-1:123456789012:stateMachine:stateMachineName"
+        arn_2 = "arn:aws:s3:::my-very-big-s3-bucket"
+
+        self.template_generator.resource_arn_list = [arn_1, arn_2]
+
+        result = self.template_generator.generate_test_runner_template_string(self.TEST_IMAGE_URI, allow_iam=True)
+
+        expected_statements = [
+            "                          - Effect: Allow\n",
+            "                            Action:\n",
+            "                               - stepfunction:StartExecution\n",
+            "                               - stepfunction:StopExecution\n",
+            f"                            Resource: {arn_1}\n",
+            "                          - Effect: Allow\n",
+            "                            Action:\n",
+            "                               - s3:PutObject\n",
+            "                               - s3:GetObject\n",
             f"                            Resource: {arn_2}\n",
         ]
 
