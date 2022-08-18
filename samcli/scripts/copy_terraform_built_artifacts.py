@@ -40,6 +40,9 @@ import json
 import shutil
 import sys
 import zipfile
+import logging
+
+LOG = logging.getLogger(__name__)
 
 
 class ResolverException(Exception):
@@ -167,6 +170,10 @@ class Searcher(object):
         return data
 
 
+def cli_exit():
+    sys.exit(1)
+
+
 if __name__ == "__main__":
     # Gather inputs and clean them
     argparser = argparse.ArgumentParser(
@@ -184,32 +191,60 @@ if __name__ == "__main__":
         "--directory",
         type=str,
         required=True,
-        help="directory to which extracted expression " "contents are copied/unzipped to",
+        help="Directory to which extracted expression " "contents are copied/unzipped to",
+    )
+    argparser.add_argument(
+        "--terraform-project-root",
+        type=str,
+        required=False,
+        help="Extracted expression (path) will be relative to the terraform project root if provided.",
     )
 
     arguments = argparser.parse_args()
     directory_path = os.path.abspath(arguments.directory)
+    terraform_project_root = os.path.abspath(arguments.terraform_project_root)
+
+    extracted_attribute_path = None
+    data_object = None
 
     if not os.path.exists(directory_path) or not os.path.isdir(directory_path):
-        raise OSError("Expected --directory-path to be a valid directory")
+        LOG.error("Expected --directory to be a valid directory!")
+        cli_exit()
+    if terraform_project_root:
+        if not os.path.exists(terraform_project_root) or not os.path.isdir(terraform_project_root):
+            LOG.error("Expected --terraform-project-path to be a valid directory!")
+            cli_exit()
 
     # Load and Parse
-    data_object = json.load(sys.stdin)
-    output_path = Parser(expression=arguments.expression).parse().search(data=data_object)
-
-    # Check if that is indeed a path.
-    if not os.path.exists(output_path):
-        raise OSError("Extracted attribute path from provided expression does not exist!")
-    filepath = os.path.abspath(output_path)
-
-    # Unzip the zipped file or copy the dir
     try:
-        if zipfile.is_zipfile(filepath):
-            with zipfile.ZipFile(filepath, "r") as z:
+        data_object = json.load(sys.stdin)
+    except ValueError as ex:
+        LOG.error("Parsing JSON from stdin unsuccessful!", exc_info=True)
+        cli_exit()
+
+    try:
+        extracted_attribute_path = Parser(expression=arguments.expression).parse().search(data=data_object)
+    except ResolverException as ex:
+        LOG.error(ex.message, exc_info=True)
+        cli_exit()
+    # Check if that is indeed a path.
+    abs_attribute_path = (
+        os.path.abspath(os.path.join(terraform_project_root, extracted_attribute_path))
+        if terraform_project_root
+        else os.path.abspath(extracted_attribute_path)
+    )
+    if not os.path.exists(abs_attribute_path):
+        LOG.error("Extracted attribute path from provided expression does not exist!")
+        cli_exit()
+    if abs_attribute_path == directory_path:
+        LOG.error("Extracted expression path cannot be the same as the supplied directory path")
+        cli_exit()
+    try:
+        if zipfile.is_zipfile(abs_attribute_path):
+            with zipfile.ZipFile(abs_attribute_path, "r") as z:
                 z.extractall(directory_path)
         else:
             if os.path.isdir(directory_path):
-                shutil.copytree(output_path, directory_path, dirs_exist_ok=True)
-    except OSError:
-        print("Copy/Unzip unsuccessful!")
-        sys.exit(1)
+                shutil.copytree(abs_attribute_path, directory_path, dirs_exist_ok=True)
+    except OSError as ex:
+        LOG.error("Copy/Unzip unsuccessful!", exc_info=ex)
