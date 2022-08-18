@@ -10,6 +10,7 @@ from typing import Dict, Optional, List, Tuple, cast
 import click
 
 from samcli.commands._utils.experimental import ExperimentalFlag, prompt_experimental
+from samcli.lib.build.bundler import EsbuildBundlerManager
 from samcli.lib.providers.sam_api_provider import SamApiProvider
 from samcli.lib.utils.packagetype import IMAGE
 
@@ -34,6 +35,7 @@ from samcli.lib.build.app_builder import (
     BuildError,
     UnsupportedBuilderLibraryVersionError,
     ContainerBuildNotSupported,
+    ApplicationBuildResult,
 )
 from samcli.commands._utils.options import DEFAULT_BUILD_DIR
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
@@ -222,9 +224,6 @@ class BuildContext:
         if is_sam_template:
             SamApiProvider.check_implicit_api_resource_ids(self.stacks)
 
-        # modify the stack resources to support source maps
-        self._enable_source_maps()
-
         try:
             builder = ApplicationBuilder(
                 self.get_resources_to_build(),
@@ -262,12 +261,7 @@ class BuildContext:
                 )
                 output_template_path = stack.get_output_template_path(self.build_dir)
 
-                if self._create_auto_dependency_layer:
-                    LOG.debug("Auto creating dependency layer for each function resource into a nested stack")
-                    nested_stack_manager = NestedStackManager(
-                        stack, self._stack_name, self.build_dir, modified_template, build_result
-                    )
-                    modified_template = nested_stack_manager.generate_auto_dependency_layer_stack()
+                modified_template = self._handle_template_post_processing(stack, modified_template, build_result)
 
                 move_template(stack.location, output_template_path, modified_template)
 
@@ -311,107 +305,28 @@ class BuildContext:
             wrapped_from = deep_wrap if deep_wrap else ex.__class__.__name__
             raise UserException(str(ex), wrapped_from=wrapped_from) from ex
 
-    def _enable_source_maps(self):
+    def _handle_template_post_processing(
+        self, stack: Stack, template: Dict, build_result: ApplicationBuildResult
+    ) -> Dict:
         """
-        Appends ``NODE_OPTIONS: --enable-source-maps``, if Sourcemap is set to true
-        and sets Sourcemap to true if ``NODE_OPTIONS: --enable-source-maps`` is provided.
+        Add any template modifications necessary before moving the template to build directory
+        :param stack: Stack resources
+        :param template: Current template file
+        :param build_result: Result of the application build
+        :return: Modified template dict
         """
-        using_source_maps = False
-        invalid_node_option = False
+        modified_template = template
+        stack_name = self._stack_name if self._stack_name else ""
+        if self._create_auto_dependency_layer:
+            LOG.debug("Auto creating dependency layer for each function resource into a nested stack")
+            nested_stack_manager = NestedStackManager(
+                stack, stack_name, self.build_dir, modified_template, build_result
+            )
+            modified_template = nested_stack_manager.generate_auto_dependency_layer_stack()
 
-        for stack in self.stacks:
-            for name, resource in stack.resources.items():
-                metadata = resource.get("Metadata", {})
-                if metadata.get("BuildMethod", "") != "esbuild":
-                    continue
+        modified_template = EsbuildBundlerManager(stack=stack, template=modified_template).enable_source_maps()
 
-                node_option_set = self._is_node_option_set(resource)
-
-                # check if Sourcemap is provided and append --enable-source-map if not set
-                build_properties = metadata.get("BuildProperties", {})
-                source_map = build_properties.get("Sourcemap", None)
-
-                if source_map and not node_option_set:
-                    LOG.info(
-                        "\nSourcemap set without --enable-source-maps, adding"
-                        " --enable-source-maps to function %s NODE_OPTIONS",
-                        name,
-                    )
-
-                    resource.setdefault("Properties", {})
-                    resource["Properties"].setdefault("Environment", {})
-                    resource["Properties"]["Environment"].setdefault("Variables", {})
-                    existing_options = resource["Properties"]["Environment"]["Variables"].setdefault("NODE_OPTIONS", "")
-
-                    # make sure the NODE_OPTIONS is a string
-                    if not isinstance(existing_options, str):
-                        invalid_node_option = True
-                    else:
-                        resource["Properties"]["Environment"]["Variables"]["NODE_OPTIONS"] = " ".join(
-                            [existing_options, "--enable-source-maps"]
-                        )
-
-                    using_source_maps = True
-
-                # check if --enable-source-map is provided and append Sourcemap: true if it is not set
-                if source_map is None and node_option_set:
-                    LOG.info(
-                        "\n--enable-source-maps set without Sourcemap, adding Sourcemap to"
-                        " Metadata BuildProperties for %s",
-                        name,
-                    )
-
-                    resource.setdefault("Metadata", {})
-                    resource["Metadata"].setdefault("BuildProperties", {})
-                    resource["Metadata"]["BuildProperties"]["Sourcemap"] = True
-
-                    using_source_maps = True
-
-        if using_source_maps:
-            self._warn_using_source_maps()
-
-        if invalid_node_option:
-            self._warn_invalid_node_options()
-
-    @staticmethod
-    def _is_node_option_set(resource: Dict) -> bool:
-        """
-        Checks if the template has NODE_OPTIONS --enable-source-maps set
-
-        Parameters
-        ----------
-        resource : Dict
-            The resource dictionary to lookup if --enable-source-maps is set
-
-        Returns
-        -------
-        bool
-            True if --enable-source-maps is set, otherwise false
-        """
-        try:
-            node_options = resource["Properties"]["Environment"]["Variables"]["NODE_OPTIONS"]
-
-            return "--enable-source-maps" in node_options.split()
-        except (KeyError, AttributeError):
-            return False
-
-    @staticmethod
-    def _warn_invalid_node_options():
-        click.secho(
-            "\nNODE_OPTIONS is not a string! As a result, the NODE_OPTIONS environment variable will "
-            "not be set correctly, please make sure it is a string. "
-            "Visit https://nodejs.org/api/cli.html#node_optionsoptions for more details.\n",
-            fg="yellow",
-        )
-
-    @staticmethod
-    def _warn_using_source_maps():
-        click.secho(
-            "\nYou are using source maps, note that this comes with a performance hit!"
-            " Set Sourcemap to false and remove"
-            " NODE_OPTIONS: --enable-source-maps to disable source maps.\n",
-            fg="yellow",
-        )
+        return modified_template
 
     @staticmethod
     def gen_success_msg(artifacts_dir: str, output_template_path: str, is_default_build_dir: bool) -> str:
