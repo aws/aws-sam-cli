@@ -25,14 +25,14 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
 
     def test_script_output_path_directory(self):
         command = [
-            f"{sys.executable}",
-            f"{self.script_location}",
+            f"{str(sys.executable)}",
+            f"{str(self.script_location)}",
             "--directory",
-            self.directory,
+            str(self.directory),
             "--expression",
             self.expression,
             "--terraform-project-root",
-            f"{self.testdata_directory}",
+            f"{str(self.testdata_directory)}",
         ]
         with open(self.input_file, "rb") as f:
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
@@ -47,14 +47,14 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
     def test_script_output_path_zip(self):
         input_zip_file = self.testdata_directory.joinpath("build-output-path-zip.json")
         command = [
-            f"{sys.executable}",
-            f"{self.script_location}",
+            f"{str(sys.executable)}",
+            f"{str(self.script_location)}",
             "--directory",
-            self.directory,
+            str(self.directory),
             "--expression",
             self.expression,
             "--terraform-project-root",
-            f"{self.testdata_directory}",
+            f"{str(self.testdata_directory)}",
         ]
         with open(input_zip_file, "rb") as f:
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
@@ -69,14 +69,14 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
     def test_script_output_path_directory_invalid_directory(self):
         directory = "not-a-dir"
         command = [
-            f"{sys.executable}",
-            f"{self.script_location}",
+            f"{str(sys.executable)}",
+            f"{str(self.script_location)}",
             "--directory",
             directory,
             "--expression",
             self.expression,
             "--terraform-project-root",
-            f"{self.testdata_directory}",
+            f"{str(self.testdata_directory)}",
         ]
         with open(self.input_file, "rb") as f:
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
@@ -93,14 +93,14 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
             '?address=="sam_metadata_address"]'
         )
         command = [
-            f"{sys.executable}",
-            f"{self.script_location}",
+            f"{str(sys.executable)}",
+            f"{str(self.script_location)}",
             "--directory",
-            self.directory,
+            f"{str(self.directory)}",
             "--expression",
             expression,
             "--terraform-project-root",
-            f"{self.testdata_directory}",
+            f"{str(self.testdata_directory)}",
         ]
         with open(self.input_file, "rb") as f:
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
@@ -113,18 +113,18 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
 
     def test_script_output_path_directory_valid_expression_invalid_extracted_path(self):
         expression = (
-            '|values|root_module|child_modules?address=="sam_metadata_address"]|values|triggers' "|built_output_path "
+            '|values|root_module|child_modules?address=="sam_metadata_address"]|values|triggers|built_output_path'
         )
         directory = pathlib.Path(tempfile.mkdtemp()).absolute()
         command = [
-            f"{sys.executable}",
-            f"{self.script_location}",
+            f"{str(sys.executable)}",
+            f"{str(self.script_location)}",
             "--directory",
-            directory,
+            f"{str(self.directory)}",
             "--expression",
             expression,
             "--terraform-project-root",
-            f"{self.testdata_directory}",
+            f"{str(self.testdata_directory)}",
         ]
         with open(self.input_file, "rb") as f:
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
@@ -138,14 +138,14 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
     def test_script_output_path_directory_same_directory_and_extracted_path(self):
         directory = self.testdata_directory.joinpath("output_path_dir")
         command = [
-            f"{sys.executable}",
-            f"{self.script_location}",
+            f"{str(sys.executable)}",
+            f"{str(self.script_location)}",
             "--directory",
-            directory,
+            f"{str(directory)}",
             "--expression",
             self.expression,
             "--terraform-project-root",
-            f"{self.testdata_directory}",
+            f"{str(self.testdata_directory)}",
         ]
         with open(self.input_file, "rb") as f:
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
@@ -158,14 +158,14 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
 
     def test_script_output_path_no_stdin(self):
         command = [
-            f"{sys.executable}",
-            f"{self.script_location}",
+            f"{str(sys.executable)}",
+            f"{str(self.script_location)}",
             "--directory",
-            self.directory,
+            f"{str(self.directory)}",
             "--expression",
             self.expression,
             "--terraform-project-root",
-            f"{self.testdata_directory}",
+            f"{str(self.testdata_directory)}",
         ]
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         try:
@@ -177,14 +177,14 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
 
     def test_script_output_path_invalid_json(self):
         command = [
-            f"{sys.executable}",
-            f"{self.script_location}",
+            f"{str(sys.executable)}",
+            f"{str(self.script_location)}",
             "--directory",
-            self.directory,
+            f"{str(self.directory)}",
             "--expression",
             self.expression,
             "--terraform-project-root",
-            f"{self.testdata_directory}",
+            f"{str(self.testdata_directory)}",
         ]
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         try:
@@ -196,15 +196,16 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
 
     def test_script_output_path_invalid_terraform_project_root(self):
         command = [
-            f"{sys.executable}",
-            f"{self.script_location}",
+            f"{str(sys.executable)}",
+            f"{str(self.script_location)}",
             "--directory",
-            self.directory,
+            f"{str(self.directory)}",
             "--expression",
             self.expression,
             "--terraform-project-root",
             "not-a-dir",
         ]
+
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         with open(self.input_file, "rb") as f:
             try:
