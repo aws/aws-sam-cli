@@ -73,7 +73,6 @@ Specify the name of the generated resource-ARN map YAML file. This file can be p
     "--allow-iam",
     required=False,
     is_flag=True,
-
     # TODO: Link to a table or something showing WHICH resources get which actions generated.
     help=f"""
 IAM statements with basic actions will be written for each of your resources associated with the supplied tag.

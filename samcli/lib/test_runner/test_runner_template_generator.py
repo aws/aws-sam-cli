@@ -196,6 +196,10 @@ Resources:
         resource_arn : str
             The arn of the resource for which the IAM statement is generated.
 
+        allow_iam : bool
+            If False, IAM actions are generated "commented out", with a '#' in front of the action.
+            Else, IAM actions will NOT be commented out when generated.
+
         Returns
         -------
         str:
@@ -250,7 +254,9 @@ Resources:
             The URI of the Image to be used by the Test Runner Fargate task definition.
 
         allow_iam : bool
-            If True, actions within generated IAM statements will NOT be commented out.
+            If False, IAM actions are generated "commented out", with a '#' in front of the action.
+            Else, IAM actions will NOT be commented out when generated.
+
 
         Returns
         -------
