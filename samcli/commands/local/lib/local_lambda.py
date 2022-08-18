@@ -216,6 +216,10 @@ class LocalLambdaRunner:
     def _make_env_vars(self, function: Function) -> EnvironmentVariables:
         """Returns the environment variables configuration for this function
 
+        Priority order for environment variables (high to low):
+        1. Function specific env vars from json file
+        2. Global env vars from json file
+
         Parameters
         ----------
         function : samcli.commands.local.lib.provider.Function
@@ -243,33 +247,36 @@ class LocalLambdaRunner:
         else:
             LOG.debug("No environment variables found for function '%s'", name)
 
-        # This could either be in standard format, or a CloudFormation parameter file format.
+        # This could either be in standard format, or a CloudFormation parameter file format, or mix of both.
         #
         # Standard format is {FunctionName: {key:value}, FunctionName: {key:value}}
         # CloudFormation parameter file is {"Parameters": {key:value}}
 
         for env_var_value in self.env_vars_values.values():
             if not isinstance(env_var_value, dict):
-                reason = """
-                            Environment variables must be in either CloudFormation parameter file
-                            format or in {FunctionName: {key:value}} JSON pairs
-                            """
+                reason = "Environment variables {} in incorrect format".format(env_var_value)
                 LOG.debug(reason)
                 raise OverridesNotWellDefinedError(reason)
 
+        overrides = {}
+        # environment variables for specific resources take precedence over
+        # the single environment variable for all resources
         if "Parameters" in self.env_vars_values:
-            LOG.debug("Environment variables overrides data is in CloudFormation parameter file format")
+            LOG.debug("Environment variables data found in the CloudFormation parameter file format")
             # CloudFormation parameter file format
-            overrides = self.env_vars_values["Parameters"]
-        else:
+            parameter_result = self.env_vars_values.get("Parameters", {})
+            overrides.update(parameter_result)
+
+        # Precedence: logical_id -> function_id -> full_path, customer can use any of them
+        fn_file_env_vars = (
+            self.env_vars_values.get(name, None)
+            or self.env_vars_values.get(function_id, None)
+            or self.env_vars_values.get(full_path, None)
+        )
+        if fn_file_env_vars:
             # Standard format
-            LOG.debug("Environment variables overrides data is standard format")
-            # Precedence: logical_id -> function_id -> full_path, customer can use any of them
-            overrides = (
-                self.env_vars_values.get(name, None)
-                or self.env_vars_values.get(function_id, None)
-                or self.env_vars_values.get(full_path, None)
-            )
+            LOG.debug("Environment variables data found for specific function in standard format")
+            overrides.update(fn_file_env_vars)
 
         shell_env = os.environ
         aws_creds = self.get_aws_creds()
