@@ -217,13 +217,16 @@ if __name__ == "__main__":
         "--terraform-project-root",
         type=str,
         required=False,
+        default=None,
         help="Extracted expression (path) will be relative to the terraform project root if provided.",
     )
 
     arguments = argparser.parse_args()
     directory_path = os.path.abspath(arguments.directory)
-    terraform_project_root = os.path.abspath(arguments.terraform_project_root)
 
+    terraform_project_root = (
+        os.path.abspath(arguments.terraform_project_root) if arguments.terraform_project_root else None
+    )
     extracted_attribute_path = None
     data_object = None
 
@@ -247,10 +250,11 @@ if __name__ == "__main__":
     except ResolverException as ex:
         LOG.error(ex.message, exc_info=True)
         cli_exit()
-    # Check if that is indeed a path.
+    # Construct an absolute path based on if extracted path is relative or absolute and if
+    # terraform project root is provided.
     abs_attribute_path = (
         os.path.abspath(os.path.join(terraform_project_root, extracted_attribute_path))
-        if terraform_project_root
+        if terraform_project_root and not os.path.isabs(extracted_attribute_path)
         else os.path.abspath(extracted_attribute_path)
     )
     if not os.path.exists(abs_attribute_path):
