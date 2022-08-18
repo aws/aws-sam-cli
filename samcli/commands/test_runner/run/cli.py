@@ -93,7 +93,11 @@ The Python Requirements file, commonly named `requirements.txt` containing the d
     "bucket_override",
     required=False,
     type=str,
-    help="An override for the S3 bucket used to store your tests and results.",
+    help="""
+An override for the S3 bucket used to store your tests and results.
+
+If used, ensure that you've given the Fargate container access to your bucket through the ContainerIAMRole in your Test Runner CloudFormation Template.
+""",
 )
 @click.option(
     "--path-in-bucket",
