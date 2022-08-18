@@ -178,7 +178,15 @@ class CfnTags(click.ParamType):
     """
     Custom Click options type to accept values for tag parameters.
     tag parameters can be of the type KeyName1=string KeyName2=string
+
+    If multiple_values_per_key is set to True, the returned dictionary will map
+    each key to a list of corresponding values.
+
+    E.g. Input: KeyName1=Value1 KeyName1=Value2 Output: {KeyName1 : [Value1, Value2]}
     """
+
+    def __init__(self, multiple_values_per_key=False):
+        self.multiple_values_per_key = multiple_values_per_key
 
     _EXAMPLE = "KeyName1=string KeyName2=string"
     # Tags have additional constraints and they allow "+ - = . _ : / @" apart from alpha-numerics.
@@ -212,7 +220,7 @@ class CfnTags(click.ParamType):
                 parsed, tags = self._space_separated_key_value_parser(val)
             if parsed:
                 for k in tags:
-                    result[_unquote_wrapped_quotes(k)] = _unquote_wrapped_quotes(tags[k])
+                    self._add_value(result, _unquote_wrapped_quotes(k), _unquote_wrapped_quotes(tags[k]))
             else:
                 groups = re.findall(self._pattern, val)
 
@@ -220,8 +228,7 @@ class CfnTags(click.ParamType):
                     fail = True
                 for group in groups:
                     key, v = group
-                    # assign to result['KeyName1'] = string and so on.
-                    result[_unquote_wrapped_quotes(key)] = _unquote_wrapped_quotes(v)
+                    self._add_value(result, _unquote_wrapped_quotes(key), _unquote_wrapped_quotes(v))
 
             if fail:
                 return self.fail(
@@ -231,6 +238,17 @@ class CfnTags(click.ParamType):
                 )
 
         return result
+
+    def _add_value(self, result: dict, key: str, new_value: str):
+        """
+        Add a given value to a given key in the result map.
+        """
+        if self.multiple_values_per_key:
+            if not result.get(key):
+                result[key] = []
+            result[key].append(new_value)
+            return
+        result[key] = new_value
 
     @staticmethod
     def _standard_key_value_parser(tag_value):
