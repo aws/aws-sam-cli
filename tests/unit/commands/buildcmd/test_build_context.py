@@ -4,7 +4,6 @@ from unittest.mock import patch, Mock, ANY, call
 
 from parameterized import parameterized
 
-from samcli.commands._utils.experimental import ExperimentalFlag
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.lib.utils.packagetype import ZIP, IMAGE
