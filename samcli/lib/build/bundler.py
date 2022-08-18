@@ -16,9 +16,7 @@ ESBUILD_PROPERTY = "esbuild"
 class EsbuildBundlerManager:
     def __init__(self, stack: Stack, template: Optional[Dict] = None):
         self._stack = stack
-        if template is None:
-            template = dict()
-        self._previous_template = template
+        self._previous_template = template or dict()
 
     def esbuild_configured(self) -> bool:
         """
