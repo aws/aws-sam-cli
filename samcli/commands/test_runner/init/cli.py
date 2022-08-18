@@ -201,7 +201,8 @@ def _create_test_runner_template(
     if allow_iam:
         LOG.info(
             COLOR.red(
-                "! NOTE: You have set the --allow-iam flag. This means that generated IAM statements will contain (enabled, not commented out) basic actions for some of your resources. Make sure you are aware of what permissions you are granting to the Fargate container."
+                "! NOTE: You have set the --allow-iam flag. This means that generated IAM statements will contain enabled (not commented out) basic actions for some of your resources."
+                " Make sure you are aware of what permissions you are granting to the Fargate container.\n"
             )
         )
 
