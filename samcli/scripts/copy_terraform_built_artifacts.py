@@ -170,7 +170,27 @@ class Searcher(object):
         return data
 
 
+def copytree(src, dst, symlinks=False, ignore=None):
+    """Modified copytree method
+    Note: before python3.8 there is no `dir_exists_ok` argument, therefore
+    this function explicitly creates one if it does not exist.
+    """
+    if not os.path.exists(dst):
+        os.makedirs(dst)
+    for item in os.listdir(src):
+        src_item = os.path.join(src, item)
+        dst_item = os.path.join(dst, item)
+        if os.path.isdir(src_item):
+            # recursively call itself.
+            copytree(src_item, dst_item, symlinks, ignore)
+        else:
+            shutil.copy2(src_item, dst_item)
+
+
 def cli_exit():
+    """
+    Unsuccessful exit code for the script.
+    """
     sys.exit(1)
 
 
@@ -244,7 +264,7 @@ if __name__ == "__main__":
             with zipfile.ZipFile(abs_attribute_path, "r") as z:
                 z.extractall(directory_path)
         else:
-            if os.path.isdir(directory_path):
-                shutil.copytree(abs_attribute_path, directory_path, dirs_exist_ok=True)
+            copytree(abs_attribute_path, directory_path)
     except OSError as ex:
         LOG.error("Copy/Unzip unsuccessful!", exc_info=ex)
+        cli_exit()
