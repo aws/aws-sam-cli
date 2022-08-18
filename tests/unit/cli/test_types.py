@@ -241,6 +241,64 @@ class TestCfnTags(TestCase):
         self.assertEqual(result, expected, msg="Failed with Input = " + str(input))
 
 
+class TestCfnTagsMultipleValues(TestCase):
+    """
+    Tests for the CfnTags parameter allowing multiple values per key.
+    """
+
+    def setUp(self):
+        self.param_type = CfnTags(multiple_values_per_key=True)
+
+    @parameterized.expand(
+        [
+            # Just a string
+            ("some string"),
+            # Wrong notation
+            # ("a==b"),
+            # Wrong multi-key notation
+            # ("a==b,c==d"),
+        ]
+    )
+    def test_must_fail_on_invalid_format(self, input):
+        self.param_type.fail = Mock()
+        self.param_type.convert(input, "param", "ctx")
+
+        self.param_type.fail.assert_called_with(ANY, "param", "ctx")
+
+    @parameterized.expand(
+        [
+            (("a=b",), {"a": ["b"]}),
+            (("a=b", "c=d"), {"a": ["b"], "c": ["d"]}),
+            (('"a+-=._:/@"="b+-=._:/@" "--c="="=d/"',), {"a+-=._:/@": ["b+-=._:/@"], "--c=": ["=d/"]}),
+            (('owner:name="son of anton"',), {"owner:name": ["son of anton"]}),
+            (("a=012345678901234567890123456789",), {"a": ["012345678901234567890123456789"]}),
+            (
+                ("a=012345678901234567890123456789 name=this-is-a-very-long-tag-value-now-it-should-not-fail"),
+                {
+                    "a": ["012345678901234567890123456789"],
+                    "name": ["this-is-a-very-long-tag-value-now-it-should-not-fail"],
+                },
+            ),
+            (
+                ("a=012345678901234567890123456789", "c=012345678901234567890123456789"),
+                {"a": ["012345678901234567890123456789"], "c": ["012345678901234567890123456789"]},
+            ),
+            (("",), {}),
+            # list as input
+            ([], {}),
+            (
+                ["stage=int", "company:application=awesome-service", "company:department=engineering"],
+                {"stage": ["int"], "company:application": ["awesome-service"], "company:department": ["engineering"]},
+            ),
+            (("a=b", "a=d"), {"a": ["b", "d"]}),
+            (("stage=alpha", "stage=beta", "stage=gamma", "stage=prod"), {"stage": ["alpha", "beta", "gamma", "prod"]}),
+        ]
+    )
+    def test_successful_parsing(self, input, expected):
+        result = self.param_type.convert(input, None, None)
+        self.assertEqual(result, expected, msg="Failed with Input = " + str(input))
+
+
 class TestCodeSignOptionType(TestCase):
     def setUp(self):
         self.param_type = SigningProfilesOptionType()
