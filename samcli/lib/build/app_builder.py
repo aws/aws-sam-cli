@@ -514,7 +514,15 @@ class ApplicationBuilder:
 
             # By default prefer to build in-process for speed
             build_runtime = specified_workflow
-            options = ApplicationBuilder._get_build_options(layer_name, config.language, None)
+            options = ApplicationBuilder._get_build_options(
+                layer_name,
+                config.language,
+                self._base_dir,
+                None,
+                metadata=layer_metadata,
+                source_code_path=code_dir,
+                scratch_dir=scratch_dir,
+            )
             if self._container_manager:
                 # None key represents the global build image for all functions/layers
                 if config.language == "provided":
@@ -646,7 +654,14 @@ class ApplicationBuilder:
                 )
 
                 options = ApplicationBuilder._get_build_options(
-                    function_name, config.language, handler, config.dependency_manager, metadata
+                    function_name,
+                    config.language,
+                    self._base_dir,
+                    handler,
+                    config.dependency_manager,
+                    metadata,
+                    source_code_path=code_dir,
+                    scratch_dir=scratch_dir,
                 )
                 # By default prefer to build in-process for speed
                 if self._container_manager:
@@ -688,9 +703,12 @@ class ApplicationBuilder:
     def _get_build_options(
         function_name: str,
         language: str,
+        base_dir: str,
         handler: Optional[str],
         dependency_manager: Optional[str] = None,
         metadata: Optional[dict] = None,
+        source_code_path: Optional[str] = None,
+        scratch_dir: Optional[str] = None,
     ) -> Optional[Dict]:
         """
         Parameters
@@ -699,12 +717,18 @@ class ApplicationBuilder:
             current function resource name
         language str
             language of the runtime
+        base_dir str
+            Path to a folder. Use this folder as the root to resolve relative source code paths against
         handler str
             Handler value of the Lambda Function Resource
         dependency_manager str
             Dependency manager to check in addition to language
-        metadata
+        metadata Dict
             Metadata object to search for build properties
+        source_code_path str
+            The lambda function source code path that will be used to calculate the working directory
+        scratch_dir str
+            The temporary directory path where the lambda function code will be copied to.
         Returns
         -------
         dict
@@ -723,12 +747,62 @@ class ApplicationBuilder:
                 normalized_build_props["entry_points"] = entry_points
             return normalized_build_props
 
-        _build_options: Dict = {
+        _build_options: Dict[str, Dict] = {
             "go": {"artifact_executable_name": handler},
             "provided": {"build_logical_id": function_name},
             "nodejs": {"use_npm_ci": build_props.get("UseNpmCi", False)},
         }
-        return _build_options.get(language, None)
+        options = _build_options.get(language, None)
+        if language == "provided":
+            options = options if options else {}
+            working_directory = ApplicationBuilder._get_working_directory_path(
+                base_dir, metadata, source_code_path, scratch_dir
+            )
+            if working_directory:
+                options = {**options, "working_directory": working_directory}
+        return options
+
+    @staticmethod
+    def _get_working_directory_path(
+        base_dir: str, metadata: Optional[Dict], source_code_path: Optional[str], scratch_dir: Optional[str]
+    ) -> Optional[str]:
+        """
+        Get the working directory from the lambda resource metadata information, and  check if it is not None, and it
+        is a child path to the source directory path, then return the working directory as a child to the scratch
+        directory.
+
+        Parameters
+        ----------
+        base_dir : str
+            Path to a folder. Use this folder as the root to resolve relative source code paths against
+        metadata Dict
+            Lambda resource metadata object to search for build properties
+        source_code_path str
+            The lambda resource source code path that will be used to calculate the working directory
+        scratch_dir str
+            The temporary directory path where the lambda resource code will be copied to.
+        Returns
+        -------
+        str
+            The working directory path or None if there is no working_dir metadata info.
+        """
+        working_directory = None
+        if metadata and isinstance(metadata, dict):
+            working_directory = metadata.get("WorkingDirectory")
+            if working_directory:
+                working_directory = str(pathlib.Path(base_dir, working_directory).resolve())
+
+                # check if the working directory is a child of the lambda resource source code path, to update the
+                # working directory to be child of the scratch directory
+                if (
+                    source_code_path
+                    and scratch_dir
+                    and os.path.commonpath([source_code_path, working_directory]) == os.path.normpath(source_code_path)
+                ):
+                    working_directory = os.path.relpath(working_directory, source_code_path)
+                    working_directory = os.path.normpath(os.path.join(scratch_dir, working_directory))
+
+        return working_directory
 
     def _build_function_in_process(
         self,
