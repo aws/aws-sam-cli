@@ -128,6 +128,7 @@ class Parser(object):
     def __init__(self, expression):
         self.expression = expression
         self.resolvers = []
+        # Regex for resolving against a key==value expression within a list.
         self.list_resolver_regex = re.compile(r"\[\?(\S+)==(\S+)\]")
         self.tokens = Tokenizer().tokenize(self.expression)
         for token in self.tokens:
@@ -170,7 +171,7 @@ class Searcher(object):
         return data
 
 
-def copytree(src, dst, symlinks=False, ignore=None):
+def copytree(src, dst):
     """Modified copytree method
     Note: before python3.8 there is no `dir_exists_ok` argument, therefore
     this function explicitly creates one if it does not exist.
@@ -182,7 +183,7 @@ def copytree(src, dst, symlinks=False, ignore=None):
         dst_item = os.path.join(dst, item)
         if os.path.isdir(src_item):
             # recursively call itself.
-            copytree(src_item, dst_item, symlinks, ignore)
+            copytree(src_item, dst_item)
         else:
             shutil.copy2(src_item, dst_item)
 

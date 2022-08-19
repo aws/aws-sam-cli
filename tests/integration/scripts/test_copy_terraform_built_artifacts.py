@@ -113,9 +113,9 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
 
     def test_script_output_path_directory_valid_expression_invalid_extracted_path(self):
         expression = (
-            '|values|root_module|child_modules?address=="sam_metadata_address"]|values|triggers|built_output_path'
+            '|values|root_module|child_modules|[?address=="module_address"]|resources|['
+            '?address=="sam_metadata_address"]|values|triggers'
         )
-        directory = pathlib.Path(tempfile.mkdtemp()).absolute()
         command = [
             f"{str(sys.executable)}",
             f"{str(self.script_location)}",
