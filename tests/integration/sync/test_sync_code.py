@@ -13,7 +13,6 @@ from unittest import skipIf
 import pytest
 import boto3
 from parameterized import parameterized_class
-from samcli.commands._utils.experimental import ExperimentalFlag, set_experimental
 
 from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_RESTAPI,
