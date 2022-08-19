@@ -176,7 +176,7 @@ def cli(
     parameter_overrides: dict,
     config_file: str,
     config_env: str,
-    hook_package_id: str,
+    hook_package_id: Optional[str],
 ) -> None:
     """
     `sam build` command entry point
