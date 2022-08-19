@@ -2,6 +2,7 @@
 CLI command for "test-runner init" command
 """
 import logging
+from collections import OrderedDict
 from typing import Any, List, Optional, Union
 
 import click
@@ -9,6 +10,7 @@ import click
 from samcli.cli.main import pass_context
 from samcli.cli.types import CfnTags
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
+from samcli.commands._utils.table_print import newline_per_item, pprint_column_names, pprint_columns
 from samcli.lib.utils.boto_utils import BotoProviderType
 from samcli.lib.utils.colors import Colored
 
@@ -26,6 +28,17 @@ _MY_LAMBDA_FUNCTION : arn:aws:lambda:us-east-1:123456789012:function:my-lambda-f
 This resource-ARN map can be passed to the `sam test-runner run` command which will expose these mappings as environment variables to the Test Runner Fargate instance,
 and thus can be used in test code.
 """
+
+# IAM actions table
+ACTIONS_GENERATED_FORMAT_STRING = "{ResourceARN:<{0}} {ResourceType:<{1}} {ActionsGenerated:<{2}}"
+ACTIONS_GENERATED_DEFAULT_ARGS = OrderedDict(
+    {
+        "ResourceARN": "ResourceARN",
+        "ResourceType": "ResourceType",
+        "ActionsGenerated": "ActionsGenerated",
+    }
+)
+ACTIONS_GENERATED_TABLE_HEADER_NAME = "The following IAM actions have been generated for your resources:"
 
 DEFAULT_RESOURCE_ARN_MAP_FILE_NAME = "test_runner_environment_variables.yaml"
 DEFAULT_TEST_RUNNER_CFN_TEMPLATE_FILE_NAME = "test_runner_template.yaml"
@@ -155,7 +168,6 @@ def _create_arn_map_file(env_file: str, resource_arn_list: List[str]) -> None:
         COLOR.yellow(
             "These environment variables hold the ARNs of your testable resources, and passing this file to `sam test_runner run` will make them available in the container running your tests.\n\n"
             f"Feel free to change them, or add new variables, but keep in mind that the test runner reserves the keys {FargateTestsuiteRunner.RESERVED_ENV_VAR_NAMES}, and will throw an Exception if they are specified.\n\n"
-            "If you add new resources or change existing ones, you can use `sam test-runner get-arns` to generate an updated environment variable specification file.\n"
         )
     )
 
@@ -169,7 +181,12 @@ def _create_test_runner_template(image_uri: str, template_name: str, resource_ar
     LOG.info(
         COLOR.green(f"\n✓ Successfully generated a Test Runner CloudFormation Template named `{template_name}`!\n")
     )
-    if resource_arn_list:
+
+    # Not only check if the resource_arn_list is not empty, but also that it actually contains resources for which we generate IAM statements
+    if resource_arn_list and _contains_supported_resources(resource_arn_list):
+
+        _print_iam_actions_table(row_color="yellow", arn_list=resource_arn_list)
+
         # Only print this hint if resources were discovered and statements were generated.
         LOG.info(
             COLOR.yellow(
@@ -233,3 +250,56 @@ def query_tagging_api(tags: dict, boto_client_provider: BotoProviderType) -> Uni
     )
 
     return [resource.get("ResourceARN") for resource in resource_tag_mapping_list]
+
+
+def _extract_action(iam_action_string: str) -> str:
+    indx = iam_action_string.index(":")
+    return iam_action_string[indx + 1 :]
+
+
+def _contains_supported_resources(resource_arn_list: List[str]) -> bool:
+    from samcli.lib.test_runner.test_runner_template_generator import FargateRunnerCFNTemplateGenerator
+
+    """
+    Determines if any of these the arns in the given resource arn list correspond to resources we generate default IAM actions for.
+
+    This is helpful for deciding to show certain help messages.
+    """
+    for arn in resource_arn_list:
+        # Found a resource for which IAM statements are generated
+        if FargateRunnerCFNTemplateGenerator.get_resource_type(arn):
+            return True
+    return False
+
+
+@pprint_column_names(
+    format_string=ACTIONS_GENERATED_FORMAT_STRING,
+    format_kwargs=ACTIONS_GENERATED_DEFAULT_ARGS,
+    table_header=ACTIONS_GENERATED_TABLE_HEADER_NAME,
+)
+def _print_iam_actions_table(row_color: str, arn_list: str, **kwargs):
+    from samcli.lib.test_runner.test_runner_template_generator import FargateRunnerCFNTemplateGenerator
+
+    for counter, arn in enumerate(arn_list):
+
+        resource_type = FargateRunnerCFNTemplateGenerator.get_resource_type(arn)
+
+        # If the resource type is not one which we support generating actions for, do not display in the table
+        if not resource_type:
+            continue
+
+        action_list = [
+            _extract_action(action) for action in FargateRunnerCFNTemplateGenerator.get_resource_actions(resource_type)
+        ]
+
+        pprint_columns(
+            columns=[arn, resource_type.value, ", ".join(action_list)],
+            width=kwargs["width"],
+            margin=kwargs["margin"],
+            format_string=ACTIONS_GENERATED_FORMAT_STRING,
+            format_args=kwargs["format_args"],
+            columns_dict=ACTIONS_GENERATED_DEFAULT_ARGS.copy(),
+            color=str(row_color),
+        )
+
+        newline_per_item(arn, counter)
