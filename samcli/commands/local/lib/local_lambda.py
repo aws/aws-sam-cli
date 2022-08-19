@@ -251,6 +251,7 @@ class LocalLambdaRunner:
         #
         # Standard format is {FunctionName: {key:value}, FunctionName: {key:value}}
         # CloudFormation parameter file is {"Parameters": {key:value}}
+        # Mixed format is {FunctionName: {key:value}, "Parameters": {key:value}}
 
         for env_var_value in self.env_vars_values.values():
             if not isinstance(env_var_value, dict):
