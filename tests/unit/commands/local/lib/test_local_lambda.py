@@ -208,6 +208,8 @@ class TestLocalLambda_make_env_vars(TestCase):
             ({"function_id": {"a": "b"}}, {"a": "b"}),
             # Override for the logical_id exists
             ({"logical_id": {"a": "c"}}, {"a": "c"}),
+            # Override for the functionname exists
+            ({"function_name": {"a": "d"}}, {"a": "d"}),
             # Override for the full_path exists
             ({posixpath.join("somepath", "function_id"): {"a": "d"}}, {"a": "d"}),
             # Override for the function does *not* exist

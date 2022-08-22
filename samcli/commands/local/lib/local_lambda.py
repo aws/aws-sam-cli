@@ -238,14 +238,15 @@ class LocalLambdaRunner:
         """
 
         function_id = function.function_id
-        name = function.name
+        logical_id = function.name
+        function_name = function.functionname
         full_path = function.full_path
 
         variables = None
         if isinstance(function.environment, dict) and "Variables" in function.environment:
             variables = function.environment["Variables"]
         else:
-            LOG.debug("No environment variables found for function '%s'", name)
+            LOG.debug("No environment variables found for function '%s'", logical_id)
 
         # This could either be in standard format, or a CloudFormation parameter file format, or mix of both.
         #
@@ -268,10 +269,11 @@ class LocalLambdaRunner:
             parameter_result = self.env_vars_values.get("Parameters", {})
             overrides.update(parameter_result)
 
-        # Precedence: logical_id -> function_id -> full_path, customer can use any of them
+        # Precedence: logical_id -> function_id -> function name -> full_path, customer can use any of them
         fn_file_env_vars = (
-            self.env_vars_values.get(name, None)
+            self.env_vars_values.get(logical_id, None)
             or self.env_vars_values.get(function_id, None)
+            or self.env_vars_values.get(function_name, None)
             or self.env_vars_values.get(full_path, None)
         )
         if fn_file_env_vars:
