@@ -30,48 +30,27 @@ class EsbuildBundlerManager:
                 return True
         return False
 
-    def enable_source_maps(self) -> Dict:
+    def set_sourcemap_metadata_from_env(self) -> Stack:
         """
-        Appends ``NODE_OPTIONS: --enable-source-maps``, if Sourcemap is set to true
-        and sets Sourcemap to true if ``NODE_OPTIONS: --enable-source-maps`` is provided.
-        :return: Dict containing deep-copied, updated template
+        Checks if sourcemaps are set in lambda environment and updates build metadata accordingly.
+        :return: Modified stack
         """
+        modified_stack = deepcopy(self._stack)
+
         using_source_maps = False
-        invalid_node_option = False
+        stack_resources = modified_stack.resources
 
-        template = deepcopy(self._previous_template)
-        resources = template.get("Resources", {})
-
-        for name, resource in resources.items():
+        for name, resource in stack_resources.items():
             metadata = resource.get("Metadata", {})
+
+            if not self._esbuild_in_metadata(metadata):
+                continue
 
             node_option_set = self._is_node_option_set(resource)
 
             # check if Sourcemap is provided and append --enable-source-map if not set
             build_properties = metadata.get("BuildProperties", {})
             source_map = build_properties.get("Sourcemap", None)
-
-            if source_map and not node_option_set:
-                LOG.info(
-                    "\nSourcemap set without --enable-source-maps, adding"
-                    " --enable-source-maps to function %s NODE_OPTIONS",
-                    name,
-                )
-
-                resource.setdefault("Properties", {})
-                resource["Properties"].setdefault("Environment", {})
-                resource["Properties"]["Environment"].setdefault("Variables", {})
-                existing_options = resource["Properties"]["Environment"]["Variables"].setdefault("NODE_OPTIONS", "")
-
-                # make sure the NODE_OPTIONS is a string
-                if not isinstance(existing_options, str):
-                    invalid_node_option = True
-                else:
-                    resource["Properties"]["Environment"]["Variables"]["NODE_OPTIONS"] = " ".join(
-                        [existing_options, "--enable-source-maps"]
-                    )
-
-                using_source_maps = True
 
             # check if --enable-source-map is provided and append Sourcemap: true if it is not set
             if source_map is None and node_option_set:
@@ -90,10 +69,77 @@ class EsbuildBundlerManager:
         if using_source_maps:
             self._warn_using_source_maps()
 
+        return modified_stack
+
+    def set_sourcemap_env_from_metadata(self) -> Dict:
+        """
+        Appends ``NODE_OPTIONS: --enable-source-maps``, if Sourcemap is set to true
+        and sets Sourcemap to true if ``NODE_OPTIONS: --enable-source-maps`` is provided.
+        :return: Dict containing deep-copied, updated template
+        """
+        using_source_maps = False
+        invalid_node_option = False
+
+        template = deepcopy(self._previous_template)
+        template_resources = template.get("Resources", {})
+
+        # We check the stack resources since they contain the global values, we modify the template
+        stack_resources = self._stack.resources
+
+        for name, stack_resource in stack_resources.items():
+            metadata = stack_resource.get("Metadata", {})
+
+            if not self._esbuild_in_metadata(metadata):
+                continue
+
+            node_option_set = self._is_node_option_set(stack_resource)
+
+            template_resource = template_resources.get(name, {})
+
+            # check if Sourcemap is provided and append --enable-source-map if not set
+            build_properties = metadata.get("BuildProperties", {})
+            source_map = build_properties.get("Sourcemap", None)
+
+            if source_map and not node_option_set:
+                LOG.info(
+                    "\nSourcemap set without --enable-source-maps, adding"
+                    " --enable-source-maps to function %s NODE_OPTIONS",
+                    name,
+                )
+
+                template_resource.setdefault("Properties", {})
+                template_resource["Properties"].setdefault("Environment", {})
+                template_resource["Properties"]["Environment"].setdefault("Variables", {})
+                existing_options = template_resource["Properties"]["Environment"]["Variables"].setdefault(
+                    "NODE_OPTIONS", ""
+                )
+
+                # make sure the NODE_OPTIONS is a string
+                if not isinstance(existing_options, str):
+                    invalid_node_option = True
+                else:
+                    template_resource["Properties"]["Environment"]["Variables"]["NODE_OPTIONS"] = " ".join(
+                        [existing_options, "--enable-source-maps"]
+                    )
+
+                using_source_maps = True
+
+        if using_source_maps:
+            self._warn_using_source_maps()
+
         if invalid_node_option:
             self._warn_invalid_node_options()
 
         return template
+
+    @staticmethod
+    def _esbuild_in_metadata(metadata: Dict) -> bool:
+        """
+        Checks if esbuild is configured in the function's metadata
+        :param metadata: dict of metadata properties of a function
+        :return: True if esbuild is configured, False otherwise
+        """
+        return bool(metadata.get("BuildMethod", "") == ESBUILD_PROPERTY)
 
     @staticmethod
     def _is_node_option_set(resource: Dict) -> bool:

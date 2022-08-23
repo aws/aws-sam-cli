@@ -52,9 +52,9 @@ class EsbuildBundler_enable_source_maps(TestCase):
         ]
     )
     def test_enable_source_maps_only_source_map(self, template):
-        esbuild_manager = EsbuildBundlerManager(stack=Mock(), template=template)
+        esbuild_manager = EsbuildBundlerManager(stack=DummyStack(template.get("Resources")), template=template)
 
-        updated_template = esbuild_manager.enable_source_maps()
+        updated_template = esbuild_manager.set_sourcemap_env_from_metadata()
 
         for _, resource in updated_template["Resources"].items():
             self.assertIn("--enable-source-maps", resource["Properties"]["Environment"]["Variables"]["NODE_OPTIONS"])
@@ -83,6 +83,24 @@ class EsbuildBundler_enable_source_maps(TestCase):
                 },
                 False,
             ),
+            (
+                {
+                    "Globals": {
+                        "Environment": {
+                            "Variables": {
+                                "NODE_OPTIONS": "--enable-source-maps"
+                            }
+                        }
+                    },
+                    "Resources": {
+                        "test": {
+                            "Properties": {},
+                            "Metadata": {"BuildMethod": "esbuild"},
+                        }
+                    }
+                },
+                True,
+            ),
         ]
     )
     def test_enable_source_maps_only_node_options(
@@ -90,12 +108,12 @@ class EsbuildBundler_enable_source_maps(TestCase):
         template,
         expected_value,
     ):
-        esbuild_manager = EsbuildBundlerManager(Mock(), template)
+        esbuild_manager = EsbuildBundlerManager(stack=DummyStack(template.get("Resources")), template=template)
         esbuild_manager._is_node_option_set = Mock()
         esbuild_manager._is_node_option_set.return_value = True
-        updated_template = esbuild_manager.enable_source_maps()
+        updated_template = esbuild_manager.set_sourcemap_metadata_from_env()
 
-        for _, resource in updated_template["Resources"].items():
+        for _, resource in updated_template.resources.items():
             self.assertEqual(resource["Metadata"]["BuildProperties"]["Sourcemap"], expected_value)
 
     def test_warnings_printed(self):
@@ -109,10 +127,10 @@ class EsbuildBundler_enable_source_maps(TestCase):
                 }
             }
         }
-        esbuild_manager = EsbuildBundlerManager(Mock(), template=template)
+        esbuild_manager = EsbuildBundlerManager(stack=DummyStack(template.get("Resources")), template=template)
         esbuild_manager._warn_using_source_maps = Mock()
         esbuild_manager._warn_invalid_node_options = Mock()
-        esbuild_manager.enable_source_maps()
+        esbuild_manager.set_sourcemap_env_from_metadata()
 
         esbuild_manager._warn_using_source_maps.assert_called()
         esbuild_manager._warn_invalid_node_options.assert_called()

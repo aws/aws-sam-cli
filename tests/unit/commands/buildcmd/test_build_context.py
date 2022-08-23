@@ -901,9 +901,11 @@ class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.os")
     @patch("samcli.commands.build.build_context.EsbuildBundlerManager")
+    @patch("samcli.commands.build.build_context.BuildContext._handle_build_pre_processing")
     def test_run_build_context(
         self,
         auto_dependency_layer,
+        pre_processing_mock,
         esbuild_bundler_manager_mock,
         os_mock,
         get_template_data_mock,
@@ -957,9 +959,11 @@ class TestBuildContext_run(TestCase):
         ]
         nested_stack_manager_mock.return_value = given_nested_stack_manager
 
+        pre_processing_mock.return_value = [root_stack, child_stack]
+
         esbuild_manager = EsbuildBundlerManager(Mock())
-        esbuild_manager.enable_source_maps = Mock()
-        esbuild_manager.enable_source_maps.side_effect = [modified_template_root, modified_template_child]
+        esbuild_manager.set_sourcemap_env_from_metadata = Mock()
+        esbuild_manager.set_sourcemap_env_from_metadata.side_effect = [modified_template_root, modified_template_child]
         esbuild_bundler_manager_mock.return_value = esbuild_manager
 
         with BuildContext(

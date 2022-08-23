@@ -247,6 +247,9 @@ class BuildContext:
         try:
             self._check_esbuild_warning()
             self._check_exclude_warning()
+
+            self._stacks = self._handle_build_pre_processing()
+
             build_result = builder.build()
             artifacts = build_result.artifacts
 
@@ -261,7 +264,7 @@ class BuildContext:
                 )
                 output_template_path = stack.get_output_template_path(self.build_dir)
 
-                modified_template = self._handle_template_post_processing(stack, modified_template, build_result)
+                modified_template = self._handle_build_post_processing(stack, modified_template, build_result)
 
                 move_template(stack.location, output_template_path, modified_template)
 
@@ -305,7 +308,17 @@ class BuildContext:
             wrapped_from = deep_wrap if deep_wrap else ex.__class__.__name__
             raise UserException(str(ex), wrapped_from=wrapped_from) from ex
 
-    def _handle_template_post_processing(
+    def _handle_build_pre_processing(self) -> List[Stack]:
+        """
+        Pre-modify the stacks as required before invoking the build
+        :return: List of modified stacks
+        """
+        stacks = []
+        for stack in self.stacks:
+            stacks.append(EsbuildBundlerManager(stack=stack).set_sourcemap_metadata_from_env())
+        return stacks
+
+    def _handle_build_post_processing(
         self, stack: Stack, template: Dict, build_result: ApplicationBuildResult
     ) -> Dict:
         """
@@ -324,7 +337,9 @@ class BuildContext:
             )
             modified_template = nested_stack_manager.generate_auto_dependency_layer_stack()
 
-        modified_template = EsbuildBundlerManager(stack=stack, template=modified_template).enable_source_maps()
+        modified_template = EsbuildBundlerManager(
+            stack=stack, template=modified_template
+        ).set_sourcemap_env_from_metadata()
 
         return modified_template
 
