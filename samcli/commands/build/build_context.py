@@ -318,9 +318,7 @@ class BuildContext:
             stacks.append(EsbuildBundlerManager(stack=stack).set_sourcemap_metadata_from_env())
         return stacks
 
-    def _handle_build_post_processing(
-        self, stack: Stack, template: Dict, build_result: ApplicationBuildResult
-    ) -> Dict:
+    def _handle_build_post_processing(self, stack: Stack, template: Dict, build_result: ApplicationBuildResult) -> Dict:
         """
         Add any template modifications necessary before moving the template to build directory
         :param stack: Stack resources

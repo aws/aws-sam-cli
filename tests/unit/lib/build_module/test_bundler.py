@@ -85,19 +85,13 @@ class EsbuildBundler_enable_source_maps(TestCase):
             ),
             (
                 {
-                    "Globals": {
-                        "Environment": {
-                            "Variables": {
-                                "NODE_OPTIONS": "--enable-source-maps"
-                            }
-                        }
-                    },
+                    "Globals": {"Environment": {"Variables": {"NODE_OPTIONS": "--enable-source-maps"}}},
                     "Resources": {
                         "test": {
                             "Properties": {},
                             "Metadata": {"BuildMethod": "esbuild"},
                         }
-                    }
+                    },
                 },
                 True,
             ),
