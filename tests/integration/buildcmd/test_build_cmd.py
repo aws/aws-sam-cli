@@ -86,6 +86,40 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
             self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
         )
 
+    @pytest.mark.flaky(reruns=3)
+    def test_intermediate_container_deleted(self):
+        _tag = f"{random.randint(1, 100)}"
+        overrides = {
+            "Runtime": "3.9",
+            "Handler": "main.handler",
+            "DockerFile": "Dockerfile",
+            "Tag": _tag,
+        }
+        cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
+
+        LOG.info("Running Command: ")
+        LOG.info(cmdlist)
+
+        _num_of_containers_before_build = self.get_number_of_created_containers()
+        run_command(cmdlist, cwd=self.working_dir)
+        _num_of_containers_after_build = self.get_number_of_created_containers()
+
+        self._verify_image_build_artifact(
+            self.built_template,
+            self.FUNCTION_LOGICAL_ID_IMAGE,
+            "ImageUri",
+            f"{self.FUNCTION_LOGICAL_ID_IMAGE.lower()}:{_tag}",
+        )
+
+        expected = {"pi": "3.14"}
+        self._verify_invoke_built_function(
+            self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
+        )
+
+        self.assertEqual(
+            _num_of_containers_before_build, _num_of_containers_after_build, "Intermediate containers are not removed"
+        )
+
 
 @skipIf(
     # Hits public ECR pull limitation, move it to canary tests
@@ -1015,6 +1049,47 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+class TestBuildCommand_ExcludeResources(BuildIntegBase):
+    template = "many-more-functions-template.yaml"
+
+    @parameterized.expand(
+        [
+            ((), None),
+            (("FunctionOne",), None),
+            (("FunctionThree",), None),
+            (("FunctionOne",), "FunctionOne"),
+            (("FunctionOne",), "FunctionTwo"),
+            (("FunctionTwo", "FunctionThree")),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_build_without_resources(self, excluded_resources, function_identifier):
+        overrides = {"Runtime": "python3.7", "CodeUri": "Python", "Handler": "main.handler"}
+        cmdlist = self.get_command_list(
+            parameter_overrides=overrides, function_identifier=function_identifier, exclude=excluded_resources
+        )
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        run_command(cmdlist, cwd=self.working_dir)
+
+        self._verify_resources_excluded(self.default_build_dir, excluded_resources, function_identifier)
+
+    def _verify_resources_excluded(self, build_dir, excluded_resources, function_identifier):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+
+        if function_identifier is not None and function_identifier in excluded_resources:
+            self.assertIn(function_identifier, build_dir_files)  # If building 1 and excluding it, build anyway
+        else:
+            for resource in excluded_resources:
+                self.assertNotIn(resource, build_dir_files)
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
 class TestBuildCommand_LayerBuilds(BuildIntegBase):
     template = "layers-functions-template.yaml"
 
@@ -1372,8 +1447,11 @@ class TestBuildWithBuildMethod(BuildIntegBase):
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+# remove following parameterized_class when BuildImprovements22 experimental flag is removed
+@parameterized_class(("beta_features",), [(True,), (False,)])
 class TestBuildWithDedupBuilds(DedupBuildIntegBase):
     template = "dedup-functions-template.yaml"
+    beta_features = False  # parameterized
 
     @parameterized.expand(
         [
@@ -1417,7 +1495,9 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
             "Function2Handler": function2_handler,
             "FunctionRuntime": runtime,
         }
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, beta_features=self.beta_features
+        )
 
         LOG.info("Running Command: {}".format(cmdlist))
         # Built using `native` python-pip builder for a python project.
@@ -1472,15 +1552,18 @@ class TestBuildWithDedupImageBuilds(DedupBuildIntegBase):
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+# remove following parameterized_class when BuildImprovements22 experimental flag is removed
+@parameterized_class(("beta_features",), [(True,), (False,)])
 class TestBuildWithDedupBuildsMakefile(DedupBuildIntegBase):
     template = "dedup-functions-makefile-template.yaml"
+    beta_features = False  # parameterized
 
     @pytest.mark.flaky(reruns=3)
     def test_dedup_build_makefile(self):
         """
         Build template above in the container and verify that each function call returns as expected
         """
-        cmdlist = self.get_command_list()
+        cmdlist = self.get_command_list(beta_features=self.beta_features)
 
         LOG.info("Running Command: {}".format(cmdlist))
         # Built using `native` python-pip builder for a python project.
@@ -1502,8 +1585,11 @@ class TestBuildWithDedupBuildsMakefile(DedupBuildIntegBase):
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+# remove following parameterized_class when BuildImprovements22 experimental flag is removed
+@parameterized_class(("beta_features",), [(True,), (False,)])
 class TestBuildWithCacheBuilds(CachedBuildIntegBase):
     template = "dedup-functions-template.yaml"
+    beta_features = False  # parameterized
 
     @parameterized.expand(
         [
@@ -1547,7 +1633,9 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
             "Function2Handler": function2_handler,
             "FunctionRuntime": runtime,
         }
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides, cached=True)
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, cached=True, beta_features=self.beta_features
+        )
 
         LOG.info("Running Command: %s", cmdlist)
         # Built using `native` python-pip builder for a python project.
@@ -1578,9 +1666,9 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
         cmdlist = self.get_command_list(parameter_overrides=overrides)
         cmdlist.extend(["--config-file", config_file])
         command_result = run_command(cmdlist, cwd=self.working_dir)
-        self.assertTrue(
-            "Valid cache found, copying previously built resources from function build definition of"
-            in str(command_result.stderr),
+        self.assertRegex(
+            str(command_result.stderr),
+            "Manifest is not changed for .* running incremental build",
             "Should have built using cache",
         )
         cmdlist.extend(["--no-cached"])
@@ -1609,7 +1697,7 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
         LOG.info("Running Command (cache should be invalid): %s", cmdlist)
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertTrue(
-            "Cache is invalid, running build and copying resources to function build definition"
+            "Cache is invalid, running build and copying resources for following functions"
             in command_result.stderr.decode("utf-8")
         )
 
@@ -1617,7 +1705,7 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
         command_result_with_cache = run_command(cmdlist, cwd=self.working_dir)
 
         self.assertTrue(
-            "Valid cache found, copying previously built resources from function build definition"
+            "Valid cache found, copying previously built resources for following functions"
             in command_result_with_cache.stderr.decode("utf-8")
         )
 
@@ -1653,8 +1741,17 @@ class TestRepeatedBuildHitsCache(BuildIntegBase):
             container_env_var="FOO=BAR" if use_container else None,
         )
 
-        cache_invalid_output = "Cache is invalid, running build and copying resources to "
-        cache_valid_output = "Valid cache found, copying previously built resources from "
+        cache_invalid_output_use_container = "Cache is invalid, running build and copying resources "
+        cache_valid_output_use_container = "Valid cache found, copying previously built resources "
+
+        cache_invalid_output_no_container = "Manifest file is changed"
+        cache_valid_output_no_container = "Manifest is not changed"
+
+        cache_invalid_output, cache_valid_output = (
+            (cache_invalid_output_use_container, cache_valid_output_use_container)
+            if use_container
+            else (cache_invalid_output_no_container, cache_valid_output_no_container)
+        )
 
         LOG.info("Running Command (cache should be invalid): %s", cmdlist)
         command_result = run_command(cmdlist, cwd=self.working_dir).stderr.decode("utf-8")
@@ -1671,8 +1768,11 @@ class TestRepeatedBuildHitsCache(BuildIntegBase):
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+# remove following parameterized_class when BuildImprovements22 experimental flag is removed
+@parameterized_class(("beta_features",), [(True,), (False,)])
 class TestParallelBuilds(DedupBuildIntegBase):
     template = "dedup-functions-template.yaml"
+    beta_features = False  # parameterized
 
     @parameterized.expand(
         [
@@ -1716,7 +1816,9 @@ class TestParallelBuilds(DedupBuildIntegBase):
             "Function2Handler": function2_handler,
             "FunctionRuntime": runtime,
         }
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides, parallel=True)
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, parallel=True, beta_features=self.beta_features
+        )
 
         LOG.info("Running Command: %s", cmdlist)
         # Built using `native` python-pip builder for a python project.
@@ -1727,6 +1829,38 @@ class TestParallelBuilds(DedupBuildIntegBase):
         if not SKIP_DOCKER_TESTS:
             self._verify_build_and_invoke_functions(
                 expected_messages, command_result, self._make_parameter_override_arg(overrides)
+            )
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+# remove following parameterized_class when BuildImprovements22 experimental flag is removed
+@parameterized_class(("beta_features",), [(True,), (False,)])
+class TestParallelBuildsJavaWithLayers(DedupBuildIntegBase):
+    template = "template-java-maven-with-layers.yaml"
+    beta_features = False  # parameterized
+
+    @pytest.mark.flaky(reruns=3)
+    def test_dedup_build(self):
+        """
+        Build template above and verify that each function call returns as expected
+        """
+
+        cmdlist = self.get_command_list(parallel=True, beta_features=self.beta_features)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        self.assertEqual(command_result.process.returncode, 0)
+        self._verify_build_artifact(self.default_build_dir, "HelloWorldFunction")
+        self._verify_build_artifact(self.default_build_dir, "HelloWorldLayer")
+
+        if not SKIP_DOCKER_TESTS:
+            self._verify_invoke_built_function(
+                self.built_template,
+                "HelloWorldFunction",
+                None,
+                "hello world. sum is 12.",
             )
 
 
@@ -1921,7 +2055,7 @@ class TestBuildWithNestedStacks(NestedBuildIntegBase):
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         # make sure functions are deduplicated properly, in stderr they will show up in the same line.
-        self.assertRegex(command_result.stderr.decode("utf-8"), r"Building .+'Function2',.+LocalNestedStack/Function2")
+        self.assertRegex(command_result.stderr.decode("utf-8"), r"Building .+Function2,.+LocalNestedStack/Function2")
 
         function_full_paths = ["Function", "Function2", "LocalNestedStack/Function1", "LocalNestedStack/Function2"]
         stack_paths = ["", "LocalNestedStack"]

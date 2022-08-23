@@ -1,8 +1,8 @@
-from logging import captureWarnings
+from typing import Container, Iterable, Union
 import uuid
 import time
 import math
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest import TestCase
 from unittest.mock import patch, MagicMock, ANY, call
 
@@ -13,8 +13,10 @@ from samcli.commands.deploy.exceptions import (
     ChangeSetError,
     DeployStackOutPutFailedError,
     DeployBucketInDifferentRegionError,
+    DeployStackStatusMissingError,
 )
 from samcli.lib.deploy.deployer import Deployer
+from samcli.lib.deploy.utils import FailureMode
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.time import utc_to_timestamp, to_datetime
 
@@ -47,7 +49,17 @@ class MockCreateUpdateWaiter:
         return
 
 
-class TestDeployer(TestCase):
+class CustomTestCase(TestCase):
+    def assertListSubset(self, l1: Iterable, l2: Union[Iterable, Container], msg=None) -> None:
+        """
+        Assert l2 contains all items in l1.
+        Just like calling self.assertIn(l1[x], l2) in a loop.
+        """
+        for x in l1:
+            self.assertIn(x, l2, msg)
+
+
+class TestDeployer(CustomTestCase):
     def setUp(self):
         self.session = MagicMock()
         self.cloudformation_client = self.session.client("cloudformation")
@@ -376,28 +388,25 @@ class TestDeployer(TestCase):
         self.assertEqual(last_stack_event_timestamp.second, current_timestamp.second)
 
     @patch("time.sleep")
-    def test_describe_stack_events(self, patched_time):
-        current_timestamp = datetime.utcnow()
+    @patch("samcli.lib.deploy.deployer.pprint_columns")
+    def test_describe_stack_events_chronological_order(self, patched_pprint_columns, patched_time):
+        start_timestamp = datetime(2022, 1, 1, 16, 42, 0, 0, timezone.utc)
 
-        self.deployer._client.describe_stacks = MagicMock(
-            side_effect=[
-                {"Stacks": [{"StackStatus": "CREATE_IN_PROGRESS"}]},
-                {"Stacks": [{"StackStatus": "CREATE_IN_PROGRESS"}]},
-                {"Stacks": [{"StackStatus": "CREATE_COMPLETE_CLEANUP_IN_PROGRESS"}]},
-                {"Stacks": [{"StackStatus": "CREATE_COMPLETE"}]},
-            ]
-        )
         self.deployer._client.get_paginator = MagicMock(
             return_value=MockPaginator(
+                # describe_stack_events is in reverse chronological order
                 [
                     {
                         "StackEvents": [
                             {
+                                "StackId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
                                 "EventId": str(uuid.uuid4()),
-                                "Timestamp": current_timestamp,
-                                "ResourceStatus": "CREATE_IN_PROGRESS",
-                                "ResourceType": "s3",
-                                "LogicalResourceId": "mybucket",
+                                "StackName": "test",
+                                "LogicalResourceId": "test",
+                                "PhysicalResourceId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                                "ResourceType": "AWS::CloudFormation::Stack",
+                                "Timestamp": start_timestamp + timedelta(seconds=3),
+                                "ResourceStatus": "CREATE_COMPLETE",
                             }
                         ]
                     },
@@ -405,8 +414,8 @@ class TestDeployer(TestCase):
                         "StackEvents": [
                             {
                                 "EventId": str(uuid.uuid4()),
-                                "Timestamp": current_timestamp,
-                                "ResourceStatus": "CREATE_IN_PROGRESS",
+                                "Timestamp": start_timestamp + timedelta(seconds=2),
+                                "ResourceStatus": "CREATE_COMPLETE",
                                 "ResourceType": "kms",
                                 "LogicalResourceId": "mykms",
                             }
@@ -416,7 +425,7 @@ class TestDeployer(TestCase):
                         "StackEvents": [
                             {
                                 "EventId": str(uuid.uuid4()),
-                                "Timestamp": current_timestamp,
+                                "Timestamp": start_timestamp + timedelta(seconds=1),
                                 "ResourceStatus": "CREATE_COMPLETE",
                                 "ResourceType": "s3",
                                 "LogicalResourceId": "mybucket",
@@ -427,10 +436,21 @@ class TestDeployer(TestCase):
                         "StackEvents": [
                             {
                                 "EventId": str(uuid.uuid4()),
-                                "Timestamp": current_timestamp,
-                                "ResourceStatus": "CREATE_COMPLETE",
+                                "Timestamp": start_timestamp,
+                                "ResourceStatus": "CREATE_IN_PROGRESS",
                                 "ResourceType": "kms",
                                 "LogicalResourceId": "mykms",
+                            }
+                        ]
+                    },
+                    {
+                        "StackEvents": [
+                            {
+                                "EventId": str(uuid.uuid4()),
+                                "Timestamp": start_timestamp,
+                                "ResourceStatus": "CREATE_IN_PROGRESS",
+                                "ResourceType": "s3",
+                                "LogicalResourceId": "mybucket",
                             }
                         ]
                     },
@@ -438,28 +458,188 @@ class TestDeployer(TestCase):
             )
         )
 
-        self.deployer.describe_stack_events("test", time.time() - 1)
+        self.deployer.describe_stack_events("test", utc_to_timestamp(start_timestamp) - 1)
+        self.assertEqual(patched_pprint_columns.call_count, 5)
+        self.assertListSubset(
+            ["CREATE_IN_PROGRESS", "s3", "mybucket"], patched_pprint_columns.call_args_list[0][1]["columns"]
+        )
+        self.assertListSubset(
+            ["CREATE_IN_PROGRESS", "kms", "mykms"], patched_pprint_columns.call_args_list[1][1]["columns"]
+        )
+        self.assertListSubset(
+            ["CREATE_COMPLETE", "s3", "mybucket"], patched_pprint_columns.call_args_list[2][1]["columns"]
+        )
+        self.assertListSubset(
+            ["CREATE_COMPLETE", "kms", "mykms"], patched_pprint_columns.call_args_list[3][1]["columns"]
+        )
+        self.assertListSubset(
+            ["CREATE_COMPLETE", "AWS::CloudFormation::Stack", "test"],
+            patched_pprint_columns.call_args_list[4][1]["columns"],
+        )
+
+    @patch("time.sleep")
+    @patch("samcli.lib.deploy.deployer.pprint_columns")
+    def test_describe_stack_events_chronological_order_with_previous_event(self, patched_pprint_columns, patched_time):
+        start_timestamp = datetime(2022, 1, 1, 16, 42, 0, 0, timezone.utc)
+        last_event_timestamp = start_timestamp - timedelta(hours=6)
+
+        self.deployer._client.get_paginator = MagicMock(
+            return_value=MockPaginator(
+                # describe_stack_events is in reverse chronological order
+                [
+                    {
+                        "StackEvents": [
+                            {
+                                "StackId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                                "EventId": str(uuid.uuid4()),
+                                "StackName": "test",
+                                "LogicalResourceId": "test",
+                                "PhysicalResourceId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                                "ResourceType": "AWS::CloudFormation::Stack",
+                                "Timestamp": start_timestamp + timedelta(seconds=3),
+                                "ResourceStatus": "UPDATE_COMPLETE",
+                            }
+                        ]
+                    },
+                    {
+                        "StackEvents": [
+                            {
+                                "EventId": str(uuid.uuid4()),
+                                "Timestamp": start_timestamp + timedelta(seconds=2),
+                                "ResourceStatus": "UPDATE_COMPLETE",
+                                "ResourceType": "kms",
+                                "LogicalResourceId": "mykms",
+                            }
+                        ]
+                    },
+                    {
+                        "StackEvents": [
+                            {
+                                "EventId": str(uuid.uuid4()),
+                                "Timestamp": start_timestamp + timedelta(seconds=1),
+                                "ResourceStatus": "UPDATE_COMPLETE",
+                                "ResourceType": "s3",
+                                "LogicalResourceId": "mybucket",
+                            }
+                        ]
+                    },
+                    {
+                        "StackEvents": [
+                            {
+                                "EventId": str(uuid.uuid4()),
+                                "Timestamp": start_timestamp,
+                                "ResourceStatus": "UPDATE_IN_PROGRESS",
+                                "ResourceType": "kms",
+                                "LogicalResourceId": "mykms",
+                            }
+                        ]
+                    },
+                    {
+                        "StackEvents": [
+                            {
+                                "EventId": str(uuid.uuid4()),
+                                "Timestamp": start_timestamp,
+                                "ResourceStatus": "UPDATE_IN_PROGRESS",
+                                "ResourceType": "s3",
+                                "LogicalResourceId": "mybucket",
+                            }
+                        ]
+                    },
+                    # Last event (from a former deployment)
+                    {
+                        "StackEvents": [
+                            {
+                                "StackId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                                "EventId": str(uuid.uuid4()),
+                                "StackName": "test",
+                                "LogicalResourceId": "test",
+                                "PhysicalResourceId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                                "ResourceType": "AWS::CloudFormation::Stack",
+                                "Timestamp": last_event_timestamp,
+                                "ResourceStatus": "CREATE_COMPLETE",
+                            }
+                        ]
+                    },
+                ]
+            )
+        )
+
+        self.deployer.describe_stack_events("test", utc_to_timestamp(last_event_timestamp))
+        self.assertEqual(patched_pprint_columns.call_count, 5)
+        self.assertListSubset(
+            ["UPDATE_IN_PROGRESS", "s3", "mybucket"], patched_pprint_columns.call_args_list[0][1]["columns"]
+        )
+        self.assertListSubset(
+            ["UPDATE_IN_PROGRESS", "kms", "mykms"], patched_pprint_columns.call_args_list[1][1]["columns"]
+        )
+        self.assertListSubset(
+            ["UPDATE_COMPLETE", "s3", "mybucket"], patched_pprint_columns.call_args_list[2][1]["columns"]
+        )
+        self.assertListSubset(
+            ["UPDATE_COMPLETE", "kms", "mykms"], patched_pprint_columns.call_args_list[3][1]["columns"]
+        )
+        self.assertListSubset(
+            ["UPDATE_COMPLETE", "AWS::CloudFormation::Stack", "test"],
+            patched_pprint_columns.call_args_list[4][1]["columns"],
+        )
 
     @patch("time.sleep")
     @patch("samcli.lib.deploy.deployer.pprint_columns")
     def test_describe_stack_events_skip_old_event(self, patched_pprint_columns, patched_time):
-        current_timestamp = datetime.utcnow()
+        start_timestamp = datetime(2022, 1, 1, 16, 42, 0, 0, timezone.utc)
+        last_event_timestamp = start_timestamp - timedelta(hours=6)
 
-        self.deployer._client.describe_stacks = MagicMock(
-            side_effect=[
-                {"Stacks": [{"StackStatus": "CREATE_IN_PROGRESS"}]},
-                {"Stacks": [{"StackStatus": "CREATE_IN_PROGRESS"}]},
-                {"Stacks": [{"StackStatus": "CREATE_COMPLETE_CLEANUP_IN_PROGRESS"}]},
-                {"Stacks": [{"StackStatus": "CREATE_COMPLETE"}]},
-            ]
-        )
         sample_events = [
+            # old deployment
+            {
+                "StackEvents": [
+                    {
+                        "StackId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                        "EventId": str(uuid.uuid4()),
+                        "StackName": "test",
+                        "LogicalResourceId": "test",
+                        "PhysicalResourceId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                        "ResourceType": "AWS::CloudFormation::Stack",
+                        "Timestamp": last_event_timestamp - timedelta(seconds=10),
+                        "ResourceStatus": "CREATE_IN_PROGRESS",
+                    }
+                ]
+            },
+            {
+                "StackEvents": [
+                    {
+                        "StackId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                        "EventId": str(uuid.uuid4()),
+                        "StackName": "test",
+                        "LogicalResourceId": "test",
+                        "PhysicalResourceId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                        "ResourceType": "AWS::CloudFormation::Stack",
+                        "Timestamp": last_event_timestamp,
+                        "ResourceStatus": "CREATE_COMPLETE",
+                    }
+                ]
+            },
+            # new deployment
+            {
+                "StackEvents": [
+                    {
+                        "StackId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                        "EventId": str(uuid.uuid4()),
+                        "StackName": "test",
+                        "LogicalResourceId": "test",
+                        "PhysicalResourceId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                        "ResourceType": "AWS::CloudFormation::Stack",
+                        "Timestamp": start_timestamp,
+                        "ResourceStatus": "UPDATE_IN_PROGRESS",
+                    }
+                ]
+            },
             {
                 "StackEvents": [
                     {
                         "EventId": str(uuid.uuid4()),
-                        "Timestamp": current_timestamp,
-                        "ResourceStatus": "CREATE_IN_PROGRESS",
+                        "Timestamp": start_timestamp + timedelta(seconds=10),
+                        "ResourceStatus": "UPDATE_IN_PROGRESS",
                         "ResourceType": "s3",
                         "LogicalResourceId": "mybucket",
                     }
@@ -469,19 +649,8 @@ class TestDeployer(TestCase):
                 "StackEvents": [
                     {
                         "EventId": str(uuid.uuid4()),
-                        "Timestamp": current_timestamp + timedelta(seconds=10),
-                        "ResourceStatus": "CREATE_IN_PROGRESS",
-                        "ResourceType": "kms",
-                        "LogicalResourceId": "mykms",
-                    }
-                ]
-            },
-            {
-                "StackEvents": [
-                    {
-                        "EventId": str(uuid.uuid4()),
-                        "Timestamp": current_timestamp + timedelta(seconds=20),
-                        "ResourceStatus": "CREATE_COMPLETE",
+                        "Timestamp": start_timestamp + timedelta(seconds=20),
+                        "ResourceStatus": "UPDATE_COMPLETE",
                         "ResourceType": "s3",
                         "LogicalResourceId": "mybucket",
                     }
@@ -490,11 +659,14 @@ class TestDeployer(TestCase):
             {
                 "StackEvents": [
                     {
+                        "StackId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
                         "EventId": str(uuid.uuid4()),
-                        "Timestamp": current_timestamp + timedelta(seconds=30),
-                        "ResourceStatus": "CREATE_COMPLETE",
-                        "ResourceType": "kms",
-                        "LogicalResourceId": "mykms",
+                        "StackName": "test",
+                        "LogicalResourceId": "test",
+                        "PhysicalResourceId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                        "ResourceType": "AWS::CloudFormation::Stack",
+                        "Timestamp": start_timestamp + timedelta(seconds=30),
+                        "ResourceStatus": "UPDATE_COMPLETE",
                     }
                 ]
             },
@@ -502,21 +674,136 @@ class TestDeployer(TestCase):
         invalid_event = {"StackEvents": [{}]}  # if deployer() loop read this, KeyError would raise
         self.deployer._client.get_paginator = MagicMock(
             side_effect=[
-                MockPaginator([sample_events[0]]),
+                MockPaginator([sample_events[0], invalid_event]),
                 MockPaginator([sample_events[1], sample_events[0], invalid_event]),
                 MockPaginator([sample_events[2], sample_events[1], invalid_event]),
                 MockPaginator([sample_events[3], sample_events[2], invalid_event]),
+                MockPaginator([sample_events[4], sample_events[3], invalid_event]),
+                MockPaginator([sample_events[5], sample_events[4], invalid_event]),
             ]
         )
 
-        self.deployer.describe_stack_events("test", time.time() - 1)
+        self.deployer.describe_stack_events("test", utc_to_timestamp(last_event_timestamp))
         self.assertEqual(patched_pprint_columns.call_count, 4)
+        self.assertListSubset(
+            ["UPDATE_IN_PROGRESS", "AWS::CloudFormation::Stack", "test"],
+            patched_pprint_columns.call_args_list[0][1]["columns"],
+        )
+        self.assertListSubset(
+            ["UPDATE_COMPLETE", "AWS::CloudFormation::Stack", "test"],
+            patched_pprint_columns.call_args_list[3][1]["columns"],
+        )
+
+    @patch("time.sleep")
+    @patch("samcli.lib.deploy.deployer.pprint_columns")
+    def test_describe_stack_events_stop_at_first_not_in_progress(self, patched_pprint_columns, patched_time):
+        start_timestamp = datetime(2022, 1, 1, 16, 42, 0, 0, timezone.utc)
+
+        self.deployer._client.get_paginator = MagicMock(
+            return_value=MockPaginator(
+                # describe_stack_events is in reverse chronological order
+                [
+                    {
+                        "StackEvents": [
+                            {
+                                "StackId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                                "EventId": str(uuid.uuid4()),
+                                "StackName": "test",
+                                "LogicalResourceId": "test",
+                                "PhysicalResourceId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                                "ResourceType": "AWS::CloudFormation::Stack",
+                                "Timestamp": start_timestamp + timedelta(seconds=33),
+                                "ResourceStatus": "UPDATE_COMLPETE",
+                            },
+                        ]
+                    },
+                    {
+                        "StackEvents": [
+                            {
+                                "EventId": str(uuid.uuid4()),
+                                "Timestamp": start_timestamp + timedelta(seconds=32),
+                                "ResourceStatus": "UPDATE_COMPLETE",
+                                "ResourceType": "s3",
+                                "LogicalResourceId": "mybucket",
+                            },
+                            {
+                                "EventId": str(uuid.uuid4()),
+                                "Timestamp": start_timestamp + timedelta(seconds=31),
+                                "ResourceStatus": "UPDATE_IN_PROGRESS",
+                                "ResourceType": "s3",
+                                "LogicalResourceId": "mybucket",
+                            },
+                        ]
+                    },
+                    {
+                        "StackEvents": [
+                            {
+                                "StackId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                                "EventId": str(uuid.uuid4()),
+                                "StackName": "test",
+                                "LogicalResourceId": "test",
+                                "PhysicalResourceId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                                "ResourceType": "AWS::CloudFormation::Stack",
+                                "Timestamp": start_timestamp + timedelta(seconds=30),
+                                "ResourceStatus": "UPDATE_IN_PROGRESS",
+                            },
+                            {
+                                # This event should stop the loop and ignore above events
+                                "StackId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                                "EventId": str(uuid.uuid4()),
+                                "StackName": "test",
+                                "LogicalResourceId": "test",
+                                "PhysicalResourceId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                                "ResourceType": "AWS::CloudFormation::Stack",
+                                "Timestamp": start_timestamp + timedelta(seconds=3),
+                                "ResourceStatus": "CREATE_COMPLETE",
+                            },
+                        ]
+                    },
+                    {
+                        "StackEvents": [
+                            {
+                                "EventId": str(uuid.uuid4()),
+                                "Timestamp": start_timestamp + timedelta(seconds=1),
+                                "ResourceStatus": "CREATE_COMPLETE",
+                                "ResourceType": "s3",
+                                "LogicalResourceId": "mybucket",
+                            }
+                        ]
+                    },
+                    {
+                        "StackEvents": [
+                            {
+                                "EventId": str(uuid.uuid4()),
+                                "Timestamp": start_timestamp,
+                                "ResourceStatus": "CREATE_IN_PROGRESS",
+                                "ResourceType": "s3",
+                                "LogicalResourceId": "mybucket",
+                            }
+                        ]
+                    },
+                ]
+            )
+        )
+
+        self.deployer.describe_stack_events("test", utc_to_timestamp(start_timestamp) - 1)
+        self.assertEqual(patched_pprint_columns.call_count, 3)
+        self.assertListSubset(
+            ["CREATE_IN_PROGRESS", "s3", "mybucket"], patched_pprint_columns.call_args_list[0][1]["columns"]
+        )
+        self.assertListSubset(
+            ["CREATE_COMPLETE", "s3", "mybucket"], patched_pprint_columns.call_args_list[1][1]["columns"]
+        )
+        self.assertListSubset(
+            ["CREATE_COMPLETE", "AWS::CloudFormation::Stack", "test"],
+            patched_pprint_columns.call_args_list[2][1]["columns"],
+        )
 
     @patch("samcli.lib.deploy.deployer.math")
     @patch("time.sleep")
     def test_describe_stack_events_exceptions(self, patched_time, patched_math):
 
-        self.deployer._client.describe_stacks = MagicMock(
+        self.deployer._client.get_paginator = MagicMock(
             side_effect=[
                 ClientError(
                     error_response={"Error": {"Message": "Rate Exceeded"}}, operation_name="describe_stack_events"
@@ -541,9 +828,9 @@ class TestDeployer(TestCase):
     @patch("samcli.lib.deploy.deployer.math")
     @patch("time.sleep")
     def test_describe_stack_events_resume_after_exceptions(self, patched_time, patched_math):
-        current_timestamp = datetime.utcnow()
+        start_timestamp = datetime(2022, 1, 1, 16, 42, 0, 0, timezone.utc)
 
-        self.deployer._client.describe_stacks = MagicMock(
+        self.deployer._client.get_paginator = MagicMock(
             side_effect=[
                 ClientError(
                     error_response={"Error": {"Message": "Rate Exceeded"}}, operation_name="describe_stack_events"
@@ -554,131 +841,139 @@ class TestDeployer(TestCase):
                 ClientError(
                     error_response={"Error": {"Message": "Rate Exceeded"}}, operation_name="describe_stack_events"
                 ),
-                {"Stacks": [{"StackStatus": "CREATE_IN_PROGRESS"}]},
-                {"Stacks": [{"StackStatus": "CREATE_IN_PROGRESS"}]},
-                {"Stacks": [{"StackStatus": "CREATE_COMPLETE_CLEANUP_IN_PROGRESS"}]},
-                {"Stacks": [{"StackStatus": "CREATE_COMPLETE"}]},
+                MockPaginator(
+                    [
+                        {
+                            "StackEvents": [
+                                {
+                                    "StackId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                                    "EventId": str(uuid.uuid4()),
+                                    "StackName": "test",
+                                    "LogicalResourceId": "test",
+                                    "PhysicalResourceId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                                    "ResourceType": "AWS::CloudFormation::Stack",
+                                    "Timestamp": start_timestamp,
+                                    "ResourceStatus": "CREATE_COMPLETE",
+                                },
+                                {
+                                    "EventId": str(uuid.uuid4()),
+                                    "Timestamp": start_timestamp,
+                                    "ResourceStatus": "CREATE_COMPLETE",
+                                    "ResourceType": "kms",
+                                    "LogicalResourceId": "mykms",
+                                },
+                            ]
+                        },
+                        {
+                            "StackEvents": [
+                                {
+                                    "EventId": str(uuid.uuid4()),
+                                    "Timestamp": start_timestamp,
+                                    "ResourceStatus": "CREATE_COMPLETE",
+                                    "ResourceType": "s3",
+                                    "LogicalResourceId": "mybucket",
+                                }
+                            ]
+                        },
+                        {
+                            "StackEvents": [
+                                {
+                                    "EventId": str(uuid.uuid4()),
+                                    "Timestamp": start_timestamp,
+                                    "ResourceStatus": "CREATE_IN_PROGRESS",
+                                    "ResourceType": "kms",
+                                    "LogicalResourceId": "mykms",
+                                }
+                            ]
+                        },
+                        {
+                            "StackEvents": [
+                                {
+                                    "EventId": str(uuid.uuid4()),
+                                    "Timestamp": start_timestamp,
+                                    "ResourceStatus": "CREATE_IN_PROGRESS",
+                                    "ResourceType": "s3",
+                                    "LogicalResourceId": "mybucket",
+                                }
+                            ]
+                        },
+                    ]
+                ),
             ]
         )
 
-        self.deployer._client.get_paginator = MagicMock(
-            return_value=MockPaginator(
-                [
-                    {
-                        "StackEvents": [
-                            {
-                                "EventId": str(uuid.uuid4()),
-                                "Timestamp": current_timestamp,
-                                "ResourceStatus": "CREATE_IN_PROGRESS",
-                                "ResourceType": "s3",
-                                "LogicalResourceId": "mybucket",
-                            }
-                        ]
-                    },
-                    {
-                        "StackEvents": [
-                            {
-                                "EventId": str(uuid.uuid4()),
-                                "Timestamp": current_timestamp,
-                                "ResourceStatus": "CREATE_IN_PROGRESS",
-                                "ResourceType": "kms",
-                                "LogicalResourceId": "mykms",
-                            }
-                        ]
-                    },
-                    {
-                        "StackEvents": [
-                            {
-                                "EventId": str(uuid.uuid4()),
-                                "Timestamp": current_timestamp,
-                                "ResourceStatus": "CREATE_COMPLETE",
-                                "ResourceType": "s3",
-                                "LogicalResourceId": "mybucket",
-                            }
-                        ]
-                    },
-                    {
-                        "StackEvents": [
-                            {
-                                "EventId": str(uuid.uuid4()),
-                                "Timestamp": current_timestamp,
-                                "ResourceStatus": "CREATE_COMPLETE",
-                                "ResourceType": "kms",
-                                "LogicalResourceId": "mykms",
-                            }
-                        ]
-                    },
-                ]
-            )
-        )
-
-        self.deployer.describe_stack_events("test", time.time())
+        self.deployer.describe_stack_events("test", utc_to_timestamp(start_timestamp) - 1)
         self.assertEqual(patched_math.pow.call_count, 3)
         self.assertEqual(patched_math.pow.call_args_list, [call(2, 1), call(2, 2), call(2, 3)])
 
     @patch("samcli.lib.deploy.deployer.math.pow", wraps=math.pow)
     @patch("time.sleep")
     def test_describe_stack_events_reset_retry_on_success_after_exceptions(self, patched_time, patched_pow):
-        current_timestamp = datetime.utcnow()
+        start_timestamp = datetime(2022, 1, 1, 16, 42, 0, 0, timezone.utc)
 
-        self.deployer._client.describe_stacks = MagicMock(
+        self.deployer._client.get_paginator = MagicMock(
             side_effect=[
-                {"Stacks": [{"StackStatus": "CREATE_IN_PROGRESS"}]},
-                ClientError(
-                    error_response={"Error": {"Message": "Rate Exceeded"}}, operation_name="describe_stack_events"
+                MockPaginator(
+                    [
+                        {
+                            "StackEvents": [
+                                {
+                                    "EventId": str(uuid.uuid4()),
+                                    "Timestamp": start_timestamp,
+                                    "ResourceStatus": "CREATE_IN_PROGRESS",
+                                    "ResourceType": "s3",
+                                    "LogicalResourceId": "mybucket",
+                                },
+                            ]
+                        },
+                    ]
                 ),
                 ClientError(
                     error_response={"Error": {"Message": "Rate Exceeded"}}, operation_name="describe_stack_events"
                 ),
-                {"Stacks": [{"StackStatus": "CREATE_IN_PROGRESS"}]},
                 ClientError(
                     error_response={"Error": {"Message": "Rate Exceeded"}}, operation_name="describe_stack_events"
                 ),
-                {"Stacks": [{"StackStatus": "CREATE_COMPLETE"}]},
+                MockPaginator(
+                    [
+                        {
+                            "StackEvents": [
+                                {
+                                    "EventId": str(uuid.uuid4()),
+                                    "Timestamp": start_timestamp + timedelta(seconds=10),
+                                    "ResourceStatus": "CREATE_COMPLETE",
+                                    "ResourceType": "s3",
+                                    "LogicalResourceId": "mybucket",
+                                }
+                            ]
+                        },
+                    ]
+                ),
+                ClientError(
+                    error_response={"Error": {"Message": "Rate Exceeded"}}, operation_name="describe_stack_events"
+                ),
+                MockPaginator(
+                    [
+                        {
+                            "StackEvents": [
+                                {
+                                    "StackId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                                    "EventId": str(uuid.uuid4()),
+                                    "StackName": "test",
+                                    "LogicalResourceId": "test",
+                                    "PhysicalResourceId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                                    "ResourceType": "AWS::CloudFormation::Stack",
+                                    "Timestamp": start_timestamp + timedelta(seconds=20),
+                                    "ResourceStatus": "CREATE_COMPLETE",
+                                },
+                            ]
+                        },
+                    ]
+                ),
             ]
         )
 
-        self.deployer._client.get_paginator = MagicMock(
-            return_value=MockPaginator(
-                [
-                    {
-                        "StackEvents": [
-                            {
-                                "EventId": str(uuid.uuid4()),
-                                "Timestamp": current_timestamp,
-                                "ResourceStatus": "CREATE_IN_PROGRESS",
-                                "ResourceType": "s3",
-                                "LogicalResourceId": "mybucket",
-                            }
-                        ]
-                    },
-                    {
-                        "StackEvents": [
-                            {
-                                "EventId": str(uuid.uuid4()),
-                                "Timestamp": current_timestamp,
-                                "ResourceStatus": "CREATE_IN_PROGRESS",
-                                "ResourceType": "kms",
-                                "LogicalResourceId": "mykms",
-                            }
-                        ]
-                    },
-                    {
-                        "StackEvents": [
-                            {
-                                "EventId": str(uuid.uuid4()),
-                                "Timestamp": current_timestamp,
-                                "ResourceStatus": "CREATE_COMPLETE",
-                                "ResourceType": "s3",
-                                "LogicalResourceId": "mybucket",
-                            }
-                        ]
-                    },
-                ]
-            )
-        )
-
-        self.deployer.describe_stack_events("test", time.time())
+        self.deployer.describe_stack_events("test", utc_to_timestamp(start_timestamp) - 1)
 
         # There are 2 sleep call for exceptions (backoff + regular one at 0)
         self.assertEqual(patched_time.call_count, 9)
@@ -727,6 +1022,14 @@ class TestDeployer(TestCase):
             )
         )
         with self.assertRaises(DeployFailedError):
+            self.deployer.wait_for_execute("test", "CREATE", False)
+
+        self.deployer._client.get_waiter = MagicMock()
+        self.deployer.get_stack_outputs = MagicMock(
+            side_effect=DeployStackOutPutFailedError("test", "message"), return_value=None
+        )
+        self.deployer._display_stack_outputs = MagicMock()
+        with self.assertRaises(DeployStackOutPutFailedError):
             self.deployer.wait_for_execute("test", "CREATE", False)
 
     def test_create_and_wait_for_changeset(self):
@@ -864,6 +1167,7 @@ class TestDeployer(TestCase):
             notification_arns=[],
             s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
             tags={"unit": "true"},
+            on_failure=None,
         )
 
         self.assertEqual(self.deployer._client.update_stack.call_count, 1)
@@ -875,6 +1179,7 @@ class TestDeployer(TestCase):
             StackName="test",
             Tags={"unit": "true"},
             TemplateURL=ANY,
+            DisableRollback=False,
         )
 
     def test_sync_update_stack_exception(self):
@@ -893,6 +1198,7 @@ class TestDeployer(TestCase):
                 notification_arns=[],
                 s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
                 tags={"unit": "true"},
+                on_failure=None,
             )
 
     def test_sync_create_stack(self):
@@ -909,6 +1215,7 @@ class TestDeployer(TestCase):
             notification_arns=[],
             s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
             tags={"unit": "true"},
+            on_failure=FailureMode.ROLLBACK,
         )
 
         self.assertEqual(self.deployer._client.create_stack.call_count, 1)
@@ -920,6 +1227,7 @@ class TestDeployer(TestCase):
             StackName="test",
             Tags={"unit": "true"},
             TemplateURL=ANY,
+            OnFailure=str(FailureMode.ROLLBACK),
         )
 
     def test_sync_create_stack_exception(self):
@@ -938,6 +1246,7 @@ class TestDeployer(TestCase):
                 notification_arns=[],
                 s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
                 tags={"unit": "true"},
+                on_failure=None,
             )
 
     def test_process_kwargs(self):
@@ -953,3 +1262,116 @@ class TestDeployer(TestCase):
         }
         result = self.deployer._process_kwargs(kwargs, None, capabilities, role_arn, notification_arns)
         self.assertEqual(expected, result)
+
+    def test_sync_disable_rollback_using_on_failure(self):
+        self.deployer.has_stack = MagicMock(return_value=True)
+        self.deployer.wait_for_execute = MagicMock()
+        self.deployer.sync(
+            stack_name="test",
+            cfn_template=" ",
+            parameter_values=[
+                {"ParameterKey": "a", "ParameterValue": "b"},
+            ],
+            capabilities=["CAPABILITY_IAM"],
+            role_arn="role-arn",
+            notification_arns=[],
+            s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
+            tags={"unit": "true"},
+            on_failure=FailureMode.DO_NOTHING,
+        )
+
+        self.assertEqual(self.deployer._client.update_stack.call_count, 1)
+        self.deployer._client.update_stack.assert_called_with(
+            Capabilities=["CAPABILITY_IAM"],
+            NotificationARNs=[],
+            Parameters=[{"ParameterKey": "a", "ParameterValue": "b"}],
+            RoleARN="role-arn",
+            StackName="test",
+            Tags={"unit": "true"},
+            TemplateURL=ANY,
+            DisableRollback=True,
+        )
+
+    def test_sync_create_stack_on_failure_delete(self):
+        self.deployer.has_stack = MagicMock(return_value=False)
+        self.deployer.wait_for_execute = MagicMock()
+        self.deployer.sync(
+            stack_name="test",
+            cfn_template=" ",
+            parameter_values=[
+                {"ParameterKey": "a", "ParameterValue": "b"},
+            ],
+            capabilities=["CAPABILITY_IAM"],
+            role_arn="role-arn",
+            notification_arns=[],
+            s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
+            tags={"unit": "true"},
+            on_failure=str(FailureMode.DELETE),
+        )
+
+        self.assertEqual(self.deployer._client.create_stack.call_count, 1)
+        self.deployer._client.create_stack.assert_called_with(
+            Capabilities=["CAPABILITY_IAM"],
+            NotificationARNs=[],
+            Parameters=[{"ParameterKey": "a", "ParameterValue": "b"}],
+            RoleARN="role-arn",
+            StackName="test",
+            Tags={"unit": "true"},
+            TemplateURL=ANY,
+            OnFailure=str(FailureMode.DELETE),
+        )
+
+    def test_rollback_stack_new_stack_failed(self):
+        self.deployer._client.describe_stacks = MagicMock(return_value={"Stacks": [{"StackStatus": "CREATE_FAILED"}]})
+        self.deployer.wait_for_execute = MagicMock()
+        self.deployer.describe_stack_events = MagicMock()
+
+        self.deployer.rollback_delete_stack("test")
+
+        self.assertEqual(self.deployer._client.rollback_stack.call_count, 0)
+        self.assertEqual(self.deployer._client.delete_stack.call_count, 1)
+
+    def test_rollback_stack_update_stack_delete(self):
+        self.deployer._get_stack_status = MagicMock(side_effect=["UPDATE_FAILED", "ROLLBACK_COMPLETE"])
+        self.deployer._rollback_wait = MagicMock()
+        self.deployer.wait_for_execute = MagicMock()
+        self.deployer.describe_stack_events = MagicMock()
+
+        self.deployer.rollback_delete_stack("test")
+
+        self.assertEqual(self.deployer._client.rollback_stack.call_count, 1)
+        self.assertEqual(self.deployer._client.delete_stack.call_count, 1)
+        self.assertEqual(self.deployer._client.describe_stack_events.call_count, 0)
+
+    def test_rollback_invalid_stack_name(self):
+        self.deployer._client.describe_stacks = MagicMock(
+            side_effect=ClientError(error_response={"Error": {"Message": "Error"}}, operation_name="describe_stacks")
+        )
+
+        with self.assertRaises(ClientError):
+            self.deployer.rollback_delete_stack("test")
+
+    def test_get_stack_status(self):
+        self.deployer._client.describe_stacks = MagicMock(return_value={"Stacks": [{"StackStatus": "CREATE_FAILED"}]})
+
+        result = self.deployer._get_stack_status("test")
+
+        self.assertEqual(result, "CREATE_FAILED")
+
+    @patch("samcli.lib.deploy.deployer.LOG.error")
+    @patch("samcli.lib.deploy.deployer.time.sleep")
+    def test_rollback_wait(self, time_mock, log_mock):
+        self.deployer._get_stack_status = MagicMock(return_value="UPDATE_ROLLBACK_COMPLETE")
+
+        self.deployer._rollback_wait("test")
+
+        self.assertEqual(log_mock.call_count, 0)
+
+    @patch("samcli.lib.deploy.deployer.LOG.error")
+    @patch("samcli.lib.deploy.deployer.time.sleep")
+    def test_rollback_wait_timeout(self, time_mock, log_mock):
+        self.deployer._get_stack_status = MagicMock(return_value="CREATE_FAILED")
+
+        self.deployer._rollback_wait("test")
+
+        self.assertEqual(log_mock.call_count, 1)

@@ -8,7 +8,7 @@ import pathlib
 import shutil
 from abc import abstractmethod, ABC
 from copy import deepcopy
-from typing import Callable, Dict, List, Any, Optional, cast, Set
+from typing import Callable, Dict, List, Any, Optional, cast, Set, Tuple, TypeVar
 
 from samcli.commands._utils.experimental import is_experimental_enabled, ExperimentalFlag
 from samcli.lib.utils import osutils
@@ -27,6 +27,11 @@ from samcli.lib.build.exceptions import MissingBuildMethodException
 
 
 LOG = logging.getLogger(__name__)
+
+# type definition which can be used in generic types for both FunctionBuildDefinition & LayerBuildDefinition
+FunctionOrLayerBuildDefinition = TypeVar(
+    "FunctionOrLayerBuildDefinition", FunctionBuildDefinition, LayerBuildDefinition
+)
 
 
 def clean_redundant_folders(base_dir: str, uuids: Set[str]) -> None:
@@ -122,11 +127,13 @@ class DefaultBuildStrategy(BuildStrategy):
         build_dir: str,
         build_function: Callable[[str, str, str, str, str, Optional[str], str, dict, dict, Optional[str], bool], str],
         build_layer: Callable[[str, str, str, List[str], str, str, dict, Optional[str], bool], str],
+        cached: bool = False,
     ) -> None:
         super().__init__(build_graph)
         self._build_dir = build_dir
         self._build_function = build_function
         self._build_layer = build_layer
+        self._cached = cached
 
     def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
         """
@@ -139,7 +146,7 @@ class DefaultBuildStrategy(BuildStrategy):
             build_definition.runtime,
             build_definition.metadata,
             build_definition.architecture,
-            [function.full_path for function in build_definition.functions],
+            build_definition.get_resource_full_paths(),
         )
 
         # build into one of the functions from this build definition
@@ -163,7 +170,7 @@ class DefaultBuildStrategy(BuildStrategy):
             single_build_dir,
             build_definition.metadata,
             container_env_vars,
-            build_definition.dependencies_dir if is_experimental_enabled(ExperimentalFlag.Accelerate) else None,
+            build_definition.dependencies_dir if self._cached else None,
             build_definition.download_dependencies,
         )
         function_build_results[single_full_path] = result
@@ -172,12 +179,20 @@ class DefaultBuildStrategy(BuildStrategy):
         if build_definition.packagetype == ZIP:
             for function in build_definition.functions:
                 if function.full_path != single_full_path:
-                    # for zip function we need to copy over the artifacts
-                    # artifacts directory will be created by the builder
-                    artifacts_dir = function.get_build_dir(self._build_dir)
-                    LOG.debug("Copying artifacts from %s to %s", single_build_dir, artifacts_dir)
-                    osutils.copytree(single_build_dir, artifacts_dir)
-                    function_build_results[function.full_path] = artifacts_dir
+                    # for zip function we need to refer over the result
+                    # artifacts directory which have built as the action above
+                    if is_experimental_enabled(ExperimentalFlag.BuildPerformance):
+                        LOG.debug(
+                            "Using previously build shared location %s for function %s", result, function.full_path
+                        )
+                        function_build_results[function.full_path] = result
+                    else:
+                        # for zip function we need to copy over the artifacts
+                        # artifacts directory will be created by the builder
+                        artifacts_dir = function.get_build_dir(self._build_dir)
+                        LOG.debug("Copying artifacts from %s to %s", single_build_dir, artifacts_dir)
+                        osutils.copytree(single_build_dir, artifacts_dir)
+                        function_build_results[function.full_path] = artifacts_dir
         elif build_definition.packagetype == IMAGE:
             for function in build_definition.functions:
                 if function.full_path != single_full_path:
@@ -210,7 +225,7 @@ class DefaultBuildStrategy(BuildStrategy):
                 layer.build_architecture,
                 single_build_dir,
                 layer_definition.env_vars,
-                layer_definition.dependencies_dir if is_experimental_enabled(ExperimentalFlag.Accelerate) else None,
+                layer_definition.dependencies_dir if self._cached else None,
                 layer_definition.download_dependencies,
             )
         }
@@ -259,8 +274,8 @@ class CachedBuildStrategy(BuildStrategy):
 
         if not cache_function_dir.exists() or build_definition.source_hash != source_hash:
             LOG.info(
-                "Cache is invalid, running build and copying resources to function build definition of %s",
-                build_definition.uuid,
+                "Cache is invalid, running build and copying resources for following functions (%s)",
+                build_definition.get_resource_full_paths(),
             )
             build_result = self._delegate_build_strategy.build_single_function_definition(build_definition)
             function_build_results.update(build_result)
@@ -271,19 +286,37 @@ class CachedBuildStrategy(BuildStrategy):
             build_definition.source_hash = source_hash
             # Since all the build contents are same for a build definition, just copy any one of them into the cache
             for _, value in build_result.items():
-                osutils.copytree(value, cache_function_dir)
+                osutils.copytree(value, str(cache_function_dir))
                 break
         else:
             LOG.info(
-                "Valid cache found, copying previously built resources from function build definition of %s",
-                build_definition.uuid,
+                "Valid cache found, copying previously built resources for following functions (%s)",
+                build_definition.get_resource_full_paths(),
             )
-            for function in build_definition.functions:
-                # artifacts directory will be created by the builder
-                artifacts_dir = function.get_build_dir(self._build_dir)
-                LOG.debug("Copying artifacts from %s to %s", cache_function_dir, artifacts_dir)
-                osutils.copytree(cache_function_dir, artifacts_dir)
-                function_build_results[function.full_path] = artifacts_dir
+            if is_experimental_enabled(ExperimentalFlag.BuildPerformance):
+                first_function_artifacts_dir: Optional[str] = None
+                for function in build_definition.functions:
+                    if not first_function_artifacts_dir:
+                        # artifacts directory will be created by the builder
+                        artifacts_dir = build_definition.get_build_dir(self._build_dir)
+                        LOG.debug("Linking artifacts from %s to %s", cache_function_dir, artifacts_dir)
+                        osutils.create_symlink_or_copy(str(cache_function_dir), artifacts_dir)
+                        function_build_results[function.full_path] = artifacts_dir
+                        first_function_artifacts_dir = artifacts_dir
+                    else:
+                        LOG.debug(
+                            "Function (%s) build folder is updated to %s",
+                            function.full_path,
+                            first_function_artifacts_dir,
+                        )
+                        function_build_results[function.full_path] = first_function_artifacts_dir
+            else:
+                for function in build_definition.functions:
+                    # artifacts directory will be created by the builder
+                    artifacts_dir = function.get_build_dir(self._build_dir)
+                    LOG.debug("Copying artifacts from %s to %s", cache_function_dir, artifacts_dir)
+                    osutils.copytree(str(cache_function_dir), artifacts_dir)
+                    function_build_results[function.full_path] = artifacts_dir
 
         return function_build_results
 
@@ -298,8 +331,8 @@ class CachedBuildStrategy(BuildStrategy):
 
         if not cache_function_dir.exists() or layer_definition.source_hash != source_hash:
             LOG.info(
-                "Cache is invalid, running build and copying resources to layer build definition of %s",
-                layer_definition.uuid,
+                "Cache is invalid, running build and copying resources for following layers (%s)",
+                layer_definition.get_resource_full_paths(),
             )
             build_result = self._delegate_build_strategy.build_single_layer_definition(layer_definition)
             layer_build_result.update(build_result)
@@ -310,17 +343,22 @@ class CachedBuildStrategy(BuildStrategy):
             layer_definition.source_hash = source_hash
             # Since all the build contents are same for a build definition, just copy any one of them into the cache
             for _, value in build_result.items():
-                osutils.copytree(value, cache_function_dir)
+                osutils.copytree(value, str(cache_function_dir))
                 break
         else:
             LOG.info(
-                "Valid cache found, copying previously built resources from layer build definition of %s",
-                layer_definition.uuid,
+                "Valid cache found, copying previously built resources for following layers (%s)",
+                layer_definition.get_resource_full_paths(),
             )
             # artifacts directory will be created by the builder
-            artifacts_dir = str(pathlib.Path(self._build_dir, layer_definition.layer.full_path))
-            LOG.debug("Copying artifacts from %s to %s", cache_function_dir, artifacts_dir)
-            osutils.copytree(cache_function_dir, artifacts_dir)
+            artifacts_dir = layer_definition.layer.get_build_dir(self._build_dir)
+
+            if is_experimental_enabled(ExperimentalFlag.BuildPerformance):
+                LOG.debug("Linking artifacts folder from %s to %s", cache_function_dir, artifacts_dir)
+                osutils.create_symlink_or_copy(str(cache_function_dir), artifacts_dir)
+            else:
+                LOG.debug("Copying artifacts from %s to %s", cache_function_dir, artifacts_dir)
+                osutils.copytree(str(cache_function_dir), artifacts_dir)
             layer_build_result[layer_definition.layer.full_path] = artifacts_dir
 
         return layer_build_result
@@ -345,45 +383,46 @@ class ParallelBuildStrategy(BuildStrategy):
         self,
         build_graph: BuildGraph,
         delegate_build_strategy: BuildStrategy,
-        async_context: Optional[AsyncContext] = None,
     ) -> None:
         super().__init__(build_graph)
         self._delegate_build_strategy = delegate_build_strategy
-        self._async_context = async_context if async_context else AsyncContext()
 
     def build(self) -> Dict[str, str]:
-        """
-        Runs all build and collects results from async context
-        """
-        result = {}
         with self._delegate_build_strategy:
-            # ignore result
-            super().build()
-            # wait for other executions to complete
+            return super().build()
 
-            async_results = self._async_context.run_async()
-            for async_result in async_results:
-                result.update(async_result)
+    def _build_layers(self, build_graph: BuildGraph) -> Dict[str, str]:
+        return self._run_builds_async(self.build_single_layer_definition, build_graph.get_layer_build_definitions())
 
-        return result
-
-    def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
-        """
-        Passes single function build into async context, no actual result returned from this function
-        """
-        self._async_context.add_async_task(
-            self._delegate_build_strategy.build_single_function_definition, build_definition
+    def _build_functions(self, build_graph: BuildGraph) -> Dict[str, str]:
+        return self._run_builds_async(
+            self.build_single_function_definition, build_graph.get_function_build_definitions()
         )
-        return {}
+
+    @staticmethod
+    def _run_builds_async(
+        build_method: Callable[[FunctionOrLayerBuildDefinition], Dict[str, str]],
+        build_definitions: Tuple[FunctionOrLayerBuildDefinition, ...],
+    ) -> Dict[str, str]:
+        """Builds given list of build definitions in async and return the result"""
+        if not build_definitions:
+            return dict()
+
+        async_context = AsyncContext()
+        for build_definition in build_definitions:
+            async_context.add_async_task(build_method, build_definition)
+        async_results = async_context.run_async()
+
+        build_result: Dict[str, str] = dict()
+        for async_result in async_results:
+            build_result.update(async_result)
+        return build_result
 
     def build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
-        """
-        Passes single layer build into async context, no actual result returned from this function
-        """
-        self._async_context.add_async_task(
-            self._delegate_build_strategy.build_single_layer_definition, layer_definition
-        )
-        return {}
+        return self._delegate_build_strategy.build_single_layer_definition(layer_definition)
+
+    def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
+        return self._delegate_build_strategy.build_single_function_definition(build_definition)
 
 
 class IncrementalBuildStrategy(BuildStrategy):
@@ -446,14 +485,17 @@ class IncrementalBuildStrategy(BuildStrategy):
             if is_manifest_changed or is_dependencies_dir_missing:
                 build_definition.manifest_hash = manifest_hash
                 LOG.info(
-                    "Manifest file is changed (new hash: %s) or dependency folder (%s) is missing for %s, "
+                    "Manifest file is changed (new hash: %s) or dependency folder (%s) is missing for (%s), "
                     "downloading dependencies and copying/building source",
                     manifest_hash,
                     build_definition.dependencies_dir,
-                    build_definition.uuid,
+                    build_definition.get_resource_full_paths(),
                 )
             else:
-                LOG.info("Manifest is not changed for %s, running incremental build", build_definition.uuid)
+                LOG.info(
+                    "Manifest is not changed for (%s), running incremental build",
+                    build_definition.get_resource_full_paths(),
+                )
 
         build_definition.download_dependencies = is_manifest_changed or is_dependencies_dir_missing
 
@@ -487,6 +529,7 @@ class CachedOrIncrementalBuildStrategyWrapper(BuildStrategy):
         cache_dir: str,
         manifest_path_override: Optional[str],
         is_building_specific_resource: bool,
+        use_container: bool,
     ):
         super().__init__(build_graph)
         self._incremental_build_strategy = IncrementalBuildStrategy(
@@ -503,6 +546,7 @@ class CachedOrIncrementalBuildStrategyWrapper(BuildStrategy):
             cache_dir,
         )
         self._is_building_specific_resource = is_building_specific_resource
+        self._use_container = use_container
 
     def build(self) -> Dict[str, str]:
         result = {}
@@ -513,32 +557,32 @@ class CachedOrIncrementalBuildStrategyWrapper(BuildStrategy):
     def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
         if self._is_incremental_build_supported(build_definition.runtime):
             LOG.debug(
-                "Running incremental build for runtime %s for build definition %s",
+                "Running incremental build for runtime %s for following resources (%s)",
                 build_definition.runtime,
-                build_definition.uuid,
+                build_definition.get_resource_full_paths(),
             )
             return self._incremental_build_strategy.build_single_function_definition(build_definition)
 
         LOG.debug(
-            "Running incremental build for runtime %s for build definition %s",
+            "Running incremental build for runtime %s for following resources (%s)",
             build_definition.runtime,
-            build_definition.uuid,
+            build_definition.get_resource_full_paths(),
         )
         return self._cached_build_strategy.build_single_function_definition(build_definition)
 
     def build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
         if self._is_incremental_build_supported(layer_definition.build_method):
             LOG.debug(
-                "Running incremental build for runtime %s for build definition %s",
+                "Running incremental build for runtime %s for following resources (%s)",
                 layer_definition.build_method,
-                layer_definition.uuid,
+                layer_definition.get_resource_full_paths(),
             )
             return self._incremental_build_strategy.build_single_layer_definition(layer_definition)
 
         LOG.debug(
-            "Running cached build for runtime %s for build definition %s",
+            "Running cached build for runtime %s for following resources (%s)",
             layer_definition.build_method,
-            layer_definition.uuid,
+            layer_definition.get_resource_full_paths,
         )
         return self._cached_build_strategy.build_single_layer_definition(layer_definition)
 
@@ -557,9 +601,12 @@ class CachedOrIncrementalBuildStrategyWrapper(BuildStrategy):
             self._cached_build_strategy._clean_redundant_cached()
             self._incremental_build_strategy._clean_redundant_dependencies()
 
-    @staticmethod
-    def _is_incremental_build_supported(runtime: Optional[str]) -> bool:
-        if not runtime or not is_experimental_enabled(ExperimentalFlag.Accelerate):
+    def _is_incremental_build_supported(self, runtime: Optional[str]) -> bool:
+        # incremental build doesn't support in container build
+        if self._use_container:
+            return False
+
+        if not runtime:
             return False
 
         for supported_runtime_prefix in CachedOrIncrementalBuildStrategyWrapper.SUPPORTED_RUNTIME_PREFIXES:

@@ -6,6 +6,7 @@ import copy
 import logging
 import os
 import threading
+from abc import abstractmethod
 from pathlib import Path
 from typing import Sequence, Tuple, List, Any, Optional, Dict, cast, NamedTuple
 from copy import deepcopy
@@ -13,6 +14,7 @@ from uuid import uuid4
 
 import tomlkit
 
+from samcli.commands._utils.experimental import is_experimental_enabled, ExperimentalFlag
 from samcli.lib.build.exceptions import InvalidBuildGraphException
 from samcli.lib.providers.provider import Function, LayerVersion
 from samcli.lib.samlib.resource_metadata_normalizer import (
@@ -44,6 +46,7 @@ COMPATIBLE_RUNTIMES_FIELD = "compatible_runtimes"
 LAYER_FIELD = "layer"
 ARCHITECTURE_FIELD = "architecture"
 HANDLER_FIELD = "handler"
+SHARED_CODEURI_SUFFIX = "Shared"
 
 
 def _function_build_definition_to_toml_table(
@@ -501,6 +504,10 @@ class AbstractBuildDefinition:
     def env_vars(self) -> Dict:
         return deepcopy(self._env_vars)
 
+    @abstractmethod
+    def get_resource_full_paths(self) -> str:
+        """Returns string representation of resources' full path information for this build definition"""
+
 
 class LayerBuildDefinition(AbstractBuildDefinition):
     """
@@ -526,6 +533,12 @@ class LayerBuildDefinition(AbstractBuildDefinition):
         # Note(xinhol): In our code, we assume "layer" is never None. We should refactor
         # this and move "layer" out of LayerBuildDefinition to take advantage of type check.
         self.layer: LayerVersion = None  # type: ignore
+
+    def get_resource_full_paths(self) -> str:
+        if not self.layer:
+            LOG.debug("LayerBuildDefinition with uuid (%s) doesn't have a layer assigned to it", self.uuid)
+            return ""
+        return self.layer.full_path
 
     def __str__(self) -> str:
         return (
@@ -614,7 +627,16 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         Return the directory path relative to root build directory
         """
         self._validate_functions()
-        return self.functions[0].get_build_dir(artifact_root_dir)
+        build_dir = self.functions[0].get_build_dir(artifact_root_dir)
+        if is_experimental_enabled(ExperimentalFlag.BuildPerformance) and len(self.functions) > 1:
+            # If there are multiple functions with the same build definition,
+            # just put them into one single shared artifacts directory.
+            build_dir = f"{build_dir}-{SHARED_CODEURI_SUFFIX}"
+        return build_dir
+
+    def get_resource_full_paths(self) -> str:
+        """Returns list of functions' full path information as a list of str"""
+        return ", ".join([function.full_path for function in self.functions])
 
     def _validate_functions(self) -> None:
         if not self.functions:

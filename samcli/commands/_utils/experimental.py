@@ -43,8 +43,10 @@ class ExperimentalFlag:
     """Class for storing all experimental related ConfigEntries"""
 
     All = ExperimentalEntry("experimentalAll", EXPERIMENTAL_ENV_VAR_PREFIX + "FEATURES")
-    Accelerate = ExperimentalEntry("experimentalAccelerate", EXPERIMENTAL_ENV_VAR_PREFIX + "ACCELERATE")
     Esbuild = ExperimentalEntry("experimentalEsbuild", EXPERIMENTAL_ENV_VAR_PREFIX + "ESBUILD")
+    BuildPerformance = ExperimentalEntry(
+        "experimentalBuildPerformance", EXPERIMENTAL_ENV_VAR_PREFIX + "BUILD_PERFORMANCE"
+    )
 
 
 def is_experimental_enabled(config_entry: ExperimentalEntry) -> bool:
@@ -240,7 +242,7 @@ def prompt_experimental(
     if is_experimental_enabled(config_entry):
         update_experimental_context()
         return True
-    confirmed = click.confirm(prompt, default=False)
+    confirmed = click.confirm(Colored().yellow(prompt), default=False)
     if confirmed:
         set_experimental(config_entry=config_entry, enabled=True)
         update_experimental_context()

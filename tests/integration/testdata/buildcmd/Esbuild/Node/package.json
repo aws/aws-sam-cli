@@ -6,9 +6,7 @@
   "author": "",
   "license": "APACHE2.0",
   "dependencies": {
-    "minimal-request-promise": "*"
-  },
-  "devDependencies": {
+    "minimal-request-promise": "*",
     "esbuild": "^0.14.14"
   }
 }

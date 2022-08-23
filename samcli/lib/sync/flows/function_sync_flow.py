@@ -60,7 +60,7 @@ class FunctionSyncFlow(SyncFlow):
         )
         self._function_identifier = function_identifier
         self._function_provider = self._build_context.function_provider
-        self._function = cast(Function, self._function_provider.functions.get(self._function_identifier))
+        self._function = cast(Function, self._function_provider.get(self._function_identifier))
         self._lambda_client = None
         self._lambda_waiter = None
         self._lambda_waiter_config = {"Delay": 1, "MaxAttempts": 60}

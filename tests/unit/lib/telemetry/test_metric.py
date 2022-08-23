@@ -10,6 +10,7 @@ import samcli
 
 from unittest import TestCase
 from unittest.mock import patch, Mock, ANY, call
+from samcli.lib.telemetry.event import EventTracker
 
 import samcli.lib.telemetry.metric
 from samcli.lib.telemetry.cicd import CICDPlatform
@@ -135,6 +136,7 @@ class TestTrackCommand(TestCase):
         GlobalConfigClassMock = Mock()
         self.telemetry_instance = TelemetryClassMock.return_value = Mock()
         self.gc_instance_mock = GlobalConfigClassMock.return_value = Mock()
+        EventTracker.clear_trackers()
 
         self.telemetry_class_patcher = patch("samcli.lib.telemetry.metric.Telemetry", TelemetryClassMock)
         self.gc_patcher = patch("samcli.lib.telemetry.metric.GlobalConfig", GlobalConfigClassMock)
@@ -184,6 +186,7 @@ class TestTrackCommand(TestCase):
             "debugFlagProvided": False,
             "region": "myregion",
             "commandName": "fakesam local invoke",
+            "metricSpecificAttributes": ANY,
             "duration": ANY,
             "exitReason": "success",
             "exitCode": 0,
@@ -376,6 +379,18 @@ class TestTrackCommand(TestCase):
             [call(ANY)],
             "The command metrics be emitted when used as a decorator",
         )
+
+    @patch("samcli.lib.telemetry.event.EventTracker.send_events", return_value=None)
+    @patch("samcli.lib.telemetry.metric.Context")
+    def test_must_send_events(self, ContextMock, send_mock):
+        ContextMock.get_current_context.return_value = self.context_mock
+
+        def real_fn():
+            pass
+
+        track_command(real_fn)()
+
+        send_mock.assert_called()
 
 
 class TestStackTrace(TestCase):

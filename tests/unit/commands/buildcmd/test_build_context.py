@@ -1,6 +1,6 @@
 import os
 from unittest import TestCase
-from unittest.mock import patch, Mock, ANY, call
+from unittest.mock import MagicMock, patch, Mock, ANY, call
 
 from parameterized import parameterized
 
@@ -59,6 +59,11 @@ class DummyFunction:
         self.metadata = metadata if metadata else {}
         self.skip_build = skip_build
         self.runtime = runtime
+
+
+class DummyStack:
+    def __init__(self, resource):
+        self.resources = resource
 
 
 class TestBuildContext__enter__(TestCase):
@@ -467,6 +472,7 @@ class TestBuildContext__enter__(TestCase):
         self.assertEqual(context.stacks, [stack])
         self.assertEqual(context.manifest_path_override, os.path.abspath("manifest_path"))
         self.assertEqual(context.mode, "buildmode")
+        self.assertFalse(context.use_base_dir)
         self.assertFalse(context.is_building_specific_resource)
         resources_to_build = context.resources_to_build
         self.assertEqual(resources_to_build.functions, [func1, func2, func6])
@@ -479,6 +485,100 @@ class TestBuildContext__enter__(TestCase):
         setup_build_dir_mock.assert_called_with("build_dir", True)
         ContainerManagerMock.assert_called_once_with(docker_network_id="network", skip_pull_image=True)
         func_provider_mock.get_all.assert_called_once()
+
+    @parameterized.expand(
+        [
+            ([], None, None),
+            (["func1", "func2", "func3"], None, None),
+            ([], ("func1",), None),
+            (["func1", "func2", "func3"], ("func2",), None),
+            (["func1"], ("func1"), None),
+            (["func1", "func2", "func3"], ("func1", "func3"), None),
+            (["func1"], ("func1",), "func1"),
+            (["func1", "func2"], ("func2",), "func1"),
+        ]
+    )
+    @patch("samcli.commands.build.build_context.get_template_data")
+    @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
+    @patch("samcli.commands.build.build_context.SamFunctionProvider")
+    @patch("samcli.commands.build.build_context.SamLayerProvider")
+    @patch("samcli.commands.build.build_context.pathlib")
+    @patch("samcli.commands.build.build_context.ContainerManager")
+    def test_must_exclude_functions_from_build(
+        self,
+        resources_to_build,
+        excluded_resources,
+        resource_identifier,
+        ContainerManagerMock,
+        pathlib_mock,
+        SamLayerProviderMock,
+        SamFunctionProviderMock,
+        get_buildable_stacks_mock,
+        get_template_data_mock,
+    ):
+        template_dict = "template dict"
+        stack = Mock()
+        stack.template_dict = template_dict
+        get_buildable_stacks_mock.return_value = ([stack], [])
+
+        funcs = [DummyFunction(f) for f in resources_to_build]
+        resource_to_exclude = None
+        for f in funcs:
+            if f.name == resource_identifier:
+                resource_to_exclude = f
+                break
+
+        func_provider_mock = Mock()
+        func_provider_mock.get_all.return_value = funcs
+        func_provider_mock.get.return_value = resource_to_exclude
+        func_provider_mock.layers.return_value = []
+        funcprovider = SamFunctionProviderMock.return_value = func_provider_mock
+
+        context = BuildContext(
+            resource_identifier,
+            "template_file",
+            None,  # No base dir is provided
+            "build_dir",
+            manifest_path="manifest_path",
+            clean=True,
+            use_container=True,
+            docker_network="network",
+            parameter_overrides={"overrides": "value"},
+            skip_pull_image=True,
+            mode="buildmode",
+            cached=False,
+            cache_dir="cache_dir",
+            parallel=True,
+            excluded_resources=excluded_resources,
+        )
+        setup_build_dir_mock = Mock()
+        build_dir_result = setup_build_dir_mock.return_value = "my/new/build/dir"
+        context._setup_build_dir = setup_build_dir_mock
+
+        # call the enter method
+        result = context.__enter__()
+
+        self.assertEqual(result, context)  # __enter__ must return self
+        self.assertEqual(context.function_provider, funcprovider)
+        self.assertEqual(context.build_dir, build_dir_result)
+        self.assertEqual(context.stacks, [stack])
+        self.assertEqual(context.is_building_specific_resource, bool(resource_identifier))
+        ctx_resources_to_build = context.resources_to_build
+        non_excluded_resources = (
+            [x for x in resources_to_build if x not in excluded_resources] if excluded_resources else resources_to_build
+        )
+
+        if resource_identifier is not None and resource_identifier in excluded_resources:
+            # If building 1 and excluding it, build anyway
+            self.assertTrue(context.is_building_specific_resource)
+            self.assertIn(resource_to_exclude, ctx_resources_to_build.functions)
+        else:
+            named_funcs = [f.name for f in ctx_resources_to_build.functions]
+            if excluded_resources:
+                self.assertTrue(all([x not in named_funcs for x in excluded_resources]))
+                self.assertTrue(all([x in named_funcs for x in non_excluded_resources]))
+            else:
+                self.assertTrue(all([x in named_funcs for x in resources_to_build]))
 
     @parameterized.expand([(["remote_stack_1", "stack.remote_stack_2"], "print_warning"), ([], False)])
     @patch("samcli.commands.build.build_context.LOG")
@@ -541,8 +641,10 @@ class TestBuildContext__enter__(TestCase):
     @patch("samcli.commands.build.build_context.move_template")
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.os")
+    @patch("samcli.commands.build.build_context.BuildContext._enable_source_maps")
     def test_run_sync_build_context(
         self,
+        source_maps_mock,
         os_mock,
         get_template_data_mock,
         move_template_mock,
@@ -567,7 +669,7 @@ class TestBuildContext__enter__(TestCase):
             root_stack.stack_path: "./build_dir/template.yaml",
             child_stack.stack_path: "./build_dir/abcd/template.yaml",
         }
-        resources_mock.return_value = Mock()
+        resources_mock.return_value = MagicMock()
 
         builder_mock = ApplicationBuilderMock.return_value = Mock()
         artifacts = "artifacts"
@@ -797,9 +899,11 @@ class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.move_template")
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.os")
+    @patch("samcli.commands.build.build_context.BuildContext._enable_source_maps")
     def test_run_build_context(
         self,
         auto_dependency_layer,
+        source_map_mock,
         os_mock,
         get_template_data_mock,
         move_template_mock,
@@ -851,6 +955,8 @@ class TestBuildContext_run(TestCase):
             modified_template_child,
         ]
         nested_stack_manager_mock.return_value = given_nested_stack_manager
+
+        source_map_mock.side_effect = [modified_template_root, modified_template_child]
 
         with BuildContext(
             resource_identifier="function_identifier",
@@ -965,10 +1071,12 @@ class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.move_template")
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.os")
+    @patch("samcli.commands.build.build_context.BuildContext._enable_source_maps")
     def test_must_catch_known_exceptions(
         self,
         exception,
         wrapped_exception,
+        source_map_mock,
         os_mock,
         get_template_data_mock,
         move_template_mock,
@@ -1044,8 +1152,10 @@ class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.move_template")
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.os")
+    @patch("samcli.commands.build.build_context.BuildContext._enable_source_maps")
     def test_must_catch_function_not_found_exception(
         self,
+        source_map_mock,
         os_mock,
         get_template_data_mock,
         move_template_mock,
@@ -1137,3 +1247,196 @@ class TestBuildContext_esbuild_warning(TestCase):
             mocked_click.assert_called_with(ExperimentalFlag.Esbuild, BuildContext._ESBUILD_WARNING_MESSAGE)
         else:
             mocked_click.assert_not_called()
+
+
+class TestBuildContext_exclude_warning(TestCase):
+    @parameterized.expand(
+        [
+            ([], [], False),
+            ("Function", ("Function",), True),
+            ("Function", ("NotTheSameFunction",), False),
+        ]
+    )
+    @patch("samcli.commands.build.build_context.LOG")
+    def test_check_exclude_warning(self, resource_id, exclude, should_print, log_mock):
+        build_context = BuildContext(
+            resource_identifier=resource_id,
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            cached=False,
+            clean=False,
+            parallel=False,
+            mode="mode",
+            excluded_resources=exclude,
+        )
+        build_context._check_exclude_warning()
+
+        if should_print:
+            log_mock.warning.assert_called_once_with(BuildContext._EXCLUDE_WARNING_MESSAGE)
+        else:
+            log_mock.warning.assert_not_called()
+
+
+class TestBuildContext_is_node_option_set(TestCase):
+    @parameterized.expand(
+        [
+            (
+                {"Properties": {"Environment": {"Variables": {"NODE_OPTIONS": "--enable-source-maps"}}}},
+                True,
+            ),
+            (
+                {"Properties": {"Environment": {"Variables": {"NODE_OPTIONS": "nothing"}}}},
+                False,
+            ),
+        ]
+    )
+    def test_is_node_option_set(self, resource, expected_result):
+        build_context = BuildContext(
+            resource_identifier="resource_id",
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            cached=False,
+            parallel=False,
+            mode="mode",
+        )
+
+        self.assertEqual(build_context._is_node_option_set(resource), expected_result)
+
+    def test_enable_source_map_missing(self):
+        build_context = BuildContext(
+            resource_identifier="resource_id",
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            cached=False,
+            parallel=False,
+            mode="mode",
+        )
+
+        self.assertFalse(build_context._is_node_option_set({"Properties": {}}))
+
+
+class TestBuildContext_enable_source_maps(TestCase):
+    @parameterized.expand(
+        [
+            ({"test": {"Metadata": {"BuildMethod": "esbuild", "BuildProperties": {"Sourcemap": True}}}},),
+            (
+                {
+                    "test": {
+                        "Properties": {"Environment": {"Variables": {"NODE_OPTIONS": "--something"}}},
+                        "Metadata": {"BuildMethod": "esbuild", "BuildProperties": {"Sourcemap": True}},
+                    }
+                },
+            ),
+        ]
+    )
+    @patch("samcli.commands.build.build_context.BuildContext._is_node_option_set")
+    def test_enable_source_maps_only_source_map(self, resource, is_enable_map_mock):
+        build_context = BuildContext(
+            resource_identifier="resource_id",
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            cached=False,
+            parallel=False,
+            mode="mode",
+        )
+
+        stack = DummyStack(resource)
+        build_context._stacks = [stack]
+
+        is_enable_map_mock.return_value = False
+
+        build_context._enable_source_maps()
+
+        for _, resource in stack.resources.items():
+            self.assertIn("--enable-source-maps", resource["Properties"]["Environment"]["Variables"]["NODE_OPTIONS"])
+
+    @parameterized.expand(
+        [
+            ({"test": {"Metadata": {"BuildMethod": "esbuild"}}}, True, True),
+            (
+                {
+                    "test": {
+                        "Properties": {"Environment": {"Variables": {"NODE_OPTIONS": "--enable-source-maps"}}},
+                        "Metadata": {"BuildMethod": "esbuild"},
+                    }
+                },
+                True,
+                True,
+            ),
+            (
+                {
+                    "test": {
+                        "Metadata": {"BuildMethod": "esbuild", "BuildProperties": {"Sourcemap": False}},
+                    }
+                },
+                True,
+                False,
+            ),
+        ]
+    )
+    @patch("samcli.commands.build.build_context.BuildContext._is_node_option_set")
+    @patch("samcli.commands.build.build_context.get_template_data")
+    def test_enable_source_maps_only_node_options(
+        self, resource, node_option_set, expected_value, get_template_mock, is_enable_map_mock
+    ):
+        build_context = BuildContext(
+            resource_identifier="resource_id",
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            cached=False,
+            parallel=False,
+            mode="mode",
+        )
+
+        stack = DummyStack(resource)
+        build_context._stacks = [stack]
+
+        is_enable_map_mock.return_value = node_option_set
+
+        build_context._enable_source_maps()
+
+        for _, resource in stack.resources.items():
+            self.assertEqual(resource["Metadata"]["BuildProperties"]["Sourcemap"], expected_value)
+
+    @patch("samcli.commands.build.build_context.BuildContext._is_node_option_set")
+    @patch("samcli.commands.build.build_context.BuildContext._warn_using_source_maps")
+    @patch("samcli.commands.build.build_context.BuildContext._warn_invalid_node_options")
+    def test_warnings_printed(self, warn_node_option_mock, warn_source_map_mock, is_enable_source_map_mock):
+        build_context = BuildContext(
+            resource_identifier="resource_id",
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            cached=False,
+            parallel=False,
+            mode="mode",
+        )
+
+        stack = DummyStack(
+            {
+                "test": {
+                    "Properties": {
+                        "Environment": {"Variables": {"NODE_OPTIONS": ["--something"]}},
+                    },
+                    "Metadata": {"BuildMethod": "esbuild", "BuildProperties": {"Sourcemap": True}},
+                }
+            }
+        )
+        build_context._stacks = [stack]
+
+        is_enable_source_map_mock.return_value = False
+        build_context._enable_source_maps()
+
+        warn_node_option_mock.assert_called()
+        warn_source_map_mock.assert_called()

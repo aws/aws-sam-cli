@@ -31,6 +31,7 @@ class TestDoCli(TestCase):
         self.image_repository = "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"
         self.image_repositories = None
         self.mode = "mode"
+        self.s3_bucket = "s3-bucket"
         self.s3_prefix = "s3-prefix"
         self.kms_key_id = "kms-key-id"
         self.notification_arns = []
@@ -49,7 +50,6 @@ class TestDoCli(TestCase):
 
     @parameterized.expand([(False, False, True), (False, False, False)])
     @patch("os.environ", {**os.environ, "SAM_CLI_POLL_DELAY": 10})
-    @patch("samcli.commands.sync.command.update_experimental_context")
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.execute_code_sync")
     @patch("samcli.commands.build.command.click")
@@ -60,11 +60,13 @@ class TestDoCli(TestCase):
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.build.command.os")
     @patch("samcli.commands.sync.command.manage_stack")
+    @patch("samcli.commands.sync.command.SyncContext")
     def test_infra_must_succeed_sync(
         self,
         code,
         watch,
         auto_dependency_layer,
+        SyncContextMock,
         manage_stack_mock,
         os_mock,
         DeployContextMock,
@@ -75,7 +77,6 @@ class TestDoCli(TestCase):
         mock_build_click,
         execute_code_sync_mock,
         click_mock,
-        update_experimental_context_mock,
     ):
 
         build_context_mock = Mock()
@@ -84,6 +85,8 @@ class TestDoCli(TestCase):
         PackageContextMock.return_value.__enter__.return_value = package_context_mock
         deploy_context_mock = Mock()
         DeployContextMock.return_value.__enter__.return_value = deploy_context_mock
+        sync_context_mock = Mock()
+        SyncContextMock.return_value.__enter__.return_value = sync_context_mock
 
         do_cli(
             self.template_file,
@@ -100,6 +103,7 @@ class TestDoCli(TestCase):
             self.mode,
             self.image_repository,
             self.image_repositories,
+            self.s3_bucket,
             self.s3_prefix,
             self.kms_key_id,
             self.capabilities,
@@ -170,6 +174,7 @@ class TestDoCli(TestCase):
             signing_profiles=None,
             disable_rollback=False,
             poll_delay=10,
+            on_failure=None,
         )
         build_context_mock.run.assert_called_once_with()
         package_context_mock.run.assert_called_once_with()
@@ -177,7 +182,6 @@ class TestDoCli(TestCase):
         execute_code_sync_mock.assert_not_called()
 
     @parameterized.expand([(False, True, False)])
-    @patch("samcli.commands.sync.command.update_experimental_context")
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.execute_watch")
     @patch("samcli.commands.build.command.click")
@@ -188,11 +192,13 @@ class TestDoCli(TestCase):
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.build.command.os")
     @patch("samcli.commands.sync.command.manage_stack")
+    @patch("samcli.commands.sync.command.SyncContext")
     def test_watch_must_succeed_sync(
         self,
         code,
         watch,
         auto_dependency_layer,
+        SyncContextMock,
         manage_stack_mock,
         os_mock,
         DeployContextMock,
@@ -203,7 +209,6 @@ class TestDoCli(TestCase):
         mock_build_click,
         execute_watch_mock,
         click_mock,
-        update_experimental_context_mock,
     ):
 
         build_context_mock = Mock()
@@ -212,6 +217,8 @@ class TestDoCli(TestCase):
         PackageContextMock.return_value.__enter__.return_value = package_context_mock
         deploy_context_mock = Mock()
         DeployContextMock.return_value.__enter__.return_value = deploy_context_mock
+        sync_context_mock = Mock()
+        SyncContextMock.return_value.__enter__.return_value = sync_context_mock
 
         do_cli(
             self.template_file,
@@ -228,6 +235,7 @@ class TestDoCli(TestCase):
             self.mode,
             self.image_repository,
             self.image_repositories,
+            self.s3_bucket,
             self.s3_prefix,
             self.kms_key_id,
             self.capabilities,
@@ -297,13 +305,13 @@ class TestDoCli(TestCase):
             signing_profiles=None,
             disable_rollback=False,
             poll_delay=0.5,
+            on_failure=None,
         )
         execute_watch_mock.assert_called_once_with(
             self.template_file, build_context_mock, package_context_mock, deploy_context_mock, auto_dependency_layer
         )
 
     @parameterized.expand([(True, False, True)])
-    @patch("samcli.commands.sync.command.update_experimental_context")
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.execute_code_sync")
     @patch("samcli.commands.build.command.click")
@@ -314,11 +322,13 @@ class TestDoCli(TestCase):
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.build.command.os")
     @patch("samcli.commands.sync.command.manage_stack")
+    @patch("samcli.commands.sync.command.SyncContext")
     def test_code_must_succeed_sync(
         self,
         code,
         watch,
         auto_dependency_layer,
+        SyncContextMock,
         manage_stack_mock,
         os_mock,
         DeployContextMock,
@@ -329,7 +339,6 @@ class TestDoCli(TestCase):
         mock_build_click,
         execute_code_sync_mock,
         click_mock,
-        update_experimental_context_mock,
     ):
 
         build_context_mock = Mock()
@@ -338,6 +347,8 @@ class TestDoCli(TestCase):
         PackageContextMock.return_value.__enter__.return_value = package_context_mock
         deploy_context_mock = Mock()
         DeployContextMock.return_value.__enter__.return_value = deploy_context_mock
+        sync_context_mock = Mock()
+        SyncContextMock.return_value.__enter__.return_value = sync_context_mock
 
         do_cli(
             self.template_file,
@@ -354,6 +365,7 @@ class TestDoCli(TestCase):
             self.mode,
             self.image_repository,
             self.image_repositories,
+            self.s3_bucket,
             self.s3_prefix,
             self.kms_key_id,
             self.capabilities,
@@ -478,7 +490,7 @@ class TestSyncCode(TestCase):
     ):
 
         resource_identifier_strings = ["Function1", "Function2"]
-        resource_types = ["Type1"]
+        resource_types = ["AWS::Serverless::Function"]
         sync_flows = [MagicMock(), MagicMock(), MagicMock()]
         sync_flow_factory_mock.return_value.create_sync_flow.side_effect = sync_flows
         get_unique_resource_ids_mock.return_value = {
@@ -508,7 +520,7 @@ class TestSyncCode(TestCase):
         self.assertEqual(sync_flow_executor_mock.return_value.add_sync_flow.call_count, 3)
 
         get_unique_resource_ids_mock.assert_called_once_with(
-            get_stacks_mock.return_value[0], resource_identifier_strings, ["Type1"]
+            get_stacks_mock.return_value[0], resource_identifier_strings, ["AWS::Serverless::Function"]
         )
 
     @patch("samcli.commands.sync.command.click")
@@ -525,7 +537,7 @@ class TestSyncCode(TestCase):
         click_mock,
     ):
         resource_identifier_strings = ["Function1", "Function2"]
-        resource_types = ["Type1", "Type2"]
+        resource_types = ["AWS::Serverless::Function", "AWS::Serverless::LayerVersion"]
         sync_flows = [MagicMock(), MagicMock(), MagicMock(), MagicMock()]
         sync_flow_factory_mock.return_value.create_sync_flow.side_effect = sync_flows
         get_unique_resource_ids_mock.return_value = {
@@ -559,7 +571,9 @@ class TestSyncCode(TestCase):
         self.assertEqual(sync_flow_executor_mock.return_value.add_sync_flow.call_count, 4)
 
         get_unique_resource_ids_mock.assert_any_call(
-            get_stacks_mock.return_value[0], resource_identifier_strings, ["Type1", "Type2"]
+            get_stacks_mock.return_value[0],
+            resource_identifier_strings,
+            ["AWS::Serverless::Function", "AWS::Serverless::LayerVersion"],
         )
 
     @patch("samcli.commands.sync.command.click")

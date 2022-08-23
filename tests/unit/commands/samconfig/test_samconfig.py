@@ -120,6 +120,7 @@ class TestSamConfigForAllCommands(TestCase):
             "container_env_var": (""),
             "container_env_var_file": "file",
             "build_image": (""),
+            "exclude": (""),
         }
 
         with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
@@ -155,6 +156,7 @@ class TestSamConfigForAllCommands(TestCase):
                 (),
                 "file",
                 (),
+                (),
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -175,6 +177,7 @@ class TestSamConfigForAllCommands(TestCase):
             "container_env_var": (""),
             "container_env_var_file": "file",
             "build_image": (""),
+            "exclude": (""),
         }
 
         with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
@@ -208,6 +211,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 (),
                 "file",
+                (),
                 (),
             )
 
@@ -262,6 +266,7 @@ class TestSamConfigForAllCommands(TestCase):
                 (),
                 "env_vars_file",
                 (),
+                (),
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -314,6 +319,7 @@ class TestSamConfigForAllCommands(TestCase):
                 (),
                 None,
                 ("Function1=image_1", "image_2"),
+                (),
             )
 
     @patch("samcli.commands.local.invoke.cli.do_cli")
@@ -674,6 +680,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "default",
                 False,
                 True,
+                "ROLLBACK",
             )
 
     @patch("samcli.commands.deploy.command.do_cli")
@@ -791,6 +798,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "default",
                 False,
                 True,
+                "ROLLBACK",
             )
 
     @patch("samcli.commands._utils.experimental.is_experimental_enabled")
@@ -941,6 +949,7 @@ class TestSamConfigForAllCommands(TestCase):
             "stack_name": "mystack",
             "image_repository": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
             "base_dir": "path",
+            "s3_bucket": "mybucket",
             "s3_prefix": "myprefix",
             "kms_key_id": "mykms",
             "parameter_overrides": 'Key1=Value1 Key2="Multiple spaces in the value"',
@@ -984,6 +993,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
                 None,
+                "mybucket",
                 "myprefix",
                 "mykms",
                 ["cap1", "cap2"],

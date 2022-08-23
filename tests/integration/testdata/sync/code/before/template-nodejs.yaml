@@ -1,0 +1,21 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Timeout: 10
+
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: nodejs_function/
+      Handler: app.lambdaHandler
+      Runtime: nodejs16.x
+      Tracing: Active
+
+  HelloWorldApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      DefinitionUri: apigateway/definition.json

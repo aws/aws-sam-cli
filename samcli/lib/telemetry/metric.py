@@ -18,6 +18,8 @@ from samcli.cli.global_config import GlobalConfig
 from samcli.lib.warnings.sam_cli_warning import TemplateWarningsChecker
 from samcli.commands.exceptions import UserException
 from samcli.lib.telemetry.cicd import CICDDetector, CICDPlatform
+from samcli.lib.telemetry.event import EventTracker
+from samcli.lib.telemetry.project_metadata import get_git_remote_origin_url, get_project_name, get_initial_commit_hash
 from samcli.commands._utils.experimental import get_all_experimental_statues
 from .telemetry import Telemetry
 from ..iac.cdk.utils import is_cdk_project
@@ -149,6 +151,8 @@ def track_command(func):
             try:
                 template_dict = ctx.template_dict
                 project_type = ProjectTypes.CDK.value if is_cdk_project(template_dict) else ProjectTypes.CFN.value
+                if project_type == ProjectTypes.CDK.value:
+                    EventTracker.track_event("UsedFeature", "CDK")
                 metric_specific_attributes["projectType"] = project_type
             except AttributeError:
                 LOG.debug("Template is not provided in context, skip adding project type metric")
@@ -158,14 +162,18 @@ def track_command(func):
             metric.add_data("debugFlagProvided", bool(ctx.debug))
             metric.add_data("region", ctx.region or "")
             metric.add_data("commandName", ctx.command_path)  # Full command path. ex: sam local start-api
-            if metric_specific_attributes:
-                metric.add_data("metricSpecificAttributes", metric_specific_attributes)
+            # Project metadata metrics
+            metric_specific_attributes["gitOrigin"] = get_git_remote_origin_url()
+            metric_specific_attributes["projectName"] = get_project_name()
+            metric_specific_attributes["initialCommit"] = get_initial_commit_hash()
+            metric.add_data("metricSpecificAttributes", metric_specific_attributes)
             # Metric about command's execution characteristics
             metric.add_data("duration", duration_fn())
             metric.add_data("exitReason", exit_reason)
             metric.add_data("exitCode", exit_code)
             metric.add_data("stackTrace", stack_trace)
             metric.add_data("exceptionMessage", exception_message)
+            EventTracker.send_events()  # Sends Event metrics to Telemetry before commandRun metrics
             telemetry.emit(metric)
         except RuntimeError:
             LOG.debug("Unable to find Click Context for getting session_id.")

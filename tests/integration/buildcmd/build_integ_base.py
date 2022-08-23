@@ -76,7 +76,9 @@ class BuildIntegBase(TestCase):
         container_env_var=None,
         container_env_var_file=None,
         build_image=None,
+        exclude=None,
         region=None,
+        beta_features=False,
     ):
 
         command_list = [self.cmd, "build"]
@@ -122,8 +124,15 @@ class BuildIntegBase(TestCase):
         if build_image:
             command_list += ["--build-image", build_image]
 
+        if exclude:
+            for f in exclude:
+                command_list += ["--exclude", f]
+
         if region:
             command_list += ["--region", region]
+
+        if beta_features:
+            command_list += ["--beta-features"]
 
         return command_list
 
@@ -135,6 +144,13 @@ class BuildIntegBase(TestCase):
             all=True, filters={"ancestor": f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{runtime}"}
         )
         self.assertFalse(bool(samcli_containers), "Build containers have not been removed")
+
+    def get_number_of_created_containers(self):
+        if IS_WINDOWS:
+            time.sleep(1)
+        docker_client = docker.from_env()
+        containers = docker_client.containers.list(all=True)
+        return len(containers)
 
     def verify_pulled_image(self, runtime, architecture=X86_64):
         docker_client = docker.from_env()
@@ -758,15 +774,29 @@ class DedupBuildIntegBase(BuildIntegBase):
 
         build_dir_files = os.listdir(str(build_dir))
         self.assertIn("template.yaml", build_dir_files)
-        self.assertIn(function_logical_id, build_dir_files)
+
+        # confirm function logical id is in the built template
+        template_dict = {}
+        with open(Path(build_dir).joinpath("template.yaml"), "r") as template_file:
+            template_dict = yaml_parse(template_file.read())
+        self.assertIn(function_logical_id, template_dict.get("Resources", {}).keys())
+
+        # confirm build folder for the function exist in the build directory
+        built_folder = (
+            template_dict.get("Resources", {}).get(function_logical_id, {}).get("Properties", {}).get("CodeUri")
+        )
+        if not built_folder:
+            built_folder = (
+                template_dict.get("Resources", {}).get(function_logical_id, {}).get("Properties", {}).get("ContentUri")
+            )
+        self.assertIn(built_folder, build_dir_files)
 
     def _verify_process_code_and_output(self, command_result):
         self.assertEqual(command_result.process.returncode, 0)
         # check HelloWorld and HelloMars functions are built in the same build
         self.assertRegex(
             command_result.stderr.decode("utf-8"),
-            "Building codeuri: .* runtime: .* metadata: .* functions: "
-            "\\['HelloWorldFunction', 'HelloMarsFunction'\\]",
+            "Building codeuri: .* runtime: .* metadata: .* functions: " "HelloWorldFunction, HelloMarsFunction",
         )
 
 
@@ -804,7 +834,7 @@ class NestedBuildIntegBase(BuildIntegBase):
         for function_full_path in function_full_paths:
             self.assertRegex(
                 command_result.stderr.decode("utf-8"),
-                f"Building codeuri: .* runtime: .* metadata: .* functions: \\[.*'{function_full_path}'.*\\]",
+                f"Building codeuri: .* runtime: .* metadata: .* functions: .*{function_full_path}.*",
             )
 
     def _verify_invoke_built_functions(self, template_path, overrides, function_and_expected):
@@ -849,7 +879,7 @@ class IntrinsicIntegBase(BuildIntegBase):
         for function_full_path in function_full_paths:
             self.assertRegex(
                 command_result.stderr.decode("utf-8"),
-                f"Building codeuri: .* runtime: .* metadata: .* functions: \\[.*'{function_full_path}'.*\\]",
+                f"Building codeuri: .* runtime: .* metadata: .* functions:.*{function_full_path}.*",
             )
         self.assertIn(
             f"Building layer '{layer_full_path}'",

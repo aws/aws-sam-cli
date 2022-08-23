@@ -6,8 +6,9 @@ import os
 import sys
 
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from samcli.lib.utils import osutils
+from samcli.lib.utils.osutils import rmtree_if_exists
 
 
 class Test_mkdir_temp(TestCase):
@@ -77,3 +78,53 @@ class Test_convert_files_to_unix_line_endings:
         patched_open.assert_any_call(os.path.join("b", target_file), "rb")
         patched_open.assert_any_call(os.path.join("a", target_file), "wb")
         patched_open.assert_any_call(os.path.join("b", target_file), "wb")
+
+
+class Test_rmtree_if_exists(TestCase):
+    @patch("samcli.lib.utils.osutils.Path")
+    @patch("samcli.lib.utils.osutils.shutil.rmtree")
+    def test_must_skip_if_path_doesnt_exist(self, patched_rmtree, patched_path):
+        mock_path_obj = Mock()
+        mock_path_obj.exists.return_value = False
+        patched_path.return_value = mock_path_obj
+
+        rmtree_if_exists(Mock())
+        patched_rmtree.assert_not_called()
+
+    @patch("samcli.lib.utils.osutils.Path")
+    @patch("samcli.lib.utils.osutils.shutil.rmtree")
+    def test_must_delete_if_path_exist(self, patched_rmtree, patched_path):
+        mock_path_obj = Mock()
+        mock_path_obj.exists.return_value = True
+        patched_path.return_value = mock_path_obj
+
+        rmtree_if_exists(Mock())
+        patched_rmtree.assert_called_with(mock_path_obj)
+
+
+class Test_create_symlink_or_copy(TestCase):
+    @patch("samcli.lib.utils.osutils.Path")
+    @patch("samcli.lib.utils.osutils.os")
+    @patch("samcli.lib.utils.osutils.copytree")
+    def test_must_create_symlink_with_absolute_path(self, patched_copy_tree, pathced_os, patched_path):
+        source_path = "source/path"
+        destination_path = "destination/path"
+        osutils.create_symlink_or_copy(source_path, destination_path)
+
+        pathced_os.symlink.assert_called_with(
+            patched_path(source_path).absolute(), patched_path(destination_path).absolute()
+        )
+        patched_copy_tree.assert_not_called()
+
+    @patch("samcli.lib.utils.osutils.Path")
+    @patch("samcli.lib.utils.osutils.os")
+    @patch("samcli.lib.utils.osutils.copytree")
+    def test_must_copy_if_symlink_fails(self, patched_copy_tree, pathced_os, patched_path):
+        pathced_os.symlink.side_effect = OSError("Unable to create symlink")
+
+        source_path = "source/path"
+        destination_path = "destination/path"
+        osutils.create_symlink_or_copy(source_path, destination_path)
+
+        pathced_os.symlink.assert_called_once()
+        patched_copy_tree.assert_called_with(source_path, destination_path)

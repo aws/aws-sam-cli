@@ -8,7 +8,8 @@ import stat
 import sys
 import tempfile
 from contextlib import contextmanager
-from typing import List, Optional
+from pathlib import Path
+from typing import List, Optional, Union
 
 LOG = logging.getLogger(__name__)
 
@@ -67,6 +68,14 @@ def rmtree_callback(function, path, excinfo):
         os.remove(path)
     except OSError:
         LOG.debug("rmtree failed in %s for %s, details: %s", function, path, excinfo)
+
+
+def rmtree_if_exists(path: Union[str, Path]):
+    """Removes given path if the path exists"""
+    path_obj = Path(str(path))
+    if path_obj.exists():
+        LOG.debug("Cleaning up path %s", str(path))
+        shutil.rmtree(path_obj)
 
 
 def stdout():
@@ -177,3 +186,16 @@ def convert_to_unix_line_ending(file_path: str) -> None:
     content = content.replace(b"\r\n", b"\n")
     with open(file_path, "wb") as file:
         file.write(content)
+
+
+def create_symlink_or_copy(source: str, destination: str) -> None:
+    """Tries to create symlink, if it fails it will copy source into destination"""
+    LOG.debug("Creating symlink; source: %s, destination: %s", source, destination)
+    try:
+        os.symlink(Path(source).absolute(), Path(destination).absolute())
+    except OSError as ex:
+        LOG.warning(
+            "Symlink operation is failed, falling back to copying files",
+            exc_info=ex if LOG.isEnabledFor(logging.DEBUG) else None,
+        )
+        copytree(source, destination)
