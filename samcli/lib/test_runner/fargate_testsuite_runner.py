@@ -15,6 +15,8 @@ from samcli.lib.utils.boto_utils import BotoProviderType
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.tar import create_tarball
 
+from samcli.lib.utils.tar import create_tarball
+
 LOG = logging.getLogger(__name__)
 
 
@@ -124,17 +126,17 @@ class FargateTestsuiteRunner:
                 stack_name=self.runner_stack_name, stack_operation="UPDATE", disable_rollback=False
             )
         except DeployFailedError as deployment_exception:
-            # If there is no update, just ignore it.
-            if "No updates are to be performed" in str(deployment_exception):
-                LOG.info(
-                    self.color.yellow(
-                        f"=> There are no updates to be performed on the stack '{self.runner_stack_name}', proceeding with testsuite execution...\n",
-                    )
-                )
-            else:
+            # If there is no update, just ignore it, otherwise raise the exception
+            if "No updates are to be performed" not in str(deployment_exception):
                 raise DeployFailedError(
                     stack_name=self.runner_stack_name, msg=str(deployment_exception)
                 ) from deployment_exception
+
+            LOG.info(
+                self.color.yellow(
+                    f"=> There are no updates to be performed on the stack '{self.runner_stack_name}', proceeding with testsuite execution...\n",
+                )
+            )
 
     def _update_or_create_test_runner_stack(self):
         """
@@ -307,7 +309,7 @@ class FargateTestsuiteRunner:
 
         LOG.info(self.color.green("✓ Tests and requirements sucessfully uploaded, kicking off testsuite...\n"))
 
-    def _download_results(self, bucket: str) -> None:
+    def _download_results(self, bucket: str, failed: bool) -> None:
         """
         Downloads test results from the bucket, as a tarball. The tarball is expanded, and removed after expansion.
 
@@ -349,7 +351,18 @@ class FargateTestsuiteRunner:
         # E.g. Setting path-in-bucket to sample/path/run_01 => results will be in directory named run_01
         results_stdout_path = Path(self.path_in_bucket.stem).joinpath(self.RESULTS_STDOUT_FILE_NAME)
         results_stdout = Path.read_text(results_stdout_path)
-        LOG.info(self.color.yellow(results_stdout))
+        output_color = self.color.red if failed else self.color.green
+        LOG.info(output_color(results_stdout))
+
+    def _get_task_exit_code(self, task_arn: str, ecs_cluster: str) -> int:
+        waiter = self.boto_ecs_client.get_waiter("tasks_stopped")
+        waiter.wait(cluster=ecs_cluster, tasks=[task_arn])
+
+        response = self.boto_ecs_client.describe_tasks(cluster=ecs_cluster, tasks=[task_arn])
+
+        task_exit_code = response["tasks"][0]["containers"][0]["exitCode"]
+
+        return task_exit_code
 
     def _invoke_testsuite(
         self,
@@ -358,7 +371,7 @@ class FargateTestsuiteRunner:
         container_name: str,
         task_definition_arn: str,
         subnets: List[str],
-    ) -> None:
+    ) -> str:
 
         """
         Kicks off a testsuite by making a runTask query.
@@ -400,7 +413,7 @@ class FargateTestsuiteRunner:
 
         container_env_vars.update(self.other_env_vars)
 
-        self.boto_ecs_client.run_task(
+        response = self.boto_ecs_client.run_task(
             cluster=ecs_cluster,
             launchType="FARGATE",
             networkConfiguration={"awsvpcConfiguration": {"subnets": subnets, "assignPublicIp": "ENABLED"}},
@@ -424,7 +437,10 @@ class FargateTestsuiteRunner:
 
         LOG.info(self.color.green("✓ Testsuite complete!\n"))
 
-    def do_testsuite(self):
+        task_arn = response["tasks"][0]["containers"][0]["taskArn"]
+        return task_arn
+
+    def do_testsuite(self) -> int:
         """
         Runs a testsuite on Fargate.
         Tests and requirements are uploaded to an S3 bucket, which the Fargate container downlaods and runs.
@@ -445,11 +461,13 @@ class FargateTestsuiteRunner:
         subnets = self.subnets_override or self._get_subnets()
 
         self._upload_tests_and_reqs(bucket)
-        self._invoke_testsuite(
+        task_arn = self._invoke_testsuite(
             bucket=bucket,
             ecs_cluster=ecs_cluster,
             container_name=container_name,
             task_definition_arn=task_definition_arn,
             subnets=subnets,
         )
-        self._download_results(bucket)
+        exit_code = self._get_task_exit_code(task_arn, ecs_cluster)
+        self._download_results(bucket, failed=exit_code != 0)
+        return exit_code

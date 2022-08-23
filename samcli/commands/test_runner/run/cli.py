@@ -12,6 +12,8 @@ from samcli.cli.main import pass_context
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 from ...exceptions import InvalidEnvironmentVariableException
 
+import sys
+
 
 LOG = logging.getLogger(__name__)
 
@@ -19,7 +21,6 @@ SHORT_HELP = "Run your testsuite on Fargate! Test results will automatically be 
 HELP_TEXT = """
 This command takes a Test Runner CloudFormation template, deploys it (updates if it already exists), and executes your testsuite on Fargate"
 """
-
 
 def _get_unique_bucket_directory_name() -> str:
     """
@@ -36,7 +37,6 @@ def _get_unique_bucket_directory_name() -> str:
     current_date = current_date.replace("-", "_").replace(":", "_")
 
     return f"test_run_{current_date}"
-
 
 @click.command("run", help=HELP_TEXT, short_help=SHORT_HELP)
 @click.option(
@@ -211,7 +211,9 @@ def do_cli(
         test_command_options=test_command_options,
     )
 
-    runner.do_testsuite()
+    exit_code = runner.do_testsuite()
+    # If tests fail, return non-zero exit code
+    sys.exit(exit_code)
 
 
 def _validate_other_env_vars(other_env_vars: dict, reserved_var_names: List[str]) -> None:
@@ -227,7 +229,6 @@ def _validate_other_env_vars(other_env_vars: dict, reserved_var_names: List[str]
         raise ReservedEnvironmentVariableException(
             f"The following are reserved environment variables, ensure they are not present in your environment variables file: {reserved_vars}"
         )
-
     for key, value in other_env_vars.items():
         if not str.isidentifier(key):
             raise InvalidEnvironmentVariableException(f"'{key}' is not a valid environment variable name.")
