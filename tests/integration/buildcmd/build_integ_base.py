@@ -321,8 +321,6 @@ class BuildIntegEsbuildBase(BuildIntegBase):
         overrides = self.get_override(runtime, code_uri, architecture, handler)
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
-        cmdlist.append("--beta-features")
-
         LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
 
