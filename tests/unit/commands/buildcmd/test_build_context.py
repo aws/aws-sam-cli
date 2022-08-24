@@ -1,6 +1,6 @@
 import os
 from unittest import TestCase
-from unittest.mock import patch, Mock, ANY, call
+from unittest.mock import MagicMock, patch, Mock, ANY, call
 
 from parameterized import parameterized
 
@@ -670,7 +670,7 @@ class TestBuildContext__enter__(TestCase):
             root_stack.stack_path: "./build_dir/template.yaml",
             child_stack.stack_path: "./build_dir/abcd/template.yaml",
         }
-        resources_mock.return_value = Mock()
+        resources_mock.return_value = MagicMock()
 
         builder_mock = ApplicationBuilderMock.return_value = Mock()
         artifacts = "artifacts"

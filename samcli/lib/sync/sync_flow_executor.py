@@ -10,6 +10,7 @@ from threading import RLock
 from concurrent.futures import ThreadPoolExecutor, Future
 
 from botocore.exceptions import ClientError
+from samcli.lib.telemetry.event import EventName, EventTracker, EventType
 
 from samcli.lib.utils.colors import Colored
 from samcli.lib.providers.exceptions import MissingLocalDefinition
@@ -331,7 +332,13 @@ class SyncFlowExecutor:
         SyncFlowException
         """
         dependent_sync_flows = []
+        sync_types = EventType.get_accepted_values(EventName.SYNC_FLOW_START)
+        sync_type: Optional[str] = type(sync_flow).__name__
+        if sync_type not in sync_types:
+            sync_type = None
         try:
+            if sync_type:
+                EventTracker.track_event("SyncFlowStart", sync_type)
             dependent_sync_flows = sync_flow.execute()
         except ClientError as e:
             if e.response.get("Error", dict()).get("Code", "") == "ResourceNotFoundException":
@@ -339,4 +346,7 @@ class SyncFlowExecutor:
             raise SyncFlowException(sync_flow, e) from e
         except Exception as e:
             raise SyncFlowException(sync_flow, e) from e
+        finally:
+            if sync_type:
+                EventTracker.track_event("SyncFlowEnd", sync_type)
         return SyncFlowResult(sync_flow=sync_flow, dependent_sync_flows=dependent_sync_flows)
