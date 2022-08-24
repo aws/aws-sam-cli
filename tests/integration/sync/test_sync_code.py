@@ -621,10 +621,10 @@ class TestSyncCodeNestedWithIntrinsics(TestSyncCodeBase):
 
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
-@parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 class TestSyncCodeEsbuildFunctionTemplate(TestSyncCodeBase):
     template = "template-esbuild.yaml"
     folder = "code"
+    dependency_layer = False
 
     def test_sync_code_esbuild_function(self):
         shutil.rmtree(Path(TestSyncCodeBase.temp_dir).joinpath("esbuild_function"), ignore_errors=True)
@@ -634,12 +634,6 @@ class TestSyncCodeEsbuildFunctionTemplate(TestSyncCodeBase):
         )
 
         self.stack_resources = self._get_stacks(TestSyncCodeBase.stack_name)
-        if self.dependency_layer:
-            # Test update manifest
-            layer_contents = self.get_dependency_layer_contents_from_arn(
-                self.stack_resources, str(Path("nodejs", "node_modules")), 1
-            )
-            self.assertNotIn("@faker-js", layer_contents)
 
         # Run code sync
         sync_command_list = self.get_sync_command_list(
@@ -668,9 +662,3 @@ class TestSyncCodeEsbuildFunctionTemplate(TestSyncCodeBase):
                 lambda_response = json.loads(self._get_lambda_response(lambda_function))
                 self.assertIn("extra_message", lambda_response)
                 self.assertEqual(lambda_response.get("message"), "Hello world!")
-
-        if self.dependency_layer:
-            layer_contents = self.get_dependency_layer_contents_from_arn(
-                self.stack_resources, str(Path("nodejs", "node_modules")), 2
-            )
-            self.assertIn("@faker-js", layer_contents)
