@@ -60,6 +60,9 @@ class TestExperimentalMetric(IntegBase):
                             "metricSpecificAttributes": {
                                 "experimentalAll": False,
                                 "experimentalEsbuild": False,
+                                "gitOrigin": ANY,
+                                "projectName": ANY,
+                                "initialCommit": ANY,
                             },
                             "duration": ANY,
                             "exitReason": ANY,
@@ -114,6 +117,9 @@ class TestExperimentalMetric(IntegBase):
                             "metricSpecificAttributes": {
                                 "experimentalAll": True,
                                 "experimentalEsbuild": True,
+                                "gitOrigin": ANY,
+                                "projectName": ANY,
+                                "initialCommit": ANY,
                             },
                             "duration": ANY,
                             "exitReason": ANY,
@@ -151,8 +157,11 @@ class TestExperimentalMetric(IntegBase):
             process.communicate()
 
             all_requests = server.get_all_requests()
-            self.assertEqual(1, len(all_requests), "Command run metric must be sent")
+            self.assertGreaterEqual(len(all_requests), 1, "Command run metric must be sent")
             request = all_requests[0]
+            for req in all_requests:
+                if "commandRun" in req["data"]["metrics"][0]:
+                    request = req  # We're only testing the commandRun metric
             self.assertIn("Content-Type", request["headers"])
             self.assertEqual(request["headers"]["Content-Type"], "application/json")
 
@@ -171,7 +180,12 @@ class TestExperimentalMetric(IntegBase):
                             "debugFlagProvided": ANY,
                             "region": ANY,
                             "commandName": ANY,
-                            "metricSpecificAttributes": {"projectType": "CDK"},
+                            "metricSpecificAttributes": {
+                                "projectType": "CDK",
+                                "gitOrigin": ANY,
+                                "projectName": ANY,
+                                "initialCommit": ANY,
+                            },
                             "duration": ANY,
                             "exitReason": ANY,
                             "exitCode": ANY,
@@ -217,6 +231,7 @@ class TestExperimentalMetric(IntegBase):
                             "debugFlagProvided": ANY,
                             "region": ANY,
                             "commandName": ANY,
+                            "metricSpecificAttributes": ANY,
                             "duration": ANY,
                             "exitReason": ANY,
                             "exitCode": ANY,
