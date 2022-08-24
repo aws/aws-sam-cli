@@ -187,7 +187,7 @@ def do_cli(
     from samcli.yamlhelper import parse_yaml_file
 
     try:
-        other_env_vars = dict(parse_yaml_file(env_file)) if env_file else {}
+        other_env_vars = parse_yaml_file(env_file) if env_file else {}
     except ValueError as yaml_parse_error:
         # The parse_yaml_file function will 'successfully' parse a plain string, but that cannot be casted to a dict.
         # If the cast fails, the description is not very informative, so we can add a log message here.
