@@ -193,8 +193,6 @@ class Test_InvokeTestsuite(TestCase):
         with open(fake_reqs_path, "w") as fake_reqs_file:
             fake_reqs_file.write("Some fake requirements")
 
-        temp_tarfile_name = str(uuid.uuid4())
-
         boto_s3_client_mock = Mock()
         boto_s3_client_mock.put_object = Mock()
 
@@ -209,9 +207,7 @@ class Test_InvokeTestsuite(TestCase):
         self.runner.requirements_file_path = fake_reqs_path
 
         try:
-            self.runner._upload_tests_and_reqs("test-bucket", temp_tarfile_name)
-            # Ensure tarfile gets cleaned up
-            self.assertFalse(os.path.exists(temp_tarfile_name))
+            self.runner._upload_tests_and_reqs("test-bucket")
             # Ensure both the tests tar and the requirements were uploaded
             self.assertEqual(boto_s3_client_mock.put_object.call_count, 2)
             # Ensure both the tests and requirements were waited for
@@ -219,12 +215,6 @@ class Test_InvokeTestsuite(TestCase):
         except Exception as ex:
             self.fail(f"Failure due to unexpected exception {ex}")
         finally:
-            # Although the _upload_tests_and_reqs function SHOULD delete the tarfile,
-            # we don't want to leave artifacts in any case
-            try:
-                os.remove(temp_tarfile_name)
-            except OSError:
-                pass
             os.remove(fake_tests_path)
             os.rmdir(test_dir_name)
             os.remove(fake_reqs_path)
