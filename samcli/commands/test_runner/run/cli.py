@@ -4,11 +4,13 @@ CLI command for the "test_runner run" command
 import logging
 from datetime import datetime
 from typing import Optional, List
+from collections import OrderedDict
 
 import click
 
 from samcli.cli.main import pass_context
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
+from ...exceptions import InvalidEnvironmentVariableException
 
 
 LOG = logging.getLogger(__name__)
@@ -186,13 +188,10 @@ def do_cli(
     from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config
     from samcli.yamlhelper import parse_yaml_file
 
-    try:
-        other_env_vars = parse_yaml_file(env_file) if env_file else {}
-    except ValueError as yaml_parse_error:
-        # The parse_yaml_file function will 'successfully' parse a plain string, but that cannot be casted to a dict.
-        # If the cast fails, the description is not very informative, so we can add a log message here.
-        LOG.exception(f"Failed to parse YAML `{env_file}` into dictionary: {yaml_parse_error}")
-        raise yaml_parse_error
+    other_env_vars = parse_yaml_file(env_file) if env_file else {}
+    if type(other_env_vars) is not OrderedDict:
+        # The parse_yaml_file function will 'successfully' parse a plain string, but that is not a dictionary.
+        raise InvalidEnvironmentVariableException(f"Failed to parse YAML `{env_file}` into dictionary.")
 
     boto_client_provider = get_boto_client_provider_with_config(region=ctx.region, profile=ctx.profile)
 

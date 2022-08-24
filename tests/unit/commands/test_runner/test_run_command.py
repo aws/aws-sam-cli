@@ -82,7 +82,7 @@ class TestCli(TestCase):
 
         self.do_cli_params["env_file"] = temp_yaml_name
         try:
-            with self.assertRaises(ValueError):
+            with self.assertRaises(InvalidEnvironmentVariableException):
                 do_cli(**self.do_cli_params)
         finally:
             os.remove(temp_yaml_name)
