@@ -717,7 +717,9 @@ class TestPrepareHook(TestCase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
     def test_translate_to_cfn_with_unsupported_provider(self, checksum_mock):
         checksum_mock.return_value = self.mock_logical_id_hash
-        translated_cfn_dict = _translate_to_cfn(self.tf_json_with_unsupported_provider, self.output_dir, self.project_root)
+        translated_cfn_dict = _translate_to_cfn(
+            self.tf_json_with_unsupported_provider, self.output_dir, self.project_root
+        )
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_unsupported_provider)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
