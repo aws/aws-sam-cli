@@ -29,6 +29,9 @@ from samcli.lib.utils.resources import (
 
 class TestPrepareHook(TestCase):
     def setUp(self) -> None:
+        self.output_dir = "/output/dir"
+        self.project_root = "/project/root"
+
         self.mock_logical_id_hash = "12AB34CD"
 
         self.s3_bucket = "mybucket"
@@ -696,32 +699,32 @@ class TestPrepareHook(TestCase):
         ]
 
         for tf_json in tf_jsons:
-            translated_cfn_dict = _translate_to_cfn(tf_json, "/output/dir", "/project/root")
+            translated_cfn_dict = _translate_to_cfn(tf_json, self.output_dir, self.project_root)
             self.assertEqual(translated_cfn_dict, expected_empty_cfn_dict)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
     def test_translate_to_cfn_with_root_module_only(self, checksum_mock):
         checksum_mock.return_value = self.mock_logical_id_hash
-        translated_cfn_dict = _translate_to_cfn(self.tf_json_with_root_module_only, "/output/dir", "/project/root")
+        translated_cfn_dict = _translate_to_cfn(self.tf_json_with_root_module_only, self.output_dir, self.project_root)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_root_module_only)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
     def test_translate_to_cfn_with_child_modules(self, checksum_mock):
         checksum_mock.return_value = self.mock_logical_id_hash
-        translated_cfn_dict = _translate_to_cfn(self.tf_json_with_child_modules, "/output/dir", "/project/root")
+        translated_cfn_dict = _translate_to_cfn(self.tf_json_with_child_modules, self.output_dir, self.project_root)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_child_modules)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
     def test_translate_to_cfn_with_unsupported_provider(self, checksum_mock):
         checksum_mock.return_value = self.mock_logical_id_hash
-        translated_cfn_dict = _translate_to_cfn(self.tf_json_with_unsupported_provider, "/output/dir", "/project/root")
+        translated_cfn_dict = _translate_to_cfn(self.tf_json_with_unsupported_provider, self.output_dir, self.project_root)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_unsupported_provider)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
     def test_translate_to_cfn_with_unsupported_resource_type(self, checksum_mock):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(
-            self.tf_json_with_unsupported_resource_type, "/output/dir", "/project/root"
+            self.tf_json_with_unsupported_resource_type, self.output_dir, self.project_root
         )
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_unsupported_resource_type)
 
@@ -729,7 +732,7 @@ class TestPrepareHook(TestCase):
     def test_translate_to_cfn_with_mapping_s3_source_to_function(self, checksum_mock):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(
-            self.tf_json_with_child_modules_and_s3_source_mapping, "/output/dir", "/project/root"
+            self.tf_json_with_child_modules_and_s3_source_mapping, self.output_dir, self.project_root
         )
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_child_modules_and_s3_source_mapping)
 
