@@ -13,7 +13,6 @@ from samcli.commands.exceptions import MissingTestRunnerTemplateException, Inval
 from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.utils.boto_utils import BotoProviderType
 from samcli.lib.utils.colors import Colored
-from samcli.lib.utils.tar import create_tarball
 
 LOG = logging.getLogger(__name__)
 
@@ -260,7 +259,7 @@ class FargateTestsuiteRunner:
         subnets = self.boto_ec2_client.describe_subnets().get("Subnets")
         return [subnet["SubnetId"] for subnet in subnets]
 
-    def _upload_tests_and_reqs(self, bucket: str) -> None:
+    def _upload_tests_and_reqs(self, bucket: str, temp_tarfile_name: str = str(uuid.uuid4())) -> None:
         """
         Compress and upload tests and requirements to an S3 Bucket for the Fargate container to pick up.
 
@@ -272,6 +271,11 @@ class FargateTestsuiteRunner:
             This is passed in because it is not known at the time of FargateTestsuiteRunner creation where the bucket name will come from.
             If a bucket override is not provided, the bucket contained in the Test Runner Stack must be used. The stack must be created/updated before this
             bucket can be fetched.
+
+        temp_tarfile_name : str
+            The name of the temporary tarball that the tests are compressed into. Once uploaded to the bucket, the tarball is removed.
+
+            Exists as a parameter for testing.
         """
         LOG.info(
             self.color.yellow(
@@ -282,12 +286,21 @@ class FargateTestsuiteRunner:
         # Compress tests into a temporary tarfile to send to S3 bucket
         # We set arcname to the stem of the tests_path to avoid including all the parent directories in the tarfile
         # E.g. If the customer specifies tests_path as a/b/c/tests, we want the tar to expand as tests, not a
-        with create_tarball({self.tests_path: self.tests_path.stem}, mode="w:gz") as tests_tar:
-            self.boto_s3_client.put_object(
-                Body=tests_tar,
-                Bucket=bucket,
-                Key=self.path_in_bucket.joinpath(Path(self.COMPRESSED_TESTS_FILE_NAME)).as_posix(),
-            )
+        with tarfile.open(temp_tarfile_name, "w:gz") as tar:
+            tar.add(self.tests_path, arcname=self.tests_path.stem)
+
+        # Upload compressed file to S3 bucket
+        try:
+            with open(temp_tarfile_name, "rb") as tests_tar:
+                self.boto_s3_client.put_object(
+                    Body=tests_tar,
+                    Bucket=bucket,
+                    Key=self.path_in_bucket.joinpath(Path(self.COMPRESSED_TESTS_FILE_NAME)).as_posix(),
+                )
+        finally:
+            # Remove the tarfile after the upload is complete
+            os.remove(temp_tarfile_name)
+
         LOG.info(
             self.color.yellow(
                 f"=> Uploading {self.requirements_file_path} to {Path(bucket).joinpath(self.path_in_bucket).as_posix()}\n"
