@@ -1000,6 +1000,34 @@ class TestSamFunctionProviderEndToEnd(TestCase):
 
         self.assertEqual(expected, result)
 
+    def test_update_function_provider(self):
+        updated_template = {
+            "Resources": {
+                "SamFunctions": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "FunctionName": "SamFunc1",
+                        "CodeUri": "/usr/foo/bar",
+                        "Runtime": "nodejs4.3",
+                        "Handler": "index.handler",
+                    },
+                },
+                "SamFuncWithInlineCode": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "FunctionName": "SamFuncWithInlineCode",
+                        "InlineCode": "testcode",
+                        "Runtime": "nodejs4.3",
+                        "Handler": "index.handler",
+                    },
+                },
+            }
+        }
+        updated_stack = Stack("", "", "template.yaml", self.parameter_overrides, updated_template)
+        self.provider.update([updated_stack])
+        functions = list(self.provider.get_all())
+        self.assertEqual(len(functions), 2)
+
 
 class TestSamFunctionProvider_init(TestCase):
     def setUp(self):

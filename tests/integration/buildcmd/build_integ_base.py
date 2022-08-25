@@ -61,24 +61,24 @@ class BuildIntegBase(TestCase):
         return command
 
     def get_command_list(
-        self,
-        build_dir=None,
-        base_dir=None,
-        manifest_path=None,
-        use_container=None,
-        parameter_overrides=None,
-        mode=None,
-        function_identifier=None,
-        debug=False,
-        cached=False,
-        cache_dir=None,
-        parallel=False,
-        container_env_var=None,
-        container_env_var_file=None,
-        build_image=None,
-        exclude=None,
-        region=None,
-        beta_features=False,
+            self,
+            build_dir=None,
+            base_dir=None,
+            manifest_path=None,
+            use_container=None,
+            parameter_overrides=None,
+            mode=None,
+            function_identifier=None,
+            debug=False,
+            cached=False,
+            cache_dir=None,
+            parallel=False,
+            container_env_var=None,
+            container_env_var_file=None,
+            build_image=None,
+            exclude=None,
+            region=None,
+            beta_features=False,
     ):
 
         command_list = [self.cmd, "build"]
@@ -316,7 +316,7 @@ class BuildIntegEsbuildBase(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
 
     def _test_with_default_package_json(
-        self, runtime, use_container, code_uri, expected_files, handler, architecture=None
+            self, runtime, use_container, code_uri, expected_files, handler, architecture=None
     ):
         overrides = self.get_override(runtime, code_uri, architecture, handler)
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
@@ -339,9 +339,28 @@ class BuildIntegEsbuildBase(BuildIntegBase):
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
             )
 
+        self._verify_esbuild_properties(self.default_build_dir, self.FUNCTION_LOGICAL_ID, handler)
+
         if use_container:
             self.verify_docker_container_cleanedup(runtime)
             self.verify_pulled_image(runtime, architecture)
+
+    def _verify_esbuild_properties(self, build_dir, function_logical_id, handler):
+        self._verify_sourcemap_created(build_dir, function_logical_id, handler)
+        self._verify_function_minified(build_dir, function_logical_id, handler)
+
+    def _verify_function_minified(self, build_dir, function_logical_id, handler):
+        filename = handler.split(".")[0]
+        resource_artifact_dir = build_dir.joinpath(function_logical_id)
+        with open(Path(resource_artifact_dir, f"{filename}.js"), "r") as handler_file:
+            x = len(handler_file.readlines())
+        self.assertEqual(x, 2)  # Everything should be minifed to one line and a second line for the sourcemap mapping
+
+    def _verify_sourcemap_created(self, build_dir, function_logical_id, handler):
+        filename = handler.split(".")[0]
+        resource_artifact_dir = build_dir.joinpath(function_logical_id)
+        all_artifacts = set(os.listdir(str(resource_artifact_dir)))
+        self.assertIn(f"{filename}.js.map", all_artifacts)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -493,18 +512,17 @@ class BuildIntegGoBase(BuildIntegBase):
 
 
 class BuildIntegJavaBase(BuildIntegBase):
-
     FUNCTION_LOGICAL_ID = "Function"
 
     def _test_with_building_java(
-        self,
-        runtime,
-        code_path,
-        expected_files,
-        expected_dependencies,
-        use_container,
-        relative_path,
-        architecture=None,
+            self,
+            runtime,
+            code_path,
+            expected_files,
+            expected_dependencies,
+            use_container,
+            relative_path,
+            architecture=None,
     ):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
@@ -591,14 +609,14 @@ class BuildIntegPythonBase(BuildIntegBase):
     prop = "CodeUri"
 
     def _test_with_default_requirements(
-        self,
-        runtime,
-        codeuri,
-        use_container,
-        relative_path,
-        do_override=True,
-        check_function_only=False,
-        architecture=None,
+            self,
+            runtime,
+            codeuri,
+            use_container,
+            relative_path,
+            do_override=True,
+            check_function_only=False,
+            architecture=None,
     ):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
