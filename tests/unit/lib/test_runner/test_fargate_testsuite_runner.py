@@ -245,7 +245,7 @@ class Test_InvokeTestsuite(TestCase):
         self.runner.RESULTS_STDOUT_FILE_NAME = fake_test_stdout_file_name
 
         try:
-            self.runner._download_results("test-bucket")
+            self.runner._download_results("test-bucket",failed=False)
 
             boto_s3_client_mock.download_file.assert_called_once()
             self.assertTrue(os.path.exists(fake_results_stdout_file_path))
@@ -265,6 +265,17 @@ class Test_InvokeTestsuite(TestCase):
     def test_no_other_vars(self):
         boto_ecs_client_mock = Mock()
         boto_ecs_client_mock.run_task = Mock()
+        boto_ecs_client_mock.run_task.return_value = {
+            'tasks' : [
+                {
+                    'containers' : [
+                        {
+                            'taskArn' : 'example-task-arn'
+                        }
+                    ]
+                }
+            ]
+        }
 
         boto_s3_client_mock = Mock()
         boto_s3_waiter_mock = Mock()
@@ -275,7 +286,7 @@ class Test_InvokeTestsuite(TestCase):
         self.runner.boto_s3_client = boto_s3_client_mock
 
         self.runner.other_env_vars = {}
-        self.runner._invoke_testsuite(
+        task_arn = self.runner._invoke_testsuite(
             bucket="test-bucket",
             ecs_cluster="test-cluster",
             container_name="test-container-name",
@@ -302,10 +313,22 @@ class Test_InvokeTestsuite(TestCase):
             taskDefinition="test-task-def-arn",
         )
         boto_s3_waiter_mock.wait.assert_called_once()
+        self.assertEqual(task_arn,'example-task-arn')
 
     def test_good_invoke(self):
         boto_ecs_client_mock = Mock()
         boto_ecs_client_mock.run_task = Mock()
+        boto_ecs_client_mock.run_task.return_value = {
+            'tasks' : [
+                {
+                    'containers' : [
+                        {
+                            'taskArn' : 'example-task-arn'
+                        }
+                    ]
+                }
+            ]
+        }
 
         boto_s3_client_mock = Mock()
         boto_s3_waiter_mock = Mock()
@@ -316,7 +339,7 @@ class Test_InvokeTestsuite(TestCase):
         self.runner.boto_s3_client = boto_s3_client_mock
 
         self.runner.other_env_vars = {"SOLID": "VALUE"}
-        self.runner._invoke_testsuite(
+        task_arn = self.runner._invoke_testsuite(
             bucket="test-bucket",
             ecs_cluster="test-cluster",
             container_name="test-container-name",
@@ -344,6 +367,7 @@ class Test_InvokeTestsuite(TestCase):
             taskDefinition="test-task-def-arn",
         )
         boto_s3_waiter_mock.wait.assert_called_once()
+        self.assertEqual(task_arn,'example-task-arn')
 
     def test_stack_not_exists_and_no_template(self):
         self.runner.deployer = MockDeployer(has_stack_return_value=False)
@@ -397,6 +421,15 @@ class Test_InvokeTestsuite(TestCase):
         self.runner._create_new_test_runner_stack.assert_not_called()
         self.runner._update_exisiting_test_runner_stack.assert_not_called()
 
+    def test_get_task_exit_code(self):
+        self.runner.boto_ecs_client = Mock()
+        self.runner.boto_ecs_client.get_waiter.return_value = Mock()
+        self.runner.boto_ecs_client.describe_tasks.return_value = {"tasks": [{"containers": [{"exitCode": 47}]}]}
+
+        exit_code = self.runner._get_task_exit_code('test-task-arn','test-ecs-cluster')
+
+        self.assertEqual(exit_code,47)
+
     def test_do_testsuite(self):
 
         self.runner.deployer = MockDeployer(has_stack_return_value=True)
@@ -408,6 +441,9 @@ class Test_InvokeTestsuite(TestCase):
         self.runner._get_container_name = Mock()
         self.runner._upload_tests_and_reqs = Mock()
         self.runner._invoke_testsuite = Mock()
+        self.runner._invoke_testsuite.return_value = 'sample-task-arn'
+        self.runner._get_task_exit_code = Mock()
+        self.runner._get_task_exit_code.return_value = 1
         self.runner._download_results = Mock()
 
         self.runner.bucket_override = "test-bucket"
@@ -436,4 +472,5 @@ class Test_InvokeTestsuite(TestCase):
             container_name="test-container",
             task_definition_arn="test-task-definition-arn",
         )
-        self.runner._download_results.assert_called_once()
+        self.runner._get_task_exit_code.assert_called_once_with('sample-task-arn','test-cluster')
+        self.runner._download_results.assert_called_once_with('test-bucket',failed=True)

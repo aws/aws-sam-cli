@@ -1,4 +1,5 @@
 import os
+import pytest
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
@@ -100,9 +101,13 @@ class TestCli(TestCase):
             get_boto_client_provider_patch.return_value = boto_client_provider_mock
             runnerMock = Mock()
             runnerMock.do_testsuite = Mock()
+            # Exit code
+            runnerMock.do_testsuite.return_value = 0
             FargateTestsuiteRunnerPatch.return_value = runnerMock
 
-            do_cli(**self.do_cli_params)
+            with pytest.raises(SystemExit) as pytest_wrapped_exit:
+                do_cli(**self.do_cli_params)
+                self.assertEqual(pytest_wrapped_exit.value.code,0)
 
             get_boto_client_provider_patch.assert_called_with(region="test-region", profile="test-profile")
             FargateTestsuiteRunnerPatch.assert_called_with(
