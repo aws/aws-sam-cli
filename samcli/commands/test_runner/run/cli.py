@@ -16,9 +16,9 @@ from samcli.commands.exceptions import InvalidEnvironmentVariableException
 
 LOG = logging.getLogger(__name__)
 
-SHORT_HELP = "Run your testsuite on Fargate! Test results will automatically be downloaded after the run is complete."
+SHORT_HELP = "Run your testsuite in the cloud. Test results will automatically be downloaded after the run is complete."
 HELP_TEXT = """
-This command takes a Test Runner CloudFormation template, deploys it (updates if it already exists), and executes your testsuite on Fargate"
+This command takes a Test Runner CloudFormation Template file, deploys it (updates if it already exists), and executes your testsuite inside a Fargate container.
 """
 
 
@@ -53,25 +53,33 @@ If a Test Runner Stack with this name does exist, and a template is provided, th
 """,
 )
 @click.option(
-    "--runner-template",
+    "--template",
     "runner_template_path",
     required=False,
     type=click.Path(exists=True, file_okay=True, dir_okay=False),
-    help="Your Test Runner CloudFormation Template.",
+    help="The CloudFormation Template file used to deploy your Test Runner Stack.",
 )
 @click.option(
-    "--env",
+    "--container-vars",
     "env_file",
     required=False,
     type=click.Path(exists=True, file_okay=True, dir_okay=False),
-    help="A YAML file specifying environment variables to send to the Test Runner Fargate instance.",
+    help="""
+A YAML file specifying environment variables to expose to the Test Runner Fargate container.
+
+These environment variables can be picked up and used by your test code.
+""",
 )
 @click.option(
-    "--options",
+    "--test-command-options",
     "test_command_options",
     required=False,
     type=str,
-    help="Options to pass to the test command, e.g. '--maxFail=2'",
+    help="""
+Options to pass to the test command.
+
+ E.g. '--maxFail=2'
+ """,
 )
 @click.option(
     "--tests",
@@ -112,7 +120,7 @@ Specify the path within the S3 bucket where the tests, requirements, and results
 
 By default, a top level directory named test_run_<ISO 8601 date>/ is created and used.
 
-For example, right now it would be {_get_unique_bucket_directory_name()}/
+E.g. {_get_unique_bucket_directory_name()}/
 """,
 )
 @click.option(

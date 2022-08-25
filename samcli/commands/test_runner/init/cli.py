@@ -14,19 +14,22 @@ from samcli.commands._utils.table_print import newline_per_item, pprint_column_n
 from samcli.lib.utils.boto_utils import BotoProviderType
 from samcli.lib.utils.colors import Colored
 
-SHORT_HELP = "Generates a Test Runner CloudFormation Template in YAML format, as well as a resource-ARN map."
+SHORT_HELP = """
+Generates a Test Runner CloudFormation Template file in YAML format. It also generates a resource-ARN map YAML file, where the keys are your resource
+names in the format of an environment variable name, and the values are the corresponding resource ARN."""
+
 HELP_TEXT = """
 This command generates a CloudFormation Template file that can be deployed to instantiate a Test Runner Stack.
 
-It also generates a resource-ARN map, where the keys are your resource names in the format of an environment variable name, and the values
+It also generates a resource-ARN map YAML file, where the keys are your resource names in the format of an environment variable name, and the values
 are the corresponding resource ARN. 
 
 For example, 
 
 _MY_LAMBDA_FUNCTION : arn:aws:lambda:us-east-1:123456789012:function:my-lambda-function
 
-This resource-ARN map can be passed to the `sam test-runner run` command which will expose these mappings as environment variables to the Test Runner Fargate instance,
-and thus can be used in test code.
+This file can be passed to `sam test-runner run` (using the `--container-vars` option), to expose the mappings as environment variables to the Fargate container.
+These environment variables can be picked up and used by your test code.
 """
 
 # IAM actions table
@@ -49,13 +52,16 @@ COLOR = Colored()
 
 
 @click.command("init", help=HELP_TEXT, short_help=SHORT_HELP)
+# TODO: There may be a more intuitive option name instead of --tags
+# The customer is providing tags for the test runner to query, so the alternatives could be
+# --target-tags, --testable-tags, --specify-tags
 @click.option(
     "--tags",
     cls=OptionNargs,
     type=CfnTags(multiple_values_per_key=True),
     required=False,
     help="A list of tags used to discover resources. "
-    "Discovered resources will have IAM statement templates generated within the Test Runner CloudFormation Template, "
+    "Discovered resources will have IAM statements generated within the Test Runner CloudFormation Template file, "
     "and a mapping between that resource name and its ARN included in the environment variable specification file.\n\n"
     "Enter as tags in the form KEY1=VALUE1 KEY2=VALUE2 ...",
 )
@@ -63,15 +69,17 @@ COLOR = Colored()
     "--template-name",
     required=False,
     type=str,
-    help="Specify the name of the generated Test Runner CloudFormation template.",
+    help="Specify the name of the generated Test Runner CloudFormation Template file.",
     default=DEFAULT_TEST_RUNNER_CFN_TEMPLATE_FILE_NAME,
 )
 @click.option(
-    "--env-file",
+    "--resource-map-name",
     required=False,
     type=str,
     help="""
-Specify the name of the generated resource-ARN map YAML file. This file can be passed to `sam test-runner run`, exposing the mappings as environment variables to the Fargate container.
+Specify the name of the generated resource-ARN map YAML file. This file can be passed to `sam test-runner run` (using the `--container-vars` option), to expose the mappings as environment variables to the Fargate container.
+
+These environment variables can be picked up and used by your test code.
 """,
     default=DEFAULT_RESOURCE_ARN_MAP_FILE_NAME,
 )
@@ -150,10 +158,8 @@ def do_cli(
             image_uri=image_uri, template_name=template_name, resource_arn_list=[], allow_iam=allow_iam
         )
         LOG.info(
-            COLOR.yellow(
-                "No tags were provided, so a resource-ARN map was not created. You can still specify and send environment variables to the Fargate container running your tests by "
-                "placing your desired NAME : VALUE pairs in a YAML file, and passing that YAML file to `sam test-runner run` with the --env option."
-            )
+            "No tags were provided, so a resource-ARN map file was not created. You can still expose environment variables to your tests by placing your desired ENV_NAME : VALUE pairs in a YAML file, "
+            "and passing that YAML file to `sam test-runner run` with the --env option."
         )
         return
 
@@ -177,14 +183,10 @@ def _create_arn_map_file(env_file: str, resource_arn_list: List[str]) -> None:
     resource_arn_map_yaml_string = arn_map_generator.generate_env_vars_yaml_string(resource_arn_list)
     _write_file(env_file, resource_arn_map_yaml_string)
 
+    LOG.info(f"✓ Sucessfully generated an environment variable specification file `test_runner_arn_map.yaml`.\n")
     LOG.info(
-        COLOR.green(f"✓ Sucessfully generated an environment variable specification file `test_runner_arn_map.yaml`.\n")
-    )
-    LOG.info(
-        COLOR.yellow(
-            "These environment variables hold the ARNs of your testable resources, and passing this file to `sam test_runner run` will make them available in the container running your tests.\n\n"
-            f"Feel free to change them, or add new variables, but keep in mind that the test runner reserves the keys {FargateTestsuiteRunner.RESERVED_ENV_VAR_NAMES}, and will throw an Exception if they are specified.\n\n"
-        )
+        "These environment variables hold the ARNs of your testable resources, and passing this file to `sam test_runner run` will make them available in the container running your tests.\n\n"
+        f"Feel free to change them, or add new variables, but keep in mind that the test runner reserves the keys {FargateTestsuiteRunner.RESERVED_ENV_VAR_NAMES}, and will throw an Exception if they are specified.\n\n"
     )
 
 
@@ -196,9 +198,7 @@ def _create_test_runner_template(
     template_generator = FargateRunnerCFNTemplateGenerator(resource_arn_list)
     test_runner_cfn_contents = template_generator.generate_test_runner_template_string(image_uri, allow_iam)
     _write_file(template_name, test_runner_cfn_contents)
-    LOG.info(
-        COLOR.green(f"\n✓ Successfully generated a Test Runner CloudFormation Template named `{template_name}`!\n")
-    )
+    LOG.info(f"\n✓ Successfully generated a Test Runner CloudFormation Template file named `{template_name}`!\n")
 
     # Not only check if the resource_arn_list is not empty, but also that it actually contains resources for which we generate IAM statements
     if resource_arn_list and _contains_supported_resources(resource_arn_list):
@@ -208,20 +208,16 @@ def _create_test_runner_template(
         # Only print if allow_iam is not set
         if not allow_iam:
             LOG.info(
-                COLOR.yellow(
-                    "Make sure to enable any necessary auto generated IAM actions for your resources, by removing the `#` in front of the action. For example:\n\n"
-                    "         [DISABLED]                    [ENABLED]\n"
-                    "# - lambda:InvokeFunction  >>  - lambda:InvokeFunction\n\n"
-                    "Make any other changes you wish, and when you're ready to run your tests, use `sam test-runner run.`\n"
-                )
+                "Make sure to enable any necessary auto generated IAM actions for your resources, by removing the `#` in front of the action. For example:\n\n"
+                "         [DISABLED]                    [ENABLED]\n"
+                "# - lambda:InvokeFunction  >>  - lambda:InvokeFunction\n\n"
+                "Make any other changes you wish, and when you're ready to run your tests, use `sam test-runner run.`\n"
             )
 
     if allow_iam:
         LOG.info(
-            COLOR.red(
-                "! NOTE: You have set the --allow-iam flag. This means that generated IAM statements will contain enabled (not commented out) basic actions for some of your resources."
-                " Make sure you are aware of what permissions you are granting to the Fargate container.\n"
-            )
+            "! NOTE: You have set the --allow-iam flag. This means that generated IAM statements will contain enabled (not commented out) basic actions for some of your resources."
+            " Make sure you are aware of what permissions you are granting to the Fargate container.\n"
         )
 
 
