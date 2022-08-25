@@ -199,7 +199,7 @@ def _create_test_runner_template(
     LOG.info(
         COLOR.green(f"\n✓ Successfully generated a Test Runner CloudFormation Template named `{template_name}`!\n")
     )
-    
+
     # Not only check if the resource_arn_list is not empty, but also that it actually contains resources for which we generate IAM statements
     if resource_arn_list and _contains_supported_resources(resource_arn_list):
 
@@ -280,8 +280,8 @@ def query_tagging_api(tags: dict, boto_client_provider: BotoProviderType) -> Uni
 
 
 def _extract_action(iam_action_string: str) -> str:
-    indx = iam_action_string.index(":")
-    return iam_action_string[indx + 1 :]
+    colon_index = iam_action_string.index(":")
+    return iam_action_string[colon_index + 1 :]
 
 
 def _contains_supported_resources(resource_arn_list: List[str]) -> bool:
