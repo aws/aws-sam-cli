@@ -28,6 +28,7 @@ from samcli.commands._utils.options import (
 )
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.commands._utils.click_mutex import ClickMutex
+from samcli.lib.telemetry.event import EventTracker, track_long_event
 from samcli.commands.sync.sync_context import SyncContext
 from samcli.lib.build.bundler import EsbuildBundlerManager
 from samcli.lib.utils.colors import Colored
@@ -133,6 +134,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @capabilities_option(default=DEFAULT_CAPABILITIES)  # pylint: disable=E1120
 @pass_context
 @track_command
+@track_long_event("SyncUsed", "Start", "SyncUsed", "End")
 @image_repository_validation
 @track_template_warnings([CodeDeployWarning.__name__, CodeDeployConditionWarning.__name__])
 @check_newer_version
@@ -240,6 +242,7 @@ def do_cli(
 
     build_dir = DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER if dependency_layer else DEFAULT_BUILD_DIR
     LOG.debug("Using build directory as %s", build_dir)
+    EventTracker.track_event("UsedFeature", "Accelerate")
 
     with BuildContext(
         resource_identifier=None,

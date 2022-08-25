@@ -11,6 +11,7 @@ import click
 
 from samcli.lib.build.bundler import EsbuildBundlerManager
 from samcli.lib.providers.sam_api_provider import SamApiProvider
+from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.utils.packagetype import IMAGE
 
 from samcli.commands._utils.template import get_template_data
@@ -265,6 +266,9 @@ class BuildContext:
                 modified_template = self._handle_build_post_processing(stack, modified_template, build_result)
 
                 move_template(stack.location, output_template_path, modified_template)
+
+            for f in self.get_resources_to_build().functions:
+                EventTracker.track_event("BuildFunctionRuntime", f.runtime)
 
             click.secho("\nBuild Succeeded", fg="green")
 

@@ -11,7 +11,7 @@ from samcli.commands._utils.experimental import (
     is_experimental_enabled,
     prompt_experimental,
     set_experimental,
-    get_enabled_experimental_flags
+    get_enabled_experimental_flags,
 )
 from samcli.lib.utils.colors import Colored
 
