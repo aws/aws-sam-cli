@@ -2,16 +2,17 @@
 CLI command for the "test_runner run" command
 """
 import logging
-from datetime import datetime
-from typing import Optional, List
+import sys
 from collections import OrderedDict
+from datetime import datetime
+from typing import List, Optional
 
 import click
 
 from samcli.cli.main import pass_context
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
-from ...exceptions import InvalidEnvironmentVariableException
 
+from samcli.commands.exceptions import InvalidEnvironmentVariableException
 
 LOG = logging.getLogger(__name__)
 
@@ -211,12 +212,13 @@ def do_cli(
         test_command_options=test_command_options,
     )
 
-    runner.do_testsuite()
+    exit_code = runner.do_testsuite()
+    # If tests fail, return non-zero exit code
+    sys.exit(exit_code)
 
 
 def _validate_other_env_vars(other_env_vars: dict, reserved_var_names: List[str]) -> None:
-    from samcli.commands.exceptions import InvalidEnvironmentVariableException
-    from samcli.commands.exceptions import ReservedEnvironmentVariableException
+    from samcli.commands.exceptions import InvalidEnvironmentVariableException, ReservedEnvironmentVariableException
 
     reserved_vars = []
     for key in other_env_vars.keys():
@@ -227,7 +229,6 @@ def _validate_other_env_vars(other_env_vars: dict, reserved_var_names: List[str]
         raise ReservedEnvironmentVariableException(
             f"The following are reserved environment variables, ensure they are not present in your environment variables file: {reserved_vars}"
         )
-
     for key, value in other_env_vars.items():
         if not str.isidentifier(key):
             raise InvalidEnvironmentVariableException(f"'{key}' is not a valid environment variable name.")

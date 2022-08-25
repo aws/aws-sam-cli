@@ -9,10 +9,11 @@ from pathlib import Path
 from typing import List, Optional
 
 from samcli.commands.deploy.exceptions import DeployFailedError
-from samcli.commands.exceptions import MissingTestRunnerTemplateException, InvalidTestRunnerTemplateException
+from samcli.commands.exceptions import InvalidTestRunnerTemplateException, MissingTestRunnerTemplateException
 from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.utils.boto_utils import BotoProviderType
 from samcli.lib.utils.colors import Colored
+from samcli.lib.utils.tar import create_tarball
 
 LOG = logging.getLogger(__name__)
 
@@ -123,17 +124,17 @@ class FargateTestsuiteRunner:
                 stack_name=self.runner_stack_name, stack_operation="UPDATE", disable_rollback=False
             )
         except DeployFailedError as deployment_exception:
-            # If there is no update, just ignore it.
-            if "No updates are to be performed" in str(deployment_exception):
-                LOG.info(
-                    self.color.yellow(
-                        f"=> There are no updates to be performed on the stack '{self.runner_stack_name}', proceeding with testsuite execution...\n",
-                    )
-                )
-            else:
+            # If there is no update, just ignore it, otherwise raise the exception
+            if "No updates are to be performed" not in str(deployment_exception):
                 raise DeployFailedError(
                     stack_name=self.runner_stack_name, msg=str(deployment_exception)
                 ) from deployment_exception
+
+            LOG.info(
+                self.color.yellow(
+                    f"=> There are no updates to be performed on the stack '{self.runner_stack_name}', proceeding with testsuite execution...\n",
+                )
+            )
 
     def _update_or_create_test_runner_stack(self):
         """
@@ -259,7 +260,7 @@ class FargateTestsuiteRunner:
         subnets = self.boto_ec2_client.describe_subnets().get("Subnets")
         return [subnet["SubnetId"] for subnet in subnets]
 
-    def _upload_tests_and_reqs(self, bucket: str, temp_tarfile_name: str = str(uuid.uuid4())) -> None:
+    def _upload_tests_and_reqs(self, bucket: str) -> None:
         """
         Compress and upload tests and requirements to an S3 Bucket for the Fargate container to pick up.
 
@@ -271,11 +272,6 @@ class FargateTestsuiteRunner:
             This is passed in because it is not known at the time of FargateTestsuiteRunner creation where the bucket name will come from.
             If a bucket override is not provided, the bucket contained in the Test Runner Stack must be used. The stack must be created/updated before this
             bucket can be fetched.
-
-        temp_tarfile_name : str
-            The name of the temporary tarball that the tests are compressed into. Once uploaded to the bucket, the tarball is removed.
-
-            Exists as a parameter for testing.
         """
         LOG.info(
             self.color.yellow(
@@ -286,21 +282,12 @@ class FargateTestsuiteRunner:
         # Compress tests into a temporary tarfile to send to S3 bucket
         # We set arcname to the stem of the tests_path to avoid including all the parent directories in the tarfile
         # E.g. If the customer specifies tests_path as a/b/c/tests, we want the tar to expand as tests, not a
-        with tarfile.open(temp_tarfile_name, "w:gz") as tar:
-            tar.add(self.tests_path, arcname=self.tests_path.stem)
-
-        # Upload compressed file to S3 bucket
-        try:
-            with open(temp_tarfile_name, "rb") as tests_tar:
-                self.boto_s3_client.put_object(
-                    Body=tests_tar,
-                    Bucket=bucket,
-                    Key=self.path_in_bucket.joinpath(Path(self.COMPRESSED_TESTS_FILE_NAME)).as_posix(),
-                )
-        finally:
-            # Remove the tarfile after the upload is complete
-            os.remove(temp_tarfile_name)
-
+        with create_tarball({self.tests_path: self.tests_path.stem}, mode="w:gz") as tests_tar:
+            self.boto_s3_client.put_object(
+                Body=tests_tar,
+                Bucket=bucket,
+                Key=self.path_in_bucket.joinpath(Path(self.COMPRESSED_TESTS_FILE_NAME)).as_posix(),
+            )
         LOG.info(
             self.color.yellow(
                 f"=> Uploading {self.requirements_file_path} to {Path(bucket).joinpath(self.path_in_bucket).as_posix()}\n"
@@ -320,7 +307,7 @@ class FargateTestsuiteRunner:
 
         LOG.info(self.color.green("✓ Tests and requirements sucessfully uploaded, kicking off testsuite...\n"))
 
-    def _download_results(self, bucket: str) -> None:
+    def _download_results(self, bucket: str, failed: bool) -> None:
         """
         Downloads test results from the bucket, as a tarball. The tarball is expanded, and removed after expansion.
 
@@ -332,6 +319,9 @@ class FargateTestsuiteRunner:
             This is passed in because it is not known at the time of FargateTestsuiteRunner creation where the bucket name will come from.
             If a bucket override is not provided, the bucket contained in the Test Runner Stack must be used. The stack must be created/updated before this
             bucket can be fetched.
+
+        failed : bool
+            Indicates whether or not the tests failed. This is used to colour the printed results red if failures occurred.
         """
         self.boto_s3_client.download_file(
             Bucket=bucket,
@@ -362,7 +352,34 @@ class FargateTestsuiteRunner:
         # E.g. Setting path-in-bucket to sample/path/run_01 => results will be in directory named run_01
         results_stdout_path = Path(self.path_in_bucket.stem).joinpath(self.RESULTS_STDOUT_FILE_NAME)
         results_stdout = Path.read_text(results_stdout_path)
-        LOG.info(self.color.yellow(results_stdout))
+        output_color = self.color.red if failed else self.color.green
+        LOG.info(output_color(results_stdout))
+
+    def _get_task_exit_code(self, task_arn: str, ecs_cluster: str) -> int:
+        """
+        Waits for the given task to stop, then returns its exit code.
+
+        Parameters
+        ----------
+        task_arn : str
+            The arn of the task from which the exit code is fetched
+
+        ecs_cluster : str
+            The cluster in which the task is located
+
+        Returns
+        -------
+        task_exit_code : int
+            The exit code of the specified task
+        """
+        waiter = self.boto_ecs_client.get_waiter("tasks_stopped")
+        waiter.wait(cluster=ecs_cluster, tasks=[task_arn])
+
+        response = self.boto_ecs_client.describe_tasks(cluster=ecs_cluster, tasks=[task_arn])
+
+        task_exit_code = response["tasks"][0]["containers"][0]["exitCode"]
+
+        return task_exit_code
 
     def _invoke_testsuite(
         self,
@@ -371,7 +388,7 @@ class FargateTestsuiteRunner:
         container_name: str,
         task_definition_arn: str,
         subnets: List[str],
-    ) -> None:
+    ) -> str:
 
         """
         Kicks off a testsuite by making a runTask query.
@@ -394,6 +411,11 @@ class FargateTestsuiteRunner:
         task_definition_arn : str
             The ARN of the task definition to run.
 
+        Returns
+        -------
+        taskArn : str
+            The ARN of the task created
+
         Raises
         ------
         botocore.ClientError
@@ -413,7 +435,7 @@ class FargateTestsuiteRunner:
 
         container_env_vars.update(self.other_env_vars)
 
-        self.boto_ecs_client.run_task(
+        response = self.boto_ecs_client.run_task(
             cluster=ecs_cluster,
             launchType="FARGATE",
             networkConfiguration={"awsvpcConfiguration": {"subnets": subnets, "assignPublicIp": "ENABLED"}},
@@ -437,11 +459,21 @@ class FargateTestsuiteRunner:
 
         LOG.info(self.color.green("✓ Testsuite complete!\n"))
 
-    def do_testsuite(self):
+        task_arn = response["tasks"][0]["containers"][0]["taskArn"]
+        return task_arn
+
+    def do_testsuite(self) -> int:
         """
         Runs a testsuite on Fargate.
         Tests and requirements are uploaded to an S3 bucket, which the Fargate container downlaods and runs.
         Results are uploaded to the same bucket, which the client downloads and prints to standard output.
+
+        Returns
+        -------
+        exit_code : int
+            The exit code of the test run. If there were test failures, this will be non-zero.
+
+            The purpose is to have the test run command exit with non zero in the event of test failures.
         """
 
         self._update_or_create_test_runner_stack()
@@ -458,11 +490,13 @@ class FargateTestsuiteRunner:
         subnets = self.subnets_override or self._get_subnets()
 
         self._upload_tests_and_reqs(bucket)
-        self._invoke_testsuite(
+        task_arn = self._invoke_testsuite(
             bucket=bucket,
             ecs_cluster=ecs_cluster,
             container_name=container_name,
             task_definition_arn=task_definition_arn,
             subnets=subnets,
         )
-        self._download_results(bucket)
+        exit_code = self._get_task_exit_code(task_arn, ecs_cluster)
+        self._download_results(bucket, failed=exit_code != 0)
+        return exit_code
