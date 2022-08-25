@@ -1,12 +1,12 @@
 import os
-import pytest
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
+import pytest
 from parameterized import parameterized
 
 from samcli.commands.exceptions import InvalidEnvironmentVariableException, ReservedEnvironmentVariableException
-from samcli.commands.test_runner.run.cli import _validate_other_env_vars, do_cli, _get_unique_bucket_directory_name
+from samcli.commands.test_runner.run.cli import _get_unique_bucket_directory_name, _validate_other_env_vars, do_cli
 from samcli.lib.test_runner.fargate_testsuite_runner import FargateTestsuiteRunner
 
 
@@ -107,7 +107,7 @@ class TestCli(TestCase):
 
             with pytest.raises(SystemExit) as pytest_wrapped_exit:
                 do_cli(**self.do_cli_params)
-                self.assertEqual(pytest_wrapped_exit.value.code,0)
+                self.assertEqual(pytest_wrapped_exit.value.code, 0)
 
             get_boto_client_provider_patch.assert_called_with(region="test-region", profile="test-profile")
             FargateTestsuiteRunnerPatch.assert_called_with(

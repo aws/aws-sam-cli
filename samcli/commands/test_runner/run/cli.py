@@ -2,18 +2,17 @@
 CLI command for the "test_runner run" command
 """
 import logging
-from datetime import datetime
-from typing import Optional, List
+import sys
 from collections import OrderedDict
+from datetime import datetime
+from typing import List, Optional
 
 import click
 
 from samcli.cli.main import pass_context
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
-from ...exceptions import InvalidEnvironmentVariableException
 
-import sys
-
+from samcli.commands.exceptions import InvalidEnvironmentVariableException
 
 LOG = logging.getLogger(__name__)
 
@@ -21,6 +20,7 @@ SHORT_HELP = "Run your testsuite on Fargate! Test results will automatically be 
 HELP_TEXT = """
 This command takes a Test Runner CloudFormation template, deploys it (updates if it already exists), and executes your testsuite on Fargate"
 """
+
 
 def _get_unique_bucket_directory_name() -> str:
     """
@@ -37,6 +37,7 @@ def _get_unique_bucket_directory_name() -> str:
     current_date = current_date.replace("-", "_").replace(":", "_")
 
     return f"test_run_{current_date}"
+
 
 @click.command("run", help=HELP_TEXT, short_help=SHORT_HELP)
 @click.option(
@@ -217,8 +218,7 @@ def do_cli(
 
 
 def _validate_other_env_vars(other_env_vars: dict, reserved_var_names: List[str]) -> None:
-    from samcli.commands.exceptions import InvalidEnvironmentVariableException
-    from samcli.commands.exceptions import ReservedEnvironmentVariableException
+    from samcli.commands.exceptions import InvalidEnvironmentVariableException, ReservedEnvironmentVariableException
 
     reserved_vars = []
     for key in other_env_vars.keys():

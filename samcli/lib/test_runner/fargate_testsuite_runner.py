@@ -9,12 +9,10 @@ from pathlib import Path
 from typing import List, Optional
 
 from samcli.commands.deploy.exceptions import DeployFailedError
-from samcli.commands.exceptions import MissingTestRunnerTemplateException, InvalidTestRunnerTemplateException
+from samcli.commands.exceptions import InvalidTestRunnerTemplateException, MissingTestRunnerTemplateException
 from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.utils.boto_utils import BotoProviderType
 from samcli.lib.utils.colors import Colored
-from samcli.lib.utils.tar import create_tarball
-
 from samcli.lib.utils.tar import create_tarball
 
 LOG = logging.getLogger(__name__)
@@ -284,7 +282,7 @@ class FargateTestsuiteRunner:
         # Compress tests into a temporary tarfile to send to S3 bucket
         # We set arcname to the stem of the tests_path to avoid including all the parent directories in the tarfile
         # E.g. If the customer specifies tests_path as a/b/c/tests, we want the tar to expand as tests, not a
-        with create_tarball({self.tests_path: self.tests_path.stem}, mode='w:gz') as tests_tar:
+        with create_tarball({self.tests_path: self.tests_path.stem}, mode="w:gz") as tests_tar:
             self.boto_s3_client.put_object(
                 Body=tests_tar,
                 Bucket=bucket,
