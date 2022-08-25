@@ -25,22 +25,6 @@ class ResourceType(Enum):
 
 class FargateRunnerCFNTemplateGenerator:
 
-    actions_map = {
-        ResourceType.LAMBDA_FUNCTION: ["lambda:InvokeFunction"],
-        ResourceType.DDB_TABLE: [
-            "dynamodb:GetItem",
-            "dynamodb:PutItem",
-        ],
-        ResourceType.STEPFUNCTION_SM: [
-            "stepfunction:StartExecution",
-            "stepfunction:StopExecution",
-        ],
-        ResourceType.S3_BUCKET: ["s3:PutObject", "s3:GetObject"],
-        ResourceType.SQS_QUEUE: ["sqs:SendMessage"],
-        ResourceType.APIGW_API: ["execute-api:Invoke"],
-        ResourceType.APIGW_REST_API: ["execute-api:Invoke"],
-    }
-
     TEST_RUNNER_TEMPLATE_STRING = """AWSTemplateFormatVersion: 2010-09-09
 Description: SAM Test Runner Stack, used to deploy and run tests using Fargate
 Resources:
@@ -139,13 +123,31 @@ Resources:
     def _indent_string(self, input_string: str, tabs: int) -> str:
         return "    " * tabs + input_string
 
-    def _get_resource_actions(self, resource_type: ResourceType) -> List[str]:
+    @staticmethod
+    def get_resource_actions(resource_type: ResourceType) -> List[str]:
         """
         Returns the list of default IAM actions corresponding to a given resource_type
         """
-        return self.actions_map.get(resource_type) or []
+        actions_map = {
+            ResourceType.LAMBDA_FUNCTION: ["lambda:InvokeFunction"],
+            ResourceType.DDB_TABLE: [
+                "dynamodb:GetItem",
+                "dynamodb:PutItem",
+            ],
+            ResourceType.STEPFUNCTION_SM: [
+                "stepfunction:StartExecution",
+                "stepfunction:StopExecution",
+            ],
+            ResourceType.S3_BUCKET: ["s3:PutObject", "s3:GetObject"],
+            ResourceType.SQS_QUEUE: ["sqs:SendMessage"],
+            ResourceType.APIGW_API: ["execute-api:Invoke"],
+            ResourceType.APIGW_REST_API: ["execute-api:Invoke"],
+        }
 
-    def _get_resource_type(self, resource_arn: str) -> Union[ResourceType, None]:
+        return actions_map.get(resource_type) or []
+
+    @staticmethod
+    def get_resource_type(resource_arn: str) -> Union[ResourceType, None]:
         """
         Determines the type of resource given that resource_arn.
 
@@ -207,12 +209,12 @@ Resources:
 
             `None` if the `resource_arn` corresponds to an IAM or STS resource.
         """
-        resource_type = self._get_resource_type(resource_arn)
+        resource_type = FargateRunnerCFNTemplateGenerator.get_resource_type(resource_arn)
         if resource_type == ResourceType.IAM:
             LOG.debug("ARN `%s` is for an IAM or STS resource, will not generate permissions.", resource_arn)
             return None
 
-        action_list = self._get_resource_actions(resource_type)
+        action_list = FargateRunnerCFNTemplateGenerator.get_resource_actions(resource_type)
 
         if action_list:
             LOG.debug("Matched ARN `%s` to IAM actions %s", resource_arn, action_list)
