@@ -36,6 +36,7 @@ class TestDoCli(TestCase):
             "container_env_var_file",
             (),
             (),
+            hook_package_id=None,
         )
 
         BuildContextMock.assert_called_with(
