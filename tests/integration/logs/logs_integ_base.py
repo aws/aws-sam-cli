@@ -25,7 +25,6 @@ class LogsIntegBase(TestCase):
         start_time: Optional[str] = None,
         end_time: Optional[str] = None,
         output: Optional[str] = None,
-        beta_features: bool = False,
     ):
         command_list = [get_sam_command(), "logs", "--stack-name", stack_name]
 
@@ -46,7 +45,5 @@ class LogsIntegBase(TestCase):
             command_list += ["--end-time", end_time]
         if output:
             command_list += ["--output", output]
-        if beta_features:
-            command_list += ["--beta-features"]
 
         return command_list

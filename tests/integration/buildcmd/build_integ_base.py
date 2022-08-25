@@ -78,6 +78,7 @@ class BuildIntegBase(TestCase):
         build_image=None,
         exclude=None,
         region=None,
+        beta_features=False,
     ):
 
         command_list = [self.cmd, "build"]
@@ -129,6 +130,9 @@ class BuildIntegBase(TestCase):
 
         if region:
             command_list += ["--region", region]
+
+        if beta_features:
+            command_list += ["--beta-features"]
 
         return command_list
 
@@ -770,7 +774,22 @@ class DedupBuildIntegBase(BuildIntegBase):
 
         build_dir_files = os.listdir(str(build_dir))
         self.assertIn("template.yaml", build_dir_files)
-        self.assertIn(function_logical_id, build_dir_files)
+
+        # confirm function logical id is in the built template
+        template_dict = {}
+        with open(Path(build_dir).joinpath("template.yaml"), "r") as template_file:
+            template_dict = yaml_parse(template_file.read())
+        self.assertIn(function_logical_id, template_dict.get("Resources", {}).keys())
+
+        # confirm build folder for the function exist in the build directory
+        built_folder = (
+            template_dict.get("Resources", {}).get(function_logical_id, {}).get("Properties", {}).get("CodeUri")
+        )
+        if not built_folder:
+            built_folder = (
+                template_dict.get("Resources", {}).get(function_logical_id, {}).get("Properties", {}).get("ContentUri")
+            )
+        self.assertIn(built_folder, build_dir_files)
 
     def _verify_process_code_and_output(self, command_result):
         self.assertEqual(command_result.process.returncode, 0)

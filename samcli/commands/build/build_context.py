@@ -10,7 +10,9 @@ from typing import Dict, Optional, List, Tuple, cast
 import click
 
 from samcli.commands._utils.experimental import ExperimentalFlag, prompt_experimental
+from samcli.lib.build.bundler import EsbuildBundlerManager
 from samcli.lib.providers.sam_api_provider import SamApiProvider
+from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.utils.packagetype import IMAGE
 
 from samcli.commands._utils.template import get_template_data
@@ -34,6 +36,7 @@ from samcli.lib.build.app_builder import (
     BuildError,
     UnsupportedBuilderLibraryVersionError,
     ContainerBuildNotSupported,
+    ApplicationBuildResult,
 )
 from samcli.commands._utils.options import DEFAULT_BUILD_DIR
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
@@ -245,6 +248,9 @@ class BuildContext:
         try:
             self._check_esbuild_warning()
             self._check_exclude_warning()
+
+            self._stacks = self._handle_build_pre_processing()
+
             build_result = builder.build()
             artifacts = build_result.artifacts
 
@@ -259,13 +265,12 @@ class BuildContext:
                 )
                 output_template_path = stack.get_output_template_path(self.build_dir)
 
-                if self._create_auto_dependency_layer:
-                    LOG.debug("Auto creating dependency layer for each function resource into a nested stack")
-                    nested_stack_manager = NestedStackManager(
-                        stack, self._stack_name, self.build_dir, modified_template, build_result
-                    )
-                    modified_template = nested_stack_manager.generate_auto_dependency_layer_stack()
+                modified_template = self._handle_build_post_processing(stack, modified_template, build_result)
+
                 move_template(stack.location, output_template_path, modified_template)
+
+            for f in self.get_resources_to_build().functions:
+                EventTracker.track_event("BuildFunctionRuntime", f.runtime)
 
             click.secho("\nBuild Succeeded", fg="green")
 
@@ -306,6 +311,39 @@ class BuildContext:
             deep_wrap = getattr(ex, "wrapped_from", None)
             wrapped_from = deep_wrap if deep_wrap else ex.__class__.__name__
             raise UserException(str(ex), wrapped_from=wrapped_from) from ex
+
+    def _handle_build_pre_processing(self) -> List[Stack]:
+        """
+        Pre-modify the stacks as required before invoking the build
+        :return: List of modified stacks
+        """
+        stacks = []
+        for stack in self.stacks:
+            stacks.append(EsbuildBundlerManager(stack=stack).set_sourcemap_metadata_from_env())
+        return stacks
+
+    def _handle_build_post_processing(self, stack: Stack, template: Dict, build_result: ApplicationBuildResult) -> Dict:
+        """
+        Add any template modifications necessary before moving the template to build directory
+        :param stack: Stack resources
+        :param template: Current template file
+        :param build_result: Result of the application build
+        :return: Modified template dict
+        """
+        modified_template = template
+        stack_name = self._stack_name if self._stack_name else ""
+        if self._create_auto_dependency_layer:
+            LOG.debug("Auto creating dependency layer for each function resource into a nested stack")
+            nested_stack_manager = NestedStackManager(
+                stack, stack_name, self.build_dir, modified_template, build_result
+            )
+            modified_template = nested_stack_manager.generate_auto_dependency_layer_stack()
+
+        modified_template = EsbuildBundlerManager(
+            stack=stack, template=modified_template
+        ).set_sourcemap_env_from_metadata()
+
+        return modified_template
 
     @staticmethod
     def gen_success_msg(artifacts_dir: str, output_template_path: str, is_default_build_dir: bool) -> str:
