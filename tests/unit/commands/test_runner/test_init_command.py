@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
@@ -6,6 +7,8 @@ import botocore.exceptions
 
 from samcli.commands.exceptions import NoResourcesMatchGivenTagException
 from samcli.commands.test_runner.init.cli import do_cli, query_tagging_api
+
+from samcli.yamlhelper import parse_yaml_file
 
 
 class TestCli(TestCase):
@@ -40,6 +43,7 @@ class TestCli(TestCase):
                 template_name=self.TEST_TEMPLATE_NAME,
                 env_file=self.TEST_ENV_FILE_NAME,
                 image_uri="test_image_uri",
+                allow_iam=False,
                 runtime="python3.8",
             )
             self.assertTrue(os.path.exists(self.TEST_TEMPLATE_NAME))
@@ -56,6 +60,7 @@ class TestCli(TestCase):
                 template_name=self.TEST_TEMPLATE_NAME,
                 env_file=self.TEST_ENV_FILE_NAME,
                 image_uri="test_image_uri",
+                allow_iam=False,
                 runtime="python3.8",
             )
         self.assertFalse(os.path.exists(self.TEST_TEMPLATE_NAME))
@@ -76,6 +81,7 @@ class TestCli(TestCase):
                 template_name=self.TEST_TEMPLATE_NAME,
                 env_file=self.TEST_ENV_FILE_NAME,
                 image_uri="test_image_uri",
+                allow_iam=False,
                 runtime="python3.8",
             )
 
@@ -102,6 +108,7 @@ class TestCli(TestCase):
                 template_name=self.TEST_TEMPLATE_NAME,
                 env_file=self.TEST_ENV_FILE_NAME,
                 image_uri="test_image_uri",
+                allow_iam=False,
                 runtime="python3.8",
             )
 
@@ -123,10 +130,53 @@ class TestCli(TestCase):
                 template_name=self.TEST_TEMPLATE_NAME,
                 env_file=self.TEST_ENV_FILE_NAME,
                 image_uri="test_image_uri",
+                allow_iam=False,
                 runtime="python3.8",
             )
             self.assertTrue(os.path.exists(self.TEST_TEMPLATE_NAME))
             self.assertTrue(os.path.exists(self.TEST_ENV_FILE_NAME))
+
+            parsed_yaml = parse_yaml_file(self.TEST_TEMPLATE_NAME)
+            policy_document = parsed_yaml["Resources"]["ContainerIAMRole"]["Properties"]["Policies"][0][
+                "PolicyDocument"
+            ]
+            # The first statement is always for Bucket access, any following statements are for customer resources
+            action_list = policy_document["Statement"][1]["Action"]
+            # We shouldn't have any actions show up in the parsed yaml, as they are commented out
+            self.assertIsNone(action_list)
+        finally:
+            os.remove(self.TEST_TEMPLATE_NAME)
+            os.remove(self.TEST_ENV_FILE_NAME)
+
+    @patch("samcli.commands.test_runner.init.cli.query_tagging_api")
+    @patch("samcli.lib.utils.boto_utils.get_boto_client_provider_with_config")
+    def test_valid_tagging_api_response_with_allow_iam(self, boto_client_provider_patch, query_tagging_api_patch):
+        mock_ctx = Mock()
+        mock_ctx.region = "test-region"
+        mock_ctx.profile = "test-profile"
+        boto_client_provider_patch.return_value = None
+        query_tagging_api_patch.return_value = ["arn:aws:lambda:us-east-1:123456789123:function:valid-lambda-arn"]
+
+        try:
+            do_cli(
+                ctx=mock_ctx,
+                tags={"Key": "Value"},
+                template_name=self.TEST_TEMPLATE_NAME,
+                env_file=self.TEST_ENV_FILE_NAME,
+                image_uri="test_image_uri",
+                allow_iam=True,
+                runtime="python3.8",
+            )
+            self.assertTrue(os.path.exists(self.TEST_TEMPLATE_NAME))
+            self.assertTrue(os.path.exists(self.TEST_ENV_FILE_NAME))
+
+            parsed_yaml = parse_yaml_file(self.TEST_TEMPLATE_NAME)
+            policy_document = parsed_yaml["Resources"]["ContainerIAMRole"]["Properties"]["Policies"][0][
+                "PolicyDocument"
+            ]
+            # The first statement is always for Bucket access, any following statements are for customer resources
+            action_list = policy_document["Statement"][1]["Action"]
+            self.assertTrue(action_list)
         finally:
             os.remove(self.TEST_TEMPLATE_NAME)
             os.remove(self.TEST_ENV_FILE_NAME)

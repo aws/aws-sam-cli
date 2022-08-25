@@ -181,7 +181,7 @@ Resources:
             if re.search(arn_regex, resource_arn) is not None:
                 return resource_type
 
-    def _create_iam_statement_string(self, resource_arn: str) -> Union[str, None]:
+    def _create_iam_statement_string(self, resource_arn: str, allow_iam: bool) -> Union[str, None]:
         """
         Returns an IAM Statement in the form of a YAML string corresponding to the supplied resource ARN.
 
@@ -195,6 +195,10 @@ Resources:
         ----------
         resource_arn : str
             The arn of the resource for which the IAM statement is generated.
+
+        allow_iam : bool
+            If False, IAM actions are generated "commented out", with a '#' in front of the action.
+            Else, IAM actions will NOT be commented out when generated.
 
         Returns
         -------
@@ -218,7 +222,11 @@ Resources:
 
         new_statement = self._indent_string("  - Effect: Allow\n", 6) + self._indent_string("Action:\n", 7)
         for action in action_list:
-            new_statement += self._indent_string(f"   # - {action}\n", 7)
+            new_statement += (
+                self._indent_string(f"   - {action}\n", 7)
+                if allow_iam
+                else self._indent_string(f"   # - {action}\n", 7)
+            )
 
         # APIGW API IAM Statements:
         # https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-control-access-using-iam-policies-to-invoke-api.html
@@ -235,7 +243,7 @@ Resources:
         """
         return "test-runner-bucket-" + str(uuid.uuid4())
 
-    def generate_test_runner_template_string(self, image_uri: str) -> Union[dict, None]:
+    def generate_test_runner_template_string(self, image_uri: str, allow_iam: bool = False) -> Union[dict, None]:
         """
         Creates a CloudFormation (YAML) Template string to create the Test Runner Stack.
 
@@ -244,6 +252,11 @@ Resources:
 
         image_uri : str
             The URI of the Image to be used by the Test Runner Fargate task definition.
+
+        allow_iam : bool
+            If False, IAM actions are generated "commented out", with a '#' in front of the action.
+            Else, IAM actions will NOT be commented out when generated.
+
 
         Returns
         -------
@@ -256,7 +269,7 @@ Resources:
         if self.resource_arn_list:
             statements_list = []
             for arn in self.resource_arn_list:
-                statement = self._create_iam_statement_string(arn)
+                statement = self._create_iam_statement_string(arn, allow_iam)
                 if statement:
                     statements_list.append(statement)
             # Compile all the statements into a single string
