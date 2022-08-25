@@ -142,7 +142,7 @@ def do_cli(
 
 def _create_arn_map_file(env_file: str, resource_arn_list: List[str]) -> None:
     from samcli.lib.test_runner.generate_env_vars import FargateRunnerArnMapGenerator
-    from samcli.lib.test_runner.invoke_testsuite import FargateTestsuiteRunner
+    from samcli.lib.test_runner.fargate_testsuite_runner import FargateTestsuiteRunner
 
     arn_map_generator = FargateRunnerArnMapGenerator()
     resource_arn_map_yaml_string = arn_map_generator.generate_env_vars_yaml_string(resource_arn_list)
