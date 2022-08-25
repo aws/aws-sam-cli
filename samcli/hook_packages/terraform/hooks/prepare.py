@@ -21,7 +21,7 @@ from samcli.lib.utils.resources import (
 LOG = logging.getLogger(__name__)
 
 TF_AWS_LAMBDA_FUNCTION = "aws_lambda_function"
-PROVIDER_NAME = "registry.terraform.io/hashicorp/aws"
+AWS_PROVIDER_NAME = "registry.terraform.io/hashicorp/aws"
 
 # max logical id len is 255
 LOGICAL_ID_HASH_LEN = 8
@@ -52,9 +52,20 @@ def prepare(params: dict) -> dict:
         information of the generated metadata files
     """
     output_dir_path = params.get("OutputDirPath")
+
     terraform_application_dir = params.get("IACProjectPath", os.getcwd())
     if not output_dir_path:
         raise PrepareHookException("OutputDirPath was not supplied")
+
+    LOG.debug("Normalize the project root directory path %s", terraform_application_dir)
+    if not os.path.isabs(terraform_application_dir):
+        terraform_application_dir = os.path.normpath(os.path.join(os.getcwd(), terraform_application_dir))
+        LOG.debug("The normalized project root directory path %s", terraform_application_dir)
+
+    LOG.debug("Normalize the OutputDirPath %s", output_dir_path)
+    if not os.path.isabs(output_dir_path):
+        output_dir_path = os.path.normpath(os.path.join(terraform_application_dir, output_dir_path))
+        LOG.debug("The normalized OutputDirPath value is %s", output_dir_path)
 
     try:
         # initialize terraform application
@@ -81,7 +92,7 @@ def prepare(params: dict) -> dict:
 
         # convert terraform to cloudformation
         LOG.info("Generating metadata file")
-        cfn_dict = _translate_to_cfn(tf_json)
+        cfn_dict = _translate_to_cfn(tf_json, output_dir_path, terraform_application_dir)
 
         if cfn_dict.get("Resources"):
             _update_resources_paths(cfn_dict.get("Resources"), terraform_application_dir)  # type: ignore
@@ -132,7 +143,7 @@ def _update_resources_paths(cfn_resources: Dict[str, Any], terraform_application
                     resource["Properties"][attribute] = str(Path(terraform_application_dir).joinpath(original_path))
 
 
-def _translate_to_cfn(tf_json: dict) -> dict:
+def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_application_dir: str) -> dict:
     """
     Translates the json output of a terraform show into CloudFormation
 
@@ -140,6 +151,10 @@ def _translate_to_cfn(tf_json: dict) -> dict:
     ----------
     tf_json: dict
         A terraform show json output
+    output_directory_path: str
+        the string path to write the metadata file and makefile
+    terraform_application_dir: str
+        the terraform project root directory
 
     Returns
     -------
@@ -174,7 +189,7 @@ def _translate_to_cfn(tf_json: dict) -> dict:
             resource_address = resource.get("address")
 
             # only process supported provider
-            if resource_provider != PROVIDER_NAME:
+            if resource_provider != AWS_PROVIDER_NAME:
                 continue
 
             # store S3 sources

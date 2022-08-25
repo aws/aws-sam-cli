@@ -7,7 +7,7 @@ from parameterized import parameterized
 
 from samcli.hook_packages.terraform.hooks.prepare import (
     AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING,
-    PROVIDER_NAME,
+    AWS_PROVIDER_NAME,
     prepare,
     _get_s3_object_hash,
     _build_cfn_logical_id,
@@ -199,7 +199,7 @@ class TestPrepareHook(TestCase):
 
         self.tf_lambda_function_resource_common_attributes: dict = {
             "type": "aws_lambda_function",
-            "provider_name": PROVIDER_NAME,
+            "provider_name": AWS_PROVIDER_NAME,
         }
 
         self.tf_lambda_function_resource_zip: dict = {
@@ -296,7 +296,7 @@ class TestPrepareHook(TestCase):
 
         self.tf_s3_object_resource_common_attributes: dict = {
             "type": "aws_s3_object",
-            "provider_name": PROVIDER_NAME,
+            "provider_name": AWS_PROVIDER_NAME,
         }
 
         self.tf_s3_object_resource: dict = {
@@ -696,37 +696,41 @@ class TestPrepareHook(TestCase):
         ]
 
         for tf_json in tf_jsons:
-            translated_cfn_dict = _translate_to_cfn(tf_json)
+            translated_cfn_dict = _translate_to_cfn(tf_json, "/output/dir", "/project/root")
             self.assertEqual(translated_cfn_dict, expected_empty_cfn_dict)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
     def test_translate_to_cfn_with_root_module_only(self, checksum_mock):
         checksum_mock.return_value = self.mock_logical_id_hash
-        translated_cfn_dict = _translate_to_cfn(self.tf_json_with_root_module_only)
+        translated_cfn_dict = _translate_to_cfn(self.tf_json_with_root_module_only, "/output/dir", "/project/root")
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_root_module_only)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
     def test_translate_to_cfn_with_child_modules(self, checksum_mock):
         checksum_mock.return_value = self.mock_logical_id_hash
-        translated_cfn_dict = _translate_to_cfn(self.tf_json_with_child_modules)
+        translated_cfn_dict = _translate_to_cfn(self.tf_json_with_child_modules, "/output/dir", "/project/root")
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_child_modules)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
     def test_translate_to_cfn_with_unsupported_provider(self, checksum_mock):
         checksum_mock.return_value = self.mock_logical_id_hash
-        translated_cfn_dict = _translate_to_cfn(self.tf_json_with_unsupported_provider)
+        translated_cfn_dict = _translate_to_cfn(self.tf_json_with_unsupported_provider, "/output/dir", "/project/root")
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_unsupported_provider)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
     def test_translate_to_cfn_with_unsupported_resource_type(self, checksum_mock):
         checksum_mock.return_value = self.mock_logical_id_hash
-        translated_cfn_dict = _translate_to_cfn(self.tf_json_with_unsupported_resource_type)
+        translated_cfn_dict = _translate_to_cfn(
+            self.tf_json_with_unsupported_resource_type, "/output/dir", "/project/root"
+        )
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_unsupported_resource_type)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
     def test_translate_to_cfn_with_mapping_s3_source_to_function(self, checksum_mock):
         checksum_mock.return_value = self.mock_logical_id_hash
-        translated_cfn_dict = _translate_to_cfn(self.tf_json_with_child_modules_and_s3_source_mapping)
+        translated_cfn_dict = _translate_to_cfn(
+            self.tf_json_with_child_modules_and_s3_source_mapping, "/output/dir", "/project/root"
+        )
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_child_modules_and_s3_source_mapping)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare._update_resources_paths")
@@ -753,6 +757,12 @@ class TestPrepareHook(TestCase):
         mock_metadata_file = Mock()
         mock_cfn_dict_resources = Mock()
         mock_cfn_dict.get.return_value = mock_cfn_dict_resources
+
+        mock_path = Mock()
+        mock_isabs = Mock()
+        mock_path.isabs = mock_isabs
+        mock_os.path = mock_path
+        mock_isabs.return_value = True
 
         named_temporary_file_mock.return_value.__enter__.return_value.name = tf_plan_filename
         mock_json.loads.return_value = self.tf_json_with_child_modules_and_s3_source_mapping
@@ -781,9 +791,93 @@ class TestPrepareHook(TestCase):
                 ),
             ]
         )
-        mock_translate_to_cfn.assert_called_once_with(self.tf_json_with_child_modules_and_s3_source_mapping)
+        mock_translate_to_cfn.assert_called_once_with(
+            self.tf_json_with_child_modules_and_s3_source_mapping, output_dir_path, "iac/project/path"
+        )
         mock_json.dump.assert_called_once_with(mock_cfn_dict, mock_metadata_file)
         mock_update_resources_paths.assert_called_once_with(mock_cfn_dict_resources, "iac/project/path")
+        self.assertEqual(expected_prepare_output_dict, iac_prepare_output)
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare._update_resources_paths")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._translate_to_cfn")
+    @patch("builtins.open")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.osutils.tempfile_platform_independent")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.os")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.json")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.run")
+    def test_prepare_with_relative_paths(
+        self,
+        mock_subprocess_run,
+        mock_json,
+        mock_os,
+        named_temporary_file_mock,
+        mock_open,
+        mock_translate_to_cfn,
+        mock_update_resources_paths,
+    ):
+        tf_plan_filename = "tf_plan"
+        output_dir_path = self.prepare_params.get("OutputDirPath")
+        metadata_file_path = f"/current/dir/iac/project/path/{output_dir_path}/template.json"
+        mock_cfn_dict = Mock()
+        mock_metadata_file = Mock()
+        mock_cfn_dict_resources = Mock()
+        mock_cfn_dict.get.return_value = mock_cfn_dict_resources
+
+        mock_os.getcwd.return_value = "/current/dir"
+
+        mock_path = Mock()
+        mock_isabs = Mock()
+        mock_normpath = Mock()
+        mock_join = Mock()
+        mock_path.isabs = mock_isabs
+        mock_path.normpath = mock_normpath
+        mock_path.join = mock_join
+        mock_os.path = mock_path
+        mock_isabs.return_value = False
+        mock_join.side_effect = [
+            "/current/dir/iac/project/path",
+            f"/current/dir/iac/project/path/{output_dir_path}",
+            f"/current/dir/iac/project/path/{output_dir_path}/template.json",
+        ]
+        mock_normpath.side_effect = [
+            "/current/dir/iac/project/path",
+            f"/current/dir/iac/project/path/{output_dir_path}",
+        ]
+
+        named_temporary_file_mock.return_value.__enter__.return_value.name = tf_plan_filename
+        mock_json.loads.return_value = self.tf_json_with_child_modules_and_s3_source_mapping
+        mock_translate_to_cfn.return_value = mock_cfn_dict
+        mock_os.path.exists.return_value = True
+        mock_os.path.join.return_value = metadata_file_path
+        mock_open.return_value.__enter__.return_value = mock_metadata_file
+
+        expected_prepare_output_dict = {"iac_applications": {"MainApplication": {"metadata_file": metadata_file_path}}}
+        iac_prepare_output = prepare(self.prepare_params)
+
+        mock_subprocess_run.assert_has_calls(
+            [
+                call(["terraform", "init"], check=True, capture_output=True, cwd="/current/dir/iac/project/path"),
+                call(
+                    ["terraform", "plan", "-out", tf_plan_filename],
+                    check=True,
+                    capture_output=True,
+                    cwd="/current/dir/iac/project/path",
+                ),
+                call(
+                    ["terraform", "show", "-json", tf_plan_filename],
+                    check=True,
+                    capture_output=True,
+                    cwd="/current/dir/iac/project/path",
+                ),
+            ]
+        )
+        mock_translate_to_cfn.assert_called_once_with(
+            self.tf_json_with_child_modules_and_s3_source_mapping,
+            f"/current/dir/iac/project/path/{output_dir_path}",
+            "/current/dir/iac/project/path",
+        )
+        mock_json.dump.assert_called_once_with(mock_cfn_dict, mock_metadata_file)
+        mock_update_resources_paths.assert_called_once_with(mock_cfn_dict_resources, "/current/dir/iac/project/path")
         self.assertEqual(expected_prepare_output_dict, iac_prepare_output)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.run")
