@@ -104,10 +104,11 @@ class ReservedEnvironmentVariableException(UserException):
     """
 
 
-class InvalidEnvironmentVariableNameException(UserException):
+class InvalidEnvironmentVariableException(UserException):
     """
-    Exception class when the user attempts to specify environment variables that have invalid
-    identifier names in the ARN map file passed to `sam test-runner run`
+    Exception class when the user attempts to specify invalid environment variable names or values in the
+    ARN map YAML file passed to `sam test-runner run`. For example, a key that is not a valid identifier,
+    a value that is None, or not a string, int, or float.
     """
 
 
@@ -120,4 +121,18 @@ class NoResourcesMatchGivenTagException(UserException):
 class FailedArnParseException(UserException):
     """
     Exception class when `sam test-runner init` fails to extract a resource name/id from an ARN.
+    """
+
+
+class InvalidTestRunnerTemplateException(UserException):
+    """
+    Exception raised when the customer passes a Test Runner CFN template to `sam test-runner run`
+    that has key resources duplicated or missing.
+    """
+
+
+class MissingTestRunnerTemplateException(UserException):
+    """
+    Exception raised when the customer attempts to run a testsuite with a Test Runner stack name that does not exist,
+    and does not provide a template to create it during `sam test-runner run`
     """

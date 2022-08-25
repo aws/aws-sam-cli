@@ -680,6 +680,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "default",
                 False,
                 True,
+                "ROLLBACK",
             )
 
     @patch("samcli.commands.deploy.command.do_cli")
@@ -797,6 +798,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "default",
                 False,
                 True,
+                "ROLLBACK",
             )
 
     @patch("samcli.commands._utils.experimental.is_experimental_enabled")

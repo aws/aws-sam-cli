@@ -52,7 +52,7 @@ COLOR = Colored()
 @click.option(
     "--tags",
     cls=OptionNargs,
-    type=CfnTags(),
+    type=CfnTags(multiple_values_per_key=True),
     required=False,
     help="A list of tags used to discover resources. "
     "Discovered resources will have IAM statement templates generated within the Test Runner CloudFormation Template, "
@@ -83,6 +83,17 @@ Specify the name of the generated resource-ARN map YAML file. This file can be p
     default="python3.8",
 )
 @click.option(
+    "--allow-iam",
+    required=False,
+    is_flag=True,
+    # TODO: Link to a table or something showing WHICH resources get which actions generated.
+    help=f"""
+IAM statements with basic actions will be written for each of your resources associated with the supplied tag.
+
+With this option enabled, actions will be enabled by default, instead of being commented out. Make sure you are aware of which actions are being granted.
+""",
+)
+@click.option(
     "--image-uri",
     required=True,
     type=str,
@@ -95,6 +106,7 @@ def cli(
     template_name: str,
     env_file: str,
     runtime: str,
+    allow_iam: bool,
     image_uri: str,
 ) -> None:
     """
@@ -107,6 +119,7 @@ def cli(
         template_name=template_name,
         env_file=env_file,
         runtime=runtime,
+        allow_iam=allow_iam,
         image_uri=image_uri,
     )
 
@@ -117,6 +130,7 @@ def do_cli(
     template_name: str,
     env_file: str,
     runtime: str,
+    allow_iam: bool,
     image_uri: str,
 ) -> None:
     """
@@ -132,7 +146,9 @@ def do_cli(
     if not tags:
         # If no tags were provided we cannot pass resource ARNs to the template generator to generate IAM statements
         # We also cannot generate a resource ARN map
-        _create_test_runner_template(image_uri=image_uri, template_name=template_name, resource_arn_list=[])
+        _create_test_runner_template(
+            image_uri=image_uri, template_name=template_name, resource_arn_list=[], allow_iam=allow_iam
+        )
         LOG.info(
             COLOR.yellow(
                 "No tags were provided, so a resource-ARN map was not created. You can still specify and send environment variables to the Fargate container running your tests by "
@@ -149,13 +165,13 @@ def do_cli(
             f"Given tags {tags} do not match any resources, were they entered incorrectly?"
         )
 
-    _create_test_runner_template(image_uri, template_name, resource_arn_list)
+    _create_test_runner_template(image_uri, template_name, resource_arn_list, allow_iam)
     _create_arn_map_file(env_file, resource_arn_list)
 
 
 def _create_arn_map_file(env_file: str, resource_arn_list: List[str]) -> None:
     from samcli.lib.test_runner.generate_env_vars import FargateRunnerArnMapGenerator
-    from samcli.lib.test_runner.invoke_testsuite import FargateTestsuiteRunner
+    from samcli.lib.test_runner.fargate_testsuite_runner import FargateTestsuiteRunner
 
     arn_map_generator = FargateRunnerArnMapGenerator()
     resource_arn_map_yaml_string = arn_map_generator.generate_env_vars_yaml_string(resource_arn_list)
@@ -172,28 +188,39 @@ def _create_arn_map_file(env_file: str, resource_arn_list: List[str]) -> None:
     )
 
 
-def _create_test_runner_template(image_uri: str, template_name: str, resource_arn_list: List[str]) -> None:
+def _create_test_runner_template(
+    image_uri: str, template_name: str, resource_arn_list: List[str], allow_iam: bool
+) -> None:
     from samcli.lib.test_runner.test_runner_template_generator import FargateRunnerCFNTemplateGenerator
 
     template_generator = FargateRunnerCFNTemplateGenerator(resource_arn_list)
-    test_runner_cfn_contents = template_generator.generate_test_runner_template_string(image_uri)
+    test_runner_cfn_contents = template_generator.generate_test_runner_template_string(image_uri, allow_iam)
     _write_file(template_name, test_runner_cfn_contents)
     LOG.info(
         COLOR.green(f"\n✓ Successfully generated a Test Runner CloudFormation Template named `{template_name}`!\n")
     )
-
+    
     # Not only check if the resource_arn_list is not empty, but also that it actually contains resources for which we generate IAM statements
     if resource_arn_list and _contains_supported_resources(resource_arn_list):
 
         _print_iam_actions_table(row_color="yellow", arn_list=resource_arn_list)
 
-        # Only print this hint if resources were discovered and statements were generated.
+        # Only print if allow_iam is not set
+        if not allow_iam:
+            LOG.info(
+                COLOR.yellow(
+                    "Make sure to enable any necessary auto generated IAM actions for your resources, by removing the `#` in front of the action. For example:\n\n"
+                    "         [DISABLED]                    [ENABLED]\n"
+                    "# - lambda:InvokeFunction  >>  - lambda:InvokeFunction\n\n"
+                    "Make any other changes you wish, and when you're ready to run your tests, use `sam test-runner run.`\n"
+                )
+            )
+
+    if allow_iam:
         LOG.info(
-            COLOR.yellow(
-                "Make sure to enable any necessary auto generated IAM actions for your resources, by removing the `#` in front of the action. For example:\n\n"
-                "         [DISABLED]                    [ENABLED]\n"
-                "# - lambda:InvokeFunction  >>  - lambda:InvokeFunction\n\n"
-                "Make any other changes you wish, and when you're ready to run your tests, use `sam test-runner run.`\n"
+            COLOR.red(
+                "! NOTE: You have set the --allow-iam flag. This means that generated IAM statements will contain enabled (not commented out) basic actions for some of your resources."
+                " Make sure you are aware of what permissions you are granting to the Fargate container.\n"
             )
         )
 
@@ -242,7 +269,7 @@ def query_tagging_api(tags: dict, boto_client_provider: BotoProviderType) -> Uni
     """
     # Convert tag format into one that the API accepts
     # NOTE: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/resourcegroupstaggingapi.html#ResourceGroupsTaggingAPI.Client.get_resources
-    tag_filters = [{"Key": k, "Values": [v]} for k, v in tags.items()]
+    tag_filters = [{"Key": k, "Values": v_list} for k, v_list in tags.items()]
     resource_tag_mapping_list = (
         boto_client_provider("resourcegroupstaggingapi")
         .get_resources(TagFilters=tag_filters)

@@ -83,7 +83,7 @@ class TestTracesCommand(TracesIntegBase):
         LOG.info("Invoking function %s", function_name)
         lambda_invoke_result = self.lambda_client.invoke(FunctionName=function_id)
         LOG.info("Lambda invoke result %s", lambda_invoke_result)
-        cmd_list = self.get_traces_command_list(beta_features=True)
+        cmd_list = self.get_traces_command_list()
         self._check_traces(cmd_list, expected_trace_output)
 
     @parameterized.expand([("ApiGwFunction",), ("SfnFunction",)])
@@ -111,7 +111,7 @@ class TestTracesCommand(TracesIntegBase):
         trace_id = trace_summaries[0].get("Id")
         LOG.info("Trace id: %s", trace_id)
 
-        cmd_list = self.get_traces_command_list(trace_id=trace_id, beta_features=True)
+        cmd_list = self.get_traces_command_list(trace_id=trace_id)
         self._check_traces(cmd_list, expected_trace_output, has_service_graph=False)
 
     @parameterized.expand([("ApiGwFunction",), ("SfnFunction",)])
@@ -124,7 +124,7 @@ class TestTracesCommand(TracesIntegBase):
         lambda_invoke_result = self.lambda_client.invoke(FunctionName=function_id)
         LOG.info("Lambda invoke result %s", lambda_invoke_result)
 
-        cmd_list = self.get_traces_command_list(start_time=str(start_time), beta_features=True)
+        cmd_list = self.get_traces_command_list(start_time=str(start_time))
         self._check_traces(cmd_list, expected_trace_output)
 
     @parameterized.expand([("ApiGwFunction",), ("SfnFunction",)])
@@ -137,7 +137,7 @@ class TestTracesCommand(TracesIntegBase):
         LOG.info("Lambda invoke result %s", lambda_invoke_result)
         end_time = datetime.utcnow()
 
-        cmd_list = self.get_traces_command_list(end_time=str(end_time), beta_features=True)
+        cmd_list = self.get_traces_command_list(end_time=str(end_time))
         self._check_traces(cmd_list, expected_trace_output)
 
     @parameterized.expand([("ApiGwFunction",), ("SfnFunction",)])
@@ -149,7 +149,7 @@ class TestTracesCommand(TracesIntegBase):
         lambda_invoke_result = self.lambda_client.invoke(FunctionName=function_id)
         LOG.info("Lambda invoke result %s", lambda_invoke_result)
 
-        cmd_list = self.get_traces_command_list(tail=True, beta_features=True)
+        cmd_list = self.get_traces_command_list(tail=True)
         tail_process = start_persistent_process(cmd_list)
 
         def _check_traces(output: str, _: List[str]) -> bool:
@@ -171,7 +171,7 @@ class TestTracesCommand(TracesIntegBase):
         lambda_invoke_result = self.lambda_client.invoke(FunctionName=function_id)
         LOG.info("Lambda invoke result %s", lambda_invoke_result)
 
-        cmd_list = self.get_traces_command_list(output=output, beta_features=True)
+        cmd_list = self.get_traces_command_list(output=output)
         output_check = OutputOption.json if output == OutputOption.json.name else OutputOption.text
         self._check_traces(cmd_list, expected_trace_output, output=output_check)
 

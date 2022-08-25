@@ -2,10 +2,12 @@ import json
 import os.path
 from unittest import skipIf
 
-from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION
+from samcli.commands._utils.experimental import set_experimental, ExperimentalFlag
+from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION, AWS_LAMBDA_LAYERVERSION
+from tests.integration.sync.sync_integ_base import SyncIntegBase
 from tests.integration.sync.test_sync_code import TestSyncCodeBase, SKIP_SYNC_TESTS, TestSyncCode
 from tests.integration.sync.test_sync_watch import TestSyncWatchBase
-from tests.testing_utils import run_command_with_input, read_until_string
+from tests.testing_utils import run_command_with_input, read_until_string, IS_WINDOWS
 
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
@@ -105,7 +107,7 @@ class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
         self.assertIn("extra_message", lambda_response)
 
 
-@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@skipIf(SKIP_SYNC_TESTS or IS_WINDOWS, "Skip sync tests in CI/CD only")
 class TestSyncAdlWithWatchStartWithNoDependencies(TestSyncWatchBase):
     @classmethod
     def setUpClass(cls):
@@ -166,3 +168,42 @@ class TestSyncAdlWithWatchStartWithNoDependencies(TestSyncWatchBase):
             self.assertIn("extra_message", lambda_response)
 
         self._confirm_lambda_response(self._get_lambda_response(lambda_functions[0]), _verify_lambda_response)
+
+
+@skipIf(SKIP_SYNC_TESTS or IS_WINDOWS, "Skip sync tests in CI/CD only")
+class TestDisableAdlForEsbuildFunctions(SyncIntegBase):
+    template_file = "code/before/template-esbuild.yaml"
+    dependency_layer = True
+
+    def test_sync_esbuild(self):
+        set_experimental(ExperimentalFlag.Esbuild)
+
+        template_path = str(self.test_data_path.joinpath(self.template_file))
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        sync_command_list = self.get_sync_command_list(
+            template_file=template_path,
+            code=False,
+            watch=False,
+            dependency_layer=self.dependency_layer,
+            stack_name=stack_name,
+            parameter_overrides="Parameter=Clarity",
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            capabilities_list=["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+        self.assertIn("Sync infra completed.", str(sync_process_execute.stderr))
+
+        self.stack_resources = self._get_stacks(stack_name)
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertEqual(lambda_response.get("message"), "hello world")
+
+        layers = self.stack_resources.get(AWS_LAMBDA_LAYERVERSION)
+        self.assertIsNone(layers)

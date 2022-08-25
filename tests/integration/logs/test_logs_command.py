@@ -120,7 +120,7 @@ class LogsIntegTestCases(LogsIntegBase):
         apigw_url = f"{self._get_output_value(apigw_name_from_output)}{path}"
         apigw_result = requests.get(apigw_url)
         LOG.info("APIGW result %s", apigw_result)
-        cmd_list = self.get_logs_command_list(self.stack_name, name=apigw_name, beta_features=True)
+        cmd_list = self.get_logs_command_list(self.stack_name, name=apigw_name)
         self._check_logs(cmd_list, [f"HTTP Method: GET, Resource Path: /{path}"])
 
     def _test_sfn_logs(self, state_machine_name):
@@ -128,7 +128,7 @@ class LogsIntegTestCases(LogsIntegBase):
         sfn_invoke_result = self.sfn_client.start_execution(stateMachineArn=sfn_physical_id)
         execution_arn = sfn_invoke_result.get("executionArn", "")
         LOG.info("SFN invoke result %s", sfn_invoke_result)
-        cmd_list = self.get_logs_command_list(self.stack_name, name=state_machine_name, beta_features=True)
+        cmd_list = self.get_logs_command_list(self.stack_name, name=state_machine_name)
         self._check_logs(cmd_list, [execution_arn])
 
     def _test_end_to_end_apigw(self, apigw_name, path):
@@ -137,7 +137,7 @@ class LogsIntegTestCases(LogsIntegBase):
         apigw_url = f"{self._get_output_value(apigw_name_from_output)}{path}"
         apigw_result = requests.get(apigw_url)
         LOG.info("APIGW result %s", apigw_result)
-        cmd_list = self.get_logs_command_list(self.stack_name, beta_features=True)
+        cmd_list = self.get_logs_command_list(self.stack_name)
         self._check_logs(
             cmd_list,
             [
@@ -153,7 +153,7 @@ class LogsIntegTestCases(LogsIntegBase):
         apigw_url = f"{self._get_output_value(apigw_name_from_output)}{path}"
         apigw_result = requests.get(apigw_url)
         LOG.info("APIGW result %s", apigw_result)
-        cmd_list = self.get_logs_command_list(self.stack_name, beta_features=True)
+        cmd_list = self.get_logs_command_list(self.stack_name)
         self._check_logs(
             cmd_list,
             [
@@ -169,7 +169,7 @@ class LogsIntegTestCases(LogsIntegBase):
         LOG.info("Invoking function %s", function_name)
         lambda_invoke_result = self.lambda_client.invoke(FunctionName=self._get_physical_id(function_name))
         LOG.info("Lambda invoke result %s", lambda_invoke_result)
-        cmd_list = self.get_logs_command_list(self.stack_name, name=function_name, output=output, beta_features=True)
+        cmd_list = self.get_logs_command_list(self.stack_name, name=function_name, output=output)
         self._check_logs(cmd_list, [expected_log_output], output=output)
 
     def _test_start_end(self, function_name, start_end_time_params):
@@ -192,9 +192,7 @@ class LogsIntegTestCases(LogsIntegBase):
         LOG.info("Invoking function %s", function_name)
         lambda_invoke_result = self.lambda_client.invoke(FunctionName=self._get_physical_id(function_name))
         LOG.info("Lambda invoke result %s", lambda_invoke_result)
-        cmd_list = self.get_logs_command_list(
-            self.stack_name, name=function_name, include_traces=True, beta_features=True
-        )
+        cmd_list = self.get_logs_command_list(self.stack_name, name=function_name, include_traces=True)
         self._check_logs(cmd_list, ["New XRay Service Graph", "XRay Event [revision ", expected_log_output])
 
     def _check_logs(self, cmd_list: List, log_strings: List[str], output: str = "text", retries=RETRY_COUNT):

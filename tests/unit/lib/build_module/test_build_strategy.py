@@ -1,5 +1,6 @@
 import itertools
 from copy import deepcopy
+from typing import List, Dict
 from unittest import TestCase
 from unittest.mock import Mock, patch, MagicMock, call, ANY
 
@@ -44,6 +45,11 @@ class BuildStrategyBaseTest(TestCase):
 
         self.function_build_definition1 = FunctionBuildDefinition("runtime", "codeuri", ZIP, X86_64, {}, "handler")
         self.function_build_definition2 = FunctionBuildDefinition("runtime2", "codeuri", ZIP, X86_64, {}, "handler")
+
+        self.function_build_definition1.add_function(self.function1_1)
+        self.function_build_definition1.add_function(self.function1_2)
+        self.function_build_definition2.add_function(self.function2)
+
         self.build_graph.put_function_build_definition(self.function_build_definition1, self.function1_1)
         self.build_graph.put_function_build_definition(self.function_build_definition1, self.function1_2)
         self.build_graph.put_function_build_definition(self.function_build_definition2, self.function2)
@@ -163,7 +169,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     self.function_build_definition1.get_build_dir(given_build_dir),
                     self.function_build_definition1.metadata,
                     self.function_build_definition1.env_vars,
-                    self.function_build_definition1.dependencies_dir,
+                    None,
                     True,
                 ),
                 call(
@@ -176,7 +182,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     self.function_build_definition2.get_build_dir(given_build_dir),
                     self.function_build_definition2.metadata,
                     self.function_build_definition2.env_vars,
-                    self.function_build_definition2.dependencies_dir,
+                    None,
                     True,
                 ),
             ]
@@ -193,7 +199,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     self.layer1.build_architecture,
                     self.layer1.get_build_dir(given_build_dir),
                     self.layer_build_definition1.env_vars,
-                    self.layer_build_definition1.dependencies_dir,
+                    None,
                     True,
                 ),
                 call(
@@ -204,7 +210,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     self.layer2.build_architecture,
                     self.layer2.get_build_dir(given_build_dir),
                     self.layer_build_definition2.env_vars,
-                    self.layer_build_definition2.dependencies_dir,
+                    None,
                     True,
                 ),
             ]
@@ -218,6 +224,27 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
             self.function_build_definition1.get_build_dir(given_build_dir),
             self.function1_2.get_build_dir(given_build_dir),
         )
+
+    @patch("samcli.lib.build.build_strategy.is_experimental_enabled")
+    def test_dedup_build_functions_with_symlink(self, patched_is_experimental, mock_copy_tree):
+        patched_is_experimental.return_value = True
+        given_build_function = Mock()
+        given_build_function.inlinecode = None
+        given_build_layer = Mock()
+        given_build_dir = "build_dir"
+        default_build_strategy = DefaultBuildStrategy(
+            self.build_graph, given_build_dir, given_build_function, given_build_layer
+        )
+
+        build_result = default_build_strategy.build()
+        # with 22 build improvements, functions with same build definitions should point to same artifact folder
+        self.assertEqual(
+            build_result.get(self.function_build_definition1.functions[0].full_path),
+            build_result.get(self.function_build_definition1.functions[1].full_path),
+        )
+
+        # assert that copy operation is not called
+        mock_copy_tree.assert_not_called()
 
     def test_build_single_function_definition_image_functions_with_same_metadata(self, mock_copy_tree):
         given_build_function = Mock()
@@ -337,6 +364,86 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
             cached_build_strategy.build_single_layer_definition(layer_definition)
             self.assertEqual(copytree_mock.call_count, 3)
 
+    @parameterized.expand([(True,), (False,)])
+    @patch("samcli.lib.build.build_strategy.osutils.copytree")
+    @patch("samcli.lib.build.build_strategy.pathlib.Path.exists")
+    @patch("samcli.lib.build.build_strategy.dir_checksum")
+    @patch("samcli.lib.utils.osutils.os")
+    @patch("samcli.lib.build.build_strategy.is_experimental_enabled")
+    def test_if_cached_valid_when_build_single_function_definition_with_build_improvements_22(
+        self, should_raise_os_error, patch_is_experimental, patch_os, dir_checksum_mock, exists_mock, copytree_mock
+    ):
+        patch_is_experimental.return_value = True
+        if should_raise_os_error:
+            patch_os.symlink.side_effect = OSError()
+        with osutils.mkdir_temp() as temp_base_dir:
+            build_dir = Path(temp_base_dir, ".aws-sam", "build")
+            build_dir.mkdir(parents=True)
+            cache_dir = Path(temp_base_dir, ".aws-sam", "cache")
+            cache_dir.mkdir(parents=True)
+
+            exists_mock.return_value = True
+            dir_checksum_mock.return_value = CachedBuildStrategyTest.SOURCE_HASH
+
+            build_graph_path = Path(build_dir.parent, "build.toml")
+            build_graph_path.write_text(CachedBuildStrategyTest.BUILD_GRAPH_CONTENTS)
+            build_graph = BuildGraph(str(build_dir))
+            cached_build_strategy = CachedBuildStrategy(
+                build_graph, DefaultBuildStrategy, temp_base_dir, build_dir, cache_dir
+            )
+            func1 = Mock()
+            func1.name = "func1_name"
+            func1.full_path = "func1_full_path"
+            func1.inlinecode = None
+            func1.get_build_dir.return_value = "func1/build/dir"
+            func2 = Mock()
+            func2.name = "func2_name"
+            func2.full_path = "func2_full_path"
+            func2.inlinecode = None
+            build_definition = build_graph.get_function_build_definitions()[0]
+            layer_definition = build_graph.get_layer_build_definitions()[0]
+            build_graph.put_function_build_definition(build_definition, func1)
+            build_graph.put_function_build_definition(build_definition, func2)
+            layer = Mock()
+            layer.name = "layer_name"
+            layer.full_path = "layer_full_path"
+            layer.get_build_dir.return_value = "layer/build/dir"
+            build_graph.put_layer_build_definition(layer_definition, layer)
+            cached_build_strategy.build_single_function_definition(build_definition)
+            cached_build_strategy.build_single_layer_definition(layer_definition)
+
+            if should_raise_os_error:
+                copytree_mock.assert_has_calls(
+                    [
+                        call(
+                            str(cache_dir.joinpath(build_graph.get_function_build_definitions()[0].uuid)),
+                            build_graph.get_function_build_definitions()[0].functions[0].get_build_dir(build_dir),
+                        ),
+                        call(
+                            str(cache_dir.joinpath(build_graph.get_layer_build_definitions()[0].uuid)),
+                            build_graph.get_layer_build_definitions()[0].layer.get_build_dir(build_dir),
+                        ),
+                    ]
+                )
+            else:
+                copytree_mock.assert_not_called()
+                patch_os.symlink.assert_has_calls(
+                    [
+                        call(
+                            cache_dir.joinpath(build_graph.get_function_build_definitions()[0].uuid),
+                            Path(
+                                build_graph.get_function_build_definitions()[0].functions[0].get_build_dir(build_dir)
+                            ).absolute(),
+                        ),
+                        call(
+                            cache_dir.joinpath(build_graph.get_layer_build_definitions()[0].uuid),
+                            Path(
+                                build_graph.get_layer_build_definitions()[0].layer.get_build_dir(build_dir)
+                            ).absolute(),
+                        ),
+                    ]
+                )
+
     @patch("samcli.lib.build.build_strategy.osutils.copytree")
     @patch("samcli.lib.build.build_strategy.DefaultBuildStrategy.build_single_function_definition")
     @patch("samcli.lib.build.build_strategy.DefaultBuildStrategy.build_single_layer_definition")
@@ -378,36 +485,48 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
 
 
 class ParallelBuildStrategyTest(BuildStrategyBaseTest):
-    def test_given_async_context_should_call_expected_methods(self):
-        mock_async_context = Mock()
+    @patch("samcli.lib.build.build_strategy.AsyncContext")
+    def test_given_async_context_should_call_expected_methods(self, patched_async_context):
         delegate_build_strategy = MagicMock(wraps=_TestBuildStrategy(self.build_graph))
-        parallel_build_strategy = ParallelBuildStrategy(self.build_graph, delegate_build_strategy, mock_async_context)
+        parallel_build_strategy = ParallelBuildStrategy(self.build_graph, delegate_build_strategy)
 
-        given_build_results = [
-            {"function1": "function_location1"},
-            {"function2": "function_location2"},
+        mock_layer_async_context = Mock()
+        mock_function_async_context = Mock()
+        patched_async_context.side_effect = [mock_layer_async_context, mock_function_async_context]
+
+        layer_build_results: List[Dict[str, str]] = [
             {"layer1": "layer_location1"},
             {"layer2": "layer_location2"},
         ]
-        mock_async_context.run_async.return_value = given_build_results
+        function_build_results: List[Dict[str, str]] = [
+            {"function1": "function_location1"},
+            {"function2": "function_location2"},
+        ]
+        mock_layer_async_context.run_async.return_value = layer_build_results
+        mock_function_async_context.run_async.return_value = function_build_results
 
         results = parallel_build_strategy.build()
 
         expected_results = {}
-        for given_build_result in given_build_results:
+        for given_build_result in layer_build_results + function_build_results:
             expected_results.update(given_build_result)
         self.assertEqual(results, expected_results)
 
         # assert that result has collected
-        mock_async_context.run_async.assert_has_calls([call()])
+        mock_layer_async_context.run_async.assert_has_calls([call()])
+        mock_function_async_context.run_async.assert_has_calls([call()])
 
         # assert that delegated function calls have been registered in async context
-        mock_async_context.add_async_task.assert_has_calls(
+        mock_layer_async_context.add_async_task.assert_has_calls(
             [
-                call(delegate_build_strategy.build_single_layer_definition, self.layer_build_definition1),
-                call(delegate_build_strategy.build_single_layer_definition, self.layer_build_definition2),
-                call(delegate_build_strategy.build_single_function_definition, self.function_build_definition1),
-                call(delegate_build_strategy.build_single_function_definition, self.function_build_definition2),
+                call(parallel_build_strategy.build_single_layer_definition, self.layer_build_definition1),
+                call(parallel_build_strategy.build_single_layer_definition, self.layer_build_definition2),
+            ]
+        )
+        mock_function_async_context.add_async_task.assert_has_calls(
+            [
+                call(parallel_build_strategy.build_single_function_definition, self.function_build_definition1),
+                call(parallel_build_strategy.build_single_function_definition, self.function_build_definition2),
             ]
         )
 
@@ -463,7 +582,7 @@ class TestIncrementalBuildStrategy(TestCase):
         self.build_layer = Mock()
         self.build_graph = Mock()
         self.delegate_build_strategy = DefaultBuildStrategy(
-            self.build_graph, Mock(), self.build_function, self.build_layer
+            self.build_graph, Mock(), self.build_function, self.build_layer, cached=True
         )
         self.build_strategy = IncrementalBuildStrategy(
             self.build_graph,
@@ -552,17 +671,12 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
 
     @parameterized.expand(
         [
-            ("python3.7", True),
-            ("nodejs12.x", True),
-            ("ruby2.7", True),
-            ("python3.7", False),
+            "python3.7",
+            "nodejs12.x",
+            "ruby2.7",
         ]
     )
-    @patch("samcli.lib.build.build_strategy.is_experimental_enabled")
-    def test_will_call_incremental_build_strategy(
-        self, mocked_read, mocked_write, runtime, experimental_enabled, patched_experimental
-    ):
-        patched_experimental.return_value = experimental_enabled
+    def test_will_call_incremental_build_strategy(self, mocked_read, mocked_write, runtime):
         build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {}, "handler")
         self.build_graph.put_function_build_definition(build_definition, Mock(full_path="function_full_path"))
         with patch.object(
@@ -572,12 +686,8 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
         ) as patched_cached_build_strategy:
             self.build_strategy.build()
 
-            if experimental_enabled:
-                patched_incremental_build_strategy.build_single_function_definition.assert_called_with(build_definition)
-                patched_cached_build_strategy.assert_not_called()
-            else:
-                patched_cached_build_strategy.build_single_function_definition.assert_called_with(build_definition)
-                patched_incremental_build_strategy.assert_not_called()
+            patched_incremental_build_strategy.build_single_function_definition.assert_called_with(build_definition)
+            patched_cached_build_strategy.assert_not_called()
 
     @parameterized.expand(
         [
@@ -649,10 +759,7 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
             ("nodejs", False),
         ]
     )
-    @patch("samcli.lib.build.build_strategy.is_experimental_enabled")
-    def test_wrapper_with_or_without_container(
-        self, mocked_read, mocked_write, runtime, use_container, patched_experimental
-    ):
+    def test_wrapper_with_or_without_container(self, mocked_read, mocked_write, runtime, use_container):
         build_strategy = CachedOrIncrementalBuildStrategyWrapper(
             self.build_graph,
             Mock(),
@@ -664,7 +771,6 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
             use_container,
         )
 
-        patched_experimental.return_value = True
         build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {}, "handler")
         self.build_graph.put_function_build_definition(build_definition, Mock(full_path="function_full_path"))
         with patch.object(

@@ -75,3 +75,9 @@ class DeployResolveS3AndS3SetError(UserException):
         )
 
         super().__init__(message=message_fmt)
+
+
+class DeployStackStatusMissingError(UserException):
+    def __init__(self, stack_name):
+        message_fmt = "Was not able to find a stack with the name: {msg}, please check your parameters and try again."
+        super().__init__(message=message_fmt.format(msg=stack_name))

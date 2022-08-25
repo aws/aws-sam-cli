@@ -25,6 +25,12 @@ class InvalidTimestampError(UserException):
     """
 
 
+class TimeParseError(UserException):
+    """
+    Used to throw if parsing of the given time string or UTC conversion is failed
+    """
+
+
 def parse_time(time_str: str, property_name: str):
     """
     Parse the time from the given string, convert to UTC, and return the datetime object
@@ -47,14 +53,20 @@ def parse_time(time_str: str, property_name: str):
     InvalidTimestampError
         If the string cannot be parsed as a timestamp
     """
-    if not time_str:
-        return None
+    try:
+        if not time_str:
+            return None
 
-    parsed = parse_date(time_str)
-    if not parsed:
-        raise InvalidTimestampError("Unable to parse the time provided by '{}'".format(property_name))
+        parsed = parse_date(time_str)
+        if not parsed:
+            raise InvalidTimestampError(f"Unable to parse the time provided by '{property_name}'")
 
-    return to_utc(parsed)
+        return to_utc(parsed)
+    except InvalidTimestampError as ex:
+        raise ex
+    except Exception as ex:
+        LOG.error("Failed to parse given time information %s", time_str, exc_info=ex)
+        raise TimeParseError(f"Unable to parse the time information '{property_name}': '{time_str}'") from ex
 
 
 class ResourcePhysicalIdResolver:
