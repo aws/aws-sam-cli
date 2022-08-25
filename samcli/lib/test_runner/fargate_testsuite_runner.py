@@ -319,6 +319,9 @@ class FargateTestsuiteRunner:
             This is passed in because it is not known at the time of FargateTestsuiteRunner creation where the bucket name will come from.
             If a bucket override is not provided, the bucket contained in the Test Runner Stack must be used. The stack must be created/updated before this
             bucket can be fetched.
+
+        failed : bool
+            Indicates whether or not the tests failed. This is used to colour the printed results red if failures occurred.
         """
         self.boto_s3_client.download_file(
             Bucket=bucket,
@@ -353,6 +356,22 @@ class FargateTestsuiteRunner:
         LOG.info(output_color(results_stdout))
 
     def _get_task_exit_code(self, task_arn: str, ecs_cluster: str) -> int:
+        """
+        Waits for the given task to stop, then returns its exit code.
+
+        Parameters
+        ----------
+        task_arn : str
+            The arn of the task from which the exit code is fetched
+
+        ecs_cluster : str
+            The cluster in which the task is located
+
+        Returns
+        -------
+        task_exit_code : int
+            The exit code of the specified task
+        """
         waiter = self.boto_ecs_client.get_waiter("tasks_stopped")
         waiter.wait(cluster=ecs_cluster, tasks=[task_arn])
 
@@ -448,6 +467,13 @@ class FargateTestsuiteRunner:
         Runs a testsuite on Fargate.
         Tests and requirements are uploaded to an S3 bucket, which the Fargate container downlaods and runs.
         Results are uploaded to the same bucket, which the client downloads and prints to standard output.
+
+        Returns
+        -------
+        exit_code : int
+            The exit code of the test run. If there were test failures, this will be non-zero.
+
+            The purpose is to have the test run command exit with non zero in the event of test failures.
         """
 
         self._update_or_create_test_runner_stack()
