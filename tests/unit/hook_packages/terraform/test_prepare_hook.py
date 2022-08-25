@@ -20,6 +20,8 @@ from samcli.hook_packages.terraform.hooks.prepare import (
     _update_resources_paths,
     _build_lambda_function_image_config_property,
     _check_image_config_value,
+    NULL_RESOURCE_PROVIDER_NAME,
+    SamMetadataResource,
 )
 from samcli.lib.hook.exceptions import PrepareHookException
 from samcli.lib.utils.resources import (
@@ -89,6 +91,14 @@ class TestPrepareHook(TestCase):
             **self.tf_function_common_properties,
             "filename": "file.zip",
         }
+        self.tf_zip_function_sam_metadata_properties: dict = {
+            "triggers": {
+                "built_output_path": "builds/func.zip",
+                "original_source_code": "./src/lambda_func",
+                "resource_name": f"aws_lambda_function.{self.zip_function_name}",
+                "resource_type": "ZIP_LAMBDA_FUNCTION",
+            },
+        }
         self.expected_cfn_zip_function_properties: dict = {
             **self.expected_cfn_function_common_properties,
             "Code": "file.zip",
@@ -104,6 +114,16 @@ class TestPrepareHook(TestCase):
                 }
             ],
             "image_uri": "image/uri:tag",
+        }
+        self.tf_image_package_type_function_sam_metadata_properties: dict = {
+            "triggers": {
+                "resource_name": f"aws_lambda_function.{self.image_function_name}",
+                "docker_build_args": '{"FOO":"bar"}',
+                "docker_context": "context",
+                "docker_file": "Dockerfile",
+                "docker_tag": "2.0",
+                "resource_type": "IMAGE_LAMBDA_FUNCTION",
+            },
         }
         self.expected_cfn_image_package_function_properties: dict = {
             **self.expected_cfn_image_package_type_function_common_properties,
@@ -172,6 +192,14 @@ class TestPrepareHook(TestCase):
             "layers": ["layer_arn"],
             "filename": "file2.zip",
         }
+        self.tf_zip_function_sam_metadata_properties_2: dict = {
+            "triggers": {
+                "built_output_path": "builds/func2.zip",
+                "original_source_code": "./src/lambda_func2",
+                "resource_name": f"aws_lambda_function.{self.zip_function_name_2}",
+                "resource_type": "ZIP_LAMBDA_FUNCTION",
+            },
+        }
         self.expected_cfn_zip_function_properties_2: dict = {
             "FunctionName": self.zip_function_name_2,
             "Architectures": ["x86_64"],
@@ -187,6 +215,14 @@ class TestPrepareHook(TestCase):
             **self.tf_zip_function_properties_2,
             "function_name": self.zip_function_name_3,
         }
+        self.tf_zip_function_sam_metadata_properties_3: dict = {
+            "triggers": {
+                "built_output_path": "builds/func3.zip",
+                "original_source_code": "./src/lambda_func3",
+                "resource_name": f"aws_lambda_function.{self.zip_function_name_3}",
+                "resource_type": "ZIP_LAMBDA_FUNCTION",
+            },
+        }
         self.expected_cfn_zip_function_properties_3: dict = {
             **self.expected_cfn_zip_function_properties_2,
             "FunctionName": self.zip_function_name_3,
@@ -194,6 +230,14 @@ class TestPrepareHook(TestCase):
         self.tf_zip_function_properties_4: dict = {
             **self.tf_zip_function_properties_2,
             "function_name": self.zip_function_name_4,
+        }
+        self.tf_zip_function_sam_metadata_properties_4: dict = {
+            "triggers": {
+                "built_output_path": "builds/func4.zip",
+                "original_source_code": "./src/lambda_func4",
+                "resource_name": f"aws_lambda_function.{self.zip_function_name_4}",
+                "resource_type": "ZIP_LAMBDA_FUNCTION",
+            },
         }
         self.expected_cfn_zip_function_properties_4: dict = {
             **self.expected_cfn_zip_function_properties_2,
@@ -205,11 +249,22 @@ class TestPrepareHook(TestCase):
             "provider_name": AWS_PROVIDER_NAME,
         }
 
+        self.tf_sam_metadata_resource_common_attributes: dict = {
+            "type": "null_resource",
+            "provider_name": NULL_RESOURCE_PROVIDER_NAME,
+        }
+
         self.tf_lambda_function_resource_zip: dict = {
             **self.tf_lambda_function_resource_common_attributes,
             "values": self.tf_zip_function_properties,
             "address": f"aws_lambda_function.{self.zip_function_name}",
             "name": self.zip_function_name,
+        }
+        self.tf_lambda_function_resource_zip_sam_metadata: dict = {
+            **self.tf_sam_metadata_resource_common_attributes,
+            "values": self.tf_zip_function_sam_metadata_properties,
+            "address": f"null_resource.sam_metadata_{self.zip_function_name}",
+            "name": f"sam_metadata_{self.zip_function_name}",
         }
         self.expected_cfn_lambda_function_resource_zip: dict = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
@@ -223,6 +278,12 @@ class TestPrepareHook(TestCase):
             "address": f"aws_lambda_function.{self.zip_function_name_2}",
             "name": self.zip_function_name_2,
         }
+        self.tf_lambda_function_resource_zip_2_sam_metadata: dict = {
+            **self.tf_sam_metadata_resource_common_attributes,
+            "values": self.tf_zip_function_sam_metadata_properties_2,
+            "address": f"null_resource.sam_metadata_{self.zip_function_name_2}",
+            "name": f"sam_metadata_{self.zip_function_name_2}",
+        }
         self.expected_cfn_lambda_function_resource_zip_2: dict = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
             "Properties": self.expected_cfn_zip_function_properties_2,
@@ -234,6 +295,12 @@ class TestPrepareHook(TestCase):
             "values": self.tf_zip_function_properties_3,
             "address": f"aws_lambda_function.{self.zip_function_name_3}",
             "name": self.zip_function_name_3,
+        }
+        self.tf_lambda_function_resource_zip_3_sam_metadata: dict = {
+            **self.tf_sam_metadata_resource_common_attributes,
+            "values": self.tf_zip_function_sam_metadata_properties_3,
+            "address": f"null_resource.sam_metadata_{self.zip_function_name_3}",
+            "name": f"sam_metadata_{self.zip_function_name_3}",
         }
         self.expected_cfn_lambda_function_resource_zip_3: dict = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
@@ -247,6 +314,12 @@ class TestPrepareHook(TestCase):
             "address": f"aws_lambda_function.{self.zip_function_name_4}",
             "name": self.zip_function_name_4,
         }
+        self.tf_lambda_function_resource_zip_4_sam_metadata: dict = {
+            **self.tf_sam_metadata_resource_common_attributes,
+            "values": self.tf_zip_function_sam_metadata_properties_4,
+            "address": f"null_resource.sam_metadata_{self.zip_function_name_4}",
+            "name": f"sam_metadata_{self.zip_function_name_4}",
+        }
         self.expected_cfn_lambda_function_resource_zip_4: dict = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
             "Properties": self.expected_cfn_zip_function_properties_4,
@@ -258,6 +331,12 @@ class TestPrepareHook(TestCase):
             "values": self.tf_image_package_type_function_properties,
             "address": f"aws_lambda_function.{self.image_function_name}",
             "name": self.image_function_name,
+        }
+        self.tf_image_package_type_lambda_function_resource_sam_metadata: dict = {
+            **self.tf_sam_metadata_resource_common_attributes,
+            "values": self.tf_image_package_type_function_sam_metadata_properties,
+            "address": f"null_resource.sam_metadata_{self.image_function_name}",
+            "name": f"sam_metadata_{self.image_function_name}",
         }
         self.expected_cfn_image_package_type_lambda_function_resource: dict = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
@@ -336,6 +415,20 @@ class TestPrepareHook(TestCase):
             },
         }
 
+        self.tf_json_with_root_module_with_sam_metadata_resources: dict = {
+            "planned_values": {
+                "root_module": {
+                    "resources": [
+                        self.tf_lambda_function_resource_zip,
+                        self.tf_lambda_function_resource_zip_2,
+                        self.tf_image_package_type_lambda_function_resource,
+                        self.tf_lambda_function_resource_zip_sam_metadata,
+                        self.tf_lambda_function_resource_zip_2_sam_metadata,
+                        self.tf_image_package_type_lambda_function_resource_sam_metadata,
+                    ]
+                }
+            }
+        }
         self.tf_json_with_child_modules: dict = {
             "planned_values": {
                 "root_module": {
@@ -366,6 +459,59 @@ class TestPrepareHook(TestCase):
                                             "address": f"module.mymodule1.module.mymodule2.aws_lambda_function.{self.zip_function_name_4}",
                                         },
                                     ],
+                                },
+                            ],
+                        }
+                    ],
+                }
+            }
+        }
+        self.tf_json_with_child_modules_with_sam_metadata_resource: dict = {
+            "planned_values": {
+                "root_module": {
+                    "resources": [
+                        self.tf_lambda_function_resource_zip,
+                        self.tf_lambda_function_resource_zip_sam_metadata,
+                    ],
+                    "child_modules": [
+                        {
+                            "resources": [
+                                {
+                                    **self.tf_lambda_function_resource_zip_2,
+                                    "address": f"module.mymodule1.aws_lambda_function.{self.zip_function_name_2}",
+                                },
+                                {
+                                    **self.tf_lambda_function_resource_zip_2_sam_metadata,
+                                    "address": f"module.mymodule1.null_resource.sam_metadata_{self.zip_function_name_2}",
+                                },
+                            ],
+                            "address": "module.mymodule1",
+                            "child_modules": [
+                                {
+                                    "resources": [
+                                        {
+                                            **self.tf_lambda_function_resource_zip_3,
+                                            "address": f"module.mymodule1.module.mymodule2.aws_lambda_function.{self.zip_function_name_3}",
+                                        },
+                                        {
+                                            **self.tf_lambda_function_resource_zip_3_sam_metadata,
+                                            "address": f"module.mymodule1.module.mymodule2.null_resource.sam_metadata_{self.zip_function_name_3}",
+                                        },
+                                    ],
+                                    "address": "module.mymodule1.module.mymodule2",
+                                },
+                                {
+                                    "resources": [
+                                        {
+                                            **self.tf_lambda_function_resource_zip_4,
+                                            "address": f"module.mymodule1.module.mymodule3.aws_lambda_function.{self.zip_function_name_4}",
+                                        },
+                                        {
+                                            **self.tf_lambda_function_resource_zip_4_sam_metadata,
+                                            "address": f"module.mymodule1.module.mymodule3.null_resource.sam_metadata_{self.zip_function_name_4}",
+                                        },
+                                    ],
+                                    "address": "module.mymodule1.module.mymodule3",
                                 },
                             ],
                         }
@@ -683,7 +829,8 @@ class TestPrepareHook(TestCase):
         )
         self.assertEqual(cfn_resources, expected_cfn_resources_after_mapping_s3_sources)
 
-    def test_translate_to_cfn_empty(self):
+    @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_mapped_resources")
+    def test_translate_to_cfn_empty(self, mock_enrich_mapped_resources):
         expected_empty_cfn_dict = {"AWSTemplateFormatVersion": "2010-09-09", "Resources": {}}
 
         tf_json_empty = {}
@@ -701,42 +848,123 @@ class TestPrepareHook(TestCase):
         for tf_json in tf_jsons:
             translated_cfn_dict = _translate_to_cfn(tf_json, self.output_dir, self.project_root)
             self.assertEqual(translated_cfn_dict, expected_empty_cfn_dict)
+            mock_enrich_mapped_resources.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_mapped_resources")
     @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
-    def test_translate_to_cfn_with_root_module_only(self, checksum_mock):
+    def test_translate_to_cfn_with_root_module_only(self, checksum_mock, mock_enrich_mapped_resources):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(self.tf_json_with_root_module_only, self.output_dir, self.project_root)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_root_module_only)
+        mock_enrich_mapped_resources.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_mapped_resources")
     @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
-    def test_translate_to_cfn_with_child_modules(self, checksum_mock):
+    def test_translate_to_cfn_with_child_modules(self, checksum_mock, mock_enrich_mapped_resources):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(self.tf_json_with_child_modules, self.output_dir, self.project_root)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_child_modules)
+        mock_enrich_mapped_resources.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_mapped_resources")
     @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
-    def test_translate_to_cfn_with_unsupported_provider(self, checksum_mock):
+    def test_translate_to_cfn_with_root_module_with_sam_metadata_resource(
+        self, checksum_mock, mock_enrich_mapped_resources
+    ):
+        checksum_mock.return_value = self.mock_logical_id_hash
+        translated_cfn_dict = _translate_to_cfn(
+            self.tf_json_with_root_module_with_sam_metadata_resources, "/output/dir", "/project/root"
+        )
+
+        mock_enrich_mapped_resources.assert_called_once_with(
+            [
+                SamMetadataResource(
+                    current_module_address=None, sam_metadata_resource=self.tf_lambda_function_resource_zip_sam_metadata
+                ),
+                SamMetadataResource(
+                    current_module_address=None,
+                    sam_metadata_resource=self.tf_lambda_function_resource_zip_2_sam_metadata,
+                ),
+                SamMetadataResource(
+                    current_module_address=None,
+                    sam_metadata_resource=self.tf_image_package_type_lambda_function_resource_sam_metadata,
+                ),
+            ],
+            translated_cfn_dict["Resources"],
+            "/output/dir",
+            "/project/root",
+        )
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_mapped_resources")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
+    def test_translate_to_cfn_with_child_modules_with_sam_metadata_resource(
+        self, checksum_mock, mock_enrich_mapped_resources
+    ):
+        checksum_mock.return_value = self.mock_logical_id_hash
+        translated_cfn_dict = _translate_to_cfn(
+            self.tf_json_with_child_modules_with_sam_metadata_resource, "/output/dir", "/project/root"
+        )
+        mock_enrich_mapped_resources.assert_called_once_with(
+            [
+                SamMetadataResource(
+                    current_module_address=None, sam_metadata_resource=self.tf_lambda_function_resource_zip_sam_metadata
+                ),
+                SamMetadataResource(
+                    current_module_address="module.mymodule1",
+                    sam_metadata_resource={
+                        **self.tf_lambda_function_resource_zip_2_sam_metadata,
+                        "address": f"module.mymodule1.null_resource.sam_metadata_{self.zip_function_name_2}",
+                    },
+                ),
+                SamMetadataResource(
+                    current_module_address="module.mymodule1.module.mymodule2",
+                    sam_metadata_resource={
+                        **self.tf_lambda_function_resource_zip_3_sam_metadata,
+                        "address": f"module.mymodule1.module.mymodule2.null_resource.sam_metadata_{self.zip_function_name_3}",
+                    },
+                ),
+                SamMetadataResource(
+                    current_module_address="module.mymodule1.module.mymodule3",
+                    sam_metadata_resource={
+                        **self.tf_lambda_function_resource_zip_4_sam_metadata,
+                        "address": f"module.mymodule1.module.mymodule3.null_resource.sam_metadata_{self.zip_function_name_4}",
+                    },
+                ),
+            ],
+            translated_cfn_dict["Resources"],
+            "/output/dir",
+            "/project/root",
+        )
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_mapped_resources")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
+    def test_translate_to_cfn_with_unsupported_provider(self, checksum_mock, mock_enrich_mapped_resources):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(
             self.tf_json_with_unsupported_provider, self.output_dir, self.project_root
         )
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_unsupported_provider)
+        mock_enrich_mapped_resources.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_mapped_resources")
     @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
-    def test_translate_to_cfn_with_unsupported_resource_type(self, checksum_mock):
+    def test_translate_to_cfn_with_unsupported_resource_type(self, checksum_mock, mock_enrich_mapped_resources):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(
             self.tf_json_with_unsupported_resource_type, self.output_dir, self.project_root
         )
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_unsupported_resource_type)
+        mock_enrich_mapped_resources.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_mapped_resources")
     @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
-    def test_translate_to_cfn_with_mapping_s3_source_to_function(self, checksum_mock):
+    def test_translate_to_cfn_with_mapping_s3_source_to_function(self, checksum_mock, mock_enrich_mapped_resources):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(
             self.tf_json_with_child_modules_and_s3_source_mapping, self.output_dir, self.project_root
         )
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_child_modules_and_s3_source_mapping)
+        mock_enrich_mapped_resources.assert_not_called()
 
     @patch("samcli.hook_packages.terraform.hooks.prepare._update_resources_paths")
     @patch("samcli.hook_packages.terraform.hooks.prepare._translate_to_cfn")

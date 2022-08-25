@@ -22,6 +22,9 @@ LOG = logging.getLogger(__name__)
 
 TF_AWS_LAMBDA_FUNCTION = "aws_lambda_function"
 AWS_PROVIDER_NAME = "registry.terraform.io/hashicorp/aws"
+NULL_RESOURCE_PROVIDER_NAME = "registry.terraform.io/hashicorp/null"
+SAM_METADATA_RESOURCE_TYPE = "null_resource"
+SAM_METADATA_NAME_PREFIX = "sam_metadata_"
 
 # max logical id len is 255
 LOGICAL_ID_HASH_LEN = 8
@@ -35,6 +38,12 @@ PropertyBuilderMapping = Dict[str, PropertyBuilder]
 class ResourceTranslator:
     cfn_name: str
     property_builder_mapping: PropertyBuilderMapping
+
+
+@dataclass
+class SamMetadataResource:
+    current_module_address: Optional[str]
+    sam_metadata_resource: Dict
 
 
 def prepare(params: dict) -> dict:
@@ -170,10 +179,13 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
     # to map s3 object sources to respective functions later
     s3_hash_to_source = {}
 
+    sam_metadata_resources: List[SamMetadataResource] = []
+
     # create and iterate over queue of modules to handle child modules
     module_queue = [root_module]
     while module_queue:
-        curr_module = module_queue.pop()
+        curr_module = module_queue.pop(0)
+        curr_module_address = curr_module.get("address")
 
         # add child modules, if any, to queue
         child_modules = curr_module.get("child_modules")
@@ -187,6 +199,15 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
             resource_type = resource.get("type")
             resource_values = resource.get("values")
             resource_address = resource.get("address")
+            resource_name = resource.get("name")
+
+            if (
+                resource_provider == NULL_RESOURCE_PROVIDER_NAME
+                and resource_type == SAM_METADATA_RESOURCE_TYPE
+                and resource_name.startswith(SAM_METADATA_NAME_PREFIX)
+            ):
+                sam_metadata_resources.append(SamMetadataResource(curr_module_address, resource))
+                continue
 
             # only process supported provider
             if resource_provider != AWS_PROVIDER_NAME:
@@ -221,7 +242,37 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
     LOG.debug("Mapping S3 object sources to corresponding functions")
     _map_s3_sources_to_functions(s3_hash_to_source, cfn_dict["Resources"])
 
+    if sam_metadata_resources:
+        LOG.debug("Enrich the mapped resources with the sam metadata information")
+        _enrich_mapped_resources(
+            sam_metadata_resources, cfn_dict["Resources"], output_directory_path, terraform_application_dir
+        )
+    else:
+        LOG.debug("There is no sam metadata resources, no enrichment is required")
+
     return cfn_dict
+
+
+def _enrich_mapped_resources(
+    sam_metadata_resources: List[SamMetadataResource],
+    cfn_resources: Dict[str, Dict],
+    output_directory_path: str,
+    terraform_application_dir: str,
+) -> None:
+    """
+    Use the sam metadata resources to enrich the mapped resources.
+
+    Parameters
+    ----------
+    sam_metadata_resources: List[SamMetadataResource]
+        The list of sam metadata resources defined in the terraform project.
+    cfn_resources: dict
+        CloudFormation resources
+    output_directory_path: str
+        the output directory path to write the generated metadata and makefile
+    terraform_application_dir: str
+        the terraform project root directory
+    """
 
 
 def _translate_properties(tf_properties: dict, property_builder_mapping: PropertyBuilderMapping) -> dict:
