@@ -25,7 +25,7 @@ from samcli.hook_packages.terraform.hooks.prepare import (
     _validate_referenced_resource_matches_sam_metadata_type,
     _enrich_mapped_resources,
 )
-from samcli.lib.hook.exceptions import PrepareHookException, InvalidSamMetadataProperties
+from samcli.lib.hook.exceptions import PrepareHookException, InvalidSamMetadataPropertiesException
 from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
 )
@@ -983,9 +983,12 @@ class TestPrepareHook(TestCase):
     ):
         cfn_resource = self.__getattribute__(cfn_resource_name)
         sam_metadata_attributes = self.__getattribute__(sam_metadata_attributes_name).get("values").get("triggers")
-        _validate_referenced_resource_matches_sam_metadata_type(
-            cfn_resource, sam_metadata_attributes, "resource_address", expected_package_type
-        )
+        try:
+            _validate_referenced_resource_matches_sam_metadata_type(
+                cfn_resource, sam_metadata_attributes, "resource_address", expected_package_type
+            )
+        except InvalidSamMetadataPropertiesException:
+            self.fail("The testing sam metadata resource type should be valid.")
 
     @parameterized.expand(
         [
@@ -1009,7 +1012,7 @@ class TestPrepareHook(TestCase):
         cfn_resource = self.__getattribute__(cfn_resource_name)
         sam_metadata_attributes = self.__getattribute__(sam_metadata_attributes_name).get("values").get("triggers")
         with self.assertRaises(
-            InvalidSamMetadataProperties,
+            InvalidSamMetadataPropertiesException,
             msg=f"The sam metadata resource resource_address is referring to a resource that does not "
             f"match the resource type {metadata_source_type}.",
         ):
@@ -1058,7 +1061,7 @@ class TestPrepareHook(TestCase):
             ),
         ]
         with self.assertRaises(
-            InvalidSamMetadataProperties,
+            InvalidSamMetadataPropertiesException,
             msg="The resource type Invalid_resource_type found in the sam metadata resource "
             "null_resource.sam_metadata_func1 is not a correct resource type. The resource type should be one of "
             "these values [ZIP_LAMBDA_FUNCTION, IMAGE_LAMBDA_FUNCTION]",

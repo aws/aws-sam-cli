@@ -22,5 +22,5 @@ class PrepareHookException(UserException):
     pass
 
 
-class InvalidSamMetadataProperties(UserException):
+class InvalidSamMetadataPropertiesException(UserException):
     pass

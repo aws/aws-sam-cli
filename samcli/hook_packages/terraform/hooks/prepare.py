@@ -11,7 +11,7 @@ from typing import Any, Callable, Dict, List, Optional
 import hashlib
 import logging
 
-from samcli.lib.hook.exceptions import PrepareHookException, InvalidSamMetadataProperties
+from samcli.lib.hook.exceptions import PrepareHookException, InvalidSamMetadataPropertiesException
 from samcli.lib.utils import osutils
 from samcli.lib.utils.hash import str_checksum
 from samcli.lib.utils.packagetype import ZIP
@@ -44,7 +44,7 @@ class ResourceTranslator:
 @dataclass
 class SamMetadataResource:
     current_module_address: Optional[str]
-    sam_metadata_resource: Dict
+    resource: Dict
 
 
 def prepare(params: dict) -> dict:
@@ -295,7 +295,7 @@ def _validate_referenced_resource_matches_sam_metadata_type(
             sam_metadata_resource_address,
             resource_type,
         )
-        raise InvalidSamMetadataProperties(
+        raise InvalidSamMetadataPropertiesException(
             f"The sam metadata resource {sam_metadata_resource_address} is referring to a resource that does not "
             f"match the resource type {resource_type}."
         )
@@ -335,12 +335,12 @@ def _enrich_mapped_resources(
 
     for sam_metadata_resource in sam_metadata_resources:
         resource_type = (
-            sam_metadata_resource.sam_metadata_resource.get("values", {}).get("triggers", {}).get("resource_type")
+            sam_metadata_resource.resource.get("values", {}).get("triggers", {}).get("resource_type")
         )
-        sam_metadata_resource_address = sam_metadata_resource.sam_metadata_resource.get("address")
+        sam_metadata_resource_address = sam_metadata_resource.resource.get("address")
         enrichment_function = resources_types_enrichment_functions.get(resource_type)
         if not enrichment_function:
-            raise InvalidSamMetadataProperties(
+            raise InvalidSamMetadataPropertiesException(
                 f"The resource type {resource_type} found in the sam metadata resource {sam_metadata_resource_address} "
                 f"is not a correct resource type. The resource type should be one of these values "
                 f"{resources_types_enrichment_functions.keys()}"
