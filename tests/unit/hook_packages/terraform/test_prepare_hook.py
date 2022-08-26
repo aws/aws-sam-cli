@@ -22,8 +22,10 @@ from samcli.hook_packages.terraform.hooks.prepare import (
     _check_image_config_value,
     NULL_RESOURCE_PROVIDER_NAME,
     SamMetadataResource,
+    _validate_referenced_resource_matches_sam_metadata_type,
+    _enrich_mapped_resources,
 )
-from samcli.lib.hook.exceptions import PrepareHookException
+from samcli.lib.hook.exceptions import PrepareHookException, InvalidSamMetadataPropertiesException
 from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
 )
@@ -879,15 +881,15 @@ class TestPrepareHook(TestCase):
         mock_enrich_mapped_resources.assert_called_once_with(
             [
                 SamMetadataResource(
-                    current_module_address=None, sam_metadata_resource=self.tf_lambda_function_resource_zip_sam_metadata
+                    current_module_address=None, resource=self.tf_lambda_function_resource_zip_sam_metadata
                 ),
                 SamMetadataResource(
                     current_module_address=None,
-                    sam_metadata_resource=self.tf_lambda_function_resource_zip_2_sam_metadata,
+                    resource=self.tf_lambda_function_resource_zip_2_sam_metadata,
                 ),
                 SamMetadataResource(
                     current_module_address=None,
-                    sam_metadata_resource=self.tf_image_package_type_lambda_function_resource_sam_metadata,
+                    resource=self.tf_image_package_type_lambda_function_resource_sam_metadata,
                 ),
             ],
             translated_cfn_dict["Resources"],
@@ -907,25 +909,25 @@ class TestPrepareHook(TestCase):
         mock_enrich_mapped_resources.assert_called_once_with(
             [
                 SamMetadataResource(
-                    current_module_address=None, sam_metadata_resource=self.tf_lambda_function_resource_zip_sam_metadata
+                    current_module_address=None, resource=self.tf_lambda_function_resource_zip_sam_metadata
                 ),
                 SamMetadataResource(
                     current_module_address="module.mymodule1",
-                    sam_metadata_resource={
+                    resource={
                         **self.tf_lambda_function_resource_zip_2_sam_metadata,
                         "address": f"module.mymodule1.null_resource.sam_metadata_{self.zip_function_name_2}",
                     },
                 ),
                 SamMetadataResource(
                     current_module_address="module.mymodule1.module.mymodule2",
-                    sam_metadata_resource={
+                    resource={
                         **self.tf_lambda_function_resource_zip_3_sam_metadata,
                         "address": f"module.mymodule1.module.mymodule2.null_resource.sam_metadata_{self.zip_function_name_3}",
                     },
                 ),
                 SamMetadataResource(
                     current_module_address="module.mymodule1.module.mymodule3",
-                    sam_metadata_resource={
+                    resource={
                         **self.tf_lambda_function_resource_zip_4_sam_metadata,
                         "address": f"module.mymodule1.module.mymodule3.null_resource.sam_metadata_{self.zip_function_name_4}",
                     },
@@ -965,6 +967,106 @@ class TestPrepareHook(TestCase):
         )
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_child_modules_and_s3_source_mapping)
         mock_enrich_mapped_resources.assert_not_called()
+
+    @parameterized.expand(
+        [
+            ("expected_cfn_lambda_function_resource_zip", "tf_lambda_function_resource_zip_sam_metadata", "Zip"),
+            (
+                "expected_cfn_image_package_type_lambda_function_resource",
+                "tf_image_package_type_lambda_function_resource_sam_metadata",
+                "Image",
+            ),
+        ]
+    )
+    def test_validate_referenced_resource_matches_sam_metadata_type_valid_types(
+        self, cfn_resource_name, sam_metadata_attributes_name, expected_package_type
+    ):
+        cfn_resource = self.__getattribute__(cfn_resource_name)
+        sam_metadata_attributes = self.__getattribute__(sam_metadata_attributes_name).get("values").get("triggers")
+        try:
+            _validate_referenced_resource_matches_sam_metadata_type(
+                cfn_resource, sam_metadata_attributes, "resource_address", expected_package_type
+            )
+        except InvalidSamMetadataPropertiesException:
+            self.fail("The testing sam metadata resource type should be valid.")
+
+    @parameterized.expand(
+        [
+            (
+                "expected_cfn_lambda_function_resource_zip",
+                "tf_image_package_type_lambda_function_resource_sam_metadata",
+                "Image",
+                "IMAGE_LAMBDA_FUNCTION",
+            ),
+            (
+                "expected_cfn_image_package_type_lambda_function_resource",
+                "tf_lambda_function_resource_zip_sam_metadata",
+                "Zip",
+                "ZIP_LAMBDA_FUNCTION",
+            ),
+        ]
+    )
+    def test_validate_referenced_resource_matches_sam_metadata_type_invalid_types(
+        self, cfn_resource_name, sam_metadata_attributes_name, expected_package_type, metadata_source_type
+    ):
+        cfn_resource = self.__getattribute__(cfn_resource_name)
+        sam_metadata_attributes = self.__getattribute__(sam_metadata_attributes_name).get("values").get("triggers")
+        with self.assertRaises(
+            InvalidSamMetadataPropertiesException,
+            msg=f"The sam metadata resource resource_address is referring to a resource that does not "
+            f"match the resource type {metadata_source_type}.",
+        ):
+            _validate_referenced_resource_matches_sam_metadata_type(
+                cfn_resource, sam_metadata_attributes, "resource_address", expected_package_type
+            )
+
+    def test_enrich_mapped_resources_invalid_source_type(self):
+        image_function_1 = {
+            "Type": CFN_AWS_LAMBDA_FUNCTION,
+            "Properties": {
+                **self.expected_cfn_image_package_type_function_common_properties,
+                "ImageConfig": {
+                    "Command": ["cmd1", "cmd2"],
+                    "EntryPoint": ["entry1", "entry2"],
+                    "WorkingDirectory": "/working/dir/path",
+                },
+                "Code": {
+                    "ImageUri": "image/uri:tag",
+                },
+            },
+            "Metadata": {"SamResourceId": f"aws_lambda_function.func1", "SkipBuild": True},
+        }
+
+        cfn_resources = {
+            "logical_id1": image_function_1,
+        }
+        sam_metadata_resources = [
+            SamMetadataResource(
+                current_module_address=None,
+                resource={
+                    **self.tf_sam_metadata_resource_common_attributes,
+                    "values": {
+                        "triggers": {
+                            "resource_name": f"aws_lambda_function.{self.image_function_name}",
+                            "docker_build_args": '{"FOO":"bar"}',
+                            "docker_context": "context",
+                            "docker_file": "Dockerfile",
+                            "docker_tag": "2.0",
+                            "resource_type": "Invalid_resource_type",
+                        },
+                    },
+                    "address": f"null_resource.sam_metadata_func1",
+                    "name": f"sam_metadata_func1",
+                },
+            ),
+        ]
+        with self.assertRaises(
+            InvalidSamMetadataPropertiesException,
+            msg="The resource type Invalid_resource_type found in the sam metadata resource "
+            "null_resource.sam_metadata_func1 is not a correct resource type. The resource type should be one of "
+            "these values [ZIP_LAMBDA_FUNCTION, IMAGE_LAMBDA_FUNCTION]",
+        ):
+            _enrich_mapped_resources(sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root")
 
     @patch("samcli.hook_packages.terraform.hooks.prepare._update_resources_paths")
     @patch("samcli.hook_packages.terraform.hooks.prepare._translate_to_cfn")

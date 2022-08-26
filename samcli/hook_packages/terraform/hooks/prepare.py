@@ -11,9 +11,10 @@ from typing import Any, Callable, Dict, List, Optional
 import hashlib
 import logging
 
-from samcli.lib.hook.exceptions import PrepareHookException
+from samcli.lib.hook.exceptions import PrepareHookException, InvalidSamMetadataPropertiesException
 from samcli.lib.utils import osutils
 from samcli.lib.utils.hash import str_checksum
+from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
 )
@@ -43,7 +44,7 @@ class ResourceTranslator:
 @dataclass
 class SamMetadataResource:
     current_module_address: Optional[str]
-    sam_metadata_resource: Dict
+    resource: Dict
 
 
 def prepare(params: dict) -> dict:
@@ -253,6 +254,53 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
     return cfn_dict
 
 
+def _validate_referenced_resource_matches_sam_metadata_type(
+    cfn_resource: dict, sam_metadata_attributes: dict, sam_metadata_resource_address: str, expected_package_type: str
+) -> None:
+    """
+    Validate if the resource that match the resource name provided in the sam metadata resource matches the resource
+    type provided in the metadata as well.
+
+    Parameters
+    ----------
+    cfn_resource: dict
+        The CFN resource that matches the sam metadata resource name
+    sam_metadata_attributes: dict
+        The sam metadata properties
+    sam_metadata_resource_address: str
+        The sam metadata resource address
+    expected_package_type: str
+        The expected lambda function package type.
+    """
+    cfn_resource_properties = cfn_resource.get("Properties", {})
+    resource_type = sam_metadata_attributes.get("resource_type")
+    cfn_resource_type = cfn_resource.get("Type")
+    lambda_function_package_type = cfn_resource_properties.get("PackageType", ZIP)
+    LOG.info(
+        "Validate if the referenced resource in sam metadata resource %s is of the expected type %s",
+        sam_metadata_resource_address,
+        resource_type,
+    )
+
+    if (
+        cfn_resource_type != CFN_AWS_LAMBDA_FUNCTION
+        or not cfn_resource_properties
+        or lambda_function_package_type != expected_package_type
+    ):
+        LOG.error(
+            "The matched resource is of type %s, and package type is %s, but the type mentioned in the sam metadata "
+            "resource %s is %s",
+            cfn_resource_type,
+            lambda_function_package_type,
+            sam_metadata_resource_address,
+            resource_type,
+        )
+        raise InvalidSamMetadataPropertiesException(
+            f"The sam metadata resource {sam_metadata_resource_address} is referring to a resource that does not "
+            f"match the resource type {resource_type}."
+        )
+
+
 def _enrich_mapped_resources(
     sam_metadata_resources: List[SamMetadataResource],
     cfn_resources: Dict[str, Dict],
@@ -273,6 +321,28 @@ def _enrich_mapped_resources(
     terraform_application_dir: str
         the terraform project root directory
     """
+
+    def _enrich_zip_lambda_function(sam_metadata_resource: Dict, cfn_resource: Dict, cfn_resource_logical_id: str):
+        pass
+
+    def _enrich_image_lambda_function(sam_metadata_resource: Dict, cfn_resource: Dict, cfn_resource_logical_id: str):
+        pass
+
+    resources_types_enrichment_functions = {
+        "ZIP_LAMBDA_FUNCTION": _enrich_zip_lambda_function,
+        "IMAGE_LAMBDA_FUNCTION": _enrich_image_lambda_function,
+    }
+
+    for sam_metadata_resource in sam_metadata_resources:
+        resource_type = sam_metadata_resource.resource.get("values", {}).get("triggers", {}).get("resource_type")
+        sam_metadata_resource_address = sam_metadata_resource.resource.get("address")
+        enrichment_function = resources_types_enrichment_functions.get(resource_type)
+        if not enrichment_function:
+            raise InvalidSamMetadataPropertiesException(
+                f"The resource type {resource_type} found in the sam metadata resource {sam_metadata_resource_address} "
+                f"is not a correct resource type. The resource type should be one of these values "
+                f"{resources_types_enrichment_functions.keys()}"
+            )
 
 
 def _translate_properties(tf_properties: dict, property_builder_mapping: PropertyBuilderMapping) -> dict:
