@@ -41,7 +41,6 @@ class FargateTestsuiteRunner:
         subnets_override: Optional[List[str]],
         runner_template_path: Optional[str],
         test_command_options: Optional[str],
-        color=Colored(),
     ):
 
         self.boto_ecs_client = boto_client_provider("ecs")
@@ -60,8 +59,6 @@ class FargateTestsuiteRunner:
         self.other_env_vars = other_env_vars
         self.test_command_options = test_command_options
 
-        self.color = color
-
         self.deployer = Deployer(cloudformation_client=self.boto_cloudformation_client)
 
     def _create_new_test_runner_stack(self, template_body: str) -> None:
@@ -74,16 +71,12 @@ class FargateTestsuiteRunner:
             The Test Runner CloudFormation Template to deploy
         """
         LOG.info(
-            self.color.yellow(
-                f"\n=> There does not exist a stack named '{self.runner_stack_name}', creating it from '{self.runner_template_path}'.\n"
-            )
+            f"\n=> There does not exist a stack named '{self.runner_stack_name}', creating it from '{self.runner_template_path}'.\n"
         )
 
         LOG.info(
-            self.color.red(
-                "! NOTE: The Test Runner Stack requires the creation of an IAM Role to allow Fargate to access the resources you wish to test against.\n\n"
-                "! Stack creation will be done with CAPABILITY_IAM specified.\n"
-            )
+            "! NOTE: The Test Runner Stack requires the creation of an IAM Role to allow Fargate to access the resources you wish to test against.\n\n"
+            "! Stack creation will be done with CAPABILITY_IAM specified.\n"
         )
 
         self.deployer.create_stack(
@@ -105,16 +98,12 @@ class FargateTestsuiteRunner:
             The Test Runner CloudFormation Template to deploy
         """
         LOG.info(
-            self.color.yellow(
-                f"\n=> A stack named '{self.runner_stack_name}' exists, updating it with '{self.runner_template_path}...'\n"
-            )
+            f"\n=> A stack named '{self.runner_stack_name}' exists, updating it with '{self.runner_template_path}...'\n"
         )
 
         LOG.info(
-            self.color.red(
-                "! NOTE: The Test Runner Stack requires the creation of an IAM Role to allow Fargate to access the resources you wish to test against.\n\n"
-                "! Stack updating will be done with CAPABILITY_IAM specified.\n",
-            )
+            "! NOTE: The Test Runner Stack requires the creation of an IAM Role to allow Fargate to access the resources you wish to test against.\n\n"
+            "! Stack updating will be done with CAPABILITY_IAM specified.\n",
         )
         try:
             self.deployer.update_stack(
@@ -131,9 +120,7 @@ class FargateTestsuiteRunner:
                 ) from deployment_exception
 
             LOG.info(
-                self.color.yellow(
-                    f"=> There are no updates to be performed on the stack '{self.runner_stack_name}', proceeding with testsuite execution...\n",
-                )
+                f"=> There are no updates to be performed on the stack '{self.runner_stack_name}', proceeding with testsuite execution...\n",
             )
 
     def _update_or_create_test_runner_stack(self):
@@ -274,9 +261,7 @@ class FargateTestsuiteRunner:
             bucket can be fetched.
         """
         LOG.info(
-            self.color.yellow(
-                f"=> Compressing and uploading {self.tests_path} to {Path(bucket).joinpath(self.path_in_bucket).as_posix()}\n"
-            )
+            f"=> Compressing and uploading {self.tests_path} to {Path(bucket).joinpath(self.path_in_bucket).as_posix()}\n"
         )
 
         # Compress tests into a temporary tarfile to send to S3 bucket
@@ -289,9 +274,7 @@ class FargateTestsuiteRunner:
                 Key=self.path_in_bucket.joinpath(Path(self.COMPRESSED_TESTS_FILE_NAME)).as_posix(),
             )
         LOG.info(
-            self.color.yellow(
-                f"=> Uploading {self.requirements_file_path} to {Path(bucket).joinpath(self.path_in_bucket).as_posix()}\n"
-            )
+            f"=> Uploading {self.requirements_file_path} to {Path(bucket).joinpath(self.path_in_bucket).as_posix()}\n"
         )
 
         with open(self.requirements_file_path, "rb") as requirements_file:
@@ -305,7 +288,7 @@ class FargateTestsuiteRunner:
         waiter.wait(Bucket=bucket, Key=self.path_in_bucket.joinpath(Path(self.COMPRESSED_TESTS_FILE_NAME)).as_posix())
         waiter.wait(Bucket=bucket, Key=self.path_in_bucket.joinpath(Path(self.REQUIREMENTS_FILE_NAME)).as_posix())
 
-        LOG.info(self.color.green("✓ Tests and requirements sucessfully uploaded, kicking off testsuite...\n"))
+        LOG.info("✓ Tests and requirements sucessfully uploaded, kicking off testsuite...\n")
 
     def _download_results(self, bucket: str, failed: bool) -> None:
         """
@@ -329,9 +312,7 @@ class FargateTestsuiteRunner:
             Filename=self.COMPRESSED_RESULTS_FILE_NAME,
         )
 
-        LOG.info(
-            self.color.green(f"✓ Results sucessfully downloaded and saved into {self.COMPRESSED_RESULTS_FILE_NAME}  \n")
-        )
+        LOG.info(f"✓ Results sucessfully downloaded and saved into {self.COMPRESSED_RESULTS_FILE_NAME}  \n")
 
         # The Fargate container packages all result files into a directory before tarring it,
         # so when the results are expanded, a single directory will be created,
@@ -343,17 +324,14 @@ class FargateTestsuiteRunner:
         os.remove(self.COMPRESSED_RESULTS_FILE_NAME)
 
         LOG.info(
-            self.color.green(
-                f"✓ Expanded results into directory {self.path_in_bucket.stem}. Here is the test command standard output:\n"
-            )
+            f"✓ Expanded results into directory {self.path_in_bucket.stem}. Here is the test command standard output:\n"
         )
 
         # The decompressed tarfile contents will be the basename of the path-in-bucket directory
         # E.g. Setting path-in-bucket to sample/path/run_01 => results will be in directory named run_01
         results_stdout_path = Path(self.path_in_bucket.stem).joinpath(self.RESULTS_STDOUT_FILE_NAME)
         results_stdout = Path.read_text(results_stdout_path)
-        output_color = self.color.red if failed else self.color.green
-        LOG.info(output_color(results_stdout))
+        LOG.info(Colored().red(results_stdout) if failed else results_stdout)
 
     def _get_task_exit_code(self, task_arn: str, ecs_cluster: str) -> int:
         """
@@ -450,14 +428,14 @@ class FargateTestsuiteRunner:
             taskDefinition=task_definition_arn,
         )
 
-        LOG.info(self.color.yellow("=> Successfully kicked off testsuite, waiting for completion...\n"))
+        LOG.info("=> Successfully kicked off testsuite, waiting for completion...\n")
 
         results_upload_waiter = self.boto_s3_client.get_waiter("object_exists")
         results_upload_waiter.wait(
             Bucket=bucket, Key=self.path_in_bucket.joinpath(Path(self.COMPRESSED_RESULTS_FILE_NAME)).as_posix()
         )
 
-        LOG.info(self.color.green("✓ Testsuite complete!\n"))
+        LOG.info("✓ Testsuite complete!\n")
 
         task_arn = response["tasks"][0]["containers"][0]["taskArn"]
         return task_arn

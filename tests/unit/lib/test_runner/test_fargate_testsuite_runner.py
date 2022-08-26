@@ -82,7 +82,7 @@ class Test_InvokeTestsuite(TestCase):
 
     def test_no_fail_on_no_update(self):
         mock_deployer = MockDeployer(
-            update_stack_ex=DeployFailedError(stack_name="No updates are to be performed", msg="error")
+            update_stack_ex=DeployFailedError(stack_name="test-stack", msg="No updates are to be performed etc etc")
         )
         self.runner.deployer = mock_deployer
         try:
