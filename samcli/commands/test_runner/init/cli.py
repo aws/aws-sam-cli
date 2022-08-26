@@ -29,7 +29,7 @@ For example,
 _MY_LAMBDA_FUNCTION : arn:aws:lambda:us-east-1:123456789012:function:my-lambda-function
 
 This file can be passed to `sam test-runner run` (using the `--container-vars` option), to expose the mappings as environment variables to the Fargate container.
-These environment variables can be picked up and used by your test code.
+These environment variables are exposed to your testsuite.
 """
 
 # IAM actions table
@@ -79,7 +79,7 @@ COLOR = Colored()
     help="""
 Specify the name of the generated resource-ARN map YAML file. This file can be passed to `sam test-runner run` (using the `--container-vars` option), to expose the mappings as environment variables to the Fargate container.
 
-These environment variables can be picked up and used by your test code.
+These environment variables are exposed to your testsuite.
 """,
     default=DEFAULT_RESOURCE_ARN_MAP_FILE_NAME,
 )

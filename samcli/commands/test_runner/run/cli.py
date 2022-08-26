@@ -67,7 +67,7 @@ If a Test Runner Stack with this name does exist, and a template is provided, th
     help="""
 A YAML file specifying environment variables to expose to the Test Runner Fargate container.
 
-These environment variables can be picked up and used by your test code.
+These environment variables are exposed to your testsuite.
 """,
 )
 @click.option(
