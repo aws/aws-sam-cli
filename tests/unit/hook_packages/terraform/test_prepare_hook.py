@@ -1021,14 +1021,8 @@ class TestPrepareHook(TestCase):
                 cfn_resource, sam_metadata_attributes, "resource_address", expected_package_type
             )
 
-    @parameterized.expand(
-        [
-            (["ABCDEFG"],),
-            (["NotValid", "ABCDEFG"],),
-        ]
-    )
     @patch("samcli.hook_packages.terraform.hooks.prepare._build_cfn_logical_id")
-    def test_get_relevant_cfn_resource(self, build_logical_id_output, mock_build_cfn_logical_id):
+    def test_get_relevant_cfn_resource(self, mock_build_cfn_logical_id):
         sam_metadata_resource = SamMetadataResource(
             current_module_address="module.mymodule1",
             resource={
@@ -1040,18 +1034,12 @@ class TestPrepareHook(TestCase):
             "ABCDEFG": self.expected_cfn_lambda_function_resource_zip_2,
             "logical_id_3": self.expected_cfn_lambda_function_resource_zip_3,
         }
-        mock_build_cfn_logical_id.side_effect = build_logical_id_output
+        mock_build_cfn_logical_id.side_effect = ["ABCDEFG"]
         relevant_resource, return_logical_id = _get_relevant_cfn_resource(sam_metadata_resource, cfn_resources)
 
-        calls = (
-            [call(f"module.mymodule1.aws_lambda_function.{self.zip_function_name_2}")]
-            if len(build_logical_id_output) == 1
-            else [
-                call(f"module.mymodule1.aws_lambda_function.{self.zip_function_name_2}"),
-                call(f"aws_lambda_function.{self.zip_function_name_2}"),
-            ]
+        mock_build_cfn_logical_id.assert_called_once_with(
+            f"module.mymodule1.aws_lambda_function.{self.zip_function_name_2}"
         )
-        mock_build_cfn_logical_id.assert_has_calls(calls)
         self.assertEquals(relevant_resource, self.expected_cfn_lambda_function_resource_zip_2)
         self.assertEquals(return_logical_id, "ABCDEFG")
 

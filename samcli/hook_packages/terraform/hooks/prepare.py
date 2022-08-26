@@ -372,8 +372,8 @@ def _get_relevant_cfn_resource(
             f"that will be enriched using this metadata resource"
         )
 
-    # the provided resource name can be the name without the module address, or can be a complete resource address name
-    # check first if the provided name is without the module address
+    # the provided resource name will be always a postfix to the module address. The customer could not set a full
+    # address within a module.
     LOG.info(
         "Check if the input resource name %s is a postfix to the current module address %s",
         resource_name,
@@ -390,17 +390,6 @@ def _get_relevant_cfn_resource(
     if cfn_resource:
         LOG.info("The CFN resource that match the input resource name %s is %s", resource_name, logical_id)
         return cfn_resource, logical_id
-
-    LOG.info("Check if the input resource name %s is a complete address", resource_name)
-    # check if the provided name is a complete resource address
-    if sam_metadata_resource.current_module_address:
-        full_resource_address = resource_name
-        LOG.debug("check if the resource address %s has a relevant cfn resource or not", full_resource_address)
-        logical_id = _build_cfn_logical_id(full_resource_address)
-        cfn_resource = cfn_resources.get(logical_id)
-        if cfn_resource:
-            LOG.info("The CFN resource that match the input resource name %s is %s", resource_name, logical_id)
-            return cfn_resource, logical_id
 
     raise InvalidSamMetadataPropertiesException(
         f"There is no resource found that match the provided resource name " f"{resource_name}"
