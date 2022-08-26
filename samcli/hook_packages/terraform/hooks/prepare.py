@@ -375,7 +375,7 @@ def _get_relevant_cfn_resource(
     # the provided resource name can be the name without the module address, or can be a complete resource address name
     # check first if the provided name is without the module address
     LOG.info(
-        "Check if the input source name %s is a postfix to the current module address %s",
+        "Check if the input resource name %s is a postfix to the current module address %s",
         resource_name,
         sam_metadata_resource.current_module_address,
     )
@@ -391,7 +391,7 @@ def _get_relevant_cfn_resource(
         LOG.info("The CFN resource that match the input resource name %s is %s", resource_name, logical_id)
         return cfn_resource, logical_id
 
-    LOG.info("Check if the input source name %s is a complete address", resource_name)
+    LOG.info("Check if the input resource name %s is a complete address", resource_name)
     # check if the provided name is a complete resource address
     if sam_metadata_resource.current_module_address:
         full_resource_address = resource_name
