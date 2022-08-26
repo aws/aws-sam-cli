@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameteres:
+  Runtime:
+    Type: String
+  CodeUri:
+    Type: String
+  Handler:
+    Type: String
+  Architectures:
+    Type: String
+  NodeOptions:
+    Type: String
+    Default: "No-op"
+  GlobalNodeOptions:
+    Type: String
+    Default: "No-op"
+  Minify:
+    Type: String
+    Default: true
+  Sourcemap:
+    Type: String
+    Default: true
+
+Globals:
+  Function:
+     Environment:
+       Variables:
+         NODE_OPTIONS: !Ref GlobalNodeOptions
+
+Resources:
+  Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: !Ref Handler
+      Runtime: !Ref Runtime
+      CodeUri: !Ref CodeUri
+      Timeout: 600
+      Environment:
+        Variables:
+          NODE_OPTIONS: !Ref NodeOptions
+      Architectures:
+        - !Ref Architectures
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: !Ref Minify
+        Target: "es2020"
