@@ -7,7 +7,7 @@ import json
 import os
 from pathlib import Path
 from subprocess import run, CalledProcessError
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 import hashlib
 import logging
 
@@ -343,6 +343,57 @@ def _enrich_mapped_resources(
                 f"is not a correct resource type. The resource type should be one of these values "
                 f"{resources_types_enrichment_functions.keys()}"
             )
+
+
+def _get_relevant_cfn_resource(
+    sam_metadata_resource: SamMetadataResource, cfn_resources: Dict[str, Dict]
+) -> Tuple[Dict, str]:
+    """
+    use the sam metadata resource name property to determine the resource address, and transform the address to logical
+    id to use it to get the cfn_resource.
+
+    Parameters
+    ----------
+    sam_metadata_resource: SamMetadataResource
+        sam metadata resource that contain extra information about some resource.
+    cfn_resources: Dict
+        CloudFormation resources
+
+    Returns
+    -------
+    tuple(Dict, str)
+        The cfn resource that mentioned in the sam metadata resource, and the resource logical id
+    """
+    sam_metadata_resource_address = sam_metadata_resource.resource.get("address")
+    resource_name = sam_metadata_resource.resource.get("values", {}).get("triggers", {}).get("resource_name")
+    if not resource_name:
+        raise InvalidSamMetadataPropertiesException(
+            f"sam cli expects the sam metadata resource {sam_metadata_resource_address} to contain a resource name "
+            f"that will be enriched using this metadata resource"
+        )
+
+    # the provided resource name will be always a postfix to the module address. The customer could not set a full
+    # address within a module.
+    LOG.info(
+        "Check if the input resource name %s is a postfix to the current module address %s",
+        resource_name,
+        sam_metadata_resource.current_module_address,
+    )
+    full_resource_address = (
+        f"{sam_metadata_resource.current_module_address}.{resource_name}"
+        if sam_metadata_resource.current_module_address
+        else resource_name
+    )
+    LOG.debug("check if the resource address %s has a relevant cfn resource or not", full_resource_address)
+    logical_id = _build_cfn_logical_id(full_resource_address)
+    cfn_resource = cfn_resources.get(logical_id)
+    if cfn_resource:
+        LOG.info("The CFN resource that match the input resource name %s is %s", resource_name, logical_id)
+        return cfn_resource, logical_id
+
+    raise InvalidSamMetadataPropertiesException(
+        f"There is no resource found that match the provided resource name " f"{resource_name}"
+    )
 
 
 def _translate_properties(tf_properties: dict, property_builder_mapping: PropertyBuilderMapping) -> dict:
