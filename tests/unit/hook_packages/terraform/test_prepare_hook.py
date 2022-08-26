@@ -23,6 +23,7 @@ from samcli.hook_packages.terraform.hooks.prepare import (
     NULL_RESOURCE_PROVIDER_NAME,
     SamMetadataResource,
     _validate_referenced_resource_matches_sam_metadata_type,
+    _get_lambda_function_source_code_path,
     _enrich_mapped_resources,
     _get_relevant_cfn_resource,
 )
@@ -1019,6 +1020,169 @@ class TestPrepareHook(TestCase):
         ):
             _validate_referenced_resource_matches_sam_metadata_type(
                 cfn_resource, sam_metadata_attributes, "resource_address", expected_package_type
+            )
+
+    @parameterized.expand(
+        [
+            ("/src/code/path", None, "/src/code/path", True),
+            ("src/code/path", None, "src/code/path", False),
+            ('"/src/code/path"', None, "/src/code/path", True),
+            ('"src/code/path"', None, "src/code/path", False),
+            ('{"path":"/src/code/path"}', "path", "/src/code/path", True),
+            ('{"path":"src/code/path"}', "path", "src/code/path", False),
+            ({"path": "/src/code/path"}, "path", "/src/code/path", True),
+            ({"path": "src/code/path"}, "path", "src/code/path", False),
+            ('["/src/code/path"]', "None", "/src/code/path", True),
+            ('["src/code/path"]', "None", "src/code/path", False),
+            (["/src/code/path"], "None", "/src/code/path", True),
+            (["src/code/path"], "None", "src/code/path", False),
+        ]
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.os")
+    def test_get_lambda_function_source_code_path_valid_metadata_resource(
+        self, original_source_code, source_code_property, expected_path, is_abs, mock_os
+    ):
+        mock_path = Mock()
+        mock_os.path = mock_path
+        mock_isabs = Mock()
+        mock_isabs.return_value = is_abs
+        mock_path.isabs = mock_isabs
+
+        mock_exists = Mock()
+        mock_exists.return_value = True
+        mock_path.exists = mock_exists
+
+        if not is_abs:
+            mock_normpath = Mock()
+            mock_normpath.return_value = f"/project/root/dir/{expected_path}"
+            expected_path = f"/project/root/dir/{expected_path}"
+            mock_path.normpath = mock_normpath
+            mock_join = Mock()
+            mock_join.return_value = expected_path
+            mock_path.join = mock_join
+        sam_metadata_attributes = {
+            **self.tf_zip_function_sam_metadata_properties,
+            "original_source_code": original_source_code,
+        }
+        if source_code_property:
+            sam_metadata_attributes = {
+                **sam_metadata_attributes,
+                "source_code_property": source_code_property,
+            }
+        path = _get_lambda_function_source_code_path(
+            sam_metadata_attributes,
+            "resource_address",
+            "/project/root/dir",
+            "original_source_code",
+            "source_code_property",
+            "source code",
+        )
+        self.assertEquals(path, expected_path)
+
+    @parameterized.expand(
+        [
+            (
+                "/src/code/path",
+                None,
+                False,
+                "The sam metadata resource resource_address should contain a valid lambda function source code path",
+            ),
+            (
+                None,
+                None,
+                True,
+                "The sam metadata resource resource_address should contain the lambda function source code in "
+                "property original_source_code",
+            ),
+            (
+                '{"path":"/src/code/path"}',
+                None,
+                True,
+                "The sam metadata resource resource_address should contain the lambda function source code property in "
+                "property source_code_property as the original_source_code value is an object",
+            ),
+            (
+                {"path": "/src/code/path"},
+                None,
+                True,
+                "The sam metadata resource resource_address should contain the lambda function source code property "
+                "in property source_code_property as the original_source_code value is an object",
+            ),
+            (
+                '{"path":"/src/code/path"}',
+                "path1",
+                True,
+                "The sam metadata resource resource_address should contain a valid lambda function source code "
+                "property in property source_code_property as the original_source_code value is an object",
+            ),
+            (
+                {"path": "/src/code/path"},
+                "path1",
+                True,
+                "The sam metadata resource resource_address should contain a valid lambda function source code "
+                "property in property source_code_property as the original_source_code value is an object",
+            ),
+            (
+                "[]",
+                None,
+                True,
+                "The sam metadata resource resource_address should contain the lambda function  source code in "
+                "property original_source_code, and it should not be an empty list",
+            ),
+            (
+                [],
+                None,
+                True,
+                "The sam metadata resource resource_address should contain the lambda function  source code in "
+                "property original_source_code, and it should not be an empty list",
+            ),
+            (
+                "[null]",
+                None,
+                True,
+                "The sam metadata resource resource_address should contain a valid lambda function source code in "
+                "property original_source_code",
+            ),
+            (
+                [None],
+                None,
+                True,
+                "The sam metadata resource resource_address should contain a valid lambda function source code in "
+                "property original_source_code",
+            ),
+        ]
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.os")
+    def test_get_lambda_function_source_code_path_invalid_metadata_resources(
+        self, original_source_code, source_code_property, does_exist, exception_message, mock_os
+    ):
+        mock_path = Mock()
+        mock_os.path = mock_path
+        mock_isabs = Mock()
+        mock_isabs.return_value = True
+        mock_path.isabs = mock_isabs
+
+        mock_exists = Mock()
+        mock_exists.return_value = does_exist
+        mock_path.exists = mock_exists
+
+        sam_metadata_attributes = {
+            **self.tf_zip_function_sam_metadata_properties,
+            "original_source_code": original_source_code,
+        }
+        if source_code_property:
+            sam_metadata_attributes = {
+                **sam_metadata_attributes,
+                "source_code_property": source_code_property,
+            }
+        with self.assertRaises(InvalidSamMetadataPropertiesException, msg=exception_message):
+            _get_lambda_function_source_code_path(
+                sam_metadata_attributes,
+                "resource_address",
+                "/project/root/dir",
+                "original_source_code",
+                "source_code_property",
+                "source code",
             )
 
     @patch("samcli.hook_packages.terraform.hooks.prepare._build_cfn_logical_id")
