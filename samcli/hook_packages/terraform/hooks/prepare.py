@@ -334,9 +334,7 @@ def _enrich_mapped_resources(
     }
 
     for sam_metadata_resource in sam_metadata_resources:
-        resource_type = (
-            sam_metadata_resource.resource.get("values", {}).get("triggers", {}).get("resource_type")
-        )
+        resource_type = sam_metadata_resource.resource.get("values", {}).get("triggers", {}).get("resource_type")
         sam_metadata_resource_address = sam_metadata_resource.resource.get("address")
         enrichment_function = resources_types_enrichment_functions.get(resource_type)
         if not enrichment_function:

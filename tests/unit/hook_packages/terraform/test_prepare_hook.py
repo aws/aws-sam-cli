@@ -881,15 +881,15 @@ class TestPrepareHook(TestCase):
         mock_enrich_mapped_resources.assert_called_once_with(
             [
                 SamMetadataResource(
-                    current_module_address=None, sam_metadata_resource=self.tf_lambda_function_resource_zip_sam_metadata
+                    current_module_address=None, resource=self.tf_lambda_function_resource_zip_sam_metadata
                 ),
                 SamMetadataResource(
                     current_module_address=None,
-                    sam_metadata_resource=self.tf_lambda_function_resource_zip_2_sam_metadata,
+                    resource=self.tf_lambda_function_resource_zip_2_sam_metadata,
                 ),
                 SamMetadataResource(
                     current_module_address=None,
-                    sam_metadata_resource=self.tf_image_package_type_lambda_function_resource_sam_metadata,
+                    resource=self.tf_image_package_type_lambda_function_resource_sam_metadata,
                 ),
             ],
             translated_cfn_dict["Resources"],
@@ -909,25 +909,25 @@ class TestPrepareHook(TestCase):
         mock_enrich_mapped_resources.assert_called_once_with(
             [
                 SamMetadataResource(
-                    current_module_address=None, sam_metadata_resource=self.tf_lambda_function_resource_zip_sam_metadata
+                    current_module_address=None, resource=self.tf_lambda_function_resource_zip_sam_metadata
                 ),
                 SamMetadataResource(
                     current_module_address="module.mymodule1",
-                    sam_metadata_resource={
+                    resource={
                         **self.tf_lambda_function_resource_zip_2_sam_metadata,
                         "address": f"module.mymodule1.null_resource.sam_metadata_{self.zip_function_name_2}",
                     },
                 ),
                 SamMetadataResource(
                     current_module_address="module.mymodule1.module.mymodule2",
-                    sam_metadata_resource={
+                    resource={
                         **self.tf_lambda_function_resource_zip_3_sam_metadata,
                         "address": f"module.mymodule1.module.mymodule2.null_resource.sam_metadata_{self.zip_function_name_3}",
                     },
                 ),
                 SamMetadataResource(
                     current_module_address="module.mymodule1.module.mymodule3",
-                    sam_metadata_resource={
+                    resource={
                         **self.tf_lambda_function_resource_zip_4_sam_metadata,
                         "address": f"module.mymodule1.module.mymodule3.null_resource.sam_metadata_{self.zip_function_name_4}",
                     },
@@ -1043,7 +1043,7 @@ class TestPrepareHook(TestCase):
         sam_metadata_resources = [
             SamMetadataResource(
                 current_module_address=None,
-                sam_metadata_resource={
+                resource={
                     **self.tf_sam_metadata_resource_common_attributes,
                     "values": {
                         "triggers": {
