@@ -208,12 +208,17 @@ class TestLocalLambda_make_env_vars(TestCase):
             ({"function_id": {"a": "b"}}, {"a": "b"}),
             # Override for the logical_id exists
             ({"logical_id": {"a": "c"}}, {"a": "c"}),
+            # Override for the functionname exists
+            ({"function_name": {"a": "d"}}, {"a": "d"}),
             # Override for the full_path exists
             ({posixpath.join("somepath", "function_id"): {"a": "d"}}, {"a": "d"}),
             # Override for the function does *not* exist
-            ({"otherfunction": {"c": "d"}}, None),
+            ({"otherfunction": {"c": "d"}}, {}),
             # Using a CloudFormation parameter file format
             ({"Parameters": {"p1": "v1"}}, {"p1": "v1"}),
+            # Mix of Cloudformation and standard parameter format
+            ({"Parameters": {"p1": "v1"}, "logical_id": {"a": "b"}}, {"p1": "v1", "a": "b"}),
+            ({"Parameters": {"p1": "v1"}, "logical_id": {"p1": "v2"}}, {"p1": "v2"}),
         ]
     )
     @patch("samcli.commands.local.lib.local_lambda.EnvironmentVariables")
@@ -353,7 +358,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             function.handler,
             variables=None,
             shell_env_values=os_environ,
-            override_values=None,
+            override_values={},
             aws_creds=self.aws_creds,
         )
 
