@@ -24,6 +24,7 @@ from samcli.hook_packages.terraform.hooks.prepare import (
     SamMetadataResource,
     _validate_referenced_resource_matches_sam_metadata_type,
     _enrich_mapped_resources,
+    _get_relevant_cfn_resource,
 )
 from samcli.lib.hook.exceptions import PrepareHookException, InvalidSamMetadataPropertiesException
 from samcli.lib.utils.resources import (
@@ -1019,6 +1020,91 @@ class TestPrepareHook(TestCase):
             _validate_referenced_resource_matches_sam_metadata_type(
                 cfn_resource, sam_metadata_attributes, "resource_address", expected_package_type
             )
+
+    @parameterized.expand(
+        [
+            (["ABCDEFG"],),
+            (["NotValid", "ABCDEFG"],),
+        ]
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare._build_cfn_logical_id")
+    def test_get_relevant_cfn_resource(self, build_logical_id_output, mock_build_cfn_logical_id):
+        sam_metadata_resource = SamMetadataResource(
+            current_module_address="module.mymodule1",
+            resource={
+                **self.tf_lambda_function_resource_zip_2_sam_metadata,
+                "address": f"module.mymodule1.null_resource.sam_metadata_{self.zip_function_name_2}",
+            },
+        )
+        cfn_resources = {
+            "ABCDEFG": self.expected_cfn_lambda_function_resource_zip_2,
+            "logical_id_3": self.expected_cfn_lambda_function_resource_zip_3,
+        }
+        mock_build_cfn_logical_id.side_effect = build_logical_id_output
+        relevant_resource, return_logical_id = _get_relevant_cfn_resource(sam_metadata_resource, cfn_resources)
+
+        calls = (
+            [call(f"module.mymodule1.aws_lambda_function.{self.zip_function_name_2}")]
+            if len(build_logical_id_output) == 1
+            else [
+                call(f"module.mymodule1.aws_lambda_function.{self.zip_function_name_2}"),
+                call(f"aws_lambda_function.{self.zip_function_name_2}"),
+            ]
+        )
+        mock_build_cfn_logical_id.assert_has_calls(calls)
+        self.assertEquals(relevant_resource, self.expected_cfn_lambda_function_resource_zip_2)
+        self.assertEquals(return_logical_id, "ABCDEFG")
+
+    @parameterized.expand(
+        [
+            (
+                None,
+                "module.mymodule1",
+                ["ABCDEFG"],
+                "sam cli expects the sam metadata resource null_resource.sam_metadata_func2 to contain a resource name "
+                "that will be enriched using this metadata resource",
+            ),
+            (
+                "resource_name_value",
+                None,
+                ["Not_valid"],
+                "There is no resource found that match the provided resource name null_resource.sam_metadata_func2",
+            ),
+            (
+                "resource_name_value",
+                "module.mymodule1",
+                ["Not_valid", "Not_valid"],
+                "There is no resource found that match the provided resource name null_resource.sam_metadata_func2",
+            ),
+        ]
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare._build_cfn_logical_id")
+    def test_get_relevant_cfn_resource_exceptions(
+        self, resource_name, module_name, build_logical_id_output, exception_message, mock_build_cfn_logical_id
+    ):
+        sam_metadata_resource = SamMetadataResource(
+            current_module_address=module_name,
+            resource={
+                **self.tf_sam_metadata_resource_common_attributes,
+                "values": {
+                    "triggers": {
+                        "built_output_path": "builds/func2.zip",
+                        "original_source_code": "./src/lambda_func2",
+                        "resource_name": resource_name,
+                        "resource_type": "ZIP_LAMBDA_FUNCTION",
+                    },
+                },
+                "address": "null_resource.sam_metadata_func2",
+                "name": "sam_metadata_func2",
+            },
+        )
+        cfn_resources = {
+            "ABCDEFG": self.expected_cfn_lambda_function_resource_zip_2,
+            "logical_id_3": self.expected_cfn_lambda_function_resource_zip_3,
+        }
+        mock_build_cfn_logical_id.side_effect = build_logical_id_output
+        with self.assertRaises(InvalidSamMetadataPropertiesException, msg=exception_message):
+            _get_relevant_cfn_resource(sam_metadata_resource, cfn_resources)
 
     def test_enrich_mapped_resources_invalid_source_type(self):
         image_function_1 = {
