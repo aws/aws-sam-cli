@@ -265,4 +265,4 @@ class TestPackageImage(PackageIntegBase):
         for image, tag in images:
             # check string like this:
             # ...python-ce689abb4f0d-3.9-slim: digest:...
-            self.assertRegex(process_stderr, fr"{image}-.+-{tag}: digest:")
+            self.assertRegex(process_stderr, rf"{image}-.+-{tag}: digest:")
