@@ -57,7 +57,7 @@ class TestParallelRequests(StartApiIntegBaseClass):
             for result in results:
                 self.assertEqual(result.status_code, 200)
                 self.assertEqual(result.json(), {"message": "HelloWorld! I just slept and waking up."})
-                self.assertEqual(result.raw.version, 11) # Checks if the response is HTTP/1.1 version
+                self.assertEqual(result.raw.version, 11)  # Checks if the response is HTTP/1.1 version
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -112,7 +112,7 @@ class TestServiceErrorResponses(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.json(), {"message": "Missing Authentication Token"})
-        self.assertEqual(response.raw.version, 11) # Checks if the response is HTTP/1.1 version
+        self.assertEqual(response.raw.version, 11)  # Checks if the response is HTTP/1.1 version
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -164,7 +164,7 @@ class TestService(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
-        self.assertEqual(response.raw.version, 11) # Checks if the response is HTTP/1.1 version
+        self.assertEqual(response.raw.version, 11)  # Checks if the response is HTTP/1.1 version
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
