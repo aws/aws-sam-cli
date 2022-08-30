@@ -10,9 +10,26 @@ Parameteres:
     Type: String
   Architectures:
     Type: String
+  NodeOptions:
+    Type: String
+    Default: "No-op"
+  GlobalNodeOptions:
+    Type: String
+    Default: "No-op"
+  Minify:
+    Type: String
+    Default: true
+  Sourcemap:
+    Type: String
+    Default: true
+
+Globals:
+  Function:
+     Environment:
+       Variables:
+         NODE_OPTIONS: !Ref GlobalNodeOptions
 
 Resources:
-
   Function:
     Type: AWS::Serverless::Function
     Properties:
@@ -20,11 +37,13 @@ Resources:
       Runtime: !Ref Runtime
       CodeUri: !Ref CodeUri
       Timeout: 600
+      Environment:
+        Variables:
+          NODE_OPTIONS: !Ref NodeOptions
       Architectures:
         - !Ref Architectures
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
-        Minify: true
+        Minify: !Ref Minify
         Target: "es2020"
-        Sourcemap: true
