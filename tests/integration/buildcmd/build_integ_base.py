@@ -348,7 +348,7 @@ class BuildIntegEsbuildBase(BuildIntegBase):
             self.verify_pulled_image(runtime, architecture)
 
     def _test_with_various_properties(self, overrides):
-        overrides = self.get_override_metadata(**overrides)
+        overrides = self.get_override(**overrides)
         cmdlist = self.get_command_list(parameter_overrides=overrides)
 
         cmdlist.append("--beta-features")
@@ -396,40 +396,6 @@ class BuildIntegEsbuildBase(BuildIntegBase):
         all_artifacts = set(os.listdir(str(resource_artifact_dir)))
         actual_files = all_artifacts.intersection(expected_files)
         self.assertEqual(actual_files, expected_files)
-
-    @staticmethod
-    def get_override_metadata(
-        runtime,
-        code_uri,
-        architecture,
-        handler,
-        node_options=None,
-        global_node_options=None,
-        minify=None,
-        sourcemap=None,
-    ):
-        overrides = {
-            "Runtime": runtime,
-            "CodeUri": code_uri,
-            "Handler": handler,
-        }
-
-        if node_options:
-            overrides["NodeOptions"] = node_options
-
-        if global_node_options:
-            overrides["GlobalNodeOptions"] = global_node_options
-
-        if minify:
-            overrides["Minify"] = minify
-
-        if sourcemap:
-            overrides["Sourcemap"] = sourcemap
-
-        if architecture:
-            overrides["Architectures"] = architecture
-
-        return overrides
 
 
 class BuildIntegNodeBase(BuildIntegBase):
