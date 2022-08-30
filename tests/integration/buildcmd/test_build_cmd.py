@@ -451,8 +451,6 @@ class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
     ],
 )
 class TestBuildCommand_EsbuildFunctionProperties(BuildIntegEsbuildBase):
-    template = "esbuild_templates/template_with_metadata_node_options.yaml"
-
     @pytest.mark.flaky(reruns=3)
     def test_environment_generates_sourcemap(self):
         overrides = {
