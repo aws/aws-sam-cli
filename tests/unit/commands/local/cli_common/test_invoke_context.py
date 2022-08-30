@@ -86,7 +86,7 @@ class TestInvokeContext__enter__(TestCase):
         self.assertEqual(invoke_context._invoke_images, {None: "image"})
 
         invoke_context._get_stacks.assert_called_once()
-        SamFunctionProviderMock.assert_called_with(stacks)
+        SamFunctionProviderMock.assert_called_with(stacks, True)
         self.assertEqual(invoke_context._global_parameter_overrides, {"AWS::Region": "region"})
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
         self.assertEqual(invoke_context._get_env_vars_value.call_args_list, [call(env_vars_file), call(None)])
@@ -172,7 +172,9 @@ class TestInvokeContext__enter__(TestCase):
         self.assertEqual(invoke_context._invoke_images, {None: "image"})
 
         invoke_context._get_stacks.assert_called_once()
-        RefreshableSamFunctionProviderMock.assert_called_with(stacks, parameter_overrides, global_parameter_overrides)
+        RefreshableSamFunctionProviderMock.assert_called_with(
+            stacks, parameter_overrides, global_parameter_overrides, True
+        )
         self.assertEqual(invoke_context._global_parameter_overrides, global_parameter_overrides)
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
         self.assertEqual(invoke_context._get_env_vars_value.call_args_list, [call(env_vars_file), call(None)])
@@ -259,7 +261,9 @@ class TestInvokeContext__enter__(TestCase):
         self.assertEqual(invoke_context._invoke_images, {None: "image"})
 
         invoke_context._get_stacks.assert_called_once()
-        RefreshableSamFunctionProviderMock.assert_called_with(stacks, parameter_overrides, global_parameter_overrides)
+        RefreshableSamFunctionProviderMock.assert_called_with(
+            stacks, parameter_overrides, global_parameter_overrides, True
+        )
         self.assertEqual(invoke_context._global_parameter_overrides, global_parameter_overrides)
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
         self.assertEqual(
@@ -344,7 +348,9 @@ class TestInvokeContext__enter__(TestCase):
         self.assertEqual(invoke_context._invoke_images, {None: "image"})
 
         invoke_context._get_stacks.assert_called_once()
-        RefreshableSamFunctionProviderMock.assert_called_with(stacks, parameter_overrides, global_parameter_overrides)
+        RefreshableSamFunctionProviderMock.assert_called_with(
+            stacks, parameter_overrides, global_parameter_overrides, True
+        )
         self.assertEqual(invoke_context._global_parameter_overrides, global_parameter_overrides)
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
         self.assertEqual(invoke_context._get_env_vars_value.call_args_list, [call(env_vars_file), call(None)])
