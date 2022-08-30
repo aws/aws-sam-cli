@@ -964,6 +964,8 @@ class TestBuildContext_run(TestCase):
         esbuild_manager = EsbuildBundlerManager(Mock())
         esbuild_manager.set_sourcemap_env_from_metadata = Mock()
         esbuild_manager.set_sourcemap_env_from_metadata.side_effect = [modified_template_root, modified_template_child]
+        esbuild_manager.esbuild_configured = Mock()
+        esbuild_manager.esbuild_configured.return_value = False
         esbuild_bundler_manager_mock.return_value = esbuild_manager
 
         with BuildContext(
