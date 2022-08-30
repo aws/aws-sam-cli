@@ -309,7 +309,7 @@ class BuildContext:
             for stack in self.stacks:
                 stacks.append(EsbuildBundlerManager(stack).set_sourcemap_metadata_from_env())
             self.function_provider.update(stacks, self._use_raw_codeuri, locate_layer_nested=self._locate_layer_nested)
-        return stacks if stacks else self._stacks
+        return stacks if stacks else self.stacks
 
     def _handle_build_post_processing(self, builder: ApplicationBuilder, build_result: ApplicationBuildResult) -> None:
         """
