@@ -5,6 +5,7 @@ Terraform prepare hook implementation
 from dataclasses import dataclass
 import json
 import os
+from json.decoder import JSONDecodeError
 from pathlib import Path
 from subprocess import run, CalledProcessError
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -353,7 +354,7 @@ def _get_lambda_function_source_code_path(
             LOG.debug("Try to decode the %s value in case if it is a encoded JSON string.", src_code_attribute_name)
             source_code = json.loads(source_code)
             LOG.debug("The decoded value of the %s value is %s", src_code_attribute_name, source_code)
-        except Exception:
+        except JSONDecodeError:
             LOG.debug("Source code value could not be parsed as a JSON object. Handle it as normal string value")
 
     if isinstance(source_code, dict):
@@ -383,7 +384,10 @@ def _get_lambda_function_source_code_path(
             )
     elif isinstance(source_code, list):
         # SAM CLI does not process multiple paths, so we will handle only the first value in this list
-        LOG.debug("Process the extracted %s as list, and get the first value", src_code_attribute_name)
+        LOG.debug(
+            "Process the extracted %s as list, and get the first value as SAM CLI does not support multiple paths",
+            src_code_attribute_name,
+        )
         if len(source_code) < 1:
             raise InvalidSamMetadataPropertiesException(
                 f"The sam metadata resource {sam_metadata_resource_address} should contain the lambda function "
