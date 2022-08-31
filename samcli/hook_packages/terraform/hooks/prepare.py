@@ -445,7 +445,42 @@ def _enrich_mapped_resources(
     """
 
     def _enrich_zip_lambda_function(sam_metadata_resource: Dict, cfn_resource: Dict, cfn_resource_logical_id: str):
-        pass
+        sam_metadata_attributes = sam_metadata_resource.get("values", {}).get("triggers", {})
+        sam_metadata_resource_address = sam_metadata_resource.get("address")
+        if not sam_metadata_resource_address:
+            raise PrepareHookException(
+                "Invalid Terraform plan output. The address property should not be null to any terraform resource."
+            )
+
+        LOG.info(
+            "Enrich the ZIP lambda function %s using the metadata properties defined in resource %s",
+            cfn_resource_logical_id,
+            sam_metadata_resource_address,
+        )
+        cfn_resource_properties = cfn_resource.get("Properties", {})
+
+        _validate_referenced_resource_matches_sam_metadata_type(
+            cfn_resource, sam_metadata_attributes, sam_metadata_resource_address, ZIP
+        )
+
+        cfn_source_code_path = _get_lambda_function_source_code_path(
+            sam_metadata_attributes,
+            sam_metadata_resource_address,
+            terraform_application_dir,
+            "original_source_code",
+            "source_code_property",
+            "source code",
+        )
+        cfn_resource_properties["Code"] = cfn_source_code_path
+        if not cfn_resource.get("Metadata", {}):
+            cfn_resource["Metadata"] = {}
+        cfn_resource["Metadata"]["SkipBuild"] = False
+        cfn_resource["Metadata"]["BuildMethod"] = "makefile"
+        cfn_resource["Metadata"]["ContextPath"] = output_directory_path
+        cfn_resource["Metadata"]["WorkingDirectory"] = terraform_application_dir
+        # currently we set the terraform project root directory that contains all the terraform artifacts as the project
+        # directory till we work on the custom hook properties, and add a property for this value.
+        cfn_resource["Metadata"]["ProjectRootDirectory"] = terraform_application_dir
 
     def _enrich_image_lambda_function(sam_metadata_resource: Dict, cfn_resource: Dict, cfn_resource_logical_id: str):
         pass
@@ -465,6 +500,8 @@ def _enrich_mapped_resources(
                 f"is not a correct resource type. The resource type should be one of these values "
                 f"{resources_types_enrichment_functions.keys()}"
             )
+        cfn_resource, logical_id = _get_relevant_cfn_resource(sam_metadata_resource, cfn_resources)
+        enrichment_function(sam_metadata_resource.resource, cfn_resource, logical_id)
 
 
 def _get_relevant_cfn_resource(
