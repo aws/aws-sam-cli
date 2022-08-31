@@ -251,7 +251,9 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
         )
 
         LOG.debug("Generate custom makefile for building Lambda resources")
-        _generate_custom_makefile(sam_metadata_resources, cfn_dict.get("Resources", {}), output_directory_path)
+        _generate_custom_makefile(
+            sam_metadata_resources, cfn_dict.get("Resources", {}), output_directory_path, terraform_application_dir
+        )
     else:
         LOG.debug("There is no sam metadata resources, no enrichment or custom makefile is required")
 
@@ -262,6 +264,7 @@ def _generate_custom_makefile(
     sam_metadata_resources: List[SamMetadataResource],
     cfn_resources: Dict[str, Dict],
     output_directory_path: str,
+    terraform_application_dir: str,
 ) -> None:
     """
     Generates a makefile with a target/recipe for each lambda resource to be built
@@ -274,6 +277,8 @@ def _generate_custom_makefile(
         CloudFormation resources
     output_directory_path: str
         the output directory path to write the generated metadata and makefile
+    terraform_application_dir: str
+        the terraform project root directory
     """
     # TODO
 
