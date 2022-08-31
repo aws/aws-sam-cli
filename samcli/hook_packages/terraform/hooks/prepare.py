@@ -5,6 +5,7 @@ Terraform prepare hook implementation
 from dataclasses import dataclass
 import json
 import os
+from json.decoder import JSONDecodeError
 from pathlib import Path
 from subprocess import run, CalledProcessError
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -299,6 +300,127 @@ def _validate_referenced_resource_matches_sam_metadata_type(
             f"The sam metadata resource {sam_metadata_resource_address} is referring to a resource that does not "
             f"match the resource type {resource_type}."
         )
+
+
+def _get_lambda_function_source_code_path(
+    sam_metadata_attributes: dict,
+    sam_metadata_resource_address: str,
+    project_root_dir: str,
+    src_code_property_name: str,
+    property_path_property_name: str,
+    src_code_attribute_name: str,
+) -> str:
+    """
+    Validate that sam metadata resource contains the valid metadata properties to get a lambda function source code.
+    Parameters
+    ----------
+    sam_metadata_attributes: dict
+        The sam metadata properties
+    sam_metadata_resource_address: str
+        The sam metadata resource address
+    project_root_dir: str
+        the terraform project root directory path
+    src_code_property_name: str
+        the sam metadata property name that contains the lambda function source code or docker context path
+    property_path_property_name: str
+        the sam metadata property name that contains the property to get the source code value if it was provided
+        as json string
+    src_code_attribute_name: str
+        the lambda function source code or docker context to be used to raise the correct exception
+
+    Returns
+    -------
+    str
+        The lambda function source code or docker context paths
+    """
+    LOG.info(
+        "Extract the %s from the sam metadata resource %s from property %s",
+        src_code_attribute_name,
+        sam_metadata_resource_address,
+        src_code_property_name,
+    )
+    source_code = sam_metadata_attributes.get(src_code_property_name)
+    source_code_property = sam_metadata_attributes.get(property_path_property_name)
+    LOG.debug(
+        "The found %s value is %s and property value is %s", src_code_attribute_name, source_code, source_code_property
+    )
+    if not source_code:
+        raise InvalidSamMetadataPropertiesException(
+            f"The sam metadata resource {sam_metadata_resource_address} should contain the lambda function "
+            f"{src_code_attribute_name} in property {src_code_property_name}"
+        )
+    if isinstance(source_code, str):
+        try:
+            LOG.debug("Try to decode the %s value in case if it is a encoded JSON string.", src_code_attribute_name)
+            source_code = json.loads(source_code)
+            LOG.debug("The decoded value of the %s value is %s", src_code_attribute_name, source_code)
+        except JSONDecodeError:
+            LOG.debug("Source code value could not be parsed as a JSON object. Handle it as normal string value")
+
+    if isinstance(source_code, dict):
+        LOG.debug(
+            "Process the extracted %s as JSON object using the property %s",
+            src_code_attribute_name,
+            source_code_property,
+        )
+        if not source_code_property:
+            raise InvalidSamMetadataPropertiesException(
+                f"The sam metadata resource {sam_metadata_resource_address} should contain the lambda function "
+                f"{src_code_attribute_name} property in property {property_path_property_name} as the "
+                f"{src_code_property_name} value is an object"
+            )
+        cfn_source_code_path = source_code.get(source_code_property)
+        if not cfn_source_code_path:
+            LOG.error(
+                "The property %s does not exist in the extracted %s JSON object %s",
+                source_code_property,
+                src_code_attribute_name,
+                source_code,
+            )
+            raise InvalidSamMetadataPropertiesException(
+                f"The sam metadata resource {sam_metadata_resource_address} should contain a valid lambda function "
+                f"{src_code_attribute_name} property in property {property_path_property_name} as the "
+                f"{src_code_property_name} value is an object"
+            )
+    elif isinstance(source_code, list):
+        # SAM CLI does not process multiple paths, so we will handle only the first value in this list
+        LOG.debug(
+            "Process the extracted %s as list, and get the first value as SAM CLI does not support multiple paths",
+            src_code_attribute_name,
+        )
+        if len(source_code) < 1:
+            raise InvalidSamMetadataPropertiesException(
+                f"The sam metadata resource {sam_metadata_resource_address} should contain the lambda function "
+                f"{src_code_attribute_name} in property {src_code_property_name}, and it should not be an empty list"
+            )
+        cfn_source_code_path = source_code[0]
+        if not cfn_source_code_path:
+            raise InvalidSamMetadataPropertiesException(
+                f"The sam metadata resource {sam_metadata_resource_address} should contain a valid lambda function "
+                f"{src_code_attribute_name} in property {src_code_property_name}"
+            )
+    else:
+        cfn_source_code_path = source_code
+
+    LOG.debug("The %s path value is %s", src_code_attribute_name, cfn_source_code_path)
+
+    if not os.path.isabs(cfn_source_code_path):
+        LOG.debug(
+            "The %s path value is not absoulte value. Get the absolute value based on the root directory %s",
+            src_code_attribute_name,
+            project_root_dir,
+        )
+        cfn_source_code_path = os.path.normpath(os.path.join(project_root_dir, cfn_source_code_path))
+        LOG.debug("The calculated absolute path of %s is %s", src_code_attribute_name, cfn_source_code_path)
+
+    if not isinstance(cfn_source_code_path, str) or not os.path.exists(cfn_source_code_path):
+        LOG.error("The path %s does not exist", cfn_source_code_path)
+        raise InvalidSamMetadataPropertiesException(
+            f"The sam metadata resource {sam_metadata_resource_address} should contain a valid string value for the "
+            f"lambda function {src_code_attribute_name} path"
+        )
+
+    return cfn_source_code_path
 
 
 def _enrich_mapped_resources(
