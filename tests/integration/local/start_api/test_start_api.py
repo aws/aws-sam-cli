@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Dict
 
 import requests
+from http.client import HTTPConnection
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time, sleep
 
@@ -22,6 +23,131 @@ from ..invoke.layer_utils import LayerUtils
     ("template_path",),
     [
         ("/testdata/start_api/template.yaml",),
+        ("/testdata/start_api/nested-templates/template-parent.yaml",),
+        ("/testdata/start_api/cdk/template_cdk.yaml",),
+    ],
+)
+class TestServiceHTTP10(StartApiIntegBaseClass):
+    """
+    Testing general requirements around the Service that powers `sam local start-api`
+    """
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+        HTTPConnection._http_vsn_str = "HTTP/1.0"
+
+    def test_static_directory(self):
+        pass
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_calling_proxy_endpoint_http10(self):
+        response = requests.get(self.url + "/proxypath/this/is/some/path", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(response.raw.version, 11)  # Checks if the response is HTTP/1.1 version
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_get_call_with_path_setup_with_any_implicit_api_http10(self):
+        """
+        Get Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.get(self.url + "/anyandall", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(response.raw.version, 11)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_post_call_with_path_setup_with_any_implicit_api_http10(self):
+        """
+        Post Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.post(self.url + "/anyandall", json={}, timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(response.raw.version, 11)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_put_call_with_path_setup_with_any_implicit_api_http10(self):
+        """
+        Put Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.put(self.url + "/anyandall", json={}, timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(response.raw.version, 11)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_head_call_with_path_setup_with_any_implicit_api_http10(self):
+        """
+        Head Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.head(self.url + "/anyandall", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.raw.version, 11)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_delete_call_with_path_setup_with_any_implicit_api_http10(self):
+        """
+        Delete Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.delete(self.url + "/anyandall", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(response.raw.version, 11)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_options_call_with_path_setup_with_any_implicit_api_http10(self):
+        """
+        Options Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.options(self.url + "/anyandall", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.raw.version, 11)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_patch_call_with_path_setup_with_any_implicit_api_http10(self):
+        """
+        Patch Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.patch(self.url + "/anyandall", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(response.raw.version, 11)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_large_input_request_http10(self):
+        # not exact 6 mega, as local start-api sends extra data with the input data
+        around_six_mega = 6 * 1024 * 1024 - 2 * 1024
+        data = "a" * around_six_mega
+        response = requests.post(self.url + "/echoeventbody", data=data, timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+        self.assertEqual(response_data.get("body"), data)
+        self.assertEqual(response.raw.version, 11)
+
+
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template.yaml",),
         ("/testdata/start_api/cdk/template_cdk.yaml",),
     ],
 )
@@ -32,6 +158,7 @@ class TestParallelRequests(StartApiIntegBaseClass):
 
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
+        HTTPConnection._http_vsn_str = "HTTP/1.1"
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
