@@ -15,7 +15,7 @@ import logging
 from samcli.lib.hook.exceptions import PrepareHookException, InvalidSamMetadataPropertiesException
 from samcli.lib.utils import osutils
 from samcli.lib.utils.hash import str_checksum
-from samcli.lib.utils.packagetype import ZIP
+from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
 )
@@ -483,7 +483,64 @@ def _enrich_mapped_resources(
         cfn_resource["Metadata"]["ProjectRootDirectory"] = terraform_application_dir
 
     def _enrich_image_lambda_function(sam_metadata_resource: Dict, cfn_resource: Dict, cfn_resource_logical_id: str):
-        pass
+        sam_metadata_attributes = sam_metadata_resource.get("values", {}).get("triggers", {})
+        sam_metadata_resource_address = sam_metadata_resource.get("address")
+        if not sam_metadata_resource_address:
+            raise PrepareHookException(
+                "Invalid Terraform plan output. The address property should not be null to any terraform resource."
+            )
+        cfn_resource_properties = cfn_resource.get("Properties", {})
+
+        LOG.info(
+            "Enrich the IMAGE lambda function %s using the metadata properties defined in resource %s",
+            cfn_resource_logical_id,
+            sam_metadata_resource_address,
+        )
+
+        _validate_referenced_resource_matches_sam_metadata_type(
+            cfn_resource, sam_metadata_attributes, sam_metadata_resource_address, IMAGE
+        )
+
+        cfn_docker_context_path = _get_lambda_function_source_code_path(
+            sam_metadata_attributes,
+            sam_metadata_resource_address,
+            terraform_application_dir,
+            "docker_context",
+            "docker_context_property_path",
+            "docker context",
+        )
+        cfn_docker_file = sam_metadata_attributes.get("docker_file")
+        cfn_docker_build_args_string = sam_metadata_attributes.get("docker_build_args")
+        if cfn_docker_build_args_string:
+            try:
+                LOG.debug("Parse the docker build args %s", cfn_docker_build_args_string)
+                cfn_docker_build_args = json.loads(cfn_docker_build_args_string)
+                if not isinstance(cfn_docker_build_args, dict):
+                    raise InvalidSamMetadataPropertiesException(
+                        f"The sam metadata resource {sam_metadata_resource_address} should contain a valid json "
+                        f"encoded string for the lambda function docker build arguments."
+                    )
+            except JSONDecodeError as exc:
+                raise InvalidSamMetadataPropertiesException(
+                    f"The sam metadata resource {sam_metadata_resource_address} should contain a valid json encoded "
+                    f"string for the lambda function docker build arguments."
+                ) from exc
+
+        cfn_docker_tag = sam_metadata_attributes.get("docker_tag")
+
+        if cfn_resource_properties.get("Code"):
+            cfn_resource_properties.pop("Code")
+
+        if not cfn_resource.get("Metadata", {}):
+            cfn_resource["Metadata"] = {}
+        cfn_resource["Metadata"]["SkipBuild"] = False
+        cfn_resource["Metadata"]["DockerContext"] = cfn_docker_context_path
+        if cfn_docker_file:
+            cfn_resource["Metadata"]["Dockerfile"] = cfn_docker_file
+        if cfn_docker_tag:
+            cfn_resource["Metadata"]["DockerTag"] = cfn_docker_tag
+        if cfn_docker_build_args:
+            cfn_resource["Metadata"]["DockerBuildArgs"] = cfn_docker_build_args
 
     resources_types_enrichment_functions = {
         "ZIP_LAMBDA_FUNCTION": _enrich_zip_lambda_function,
