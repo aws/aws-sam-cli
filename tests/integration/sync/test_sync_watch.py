@@ -440,7 +440,7 @@ class TestSyncWatchCodeEsbuild(TestSyncWatchEsbuildBase):
 class TestSyncWatchUseContainer(TestSyncWatchBase):
     @classmethod
     def setUpClass(cls):
-        cls.template_before = f"infra/template-{cls.runtime}-before.yaml"
+        cls.template_before = f"infra/template-python-before.yaml"
         super(TestSyncWatchBase, cls).setUpClass()
         cls.use_container = True
         cls.dependency_layer = False
@@ -455,13 +455,12 @@ class TestSyncWatchUseContainer(TestSyncWatchBase):
 
 
 class TestSyncWatchInfraUseContainer(TestSyncWatchUseContainer):
-    runtime = "python"
-    template_before = f"infra/template-{runtime}-before.yaml" 
+    template_before = f"infra/template-python-before.yaml" 
 
     def test_sync_watch_infra(self):
         self.update_file(
-            self.test_dir.joinpath(f"infra/template-{self.runtime}-after.yaml"),
-            self.test_dir.joinpath(f"infra/template-{self.runtime}-before.yaml"),
+            self.test_dir.joinpath(f"infra/template-python-after.yaml"),
+            self.test_dir.joinpath(f"infra/template-python-before.yaml"),
         )
 
         read_until_string(self.watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n", timeout=600)
