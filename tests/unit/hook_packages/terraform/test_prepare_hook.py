@@ -877,7 +877,7 @@ class TestPrepareHook(TestCase):
     ):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(
-            self.tf_json_with_root_module_with_sam_metadata_resources, "/output/dir", "/project/root"
+            self.tf_json_with_root_module_with_sam_metadata_resources, self.output_dir, self.project_root
         )
 
         mock_enrich_mapped_resources.assert_called_once_with(
@@ -895,8 +895,8 @@ class TestPrepareHook(TestCase):
                 ),
             ],
             translated_cfn_dict["Resources"],
-            "/output/dir",
-            "/project/root",
+            self.output_dir,
+            self.project_root,
         )
 
     @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_mapped_resources")
@@ -906,7 +906,7 @@ class TestPrepareHook(TestCase):
     ):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(
-            self.tf_json_with_child_modules_with_sam_metadata_resource, "/output/dir", "/project/root"
+            self.tf_json_with_child_modules_with_sam_metadata_resource, self.output_dir, self.project_root
         )
         mock_enrich_mapped_resources.assert_called_once_with(
             [
@@ -936,8 +936,8 @@ class TestPrepareHook(TestCase):
                 ),
             ],
             translated_cfn_dict["Resources"],
-            "/output/dir",
-            "/project/root",
+            self.output_dir,
+            self.project_root,
         )
 
     @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_mapped_resources")
@@ -1261,6 +1261,88 @@ class TestPrepareHook(TestCase):
         mock_build_cfn_logical_id.side_effect = build_logical_id_output
         with self.assertRaises(InvalidSamMetadataPropertiesException, msg=exception_message):
             _get_relevant_cfn_resource(sam_metadata_resource, cfn_resources)
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_lambda_function_source_code_path")
+    def test_enrich_mapped_resources_zip_functions(
+        self,
+        mock_get_lambda_function_source_code_path,
+        mock_validate_referenced_resource_matches_sam_metadata_type,
+        mock_get_relevant_cfn_resource,
+    ):
+        mock_get_lambda_function_source_code_path.side_effect = ["src/code/path1", "src/code/path2"]
+        zip_function_1 = {
+            "Type": CFN_AWS_LAMBDA_FUNCTION,
+            "Properties": {
+                **self.expected_cfn_function_common_properties,
+                "Code": "file.zip",
+            },
+            "Metadata": {"SamResourceId": f"aws_lambda_function.func1", "SkipBuild": True},
+        }
+        zip_function_2 = {
+            "Type": CFN_AWS_LAMBDA_FUNCTION,
+            "Properties": {
+                **self.expected_cfn_function_common_properties,
+                "Code": "file2.zip",
+            },
+            "Metadata": {"SamResourceId": f"aws_lambda_function.func2", "SkipBuild": True},
+        }
+        cfn_resources = {
+            "logical_id1": zip_function_1,
+            "logical_id2": zip_function_2,
+        }
+        mock_get_relevant_cfn_resource.side_effect = [
+            (zip_function_1, "logical_id1"),
+            (zip_function_2, "logical_id2"),
+        ]
+        sam_metadata_resources = [
+            SamMetadataResource(
+                current_module_address=None, resource=self.tf_lambda_function_resource_zip_sam_metadata
+            ),
+            SamMetadataResource(
+                current_module_address=None, resource=self.tf_lambda_function_resource_zip_2_sam_metadata
+            ),
+        ]
+
+        expected_zip_function_1 = {
+            "Type": CFN_AWS_LAMBDA_FUNCTION,
+            "Properties": {
+                **self.expected_cfn_function_common_properties,
+                "Code": "src/code/path1",
+            },
+            "Metadata": {
+                "SamResourceId": "aws_lambda_function.func1",
+                "SkipBuild": False,
+                "BuildMethod": "makefile",
+                "ContextPath": "/output/dir",
+                "WorkingDirectory": "/terraform/project/root",
+                "ProjectRootDirectory": "/terraform/project/root",
+            },
+        }
+        expected_zip_function_2 = {
+            "Type": CFN_AWS_LAMBDA_FUNCTION,
+            "Properties": {
+                **self.expected_cfn_function_common_properties,
+                "Code": "src/code/path2",
+            },
+            "Metadata": {
+                "SamResourceId": "aws_lambda_function.func2",
+                "SkipBuild": False,
+                "BuildMethod": "makefile",
+                "ContextPath": "/output/dir",
+                "WorkingDirectory": "/terraform/project/root",
+                "ProjectRootDirectory": "/terraform/project/root",
+            },
+        }
+
+        expected_cfn_resources = {
+            "logical_id1": expected_zip_function_1,
+            "logical_id2": expected_zip_function_2,
+        }
+
+        _enrich_mapped_resources(sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root")
+        self.assertEquals(cfn_resources, expected_cfn_resources)
 
     def test_enrich_mapped_resources_invalid_source_type(self):
         image_function_1 = {
