@@ -1344,6 +1344,139 @@ class TestPrepareHook(TestCase):
         _enrich_mapped_resources(sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root")
         self.assertEquals(cfn_resources, expected_cfn_resources)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_lambda_function_source_code_path")
+    def test_enrich_mapped_resources_image_functions(
+        self,
+        mock_get_lambda_function_source_code_path,
+        mock_validate_referenced_resource_matches_sam_metadata_type,
+        mock_get_relevant_cfn_resource,
+    ):
+        mock_get_lambda_function_source_code_path.side_effect = ["src/code/path1", "src/code/path2"]
+        image_function_1 = {
+            "Type": CFN_AWS_LAMBDA_FUNCTION,
+            "Properties": {
+                **self.expected_cfn_image_package_type_function_common_properties,
+                "ImageConfig": {
+                    "Command": ["cmd1", "cmd2"],
+                    "EntryPoint": ["entry1", "entry2"],
+                    "WorkingDirectory": "/working/dir/path",
+                },
+                "Code": {
+                    "ImageUri": "image/uri:tag",
+                },
+            },
+            "Metadata": {"SamResourceId": f"aws_lambda_function.func1", "SkipBuild": True},
+        }
+
+        cfn_resources = {
+            "logical_id1": image_function_1,
+        }
+        mock_get_relevant_cfn_resource.side_effect = [
+            (image_function_1, "logical_id1"),
+        ]
+        sam_metadata_resources = [
+            SamMetadataResource(
+                current_module_address=None,
+                resource=self.tf_image_package_type_lambda_function_resource_sam_metadata,
+            ),
+        ]
+
+        expected_image_function_1 = {
+            "Type": CFN_AWS_LAMBDA_FUNCTION,
+            "Properties": {
+                **self.expected_cfn_image_package_type_function_common_properties,
+                "ImageConfig": {
+                    "Command": ["cmd1", "cmd2"],
+                    "EntryPoint": ["entry1", "entry2"],
+                    "WorkingDirectory": "/working/dir/path",
+                },
+            },
+            "Metadata": {
+                "SamResourceId": "aws_lambda_function.func1",
+                "SkipBuild": False,
+                "DockerContext": "src/code/path1",
+                "Dockerfile": "Dockerfile",
+                "DockerTag": "2.0",
+                "DockerBuildArgs": {"FOO": "bar"},
+            },
+        }
+
+        expected_cfn_resources = {
+            "logical_id1": expected_image_function_1,
+        }
+
+        _enrich_mapped_resources(sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root")
+        self.assertEquals(cfn_resources, expected_cfn_resources)
+
+    @parameterized.expand(
+        [
+            ("ABCDEFG",),
+            ('"ABCDEFG"',),
+        ]
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_lambda_function_source_code_path")
+    def test_enrich_mapped_resources_image_functions_invalid_docker_args(
+        self,
+        docker_args_value,
+        mock_get_lambda_function_source_code_path,
+        mock_validate_referenced_resource_matches_sam_metadata_type,
+        mock_get_relevant_cfn_resource,
+    ):
+        mock_get_lambda_function_source_code_path.side_effect = ["src/code/path1", "src/code/path2"]
+        image_function_1 = {
+            "Type": CFN_AWS_LAMBDA_FUNCTION,
+            "Properties": {
+                **self.expected_cfn_image_package_type_function_common_properties,
+                "ImageConfig": {
+                    "Command": ["cmd1", "cmd2"],
+                    "EntryPoint": ["entry1", "entry2"],
+                    "WorkingDirectory": "/working/dir/path",
+                },
+                "Code": {
+                    "ImageUri": "image/uri:tag",
+                },
+            },
+            "Metadata": {"SamResourceId": f"aws_lambda_function.func1", "SkipBuild": True},
+        }
+
+        cfn_resources = {
+            "logical_id1": image_function_1,
+        }
+        mock_get_relevant_cfn_resource.side_effect = [
+            (image_function_1, "logical_id1"),
+        ]
+        sam_metadata_resources = [
+            SamMetadataResource(
+                current_module_address=None,
+                resource={
+                    **self.tf_sam_metadata_resource_common_attributes,
+                    "values": {
+                        "triggers": {
+                            "resource_name": f"aws_lambda_function.{self.image_function_name}",
+                            "docker_build_args": docker_args_value,
+                            "docker_context": "context",
+                            "docker_file": "Dockerfile",
+                            "docker_tag": "2.0",
+                            "resource_type": "IMAGE_LAMBDA_FUNCTION",
+                        },
+                    },
+                    "address": f"null_resource.sam_metadata_{self.image_function_name}",
+                    "name": f"sam_metadata_{self.image_function_name}",
+                },
+            ),
+        ]
+
+        with self.assertRaises(
+            InvalidSamMetadataPropertiesException,
+            msg="The sam metadata resource null_resource.sam_metadata_func1 should contain a valid json encoded "
+            "string for the lambda function docker build arguments.",
+        ):
+            _enrich_mapped_resources(sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root")
+
     def test_enrich_mapped_resources_invalid_source_type(self):
         image_function_1 = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
