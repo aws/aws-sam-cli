@@ -1,11 +1,12 @@
 import os
 from unittest import TestCase
-from unittest.mock import patch, Mock, ANY, call
+from unittest.mock import MagicMock, patch, Mock, ANY, call
 
 from parameterized import parameterized
 
 from samcli.commands._utils.experimental import ExperimentalFlag
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
+from samcli.lib.build.bundler import EsbuildBundlerManager
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.local.lambdafn.exceptions import ResourceNotFound
@@ -59,6 +60,11 @@ class DummyFunction:
         self.metadata = metadata if metadata else {}
         self.skip_build = skip_build
         self.runtime = runtime
+
+
+class DummyStack:
+    def __init__(self, resource):
+        self.resources = resource
 
 
 class TestBuildContext__enter__(TestCase):
@@ -636,8 +642,10 @@ class TestBuildContext__enter__(TestCase):
     @patch("samcli.commands.build.build_context.move_template")
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.os")
+    @patch("samcli.commands.build.build_context.EsbuildBundlerManager")
     def test_run_sync_build_context(
         self,
+        esbuild_bundler_manager_mock,
         os_mock,
         get_template_data_mock,
         move_template_mock,
@@ -662,7 +670,7 @@ class TestBuildContext__enter__(TestCase):
             root_stack.stack_path: "./build_dir/template.yaml",
             child_stack.stack_path: "./build_dir/abcd/template.yaml",
         }
-        resources_mock.return_value = Mock()
+        resources_mock.return_value = MagicMock()
 
         builder_mock = ApplicationBuilderMock.return_value = Mock()
         artifacts = "artifacts"
@@ -892,9 +900,13 @@ class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.move_template")
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.os")
+    @patch("samcli.commands.build.build_context.EsbuildBundlerManager")
+    @patch("samcli.commands.build.build_context.BuildContext._handle_build_pre_processing")
     def test_run_build_context(
         self,
         auto_dependency_layer,
+        pre_processing_mock,
+        esbuild_bundler_manager_mock,
         os_mock,
         get_template_data_mock,
         move_template_mock,
@@ -946,6 +958,15 @@ class TestBuildContext_run(TestCase):
             modified_template_child,
         ]
         nested_stack_manager_mock.return_value = given_nested_stack_manager
+
+        pre_processing_mock.return_value = [root_stack, child_stack]
+
+        esbuild_manager = EsbuildBundlerManager(Mock())
+        esbuild_manager.set_sourcemap_env_from_metadata = Mock()
+        esbuild_manager.set_sourcemap_env_from_metadata.side_effect = [modified_template_root, modified_template_child]
+        esbuild_manager.esbuild_configured = Mock()
+        esbuild_manager.esbuild_configured.return_value = False
+        esbuild_bundler_manager_mock.return_value = esbuild_manager
 
         with BuildContext(
             resource_identifier="function_identifier",
@@ -1020,12 +1041,10 @@ class TestBuildContext_run(TestCase):
             if auto_dependency_layer:
                 nested_stack_manager_mock.assert_has_calls(
                     [
-                        call(
-                            root_stack, None, build_context.build_dir, modified_template_root, application_build_result
-                        ),
+                        call(root_stack, "", build_context.build_dir, modified_template_root, application_build_result),
                         call(
                             child_stack,
-                            None,
+                            "",
                             build_context.build_dir,
                             modified_template_child,
                             application_build_result,
@@ -1060,10 +1079,12 @@ class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.move_template")
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.os")
+    @patch("samcli.commands.build.build_context.EsbuildBundlerManager")
     def test_must_catch_known_exceptions(
         self,
         exception,
         wrapped_exception,
+        esbuild_bundler_manager_mock,
         os_mock,
         get_template_data_mock,
         move_template_mock,
@@ -1139,8 +1160,10 @@ class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.move_template")
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.os")
+    @patch("samcli.commands.build.build_context.EsbuildBundlerManager")
     def test_must_catch_function_not_found_exception(
         self,
+        source_map_mock,
         os_mock,
         get_template_data_mock,
         move_template_mock,

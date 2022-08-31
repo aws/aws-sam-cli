@@ -14,6 +14,7 @@ from uuid import uuid4
 
 import tomlkit
 
+from samcli.commands._utils.experimental import is_experimental_enabled, ExperimentalFlag
 from samcli.lib.build.exceptions import InvalidBuildGraphException
 from samcli.lib.providers.provider import Function, LayerVersion
 from samcli.lib.samlib.resource_metadata_normalizer import (
@@ -45,6 +46,7 @@ COMPATIBLE_RUNTIMES_FIELD = "compatible_runtimes"
 LAYER_FIELD = "layer"
 ARCHITECTURE_FIELD = "architecture"
 HANDLER_FIELD = "handler"
+SHARED_CODEURI_SUFFIX = "Shared"
 
 
 def _function_build_definition_to_toml_table(
@@ -625,7 +627,12 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         Return the directory path relative to root build directory
         """
         self._validate_functions()
-        return self.functions[0].get_build_dir(artifact_root_dir)
+        build_dir = self.functions[0].get_build_dir(artifact_root_dir)
+        if is_experimental_enabled(ExperimentalFlag.BuildPerformance) and len(self.functions) > 1:
+            # If there are multiple functions with the same build definition,
+            # just put them into one single shared artifacts directory.
+            build_dir = f"{build_dir}-{SHARED_CODEURI_SUFFIX}"
+        return build_dir
 
     def get_resource_full_paths(self) -> str:
         """Returns list of functions' full path information as a list of str"""

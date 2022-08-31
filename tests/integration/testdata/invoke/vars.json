@@ -2,6 +2,9 @@
   "EchoCustomEnvVarFunction": {
     "CustomEnvVar": "MyVar"
   },
+  "Parameters": {
+    "CustomEnvVar": "GlobalVar"
+  },
   "EchoCustomEnvVarWithFunctionNameDefinedFunction": {
     "CustomEnvVar": "MyVar"
   }
