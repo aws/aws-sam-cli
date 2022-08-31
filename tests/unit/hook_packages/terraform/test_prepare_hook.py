@@ -26,6 +26,7 @@ from samcli.hook_packages.terraform.hooks.prepare import (
     _get_lambda_function_source_code_path,
     _enrich_mapped_resources,
     _get_relevant_cfn_resource,
+    _generate_custom_makefile,
 )
 from samcli.lib.hook.exceptions import PrepareHookException, InvalidSamMetadataPropertiesException
 from samcli.lib.utils.resources import (
@@ -854,90 +855,117 @@ class TestPrepareHook(TestCase):
             self.assertEqual(translated_cfn_dict, expected_empty_cfn_dict)
             mock_enrich_mapped_resources.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_custom_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_mapped_resources")
     @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
-    def test_translate_to_cfn_with_root_module_only(self, checksum_mock, mock_enrich_mapped_resources):
+    def test_translate_to_cfn_with_root_module_only(
+        self, checksum_mock, mock_enrich_mapped_resources, mock_generate_custom_makefile
+    ):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(self.tf_json_with_root_module_only, self.output_dir, self.project_root)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_root_module_only)
         mock_enrich_mapped_resources.assert_not_called()
+        mock_generate_custom_makefile.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_custom_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_mapped_resources")
     @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
-    def test_translate_to_cfn_with_child_modules(self, checksum_mock, mock_enrich_mapped_resources):
+    def test_translate_to_cfn_with_child_modules(
+        self, checksum_mock, mock_enrich_mapped_resources, mock_generate_custom_makefile
+    ):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(self.tf_json_with_child_modules, self.output_dir, self.project_root)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_child_modules)
         mock_enrich_mapped_resources.assert_not_called()
+        mock_generate_custom_makefile.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_custom_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_mapped_resources")
     @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
     def test_translate_to_cfn_with_root_module_with_sam_metadata_resource(
-        self, checksum_mock, mock_enrich_mapped_resources
+        self, checksum_mock, mock_enrich_mapped_resources, mock_generate_custom_makefile
     ):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(
             self.tf_json_with_root_module_with_sam_metadata_resources, self.output_dir, self.project_root
         )
 
+        expected_sam_metadata_resources_in_call = [
+            SamMetadataResource(
+                current_module_address=None, resource=self.tf_lambda_function_resource_zip_sam_metadata
+            ),
+            SamMetadataResource(
+                current_module_address=None,
+                resource=self.tf_lambda_function_resource_zip_2_sam_metadata,
+            ),
+            SamMetadataResource(
+                current_module_address=None,
+                resource=self.tf_image_package_type_lambda_function_resource_sam_metadata,
+            ),
+        ]
+
         mock_enrich_mapped_resources.assert_called_once_with(
-            [
-                SamMetadataResource(
-                    current_module_address=None, resource=self.tf_lambda_function_resource_zip_sam_metadata
-                ),
-                SamMetadataResource(
-                    current_module_address=None,
-                    resource=self.tf_lambda_function_resource_zip_2_sam_metadata,
-                ),
-                SamMetadataResource(
-                    current_module_address=None,
-                    resource=self.tf_image_package_type_lambda_function_resource_sam_metadata,
-                ),
-            ],
+            expected_sam_metadata_resources_in_call,
             translated_cfn_dict["Resources"],
             self.output_dir,
             self.project_root,
         )
 
+        mock_generate_custom_makefile.assert_called_once_with(
+            expected_sam_metadata_resources_in_call,
+            translated_cfn_dict["Resources"],
+            self.output_dir,
+        )
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_custom_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_mapped_resources")
     @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
     def test_translate_to_cfn_with_child_modules_with_sam_metadata_resource(
-        self, checksum_mock, mock_enrich_mapped_resources
+        self, checksum_mock, mock_enrich_mapped_resources, mock_generate_custom_makefile
     ):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(
             self.tf_json_with_child_modules_with_sam_metadata_resource, self.output_dir, self.project_root
         )
+
+        expected_sam_metadata_resources_in_call = [
+            SamMetadataResource(
+                current_module_address=None, resource=self.tf_lambda_function_resource_zip_sam_metadata
+            ),
+            SamMetadataResource(
+                current_module_address="module.mymodule1",
+                resource={
+                    **self.tf_lambda_function_resource_zip_2_sam_metadata,
+                    "address": f"module.mymodule1.null_resource.sam_metadata_{self.zip_function_name_2}",
+                },
+            ),
+            SamMetadataResource(
+                current_module_address="module.mymodule1.module.mymodule2",
+                resource={
+                    **self.tf_lambda_function_resource_zip_3_sam_metadata,
+                    "address": f"module.mymodule1.module.mymodule2.null_resource.sam_metadata_{self.zip_function_name_3}",
+                },
+            ),
+            SamMetadataResource(
+                current_module_address="module.mymodule1.module.mymodule3",
+                resource={
+                    **self.tf_lambda_function_resource_zip_4_sam_metadata,
+                    "address": f"module.mymodule1.module.mymodule3.null_resource.sam_metadata_{self.zip_function_name_4}",
+                },
+            ),
+        ]
+
         mock_enrich_mapped_resources.assert_called_once_with(
-            [
-                SamMetadataResource(
-                    current_module_address=None, resource=self.tf_lambda_function_resource_zip_sam_metadata
-                ),
-                SamMetadataResource(
-                    current_module_address="module.mymodule1",
-                    resource={
-                        **self.tf_lambda_function_resource_zip_2_sam_metadata,
-                        "address": f"module.mymodule1.null_resource.sam_metadata_{self.zip_function_name_2}",
-                    },
-                ),
-                SamMetadataResource(
-                    current_module_address="module.mymodule1.module.mymodule2",
-                    resource={
-                        **self.tf_lambda_function_resource_zip_3_sam_metadata,
-                        "address": f"module.mymodule1.module.mymodule2.null_resource.sam_metadata_{self.zip_function_name_3}",
-                    },
-                ),
-                SamMetadataResource(
-                    current_module_address="module.mymodule1.module.mymodule3",
-                    resource={
-                        **self.tf_lambda_function_resource_zip_4_sam_metadata,
-                        "address": f"module.mymodule1.module.mymodule3.null_resource.sam_metadata_{self.zip_function_name_4}",
-                    },
-                ),
-            ],
+            expected_sam_metadata_resources_in_call,
             translated_cfn_dict["Resources"],
             self.output_dir,
             self.project_root,
+        )
+
+        mock_generate_custom_makefile.assert_called_once_with(
+            expected_sam_metadata_resources_in_call,
+            translated_cfn_dict["Resources"],
+            self.output_dir,
         )
 
     @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_mapped_resources")
@@ -1694,6 +1722,12 @@ class TestPrepareHook(TestCase):
     def test_prepare_with_no_output_dir_path(self):
         with self.assertRaises(PrepareHookException, msg="OutputDirPath was not supplied"):
             prepare({})
+
+    def test_prepare_with_sam_metadata_resources(self):
+        pass
+
+    def test_prepare_without_sam_metadata_resources(self):
+        pass
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.os")
     @patch("samcli.hook_packages.terraform.hooks.prepare.Path")
