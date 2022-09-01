@@ -242,17 +242,45 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
 
     # map s3 object sources to corresponding functions
     LOG.debug("Mapping S3 object sources to corresponding functions")
-    _map_s3_sources_to_functions(s3_hash_to_source, cfn_dict["Resources"])
+    _map_s3_sources_to_functions(s3_hash_to_source, cfn_dict.get("Resources", {}))
 
     if sam_metadata_resources:
         LOG.debug("Enrich the mapped resources with the sam metadata information")
         _enrich_mapped_resources(
-            sam_metadata_resources, cfn_dict["Resources"], output_directory_path, terraform_application_dir
+            sam_metadata_resources, cfn_dict.get("Resources", {}), output_directory_path, terraform_application_dir
+        )
+
+        LOG.debug("Generate custom makefile for building Lambda resources")
+        _generate_custom_makefile(
+            sam_metadata_resources, cfn_dict.get("Resources", {}), output_directory_path, terraform_application_dir
         )
     else:
-        LOG.debug("There is no sam metadata resources, no enrichment is required")
+        LOG.debug("There is no sam metadata resources, no enrichment or custom makefile is required")
 
     return cfn_dict
+
+
+def _generate_custom_makefile(
+    sam_metadata_resources: List[SamMetadataResource],
+    cfn_resources: Dict[str, Dict],
+    output_directory_path: str,
+    terraform_application_dir: str,
+) -> None:
+    """
+    Generates a makefile with a target/recipe for each lambda resource to be built
+
+    Parameters
+    ----------
+    sam_metadata_resources: List[SamMetadataResource]
+        The list of sam metadata resources defined in the terraform project.
+    cfn_resources: dict
+        CloudFormation resources
+    output_directory_path: str
+        the output directory path to write the generated metadata and makefile
+    terraform_application_dir: str
+        the terraform project root directory
+    """
+    # TODO
 
 
 def _validate_referenced_resource_matches_sam_metadata_type(

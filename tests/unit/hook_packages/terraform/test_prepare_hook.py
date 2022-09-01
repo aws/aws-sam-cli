@@ -28,6 +28,7 @@ from samcli.hook_packages.terraform.hooks.prepare import (
     _get_relevant_cfn_resource,
     _enrich_zip_lambda_function,
     _enrich_image_lambda_function,
+    _generate_custom_makefile,
 )
 from samcli.lib.hook.exceptions import PrepareHookException, InvalidSamMetadataPropertiesException
 from samcli.lib.utils.resources import (
@@ -856,33 +857,42 @@ class TestPrepareHook(TestCase):
             self.assertEqual(translated_cfn_dict, expected_empty_cfn_dict)
             mock_enrich_mapped_resources.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_custom_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_mapped_resources")
     @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
-    def test_translate_to_cfn_with_root_module_only(self, checksum_mock, mock_enrich_mapped_resources):
+    def test_translate_to_cfn_with_root_module_only(
+        self, checksum_mock, mock_enrich_mapped_resources, mock_generate_custom_makefile
+    ):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(self.tf_json_with_root_module_only, self.output_dir, self.project_root)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_root_module_only)
         mock_enrich_mapped_resources.assert_not_called()
+        mock_generate_custom_makefile.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_custom_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_mapped_resources")
     @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
-    def test_translate_to_cfn_with_child_modules(self, checksum_mock, mock_enrich_mapped_resources):
+    def test_translate_to_cfn_with_child_modules(
+        self, checksum_mock, mock_enrich_mapped_resources, mock_generate_custom_makefile
+    ):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(self.tf_json_with_child_modules, self.output_dir, self.project_root)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_child_modules)
         mock_enrich_mapped_resources.assert_not_called()
+        mock_generate_custom_makefile.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_custom_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_mapped_resources")
     @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
     def test_translate_to_cfn_with_root_module_with_sam_metadata_resource(
-        self, checksum_mock, mock_enrich_mapped_resources
+        self, checksum_mock, mock_enrich_mapped_resources, mock_generate_custom_makefile
     ):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(
             self.tf_json_with_root_module_with_sam_metadata_resources, self.output_dir, self.project_root
         )
 
-        mock_enrich_mapped_resources.assert_called_once_with(
+        expected_arguments_in_call = (
             [
                 SamMetadataResource(
                     current_module_address=None, resource=self.tf_lambda_function_resource_zip_sam_metadata
@@ -901,16 +911,21 @@ class TestPrepareHook(TestCase):
             self.project_root,
         )
 
+        mock_enrich_mapped_resources.assert_called_once_with(*expected_arguments_in_call)
+        mock_generate_custom_makefile.assert_called_once_with(*expected_arguments_in_call)
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_custom_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_mapped_resources")
     @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
     def test_translate_to_cfn_with_child_modules_with_sam_metadata_resource(
-        self, checksum_mock, mock_enrich_mapped_resources
+        self, checksum_mock, mock_enrich_mapped_resources, mock_generate_custom_makefile
     ):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(
             self.tf_json_with_child_modules_with_sam_metadata_resource, self.output_dir, self.project_root
         )
-        mock_enrich_mapped_resources.assert_called_once_with(
+
+        expected_arguments_in_call = (
             [
                 SamMetadataResource(
                     current_module_address=None, resource=self.tf_lambda_function_resource_zip_sam_metadata
@@ -941,6 +956,9 @@ class TestPrepareHook(TestCase):
             self.output_dir,
             self.project_root,
         )
+
+        mock_enrich_mapped_resources.assert_called_once_with(*expected_arguments_in_call)
+        mock_generate_custom_makefile.assert_called_once_with(*expected_arguments_in_call)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_mapped_resources")
     @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
