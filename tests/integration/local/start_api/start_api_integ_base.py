@@ -18,6 +18,10 @@ from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS, run_comm
 LOG = logging.getLogger(__name__)
 
 
+class InvalidAddressException:
+    pass
+
+
 @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
 class StartApiIntegBaseClass(TestCase):
     template: Optional[str] = None
@@ -51,7 +55,7 @@ class StartApiIntegBaseClass(TestCase):
                 cls.docker_client.api.remove_container(container, force=True)
             except APIError as ex:
                 LOG.error("Failed to remove container %s", container, exc_info=ex)
-        cls.start_api()
+        cls.start_api_with_rety()
 
     @classmethod
     def build(cls):
@@ -66,6 +70,17 @@ class StartApiIntegBaseClass(TestCase):
             command_list += ["--parameter-overrides", overrides_arg]
         working_dir = str(Path(cls.template).resolve().parents[0])
         run_command(command_list, cwd=working_dir)
+
+    @classmethod
+    def start_api_with_rety(cls, retries=3):
+        retry_count = 0
+        for i in range(retries):
+            cls.port = str(StartApiIntegBaseClass.random_port())
+            try:
+                cls.start_api()
+            except InvalidAddressException:
+                if retry_count == retries:
+                    raise ValueError("Ran out of retires attempting to start api")
 
     @classmethod
     def start_api(cls):
@@ -95,6 +110,8 @@ class StartApiIntegBaseClass(TestCase):
             line_as_str = str(line.decode("utf-8")).strip()
             if line_as_str:
                 LOG.info(f"{line_as_str}")
+            if "Address already in use" in line_as_str:
+                raise InvalidAddressException()
             if "(Press CTRL+C to quit)" in line_as_str:
                 break
 
