@@ -26,6 +26,8 @@ from samcli.hook_packages.terraform.hooks.prepare import (
     _get_lambda_function_source_code_path,
     _enrich_mapped_resources,
     _get_relevant_cfn_resource,
+    _enrich_zip_lambda_function,
+    _enrich_image_lambda_function,
     _generate_custom_makefile,
 )
 from samcli.lib.hook.exceptions import PrepareHookException, InvalidSamMetadataPropertiesException
@@ -1365,6 +1367,121 @@ class TestPrepareHook(TestCase):
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_lambda_function_source_code_path")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_image_lambda_function")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_zip_lambda_function")
+    def test_enrich_mapped_resources_mock_enrich_zip_functions(
+        self,
+        mock_enrich_zip_lambda_function,
+        mock_enrich_image_lambda_function,
+        mock_get_lambda_function_source_code_path,
+        mock_validate_referenced_resource_matches_sam_metadata_type,
+        mock_get_relevant_cfn_resource,
+    ):
+        mock_get_lambda_function_source_code_path.side_effect = ["src/code/path1", "src/code/path2"]
+        zip_function_1 = {
+            "Type": CFN_AWS_LAMBDA_FUNCTION,
+            "Properties": {
+                **self.expected_cfn_function_common_properties,
+                "Code": "file.zip",
+            },
+            "Metadata": {"SamResourceId": f"aws_lambda_function.func1", "SkipBuild": True},
+        }
+        zip_function_2 = {
+            "Type": CFN_AWS_LAMBDA_FUNCTION,
+            "Properties": {
+                **self.expected_cfn_function_common_properties,
+                "Code": "file2.zip",
+            },
+            "Metadata": {"SamResourceId": f"aws_lambda_function.func2", "SkipBuild": True},
+        }
+        cfn_resources = {
+            "logical_id1": zip_function_1,
+            "logical_id2": zip_function_2,
+        }
+        mock_get_relevant_cfn_resource.side_effect = [
+            (zip_function_1, "logical_id1"),
+            (zip_function_2, "logical_id2"),
+        ]
+        sam_metadata_resources = [
+            SamMetadataResource(
+                current_module_address=None, resource=self.tf_lambda_function_resource_zip_sam_metadata
+            ),
+            SamMetadataResource(
+                current_module_address=None, resource=self.tf_lambda_function_resource_zip_2_sam_metadata
+            ),
+        ]
+
+        _enrich_mapped_resources(sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root")
+        mock_enrich_zip_lambda_function.assert_has_calls(
+            [
+                call(
+                    self.tf_lambda_function_resource_zip_sam_metadata,
+                    zip_function_1,
+                    "logical_id1",
+                    "/terraform/project/root",
+                    "/output/dir",
+                ),
+                call(
+                    self.tf_lambda_function_resource_zip_2_sam_metadata,
+                    zip_function_2,
+                    "logical_id2",
+                    "/terraform/project/root",
+                    "/output/dir",
+                ),
+            ]
+        )
+        mock_enrich_image_lambda_function.assert_not_called()
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_lambda_function_source_code_path")
+    def test_enrich_mapped_resource_zip_function(
+        self,
+        mock_get_lambda_function_source_code_path,
+        mock_validate_referenced_resource_matches_sam_metadata_type,
+        mock_get_relevant_cfn_resource,
+    ):
+        mock_get_lambda_function_source_code_path.side_effect = ["src/code/path1", "src/code/path2"]
+        zip_function_1 = {
+            "Type": CFN_AWS_LAMBDA_FUNCTION,
+            "Properties": {
+                **self.expected_cfn_function_common_properties,
+                "Code": "file.zip",
+            },
+            "Metadata": {"SamResourceId": f"aws_lambda_function.func1", "SkipBuild": True},
+        }
+        mock_get_relevant_cfn_resource.side_effect = [
+            (zip_function_1, "logical_id1"),
+        ]
+
+        expected_zip_function_1 = {
+            "Type": CFN_AWS_LAMBDA_FUNCTION,
+            "Properties": {
+                **self.expected_cfn_function_common_properties,
+                "Code": "src/code/path1",
+            },
+            "Metadata": {
+                "SamResourceId": "aws_lambda_function.func1",
+                "SkipBuild": False,
+                "BuildMethod": "makefile",
+                "ContextPath": "/output/dir",
+                "WorkingDirectory": "/terraform/project/root",
+                "ProjectRootDirectory": "/terraform/project/root",
+            },
+        }
+
+        _enrich_zip_lambda_function(
+            self.tf_lambda_function_resource_zip_sam_metadata,
+            zip_function_1,
+            "logical_id1",
+            "/terraform/project/root",
+            "/output/dir",
+        )
+        self.assertEquals(zip_function_1, expected_zip_function_1)
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_lambda_function_source_code_path")
     def test_enrich_mapped_resources_image_functions(
         self,
         mock_get_lambda_function_source_code_path,
@@ -1428,18 +1545,74 @@ class TestPrepareHook(TestCase):
         _enrich_mapped_resources(sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root")
         self.assertEquals(cfn_resources, expected_cfn_resources)
 
-    @parameterized.expand(
-        [
-            ("ABCDEFG",),
-            ('"ABCDEFG"',),
-        ]
-    )
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_lambda_function_source_code_path")
-    def test_enrich_mapped_resources_image_functions_invalid_docker_args(
+    def test_enrich_mapped_resource_image_function(
         self,
-        docker_args_value,
+        mock_get_lambda_function_source_code_path,
+        mock_validate_referenced_resource_matches_sam_metadata_type,
+        mock_get_relevant_cfn_resource,
+    ):
+        mock_get_lambda_function_source_code_path.side_effect = ["src/code/path1", "src/code/path2"]
+        image_function_1 = {
+            "Type": CFN_AWS_LAMBDA_FUNCTION,
+            "Properties": {
+                **self.expected_cfn_image_package_type_function_common_properties,
+                "ImageConfig": {
+                    "Command": ["cmd1", "cmd2"],
+                    "EntryPoint": ["entry1", "entry2"],
+                    "WorkingDirectory": "/working/dir/path",
+                },
+                "Code": {
+                    "ImageUri": "image/uri:tag",
+                },
+            },
+            "Metadata": {"SamResourceId": f"aws_lambda_function.func1", "SkipBuild": True},
+        }
+
+        mock_get_relevant_cfn_resource.side_effect = [
+            (image_function_1, "logical_id1"),
+        ]
+
+        expected_image_function_1 = {
+            "Type": CFN_AWS_LAMBDA_FUNCTION,
+            "Properties": {
+                **self.expected_cfn_image_package_type_function_common_properties,
+                "ImageConfig": {
+                    "Command": ["cmd1", "cmd2"],
+                    "EntryPoint": ["entry1", "entry2"],
+                    "WorkingDirectory": "/working/dir/path",
+                },
+            },
+            "Metadata": {
+                "SamResourceId": "aws_lambda_function.func1",
+                "SkipBuild": False,
+                "DockerContext": "src/code/path1",
+                "Dockerfile": "Dockerfile",
+                "DockerTag": "2.0",
+                "DockerBuildArgs": {"FOO": "bar"},
+            },
+        }
+
+        _enrich_image_lambda_function(
+            self.tf_image_package_type_lambda_function_resource_sam_metadata,
+            image_function_1,
+            "logical_id1",
+            "/terraform/project/root",
+            "/output/dir",
+        )
+        self.assertEquals(image_function_1, expected_image_function_1)
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_lambda_function_source_code_path")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_image_lambda_function")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_zip_lambda_function")
+    def test_enrich_mapped_resources_mock_enrich_image_functions(
+        self,
+        mock_enrich_zip_lambda_function,
+        mock_enrich_image_lambda_function,
         mock_get_lambda_function_source_code_path,
         mock_validate_referenced_resource_matches_sam_metadata_type,
         mock_get_relevant_cfn_resource,
@@ -1470,30 +1643,80 @@ class TestPrepareHook(TestCase):
         sam_metadata_resources = [
             SamMetadataResource(
                 current_module_address=None,
-                resource={
-                    **self.tf_sam_metadata_resource_common_attributes,
-                    "values": {
-                        "triggers": {
-                            "resource_name": f"aws_lambda_function.{self.image_function_name}",
-                            "docker_build_args": docker_args_value,
-                            "docker_context": "context",
-                            "docker_file": "Dockerfile",
-                            "docker_tag": "2.0",
-                            "resource_type": "IMAGE_LAMBDA_FUNCTION",
-                        },
-                    },
-                    "address": f"null_resource.sam_metadata_{self.image_function_name}",
-                    "name": f"sam_metadata_{self.image_function_name}",
-                },
+                resource=self.tf_image_package_type_lambda_function_resource_sam_metadata,
             ),
         ]
+
+        _enrich_mapped_resources(sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root")
+        mock_enrich_image_lambda_function.assert_called_once_with(
+            self.tf_image_package_type_lambda_function_resource_sam_metadata,
+            image_function_1,
+            "logical_id1",
+            "/terraform/project/root",
+            "/output/dir",
+        )
+        mock_enrich_zip_lambda_function.assert_not_called()
+
+    @parameterized.expand(
+        [
+            ("ABCDEFG",),
+            ('"ABCDEFG"',),
+        ]
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_lambda_function_source_code_path")
+    def test_enrich_mapped_resource_image_function_invalid_docker_args(
+        self,
+        docker_args_value,
+        mock_get_lambda_function_source_code_path,
+        mock_validate_referenced_resource_matches_sam_metadata_type,
+        mock_get_relevant_cfn_resource,
+    ):
+        mock_get_lambda_function_source_code_path.side_effect = ["src/code/path1", "src/code/path2"]
+        image_function_1 = {
+            "Type": CFN_AWS_LAMBDA_FUNCTION,
+            "Properties": {
+                **self.expected_cfn_image_package_type_function_common_properties,
+                "ImageConfig": {
+                    "Command": ["cmd1", "cmd2"],
+                    "EntryPoint": ["entry1", "entry2"],
+                    "WorkingDirectory": "/working/dir/path",
+                },
+                "Code": {
+                    "ImageUri": "image/uri:tag",
+                },
+            },
+            "Metadata": {"SamResourceId": f"aws_lambda_function.func1", "SkipBuild": True},
+        }
+
+        mock_get_relevant_cfn_resource.side_effect = [
+            (image_function_1, "logical_id1"),
+        ]
+        sam_metadata_resource = {
+            **self.tf_sam_metadata_resource_common_attributes,
+            "values": {
+                "triggers": {
+                    "resource_name": f"aws_lambda_function.{self.image_function_name}",
+                    "docker_build_args": docker_args_value,
+                    "docker_context": "context",
+                    "docker_file": "Dockerfile",
+                    "docker_tag": "2.0",
+                    "resource_type": "IMAGE_LAMBDA_FUNCTION",
+                },
+            },
+            "address": f"null_resource.sam_metadata_{self.image_function_name}",
+            "name": f"sam_metadata_{self.image_function_name}",
+        }
 
         with self.assertRaises(
             InvalidSamMetadataPropertiesException,
             msg="The sam metadata resource null_resource.sam_metadata_func1 should contain a valid json encoded "
             "string for the lambda function docker build arguments.",
         ):
-            _enrich_mapped_resources(sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root")
+            _enrich_image_lambda_function(
+                sam_metadata_resource, image_function_1, "logical_id1", "/terraform/project/root", "/output/dir"
+            )
 
     def test_enrich_mapped_resources_invalid_source_type(self):
         image_function_1 = {
