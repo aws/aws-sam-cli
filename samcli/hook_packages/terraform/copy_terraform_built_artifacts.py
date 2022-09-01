@@ -42,6 +42,8 @@ import sys
 import zipfile
 import logging
 
+from six import string_types
+
 LOG = logging.getLogger(__name__)
 
 
@@ -248,6 +250,11 @@ if __name__ == "__main__":
     except ResolverException as ex:
         LOG.error(ex.message, exc_info=True)
         cli_exit()
+
+    if not isinstance(extracted_attribute_path, string_types):
+        LOG.error("Expected the extracted attribute to be a string")
+        cli_exit()
+    extracted_attribute_path = str(extracted_attribute_path)
 
     # Construct an absolute path based on if extracted path is relative or absolute.
     abs_attribute_path = (
