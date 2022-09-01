@@ -1336,6 +1336,28 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture(BuildIntegP
         self._test_with_Makefile(runtime, use_container, manifest, architecture)
 
 
+@parameterized_class(
+    ("template", "code_uri", "is_nested_parent"),
+    [
+        ("custom_build_with_custom_root_project_path.yaml", "empty_src_code", False),
+        ("custom_build_with_custom_make_file_path.yaml", "provided_src_code_without_makefile", False),
+        ("custom_build_with_custom_root_project_path_and_custom_makefile_path.yaml", "empty_src_code", False),
+    ],
+)
+class TestBuildCommand_ProvidedFunctionsWithCustomMetadata(BuildIntegProvidedBase):
+    # Test Suite for runtime: provided and where selection of the build workflow is implicitly makefile builder
+    # if the makefile is present.
+    @parameterized.expand(
+        [
+            ("provided", False, None),
+            ("provided.al2", False, None),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_building_Makefile(self, runtime, use_container, manifest):
+        self._test_with_Makefile(runtime, use_container, manifest)
+
+
 @skipIf(
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",

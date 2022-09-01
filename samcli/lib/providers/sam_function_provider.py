@@ -21,7 +21,7 @@ from samcli.lib.utils.file_observer import FileObserver
 from .provider import Function, LayerVersion, Stack
 from .sam_base_provider import SamBaseProvider
 from .sam_stack_provider import SamLocalStackProvider
-from ..build.app_builder import DEPRECATED_RUNTIMES
+from ..build.constants import DEPRECATED_RUNTIMES
 
 LOG = logging.getLogger(__name__)
 

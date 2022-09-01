@@ -57,6 +57,10 @@ install:
   - "python --version"
   - "docker info"
 
+  # install Terraform CLI
+  - "choco install terraform"
+  - "terraform -version"
+
   # Upgrade setuptools, wheel and virtualenv
   - "python -m pip install --upgrade setuptools wheel virtualenv"
 
