@@ -2,6 +2,7 @@
 Utilities for Deploy
 """
 
+from enum import Enum
 from samcli.lib.utils.colors import Colored
 
 
@@ -32,3 +33,12 @@ class DeployColor:
 
     def get_changeset_action_color(self, action):
         return self.changeset_color_map.get(action, "yellow")
+
+
+class FailureMode(Enum):
+    ROLLBACK = "ROLLBACK"
+    DELETE = "DELETE"
+    DO_NOTHING = "DO_NOTHING"
+
+    def __str__(self):
+        return self.value
