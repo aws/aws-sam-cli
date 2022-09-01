@@ -36,7 +36,7 @@ def get_git_remote_origin_url() -> Optional[str]:
     except subprocess.CalledProcessError:
         return None  # Not a git repo
 
-    return _encrypt_value(git_url)
+    return _hash_value(git_url)
 
 
 def get_project_name() -> Optional[str]:
@@ -62,7 +62,7 @@ def get_project_name() -> Optional[str]:
     except subprocess.CalledProcessError:
         project_name = getcwd().replace("\\", "/")  # dir is not a git repo, get directory name
 
-    return _encrypt_value(project_name)
+    return _hash_value(project_name)
 
 
 def get_initial_commit_hash() -> Optional[str]:
@@ -88,7 +88,7 @@ def get_initial_commit_hash() -> Optional[str]:
     except subprocess.CalledProcessError:
         return None  # Not a git repo
 
-    return _encrypt_value(metadata)
+    return _hash_value(metadata)
 
 
 def _parse_remote_origin_url(url: str) -> List[str]:
@@ -104,7 +104,7 @@ def _parse_remote_origin_url(url: str) -> List[str]:
     return [str(item) for item in pattern.findall(url)[0]]
 
 
-def _encrypt_value(value: str) -> str:
+def _hash_value(value: str) -> str:
     """Encrypt a string, and then return the encrypted value as a byte string."""
     h = hashlib.sha256()
     h.update(value.encode("utf-8"))
