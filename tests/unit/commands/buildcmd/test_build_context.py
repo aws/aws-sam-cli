@@ -1,11 +1,11 @@
 import os
 from unittest import TestCase
-from unittest.mock import patch, Mock, ANY, call
+from unittest.mock import MagicMock, patch, Mock, ANY, call
 
 from parameterized import parameterized
 
-from samcli.commands._utils.experimental import ExperimentalFlag
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
+from samcli.lib.build.bundler import EsbuildBundlerManager
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.local.lambdafn.exceptions import ResourceNotFound
@@ -641,10 +641,10 @@ class TestBuildContext__enter__(TestCase):
     @patch("samcli.commands.build.build_context.move_template")
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.os")
-    @patch("samcli.commands.build.build_context.BuildContext._enable_source_maps")
+    @patch("samcli.commands.build.build_context.EsbuildBundlerManager")
     def test_run_sync_build_context(
         self,
-        source_maps_mock,
+        esbuild_bundler_manager_mock,
         os_mock,
         get_template_data_mock,
         move_template_mock,
@@ -669,7 +669,7 @@ class TestBuildContext__enter__(TestCase):
             root_stack.stack_path: "./build_dir/template.yaml",
             child_stack.stack_path: "./build_dir/abcd/template.yaml",
         }
-        resources_mock.return_value = Mock()
+        resources_mock.return_value = MagicMock()
 
         builder_mock = ApplicationBuilderMock.return_value = Mock()
         artifacts = "artifacts"
@@ -713,9 +713,8 @@ class TestBuildContext__enter__(TestCase):
             print_success_message=False,
         ) as build_context:
             with patch("samcli.commands.build.build_context.BuildContext.gen_success_msg") as mock_message:
-                with patch("samcli.commands.build.build_context.BuildContext._check_esbuild_warning"):
-                    build_context.run()
-                    mock_message.assert_not_called()
+                build_context.run()
+                mock_message.assert_not_called()
 
 
 class TestBuildContext_setup_build_dir(TestCase):
@@ -899,11 +898,13 @@ class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.move_template")
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.os")
-    @patch("samcli.commands.build.build_context.BuildContext._enable_source_maps")
+    @patch("samcli.commands.build.build_context.EsbuildBundlerManager")
+    @patch("samcli.commands.build.build_context.BuildContext._handle_build_pre_processing")
     def test_run_build_context(
         self,
         auto_dependency_layer,
-        source_map_mock,
+        pre_processing_mock,
+        esbuild_bundler_manager_mock,
         os_mock,
         get_template_data_mock,
         move_template_mock,
@@ -956,7 +957,14 @@ class TestBuildContext_run(TestCase):
         ]
         nested_stack_manager_mock.return_value = given_nested_stack_manager
 
-        source_map_mock.side_effect = [modified_template_root, modified_template_child]
+        pre_processing_mock.return_value = [root_stack, child_stack]
+
+        esbuild_manager = EsbuildBundlerManager(Mock())
+        esbuild_manager.set_sourcemap_env_from_metadata = Mock()
+        esbuild_manager.set_sourcemap_env_from_metadata.side_effect = [modified_template_root, modified_template_child]
+        esbuild_manager.esbuild_configured = Mock()
+        esbuild_manager.esbuild_configured.return_value = False
+        esbuild_bundler_manager_mock.return_value = esbuild_manager
 
         with BuildContext(
             resource_identifier="function_identifier",
@@ -1031,12 +1039,10 @@ class TestBuildContext_run(TestCase):
             if auto_dependency_layer:
                 nested_stack_manager_mock.assert_has_calls(
                     [
-                        call(
-                            root_stack, None, build_context.build_dir, modified_template_root, application_build_result
-                        ),
+                        call(root_stack, "", build_context.build_dir, modified_template_root, application_build_result),
                         call(
                             child_stack,
-                            None,
+                            "",
                             build_context.build_dir,
                             modified_template_child,
                             application_build_result,
@@ -1071,12 +1077,12 @@ class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.move_template")
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.os")
-    @patch("samcli.commands.build.build_context.BuildContext._enable_source_maps")
+    @patch("samcli.commands.build.build_context.EsbuildBundlerManager")
     def test_must_catch_known_exceptions(
         self,
         exception,
         wrapped_exception,
-        source_map_mock,
+        esbuild_bundler_manager_mock,
         os_mock,
         get_template_data_mock,
         move_template_mock,
@@ -1152,7 +1158,7 @@ class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.move_template")
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.os")
-    @patch("samcli.commands.build.build_context.BuildContext._enable_source_maps")
+    @patch("samcli.commands.build.build_context.EsbuildBundlerManager")
     def test_must_catch_function_not_found_exception(
         self,
         source_map_mock,
@@ -1218,37 +1224,6 @@ class TestBuildContext_run(TestCase):
         self.assertEqual(str(ctx.exception), "Function Not Found")
 
 
-class TestBuildContext_esbuild_warning(TestCase):
-    @parameterized.expand(
-        [
-            ([], False),
-            ([DummyFunction("Esbuild", metadata={"BuildMethod": "esbuild"})], True),
-            ([DummyFunction("NotEsbuild", metadata={"BuildMethod": "Makefile"})], False),
-        ]
-    )
-    @patch("samcli.commands.build.build_context.prompt_experimental")
-    def test_check_esbuild_warning(self, functions, should_print, mocked_click):
-        build_context = BuildContext(
-            resource_identifier="function_identifier",
-            template_file="template_file",
-            base_dir="base_dir",
-            build_dir="build_dir",
-            cache_dir="cache_dir",
-            cached=False,
-            clean=False,
-            parallel=False,
-            mode="mode",
-        )
-        with patch.object(build_context, "get_resources_to_build") as mocked_resources_to_build:
-            mocked_resources_to_build.return_value = Mock(functions=functions)
-            build_context._check_esbuild_warning()
-
-        if should_print:
-            mocked_click.assert_called_with(ExperimentalFlag.Esbuild, BuildContext._ESBUILD_WARNING_MESSAGE)
-        else:
-            mocked_click.assert_not_called()
-
-
 class TestBuildContext_exclude_warning(TestCase):
     @parameterized.expand(
         [
@@ -1277,166 +1252,3 @@ class TestBuildContext_exclude_warning(TestCase):
             log_mock.warning.assert_called_once_with(BuildContext._EXCLUDE_WARNING_MESSAGE)
         else:
             log_mock.warning.assert_not_called()
-
-
-class TestBuildContext_is_node_option_set(TestCase):
-    @parameterized.expand(
-        [
-            (
-                {"Properties": {"Environment": {"Variables": {"NODE_OPTIONS": "--enable-source-maps"}}}},
-                True,
-            ),
-            (
-                {"Properties": {"Environment": {"Variables": {"NODE_OPTIONS": "nothing"}}}},
-                False,
-            ),
-        ]
-    )
-    def test_is_node_option_set(self, resource, expected_result):
-        build_context = BuildContext(
-            resource_identifier="resource_id",
-            template_file="template_file",
-            base_dir="base_dir",
-            build_dir="build_dir",
-            cache_dir="cache_dir",
-            cached=False,
-            parallel=False,
-            mode="mode",
-        )
-
-        self.assertEqual(build_context._is_node_option_set(resource), expected_result)
-
-    def test_enable_source_map_missing(self):
-        build_context = BuildContext(
-            resource_identifier="resource_id",
-            template_file="template_file",
-            base_dir="base_dir",
-            build_dir="build_dir",
-            cache_dir="cache_dir",
-            cached=False,
-            parallel=False,
-            mode="mode",
-        )
-
-        self.assertFalse(build_context._is_node_option_set({"Properties": {}}))
-
-
-class TestBuildContext_enable_source_maps(TestCase):
-    @parameterized.expand(
-        [
-            ({"test": {"Metadata": {"BuildMethod": "esbuild", "BuildProperties": {"Sourcemap": True}}}},),
-            (
-                {
-                    "test": {
-                        "Properties": {"Environment": {"Variables": {"NODE_OPTIONS": "--something"}}},
-                        "Metadata": {"BuildMethod": "esbuild", "BuildProperties": {"Sourcemap": True}},
-                    }
-                },
-            ),
-        ]
-    )
-    @patch("samcli.commands.build.build_context.BuildContext._is_node_option_set")
-    def test_enable_source_maps_only_source_map(self, resource, is_enable_map_mock):
-        build_context = BuildContext(
-            resource_identifier="resource_id",
-            template_file="template_file",
-            base_dir="base_dir",
-            build_dir="build_dir",
-            cache_dir="cache_dir",
-            cached=False,
-            parallel=False,
-            mode="mode",
-        )
-
-        stack = DummyStack(resource)
-        build_context._stacks = [stack]
-
-        is_enable_map_mock.return_value = False
-
-        build_context._enable_source_maps()
-
-        for _, resource in stack.resources.items():
-            self.assertIn("--enable-source-maps", resource["Properties"]["Environment"]["Variables"]["NODE_OPTIONS"])
-
-    @parameterized.expand(
-        [
-            ({"test": {"Metadata": {"BuildMethod": "esbuild"}}}, True, True),
-            (
-                {
-                    "test": {
-                        "Properties": {"Environment": {"Variables": {"NODE_OPTIONS": "--enable-source-maps"}}},
-                        "Metadata": {"BuildMethod": "esbuild"},
-                    }
-                },
-                True,
-                True,
-            ),
-            (
-                {
-                    "test": {
-                        "Metadata": {"BuildMethod": "esbuild", "BuildProperties": {"Sourcemap": False}},
-                    }
-                },
-                True,
-                False,
-            ),
-        ]
-    )
-    @patch("samcli.commands.build.build_context.BuildContext._is_node_option_set")
-    @patch("samcli.commands.build.build_context.get_template_data")
-    def test_enable_source_maps_only_node_options(
-        self, resource, node_option_set, expected_value, get_template_mock, is_enable_map_mock
-    ):
-        build_context = BuildContext(
-            resource_identifier="resource_id",
-            template_file="template_file",
-            base_dir="base_dir",
-            build_dir="build_dir",
-            cache_dir="cache_dir",
-            cached=False,
-            parallel=False,
-            mode="mode",
-        )
-
-        stack = DummyStack(resource)
-        build_context._stacks = [stack]
-
-        is_enable_map_mock.return_value = node_option_set
-
-        build_context._enable_source_maps()
-
-        for _, resource in stack.resources.items():
-            self.assertEqual(resource["Metadata"]["BuildProperties"]["Sourcemap"], expected_value)
-
-    @patch("samcli.commands.build.build_context.BuildContext._is_node_option_set")
-    @patch("samcli.commands.build.build_context.BuildContext._warn_using_source_maps")
-    @patch("samcli.commands.build.build_context.BuildContext._warn_invalid_node_options")
-    def test_warnings_printed(self, warn_node_option_mock, warn_source_map_mock, is_enable_source_map_mock):
-        build_context = BuildContext(
-            resource_identifier="resource_id",
-            template_file="template_file",
-            base_dir="base_dir",
-            build_dir="build_dir",
-            cache_dir="cache_dir",
-            cached=False,
-            parallel=False,
-            mode="mode",
-        )
-
-        stack = DummyStack(
-            {
-                "test": {
-                    "Properties": {
-                        "Environment": {"Variables": {"NODE_OPTIONS": ["--something"]}},
-                    },
-                    "Metadata": {"BuildMethod": "esbuild", "BuildProperties": {"Sourcemap": True}},
-                }
-            }
-        )
-        build_context._stacks = [stack]
-
-        is_enable_source_map_mock.return_value = False
-        build_context._enable_source_maps()
-
-        warn_node_option_mock.assert_called()
-        warn_source_map_mock.assert_called()

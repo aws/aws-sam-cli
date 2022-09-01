@@ -201,6 +201,22 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process_stdout = stdout.strip()
         self.assertEqual(process_stdout.decode("utf-8"), '"MyVar"')
 
+    @parameterized.expand([("EchoGlobalCustomEnvVarFunction")])
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_with_global_env_vars_function(self, function_name):
+        command_list = self.get_command_list(
+            function_name, template_path=self.template_path, event_path=self.event_path, env_var_path=self.env_var_path
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stdout = stdout.strip()
+        self.assertEqual(process_stdout.decode("utf-8"), '"GlobalVar"')
+
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_invoke_image_provided(self):
         command_list = self.get_command_list(

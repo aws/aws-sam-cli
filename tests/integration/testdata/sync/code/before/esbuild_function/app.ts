@@ -1,3 +1,4 @@
+// @ts-ignore
 import axios from "axios";
 
 export const lambdaHandler = async (): Promise<object> => {

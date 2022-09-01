@@ -439,6 +439,29 @@ class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, architecture)
 
 
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+@parameterized_class(
+    ("template",),
+    [
+        ("esbuild_templates/template_with_metadata_node_options.yaml",),
+        ("esbuild_templates/template_with_metadata_global_node_options.yaml",),
+    ],
+)
+class TestBuildCommand_EsbuildFunctionProperties(BuildIntegEsbuildBase):
+    @pytest.mark.flaky(reruns=3)
+    def test_environment_generates_sourcemap(self):
+        overrides = {
+            "runtime": "nodejs16.x",
+            "code_uri": "../Esbuild/TypeScript",
+            "handler": "app.lambdaHandler",
+            "architecture": "x86_64",
+        }
+        self._test_with_various_properties(overrides)
+
+
 class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeBase):
     template = "template_with_architecture.yaml"
 
