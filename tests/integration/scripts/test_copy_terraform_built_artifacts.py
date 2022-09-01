@@ -11,7 +11,7 @@ TIMEOUT = 3
 
 class TestCopyTerraformBuiltArtifacts(TestCase):
     def setUp(self) -> None:
-        self.script_dir = pathlib.Path(__file__).parents[3].joinpath("samcli").joinpath("scripts")
+        self.script_dir = pathlib.Path(__file__).parents[3].joinpath("samcli/hook_packages/terraform")
         self.script_name = "copy_terraform_built_artifacts.py"
         self.script_location = self.script_dir.joinpath(self.script_name)
         self.testdata_directory = pathlib.Path(__file__).parent.joinpath("testdata")
