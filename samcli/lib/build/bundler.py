@@ -23,7 +23,9 @@ class EsbuildBundlerManager:
         Checks if esbuild is configured on any resource in a given stack
         :return: True if there is a function instance using esbuild as the build method
         """
-        function_provider = SamFunctionProvider([self._stack], ignore_code_extraction_warnings=True)
+        function_provider = SamFunctionProvider(
+            [self._stack], use_raw_codeuri=True, ignore_code_extraction_warnings=True
+        )
         functions = list(function_provider.get_all())
         for function in functions:
             if function.metadata and function.metadata.get("BuildMethod", "") == ESBUILD_PROPERTY:
