@@ -78,6 +78,7 @@ class BuildIntegBase(TestCase):
         build_image=None,
         exclude=None,
         region=None,
+        hook_package_id=None,
         beta_features=False,
     ):
 
@@ -86,7 +87,7 @@ class BuildIntegBase(TestCase):
         if function_identifier:
             command_list += [function_identifier]
 
-        command_list += ["-t", self.template_path]
+        command_list += ["-t", self.template_path] if not hook_package_id else []
 
         if parameter_overrides:
             command_list += ["--parameter-overrides", self._make_parameter_override_arg(parameter_overrides)]
@@ -133,6 +134,9 @@ class BuildIntegBase(TestCase):
 
         if beta_features:
             command_list += ["--beta-features"]
+
+        if hook_package_id:
+            command_list += ["--hook-package-id", hook_package_id]
 
         return command_list
 

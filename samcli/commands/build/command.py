@@ -237,7 +237,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     if (
         hook_package_id
         and ExperimentalFlag.IaCsSupport.get(hook_package_id) is not None
-        and not is_experimental_enabled(ExperimentalFlag.IaCsSupport.get(hook_package_id))
+        and not is_experimental_enabled(ExperimentalFlag.IaCsSupport[hook_package_id])
     ):
         LOG.info("Terraform Support beta feature is not enabled.")
         return

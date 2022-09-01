@@ -24,6 +24,7 @@ from tests.testing_utils import (
     SKIP_DOCKER_TESTS,
     SKIP_DOCKER_BUILD,
     SKIP_DOCKER_MESSAGE,
+    run_command_with_input,
 )
 from .build_integ_base import (
     BuildIntegBase,
@@ -2564,3 +2565,18 @@ class TestBuildSAR(BuildIntegBase):
             # will fail the build as there is no mapping
             self.assertEqual(process_execute.process.returncode, 1)
             self.assertIn("Property \\'ApplicationId\\' cannot be resolved.", str(process_execute.stderr))
+
+
+class TestBuildWithHooksNoBeta(DedupBuildIntegBase):
+    def test_exit_success_non_beta_supply_hooks(self):
+        cmdlist = self.get_command_list(beta_features=False, hook_package_id="terraform")
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        command_result = run_command_with_input(cmdlist, stdin_input=b"N\n\n", cwd=self.working_dir)
+        self._verify_process_code_and_output(command_result)
+
+    def _verify_process_code_and_output(self, command_result):
+        self.assertEqual(command_result.process.returncode, 0)
+        self.assertEqual(
+            command_result.stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled."
+        )
