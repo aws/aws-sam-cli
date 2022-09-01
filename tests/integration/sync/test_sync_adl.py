@@ -176,8 +176,6 @@ class TestDisableAdlForEsbuildFunctions(SyncIntegBase):
     dependency_layer = True
 
     def test_sync_esbuild(self):
-        set_experimental(ExperimentalFlag.Esbuild)
-
         template_path = str(self.test_data_path.joinpath(self.template_file))
         stack_name = self._method_to_stack_name(self.id())
         self.stacks.append({"name": stack_name})
