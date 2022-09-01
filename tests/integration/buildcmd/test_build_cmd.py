@@ -1341,7 +1341,13 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture(BuildIntegP
     [
         ("custom_build_with_custom_root_project_path.yaml", "empty_src_code", False),
         ("custom_build_with_custom_make_file_path.yaml", "provided_src_code_without_makefile", False),
+        ("custom_build_with_custom_working_dir.yaml", "custom_working_dir_src_code", False),
         ("custom_build_with_custom_root_project_path_and_custom_makefile_path.yaml", "empty_src_code", False),
+        (
+            "custom_build_with_custom_root_project_path_custom_makefile_path_and_custom_working_dir.yaml",
+            "empty_src_code",
+            False,
+        ),
     ],
 )
 class TestBuildCommand_ProvidedFunctionsWithCustomMetadata(BuildIntegProvidedBase):
