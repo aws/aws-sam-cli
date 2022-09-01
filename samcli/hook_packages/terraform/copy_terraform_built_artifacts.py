@@ -42,6 +42,8 @@ import sys
 import zipfile
 import logging
 
+from six import string_types
+
 LOG = logging.getLogger(__name__)
 
 
@@ -217,27 +219,24 @@ if __name__ == "__main__":
     argparser.add_argument(
         "--terraform-project-root",
         type=str,
-        required=False,
+        required=True,
         default=None,
-        help="Extracted expression (path) will be relative to the terraform project root if provided.",
+        help="Extracted expression (path), if relative, will be relative to the provided terraform project root.",
     )
 
     arguments = argparser.parse_args()
     directory_path = os.path.abspath(arguments.directory)
 
-    terraform_project_root = (
-        os.path.abspath(arguments.terraform_project_root) if arguments.terraform_project_root else None
-    )
+    terraform_project_root = os.path.abspath(arguments.terraform_project_root)
     extracted_attribute_path = None
     data_object = None
 
     if not os.path.exists(directory_path) or not os.path.isdir(directory_path):
         LOG.error("Expected --directory to be a valid directory!")
         cli_exit()
-    if terraform_project_root:
-        if not os.path.exists(terraform_project_root) or not os.path.isdir(terraform_project_root):
-            LOG.error("Expected --terraform-project-path to be a valid directory!")
-            cli_exit()
+    if not os.path.exists(terraform_project_root) or not os.path.isdir(terraform_project_root):
+        LOG.error("Expected --terraform-project-path to be a valid directory!")
+        cli_exit()
 
     # Load and Parse
     try:
@@ -251,11 +250,16 @@ if __name__ == "__main__":
     except ResolverException as ex:
         LOG.error(ex.message, exc_info=True)
         cli_exit()
-    # Construct an absolute path based on if extracted path is relative or absolute and if
-    # terraform project root is provided.
+
+    if not isinstance(extracted_attribute_path, string_types):
+        LOG.error("Expected the extracted attribute to be a string")
+        cli_exit()
+    extracted_attribute_path = str(extracted_attribute_path)
+
+    # Construct an absolute path based on if extracted path is relative or absolute.
     abs_attribute_path = (
         os.path.abspath(os.path.join(terraform_project_root, extracted_attribute_path))
-        if terraform_project_root and not os.path.isabs(extracted_attribute_path)
+        if not os.path.isabs(extracted_attribute_path)
         else os.path.abspath(extracted_attribute_path)
     )
     if not os.path.exists(abs_attribute_path):
@@ -264,6 +268,7 @@ if __name__ == "__main__":
     if abs_attribute_path == directory_path:
         LOG.error("Extracted expression path cannot be the same as the supplied directory path")
         cli_exit()
+
     try:
         if zipfile.is_zipfile(abs_attribute_path):
             with zipfile.ZipFile(abs_attribute_path, "r") as z:
