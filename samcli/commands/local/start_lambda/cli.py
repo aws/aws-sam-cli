@@ -6,6 +6,8 @@ import logging
 import click
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
+from samcli.commands._utils.experimental import experimental, is_experimental_enabled, ExperimentalFlag
+from samcli.commands._utils.options import hook_package_id_click_option
 from samcli.commands.local.cli_common.options import (
     invoke_common_options,
     service_common_options,
@@ -58,9 +60,13 @@ Here is a Python example:
     help=HELP_TEXT,
     short_help="Starts a local endpoint you can use to invoke your local Lambda functions.",
 )
+@hook_package_id_click_option(
+    force_prepare=False, invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"]
+)
 @configuration_option(provider=TomlProvider(section="parameters"))
 @service_common_options(3001)
 @invoke_common_options
+@experimental
 @warm_containers_common_options
 @local_common_options
 @cli_framework_options
@@ -96,6 +102,7 @@ def cli(
     container_host,
     container_host_interface,
     invoke_image,
+    hook_package_id,
 ):
     """
     `sam local start-lambda` command entry point
@@ -125,6 +132,7 @@ def cli(
         container_host,
         container_host_interface,
         invoke_image,
+        hook_package_id,
     )  # pragma: no cover
 
 
@@ -151,6 +159,7 @@ def do_cli(  # pylint: disable=R0914
     container_host,
     container_host_interface,
     invoke_image,
+    hook_package_id,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -163,6 +172,14 @@ def do_cli(  # pylint: disable=R0914
     from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
     from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
     from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
+
+    if (
+        hook_package_id
+        and ExperimentalFlag.IaCsSupport.get(hook_package_id) is not None
+        and not is_experimental_enabled(ExperimentalFlag.IaCsSupport.get(hook_package_id))
+    ):
+        LOG.info("Terraform Support beta feature is not enabled.")
+        return
 
     LOG.debug("local start_lambda command is called")
 

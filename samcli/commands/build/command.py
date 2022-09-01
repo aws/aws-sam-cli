@@ -18,6 +18,7 @@ from samcli.commands._utils.options import (
     base_dir_option,
     manifest_option,
     cached_option,
+    hook_package_id_click_option,
 )
 from samcli.commands._utils.option_value_processor import process_env_var, process_image_options
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
@@ -78,6 +79,10 @@ $ sam build MyFunction
 
 
 @click.command("build", help=HELP_TEXT, short_help="Build your Lambda function code")
+@hook_package_id_click_option(
+    force_prepare=True,
+    invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"],
+)
 @configuration_option(provider=TomlProvider(section="parameters"))
 @click.option(
     "--use-container",
@@ -171,6 +176,7 @@ def cli(
     parameter_overrides: dict,
     config_file: str,
     config_env: str,
+    hook_package_id: Optional[str],
 ) -> None:
     """
     `sam build` command entry point
@@ -199,6 +205,7 @@ def cli(
         container_env_var_file,
         build_image,
         exclude,
+        hook_package_id,
     )  # pragma: no cover
 
 
@@ -222,6 +229,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     container_env_var_file: Optional[str],
     build_image: Optional[Tuple[str]],
     exclude: Optional[Tuple[str, ...]],
+    hook_package_id: Optional[str],
 ) -> None:
     """
     Implementation of the ``cli`` method

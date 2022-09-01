@@ -709,12 +709,13 @@ class BuildIntegProvidedBase(BuildIntegBase):
     EXPECTED_FILES_PROJECT_MANIFEST = {"__init__.py", "main.py", "requests", "requirements.txt"}
 
     FUNCTION_LOGICAL_ID = "Function"
+    code_uri = "Provided"
 
     def _test_with_Makefile(self, runtime, use_container, manifest, architecture=None):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
-        overrides = self.get_override(runtime, "Provided", architecture, "main.handler")
+        overrides = self.get_override(runtime, self.code_uri, architecture, "main.handler")
         manifest_path = None
         if manifest:
             manifest_path = os.path.join(self.test_data_path, "Provided", manifest)

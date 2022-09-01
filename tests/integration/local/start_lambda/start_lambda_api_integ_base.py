@@ -17,8 +17,6 @@ from tests.testing_utils import (
     SKIP_DOCKER_MESSAGE,
     run_command,
     kill_process,
-    start_persistent_process,
-    read_until_string,
 )
 
 LOG = logging.getLogger(__name__)
@@ -32,15 +30,21 @@ class StartLambdaIntegBaseClass(TestCase):
     binary_data_file: Optional[str] = None
     integration_dir = str(Path(__file__).resolve().parents[2])
     invoke_image: Optional[List] = None
+    hook_package_id: Optional[str] = None
+    beta_features: Optional[bool] = None
+    collect_start_lambda_process_output: bool = False
 
     build_before_invoke = False
     build_overrides: Optional[Dict[str, str]] = None
+
+    working_dir: Optional[str] = None
 
     @classmethod
     def setUpClass(cls):
         # This is the directory for tests/integration which will be used to file the testdata
         # files for integ tests
         cls.template = cls.integration_dir + cls.template_path
+        cls.working_dir = str(Path(cls.template).resolve().parents[0])
         cls.port = str(StartLambdaIntegBaseClass.random_port())
         cls.env_var_path = cls.integration_dir + "/testdata/invoke/vars.json"
 
@@ -58,51 +62,92 @@ class StartLambdaIntegBaseClass(TestCase):
         cls.start_lambda()
 
     @classmethod
-    def build(cls):
+    def base_command(cls):
         command = "sam"
         if os.getenv("SAM_CLI_DEV"):
             command = "samdev"
+        return command
+
+    @classmethod
+    def build(cls):
+        command = cls.base_command()
+
         command_list = [command, "build"]
         if cls.build_overrides:
             overrides_arg = " ".join(
                 ["ParameterKey={},ParameterValue={}".format(key, value) for key, value in cls.build_overrides.items()]
             )
             command_list += ["--parameter-overrides", overrides_arg]
-        working_dir = str(Path(cls.template).resolve().parents[0])
-        run_command(command_list, cwd=working_dir)
+        if cls.hook_package_id:
+            command_list += ["--hook-package-id", cls.hook_package_id]
+        run_command(command_list, cwd=cls.working_dir)
 
     @classmethod
-    def start_lambda(cls, wait_time=5):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
+    def get_start_lambda_command(
+        cls,
+        port=None,
+        template_path=None,
+        env_var_path=None,
+        container_mode=None,
+        parameter_overrides=None,
+        invoke_image=None,
+        hook_package_id=None,
+        beta_features=None,
+    ):
+        command_list = [cls.base_command(), "local", "start-lambda"]
 
-        command_list = [
-            command,
-            "local",
-            "start-lambda",
-            "-t",
-            cls.template,
-            "-p",
-            cls.port,
-            "--env-vars",
-            cls.env_var_path,
-        ]
-        if cls.container_mode:
-            command_list += ["--warm-containers", cls.container_mode]
+        if port:
+            command_list += ["-p", port]
 
-        if cls.parameter_overrides:
-            command_list += ["--parameter-overrides", cls._make_parameter_override_arg(cls.parameter_overrides)]
+        if template_path:
+            command_list += ["-t", template_path]
 
-        if cls.invoke_image:
-            for image in cls.invoke_image:
+        if env_var_path:
+            command_list += ["--env-vars", env_var_path]
+
+        if container_mode:
+            command_list += ["--warm-containers", container_mode]
+
+        if parameter_overrides:
+            command_list += ["--parameter-overrides", cls._make_parameter_override_arg(parameter_overrides)]
+
+        if invoke_image:
+            for image in invoke_image:
                 command_list += ["--invoke-image", image]
 
-        cls.start_lambda_process = Popen(command_list, stderr=PIPE)
+        if hook_package_id:
+            command_list += ["--hook-package-id", hook_package_id]
+
+        if beta_features is not None:
+            command_list += ["--beta-features" if beta_features else "--no-beta-features"]
+
+        return command_list
+
+    @classmethod
+    def start_lambda(cls, wait_time=5, input=None):
+        command_list = cls.get_start_lambda_command(
+            port=cls.port,
+            template_path=cls.template,
+            env_var_path=cls.env_var_path,
+            container_mode=cls.container_mode,
+            parameter_overrides=cls.parameter_overrides,
+            invoke_image=cls.invoke_image,
+            hook_package_id=cls.hook_package_id,
+            beta_features=cls.beta_features,
+        )
+
+        cls.start_lambda_process = Popen(command_list, stderr=PIPE, stdin=PIPE, cwd=cls.working_dir)
+        cls.start_lambda_process_output = ""
+
+        if input:
+            cls.start_lambda_process.stdin.write(input)
+            cls.start_lambda_process.stdin.close()
 
         while True:
             line = cls.start_lambda_process.stderr.readline()
-            if "(Press CTRL+C to quit)" in str(line):
+            if cls.collect_start_lambda_process_output:
+                cls.start_lambda_process_output += f"{line.decode('utf-8')}\n"
+            if "(Press CTRL+C to quit)" in str(line) or "Terraform Support beta feature is not enabled." in str(line):
                 break
 
         cls.stop_reading_thread = False
