@@ -4,6 +4,8 @@ Tests the InvokeContext class
 import errno
 import os
 
+from parameterized import parameterized
+
 from samcli.commands._utils.template import TemplateFailedParsingException
 from samcli.commands.local.cli_common.invoke_context import (
     InvokeContext,
@@ -426,6 +428,25 @@ class TestInvokeContext__enter__(TestCase):
         get_buildable_stacks_mock.side_effect = TemplateFailedParsingException("")
         with self.assertRaises(TemplateFailedParsingException) as ex_ctx:
             invoke_context.__enter__()
+
+    @parameterized.expand(
+        [
+            (None, "/my/cool/path", True),
+            ("LAZY", "/my/cool/path", True),
+            (None, None, False),
+        ]
+    )
+    @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider._extract_functions")
+    def test_docker_volume_basedir_set_use_raw_codeuri(
+        self, container_mode, docker_volume_basedir, expected, extract_func_mock
+    ):
+        invoke_context = InvokeContext(
+            "template", warm_container_initialization_mode=container_mode, docker_volume_basedir=docker_volume_basedir
+        )
+        invoke_context._get_stacks = Mock(return_value=[])
+        invoke_context.__enter__()
+
+        extract_func_mock.assert_called_with([], expected, False, False)
 
 
 class TestInvokeContext__exit__(TestCase):
