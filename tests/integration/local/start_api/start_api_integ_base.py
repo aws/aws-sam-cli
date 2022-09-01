@@ -18,7 +18,7 @@ from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS, run_comm
 LOG = logging.getLogger(__name__)
 
 
-class InvalidAddressException:
+class InvalidAddressException(Exception):
     pass
 
 
@@ -47,15 +47,13 @@ class StartApiIntegBaseClass(TestCase):
         if cls.build_before_invoke:
             cls.build()
 
-        cls.port = str(StartApiIntegBaseClass.random_port())
-
         cls.docker_client = docker.from_env()
         for container in cls.docker_client.api.containers():
             try:
                 cls.docker_client.api.remove_container(container, force=True)
             except APIError as ex:
                 LOG.error("Failed to remove container %s", container, exc_info=ex)
-        cls.start_api_with_rety()
+        cls.start_api_with_retry()
 
     @classmethod
     def build(cls):
@@ -72,7 +70,7 @@ class StartApiIntegBaseClass(TestCase):
         run_command(command_list, cwd=working_dir)
 
     @classmethod
-    def start_api_with_rety(cls, retries=3):
+    def start_api_with_retry(cls, retries=3):
         retry_count = 0
         for i in range(retries):
             cls.port = str(StartApiIntegBaseClass.random_port())
@@ -111,6 +109,7 @@ class StartApiIntegBaseClass(TestCase):
             if line_as_str:
                 LOG.info(f"{line_as_str}")
             if "Address already in use" in line_as_str:
+                LOG.info(f"Attempted to start port on {cls.port} but it is already in use, restarting on a new port.")
                 raise InvalidAddressException()
             if "(Press CTRL+C to quit)" in line_as_str:
                 break
@@ -136,7 +135,8 @@ class StartApiIntegBaseClass(TestCase):
 
     @staticmethod
     def random_port():
-        return random.randint(30000, 40000)
+        yield 3000
+        yield random.randint(30000, 40000)
 
     @staticmethod
     def get_binary_data(filename):
