@@ -30,6 +30,7 @@ class TestHookPackageIdOption(TestCase):
             invalid_coexist_options=[],
         )
         ctx = MagicMock()
+        ctx.command.name = "invoke"
         opts = {"hook_package_id": hook_package_id}
         args = []
         with self.assertRaises(click.BadParameter) as e:
