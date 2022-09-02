@@ -3,15 +3,12 @@ Creates and hashes metadata regarding SAM CLI projects.
 """
 
 import hashlib
-from os import getcwd
 import re
 import subprocess
-import logging
+from os import getcwd
 from typing import Optional
 
 from samcli.cli.global_config import GlobalConfig
-
-LOG = logging.getLogger()
 
 
 def get_git_remote_origin_url() -> Optional[str]:
