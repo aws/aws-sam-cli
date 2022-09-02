@@ -36,12 +36,14 @@ class TestProjectMetadata(TestCase):
 
     @parameterized.expand(
         [
-            ("https://github.com/aws/aws-sam-cli.git\n", "github.com/aws/aws-sam-cli.git"),
-            ("http://github.com/aws/aws-sam-cli.git\n", "github.com/aws/aws-sam-cli.git"),
-            ("git@github.com:aws/aws-sam-cli.git\n", "github.com/aws/aws-sam-cli.git"),
-            ("https://github.com/aws/aws-cli.git\n", "github.com/aws/aws-cli.git"),
-            ("http://not.a.real.site.com/somebody/my-project.git", "not.a.real.site.com/somebody/my-project.git"),
-            ("git@not.github:person/my-project.git", "not.github/person/my-project.git"),
+            ("https://github.com/aws/aws-sam-cli.git\n", "github.com/aws/aws-sam-cli"),
+            ("http://github.com/aws/aws-sam-cli.git/\n", "github.com/aws/aws-sam-cli"),
+            ("http://example.com:8080/aws-sam-cli.git\n", "example.com/aws-sam-cli"),
+            ("http://my_user@example.com/aws-sam-cli.git/\n", "example.com/aws-sam-cli"),
+            ("git@github.com:aws/aws-sam-cli.git\n", "github.com/aws/aws-sam-cli"),
+            ("https://github.com/aws/aws-cli.git\n", "github.com/aws/aws-cli"),
+            ("http://not.a.real.site.com/somebody/my-project.git", "not.a.real.site.com/somebody/my-project"),
+            ("git@not.github:person/my-project.git", "not.github/person/my-project"),
         ]
     )
     @patch("samcli.lib.telemetry.project_metadata.subprocess.run")
@@ -68,11 +70,22 @@ class TestProjectMetadata(TestCase):
             ("https://github.com/aws/aws-cli.git\n", "aws-cli"),
             ("http://not.a.real.site.com/somebody/my-project.git", "my-project"),
             ("git@not.github:person/my-project.git", "my-project"),
+            ("https://github.com/aws/aws-sam-cli.git\n", "aws-sam-cli"),
+            ("http://github.com/aws/aws-sam-cli.git\n", "aws-sam-cli"),
+            ("http://example.com:8080/aws-sam-cli.git\n", "aws-sam-cli"),
+            ("http://my_user@example.com/aws-sam-cli\n", "aws-sam-cli"),
+            ("git@github.com:aws/aws-sam-cli.git\n", "aws-sam-cli"),
+            ("https://github.com/aws/aws-cli/\n", "aws-cli"),
+            ("http://not.a.real.site.com/somebody/my-project.git", "my-project"),
+            ("git@not.github:person/my-project.git", "my-project"),
+            ("user@example.com/some_project.git", "local_dir"),
         ]
     )
+    @patch("samcli.lib.telemetry.project_metadata.getcwd")
     @patch("samcli.lib.telemetry.project_metadata.subprocess.run")
-    def test_retrieve_project_name_from_git(self, origin, expected, sp_mock):
+    def test_retrieve_project_name_from_git(self, origin, expected, sp_mock, cwd_mock):
         sp_mock.return_value = CompletedProcess(["git", "config", "--get", "remote.origin.url"], 0, stdout=origin)
+        cwd_mock.return_value = expected
 
         project_name = get_project_name()
         expected_hash = hashlib.sha256()

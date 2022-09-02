@@ -1,25 +1,28 @@
 """
-Creates and encrypts metadata regarding SAM CLI projects.
+Creates and hashes metadata regarding SAM CLI projects.
 """
 
 import hashlib
 from os import getcwd
 import re
 import subprocess
-from typing import List, Optional
+import logging
+from typing import Optional
 
 from samcli.cli.global_config import GlobalConfig
+
+LOG = logging.getLogger()
 
 
 def get_git_remote_origin_url() -> Optional[str]:
     """
-    Retrieve an encrypted version of the project's git remote origin url, if it exists.
+    Retrieve an hashed version of the project's git remote origin url, if it exists.
 
     Returns
     -------
     str | None
         A SHA256 hexdigest string of the git remote origin url, formatted such that the
-        encrypted value follows the pattern <hostname>/<owner>/<project_name>.git.
+        hashed value follows the pattern <hostname>/<owner>/<project_name>.git.
         If telemetry is opted out of by the user, or the `.git` folder is not found
         (the directory is not a git repository), returns None
     """
@@ -31,17 +34,19 @@ def get_git_remote_origin_url() -> Optional[str]:
         runcmd = subprocess.run(
             ["git", "config", "--get", "remote.origin.url"], capture_output=True, shell=True, check=True, text=True
         )
-        metadata = _parse_remote_origin_url(str(runcmd.stdout))
-        git_url = "/".join(metadata) + ".git"  # Format to <hostname>/<owner>/<project_name>.git
+        git_url = _parse_remote_origin_url(str(runcmd.stdout))
     except subprocess.CalledProcessError:
-        return None  # Not a git repo
+        # Ignoring, None git_url will be handled later
+        pass
 
+    if not git_url:
+        return None
     return _hash_value(git_url)
 
 
 def get_project_name() -> Optional[str]:
     """
-    Retrieve an encrypted version of the project's name, as defined by the .git folder (or directory name if no .git).
+    Retrieve an hashed version of the project's name, as defined by the .git folder (or directory name if no .git).
 
     Returns
     -------
@@ -53,13 +58,19 @@ def get_project_name() -> Optional[str]:
     if not bool(GlobalConfig().telemetry_enabled):
         return None
 
-    project_name = ""
+    project_name = None
     try:
         runcmd = subprocess.run(
             ["git", "config", "--get", "remote.origin.url"], capture_output=True, shell=True, check=True, text=True
         )
-        project_name = _parse_remote_origin_url(str(runcmd.stdout))[2]  # dir is git repo, get project name from URL
+        git_url = _parse_remote_origin_url(str(runcmd.stdout))
+        if git_url:
+            project_name = git_url.split("/")[-1]  # dir is git repo, get project name from URL
     except subprocess.CalledProcessError:
+        # Ignoring, None project_name will be handled at the end before returning
+        pass
+
+    if not project_name:
         project_name = getcwd().replace("\\", "/")  # dir is not a git repo, get directory name
 
     return _hash_value(project_name)
@@ -67,7 +78,7 @@ def get_project_name() -> Optional[str]:
 
 def get_initial_commit_hash() -> Optional[str]:
     """
-    Retrieve an encrypted version of the project's initial commit hash, if it exists.
+    Retrieve an hashed version of the project's initial commit hash, if it exists.
 
     Returns
     -------
@@ -91,21 +102,43 @@ def get_initial_commit_hash() -> Optional[str]:
     return _hash_value(metadata)
 
 
-def _parse_remote_origin_url(url: str) -> List[str]:
+def _parse_remote_origin_url(url: str) -> Optional[str]:
     """
-    Parse a `git remote origin url` into its hostname, owner, and project name.
+    Parse a `git remote origin url` into a formatted "hostname/project" string
 
     Returns
     -------
-    List[str]
-        A list of 3 strings, with indeces corresponding to 0:hostname, 1:owner, 2:project_name
+    str
+        formatted project origin url
     """
-    pattern = re.compile(r"(?:https?://|git@)(?P<hostname>\S*)(?:/|:)(?P<owner>\S*)/(?P<project_name>\S*)\.git")
-    return [str(item) for item in pattern.findall(url)[0]]
+    found = None
+    # Examples: http://example.com:8080/git/repo.git, https://github.com/aws-actions/setup-sam/
+    http_pattern = re.compile(r"(\w+://)(.+@)*(?P<url>([\w\.]+)(:[\d]+)?/*(.*))")
+    http_match = http_pattern.match(url)
+    if http_match:
+        found = http_match.group("url")
+    # Examples: git@github.com:aws/serverless-application-model.git, git@example.com:my/repo
+    git_ssh_pattern = re.compile(r"(git@)(?P<url>([\w\.]+):(.*))")
+    git_ssh_match = git_ssh_pattern.match(url)
+    if not found and git_ssh_match:
+        found = git_ssh_match.group("url")
+
+    # NOTE(hawflau): there are other patterns that we don't handle now, as they are not the most common use case
+    # cleaning and formatting
+    if not found:
+        return None
+    if found.endswith("/"):
+        found = found[:-1]
+    if found.endswith(".git"):
+        found = found[:-4]
+    found = re.sub(r":\d{1,5}", "", found)  # remove port number if any
+    found = found.replace(":", "/")  # e.g. github.com:aws/aws-sam-cli -> github.com/aws/aws-sam-cli
+
+    return found
 
 
 def _hash_value(value: str) -> str:
-    """Encrypt a string, and then return the encrypted value as a byte string."""
+    """Hash a string, and then return the hashed value as a byte string."""
     h = hashlib.sha256()
     h.update(value.encode("utf-8"))
     return h.hexdigest()
