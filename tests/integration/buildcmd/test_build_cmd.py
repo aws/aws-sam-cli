@@ -2544,6 +2544,7 @@ class TestBuildSAR(BuildIntegBase):
 )
 class TestBuildWithLanguageExtensions(BuildIntegBase):
     template = "language-extensions.yaml"
+
     def test_validation_does_not_error_out(self):
         cmdlist = self.get_command_list()
         LOG.info("Running Command: %s", cmdlist)
