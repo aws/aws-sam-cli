@@ -65,12 +65,6 @@ class TestProjectMetadata(TestCase):
     @parameterized.expand(
         [
             ("https://github.com/aws/aws-sam-cli.git\n", "aws-sam-cli"),
-            ("https://github.com/aws/aws-sam-cli.git\n", "aws-sam-cli"),
-            ("git@github.com:aws/aws-sam-cli.git\n", "aws-sam-cli"),
-            ("https://github.com/aws/aws-cli.git\n", "aws-cli"),
-            ("http://not.a.real.site.com/somebody/my-project.git", "my-project"),
-            ("git@not.github:person/my-project.git", "my-project"),
-            ("https://github.com/aws/aws-sam-cli.git\n", "aws-sam-cli"),
             ("http://github.com/aws/aws-sam-cli.git\n", "aws-sam-cli"),
             ("http://example.com:8080/aws-sam-cli.git\n", "aws-sam-cli"),
             ("http://my_user@example.com/aws-sam-cli\n", "aws-sam-cli"),
@@ -78,7 +72,7 @@ class TestProjectMetadata(TestCase):
             ("https://github.com/aws/aws-cli/\n", "aws-cli"),
             ("http://not.a.real.site.com/somebody/my-project.git", "my-project"),
             ("git@not.github:person/my-project.git", "my-project"),
-            ("user@example.com/some_project.git", "local_dir"),
+            ("user@example.com/some_project.git", "some_project"),
         ]
     )
     @patch("samcli.lib.telemetry.project_metadata.getcwd")
@@ -94,25 +88,25 @@ class TestProjectMetadata(TestCase):
 
     @parameterized.expand(
         [
-            ("C:/Users/aws/path/to/library/aws-sam-cli"),
-            ("C:\\Users\\aws\\Windows\\path\\aws-sam-cli"),
-            ("C:/"),
-            ("C:\\"),
-            ("E:/path/to/another/dir"),
-            ("This/one/doesn't/start/with/a/letter"),
-            ("/banana"),
-            ("D:/one/more/just/to/be/safe"),
+            ("C:/Users/aws/path/to/library/aws-sam-cli", "aws-sam-cli"),
+            ("C:\\Users\\aws\\Windows\\path\\aws-sam-cli", "aws-sam-cli"),
+            ("C:/", ""),
+            ("C:\\", ""),
+            ("E:/path/to/another/dir", "dir"),
+            ("This/one/doesn't/start/with/a/letter", "letter"),
+            ("/banana", "banana"),
+            ("D:/one/more/just/to/be/safe", "safe"),
         ]
     )
     @patch("samcli.lib.telemetry.project_metadata.getcwd")
     @patch("samcli.lib.telemetry.project_metadata.subprocess.run")
-    def test_retrieve_project_name_from_dir(self, cwd, sp_mock, cwd_mock):
+    def test_retrieve_project_name_from_dir(self, cwd, expected, sp_mock, cwd_mock):
         sp_mock.side_effect = CalledProcessError(128, ["git", "config", "--get", "remote.origin.url"])
         cwd_mock.return_value = cwd
 
         project_name = get_project_name()
         expected_hash = hashlib.sha256()
-        expected_hash.update(cwd.replace("\\", "/").encode("utf-8"))
+        expected_hash.update(expected.encode("utf-8"))
         self.assertEqual(project_name, expected_hash.hexdigest())
 
     @parameterized.expand(

@@ -6,7 +6,9 @@ import hashlib
 import re
 import subprocess
 from os import getcwd
+from os.path import basename
 from typing import Optional
+from urllib.parse import urlparse
 
 from samcli.cli.global_config import GlobalConfig
 
@@ -66,7 +68,7 @@ def get_project_name() -> Optional[str]:
         pass
 
     if not project_name:
-        project_name = getcwd().replace("\\", "/")  # dir is not a git repo, get directory name
+        project_name = basename(getcwd().replace("\\", "/"))  # dir is not a git repo, get directory name
 
     return _hash_value(project_name)
 
@@ -106,30 +108,17 @@ def _parse_remote_origin_url(url: str) -> Optional[str]:
     str
         formatted project origin url
     """
-    found = None
-    # Examples: http://example.com:8080/git/repo.git, https://github.com/aws-actions/setup-sam/
-    http_pattern = re.compile(r"(\w+://)(.+@)*(?P<url>([\w\.]+)(:[\d]+)?/*(.*))")
-    http_match = http_pattern.match(url)
-    if http_match:
-        found = http_match.group("url")
-    # Examples: git@github.com:aws/serverless-application-model.git, git@example.com:my/repo
-    git_ssh_pattern = re.compile(r"(git@)(?P<url>([\w\.]+):(.*))")
-    git_ssh_match = git_ssh_pattern.match(url)
-    if not found and git_ssh_match:
-        found = git_ssh_match.group("url")
-
-    # NOTE(hawflau): there are other patterns that we don't handle now, as they are not the most common use case
-    # cleaning and formatting
-    if not found:
+    parsed = urlparse(url)
+    if not parsed.path:
         return None
-    if found.endswith("/"):
-        found = found[:-1]
-    if found.endswith(".git"):
-        found = found[:-4]
-    found = re.sub(r":\d{1,5}", "", found)  # remove port number if any
-    found = found.replace(":", "/")  # e.g. github.com:aws/aws-sam-cli -> github.com/aws/aws-sam-cli
 
-    return found
+    formatted = (parsed.hostname or "") + parsed.path
+    formatted = re.sub("/$", "", formatted)
+    formatted = re.sub(".git$", "", formatted)
+    formatted = re.sub("^(.+)@", "", formatted)
+    formatted = formatted.replace(":", "/")
+
+    return formatted
 
 
 def _hash_value(value: str) -> str:
