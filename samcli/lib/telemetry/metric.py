@@ -162,10 +162,12 @@ def track_command(func):
             metric.add_data("debugFlagProvided", bool(ctx.debug))
             metric.add_data("region", ctx.region or "")
             metric.add_data("commandName", ctx.command_path)  # Full command path. ex: sam local start-api
-            # Project metadata metrics
-            metric_specific_attributes["gitOrigin"] = get_git_remote_origin_url()
-            metric_specific_attributes["projectName"] = get_project_name()
-            metric_specific_attributes["initialCommit"] = get_initial_commit_hash()
+            if ctx.command_path.endswith("init") and not ctx.command_path.endswith("pipeline init"):
+                # Project metadata
+                # We don't capture below usage attributes for sam init as the command is not run inside a project
+                metric_specific_attributes["gitOrigin"] = get_git_remote_origin_url()
+                metric_specific_attributes["projectName"] = get_project_name()
+                metric_specific_attributes["initialCommit"] = get_initial_commit_hash()
             metric.add_data("metricSpecificAttributes", metric_specific_attributes)
             # Metric about command's execution characteristics
             metric.add_data("duration", duration_fn())
