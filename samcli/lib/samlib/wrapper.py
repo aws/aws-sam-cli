@@ -66,6 +66,7 @@ class SamTranslatorWrapper:
             additional_plugins, parameters=self.parameter_values if self.parameter_values else {}
         )
 
+        # Temporarily disabling validation for DeletePolicy and UpdateReplacePolicy when language extensions are set
         self._patch_language_extensions()
 
         try:
@@ -81,7 +82,11 @@ class SamTranslatorWrapper:
     def template(self):
         return copy.deepcopy(self._sam_template)
 
-    def _patch_language_extensions(self):
+    def _patch_language_extensions(self) -> None:
+        """
+        Monkey patch SamResource.valid function to exclude checking DeletePolicy
+        and UpdateReplacePolicy when language extensions are set
+        """
         template_copy = self.template
         if self._check_using_langauge_extension(template_copy):
 
@@ -96,7 +101,12 @@ class SamTranslatorWrapper:
             SamResource.valid = patched_func
 
     @staticmethod
-    def _check_using_langauge_extension(template):
+    def _check_using_langauge_extension(template: Dict) -> bool:
+        """
+        Check if language extensions are set in the template's Transform
+        :param template: template to check
+        :return: True if language extensions are set in the template, False otherwise
+        """
         transform = template.get("Transform")
         if transform:
             if isinstance(transform, str) and transform == "AWS::LanguageExtensions":
