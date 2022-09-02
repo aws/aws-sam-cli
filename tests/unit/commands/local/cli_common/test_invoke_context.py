@@ -437,13 +437,22 @@ class TestInvokeContext__enter__(TestCase):
         ]
     )
     @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider._extract_functions")
+    @patch("samcli.lib.utils.file_observer.SingletonFileObserver.start")
     def test_docker_volume_basedir_set_use_raw_codeuri(
-        self, container_mode, docker_volume_basedir, expected, extract_func_mock
+        self, container_mode, docker_volume_basedir, expected, observer_mock, extract_func_mock
     ):
         invoke_context = InvokeContext(
-            "template", warm_container_initialization_mode=container_mode, docker_volume_basedir=docker_volume_basedir
+            "template",
+            warm_container_initialization_mode=container_mode,
+            docker_volume_basedir=docker_volume_basedir,
+            shutdown=True,
         )
+
+        invoke_context._initialize_all_functions_containers = Mock()
+        invoke_context._get_container_manager = Mock(return_value=Mock())
+        invoke_context._get_debug_context = Mock(return_value=Mock())
         invoke_context._get_stacks = Mock(return_value=[])
+
         invoke_context.__enter__()
 
         extract_func_mock.assert_called_with([], expected, False, False)
