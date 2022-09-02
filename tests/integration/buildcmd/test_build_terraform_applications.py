@@ -58,8 +58,7 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
         process_stderr = stderr.strip()
         self.assertRegex(
             process_stderr.decode("utf-8"),
-            "Error: Missing required parameter, need the --build-image parameter in order to use --use-container flag "
-            "with --hook-package-id.",
+            "Error: Missing required parameter --build-image.",
         )
         self.assertNotEqual(return_code, 0)
 
@@ -70,8 +69,7 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
         process_stderr = stderr.strip()
         self.assertRegex(
             process_stderr.decode("utf-8"),
-            "Error: Missing required parameter, need the --build-image parameter in order to use --use-container flag "
-            "with --hook-package-id.",
+            "Error: Missing required parameter --build-image.",
         )
         self.assertNotEqual(return_code, 0)
 

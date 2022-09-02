@@ -393,8 +393,7 @@ class TestHookPackageIdOption(TestCase):
         args = []
         with self.assertRaises(
             click.UsageError,
-            msg="Missing required parameter, need the --build-image parameter in order to use --use-container flag "
-            "with --hook-package-id.",
+            msg="Missing required parameter --build-image.",
         ):
             hook_package_id_option.handle_parse_result(ctx, opts, args)
 

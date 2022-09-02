@@ -54,11 +54,7 @@ class HookPackageIdOption(click.Option):
             # validate build-image is provided in case of build using container
             # add this validation here to avoid running hook prepare and there is issue
             if command_name == "build" and opts.get("use_container") and not opts.get("build_image"):
-                msg = (
-                    "Missing required parameter, need the --build-image parameter in order to use --use-container flag "
-                    "with --hook-package-id."
-                )
-                raise click.UsageError(msg)
+                raise click.UsageError("Missing required parameter --build-image.")
 
             # check beta-feature
             beta_features = opts.get("beta_features")
