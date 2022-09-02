@@ -2567,12 +2567,23 @@ class TestBuildSAR(BuildIntegBase):
             self.assertIn("Property \\'ApplicationId\\' cannot be resolved.", str(process_execute.stderr))
 
 
-class TestBuildWithHooksNoBeta(DedupBuildIntegBase):
-    def test_exit_success_non_beta_supply_hooks(self):
-        cmdlist = self.get_command_list(beta_features=False, hook_package_id="terraform")
+class TestBuildWithHooksNoBetaFeatures(DedupBuildIntegBase):
+    def setUp(self):
+        super(TestBuildWithHooksNoBetaFeatures, self).setUp()
+        self.template_path = None
+
+    def test_exit_success_no_beta_feature_flags_hooks(self):
+        cmdlist = self.get_command_list(beta_features=None, hook_package_id="terraform")
 
         LOG.info("Running Command: {}".format(cmdlist))
         command_result = run_command_with_input(cmdlist, stdin_input=b"N\n\n", cwd=self.working_dir)
+        self._verify_process_code_and_output(command_result)
+
+    def test_exit_success_no_beta_features_flags_supplied_hooks(self):
+        cmdlist = self.get_command_list(beta_features=False, hook_package_id="terraform")
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        command_result = run_command(cmdlist, cwd=self.working_dir)
         self._verify_process_code_and_output(command_result)
 
     def _verify_process_code_and_output(self, command_result):
