@@ -1,6 +1,7 @@
 """Test Terraform prepare hook"""
 from subprocess import CalledProcessError
 from unittest import TestCase
+from unittest import mock
 from unittest.mock import Mock, call, patch, MagicMock
 import copy
 from parameterized import parameterized
@@ -29,6 +30,8 @@ from samcli.hook_packages.terraform.hooks.prepare import (
     _enrich_zip_lambda_function,
     _enrich_image_lambda_function,
     _generate_custom_makefile,
+    _get_python_command_name,
+    _write_makefile_rule_for_lambda_resource,
 )
 from samcli.lib.hook.exceptions import PrepareHookException, InvalidSamMetadataPropertiesException
 from samcli.lib.utils.resources import (
@@ -1928,7 +1931,7 @@ class TestPrepareHook(TestCase):
         self, mock_subprocess_run, mock_json, mock_os, named_temporary_file_mock, mock_translate_to_cfn
     ):
         mock_os.path.exists.return_value = False
-        mock_os.mkdir.side_effect = OSError()
+        mock_os.makedirs.side_effect = OSError()
         with self.assertRaises(PrepareHookException):
             prepare(self.prepare_params)
 
@@ -2043,3 +2046,66 @@ class TestPrepareHook(TestCase):
         f"aws_lambda_function resource in the terraform plan output, but there are {len(image_config)} items"
         with self.assertRaises(PrepareHookException, msg=expected_message):
             _check_image_config_value(image_config)
+
+    @parameterized.expand([(True,), (False,)])
+    @patch("builtins.open")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_python_command_name")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._write_makefile_rule_for_lambda_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.shutil")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.os")
+    def test_generate_custom_makefile(
+        self,
+        output_dir_exists,
+        mock_os,
+        mock_shutil,
+        mock_write_makefile_rule_for_lambda_resource,
+        mock_get_python_command_name,
+        mock_open,
+    ):
+        mock_os.path.exists.return_value = output_dir_exists
+
+        mock_python_command_name = Mock()
+        mock_get_python_command_name.return_value = mock_python_command_name
+
+        mock_makefile_path = Mock()
+        mock_os.path.join.return_value = mock_makefile_path
+
+        mock_makefile = Mock()
+        mock_open.return_value.__enter__.return_value = mock_makefile
+
+        mock_sam_metadata_resource_1 = Mock()
+        mock_sam_metadata_resource_2 = Mock()
+        mock_sam_metadata_resources = [mock_sam_metadata_resource_1, mock_sam_metadata_resource_2]
+        mock_cfn_resources = Mock()
+        mock_output_directory_path = Mock()
+        mock_terraform_application_dir = Mock()
+
+        _generate_custom_makefile(
+            mock_sam_metadata_resources, mock_cfn_resources, mock_output_directory_path, mock_terraform_application_dir
+        )
+
+        if output_dir_exists:
+            mock_os.makedirs.assert_not_called()
+        else:
+            mock_os.makedirs.assert_called_once_with(mock_output_directory_path, exist_ok=True)
+
+        mock_shutil.copy.assert_called_once_with("../copy_terraform_built_artifacts", mock_output_directory_path)
+
+        mock_write_makefile_rule_for_lambda_resource.assert_has_calls(
+            [
+                call(
+                    mock_sam_metadata_resource_1,
+                    mock_cfn_resources,
+                    mock_terraform_application_dir,
+                    mock_makefile,
+                    mock_python_command_name,
+                ),
+                call(
+                    mock_sam_metadata_resource_2,
+                    mock_cfn_resources,
+                    mock_terraform_application_dir,
+                    mock_makefile,
+                    mock_python_command_name,
+                ),
+            ]
+        )

@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 """
 Terraform prepare hook implementation
 """
@@ -8,9 +9,10 @@ import os
 from json.decoder import JSONDecodeError
 from pathlib import Path
 from subprocess import run, CalledProcessError
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, TextIO
 import hashlib
 import logging
+import shutil
 
 from samcli.lib.hook.exceptions import PrepareHookException, InvalidSamMetadataPropertiesException
 from samcli.lib.utils import osutils
@@ -110,7 +112,7 @@ def prepare(params: dict) -> dict:
 
         # store in supplied output dir
         if not os.path.exists(output_dir_path):
-            os.mkdir(output_dir_path)
+            os.makedirs(output_dir_path, exist_ok=True)
         metadataFilePath = os.path.join(output_dir_path, "template.json")
         LOG.info("Finished generating metadata file. Storing in %s", metadataFilePath)
         with open(metadataFilePath, "w+") as metadata_file:
@@ -267,7 +269,7 @@ def _generate_custom_makefile(
     terraform_application_dir: str,
 ) -> None:
     """
-    Generates a makefile with a target/recipe for each lambda resource to be built
+    Generates a makefile with a rule for each lambda resource to be built
 
     Parameters
     ----------
@@ -276,9 +278,66 @@ def _generate_custom_makefile(
     cfn_resources: dict
         CloudFormation resources
     output_directory_path: str
-        the output directory path to write the generated metadata and makefile
+        the output directory path to write the generated makefile
     terraform_application_dir: str
         the terraform project root directory
+    """
+
+    # create output directory if it doesn't exist
+    if not os.path.exists(output_directory_path):
+        os.makedirs(output_directory_path, exist_ok=True)
+
+    # copy copy_terraform_built_artifacts.py script into output directory
+    shutil.copy("../copy_terraform_built_artifacts", output_directory_path)
+
+    # check python is installed and get python command
+    python_command_name = _get_python_command_name()
+
+    # create makefile
+    makefilePath = os.path.join(output_directory_path, "Makefile")
+    with open(makefilePath, "a+") as makefile:
+        for sam_metadata_resource in sam_metadata_resources:
+            _write_makefile_rule_for_lambda_resource(
+                sam_metadata_resource, cfn_resources, terraform_application_dir, makefile, python_command_name
+            )
+
+
+def _get_python_command_name() -> str:
+    """
+    Verify that python is installed and return the name of the python command
+
+    Returns
+    -------
+    str
+        The name of the python command installed
+    """
+    # TODO
+    return ""
+
+
+def _write_makefile_rule_for_lambda_resource(
+    sam_metadata_resource: SamMetadataResource,
+    cfn_resources: Dict[str, Dict],
+    terraform_application_dir: str,
+    makefile: TextIO,
+    python_command: str,
+) -> None:
+    """
+    Generates and writes a makefile rule for the lambda resource associated with the given sam metadata resource.
+
+    Parameters
+    ----------
+    sam_metadata_resource: SamMetadataResource
+        A sam metadata resource; the generated makefile rule will correspond to building the lambda resource
+        associated with this sam metadata resource
+    cfn_resources: dict
+        CloudFormation resources
+    terraform_application_dir: str
+        the terraform project root directory
+    makefile: TextIO
+        A file object where the generated rule will be written
+    python_command: str
+        python command to be used in makefile rule
     """
     # TODO
 
