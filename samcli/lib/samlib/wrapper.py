@@ -112,10 +112,10 @@ class SamTranslatorWrapper:
             if isinstance(transform, str) and transform.startswith("AWS::LanguageExtensions"):
                 return True
             if isinstance(transform, list):
-                for el in transform:
-                    if not isinstance(el, str):
+                for transform_instance in transform:
+                    if not isinstance(transform_instance, str):
                         continue
-                    if el.startswith("AWS::LanguageExtensions"):
+                    if transform_instance.startswith("AWS::LanguageExtensions"):
                         return True
         return False
 
