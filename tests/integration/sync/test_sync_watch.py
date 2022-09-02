@@ -12,7 +12,6 @@ from unittest import skipIf
 import boto3
 from botocore.config import Config
 from parameterized import parameterized_class
-from samcli.commands._utils.experimental import ExperimentalFlag, set_experimental
 
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
 from samcli.lib.utils.resources import (
@@ -158,8 +157,6 @@ class TestSyncWatchEsbuildBase(TestSyncWatchBase):
         super().setUp()
 
     def _setup_verify_infra(self):
-        set_experimental(ExperimentalFlag.Esbuild)
-
         template_path = self.test_dir.joinpath(self.template_before)
         self.stacks.append({"name": self.stack_name})
 
