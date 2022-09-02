@@ -2067,8 +2067,9 @@ class TestPrepareHook(TestCase):
         mock_python_command_name = Mock()
         mock_get_python_command_name.return_value = mock_python_command_name
 
+        mock_copy_terraform_built_artifacts_script_path = Mock()
         mock_makefile_path = Mock()
-        mock_os.path.join.return_value = mock_makefile_path
+        mock_os.path.join.side_effect = [mock_copy_terraform_built_artifacts_script_path, mock_makefile_path]
 
         mock_makefile = Mock()
         mock_open.return_value.__enter__.return_value = mock_makefile
@@ -2089,7 +2090,9 @@ class TestPrepareHook(TestCase):
         else:
             mock_os.makedirs.assert_called_once_with(mock_output_directory_path, exist_ok=True)
 
-        mock_shutil.copy.assert_called_once_with("../copy_terraform_built_artifacts", mock_output_directory_path)
+        mock_shutil.copy.assert_called_once_with(
+            mock_copy_terraform_built_artifacts_script_path, mock_output_directory_path
+        )
 
         mock_write_makefile_rule_for_lambda_resource.assert_has_calls(
             [

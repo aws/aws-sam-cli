@@ -288,7 +288,10 @@ def _generate_custom_makefile(
         os.makedirs(output_directory_path, exist_ok=True)
 
     # copy copy_terraform_built_artifacts.py script into output directory
-    shutil.copy("../copy_terraform_built_artifacts", output_directory_path)
+    copy_terraform_built_artifacts_script_path = os.path.join(
+        os.path.dirname(__file__), "copy_terraform_built_artifacts"
+    )
+    shutil.copy(copy_terraform_built_artifacts_script_path, output_directory_path)
 
     # check python is installed and get python command
     python_command_name = _get_python_command_name()
