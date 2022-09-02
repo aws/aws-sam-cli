@@ -7,6 +7,7 @@ import tempfile
 import time
 import logging
 import json
+from typing import Optional
 from unittest import TestCase
 
 import docker
@@ -23,7 +24,7 @@ LOG = logging.getLogger(__name__)
 
 
 class BuildIntegBase(TestCase):
-    template = "template.yaml"
+    template: Optional[str] = "template.yaml"
 
     @classmethod
     def setUpClass(cls):

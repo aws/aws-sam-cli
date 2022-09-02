@@ -79,14 +79,10 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
         cmdlist = self.get_command_list(beta_features=None, hook_package_id="terraform")
         _, stderr, return_code = self.run_command(cmdlist, input=b"N\n\n")
         self.assertEqual(return_code, 0)
-        self.assertEqual(
-            stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled."
-        )
+        self.assertEqual(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
 
     def test_exit_success_no_beta_features_flags_supplied_hooks(self):
         cmdlist = self.get_command_list(beta_features=False, hook_package_id="terraform")
         _, stderr, return_code = self.run_command(cmdlist)
         self.assertEqual(return_code, 0)
-        self.assertEqual(
-            stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled."
-        )
+        self.assertEqual(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
