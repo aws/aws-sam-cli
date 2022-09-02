@@ -36,9 +36,7 @@ def get_git_remote_origin_url() -> Optional[str]:
         # Ignoring, None git_url will be handled later
         pass
 
-    if not git_url:
-        return None
-    return _hash_value(git_url)
+    return _hash_value(git_url) if git_url else None
 
 
 def get_project_name() -> Optional[str]:
