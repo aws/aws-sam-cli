@@ -50,6 +50,12 @@ class HookPackageIdOption(click.Option):
                     raise click.BadParameter(
                         f"Parameters {opt_name}, and {','.join(self._invalid_coexist_options)} can not be used together"
                     )
+
+            # validate build-image is provided in case of build using container
+            # add this validation here to avoid running hook prepare and there is issue
+            if command_name == "build" and opts.get("use_container") and not opts.get("build_image"):
+                raise click.UsageError("Missing required parameter --build-image.")
+
             # check beta-feature
             beta_features = opts.get("beta_features")
 
