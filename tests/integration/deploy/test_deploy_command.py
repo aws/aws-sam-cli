@@ -1582,3 +1582,14 @@ to create a managed default bucket, or run sam deploy --guided",
         process_stdout = deploy_process_execute.stdout.decode()
         self.assertNotRegex(process_stdout, r"CREATE_COMPLETE.+HelloWorldFunction")
         self.assertRegex(process_stdout, r"UPDATE_COMPLETE.+HelloWorldFunction")
+
+    def test_deploy_with_language_extensions(self):
+        template = Path(__file__).resolve().parents[1].joinpath("testdata", "buildcmd", "language-extensions.yaml")
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template, stack_name=stack_name, capabilities="CAPABILITY_IAM"
+        )
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
