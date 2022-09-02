@@ -24,6 +24,7 @@ from tests.testing_utils import (
     SKIP_DOCKER_TESTS,
     SKIP_DOCKER_BUILD,
     SKIP_DOCKER_MESSAGE,
+    run_command_with_input,
 )
 from .build_integ_base import (
     BuildIntegBase,
