@@ -30,7 +30,7 @@ class BuildIntegBase(TestCase):
         cls.cmd = cls.base_command()
         integration_dir = Path(__file__).resolve().parents[1]
         cls.test_data_path = str(Path(integration_dir, "testdata", "buildcmd"))
-        cls.template_path = str(Path(cls.test_data_path, cls.template))
+        cls.template_path = str(Path(cls.test_data_path, cls.template)) if cls.template else None
 
     def setUp(self):
         # To invoke a function created by the build command, we need the built artifacts to be in a
