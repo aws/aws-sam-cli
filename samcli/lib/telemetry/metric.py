@@ -162,7 +162,7 @@ def track_command(func):
             metric.add_data("debugFlagProvided", bool(ctx.debug))
             metric.add_data("region", ctx.region or "")
             metric.add_data("commandName", ctx.command_path)  # Full command path. ex: sam local start-api
-            if ctx.command_path.endswith("init") and not ctx.command_path.endswith("pipeline init"):
+            if not ctx.command_path.endswith("init") or ctx.command_path.endswith("pipeline init"):
                 # Project metadata
                 # We don't capture below usage attributes for sam init as the command is not run inside a project
                 metric_specific_attributes["gitOrigin"] = get_git_remote_origin_url()
