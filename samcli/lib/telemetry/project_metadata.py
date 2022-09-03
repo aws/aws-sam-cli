@@ -113,6 +113,7 @@ def _parse_remote_origin_url(url: str) -> Optional[str]:
         return None
 
     formatted = (parsed.hostname or "") + parsed.path
+    formatted = re.sub(r"\n", "", formatted)
     formatted = re.sub("/$", "", formatted)
     formatted = re.sub(".git$", "", formatted)
     formatted = re.sub("^(.+)@", "", formatted)
