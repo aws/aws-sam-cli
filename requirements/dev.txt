@@ -16,6 +16,7 @@ types-psutil==5.9.5.1
 types-setuptools==65.4.0.0
 
 # Test requirements
+Flask-Testing==0.8.1
 pytest==6.1.1
 parameterized==0.7.4
 pytest-xdist==2.1.0

@@ -7,6 +7,7 @@ from time import time
 from datetime import datetime
 from unittest import TestCase
 
+from flask_testing import TestCase as FlaskTestCae
 from unittest.mock import Mock, patch, ANY, MagicMock
 from parameterized import parameterized, param
 from werkzeug.datastructures import Headers
@@ -23,7 +24,7 @@ from samcli.local.apigw.local_apigw_service import (
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 
 
-class TestApiGatewayService(TestCase):
+class TestApiGatewayService(FlaskTestCae):
     def setUp(self):
         self.function_name = Mock()
         self.api_gateway_route = Route(
@@ -79,6 +80,12 @@ class TestApiGatewayService(TestCase):
         self.http_service = LocalApigwService(
             self.http, self.lambda_runner, port=3000, host="127.0.0.1", stderr=self.stderr
         )
+
+    def create_app(self):
+        "This method must be implemented by all flask_testing.TestCase subclasses"
+        service = LocalApigwService(Api(routes=[]), lambda_runner=Mock(), port=3000, host="127.0.0.1", stderr=Mock())
+        service.create()
+        return service._app
 
     @patch("samcli.local.apigw.local_apigw_service.request")
     def test_api_request_must_invoke_lambda(self, request_mock):
