@@ -66,7 +66,7 @@ class SamTranslatorWrapper:
             additional_plugins, parameters=self.parameter_values if self.parameter_values else {}
         )
 
-        # Temporarily disabling validation for DeletePolicy and UpdateReplacePolicy when language extensions are set
+        # Temporarily disabling validation for DeletionPolicy and UpdateReplacePolicy when language extensions are set
         self._patch_language_extensions()
 
         try:
@@ -84,11 +84,11 @@ class SamTranslatorWrapper:
 
     def _patch_language_extensions(self) -> None:
         """
-        Monkey patch SamResource.valid function to exclude checking DeletePolicy
+        Monkey patch SamResource.valid function to exclude checking DeletionPolicy
         and UpdateReplacePolicy when language extensions are set
         """
         template_copy = self.template
-        if self._check_using_langauge_extension(template_copy):
+        if self._check_using_language_extension(template_copy):
 
             def patched_func(self):
                 if self.condition:
@@ -101,7 +101,7 @@ class SamTranslatorWrapper:
             SamResource.valid = patched_func
 
     @staticmethod
-    def _check_using_langauge_extension(template: Dict) -> bool:
+    def _check_using_language_extension(template: Dict) -> bool:
         """
         Check if language extensions are set in the template's Transform
         :param template: template to check
@@ -109,10 +109,14 @@ class SamTranslatorWrapper:
         """
         transform = template.get("Transform")
         if transform:
-            if isinstance(transform, str) and transform == "AWS::LanguageExtensions":
+            if isinstance(transform, str) and transform.startswith("AWS::LanguageExtensions"):
                 return True
-            if isinstance(transform, list) and "AWS::LanguageExtensions" in transform:
-                return True
+            if isinstance(transform, list):
+                for transform_instance in transform:
+                    if not isinstance(transform_instance, str):
+                        continue
+                    if transform_instance.startswith("AWS::LanguageExtensions"):
+                        return True
         return False
 
 
