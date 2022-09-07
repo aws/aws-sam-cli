@@ -12,6 +12,7 @@ class TestHookPackageIdOption(TestCase):
     def setUp(self):
         self.name = "hook-package-id"
         self.opt = "--hook-package-id"
+        self.terraform = "terraform"
 
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.get_available_hook_packages_ids")
     @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._load_hook_package")
@@ -29,6 +30,7 @@ class TestHookPackageIdOption(TestCase):
             invalid_coexist_options=[],
         )
         ctx = MagicMock()
+        ctx.command.name = "invoke"
         opts = {"hook_package_id": hook_package_id}
         args = []
         with self.assertRaises(click.BadParameter) as e:
@@ -42,7 +44,7 @@ class TestHookPackageIdOption(TestCase):
 
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.IacHookWrapper")
     def test_invalid_coexist_options(self, iac_hook_wrapper_mock):
-        hook_package_id = "terraform"
+
         invalid_coexist_options = ["t", "template", "template-file", "parameters-override"]
         iac_hook_wrapper_instance_mock = MagicMock()
         iac_hook_wrapper_mock.return_value = iac_hook_wrapper_instance_mock
@@ -53,7 +55,7 @@ class TestHookPackageIdOption(TestCase):
             invalid_coexist_options=invalid_coexist_options,
         )
         ctx = MagicMock()
-        opts = {"hook_package_id": hook_package_id, "template_file": "any/path/template.yaml"}
+        opts = {"hook_package_id": self.terraform, "template_file": "any/path/template.yaml"}
         args = []
         with self.assertRaises(click.BadParameter) as e:
             hook_package_id_option.handle_parse_result(ctx, opts, args)
@@ -69,7 +71,6 @@ class TestHookPackageIdOption(TestCase):
     def test_valid_hook_package_with_only_hook_id_option(
         self, iac_hook_wrapper_mock, getcwd_mock, prompt_experimental_mock
     ):
-        hook_package_id = "terraform"
         metadata_path = "path/metadata.json"
         cwd_path = "path/current"
         invalid_coexist_options = ["t", "template", "template-file", "parameters-override"]
@@ -88,7 +89,7 @@ class TestHookPackageIdOption(TestCase):
         )
         ctx = MagicMock()
         opts = {
-            "hook_package_id": hook_package_id,
+            "hook_package_id": self.terraform,
         }
         args = []
         hook_package_id_option.handle_parse_result(ctx, opts, args)
@@ -101,7 +102,7 @@ class TestHookPackageIdOption(TestCase):
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.IacHookWrapper")
     def test_valid_hook_package_with_other_options(self, iac_hook_wrapper_mock, getcwd_mock, prompt_experimental_mock):
-        hook_package_id = "terraform"
+
         metadata_path = "path/metadata.json"
         cwd_path = "path/current"
         invalid_coexist_options = ["t", "template", "template-file", "parameters-override"]
@@ -120,7 +121,7 @@ class TestHookPackageIdOption(TestCase):
         )
         ctx = MagicMock()
         opts = {
-            "hook_package_id": hook_package_id,
+            "hook_package_id": self.terraform,
             "debug": True,
             "profile": "test",
             "region": "us-east-1",
@@ -143,7 +144,7 @@ class TestHookPackageIdOption(TestCase):
     def test_valid_hook_package_with_skipping_prepare_hook_and_built_path_exists(
         self, iac_hook_wrapper_mock, path_exists_mock, getcwd_mock, prompt_experimental_mock
     ):
-        hook_package_id = "terraform"
+
         metadata_path = "path/metadata.json"
         cwd_path = "path/current"
         invalid_coexist_options = ["t", "template", "template-file", "parameters-override"]
@@ -164,7 +165,7 @@ class TestHookPackageIdOption(TestCase):
         )
         ctx = MagicMock()
         opts = {
-            "hook_package_id": hook_package_id,
+            "hook_package_id": self.terraform,
         }
         args = []
         hook_package_id_option.handle_parse_result(ctx, opts, args)
@@ -178,7 +179,7 @@ class TestHookPackageIdOption(TestCase):
     def test_valid_hook_package_with_disable_terraform_beta_feature(
         self, iac_hook_wrapper_mock, path_exists_mock, getcwd_mock, prompt_experimental_mock
     ):
-        hook_package_id = "terraform"
+
         metadata_path = "path/metadata.json"
         cwd_path = "path/current"
         invalid_coexist_options = ["t", "template", "template-file", "parameters-override"]
@@ -197,7 +198,7 @@ class TestHookPackageIdOption(TestCase):
         )
         ctx = MagicMock()
         opts = {
-            "hook_package_id": hook_package_id,
+            "hook_package_id": self.terraform,
         }
         args = []
         hook_package_id_option.handle_parse_result(ctx, opts, args)
@@ -211,7 +212,7 @@ class TestHookPackageIdOption(TestCase):
     def test_valid_hook_package_with_no_beta_feature_option(
         self, iac_hook_wrapper_mock, path_exists_mock, getcwd_mock, prompt_experimental_mock
     ):
-        hook_package_id = "terraform"
+
         metadata_path = "path/metadata.json"
         cwd_path = "path/current"
         invalid_coexist_options = ["t", "template", "template-file", "parameters-override"]
@@ -230,7 +231,7 @@ class TestHookPackageIdOption(TestCase):
         )
         ctx = MagicMock()
         opts = {
-            "hook_package_id": hook_package_id,
+            "hook_package_id": self.terraform,
             "beta_features": False,
         }
         args = []
@@ -246,7 +247,7 @@ class TestHookPackageIdOption(TestCase):
     def test_valid_hook_package_with_beta_feature_option(
         self, iac_hook_wrapper_mock, path_exists_mock, getcwd_mock, prompt_experimental_mock
     ):
-        hook_package_id = "terraform"
+
         metadata_path = "path/metadata.json"
         cwd_path = "path/current"
         invalid_coexist_options = ["t", "template", "template-file", "parameters-override"]
@@ -265,7 +266,7 @@ class TestHookPackageIdOption(TestCase):
         )
         ctx = MagicMock()
         opts = {
-            "hook_package_id": hook_package_id,
+            "hook_package_id": self.terraform,
             "beta_features": True,
         }
         args = []
@@ -287,7 +288,7 @@ class TestHookPackageIdOption(TestCase):
     def test_valid_hook_package_with_skipping_prepare_hook_and_built_path_doesnot_exist(
         self, iac_hook_wrapper_mock, path_exists_mock, getcwd_mock, prompt_experimental_mock
     ):
-        hook_package_id = "terraform"
+
         metadata_path = "path/metadata.json"
         cwd_path = "path/current"
         invalid_coexist_options = ["t", "template", "template-file", "parameters-override"]
@@ -308,7 +309,125 @@ class TestHookPackageIdOption(TestCase):
         )
         ctx = MagicMock()
         opts = {
-            "hook_package_id": hook_package_id,
+            "hook_package_id": self.terraform,
+        }
+        args = []
+        hook_package_id_option.handle_parse_result(ctx, opts, args)
+        iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
+            os.path.join(cwd_path, ".aws-sam", "iacs_metadata"), cwd_path, False, None, None
+        )
+        self.assertEqual(opts.get("template_file"), metadata_path)
+
+    @patch("samcli.commands._utils.custom_options.hook_package_id_option.prompt_experimental")
+    @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.getcwd")
+    @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.path.exists")
+    @patch("samcli.commands._utils.custom_options.hook_package_id_option.IacHookWrapper")
+    def test_valid_hook_package_with_use_container_and_build_image(
+        self, iac_hook_wrapper_mock, path_exists_mock, getcwd_mock, prompt_experimental_mock
+    ):
+
+        metadata_path = "path/metadata.json"
+        cwd_path = "path/current"
+        invalid_coexist_options = ["t", "template", "template-file", "parameters-override"]
+
+        iac_hook_wrapper_instance_mock = MagicMock()
+        iac_hook_wrapper_instance_mock.prepare.return_value = metadata_path
+        iac_hook_wrapper_mock.return_value = iac_hook_wrapper_instance_mock
+        prompt_experimental_mock.return_value = True
+
+        getcwd_mock.return_value = cwd_path
+
+        path_exists_mock.return_value = False
+
+        hook_package_id_option = HookPackageIdOption(
+            param_decls=(self.name, self.opt),
+            force_prepare=False,
+            invalid_coexist_options=invalid_coexist_options,
+        )
+        ctx = MagicMock()
+        ctx.command.name = "build"
+        opts = {
+            "hook_package_id": self.terraform,
+            "use_container": True,
+            "build_image": "image",
+        }
+        args = []
+        hook_package_id_option.handle_parse_result(ctx, opts, args)
+        iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
+            os.path.join(cwd_path, ".aws-sam", "iacs_metadata"), cwd_path, False, None, None
+        )
+        self.assertEqual(opts.get("template_file"), metadata_path)
+
+    @patch("samcli.commands._utils.custom_options.hook_package_id_option.prompt_experimental")
+    @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.getcwd")
+    @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.path.exists")
+    @patch("samcli.commands._utils.custom_options.hook_package_id_option.IacHookWrapper")
+    def test_invalid_hook_package_with_use_container_and_no_build_image(
+        self, iac_hook_wrapper_mock, path_exists_mock, getcwd_mock, prompt_experimental_mock
+    ):
+
+        metadata_path = "path/metadata.json"
+        cwd_path = "path/current"
+        invalid_coexist_options = ["t", "template", "template-file", "parameters-override"]
+
+        iac_hook_wrapper_instance_mock = MagicMock()
+        iac_hook_wrapper_instance_mock.prepare.return_value = metadata_path
+        iac_hook_wrapper_mock.return_value = iac_hook_wrapper_instance_mock
+        prompt_experimental_mock.return_value = True
+
+        getcwd_mock.return_value = cwd_path
+
+        path_exists_mock.return_value = False
+
+        hook_package_id_option = HookPackageIdOption(
+            param_decls=(self.name, self.opt),
+            force_prepare=False,
+            invalid_coexist_options=invalid_coexist_options,
+        )
+        ctx = MagicMock()
+        ctx.command.name = "build"
+        opts = {
+            "hook_package_id": self.terraform,
+            "use_container": True,
+        }
+        args = []
+        with self.assertRaises(
+            click.UsageError,
+            msg="Missing required parameter --build-image.",
+        ):
+            hook_package_id_option.handle_parse_result(ctx, opts, args)
+
+    @patch("samcli.commands._utils.custom_options.hook_package_id_option.prompt_experimental")
+    @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.getcwd")
+    @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.path.exists")
+    @patch("samcli.commands._utils.custom_options.hook_package_id_option.IacHookWrapper")
+    def test_valid_hook_package_with_use_container_false_and_no_build_image(
+        self, iac_hook_wrapper_mock, path_exists_mock, getcwd_mock, prompt_experimental_mock
+    ):
+
+        metadata_path = "path/metadata.json"
+        cwd_path = "path/current"
+        invalid_coexist_options = ["t", "template", "template-file", "parameters-override"]
+
+        iac_hook_wrapper_instance_mock = MagicMock()
+        iac_hook_wrapper_instance_mock.prepare.return_value = metadata_path
+        iac_hook_wrapper_mock.return_value = iac_hook_wrapper_instance_mock
+        prompt_experimental_mock.return_value = True
+
+        getcwd_mock.return_value = cwd_path
+
+        path_exists_mock.return_value = False
+
+        hook_package_id_option = HookPackageIdOption(
+            param_decls=(self.name, self.opt),
+            force_prepare=False,
+            invalid_coexist_options=invalid_coexist_options,
+        )
+        ctx = MagicMock()
+        ctx.command.name = "build"
+        opts = {
+            "hook_package_id": self.terraform,
+            "use_container": False,
         }
         args = []
         hook_package_id_option.handle_parse_result(ctx, opts, args)
