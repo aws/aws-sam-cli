@@ -1647,6 +1647,23 @@ class TestPrepareHook(TestCase):
         )
         self.assertEqual(cfn_resources, expected_cfn_resources)
 
+        mock_os.makedirs.assert_called_once_with("/output/dir", exist_ok=True)
+
+        mock_shutil.copy.assert_called_once_with(mock_copy_terraform_built_artifacts_script_path, "/output/dir")
+
+        mock_write_makefile_rule_for_lambda_resource.assert_has_calls(
+            [
+                call(
+                    sam_metadata_resources[i],
+                    list(cfn_resources.keys())[i],
+                    "/terraform/project/root",
+                    mock_makefile,
+                    mock_python_command_name,
+                )
+                for i in range(len(sam_metadata_resources))
+            ]
+        )
+
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_lambda_function_source_code_path")
