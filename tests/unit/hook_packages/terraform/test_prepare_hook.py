@@ -2168,3 +2168,28 @@ class TestPrepareHook(TestCase):
         )
 
         mock_makefile.writelines.assert_called_once_with(mock_makefile_rules)
+
+    @parameterized.expand(
+        [
+            ([None, None], "python"),
+            ([None, CalledProcessError(-2, "python3 --version")], "python"),
+            ([CalledProcessError(-2, "python --version"), None], "python3"),
+        ]
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.run")
+    def test_get_python_command_name(self, mock_run_side_effect, expected_python_command, mock_subprocess_run):
+        mock_subprocess_run.side_effect = mock_run_side_effect
+
+        python_command = _get_python_command_name()
+        self.assertEqual(python_command, expected_python_command)
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.run")
+    def test_get_python_command_name_python_not_found(self, mock_subprocess_run):
+        mock_subprocess_run.side_effect = [
+            CalledProcessError(-2, "python --version"),
+            CalledProcessError(-2, "python3 --version"),
+        ]
+
+        expected_error_msg = "Python not found. Please ensure that python is installed."
+        with self.assertRaises(PrepareHookException, msg=expected_error_msg):
+            _get_python_command_name()

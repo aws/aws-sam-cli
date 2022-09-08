@@ -718,8 +718,15 @@ def _get_python_command_name() -> str:
     str
         The name of the python command installed
     """
-    # TODO
-    return ""
+    command_names_to_try = ["python", "python3"]
+    for command_name in command_names_to_try:
+        try:
+            run([command_name, "--version"], check=True, capture_output=True)
+        except CalledProcessError:
+            pass
+        else:
+            return command_name
+    raise PrepareHookException("Python not found. Please ensure that python is installed.")
 
 
 def _generate_makefile_rule_for_lambda_resource(
