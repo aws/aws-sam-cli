@@ -29,8 +29,9 @@ from samcli.hook_packages.terraform.hooks.prepare import (
     _get_relevant_cfn_resource,
     _enrich_zip_lambda_function,
     _enrich_image_lambda_function,
+    _generate_makefile,
     _get_python_command_name,
-    _write_makefile_rule_for_lambda_resource,
+    _generate_makefile_rule_for_lambda_resource,
 )
 from samcli.lib.hook.exceptions import PrepareHookException, InvalidSamMetadataPropertiesException
 from samcli.lib.utils.resources import (
@@ -1278,11 +1279,8 @@ class TestPrepareHook(TestCase):
         with self.assertRaises(InvalidSamMetadataPropertiesException, msg=exception_message):
             _get_relevant_cfn_resource(sam_metadata_resource, cfn_resources)
 
-    @patch("builtins.open")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_python_command_name")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._write_makefile_rule_for_lambda_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.shutil")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.os")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_lambda_function_source_code_path")
@@ -1291,24 +1289,9 @@ class TestPrepareHook(TestCase):
         mock_get_lambda_function_source_code_path,
         mock_validate_referenced_resource_matches_sam_metadata_type,
         mock_get_relevant_cfn_resource,
-        mock_os,
-        mock_shutil,
-        mock_write_makefile_rule_for_lambda_resource,
-        mock_get_python_command_name,
-        mock_open,
+        mock_generate_makefile_rule_for_lambda_resource,
+        mock_generate_makefile,
     ):
-        mock_os.path.exists.return_value = False
-
-        mock_python_command_name = Mock()
-        mock_get_python_command_name.return_value = mock_python_command_name
-
-        mock_copy_terraform_built_artifacts_script_path = Mock()
-        mock_makefile_path = Mock()
-        mock_os.path.join.side_effect = [mock_copy_terraform_built_artifacts_script_path, mock_makefile_path]
-
-        mock_makefile = Mock()
-        mock_open.return_value.__enter__.return_value = mock_makefile
-
         mock_get_lambda_function_source_code_path.side_effect = ["src/code/path1", "src/code/path2"]
         zip_function_1 = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
@@ -1379,33 +1362,29 @@ class TestPrepareHook(TestCase):
             "logical_id2": expected_zip_function_2,
         }
 
+        makefile_rules = [Mock() for _ in sam_metadata_resources]
+        mock_generate_makefile_rule_for_lambda_resource.side_effect = makefile_rules
+
         _enrich_resources_and_generate_makefile(
             sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root"
         )
         self.assertEqual(cfn_resources, expected_cfn_resources)
 
-        mock_os.makedirs.assert_called_once_with("/output/dir", exist_ok=True)
-
-        mock_shutil.copy.assert_called_once_with(mock_copy_terraform_built_artifacts_script_path, "/output/dir")
-
-        mock_write_makefile_rule_for_lambda_resource.assert_has_calls(
+        mock_generate_makefile_rule_for_lambda_resource.assert_has_calls(
             [
                 call(
                     sam_metadata_resources[i],
                     list(expected_cfn_resources.keys())[i],
                     "/terraform/project/root",
-                    mock_makefile,
-                    mock_python_command_name,
                 )
                 for i in range(len(sam_metadata_resources))
             ]
         )
 
-    @patch("builtins.open")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_python_command_name")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._write_makefile_rule_for_lambda_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.shutil")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.os")
+        mock_generate_makefile.assert_called_once_with(makefile_rules, "/output/dir")
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_lambda_function_source_code_path")
@@ -1418,24 +1397,9 @@ class TestPrepareHook(TestCase):
         mock_get_lambda_function_source_code_path,
         mock_validate_referenced_resource_matches_sam_metadata_type,
         mock_get_relevant_cfn_resource,
-        mock_os,
-        mock_shutil,
-        mock_write_makefile_rule_for_lambda_resource,
-        mock_get_python_command_name,
-        mock_open,
+        mock_generate_makefile_rule_for_lambda_resource,
+        mock_generate_makefile,
     ):
-        mock_os.path.exists.return_value = False
-
-        mock_python_command_name = Mock()
-        mock_get_python_command_name.return_value = mock_python_command_name
-
-        mock_copy_terraform_built_artifacts_script_path = Mock()
-        mock_makefile_path = Mock()
-        mock_os.path.join.side_effect = [mock_copy_terraform_built_artifacts_script_path, mock_makefile_path]
-
-        mock_makefile = Mock()
-        mock_open.return_value.__enter__.return_value = mock_makefile
-
         mock_get_lambda_function_source_code_path.side_effect = ["src/code/path1", "src/code/path2"]
         zip_function_1 = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
@@ -1470,6 +1434,9 @@ class TestPrepareHook(TestCase):
             ),
         ]
 
+        makefile_rules = [Mock() for _ in sam_metadata_resources]
+        mock_generate_makefile_rule_for_lambda_resource.side_effect = makefile_rules
+
         _enrich_resources_and_generate_makefile(
             sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root"
         )
@@ -1493,22 +1460,18 @@ class TestPrepareHook(TestCase):
         )
         mock_enrich_image_lambda_function.assert_not_called()
 
-        mock_os.makedirs.assert_called_once_with("/output/dir", exist_ok=True)
-
-        mock_shutil.copy.assert_called_once_with(mock_copy_terraform_built_artifacts_script_path, "/output/dir")
-
-        mock_write_makefile_rule_for_lambda_resource.assert_has_calls(
+        mock_generate_makefile_rule_for_lambda_resource.assert_has_calls(
             [
                 call(
                     sam_metadata_resources[i],
                     list(cfn_resources.keys())[i],
                     "/terraform/project/root",
-                    mock_makefile,
-                    mock_python_command_name,
                 )
                 for i in range(len(sam_metadata_resources))
             ]
         )
+
+        mock_generate_makefile.assert_called_once_with(makefile_rules, "/output/dir")
 
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
@@ -1557,11 +1520,8 @@ class TestPrepareHook(TestCase):
         )
         self.assertEqual(zip_function_1, expected_zip_function_1)
 
-    @patch("builtins.open")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_python_command_name")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._write_makefile_rule_for_lambda_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.shutil")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.os")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_lambda_function_source_code_path")
@@ -1570,24 +1530,9 @@ class TestPrepareHook(TestCase):
         mock_get_lambda_function_source_code_path,
         mock_validate_referenced_resource_matches_sam_metadata_type,
         mock_get_relevant_cfn_resource,
-        mock_os,
-        mock_shutil,
-        mock_write_makefile_rule_for_lambda_resource,
-        mock_get_python_command_name,
-        mock_open,
+        mock_generate_makefile_rule_for_lambda_resource,
+        mock_generate_makefile,
     ):
-        mock_os.path.exists.return_value = False
-
-        mock_python_command_name = Mock()
-        mock_get_python_command_name.return_value = mock_python_command_name
-
-        mock_copy_terraform_built_artifacts_script_path = Mock()
-        mock_makefile_path = Mock()
-        mock_os.path.join.side_effect = [mock_copy_terraform_built_artifacts_script_path, mock_makefile_path]
-
-        mock_makefile = Mock()
-        mock_open.return_value.__enter__.return_value = mock_makefile
-
         mock_get_lambda_function_source_code_path.side_effect = ["src/code/path1", "src/code/path2"]
         image_function_1 = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
@@ -1642,27 +1587,26 @@ class TestPrepareHook(TestCase):
             "logical_id1": expected_image_function_1,
         }
 
+        makefile_rules = [Mock() for _ in sam_metadata_resources]
+        mock_generate_makefile_rule_for_lambda_resource.side_effect = makefile_rules
+
         _enrich_resources_and_generate_makefile(
             sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root"
         )
         self.assertEqual(cfn_resources, expected_cfn_resources)
 
-        mock_os.makedirs.assert_called_once_with("/output/dir", exist_ok=True)
-
-        mock_shutil.copy.assert_called_once_with(mock_copy_terraform_built_artifacts_script_path, "/output/dir")
-
-        mock_write_makefile_rule_for_lambda_resource.assert_has_calls(
+        mock_generate_makefile_rule_for_lambda_resource.assert_has_calls(
             [
                 call(
                     sam_metadata_resources[i],
                     list(cfn_resources.keys())[i],
                     "/terraform/project/root",
-                    mock_makefile,
-                    mock_python_command_name,
                 )
                 for i in range(len(sam_metadata_resources))
             ]
         )
+
+        mock_generate_makefile.assert_called_once_with(makefile_rules, "/output/dir")
 
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
@@ -1723,11 +1667,8 @@ class TestPrepareHook(TestCase):
         )
         self.assertEqual(image_function_1, expected_image_function_1)
 
-    @patch("builtins.open")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_python_command_name")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._write_makefile_rule_for_lambda_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.shutil")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.os")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_lambda_function_source_code_path")
@@ -1740,24 +1681,9 @@ class TestPrepareHook(TestCase):
         mock_get_lambda_function_source_code_path,
         mock_validate_referenced_resource_matches_sam_metadata_type,
         mock_get_relevant_cfn_resource,
-        mock_os,
-        mock_shutil,
-        mock_write_makefile_rule_for_lambda_resource,
-        mock_get_python_command_name,
-        mock_open,
+        mock_generate_makefile_rule_for_lambda_resource,
+        mock_generate_makefile,
     ):
-        mock_os.path.exists.return_value = False
-
-        mock_python_command_name = Mock()
-        mock_get_python_command_name.return_value = mock_python_command_name
-
-        mock_copy_terraform_built_artifacts_script_path = Mock()
-        mock_makefile_path = Mock()
-        mock_os.path.join.side_effect = [mock_copy_terraform_built_artifacts_script_path, mock_makefile_path]
-
-        mock_makefile = Mock()
-        mock_open.return_value.__enter__.return_value = mock_makefile
-
         mock_get_lambda_function_source_code_path.side_effect = ["src/code/path1", "src/code/path2"]
         image_function_1 = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
@@ -1788,6 +1714,9 @@ class TestPrepareHook(TestCase):
             ),
         ]
 
+        makefile_rules = [Mock() for _ in sam_metadata_resources]
+        mock_generate_makefile_rule_for_lambda_resource.side_effect = makefile_rules
+
         _enrich_resources_and_generate_makefile(
             sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root"
         )
@@ -1800,22 +1729,18 @@ class TestPrepareHook(TestCase):
         )
         mock_enrich_zip_lambda_function.assert_not_called()
 
-        mock_os.makedirs.assert_called_once_with("/output/dir", exist_ok=True)
-
-        mock_shutil.copy.assert_called_once_with(mock_copy_terraform_built_artifacts_script_path, "/output/dir")
-
-        mock_write_makefile_rule_for_lambda_resource.assert_has_calls(
+        mock_generate_makefile_rule_for_lambda_resource.assert_has_calls(
             [
                 call(
                     sam_metadata_resources[i],
                     list(cfn_resources.keys())[i],
                     "/terraform/project/root",
-                    mock_makefile,
-                    mock_python_command_name,
                 )
                 for i in range(len(sam_metadata_resources))
             ]
         )
+
+        mock_generate_makefile.assert_called_once_with(makefile_rules, "/output/dir")
 
     @parameterized.expand(
         [
@@ -1878,29 +1803,9 @@ class TestPrepareHook(TestCase):
                 sam_metadata_resource, image_function_1, "logical_id1", "/terraform/project/root", "/output/dir"
             )
 
-    @patch("builtins.open")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_python_command_name")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.shutil")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.os")
     def test_enrich_resources_and_generate_makefile_invalid_source_type(
         self,
-        mock_os,
-        mock_shutil,
-        mock_get_python_command_name,
-        mock_open,
     ):
-        mock_os.path.exists.return_value = False
-
-        mock_python_command_name = Mock()
-        mock_get_python_command_name.return_value = mock_python_command_name
-
-        mock_copy_terraform_built_artifacts_script_path = Mock()
-        mock_makefile_path = Mock()
-        mock_os.path.join.side_effect = [mock_copy_terraform_built_artifacts_script_path, mock_makefile_path]
-
-        mock_makefile = Mock()
-        mock_open.return_value.__enter__.return_value = mock_makefile
-
         image_function_1 = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
             "Properties": {
@@ -2227,3 +2132,39 @@ class TestPrepareHook(TestCase):
         f"aws_lambda_function resource in the terraform plan output, but there are {len(image_config)} items"
         with self.assertRaises(PrepareHookException, msg=expected_message):
             _check_image_config_value(image_config)
+
+    @parameterized.expand([(True,), (False,)])
+    @patch("builtins.open")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.shutil")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.os")
+    def test_generate_makefile(
+        self,
+        output_dir_exists,
+        mock_os,
+        mock_shutil,
+        mock_open,
+    ):
+        mock_os.path.exists.return_value = output_dir_exists
+
+        mock_copy_terraform_built_artifacts_script_path = Mock()
+        mock_makefile_path = Mock()
+        mock_os.path.join.side_effect = [mock_copy_terraform_built_artifacts_script_path, mock_makefile_path]
+
+        mock_makefile = Mock()
+        mock_open.return_value.__enter__.return_value = mock_makefile
+
+        mock_makefile_rules = Mock()
+        mock_output_directory_path = Mock()
+
+        _generate_makefile(mock_makefile_rules, mock_output_directory_path)
+
+        if output_dir_exists:
+            mock_os.makedirs.assert_not_called()
+        else:
+            mock_os.makedirs.assert_called_once_with(mock_output_directory_path, exist_ok=True)
+
+        mock_shutil.copy.assert_called_once_with(
+            mock_copy_terraform_built_artifacts_script_path, mock_output_directory_path
+        )
+
+        mock_makefile.writelines.assert_called_once_with(mock_makefile_rules)

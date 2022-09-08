@@ -9,7 +9,7 @@ import os
 from json.decoder import JSONDecodeError
 from pathlib import Path
 from subprocess import run, CalledProcessError
-from typing import Any, Callable, Dict, List, Optional, Tuple, TextIO
+from typing import Any, Callable, Dict, List, Optional, Tuple
 import hashlib
 import logging
 import shutil
@@ -596,47 +596,65 @@ def _enrich_resources_and_generate_makefile(
         "IMAGE_LAMBDA_FUNCTION": _enrich_image_lambda_function,
     }
 
+    makefile_rules = []
+    for sam_metadata_resource in sam_metadata_resources:
+        # enrich resource
+        resource_type = sam_metadata_resource.resource.get("values", {}).get("triggers", {}).get("resource_type")
+        sam_metadata_resource_address = sam_metadata_resource.resource.get("address")
+        enrichment_function = resources_types_enrichment_functions.get(resource_type)
+        if enrichment_function is None:
+            raise InvalidSamMetadataPropertiesException(
+                f"The resource type {resource_type} found in the sam metadata resource "
+                f"{sam_metadata_resource_address} is not a correct resource type. The resource type should be one "
+                f"of these values {resources_types_enrichment_functions.keys()}"
+            )
+        cfn_resource, logical_id = _get_relevant_cfn_resource(sam_metadata_resource, cfn_resources)
+        enrichment_function(
+            sam_metadata_resource.resource,
+            cfn_resource,
+            logical_id,
+            terraform_application_dir,
+            output_directory_path,
+        )
+
+        # get makefile rule for resource
+        makefile_rule = _generate_makefile_rule_for_lambda_resource(
+            sam_metadata_resource, logical_id, terraform_application_dir
+        )
+        makefile_rules.append(makefile_rule)
+
+    # generate makefile
+    _generate_makefile(makefile_rules, output_directory_path)
+
+
+def _generate_makefile(
+    makefile_rules: List[str],
+    output_directory_path: str,
+) -> None:
+    """
+    Generates a makefile with the given rules in the given directory
+    Parameters
+    ----------
+    makefile_rules: List[str],
+        the list of rules to write in the Makefile
+    output_directory_path: str
+        the output directory path to write the generated makefile
+    """
+
     # create output directory if it doesn't exist
     if not os.path.exists(output_directory_path):
         os.makedirs(output_directory_path, exist_ok=True)
 
-    # copy script copy_terraform_built_artifacts.py into output directory
+    # copy copy_terraform_built_artifacts.py script into output directory
     copy_terraform_built_artifacts_script_path = os.path.join(
         os.path.dirname(__file__), "copy_terraform_built_artifacts"
     )
     shutil.copy(copy_terraform_built_artifacts_script_path, output_directory_path)
 
-    # check python is installed and get python command
-    python_command_name = _get_python_command_name()
-
     # create makefile
     makefilePath = os.path.join(output_directory_path, "Makefile")
     with open(makefilePath, "a+") as makefile:
-        for sam_metadata_resource in sam_metadata_resources:
-
-            # enrich resource
-            resource_type = sam_metadata_resource.resource.get("values", {}).get("triggers", {}).get("resource_type")
-            sam_metadata_resource_address = sam_metadata_resource.resource.get("address")
-            enrichment_function = resources_types_enrichment_functions.get(resource_type)
-            if enrichment_function is None:
-                raise InvalidSamMetadataPropertiesException(
-                    f"The resource type {resource_type} found in the sam metadata resource "
-                    f"{sam_metadata_resource_address} is not a correct resource type. The resource type should be one "
-                    f"of these values {resources_types_enrichment_functions.keys()}"
-                )
-            cfn_resource, logical_id = _get_relevant_cfn_resource(sam_metadata_resource, cfn_resources)
-            enrichment_function(
-                sam_metadata_resource.resource,
-                cfn_resource,
-                logical_id,
-                terraform_application_dir,
-                output_directory_path,
-            )
-
-            # write makefile rule for resource
-            _write_makefile_rule_for_lambda_resource(
-                sam_metadata_resource, logical_id, terraform_application_dir, makefile, python_command_name
-            )
+        makefile.writelines(makefile_rules)
 
 
 def _get_relevant_cfn_resource(
@@ -703,15 +721,13 @@ def _get_python_command_name() -> str:
     return ""
 
 
-def _write_makefile_rule_for_lambda_resource(
+def _generate_makefile_rule_for_lambda_resource(
     sam_metadata_resource: SamMetadataResource,
     logical_id: str,
     terraform_application_dir: str,
-    makefile: TextIO,
-    python_command: str,
-) -> None:
+) -> str:
     """
-    Generates and writes a makefile rule for the lambda resource associated with the given sam metadata resource.
+    Generates and returns a makefile rule for the lambda resource associated with the given sam metadata resource.
 
     Parameters
     ----------
@@ -722,12 +738,14 @@ def _write_makefile_rule_for_lambda_resource(
         Logical ID of the lambda resource
     terraform_application_dir: str
         the terraform project root directory
-    makefile: TextIO
-        A file object where the generated rule will be written
-    python_command: str
-        python command to be used in makefile rule
+
+    Returns
+    -------
+    str
+        The generated makefile rule
     """
     # TODO
+    return ""
 
 
 def _translate_properties(tf_properties: dict, property_builder_mapping: PropertyBuilderMapping) -> dict:
