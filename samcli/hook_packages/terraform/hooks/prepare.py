@@ -624,6 +624,7 @@ def _enrich_resources_and_generate_makefile(
         makefile_rules.append(makefile_rule)
 
     # generate makefile
+    LOG.debug("Generate Makefile in %s", output_directory_path)
     _generate_makefile(makefile_rules, output_directory_path)
 
 
