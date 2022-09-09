@@ -3,6 +3,7 @@ Handles bundler properties as needed to modify the build process
 """
 import logging
 from copy import deepcopy
+from pathlib import Path
 from typing import Dict, Optional
 
 from samcli.lib.providers.provider import Stack
@@ -14,9 +15,10 @@ ESBUILD_PROPERTY = "esbuild"
 
 
 class EsbuildBundlerManager:
-    def __init__(self, stack: Stack, template: Optional[Dict] = None):
+    def __init__(self, stack: Stack, template: Optional[Dict] = None, build_dir: Optional[str] = None):
         self._stack = stack
         self._previous_template = template or dict()
+        self._build_dir = build_dir
 
     def esbuild_configured(self) -> bool:
         """
@@ -31,6 +33,12 @@ class EsbuildBundlerManager:
             if function.metadata and function.metadata.get("BuildMethod", "") == ESBUILD_PROPERTY:
                 return True
         return False
+
+    def handle_template_post_processing(self) -> Dict:
+        template = deepcopy(self._previous_template)
+        template = self._set_sourcemap_env_from_metadata(template)
+        template = self._update_function_handler(template)
+        return template
 
     def set_sourcemap_metadata_from_env(self) -> Stack:
         """
@@ -73,7 +81,7 @@ class EsbuildBundlerManager:
 
         return modified_stack
 
-    def set_sourcemap_env_from_metadata(self) -> Dict:
+    def _set_sourcemap_env_from_metadata(self, template) -> Dict:
         """
         Appends ``NODE_OPTIONS: --enable-source-maps``, if Sourcemap is set to true
         and sets Sourcemap to true if ``NODE_OPTIONS: --enable-source-maps`` is provided.
@@ -82,7 +90,6 @@ class EsbuildBundlerManager:
         using_source_maps = False
         invalid_node_option = False
 
-        template = deepcopy(self._previous_template)
         template_resources = template.get("Resources", {})
 
         # We check the stack resources since they contain the global values, we modify the template
@@ -131,6 +138,29 @@ class EsbuildBundlerManager:
 
         if invalid_node_option:
             self._warn_invalid_node_options()
+
+        return template
+
+    def _check_invalid_lambda_handler(self, handler: str, name: str) -> bool:
+        handler_filename = self._get_path_and_filename_from_handler(handler)
+        expected_artifact_path = Path(self._build_dir, name, handler_filename)
+        return not expected_artifact_path.is_file()
+
+    @staticmethod
+    def _get_path_and_filename_from_handler(handler: str) -> str:
+        return handler.split(".")[0] + ".js"
+
+    def _update_function_handler(self, template: Dict) -> Dict:
+        stack_resources = self._stack.resources
+
+        for name, resource in stack_resources.items():
+            if self._esbuild_in_metadata(resource.get("Metadata", {})):
+                long_path_handler = resource.get("Properties", {}).get("Handler", "")
+                if not long_path_handler or not self._check_invalid_lambda_handler(long_path_handler, name):
+                    continue
+                resolved_handler = long_path_handler.split("/")[-1]
+                template_resource = template.get("Resources", {}).get(name, {})
+                template_resource["Properties"]["Handler"] = resolved_handler
 
         return template
 
