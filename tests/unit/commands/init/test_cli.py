@@ -1,8 +1,8 @@
+import os
 import json
 import shutil
 import subprocess
 import tempfile
-from unittest.case import expectedFailure
 import requests
 from pathlib import Path
 from typing import Dict, Any
@@ -28,7 +28,6 @@ from samcli.commands.init.init_templates import (
 from samcli.commands.init.interactive_init_flow import get_sorted_runtimes
 from samcli.lib.init import GenerateProjectFailedError
 from samcli.lib.utils import osutils
-from samcli.lib.utils import packagetype
 from samcli.lib.utils.git_repo import GitRepo
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.architecture import X86_64, ARM64
@@ -41,7 +40,7 @@ class MockInitTemplates:
             url=APP_TEMPLATES_REPO_URL,
         )
         self._git_repo.clone_attempted = True
-        self._git_repo.local_path = Path("tests/unit/commands/init")
+        self._git_repo.local_path = os.path.dirname(__file__)
         self.manifest_file_name = "test_manifest.json"
 
 
@@ -62,7 +61,7 @@ class TestCli(TestCase):
         self.extra_context = '{"project_name": "testing project", "runtime": "python3.6"}'
         self.extra_context_as_json = {"project_name": "testing project", "runtime": "python3.6"}
 
-        with open("tests/unit/commands/init/test_manifest.json") as f:
+        with open(os.path.join(os.path.dirname(__file__), "test_manifest.json")) as f:
             self.data = json.load(f)
 
     # setup cache for clone, so that if `git clone` is called multiple times on the same URL,
@@ -2497,7 +2496,7 @@ test-project
     def test_must_get_manifest_path(self):
         template = InitTemplates()
         manifest_path = template.get_manifest_path()
-        expected_path = Path("tests/unit/commands/init/test_manifest.json")
+        expected_path = Path(os.path.join(os.path.dirname(__file__), "test_manifest.json"))
         self.assertEqual(expected_path, manifest_path)
 
     @patch("samcli.commands.init.init_templates.InitTemplates.get_preprocessed_manifest")
