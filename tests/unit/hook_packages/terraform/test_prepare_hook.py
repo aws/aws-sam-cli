@@ -1593,8 +1593,6 @@ class TestPrepareHook(TestCase):
         )
         self.assertEqual(zip_function_1, expected_zip_function_1)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_source_code_path")
@@ -1642,6 +1640,8 @@ class TestPrepareHook(TestCase):
         )
         self.assertEquals(lambda_layer_1, expected_lambda_layer_1)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_source_code_path")
