@@ -1,7 +1,8 @@
 """
 Terraform prepare hook implementation
 """
-
+# pylint: disable=C0302
+# TODO: Move some of the logic out of this file and remove this disable
 from dataclasses import dataclass
 import json
 import os
@@ -18,11 +19,13 @@ from samcli.lib.utils.hash import str_checksum
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
+    AWS_LAMBDA_LAYERVERSION as CFN_AWS_LAMBDA_LAYER_VERSION,
 )
 
 LOG = logging.getLogger(__name__)
 
 TF_AWS_LAMBDA_FUNCTION = "aws_lambda_function"
+TF_AWS_LAMBDA_LAYER_VERSION = "aws_lambda_layer_version"
 AWS_PROVIDER_NAME = "registry.terraform.io/hashicorp/aws"
 NULL_RESOURCE_PROVIDER_NAME = "registry.terraform.io/hashicorp/null"
 SAM_METADATA_RESOURCE_TYPE = "null_resource"
@@ -145,7 +148,9 @@ def _update_resources_paths(cfn_resources: Dict[str, Any], terraform_application
     terraform_application_dir: str
         The terraform application root directory where all paths will be relative to it
     """
-    resources_attributes_to_be_updated = {CFN_AWS_LAMBDA_FUNCTION: ["Code"]}
+    resources_attributes_to_be_updated = {
+        resource_type: [property_value] for resource_type, property_value in CFN_CODE_PROPERTIES.items()
+    }
     for _, resource in cfn_resources.items():
         if resource.get("Type") in resources_attributes_to_be_updated and isinstance(resource.get("Properties"), dict):
             for attribute in resources_attributes_to_be_updated[resource["Type"]]:
@@ -330,7 +335,7 @@ def _validate_referenced_resource_matches_sam_metadata_type(
         )
 
 
-def _get_lambda_function_source_code_path(
+def _get_source_code_path(
     sam_metadata_attributes: dict,
     sam_metadata_resource_address: str,
     project_root_dir: str,
@@ -486,13 +491,12 @@ def _enrich_zip_lambda_function(
         cfn_lambda_function_logical_id,
         sam_metadata_resource_address,
     )
-    cfn_resource_properties = cfn_lambda_function.get("Properties", {})
 
     _validate_referenced_resource_matches_sam_metadata_type(
         cfn_lambda_function, sam_metadata_attributes, sam_metadata_resource_address, ZIP
     )
 
-    cfn_source_code_path = _get_lambda_function_source_code_path(
+    cfn_source_code_path = _get_source_code_path(
         sam_metadata_attributes,
         sam_metadata_resource_address,
         terraform_application_dir,
@@ -500,16 +504,13 @@ def _enrich_zip_lambda_function(
         "source_code_property",
         "source code",
     )
-    cfn_resource_properties["Code"] = cfn_source_code_path
-    if not cfn_lambda_function.get("Metadata", {}):
-        cfn_lambda_function["Metadata"] = {}
-    cfn_lambda_function["Metadata"]["SkipBuild"] = False
-    cfn_lambda_function["Metadata"]["BuildMethod"] = "makefile"
-    cfn_lambda_function["Metadata"]["ContextPath"] = output_directory_path
-    cfn_lambda_function["Metadata"]["WorkingDirectory"] = terraform_application_dir
-    # currently we set the terraform project root directory that contains all the terraform artifacts as the project
-    # directory till we work on the custom hook properties, and add a property for this value.
-    cfn_lambda_function["Metadata"]["ProjectRootDirectory"] = terraform_application_dir
+    _set_zip_metadata_resources(
+        cfn_lambda_function,
+        cfn_source_code_path,
+        output_directory_path,
+        terraform_application_dir,
+        CFN_CODE_PROPERTIES[CFN_AWS_LAMBDA_FUNCTION],
+    )
 
 
 def _enrich_image_lambda_function(
@@ -553,7 +554,7 @@ def _enrich_image_lambda_function(
         cfn_lambda_function, sam_metadata_attributes, sam_metadata_resource_address, IMAGE
     )
 
-    cfn_docker_context_path = _get_lambda_function_source_code_path(
+    cfn_docker_context_path = _get_source_code_path(
         sam_metadata_attributes,
         sam_metadata_resource_address,
         terraform_application_dir,
@@ -595,6 +596,138 @@ def _enrich_image_lambda_function(
         cfn_lambda_function["Metadata"]["DockerBuildArgs"] = cfn_docker_build_args
 
 
+def _enrich_lambda_layer(
+    sam_metadata_resource: Dict,
+    cfn_lambda_layer: Dict,
+    cfn_lambda_layer_logical_id: str,
+    terraform_application_dir: str,
+    output_directory_path: str,
+) -> None:
+    """
+    Use the sam metadata resources to enrich the lambda layer.
+
+    Parameters
+    ----------
+    sam_metadata_resource: Dict
+       The sam metadata resource properties
+    cfn_lambda_layer: dict
+       CloudFormation lambda layer to be enriched
+    cfn_lambda_layer_logical_id: str
+       the cloudFormation lambda layer to be enriched logical id.
+    output_directory_path: str
+       the output directory path to write the generated metadata and makefile
+    terraform_application_dir: str
+       the terraform project root directory
+    """
+    sam_metadata_attributes = sam_metadata_resource.get("values", {}).get("triggers", {})
+    sam_metadata_resource_address = sam_metadata_resource.get("address")
+    if not sam_metadata_resource_address:
+        raise PrepareHookException(
+            "Invalid Terraform plan output. The address property should not be null to any terraform resource."
+        )
+    _validate_referenced_resource_layer_matches_metadata_type(
+        cfn_lambda_layer, sam_metadata_attributes, sam_metadata_resource_address
+    )
+    LOG.info(
+        "Enrich the Lambda Layer Version %s using the metadata properties defined in resource %s",
+        cfn_lambda_layer_logical_id,
+        sam_metadata_resource_address,
+    )
+
+    cfn_source_code_path = _get_source_code_path(
+        sam_metadata_attributes,
+        sam_metadata_resource_address,
+        terraform_application_dir,
+        "original_source_code",
+        "source_code_property",
+        "source code",
+    )
+
+    _set_zip_metadata_resources(
+        cfn_lambda_layer,
+        cfn_source_code_path,
+        output_directory_path,
+        terraform_application_dir,
+        CFN_CODE_PROPERTIES[CFN_AWS_LAMBDA_LAYER_VERSION],
+    )
+
+
+def _validate_referenced_resource_layer_matches_metadata_type(
+    cfn_resource: dict,
+    sam_metadata_attributes: dict,
+    sam_metadata_resource_address: str,
+) -> None:
+    """
+    Validate if the resource that match the resource name provided in the sam metadata resource matches the resource
+    type provided in the metadata as well.
+
+    Parameters
+    ----------
+    cfn_resource: dict
+        The CFN resource that matches the sam metadata resource name
+    sam_metadata_attributes: dict
+        The sam metadata properties
+    sam_metadata_resource_address: str
+        The sam metadata resource address
+    """
+    cfn_resource_properties = cfn_resource.get("Properties", {})
+    resource_type = sam_metadata_attributes.get("resource_type")
+    cfn_resource_type = cfn_resource.get("Type")
+    LOG.info(
+        "Validate if the referenced resource in sam metadata resource %s is of the expected type %s",
+        sam_metadata_resource_address,
+        resource_type,
+    )
+
+    if cfn_resource_type != CFN_AWS_LAMBDA_LAYER_VERSION or not cfn_resource_properties:
+        LOG.error(
+            "The matched resource is of type %s but the type mentioned in the sam metadata resource %s is %s",
+            cfn_resource_type,
+            sam_metadata_resource_address,
+            resource_type,
+        )
+        raise InvalidSamMetadataPropertiesException(
+            f"The sam metadata resource {sam_metadata_resource_address} is referring to a resource that does not "
+            f"match the resource type {resource_type}."
+        )
+
+
+def _set_zip_metadata_resources(
+    resource: dict,
+    cfn_source_code_path: str,
+    output_directory_path: str,
+    terraform_application_dir: str,
+    code_property: str,
+) -> None:
+    """
+    Update the CloudFormation resource metadata with the enrichment properties from the TF resource
+
+    Parameters
+    ----------
+    resource: dict
+        The CFN resource that matches the sam metadata resource name
+    cfn_source_code_path: dict
+        Absolute path location of where the original source code resides.
+    output_directory_path: str
+        The directory where to find the Makefile the path to be copied into the temp dir.
+    terraform_application_dir: str
+        The working directory from which to run the Makefile.
+    code_property:
+        The property in the configuration used to denote the code e.g. "Code" or "Content"
+    """
+    resource_properties = resource.get("Properties", {})
+    resource_properties[code_property] = cfn_source_code_path
+    if not resource.get("Metadata", {}):
+        resource["Metadata"] = {}
+    resource["Metadata"]["SkipBuild"] = False
+    resource["Metadata"]["BuildMethod"] = "makefile"
+    resource["Metadata"]["ContextPath"] = output_directory_path
+    resource["Metadata"]["WorkingDirectory"] = terraform_application_dir
+    # currently we set the terraform project root directory that contains all the terraform artifacts as the project
+    # directory till we work on the custom hook properties, and add a property for this value.
+    resource["Metadata"]["ProjectRootDirectory"] = terraform_application_dir
+
+
 def _enrich_mapped_resources(
     sam_metadata_resources: List[SamMetadataResource],
     cfn_resources: Dict[str, Dict],
@@ -619,6 +752,7 @@ def _enrich_mapped_resources(
     resources_types_enrichment_functions = {
         "ZIP_LAMBDA_FUNCTION": _enrich_zip_lambda_function,
         "IMAGE_LAMBDA_FUNCTION": _enrich_image_lambda_function,
+        "LAMBDA_LAYER": _enrich_lambda_layer,
     }
 
     for sam_metadata_resource in sam_metadata_resources:
@@ -757,7 +891,7 @@ def _build_lambda_function_environment_property(tf_properties: dict) -> Optional
     return None
 
 
-def _build_lambda_function_code_property(tf_properties: dict) -> Any:
+def _build_code_property(tf_properties: dict) -> Any:
     """
     Builds the Code property of a CloudFormation AWS Lambda Function out of the
     properties of the equivalent terraform resource
@@ -777,7 +911,12 @@ def _build_lambda_function_code_property(tf_properties: dict) -> Any:
         return filename
 
     code = {}
-    tf_cfn_prop_names = [("s3_bucket", "S3Bucket"), ("s3_key", "S3Key"), ("image_uri", "ImageUri")]
+    tf_cfn_prop_names = [
+        ("s3_bucket", "S3Bucket"),
+        ("s3_key", "S3Key"),
+        ("image_uri", "ImageUri"),
+        ("s3_object_version", "S3ObjectVersion"),
+    ]
     for tf_prop_name, cfn_prop_name in tf_cfn_prop_names:
         tf_prop_value = tf_properties.get(tf_prop_name)
         if tf_prop_value is not None:
@@ -855,7 +994,7 @@ AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
     "FunctionName": _get_property_extractor("function_name"),
     "Architectures": _get_property_extractor("architectures"),
     "Environment": _build_lambda_function_environment_property,
-    "Code": _build_lambda_function_code_property,
+    "Code": _build_code_property,
     "Handler": _get_property_extractor("handler"),
     "PackageType": _get_property_extractor("package_type"),
     "Runtime": _get_property_extractor("runtime"),
@@ -864,8 +1003,23 @@ AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
     "ImageConfig": _build_lambda_function_image_config_property,
 }
 
+AWS_LAMBDA_LAYER_VERSION_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
+    "LayerName": _get_property_extractor("layer_name"),
+    "CompatibleRuntimes": _get_property_extractor("compatible_runtimes"),
+    "CompatibleArchitectures": _get_property_extractor("compatible_architectures"),
+    "Content": _build_code_property,
+}
+
 RESOURCE_TRANSLATOR_MAPPING: Dict[str, ResourceTranslator] = {
     TF_AWS_LAMBDA_FUNCTION: ResourceTranslator(CFN_AWS_LAMBDA_FUNCTION, AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING),
+    TF_AWS_LAMBDA_LAYER_VERSION: ResourceTranslator(
+        CFN_AWS_LAMBDA_LAYER_VERSION, AWS_LAMBDA_LAYER_VERSION_PROPERTY_BUILDER_MAPPING
+    ),
+}
+
+CFN_CODE_PROPERTIES = {
+    CFN_AWS_LAMBDA_FUNCTION: "Code",
+    CFN_AWS_LAMBDA_LAYER_VERSION: "Content",
 }
 
 
@@ -925,6 +1079,7 @@ def _get_s3_object_hash(bucket: str, key: str) -> str:
     md5 = hashlib.md5()
     md5.update(bucket.encode())
     md5.update(key.encode())
+    # TODO: Hash version if it exists in addition to key and bucket
     return md5.hexdigest()
 
 
@@ -941,8 +1096,11 @@ def _map_s3_sources_to_functions(s3_hash_to_source: Dict[str, str], cfn_resource
         CloudFormation resources
     """
     for _, resource in cfn_resources.items():
-        if resource.get("Type") == CFN_AWS_LAMBDA_FUNCTION:
-            code = resource.get("Properties").get("Code")
+        resource_type = resource.get("Type")
+        if resource_type in CFN_CODE_PROPERTIES:
+            code_property = CFN_CODE_PROPERTIES[resource_type]
+
+            code = resource.get("Properties").get(code_property)
 
             # mapping not possible if function doesn't have bucket and key
             if isinstance(code, str):
@@ -961,4 +1119,4 @@ def _map_s3_sources_to_functions(s3_hash_to_source: Dict[str, str], cfn_resource
                         tf_address,
                         source,
                     )
-                    resource["Properties"]["Code"] = source
+                    resource["Properties"][code_property] = source
