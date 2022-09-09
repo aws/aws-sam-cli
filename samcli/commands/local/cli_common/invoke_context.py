@@ -221,6 +221,11 @@ class InvokeContext:
             ContainersMode.COLD: [self._stacks],
         }
 
+        # don't resolve the code URI immediately if we passed in docker vol by passing True for use_raw_codeuri
+        # this way at the end the code URI will get resolved against the basedir option
+        if self._docker_volume_basedir:
+            _function_providers_args[self._containers_mode].append(True)
+
         self._function_provider = _function_providers_class[self._containers_mode](
             *_function_providers_args[self._containers_mode]
         )
