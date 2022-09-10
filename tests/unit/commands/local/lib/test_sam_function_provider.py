@@ -2439,16 +2439,16 @@ class TestSamFunctionProvider_search_layer(TestCase):
         locate_layer_ref_mock.assert_called_with(child_layer_stack, {"Ref": "SamLayer"}, False, False)
 
     @patch.object(SamFunctionProvider, "_locate_layer_from_ref")
-    def test_search_layer_fn_get(self, locate_layer_ref_mock):
+    def test_search_layer_with_sub(self, locate_layer_ref_mock):
         root_stack = Stack("", "root", "template.yaml", None, self.root_stack_template)
         SamFunctionProvider._locate_layer_from_nested(
             root_stack,
             [root_stack],
-            {"Sub": "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:18"},
+            {"Fn::Sub": "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:18"},
         )
         locate_layer_ref_mock.assert_called_with(
             root_stack,
-            {"Sub": "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:18"},
+            {"Fn::Sub": "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:18"},
             False,
             False,
         )
