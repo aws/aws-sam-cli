@@ -10,6 +10,8 @@ from samcli.lib.observability.cw_logs.cw_log_event import CWLogEvent
 from samcli.lib.observability.cw_logs.cw_log_puller import CWLogPuller
 from samcli.lib.utils.time import to_timestamp, to_datetime
 
+LOG_CLIENT = botocore.session.get_session().create_client("logs", region_name="us-east-1")
+
 
 class TestCWLogPullerBase(TestCase):
 
@@ -17,7 +19,7 @@ class TestCWLogPullerBase(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.real_client = botocore.session.get_session().create_client("logs", region_name="us-east-1")
+        cls.real_client = LOG_CLIENT
         cls.client_stubber = Stubber(cls.real_client)
 
 

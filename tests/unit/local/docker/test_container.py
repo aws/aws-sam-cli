@@ -583,7 +583,8 @@ class TestContainer_wait_for_result(TestCase):
 
     @patch("socket.socket")
     @patch("samcli.local.docker.container.requests")
-    def test_wait_for_result_error_retried(self, mock_requests, patched_socket):
+    @patch("time.sleep")
+    def test_wait_for_result_error_retried(self, patched_sleep, mock_requests, patched_socket):
         self.container.is_created.return_value = True
 
         real_container_mock = Mock()
@@ -630,7 +631,8 @@ class TestContainer_wait_for_result(TestCase):
 
     @patch("socket.socket")
     @patch("samcli.local.docker.container.requests")
-    def test_wait_for_result_error(self, mock_requests, patched_socket):
+    @patch("time.sleep")
+    def test_wait_for_result_error(self, patched_sleep, mock_requests, patched_socket):
         self.container.is_created.return_value = True
 
         real_container_mock = Mock()
@@ -651,12 +653,14 @@ class TestContainer_wait_for_result(TestCase):
                 event=self.event, full_path=self.name, stdout=stdout_mock, stderr=stderr_mock
             )
 
-    @patch("samcli.local.docker.container.CONTAINER_CONNECTION_TIMEOUT", 0.5)
+    # set timeout to be 0.1ms
+    @patch("samcli.local.docker.container.CONTAINER_CONNECTION_TIMEOUT", 0.0001)
     @patch("socket.socket")
     @patch("samcli.local.docker.container.requests")
-    def test_wait_for_result_waits_for_socket_before_post_request(self, mock_requests, patched_socket):
+    @patch("time.sleep")
+    def test_wait_for_result_waits_for_socket_before_post_request(self, patched_time, mock_requests, patched_socket):
         self.container.is_created.return_value = True
-
+        mock_requests.post = Mock(return_value=None)
         real_container_mock = Mock()
         self.mock_docker_client.containers.get.return_value = real_container_mock
 

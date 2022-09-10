@@ -11,6 +11,8 @@ from samcli.commands.exceptions import UserException, CredentialsError, RegionEr
 from samcli.lib.bootstrap.bootstrap import _get_stack_template, SAM_CLI_STACK_NAME
 from samcli.lib.utils.managed_cloudformation_stack import manage_stack, _create_or_get_stack, ManagedStackError
 
+CLOUDFORMATION_CLIENT = botocore.session.get_session().create_client("cloudformation", region_name="us-west-2")
+
 
 class TestManagedCloudFormationStack(TestCase):
     cf = None
@@ -18,7 +20,7 @@ class TestManagedCloudFormationStack(TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.cf = botocore.session.get_session().create_client("cloudformation", region_name="us-west-2")
+        cls.cf = CLOUDFORMATION_CLIENT
         cls.stubber = Stubber(cls.cf)
 
     def _stubbed_cf_client(self):
@@ -162,7 +164,8 @@ class TestManagedCloudFormationStack(TestCase):
         stubber.deactivate()
 
     @patch("boto3.client")
-    def test_change_set_creation_fails(self, patched_boto):
+    @patch("boto3.Session")
+    def test_change_set_creation_fails(self, patched_boto, patched_session):
         stub_cf, stubber = self._stubbed_cf_client()
         # first describe_stacks call will fail
         ds_params = {"StackName": SAM_CLI_STACK_NAME}
