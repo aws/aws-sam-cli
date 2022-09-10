@@ -13,6 +13,9 @@ from samcli.lib.utils.managed_cloudformation_stack import manage_stack, _create_
 
 
 class TestManagedCloudFormationStack(TestCase):
+    cf = None
+    stubber = None
+
     @classmethod
     def setUpClass(cls) -> None:
         cls.cf = botocore.session.get_session().create_client("cloudformation", region_name="us-west-2")
