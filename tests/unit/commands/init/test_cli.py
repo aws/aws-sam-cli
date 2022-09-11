@@ -2,7 +2,6 @@ import json
 import shutil
 import subprocess
 import tempfile
-from unittest.case import expectedFailure
 import requests
 from pathlib import Path
 from typing import Dict, Any
@@ -15,8 +14,8 @@ from click.testing import CliRunner
 
 from samcli.commands.exceptions import UserException
 from samcli.commands.init import cli as init_cmd
-from samcli.commands.init import do_cli as init_cli
-from samcli.commands.init import PackageType
+from samcli.commands.init.command import do_cli as init_cli
+from samcli.commands.init.command import PackageType
 from samcli.commands.init.init_templates import (
     InitTemplates,
     APP_TEMPLATES_REPO_URL,
@@ -28,7 +27,6 @@ from samcli.commands.init.init_templates import (
 from samcli.commands.init.interactive_init_flow import get_sorted_runtimes
 from samcli.lib.init import GenerateProjectFailedError
 from samcli.lib.utils import osutils
-from samcli.lib.utils import packagetype
 from samcli.lib.utils.git_repo import GitRepo
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.architecture import X86_64, ARM64
