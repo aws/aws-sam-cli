@@ -419,11 +419,10 @@ class TestSyncWatchCodeEsbuild(TestSyncWatchEsbuildBase):
 class TestSyncWatchUseContainer(TestSyncWatchBase):
     @classmethod
     def setUpClass(cls):
-        cls.template_before = f"infra/template-python-before.yaml"
         super(TestSyncWatchBase, cls).setUpClass()
         cls.use_container = True
         cls.dependency_layer = False
-    
+
     def _verify_infra_changes(self, resources):
         # Lambda
         lambda_functions = resources.get(AWS_LAMBDA_FUNCTION)
@@ -434,7 +433,7 @@ class TestSyncWatchUseContainer(TestSyncWatchBase):
 
 
 class TestSyncWatchInfraUseContainer(TestSyncWatchUseContainer):
-    template_before = f"infra/template-python-before.yaml" 
+    template_before = f"infra/template-python-before.yaml"
 
     def test_sync_watch_infra(self):
         self.update_file(
@@ -457,14 +456,15 @@ class TestSyncWatchCodeUseContainer(TestSyncWatchUseContainer):
 
         # Test Lambda Function
         self.update_file(
-            self.test_dir.joinpath("code", "after", "function", "app.py"),
-            self.test_dir.joinpath("code", "before", "function", "app.py"),
+            self.test_dir.joinpath("code", "after", "function", "requirements.txt"),
+            self.test_dir.joinpath("code", "before", "function", "requirements.txt"),
         )
         read_until_string(
-            self.watch_process, "\x1b[32mFinished syncing Lambda Function HelloWorldFunction.\x1b[0m\n", timeout=30
+            self.watch_process, "\x1b[32mFinished syncing Lambda Function HelloWorldFunction.\x1b[0m\n", timeout=45
         )
+
         lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
         for lambda_function in lambda_functions:
             lambda_response = json.loads(self._get_lambda_response(lambda_function))
             self.assertIn("extra_message", lambda_response)
-            self.assertEqual(lambda_response.get("message"), "8")
+            self.assertEqual(lambda_response.get("message"), "7")

@@ -93,6 +93,7 @@ class TestSyncCodeBase(SyncIntegBase):
         {"dependency_layer": True, "use_container": True},
         {"dependency_layer": True, "use_container": False},
         {"dependency_layer": False, "use_container": False},
+        {"dependency_layer": False, "use_container": True},
     ]
 )
 class TestSyncCode(TestSyncCodeBase):
@@ -107,7 +108,7 @@ class TestSyncCode(TestSyncCodeBase):
         )
 
         self.stack_resources = self._get_stacks(TestSyncCodeBase.stack_name)
-        if self.dependency_layer:
+        if self.dependency_layer and not self.use_container:
             # Test update manifest
             layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "python", 1)
             self.assertNotIn("requests", layer_contents)
@@ -140,7 +141,7 @@ class TestSyncCode(TestSyncCodeBase):
                 self.assertIn("extra_message", lambda_response)
                 self.assertEqual(lambda_response.get("message"), "8")
 
-        if self.dependency_layer:
+        if self.dependency_layer and not self.use_container:
             layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "python", 2)
             self.assertIn("requests", layer_contents)
 
