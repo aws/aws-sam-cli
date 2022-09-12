@@ -12,9 +12,9 @@ from samcli.cli.main import pass_context, common_options, print_cmdline_args
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.local.common.runtime_template import INIT_RUNTIMES, SUPPORTED_DEP_MANAGERS, LAMBDA_IMAGES_RUNTIMES
 from samcli.lib.telemetry.metric import track_command
-from samcli.commands.init.interactive_init_flow import _get_runtime_from_image, get_architectures, get_sorted_runtimes
+from samcli.commands.init.init_flow_helpers import _get_runtime_from_image, get_architectures, get_sorted_runtimes
 from samcli.commands._utils.click_mutex import ClickMutex
-from samcli.lib.build.app_builder import DEPRECATED_RUNTIMES
+from samcli.lib.build.deprecated_runtimes import DEPRECATED_RUNTIMES
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.architecture import X86_64, ARM64
 
