@@ -301,6 +301,9 @@ celerybeat-schedule.*
 # SageMath parsed files
 *.sage.py
 
+# AWS SAM
+build.toml
+build_dir/
 # Environments
 .venv
 env/

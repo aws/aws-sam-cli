@@ -213,7 +213,8 @@ class TestZipFunctionSyncFlow(TestCase):
         sync_flow = self.create_function_sync_flow()
         self.assertTrue(sync_flow._combine_dependencies())
 
-    def test_verify_function_status_recursion(self):
+    @patch("time.sleep", return_value=None)
+    def test_verify_function_status_recursion(self, patched_time):
         given_lambda_client = MagicMock()
         given_physical_id = "function"
 
