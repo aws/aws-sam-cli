@@ -439,6 +439,29 @@ class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, architecture)
 
 
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+@parameterized_class(
+    ("template",),
+    [
+        ("esbuild_templates/template_with_metadata_node_options.yaml",),
+        ("esbuild_templates/template_with_metadata_global_node_options.yaml",),
+    ],
+)
+class TestBuildCommand_EsbuildFunctionProperties(BuildIntegEsbuildBase):
+    @pytest.mark.flaky(reruns=3)
+    def test_environment_generates_sourcemap(self):
+        overrides = {
+            "runtime": "nodejs16.x",
+            "code_uri": "../Esbuild/TypeScript",
+            "handler": "app.lambdaHandler",
+            "architecture": "x86_64",
+        }
+        self._test_with_various_properties(overrides)
+
+
 class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeBase):
     template = "template_with_architecture.yaml"
 
@@ -2513,3 +2536,19 @@ class TestBuildSAR(BuildIntegBase):
             # will fail the build as there is no mapping
             self.assertEqual(process_execute.process.returncode, 1)
             self.assertIn("Property \\'ApplicationId\\' cannot be resolved.", str(process_execute.stderr))
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithLanguageExtensions(BuildIntegBase):
+    template = "language-extensions.yaml"
+
+    def test_validation_does_not_error_out(self):
+        cmdlist = self.get_command_list()
+        LOG.info("Running Command: %s", cmdlist)
+        LOG.info(self.working_dir)
+        process_execute = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(process_execute.process.returncode, 0)
+        self.assertIn("template.yaml", os.listdir(self.default_build_dir))

@@ -8,7 +8,6 @@ import shutil
 import tempfile
 from pathlib import Path
 from contextlib import contextmanager
-from samcli.commands._utils.experimental import ExperimentalFlag, set_experimental
 from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV
 
 from click.testing import CliRunner
@@ -38,7 +37,7 @@ class TestSamConfigForAllCommands(TestCase):
         shutil.rmtree(self.scratch_dir)
         self.scratch_dir = None
 
-    @patch("samcli.commands.init.do_cli")
+    @patch("samcli.commands.init.command.do_cli")
     def test_init(self, do_cli_mock):
         config_values = {
             "no_interactive": True,

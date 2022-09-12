@@ -12,7 +12,6 @@ from unittest import skipIf
 import boto3
 from botocore.config import Config
 from parameterized import parameterized_class
-from samcli.commands._utils.experimental import ExperimentalFlag, set_experimental
 
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
 from samcli.lib.utils.resources import (
@@ -158,8 +157,6 @@ class TestSyncWatchEsbuildBase(TestSyncWatchBase):
         super().setUp()
 
     def _setup_verify_infra(self):
-        set_experimental(ExperimentalFlag.Esbuild)
-
         template_path = self.test_dir.joinpath(self.template_before)
         self.stacks.append({"name": self.stack_name})
 
@@ -391,30 +388,12 @@ class TestSyncCodeWatchNestedStacks(TestSyncWatchBase):
         self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')
 
 
-@parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 class TestSyncWatchCodeEsbuild(TestSyncWatchEsbuildBase):
+    dependency_layer = False
     template_before = str(Path("code", "before", "template-esbuild.yaml"))
 
     def test_sync_watch_code(self):
         self.stack_resources = self._get_stacks(self.stack_name)
-
-        if self.dependency_layer:
-            dep_dir = str(Path("nodejs", "node_modules"))
-
-            # Test update manifest
-            layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, dep_dir, 1)
-            self.assertNotIn("@faker-js", layer_contents)
-            self.update_file(
-                self.test_dir.joinpath("code", "after", "esbuild_function", "package.json"),
-                self.test_dir.joinpath("code", "before", "esbuild_function", "package.json"),
-            )
-            read_until_string(
-                self.watch_process,
-                "\x1b[32mFinished syncing Function Layer Reference Sync HelloWorldFunction.\x1b[0m\n",
-                timeout=45,
-            )
-            layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, dep_dir, 2)
-            self.assertIn("@faker-js", layer_contents)
 
         # Test Lambda Function
         lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
