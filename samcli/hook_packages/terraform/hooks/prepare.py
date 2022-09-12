@@ -8,6 +8,7 @@ import json
 import os
 from json.decoder import JSONDecodeError
 from pathlib import Path
+import re
 from subprocess import run, CalledProcessError
 from typing import Any, Callable, Dict, List, Optional, Tuple
 import hashlib
@@ -718,15 +719,20 @@ def _get_python_command_name() -> str:
     str
         The name of the python command installed
     """
-    command_names_to_try = ["python", "python3"]
+    command_names_to_try = ["python3", "py3", "python", "py"]
     for command_name in command_names_to_try:
         try:
-            run([command_name, "--version"], check=True, capture_output=True)
+            run_result = run([command_name, "--version"], check=True, capture_output=True, text=True)
         except CalledProcessError:
             pass
         else:
+            # check for python 3, 3.7 or above
+            # regex: search for 'Python', whitespace, '3.', digits 7-9 or 2+ digits, any digit or '.' 0+ times
+            match = re.search(r"Python\s*3.([7-9]|\d{2,})[\d.]*", run_result.stdout)
+            if not match:
+                continue
             return command_name
-    raise PrepareHookException("Python not found. Please ensure that python is installed.")
+    raise PrepareHookException("Python not found. Please ensure that python 3.7 or above is installed.")
 
 
 def _generate_makefile_rule_for_lambda_resource(

@@ -2171,9 +2171,29 @@ class TestPrepareHook(TestCase):
 
     @parameterized.expand(
         [
-            ([None, None], "python"),
-            ([None, CalledProcessError(-2, "python3 --version")], "python"),
-            ([CalledProcessError(-2, "python --version"), None], "python3"),
+            ([CalledProcessError(-2, "python3 --version"), Mock(stdout="Python 3.8.10")], "py3"),
+            ([Mock(stdout="Python 3.7.12"), CalledProcessError(-2, "py3 --version")], "python3"),
+            ([Mock(stdout="Python 3.7")], "python3"),
+            ([Mock(stdout="Python 3.7.0")], "python3"),
+            ([Mock(stdout="Python 3.7.12")], "python3"),
+            ([Mock(stdout="Python 3.8")], "python3"),
+            ([Mock(stdout="Python 3.8.0")], "python3"),
+            ([Mock(stdout="Python 3.8.12")], "python3"),
+            ([Mock(stdout="Python 3.9")], "python3"),
+            ([Mock(stdout="Python 3.9.0")], "python3"),
+            ([Mock(stdout="Python 3.9.12")], "python3"),
+            ([Mock(stdout="Python 3.10")], "python3"),
+            ([Mock(stdout="Python 3.10.0")], "python3"),
+            ([Mock(stdout="Python 3.10.12")], "python3"),
+            (
+                [
+                    Mock(stdout="Python 3.6.10"),
+                    Mock(stdout="Python 3.0.10"),
+                    Mock(stdout="Python 2.7.10"),
+                    Mock(stdout="Python 3.7.12"),
+                ],
+                "py",
+            ),
         ]
     )
     @patch("samcli.hook_packages.terraform.hooks.prepare.run")
@@ -2183,13 +2203,46 @@ class TestPrepareHook(TestCase):
         python_command = _get_python_command_name()
         self.assertEqual(python_command, expected_python_command)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.run")
-    def test_get_python_command_name_python_not_found(self, mock_subprocess_run):
-        mock_subprocess_run.side_effect = [
-            CalledProcessError(-2, "python --version"),
-            CalledProcessError(-2, "python3 --version"),
+    @parameterized.expand(
+        [
+            (
+                [
+                    CalledProcessError(-2, "python3 --version"),
+                    CalledProcessError(-2, "py3 --version"),
+                    CalledProcessError(-2, "python --version"),
+                    CalledProcessError(-2, "py --version"),
+                ],
+            ),
+            (
+                [
+                    Mock(stdout="Python 3"),
+                    Mock(stdout="Python 3.0"),
+                    Mock(stdout="Python 3.0.10"),
+                    Mock(stdout="Python 3.6"),
+                ],
+            ),
+            (
+                [
+                    Mock(stdout="Python 3.6.10"),
+                    Mock(stdout="Python 2"),
+                    Mock(stdout="Python 2.7"),
+                    Mock(stdout="Python 2.7.10"),
+                ],
+            ),
+            (
+                [
+                    Mock(stdout="Python 4"),
+                    Mock(stdout="Python 4.7"),
+                    Mock(stdout="Python 4.7.10"),
+                    Mock(stdout="Python 4.7.10"),
+                ],
+            ),
         ]
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.run")
+    def test_get_python_command_name_python_not_found(self, mock_run_side_effect, mock_subprocess_run):
+        mock_subprocess_run.side_effect = mock_run_side_effect
 
-        expected_error_msg = "Python not found. Please ensure that python is installed."
+        expected_error_msg = "Python not found. Please ensure that python 3.7 or above is installed."
         with self.assertRaises(PrepareHookException, msg=expected_error_msg):
             _get_python_command_name()
