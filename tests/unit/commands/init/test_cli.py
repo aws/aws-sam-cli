@@ -15,8 +15,8 @@ from click.testing import CliRunner
 
 from samcli.commands.exceptions import UserException
 from samcli.commands.init import cli as init_cmd
-from samcli.commands.init import do_cli as init_cli
-from samcli.commands.init import PackageType
+from samcli.commands.init.command import do_cli as init_cli
+from samcli.commands.init.command import PackageType
 from samcli.commands.init.init_templates import (
     InitTemplates,
     APP_TEMPLATES_REPO_URL,
