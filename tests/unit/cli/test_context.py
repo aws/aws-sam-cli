@@ -70,27 +70,25 @@ class TestContext(TestCase):
         self.assertEqual(ctx.region, region)
         self.assertEqual(region, boto3._get_default_session().region_name)
 
-    @patch("samcli.cli.context.boto3")
-    def test_must_set_aws_profile_in_boto_session(self, boto_mock):
+    @patch("boto3.setup_default_session")
+    def test_must_set_aws_profile_in_boto_session(self, mock_setup_default_session):
         profile = "foo"
 
         ctx = Context()
 
         ctx.profile = profile
         self.assertEqual(ctx.profile, profile)
-        boto_mock.setup_default_session.assert_called_with(region_name=None, profile_name=profile, botocore_session=ANY)
+        mock_setup_default_session.assert_called_with(region_name=None, profile_name=profile, botocore_session=ANY)
 
-    @patch("samcli.cli.context.boto3")
-    def test_must_set_all_aws_session_properties(self, boto_mock):
+    @patch("boto3.setup_default_session")
+    def test_must_set_all_aws_session_properties(self, mock_setup_default_session):
         profile = "foo"
         region = "myregion"
         ctx = Context()
 
         ctx.profile = profile
         ctx.region = region
-        boto_mock.setup_default_session.assert_called_with(
-            region_name=region, profile_name=profile, botocore_session=ANY
-        )
+        mock_setup_default_session.assert_called_with(region_name=region, profile_name=profile, botocore_session=ANY)
 
     @patch("samcli.cli.context.uuid")
     def test_must_set_session_id_to_uuid(self, uuid_mock):
