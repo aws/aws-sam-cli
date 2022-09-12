@@ -1,3 +1,7 @@
+"""
+Set of Deprecated Runtimes for AWS Lambda
+"""
+
 from typing import Set
 
 DEPRECATED_RUNTIMES: Set[str] = {
