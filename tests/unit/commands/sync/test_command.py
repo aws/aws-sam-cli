@@ -46,12 +46,18 @@ class TestDoCli(TestCase):
         self.profile = None
         self.base_dir = None
         self.clean = True
-        self.use_container = True
         self.config_env = "mock-default-env"
         self.config_file = "mock-default-filename"
         MOCK_SAM_CONFIG.reset_mock()
 
-    @parameterized.expand([(False, False, True), (False, False, False)])
+    @parameterized.expand(
+        [
+            (False, False, True, False),
+            (False, False, False, False),
+            (False, False, True, True),
+            (False, False, False, True),
+        ]
+    )
     @patch("os.environ", {**os.environ, "SAM_CLI_POLL_DELAY": 10})
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.execute_code_sync")
@@ -70,6 +76,7 @@ class TestDoCli(TestCase):
         code,
         watch,
         auto_dependency_layer,
+        use_container,
         check_enable_adl_mock,
         SyncContextMock,
         manage_stack_mock,
@@ -118,10 +125,13 @@ class TestDoCli(TestCase):
             self.notification_arns,
             self.tags,
             self.metadata,
-            self.use_container,
+            use_container,
             self.config_file,
             self.config_env,
         )
+
+        if use_container and auto_dependency_layer:
+            auto_dependency_layer = False
 
         build_dir = DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER if auto_dependency_layer else DEFAULT_BUILD_DIR
         BuildContextMock.assert_called_with(
@@ -131,7 +141,7 @@ class TestDoCli(TestCase):
             build_dir=build_dir,
             cache_dir=DEFAULT_CACHE_DIR,
             clean=True,
-            use_container=True,
+            use_container=use_container,
             parallel=True,
             parameter_overrides=self.parameter_overrides,
             mode=self.mode,
@@ -189,7 +199,7 @@ class TestDoCli(TestCase):
         deploy_context_mock.run.assert_called_once_with()
         execute_code_sync_mock.assert_not_called()
 
-    @parameterized.expand([(False, True, False)])
+    @parameterized.expand([(False, True, False, False), (False, True, False, True)])
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.execute_watch")
     @patch("samcli.commands.build.command.click")
@@ -206,6 +216,7 @@ class TestDoCli(TestCase):
         code,
         watch,
         auto_dependency_layer,
+        use_container,
         SyncContextMock,
         manage_stack_mock,
         os_mock,
@@ -251,7 +262,7 @@ class TestDoCli(TestCase):
             self.notification_arns,
             self.tags,
             self.metadata,
-            self.use_container,
+            use_container,
             self.config_file,
             self.config_env,
         )
@@ -263,7 +274,7 @@ class TestDoCli(TestCase):
             build_dir=DEFAULT_BUILD_DIR,
             cache_dir=DEFAULT_CACHE_DIR,
             clean=True,
-            use_container=True,
+            use_container=use_container,
             parallel=True,
             parameter_overrides=self.parameter_overrides,
             mode=self.mode,
@@ -320,7 +331,7 @@ class TestDoCli(TestCase):
             self.template_file, build_context_mock, package_context_mock, deploy_context_mock, auto_dependency_layer
         )
 
-    @parameterized.expand([(True, False, True)])
+    @parameterized.expand([(True, False, True, False), (True, False, False, True)])
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.execute_code_sync")
     @patch("samcli.commands.build.command.click")
@@ -338,6 +349,7 @@ class TestDoCli(TestCase):
         code,
         watch,
         auto_dependency_layer,
+        use_container,
         check_enable_adl_mock,
         SyncContextMock,
         manage_stack_mock,
@@ -386,7 +398,7 @@ class TestDoCli(TestCase):
             self.notification_arns,
             self.tags,
             self.metadata,
-            self.use_container,
+            use_container,
             self.config_file,
             self.config_env,
         )
