@@ -1279,6 +1279,7 @@ class TestPrepareHook(TestCase):
         with self.assertRaises(InvalidSamMetadataPropertiesException, msg=exception_message):
             _get_relevant_cfn_resource(sam_metadata_resource, cfn_resources)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_python_command_name")
     @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
@@ -1291,7 +1292,10 @@ class TestPrepareHook(TestCase):
         mock_get_relevant_cfn_resource,
         mock_generate_makefile_rule_for_lambda_resource,
         mock_generate_makefile,
+        mock_get_python_command_name,
     ):
+        mock_get_python_command_name.return_value = "python"
+
         mock_get_lambda_function_source_code_path.side_effect = ["src/code/path1", "src/code/path2"]
         zip_function_1 = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
@@ -1376,6 +1380,7 @@ class TestPrepareHook(TestCase):
                     sam_metadata_resources[i],
                     list(expected_cfn_resources.keys())[i],
                     "/terraform/project/root",
+                    "python",
                 )
                 for i in range(len(sam_metadata_resources))
             ]
@@ -1383,6 +1388,7 @@ class TestPrepareHook(TestCase):
 
         mock_generate_makefile.assert_called_once_with(makefile_rules, "/output/dir")
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_python_command_name")
     @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
@@ -1399,7 +1405,10 @@ class TestPrepareHook(TestCase):
         mock_get_relevant_cfn_resource,
         mock_generate_makefile_rule_for_lambda_resource,
         mock_generate_makefile,
+        mock_get_python_command_name,
     ):
+        mock_get_python_command_name.return_value = "python"
+
         mock_get_lambda_function_source_code_path.side_effect = ["src/code/path1", "src/code/path2"]
         zip_function_1 = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
@@ -1462,11 +1471,7 @@ class TestPrepareHook(TestCase):
 
         mock_generate_makefile_rule_for_lambda_resource.assert_has_calls(
             [
-                call(
-                    sam_metadata_resources[i],
-                    list(cfn_resources.keys())[i],
-                    "/terraform/project/root",
-                )
+                call(sam_metadata_resources[i], list(cfn_resources.keys())[i], "/terraform/project/root", "python")
                 for i in range(len(sam_metadata_resources))
             ]
         )
@@ -1520,6 +1525,7 @@ class TestPrepareHook(TestCase):
         )
         self.assertEqual(zip_function_1, expected_zip_function_1)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_python_command_name")
     @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
@@ -1532,7 +1538,10 @@ class TestPrepareHook(TestCase):
         mock_get_relevant_cfn_resource,
         mock_generate_makefile_rule_for_lambda_resource,
         mock_generate_makefile,
+        mock_get_python_command_name,
     ):
+        mock_get_python_command_name.return_value = "python"
+
         mock_get_lambda_function_source_code_path.side_effect = ["src/code/path1", "src/code/path2"]
         image_function_1 = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
@@ -1597,11 +1606,7 @@ class TestPrepareHook(TestCase):
 
         mock_generate_makefile_rule_for_lambda_resource.assert_has_calls(
             [
-                call(
-                    sam_metadata_resources[i],
-                    list(cfn_resources.keys())[i],
-                    "/terraform/project/root",
-                )
+                call(sam_metadata_resources[i], list(cfn_resources.keys())[i], "/terraform/project/root", "python")
                 for i in range(len(sam_metadata_resources))
             ]
         )
@@ -1667,6 +1672,7 @@ class TestPrepareHook(TestCase):
         )
         self.assertEqual(image_function_1, expected_image_function_1)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_python_command_name")
     @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
@@ -1683,7 +1689,10 @@ class TestPrepareHook(TestCase):
         mock_get_relevant_cfn_resource,
         mock_generate_makefile_rule_for_lambda_resource,
         mock_generate_makefile,
+        mock_get_python_command_name,
     ):
+        mock_get_python_command_name.return_value = "python"
+
         mock_get_lambda_function_source_code_path.side_effect = ["src/code/path1", "src/code/path2"]
         image_function_1 = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
@@ -1731,11 +1740,7 @@ class TestPrepareHook(TestCase):
 
         mock_generate_makefile_rule_for_lambda_resource.assert_has_calls(
             [
-                call(
-                    sam_metadata_resources[i],
-                    list(cfn_resources.keys())[i],
-                    "/terraform/project/root",
-                )
+                call(sam_metadata_resources[i], list(cfn_resources.keys())[i], "/terraform/project/root", "python")
                 for i in range(len(sam_metadata_resources))
             ]
         )

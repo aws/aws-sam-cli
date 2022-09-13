@@ -596,6 +596,8 @@ def _enrich_resources_and_generate_makefile(
         the terraform project root directory
     """
 
+    python_command_name = _get_python_command_name()
+
     resources_types_enrichment_functions = {
         "ZIP_LAMBDA_FUNCTION": _enrich_zip_lambda_function,
         "IMAGE_LAMBDA_FUNCTION": _enrich_image_lambda_function,
@@ -624,7 +626,7 @@ def _enrich_resources_and_generate_makefile(
 
         # get makefile rule for resource
         makefile_rule = _generate_makefile_rule_for_lambda_resource(
-            sam_metadata_resource, logical_id, terraform_application_dir
+            sam_metadata_resource, logical_id, terraform_application_dir, python_command_name
         )
         makefile_rules.append(makefile_rule)
 
@@ -741,6 +743,7 @@ def _generate_makefile_rule_for_lambda_resource(
     sam_metadata_resource: SamMetadataResource,
     logical_id: str,
     terraform_application_dir: str,
+    python_command_name: str,
 ) -> str:
     """
     Generates and returns a makefile rule for the lambda resource associated with the given sam metadata resource.
@@ -754,6 +757,8 @@ def _generate_makefile_rule_for_lambda_resource(
         Logical ID of the lambda resource
     terraform_application_dir: str
         the terraform project root directory
+    python_command_name: str
+        the python command name to use for running a script in the makefile rule
 
     Returns
     -------
