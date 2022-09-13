@@ -1279,6 +1279,7 @@ class TestPrepareHook(TestCase):
         with self.assertRaises(InvalidSamMetadataPropertiesException, msg=exception_message):
             _get_relevant_cfn_resource(sam_metadata_resource, cfn_resources)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_python_command_name")
     @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
@@ -1291,7 +1292,10 @@ class TestPrepareHook(TestCase):
         mock_get_relevant_cfn_resource,
         mock_generate_makefile_rule_for_lambda_resource,
         mock_generate_makefile,
+        mock_get_python_command_name,
     ):
+        mock_get_python_command_name.return_value = "python"
+
         mock_get_lambda_function_source_code_path.side_effect = ["src/code/path1", "src/code/path2"]
         zip_function_1 = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
@@ -1376,6 +1380,7 @@ class TestPrepareHook(TestCase):
                     sam_metadata_resources[i],
                     list(expected_cfn_resources.keys())[i],
                     "/terraform/project/root",
+                    "python",
                 )
                 for i in range(len(sam_metadata_resources))
             ]
@@ -1383,6 +1388,7 @@ class TestPrepareHook(TestCase):
 
         mock_generate_makefile.assert_called_once_with(makefile_rules, "/output/dir")
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_python_command_name")
     @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
@@ -1399,7 +1405,10 @@ class TestPrepareHook(TestCase):
         mock_get_relevant_cfn_resource,
         mock_generate_makefile_rule_for_lambda_resource,
         mock_generate_makefile,
+        mock_get_python_command_name,
     ):
+        mock_get_python_command_name.return_value = "python"
+
         mock_get_lambda_function_source_code_path.side_effect = ["src/code/path1", "src/code/path2"]
         zip_function_1 = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
@@ -1462,11 +1471,7 @@ class TestPrepareHook(TestCase):
 
         mock_generate_makefile_rule_for_lambda_resource.assert_has_calls(
             [
-                call(
-                    sam_metadata_resources[i],
-                    list(cfn_resources.keys())[i],
-                    "/terraform/project/root",
-                )
+                call(sam_metadata_resources[i], list(cfn_resources.keys())[i], "/terraform/project/root", "python")
                 for i in range(len(sam_metadata_resources))
             ]
         )
@@ -1520,6 +1525,7 @@ class TestPrepareHook(TestCase):
         )
         self.assertEqual(zip_function_1, expected_zip_function_1)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_python_command_name")
     @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
@@ -1532,7 +1538,10 @@ class TestPrepareHook(TestCase):
         mock_get_relevant_cfn_resource,
         mock_generate_makefile_rule_for_lambda_resource,
         mock_generate_makefile,
+        mock_get_python_command_name,
     ):
+        mock_get_python_command_name.return_value = "python"
+
         mock_get_lambda_function_source_code_path.side_effect = ["src/code/path1", "src/code/path2"]
         image_function_1 = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
@@ -1597,11 +1606,7 @@ class TestPrepareHook(TestCase):
 
         mock_generate_makefile_rule_for_lambda_resource.assert_has_calls(
             [
-                call(
-                    sam_metadata_resources[i],
-                    list(cfn_resources.keys())[i],
-                    "/terraform/project/root",
-                )
+                call(sam_metadata_resources[i], list(cfn_resources.keys())[i], "/terraform/project/root", "python")
                 for i in range(len(sam_metadata_resources))
             ]
         )
@@ -1667,6 +1672,7 @@ class TestPrepareHook(TestCase):
         )
         self.assertEqual(image_function_1, expected_image_function_1)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_python_command_name")
     @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
@@ -1683,7 +1689,10 @@ class TestPrepareHook(TestCase):
         mock_get_relevant_cfn_resource,
         mock_generate_makefile_rule_for_lambda_resource,
         mock_generate_makefile,
+        mock_get_python_command_name,
     ):
+        mock_get_python_command_name.return_value = "python"
+
         mock_get_lambda_function_source_code_path.side_effect = ["src/code/path1", "src/code/path2"]
         image_function_1 = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
@@ -1731,11 +1740,7 @@ class TestPrepareHook(TestCase):
 
         mock_generate_makefile_rule_for_lambda_resource.assert_has_calls(
             [
-                call(
-                    sam_metadata_resources[i],
-                    list(cfn_resources.keys())[i],
-                    "/terraform/project/root",
-                )
+                call(sam_metadata_resources[i], list(cfn_resources.keys())[i], "/terraform/project/root", "python")
                 for i in range(len(sam_metadata_resources))
             ]
         )
@@ -1803,8 +1808,10 @@ class TestPrepareHook(TestCase):
                 sam_metadata_resource, image_function_1, "logical_id1", "/terraform/project/root", "/output/dir"
             )
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_python_command_name")
     def test_enrich_resources_and_generate_makefile_invalid_source_type(
         self,
+        mock_get_python_command_name,
     ):
         image_function_1 = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
@@ -2168,3 +2175,81 @@ class TestPrepareHook(TestCase):
         )
 
         mock_makefile.writelines.assert_called_once_with(mock_makefile_rules)
+
+    @parameterized.expand(
+        [
+            ([CalledProcessError(-2, "python3 --version"), Mock(stdout="Python 3.8.10")], "py3"),
+            ([Mock(stdout="Python 3.7.12"), CalledProcessError(-2, "py3 --version")], "python3"),
+            ([Mock(stdout="Python 3.7")], "python3"),
+            ([Mock(stdout="Python 3.7.0")], "python3"),
+            ([Mock(stdout="Python 3.7.12")], "python3"),
+            ([Mock(stdout="Python 3.8")], "python3"),
+            ([Mock(stdout="Python 3.8.0")], "python3"),
+            ([Mock(stdout="Python 3.8.12")], "python3"),
+            ([Mock(stdout="Python 3.9")], "python3"),
+            ([Mock(stdout="Python 3.9.0")], "python3"),
+            ([Mock(stdout="Python 3.9.12")], "python3"),
+            ([Mock(stdout="Python 3.10")], "python3"),
+            ([Mock(stdout="Python 3.10.0")], "python3"),
+            ([Mock(stdout="Python 3.10.12")], "python3"),
+            (
+                [
+                    Mock(stdout="Python 3.6.10"),
+                    Mock(stdout="Python 3.0.10"),
+                    Mock(stdout="Python 2.7.10"),
+                    Mock(stdout="Python 3.7.12"),
+                ],
+                "py",
+            ),
+        ]
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.run")
+    def test_get_python_command_name(self, mock_run_side_effect, expected_python_command, mock_subprocess_run):
+        mock_subprocess_run.side_effect = mock_run_side_effect
+
+        python_command = _get_python_command_name()
+        self.assertEqual(python_command, expected_python_command)
+
+    @parameterized.expand(
+        [
+            (
+                [
+                    CalledProcessError(-2, "python3 --version"),
+                    CalledProcessError(-2, "py3 --version"),
+                    CalledProcessError(-2, "python --version"),
+                    CalledProcessError(-2, "py --version"),
+                ],
+            ),
+            (
+                [
+                    Mock(stdout="Python 3"),
+                    Mock(stdout="Python 3.0"),
+                    Mock(stdout="Python 3.0.10"),
+                    Mock(stdout="Python 3.6"),
+                ],
+            ),
+            (
+                [
+                    Mock(stdout="Python 3.6.10"),
+                    Mock(stdout="Python 2"),
+                    Mock(stdout="Python 2.7"),
+                    Mock(stdout="Python 2.7.10"),
+                ],
+            ),
+            (
+                [
+                    Mock(stdout="Python 4"),
+                    Mock(stdout="Python 4.7"),
+                    Mock(stdout="Python 4.7.10"),
+                    Mock(stdout="Python 4.7.10"),
+                ],
+            ),
+        ]
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.run")
+    def test_get_python_command_name_python_not_found(self, mock_run_side_effect, mock_subprocess_run):
+        mock_subprocess_run.side_effect = mock_run_side_effect
+
+        expected_error_msg = "Python not found. Please ensure that python 3.7 or above is installed."
+        with self.assertRaises(PrepareHookException, msg=expected_error_msg):
+            _get_python_command_name()
