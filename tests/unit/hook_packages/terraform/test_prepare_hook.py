@@ -1808,8 +1808,10 @@ class TestPrepareHook(TestCase):
                 sam_metadata_resource, image_function_1, "logical_id1", "/terraform/project/root", "/output/dir"
             )
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_python_command_name")
     def test_enrich_resources_and_generate_makefile_invalid_source_type(
         self,
+        mock_get_python_command_name,
     ):
         image_function_1 = {
             "Type": CFN_AWS_LAMBDA_FUNCTION,
