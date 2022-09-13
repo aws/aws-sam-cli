@@ -25,6 +25,10 @@ from samcli.lib.utils.resources import (
 
 LOG = logging.getLogger(__name__)
 
+# check for python 3, 3.7 or above
+# regex: search for 'Python', whitespace, '3.', digits 7-9 or 2+ digits, any digit or '.' 0+ times
+PYTHON_VERSION_REGEX = re.compile(r"Python\s*3.([7-9]|\d{2,})[\d.]*")
+
 TF_AWS_LAMBDA_FUNCTION = "aws_lambda_function"
 AWS_PROVIDER_NAME = "registry.terraform.io/hashicorp/aws"
 NULL_RESOURCE_PROVIDER_NAME = "registry.terraform.io/hashicorp/null"
@@ -726,10 +730,8 @@ def _get_python_command_name() -> str:
         except CalledProcessError:
             pass
         else:
-            # check for python 3, 3.7 or above
-            # regex: search for 'Python', whitespace, '3.', digits 7-9 or 2+ digits, any digit or '.' 0+ times
-            match = re.search(r"Python\s*3.([7-9]|\d{2,})[\d.]*", run_result.stdout)
-            if not match:
+            # check python version
+            if not PYTHON_VERSION_REGEX.match(run_result.stdout):
                 continue
             return command_name
     raise PrepareHookException("Python not found. Please ensure that python 3.7 or above is installed.")
