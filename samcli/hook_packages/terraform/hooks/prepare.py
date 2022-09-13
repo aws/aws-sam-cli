@@ -40,6 +40,11 @@ LOGICAL_ID_MAX_HUMAN_LEN = 247
 PropertyBuilder = Callable[[dict], Any]
 PropertyBuilderMapping = Dict[str, PropertyBuilder]
 
+CFN_CODE_PROPERTIES = {
+    CFN_AWS_LAMBDA_FUNCTION: "Code",
+    CFN_AWS_LAMBDA_LAYER_VERSION: "Content",
+}
+
 
 @dataclass
 class ResourceTranslator:
@@ -318,7 +323,9 @@ def _get_source_code_path(
     src_code_attribute_name: str,
 ) -> str:
     """
-    Validate that sam metadata resource contains the valid metadata properties to get a lambda function source code.
+    Validate that sam metadata resource contains the valid metadata properties
+    to get a lambda function or layer source code.
+
     Parameters
     ----------
     sam_metadata_attributes: dict
@@ -328,17 +335,17 @@ def _get_source_code_path(
     project_root_dir: str
         the terraform project root directory path
     src_code_property_name: str
-        the sam metadata property name that contains the lambda function source code or docker context path
+        the sam metadata property name that contains the lambda function or layer source code or docker context path
     property_path_property_name: str
         the sam metadata property name that contains the property to get the source code value if it was provided
         as json string
     src_code_attribute_name: str
-        the lambda function source code or docker context to be used to raise the correct exception
+        the lambda function or later source code or docker context to be used to raise the correct exception
 
     Returns
     -------
     str
-        The lambda function source code or docker context paths
+        The lambda function or layer source code or docker context paths
     """
     LOG.info(
         "Extract the %s from the sam metadata resource %s from property %s",
@@ -353,7 +360,8 @@ def _get_source_code_path(
     )
     if not source_code:
         raise InvalidSamMetadataPropertiesException(
-            f"The sam metadata resource {sam_metadata_resource_address} should contain the lambda function "
+            f"The sam metadata resource {sam_metadata_resource_address} "
+            f"should contain the lambda function/lambda layer "
             f"{src_code_attribute_name} in property {src_code_property_name}"
         )
     if isinstance(source_code, str):
@@ -372,7 +380,8 @@ def _get_source_code_path(
         )
         if not source_code_property:
             raise InvalidSamMetadataPropertiesException(
-                f"The sam metadata resource {sam_metadata_resource_address} should contain the lambda function "
+                f"The sam metadata resource {sam_metadata_resource_address} "
+                f"should contain the lambda function/lambda layer "
                 f"{src_code_attribute_name} property in property {property_path_property_name} as the "
                 f"{src_code_property_name} value is an object"
             )
@@ -385,7 +394,8 @@ def _get_source_code_path(
                 source_code,
             )
             raise InvalidSamMetadataPropertiesException(
-                f"The sam metadata resource {sam_metadata_resource_address} should contain a valid lambda function "
+                f"The sam metadata resource {sam_metadata_resource_address} "
+                f"should contain a valid lambda function/lambda layer "
                 f"{src_code_attribute_name} property in property {property_path_property_name} as the "
                 f"{src_code_property_name} value is an object"
             )
@@ -397,13 +407,15 @@ def _get_source_code_path(
         )
         if len(source_code) < 1:
             raise InvalidSamMetadataPropertiesException(
-                f"The sam metadata resource {sam_metadata_resource_address} should contain the lambda function "
+                f"The sam metadata resource {sam_metadata_resource_address} "
+                f"should contain the lambda function/lambda layer "
                 f"{src_code_attribute_name} in property {src_code_property_name}, and it should not be an empty list"
             )
         cfn_source_code_path = source_code[0]
         if not cfn_source_code_path:
             raise InvalidSamMetadataPropertiesException(
-                f"The sam metadata resource {sam_metadata_resource_address} should contain a valid lambda function "
+                f"The sam metadata resource {sam_metadata_resource_address} "
+                f"should contain a valid lambda/lambda layer function "
                 f"{src_code_attribute_name} in property {src_code_property_name}"
             )
     else:
@@ -424,7 +436,7 @@ def _get_source_code_path(
         LOG.error("The path %s does not exist", cfn_source_code_path)
         raise InvalidSamMetadataPropertiesException(
             f"The sam metadata resource {sam_metadata_resource_address} should contain a valid string value for the "
-            f"lambda function {src_code_attribute_name} path"
+            f"lambda function/lambda layer {src_code_attribute_name} path"
         )
 
     return cfn_source_code_path
@@ -1076,11 +1088,6 @@ RESOURCE_TRANSLATOR_MAPPING: Dict[str, ResourceTranslator] = {
     TF_AWS_LAMBDA_LAYER_VERSION: ResourceTranslator(
         CFN_AWS_LAMBDA_LAYER_VERSION, AWS_LAMBDA_LAYER_VERSION_PROPERTY_BUILDER_MAPPING
     ),
-}
-
-CFN_CODE_PROPERTIES = {
-    CFN_AWS_LAMBDA_FUNCTION: "Code",
-    CFN_AWS_LAMBDA_LAYER_VERSION: "Content",
 }
 
 
