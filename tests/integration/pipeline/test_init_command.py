@@ -106,7 +106,26 @@ class TestInit(InitIntegBase):
         # also check the Jenkinsfile is not overridden
         self.assertEqual("", open("Jenkinsfile", "r").read())
 
-    def test_custom_template(self):
+    def test_custom_template_with_manifest(self):
+        generated_file = Path("weather")
+        self.generated_files.append(generated_file)
+
+        custom_template_path = Path(__file__).parent.parent.joinpath(
+            Path("testdata", "pipeline", "custom_template_with_manifest")
+        )
+        inputs = ["2", str(custom_template_path), "2", "", "Rainy"]  # custom template
+
+        init_command_list = self.get_init_command_list()
+        init_process_execute = run_command_with_inputs(init_command_list, inputs)
+
+        self.assertEqual(init_process_execute.process.returncode, 0)
+
+        self.assertTrue(generated_file.exists())
+
+        with open(generated_file, "r") as f:
+            self.assertEqual("Rainy\n", f.read())
+
+    def test_custom_template_without_manifest(self):
         generated_file = Path("weather")
         self.generated_files.append(generated_file)
 
@@ -139,7 +158,7 @@ class TestInit(InitIntegBase):
             [default.pipeline_bootstrap]
             [default.pipeline_bootstrap.parameters]
             pipeline_user = "arn:aws:iam::123:user/aws-sam-cli-managed-test-pipeline-res-PipelineUser-123"
-            
+
             [test]
             [test.pipeline_bootstrap]
             [test.pipeline_bootstrap.parameters]
@@ -148,7 +167,7 @@ class TestInit(InitIntegBase):
             artifacts_bucket = "test-bucket"
             image_repository = "test-ecr"
             region = "us-east-2"
-            
+
             [prod]
             [prod.pipeline_bootstrap]
             [prod.pipeline_bootstrap.parameters]

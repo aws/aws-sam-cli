@@ -33,7 +33,7 @@ class TestCliBase(TestCase):
             result = runner.invoke(cli, ["local", "generate-event", "s3", "put", "--debug"])
             self.assertEqual(result.exit_code, 0)
 
-    @patch("samcli.cli.main.send_installed_metric")
+    @patch("samcli.lib.telemetry.metric.send_installed_metric")
     def test_cli_enable_telemetry_with_prompt(self, send_installed_metric_mock):
         with patch("samcli.cli.global_config.GlobalConfig.telemetry_enabled", new_callable=PropertyMock) as mock_flag:
             mock_flag.return_value = None
@@ -44,7 +44,7 @@ class TestCliBase(TestCase):
             # If telemetry is enabled, this should be called
             send_installed_metric_mock.assert_called_once()
 
-    @patch("samcli.cli.main.send_installed_metric")
+    @patch("samcli.lib.telemetry.metric.send_installed_metric")
     def test_prompt_skipped_when_value_set(self, send_installed_metric_mock):
         with patch("samcli.cli.global_config.GlobalConfig.telemetry_enabled", new_callable=PropertyMock) as mock_flag:
             mock_flag.return_value = True

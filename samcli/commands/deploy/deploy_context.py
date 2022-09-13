@@ -30,6 +30,7 @@ from samcli.commands.deploy.utils import (
     hide_noecho_parameter_overrides,
 )
 from samcli.lib.deploy.deployer import Deployer
+from samcli.lib.deploy.utils import FailureMode
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
@@ -73,6 +74,7 @@ class DeployContext:
         use_changeset,
         disable_rollback,
         poll_delay,
+        on_failure,
     ):
         self.template_file = template_file
         self.stack_name = stack_name
@@ -103,6 +105,7 @@ class DeployContext:
         self.use_changeset = use_changeset
         self.disable_rollback = disable_rollback
         self.poll_delay = poll_delay
+        self.on_failure = FailureMode(on_failure) if on_failure else FailureMode.ROLLBACK
 
     def __enter__(self):
         return self
@@ -179,20 +182,20 @@ class DeployContext:
 
     def deploy(
         self,
-        stack_name,
-        template_str,
-        parameters,
-        capabilities,
-        no_execute_changeset,
-        role_arn,
-        notification_arns,
-        s3_uploader,
-        tags,
-        region,
-        fail_on_empty_changeset=True,
-        confirm_changeset=False,
-        use_changeset=True,
-        disable_rollback=False,
+        stack_name: str,
+        template_str: str,
+        parameters: List[dict],
+        capabilities: List[str],
+        no_execute_changeset: bool,
+        role_arn: str,
+        notification_arns: List[str],
+        s3_uploader: S3Uploader,
+        tags: List[str],
+        region: str,
+        fail_on_empty_changeset: bool = True,
+        confirm_changeset: bool = False,
+        use_changeset: bool = True,
+        disable_rollback: bool = False,
     ):
         """
         Deploy the stack to cloudformation.
@@ -264,14 +267,26 @@ class DeployContext:
                     if not click.confirm(f"{self.MSG_CONFIRM_CHANGESET}", default=False):
                         return
 
-                execution_time = self.deployer.execute_changeset(result["Id"], stack_name, disable_rollback)
-                self.deployer.wait_for_execute(stack_name, changeset_type, disable_rollback, execution_time)
+                # Stop the rollback in the case of DO_NOTHING or if this is a new stack and DELETE is specified
+                # DO_NOTHING behaves the same disable_rollback, they both preserve the current state of the stack
+                do_disable_rollback = (
+                    self.on_failure in [FailureMode.DO_NOTHING, FailureMode.DELETE] or disable_rollback
+                )
+
+                self.deployer.execute_changeset(result["Id"], stack_name, do_disable_rollback)
+                self.deployer.wait_for_execute(stack_name, changeset_type, do_disable_rollback, self.on_failure)
                 click.echo(self.MSG_EXECUTE_SUCCESS.format(stack_name=stack_name, region=region))
 
             except deploy_exceptions.ChangeEmptyError as ex:
                 if fail_on_empty_changeset:
                     raise
                 click.echo(str(ex))
+            except deploy_exceptions.DeployFailedError:
+                # Failed to deploy, check for DELETE action otherwise skip
+                if self.on_failure != FailureMode.DELETE:
+                    raise
+
+                self.deployer.rollback_delete_stack(stack_name)
 
         else:
             try:
@@ -284,6 +299,7 @@ class DeployContext:
                     notification_arns=notification_arns,
                     s3_uploader=s3_uploader,
                     tags=tags,
+                    on_failure=self.on_failure,
                 )
                 LOG.debug(result)
 

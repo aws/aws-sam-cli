@@ -1,0 +1,7 @@
+{
+  "questions": [{
+    "key": "weather",
+    "question": "How is the weather today?",
+    "default": "Sunny"
+  }]
+}

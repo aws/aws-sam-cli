@@ -186,3 +186,16 @@ def convert_to_unix_line_ending(file_path: str) -> None:
     content = content.replace(b"\r\n", b"\n")
     with open(file_path, "wb") as file:
         file.write(content)
+
+
+def create_symlink_or_copy(source: str, destination: str) -> None:
+    """Tries to create symlink, if it fails it will copy source into destination"""
+    LOG.debug("Creating symlink; source: %s, destination: %s", source, destination)
+    try:
+        os.symlink(Path(source).absolute(), Path(destination).absolute())
+    except OSError as ex:
+        LOG.warning(
+            "Symlink operation is failed, falling back to copying files",
+            exc_info=ex if LOG.isEnabledFor(logging.DEBUG) else None,
+        )
+        copytree(source, destination)

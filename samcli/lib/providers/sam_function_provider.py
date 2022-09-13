@@ -79,6 +79,26 @@ class SamFunctionProvider(SamBaseProvider):
         """
         return self._stacks
 
+    def update(
+        self,
+        stacks: List[Stack],
+        use_raw_codeuri: bool = False,
+        ignore_code_extraction_warnings: bool = False,
+        locate_layer_nested: bool = False,
+    ) -> None:
+        """
+        Hydrate the function provider with updated stacks
+        :param dict stacks: List of stacks functions are extracted from
+        :param bool use_raw_codeuri: Do not resolve adjust core_uri based on the template path, use the raw uri.
+            Note(xinhol): use_raw_codeuri is temporary to fix a bug, and will be removed for a permanent solution.
+        :param bool ignore_code_extraction_warnings: Ignores Log warnings
+        :param bool locate_layer_nested: resolved nested layer reference to their actual location in the nested stack
+        """
+        self._stacks = stacks
+        self.functions = SamFunctionProvider._extract_functions(
+            self._stacks, use_raw_codeuri, ignore_code_extraction_warnings, locate_layer_nested
+        )
+
     def get(self, name: str) -> Optional[Function]:
         """
         Returns the function given name or LogicalId of the function. Every SAM resource has a logicalId, but it may
