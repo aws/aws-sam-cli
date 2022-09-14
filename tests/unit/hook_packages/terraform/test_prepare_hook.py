@@ -14,7 +14,7 @@ from samcli.hook_packages.terraform.hooks.prepare import (
     _build_cfn_logical_id,
     _get_property_extractor,
     _build_lambda_function_environment_property,
-    _build_lambda_function_code_property,
+    _build_code_property,
     _translate_properties,
     _translate_to_cfn,
     _map_s3_sources_to_functions,
@@ -24,18 +24,21 @@ from samcli.hook_packages.terraform.hooks.prepare import (
     NULL_RESOURCE_PROVIDER_NAME,
     SamMetadataResource,
     _validate_referenced_resource_matches_sam_metadata_type,
-    _get_lambda_function_source_code_path,
-    _enrich_resources_and_generate_makefile,
+    _get_source_code_path,
     _get_relevant_cfn_resource,
+    _enrich_lambda_layer,
+    _enrich_resources_and_generate_makefile,
     _enrich_zip_lambda_function,
     _enrich_image_lambda_function,
     _generate_makefile,
     _get_python_command_name,
     _generate_makefile_rule_for_lambda_resource,
+    _validate_referenced_resource_layer_matches_metadata_type,
 )
 from samcli.lib.hook.exceptions import PrepareHookException, InvalidSamMetadataPropertiesException
 from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
+    AWS_LAMBDA_LAYERVERSION,
 )
 
 
@@ -60,6 +63,7 @@ class TestPrepareHook(TestCase):
         self.s3_function_name = "myfuncS3"
         self.s3_function_name_2 = "myfuncS3_2"
         self.image_function_name = "image_func"
+        self.lambda_layer_name = "lambda_layer"
 
         self.tf_function_common_properties: dict = {
             "function_name": self.zip_function_name,
@@ -95,6 +99,60 @@ class TestPrepareHook(TestCase):
             "Environment": {"Variables": {"foo": "bar", "hello": "world"}},
             "PackageType": "Image",
             "Timeout": 3,
+        }
+
+        self.tf_layer_common_properties: dict = {
+            "layer_name": self.lambda_layer_name,
+            "compatible_runtimes": ["nodejs14.x", "nodejs16.x"],
+            "compatible_architectures": ["arm64"],
+        }
+        self.expected_cfn_layer_common_properties: dict = {
+            "LayerName": self.lambda_layer_name,
+            "CompatibleRuntimes": ["nodejs14.x", "nodejs16.x"],
+            "CompatibleArchitectures": ["arm64"],
+        }
+
+        self.tf_lambda_layer_properties_zip: dict = {
+            **self.tf_layer_common_properties,
+            "filename": "file.zip",
+        }
+        self.tf_lambda_layer_properties_s3: dict = {
+            **self.tf_layer_common_properties,
+            "s3_bucket": "bucket_name",
+            "s3_key": "bucket_key",
+            "s3_object_version": "1",
+        }
+        self.tf_lambda_layer_sam_metadata_properties: dict = {
+            "triggers": {
+                "built_output_path": "builds/func.zip",
+                "original_source_code": "./src/lambda_layer",
+                "resource_name": f"aws_lambda_layer_version.{self.lambda_layer_name}",
+                "resource_type": "LAMBDA_LAYER",
+            },
+        }
+        self.expected_cfn_lambda_layer_properties_zip: dict = {
+            **self.expected_cfn_layer_common_properties,
+            "Content": "file.zip",
+        }
+        self.expected_cfn_lambda_layer_properties_s3: dict = {
+            **self.expected_cfn_layer_common_properties,
+            "Content": {
+                "S3Bucket": "bucket_name",
+                "S3Key": "bucket_key",
+                "S3ObjectVersion": "1",
+            },
+        }
+
+        self.expected_cfn_layer_resource_s3: dict = {
+            "Type": AWS_LAMBDA_LAYERVERSION,
+            "Properties": self.expected_cfn_lambda_layer_properties_s3,
+            "Metadata": {"SamResourceId": f"aws_lambda_layer_version.{self.lambda_layer_name}", "SkipBuild": True},
+        }
+
+        self.expected_cfn_layer_resource_zip: dict = {
+            "Type": AWS_LAMBDA_LAYERVERSION,
+            "Properties": self.expected_cfn_lambda_layer_properties_zip,
+            "Metadata": {"SamResourceId": f"aws_lambda_layer_version.{self.lambda_layer_name}", "SkipBuild": True},
         }
 
         self.tf_zip_function_properties: dict = {
@@ -162,6 +220,17 @@ class TestPrepareHook(TestCase):
             **self.expected_cfn_function_common_properties,
             "FunctionName": self.s3_function_name,
             "Code": self.s3_source,
+        }
+
+        self.expected_cfn_s3_layer_properties_after_source_mapping: dict = {
+            **self.expected_cfn_layer_common_properties,
+            "LayerName": self.lambda_layer_name,
+            "Content": self.s3_source,
+        }
+
+        self.expected_cfn_s3_layer_resource_after_source_mapping: dict = {
+            **self.expected_cfn_layer_resource_s3,
+            "Properties": self.expected_cfn_s3_layer_properties_after_source_mapping,
         }
 
         self.tf_s3_function_properties_2: dict = {
@@ -259,6 +328,11 @@ class TestPrepareHook(TestCase):
             "provider_name": AWS_PROVIDER_NAME,
         }
 
+        self.tf_lambda_layer_resource_common_attributes: dict = {
+            "type": "aws_lambda_layer_version",
+            "provider_name": AWS_PROVIDER_NAME,
+        }
+
         self.tf_sam_metadata_resource_common_attributes: dict = {
             "type": "null_resource",
             "provider_name": NULL_RESOURCE_PROVIDER_NAME,
@@ -280,6 +354,19 @@ class TestPrepareHook(TestCase):
             "Type": CFN_AWS_LAMBDA_FUNCTION,
             "Properties": self.expected_cfn_zip_function_properties,
             "Metadata": {"SamResourceId": f"aws_lambda_function.{self.zip_function_name}", "SkipBuild": True},
+        }
+
+        self.tf_lambda_layer_resource_zip: dict = {
+            **self.tf_lambda_layer_resource_common_attributes,
+            "values": self.tf_lambda_layer_properties_zip,
+            "address": f"aws_lambda_function.{self.lambda_layer_name}",
+            "name": self.lambda_layer_name,
+        }
+        self.tf_lambda_layer_resource_zip_sam_metadata: dict = {
+            **self.tf_sam_metadata_resource_common_attributes,
+            "values": self.tf_lambda_layer_sam_metadata_properties,
+            "address": f"null_resource.sam_metadata_{self.lambda_layer_name}",
+            "name": f"sam_metadata_{self.lambda_layer_name}",
         }
 
         self.tf_lambda_function_resource_zip_2: dict = {
@@ -748,17 +835,17 @@ class TestPrepareHook(TestCase):
 
     def test_build_lambda_function_code_property_zip(self):
         expected_cfn_property = self.expected_cfn_zip_function_properties["Code"]
-        translated_cfn_property = _build_lambda_function_code_property(self.tf_zip_function_properties)
+        translated_cfn_property = _build_code_property(self.tf_zip_function_properties)
         self.assertEqual(translated_cfn_property, expected_cfn_property)
 
     def test_build_lambda_function_code_property_s3(self):
         expected_cfn_property = self.expected_cfn_s3_function_properties["Code"]
-        translated_cfn_property = _build_lambda_function_code_property(self.tf_s3_function_properties)
+        translated_cfn_property = _build_code_property(self.tf_s3_function_properties)
         self.assertEqual(translated_cfn_property, expected_cfn_property)
 
     def test_build_lambda_function_code_property_image(self):
         expected_cfn_property = self.expected_cfn_image_package_function_properties["Code"]
-        translated_cfn_property = _build_lambda_function_code_property(self.tf_image_package_type_function_properties)
+        translated_cfn_property = _build_code_property(self.tf_image_package_type_function_properties)
         self.assertEqual(translated_cfn_property, expected_cfn_property)
 
     def test_build_lambda_function_image_config_property(self):
@@ -779,6 +866,16 @@ class TestPrepareHook(TestCase):
         tf_properties["image_config"] = []
         translated_cfn_property = _build_lambda_function_image_config_property(tf_properties)
         self.assertEqual(translated_cfn_property, None)
+
+    def test_build_lambda_layer_code_property_zip(self):
+        expected_cfn_property = self.expected_cfn_lambda_layer_properties_zip["Content"]
+        translated_cfn_property = _build_code_property(self.tf_lambda_layer_properties_zip)
+        self.assertEqual(translated_cfn_property, expected_cfn_property)
+
+    def test_build_lambda_layer_code_property_s3(self):
+        expected_cfn_property = self.expected_cfn_lambda_layer_properties_s3["Content"]
+        translated_cfn_property = _build_code_property(self.tf_lambda_layer_properties_s3)
+        self.assertEqual(translated_cfn_property, expected_cfn_property)
 
     @parameterized.expand(
         [("command", "Command"), ("entry_point", "EntryPoint"), ("working_directory", "WorkingDirectory")]
@@ -835,6 +932,30 @@ class TestPrepareHook(TestCase):
             [
                 call(s3Function1CodeBeforeMapping["S3Bucket"], s3Function1CodeBeforeMapping["S3Key"]),
                 call(s3Function2CodeBeforeMapping["S3Bucket"], s3Function2CodeBeforeMapping["S3Key"]),
+            ]
+        )
+        self.assertEqual(cfn_resources, expected_cfn_resources_after_mapping_s3_sources)
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_s3_object_hash")
+    def test_map_s3_sources_to_layers(self, mock_get_s3_object_hash):
+        mock_get_s3_object_hash.side_effect = ["hash1"]
+
+        s3_hash_to_source = {"hash1": self.s3_source}
+        cfn_resources = {
+            "s3Layer": copy.deepcopy(self.expected_cfn_layer_resource_s3),
+            "nonS3Layer": self.expected_cfn_layer_resource_zip,
+        }
+
+        expected_cfn_resources_after_mapping_s3_sources = {
+            "s3Layer": self.expected_cfn_s3_layer_resource_after_source_mapping,
+            "nonS3Layer": self.expected_cfn_layer_resource_zip,  # should be unchanged
+        }
+        _map_s3_sources_to_functions(s3_hash_to_source, cfn_resources)
+
+        s3LayerCodeBeforeMapping = self.expected_cfn_layer_resource_s3["Properties"]["Content"]
+        mock_get_s3_object_hash.assert_has_calls(
+            [
+                call(s3LayerCodeBeforeMapping["S3Bucket"], s3LayerCodeBeforeMapping["S3Key"]),
             ]
         )
         self.assertEqual(cfn_resources, expected_cfn_resources_after_mapping_s3_sources)
@@ -1039,6 +1160,42 @@ class TestPrepareHook(TestCase):
                 cfn_resource, sam_metadata_attributes, "resource_address", expected_package_type
             )
 
+    def test_validate_referenced_layer_resource_matches_sam_metadata_type_valid_types(self):
+        cfn_resource = self.expected_cfn_layer_resource_zip
+        sam_metadata_attributes = self.tf_lambda_layer_resource_zip_sam_metadata.get("values").get("triggers")
+        try:
+            _validate_referenced_resource_layer_matches_metadata_type(
+                cfn_resource, sam_metadata_attributes, "resource_address"
+            )
+        except InvalidSamMetadataPropertiesException:
+            self.fail("The testing sam metadata resource type should be valid.")
+
+    @parameterized.expand(
+        [
+            (
+                "expected_cfn_lambda_function_resource_zip",
+                "tf_lambda_layer_resource_zip_sam_metadata",
+            ),
+            (
+                "expected_cfn_image_package_type_lambda_function_resource",
+                "tf_lambda_layer_resource_zip_sam_metadata",
+            ),
+        ]
+    )
+    def test_validate_referenced_resource_layer_matches_sam_metadata_type_invalid_types(
+        self, cfn_resource_name, sam_metadata_attributes_name
+    ):
+        cfn_resource = self.__getattribute__(cfn_resource_name)
+        sam_metadata_attributes = self.__getattribute__(sam_metadata_attributes_name).get("values").get("triggers")
+        with self.assertRaises(
+            InvalidSamMetadataPropertiesException,
+            msg=f"The sam metadata resource resource_address is referring to a resource that does not "
+            f"match the resource type AWS::Lambda::LayerVersion.",
+        ):
+            _validate_referenced_resource_layer_matches_metadata_type(
+                cfn_resource, sam_metadata_attributes, "resource_address"
+            )
+
     @parameterized.expand(
         [
             ("/src/code/path", None, "/src/code/path", True),
@@ -1090,7 +1247,7 @@ class TestPrepareHook(TestCase):
                 **sam_metadata_attributes,
                 "source_code_property": source_code_property,
             }
-        path = _get_lambda_function_source_code_path(
+        path = _get_source_code_path(
             sam_metadata_attributes,
             "resource_address",
             "/project/root/dir",
@@ -1197,7 +1354,7 @@ class TestPrepareHook(TestCase):
                 "source_code_property": source_code_property,
             }
         with self.assertRaises(InvalidSamMetadataPropertiesException, msg=exception_message):
-            _get_lambda_function_source_code_path(
+            _get_source_code_path(
                 sam_metadata_attributes,
                 "resource_address",
                 "/project/root/dir",
@@ -1284,7 +1441,7 @@ class TestPrepareHook(TestCase):
     @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_lambda_function_source_code_path")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_source_code_path")
     def test_enrich_resources_and_generate_makefile_zip_functions(
         self,
         mock_get_lambda_function_source_code_path,
@@ -1392,8 +1549,85 @@ class TestPrepareHook(TestCase):
     @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_layer_matches_metadata_type")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_source_code_path")
+    def test_enrich_resources_and_generate_makefile_layers(
+        self,
+        mock_get_lambda_layer_source_code_path,
+        mock_validate_referenced_resource_layer_matches_sam_metadata_type,
+        mock_get_relevant_cfn_resource,
+        mock_generate_makefile_rule_for_lambda_resource,
+        mock_generate_makefile,
+        mock_get_python_command_name,
+    ):
+        mock_get_python_command_name.return_value = "python"
+        mock_get_lambda_layer_source_code_path.side_effect = ["src/code/path1"]
+        lambda_layer = {
+            "Type": AWS_LAMBDA_LAYERVERSION,
+            "Properties": {
+                **self.expected_cfn_layer_common_properties,
+                "Content": "file.zip",
+            },
+            "Metadata": {"SamResourceId": f"aws_lambda_layer_version.{self.lambda_layer_name}", "SkipBuild": True},
+        }
+        cfn_resources = {
+            "logical_id1": lambda_layer,
+        }
+        mock_get_relevant_cfn_resource.side_effect = [
+            (lambda_layer, "logical_id1"),
+        ]
+        sam_metadata_resources = [
+            SamMetadataResource(current_module_address=None, resource=self.tf_lambda_layer_resource_zip_sam_metadata),
+        ]
+
+        expected_layer = {
+            "Type": AWS_LAMBDA_LAYERVERSION,
+            "Properties": {
+                **self.expected_cfn_layer_common_properties,
+                "Content": "src/code/path1",
+            },
+            "Metadata": {
+                "SamResourceId": f"aws_lambda_layer_version.{self.lambda_layer_name}",
+                "SkipBuild": False,
+                "BuildMethod": "makefile",
+                "ContextPath": "/output/dir",
+                "WorkingDirectory": "/terraform/project/root",
+                "ProjectRootDirectory": "/terraform/project/root",
+            },
+        }
+
+        expected_cfn_resources = {
+            "logical_id1": expected_layer,
+        }
+
+        makefile_rules = [Mock() for _ in sam_metadata_resources]
+        mock_generate_makefile_rule_for_lambda_resource.side_effect = makefile_rules
+
+        _enrich_resources_and_generate_makefile(
+            sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root"
+        )
+        self.assertEqual(cfn_resources, expected_cfn_resources)
+
+        mock_generate_makefile_rule_for_lambda_resource.assert_has_calls(
+            [
+                call(
+                    sam_metadata_resources[i],
+                    list(expected_cfn_resources.keys())[i],
+                    "/terraform/project/root",
+                    "python",
+                )
+                for i in range(len(sam_metadata_resources))
+            ]
+        )
+
+        mock_generate_makefile.assert_called_once_with(makefile_rules, "/output/dir")
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_python_command_name")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile_rule_for_lambda_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_lambda_function_source_code_path")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_source_code_path")
     @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_image_lambda_function")
     @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_zip_lambda_function")
     def test_enrich_resources_and_generate_makefile_mock_enrich_zip_functions(
@@ -1480,7 +1714,7 @@ class TestPrepareHook(TestCase):
 
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_lambda_function_source_code_path")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_source_code_path")
     def test_enrich_mapped_resource_zip_function(
         self,
         mock_get_lambda_function_source_code_path,
@@ -1525,12 +1759,59 @@ class TestPrepareHook(TestCase):
         )
         self.assertEqual(zip_function_1, expected_zip_function_1)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_source_code_path")
+    def test_enrich_mapped_resource_zip_layer(
+        self,
+        mock_get_lambda_layer_source_code_path,
+        mock_validate_referenced_resource_matches_sam_metadata_type,
+        mock_get_relevant_cfn_resource,
+    ):
+        mock_get_lambda_layer_source_code_path.side_effect = ["src/code/path1", "src/code/path2"]
+        lambda_layer_1 = {
+            "Type": AWS_LAMBDA_LAYERVERSION,
+            "Properties": {
+                **self.expected_cfn_layer_common_properties,
+                "Content": "file.zip",
+            },
+            "Metadata": {"SamResourceId": f"aws_lambda_layer_version.lambda_layer", "SkipBuild": True},
+        }
+        mock_get_relevant_cfn_resource.side_effect = [
+            (lambda_layer_1, "logical_id1"),
+        ]
+
+        expected_lambda_layer_1 = {
+            "Type": AWS_LAMBDA_LAYERVERSION,
+            "Properties": {
+                **self.expected_cfn_layer_common_properties,
+                "Content": "src/code/path1",
+            },
+            "Metadata": {
+                "SamResourceId": "aws_lambda_layer_version.lambda_layer",
+                "SkipBuild": False,
+                "BuildMethod": "makefile",
+                "ContextPath": "/output/dir",
+                "WorkingDirectory": "/terraform/project/root",
+                "ProjectRootDirectory": "/terraform/project/root",
+            },
+        }
+
+        _enrich_lambda_layer(
+            self.tf_lambda_layer_resource_zip_sam_metadata,
+            lambda_layer_1,
+            "logical_id1",
+            "/terraform/project/root",
+            "/output/dir",
+        )
+        self.assertEquals(lambda_layer_1, expected_lambda_layer_1)
+
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_python_command_name")
     @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_lambda_function_source_code_path")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_source_code_path")
     def test_enrich_resources_and_generate_makefile_image_functions(
         self,
         mock_get_lambda_function_source_code_path,
@@ -1615,7 +1896,7 @@ class TestPrepareHook(TestCase):
 
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_lambda_function_source_code_path")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_source_code_path")
     def test_enrich_mapped_resource_image_function(
         self,
         mock_get_lambda_function_source_code_path,
@@ -1677,7 +1958,7 @@ class TestPrepareHook(TestCase):
     @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_lambda_function_source_code_path")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_source_code_path")
     @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_image_lambda_function")
     @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_zip_lambda_function")
     def test_enrich_resources_and_generate_makefile_mock_enrich_image_functions(
@@ -1755,7 +2036,7 @@ class TestPrepareHook(TestCase):
     )
     @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_lambda_function_source_code_path")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_source_code_path")
     def test_enrich_mapped_resource_image_function_invalid_docker_args(
         self,
         docker_args_value,
@@ -2067,6 +2348,25 @@ class TestPrepareHook(TestCase):
                 "Type": "AWS::Lambda::Function",
                 "Properties": {"Code": relative_path, "Timeout": 10, "Handler": "app.func"},
             },
+            "S3Layer": {
+                "Type": "AWS::Lambda::LayerVersion",
+                "Properties": {
+                    "Content": {
+                        "S3Bucket": "s3_bucket_name",
+                        "S3Key": "s3_key_name",
+                    },
+                    "CompatibleRuntimes": ["nodejs14.x", "nodejs16.x"],
+                    "CompatibleArchitectures": ["arm64"],
+                },
+            },
+            "LayerRelativePath": {
+                "Type": "AWS::Lambda::LayerVersion",
+                "Properties": {
+                    "Content": relative_path,
+                    "CompatibleRuntimes": ["nodejs14.x", "nodejs16.x"],
+                    "CompatibleArchitectures": ["arm64"],
+                },
+            },
             "OtherResource1": {
                 "Type": "AWS::Lambda::NotFunction",
                 "Properties": {"Code": relative_path, "Timeout": 10, "Handler": "app.func"},
@@ -2091,6 +2391,25 @@ class TestPrepareHook(TestCase):
             "RelativeResource1": {
                 "Type": "AWS::Lambda::Function",
                 "Properties": {"Code": updated_relative_path, "Timeout": 10, "Handler": "app.func"},
+            },
+            "S3Layer": {
+                "Type": "AWS::Lambda::LayerVersion",
+                "Properties": {
+                    "Content": {
+                        "S3Bucket": "s3_bucket_name",
+                        "S3Key": "s3_key_name",
+                    },
+                    "CompatibleRuntimes": ["nodejs14.x", "nodejs16.x"],
+                    "CompatibleArchitectures": ["arm64"],
+                },
+            },
+            "LayerRelativePath": {
+                "Type": "AWS::Lambda::LayerVersion",
+                "Properties": {
+                    "Content": updated_relative_path,
+                    "CompatibleRuntimes": ["nodejs14.x", "nodejs16.x"],
+                    "CompatibleArchitectures": ["arm64"],
+                },
             },
             "OtherResource1": {
                 "Type": "AWS::Lambda::NotFunction",
