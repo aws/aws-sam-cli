@@ -1621,6 +1621,7 @@ class TestPrepareHook(TestCase):
                     list(expected_cfn_resources.keys())[i],
                     "/terraform/project/root",
                     "python",
+                    "/output/dir",
                 )
                 for i in range(len(sam_metadata_resources))
             ]
