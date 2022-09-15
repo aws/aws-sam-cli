@@ -190,11 +190,11 @@ class TestSyncWatchEsbuildBase(TestSyncWatchBase):
 @parameterized_class(
     [{"runtime": "python", "dependency_layer": True}, {"runtime": "python", "dependency_layer": False}]
 )
-class TestSyncCodeInfra(TestSyncWatchBase):
+class TestSyncWatchInfra(TestSyncWatchBase):
     @classmethod
     def setUpClass(cls):
         cls.template_before = f"infra/template-{cls.runtime}-before.yaml"
-        super(TestSyncCodeInfra, cls).setUpClass()
+        super(TestSyncWatchInfra, cls).setUpClass()
 
     def test_sync_watch_infra(self):
 
@@ -414,3 +414,57 @@ class TestSyncWatchCodeEsbuild(TestSyncWatchEsbuildBase):
             lambda_response = json.loads(self._get_lambda_response(lambda_function))
             self.assertIn("extra_message", lambda_response)
             self.assertEqual(lambda_response.get("message"), "Hello world!")
+
+
+class TestSyncWatchUseContainer(TestSyncWatchBase):
+    @classmethod
+    def setUpClass(cls):
+        super(TestSyncWatchBase, cls).setUpClass()
+        cls.use_container = True
+        cls.dependency_layer = False
+
+    def _verify_infra_changes(self, resources):
+        # Lambda
+        lambda_functions = resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "9")
+
+
+class TestSyncWatchInfraUseContainer(TestSyncWatchUseContainer):
+    template_before = f"infra/template-python-before.yaml"
+
+    def test_sync_watch_infra(self):
+        self.update_file(
+            self.test_dir.joinpath(f"infra/template-python-after.yaml"),
+            self.test_dir.joinpath(f"infra/template-python-before.yaml"),
+        )
+
+        read_until_string(self.watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n", timeout=600)
+
+        # Updated Infra Validation
+        self.stack_resources = self._get_stacks(self.stack_name)
+        self._verify_infra_changes(self.stack_resources)
+
+
+class TestSyncWatchCodeUseContainer(TestSyncWatchUseContainer):
+    template_before = str(Path("code", "before", "template-python.yaml"))
+
+    def test_sync_watch_code(self):
+        self.stack_resources = self._get_stacks(self.stack_name)
+
+        # Test Lambda Function
+        self.update_file(
+            self.test_dir.joinpath("code", "after", "function", "requirements.txt"),
+            self.test_dir.joinpath("code", "before", "function", "requirements.txt"),
+        )
+        read_until_string(
+            self.watch_process, "\x1b[32mFinished syncing Lambda Function HelloWorldFunction.\x1b[0m\n", timeout=45
+        )
+
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "7")
