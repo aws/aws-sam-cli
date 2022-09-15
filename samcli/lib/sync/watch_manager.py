@@ -52,6 +52,7 @@ class WatchManager:
         package_context: "PackageContext",
         deploy_context: "DeployContext",
         auto_dependency_layer: bool,
+        skip_infra_syncs: bool,
     ):
         """Manager for sync watch execution logic.
         This manager will observe template and its code resources.
@@ -74,6 +75,7 @@ class WatchManager:
         self._package_context = package_context
         self._deploy_context = deploy_context
         self._auto_dependency_layer = auto_dependency_layer
+        self._skip_infra_syncs = skip_infra_syncs
 
         self._sync_flow_factory = None
         self._sync_flow_executor = ContinuousSyncFlowExecutor()
@@ -138,6 +140,11 @@ class WatchManager:
 
     def _execute_infra_context(self) -> None:
         """Execute infrastructure sync"""
+        if self._skip_infra_syncs:
+            LOG.info(self._color.yellow("Infra sync is skipped since current session is running with code only. "
+                                        "If you face any issues during sync, please remove --code flag to continue "
+                                        "running infra sync."))
+            return
         self._build_context.set_up()
         self._build_context.run()
         self._package_context.run()

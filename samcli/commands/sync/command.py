@@ -90,14 +90,12 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
     is_flag=True,
     help="Sync code resources. This includes Lambda Functions, API Gateway, and Step Functions.",
     cls=ClickMutex,
-    incompatible_params=["watch"],
 )
 @click.option(
     "--watch",
     is_flag=True,
     help="Watch local files and automatically sync with remote.",
     cls=ClickMutex,
-    incompatible_params=["code"],
 )
 @click.option(
     "--resource-id",
@@ -331,7 +329,12 @@ def do_cli(
                     with SyncContext(dependency_layer, build_context.build_dir, build_context.cache_dir):
                         if watch:
                             execute_watch(
-                                template_file, build_context, package_context, deploy_context, dependency_layer
+                                template_file,
+                                build_context,
+                                package_context,
+                                deploy_context,
+                                dependency_layer,
+                                code
                             )
                         elif code:
                             execute_code_sync(
@@ -416,6 +419,7 @@ def execute_watch(
     package_context: "PackageContext",
     deploy_context: "DeployContext",
     auto_dependency_layer: bool,
+    skip_infra_syncs: bool,
 ):
     """Start sync watch execution
 
@@ -430,7 +434,9 @@ def execute_watch(
     deploy_context : DeployContext
         DeployContext
     """
-    watch_manager = WatchManager(template, build_context, package_context, deploy_context, auto_dependency_layer)
+    watch_manager = WatchManager(
+        template, build_context, package_context, deploy_context, auto_dependency_layer, skip_infra_syncs
+    )
     watch_manager.start()
 
 
