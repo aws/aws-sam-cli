@@ -17,7 +17,7 @@ The AWS Serverless Application Model (SAM) CLI is an open-source CLI tool that h
 - **Sync and test your changes in the cloud** with `sam sync` in your developer environments
 - **Deploy** your SAM and CloudFormation templates using `sam deploy`
 - Quickly **create pipelines** with prebuilt templates with popular CI/CD systems using `sam pipeline init`
-- **Tail CloudWatch logs and X-Ray traces** with `sam log` and `sam trace`
+- **Tail CloudWatch logs and X-Ray traces** with `sam logs` and `sam traces`
 
 
 ## Recent blogposts and workshops
