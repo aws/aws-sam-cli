@@ -1,4 +1,5 @@
 """Test Terraform prepare hook"""
+from pathlib import Path
 from subprocess import CalledProcessError
 from unittest import TestCase
 from unittest import mock
@@ -2499,6 +2500,7 @@ class TestPrepareHook(TestCase):
 
         mock_copy_terraform_built_artifacts_script_path = Mock()
         mock_makefile_path = Mock()
+        mock_os.path.dirname.return_value = ""
         mock_os.path.join.side_effect = [mock_copy_terraform_built_artifacts_script_path, mock_makefile_path]
 
         mock_makefile = Mock()
@@ -2612,7 +2614,7 @@ class TestPrepareHook(TestCase):
         expected_makefile_rule_regex = (
             r"^build-function_logical_id:(\n|\r\n)"
             r"\tterraform apply -target null_resource\.sam_metadata_aws_lambda_function -auto-approve(\n|\r\n)"
-            r"\tterraform show -json \| python \.aws-sam\/output\/copy_terraform_built_artifacts\.py "
+            r"\tterraform show -json \| python .+ "
             r'\|planned_values\|root_module\|resources\[\?address=="null_resource\.sam_metadata_aws_lambda_function"\]'
             r"\|values\|triggers\|built_output_path \$\(ARTIFACTS_DIR\) \/some\/dir\/path(\n|\r\n)"
         )
@@ -2627,8 +2629,9 @@ class TestPrepareHook(TestCase):
             sam_metadata_resource=sam_metadata_resource,
             terraform_application_dir="/some/dir/path",
         )
+        script_path = Path(".aws-sam", "output", "copy_terraform_built_artifacts.py")
         expected_show_command = (
-            "terraform show -json | python .aws-sam/output/copy_terraform_built_artifacts.py "
+            f"terraform show -json | python {script_path} "
             '|planned_values|root_module|resources[?address=="null_resource.sam_metadata_aws_lambda_function"]'
             "|values|triggers|built_output_path $(ARTIFACTS_DIR) /some/dir/path"
         )
