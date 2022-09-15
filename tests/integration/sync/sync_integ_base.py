@@ -231,6 +231,7 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         tags=None,
         metadata=None,
         debug=None,
+        use_container=False,
     ):
         command_list = [get_sam_command(), "sync"]
 
@@ -285,5 +286,7 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
             command_list += ["--metadata", json.dumps(metadata)]
         if debug:
             command_list += ["--debug"]
+        if use_container:
+            command_list += ["--use-container"]
 
         return command_list
