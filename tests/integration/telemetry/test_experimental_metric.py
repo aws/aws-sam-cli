@@ -67,8 +67,6 @@ class TestExperimentalMetric(IntegBase):
                             "duration": ANY,
                             "exitReason": ANY,
                             "exitCode": ANY,
-                            "stackTrace": ANY,
-                            "exceptionMessage": ANY,
                         }
                     }
                 ]
@@ -126,8 +124,6 @@ class TestExperimentalMetric(IntegBase):
                             "duration": ANY,
                             "exitReason": ANY,
                             "exitCode": ANY,
-                            "stackTrace": ANY,
-                            "exceptionMessage": ANY,
                         }
                     }
                 ]
@@ -193,8 +189,6 @@ class TestExperimentalMetric(IntegBase):
                             "duration": ANY,
                             "exitReason": ANY,
                             "exitCode": ANY,
-                            "stackTrace": ANY,
-                            "exceptionMessage": ANY,
                         }
                     }
                 ]
@@ -241,8 +235,6 @@ class TestExperimentalMetric(IntegBase):
                             "duration": ANY,
                             "exitReason": ANY,
                             "exitCode": ANY,
-                            "stackTrace": ANY,
-                            "exceptionMessage": ANY,
                         }
                     }
                 ]
