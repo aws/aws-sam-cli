@@ -919,16 +919,16 @@ def _generate_makefile_rule_for_lambda_resource(
     target = _get_makefile_build_target(logical_id)
     resource_address = sam_metadata_resource.resource.get("address", "")
     apply_command_template = "terraform apply -target {resource_address} -auto-approve"
-    apply_command = _get_makefile_build_target_rule(apply_command_template.format(resource_address=resource_address))
-    show_command = _get_makefile_build_target_rule(
-        _build_show_command_rule(
+    apply_command_recipe = _format_makefile_recipe(apply_command_template.format(resource_address=resource_address))
+    show_command_recipe = _format_makefile_recipe(
+        _build_show_command(
             python_command_name, output_dir, resource_address, sam_metadata_resource, terraform_application_dir
         )
     )
-    return f"{target}{apply_command}{show_command}"
+    return f"{target}{apply_command_recipe}{show_command_recipe}"
 
 
-def _build_show_command_rule(
+def _build_show_command(
     python_command_name: str,
     output_dir: str,
     resource_address: str,
@@ -936,18 +936,18 @@ def _build_show_command_rule(
     terraform_application_dir: str,
 ) -> str:
     """
-    Build the Terraform show command to be used inside of the Makefile rule
+    Build the Terraform show command recipe to be used inside of the Makefile rule
 
     Parameters
     ----------
     python_command_name: str
-        the python command name to use for running a script in the makefile rule
+        the python command name to use for running a script in the makefile recipe
     output_dir: str
         the directory into which the Makefile is written
     resource_address: str
         Address of a given terraform resource
     sam_metadata_resource: SamMetadataResource
-        A sam metadata resource; the generated makefile rule will correspond to building the lambda resource
+        A sam metadata resource; the generated show command recipe will correspond to building the lambda resource
         associated with this sam metadata resource
     terraform_application_dir: str
         the terraform project root directory
@@ -959,7 +959,7 @@ def _build_show_command_rule(
     """
     show_command_template = (
         "terraform show -json | {python_command_name} {terraform_built_artifacts_script_path} "
-        '--expression "{jpath_string}" --directory $(ARTIFACTS_DIR) --terraform-project-root {project_root_dir}'
+        '--expression "{jpath_string}" --directory "$(ARTIFACTS_DIR)" --terraform-project-root "{project_root_dir}"'
     )
     jpath_string = _build_jpath_string(sam_metadata_resource, resource_address)
     terraform_built_artifacts_script_path = Path(output_dir, TERRAFORM_BUILD_SCRIPT).relative_to(
@@ -981,7 +981,8 @@ def _build_jpath_string(sam_metadata_resource: SamMetadataResource, resource_add
     Parameters
     ----------
     sam_metadata_resource: SamMetadataResource
-       Full address of a Terraform resource
+        A sam metadata resource; the generated recipe jpath will correspond to building the lambda resource
+        associated with this sam metadata resource
 
     resource_address: str
         Full address of a Terraform resource
@@ -992,21 +993,19 @@ def _build_jpath_string(sam_metadata_resource: SamMetadataResource, resource_add
        Full JPath string for a resource from planned_values to build_output_path
     """
     jpath_string_template = (
-        "|planned_values|root_module{child_modules}|resources|"
+        "|values|root_module{child_modules}|resources|"
         '[?address=="{resource_address}"]|values|triggers|built_output_path'
     )
     child_modules_template = "|child_modules[?address=={module_address}]"
     module_address = sam_metadata_resource.current_module_address
     full_module_path = ""
-    if module_address:
-        parent_modules = _get_parent_modules(module_address)
-        if parent_modules:
-            for module in parent_modules:
-                full_module_path += child_modules_template.format(module_address=module)
+    parent_modules = _get_parent_modules(module_address)
+    for module in parent_modules:
+        full_module_path += child_modules_template.format(module_address=module)
     return jpath_string_template.format(child_modules=full_module_path, resource_address=resource_address)
 
 
-def _get_parent_modules(module_address: str) -> Optional[List[str]]:
+def _get_parent_modules(module_address: Optional[str]) -> List[str]:
     """
     Convert an a full Terraform resource address to a list of module
     addresses from the root module to the current module
@@ -1021,11 +1020,11 @@ def _get_parent_modules(module_address: str) -> Optional[List[str]]:
 
     Returns
     -------
-    Optional[List[str]]
+    List[str]
        List of module addresses starting from the root module to the current module
     """
     if not module_address:
-        return None
+        return []
 
     # Split the address on "." then combine it back with the "module" prefix for each module name
     modules = module_address.split(".")
@@ -1058,7 +1057,7 @@ def _get_makefile_build_target(logical_id: str) -> str:
     return f"build-{logical_id}:\n"
 
 
-def _get_makefile_build_target_rule(rule_string: str) -> str:
+def _format_makefile_recipe(rule_string: str) -> str:
     """
     Formats the Makefile rule string as is needed by the Makefile
 
