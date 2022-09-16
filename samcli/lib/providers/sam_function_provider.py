@@ -620,6 +620,7 @@ class SamFunctionProvider(SamBaseProvider):
             layer = outputs.get(layer).get("Value")
             LOG.debug("Layer found in Output section, try to search it in current stack %s", stack.stack_path)
 
+        layer_reference = None
         # if the layer is in format {Ref:LayerName}, it is passed from the parent stack through parameter or is a
         # reference to the layer in current stack
         if isinstance(layer, dict) and layer.get("Ref"):
@@ -650,12 +651,16 @@ class SamFunctionProvider(SamBaseProvider):
 
         # If the layer reference is not in the stack's parameters section, it must be a layer reference in current stack
         parameters: Dict = stack.template_dict.get("Parameters", {})
-        if not parameters or layer_reference not in parameters:
+        if not parameters or (layer_reference and layer_reference not in parameters):
             LOG.debug("Resolved layer: %s in current stack %s", layer_reference, stack.stack_path)
             # layer reference should be in current stack
-            resolve_layer = SamFunctionProvider._locate_layer_from_ref(
-                stack, layer, use_raw_codeuri, ignore_code_extraction_warnings
-            )
+            try:
+                resolve_layer = SamFunctionProvider._locate_layer_from_ref(
+                    stack, layer, use_raw_codeuri, ignore_code_extraction_warnings
+                )
+            except InvalidLayerReference:
+                LOG.debug("Layer reference (%s) can't be located in the template", layer)
+                return None
             return resolve_layer
 
         # search in parent stack

@@ -17,6 +17,7 @@ from samcli.commands._utils.options import (
     tags_option,
     stack_name_option,
     base_dir_option,
+    use_container_build_option,
     image_repository_option,
     image_repositories_option,
     s3_prefix_option,
@@ -119,6 +120,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 )
 @stack_name_option(required=True)  # pylint: disable=E1120
 @base_dir_option
+@use_container_build_option
 @image_repository_option
 @image_repositories_option
 @s3_bucket_option(disable_callback=True)  # pylint: disable=E1120
@@ -161,6 +163,7 @@ def cli(
     notification_arns: Optional[List[str]],
     tags: dict,
     metadata: dict,
+    use_container: bool,
     config_file: str,
     config_env: str,
 ) -> None:
@@ -193,6 +196,7 @@ def cli(
         notification_arns,
         tags,
         metadata,
+        use_container,
         config_file,
         config_env,
     )  # pragma: no cover
@@ -221,6 +225,7 @@ def do_cli(
     notification_arns: Optional[List[str]],
     tags: dict,
     metadata: dict,
+    use_container: bool,
     config_file: str,
     config_env: str,
 ) -> None:
@@ -240,6 +245,14 @@ def do_cli(
     if dependency_layer is True:
         dependency_layer = check_enable_dependency_layer(template_file)
 
+    # Note: ADL with use-container is not supported yet. Remove this logic once its supported.
+    if use_container and dependency_layer:
+        LOG.info(
+            "Note: Automatic Dependency Layer is not yet supported with use-container. \
+            sam sync will be run without Automatic Dependency Layer."
+        )
+        dependency_layer = False
+
     build_dir = DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER if dependency_layer else DEFAULT_BUILD_DIR
     LOG.debug("Using build directory as %s", build_dir)
     EventTracker.track_event("UsedFeature", "Accelerate")
@@ -251,7 +264,7 @@ def do_cli(
         build_dir=build_dir,
         cache_dir=DEFAULT_CACHE_DIR,
         clean=True,
-        use_container=False,
+        use_container=use_container,
         cached=True,
         parallel=True,
         parameter_overrides=parameter_overrides,
