@@ -996,7 +996,7 @@ def _build_jpath_string(sam_metadata_resource: SamMetadataResource, resource_add
         "|values|root_module{child_modules}|resources|"
         '[?address=="{resource_address}"]|values|triggers|built_output_path'
     )
-    child_modules_template = "|child_modules[?address=={module_address}]"
+    child_modules_template = "|child_modules|[?address=={module_address}]"
     module_address = sam_metadata_resource.current_module_address
     full_module_path = ""
     parent_modules = _get_parent_modules(module_address)
@@ -1029,6 +1029,11 @@ def _get_parent_modules(module_address: Optional[str]) -> List[str]:
     # Split the address on "." then combine it back with the "module" prefix for each module name
     modules = module_address.split(".")
     modules = [".".join(modules[i : i + 2]) for i in range(0, len(modules), 2)]
+
+    if not modules:
+        # The format of the address was somehow different than we expected from the
+        # module.<name>.module.<child_module_name>
+        return []
 
     # Prefix each nested module name with the previous
     previous_module = modules[0]

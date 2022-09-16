@@ -82,7 +82,7 @@ class HookPackageIdOption(click.Option):
                 LOG.info("Running Prepare Hook to prepare the current application")
 
                 iac_project_path = os.getcwd()
-                output_dir_path = os.path.join(iac_project_path, ".aws-sam", "iacs_metadata")
+                output_dir_path = os.path.join(iac_project_path, ".aws-sam-iacs", "iacs_metadata")
                 if not os.path.exists(output_dir_path):
                     os.makedirs(output_dir_path, exist_ok=True)
                 debug = opts.get("debug", False)

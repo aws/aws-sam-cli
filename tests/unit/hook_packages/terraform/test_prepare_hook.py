@@ -2664,12 +2664,12 @@ class TestPrepareHook(TestCase):
             ),
             (
                 "module.level1_lambda",
-                "|values|root_module|child_modules[?address==module.level1_lambda]|resources|"
+                "|values|root_module|child_modules|[?address==module.level1_lambda]|resources|"
                 '[?address=="null_resource.sam_metadata_aws_lambda_function"]|values|triggers|built_output_path',
             ),
             (
                 "module.level1_lambda.module.level2_lambda",
-                "|values|root_module|child_modules[?address==module.level1_lambda]|child_modules"
+                "|values|root_module|child_modules|[?address==module.level1_lambda]|child_modules|"
                 "[?address==module.level1_lambda.module.level2_lambda]|resources|[?address=="
                 '"null_resource.sam_metadata_aws_lambda_function"]|values|triggers|built_output_path',
             ),
