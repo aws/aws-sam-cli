@@ -185,6 +185,7 @@ class TestNestedStackManager(TestCase):
         )
 
         patched_shutil.rmtree.assert_called_with(layer_root_folder)
+        layer_root_folder.mkdir.assert_called_with(BUILD_DIR_PERMISSIONS, parents=True)
         layer_contents_folder.mkdir.assert_called_with(BUILD_DIR_PERMISSIONS, parents=True)
         patched_osutils.copytree.assert_called_with(dependencies_dir, str(layer_contents_folder))
         patched_add_layer_readme.assert_called_with(str(layer_root_folder), function_logical_id)
@@ -215,7 +216,10 @@ class TestNestedStackManager(TestCase):
         NestedStackManager.update_layer_folder(
             build_dir, dependencies_dir, layer_logical_id, function_logical_id, function_runtime
         )
+        layer_root_folder.mkdir.assert_called_with(BUILD_DIR_PERMISSIONS, parents=True)
+        layer_contents_folder.mkdir.assert_not_called()
         patched_osutils.copytree.assert_not_called()
+        patched_add_layer_readme.assert_called_with(str(layer_root_folder), function_logical_id)
 
     @parameterized.expand([("python3.8", True), ("ruby2.7", False)])
     def test_is_runtime_supported(self, runtime, supported):
