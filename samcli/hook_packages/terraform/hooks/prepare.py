@@ -959,7 +959,7 @@ def _build_show_command_rule(
     """
     show_command_template = (
         "terraform show -json | {python_command_name} {terraform_built_artifacts_script_path} "
-        "--expression {jpath_string} --directory $(ARTIFACTS_DIR) --terraform-project-root {project_root_dir}"
+        '--expression "{jpath_string}" --directory $(ARTIFACTS_DIR) --terraform-project-root {project_root_dir}'
     )
     jpath_string = _build_jpath_string(sam_metadata_resource, resource_address)
     terraform_built_artifacts_script_path = Path(output_dir, TERRAFORM_BUILD_SCRIPT).relative_to(
