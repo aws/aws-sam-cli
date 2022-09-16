@@ -959,7 +959,7 @@ def _build_show_command_rule(
     """
     show_command_template = (
         "terraform show -json | {python_command_name} {terraform_built_artifacts_script_path} "
-        "{jpath_string} $(ARTIFACTS_DIR) {project_root_dir}"
+        "--expression {jpath_string} --directory $(ARTIFACTS_DIR) --terraform-project-root {project_root_dir}"
     )
     jpath_string = _build_jpath_string(sam_metadata_resource, resource_address)
     terraform_built_artifacts_script_path = Path(output_dir, TERRAFORM_BUILD_SCRIPT).relative_to(
@@ -992,7 +992,7 @@ def _build_jpath_string(sam_metadata_resource: SamMetadataResource, resource_add
        Full JPath string for a resource from planned_values to build_output_path
     """
     jpath_string_template = (
-        "|planned_values|root_module{child_modules}|resources"
+        "|planned_values|root_module{child_modules}|resources|"
         '[?address=="{resource_address}"]|values|triggers|built_output_path'
     )
     child_modules_template = "|child_modules[?address=={module_address}]"
