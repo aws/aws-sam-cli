@@ -4,6 +4,8 @@ Tests the InvokeContext class
 import errno
 import os
 
+from parameterized import parameterized
+
 from samcli.commands._utils.template import TemplateFailedParsingException
 from samcli.commands.local.cli_common.invoke_context import (
     InvokeContext,
@@ -86,7 +88,7 @@ class TestInvokeContext__enter__(TestCase):
         self.assertEqual(invoke_context._invoke_images, {None: "image"})
 
         invoke_context._get_stacks.assert_called_once()
-        SamFunctionProviderMock.assert_called_with(stacks)
+        SamFunctionProviderMock.assert_called_with(stacks, True)
         self.assertEqual(invoke_context._global_parameter_overrides, {"AWS::Region": "region"})
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
         self.assertEqual(invoke_context._get_env_vars_value.call_args_list, [call(env_vars_file), call(None)])
@@ -172,7 +174,9 @@ class TestInvokeContext__enter__(TestCase):
         self.assertEqual(invoke_context._invoke_images, {None: "image"})
 
         invoke_context._get_stacks.assert_called_once()
-        RefreshableSamFunctionProviderMock.assert_called_with(stacks, parameter_overrides, global_parameter_overrides)
+        RefreshableSamFunctionProviderMock.assert_called_with(
+            stacks, parameter_overrides, global_parameter_overrides, True
+        )
         self.assertEqual(invoke_context._global_parameter_overrides, global_parameter_overrides)
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
         self.assertEqual(invoke_context._get_env_vars_value.call_args_list, [call(env_vars_file), call(None)])
@@ -259,7 +263,9 @@ class TestInvokeContext__enter__(TestCase):
         self.assertEqual(invoke_context._invoke_images, {None: "image"})
 
         invoke_context._get_stacks.assert_called_once()
-        RefreshableSamFunctionProviderMock.assert_called_with(stacks, parameter_overrides, global_parameter_overrides)
+        RefreshableSamFunctionProviderMock.assert_called_with(
+            stacks, parameter_overrides, global_parameter_overrides, True
+        )
         self.assertEqual(invoke_context._global_parameter_overrides, global_parameter_overrides)
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
         self.assertEqual(
@@ -344,7 +350,9 @@ class TestInvokeContext__enter__(TestCase):
         self.assertEqual(invoke_context._invoke_images, {None: "image"})
 
         invoke_context._get_stacks.assert_called_once()
-        RefreshableSamFunctionProviderMock.assert_called_with(stacks, parameter_overrides, global_parameter_overrides)
+        RefreshableSamFunctionProviderMock.assert_called_with(
+            stacks, parameter_overrides, global_parameter_overrides, True
+        )
         self.assertEqual(invoke_context._global_parameter_overrides, global_parameter_overrides)
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
         self.assertEqual(invoke_context._get_env_vars_value.call_args_list, [call(env_vars_file), call(None)])
@@ -420,6 +428,34 @@ class TestInvokeContext__enter__(TestCase):
         get_buildable_stacks_mock.side_effect = TemplateFailedParsingException("")
         with self.assertRaises(TemplateFailedParsingException) as ex_ctx:
             invoke_context.__enter__()
+
+    @parameterized.expand(
+        [
+            (None, "/my/cool/path", True),
+            ("LAZY", "/my/cool/path", True),
+            (None, None, False),
+        ]
+    )
+    @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider._extract_functions")
+    @patch("samcli.lib.utils.file_observer.SingletonFileObserver.start")
+    def test_docker_volume_basedir_set_use_raw_codeuri(
+        self, container_mode, docker_volume_basedir, expected, observer_mock, extract_func_mock
+    ):
+        invoke_context = InvokeContext(
+            "template",
+            warm_container_initialization_mode=container_mode,
+            docker_volume_basedir=docker_volume_basedir,
+            shutdown=True,
+        )
+
+        invoke_context._initialize_all_functions_containers = Mock()
+        invoke_context._get_container_manager = Mock(return_value=Mock())
+        invoke_context._get_debug_context = Mock(return_value=Mock())
+        invoke_context._get_stacks = Mock(return_value=[])
+
+        invoke_context.__enter__()
+
+        extract_func_mock.assert_called_with([], expected, False, False)
 
 
 class TestInvokeContext__exit__(TestCase):

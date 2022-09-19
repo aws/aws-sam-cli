@@ -7,8 +7,7 @@ from functools import wraps, reduce
 import uuid
 import platform
 import logging
-import traceback
-from typing import Optional, Tuple
+from typing import Optional
 
 import click
 
@@ -118,8 +117,6 @@ def track_command(func):
         return_value = None
         exit_reason = "success"
         exit_code = 0
-        stack_trace = None
-        exception_message = None
 
         duration_fn = _timer()
         try:
@@ -136,14 +133,12 @@ def track_command(func):
                 exit_reason = type(ex).__name__
             else:
                 exit_reason = ex.wrapped_from
-            stack_trace, exception_message = _get_stack_trace_info(ex)
 
         except Exception as ex:
             exception = ex
             # Standard Unix practice to return exit code 255 on fatal/unhandled exit.
             exit_code = 255
             exit_reason = type(ex).__name__
-            stack_trace, exception_message = _get_stack_trace_info(ex)
 
         try:
             ctx = Context.get_current_context()
@@ -162,17 +157,17 @@ def track_command(func):
             metric.add_data("debugFlagProvided", bool(ctx.debug))
             metric.add_data("region", ctx.region or "")
             metric.add_data("commandName", ctx.command_path)  # Full command path. ex: sam local start-api
-            # Project metadata metrics
-            metric_specific_attributes["gitOrigin"] = get_git_remote_origin_url()
-            metric_specific_attributes["projectName"] = get_project_name()
-            metric_specific_attributes["initialCommit"] = get_initial_commit_hash()
+            if not ctx.command_path.endswith("init") or ctx.command_path.endswith("pipeline init"):
+                # Project metadata
+                # We don't capture below usage attributes for sam init as the command is not run inside a project
+                metric_specific_attributes["gitOrigin"] = get_git_remote_origin_url()
+                metric_specific_attributes["projectName"] = get_project_name()
+                metric_specific_attributes["initialCommit"] = get_initial_commit_hash()
             metric.add_data("metricSpecificAttributes", metric_specific_attributes)
             # Metric about command's execution characteristics
             metric.add_data("duration", duration_fn())
             metric.add_data("exitReason", exit_reason)
             metric.add_data("exitCode", exit_code)
-            metric.add_data("stackTrace", stack_trace)
-            metric.add_data("exceptionMessage", exception_message)
             EventTracker.send_events()  # Sends Event metrics to Telemetry before commandRun metrics
             telemetry.emit(metric)
         except RuntimeError:
@@ -183,62 +178,6 @@ def track_command(func):
         return return_value
 
     return wrapped
-
-
-def _get_stack_trace_info(exception: Exception) -> Tuple[str, str]:
-    """
-    Takes an Exception instance and extracts the following:
-      1. Stack trace in a readable string format with user-sensitive paths cleaned
-      2. Exception mesage including the fully-qualified exception name and value
-
-    Parameters
-    ----------
-    exception : Exception
-        Exception instance
-
-    Returns
-    -------
-    (str, str)
-        (stack trace, exception message)
-    """
-    tb_exception = traceback.TracebackException.from_exception(exception)
-    _clean_stack_summary_paths(tb_exception.stack)
-    stack_trace = "".join(list(tb_exception.format()))
-    exception_msg = list(tb_exception.format_exception_only())[-1]
-
-    return (stack_trace, exception_msg)
-
-
-def _clean_stack_summary_paths(stack_summary: traceback.StackSummary) -> None:
-    """
-    Cleans the user-sensitive paths contained within a StackSummary instance
-
-    Parameters
-    ----------
-    stack_summary : traceback.StackSummary
-        StackSummary instance
-    """
-    for frame in stack_summary:
-        path = frame.filename
-        separator = "\\" if "\\" in path else "/"
-
-        # Case 1: If "site-packages" is found within path, replace its leading segment with: /../ or \..\
-        # i.e. /python3.8/site-packages/boto3/test.py becomes /../site-packages/boto3/test.py
-        site_packages_idx = path.rfind("site-packages")
-        if site_packages_idx != -1:
-            frame.filename = f"{separator}..{separator}{path[site_packages_idx:]}"
-            continue
-
-        # Case 2: If "samcli" is found within path, do the same replacement as previous
-        samcli_idx = path.rfind("samcli")
-        if samcli_idx != -1:
-            frame.filename = f"{separator}..{separator}{path[samcli_idx:]}"
-            continue
-
-        # Case 3: Keep only the last file within the path, and do the same replacement as previous
-        path_split = path.split(separator)
-        if len(path_split) > 0:
-            frame.filename = f"{separator}..{separator}{path_split[-1]}"
 
 
 def _timer():
