@@ -396,13 +396,17 @@ class Container:
             Stream writer to write stderr data from the Container into
         """
 
-        # Iterator returns a tuple of (stdout, stderr)
-        for stdout_data, stderr_data in output_itr:
-            if stdout_data and stdout:
-                stdout.write(stdout_data)
+        # following iterator might throw an exception (see: https://github.com/aws/aws-sam-cli/issues/4222)
+        try:
+            # Iterator returns a tuple of (stdout, stderr)
+            for stdout_data, stderr_data in output_itr:
+                if stdout_data and stdout:
+                    stdout.write(stdout_data)
 
-            if stderr_data and stderr:
-                stderr.write(stderr_data)
+                if stderr_data and stderr:
+                    stderr.write(stderr_data)
+        except Exception as ex:
+            LOG.debug("Failed to get the logs from the container", exc_info=ex)
 
     @property
     def network_id(self):

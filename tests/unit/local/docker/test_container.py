@@ -682,6 +682,19 @@ class TestContainer_wait_for_result(TestCase):
 
         self.assertEqual(mock_requests.post.call_count, 0)
 
+    def test_write_container_output_successful(self):
+        stdout_mock = Mock()
+        stderr_mock = Mock()
+
+        def _output_iterator():
+            yield "Hello", None
+            yield None, "World"
+            raise ValueError("The pipe has been ended.")
+
+        Container._write_container_output(_output_iterator(), stdout_mock, stderr_mock)
+        stdout_mock.assert_has_calls([call.write("Hello")])
+        stderr_mock.assert_has_calls([call.write("World")])
+
 
 class TestContainer_wait_for_logs(TestCase):
     def setUp(self):
