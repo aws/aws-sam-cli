@@ -29,6 +29,21 @@ _SAM_CLI_COMMAND_PACKAGES = [
     # "samcli.commands.bootstrap",
 ]
 
+_SAM_CLI_COMMAND_SHORT_HELP = {
+    "init": "Init an AWS SAM application",
+    "validate": "Validate an AWS SAM template",
+    "build": "Build your Lambda Function code",
+    "local": "Run your serverless function locally",
+    "package": "Package an AWS SAM application",
+    "deploy": "Deploy an AWS SAM application",
+    "delete": "Delete an AWS SAM application and the artifacts created by sam deploy",
+    "logs": "Fetch logs for a function",
+    "publish": "Publish a packaged AWS SAM template to AWS Serverless Application Repository",
+    "traces": "Fetch AWS X-Ray traces",
+    "sync": "Sync a project to AWS",
+    "pipeline": "Manage the continuous delivery of the application",
+}
+
 
 class BaseCommand(click.MultiCommand):
     """
@@ -110,14 +125,23 @@ class BaseCommand(click.MultiCommand):
 
         pkg_name = self._commands[cmd_name]
 
+        mod = None
         try:
-            mod = importlib.import_module(pkg_name)
+            if ctx.obj:
+                # NOTE(sriram-mv): Only attempt to import if a relevant `aws sam cli` context has been set.
+                # `aws sam cli` context is only set after the `samcli.cli.main:cli` has been executed.
+                mod = importlib.import_module(pkg_name)
         except ImportError:
             logger.exception("Command '%s' is not configured correctly. Unable to import '%s'", cmd_name, pkg_name)
             return None
 
-        if not hasattr(mod, "cli"):
-            logger.error("Command %s is not configured correctly. It must expose an function called 'cli'", cmd_name)
-            return None
+        if mod is not None:
+            if not hasattr(mod, "cli"):
+                logger.error(
+                    "Command %s is not configured correctly. It must expose an function called 'cli'", cmd_name
+                )
+                return None
 
-        return mod.cli
+        return (
+            mod.cli if mod else click.Command(name=cmd_name, short_help=_SAM_CLI_COMMAND_SHORT_HELP.get(cmd_name, ""))
+        )
