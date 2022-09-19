@@ -6,20 +6,16 @@ import threading
 from subprocess import Popen, PIPE
 import os
 import logging
-import random
 from pathlib import Path
 
 import docker
 from docker.errors import APIError
 
+from tests.integration.local.common_utils import InvalidAddressException, random_port, wait_for_local_process
 from tests.testing_utils import kill_process
 from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS, run_command
 
 LOG = logging.getLogger(__name__)
-
-
-class InvalidAddressException(Exception):
-    pass
 
 
 @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
@@ -72,13 +68,17 @@ class StartApiIntegBaseClass(TestCase):
     @classmethod
     def start_api_with_retry(cls, retries=3):
         retry_count = 0
-        for i in range(retries):
-            cls.port = str(StartApiIntegBaseClass.random_port())
+        while retry_count < retries:
+            cls.port = str(random_port())
             try:
                 cls.start_api()
             except InvalidAddressException:
-                if retry_count == retries:
-                    raise ValueError("Ran out of retires attempting to start api")
+                retry_count += 1
+                continue
+            break
+
+        if retry_count == retries:
+            raise ValueError("Ran out of retries attempting to start api")
 
     @classmethod
     def start_api(cls):
@@ -103,16 +103,7 @@ class StartApiIntegBaseClass(TestCase):
 
         cls.start_api_process = Popen(command_list, stderr=PIPE)
 
-        while True:
-            line = cls.start_api_process.stderr.readline()
-            line_as_str = str(line.decode("utf-8")).strip()
-            if line_as_str:
-                LOG.info(f"{line_as_str}")
-            if "Address already in use" in line_as_str:
-                LOG.info(f"Attempted to start port on {cls.port} but it is already in use, restarting on a new port.")
-                raise InvalidAddressException()
-            if "(Press CTRL+C to quit)" in line_as_str:
-                break
+        wait_for_local_process(cls.start_api_process, cls.port)
 
         cls.stop_reading_thread = False
 
@@ -132,11 +123,6 @@ class StartApiIntegBaseClass(TestCase):
         # After all the tests run, we need to kill the start-api process.
         cls.stop_reading_thread = True
         kill_process(cls.start_api_process)
-
-    @staticmethod
-    def random_port():
-        yield 3000
-        yield random.randint(30000, 40000)
 
     @staticmethod
     def get_binary_data(filename):

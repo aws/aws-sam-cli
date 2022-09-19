@@ -5,13 +5,13 @@ from unittest import TestCase, skipIf
 import threading
 from subprocess import Popen, PIPE
 import os
-import random
 import logging
 from pathlib import Path
 
 import docker
 from docker.errors import APIError
 
+from tests.integration.local.common_utils import random_port, InvalidAddressException, wait_for_local_process
 from tests.testing_utils import (
     SKIP_DOCKER_TESTS,
     SKIP_DOCKER_MESSAGE,
@@ -41,7 +41,6 @@ class StartLambdaIntegBaseClass(TestCase):
         # This is the directory for tests/integration which will be used to file the testdata
         # files for integ tests
         cls.template = cls.integration_dir + cls.template_path
-        cls.port = str(StartLambdaIntegBaseClass.random_port())
         cls.env_var_path = cls.integration_dir + "/testdata/invoke/vars.json"
 
         if cls.build_before_invoke:
@@ -55,7 +54,7 @@ class StartLambdaIntegBaseClass(TestCase):
             except APIError as ex:
                 LOG.error("Failed to remove container %s", container, exc_info=ex)
 
-        cls.start_lambda()
+        cls.start_lambda_with_retry()
 
     @classmethod
     def build(cls):
@@ -72,7 +71,22 @@ class StartLambdaIntegBaseClass(TestCase):
         run_command(command_list, cwd=working_dir)
 
     @classmethod
-    def start_lambda(cls, wait_time=5):
+    def start_lambda_with_retry(cls, retries=3):
+        retry_count = 0
+        while retry_count < retries:
+            cls.port = str(random_port())
+            try:
+                cls.start_lambda()
+            except InvalidAddressException:
+                retry_count += 1
+                continue
+            break
+
+        if retry_count == retries:
+            raise ValueError("Ran out of retries attempting to start lambda")
+
+    @classmethod
+    def start_lambda(cls):
         command = "sam"
         if os.getenv("SAM_CLI_DEV"):
             command = "samdev"
@@ -100,10 +114,7 @@ class StartLambdaIntegBaseClass(TestCase):
 
         cls.start_lambda_process = Popen(command_list, stderr=PIPE)
 
-        while True:
-            line = cls.start_lambda_process.stderr.readline()
-            if "(Press CTRL+C to quit)" in str(line):
-                break
+        wait_for_local_process(cls.start_lambda_process, cls.port)
 
         cls.stop_reading_thread = False
 
@@ -123,10 +134,6 @@ class StartLambdaIntegBaseClass(TestCase):
         # After all the tests run, we need to kill the start_lambda process.
         cls.stop_reading_thread = True
         kill_process(cls.start_lambda_process)
-
-    @staticmethod
-    def random_port():
-        return random.randint(30000, 40000)
 
 
 class WatchWarmContainersIntegBaseClass(StartLambdaIntegBaseClass):
