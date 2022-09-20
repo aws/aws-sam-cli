@@ -40,7 +40,8 @@ class TestValidateCli(TestCase):
     @patch("samcli.commands.validate.lib.sam_template_validator.SamTemplateValidator")
     @patch("samcli.commands.validate.validate.click")
     @patch("samcli.commands.validate.validate._read_sam_file")
-    def test_template_fails_validation(self, read_sam_file_patch, click_patch, template_valiadator):
+    @patch("boto3.client")
+    def test_template_fails_validation(self, patched_boto, read_sam_file_patch, click_patch, template_valiadator):
         template_path = "path_to_template"
         read_sam_file_patch.return_value = {"a": "b"}
 
@@ -54,7 +55,8 @@ class TestValidateCli(TestCase):
     @patch("samcli.commands.validate.lib.sam_template_validator.SamTemplateValidator")
     @patch("samcli.commands.validate.validate.click")
     @patch("samcli.commands.validate.validate._read_sam_file")
-    def test_no_credentials_provided(self, read_sam_file_patch, click_patch, template_valiadator):
+    @patch("boto3.client")
+    def test_no_credentials_provided(self, patched_boto, read_sam_file_patch, click_patch, template_valiadator):
         template_path = "path_to_template"
         read_sam_file_patch.return_value = {"a": "b"}
 
@@ -68,7 +70,8 @@ class TestValidateCli(TestCase):
     @patch("samcli.commands.validate.lib.sam_template_validator.SamTemplateValidator")
     @patch("samcli.commands.validate.validate.click")
     @patch("samcli.commands.validate.validate._read_sam_file")
-    def test_template_passes_validation(self, read_sam_file_patch, click_patch, template_valiadator):
+    @patch("boto3.client")
+    def test_template_passes_validation(self, patched_boto, read_sam_file_patch, click_patch, template_valiadator):
         template_path = "path_to_template"
         read_sam_file_patch.return_value = {"a": "b"}
 

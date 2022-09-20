@@ -10,17 +10,27 @@ from samcli.lib.observability.cw_logs.cw_log_event import CWLogEvent
 from samcli.lib.observability.cw_logs.cw_log_puller import CWLogPuller
 from samcli.lib.utils.time import to_timestamp, to_datetime
 
+LOG_CLIENT = botocore.session.get_session().create_client("logs", region_name="us-east-1")
 
-class TestCWLogPuller_load_time_period(TestCase):
+
+class TestCWLogPullerBase(TestCase):
+
+    real_client = None
+
+    @classmethod
+    def setUpClass(cls):
+        cls.real_client = LOG_CLIENT
+        cls.client_stubber = Stubber(cls.real_client)
+
+
+class TestCWLogPuller_load_time_period(TestCWLogPullerBase):
     def setUp(self):
         self.log_group_name = "name"
         self.stream_name = "stream name"
         self.timestamp = to_timestamp(datetime.utcnow())
 
-        real_client = botocore.session.get_session().create_client("logs", region_name="us-east-1")
-        self.client_stubber = Stubber(real_client)
         self.consumer = Mock()
-        self.fetcher = CWLogPuller(real_client, self.consumer, self.log_group_name)
+        self.fetcher = CWLogPuller(self.real_client, self.consumer, self.log_group_name)
 
         self.mock_api_response = {
             "events": [
@@ -160,7 +170,7 @@ class TestCWLogPuller_load_time_period(TestCase):
                 self.assertIn(event, call_args)
 
 
-class TestCWLogPuller_tail(TestCase):
+class TestCWLogPuller_tail(TestCWLogPullerBase):
     def setUp(self):
         self.log_group_name = "name"
         self.filter_pattern = "pattern"
@@ -168,11 +178,9 @@ class TestCWLogPuller_tail(TestCase):
         self.max_retries = 3
         self.poll_interval = 1
 
-        real_client = botocore.session.get_session().create_client("logs", region_name="us-east-1")
-        self.client_stubber = Stubber(real_client)
         self.consumer = Mock()
         self.fetcher = CWLogPuller(
-            real_client,
+            self.real_client,
             self.consumer,
             self.log_group_name,
             max_retries=self.max_retries,
