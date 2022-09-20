@@ -6,7 +6,7 @@ from unittest.mock import Mock, call, patch, MagicMock
 import copy
 from parameterized import parameterized
 
-from samcli.hook_packages.terraform.hooks.prepare import (
+from samcli.hook_packages.terraform.hooks.prepare.hook import (
     AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING,
     AWS_PROVIDER_NAME,
     prepare,
@@ -801,7 +801,7 @@ class TestPrepareHook(TestCase):
             ),
         ]
     )
-    @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.str_checksum")
     def test_build_cfn_logical_id(self, tf_address, expected_logical_id_human_part, checksum_mock):
         checksum_mock.return_value = self.mock_logical_id_hash
 
@@ -907,7 +907,7 @@ class TestPrepareHook(TestCase):
         )
         self.assertEqual(translated_cfn_properties, self.expected_cfn_function_properties_with_missing_or_none)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_s3_object_hash")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_s3_object_hash")
     def test_map_s3_sources_to_functions(self, mock_get_s3_object_hash):
         mock_get_s3_object_hash.side_effect = ["hash1", "hash2"]
 
@@ -941,7 +941,7 @@ class TestPrepareHook(TestCase):
         )
         self.assertEqual(cfn_resources, expected_cfn_resources_after_mapping_s3_sources)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_s3_object_hash")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_s3_object_hash")
     def test_map_s3_sources_to_layers(self, mock_get_s3_object_hash):
         mock_get_s3_object_hash.side_effect = ["hash1"]
 
@@ -965,7 +965,7 @@ class TestPrepareHook(TestCase):
         )
         self.assertEqual(cfn_resources, expected_cfn_resources_after_mapping_s3_sources)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_resources_and_generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
     def test_translate_to_cfn_empty(self, mock_enrich_resources_and_generate_makefile):
         expected_empty_cfn_dict = {"AWSTemplateFormatVersion": "2010-09-09", "Resources": {}}
 
@@ -986,24 +986,24 @@ class TestPrepareHook(TestCase):
             self.assertEqual(translated_cfn_dict, expected_empty_cfn_dict)
             mock_enrich_resources_and_generate_makefile.assert_not_called()
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_resources_and_generate_makefile")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.str_checksum")
     def test_translate_to_cfn_with_root_module_only(self, checksum_mock, mock_enrich_resources_and_generate_makefile):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(self.tf_json_with_root_module_only, self.output_dir, self.project_root)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_root_module_only)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_resources_and_generate_makefile")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.str_checksum")
     def test_translate_to_cfn_with_child_modules(self, checksum_mock, mock_enrich_resources_and_generate_makefile):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(self.tf_json_with_child_modules, self.output_dir, self.project_root)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_child_modules)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_resources_and_generate_makefile")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.str_checksum")
     def test_translate_to_cfn_with_root_module_with_sam_metadata_resource(
         self, checksum_mock, mock_enrich_resources_and_generate_makefile
     ):
@@ -1033,8 +1033,8 @@ class TestPrepareHook(TestCase):
 
         mock_enrich_resources_and_generate_makefile.assert_called_once_with(*expected_arguments_in_call)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_resources_and_generate_makefile")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.str_checksum")
     def test_translate_to_cfn_with_child_modules_with_sam_metadata_resource(
         self, checksum_mock, mock_enrich_resources_and_generate_makefile
     ):
@@ -1077,8 +1077,8 @@ class TestPrepareHook(TestCase):
 
         mock_enrich_resources_and_generate_makefile.assert_called_once_with(*expected_arguments_in_call)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_resources_and_generate_makefile")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.str_checksum")
     def test_translate_to_cfn_with_unsupported_provider(
         self, checksum_mock, mock_enrich_resources_and_generate_makefile
     ):
@@ -1089,8 +1089,8 @@ class TestPrepareHook(TestCase):
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_unsupported_provider)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_resources_and_generate_makefile")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.str_checksum")
     def test_translate_to_cfn_with_unsupported_resource_type(
         self, checksum_mock, mock_enrich_resources_and_generate_makefile
     ):
@@ -1101,8 +1101,8 @@ class TestPrepareHook(TestCase):
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_unsupported_resource_type)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_resources_and_generate_makefile")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.str_checksum")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.str_checksum")
     def test_translate_to_cfn_with_mapping_s3_source_to_function(
         self, checksum_mock, mock_enrich_resources_and_generate_makefile
     ):
@@ -1221,7 +1221,7 @@ class TestPrepareHook(TestCase):
             (["src/code/path", "/src/code/path2"], "None", "src/code/path", False),
         ]
     )
-    @patch("samcli.hook_packages.terraform.hooks.prepare.os")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.os")
     def test_get_lambda_function_source_code_path_valid_metadata_resource(
         self, original_source_code, source_code_property, expected_path, is_abs, mock_os
     ):
@@ -1335,7 +1335,7 @@ class TestPrepareHook(TestCase):
             ),
         ]
     )
-    @patch("samcli.hook_packages.terraform.hooks.prepare.os")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.os")
     def test_get_lambda_function_source_code_path_invalid_metadata_resources(
         self, original_source_code, source_code_property, does_exist, exception_message, mock_os
     ):
@@ -1368,7 +1368,7 @@ class TestPrepareHook(TestCase):
                 "source code",
             )
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare._build_cfn_logical_id")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._build_cfn_logical_id")
     def test_get_relevant_cfn_resource(self, mock_build_cfn_logical_id):
         sam_metadata_resource = SamMetadataResource(
             current_module_address="module.mymodule1",
@@ -1413,7 +1413,7 @@ class TestPrepareHook(TestCase):
             ),
         ]
     )
-    @patch("samcli.hook_packages.terraform.hooks.prepare._build_cfn_logical_id")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._build_cfn_logical_id")
     def test_get_relevant_cfn_resource_exceptions(
         self, resource_name, module_name, build_logical_id_output, exception_message, mock_build_cfn_logical_id
     ):
@@ -1441,12 +1441,12 @@ class TestPrepareHook(TestCase):
         with self.assertRaises(InvalidSamMetadataPropertiesException, msg=exception_message):
             _get_relevant_cfn_resource(sam_metadata_resource, cfn_resources)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_python_command_name")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile_rule_for_lambda_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_source_code_path")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_python_command_name")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._generate_makefile_rule_for_lambda_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_relevant_cfn_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._validate_referenced_resource_matches_sam_metadata_type")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_source_code_path")
     def test_enrich_resources_and_generate_makefile_zip_functions(
         self,
         mock_get_lambda_function_source_code_path,
@@ -1551,12 +1551,14 @@ class TestPrepareHook(TestCase):
 
         mock_generate_makefile.assert_called_once_with(makefile_rules, "/output/dir")
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_python_command_name")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile_rule_for_lambda_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_layer_matches_metadata_type")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_source_code_path")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_python_command_name")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._generate_makefile_rule_for_lambda_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_relevant_cfn_resource")
+    @patch(
+        "samcli.hook_packages.terraform.hooks.prepare.hook._validate_referenced_resource_layer_matches_metadata_type"
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_source_code_path")
     def test_enrich_resources_and_generate_makefile_layers(
         self,
         mock_get_lambda_layer_source_code_path,
@@ -1629,14 +1631,14 @@ class TestPrepareHook(TestCase):
 
         mock_generate_makefile.assert_called_once_with(makefile_rules, "/output/dir")
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_python_command_name")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile_rule_for_lambda_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_source_code_path")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_image_lambda_function")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_zip_lambda_function")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_python_command_name")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._generate_makefile_rule_for_lambda_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_relevant_cfn_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._validate_referenced_resource_matches_sam_metadata_type")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_source_code_path")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_image_lambda_function")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_zip_lambda_function")
     def test_enrich_resources_and_generate_makefile_mock_enrich_zip_functions(
         self,
         mock_enrich_zip_lambda_function,
@@ -1725,9 +1727,9 @@ class TestPrepareHook(TestCase):
 
         mock_generate_makefile.assert_called_once_with(makefile_rules, "/output/dir")
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_source_code_path")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_relevant_cfn_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._validate_referenced_resource_matches_sam_metadata_type")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_source_code_path")
     def test_enrich_mapped_resource_zip_function(
         self,
         mock_get_lambda_function_source_code_path,
@@ -1772,9 +1774,9 @@ class TestPrepareHook(TestCase):
         )
         self.assertEqual(zip_function_1, expected_zip_function_1)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_source_code_path")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_relevant_cfn_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._validate_referenced_resource_matches_sam_metadata_type")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_source_code_path")
     def test_enrich_mapped_resource_zip_layer(
         self,
         mock_get_lambda_layer_source_code_path,
@@ -1819,12 +1821,12 @@ class TestPrepareHook(TestCase):
         )
         self.assertEquals(lambda_layer_1, expected_lambda_layer_1)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_python_command_name")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile_rule_for_lambda_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_source_code_path")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_python_command_name")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._generate_makefile_rule_for_lambda_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_relevant_cfn_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._validate_referenced_resource_matches_sam_metadata_type")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_source_code_path")
     def test_enrich_resources_and_generate_makefile_image_functions(
         self,
         mock_get_lambda_function_source_code_path,
@@ -1913,9 +1915,9 @@ class TestPrepareHook(TestCase):
 
         mock_generate_makefile.assert_called_once_with(makefile_rules, "/output/dir")
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_source_code_path")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_relevant_cfn_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._validate_referenced_resource_matches_sam_metadata_type")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_source_code_path")
     def test_enrich_mapped_resource_image_function(
         self,
         mock_get_lambda_function_source_code_path,
@@ -1972,14 +1974,14 @@ class TestPrepareHook(TestCase):
         )
         self.assertEqual(image_function_1, expected_image_function_1)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_python_command_name")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._generate_makefile_rule_for_lambda_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_source_code_path")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_image_lambda_function")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._enrich_zip_lambda_function")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_python_command_name")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._generate_makefile_rule_for_lambda_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_relevant_cfn_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._validate_referenced_resource_matches_sam_metadata_type")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_source_code_path")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_image_lambda_function")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_zip_lambda_function")
     def test_enrich_resources_and_generate_makefile_mock_enrich_image_functions(
         self,
         mock_enrich_zip_lambda_function,
@@ -2059,9 +2061,9 @@ class TestPrepareHook(TestCase):
             ('"ABCDEFG"',),
         ]
     )
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_relevant_cfn_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._validate_referenced_resource_matches_sam_metadata_type")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_source_code_path")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_relevant_cfn_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._validate_referenced_resource_matches_sam_metadata_type")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_source_code_path")
     def test_enrich_mapped_resource_image_function_invalid_docker_args(
         self,
         docker_args_value,
@@ -2114,7 +2116,7 @@ class TestPrepareHook(TestCase):
                 sam_metadata_resource, image_function_1, "logical_id1", "/terraform/project/root", "/output/dir"
             )
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_python_command_name")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_python_command_name")
     def test_enrich_resources_and_generate_makefile_invalid_source_type(
         self,
         mock_get_python_command_name,
@@ -2168,13 +2170,13 @@ class TestPrepareHook(TestCase):
                 sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root"
             )
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare._update_resources_paths")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._translate_to_cfn")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._update_resources_paths")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._translate_to_cfn")
     @patch("builtins.open")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.osutils.tempfile_platform_independent")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.os")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.json")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.run")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.osutils.tempfile_platform_independent")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.os")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.json")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.run")
     def test_prepare(
         self,
         mock_subprocess_run,
@@ -2233,13 +2235,13 @@ class TestPrepareHook(TestCase):
         mock_update_resources_paths.assert_called_once_with(mock_cfn_dict_resources, "iac/project/path")
         self.assertEqual(expected_prepare_output_dict, iac_prepare_output)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare._update_resources_paths")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._translate_to_cfn")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._update_resources_paths")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._translate_to_cfn")
     @patch("builtins.open")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.osutils.tempfile_platform_independent")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.os")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.json")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.run")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.osutils.tempfile_platform_independent")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.os")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.json")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.run")
     def test_prepare_with_relative_paths(
         self,
         mock_subprocess_run,
@@ -2315,17 +2317,17 @@ class TestPrepareHook(TestCase):
         mock_update_resources_paths.assert_called_once_with(mock_cfn_dict_resources, "/current/dir/iac/project/path")
         self.assertEqual(expected_prepare_output_dict, iac_prepare_output)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.run")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.run")
     def test_prepare_with_called_process_error(self, mock_subprocess_run):
         mock_subprocess_run.side_effect = CalledProcessError(-2, "terraform init")
         with self.assertRaises(PrepareHookException):
             prepare(self.prepare_params)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare._translate_to_cfn")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.osutils.tempfile_platform_independent")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.os")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.json")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.run")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._translate_to_cfn")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.osutils.tempfile_platform_independent")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.os")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.json")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.run")
     def test_prepare_with_os_error(
         self, mock_subprocess_run, mock_json, mock_os, named_temporary_file_mock, mock_translate_to_cfn
     ):
@@ -2338,8 +2340,8 @@ class TestPrepareHook(TestCase):
         with self.assertRaises(PrepareHookException, msg="OutputDirPath was not supplied"):
             prepare({})
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.os")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.Path")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.os")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.Path")
     def test_update_resources_paths(self, mock_path, mock_os):
         abs_path = "/abs/path/value"
         relative_path = "relative/path/value"
@@ -2486,8 +2488,8 @@ class TestPrepareHook(TestCase):
 
     @parameterized.expand([(True,), (False,)])
     @patch("builtins.open")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.shutil")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.os")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.shutil")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.os")
     def test_generate_makefile(
         self,
         output_dir_exists,
@@ -2548,7 +2550,7 @@ class TestPrepareHook(TestCase):
             ),
         ]
     )
-    @patch("samcli.hook_packages.terraform.hooks.prepare.run")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.run")
     def test_get_python_command_name(self, mock_run_side_effect, expected_python_command, mock_subprocess_run):
         mock_subprocess_run.side_effect = mock_run_side_effect
 
@@ -2591,7 +2593,7 @@ class TestPrepareHook(TestCase):
             ),
         ]
     )
-    @patch("samcli.hook_packages.terraform.hooks.prepare.run")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.run")
     def test_get_python_command_name_python_not_found(self, mock_run_side_effect, mock_subprocess_run):
         mock_subprocess_run.side_effect = mock_run_side_effect
 
@@ -2599,8 +2601,8 @@ class TestPrepareHook(TestCase):
         with self.assertRaises(PrepareHookException, msg=expected_error_msg):
             _get_python_command_name()
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare._get_makefile_build_target")
-    @patch("samcli.hook_packages.terraform.hooks.prepare._format_makefile_recipe")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_makefile_build_target")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._format_makefile_recipe")
     def test_generate_makefile_rule_for_lambda_resource(self, format_recipe_mock, get_build_target_mock):
         format_recipe_mock.side_effect = [
             "\tterraform apply -target null_resource.sam_metadata_aws_lambda_function -auto-approve\n",
@@ -2630,7 +2632,7 @@ class TestPrepareHook(TestCase):
         )
         self.assertEqual(makefile_rule, expected_makefile_rule)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare._build_jpath_string")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._build_jpath_string")
     def test_build_show_command(self, jpath_string_mock):
         jpath_string_mock.return_value = (
             "|values|root_module|resources|"
