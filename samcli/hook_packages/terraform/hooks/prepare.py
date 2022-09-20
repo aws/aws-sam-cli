@@ -1059,7 +1059,7 @@ def _get_makefile_build_target(logical_id: str) -> str:
     str
         The formatted Makefile rule build target
     """
-    return f"build-{logical_id}:\n"
+    return f"build-{logical_id}:{os.linesep}"
 
 
 def _format_makefile_recipe(rule_string: str) -> str:
@@ -1076,7 +1076,7 @@ def _format_makefile_recipe(rule_string: str) -> str:
     str
         The formatted target rule
     """
-    return f"\t{rule_string}\n"
+    return f"\t{rule_string}{os.linesep}"
 
 
 def _translate_properties(tf_properties: dict, property_builder_mapping: PropertyBuilderMapping) -> dict:
