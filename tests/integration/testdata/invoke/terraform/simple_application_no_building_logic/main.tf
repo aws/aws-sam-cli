@@ -59,6 +59,25 @@ resource "aws_lambda_function" "root_lambda" {
         role = aws_iam_role.iam_for_lambda.arn
 }
 
+resource "null_resource" "sam_metadata_aws_lambda_function_s3_lambda" {
+  triggers = {
+    # This is a way to let SAM CLI correlates between the Lambda layer resource, and this metadata
+    # resource
+    resource_name = "aws_lambda_function.s3_lambda"
+    resource_type = "ZIP_LAMBDA_FUNCTION"
+
+    # The Lambda layer source code.
+    original_source_code = "./src/test.py"
+    
+    # a property to let SAM CLI knows where to find the Lambda layer source code if the provided
+    # value for original_source_code attribute is map.
+    source_code_property = "path"
+
+    # A property to let SAM CLI knows where to find the Lambda layer built output
+    built_output_path = "build/layer.zip"
+  }
+}
+
 resource "aws_lambda_layer_version" "lambda_layer" {
     s3_bucket = "layer_code_bucket"
     s3_key = "s3_lambda_layer_code_key"

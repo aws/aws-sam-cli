@@ -1,7 +1,7 @@
 """Test Terraform prepare hook"""
+from pathlib import Path
 from subprocess import CalledProcessError
 from unittest import TestCase
-from unittest import mock
 from unittest.mock import Mock, call, patch, MagicMock
 import copy
 from parameterized import parameterized
@@ -33,7 +33,12 @@ from samcli.hook_packages.terraform.hooks.prepare import (
     _generate_makefile,
     _get_python_command_name,
     _generate_makefile_rule_for_lambda_resource,
+    _get_makefile_build_target,
+    _get_parent_modules,
+    _build_jpath_string,
     _validate_referenced_resource_layer_matches_metadata_type,
+    _format_makefile_recipe,
+    _build_show_command,
 )
 from samcli.lib.hook.exceptions import PrepareHookException, InvalidSamMetadataPropertiesException
 from samcli.lib.utils.resources import (
@@ -1538,6 +1543,7 @@ class TestPrepareHook(TestCase):
                     list(expected_cfn_resources.keys())[i],
                     "/terraform/project/root",
                     "python",
+                    "/output/dir",
                 )
                 for i in range(len(sam_metadata_resources))
             ]
@@ -1615,6 +1621,7 @@ class TestPrepareHook(TestCase):
                     list(expected_cfn_resources.keys())[i],
                     "/terraform/project/root",
                     "python",
+                    "/output/dir",
                 )
                 for i in range(len(sam_metadata_resources))
             ]
@@ -1705,7 +1712,13 @@ class TestPrepareHook(TestCase):
 
         mock_generate_makefile_rule_for_lambda_resource.assert_has_calls(
             [
-                call(sam_metadata_resources[i], list(cfn_resources.keys())[i], "/terraform/project/root", "python")
+                call(
+                    sam_metadata_resources[i],
+                    list(cfn_resources.keys())[i],
+                    "/terraform/project/root",
+                    "python",
+                    "/output/dir",
+                )
                 for i in range(len(sam_metadata_resources))
             ]
         )
@@ -1887,7 +1900,13 @@ class TestPrepareHook(TestCase):
 
         mock_generate_makefile_rule_for_lambda_resource.assert_has_calls(
             [
-                call(sam_metadata_resources[i], list(cfn_resources.keys())[i], "/terraform/project/root", "python")
+                call(
+                    sam_metadata_resources[i],
+                    list(cfn_resources.keys())[i],
+                    "/terraform/project/root",
+                    "python",
+                    "/output/dir",
+                )
                 for i in range(len(sam_metadata_resources))
             ]
         )
@@ -2021,7 +2040,13 @@ class TestPrepareHook(TestCase):
 
         mock_generate_makefile_rule_for_lambda_resource.assert_has_calls(
             [
-                call(sam_metadata_resources[i], list(cfn_resources.keys())[i], "/terraform/project/root", "python")
+                call(
+                    sam_metadata_resources[i],
+                    list(cfn_resources.keys())[i],
+                    "/terraform/project/root",
+                    "python",
+                    "/output/dir",
+                )
                 for i in range(len(sam_metadata_resources))
             ]
         )
@@ -2474,6 +2499,7 @@ class TestPrepareHook(TestCase):
 
         mock_copy_terraform_built_artifacts_script_path = Mock()
         mock_makefile_path = Mock()
+        mock_os.path.dirname.return_value = ""
         mock_os.path.join.side_effect = [mock_copy_terraform_built_artifacts_script_path, mock_makefile_path]
 
         mock_makefile = Mock()
@@ -2572,3 +2598,117 @@ class TestPrepareHook(TestCase):
         expected_error_msg = "Python not found. Please ensure that python 3.7 or above is installed."
         with self.assertRaises(PrepareHookException, msg=expected_error_msg):
             _get_python_command_name()
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare._get_makefile_build_target")
+    @patch("samcli.hook_packages.terraform.hooks.prepare._format_makefile_recipe")
+    def test_generate_makefile_rule_for_lambda_resource(self, format_recipe_mock, get_build_target_mock):
+        format_recipe_mock.side_effect = [
+            "\tterraform apply -target null_resource.sam_metadata_aws_lambda_function -auto-approve\n",
+            "\tterraform show -json | python3 .aws-sam/iacs_metadata/copy_terraform_built_artifacts.py --expression "
+            '"|values|root_module|resources|[?address=="null_resource.sam_metadata_aws_lambda_function"]'
+            '|values|triggers|built_output_path" --directory "$(ARTIFACTS_DIR)" '
+            '--terraform-project-root "/some/dir/path"\n',
+        ]
+        get_build_target_mock.return_value = "build-function_logical_id:\n"
+        sam_metadata_resource = SamMetadataResource(
+            current_module_address=None, resource={"address": "null_resource.sam_metadata_aws_lambda_function"}
+        )
+        makefile_rule = _generate_makefile_rule_for_lambda_resource(
+            python_command_name="python",
+            output_dir="/some/dir/path/.aws-sam/output",
+            sam_metadata_resource=sam_metadata_resource,
+            terraform_application_dir="/some/dir/path",
+            logical_id="function_logical_id",
+        )
+        expected_makefile_rule = (
+            "build-function_logical_id:\n"
+            "\tterraform apply -target null_resource.sam_metadata_aws_lambda_function -auto-approve\n"
+            "\tterraform show -json | python3 .aws-sam/iacs_metadata/copy_terraform_built_artifacts.py "
+            '--expression "|values|root_module|resources|[?address=="null_resource.sam_metadata_aws_lambda_function"]'
+            '|values|triggers|built_output_path" --directory "$(ARTIFACTS_DIR)" '
+            '--terraform-project-root "/some/dir/path"\n'
+        )
+        self.assertEqual(makefile_rule, expected_makefile_rule)
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare._build_jpath_string")
+    def test_build_show_command(self, jpath_string_mock):
+        jpath_string_mock.return_value = (
+            "|values|root_module|resources|"
+            '[?address=="null_resource.sam_metadata_aws_lambda_function"]'
+            "|values|triggers|built_output_path"
+        )
+        sam_metadata_resource = SamMetadataResource(current_module_address=None, resource={})
+        show_command = _build_show_command(
+            python_command_name="python",
+            output_dir="/some/dir/path/.aws-sam/output",
+            resource_address="null_resource.sam_metadata_aws_lambda_function",
+            sam_metadata_resource=sam_metadata_resource,
+            terraform_application_dir="/some/dir/path",
+        )
+        script_path = Path(".aws-sam", "output", "copy_terraform_built_artifacts.py")
+        expected_show_command = (
+            f"terraform show -json | python {script_path} "
+            '--expression "|values|root_module|resources|'
+            '[?address=="null_resource.sam_metadata_aws_lambda_function"]'
+            '|values|triggers|built_output_path" --directory "$(ARTIFACTS_DIR)'
+            '" --terraform-project-root "/some/dir/path"'
+        )
+        self.assertEqual(show_command, expected_show_command)
+
+    @parameterized.expand(
+        [
+            (
+                None,
+                '|values|root_module|resources|[?address=="null_resource'
+                '.sam_metadata_aws_lambda_function"]|values|triggers|built_output_path',
+            ),
+            (
+                "module.level1_lambda",
+                "|values|root_module|child_modules|[?address==module.level1_lambda]|resources|"
+                '[?address=="null_resource.sam_metadata_aws_lambda_function"]|values|triggers|built_output_path',
+            ),
+            (
+                "module.level1_lambda.module.level2_lambda",
+                "|values|root_module|child_modules|[?address==module.level1_lambda]|child_modules|"
+                "[?address==module.level1_lambda.module.level2_lambda]|resources|[?address=="
+                '"null_resource.sam_metadata_aws_lambda_function"]|values|triggers|built_output_path',
+            ),
+        ]
+    )
+    def test_build_jpath_string(self, module_address, expected_jpath):
+        sam_metadata_resource = SamMetadataResource(current_module_address=module_address, resource={})
+        self.assertEqual(
+            _build_jpath_string(sam_metadata_resource, "null_resource.sam_metadata_aws_lambda_function"), expected_jpath
+        )
+
+    @parameterized.expand(
+        [
+            (None, []),
+            (
+                "module.level1_lambda",
+                ["module.level1_lambda"],
+            ),
+            (
+                "module.level1_lambda.module.level2_lambda",
+                ["module.level1_lambda", "module.level1_lambda.module.level2_lambda"],
+            ),
+            (
+                "module.level1_lambda.module.level2_lambda.module.level3_lambda",
+                [
+                    "module.level1_lambda",
+                    "module.level1_lambda.module.level2_lambda",
+                    "module.level1_lambda.module.level2_lambda.module.level3_lambda",
+                ],
+            ),
+        ]
+    )
+    def test_get_parent_modules(self, module_address, expected_list):
+        self.assertEqual(_get_parent_modules(module_address), expected_list)
+
+    def test_get_makefile_build_target(self):
+        output_string = _get_makefile_build_target("function_logical_id")
+        self.assertRegex(output_string, r"^build-function_logical_id:(\n|\r\n)$")
+
+    def test__format_makefile_recipe(self):
+        output_string = _format_makefile_recipe("terraform show -json | python3")
+        self.assertRegex(output_string, r"^\tterraform show -json \| python3(\n|\r\n)$")
