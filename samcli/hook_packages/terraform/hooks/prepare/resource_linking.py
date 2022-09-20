@@ -7,7 +7,7 @@ import re
 
 def _get_configuration_address(address: str) -> str:
     """
-    Cleans all addresses of indicies and returns a clean address
+    Cleans all addresses of indices and returns a clean address
 
     Parameters
     ==========
