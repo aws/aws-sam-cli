@@ -145,7 +145,7 @@ def prepare(params: dict) -> dict:
         )
         raise PrepareHookException("There was an error while preparing the Terraform application.") from e
     except OSError as e:
-        raise PrepareHookException(f"Unable to create directory {output_dir_path}") from e
+        raise PrepareHookException(f"OSError: {e}") from e
 
 
 def _update_resources_paths(cfn_resources: Dict[str, Any], terraform_application_dir: str) -> None:
@@ -803,7 +803,7 @@ def _generate_makefile(
 
     # copy copy_terraform_built_artifacts.py script into output directory
     copy_terraform_built_artifacts_script_path = os.path.join(
-        Path(os.path.dirname(__file__)).parent, TERRAFORM_BUILD_SCRIPT
+        Path(os.path.dirname(__file__)).parent.parent, TERRAFORM_BUILD_SCRIPT
     )
     shutil.copy(copy_terraform_built_artifacts_script_path, output_directory_path)
 
@@ -959,7 +959,7 @@ def _build_show_command(
     """
     show_command_template = (
         "terraform show -json | {python_command_name} {terraform_built_artifacts_script_path} "
-        '--expression "{jpath_string}" --directory "$(ARTIFACTS_DIR)" --terraform-project-root "{project_root_dir}"'
+        '--expression "{jpath_string}" --directory "$(ARTIFACTS_DIR)"'
     )
     jpath_string = _build_jpath_string(sam_metadata_resource, resource_address)
     terraform_built_artifacts_script_path = Path(output_dir, TERRAFORM_BUILD_SCRIPT).relative_to(
@@ -969,7 +969,6 @@ def _build_show_command(
         python_command_name=python_command_name,
         terraform_built_artifacts_script_path=terraform_built_artifacts_script_path,
         jpath_string=jpath_string,
-        project_root_dir=terraform_application_dir,
     )
 
 

@@ -216,26 +216,16 @@ if __name__ == "__main__":
         required=True,
         help="Directory to which extracted expression " "contents are copied/unzipped to",
     )
-    argparser.add_argument(
-        "--terraform-project-root",
-        type=str,
-        required=True,
-        default=None,
-        help="Extracted expression (path), if relative, will be relative to the provided terraform project root.",
-    )
 
     arguments = argparser.parse_args()
     directory_path = os.path.abspath(arguments.directory)
 
-    terraform_project_root = os.path.abspath(arguments.terraform_project_root)
+    terraform_project_root = os.getcwd()
     extracted_attribute_path = None
     data_object = None
 
     if not os.path.exists(directory_path) or not os.path.isdir(directory_path):
         LOG.error("Expected --directory to be a valid directory!")
-        cli_exit()
-    if not os.path.exists(terraform_project_root) or not os.path.isdir(terraform_project_root):
-        LOG.error("Expected --terraform-project-path to be a valid directory!")
         cli_exit()
 
     # Load and Parse
