@@ -29,11 +29,11 @@ def _clean_references_list(references: List[str]) -> List[str]:
         A copy of a cleaned list of reference strings
     """
     cleaned_references = []
-    references.sort(reverse=True)
+    copied_references = sorted(references, reverse=True)
     if not references:
         return []
-    cleaned_references.append(references[0])
-    for i in range(1, len(references)):
-        if not cleaned_references[-1].startswith(references[i]):
-            cleaned_references.append(references[i])
+    cleaned_references.append(copied_references[0])
+    for i in range(1, len(copied_references)):
+        if not cleaned_references[-1].startswith(copied_references[i]):
+            cleaned_references.append(copied_references[i])
     return cleaned_references
