@@ -36,6 +36,14 @@ class TestLayerLinking(TestCase):
                     "aws_lambda_layer_version.layer1[0].arn",
                 ],
             ),
+            (
+                [
+                    'aws_lambda_layer_version.layer1["key1"].arn',
+                    'aws_lambda_layer_version.layer1["key1"]',
+                    "aws_lambda_layer_version.layer1",
+                ],
+                ['aws_lambda_layer_version.layer1["key1"].arn']
+            ),
         ]
     )
     def test_clean_references_list(self, references, expected):
