@@ -19,14 +19,17 @@ class TFModule:
     full_address: Optional[str]
     parent_module: Optional["TFModule"]
     variables: Dict[str, TFValue]
-    resources: Dict[str, "TFResource"]
-    children_modules: Dict[str, "TFModule"]
+    resources: List["TFResource"]
+    child_modules: Dict[str, "TFModule"]
     outputs: Dict[str, TFValue]
 
     # current module's + all child modules' resources
     def get_all_resources(self) -> List["TFResource"]:
-        # TODO
-        pass
+        all_resources = self.resources.copy()
+        for _, module in self.child_modules.items():
+            all_resources += module.resources
+
+        return all_resources
 
 
 @dataclass
