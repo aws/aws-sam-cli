@@ -2652,8 +2652,7 @@ class TestPrepareHook(TestCase):
             f"terraform show -json | python {script_path} "
             '--expression "|values|root_module|resources|'
             '[?address=="null_resource.sam_metadata_aws_lambda_function"]'
-            '|values|triggers|built_output_path" --directory "$(ARTIFACTS_DIR)'
-            '" --terraform-project-root "/some/dir/path"'
+            '|values|triggers|built_output_path" --directory "$(ARTIFACTS_DIR)"'
         )
         self.assertEqual(show_command, expected_show_command)
 
