@@ -145,7 +145,6 @@ def prepare(params: dict) -> dict:
         )
         raise PrepareHookException("There was an error while preparing the Terraform application.") from e
     except OSError as e:
-        # raise PrepareHookException(f"Unable to create directory {output_dir_path}") from e
         raise PrepareHookException(f"OSError: {e}") from e
 
 
