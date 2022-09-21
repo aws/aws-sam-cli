@@ -21,6 +21,10 @@ class TestResourceLinking(TestCase):
                 'module.functions["get_function"].aws_lambda_function.this[0]',
                 "module.functions.aws_lambda_function.this",
             ),
+            (
+                "module.functions.aws_lambda_function.this",
+                "module.functions.aws_lambda_function.this",
+            ),
         ]
     )
     def test_get_configation_address(self, input_addr, expected_addr):
