@@ -31,8 +31,6 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
             str(self.directory),
             "--expression",
             self.expression,
-            "--terraform-project-root",
-            f"{str(self.testdata_directory)}",
         ]
         with open(self.input_file, "rb") as f:
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
@@ -53,8 +51,6 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
             str(self.directory),
             "--expression",
             self.expression,
-            "--terraform-project-root",
-            f"{str(self.testdata_directory)}",
         ]
         with open(input_zip_file, "rb") as f:
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
@@ -75,8 +71,6 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
             directory,
             "--expression",
             self.expression,
-            "--terraform-project-root",
-            f"{str(self.testdata_directory)}",
         ]
         with open(self.input_file, "rb") as f:
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
@@ -99,8 +93,6 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
             f"{str(self.directory)}",
             "--expression",
             expression,
-            "--terraform-project-root",
-            f"{str(self.testdata_directory)}",
         ]
         with open(self.input_file, "rb") as f:
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
@@ -123,8 +115,6 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
             f"{str(self.directory)}",
             "--expression",
             expression,
-            "--terraform-project-root",
-            f"{str(self.testdata_directory)}",
         ]
         with open(self.input_file, "rb") as f:
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
@@ -144,8 +134,6 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
             f"{str(directory)}",
             "--expression",
             self.expression,
-            "--terraform-project-root",
-            f"{str(self.testdata_directory)}",
         ]
         with open(self.input_file, "rb") as f:
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
@@ -164,8 +152,6 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
             f"{str(self.directory)}",
             "--expression",
             self.expression,
-            "--terraform-project-root",
-            f"{str(self.testdata_directory)}",
         ]
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         try:
@@ -183,8 +169,6 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
             f"{str(self.directory)}",
             "--expression",
             self.expression,
-            "--terraform-project-root",
-            f"{str(self.testdata_directory)}",
         ]
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         try:
@@ -193,24 +177,3 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
             process.kill()
             raise
         self.assertEqual(1, process.returncode)
-
-    def test_script_output_path_invalid_terraform_project_root(self):
-        command = [
-            f"{str(sys.executable)}",
-            f"{str(self.script_location)}",
-            "--directory",
-            f"{str(self.directory)}",
-            "--expression",
-            self.expression,
-            "--terraform-project-root",
-            "not-a-dir",
-        ]
-
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-        with open(self.input_file, "rb") as f:
-            try:
-                process.communicate(timeout=TIMEOUT, input=f.read())
-            except TimeoutError:
-                process.kill()
-                raise
-            self.assertEqual(1, process.returncode)
