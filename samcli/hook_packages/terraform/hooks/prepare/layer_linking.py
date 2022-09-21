@@ -1,3 +1,8 @@
+"""
+Use Terraform plan to link resources together
+e.g. linking layers to functions
+"""
+
 from typing import List
 
 

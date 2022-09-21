@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from nose_parameterized import parameterized
+from parameterized import parameterized
 
 from samcli.hook_packages.terraform.hooks.prepare.layer_linking import _clean_references_list
 
