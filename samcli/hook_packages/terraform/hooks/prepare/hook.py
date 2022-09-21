@@ -145,7 +145,8 @@ def prepare(params: dict) -> dict:
         )
         raise PrepareHookException("There was an error while preparing the Terraform application.") from e
     except OSError as e:
-        raise PrepareHookException(f"Unable to create directory {output_dir_path}") from e
+        # raise PrepareHookException(f"Unable to create directory {output_dir_path}") from e
+        raise PrepareHookException(f"OSError: {e}") from e
 
 
 def _update_resources_paths(cfn_resources: Dict[str, Any], terraform_application_dir: str) -> None:
@@ -803,7 +804,7 @@ def _generate_makefile(
 
     # copy copy_terraform_built_artifacts.py script into output directory
     copy_terraform_built_artifacts_script_path = os.path.join(
-        Path(os.path.dirname(__file__)).parent, TERRAFORM_BUILD_SCRIPT
+        Path(os.path.dirname(__file__)).parent.parent, TERRAFORM_BUILD_SCRIPT
     )
     shutil.copy(copy_terraform_built_artifacts_script_path, output_directory_path)
 
