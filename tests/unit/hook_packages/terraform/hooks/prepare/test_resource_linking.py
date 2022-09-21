@@ -3,10 +3,10 @@ from unittest import TestCase
 
 from parameterized import parameterized
 
-from samcli.hook_packages.terraform.hooks.prepare.layer_linking import _clean_references_list
+from samcli.hook_packages.terraform.hooks.prepare.resource_linking import _clean_references_list
 
 
-class TestLayerLinking(TestCase):
+class TestResourceLinking(TestCase):
     @parameterized.expand(
         [
             ([], []),
