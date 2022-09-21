@@ -7,7 +7,7 @@
 					"address": "sam_metadata_address",
 					"values": {
 						"triggers": {
-							"built_output_path": "output_path_dir"
+							"built_output_path": "testdata/output_path_dir"
 						}
 					}
 				}]
