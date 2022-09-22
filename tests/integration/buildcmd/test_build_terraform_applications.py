@@ -114,12 +114,24 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
             shutil.rmtree(str(Path(self.terraform_application_path) / ".aws-sam"))
             shutil.rmtree(str(Path(self.terraform_application_path) / ".aws-sam-iacs"))
             shutil.rmtree(str(Path(self.terraform_application_path) / ".terraform"))
-            (Path(self.terraform_application_path) / "terraform.tfstate").unlink()
-            (Path(self.terraform_application_path) / "terraform.tfstate.backup").unlink()
-            (Path(self.terraform_application_path) / ".terraform.lock.hcl").unlink()
-        except Exception:
-            LOG.exception("Something wrong when deleting files")
+        except FileNotFoundError:
             pass
+        
+        try:
+            (Path(self.terraform_application_path) / "terraform.tfstate").unlink()
+        except FileNotFoundError:
+            pass
+        
+        try:
+            (Path(self.terraform_application_path) / "terraform.tfstate.backup").unlink()
+        except FileNotFoundError:
+            pass
+        
+        try:
+            (Path(self.terraform_application_path) / ".terraform.lock.hcl").unlink()
+        except FileNotFoundError:
+            pass
+        
         super().tearDown()
     
     @skipIf(
