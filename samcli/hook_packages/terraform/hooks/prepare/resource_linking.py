@@ -3,6 +3,7 @@ Use Terraform plan to link resources together
 e.g. linking layers to functions
 """
 
+import re
 from typing import List
 
 
@@ -37,3 +38,20 @@ def _clean_references_list(references: List[str]) -> List[str]:
         if not cleaned_references[-1].startswith(copied_references[i]):
             cleaned_references.append(copied_references[i])
     return cleaned_references
+
+
+def _get_configuration_address(address: str) -> str:
+    """
+    Cleans all addresses of indices and returns a clean address
+
+    Parameters
+    ==========
+    address : str
+        The address to clean
+
+    Returns
+    =======
+    str
+        The address clean of indices
+    """
+    return re.sub(r"\[[^\[\]]*\]", "", address)
