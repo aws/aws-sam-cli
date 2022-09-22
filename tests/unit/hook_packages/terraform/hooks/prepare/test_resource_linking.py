@@ -1,11 +1,16 @@
 from copy import deepcopy
 from unittest import TestCase
+from unittest.mock import Mock
 
 from parameterized import parameterized
 
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _clean_references_list,
     _get_configuration_address,
+    TFModule,
+    TFResource,
+    ConstantValue,
+    References,
 )
 
 
@@ -95,3 +100,34 @@ class TestResourceLinking(TestCase):
         cleaned_addr = _get_configuration_address(input_addr)
 
         self.assertEqual(cleaned_addr, expected_addr)
+
+    def test_module_get_all_resources(self):
+        root_module_resources = [Mock(), Mock()]
+        child_module1_resources = [Mock(), Mock()]
+        child_module2_resources = [Mock(), Mock()]
+        grandchild_module_resources = [Mock(), Mock()]
+
+        root_module = TFModule(None, None, {}, root_module_resources, {}, {})
+        child_module1 = TFModule("module.child_module1", root_module, {}, child_module1_resources, {}, {})
+        child_module2 = TFModule("module.child_module2", root_module, {}, child_module2_resources, {}, {})
+        grandchild_module = TFModule(
+            "module.child_module.grandchild_module", child_module1, {}, grandchild_module_resources, {}, {}
+        )
+
+        root_module.child_modules.update({"child_module1": child_module1, "child_module2": child_module2})
+        child_module1.child_modules.update({"grandchild_module": grandchild_module})
+
+        self.assertCountEqual(
+            root_module.get_all_resources(),
+            root_module_resources + child_module1_resources + child_module2_resources + grandchild_module_resources,
+        )
+
+    def test_resource_full_address(self):
+        module = TFModule("module.full_address", None, {}, {}, {}, {})
+        resource = TFResource("resource_address", "type", module, {})
+        self.assertEqual(resource.full_address, "module.full_address.resource_address")
+
+    def test_resource_full_address_root_module(self):
+        module = TFModule(None, None, {}, {}, {}, {})
+        resource = TFResource("resource_address", "type", module, {})
+        self.assertEqual(resource.full_address, "resource_address")

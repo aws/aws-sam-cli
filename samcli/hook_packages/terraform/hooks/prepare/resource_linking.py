@@ -4,14 +4,27 @@ e.g. linking layers to functions
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 import re
 
 
 @dataclass
-class TFValue:
-    constant_value: Any
-    references: List[str]
+class ConstantValue:
+    value: Any
+
+
+@dataclass
+class References:
+    value: List[str]
+
+
+Expression = Union[ConstantValue, References]
+
+
+@dataclass
+class ResolvedReference:
+    value: str
+    module_address: str
 
 
 @dataclass
@@ -19,16 +32,16 @@ class TFModule:
     # full path to the module, including parent modules
     full_address: Optional[str]
     parent_module: Optional["TFModule"]
-    variables: Dict[str, TFValue]
+    variables: Dict[str, Expression]
     resources: List["TFResource"]
     child_modules: Dict[str, "TFModule"]
-    outputs: Dict[str, TFValue]
+    outputs: Dict[str, Expression]
 
     # current module's + all child modules' resources
     def get_all_resources(self) -> List["TFResource"]:
         all_resources = self.resources.copy()
         for _, module in self.child_modules.items():
-            all_resources += module.resources
+            all_resources += module.get_all_resources()
 
         return all_resources
 
@@ -39,7 +52,7 @@ class TFResource:
     type: str
     # the module this resource is defined in
     module: TFModule
-    attributes: Dict[str, TFValue]
+    attributes: Dict[str, Expression]
 
     @property
     def full_address(self) -> str:
