@@ -1,8 +1,18 @@
+import logging
+import shutil
+
 from pathlib import Path
 from subprocess import Popen, PIPE, TimeoutExpired
 from typing import Optional
+from unittest import skipIf
+
+from parameterized import parameterized
 
 from tests.integration.buildcmd.build_integ_base import BuildIntegBase
+from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUNNING_ON_CI
+
+
+LOG = logging.getLogger(__name__)
 
 
 class BuildTerraformApplicationIntegBase(BuildIntegBase):
@@ -84,3 +94,64 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
         _, stderr, return_code = self.run_command(cmdlist)
         self.assertEqual(return_code, 0)
         self.assertEqual(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
+
+
+class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(BuildTerraformApplicationIntegBase):
+    terraform_application = Path("terraform/zip_based_lambda_functions_local_backend")
+    functions = [
+        "aws_lambda_function.from_localfile",
+        "aws_lambda_function.from_s3",
+        "module.level1_lambda.aws_lambda_function.this",
+        "module.level1_lambda.module.level2_lambda.aws_lambda_function.this",
+        "my_function_from_localfile",
+        "my_function_from_s3",
+        "my_level1_lambda",
+        "my_level2_lambda",
+    ]
+    
+    def tearDown(self):
+        try:
+            shutil.rmtree(str(Path(self.terraform_application_path) / ".aws-sam"))
+            shutil.rmtree(str(Path(self.terraform_application_path) / ".aws-sam-iacs"))
+            shutil.rmtree(str(Path(self.terraform_application_path) / ".terraform"))
+            (Path(self.terraform_application_path) / "terraform.tfstate").unlink()
+            (Path(self.terraform_application_path) / "terraform.tfstate.backup").unlink()
+            (Path(self.terraform_application_path) / ".terraform.lock.hcl").unlink()
+        except Exception:
+            LOG.exception("Something wrong when deleting files")
+            pass
+        super().tearDown()
+    
+    @skipIf(
+        not CI_OVERRIDE,
+        "Skip Terraform test cases unless running in CI",
+    )
+    @parameterized.expand(functions)
+    def test_build_and_invoke_lambda_functions(self, function_identifier):
+        build_cmd_list = self.get_command_list(
+            beta_features=True,
+            hook_package_id="terraform",
+            function_identifier=function_identifier
+        )
+        LOG.info("command list: %s", build_cmd_list)
+        _, _, return_code = self.run_command(build_cmd_list)
+        self.assertEqual(return_code, 0)
+
+        self._verify_invoke_built_function(
+            template_path=str(Path(self.terraform_application_path) / ".aws-sam/build/template.yaml"),
+            function_logical_id=function_identifier,
+            overrides=None,
+            expected_result={"statusCode": 200, "body": "[]"}
+        )
+
+
+class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(BuildTerraformApplicationIntegBase):
+    pass
+
+
+class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndLocalBackend(BuildTerraformApplicationIntegBase):
+    pass
+
+
+class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndS3Backend(BuildTerraformApplicationIntegBase):
+    pass
