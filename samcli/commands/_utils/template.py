@@ -7,7 +7,7 @@ import pathlib
 
 import jmespath
 import yaml
-from botocore.utils import set_value_from_jmespath
+# from botocore.utils import set_value_from_jmespath
 
 from samcli.commands.exceptions import UserException
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer, ASSET_PATH_METADATA_KEY
@@ -169,7 +169,7 @@ def _update_relative_paths(template_dict, original_root, new_root):
                 # This path does not need to get updated
                 continue
 
-            set_value_from_jmespath(properties, path_prop_name, updated_path)
+            # set_value_from_jmespath(properties, path_prop_name, updated_path)
 
         metadata = resource.get("Metadata", {})
         if ASSET_PATH_METADATA_KEY in metadata:

@@ -6,8 +6,6 @@ import json
 import logging
 from typing import Optional
 
-import boto3
-from botocore.exceptions import ClientError
 
 from samcli import __version__
 from samcli.cli.global_config import GlobalConfig
@@ -36,6 +34,8 @@ def manage_stack(profile, region):
 
 def get_current_account_id(profile: Optional[str] = None):
     """Returns account ID based on used AWS credentials."""
+    import boto3
+    from botocore.exceptions import ClientError
     session = boto3.Session(profile_name=profile)
     sts_client = session.client("sts")
     try:

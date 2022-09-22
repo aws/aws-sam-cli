@@ -4,8 +4,6 @@ import json
 import logging
 
 import click
-import boto3
-from serverlessrepo.publish import CREATE_APPLICATION
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands._utils.options import template_common_option
@@ -117,6 +115,7 @@ def _gen_success_message(publish_output):
     str
         Detailed success message
     """
+    from serverlessrepo.publish import CREATE_APPLICATION
     application_id = publish_output.get("application_id")
     details = json.dumps(publish_output.get("details"), indent=2)
 
@@ -139,6 +138,7 @@ def _print_console_link(region, application_id):
 
     """
     if not region:
+        import boto3
         region = boto3.Session().region_name
 
     console_link = SERVERLESSREPO_CONSOLE_URL.format(region, application_id.replace("/", "~"))

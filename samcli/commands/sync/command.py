@@ -4,6 +4,8 @@ import logging
 from typing import List, Set, TYPE_CHECKING, Optional, Tuple
 
 import click
+import time
+
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands._utils.cdk_support_decorators import unsupported_command_cdk
@@ -27,11 +29,12 @@ from samcli.commands._utils.options import (
     DEFAULT_CACHE_DIR,
     DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
 )
+before = time.time()
+
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.commands._utils.click_mutex import ClickMutex
 from samcli.lib.telemetry.event import EventTracker, track_long_event
-from samcli.commands.sync.sync_context import SyncContext
-from samcli.lib.build.bundler import EsbuildBundlerManager
+
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.lib.bootstrap.bootstrap import manage_stack
@@ -39,16 +42,11 @@ from samcli.lib.cli_validation.image_repository_validation import image_reposito
 from samcli.lib.telemetry.metric import track_command, track_template_warnings
 from samcli.lib.warnings.sam_cli_warning import CodeDeployWarning, CodeDeployConditionWarning
 from samcli.commands.build.command import _get_mode_value_from_envvar
-from samcli.lib.sync.sync_flow_factory import SyncCodeResources, SyncFlowFactory
-from samcli.lib.sync.sync_flow_executor import SyncFlowExecutor
-from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
-from samcli.lib.providers.provider import (
-    ResourceIdentifier,
-    get_all_resource_ids,
-    get_unique_resource_ids,
-)
+from samcli.lib.sync.flows.sync_resources import SyncCodeResources
 from samcli.cli.context import Context
-from samcli.lib.sync.watch_manager import WatchManager
+after = time.time()
+
+print(f"Total time for sync imports {after-before}")
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
@@ -236,6 +234,7 @@ def do_cli(
     from samcli.commands.build.build_context import BuildContext
     from samcli.commands.package.package_context import PackageContext
     from samcli.commands.deploy.deploy_context import DeployContext
+    from samcli.commands.sync.sync_context import SyncContext
 
     if not click.confirm(Colored().yellow(SYNC_CONFIRMATION_TEXT), default=True):
         return
@@ -390,6 +389,15 @@ def execute_code_sync(
     auto_dependency_layer: bool
         Boolean flag to whether enable certain sync flows for auto dependency layer feature
     """
+    from samcli.lib.sync.sync_flow_executor import SyncFlowExecutor
+    from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+    from samcli.lib.providers.provider import (
+        ResourceIdentifier,
+        get_all_resource_ids,
+        get_unique_resource_ids,
+    )
+    from samcli.lib.sync.sync_flow_factory import SyncFlowFactory
+
     stacks = SamLocalStackProvider.get_stacks(template)[0]
     factory = SyncFlowFactory(build_context, deploy_context, stacks, auto_dependency_layer)
     factory.load_physical_id_mapping()
@@ -430,6 +438,8 @@ def execute_watch(
     deploy_context : DeployContext
         DeployContext
     """
+    from samcli.lib.sync.watch_manager import WatchManager
+
     watch_manager = WatchManager(template, build_context, package_context, deploy_context, auto_dependency_layer)
     watch_manager.start()
 
@@ -440,6 +450,9 @@ def check_enable_dependency_layer(template_file: str):
     :param template_file: template file string
     :return: True if ADL should be enabled, False otherwise
     """
+    from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+    from samcli.lib.build.bundler import EsbuildBundlerManager
+
     stacks, _ = SamLocalStackProvider.get_stacks(template_file)
     for stack in stacks:
         esbuild = EsbuildBundlerManager(stack)

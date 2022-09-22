@@ -10,7 +10,10 @@ import types
 import click
 from click.types import FuncParamType
 
+import time
+before = time.time()
 from samcli.commands._utils.template import get_template_data, TemplateNotFoundException
+after = time.time()
 from samcli.cli.types import (
     CfnParameterOverridesType,
     CfnMetadataType,
@@ -23,6 +26,7 @@ from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 from samcli.commands._utils.template import get_template_artifacts_format
 from samcli.lib.observability.util import OutputOption
 from samcli.lib.utils.packagetype import ZIP, IMAGE
+print(f"Time is options {after-before}")
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml|json]"
 DEFAULT_STACK_NAME = "sam-app"

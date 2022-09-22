@@ -5,8 +5,7 @@ from pathlib import Path
 
 import click
 
-from samcli.commands._utils.options import template_click_option, docker_click_options, parameter_override_click_option
-from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
+from samcli.commands.local.cli_common.mode import ContainersInitializationMode
 
 
 def get_application_dir():
@@ -139,6 +138,8 @@ def invoke_common_options(f):
     :param f: Callback passed by Click
     """
 
+    from samcli.commands._utils.options import template_click_option, docker_click_options, \
+        parameter_override_click_option
     invoke_options = (
         [
             template_click_option(),

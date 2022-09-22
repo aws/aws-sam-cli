@@ -5,10 +5,8 @@ import logging
 from collections.abc import Collection
 from typing import cast, Dict, List, Optional, Union
 
-import boto3
+from samcli.lib.utils.lazy import lazy_import
 import click
-from botocore.config import Config
-from botocore.exceptions import ClientError, BotoCoreError, NoRegionError, NoCredentialsError, ProfileNotFound
 
 from samcli.commands.exceptions import UserException, CredentialsError, RegionError
 
@@ -61,6 +59,10 @@ def manage_stack(
     StackOutput:
         Stack output section(list of OutputKey, OutputValue pairs)
     """
+    import boto3
+    from botocore.config import Config
+    from botocore.exceptions import ClientError, BotoCoreError, NoRegionError, NoCredentialsError, ProfileNotFound
+
     try:
         if profile:
             session = boto3.Session(profile_name=profile, region_name=region if region else None)
@@ -96,6 +98,8 @@ def _create_or_get_stack(
     template_body: str,
     parameter_overrides: Optional[Dict[str, Union[str, List[str]]]] = None,
 ) -> StackOutput:
+    from botocore.exceptions import ClientError, BotoCoreError
+
     try:
         ds_resp = cloudformation_client.describe_stacks(StackName=stack_name)
         stacks = ds_resp["Stacks"]

@@ -1,7 +1,9 @@
 """
 CLI command for "package" command
 """
+import time
 import click
+
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, aws_creds_options, print_cmdline_args
@@ -18,12 +20,17 @@ from samcli.commands._utils.options import (
     force_upload_option,
     resolve_s3_option,
 )
+
+before = time.time()
 from samcli.commands._utils.options import metadata_option, template_click_option, no_progressbar_option
 from samcli.lib.utils.resources import resources_generator
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.telemetry.metric import track_command, track_template_warnings
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.lib.warnings.sam_cli_warning import CodeDeployWarning, CodeDeployConditionWarning
+after = time.time()
+
+print(f"Time taken: {after-before}")
 
 SHORT_HELP = "Package an AWS SAM application."
 

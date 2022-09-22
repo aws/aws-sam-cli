@@ -5,7 +5,6 @@ import errno
 import json
 import logging
 import os
-from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional, IO, cast, Tuple, Any, Type
 
@@ -22,6 +21,7 @@ from samcli.local.lambdafn.runtime import LambdaRuntime, WarmLambdaRuntime
 from samcli.local.docker.lambda_image import LambdaImage
 from samcli.local.docker.manager import ContainerManager
 from samcli.commands._utils.template import TemplateNotFoundException, TemplateFailedParsingException
+from samcli.commands.local.cli_common.mode import ContainersInitializationMode, ContainersMode
 from samcli.local.layers.layer_downloader import LayerDownloader
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider, RefreshableSamFunctionProvider
 
@@ -46,14 +46,7 @@ class NoFunctionIdentifierProvidedException(InvokeContextException):
     """
 
 
-class ContainersInitializationMode(Enum):
-    EAGER = "EAGER"
-    LAZY = "LAZY"
 
-
-class ContainersMode(Enum):
-    WARM = "WARM"
-    COLD = "COLD"
 
 
 class InvokeContext:

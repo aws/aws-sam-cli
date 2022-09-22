@@ -3,14 +3,17 @@ Command group for "local" suite for commands. It provides common CLI arguments, 
 setting up stdin/stdout etc
 """
 
+import time
 import click
 
+before = time.time()
 from .invoke.cli import cli as invoke_cli
 from .start_api.cli import cli as start_api_cli
 from .generate_event.cli import cli as generate_event_cli
 from .start_lambda.cli import cli as start_lambda_cli
+after = time.time()
 
-
+print(f"Time for command local imports: {after-before}")
 @click.group()
 def cli():
     """

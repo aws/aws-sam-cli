@@ -4,9 +4,12 @@ setting up stdin/stdout etc
 """
 
 import click
-
+import time
+before = time.time()
 from .bootstrap.cli import cli as bootstrap_cli
 from .init.cli import cli as init_cli
+after = time.time()
+print(f"Time taken for pipeline imports {after-before}")
 
 
 @click.group()

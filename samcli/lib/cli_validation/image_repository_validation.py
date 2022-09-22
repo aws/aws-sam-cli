@@ -5,13 +5,6 @@ This is to be run last after all CLI options have been processed.
 import click
 
 from samcli.commands._utils.option_validator import Validator
-from samcli.commands._utils.template import get_template_artifacts_format
-from samcli.lib.providers.provider import (
-    get_resource_full_path_by_id,
-    ResourceIdentifier,
-)
-from samcli.lib.providers.sam_function_provider import SamFunctionProvider
-from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.packagetype import IMAGE
 
 
@@ -25,6 +18,7 @@ def image_repository_validation(func):
     :param func: Click command function
     :return: Click command function after validation
     """
+    from samcli.commands._utils.template import get_template_artifacts_format
 
     def wrapped(*args, **kwargs):
         ctx = click.get_current_context()
@@ -98,6 +92,12 @@ def _is_all_image_funcs_provided(template_file, image_repositories, parameters_o
     """
     Validate that the customer provides ECR repository for every available Lambda function with image package type
     """
+    from samcli.lib.providers.sam_function_provider import SamFunctionProvider
+    from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+    from samcli.lib.providers.provider import (
+        get_resource_full_path_by_id,
+        ResourceIdentifier,
+    )
     image_repositories = image_repositories if image_repositories else {}
     global_parameter_overrides = {}
     stacks, _ = SamLocalStackProvider.get_stacks(

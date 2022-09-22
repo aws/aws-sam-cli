@@ -16,8 +16,6 @@ from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
-from samcli.local.docker.exceptions import ContainerNotStartableException
-from samcli.commands._utils.option_value_processor import process_image_options
 
 LOG = logging.getLogger(__name__)
 
@@ -163,6 +161,8 @@ def do_cli(  # pylint: disable=R0914
     from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
     from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
     from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
+    from samcli.local.docker.exceptions import ContainerNotStartableException
+    from samcli.commands._utils.option_value_processor import process_image_options
 
     LOG.debug("local start_lambda command is called")
 

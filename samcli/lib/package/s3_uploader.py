@@ -23,10 +23,6 @@ from collections import abc
 from typing import Optional, Dict, Any, cast
 from urllib.parse import urlparse, parse_qs
 
-import botocore
-import botocore.exceptions
-
-from boto3.s3 import transfer
 
 from samcli.commands.package.exceptions import NoSuchBucketError, BucketNotSpecifiedError
 from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name
@@ -62,6 +58,10 @@ class S3Uploader:
         force_upload: bool = False,
         no_progressbar: bool = False,
     ):
+        import botocore
+        import botocore.exceptions
+
+        from boto3.s3 import transfer
         self.s3 = s3_client
         self.bucket_name = bucket_name
         self.prefix = prefix
@@ -88,6 +88,10 @@ class S3Uploader:
             LOG.info("File with same data already exists at %s, skipping upload", remote_path)
             return self.make_url(remote_path)
 
+        import botocore
+        import botocore.exceptions
+
+        from boto3.s3 import transfer
         try:
 
             # Default to regular server-side encryption unless customer has
@@ -150,6 +154,10 @@ class S3Uploader:
 
         :return: metadata dict of the deleted object
         """
+        import botocore
+        import botocore.exceptions
+
+        from boto3.s3 import transfer
         try:
             if not self.bucket_name:
                 LOG.error("Bucket not specified")
@@ -200,6 +208,10 @@ class S3Uploader:
         :param remote_path:
         :return: True, if file exists. False, otherwise
         """
+        import botocore
+        import botocore.exceptions
+
+        from boto3.s3 import transfer
 
         try:
             # Find the object that matches this ETag

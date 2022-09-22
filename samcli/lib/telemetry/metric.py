@@ -11,16 +11,17 @@ from typing import Optional
 
 import click
 
+import time
 from samcli import __version__ as samcli_version
 from samcli.cli.context import Context
 from samcli.cli.global_config import GlobalConfig
 from samcli.lib.warnings.sam_cli_warning import TemplateWarningsChecker
 from samcli.commands.exceptions import UserException
 from samcli.lib.telemetry.cicd import CICDDetector, CICDPlatform
-from samcli.lib.telemetry.event import EventTracker
-from samcli.lib.telemetry.project_metadata import get_git_remote_origin_url, get_project_name, get_initial_commit_hash
-from samcli.commands._utils.experimental import get_all_experimental_statues
+before = time.time()
 from .telemetry import Telemetry
+after = time.time()
+print(f"Time taken in imports in metric.py is {after-before}")
 from ..iac.cdk.utils import is_cdk_project
 from ..iac.plugins_interfaces import ProjectTypes
 
@@ -111,6 +112,10 @@ def track_command(func):
     """
 
     def wrapped(*args, **kwargs):
+        from samcli.lib.telemetry.event import EventTracker
+        from samcli.lib.telemetry.project_metadata import get_git_remote_origin_url, get_project_name, \
+            get_initial_commit_hash
+        from samcli.commands._utils.experimental import get_all_experimental_statues
         telemetry = Telemetry()
 
         exception = None

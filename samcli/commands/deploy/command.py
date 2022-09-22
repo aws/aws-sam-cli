@@ -38,7 +38,6 @@ from samcli.lib.cli_validation.image_repository_validation import image_reposito
 from samcli.lib.utils import osutils
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.utils.version_checker import check_newer_version
-from samcli.lib.bootstrap.companion_stack.companion_stack_manager import sync_ecr_stack
 
 SHORT_HELP = "Deploy an AWS SAM application."
 
@@ -260,6 +259,7 @@ def do_cli(
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.deploy.guided_context import GuidedContext
     from samcli.commands.deploy.exceptions import DeployResolveS3AndS3SetError
+    from samcli.lib.bootstrap.companion_stack.companion_stack_manager import sync_ecr_stack
 
     if guided:
         # Allow for a guided deploy to prompt and save those details.

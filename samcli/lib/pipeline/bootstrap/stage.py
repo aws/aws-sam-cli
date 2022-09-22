@@ -6,7 +6,6 @@ import re
 from itertools import chain
 from typing import Dict, List, Optional, Tuple
 
-import boto3
 import click
 
 from samcli.lib.config.samconfig import SamConfig
@@ -215,6 +214,7 @@ class Stage:
         Returns tuple of aws_access_key_id and aws_secret_access_key.
 
         """
+        import boto3
         session = boto3.Session(profile_name=profile, region_name=region if region else None)
         secrets_manager_client = session.client("secretsmanager")
         response = secrets_manager_client.get_secret_value(SecretId=secret_manager_arn)

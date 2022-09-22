@@ -7,15 +7,18 @@ from typing import Any, Dict, List, Optional
 
 import click
 
+import time
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, aws_creds_options, print_cmdline_args
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.pipeline.bootstrap.stage import Stage
+before = time.time()
 from samcli.lib.telemetry.metric import track_command
+after = time.time()
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.version_checker import check_newer_version
-from .guided_context import GuidedContext
 from ..external_links import CONFIG_AWS_CRED_ON_CICD_URL
+print(f"Time taken for imports in bootstrap/cli.py {after-before}")
 
 SHORT_HELP = "Generates the required AWS resources to connect your CI/CD system."
 
@@ -165,6 +168,7 @@ def do_cli(
                 ),
             )
 
+        from .guided_context import GuidedContext
         guided_context = GuidedContext(
             profile=profile,
             stage_configuration_name=stage_configuration_name,

@@ -2,17 +2,20 @@
 CLI command for "local invoke" command
 """
 
+import time
+before = time.time()
 import logging
 import click
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands.local.cli_common.options import invoke_common_options, local_common_options
+
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
-from samcli.lib.telemetry.metric import track_command
+#from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
-from samcli.local.docker.exceptions import ContainerNotStartableException
-from samcli.commands._utils.option_value_processor import process_image_options
+after = time.time()
+print(f"Time taken for invoke/cli imports :{after-before}")
 
 LOG = logging.getLogger(__name__)
 
@@ -49,7 +52,7 @@ STDIN_FILE_NAME = "-"
 @aws_creds_options
 @click.argument("function_logical_id", required=False)
 @pass_context
-@track_command  # pylint: disable=R0914
+#@track_command  # pylint: disable=R0914
 @check_newer_version
 @print_cmdline_args
 def cli(
@@ -142,6 +145,8 @@ def do_cli(  # pylint: disable=R0914
     from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError, NoPrivilegeException
     from samcli.local.docker.manager import DockerImagePullFailedException
     from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
+    from samcli.local.docker.exceptions import ContainerNotStartableException
+    from samcli.commands._utils.option_value_processor import process_image_options
 
     LOG.debug("local invoke command is called")
 
