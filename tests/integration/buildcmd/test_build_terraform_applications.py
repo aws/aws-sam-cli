@@ -14,11 +14,12 @@ import boto3
 from parameterized import parameterized
 
 from tests.integration.buildcmd.build_integ_base import BuildIntegBase
-from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUNNING_ON_CI
+from tests.testing_utils import CI_OVERRIDE, RUNNING_ON_CI, RUN_BY_CANARY
 
 
 LOG = logging.getLogger(__name__)
 S3_SLEEP = 3
+SKIP_S3_BACKEND_TESTS = RUNNING_ON_CI and not RUN_BY_CANARY
 
 
 class BuildTerraformApplicationIntegBase(BuildIntegBase):
@@ -162,6 +163,10 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
         )
 
 
+@skipIf(
+    SKIP_S3_BACKEND_TESTS,
+    "Skip Terraform s3 backend test cases unless running canary",
+)
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(BuildTerraformApplicationIntegBase):
     terraform_application = Path("terraform/zip_based_lambda_functions_s3_backend")
     functions = [
@@ -231,10 +236,6 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(Build
 
         super().tearDown()
 
-    @skipIf(
-        not CI_OVERRIDE,
-        "Skip Terraform test cases unless running in CI",
-    )
     @parameterized.expand(functions)
     def test_build_and_invoke_lambda_functions(self, function_identifier):
         build_cmd_list = self.get_command_list(
