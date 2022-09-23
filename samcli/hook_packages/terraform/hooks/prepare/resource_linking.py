@@ -99,13 +99,62 @@ def _get_configuration_address(address: str) -> str:
     Cleans all addresses of indices and returns a clean address
 
     Parameters
-    ==========
+    ----------
     address : str
         The address to clean
 
     Returns
-    =======
+    -------
     str
         The address clean of indices
     """
     return re.sub(r"\[[^\[\]]*\]", "", address)
+
+
+def _resolve_module_output(module: TFModule, output_name: str) -> List[Union[ConstantValue, ResolvedReference]]:
+    """
+    Resolves any references in the output section of the module
+
+    Parameters
+    ----------
+    module : Module
+        The module with outputs to search
+    output_name : str
+        The value to resolve
+
+    Returns
+    -------
+    List[Union[ConstantValue, ResolvedReference]]
+        A list of resolved values
+    """
+    results: List[Union[ConstantValue, ResolvedReference]] = []
+
+    output = module.outputs[output_name]
+    output_value = output.value
+
+    if isinstance(output, ConstantValue):
+        results.append(output)
+    elif isinstance(output, References):
+        cleaned_references = _clean_references_list(output_value)
+
+        for reference in cleaned_references:
+            if reference.startswith("var."):
+                stripped_reference = _get_configuration_address(reference[4:])
+                results += _resolve_module_variable(module, stripped_reference)
+            elif reference.startswith("module."):
+                # aaa.bbb.ccc => bbb
+                module_name = reference[7 : reference.rfind(".")]
+                # aaa.bbb.ccc => ccc
+                output_name = reference[reference.rfind(".") + 1 :]
+
+                stripped_reference = _get_configuration_address(module_name)
+
+                results += _resolve_module_output(module.child_modules[stripped_reference], output_name)
+            else:
+                results.append(ResolvedReference(reference, module.full_address or ""))
+
+    return results
+
+
+def _resolve_module_variable(module: TFModule, variable: str):
+    pass

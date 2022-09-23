@@ -1,16 +1,17 @@
 from copy import deepcopy
 from unittest import TestCase
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from parameterized import parameterized
 
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _clean_references_list,
     _get_configuration_address,
+    _resolve_module_output,
     TFModule,
     TFResource,
-    ConstantValue,
     References,
+    ConstantValue,
 )
 
 
@@ -131,3 +132,41 @@ class TestResourceLinking(TestCase):
         module = TFModule(None, None, {}, {}, {}, {})
         resource = TFResource("resource_address", "type", module, {})
         self.assertEqual(resource.full_address, "resource_address")
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_module_variable")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    def test_resolve_module_output_with_var(self, config_mock, resolve_var_mock):
+        module = TFModule("", None, {"mycoolref": "mycoolvar"}, [], {}, {"mycooloutput": References(["var.mycoolref"])})
+
+        config_mock.return_value = "mycoolref"
+
+        _resolve_module_output(module, "mycooloutput")
+
+        config_mock.assert_called_with("mycoolref")
+        resolve_var_mock.assert_called_with(module, "mycoolref")
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    def test_resolve_module_output_with_module(self, config_mock):
+        module = TFModule("", None, {}, [], {}, {"mycooloutput": References(["module.mycoolmod"])})
+        module2 = TFModule("module.mycoolmod", module, {}, [], {}, {"mycoolmod": ConstantValue("mycoolconst")})
+        module.child_modules.update({"mycoolmod": module2})
+
+        config_mock.return_value = "mycoolmod"
+
+        results = _resolve_module_output(module, "mycooloutput")
+
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].value, "mycoolconst")
+
+    @parameterized.expand(
+        [
+            (TFModule("", None, {}, [], {}, {"mycooloutput": ConstantValue("mycoolconst")}),),
+            (TFModule("", None, {}, [], {}, {"mycooloutput": References(["mycoolconst"])}),),
+        ]
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    def test_resolve_module_output_already_resolved(self, module, config_mock):
+        results = _resolve_module_output(module, "mycooloutput")
+
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].value, "mycoolconst")
