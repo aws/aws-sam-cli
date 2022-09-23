@@ -14,12 +14,12 @@ import boto3
 from parameterized import parameterized
 
 from tests.integration.buildcmd.build_integ_base import BuildIntegBase
-from tests.testing_utils import CI_OVERRIDE, RUNNING_ON_CI, RUN_BY_CANARY
+from tests.testing_utils import CI_OVERRIDE, RUNNING_ON_CI, RUN_BY_CANARY, IS_WINDOWS
 
 
 LOG = logging.getLogger(__name__)
 S3_SLEEP = 3
-SKIP_S3_BACKEND_TESTS = RUNNING_ON_CI and not RUN_BY_CANARY
+SKIP_S3_BACKEND_TESTS = (RUNNING_ON_CI and not RUN_BY_CANARY and not IS_WINDOWS) and not CI_OVERRIDE
 
 
 class BuildTerraformApplicationIntegBase(BuildIntegBase):
