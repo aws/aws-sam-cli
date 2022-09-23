@@ -129,6 +129,10 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
         self.assertEqual(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
 
 
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip local invoke terraform application tests on windows when running in CI unless overridden",
+)
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(BuildTerraformApplicationIntegBase):
     terraform_application = Path("terraform/zip_based_lambda_functions_local_backend")
     functions = [
@@ -142,10 +146,6 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
         "my_level2_lambda",
     ]
 
-    @skipIf(
-        not CI_OVERRIDE,
-        "Skip Terraform test cases unless running in CI",
-    )
     @parameterized.expand(functions)
     def test_build_and_invoke_lambda_functions(self, function_identifier):
         build_cmd_list = self.get_command_list(
@@ -164,8 +164,8 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
 
 
 @skipIf(
-    SKIP_S3_BACKEND_TESTS,
-    "Skip Terraform s3 backend test cases unless running canary",
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip local invoke terraform application tests on windows when running in CI unless overridden",
 )
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(BuildTerraformApplicationIntegBase):
     terraform_application = Path("terraform/zip_based_lambda_functions_s3_backend")
