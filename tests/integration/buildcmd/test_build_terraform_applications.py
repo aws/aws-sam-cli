@@ -1,6 +1,7 @@
 import os
 import logging
 import shutil
+from sys import stderr
 import uuid
 import time
 
@@ -152,7 +153,8 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
             beta_features=True, hook_package_id="terraform", function_identifier=function_identifier
         )
         LOG.info("command list: %s", build_cmd_list)
-        _, _, return_code = self.run_command(build_cmd_list)
+        _, stderr, return_code = self.run_command(build_cmd_list)
+        LOG.info(stderr)
         self.assertEqual(return_code, 0)
 
         self._verify_invoke_built_function(
@@ -242,7 +244,8 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(Build
             beta_features=True, hook_package_id="terraform", function_identifier=function_identifier
         )
         LOG.info("command list: %s", build_cmd_list)
-        _, _, return_code = self.run_command(build_cmd_list)
+        _, stderr, return_code = self.run_command(build_cmd_list)
+        LOG.info(stderr)
         self.assertEqual(return_code, 0)
 
         self._verify_invoke_built_function(
