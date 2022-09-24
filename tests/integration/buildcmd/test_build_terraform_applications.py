@@ -131,8 +131,8 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
 
 
 @skipIf(
-    ((IS_WINDOWS or RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip local invoke terraform application tests on windows when running in CI unless overridden",
+    not CI_OVERRIDE,
+    "Skip Terraform test cases unless running in CI",
 )
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(BuildTerraformApplicationIntegBase):
     terraform_application = Path("terraform/zip_based_lambda_functions_local_backend")
@@ -166,8 +166,8 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
 
 
 @skipIf(
-    ((IS_WINDOWS or RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip local invoke terraform application tests on windows when running in CI unless overridden",
+    not CI_OVERRIDE,
+    "Skip Terraform test cases unless running in CI",
 )
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(BuildTerraformApplicationIntegBase):
     terraform_application = Path("terraform/zip_based_lambda_functions_s3_backend")
