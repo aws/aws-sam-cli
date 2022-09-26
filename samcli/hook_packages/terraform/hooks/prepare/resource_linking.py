@@ -5,6 +5,11 @@ e.g. linking layers to functions
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union
 import re
+import logging
+
+from samcli.hook_packages.terraform.hooks.prepare.exceptions import InvalidResourceLinkingException
+
+LOG = logging.getLogger(__name__)
 
 
 @dataclass
@@ -43,6 +48,10 @@ class TFModule:
             all_resources += module.get_all_resources()
 
         return all_resources
+
+    @property
+    def module_name(self):
+        return self.full_address if self.full_address else "root module"
 
 
 @dataclass
@@ -119,16 +128,26 @@ def _resolve_module_variable(module: TFModule, variable_name: str) -> List[Union
     # name in the input module.
     results: List[Union[ConstantValue, ResolvedReference]] = []
 
-    var_value = module.variables[variable_name]
+    LOG.debug("Resolving module variable for module (%s) and variable (%s)", module.module_name, variable_name)
+
+    var_value = module.variables.get(variable_name)
+
+    if not var_value:
+        raise InvalidResourceLinkingException(
+            message=f"The variable {variable_name} could not be found in module {module.module_name}."
+        )
 
     # check the possible constant value for this variable
     if isinstance(var_value, ConstantValue) and var_value is not None:
+        LOG.debug("Found a constant value (%s) in module (%s)", var_value.value, module.module_name)
         results.append(ConstantValue(var_value.value))
 
     # check the possible references value for this variable
     if isinstance(var_value, References) and var_value is not None:
+        LOG.debug("Found references (%s) in module (%s)", var_value.value, module.module_name)
         cleaned_references = _clean_references_list(var_value.value)
         for reference in cleaned_references:
+            LOG.debug("Resolving reference: %s", reference)
             # refer to a variable passed to this module from its parent module
             if reference.startswith("var."):
                 config_var_name = _get_configuration_address(reference[4:])
@@ -139,12 +158,19 @@ def _resolve_module_variable(module: TFModule, variable_name: str) -> List[Union
                 module_name = reference[reference.find(".") + 1 : reference.rfind(".")]
                 config_module_name = _get_configuration_address(module_name)
                 output_name = reference[reference.rfind(".") + 1 :]
-                if module.parent_module and module.parent_module.child_modules:
-                    results += _resolve_module_output(
-                        module.parent_module.child_modules[config_module_name], output_name
-                    )
+                if (
+                    module.parent_module
+                    and module.parent_module.child_modules
+                    and module.parent_module.child_modules.get(config_module_name)
+                ):
+                    child_module = module.parent_module.child_modules.get(config_module_name)
+                    results += _resolve_module_output(child_module, output_name)
+                else:
+                    raise InvalidResourceLinkingException(f"Couldn't find child module {config_module_name}.")
             # this means either a resource, data source, or local.variables.
-            elif module.full_address is not None:
-                results.append(ResolvedReference(reference, module.full_address))
+            elif module.parent_module and module.parent_module.full_address is not None:
+                results.append(ResolvedReference(reference, module.parent_module.full_address))
+            else:
+                raise InvalidResourceLinkingException("Resource linking entered an invalid state.")
 
     return results
