@@ -166,7 +166,7 @@ def _resolve_module_output(module: TFModule, output_name: str) -> List[Union[Con
                     output_name,
                 )
 
-                stripped_reference = _get_configuration_address(reference[4:])
+                stripped_reference = _get_configuration_address(reference[reference.find(".") + 1 :])
                 results += _resolve_module_variable(module, stripped_reference)
             elif reference.startswith("module."):
                 LOG.debug(
@@ -177,7 +177,7 @@ def _resolve_module_output(module: TFModule, output_name: str) -> List[Union[Con
                 )
 
                 # module.bbb.ccc => bbb
-                module_name = reference[7 : reference.rfind(".")]
+                module_name = reference[reference.find(".") + 1 : reference.rfind(".")]
                 # module.bbb.ccc => ccc
                 output_name = reference[reference.rfind(".") + 1 :]
 
