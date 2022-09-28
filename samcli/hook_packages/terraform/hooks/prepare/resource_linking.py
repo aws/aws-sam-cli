@@ -3,9 +3,14 @@ Use Terraform plan to link resources together
 e.g. linking layers to functions
 """
 
+import logging
+
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union
 import re
+from samcli.hook_packages.terraform.hooks.prepare.exceptions import InvalidResourceLinkingException
+
+LOG = logging.getLogger(__name__)
 
 
 @dataclass
@@ -129,28 +134,77 @@ def _resolve_module_output(module: TFModule, output_name: str) -> List[Union[Con
     """
     results: List[Union[ConstantValue, ResolvedReference]] = []
 
-    output = module.outputs[output_name]
+    output = module.outputs.get(output_name)
+
+    if not output:
+        raise InvalidResourceLinkingException(f"Output {output_name} was not found in module {module.full_address}")
+
     output_value = output.value
 
+    LOG.debug("Resolving output {%s} for module {%s}", output_name, module.full_address)
+
     if isinstance(output, ConstantValue):
+        LOG.debug(
+            "Resolved constant value {%s} for module {%s} for output {%s}",
+            output.value,
+            module.full_address,
+            output_name,
+        )
+
         results.append(output)
     elif isinstance(output, References):
+        LOG.debug("Found references for module {%s} for output {%s}", module.full_address, output_name)
+
         cleaned_references = _clean_references_list(output_value)
 
         for reference in cleaned_references:
             if reference.startswith("var."):
+                LOG.debug(
+                    "Resolving variable reference {%s} for module {%s} for output {%s}",
+                    reference,
+                    module.full_address,
+                    output_name,
+                )
+
                 stripped_reference = _get_configuration_address(reference[4:])
                 results += _resolve_module_variable(module, stripped_reference)
             elif reference.startswith("module."):
-                # aaa.bbb.ccc => bbb
+                LOG.debug(
+                    "Resolving module reference {%s} for module {%s} for output {%s}",
+                    reference,
+                    module.full_address,
+                    output_name,
+                )
+
+                # module.bbb.ccc => bbb
                 module_name = reference[7 : reference.rfind(".")]
-                # aaa.bbb.ccc => ccc
+                # module.bbb.ccc => ccc
                 output_name = reference[reference.rfind(".") + 1 :]
 
                 stripped_reference = _get_configuration_address(module_name)
 
-                results += _resolve_module_output(module.child_modules[stripped_reference], output_name)
+                if not module.child_modules:
+                    raise InvalidResourceLinkingException(
+                        f"Module {module.full_address} does not have child modules defined, possible misconfiguration"
+                    )
+
+                child_module = module.child_modules.get(stripped_reference)
+
+                if not child_module:
+                    raise InvalidResourceLinkingException(
+                        f"Module {module.full_address} does not have {stripped_reference} as a child module"
+                        ", possible misconfiguration"
+                    )
+
+                results += _resolve_module_output(child_module, output_name)
             else:
+                LOG.debug(
+                    "Resolved reference {%s} for module {%s} for output {%s}",
+                    reference,
+                    module.full_address,
+                    output_name,
+                )
+
                 results.append(ResolvedReference(reference, module.full_address or ""))
 
     return results
