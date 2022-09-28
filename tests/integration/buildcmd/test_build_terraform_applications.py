@@ -20,7 +20,6 @@ from tests.testing_utils import CI_OVERRIDE, RUNNING_ON_CI, RUN_BY_CANARY, IS_WI
 
 LOG = logging.getLogger(__name__)
 S3_SLEEP = 3
-SKIP_S3_BACKEND_TESTS = (RUNNING_ON_CI and not RUN_BY_CANARY and not IS_WINDOWS) and not CI_OVERRIDE
 
 
 class BuildTerraformApplicationIntegBase(BuildIntegBase):
@@ -283,6 +282,10 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(Build
         )
 
 
+@skipIf(
+    not CI_OVERRIDE,
+    "Skip Terraform test cases unless running in CI",
+)
 class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndLocalBackend(BuildTerraformApplicationIntegBase):
     terraform_application = Path("terraform/image_based_lambda_functions_local_backend")
     functions = [
@@ -316,7 +319,40 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndLocalBackend(
         )
 
 
+@skipIf(
+    not CI_OVERRIDE,
+    "Skip Terraform test cases unless running in CI",
+)
 class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndS3Backend(
     BuildTerraformApplicationS3BackendIntegBase
 ):
-    pass
+    terraform_application = Path("terraform/image_based_lambda_functions_local_backend")
+    functions = [
+        "aws_lambda_function.my_image_function",
+        "module.l1_lambda.aws_lambda_function.this",
+        "module.l1_lambda.module.l2_lambda.aws_lambda_function.this",
+        "my_image_function",
+        "my_l1_lambda",
+        "my_l2_lambda",
+    ]
+
+    @parameterized.expand(functions)
+    def test_build_and_invoke_lambda_functions(self, function_identifier):
+        build_cmd_list = self.get_command_list(
+            beta_features=True, hook_package_id="terraform", function_identifier=function_identifier
+        )
+        LOG.info("command list: %s", build_cmd_list)
+        _, stderr, return_code = self.run_command(build_cmd_list)
+        LOG.info(stderr)
+        self.assertEqual(return_code, 0)
+
+        self._verify_invoke_built_function(
+            function_logical_id=function_identifier,
+            overrides=None,
+            expected_result={
+                "statusCode": 200,
+                "body": "Hello, My friend!",
+                "headers": None,
+                "multiValueHeaders": None,
+            },
+        )
