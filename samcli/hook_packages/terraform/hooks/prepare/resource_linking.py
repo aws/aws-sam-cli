@@ -150,7 +150,7 @@ def _resolve_module_variable(module: TFModule, variable_name: str) -> List[Union
             LOG.debug("Resolving reference: %s", reference)
             # refer to a variable passed to this module from its parent module
             if reference.startswith("var."):
-                config_var_name = _get_configuration_address(reference[4:])
+                config_var_name = _get_configuration_address(reference[len("var.") :])
                 if module.parent_module:
                     results += _resolve_module_variable(module.parent_module, config_var_name)
             # refer to another module output. This module will be defined in the same level as this module
