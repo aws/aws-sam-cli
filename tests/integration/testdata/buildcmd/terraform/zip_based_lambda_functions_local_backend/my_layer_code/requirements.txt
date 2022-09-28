@@ -1,0 +1,7 @@
+# These are some hard packages to build. Using them here helps us verify that building works on various platforms
+
+# NOTE: Fixing to <1.20.3 as numpy1.20.3 started to use a new wheel naming convention (PEP 600)
+numpy<1.20.3
+# `cryptography` has a dependency on `pycparser` which, for some reason doesn't build inside a Docker container.
+# Turning this off until we resolve this issue: https://github.com/awslabs/aws-lambda-builders/issues/29
+# cryptography~=2.4

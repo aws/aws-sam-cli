@@ -918,7 +918,7 @@ def _generate_makefile_rule_for_lambda_resource(
     """
     target = _get_makefile_build_target(logical_id)
     resource_address = sam_metadata_resource.resource.get("address", "")
-    apply_command_template = "terraform apply -target {resource_address} -auto-approve"
+    apply_command_template = "terraform apply -target {resource_address} -replace {resource_address} -auto-approve"
     apply_command_recipe = _format_makefile_recipe(apply_command_template.format(resource_address=resource_address))
     show_command_recipe = _format_makefile_recipe(
         _build_show_command(
