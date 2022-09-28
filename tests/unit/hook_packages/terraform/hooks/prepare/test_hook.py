@@ -1,4 +1,6 @@
 """Test Terraform prepare hook"""
+import logging
+
 from pathlib import Path
 from subprocess import CalledProcessError
 from unittest import TestCase
@@ -45,6 +47,9 @@ from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_LAYERVERSION,
 )
+
+
+LOG = logging.getLogger(__name__)
 
 
 class TestPrepareHook(TestCase):
@@ -2605,11 +2610,19 @@ class TestPrepareHook(TestCase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._format_makefile_recipe")
     def test_generate_makefile_rule_for_lambda_resource(self, format_recipe_mock, get_build_target_mock):
         format_recipe_mock.side_effect = [
+            '\techo "terraform {" > my_override.tf\n',
+            '\techo "   backend \\"local\\" {" >> my_override.tf\n',
+            '\techo "     path = \\"./temp_backend.tfstate\\"" >> my_override.tf\n',
+            '\techo "   }" >> my_override.tf\n',
+            '\techo "}" >> my_override.tf\n',
+            "\tterraform init -reconfigure\n",
             "\tterraform apply -target null_resource.sam_metadata_aws_lambda_function -auto-approve\n",
             "\tterraform show -json | python3 .aws-sam/iacs_metadata/copy_terraform_built_artifacts.py --expression "
             '"|values|root_module|resources|[?address=="null_resource.sam_metadata_aws_lambda_function"]'
             '|values|triggers|built_output_path" --directory "$(ARTIFACTS_DIR)" '
             '--terraform-project-root "/some/dir/path"\n',
+            "\trm my_override.tf\n",
+            "\trm temp_backend.tfstate\n",
         ]
         get_build_target_mock.return_value = "build-function_logical_id:\n"
         sam_metadata_resource = SamMetadataResource(
@@ -2624,12 +2637,21 @@ class TestPrepareHook(TestCase):
         )
         expected_makefile_rule = (
             "build-function_logical_id:\n"
+            '\techo "terraform {" > my_override.tf\n'
+            '\techo "   backend \\"local\\" {" >> my_override.tf\n'
+            '\techo "     path = \\"./temp_backend.tfstate\\"" >> my_override.tf\n'
+            '\techo "   }" >> my_override.tf\n'
+            '\techo "}" >> my_override.tf\n'
+            "\tterraform init -reconfigure\n"
             "\tterraform apply -target null_resource.sam_metadata_aws_lambda_function -auto-approve\n"
             "\tterraform show -json | python3 .aws-sam/iacs_metadata/copy_terraform_built_artifacts.py "
             '--expression "|values|root_module|resources|[?address=="null_resource.sam_metadata_aws_lambda_function"]'
             '|values|triggers|built_output_path" --directory "$(ARTIFACTS_DIR)" '
             '--terraform-project-root "/some/dir/path"\n'
+            "\trm my_override.tf\n"
+            "\trm temp_backend.tfstate\n"
         )
+
         self.assertEqual(makefile_rule, expected_makefile_rule)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._build_jpath_string")
