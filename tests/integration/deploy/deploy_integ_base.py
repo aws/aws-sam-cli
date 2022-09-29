@@ -104,9 +104,11 @@ class DeployIntegBase(TestCase):
         signing_profiles=None,
         resolve_image_repos=False,
         disable_rollback=False,
+        on_failure=None,
     ):
         command_list = [get_sam_command(), "deploy"]
 
+        # Cast all string parameters to preserve behaviour across platforms
         if guided:
             command_list = command_list + ["--guided"]
         if s3_bucket:
@@ -165,6 +167,8 @@ class DeployIntegBase(TestCase):
             command_list = command_list + ["--resolve-image-repos"]
         if disable_rollback:
             command_list = command_list + ["--disable-rollback"]
+        if on_failure:
+            command_list = command_list + ["--on-failure", str(on_failure)]
 
         return command_list
 

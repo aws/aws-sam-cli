@@ -246,9 +246,18 @@ class TestInteractiveInitFlow(TestCase):
         osutils_mock,
         os_mock,
     ):
+        def only_template_manifest_does_not_exist(args):
+            """
+            Mock every file except the template manifest as its "existence" will
+            result in errors when it can't actually be read by `InteractiveInitFlow`.
+            """
+            if args == Path("/any/existing/local/path/manifest.yaml"):
+                return False
+            return True
+
         # setup
         local_pipeline_templates_path = "/any/existing/local/path"
-        os_mock.path.exists.return_value = True
+        os_mock.path.exists.side_effect = only_template_manifest_does_not_exist
         questions_click_mock.prompt.return_value = "2"  # Custom pipeline templates
         init_click_mock.prompt.return_value = local_pipeline_templates_path  # git repo path
         # trigger

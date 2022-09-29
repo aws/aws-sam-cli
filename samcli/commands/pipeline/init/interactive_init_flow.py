@@ -113,14 +113,30 @@ class InteractiveInitFlow:
         """
         pipeline_template_git_location: str = click.prompt("Template Git location")
         if os.path.exists(pipeline_template_git_location):
-            return self._generate_from_pipeline_template(Path(pipeline_template_git_location))
+            pipeline_template_local_dir = Path(pipeline_template_git_location)
+        else:
+            with osutils.mkdir_temp(ignore_errors=True) as tempdir:
+                tempdir_path = Path(tempdir)
+                pipeline_template_local_dir = _clone_pipeline_templates(
+                    pipeline_template_git_location, tempdir_path, CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME
+                )
 
-        with osutils.mkdir_temp(ignore_errors=True) as tempdir:
-            tempdir_path = Path(tempdir)
-            pipeline_template_local_dir: Path = _clone_pipeline_templates(
-                pipeline_template_git_location, tempdir_path, CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME
+        if os.path.exists(pipeline_template_local_dir.joinpath("manifest.yaml")):
+            pipeline_templates_manifest: PipelineTemplatesManifest = _read_app_pipeline_templates_manifest(
+                pipeline_template_local_dir
             )
-            return self._generate_from_pipeline_template(pipeline_template_local_dir)
+            # The manifest contains multiple pipeline-templates so select one
+            selected_pipeline_template_metadata: PipelineTemplateMetadata = _prompt_pipeline_template(
+                pipeline_templates_manifest
+            )
+            selected_pipeline_template_dir: Path = pipeline_template_local_dir.joinpath(
+                selected_pipeline_template_metadata.location
+            )
+        else:
+            # If the repository does not contain a manifest, treat it as a pipeline template directory.
+            selected_pipeline_template_dir = pipeline_template_local_dir
+
+        return self._generate_from_pipeline_template(selected_pipeline_template_dir)
 
     def _prompt_run_bootstrap_within_pipeline_init(
         self, stage_configuration_names: List[str], number_of_stages: int

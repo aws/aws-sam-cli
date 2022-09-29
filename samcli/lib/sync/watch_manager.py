@@ -182,7 +182,7 @@ class WatchManager:
             time.sleep(1)
 
     def _execute_infra_sync(self) -> None:
-        LOG.info(self._color.cyan("Queued infra sync. Wating for in progress code syncs to complete..."))
+        LOG.info(self._color.cyan("Queued infra sync. Waiting for in progress code syncs to complete..."))
         self._waiting_infra_sync = False
         self._stop_code_sync()
         try:

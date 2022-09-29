@@ -8,7 +8,6 @@ import shutil
 import tempfile
 from pathlib import Path
 from contextlib import contextmanager
-from samcli.commands._utils.experimental import ExperimentalFlag, set_experimental
 from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV
 
 from click.testing import CliRunner
@@ -38,7 +37,7 @@ class TestSamConfigForAllCommands(TestCase):
         shutil.rmtree(self.scratch_dir)
         self.scratch_dir = None
 
-    @patch("samcli.commands.init.do_cli")
+    @patch("samcli.commands.init.command.do_cli")
     def test_init(self, do_cli_mock):
         config_values = {
             "no_interactive": True,
@@ -680,6 +679,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "default",
                 False,
                 True,
+                "ROLLBACK",
             )
 
     @patch("samcli.commands.deploy.command.do_cli")
@@ -797,6 +797,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "default",
                 False,
                 True,
+                "ROLLBACK",
             )
 
     @patch("samcli.commands._utils.experimental.is_experimental_enabled")
@@ -947,6 +948,8 @@ class TestSamConfigForAllCommands(TestCase):
             "stack_name": "mystack",
             "image_repository": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
             "base_dir": "path",
+            "use_container": True,
+            "s3_bucket": "mybucket",
             "s3_prefix": "myprefix",
             "kms_key_id": "mykms",
             "parameter_overrides": 'Key1=Value1 Key2="Multiple spaces in the value"',
@@ -990,6 +993,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
                 None,
+                "mybucket",
                 "myprefix",
                 "mykms",
                 ["cap1", "cap2"],
@@ -997,6 +1001,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ["notify1", "notify2"],
                 {"a": "tag1", "b": "tag with spaces"},
                 {"m1": "value1", "m2": "value2"},
+                True,
                 "samconfig.toml",
                 "default",
             )

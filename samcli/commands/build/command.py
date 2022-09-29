@@ -18,6 +18,7 @@ from samcli.commands._utils.options import (
     base_dir_option,
     manifest_option,
     cached_option,
+    use_container_build_option,
 )
 from samcli.commands._utils.option_value_processor import process_env_var, process_image_options
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
@@ -79,13 +80,7 @@ $ sam build MyFunction
 
 @click.command("build", help=HELP_TEXT, short_help="Build your Lambda function code")
 @configuration_option(provider=TomlProvider(section="parameters"))
-@click.option(
-    "--use-container",
-    "-u",
-    is_flag=True,
-    help="If your functions depend on packages that have natively compiled dependencies, use this flag "
-    "to build your function inside an AWS Lambda-like Docker container",
-)
+@use_container_build_option
 @click.option(
     "--container-env-var",
     "-e",

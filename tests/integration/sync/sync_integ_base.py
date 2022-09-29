@@ -221,6 +221,7 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         base_dir=None,
         image_repository=None,
         image_repositories=None,
+        s3_bucket=None,
         s3_prefix=None,
         kms_key_id=None,
         capabilities=None,
@@ -230,6 +231,7 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         tags=None,
         metadata=None,
         debug=None,
+        use_container=False,
     ):
         command_list = [get_sam_command(), "sync"]
 
@@ -262,6 +264,8 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
             command_list += ["--image-repository", str(image_repository)]
         if image_repositories:
             command_list += ["--image-repositories", str(image_repositories)]
+        if s3_bucket:
+            command_list += ["--s3-bucket", str(s3_bucket)]
         if s3_prefix:
             command_list += ["--s3-prefix", str(s3_prefix)]
         if kms_key_id:
@@ -282,5 +286,7 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
             command_list += ["--metadata", json.dumps(metadata)]
         if debug:
             command_list += ["--debug"]
+        if use_container:
+            command_list += ["--use-container"]
 
         return command_list

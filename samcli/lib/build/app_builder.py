@@ -186,7 +186,7 @@ class ApplicationBuilder:
         """
         build_graph = self._get_build_graph(self._container_env_var, self._container_env_var_file)
         build_strategy: BuildStrategy = DefaultBuildStrategy(
-            build_graph, self._build_dir, self._build_function, self._build_layer
+            build_graph, self._build_dir, self._build_function, self._build_layer, self._cached
         )
 
         if self._parallel:
