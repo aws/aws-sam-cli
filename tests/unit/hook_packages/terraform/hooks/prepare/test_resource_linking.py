@@ -165,6 +165,7 @@ class TestResourceLinking(TestCase):
         # assert we still return valid results
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].value, "mycoolvar")
+        self.assertIsInstance(results[0], ConstantValue)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
