@@ -319,14 +319,14 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndLocalBackend(
         )
 
 
-@skipIf(
-    not CI_OVERRIDE,
-    "Skip Terraform test cases unless running in CI",
-)
+# @skipIf(
+#     not CI_OVERRIDE,
+#     "Skip Terraform test cases unless running in CI",
+# )
 class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndS3Backend(
     BuildTerraformApplicationS3BackendIntegBase
 ):
-    terraform_application = Path("terraform/image_based_lambda_functions_local_backend")
+    terraform_application = Path("terraform/image_based_lambda_functions_s3_backend")
     functions = [
         "aws_lambda_function.my_image_function",
         "module.l1_lambda.aws_lambda_function.this",
