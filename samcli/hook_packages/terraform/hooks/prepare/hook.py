@@ -15,7 +15,6 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import hashlib
 import logging
 import shutil
-import uuid
 
 from samcli.lib.hook.exceptions import PrepareHookException, InvalidSamMetadataPropertiesException
 from samcli.lib.utils import osutils
@@ -919,9 +918,6 @@ def _generate_makefile_rule_for_lambda_resource(
     """
     target = _get_makefile_build_target(logical_id)
     resource_address = sam_metadata_resource.resource.get("address", "")
-    override_filename = f"zz_sam_cli_backend_{uuid.uuid4()}_override.tf"
-    backend_filename = f"{uuid.uuid4()}.tfstate"
-    init_backend_recipe = _generate_and_format_init_local_backend_recipe(override_filename, backend_filename)
     apply_command_template = "terraform apply -target {resource_address} -replace {resource_address} -auto-approve"
     apply_command_recipe = _format_makefile_recipe(apply_command_template.format(resource_address=resource_address))
     show_command_recipe = _format_makefile_recipe(
@@ -929,28 +925,7 @@ def _generate_makefile_rule_for_lambda_resource(
             python_command_name, output_dir, resource_address, sam_metadata_resource, terraform_application_dir
         )
     )
-    rm_override_file_recipe = _format_makefile_recipe(f"rm {override_filename}")
-    rm_backend_file_recipe = _format_makefile_recipe(f"rm {backend_filename}")
-    return (
-        f"{target}"
-        f"{init_backend_recipe}"
-        f"{apply_command_recipe}"
-        f"{show_command_recipe}"
-        f"{rm_override_file_recipe}"
-        f"{rm_backend_file_recipe}"
-    )
-
-
-def _generate_and_format_init_local_backend_recipe(override_filename: str, backend_filename: str) -> str:
-    command_list = [
-        f'echo "terraform {{" > {override_filename}',
-        f'echo "  backend \\"local\\" {{" >> {override_filename}',
-        f'echo "    path = \\"./{backend_filename}\\"" >> {override_filename}',
-        f'echo "  }}" >> {override_filename}',
-        f'echo "}}" >> {override_filename}',
-        "terraform init -reconfigure",
-    ]
-    return "".join([_format_makefile_recipe(line) for line in command_list])
+    return f"{target}{apply_command_recipe}{show_command_recipe}"
 
 
 def _build_show_command(
