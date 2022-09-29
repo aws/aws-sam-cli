@@ -319,10 +319,10 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndLocalBackend(
         )
 
 
-# @skipIf(
-#     not CI_OVERRIDE,
-#     "Skip Terraform test cases unless running in CI",
-# )
+@skipIf(
+    not CI_OVERRIDE,
+    "Skip Terraform test cases unless running in CI",
+)
 class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndS3Backend(
     BuildTerraformApplicationS3BackendIntegBase
 ):
