@@ -28,7 +28,7 @@ Expression = Union[ConstantValue, References]
 @dataclass
 class ResolvedReference:
     value: str
-    module_address: str
+    module_address: Optional[str]
 
 
 @dataclass
@@ -179,6 +179,12 @@ def _resolve_module_output(module: TFModule, output_name: str) -> List[Union[Con
                     output_name,
                 )
 
+                # validate that the reference is in the format: module.name.output
+                if re.fullmatch(r"module(?:\.[^\.]+){2}", reference) is None:
+                    raise InvalidResourceLinkingException(
+                        f"Module {module.full_address} contains an invalid reference {reference}"
+                    )
+
                 # module.bbb.ccc => bbb
                 module_name = reference[reference.find(".") + 1 : reference.rfind(".")]
                 # module.bbb.ccc => ccc
@@ -188,7 +194,7 @@ def _resolve_module_output(module: TFModule, output_name: str) -> List[Union[Con
 
                 if not module.child_modules:
                     raise InvalidResourceLinkingException(
-                        f"Module {module.full_address} does not have child modules defined, possible misconfiguration"
+                        f"Module {module.full_address} does not have child modules defined"
                     )
 
                 child_module = module.child_modules.get(stripped_reference)
@@ -196,7 +202,6 @@ def _resolve_module_output(module: TFModule, output_name: str) -> List[Union[Con
                 if not child_module:
                     raise InvalidResourceLinkingException(
                         f"Module {module.full_address} does not have {stripped_reference} as a child module"
-                        ", possible misconfiguration"
                     )
 
                 results += _resolve_module_output(child_module, output_name)
@@ -208,7 +213,7 @@ def _resolve_module_output(module: TFModule, output_name: str) -> List[Union[Con
                     output_name,
                 )
 
-                results.append(ResolvedReference(reference, module.full_address or ""))
+                results.append(ResolvedReference(reference, module.full_address))
 
     return results
 
@@ -253,7 +258,9 @@ def _resolve_module_variable(module: TFModule, variable_name: str) -> List[Union
                     and module.parent_module.child_modules
                     and module.parent_module.child_modules.get(config_module_name)
                 ):
-                    child_module = module.parent_module.child_modules.get(config_module_name)
+                    # using .get() gives us Optional[TFModule], if conditional already validates child module exists
+                    # access list directly instead
+                    child_module = module.parent_module.child_modules[config_module_name]
                     results += _resolve_module_output(child_module, output_name)
                 else:
                     raise InvalidResourceLinkingException(f"Couldn't find child module {config_module_name}.")
