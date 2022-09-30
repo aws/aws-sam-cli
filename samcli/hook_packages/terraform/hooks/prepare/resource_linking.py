@@ -2,10 +2,14 @@
 Use Terraform plan to link resources together
 e.g. linking layers to functions
 """
-
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union
 import re
+import logging
+
+from samcli.hook_packages.terraform.hooks.prepare.exceptions import InvalidResourceLinkingException
+
+LOG = logging.getLogger(__name__)
 
 
 @dataclass
@@ -24,7 +28,7 @@ Expression = Union[ConstantValue, References]
 @dataclass
 class ResolvedReference:
     value: str
-    module_address: str
+    module_address: Optional[str]
 
 
 @dataclass
@@ -44,6 +48,10 @@ class TFModule:
             all_resources += module.get_all_resources()
 
         return all_resources
+
+    @property
+    def module_name(self):
+        return self.full_address if self.full_address else "root module"
 
 
 @dataclass
@@ -99,13 +107,167 @@ def _get_configuration_address(address: str) -> str:
     Cleans all addresses of indices and returns a clean address
 
     Parameters
-    ==========
+    ----------
     address : str
         The address to clean
 
     Returns
-    =======
+    -------
     str
         The address clean of indices
     """
     return re.sub(r"\[[^\[\]]*\]", "", address)
+
+
+def _resolve_module_output(module: TFModule, output_name: str) -> List[Union[ConstantValue, ResolvedReference]]:
+    """
+    Resolves any references in the output section of the module
+
+    Parameters
+    ----------
+    module : Module
+        The module with outputs to search
+    output_name : str
+        The value to resolve
+
+    Returns
+    -------
+    List[Union[ConstantValue, ResolvedReference]]
+        A list of resolved values
+    """
+    results: List[Union[ConstantValue, ResolvedReference]] = []
+
+    output = module.outputs.get(output_name)
+
+    if not output:
+        raise InvalidResourceLinkingException(f"Output {output_name} was not found in module {module.full_address}")
+
+    output_value = output.value
+
+    LOG.debug("Resolving output {%s} for module {%s}", output_name, module.full_address)
+
+    if isinstance(output, ConstantValue):
+        LOG.debug(
+            "Resolved constant value {%s} for module {%s} for output {%s}",
+            output.value,
+            module.full_address,
+            output_name,
+        )
+
+        results.append(output)
+    elif isinstance(output, References):
+        LOG.debug("Found references for module {%s} for output {%s}", module.full_address, output_name)
+
+        cleaned_references = _clean_references_list(output_value)
+
+        for reference in cleaned_references:
+            if reference.startswith("var."):
+                LOG.debug(
+                    "Resolving variable reference {%s} for module {%s} for output {%s}",
+                    reference,
+                    module.full_address,
+                    output_name,
+                )
+
+                stripped_reference = _get_configuration_address(reference[reference.find(".") + 1 :])
+                results += _resolve_module_variable(module, stripped_reference)
+            elif reference.startswith("module."):
+                LOG.debug(
+                    "Resolving module reference {%s} for module {%s} for output {%s}",
+                    reference,
+                    module.full_address,
+                    output_name,
+                )
+
+                # validate that the reference is in the format: module.name.output
+                if re.fullmatch(r"module(?:\.[^\.]+){2}", reference) is None:
+                    raise InvalidResourceLinkingException(
+                        f"Module {module.full_address} contains an invalid reference {reference}"
+                    )
+
+                # module.bbb.ccc => bbb
+                module_name = reference[reference.find(".") + 1 : reference.rfind(".")]
+                # module.bbb.ccc => ccc
+                output_name = reference[reference.rfind(".") + 1 :]
+
+                stripped_reference = _get_configuration_address(module_name)
+
+                if not module.child_modules:
+                    raise InvalidResourceLinkingException(
+                        f"Module {module.full_address} does not have child modules defined"
+                    )
+
+                child_module = module.child_modules.get(stripped_reference)
+
+                if not child_module:
+                    raise InvalidResourceLinkingException(
+                        f"Module {module.full_address} does not have {stripped_reference} as a child module"
+                    )
+
+                results += _resolve_module_output(child_module, output_name)
+            else:
+                LOG.debug(
+                    "Resolved reference {%s} for module {%s} for output {%s}",
+                    reference,
+                    module.full_address,
+                    output_name,
+                )
+
+                results.append(ResolvedReference(reference, module.full_address))
+
+    return results
+
+
+def _resolve_module_variable(module: TFModule, variable_name: str) -> List[Union[ConstantValue, ResolvedReference]]:
+    # return a list of the values that resolve the passed variable
+    # name in the input module.
+    results: List[Union[ConstantValue, ResolvedReference]] = []
+
+    LOG.debug("Resolving module variable for module (%s) and variable (%s)", module.module_name, variable_name)
+
+    var_value = module.variables.get(variable_name)
+
+    if not var_value:
+        raise InvalidResourceLinkingException(
+            message=f"The variable {variable_name} could not be found in module {module.module_name}."
+        )
+
+    # check the possible constant value for this variable
+    if isinstance(var_value, ConstantValue) and var_value is not None:
+        LOG.debug("Found a constant value (%s) in module (%s)", var_value.value, module.module_name)
+        results.append(ConstantValue(var_value.value))
+
+    # check the possible references value for this variable
+    if isinstance(var_value, References) and var_value is not None:
+        LOG.debug("Found references (%s) in module (%s)", var_value.value, module.module_name)
+        cleaned_references = _clean_references_list(var_value.value)
+        for reference in cleaned_references:
+            LOG.debug("Resolving reference: %s", reference)
+            # refer to a variable passed to this module from its parent module
+            if reference.startswith("var."):
+                config_var_name = _get_configuration_address(reference[len("var.") :])
+                if module.parent_module:
+                    results += _resolve_module_variable(module.parent_module, config_var_name)
+            # refer to another module output. This module will be defined in the same level as this module
+            elif reference.startswith("module."):
+                module_name = reference[reference.find(".") + 1 : reference.rfind(".")]
+                config_module_name = _get_configuration_address(module_name)
+                output_name = reference[reference.rfind(".") + 1 :]
+                if (
+                    module.parent_module
+                    and module.parent_module.child_modules
+                    and module.parent_module.child_modules.get(config_module_name)
+                ):
+                    # using .get() gives us Optional[TFModule], if conditional already validates child module exists
+                    # access list directly instead
+                    child_module = module.parent_module.child_modules[config_module_name]
+                    results += _resolve_module_output(child_module, output_name)
+                else:
+                    raise InvalidResourceLinkingException(f"Couldn't find child module {config_module_name}.")
+            # this means either a resource, data source, or local.variables.
+            elif module.parent_module and module.parent_module.full_address is not None:
+                results.append(ResolvedReference(reference, module.parent_module.full_address))
+            else:
+                raise InvalidResourceLinkingException("Resource linking entered an invalid state.")
+
+    return results

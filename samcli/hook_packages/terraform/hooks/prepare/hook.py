@@ -559,6 +559,7 @@ def _enrich_image_lambda_function(
     )
     cfn_docker_file = sam_metadata_attributes.get("docker_file")
     cfn_docker_build_args_string = sam_metadata_attributes.get("docker_build_args")
+    cfn_docker_build_args = None
     if cfn_docker_build_args_string:
         try:
             LOG.debug("Parse the docker build args %s", cfn_docker_build_args_string)
