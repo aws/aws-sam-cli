@@ -363,7 +363,7 @@ def _resolve_resource_attribute(
                     f"find the child module {config_module_name}."
                 )
 
-            results += _resolve_module_output(resource.module.child_modules.get(config_module_name), output_name)
+            results += _resolve_module_output(resource.module.child_modules[config_module_name], output_name)
 
         # this means either a resource, data source, or local.variables.
         else:
