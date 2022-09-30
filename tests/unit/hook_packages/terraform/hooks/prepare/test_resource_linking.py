@@ -767,7 +767,7 @@ class TestResourceLinking(TestCase):
             },
         )
         expected_exception_message = (
-            "An error occurred when attempting to link two resources: Tha attribute Layers "
+            "An error occurred when attempting to link two resources: The attribute Layers "
             f"in Resource aws_lambda_function.func has an invalid reference "
             f"{module_output_reference} value"
         )
