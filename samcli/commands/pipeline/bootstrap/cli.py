@@ -34,6 +34,7 @@ from samcli.lib.pipeline.bootstrap.stage import (
     OIDC_PROVIDER,
     OIDC_PROVIDER_URL,
     PERMISSIONS_PROVIDER,
+    OIDC_SUPPORTED_PROVIDER,
     Stage,
 )
 from samcli.lib.telemetry.metric import track_command
@@ -169,6 +170,11 @@ LOG = logging.getLogger(__name__)
     "Found at https://bitbucket.org/<WORKSPACE>/<REPOSITORY>/admin/addon/admin/pipelines/openid-connect",
     required=False,
 )
+@click.option(
+    "--cicd-provider",
+    help="The CICD platform for the SAM Pipeline",
+    required=False,
+)
 @common_options
 @aws_creds_options
 @pass_context
@@ -198,6 +204,7 @@ def cli(
     gitlab_group: Optional[str],
     gitlab_project: Optional[str],
     bitbucket_repo_uuid: Optional[str],
+    cicd_provider: Optional[str],
 ) -> None:
     """
     `sam pipeline bootstrap` command entry point
@@ -226,6 +233,7 @@ def cli(
         gitlab_group=gitlab_group,
         gitlab_project=gitlab_project,
         bitbucket_repo_uuid=bitbucket_repo_uuid,
+        cicd_provider=cicd_provider,
     )  # pragma: no cover
 
 
@@ -253,6 +261,7 @@ def do_cli(
     gitlab_group: Optional[str],
     gitlab_project: Optional[str],
     bitbucket_repo_uuid: Optional[str],
+    cicd_provider: Optional[str],
     standalone: bool = True,
 ) -> None:
     """
@@ -260,6 +269,11 @@ def do_cli(
     """
     if not pipeline_user_arn and not permissions_provider == OPEN_ID_CONNECT:
         pipeline_user_arn = _load_saved_pipeline_user_arn()
+
+    enable_oidc_option = False
+    if not cicd_provider or cicd_provider in OIDC_SUPPORTED_PROVIDER:
+        enable_oidc_option = True
+        oidc_provider = cicd_provider
 
     config_parameters = _load_config_values()
     oidc_config = OidcConfig(
@@ -294,7 +308,6 @@ def do_cli(
             bitbucket_config.update_values(bitbucket_repo_uuid=config_parameters.get(BITBUCKET_REPO_UUID))
         elif saved_provider == "AWS IAM":
             permissions_provider = IAM
-
     if interactive:
         if standalone:
             click.echo(
@@ -326,6 +339,7 @@ def do_cli(
             github_config=github_config,
             gitlab_config=gitlab_config,
             bitbucket_config=bitbucket_config,
+            enable_oidc_option=enable_oidc_option,
         )
         guided_context.run()
         stage_configuration_name = guided_context.stage_configuration_name

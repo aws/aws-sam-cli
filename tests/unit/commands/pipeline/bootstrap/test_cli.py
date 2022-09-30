@@ -31,6 +31,7 @@ ANY_IMAGE_REPOSITORY_ARN = "ANY_IMAGE_REPOSITORY_ARN"
 ANY_ARN = "ANY_ARN"
 ANY_CONFIG_FILE = "ANY_CONFIG_FILE"
 ANY_CONFIG_ENV = "ANY_CONFIG_ENV"
+ANY_CICD_PROVIDER = "ANY_CICD_PROVIDER"
 ANY_OIDC_PROVIDER_URL = "ANY_OIDC_PROVIDER_URL"
 ANY_OIDC_CLIENT_ID = "ANY_OIDC_CLIENT_ID"
 ANY_OIDC_PROVIDER = "ANY_OIDC_PROVIDER"
@@ -74,6 +75,7 @@ class TestCli(TestCase):
             "gitlab_group": ANY_GITLAB_GROUP,
             "bitbucket_repo_uuid": ANY_BITBUCKET_REPO_UUID,
             "deployment_branch": ANY_DEPLOYMENT_BRANCH,
+            "cicd_provider": ANY_CICD_PROVIDER
         }
 
     @patch("samcli.commands.pipeline.bootstrap.cli.do_cli")
@@ -109,6 +111,7 @@ class TestCli(TestCase):
             gitlab_group=None,
             gitlab_project=None,
             bitbucket_repo_uuid=None,
+            cicd_provider=None
         )
 
     @patch("samcli.commands.pipeline.bootstrap.cli.do_cli")
@@ -211,7 +214,6 @@ class TestCli(TestCase):
         environment_instance.print_resources_summary.assert_not_called()
         environment_instance.save_config_safe.assert_not_called()
 
-    # @patch("samcli.commands.pipeline.bootstrap.cli.OidcConfig")
     @patch("samcli.commands.pipeline.bootstrap.pipeline_oidc_provider")
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
@@ -269,6 +271,41 @@ class TestCli(TestCase):
         self.cli_context["interactive"] = True
         self.cli_context["permissions_provider"] = "oidc"
         self.cli_context["oidc_provider"] = "gitlab"
+        get_command_names_mock.return_value = PIPELINE_BOOTSTRAP_COMMAND_NAMES
+
+        # trigger
+        bootstrap_cli(**self.cli_context)
+
+        # verify
+        gc_instance.run.assert_called_once()
+        environment_instance.bootstrap.assert_called_once_with(confirm_changeset=True)
+        environment_instance.print_resources_summary.assert_called_once()
+        environment_instance.save_config_safe.assert_called_once_with(
+            config_dir=PIPELINE_CONFIG_DIR,
+            filename=PIPELINE_CONFIG_FILENAME,
+            cmd_names=PIPELINE_BOOTSTRAP_COMMAND_NAMES,
+        )
+
+    @patch("samcli.commands.pipeline.bootstrap.pipeline_oidc_provider")
+    @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
+    @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
+    @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
+    def test_bootstrapping_oidc_interactive_flow_bitbucket(
+        self,
+        guided_context_mock,
+        environment_mock,
+        get_command_names_mock,
+        pipeline_provider_mock,
+    ):
+        # setup
+        gc_instance = Mock()
+        gc_instance.permissions_provider = "oidc"
+        guided_context_mock.return_value = gc_instance
+        environment_instance = Mock()
+        environment_mock.return_value = environment_instance
+        self.cli_context["interactive"] = True
+        self.cli_context["permissions_provider"] = "oidc"
+        self.cli_context["oidc_provider"] = "bitbucket-pipelines"
         get_command_names_mock.return_value = PIPELINE_BOOTSTRAP_COMMAND_NAMES
 
         # trigger
@@ -492,6 +529,7 @@ class TestCli(TestCase):
             create_image_repository=True,
             image_repository_arn=ANY_IMAGE_REPOSITORY_ARN,
             region=ANY_REGION,
+            enable_oidc_option=False
         )
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")

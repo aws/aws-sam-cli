@@ -6,6 +6,7 @@ import os
 import sys
 from textwrap import dedent
 from typing import Optional, List, Tuple, Callable
+from xmlrpc.client import boolean
 
 import click
 from botocore.credentials import EnvProvider
@@ -24,10 +25,12 @@ from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.defaults import get_default_aws_region
 from samcli.lib.utils.profile import list_available_profiles
 
+
 GITHUB_ACTIONS = "github-actions"
 GITLAB = "gitlab"
-BITBUCKET = "bitbucket"
+BITBUCKET = "bitbucket-pipelines"
 OPEN_ID_CONNECT = "oidc"
+OIDC_SUPPORTED_PROVIDER = [GITHUB_ACTIONS, GITLAB, BITBUCKET]
 IAM = "iam"
 
 
@@ -60,6 +63,7 @@ class GuidedContext:
         image_repository_arn: Optional[str] = None,
         region: Optional[str] = None,
         permissions_provider: Optional[str] = None,
+        enable_oidc_option: boolean = True
     ) -> None:
         self.profile = profile
         self.stage_configuration_name = stage_configuration_name
@@ -75,6 +79,7 @@ class GuidedContext:
         self.github_config = github_config
         self.gitlab_config = gitlab_config
         self.bitbucket_config = bitbucket_config
+        self.enable_oidc_option = enable_oidc_option
         self.color = Colored()
 
     def _prompt_account_id(self) -> None:
@@ -373,7 +378,7 @@ class GuidedContext:
         if not self.region:
             self._prompt_region_name()
 
-        if not self.permissions_provider == OPEN_ID_CONNECT and not self.pipeline_user_arn:
+        if self.enable_oidc_option and not self.permissions_provider == OPEN_ID_CONNECT and not self.pipeline_user_arn:
             self._prompt_permissions_provider()
 
         if self.permissions_provider == OPEN_ID_CONNECT:

@@ -14,7 +14,7 @@ import click
 import requests
 
 from OpenSSL import SSL, crypto  # type: ignore
-from samcli.commands.pipeline.bootstrap.guided_context import OPEN_ID_CONNECT
+from samcli.commands.pipeline.bootstrap.guided_context import OPEN_ID_CONNECT, GITHUB_ACTIONS, GITLAB, BITBUCKET
 from samcli.commands.pipeline.bootstrap.pipeline_oidc_provider import PipelineOidcProvider
 
 from samcli.lib.config.samconfig import SamConfig
@@ -41,6 +41,7 @@ GITLAB_PROJECT = "gitlab_project"
 DEPLOYMENT_BRANCH = "deployment_branch"
 BITBUCKET_REPO_UUID = "bitbucket_repo_uuid"
 PERMISSIONS_PROVIDER = "permissions_provider"
+OIDC_SUPPORTED_PROVIDER = [GITHUB_ACTIONS, GITLAB, BITBUCKET]
 REGION = "region"
 
 

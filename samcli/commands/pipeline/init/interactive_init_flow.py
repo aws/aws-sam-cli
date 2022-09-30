@@ -8,7 +8,7 @@ import os
 from json import JSONDecodeError
 from pathlib import Path
 from textwrap import dedent
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 import click
 from samcli.cli.global_config import GlobalConfig
@@ -35,7 +35,7 @@ from ..bootstrap.cli import (
 
 LOG = logging.getLogger(__name__)
 shared_path: Path = GlobalConfig().config_dir
-APP_PIPELINE_TEMPLATES_REPO_URL = "https://github.com/aws/aws-sam-cli-pipeline-init-templates.git"
+APP_PIPELINE_TEMPLATES_REPO_URL = "https://github.com/xazhao/aws-sam-cli-pipeline-init-templates.git"
 APP_PIPELINE_TEMPLATES_REPO_LOCAL_NAME = "aws-sam-cli-app-pipeline-templates"
 CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME = "custom-pipeline-template"
 SAM_PIPELINE_TEMPLATE_SOURCE = "AWS Quick Start Pipeline Templates"
@@ -102,7 +102,9 @@ class InteractiveInitFlow:
         selected_pipeline_template_dir: Path = pipeline_templates_local_dir.joinpath(
             selected_pipeline_template_metadata.location
         )
-        return self._generate_from_pipeline_template(selected_pipeline_template_dir)
+        return self._generate_from_pipeline_template(
+            selected_pipeline_template_dir, selected_pipeline_template_metadata.provider
+        )
 
     def _generate_from_custom_location(
         self,
@@ -139,7 +141,7 @@ class InteractiveInitFlow:
         return self._generate_from_pipeline_template(selected_pipeline_template_dir)
 
     def _prompt_run_bootstrap_within_pipeline_init(
-        self, stage_configuration_names: List[str], number_of_stages: int
+        self, stage_configuration_names: List[str], number_of_stages: int, cicd_provider: Optional[str] = None
     ) -> bool:
         """
         Prompt bootstrap if `--bootstrap` flag is provided. Return True if bootstrap process is executed.
@@ -198,6 +200,7 @@ class InteractiveInitFlow:
                     github_repo=None,
                     deployment_branch=None,
                     oidc_provider=None,
+                    cicd_provider=cicd_provider,
                     gitlab_group=None,
                     gitlab_project=None,
                     bitbucket_repo_uuid=None,
@@ -218,7 +221,9 @@ class InteractiveInitFlow:
             )
         return False
 
-    def _generate_from_pipeline_template(self, pipeline_template_dir: Path) -> List[str]:
+    def _generate_from_pipeline_template(
+        self, pipeline_template_dir: Path, cicd_provider: Optional[str] = None
+    ) -> List[str]:
         """
         Generates a pipeline config file from a given pipeline template local location
         and return the list of generated files.
@@ -234,7 +239,7 @@ class InteractiveInitFlow:
             click.echo("Checking for existing stages...\n")
             stage_configuration_names, bootstrap_context = _load_pipeline_bootstrap_resources()
             if len(stage_configuration_names) < number_of_stages and self._prompt_run_bootstrap_within_pipeline_init(
-                stage_configuration_names, number_of_stages
+                stage_configuration_names, number_of_stages, cicd_provider
             ):
                 # the customers just went through the bootstrap process,
                 # refresh the pipeline bootstrap resources and see whether bootstrap is still needed

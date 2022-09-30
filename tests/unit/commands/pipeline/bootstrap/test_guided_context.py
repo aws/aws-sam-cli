@@ -3,7 +3,7 @@ from unittest.mock import patch, Mock, ANY
 
 from parameterized import parameterized
 
-from samcli.commands.pipeline.bootstrap.guided_context import GuidedContext, GITHUB_ACTIONS
+from samcli.commands.pipeline.bootstrap.guided_context import IAM, GuidedContext, GITHUB_ACTIONS
 from samcli.commands.pipeline.bootstrap.oidc_config import (
     GitHubOidcConfig,
     BitbucketOidcConfig,
@@ -63,6 +63,7 @@ class TestGuidedContext(TestCase):
             create_image_repository=True,
             image_repository_arn=ANY_IMAGE_REPOSITORY_ARN,
             region=ANY_REGION,
+            permissions_provider="oidc",
         )
         gc.run()
         # there should only two prompt to ask
@@ -164,7 +165,7 @@ class TestGuidedContext(TestCase):
         github_config = GitHubOidcConfig(github_org=None, github_repo=None, deployment_branch=None)
         gitlab_config = GitLabOidcConfig(gitlab_group=None, gitlab_project=None, deployment_branch=None)
         bitbucket_config = BitbucketOidcConfig(None)
-        oidc_config = OidcConfig(oidc_provider="bitbucket", oidc_provider_url=None, oidc_client_id=None)
+        oidc_config = OidcConfig(oidc_provider="bitbucket-pipelines", oidc_provider_url=None, oidc_client_id=None)
 
         gc: GuidedContext = GuidedContext(
             github_config=github_config,
@@ -367,21 +368,21 @@ class TestGuidedContext(TestCase):
         self.assertIsNone(gc_without_ecr_info.image_repository_arn)
 
         click_mock.confirm.return_value = False  # the user chose to not CREATE an ECR Image repository
-        click_mock.prompt.side_effect = [None, "0"]
+        click_mock.prompt.side_effect = [None, "0", "0"]
         gc_without_ecr_info.run()
         self.assertIsNone(gc_without_ecr_info.image_repository_arn)
         self.assertFalse(gc_without_ecr_info.create_image_repository)
         self.assertFalse(self.did_prompt_text_like("Please enter the ECR image repository", click_mock.prompt))
 
         click_mock.confirm.return_value = True  # the user chose to CREATE an ECR Image repository
-        click_mock.prompt.side_effect = [None, None, "0"]
+        click_mock.prompt.side_effect = [None, None, "0", "0"]
         gc_without_ecr_info.run()
         self.assertIsNone(gc_without_ecr_info.image_repository_arn)
         self.assertTrue(gc_without_ecr_info.create_image_repository)
         self.assertTrue(self.did_prompt_text_like("Please enter the ECR image repository", click_mock.prompt))
 
         click_mock.confirm.return_value = True  # the user already has a repo
-        click_mock.prompt.side_effect = [None, ANY_IMAGE_REPOSITORY_ARN, "0"]
+        click_mock.prompt.side_effect = [None, ANY_IMAGE_REPOSITORY_ARN, "0", "0"]
         gc_without_ecr_info.run()
         self.assertFalse(gc_without_ecr_info.create_image_repository)
         self.assertTrue(
