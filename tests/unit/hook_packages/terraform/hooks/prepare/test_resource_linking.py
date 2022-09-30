@@ -1,6 +1,6 @@
 from copy import deepcopy
 from unittest import TestCase
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, call
 
 from parameterized import parameterized
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import InvalidResourceLinkingException
@@ -16,6 +16,8 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     References,
     ConstantValue,
     _resolve_module_variable,
+    _resolve_resource_attribute,
+    ResolvedReference,
 )
 
 
@@ -499,3 +501,301 @@ class TestResourceLinking(TestCase):
             ex.exception.args[0],
             "An error occurred when attempting to link two resources: Couldn't find child module layer_module.",
         )
+
+    def test_resolve_resource_attribute_constant_value(self):
+        resource = TFResource(
+            address="aws_lambda_function.func",
+            type="aws_lambda_function",
+            module=TFModule(None, None, {}, [], {}, {}),
+            attributes={
+                "Code": ConstantValue(value="/path/code"),
+                "Layers": ConstantValue(value=["layer1.arn", "layer2.arn"]),
+            },
+        )
+        results = _resolve_resource_attribute(resource, "Layers")
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].value, ["layer1.arn", "layer2.arn"])
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_module_variable")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    def test_resolve_resource_attribute_variable_reference(
+        self, get_configuration_address_mock, clean_references_mock, resolve_module_variable_mock
+    ):
+        value1 = Mock()
+        value2 = Mock()
+        resolve_module_variable_mock.side_effect = [[value1], [value2]]
+        clean_references_mock.return_value = ["var.layer_arn_1", "var.layer_arn_2"]
+        get_configuration_address_mock.side_effect = ["layer_arn_1", "layer_arn_2"]
+
+        parent_module = TFModule(None, None, {}, [], {}, {})
+        resource = TFResource(
+            address="aws_lambda_function.func",
+            type="aws_lambda_function",
+            module=parent_module,
+            attributes={
+                "Code": ConstantValue(value="/path/code"),
+                "Layers": References(value=["var.layer_arn_1", "var.layer_arn_2"]),
+            },
+        )
+        results = _resolve_resource_attribute(resource, "Layers")
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results[0], value1)
+        self.assertEqual(results[1], value2)
+        get_configuration_address_mock.has_calls([call("layer_arn_1"), call("layer_arn_2")])
+        resolve_module_variable_mock.assert_has_calls(
+            [
+                call(
+                    parent_module,
+                    "layer_arn_1",
+                ),
+                call(
+                    parent_module,
+                    "layer_arn_2",
+                ),
+            ]
+        )
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_module_output")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    def test_resolve_resource_attribute_module_reference(
+        self, get_configuration_address_mock, clean_references_mock, resolve_module_output_mock
+    ):
+        value1 = Mock()
+        value2 = Mock()
+        resolve_module_output_mock.side_effect = [[value1], [value2]]
+        clean_references_mock.return_value = ["module.layer1.arn", "module.layer2.arn"]
+        get_configuration_address_mock.side_effect = ["layer1", "layer2"]
+
+        layer1_module = TFModule(None, None, {}, [], {}, {"id": "layer1_id", "arn": "layer1.arn"})
+        layer2_module = TFModule(None, None, {}, [], {}, {"id": "layer2_id", "arn": "layer2.arn"})
+        other_module = TFModule(None, None, {}, [], {}, {})
+        parent_module = TFModule(
+            None,
+            None,
+            {},
+            [],
+            {
+                "layer2": layer2_module,
+                "layer1": layer1_module,
+                "other": other_module,
+            },
+            {},
+        )
+
+        resource = TFResource(
+            address="aws_lambda_function.func",
+            type="aws_lambda_function",
+            module=parent_module,
+            attributes={
+                "Code": ConstantValue(value="/path/code"),
+                "Layers": References(value=["module.layer1.arn", "module.layer2.arn"]),
+            },
+        )
+        results = _resolve_resource_attribute(resource, "Layers")
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results[0], value1)
+        self.assertEqual(results[1], value2)
+
+        get_configuration_address_mock.has_calls([call("layer1"), call("layer2")])
+
+        resolve_module_output_mock.assert_has_calls(
+            [
+                call(
+                    layer1_module,
+                    "arn",
+                ),
+                call(
+                    layer2_module,
+                    "arn",
+                ),
+            ]
+        )
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
+    def test_resolve_resource_attribute_resource_reference(self, clean_references_mock):
+        clean_references_mock.return_value = ["aws_lambda_layer.arn"]
+        parent_module = TFModule(None, None, {}, [], {}, {})
+
+        resource = TFResource(
+            address="aws_lambda_function.func",
+            type="aws_lambda_function",
+            module=parent_module,
+            attributes={
+                "Code": ConstantValue(value="/path/code"),
+                "Layers": References(value=["aws_lambda_layer.arn"]),
+            },
+        )
+        results = _resolve_resource_attribute(resource, "Layers")
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0], ResolvedReference("aws_lambda_layer.arn", None))
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_module_variable")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_module_output")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    def test_resolve_resource_attribute_module_and_variable_references(
+        self,
+        get_configuration_address_mock,
+        clean_references_mock,
+        resolve_module_output_mock,
+        resolve_module_variable_mock,
+    ):
+
+        variable_reference_value = Mock()
+        resolve_module_variable_mock.return_value = [variable_reference_value]
+        module_reference_value = Mock()
+        resolve_module_output_mock.return_value = [module_reference_value]
+
+        clean_references_mock.return_value = ["module.layer1.arn", "var.layer2_arn"]
+        get_configuration_address_mock.side_effect = ["layer1", "layer2_arn"]
+
+        layer1_module = TFModule(None, None, {}, [], {}, {"id": "layer1_id", "arn": "layer1.arn"})
+        other_module = TFModule(None, None, {}, [], {}, {})
+        parent_module = TFModule(
+            None,
+            None,
+            {},
+            [],
+            {
+                "layer1": layer1_module,
+                "other": other_module,
+            },
+            {},
+        )
+
+        resource = TFResource(
+            address="aws_lambda_function.func",
+            type="aws_lambda_function",
+            module=parent_module,
+            attributes={
+                "Code": ConstantValue(value="/path/code"),
+                "Layers": References(value=["module.layer1.arn", "var.layer2_arn"]),
+            },
+        )
+        results = _resolve_resource_attribute(resource, "Layers")
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results[0], module_reference_value)
+        self.assertEqual(results[1], variable_reference_value)
+
+        get_configuration_address_mock.has_calls([call("layer1"), call("layer2_arn")])
+
+        resolve_module_output_mock.assert_has_calls(
+            [
+                call(
+                    layer1_module,
+                    "arn",
+                ),
+            ]
+        )
+        resolve_module_variable_mock.assert_has_calls(
+            [
+                call(
+                    parent_module,
+                    "layer2_arn",
+                ),
+            ]
+        )
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
+    def test_resolve_resource_attribute_empty_child_module_for_module_output_case_exception_scenario(
+        self, clean_references_mock
+    ):
+        resource = TFResource(
+            address="aws_lambda_function.func",
+            type="aws_lambda_function",
+            module=TFModule(None, None, {}, [], {}, {}),
+            attributes={
+                "Code": ConstantValue(value="/path/code"),
+                "Layers": References(value=["module.layer1.arn"]),
+            },
+        )
+        expected_exception_message = (
+            "An error occurred when attempting to link two resources: The input resource "
+            "aws_lambda_function.func does not have a parent module, or we could not find the "
+            "child module layer1."
+        )
+
+        if resource.attributes.get("Layers"):
+            clean_references_mock.return_value = resource.attributes["Layers"].value
+
+        with self.assertRaises(InvalidResourceLinkingException) as exc:
+            _resolve_resource_attribute(resource, "Layers")
+
+        self.assertEqual(exc.exception.args[0], expected_exception_message)
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
+    def test_resolve_resource_attribute_no_child_module_for_module_output_case_exception_scenario(
+        self, clean_references_mock
+    ):
+        resource = TFResource(
+            address="aws_lambda_function.func",
+            type="aws_lambda_function",
+            module=TFModule(None, None, {}, [], {"layer2": TFModule(None, None, {}, [], {}, {})}, {}),
+            attributes={
+                "Code": ConstantValue(value="/path/code"),
+                "Layers": References(value=["module.layer1.arn"]),
+            },
+        )
+        expected_exception_message = (
+            "An error occurred when attempting to link two resources: The input resource "
+            "aws_lambda_function.func does not have a parent module, or we could not find the "
+            "child module layer1."
+        )
+
+        if resource.attributes.get("Layers"):
+            clean_references_mock.return_value = resource.attributes["Layers"].value
+
+        with self.assertRaises(InvalidResourceLinkingException) as exc:
+            _resolve_resource_attribute(resource, "Layers")
+
+        self.assertEqual(exc.exception.args[0], expected_exception_message)
+
+    @parameterized.expand(["module.layer1", "module.layer1.arn.other", "module.", "module.."])
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
+    def test_resolve_resource_attribute_invalid_module_output_references_exception_scenario(
+        self, module_output_reference, clean_references_mock
+    ):
+        resource = TFResource(
+            address="aws_lambda_function.func",
+            type="aws_lambda_function",
+            module=TFModule(None, None, {}, [], {}, {}),
+            attributes={
+                "Code": ConstantValue(value="/path/code"),
+                "Layers": References(value=[module_output_reference]),
+            },
+        )
+        expected_exception_message = (
+            "An error occurred when attempting to link two resources: The attribute Layers "
+            f"in Resource aws_lambda_function.func has an invalid reference "
+            f"{module_output_reference} value"
+        )
+
+        if resource.attributes.get("Layers"):
+            clean_references_mock.return_value = resource.attributes["Layers"].value
+
+        with self.assertRaises(InvalidResourceLinkingException) as exc:
+            _resolve_resource_attribute(resource, "Layers")
+
+        self.assertEqual(exc.exception.args[0], expected_exception_message)
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
+    def test_resolve_resource_attribute_none_value_exception_scenario(self, clean_references_mock):
+        resource = TFResource(
+            address="aws_lambda_function.func",
+            type="aws_lambda_function",
+            module=TFModule(None, None, {}, [], {}, {}),
+            attributes={
+                "Code": ConstantValue(value="/path/code"),
+            },
+        )
+        expected_exception_message = (
+            "An error occurred when attempting to link two resources: The attribute Layers "
+            "could not be found in resource aws_lambda_function.func."
+        )
+
+        with self.assertRaises(InvalidResourceLinkingException) as exc:
+            _resolve_resource_attribute(resource, "Layers")
+
+        self.assertEqual(exc.exception.args[0], expected_exception_message)
