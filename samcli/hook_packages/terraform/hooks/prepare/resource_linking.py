@@ -69,6 +69,115 @@ class TFResource:
         return self.address
 
 
+def _build_module(
+    module_name: Optional[str],
+    module_configuration: Dict,
+    input_variables: Dict[str, Expression],
+    parent_module_address: Optional[str],
+) -> TFModule:
+    module = TFModule(None, None, {}, [], {}, {})
+
+    module.full_address = _build_module_full_address(module_name, parent_module_address)
+    module.variables = _build_module_variables_from_configuration(module_configuration, input_variables)
+    module.resources = _build_module_resources_from_configuration(module_configuration, module)
+    module.outputs = _build_module_outputs_from_configuration(module_configuration)
+    module.child_modules = _build_child_modules_from_configuration(module_configuration, module)
+
+    return module
+
+
+def _build_module_full_address(module_name: Optional[str], parent_module_address: Optional[str]) -> Optional[str]:
+    full_address = None
+    if module_name:
+        full_address = f"module.{module_name}"
+        if parent_module_address:
+            full_address = f"{parent_module_address}.{full_address}"
+
+    return full_address
+
+
+def _build_module_variables_from_configuration(
+    module_configuration: Dict, input_variables: Dict[str, Expression]
+) -> Dict[str, Expression]:
+    module_variables: Dict[str, Expression] = {}
+
+    default_variables = module_configuration.get("variables", {})
+    for variable_name, variable_value in default_variables.items():
+        module_variables[variable_name] = ConstantValue(variable_value.get("default"))
+    module_variables.update(input_variables)
+
+    return module_variables
+
+
+def _build_module_resources_from_configuration(module_configuration: Dict, module: TFModule) -> List[TFResource]:
+    module_resources = []
+
+    config_resources = module_configuration.get("resources", [])
+    for config_resource in config_resources:
+        resource_attributes: Dict[str, Expression] = {}
+
+        expressions = config_resource.get("expressions", {})
+        print(expressions)
+        for expression_name, expression_value in expressions.items():
+            parsed_expression = _build_expression_from_configuration(expression_value)
+            resource_attributes[expression_name] = parsed_expression
+
+        resource_address = config_resource.get("address")
+        resource_type = config_resource.get("type")
+        module_resources.append(TFResource(resource_address, resource_type, module, resource_attributes))
+
+    return module_resources
+
+
+def _build_module_outputs_from_configuration(module_configuration: Dict) -> Dict[str, Expression]:
+    module_outputs = {}
+
+    config_outputs = module_configuration.get("outputs", {})
+    for output_name, output_value in config_outputs.items():
+        expression = output_value.get("expression", {})
+        parsed_expression = _build_expression_from_configuration(expression)
+        module_outputs[output_name] = parsed_expression
+
+    return module_outputs
+
+
+def _build_child_modules_from_configuration(module_configuration: Dict, module: TFModule) -> Dict[str, TFModule]:
+    child_modules = {}
+
+    module_calls = module_configuration.get("module_calls", {})
+    for module_call_name, module_call_value in module_calls.items():
+        module_call_input_variables: Dict[str, Expression] = {}
+
+        expressions = module_call_value.get("expressions", {})
+        for expression_name, expression_value in expressions.items():
+            parsed_expression = _build_expression_from_configuration(expression_value)
+            module_call_input_variables[expression_name] = parsed_expression
+
+        module_call_module_config = module_call_value.get("module", {})
+        module_call_built_module = _build_module(
+            module_call_name, module_call_module_config, module_call_input_variables, module.full_address
+        )
+
+        module_call_built_module.parent_module = module
+        child_modules[module_call_name] = module_call_built_module
+
+    return child_modules
+
+
+def _build_expression_from_configuration(expression_configuration: Dict) -> Expression:
+    constant_value = expression_configuration.get("constant_value")
+    references = expression_configuration.get("references")
+
+    parsed_expression: Expression
+
+    if constant_value:
+        parsed_expression = ConstantValue(constant_value)
+    elif references:
+        parsed_expression = References(references)
+
+    return parsed_expression
+
+
 def _clean_references_list(references: List[str]) -> List[str]:
     """
     Return a new copy of the complete references list.
