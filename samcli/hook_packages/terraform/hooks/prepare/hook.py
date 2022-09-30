@@ -47,7 +47,7 @@ PropertyBuilder = Callable[[dict], Any]
 PropertyBuilderMapping = Dict[str, PropertyBuilder]
 
 TERRAFORM_BUILD_SCRIPT = "copy_terraform_built_artifacts.py"
-TF_BACKEND_OVERRIDE_FILENAME = "z_samcli_backend_override.tf"
+TF_BACKEND_OVERRIDE_FILENAME = "z_samcli_backend_override"
 
 CFN_CODE_PROPERTIES = {
     CFN_AWS_LAMBDA_FUNCTION: "Code",
@@ -942,7 +942,7 @@ def _generate_makefile_rule_for_lambda_resource(
     move_override_recipe = _format_makefile_recipe(
         "cp "
         f"{Path(output_dir, TF_BACKEND_OVERRIDE_FILENAME).relative_to(terraform_application_dir)} "
-        f"./{TF_BACKEND_OVERRIDE_FILENAME}"
+        f"./{TF_BACKEND_OVERRIDE_FILENAME}.tf"
     )
     init_command_recipe = _format_makefile_recipe("terraform init -reconfigure")
     apply_command_template = "terraform apply -target {resource_address} -replace {resource_address} -auto-approve"
