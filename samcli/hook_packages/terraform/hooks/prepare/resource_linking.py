@@ -28,7 +28,7 @@ Expression = Union[ConstantValue, References]
 @dataclass
 class ResolvedReference:
     value: str
-    module_address: str
+    module_address: Optional[str]
 
 
 @dataclass
@@ -107,20 +107,115 @@ def _get_configuration_address(address: str) -> str:
     Cleans all addresses of indices and returns a clean address
 
     Parameters
-    ==========
+    ----------
     address : str
         The address to clean
 
     Returns
-    =======
+    -------
     str
         The address clean of indices
     """
     return re.sub(r"\[[^\[\]]*\]", "", address)
 
 
-def _resolve_module_output(module, output_name):
-    pass
+def _resolve_module_output(module: TFModule, output_name: str) -> List[Union[ConstantValue, ResolvedReference]]:
+    """
+    Resolves any references in the output section of the module
+
+    Parameters
+    ----------
+    module : Module
+        The module with outputs to search
+    output_name : str
+        The value to resolve
+
+    Returns
+    -------
+    List[Union[ConstantValue, ResolvedReference]]
+        A list of resolved values
+    """
+    results: List[Union[ConstantValue, ResolvedReference]] = []
+
+    output = module.outputs.get(output_name)
+
+    if not output:
+        raise InvalidResourceLinkingException(f"Output {output_name} was not found in module {module.full_address}")
+
+    output_value = output.value
+
+    LOG.debug("Resolving output {%s} for module {%s}", output_name, module.full_address)
+
+    if isinstance(output, ConstantValue):
+        LOG.debug(
+            "Resolved constant value {%s} for module {%s} for output {%s}",
+            output.value,
+            module.full_address,
+            output_name,
+        )
+
+        results.append(output)
+    elif isinstance(output, References):
+        LOG.debug("Found references for module {%s} for output {%s}", module.full_address, output_name)
+
+        cleaned_references = _clean_references_list(output_value)
+
+        for reference in cleaned_references:
+            if reference.startswith("var."):
+                LOG.debug(
+                    "Resolving variable reference {%s} for module {%s} for output {%s}",
+                    reference,
+                    module.full_address,
+                    output_name,
+                )
+
+                stripped_reference = _get_configuration_address(reference[reference.find(".") + 1 :])
+                results += _resolve_module_variable(module, stripped_reference)
+            elif reference.startswith("module."):
+                LOG.debug(
+                    "Resolving module reference {%s} for module {%s} for output {%s}",
+                    reference,
+                    module.full_address,
+                    output_name,
+                )
+
+                # validate that the reference is in the format: module.name.output
+                if re.fullmatch(r"module(?:\.[^\.]+){2}", reference) is None:
+                    raise InvalidResourceLinkingException(
+                        f"Module {module.full_address} contains an invalid reference {reference}"
+                    )
+
+                # module.bbb.ccc => bbb
+                module_name = reference[reference.find(".") + 1 : reference.rfind(".")]
+                # module.bbb.ccc => ccc
+                output_name = reference[reference.rfind(".") + 1 :]
+
+                stripped_reference = _get_configuration_address(module_name)
+
+                if not module.child_modules:
+                    raise InvalidResourceLinkingException(
+                        f"Module {module.full_address} does not have child modules defined"
+                    )
+
+                child_module = module.child_modules.get(stripped_reference)
+
+                if not child_module:
+                    raise InvalidResourceLinkingException(
+                        f"Module {module.full_address} does not have {stripped_reference} as a child module"
+                    )
+
+                results += _resolve_module_output(child_module, output_name)
+            else:
+                LOG.debug(
+                    "Resolved reference {%s} for module {%s} for output {%s}",
+                    reference,
+                    module.full_address,
+                    output_name,
+                )
+
+                results.append(ResolvedReference(reference, module.full_address))
+
+    return results
 
 
 def _resolve_module_variable(module: TFModule, variable_name: str) -> List[Union[ConstantValue, ResolvedReference]]:
@@ -163,7 +258,9 @@ def _resolve_module_variable(module: TFModule, variable_name: str) -> List[Union
                     and module.parent_module.child_modules
                     and module.parent_module.child_modules.get(config_module_name)
                 ):
-                    child_module = module.parent_module.child_modules.get(config_module_name)
+                    # using .get() gives us Optional[TFModule], if conditional already validates child module exists
+                    # access list directly instead
+                    child_module = module.parent_module.child_modules[config_module_name]
                     results += _resolve_module_output(child_module, output_name)
                 else:
                     raise InvalidResourceLinkingException(f"Couldn't find child module {config_module_name}.")

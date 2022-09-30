@@ -3,15 +3,18 @@ from unittest import TestCase
 from unittest.mock import Mock, patch
 
 from parameterized import parameterized
+from samcli.hook_packages.terraform.hooks.prepare.exceptions import InvalidResourceLinkingException
 
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import InvalidResourceLinkingException
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
+    ResolvedReference,
     _clean_references_list,
     _get_configuration_address,
+    _resolve_module_output,
     TFModule,
     TFResource,
-    ConstantValue,
     References,
+    ConstantValue,
     _resolve_module_variable,
 )
 
@@ -133,6 +136,152 @@ class TestResourceLinking(TestCase):
         module = TFModule(None, None, {}, {}, {}, {})
         resource = TFResource("resource_address", "type", module, {})
         self.assertEqual(resource.full_address, "resource_address")
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_module_variable")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
+    def test_resolve_module_output_with_var(self, clean_ref_mock, config_mock, resolve_var_mock):
+        constant_val = ConstantValue("mycoolvar")
+
+        module = TFModule(
+            None,
+            None,
+            {"mycoolref": constant_val},
+            [],
+            {},
+            {"mycooloutput": References(["var.mycoolref"])},
+        )
+
+        config_mock.return_value = "mycoolref"
+        clean_ref_mock.return_value = ["var.mycoolref"]
+        resolve_var_mock.return_value = [constant_val]
+
+        results = _resolve_module_output(module, "mycooloutput")
+
+        # assert we are calling the right funcs
+        config_mock.assert_called_with("mycoolref")
+        resolve_var_mock.assert_called_with(module, "mycoolref")
+
+        # assert we still return valid results
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].value, "mycoolvar")
+        self.assertIsInstance(results[0], ConstantValue)
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
+    def test_resolve_module_output_with_module(self, clean_ref_mock, config_mock):
+        module = TFModule(None, None, {}, [], {}, {"mycooloutput": References(["module.mycoolmod.mycooloutput2"])})
+        module2 = TFModule("module.mycoolmod", module, {}, [], {}, {"mycooloutput2": ConstantValue("mycoolconst")})
+        module.child_modules.update({"mycoolmod": module2})
+
+        config_mock.return_value = "mycoolmod"
+        clean_ref_mock.return_value = ["module.mycoolmod.mycooloutput2"]
+
+        results = _resolve_module_output(module, "mycooloutput")
+
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].value, "mycoolconst")
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
+    def test_resolve_module_output_already_resolved_constant(self, clean_ref_mock, config_mock):
+        module = TFModule(None, None, {}, [], {}, {"mycooloutput": ConstantValue("mycoolconst")})
+
+        results = _resolve_module_output(module, "mycooloutput")
+
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].value, "mycoolconst")
+        self.assertIsInstance(results[0], ConstantValue)
+
+    @parameterized.expand(
+        [
+            (
+                TFModule("module.name", None, {}, [], {}, {"mycooloutput": References(["local.mycoolconst"])}),
+                "module.name",
+            ),
+            (TFModule(None, None, {}, [], {}, {"mycooloutput": References(["local.mycoolconst"])}), None),
+        ]
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
+    def test_resolve_module_output_already_resolved_reference(self, module, expected_addr, clean_ref_mock, config_mock):
+        clean_ref_mock.return_value = ["local.mycoolconst"]
+
+        results = _resolve_module_output(module, "mycooloutput")
+
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].value, "local.mycoolconst")
+        self.assertEqual(results[0].module_address, expected_addr)
+        self.assertIsInstance(results[0], ResolvedReference)
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
+    def test_resolve_module_output_raises_exception_empty_output(self, clean_ref_mock, get_config_mock):
+        module = TFModule("module.mymod", None, {}, [], {}, {})
+
+        with self.assertRaises(InvalidResourceLinkingException) as err:
+            _resolve_module_output(module, "empty")
+
+        self.assertEqual(
+            str(err.exception),
+            "An error occurred when attempting to link two resources: Output empty was not found in module module.mymod",
+        )
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
+    def test_resolve_module_output_raises_exception_empty_children(self, clean_ref_mock, get_config_mock):
+        module = TFModule("module.mymod", None, {}, [], {}, {"search": References(["module.nonexist.output"])})
+
+        clean_ref_mock.return_value = ["module.nonexist.output"]
+        get_config_mock.return_value = "nonexist"
+
+        with self.assertRaises(InvalidResourceLinkingException) as err:
+            _resolve_module_output(module, "search")
+
+        self.assertEqual(
+            str(err.exception),
+            "An error occurred when attempting to link two resources: Module module.mymod does not have child modules defined",
+        )
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
+    def test_resolve_module_output_raises_exception_non_exist_child(self, clean_ref_mock, get_config_mock):
+        module = TFModule(
+            "module.mymod", None, {}, [], {"othermod": Mock()}, {"search": References(["module.nonexist.output"])}
+        )
+        clean_ref_mock.return_value = ["module.nonexist.output"]
+        get_config_mock.return_value = "nonexist"
+
+        with self.assertRaises(InvalidResourceLinkingException) as err:
+            _resolve_module_output(module, "search")
+
+        self.assertEqual(
+            str(err.exception),
+            "An error occurred when attempting to link two resources: Module module.mymod does not have nonexist as a child module",
+        )
+
+    @parameterized.expand(
+        [
+            "module.",
+            "module..",
+            "module.....",
+            "module.name",
+            "module.name.output.again",
+        ]
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
+    def test_resolve_module_output_invalid_module_name(self, invalid_reference, clean_ref_mock, get_config_mock):
+        module = TFModule("module.name", None, {}, [], {}, {"output1": References([invalid_reference])})
+        clean_ref_mock.return_value = [invalid_reference]
+
+        with self.assertRaises(InvalidResourceLinkingException) as err:
+            _resolve_module_output(module, "output1")
+
+        self.assertEqual(
+            str(err.exception),
+            f"An error occurred when attempting to link two resources: Module module.name contains an invalid reference {invalid_reference}",
+        )
 
     def test_resolve_module_variable_constant_value(self):
         constant_value = ConstantValue(value="layer.arn")
