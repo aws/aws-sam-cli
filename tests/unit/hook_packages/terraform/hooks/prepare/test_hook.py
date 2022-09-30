@@ -2499,10 +2499,15 @@ class TestPrepareHook(TestCase):
     ):
         mock_os.path.exists.return_value = output_dir_exists
 
+        mock_copy_tf_backend_override_file_path = Mock()
         mock_copy_terraform_built_artifacts_script_path = Mock()
         mock_makefile_path = Mock()
         mock_os.path.dirname.return_value = ""
-        mock_os.path.join.side_effect = [mock_copy_terraform_built_artifacts_script_path, mock_makefile_path]
+        mock_os.path.join.side_effect = [
+            mock_copy_tf_backend_override_file_path,
+            mock_copy_terraform_built_artifacts_script_path,
+            mock_makefile_path,
+        ]
 
         mock_makefile = Mock()
         mock_open.return_value.__enter__.return_value = mock_makefile
@@ -2605,6 +2610,8 @@ class TestPrepareHook(TestCase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._format_makefile_recipe")
     def test_generate_makefile_rule_for_lambda_resource(self, format_recipe_mock, get_build_target_mock):
         format_recipe_mock.side_effect = [
+            "\tcp .aws-sam-iacs/iacs_metadata/z_samcli_backend_override.tf ./z_samcli_backend_override.tf\n",
+            "\tterraform init -reconfigure\n",
             "\tterraform apply -target null_resource.sam_metadata_aws_lambda_function -auto-approve\n",
             "\tterraform show -json | python3 .aws-sam/iacs_metadata/copy_terraform_built_artifacts.py --expression "
             '"|values|root_module|resources|[?address=="null_resource.sam_metadata_aws_lambda_function"]'
@@ -2624,6 +2631,8 @@ class TestPrepareHook(TestCase):
         )
         expected_makefile_rule = (
             "build-function_logical_id:\n"
+            "\tcp .aws-sam-iacs/iacs_metadata/z_samcli_backend_override.tf ./z_samcli_backend_override.tf\n"
+            "\tterraform init -reconfigure\n"
             "\tterraform apply -target null_resource.sam_metadata_aws_lambda_function -auto-approve\n"
             "\tterraform show -json | python3 .aws-sam/iacs_metadata/copy_terraform_built_artifacts.py "
             '--expression "|values|root_module|resources|[?address=="null_resource.sam_metadata_aws_lambda_function"]'
