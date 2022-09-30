@@ -15,6 +15,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import hashlib
 import logging
 import shutil
+import uuid
 
 from samcli.lib.hook.exceptions import PrepareHookException, InvalidSamMetadataPropertiesException
 from samcli.lib.utils import osutils
@@ -46,6 +47,7 @@ PropertyBuilder = Callable[[dict], Any]
 PropertyBuilderMapping = Dict[str, PropertyBuilder]
 
 TERRAFORM_BUILD_SCRIPT = "copy_terraform_built_artifacts.py"
+TF_BACKEND_OVERRIDE_FILENAME = "z_samcli_backend_override.tf"
 
 CFN_CODE_PROPERTIES = {
     CFN_AWS_LAMBDA_FUNCTION: "Code",
@@ -801,6 +803,9 @@ def _generate_makefile(
     if not os.path.exists(output_directory_path):
         os.makedirs(output_directory_path, exist_ok=True)
 
+    # create z_samcli_backend_override.tf in output directory
+    _generate_backend_override_file(output_directory_path)
+
     # copy copy_terraform_built_artifacts.py script into output directory
     copy_terraform_built_artifacts_script_path = os.path.join(
         Path(os.path.dirname(__file__)).parent.parent, TERRAFORM_BUILD_SCRIPT
@@ -811,6 +816,22 @@ def _generate_makefile(
     makefilePath = os.path.join(output_directory_path, "Makefile")
     with open(makefilePath, "w+") as makefile:
         makefile.writelines(makefile_rules)
+
+
+def _generate_backend_override_file(output_directory_path: str):
+    """
+    Generates an override tf file to use a temporary backend
+
+    Parameters
+    ----------
+    output_directory_path: str
+        the output directory path to write the generated makefile
+    """
+    statefile_filename = f"{uuid.uuid4()}.tfstate"
+    override_content = "terraform {\n" '  backend "local" {\n' f'    path = "./{statefile_filename}"\n' "  }\n" "}\n"
+    override_file_path = os.path.join(output_directory_path, TF_BACKEND_OVERRIDE_FILENAME)
+    with open(override_file_path, "w+") as f:
+        f.write(override_content)
 
 
 def _get_relevant_cfn_resource(
@@ -918,6 +939,12 @@ def _generate_makefile_rule_for_lambda_resource(
     """
     target = _get_makefile_build_target(logical_id)
     resource_address = sam_metadata_resource.resource.get("address", "")
+    move_override_recipe = _format_makefile_recipe(
+        "cp "
+        f"{Path(output_dir, TF_BACKEND_OVERRIDE_FILENAME).relative_to(terraform_application_dir)} "
+        f"./{TF_BACKEND_OVERRIDE_FILENAME}"
+    )
+    init_command_recipe = _format_makefile_recipe("terraform init -reconfigure")
     apply_command_template = "terraform apply -target {resource_address} -replace {resource_address} -auto-approve"
     apply_command_recipe = _format_makefile_recipe(apply_command_template.format(resource_address=resource_address))
     show_command_recipe = _format_makefile_recipe(
@@ -925,7 +952,13 @@ def _generate_makefile_rule_for_lambda_resource(
             python_command_name, output_dir, resource_address, sam_metadata_resource, terraform_application_dir
         )
     )
-    return f"{target}{apply_command_recipe}{show_command_recipe}"
+    return (
+        f"{target}"
+        f"{move_override_recipe}"
+        f"{init_command_recipe}"
+        f"{apply_command_recipe}"
+        f"{show_command_recipe}"
+    )
 
 
 def _build_show_command(
