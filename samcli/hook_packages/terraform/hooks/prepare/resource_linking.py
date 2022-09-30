@@ -75,6 +75,25 @@ def _build_module(
     input_variables: Dict[str, Expression],
     parent_module_address: Optional[str],
 ) -> TFModule:
+    """
+    Builds and returns a TFModule
+
+    Parameters
+    ==========
+    module_name: Optional[str]
+        The module's name, if any
+    module_configuration: Dict
+        The module object from the terraform configuration
+    input_variables: Dict[str, Expression]
+        The input variables sent into the module
+    parent_module_address: Optional[str]
+        The module's parent address, if any
+
+    Returns
+    =======
+    TFModule
+        The constructed TFModule
+    """
     module = TFModule(None, None, {}, [], {}, {})
 
     module.full_address = _build_module_full_address(module_name, parent_module_address)
@@ -87,6 +106,24 @@ def _build_module(
 
 
 def _build_module_full_address(module_name: Optional[str], parent_module_address: Optional[str]) -> Optional[str]:
+    """
+    Returns the full address of a module, depending on whether it has a module name and a parent module address.
+
+    Parameters
+    ==========
+    module_name: Optional[str]
+        The module's name, if any
+    parent_module_address: Optional[str]
+        The module's parent address, if any
+
+    Returns
+    =======
+    Optional[str]
+        Returns None if no module_name is provided (e.g. root module).
+        Returns module.<module_name> if a module_name is provided
+        Returns <parent_module_address>.module.<module_name> if both module_name and
+            parent_module_address are provided
+    """
     full_address = None
     if module_name:
         full_address = f"module.{module_name}"
@@ -99,6 +136,21 @@ def _build_module_full_address(module_name: Optional[str], parent_module_address
 def _build_module_variables_from_configuration(
     module_configuration: Dict, input_variables: Dict[str, Expression]
 ) -> Dict[str, Expression]:
+    """
+    Builds and returns module variables as Expressions using a module terraform configuration
+
+    Parameters
+    ==========
+    module_configuration: dict
+        The module object from the terraform configuration
+    input_variables: Dict[str, Expression]
+        The input variables sent into the module to override default variables
+
+    Returns
+    =======
+    Dict[str, Expression]
+        Dictionary with the variable names as keys and parsed Expression as values.
+    """
     module_variables: Dict[str, Expression] = {}
 
     default_variables = module_configuration.get("variables", {})
@@ -110,6 +162,21 @@ def _build_module_variables_from_configuration(
 
 
 def _build_module_resources_from_configuration(module_configuration: Dict, module: TFModule) -> List[TFResource]:
+    """
+    Builds and returns module TFResources using a module terraform configuration
+
+    Parameters
+    ==========
+    module_configuration: dict
+        The module object from the terraform configuration
+
+    Returns
+    =======
+    List[TFResource]
+        List of TFResource for the parsed resources from the config
+    module: TFModule
+        The TFModule whose resources we're parsing
+    """
     module_resources = []
 
     config_resources = module_configuration.get("resources", [])
@@ -130,6 +197,19 @@ def _build_module_resources_from_configuration(module_configuration: Dict, modul
 
 
 def _build_module_outputs_from_configuration(module_configuration: Dict) -> Dict[str, Expression]:
+    """
+    Builds and returns module outputs as Expressions using a module terraform configuration
+
+    Parameters
+    ==========
+    module_configuration: dict
+        The module object from the terraform configuration
+
+    Returns
+    =======
+    Dict[str, Expression]
+        Dictionary with the output names as keys and parsed Expression as values.
+    """
     module_outputs = {}
 
     config_outputs = module_configuration.get("outputs", {})
@@ -142,6 +222,21 @@ def _build_module_outputs_from_configuration(module_configuration: Dict) -> Dict
 
 
 def _build_child_modules_from_configuration(module_configuration: Dict, module: TFModule) -> Dict[str, TFModule]:
+    """
+    Builds and returns child TFModules using a module terraform configuration
+
+    Parameters
+    ==========
+    module_configuration: dict
+        The module object from the terraform configuration
+    module: TFModule
+        The TFModule whose child modules we're building
+
+    Returns
+    =======
+    Dict[str, TFModule]
+        Dictionary with the module names as keys and parsed TFModule as values.
+    """
     child_modules = {}
 
     module_calls = module_configuration.get("module_calls", {})
@@ -165,6 +260,19 @@ def _build_child_modules_from_configuration(module_configuration: Dict, module: 
 
 
 def _build_expression_from_configuration(expression_configuration: Dict) -> Expression:
+    """
+    Parses an Expression from an expression terraform configuration.
+
+    Parameters
+    ==========
+    expression_configuration: dict
+        The expression object from the terraform configuration
+
+    Returns
+    =======
+    Expression
+        The parsed expression
+    """
     constant_value = expression_configuration.get("constant_value")
     references = expression_configuration.get("references")
 
