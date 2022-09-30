@@ -28,7 +28,8 @@ Expression = Union[ConstantValue, References]
 @dataclass
 class ResolvedReference:
     value: str
-    module_address: str
+    # root module address is None
+    module_address: Optional[str]
 
 
 @dataclass
@@ -64,7 +65,7 @@ class TFResource:
 
     @property
     def full_address(self) -> str:
-        if self.module.full_address:
+        if self.module and self.module.full_address:
             return f"{self.module.full_address}.{self.address}"
         return self.address
 
@@ -173,4 +174,101 @@ def _resolve_module_variable(module: TFModule, variable_name: str) -> List[Union
             else:
                 raise InvalidResourceLinkingException("Resource linking entered an invalid state.")
 
+    return results
+
+
+def _resolve_resource_attribute(
+    resource: TFResource, attribute_name: str
+) -> List[Union[ConstantValue, ResolvedReference]]:
+    """
+    Return a list of the values that resolve the passed attribute name in the input terraform resource configuration
+
+    Parameters
+    ----------
+    resource: TFResource
+        A terraform resource
+
+    attribute_name: str
+        The attribute name that needs to be resolved.
+
+    Returns
+    -------
+    List[Union[ConstantValue, ResolvedReference]]
+        A list of combination of constant values and/or references to other terraform resources attributes.
+    """
+
+    results: List[Union[ConstantValue, ResolvedReference]] = []
+    LOG.debug(
+        "Resolving resource attribute for resource (%s) and attribute (%s)", resource.full_address, attribute_name
+    )
+
+    attribute_value = resource.attributes.get(attribute_name)
+    if attribute_value is None:
+        raise InvalidResourceLinkingException(
+            message=f"The attribute {attribute_name} could not be found in resource {resource.full_address}."
+        )
+
+    if not isinstance(attribute_value, ConstantValue) and not isinstance(attribute_value, References):
+        raise InvalidResourceLinkingException(
+            message=f"The attribute {attribute_name} has unexpected type in resource {resource.full_address}."
+        )
+
+    # check the possible constant value for this attribute
+    if isinstance(attribute_value, ConstantValue):
+        LOG.debug(
+            "Found a constant value (%s) for attribute (%s) in resource (%s)",
+            attribute_value.value,
+            attribute_name,
+            resource.full_address,
+        )
+        results.append(ConstantValue(attribute_value.value))
+        return results
+
+    # resolve the attribute reference value
+    LOG.debug(
+        "Found references (%s) for attribute (%s) in resource (%s)",
+        attribute_value.value,
+        attribute_name,
+        resource.full_address,
+    )
+    cleaned_references = _clean_references_list(attribute_value.value)
+
+    for reference in cleaned_references:
+        # refer to a variable passed to this resource module from its parent module
+        if reference.startswith("var."):
+            config_var_name = _get_configuration_address(reference[len("var.") :])
+            LOG.debug("Traversing a variable reference: %s to variable named %s", reference, config_var_name)
+            results += _resolve_module_variable(resource.module, config_var_name)
+
+        # refer to another module output. This module will be defined in the same level as the resource
+        elif reference.startswith("module."):
+            # validate that the reference is in the format: module.name.output
+            if re.fullmatch(r"module(?:\.[^\.]+){2}", reference) is None:
+                LOG.debug("Could not traverse the module output reference: %s", reference)
+                raise InvalidResourceLinkingException(
+                    f"Tha attribute {attribute_name} in Resource {resource.full_address} has an invalid reference "
+                    f"{reference} value"
+                )
+
+            module_name = reference[reference.find(".") + 1 : reference.rfind(".")]
+            config_module_name = _get_configuration_address(module_name)
+            output_name = reference[reference.rfind(".") + 1 :]
+            LOG.debug(
+                "Traversing the module output reference: %s to the output named %s in module %s",
+                reference,
+                output_name,
+                config_module_name,
+            )
+
+            if not resource.module.child_modules or resource.module.child_modules.get(config_module_name) is None:
+                raise InvalidResourceLinkingException(
+                    f"The input resource {resource.full_address} does not have a parent module, or we could not "
+                    f"find the child module {config_module_name}."
+                )
+
+            results += _resolve_module_output(resource.module.child_modules.get(config_module_name), output_name)
+
+        # this means either a resource, data source, or local.variables.
+        else:
+            results.append(ResolvedReference(reference, resource.module.full_address))
     return results
