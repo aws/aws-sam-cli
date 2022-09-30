@@ -343,7 +343,7 @@ def _resolve_resource_attribute(
             if re.fullmatch(r"module(?:\.[^\.]+){2}", reference) is None:
                 LOG.debug("Could not traverse the module output reference: %s", reference)
                 raise InvalidResourceLinkingException(
-                    f"Tha attribute {attribute_name} in Resource {resource.full_address} has an invalid reference "
+                    f"The attribute {attribute_name} in Resource {resource.full_address} has an invalid reference "
                     f"{reference} value"
                 )
 
