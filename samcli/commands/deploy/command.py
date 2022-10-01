@@ -9,6 +9,7 @@ import click
 from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.cdk_support_decorators import unsupported_command_cdk
+from samcli.commands._utils.click_mutex import ClickMutex
 from samcli.commands._utils.options import (
     capabilities_option,
     guided_deploy_stack_name,
@@ -107,6 +108,26 @@ LOG = logging.getLogger(__name__)
     required=False,
     is_flag=True,
     help="Preserves the state of previously provisioned resources when an operation fails.",
+    cls=ClickMutex,
+    incompatible_params=["on_failure"],
+)
+@click.option(
+    "--on-failure",
+    default="ROLLBACK",
+    type=click.Choice(["ROLLBACK", "DELETE", "DO_NOTHING"]),
+    required=False,
+    help="""
+    Provide an action to determine what will happen when a stack fails to create. Three actions are available:\n
+    - ROLLBACK: This will rollback a stack to a previous known good state.\n
+    - DELETE: The stack will rollback to a previous state if one exists, otherwise the stack will be deleted.\n
+    - DO_NOTHING: The stack will not rollback or delete, this is the same as disabling rollback.\n
+    Default behaviour is ROLLBACK.\n\n
+    
+    This option is mutually exclusive with --disable-rollback/--no-disable-rollback. You can provide
+    --on-failure or --disable-rollback/--no-disable-rollback but not both at the same time.
+    """,
+    cls=ClickMutex,
+    incompatible_params=["disable_rollback", "no_disable_rollback"],
 )
 @stack_name_option(callback=guided_deploy_stack_name)  # pylint: disable=E1120
 @s3_bucket_option(disable_callback=True)  # pylint: disable=E1120
@@ -162,6 +183,7 @@ def cli(
     config_file,
     config_env,
     disable_rollback,
+    on_failure,
 ):
     """
     `sam deploy` command entry point
@@ -196,6 +218,7 @@ def cli(
         config_env,
         resolve_image_repos,
         disable_rollback,
+        on_failure,
     )  # pragma: no cover
 
 
@@ -228,6 +251,7 @@ def do_cli(
     config_env,
     resolve_image_repos,
     disable_rollback,
+    on_failure,
 ):
     """
     Implementation of the ``cli`` method
@@ -330,5 +354,6 @@ def do_cli(
             use_changeset=True,
             disable_rollback=guided_context.disable_rollback if guided else disable_rollback,
             poll_delay=poll_delay,
+            on_failure=on_failure,
         ) as deploy_context:
             deploy_context.run()

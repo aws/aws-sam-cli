@@ -17,6 +17,7 @@ from samcli.commands._utils.options import (
     tags_option,
     stack_name_option,
     base_dir_option,
+    use_container_build_option,
     image_repository_option,
     image_repositories_option,
     s3_prefix_option,
@@ -28,7 +29,9 @@ from samcli.commands._utils.options import (
 )
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.commands._utils.click_mutex import ClickMutex
+from samcli.lib.telemetry.event import EventTracker, track_long_event
 from samcli.commands.sync.sync_context import SyncContext
+from samcli.lib.build.bundler import EsbuildBundlerManager
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.lib.bootstrap.bootstrap import manage_stack
@@ -117,6 +120,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 )
 @stack_name_option(required=True)  # pylint: disable=E1120
 @base_dir_option
+@use_container_build_option
 @image_repository_option
 @image_repositories_option
 @s3_bucket_option(disable_callback=True)  # pylint: disable=E1120
@@ -132,6 +136,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @capabilities_option(default=DEFAULT_CAPABILITIES)  # pylint: disable=E1120
 @pass_context
 @track_command
+@track_long_event("SyncUsed", "Start", "SyncUsed", "End")
 @image_repository_validation
 @track_template_warnings([CodeDeployWarning.__name__, CodeDeployConditionWarning.__name__])
 @check_newer_version
@@ -158,6 +163,7 @@ def cli(
     notification_arns: Optional[List[str]],
     tags: dict,
     metadata: dict,
+    use_container: bool,
     config_file: str,
     config_env: str,
 ) -> None:
@@ -190,6 +196,7 @@ def cli(
         notification_arns,
         tags,
         metadata,
+        use_container,
         config_file,
         config_env,
     )  # pragma: no cover
@@ -218,6 +225,7 @@ def do_cli(
     notification_arns: Optional[List[str]],
     tags: dict,
     metadata: dict,
+    use_container: bool,
     config_file: str,
     config_env: str,
 ) -> None:
@@ -234,8 +242,20 @@ def do_cli(
 
     s3_bucket_name = s3_bucket or manage_stack(profile=profile, region=region)
 
+    if dependency_layer is True:
+        dependency_layer = check_enable_dependency_layer(template_file)
+
+    # Note: ADL with use-container is not supported yet. Remove this logic once its supported.
+    if use_container and dependency_layer:
+        LOG.info(
+            "Note: Automatic Dependency Layer is not yet supported with use-container. \
+            sam sync will be run without Automatic Dependency Layer."
+        )
+        dependency_layer = False
+
     build_dir = DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER if dependency_layer else DEFAULT_BUILD_DIR
     LOG.debug("Using build directory as %s", build_dir)
+    EventTracker.track_event("UsedFeature", "Accelerate")
 
     with BuildContext(
         resource_identifier=None,
@@ -244,7 +264,7 @@ def do_cli(
         build_dir=build_dir,
         cache_dir=DEFAULT_CACHE_DIR,
         clean=True,
-        use_container=False,
+        use_container=use_container,
         cached=True,
         parallel=True,
         parameter_overrides=parameter_overrides,
@@ -306,6 +326,7 @@ def do_cli(
                     signing_profiles=None,
                     disable_rollback=False,
                     poll_delay=poll_delay,
+                    on_failure=None,
                 ) as deploy_context:
                     with SyncContext(dependency_layer, build_context.build_dir, build_context.cache_dir):
                         if watch:
@@ -411,3 +432,20 @@ def execute_watch(
     """
     watch_manager = WatchManager(template, build_context, package_context, deploy_context, auto_dependency_layer)
     watch_manager.start()
+
+
+def check_enable_dependency_layer(template_file: str):
+    """
+    Check if auto dependency layer should be enabled
+    :param template_file: template file string
+    :return: True if ADL should be enabled, False otherwise
+    """
+    stacks, _ = SamLocalStackProvider.get_stacks(template_file)
+    for stack in stacks:
+        esbuild = EsbuildBundlerManager(stack)
+        if esbuild.esbuild_configured():
+            # Disable ADL if esbuild is configured. esbuild already makes the package size
+            # small enough to ensure that ADL isn't needed to improve performance
+            click.secho("esbuild is configured, disabling auto dependency layer.", fg="yellow")
+            return False
+    return True

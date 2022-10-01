@@ -714,6 +714,20 @@ def resolve_image_repos_option(f):
     return resolve_image_repos_click_option()(f)
 
 
+def use_container_build_click_option():
+    return click.option(
+        "--use-container",
+        "-u",
+        is_flag=True,
+        help="If your functions depend on packages that have natively compiled dependencies, use this flag "
+        "to build your function inside an AWS Lambda-like Docker container",
+    )
+
+
+def use_container_build_option(f):
+    return use_container_build_click_option()(f)
+
+
 def _space_separated_list_func_type(value):
     if isinstance(value, str):
         return value.split(" ")

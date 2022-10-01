@@ -8,7 +8,7 @@ from contextlib import contextmanager
 
 
 @contextmanager
-def create_tarball(tar_paths, tar_filter=None):
+def create_tarball(tar_paths, tar_filter=None, mode="w"):
     """
     Context Manger that creates the tarball of the Docker Context to use for building the image
 
@@ -17,6 +17,9 @@ def create_tarball(tar_paths, tar_filter=None):
     tar_paths dict(str, str)
         Key representing a full path to the file or directory and the Value representing the path within the tarball
 
+    mode str
+        The mode in which the tarfile is opened. Defaults to "w".
+
     Yields
     ------
     IO
@@ -24,7 +27,7 @@ def create_tarball(tar_paths, tar_filter=None):
     """
     tarballfile = TemporaryFile()
 
-    with tarfile.open(fileobj=tarballfile, mode="w") as archive:
+    with tarfile.open(fileobj=tarballfile, mode=mode) as archive:
         for path_on_system, path_in_tarball in tar_paths.items():
             archive.add(path_on_system, arcname=path_in_tarball, filter=tar_filter)
 
