@@ -243,7 +243,7 @@ def _generate_from_use_case(
     =========================
     [*] Create pipeline: cd {name} && sam pipeline init --bootstrap
     [*] Validate SAM template: sam validate
-    [*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
+    [*] Test Function in the Cloud: cd {name} && sam sync --stack-name {{stack-name}} --watch
     """
     click.secho(next_commands_msg, fg="yellow")
     do_generate(
