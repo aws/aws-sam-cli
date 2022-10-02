@@ -66,10 +66,13 @@ Sync also supports nested stacks and nested stack resources. For example
 $ sam sync --code --stack-name {stack} --resource-id {ChildStack}/{ResourceId}
 """
 
-SYNC_CONFIRMATION_TEXT = """
+SYNC_INFO_TEXT = """
 The SAM CLI will use the AWS Lambda, Amazon API Gateway, and AWS StepFunctions APIs to upload your code without 
 performing a CloudFormation deployment. This will cause drift in your CloudFormation stack. 
 **The sync command should only be used against a development stack**.
+"""
+
+SYNC_CONFIRMATION_TEXT = """
 Confirm that you are synchronizing a development stack.
 
 Enter Y to proceed with the command, or enter N to cancel:
@@ -232,13 +235,19 @@ def do_cli(
     """
     Implementation of the ``cli`` method
     """
+    from samcli.cli.global_config import GlobalConfig
     from samcli.lib.utils import osutils
     from samcli.commands.build.build_context import BuildContext
     from samcli.commands.package.package_context import PackageContext
     from samcli.commands.deploy.deploy_context import DeployContext
 
-    if not click.confirm(Colored().yellow(SYNC_CONFIRMATION_TEXT), default=True):
-        return
+    global_config = GlobalConfig()
+    if not global_config.is_accelerate_opt_in_stack(template_file, stack_name):
+        if not click.confirm(Colored().yellow(SYNC_INFO_TEXT + SYNC_CONFIRMATION_TEXT), default=True):
+            return
+        global_config.set_accelerate_opt_in_stack(template_file, stack_name)
+    else:
+        LOG.info(Colored().yellow(SYNC_INFO_TEXT))
 
     s3_bucket_name = s3_bucket or manage_stack(profile=profile, region=region)
 
