@@ -21,7 +21,7 @@ class TestWatchManager(TestCase):
         self.package_context = MagicMock()
         self.deploy_context = MagicMock()
         self.watch_manager = WatchManager(
-            self.template, self.build_context, self.package_context, self.deploy_context, False
+            self.template, self.build_context, self.package_context, self.deploy_context, False, False
         )
 
     def tearDown(self) -> None:

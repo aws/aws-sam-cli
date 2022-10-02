@@ -128,9 +128,8 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
             if error_code == "ValidationError":
                 raise InvalidStackNameException(
                     f"Invalid --stack-name parameter. Stack with id '{self._deploy_context.stack_name}' does not exist"
-                )
-            else:
-                raise ex
+                ) from ex
+            raise ex
 
         # get the resource_id -> physical_id mapping
         self._physical_id_mapping = {
