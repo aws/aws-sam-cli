@@ -44,6 +44,7 @@ class WatchManager:
     _waiting_infra_sync: bool
     _color: Colored
     _auto_dependency_layer: bool
+    _skip_infra_syncs: bool
 
     def __init__(
         self,
