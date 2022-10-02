@@ -334,7 +334,7 @@ class TestDoCli(TestCase):
             package_context_mock,
             deploy_context_mock,
             auto_dependency_layer,
-            skip_infra_syncs
+            skip_infra_syncs,
         )
 
     @parameterized.expand([(True, False, True, False), (True, False, False, True)])
@@ -673,7 +673,7 @@ class TestWatch(TestCase):
             self.package_context,
             self.deploy_context,
             auto_dependency_layer,
-            skip_infra_syncs
+            skip_infra_syncs,
         )
 
         watch_manager_mock.assert_called_once_with(
@@ -682,7 +682,7 @@ class TestWatch(TestCase):
             self.package_context,
             self.deploy_context,
             auto_dependency_layer,
-            skip_infra_syncs
+            skip_infra_syncs,
         )
         watch_manager_mock.return_value.start.assert_called_once_with()
 

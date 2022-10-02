@@ -63,7 +63,15 @@ Update/Sync local artifacts to AWS
 By default, the sync command runs a full stack update. You can specify --code or --watch to switch modes.
 \b
 Sync also supports nested stacks and nested stack resources. For example
-$ sam sync --code --stack-name {stack} --resource-id {ChildStack}/{ResourceId}
+
+$ sam sync --code --stack-name {stack} --resource-id \\
+{ChildStack}/{ResourceId}
+
+Running --watch with --code option will provide a way to run code synchronization only, that will speed up start time
+and will skip any template change. Please remember to update your deployed stack by running without --code option.
+
+$ sam sync --code --watch --stack-name {stack} 
+
 """
 
 SYNC_CONFIRMATION_TEXT = """
@@ -329,12 +337,7 @@ def do_cli(
                     with SyncContext(dependency_layer, build_context.build_dir, build_context.cache_dir):
                         if watch:
                             execute_watch(
-                                template_file,
-                                build_context,
-                                package_context,
-                                deploy_context,
-                                dependency_layer,
-                                code
+                                template_file, build_context, package_context, deploy_context, dependency_layer, code
                             )
                         elif code:
                             execute_code_sync(

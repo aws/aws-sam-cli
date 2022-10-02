@@ -22,7 +22,7 @@ from samcli.lib.sync.flows.stepfunctions_sync_flow import StepFunctionsSyncFlow
 from samcli.lib.utils.boto_utils import (
     get_boto_resource_provider_with_config,
     get_boto_client_provider_with_config,
-    get_client_error_code
+    get_client_error_code,
 )
 from samcli.lib.utils.cloudformation import get_resource_summaries
 from samcli.lib.utils.resources import (
