@@ -97,9 +97,18 @@ def _build_module(
     module = TFModule(None, None, {}, [], {}, {})
 
     module.full_address = _build_module_full_address(module_name, parent_module_address)
+    LOG.debug("Parsing module:` %s", module.full_address or "root")
+
+    LOG.debug("Parsing module variables")
     module.variables = _build_module_variables_from_configuration(module_configuration, input_variables)
+
+    LOG.debug("Parsing module resources")
     module.resources = _build_module_resources_from_configuration(module_configuration, module)
+
+    LOG.debug("Parsing module outputs")
     module.outputs = _build_module_outputs_from_configuration(module_configuration)
+
+    LOG.debug("Parsing module calls")
     module.child_modules = _build_child_modules_from_configuration(module_configuration, module)
 
     return module
@@ -184,7 +193,6 @@ def _build_module_resources_from_configuration(module_configuration: Dict, modul
         resource_attributes: Dict[str, Expression] = {}
 
         expressions = config_resource.get("expressions", {})
-        print(expressions)
         for expression_name, expression_value in expressions.items():
             parsed_expression = _build_expression_from_configuration(expression_value)
             resource_attributes[expression_name] = parsed_expression
@@ -278,9 +286,9 @@ def _build_expression_from_configuration(expression_configuration: Dict) -> Expr
 
     parsed_expression: Expression
 
-    if constant_value:
+    if constant_value is not None:
         parsed_expression = ConstantValue(constant_value)
-    elif references:
+    elif references is not None:
         parsed_expression = References(references)
 
     return parsed_expression
