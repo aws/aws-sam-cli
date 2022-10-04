@@ -75,7 +75,7 @@ class TestCli(TestCase):
             "gitlab_group": ANY_GITLAB_GROUP,
             "bitbucket_repo_uuid": ANY_BITBUCKET_REPO_UUID,
             "deployment_branch": ANY_DEPLOYMENT_BRANCH,
-            "cicd_provider": ANY_CICD_PROVIDER
+            "cicd_provider": ANY_CICD_PROVIDER,
         }
 
     @patch("samcli.commands.pipeline.bootstrap.cli.do_cli")
@@ -111,7 +111,7 @@ class TestCli(TestCase):
             gitlab_group=None,
             gitlab_project=None,
             bitbucket_repo_uuid=None,
-            cicd_provider=None
+            cicd_provider=None,
         )
 
     @patch("samcli.commands.pipeline.bootstrap.cli.do_cli")
@@ -529,7 +529,7 @@ class TestCli(TestCase):
             create_image_repository=True,
             image_repository_arn=ANY_IMAGE_REPOSITORY_ARN,
             region=ANY_REGION,
-            enable_oidc_option=False
+            enable_oidc_option=False,
         )
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")

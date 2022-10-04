@@ -101,15 +101,15 @@ class TestStage(TestCase):
 
     @patch("samcli.lib.pipeline.bootstrap.stage.Stage._get_pipeline_user_secret_pair")
     @patch("samcli.lib.pipeline.bootstrap.stage.click")
-    @patch("samcli.lib.pipeline.bootstrap.stage.manage_stack")
+    @patch("samcli.lib.pipeline.bootstrap.stage.update_stack")
     def test_did_user_provide_all_required_resources_returns_false_if_the_stage_was_initialized_without_any_of_the_resources_even_if_fulfilled_after_bootstrap(
-        self, manage_stack_mock, click_mock, pipeline_user_secret_pair_mock
+        self, update_stack_mock, click_mock, pipeline_user_secret_pair_mock
     ):
         # setup
         stack_output = Mock()
         pipeline_user_secret_pair_mock.return_value = ("id", "secret")
         stack_output.get.return_value = ANY_ARN
-        manage_stack_mock.return_value = stack_output
+        update_stack_mock.return_value = stack_output
         stage: Stage = Stage(name=ANY_STAGE_CONFIGURATION_NAME)
 
         self.assertFalse(stage.did_user_provide_all_required_resources())
@@ -127,60 +127,60 @@ class TestStage(TestCase):
         self.assertFalse(stage.did_user_provide_all_required_resources())
 
     @patch("samcli.lib.pipeline.bootstrap.stage.click")
-    @patch("samcli.lib.pipeline.bootstrap.stage.manage_stack")
+    @patch("samcli.lib.pipeline.bootstrap.stage.update_stack")
     @patch.object(Stage, "did_user_provide_all_required_resources")
     def test_bootstrap_will_not_deploy_the_cfn_template_if_all_resources_are_already_provided(
-        self, did_user_provide_all_required_resources_mock, manage_stack_mock, click_mock
+        self, did_user_provide_all_required_resources_mock, update_stack_mock, click_mock
     ):
         did_user_provide_all_required_resources_mock.return_value = True
         stage: Stage = Stage(name=ANY_STAGE_CONFIGURATION_NAME)
         stage.bootstrap(confirm_changeset=False)
-        manage_stack_mock.assert_not_called()
+        update_stack_mock.assert_not_called()
 
     @patch("samcli.lib.pipeline.bootstrap.stage.Stage._get_pipeline_user_secret_pair")
     @patch("samcli.lib.pipeline.bootstrap.stage.click")
-    @patch("samcli.lib.pipeline.bootstrap.stage.manage_stack")
+    @patch("samcli.lib.pipeline.bootstrap.stage.update_stack")
     def test_bootstrap_will_confirm_before_deploying_unless_confirm_changeset_is_disabled(
-        self, manage_stack_mock, click_mock, pipeline_user_secret_pair_mock
+        self, update_stack_mock, click_mock, pipeline_user_secret_pair_mock
     ):
         click_mock.confirm.return_value = False
         pipeline_user_secret_pair_mock.return_value = ("id", "secret")
         stage: Stage = Stage(name=ANY_STAGE_CONFIGURATION_NAME)
         stage.bootstrap(confirm_changeset=False)
         click_mock.confirm.assert_not_called()
-        manage_stack_mock.assert_called_once()
-        manage_stack_mock.reset_mock()
+        update_stack_mock.assert_called_once()
+        update_stack_mock.reset_mock()
         stage.bootstrap(confirm_changeset=True)
         click_mock.confirm.assert_called_once()
-        manage_stack_mock.assert_not_called()  # As the user choose to not confirm
+        update_stack_mock.assert_not_called()  # As the user choose to not confirm
 
     @patch("samcli.lib.pipeline.bootstrap.stage.click")
-    @patch("samcli.lib.pipeline.bootstrap.stage.manage_stack")
+    @patch("samcli.lib.pipeline.bootstrap.stage.update_stack")
     def test_bootstrap_will_not_deploy_the_cfn_template_if_the_user_did_not_confirm(
-        self, manage_stack_mock, click_mock
+        self, update_stack_mock, click_mock
     ):
         click_mock.confirm.return_value = False
         stage: Stage = Stage(name=ANY_STAGE_CONFIGURATION_NAME)
         stage.bootstrap(confirm_changeset=True)
-        manage_stack_mock.assert_not_called()
+        update_stack_mock.assert_not_called()
 
     @patch("samcli.lib.pipeline.bootstrap.stage.Stage._get_pipeline_user_secret_pair")
     @patch("samcli.lib.pipeline.bootstrap.stage.click")
-    @patch("samcli.lib.pipeline.bootstrap.stage.manage_stack")
+    @patch("samcli.lib.pipeline.bootstrap.stage.update_stack")
     def test_bootstrap_will_deploy_the_cfn_template_if_the_user_did_confirm(
-        self, manage_stack_mock, click_mock, pipeline_user_secret_pair_mock
+        self, update_stack_mock, click_mock, pipeline_user_secret_pair_mock
     ):
         click_mock.confirm.return_value = True
         pipeline_user_secret_pair_mock.return_value = ("id", "secret")
         stage: Stage = Stage(name=ANY_STAGE_CONFIGURATION_NAME)
         stage.bootstrap(confirm_changeset=True)
-        manage_stack_mock.assert_called_once()
+        update_stack_mock.assert_called_once()
 
     @patch("samcli.lib.pipeline.bootstrap.stage.Stage._get_pipeline_user_secret_pair")
     @patch("samcli.lib.pipeline.bootstrap.stage.click")
-    @patch("samcli.lib.pipeline.bootstrap.stage.manage_stack")
+    @patch("samcli.lib.pipeline.bootstrap.stage.update_stack")
     def test_bootstrap_will_pass_arns_of_all_user_provided_resources_any_empty_strings_for_other_resources_to_the_cfn_stack(
-        self, manage_stack_mock, click_mock, pipeline_user_secret_pair_mock
+        self, update_stack_mock, click_mock, pipeline_user_secret_pair_mock
     ):
         click_mock.confirm.return_value = True
         pipeline_user_secret_pair_mock.return_value = ("id", "secret")
@@ -192,8 +192,8 @@ class TestStage(TestCase):
             image_repository_arn=ANY_IMAGE_REPOSITORY_ARN,
         )
         stage.bootstrap()
-        manage_stack_mock.assert_called_once()
-        args, kwargs = manage_stack_mock.call_args_list[0]
+        update_stack_mock.assert_called_once()
+        args, kwargs = update_stack_mock.call_args_list[0]
         expected_parameter_overrides = {
             "PipelineUserArn": ANY_PIPELINE_USER_ARN,
             "PipelineExecutionRoleArn": "",
@@ -213,15 +213,15 @@ class TestStage(TestCase):
 
     @patch("samcli.lib.pipeline.bootstrap.stage.Stage._get_pipeline_user_secret_pair")
     @patch("samcli.lib.pipeline.bootstrap.stage.click")
-    @patch("samcli.lib.pipeline.bootstrap.stage.manage_stack")
+    @patch("samcli.lib.pipeline.bootstrap.stage.update_stack")
     def test_bootstrap_will_fullfill_all_resource_arns(
-        self, manage_stack_mock, click_mock, pipeline_user_secret_pair_mock
+        self, update_stack_mock, click_mock, pipeline_user_secret_pair_mock
     ):
         # setup
         pipeline_user_secret_pair_mock.return_value = ("id", "secret")
         stack_output = Mock()
         stack_output.get.return_value = ANY_ARN
-        manage_stack_mock.return_value = stack_output
+        update_stack_mock.return_value = stack_output
         stage: Stage = Stage(name=ANY_STAGE_CONFIGURATION_NAME)
         click_mock.confirm.return_value = True
 
@@ -235,7 +235,7 @@ class TestStage(TestCase):
         stage.bootstrap()
 
         # verify
-        manage_stack_mock.assert_called_once()
+        update_stack_mock.assert_called_once()
         self.assertEqual(ANY_ARN, stage.pipeline_user.arn)
         self.assertEqual(ANY_ARN, stage.pipeline_execution_role.arn)
         self.assertEqual(ANY_ARN, stage.cloudformation_execution_role.arn)
@@ -457,9 +457,9 @@ class TestStage(TestCase):
     @patch("samcli.lib.pipeline.bootstrap.stage.Stage.generate_thumbprint")
     @patch("samcli.lib.pipeline.bootstrap.stage.boto3")
     @patch("samcli.lib.pipeline.bootstrap.stage.click")
-    @patch("samcli.lib.pipeline.bootstrap.stage.manage_stack")
+    @patch("samcli.lib.pipeline.bootstrap.stage.update_stack")
     def test_creates_new_oidc_provider_if_needed(
-        self, manage_stack_mock, click_mock, boto3_mock, generate_thumbprint_mock
+        self, update_stack_mock, click_mock, boto3_mock, generate_thumbprint_mock
     ):
 
         # setup
@@ -476,7 +476,7 @@ class TestStage(TestCase):
         )
         stack_output = Mock()
         stack_output.get.return_value = ANY_ARN
-        manage_stack_mock.return_value = stack_output
+        update_stack_mock.return_value = stack_output
         client_mock = Mock()
         boto3_mock.client.return_value = client_mock
         open_id_connect_providers_mock = {"OpenIDConnectProviderList": [{"Arn": ANY_ARN}]}
@@ -493,8 +493,8 @@ class TestStage(TestCase):
     @patch("samcli.lib.pipeline.bootstrap.stage.Stage.generate_thumbprint")
     @patch("samcli.lib.pipeline.bootstrap.stage.boto3")
     @patch("samcli.lib.pipeline.bootstrap.stage.click")
-    @patch("samcli.lib.pipeline.bootstrap.stage.manage_stack")
-    def test_doesnt_create_new_oidc_provider(self, manage_stack_mock, click_mock, boto3_mock, generate_thumbprint_mock):
+    @patch("samcli.lib.pipeline.bootstrap.stage.update_stack")
+    def test_doesnt_create_new_oidc_provider(self, update_stack_mock, click_mock, boto3_mock, generate_thumbprint_mock):
 
         # setup
         stage: Stage = Stage(
@@ -510,7 +510,7 @@ class TestStage(TestCase):
         )
         stack_output = Mock()
         stack_output.get.return_value = ANY_ARN
-        manage_stack_mock.return_value = stack_output
+        update_stack_mock.return_value = stack_output
         client_mock = Mock()
         session_mock = Mock()
         boto3_mock.Session.return_value = session_mock

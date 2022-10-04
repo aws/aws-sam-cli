@@ -63,7 +63,7 @@ class GuidedContext:
         image_repository_arn: Optional[str] = None,
         region: Optional[str] = None,
         permissions_provider: Optional[str] = None,
-        enable_oidc_option: boolean = True
+        enable_oidc_option: boolean = True,
     ) -> None:
         self.profile = profile
         self.stage_configuration_name = stage_configuration_name

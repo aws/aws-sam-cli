@@ -19,7 +19,7 @@ from samcli.commands.pipeline.bootstrap.pipeline_oidc_provider import PipelineOi
 
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.utils.colors import Colored
-from samcli.lib.utils.managed_cloudformation_stack import manage_stack, StackOutput
+from samcli.lib.utils.managed_cloudformation_stack import update_stack, StackOutput
 from samcli.lib.pipeline.bootstrap.resource import OidcProvider, Resource, IAMUser, ECRImageRepository
 
 CFN_TEMPLATE_PATH = str(pathlib.Path(os.path.dirname(__file__)))
@@ -278,7 +278,7 @@ class Stage:
                 self.oidc_provider.thumbprint = self.generate_thumbprint(self.oidc_provider.provider_url)
 
         environment_resources_template_body = Stage._read_template(STAGE_RESOURCES_CFN_TEMPLATE)
-        output: StackOutput = manage_stack(
+        output: StackOutput = update_stack(
             stack_name=self._get_stack_name(),
             region=self.aws_region,
             profile=self.aws_profile,
