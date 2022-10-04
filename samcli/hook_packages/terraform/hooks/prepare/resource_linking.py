@@ -100,6 +100,9 @@ def _build_module(
     module.full_address = _build_module_full_address(module_name, parent_module_address)
     LOG.debug("Parsing module:` %s", module.full_address or "root")
 
+    if not module_configuration:
+        raise InvalidResourceLinkingException(f"No module configuration for module: {module.full_address or 'root'}")
+
     LOG.debug("Parsing module variables")
     module.variables = _build_module_variables_from_configuration(module_configuration, input_variables)
 
