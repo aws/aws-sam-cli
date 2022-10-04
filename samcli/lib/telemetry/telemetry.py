@@ -3,7 +3,6 @@ Class to publish metrics
 """
 
 import logging
-import requests
 
 # Get the preconfigured endpoint URL
 from samcli.cli.global_config import GlobalConfig
@@ -71,6 +70,7 @@ class Telemetry:
             2,  # connection timeout. Always set to 2 seconds
             timeout_ms / 1000.0,  # Read timeout. Tweaked based on input.
         )
+        import requests
         try:
             r = requests.post(self._url, json=payload, timeout=timeout)
             LOG.debug("Telemetry response: %d", r.status_code)

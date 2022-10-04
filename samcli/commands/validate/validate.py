@@ -3,18 +3,21 @@ CLI Command for Validating a SAM Template
 """
 import os
 
-import boto3
-from botocore.exceptions import NoCredentialsError
 import click
 
+import time
 from samtranslator.translator.arn_generator import NoRegionFound
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands._utils.cdk_support_decorators import unsupported_command_cdk
+before = time.time()
 from samcli.commands._utils.options import template_option_without_build
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
+
+after = time.time()
+print(f"Time taken for imports in validate is {after-before}")
 
 
 @click.command("validate", short_help="Validate an AWS SAM template.")
@@ -49,6 +52,8 @@ def do_cli(ctx, template):
     from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
     from .lib.exceptions import InvalidSamDocumentException
     from .lib.sam_template_validator import SamTemplateValidator
+    import boto3
+    from botocore.exceptions import NoCredentialsError
 
     sam_template = _read_sam_file(template)
 

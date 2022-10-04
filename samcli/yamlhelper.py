@@ -19,7 +19,7 @@ https://github.com/aws/aws-cli/blob/develop/awscli/customizations/cloudformation
 
 import json
 from typing import cast, Dict, Optional
-from botocore.compat import OrderedDict
+from collections import OrderedDict
 import yaml
 
 # ScalarNode and SequenceNode are not declared in __all__,
