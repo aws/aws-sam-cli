@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import boto3
+from botocore.exceptions import ClientError
 import click
 import requests
 
@@ -148,7 +149,7 @@ class Stage:
             arn="",
         )
 
-    def _should_create_new_provider(self) -> bool:
+    def _should_create_new_provider(self, stack_name: str) -> bool:
         """
         Checks if there is an existing Identity Provider in the account already
         whos ARN contains the URL provided by the user.
@@ -162,12 +163,19 @@ class Stage:
             return False
         session = boto3.Session(profile_name=self.aws_profile, region_name=self.aws_region)
         iam_client = session.client("iam")
+        cfn_client = session.client("cloudformation")
         providers = iam_client.list_open_id_connect_providers()
 
         url_to_compare = self.oidc_provider.provider_url.replace("https://", "")
         for provider_resource in providers["OpenIDConnectProviderList"]:
             if url_to_compare in provider_resource["Arn"]:
-                return False
+                try:
+                    stack_res = cfn_client.describe_stack_resource(StackName=stack_name, LogicalResourceId="OidcProvider")
+                    return url_to_compare in stack_res["StackResourceDetail"]["PhysicalResourceId"]
+                except ClientError as ex:
+                    if "Resource OidcProvider does not exist for stack" in str(ex):
+                        return False
+                    raise ex
         return True
 
     @staticmethod
@@ -272,14 +280,16 @@ class Stage:
                 click.secho(self.color.red("Canceling pipeline bootstrap creation."))
                 return False
 
+        stack_name = self._get_stack_name()
+
         if self.use_oidc_provider:
-            self.create_new_oidc_provider = self._should_create_new_provider()
+            self.create_new_oidc_provider = self._should_create_new_provider(stack_name)
             if self.create_new_oidc_provider:
                 self.oidc_provider.thumbprint = self.generate_thumbprint(self.oidc_provider.provider_url)
 
         environment_resources_template_body = Stage._read_template(STAGE_RESOURCES_CFN_TEMPLATE)
         output: StackOutput = update_stack(
-            stack_name=self._get_stack_name(),
+            stack_name=stack_name,
             region=self.aws_region,
             profile=self.aws_profile,
             template_body=environment_resources_template_body,

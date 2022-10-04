@@ -277,23 +277,15 @@ def _update_stack(
     parameter_overrides: Optional[Dict[str, Union[str, List[str]]]] = None,
 ):
     click.echo("\tUpdating the required resources...")
-    change_set_name = "UpdateChangeSet"
     parameters = _generate_stack_parameters(parameter_overrides)
-    change_set_resp = cloudformation_client.create_change_set(
+    change_set_resp = cloudformation_client.update_stack(
         StackName=stack_name,
         TemplateBody=template_body,
         Tags=[{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
-        ChangeSetType="UPDATE",
-        ChangeSetName=change_set_name,  # this must be unique for the stack, but we only create so that's fine
-        Capabilities=["CAPABILITY_IAM"],
+        Capabilities=["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
         Parameters=parameters,
     )
     stack_id = change_set_resp["StackId"]
-    change_waiter = cloudformation_client.get_waiter("change_set_create_complete")
-    change_waiter.wait(
-        ChangeSetName=change_set_name, StackName=stack_name, WaiterConfig={"Delay": 15, "MaxAttempts": 60}
-    )
-    cloudformation_client.execute_change_set(ChangeSetName=change_set_name, StackName=stack_name)
     stack_waiter = cloudformation_client.get_waiter("stack_update_complete")
     stack_waiter.wait(StackName=stack_id, WaiterConfig={"Delay": 15, "MaxAttempts": 60})
     ds_resp = cloudformation_client.describe_stacks(StackName=stack_name)
