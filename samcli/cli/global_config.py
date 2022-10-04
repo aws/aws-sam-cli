@@ -432,7 +432,7 @@ class GlobalConfig(metaclass=Singleton):
         to accept warning message again.
         """
         accelerate_opt_in_stacks = (
-                self.get_value(DefaultEntry.ACCELERATE_OPT_IN_STACKS, value_type=list, default=[]) or []
+            self.get_value(DefaultEntry.ACCELERATE_OPT_IN_STACKS, value_type=list, default=[]) or []
         )
         accelerate_opt_in_stacks.append(str_checksum(template_file + stack_name))
         self.set_value(DefaultEntry.ACCELERATE_OPT_IN_STACKS, accelerate_opt_in_stacks)
