@@ -70,6 +70,234 @@ class TFResource:
         return self.address
 
 
+def _build_module(
+    module_name: Optional[str],
+    module_configuration: Dict,
+    input_variables: Dict[str, Expression],
+    parent_module_address: Optional[str],
+) -> TFModule:
+    """
+    Builds and returns a TFModule
+
+    Parameters
+    ==========
+    module_name: Optional[str]
+        The module's name, if any
+    module_configuration: Dict
+        The module object from the terraform configuration
+    input_variables: Dict[str, Expression]
+        The input variables sent into the module
+    parent_module_address: Optional[str]
+        The module's parent address, if any
+
+    Returns
+    =======
+    TFModule
+        The constructed TFModule
+    """
+    module = TFModule(None, None, {}, [], {}, {})
+
+    module.full_address = _build_module_full_address(module_name, parent_module_address)
+    LOG.debug("Parsing module:` %s", module.full_address or "root")
+
+    if not module_configuration:
+        raise InvalidResourceLinkingException(f"No module configuration for module: {module.full_address or 'root'}")
+
+    LOG.debug("Parsing module variables")
+    module.variables = _build_module_variables_from_configuration(module_configuration, input_variables)
+
+    LOG.debug("Parsing module resources")
+    module.resources = _build_module_resources_from_configuration(module_configuration, module)
+
+    LOG.debug("Parsing module outputs")
+    module.outputs = _build_module_outputs_from_configuration(module_configuration)
+
+    LOG.debug("Parsing module calls")
+    module.child_modules = _build_child_modules_from_configuration(module_configuration, module)
+
+    return module
+
+
+def _build_module_full_address(module_name: Optional[str], parent_module_address: Optional[str]) -> Optional[str]:
+    """
+    Returns the full address of a module, depending on whether it has a module name and a parent module address.
+
+    Parameters
+    ==========
+    module_name: Optional[str]
+        The module's name, if any
+    parent_module_address: Optional[str]
+        The module's parent address, if any
+
+    Returns
+    =======
+    Optional[str]
+        Returns None if no module_name is provided (e.g. root module).
+        Returns module.<module_name> if a module_name is provided
+        Returns <parent_module_address>.module.<module_name> if both module_name and
+            parent_module_address are provided
+    """
+    full_address = None
+    if module_name:
+        full_address = f"module.{module_name}"
+        if parent_module_address:
+            full_address = f"{parent_module_address}.{full_address}"
+
+    return full_address
+
+
+def _build_module_variables_from_configuration(
+    module_configuration: Dict, input_variables: Dict[str, Expression]
+) -> Dict[str, Expression]:
+    """
+    Builds and returns module variables as Expressions using a module terraform configuration
+
+    Parameters
+    ==========
+    module_configuration: dict
+        The module object from the terraform configuration
+    input_variables: Dict[str, Expression]
+        The input variables sent into the module to override default variables
+
+    Returns
+    =======
+    Dict[str, Expression]
+        Dictionary with the variable names as keys and parsed Expression as values.
+    """
+    module_variables: Dict[str, Expression] = {}
+
+    default_variables = module_configuration.get("variables", {})
+    for variable_name, variable_value in default_variables.items():
+        module_variables[variable_name] = ConstantValue(variable_value.get("default"))
+    module_variables.update(input_variables)
+
+    return module_variables
+
+
+def _build_module_resources_from_configuration(module_configuration: Dict, module: TFModule) -> List[TFResource]:
+    """
+    Builds and returns module TFResources using a module terraform configuration
+
+    Parameters
+    ==========
+    module_configuration: dict
+        The module object from the terraform configuration
+
+    Returns
+    =======
+    List[TFResource]
+        List of TFResource for the parsed resources from the config
+    module: TFModule
+        The TFModule whose resources we're parsing
+    """
+    module_resources = []
+
+    config_resources = module_configuration.get("resources", [])
+    for config_resource in config_resources:
+        resource_attributes: Dict[str, Expression] = {}
+
+        expressions = config_resource.get("expressions", {})
+        for expression_name, expression_value in expressions.items():
+            parsed_expression = _build_expression_from_configuration(expression_value)
+            resource_attributes[expression_name] = parsed_expression
+
+        resource_address = config_resource.get("address")
+        resource_type = config_resource.get("type")
+        module_resources.append(TFResource(resource_address, resource_type, module, resource_attributes))
+
+    return module_resources
+
+
+def _build_module_outputs_from_configuration(module_configuration: Dict) -> Dict[str, Expression]:
+    """
+    Builds and returns module outputs as Expressions using a module terraform configuration
+
+    Parameters
+    ==========
+    module_configuration: dict
+        The module object from the terraform configuration
+
+    Returns
+    =======
+    Dict[str, Expression]
+        Dictionary with the output names as keys and parsed Expression as values.
+    """
+    module_outputs = {}
+
+    config_outputs = module_configuration.get("outputs", {})
+    for output_name, output_value in config_outputs.items():
+        expression = output_value.get("expression", {})
+        parsed_expression = _build_expression_from_configuration(expression)
+        module_outputs[output_name] = parsed_expression
+
+    return module_outputs
+
+
+def _build_child_modules_from_configuration(module_configuration: Dict, module: TFModule) -> Dict[str, TFModule]:
+    """
+    Builds and returns child TFModules using a module terraform configuration
+
+    Parameters
+    ==========
+    module_configuration: dict
+        The module object from the terraform configuration
+    module: TFModule
+        The TFModule whose child modules we're building
+
+    Returns
+    =======
+    Dict[str, TFModule]
+        Dictionary with the module names as keys and parsed TFModule as values.
+    """
+    child_modules = {}
+
+    module_calls = module_configuration.get("module_calls", {})
+    for module_call_name, module_call_value in module_calls.items():
+        module_call_input_variables: Dict[str, Expression] = {}
+
+        expressions = module_call_value.get("expressions", {})
+        for expression_name, expression_value in expressions.items():
+            parsed_expression = _build_expression_from_configuration(expression_value)
+            module_call_input_variables[expression_name] = parsed_expression
+
+        module_call_module_config = module_call_value.get("module", {})
+        module_call_built_module = _build_module(
+            module_call_name, module_call_module_config, module_call_input_variables, module.full_address
+        )
+
+        module_call_built_module.parent_module = module
+        child_modules[module_call_name] = module_call_built_module
+
+    return child_modules
+
+
+def _build_expression_from_configuration(expression_configuration: Dict) -> Expression:
+    """
+    Parses an Expression from an expression terraform configuration.
+
+    Parameters
+    ==========
+    expression_configuration: dict
+        The expression object from the terraform configuration
+
+    Returns
+    =======
+    Expression
+        The parsed expression
+    """
+    constant_value = expression_configuration.get("constant_value")
+    references = expression_configuration.get("references")
+
+    parsed_expression: Expression
+
+    if constant_value is not None:
+        parsed_expression = ConstantValue(constant_value)
+    elif references is not None:
+        parsed_expression = References(references)
+
+    return parsed_expression
+
+
 def _clean_references_list(references: List[str]) -> List[str]:
     """
     Return a new copy of the complete references list.

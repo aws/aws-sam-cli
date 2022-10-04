@@ -3,7 +3,6 @@ from unittest import TestCase
 from unittest.mock import Mock, patch, call
 
 from parameterized import parameterized
-from samcli.hook_packages.terraform.hooks.prepare.exceptions import InvalidResourceLinkingException
 
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import InvalidResourceLinkingException
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
@@ -16,6 +15,13 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     References,
     ConstantValue,
     _resolve_module_variable,
+    _build_module,
+    _build_expression_from_configuration,
+    _build_module_full_address,
+    _build_child_modules_from_configuration,
+    _build_module_outputs_from_configuration,
+    _build_module_resources_from_configuration,
+    _build_module_variables_from_configuration,
     _resolve_resource_attribute,
     ResolvedReference,
 )
@@ -501,6 +507,230 @@ class TestResourceLinking(TestCase):
             ex.exception.args[0],
             "An error occurred when attempting to link two resources: Couldn't find child module layer_module.",
         )
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._build_module_full_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._build_module_variables_from_configuration")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._build_module_resources_from_configuration")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._build_module_outputs_from_configuration")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._build_child_modules_from_configuration")
+    def test_build_module(
+        self,
+        patched_build_child_modules_from_configuration,
+        patched_build_module_outputs_from_configuration,
+        patched_build_module_resources_from_configuration,
+        patched_build_module_variables_from_configuration,
+        patched_build_module_full_address,
+    ):
+        mock_full_address = Mock()
+        patched_build_module_full_address.return_value = mock_full_address
+
+        mock_variables = Mock()
+        patched_build_module_variables_from_configuration.return_value = mock_variables
+
+        mock_resources = Mock()
+        patched_build_module_resources_from_configuration.return_value = mock_resources
+
+        mock_outputs = Mock()
+        patched_build_module_outputs_from_configuration.return_value = mock_outputs
+
+        mock_child_modules = Mock()
+        patched_build_child_modules_from_configuration.return_value = mock_child_modules
+
+        result = _build_module(Mock(), Mock(), Mock(), Mock())
+        expected_module = TFModule(
+            mock_full_address, None, mock_variables, mock_resources, mock_child_modules, mock_outputs
+        )
+
+        self.assertEqual(result, expected_module)
+
+    @parameterized.expand(
+        [
+            (None, None, None),
+            ("some_module", None, "module.some_module"),
+            ("some_module", "parent_module_address", "parent_module_address.module.some_module"),
+        ]
+    )
+    def test_build_module_full_address(self, module_name, parent_module_address, expected_full_address):
+        result = _build_module_full_address(module_name, parent_module_address)
+        self.assertEqual(result, expected_full_address)
+
+    def test_build_module_variables_from_configuration(self):
+        module_configuration = {
+            "variables": {
+                "var1": {"default": "var1_default_value"},
+                "var2": {"default": "var2_default_value"},
+                "var3": {},
+                "var4": {},
+            },
+        }
+
+        input_variables = {
+            "var2": ConstantValue("var2_input_value"),
+            "var4": ConstantValue("var4_input_value"),
+        }
+
+        result = _build_module_variables_from_configuration(module_configuration, input_variables)
+
+        self.assertEqual(result["var1"], ConstantValue("var1_default_value"))
+        self.assertEqual(result["var2"], input_variables["var2"])
+        self.assertEqual(result["var3"], ConstantValue(None))
+        self.assertEqual(result["var4"], ConstantValue("var4_input_value"))
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._build_expression_from_configuration")
+    def test_build_module_resources_from_configuration(
+        self,
+        patched_build_expression_from_configuration,
+    ):
+        mock_parsed_expression = Mock()
+        patched_build_expression_from_configuration.return_value = mock_parsed_expression
+
+        module_configuration = {
+            "resources": [
+                {
+                    "address": "resource1_address",
+                    "type": "resource1_type",
+                    "expressions": {
+                        "expression1": Mock(),
+                        "expression2": Mock(),
+                    },
+                },
+                {
+                    "address": "resource2_address",
+                    "type": "resource2_type",
+                    "expressions": {
+                        "expression3": Mock(),
+                        "expression4": Mock(),
+                    },
+                },
+            ]
+        }
+
+        mock_module = Mock()
+
+        result = _build_module_resources_from_configuration(module_configuration, mock_module)
+
+        expected_resources = [
+            TFResource(
+                "resource1_address",
+                "resource1_type",
+                mock_module,
+                {"expression1": mock_parsed_expression, "expression2": mock_parsed_expression},
+            ),
+            TFResource(
+                "resource2_address",
+                "resource2_type",
+                mock_module,
+                {"expression3": mock_parsed_expression, "expression4": mock_parsed_expression},
+            ),
+        ]
+
+        self.assertEqual(result, expected_resources)
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._build_expression_from_configuration")
+    def test_build_module_outputs_from_configuration(
+        self,
+        patched_build_expression_from_configuration,
+    ):
+        parsed_expression = Mock()
+        patched_build_expression_from_configuration.return_value = parsed_expression
+
+        module_configuration = {
+            "outputs": {
+                "output1": {
+                    "expression": Mock(),
+                },
+                "output2": {
+                    "expression": Mock(),
+                },
+            }
+        }
+
+        result = _build_module_outputs_from_configuration(module_configuration)
+
+        expected_outputs = {
+            "output1": parsed_expression,
+            "output2": parsed_expression,
+        }
+
+        self.assertEqual(result, expected_outputs)
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._build_expression_from_configuration")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._build_module")
+    def test_build_child_modules_from_configuration(
+        self,
+        patched_build_module,
+        patched_build_expression_from_configuration,
+    ):
+        mock_parsed_expression = Mock()
+        patched_build_expression_from_configuration.return_value = mock_parsed_expression
+
+        child_built_modules = [Mock(), Mock()]
+        patched_build_module.side_effect = child_built_modules
+
+        mock_child_config1 = Mock()
+        mock_child_config2 = Mock()
+        module_configuration = {
+            "module_calls": {
+                "module1": {
+                    "expressions": {
+                        "expression1": Mock(),
+                        "expression2": Mock(),
+                    },
+                    "module": mock_child_config1,
+                },
+                "module2": {
+                    "expressions": {
+                        "expression3": Mock(),
+                        "expression4": Mock(),
+                    },
+                    "module": mock_child_config2,
+                },
+            },
+        }
+
+        mock_module = Mock(full_address="module.some_address")
+
+        result = _build_child_modules_from_configuration(module_configuration, mock_module)
+
+        # check it builds child modules
+        patched_build_module.assert_has_calls(
+            [
+                call(
+                    "module1",
+                    mock_child_config1,
+                    {"expression1": mock_parsed_expression, "expression2": mock_parsed_expression},
+                    "module.some_address",
+                ),
+                call(
+                    "module2",
+                    mock_child_config2,
+                    {"expression3": mock_parsed_expression, "expression4": mock_parsed_expression},
+                    "module.some_address",
+                ),
+            ]
+        )
+
+        # check it sets parent module of each child
+        for child in child_built_modules:
+            self.assertEqual(child.parent_module, mock_module)
+
+        # check return result
+        self.assertCountEqual(list(result.keys()), ["module1", "module2"])
+        self.assertCountEqual(list(result.values()), child_built_modules)
+
+    @parameterized.expand(
+        [
+            ({"constant_value": "hello"}, ConstantValue("hello")),
+            ({"references": ["hello", "world"]}, References(["hello", "world"])),
+        ]
+    )
+    def test_build_expression_from_configuration(
+        self,
+        expression_configuration,
+        expected_parsed_expression,
+    ):
+        result = _build_expression_from_configuration(expression_configuration)
+        self.assertEqual(result, expected_parsed_expression)
 
     def test_resolve_resource_attribute_constant_value(self):
         resource = TFResource(
