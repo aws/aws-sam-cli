@@ -173,7 +173,7 @@ class Stage:
                     stack_res = cfn_client.describe_stack_resource(StackName=stack_name, LogicalResourceId="OidcProvider")
                     return url_to_compare in stack_res["StackResourceDetail"]["PhysicalResourceId"]
                 except ClientError as ex:
-                    if "Resource OidcProvider does not exist for stack" in str(ex):
+                    if "does not exist" in str(ex):
                         return False
                     raise ex
         return True
