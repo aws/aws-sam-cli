@@ -22,6 +22,7 @@ ANY_SUBJECT_CLAIM = "ANY_SUBJECT_CLAIM"
 ANY_GITHUB_REPO = "ANY_GITHUB_REPO"
 ANY_GITHUB_ORG = "ANY_GITHUB_ORG"
 ANY_DEPLOYMENT_BRANCH = "ANY_DEPLOYMENT_BRANCH"
+ANY_OIDC_PHYSICAL_RESOURCE_ID = "ANY_OIDC_PHYSICAL_RESOURCE_ID"
 
 
 class TestStage(TestCase):
@@ -516,7 +517,9 @@ class TestStage(TestCase):
         boto3_mock.Session.return_value = session_mock
         session_mock.client.return_value = client_mock
         open_id_connect_providers_mock = {"OpenIDConnectProviderList": [{"Arn": ANY_OIDC_PROVIDER_URL}]}
+        stack_detail_mock = {"StackResourceDetail": {"PhysicalResourceId": ANY_OIDC_PHYSICAL_RESOURCE_ID}}
         client_mock.list_open_id_connect_providers.return_value = open_id_connect_providers_mock
+        client_mock.describe_stack_resource.return_value = stack_detail_mock
 
         # trigger
         stage.bootstrap(confirm_changeset=False)
@@ -543,9 +546,11 @@ class TestStage(TestCase):
         boto3_mock.client.return_value = client_mock
         open_id_connect_providers_mock = {"OpenIDConnectProviderList": [{"Arn": ANY_OIDC_PROVIDER_URL}]}
         client_mock.list_open_id_connect_providers.return_value = open_id_connect_providers_mock
+        stack_detail_mock = {"StackResourceDetail": {"PhysicalResourceId": ANY_OIDC_PHYSICAL_RESOURCE_ID}}
+        client_mock.describe_stack_resource.return_value = stack_detail_mock
 
         # trigger
-        result = stage._should_create_new_provider()
+        result = stage._should_create_new_provider("random_stack_name")
 
         # verify
         self.assertFalse(result)

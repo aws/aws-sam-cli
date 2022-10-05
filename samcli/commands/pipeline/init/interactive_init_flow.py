@@ -152,7 +152,8 @@ class InteractiveInitFlow:
             click.echo(
                 Colored().yellow(
                     f"Only {len(stage_configuration_names)} stage(s) were detected, "
-                    f"fewer than what the template requires: {number_of_stages}."
+                    f"fewer than what the template requires: {number_of_stages}. If "
+                    f"these are incorrect, delete .aws-sam/pipeline/pipelineconfig.toml and rerun"
                 )
             )
         click.echo()
@@ -160,7 +161,7 @@ class InteractiveInitFlow:
         if self.allow_bootstrap:
             if click.confirm(
                 "Do you want to go through stage setup process now? If you choose no, "
-                "you can still reference other bootstrapped resources."
+                "you can still reference other bootstrapped resources.", default = True
             ):
                 click.secho(
                     dedent(
