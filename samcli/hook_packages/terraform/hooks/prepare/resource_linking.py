@@ -597,3 +597,26 @@ def _resolve_resource_attribute(
         else:
             results.append(ResolvedReference(reference, resource.module.full_address))
     return results
+
+
+def _link_lambda_function_to_layer(
+    function_tf_resource: TFResource, cfn_functions: List[Dict], tf_layers: Dict[str, Dict]
+) -> None:
+    """
+    Resolve the lambda layer for the input lambda function configuration resource, and then update the equivalent cfn
+    lambda functions list.
+    The Lambda configuration resource in Terraform can match multiple actual resources in case if it was defined using
+    count or for_each pattern.
+
+    Parameters
+    ----------
+    function_tf_resource: TFResource
+        The input lambda function terraform configuration resource
+
+    cfn_functions: List[Dict]
+        A list of mapped lambda functions that are equivalent to the input terraform configuration lambda function
+
+    tf_layers: Dict[str, Dict]
+        Dictionary of all actual terraform layers resources (not configuration resources). The dictionary's key is the
+        calculated logical id for each resource
+    """
