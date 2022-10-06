@@ -620,4 +620,3 @@ def _link_lambda_function_to_layer(
         Dictionary of all actual terraform layers resources (not configuration resources). The dictionary's key is the
         calculated logical id for each resource
     """
-    pass
