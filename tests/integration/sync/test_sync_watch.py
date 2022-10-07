@@ -503,9 +503,6 @@ class TestSyncWatchCodeOnly(TestSyncWatchBase):
             tags="integ=true clarity=yes foo_bar=baz",
         )
         self.watch_process = start_persistent_process(sync_command_list, cwd=self.test_dir)
-        read_until_string(self.watch_process, "Enter Y to proceed with the command, or enter N to cancel:\n")
-
-        self.watch_process.stdin.write("y\n")
         read_until_string(self.watch_process, "\x1b[32mSync watch started.\x1b[0m\n", timeout=30)
 
         self.stack_resources = self._get_stacks(self.stack_name)
