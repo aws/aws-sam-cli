@@ -35,7 +35,7 @@ from ..bootstrap.cli import (
 
 LOG = logging.getLogger(__name__)
 shared_path: Path = GlobalConfig().config_dir
-APP_PIPELINE_TEMPLATES_REPO_URL = "https://github.com/xazhao/aws-sam-cli-pipeline-init-templates.git"
+APP_PIPELINE_TEMPLATES_REPO_URL = "https://github.com/aws/aws-sam-cli-pipeline-init-templates.git"
 APP_PIPELINE_TEMPLATES_REPO_LOCAL_NAME = "aws-sam-cli-app-pipeline-templates"
 CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME = "custom-pipeline-template"
 SAM_PIPELINE_TEMPLATE_SOURCE = "AWS Quick Start Pipeline Templates"
