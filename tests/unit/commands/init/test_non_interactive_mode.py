@@ -80,9 +80,7 @@ class TestNonInteractiveMode(TestCase):
 
     @patch("samcli.commands.init.command.click.get_current_context")
     def test_non_interactive_mode_with_location_and_zip_no_dependency_manager(self, mocked_ctx):
-        mocked_ctx.return_value = Mock(
-            params={"no_interactive": True, "package_type": ZIP, "location": "/my/cool/path"}
-        )
+        mocked_ctx.return_value = Mock(params={"no_interactive": True, "location": "/my/cool/path"})
         mocked_func = Mock()
         wrapped_func = non_interactive_validation(mocked_func)
 

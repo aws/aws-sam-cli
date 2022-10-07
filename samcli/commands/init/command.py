@@ -120,8 +120,10 @@ def non_interactive_validation(func):
             dependency_manager = ctx.params.get("dependency_manager")
             location = ctx.params.get("location")
 
+            java_base_image = base_image and "java" in base_image
+
             # dependency manager is only required for ZIP package type and for java based IMAGE package types
-            if (package_type == ZIP and not location) or (base_image and "java" in base_image):
+            if not location and (package_type == ZIP or java_base_image):
                 if not dependency_manager:
                     raise click.UsageError("Missing parameter --dependency-manager")
 
