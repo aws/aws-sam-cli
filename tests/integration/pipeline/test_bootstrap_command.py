@@ -94,6 +94,7 @@ class TestBootstrap(BootstrapIntegBase):
             self.assertSetEqual(common_resources, set(self._extract_created_resource_logical_ids(stack_name)))
             self.validate_pipeline_config(stack_name, stage_configuration_name)
 
+    @parameterized.expand([("create_image_repository",), (False,)])
     def test_interactive_with_no_resources_provided_using_oidc(self, create_image_repository):
         stage_configuration_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
@@ -130,7 +131,6 @@ class TestBootstrap(BootstrapIntegBase):
         # make sure pipeline user's credential is printed
 
         common_resources = {
-            "OidcProvider",
             "CloudFormationExecutionRole",
             "PipelineExecutionRole",
             "ArtifactsBucket",
@@ -224,7 +224,6 @@ class TestBootstrap(BootstrapIntegBase):
 
     def validate_pipeline_config(self, stack_name, stage_configuration_name, cfn_keys_to_check=None):
         # Get output values from cloudformation
-        pytest.set_trace()
         if cfn_keys_to_check is None:
             cfn_keys_to_check = list(CFN_OUTPUT_TO_CONFIG_KEY.keys())
         response = self.cf_client.describe_stacks(StackName=stack_name)
@@ -250,65 +249,64 @@ class TestBootstrap(BootstrapIntegBase):
             if key == "ImageRepository":
                 self.assertEqual(cfn_value.split("/")[-1], config_value.split("/")[-1])
             elif key == "OidcProvider":
-                pytest.set_trace()
                 self.assertTrue(config_value.startswith("https://"))
             else:
                 self.assertTrue(cfn_value.endswith(config_value) or cfn_value == config_value)
 
-    @parameterized.expand([("confirm_changeset",), (False,)])
-    def test_no_interactive_with_some_required_resources_provided(self, confirm_changeset: bool):
-        stage_configuration_name, stack_name = self._get_stage_and_stack_name()
-        self.stack_names = [stack_name]
+    # @parameterized.expand([("confirm_changeset",), (False,)])
+    # def test_no_interactive_with_some_required_resources_provided(self, confirm_changeset: bool):
+    #     stage_configuration_name, stack_name = self._get_stage_and_stack_name()
+    #     self.stack_names = [stack_name]
 
-        bootstrap_command_list = self.get_bootstrap_command_list(
-            no_interactive=True,
-            stage_configuration_name=stage_configuration_name,
-            pipeline_user="arn:aws:iam::123:user/user-name",  # pipeline user
-            pipeline_execution_role="arn:aws:iam::123:role/role-name",  # Pipeline execution role
-            # CloudFormation execution role missing
-            bucket="arn:aws:s3:::bucket-name",  # Artifacts bucket
-            image_repository="arn:aws:ecr:::repository/repo-name",  # ecr repo
-            no_confirm_changeset=not confirm_changeset,
-            region=self.region,
-        )
+    #     bootstrap_command_list = self.get_bootstrap_command_list(
+    #         no_interactive=True,
+    #         stage_configuration_name=stage_configuration_name,
+    #         pipeline_user="arn:aws:iam::123:user/user-name",  # pipeline user
+    #         pipeline_execution_role="arn:aws:iam::123:role/role-name",  # Pipeline execution role
+    #         # CloudFormation execution role missing
+    #         bucket="arn:aws:s3:::bucket-name",  # Artifacts bucket
+    #         image_repository="arn:aws:ecr:::repository/repo-name",  # ecr repo
+    #         no_confirm_changeset=not confirm_changeset,
+    #         region=self.region,
+    #     )
 
-        inputs = [
-            "y",  # proceed
-        ]
+    #     inputs = [
+    #         "y",  # proceed
+    #     ]
 
-        bootstrap_process_execute = run_command_with_inputs(bootstrap_command_list, inputs if confirm_changeset else [])
+    #     bootstrap_process_execute = run_command_with_inputs(bootstrap_command_list, inputs if confirm_changeset else [])
 
-        self.assertEqual(bootstrap_process_execute.process.returncode, 0)
-        stdout = bootstrap_process_execute.stdout.decode()
-        self.assertIn("Successfully created!", stdout)
-        self.assertIn("CloudFormationExecutionRole", self._extract_created_resource_logical_ids(stack_name))
+    #     self.assertEqual(bootstrap_process_execute.process.returncode, 0)
+    #     stdout = bootstrap_process_execute.stdout.decode()
+    #     self.assertIn("Successfully created!", stdout)
+    #     self.assertIn("CloudFormationExecutionRole", self._extract_created_resource_logical_ids(stack_name))
 
-    def test_interactive_cancelled_by_user(self):
-        stage_configuration_name, stack_name = self._get_stage_and_stack_name()
-        self.stack_names = [stack_name]
+    # def test_interactive_cancelled_by_user(self):
+    #     stage_configuration_name, stack_name = self._get_stage_and_stack_name()
+    #     self.stack_names = [stack_name]
 
-        bootstrap_command_list = self.get_bootstrap_command_list()
+    #     bootstrap_command_list = self.get_bootstrap_command_list()
 
-        inputs = [
-            stage_configuration_name,
-            CREDENTIAL_PROFILE,
-            self.region,  # region
-            "1",  # IAM permissions
-            "arn:aws:iam::123:user/user-name",  # pipeline user
-            "arn:aws:iam::123:role/role-name",  # Pipeline execution role
-            "",  # CloudFormation execution role
-            "arn:aws:s3:::bucket-name",  # Artifacts bucket
-            "N",  # Do you have Lambda with package type Image
-            "",
-            "",  # Create resources confirmation
-        ]
+    #     inputs = [
+    #         stage_configuration_name,
+    #         CREDENTIAL_PROFILE,
+    #         self.region,  # region
+    #         "1",  # IAM permissions
+    #         "arn:aws:iam::123:user/user-name",  # pipeline user
+    #         "arn:aws:iam::123:role/role-name",  # Pipeline execution role
+    #         "",  # CloudFormation execution role
+    #         "arn:aws:s3:::bucket-name",  # Artifacts bucket
+    #         "N",  # Do you have Lambda with package type Image
+    #         "",
+    #         "",  # Create resources confirmation
+    #     ]
 
-        bootstrap_process_execute = run_command_with_inputs(bootstrap_command_list, inputs)
+    #     bootstrap_process_execute = run_command_with_inputs(bootstrap_command_list, inputs)
 
-        self.assertEqual(bootstrap_process_execute.process.returncode, 0)
-        stdout = bootstrap_process_execute.stdout.decode()
-        self.assertTrue(stdout.strip().endswith("Canceling pipeline bootstrap creation."))
-        self.assertFalse(self._stack_exists(stack_name))
+    #     self.assertEqual(bootstrap_process_execute.process.returncode, 0)
+    #     stdout = bootstrap_process_execute.stdout.decode()
+    #     self.assertTrue(stdout.strip().endswith("Canceling pipeline bootstrap creation."))
+    #     self.assertFalse(self._stack_exists(stack_name))
 
     def test_interactive_with_some_required_resources_provided(self):
         stage_configuration_name, stack_name = self._get_stage_and_stack_name()
@@ -337,125 +335,129 @@ class TestBootstrap(BootstrapIntegBase):
         self.assertIn("Successfully created!", stdout)
         # make sure the not provided resource is the only resource created.
         self.assertIn("CloudFormationExecutionRole", self._extract_created_resource_logical_ids(stack_name))
+        if "ImageRepository" in CFN_OUTPUT_TO_CONFIG_KEY:
+            del CFN_OUTPUT_TO_CONFIG_KEY["ImageRepository"]
+        if "OidcProvider" in CFN_OUTPUT_TO_CONFIG_KEY:
+            del CFN_OUTPUT_TO_CONFIG_KEY["OidcProvider"]
         self.validate_pipeline_config(stack_name, stage_configuration_name)
 
-    def test_interactive_pipeline_user_only_created_once(self):
-        """
-        Create 3 stages, only the first stage resource stack creates
-        a pipeline user, and the remaining two share the same pipeline user.
-        """
-        stage_configuration_names = []
-        for suffix in ["1", "2", "3"]:
-            stage_configuration_name, stack_name = self._get_stage_and_stack_name(suffix)
-            stage_configuration_names.append(stage_configuration_name)
-            self.stack_names.append(stack_name)
+    # def test_interactive_pipeline_user_only_created_once(self):
+    #     """
+    #     Create 3 stages, only the first stage resource stack creates
+    #     a pipeline user, and the remaining two share the same pipeline user.
+    #     """
+    #     stage_configuration_names = []
+    #     for suffix in ["1", "2", "3"]:
+    #         stage_configuration_name, stack_name = self._get_stage_and_stack_name(suffix)
+    #         stage_configuration_names.append(stage_configuration_name)
+    #         self.stack_names.append(stack_name)
 
-        bootstrap_command_list = self.get_bootstrap_command_list()
+    #     bootstrap_command_list = self.get_bootstrap_command_list()
 
-        for i, stage_configuration_name in enumerate(stage_configuration_names):
-            inputs = [
-                stage_configuration_name,
-                CREDENTIAL_PROFILE,
-                self.region,  # region
-                "1",  # IAM permissions
-                *([""] if i == 0 else []),  # pipeline user
-                "arn:aws:iam::123:role/role-name",  # Pipeline execution role
-                "arn:aws:iam::123:role/role-name",  # CloudFormation execution role
-                "arn:aws:s3:::bucket-name",  # Artifacts bucket
-                "N",  # Should we create ECR repo, 3 - specify one
-                "",
-                "y",  # Create resources confirmation
-            ]
+    #     for i, stage_configuration_name in enumerate(stage_configuration_names):
+    #         inputs = [
+    #             stage_configuration_name,
+    #             CREDENTIAL_PROFILE,
+    #             self.region,  # region
+    #             "1",  # IAM permissions
+    #             *([""] if i == 0 else []),  # pipeline user
+    #             "arn:aws:iam::123:role/role-name",  # Pipeline execution role
+    #             "arn:aws:iam::123:role/role-name",  # CloudFormation execution role
+    #             "arn:aws:s3:::bucket-name",  # Artifacts bucket
+    #             "N",  # Should we create ECR repo, 3 - specify one
+    #             "",
+    #             "y",  # Create resources confirmation
+    #         ]
 
-            bootstrap_process_execute = run_command_with_input(
-                bootstrap_command_list, ("\n".join(inputs) + "\n").encode()
-            )
+    #         bootstrap_process_execute = run_command_with_input(
+    #             bootstrap_command_list, ("\n".join(inputs) + "\n").encode()
+    #         )
 
-            self.assertEqual(bootstrap_process_execute.process.returncode, 0)
-            stdout = bootstrap_process_execute.stdout.decode()
+    #         self.assertEqual(bootstrap_process_execute.process.returncode, 0)
+    #         stdout = bootstrap_process_execute.stdout.decode()
 
-            # Only first environment creates pipeline user
-            if i == 0:
-                self.assertIn("The following resources were created in your account:", stdout)
-                resources = self._extract_created_resource_logical_ids(self.stack_names[i])
-                self.assertTrue("PipelineUser" in resources)
-                self.assertTrue("PipelineUserAccessKey" in resources)
-                self.assertTrue("PipelineUserSecretKey" in resources)
-                self.validate_pipeline_config(self.stack_names[i], stage_configuration_name)
-            else:
-                self.assertIn("skipping creation", stdout)
+    #         # Only first environment creates pipeline user
+    #         if i == 0:
+    #             self.assertIn("The following resources were created in your account:", stdout)
+    #             resources = self._extract_created_resource_logical_ids(self.stack_names[i])
+    #             self.assertTrue("PipelineUser" in resources)
+    #             self.assertTrue("PipelineUserAccessKey" in resources)
+    #             self.assertTrue("PipelineUserSecretKey" in resources)
+    #             self.validate_pipeline_config(self.stack_names[i], stage_configuration_name)
+    #         else:
+    #             self.assertIn("skipping creation", stdout)
 
-    @parameterized.expand([("ArtifactsBucket",), ("ArtifactsLoggingBucket",)])
-    def test_bootstrapped_buckets_accept_ssl_requests_only(self, bucket_logical_id):
-        stage_configuration_name, stack_name = self._get_stage_and_stack_name()
-        self.stack_names = [stack_name]
+    # @parameterized.expand([("ArtifactsBucket",), ("ArtifactsLoggingBucket",)])
+    # def test_bootstrapped_buckets_accept_ssl_requests_only(self, bucket_logical_id):
+    #     stage_configuration_name, stack_name = self._get_stage_and_stack_name()
+    #     self.stack_names = [stack_name]
 
-        bootstrap_command_list = self.get_bootstrap_command_list(
-            stage_configuration_name=stage_configuration_name,
-            no_interactive=True,
-            no_confirm_changeset=True,
-            region=self.region,
-        )
+    #     bootstrap_command_list = self.get_bootstrap_command_list(
+    #         stage_configuration_name=stage_configuration_name,
+    #         no_interactive=True,
+    #         no_confirm_changeset=True,
+    #         region=self.region,
+    #     )
 
-        bootstrap_process_execute = run_command(bootstrap_command_list)
+    #     bootstrap_process_execute = run_command(bootstrap_command_list)
 
-        self.assertEqual(bootstrap_process_execute.process.returncode, 0)
+    #     self.assertEqual(bootstrap_process_execute.process.returncode, 0)
 
-        stack_resources = self.cf_client.describe_stack_resources(StackName=stack_name)
-        bucket = next(
-            resource
-            for resource in stack_resources["StackResources"]
-            if resource["LogicalResourceId"] == bucket_logical_id
-        )
-        bucket_name = bucket["PhysicalResourceId"]
-        bucket_key = "any/testing/key.txt"
-        testing_data = b"any testing binary data"
+    #     stack_resources = self.cf_client.describe_stack_resources(StackName=stack_name)
+    #     bucket = next(
+    #         resource
+    #         for resource in stack_resources["StackResources"]
+    #         if resource["LogicalResourceId"] == bucket_logical_id
+    #     )
+    #     bucket_name = bucket["PhysicalResourceId"]
+    #     bucket_key = "any/testing/key.txt"
+    #     testing_data = b"any testing binary data"
 
-        s3_ssl_client = boto3.client("s3", region_name=self.region)
-        s3_non_ssl_client = boto3.client("s3", use_ssl=False, region_name=self.region)
+    #     s3_ssl_client = boto3.client("s3", region_name=self.region)
+    #     s3_non_ssl_client = boto3.client("s3", use_ssl=False, region_name=self.region)
 
-        # Assert SSL requests are accepted
-        s3_ssl_client.put_object(Body=testing_data, Bucket=bucket_name, Key=bucket_key)
-        res = s3_ssl_client.get_object(Bucket=bucket_name, Key=bucket_key)
-        retrieved_data = res["Body"].read()
-        self.assertEqual(retrieved_data, testing_data)
+    #     # Assert SSL requests are accepted
+    #     s3_ssl_client.put_object(Body=testing_data, Bucket=bucket_name, Key=bucket_key)
+    #     res = s3_ssl_client.get_object(Bucket=bucket_name, Key=bucket_key)
+    #     retrieved_data = res["Body"].read()
+    #     self.assertEqual(retrieved_data, testing_data)
 
-        # Assert non SSl requests are denied
-        with self.assertRaises(ClientError) as error:
-            s3_non_ssl_client.get_object(Bucket=bucket_name, Key=bucket_key)
-        self.assertEqual(
-            str(error.exception), "An error occurred (AccessDenied) when calling the GetObject operation: Access Denied"
-        )
+    #     # Assert non SSl requests are denied
+    #     with self.assertRaises(ClientError) as error:
+    #         s3_non_ssl_client.get_object(Bucket=bucket_name, Key=bucket_key)
+    #     self.assertEqual(
+    #         str(error.exception), "An error occurred (AccessDenied) when calling the GetObject operation: Access Denied"
+    #     )
 
-    def test_bootstrapped_artifacts_bucket_has_server_access_log_enabled(self):
-        stage_configuration_name, stack_name = self._get_stage_and_stack_name()
-        self.stack_names = [stack_name]
+    # def test_bootstrapped_artifacts_bucket_has_server_access_log_enabled(self):
+    #     stage_configuration_name, stack_name = self._get_stage_and_stack_name()
+    #     self.stack_names = [stack_name]
 
-        bootstrap_command_list = self.get_bootstrap_command_list(
-            stage_configuration_name=stage_configuration_name,
-            no_interactive=True,
-            no_confirm_changeset=True,
-            region=self.region,
-        )
+    #     bootstrap_command_list = self.get_bootstrap_command_list(
+    #         stage_configuration_name=stage_configuration_name,
+    #         no_interactive=True,
+    #         no_confirm_changeset=True,
+    #         region=self.region,
+    #     )
 
-        bootstrap_process_execute = run_command(bootstrap_command_list)
+    #     bootstrap_process_execute = run_command(bootstrap_command_list)
 
-        self.assertEqual(bootstrap_process_execute.process.returncode, 0)
+    #     self.assertEqual(bootstrap_process_execute.process.returncode, 0)
 
-        stack_resources = self.cf_client.describe_stack_resources(StackName=stack_name)
-        artifacts_bucket = next(
-            resource
-            for resource in stack_resources["StackResources"]
-            if resource["LogicalResourceId"] == "ArtifactsBucket"
-        )
-        artifacts_bucket_name = artifacts_bucket["PhysicalResourceId"]
-        artifacts_logging_bucket = next(
-            resource
-            for resource in stack_resources["StackResources"]
-            if resource["LogicalResourceId"] == "ArtifactsLoggingBucket"
-        )
-        artifacts_logging_bucket_name = artifacts_logging_bucket["PhysicalResourceId"]
+    #     stack_resources = self.cf_client.describe_stack_resources(StackName=stack_name)
+    #     artifacts_bucket = next(
+    #         resource
+    #         for resource in stack_resources["StackResources"]
+    #         if resource["LogicalResourceId"] == "ArtifactsBucket"
+    #     )
+    #     artifacts_bucket_name = artifacts_bucket["PhysicalResourceId"]
+    #     artifacts_logging_bucket = next(
+    #         resource
+    #         for resource in stack_resources["StackResources"]
+    #         if resource["LogicalResourceId"] == "ArtifactsLoggingBucket"
+    #     )
+    #     artifacts_logging_bucket_name = artifacts_logging_bucket["PhysicalResourceId"]
 
-        s3_client = boto3.client("s3", region_name=self.region)
-        res = s3_client.get_bucket_logging(Bucket=artifacts_bucket_name)
-        self.assertEqual(artifacts_logging_bucket_name, res["LoggingEnabled"]["TargetBucket"])
+    #     s3_client = boto3.client("s3", region_name=self.region)
+    #     res = s3_client.get_bucket_logging(Bucket=artifacts_bucket_name)
+    #     self.assertEqual(artifacts_logging_bucket_name, res["LoggingEnabled"]["TargetBucket"])

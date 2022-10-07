@@ -170,7 +170,9 @@ class Stage:
         for provider_resource in providers["OpenIDConnectProviderList"]:
             if url_to_compare in provider_resource["Arn"]:
                 try:
-                    stack_res = cfn_client.describe_stack_resource(StackName=stack_name, LogicalResourceId="OidcProvider")
+                    stack_res = cfn_client.describe_stack_resource(
+                        StackName=stack_name, LogicalResourceId="OidcProvider"
+                    )
                     return url_to_compare in stack_res["StackResourceDetail"]["PhysicalResourceId"]
                 except ClientError as ex:
                     if "does not exist" in str(ex):

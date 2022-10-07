@@ -161,7 +161,8 @@ class InteractiveInitFlow:
         if self.allow_bootstrap:
             if click.confirm(
                 "Do you want to go through stage setup process now? If you choose no, "
-                "you can still reference other bootstrapped resources.", default = True
+                "you can still reference other bootstrapped resources.",
+                default=True,
             ):
                 click.secho(
                     dedent(
@@ -245,8 +246,13 @@ class InteractiveInitFlow:
                 # the customers just went through the bootstrap process,
                 # refresh the pipeline bootstrap resources and see whether bootstrap is still needed
                 continue
+            click.echo(
+                Colored().yellow(
+                    "2 stage(s) were detected, matching the template requirements. "
+                    "If these are incorrect, delete .aws-sam/pipeline/pipelineconfig.toml and rerun"
+                )
+            )
             break
-
         context: Dict = pipeline_template.run_interactive_flows(bootstrap_context)
         with osutils.mkdir_temp() as generate_dir:
             LOG.debug("Generating pipeline files into %s", generate_dir)

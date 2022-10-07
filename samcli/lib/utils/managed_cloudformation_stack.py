@@ -278,14 +278,14 @@ def _update_stack(
 ):
     click.echo("\tUpdating the required resources...")
     parameters = _generate_stack_parameters(parameter_overrides)
-    change_set_resp = cloudformation_client.update_stack(
+    us_resp = cloudformation_client.update_stack(
         StackName=stack_name,
         TemplateBody=template_body,
         Tags=[{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
         Capabilities=["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
         Parameters=parameters,
     )
-    stack_id = change_set_resp["StackId"]
+    stack_id = us_resp["StackId"]
     stack_waiter = cloudformation_client.get_waiter("stack_update_complete")
     stack_waiter.wait(StackName=stack_id, WaiterConfig={"Delay": 15, "MaxAttempts": 60})
     ds_resp = cloudformation_client.describe_stacks(StackName=stack_name)
