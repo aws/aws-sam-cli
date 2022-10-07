@@ -13,6 +13,7 @@ from dataclasses import dataclass
 
 import click
 
+from samcli.lib.utils.hash import str_checksum
 
 LOG = logging.getLogger(__name__)
 
@@ -32,6 +33,7 @@ class DefaultEntry:
     INSTALLATION_ID = ConfigEntry("installationId", None)
     LAST_VERSION_CHECK = ConfigEntry("lastVersionCheck", None)
     TELEMETRY = ConfigEntry("telemetryEnabled", "SAM_CLI_TELEMETRY")
+    ACCELERATE_OPT_IN_STACKS = ConfigEntry("accelerateOptInStacks", None)
 
 
 class Singleton(type):
@@ -413,3 +415,24 @@ class GlobalConfig(metaclass=Singleton):
     @last_version_check.setter
     def last_version_check(self, value: float):
         self.set_value(DefaultEntry.LAST_VERSION_CHECK, value)
+
+    def is_accelerate_opt_in_stack(self, template_file: str, stack_name: str) -> bool:
+        """
+        Returns True, if current folder with stack name is been accepted to use sam sync before.
+        Returns False, if this is first time that user runs sam sync with current folder and given stack name.
+        """
+        accelerate_opt_in_stacks = (
+            self.get_value(DefaultEntry.ACCELERATE_OPT_IN_STACKS, value_type=list, default=[]) or []
+        )
+        return str_checksum(template_file + stack_name) in accelerate_opt_in_stacks
+
+    def set_accelerate_opt_in_stack(self, template_file: str, stack_name: str) -> None:
+        """
+        Stores current folder and stack name into config, so that next time that user runs sam sync, they don't need
+        to accept warning message again.
+        """
+        accelerate_opt_in_stacks = (
+            self.get_value(DefaultEntry.ACCELERATE_OPT_IN_STACKS, value_type=list, default=[]) or []
+        )
+        accelerate_opt_in_stacks.append(str_checksum(template_file + stack_name))
+        self.set_value(DefaultEntry.ACCELERATE_OPT_IN_STACKS, accelerate_opt_in_stacks)
