@@ -5,7 +5,6 @@ import os
 from textwrap import dedent
 from typing import Any, Dict, List, Optional
 
-import logging
 import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
@@ -53,7 +52,7 @@ This step must be run for each deployment stage in your pipeline, prior to runni
 PIPELINE_CONFIG_DIR = os.path.join(".aws-sam", "pipeline")
 PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
 PERMISSIONS_PROVIDERS = [OPEN_ID_CONNECT, IAM]
-LOG = logging.getLogger(__name__)
+OPENID_CONNECT = "OpenID Connect (OIDC)"
 
 
 @click.command("bootstrap", short_help=SHORT_HELP, help=HELP_TEXT, context_settings=dict(max_content_width=120))
@@ -288,7 +287,7 @@ def do_cli(
     bitbucket_config = BitbucketOidcConfig(bitbucket_repo_uuid=bitbucket_repo_uuid)
     if config_parameters:
         saved_provider = config_parameters.get(PERMISSIONS_PROVIDER)
-        if saved_provider == "OpenID Connect (OIDC)":
+        if saved_provider == OPENID_CONNECT:
             permissions_provider = OPEN_ID_CONNECT
             oidc_config.update_values(
                 oidc_provider=config_parameters.get(OIDC_PROVIDER),

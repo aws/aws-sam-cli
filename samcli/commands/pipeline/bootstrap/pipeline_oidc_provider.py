@@ -13,6 +13,7 @@ class PipelineOidcProvider:
 
     PROVIDER_URL_PARAMETER = "oidc-provider-url"
     CLIENT_ID_PARAMETER = "oidc-client-id"
+    OPENID_CONNECT = "OpenID Connect (OIDC)"
 
     def __init__(self, oidc_parameters: dict, oidc_parameter_names: List[str], oidc_provider_name: str) -> None:
         self.oidc_parameters = oidc_parameters
@@ -44,7 +45,7 @@ class PipelineOidcProvider:
                 value=self.oidc_parameters[parameter_name],
             )
         samconfig.put(cmd_names=cmd_names, section=section, key="oidc_provider", value=self.oidc_provider_name)
-        samconfig.put(cmd_names=cmd_names, section=section, key="permissions_provider", value="OpenID Connect (OIDC)")
+        samconfig.put(cmd_names=cmd_names, section=section, key="permissions_provider", value=self.OPENID_CONNECT)
 
     @abstractmethod
     def get_subject_claim(self) -> str:
