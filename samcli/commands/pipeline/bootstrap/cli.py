@@ -9,38 +9,20 @@ import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, aws_creds_options, print_cmdline_args
+
+from samcli.commands.pipeline.bootstrap.pipeline_oidc_provider import PipelineOidcProvider
+from samcli.lib.config.samconfig import SamConfig
+
 from samcli.commands.pipeline.bootstrap.oidc_config import (
     BitbucketOidcConfig,
     GitHubOidcConfig,
     OidcConfig,
     GitLabOidcConfig,
 )
-from samcli.commands.pipeline.bootstrap.pipeline_oidc_provider import (
-    BitbucketOidcProvider,
-    GitHubOidcProvider,
-    GitLabOidcProvider,
-    PipelineOidcProvider,
-)
-from samcli.lib.config.samconfig import SamConfig
-from samcli.lib.pipeline.bootstrap.stage import (
-    BITBUCKET_REPO_UUID,
-    DEPLOYMENT_BRANCH,
-    GITHUB_ORG,
-    GITHUB_REPO,
-    GITLAB_GROUP,
-    GITLAB_PROJECT,
-    OIDC_CLIENT_ID,
-    OIDC_PROVIDER,
-    OIDC_PROVIDER_URL,
-    PERMISSIONS_PROVIDER,
-    OIDC_SUPPORTED_PROVIDER,
-    Stage,
-)
+
 from samcli.lib.telemetry.metric import track_command
-from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.version_checker import check_newer_version
-from .guided_context import BITBUCKET, GITHUB_ACTIONS, GITLAB, IAM, OPEN_ID_CONNECT, GuidedContext
-from ..external_links import CONFIG_AWS_CRED_ON_CICD_URL
+from .guided_context import BITBUCKET, GITHUB_ACTIONS, GITLAB, IAM, OPEN_ID_CONNECT
 
 SHORT_HELP = "Generates the required AWS resources to connect your CI/CD system."
 
@@ -266,6 +248,24 @@ def do_cli(
     """
     implementation of `sam pipeline bootstrap` command
     """
+    from samcli.commands.pipeline.external_links import CONFIG_AWS_CRED_ON_CICD_URL
+    from samcli.lib.utils.colors import Colored
+    from samcli.commands.pipeline.bootstrap.guided_context import GuidedContext
+    from samcli.lib.pipeline.bootstrap.stage import (
+        BITBUCKET_REPO_UUID,
+        DEPLOYMENT_BRANCH,
+        GITHUB_ORG,
+        GITHUB_REPO,
+        GITLAB_GROUP,
+        GITLAB_PROJECT,
+        OIDC_CLIENT_ID,
+        OIDC_PROVIDER,
+        OIDC_PROVIDER_URL,
+        PERMISSIONS_PROVIDER,
+        OIDC_SUPPORTED_PROVIDER,
+        Stage,
+    )
+
     if not pipeline_user_arn and not permissions_provider == OPEN_ID_CONNECT:
         pipeline_user_arn = _load_saved_pipeline_user_arn()
 
@@ -421,6 +421,12 @@ def _get_pipeline_oidc_provider(
     gitlab_config: GitLabOidcConfig,
     bitbucket_config: BitbucketOidcConfig,
 ) -> PipelineOidcProvider:
+    from samcli.commands.pipeline.bootstrap.pipeline_oidc_provider import (
+        BitbucketOidcProvider,
+        GitHubOidcProvider,
+        GitLabOidcProvider,
+    )
+
     if oidc_config.oidc_provider == GITHUB_ACTIONS:
         github_oidc_params: dict = {
             GitHubOidcProvider.GITHUB_ORG_PARAMETER_NAME: github_config.github_org,

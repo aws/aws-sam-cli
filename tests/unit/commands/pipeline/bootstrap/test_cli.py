@@ -143,8 +143,8 @@ class TestCli(TestCase):
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
-    @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
-    @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
+    @patch("samcli.lib.pipeline.bootstrap.stage.Stage")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.GuidedContext")
     def test_bootstrapping_normal_interactive_flow(
         self, guided_context_mock, environment_mock, load_saved_pipeline_user_arn_mock, get_command_names_mock
     ):
@@ -173,7 +173,7 @@ class TestCli(TestCase):
             cmd_names=PIPELINE_BOOTSTRAP_COMMAND_NAMES,
         )
 
-    @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
+    @patch("samcli.lib.pipeline.bootstrap.stage.Stage")
     def test_bootstrapping_oidc_non_interactive_fails_if_missing_parameters(self, environment_mock):
         # setup
         environment_instance = Mock()
@@ -193,7 +193,7 @@ class TestCli(TestCase):
         environment_instance.print_resources_summary.assert_not_called()
         environment_instance.save_config_safe.assert_not_called()
 
-    @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
+    @patch("samcli.lib.pipeline.bootstrap.stage.Stage")
     def test_bootstrapping_oidc_non_interactive_fails_if_missing_github_parameters(self, environment_mock):
         # setup
         environment_instance = Mock()
@@ -216,8 +216,8 @@ class TestCli(TestCase):
 
     @patch("samcli.commands.pipeline.bootstrap.pipeline_oidc_provider")
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
-    @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
-    @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
+    @patch("samcli.lib.pipeline.bootstrap.stage.Stage")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.GuidedContext")
     def test_bootstrapping_oidc_interactive_flow(
         self,
         guided_context_mock,
@@ -253,8 +253,8 @@ class TestCli(TestCase):
 
     @patch("samcli.commands.pipeline.bootstrap.pipeline_oidc_provider")
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
-    @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
-    @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
+    @patch("samcli.lib.pipeline.bootstrap.stage.Stage")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.GuidedContext")
     def test_bootstrapping_oidc_interactive_flow_gitlab(
         self,
         guided_context_mock,
@@ -288,8 +288,8 @@ class TestCli(TestCase):
 
     @patch("samcli.commands.pipeline.bootstrap.pipeline_oidc_provider")
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
-    @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
-    @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
+    @patch("samcli.lib.pipeline.bootstrap.stage.Stage")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.GuidedContext")
     def test_bootstrapping_oidc_interactive_flow_bitbucket(
         self,
         guided_context_mock,
@@ -323,8 +323,8 @@ class TestCli(TestCase):
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
-    @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
-    @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
+    @patch("samcli.lib.pipeline.bootstrap.stage.Stage")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.GuidedContext")
     def test_bootstrap_will_not_try_loading_pipeline_user_if_already_provided(
         self, guided_context_mock, environment_mock, load_saved_pipeline_user_arn_mock, get_command_names_mock
     ):
@@ -333,8 +333,8 @@ class TestCli(TestCase):
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
-    @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
-    @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
+    @patch("samcli.lib.pipeline.bootstrap.stage.Stage")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.GuidedContext")
     def test_bootstrap_will_try_loading_pipeline_user_if_not_provided(
         self, guided_context_mock, environment_mock, load_saved_pipeline_user_arn_mock, get_command_names_mock
     ):
@@ -344,8 +344,8 @@ class TestCli(TestCase):
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli._load_config_values")
-    @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
-    @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
+    @patch("samcli.lib.pipeline.bootstrap.stage.Stage")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.GuidedContext")
     def test_bootstrap_will_try_loading_oidc_values_if_not_provided(
         self, guided_context_mock, environment_mock, load_saved_oidc_values_arn_mock, get_command_names_mock
     ):
@@ -355,8 +355,8 @@ class TestCli(TestCase):
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
-    @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
-    @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
+    @patch("samcli.lib.pipeline.bootstrap.stage.Stage")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.GuidedContext")
     def test_stage_configuration_name_is_required_to_be_provided_in_case_of_non_interactive_mode(
         self, guided_context_mock, environment_mock, load_saved_pipeline_user_arn_mock, get_command_names_mock
     ):
@@ -367,8 +367,8 @@ class TestCli(TestCase):
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
-    @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
-    @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
+    @patch("samcli.lib.pipeline.bootstrap.stage.Stage")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.GuidedContext")
     def test_stage_configuration_name_is_not_required_to_be_provided_in_case_of_interactive_mode(
         self, guided_context_mock, environment_mock, load_saved_pipeline_user_arn_mock, get_command_names_mock
     ):
@@ -378,8 +378,8 @@ class TestCli(TestCase):
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
-    @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
-    @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
+    @patch("samcli.lib.pipeline.bootstrap.stage.Stage")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.GuidedContext")
     def test_guided_context_will_be_enabled_or_disabled_based_on_the_interactive_mode(
         self, guided_context_mock, environment_mock, load_saved_pipeline_user_arn_mock, get_command_names_mock
     ):
@@ -394,8 +394,8 @@ class TestCli(TestCase):
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
-    @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
-    @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
+    @patch("samcli.lib.pipeline.bootstrap.stage.Stage")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.GuidedContext")
     def test_bootstrapping_will_confirm_before_creating_the_resources_unless_the_user_choose_not_to(
         self, guided_context_mock, environment_mock, load_saved_pipeline_user_arn_mock, get_command_names_mock
     ):
@@ -479,8 +479,8 @@ class TestCli(TestCase):
         # verify
         self.assertEqual(pipeline_user_arn, ANY_PIPELINE_USER_ARN)
 
-    @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
-    @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
+    @patch("samcli.lib.pipeline.bootstrap.stage.Stage")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.GuidedContext")
     @patch("samcli.commands.pipeline.bootstrap.cli.SamConfig")
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     def test_load_saved_oidc_values_returns_values_from_file(
@@ -534,8 +534,8 @@ class TestCli(TestCase):
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
-    @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
-    @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
+    @patch("samcli.lib.pipeline.bootstrap.stage.Stage")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.GuidedContext")
     def test_bootstrapping_normal_interactive_flow_with_non_user_provided_user(
         self, guided_context_mock, environment_mock, load_saved_pipeline_user_arn_mock, get_command_names_mock
     ):
