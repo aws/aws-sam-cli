@@ -11,12 +11,18 @@ from json.decoder import JSONDecodeError
 from pathlib import Path
 import re
 from subprocess import run, CalledProcessError
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import hashlib
 import logging
 import shutil
 import uuid
 
+from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
+    _link_lambda_function_to_layer,
+    _get_configuration_address,
+    ConstantValue,
+    _build_module, References,
+)
 from samcli.lib.hook.exceptions import PrepareHookException, InvalidSamMetadataPropertiesException
 from samcli.lib.utils import osutils
 from samcli.lib.utils.hash import str_checksum
@@ -204,6 +210,9 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
 
     sam_metadata_resources: List[SamMetadataResource] = []
 
+    lambda_layers_terraform_resources: Dict[str, Dict] = {}
+    lambda_funcs_conf_cfn_resources: Dict[str, List] = {}
+
     # create and iterate over queue of modules to handle child modules
     module_queue = [root_module]
     while module_queue:
@@ -261,9 +270,20 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
             # Add resource to cfn dict
             cfn_dict["Resources"][logical_id] = translated_resource
 
+            if resource_type == TF_AWS_LAMBDA_LAYER_VERSION:
+                lambda_layers_terraform_resources[logical_id] = resource
+
+            if resource_type == TF_AWS_LAMBDA_FUNCTION:
+                resolved_config_address = _get_configuration_address(resource_address)
+                matched_lambdas = lambda_funcs_conf_cfn_resources.get(resolved_config_address, [])
+                matched_lambdas.append(translated_resource)
+                lambda_funcs_conf_cfn_resources[resolved_config_address] = matched_lambdas
+
     # map s3 object sources to corresponding functions
     LOG.debug("Mapping S3 object sources to corresponding functions")
     _map_s3_sources_to_functions(s3_hash_to_source, cfn_dict.get("Resources", {}))
+
+    _link_lambda_functions_to_layers(tf_json, lambda_funcs_conf_cfn_resources, lambda_layers_terraform_resources)
 
     if sam_metadata_resources:
         LOG.debug("Enrich the mapped resources with the sam metadata information and generate Makefile")
@@ -274,6 +294,43 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
         LOG.debug("There is no sam metadata resources, no enrichment or Makefile is required")
 
     return cfn_dict
+
+
+def _link_lambda_functions_to_layers(
+    tf_json: dict, lambda_funcs_conf_cfn_resources: Dict[str, List], lambda_layers_terraform_resources: Dict[str, Dict]
+):
+    """
+    Iterate through all of the resources and link the corresponding Lambda Layers to each Lambda Function
+
+    Parameters
+    ----------
+    tf_json: dict
+        A terraform show json output
+    lambda_funcs_conf_cfn_resources: Dict[str, List]
+        Dictionary containing resolved configuration addresses matched up to the cfn Lambda functions
+    lambda_layers_terraform_resources: Dict[str, Dict]
+        Dictionary of all actual terraform layers resources (not configuration resources). The dictionary's key is the
+        calculated logical id for each resource
+
+    Returns
+    -------
+    dict
+        The CloudFormation resulting from translating tf_json
+    """
+    LOG.debug("Mapping Lambda functions to their corresponding layers.")
+    input_vars: Dict[str, Union[ConstantValue, References]] = {
+        var_name: ConstantValue(value=var_value.get("value"))
+        for var_name, var_value in tf_json.get("variables", {}).items()
+    }
+    root_module = _build_module("", tf_json.get("configuration", {}).get("root_module"), input_vars, None)
+
+    for resource in root_module.get_all_resources():
+        resolved_config_address = _get_configuration_address(resource.full_address)
+        if resolved_config_address in lambda_funcs_conf_cfn_resources:
+            LOG.debug("Linking layers for Lambda function %s", resource.full_address)
+            _link_lambda_function_to_layer(
+                resource, lambda_funcs_conf_cfn_resources[resolved_config_address], lambda_layers_terraform_resources
+            )
 
 
 def _validate_referenced_resource_matches_sam_metadata_type(

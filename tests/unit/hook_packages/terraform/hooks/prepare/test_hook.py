@@ -965,8 +965,15 @@ class TestPrepareHook(TestCase):
         )
         self.assertEqual(cfn_resources, expected_cfn_resources_after_mapping_s3_sources)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
-    def test_translate_to_cfn_empty(self, mock_enrich_resources_and_generate_makefile):
+    def test_translate_to_cfn_empty(
+        self,
+        mock_enrich_resources_and_generate_makefile,
+        mock_link_lambda_functions_to_layers,
+        mock_get_configuration_address,
+    ):
         expected_empty_cfn_dict = {"AWSTemplateFormatVersion": "2010-09-09", "Resources": {}}
 
         tf_json_empty = {}
@@ -986,26 +993,48 @@ class TestPrepareHook(TestCase):
             self.assertEqual(translated_cfn_dict, expected_empty_cfn_dict)
             mock_enrich_resources_and_generate_makefile.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.str_checksum")
-    def test_translate_to_cfn_with_root_module_only(self, checksum_mock, mock_enrich_resources_and_generate_makefile):
+    def test_translate_to_cfn_with_root_module_only(
+        self,
+        checksum_mock,
+        mock_enrich_resources_and_generate_makefile,
+        mock_link_lambda_functions_to_layers,
+        mock_get_configuration_address,
+    ):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(self.tf_json_with_root_module_only, self.output_dir, self.project_root)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_root_module_only)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.str_checksum")
-    def test_translate_to_cfn_with_child_modules(self, checksum_mock, mock_enrich_resources_and_generate_makefile):
+    def test_translate_to_cfn_with_child_modules(
+        self,
+        checksum_mock,
+        mock_enrich_resources_and_generate_makefile,
+        mock_link_lambda_functions_to_layers,
+        mock_get_configuration_address,
+    ):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(self.tf_json_with_child_modules, self.output_dir, self.project_root)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_child_modules)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.str_checksum")
     def test_translate_to_cfn_with_root_module_with_sam_metadata_resource(
-        self, checksum_mock, mock_enrich_resources_and_generate_makefile
+        self,
+        checksum_mock,
+        mock_enrich_resources_and_generate_makefile,
+        mock_link_lambda_functions_to_layers,
+        mock_get_configuration_address,
     ):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(
@@ -1033,10 +1062,16 @@ class TestPrepareHook(TestCase):
 
         mock_enrich_resources_and_generate_makefile.assert_called_once_with(*expected_arguments_in_call)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.str_checksum")
     def test_translate_to_cfn_with_child_modules_with_sam_metadata_resource(
-        self, checksum_mock, mock_enrich_resources_and_generate_makefile
+        self,
+        checksum_mock,
+        mock_enrich_resources_and_generate_makefile,
+        mock_link_lambda_functions_to_layers,
+        mock_get_configuration_address,
     ):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(
@@ -1077,10 +1112,16 @@ class TestPrepareHook(TestCase):
 
         mock_enrich_resources_and_generate_makefile.assert_called_once_with(*expected_arguments_in_call)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.str_checksum")
     def test_translate_to_cfn_with_unsupported_provider(
-        self, checksum_mock, mock_enrich_resources_and_generate_makefile
+        self,
+        checksum_mock,
+        mock_enrich_resources_and_generate_makefile,
+        mock_link_lambda_functions_to_layers,
+        mock_get_configuration_address,
     ):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(
@@ -1089,10 +1130,16 @@ class TestPrepareHook(TestCase):
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_unsupported_provider)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.str_checksum")
     def test_translate_to_cfn_with_unsupported_resource_type(
-        self, checksum_mock, mock_enrich_resources_and_generate_makefile
+        self,
+        checksum_mock,
+        mock_enrich_resources_and_generate_makefile,
+        mock_link_lambda_functions_to_layers,
+        mock_get_configuration_address,
     ):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(
@@ -1101,10 +1148,16 @@ class TestPrepareHook(TestCase):
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_unsupported_resource_type)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.str_checksum")
     def test_translate_to_cfn_with_mapping_s3_source_to_function(
-        self, checksum_mock, mock_enrich_resources_and_generate_makefile
+        self,
+        checksum_mock,
+        mock_enrich_resources_and_generate_makefile,
+        mock_link_lambda_functions_to_layers,
+        mock_get_configuration_address,
     ):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(
