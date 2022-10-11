@@ -122,7 +122,8 @@ def non_interactive_validation(func):
 
             java_base_image = base_image and "java" in base_image
 
-            # dependency manager is only required for ZIP package type and for java based IMAGE package types
+            # dependency manager is only required for ZIP types if location is not also specified
+            # and is required for java IMAGE packages
             if not location and (package_type == ZIP or java_base_image):
                 if not dependency_manager:
                     raise click.UsageError("Missing parameter --dependency-manager")
