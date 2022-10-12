@@ -1922,6 +1922,19 @@ class TestApplicationBuilder_get_build_options(TestCase):
 
     @parameterized.expand(
         [
+            ("go", "", {}, {"artifact_executable_name": "app.handler", "trim_go_path": False}),
+            ("nodejs", "npm", {}, {"use_npm_ci": False}),
+        ]
+    )
+    def test_get_default_options_various_languages_dependency_managers(self, language, dependency_manager, build_properties, expected_options):
+        metadata = {"BuildProperties": build_properties}
+        options = ApplicationBuilder._get_build_options(
+            "Function", language, "app.handler", dependency_manager, metadata
+        )
+        self.assertEqual(options, expected_options)
+
+    @parameterized.expand(
+        [
             (None, "nodejs", "npm", {"use_npm_ci": False}),
             ({"BuildProperties": {}}, "nodejs", "npm", {"use_npm_ci": False}),
             (None, "esbuild", "npm-esbuild", None),
