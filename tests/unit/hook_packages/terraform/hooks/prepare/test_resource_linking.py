@@ -1085,9 +1085,9 @@ class TestResourceLinking(TestCase):
         resource = Mock()
         resource.full_address = "func_full_address"
         expected_exception = (
-            "Sorry, Current version fo SAM CLI could not process terraform project that contains "
-            "Lambda functions that are linked to more than one lambda layer. We could not Link "
-            f"{layers} to lambda function func_full_address"
+            "Sorry, the current version of SAM CLI could not process a Terraform project that contains Lambda "
+            f"functions that are linked to more than one lambda layer. Layer(s) defined by {layers} could not be "
+            "linked to lambda function func_full_address"
         )
         with self.assertRaises(OneLambdaLayerLinkingLimitationException) as exc:
             _link_lambda_function_to_layer(resource, cfn_functions, tf_layers)
@@ -1144,14 +1144,15 @@ class TestResourceLinking(TestCase):
         resource.full_address = "func_full_address"
         tf_layers = Mock()
         expected_exception = (
-            "Sorry, Current version fo SAM CLI could not process terraform project that uses local variables to define "
-            "the Lambda functions layers. We could not Link local.layer_arn to lambda function func_full_address"
+            "Sorry, the current version of SAM CLI could not process a Terraform project that uses local variables to "
+            "define the Lambda functions layers. Layer(s) defined by local.layer_arn could be linked to lambda "
+            "function func_full_address"
         )
         with self.assertRaises(LocalVariablesLinkingLimitationException) as exc:
             _process_reference_layer_value(resource, reference_resolved_layer, tf_layers)
         self.assertEqual(exc.exception.args[0], expected_exception)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._build_cfn_logical_id")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.build_cfn_logical_id")
     def test_process_reference_layer_value_reference_to_an_exist_layer_resource(self, build_cfn_logical_id_mock):
         build_cfn_logical_id_mock.return_value = "layer1LogicalId"
         reference_resolved_layer = ResolvedReference("aws_lambda_layer_version.layer.arn", "module.layer1")
@@ -1163,7 +1164,7 @@ class TestResourceLinking(TestCase):
         self.assertEquals(layers[0], {"Ref": "layer1LogicalId"})
         build_cfn_logical_id_mock.assert_called_with("module.layer1.aws_lambda_layer_version.layer")
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._build_cfn_logical_id")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.build_cfn_logical_id")
     def test_process_reference_layer_value_reference_to_non_exist_layer_resource(self, build_cfn_logical_id_mock):
         build_cfn_logical_id_mock.return_value = "layer1LogicalId"
         reference_resolved_layer = ResolvedReference("aws_lambda_layer_version.layer.arn", None)

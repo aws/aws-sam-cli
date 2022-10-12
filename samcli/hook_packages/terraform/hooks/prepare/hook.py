@@ -17,9 +17,9 @@ import logging
 import shutil
 import uuid
 
+from samcli.hook_packages.terraform.lib.utils import build_cfn_logical_id
 from samcli.lib.hook.exceptions import PrepareHookException, InvalidSamMetadataPropertiesException
 from samcli.lib.utils import osutils
-from samcli.lib.utils.hash import str_checksum
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
@@ -38,10 +38,6 @@ AWS_PROVIDER_NAME = "registry.terraform.io/hashicorp/aws"
 NULL_RESOURCE_PROVIDER_NAME = "registry.terraform.io/hashicorp/null"
 SAM_METADATA_RESOURCE_TYPE = "null_resource"
 SAM_METADATA_NAME_PREFIX = "sam_metadata_"
-
-# max logical id len is 255
-LOGICAL_ID_HASH_LEN = 8
-LOGICAL_ID_MAX_HUMAN_LEN = 247
 
 PropertyBuilder = Callable[[dict], Any]
 PropertyBuilderMapping = Dict[str, PropertyBuilder]
@@ -256,7 +252,7 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
             }
 
             # build CFN logical ID from resource address
-            logical_id = _build_cfn_logical_id(resource_address)
+            logical_id = build_cfn_logical_id(resource_address)
 
             # Add resource to cfn dict
             cfn_dict["Resources"][logical_id] = translated_resource
@@ -875,7 +871,7 @@ def _get_relevant_cfn_resource(
         else resource_name
     )
     LOG.debug("check if the resource address %s has a relevant cfn resource or not", full_resource_address)
-    logical_id = _build_cfn_logical_id(full_resource_address)
+    logical_id = build_cfn_logical_id(full_resource_address)
     cfn_resource = cfn_resources.get(logical_id)
     if cfn_resource:
         LOG.info("The CFN resource that match the input resource name %s is %s", resource_name, logical_id)
@@ -1306,43 +1302,6 @@ RESOURCE_TRANSLATOR_MAPPING: Dict[str, ResourceTranslator] = {
         CFN_AWS_LAMBDA_LAYER_VERSION, AWS_LAMBDA_LAYER_VERSION_PROPERTY_BUILDER_MAPPING
     ),
 }
-
-
-def _build_cfn_logical_id(tf_address: str) -> str:
-    """
-    Builds a CloudFormation logical ID out of a terraform resource address
-
-    Parameters
-    ----------
-    tf_address: str
-        terraform resource address
-
-    Returns
-    -------
-    str
-        CloudFormation logical ID
-    """
-    # ignores non-alphanumericals, makes uppercase the first alphanumerical char and the
-    # alphanumerical char right after a non-alphanumerical char
-    chars: List[str] = []
-    nextCharUppercase = True
-    for char in tf_address:
-        if len(chars) == LOGICAL_ID_MAX_HUMAN_LEN:
-            break
-        if not char.isalnum():
-            nextCharUppercase = True
-            continue
-        if nextCharUppercase:
-            chars.append(char.upper())
-            nextCharUppercase = False
-        else:
-            chars.append(char)
-
-    # Add a hash to avoid naming conflicts
-    human_part = "".join(chars)
-    hash_part = str_checksum(tf_address)[:LOGICAL_ID_HASH_LEN].upper()
-
-    return human_part + hash_part
 
 
 def _get_s3_object_hash(bucket: str, key: str) -> str:

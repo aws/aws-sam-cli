@@ -13,8 +13,9 @@ class InvalidResourceLinkingException(Exception):
 
 class OneLambdaLayerLinkingLimitationException(Exception):
     fmt = (
-        "Sorry, Current version fo SAM CLI could not process terraform project that contains Lambda functions that "
-        "are linked to more than one lambda layer. We could not Link {layers_list} to lambda function {function_id}"
+        "Sorry, the current version of SAM CLI could not process a Terraform project that contains Lambda functions "
+        "that are linked to more than one lambda layer. Layer(s) defined by {layers_list} could not be linked to "
+        "lambda function {function_id}"
     )
 
     def __init__(self, layers_list, function_id):
@@ -24,8 +25,9 @@ class OneLambdaLayerLinkingLimitationException(Exception):
 
 class LocalVariablesLinkingLimitationException(Exception):
     fmt = (
-        "Sorry, Current version fo SAM CLI could not process terraform project that uses local variables to define "
-        "the Lambda functions layers. We could not Link {local_variable_reference} to lambda function {function_id}"
+        "Sorry, the current version of SAM CLI could not process a Terraform project that uses local variables to "
+        "define the Lambda functions layers. Layer(s) defined by {local_variable_reference} could be linked to lambda "
+        "function {function_id}"
     )
 
     def __init__(self, local_variable_reference, function_id):

@@ -12,7 +12,11 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     OneLambdaLayerLinkingLimitationException,
     LocalVariablesLinkingLimitationException,
 )
-from samcli.hook_packages.terraform.hooks.prepare.hook import _build_cfn_logical_id
+from samcli.hook_packages.terraform.lib.utils import build_cfn_logical_id
+
+LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX = "aws_lambda_layer_version."
+TERRAFORM_LOCAL_VARIABLES_ADDRESS_PREFIX = "local."
+LAMBDA_LAYER_DATA_RESOURCE_ADDRESS_PREFIX = "data.aws_lambda_layer_version."
 
 LOG = logging.getLogger(__name__)
 
@@ -737,17 +741,17 @@ def _process_reference_layer_value(
     LOG.debug("Process the reference layer %s.", resolved_layer.value)
     # skip processing the layers defined using the data source block, as it should be mapped to
     # Layer ARN string while executing the terraform plan command.
-    if resolved_layer.value.startswith("data.aws_lambda_layer_version."):
+    if resolved_layer.value.startswith(LAMBDA_LAYER_DATA_RESOURCE_ADDRESS_PREFIX):
         LOG.debug("Skip processing the reference layer %s, as it is referring to a data resource", resolved_layer.value)
         return []
 
     # resolved reference is a local variable
-    if resolved_layer.value.startswith("local."):
+    if resolved_layer.value.startswith(TERRAFORM_LOCAL_VARIABLES_ADDRESS_PREFIX):
         LOG.debug("SAM CLI could not process the Local variables %s", resolved_layer.value)
         raise LocalVariablesLinkingLimitationException(resolved_layer.value, function_tf_resource.full_address)
 
     # Valid Layer resource
-    if resolved_layer.value.startswith("aws_lambda_layer_version."):
+    if resolved_layer.value.startswith(LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX):
         LOG.debug("Process the Layer version resource %s", resolved_layer.value)
         if not resolved_layer.value.endswith("arn"):
             LOG.debug("The used property in reference %s is not an ARN property", resolved_layer.value)
@@ -757,12 +761,14 @@ def _process_reference_layer_value(
                 f"lambda layer ARN property"
             )
 
-        tf_layer_res_name = resolved_layer.value[len("aws_lambda_layer_version.") : -len(".arn")]
+        tf_layer_res_name = resolved_layer.value[len(LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX) : -len(".arn")]
         if resolved_layer.module_address:
-            tf_layer_full_address = f"{resolved_layer.module_address}.aws_lambda_layer_version.{tf_layer_res_name}"
+            tf_layer_full_address = (
+                f"{resolved_layer.module_address}.{LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX}" f"{tf_layer_res_name}"
+            )
         else:
-            tf_layer_full_address = f"aws_lambda_layer_version.{tf_layer_res_name}"
-        cfn_layer_logical_id = _build_cfn_logical_id(tf_layer_full_address)
+            tf_layer_full_address = f"{LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX}{tf_layer_res_name}"
+        cfn_layer_logical_id = build_cfn_logical_id(tf_layer_full_address)
         LOG.debug("The logical id of the resource referred by %s is %s", resolved_layer.value, cfn_layer_logical_id)
 
         # validate that the found layer is in mapped layers resources, which means that it is created.
