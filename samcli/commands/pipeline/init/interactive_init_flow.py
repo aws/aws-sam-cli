@@ -116,13 +116,20 @@ class InteractiveInitFlow:
         pipeline_template_git_location: str = click.prompt("Template Git location")
         if os.path.exists(pipeline_template_git_location):
             pipeline_template_local_dir = Path(pipeline_template_git_location)
-        else:
-            with osutils.mkdir_temp(ignore_errors=True) as tempdir:
-                tempdir_path = Path(tempdir)
-                pipeline_template_local_dir = _clone_pipeline_templates(
-                    pipeline_template_git_location, tempdir_path, CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME
-                )
+            return self._select_and_generate_from_pipeline_template(pipeline_template_local_dir)
+        with osutils.mkdir_temp(ignore_errors=True) as tempdir:
+            tempdir_path = Path(tempdir)
+            pipeline_template_local_dir = _clone_pipeline_templates(
+                pipeline_template_git_location, tempdir_path, CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME
+            )
+            return self._select_and_generate_from_pipeline_template(pipeline_template_local_dir)
 
+    def _select_and_generate_from_pipeline_template(self, pipeline_template_local_dir: Path) -> List[str]:
+        """
+        Determine if the specified custom pipeline template directory contains
+        more than one template, prompt the user to choose one if it does, and
+        then generate the template and return the list of files.
+        """
         if os.path.exists(pipeline_template_local_dir.joinpath("manifest.yaml")):
             pipeline_templates_manifest: PipelineTemplatesManifest = _read_app_pipeline_templates_manifest(
                 pipeline_template_local_dir
