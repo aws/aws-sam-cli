@@ -1913,7 +1913,9 @@ class TestApplicationBuilder_get_build_options(TestCase):
             ("provided", "", {}, {"build_logical_id": "Function"}),
         ]
     )
-    def test_get_options_various_languages_dependency_managers(self, language, dependency_manager, build_properties, expected_options):
+    def test_get_options_various_languages_dependency_managers(
+        self, language, dependency_manager, build_properties, expected_options
+    ):
         metadata = {"BuildProperties": build_properties}
         options = ApplicationBuilder._get_build_options(
             "Function", language, "app.handler", dependency_manager, metadata
@@ -1926,7 +1928,9 @@ class TestApplicationBuilder_get_build_options(TestCase):
             ("nodejs", "npm", {}, {"use_npm_ci": False}),
         ]
     )
-    def test_get_default_options_various_languages_dependency_managers(self, language, dependency_manager, build_properties, expected_options):
+    def test_get_default_options_various_languages_dependency_managers(
+        self, language, dependency_manager, build_properties, expected_options
+    ):
         metadata = {"BuildProperties": build_properties}
         options = ApplicationBuilder._get_build_options(
             "Function", language, "app.handler", dependency_manager, metadata
