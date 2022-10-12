@@ -83,7 +83,7 @@ def is_docker_reachable(docker_client):
         requests.exceptions.ConnectionError,
     )
     if platform.system() == "Windows":
-        import pywintypes
+        import pywintypes  # pylint: disable=import-error
 
         errors += (pywintypes.error,)
 
