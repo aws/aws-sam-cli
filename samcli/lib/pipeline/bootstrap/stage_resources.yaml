@@ -155,7 +155,7 @@ Resources:
                     {
                       "Effect": "Allow",
                       "Principal": {
-                        "Federated": "arn:aws:iam::${AWS::AccountId}:oidc-provider/${Url}"
+                        "Federated": "arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/${Url}"
                       },
                       "Action": "sts:AssumeRoleWithWebIdentity",
                       "Condition": {
