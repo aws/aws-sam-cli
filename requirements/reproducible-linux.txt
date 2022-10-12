@@ -329,6 +329,10 @@ tomlkit==0.7.2 \
     --hash=sha256:173ad840fa5d2aac140528ca1933c29791b79a374a0861a80347f42ec9328117 \
     --hash=sha256:d7a454f319a7e9bd2e249f239168729327e4dd2d27b17dc68be264ad1ce36754
     # via aws-sam-cli (setup.py)
+types-pywin32==304.0.0.1 \
+    --hash=sha256:a40781d574c39f2de2eae7e90d0215171c6a9778229b6ec2affc843acffa86c9 \
+    --hash=sha256:dfb9ff63f716a6cf9321622dea2d6e45d1e08b94c357489e97672cc7bcd75b96
+    # via aws-sam-cli (setup.py)
 typing-extensions==3.10.0.0 \
     --hash=sha256:0ac0f89795dd19de6b97debb0c6af1c70987fd80a2d62d1958f7e56fcc31b497 \
     --hash=sha256:50b6f157849174217d0656f99dc82fe932884fb250826c18350e159ec6cdf342 \
