@@ -23,6 +23,7 @@ MarkupSafe==2.0.1
 
 # Needed for supporting Protocol in Python 3.7, Protocol class became public with python3.8
 typing_extensions==3.10.0.0
+# Only shipped with more recent versions of mypy
 types-pywin32==304.0.0.1
 
 # NOTE: regex is not a direct dependency of SAM CLI, but pin to 2021.9.30 due to 2021.10.8 not working on M1 Mac - https://bitbucket.org/mrabarnett/mrab-regex/issues/399/missing-wheel-for-macosx-and-the-new-m1
