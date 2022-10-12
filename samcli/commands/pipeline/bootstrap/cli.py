@@ -10,16 +10,7 @@ import click
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, aws_creds_options, print_cmdline_args
 
-from samcli.commands.pipeline.bootstrap.pipeline_oidc_provider import PipelineOidcProvider
 from samcli.lib.config.samconfig import SamConfig
-
-from samcli.commands.pipeline.bootstrap.oidc_config import (
-    BitbucketOidcConfig,
-    GitHubOidcConfig,
-    OidcConfig,
-    GitLabOidcConfig,
-)
-
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
 from .guided_context import BITBUCKET, GITHUB_ACTIONS, GITLAB, IAM, OPEN_ID_CONNECT
@@ -251,6 +242,7 @@ def do_cli(
     from samcli.commands.pipeline.external_links import CONFIG_AWS_CRED_ON_CICD_URL
     from samcli.lib.utils.colors import Colored
     from samcli.commands.pipeline.bootstrap.guided_context import GuidedContext
+    from samcli.commands.pipeline.bootstrap.pipeline_oidc_provider import PipelineOidcProvider
     from samcli.lib.pipeline.bootstrap.stage import (
         BITBUCKET_REPO_UUID,
         DEPLOYMENT_BRANCH,
@@ -264,6 +256,12 @@ def do_cli(
         PERMISSIONS_PROVIDER,
         OIDC_SUPPORTED_PROVIDER,
         Stage,
+    )
+    from samcli.commands.pipeline.bootstrap.oidc_config import (
+        BitbucketOidcConfig,
+        GitHubOidcConfig,
+        OidcConfig,
+        GitLabOidcConfig,
     )
 
     if not pipeline_user_arn and not permissions_provider == OPEN_ID_CONNECT:
@@ -416,11 +414,11 @@ def do_cli(
 
 
 def _get_pipeline_oidc_provider(
-    oidc_config: OidcConfig,
-    github_config: GitHubOidcConfig,
-    gitlab_config: GitLabOidcConfig,
-    bitbucket_config: BitbucketOidcConfig,
-) -> PipelineOidcProvider:
+    oidc_config: "OidcConfig",
+    github_config: "GitHubOidcConfig",
+    gitlab_config: "GitLabOidcConfig",
+    bitbucket_config: "BitbucketOidcConfig",
+) -> "PipelineOidcProvider":
     from samcli.commands.pipeline.bootstrap.pipeline_oidc_provider import (
         BitbucketOidcProvider,
         GitHubOidcProvider,
