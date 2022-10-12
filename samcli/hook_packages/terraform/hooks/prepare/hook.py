@@ -21,7 +21,8 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _link_lambda_function_to_layer,
     _get_configuration_address,
     ConstantValue,
-    _build_module, References,
+    _build_module,
+    References,
 )
 from samcli.lib.hook.exceptions import PrepareHookException, InvalidSamMetadataPropertiesException
 from samcli.lib.utils import osutils
