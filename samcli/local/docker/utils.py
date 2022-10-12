@@ -83,9 +83,9 @@ def is_docker_reachable(docker_client):
         requests.exceptions.ConnectionError,
     )
     if platform.system() == "Windows":
-        import pywintypes  # pylint: disable=import-error
+        import pywintypes
 
-        errors += (pywintypes.error,)  # pylint: disable=no-member
+        errors += (pywintypes.error,)
 
     try:
         docker_client.ping()
