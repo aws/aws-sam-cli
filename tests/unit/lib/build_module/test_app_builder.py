@@ -1906,7 +1906,7 @@ class TestApplicationBuilder_get_build_options(TestCase):
 
     @parameterized.expand(
         [
-            ("go", "", {"artifact_executable_name": "app.handler"}),
+            ("go", "", {"artifact_executable_name": "app.handler", "trim_go_path": True}),
             ("python", "", None),
             ("nodejs", "npm", {"use_npm_ci": True}),
             ("esbuild", "npm-esbuild", {"entry_points": ["app"], "use_npm_ci": True}),
@@ -1914,7 +1914,7 @@ class TestApplicationBuilder_get_build_options(TestCase):
         ]
     )
     def test_get_options_various_languages_dependency_managers(self, language, dependency_manager, expected_options):
-        build_properties = {"UseNpmCi": True}
+        build_properties = {"UseNpmCi": True, "TrimGoPath": True}
         metadata = {"BuildProperties": build_properties}
         options = ApplicationBuilder._get_build_options(
             "Function", language, "app.handler", dependency_manager, metadata
