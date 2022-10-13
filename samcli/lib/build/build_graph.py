@@ -397,7 +397,7 @@ class BuildGraph:
                 layer_build_definition[MANIFEST_HASH_FIELD] = hashing_info.manifest_hash
                 LOG.info("Updated source_hash and manifest_hash field in build.toml for layer with UUID %s", layer_uuid)
 
-        self._filepath.write_text(tomlkit.dumps(document))  # type: ignore
+        self._filepath.write_text(tomlkit.dumps(document))
 
     def _read(self) -> None:
         """

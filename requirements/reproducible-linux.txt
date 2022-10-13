@@ -329,9 +329,21 @@ tomlkit==0.7.2 \
     --hash=sha256:173ad840fa5d2aac140528ca1933c29791b79a374a0861a80347f42ec9328117 \
     --hash=sha256:d7a454f319a7e9bd2e249f239168729327e4dd2d27b17dc68be264ad1ce36754
     # via aws-sam-cli (setup.py)
+types-chevron==0.14.2 \
+    --hash=sha256:4db4e3429daef2411879d4bee6a4b97fafaba69bcd3bfd97941e90c6c738d484 \
+    --hash=sha256:ef451d0bb1ba6ea131d4545b547f7a637ab7da2fcf7d0f7a55d378df09a9fba3
+    # via aws-sam-cli (setup.py)
+types-psutil==5.9.5.1 \
+    --hash=sha256:d1a157fd132aa34be544fa9e09dc5c37b92c9d3a2917bce9c564354f50e71ffb \
+    --hash=sha256:ded6b69503b6387fb99b9da958a6353b4b46eb4457343bb2cd0cbac5c4d5473d
+    # via aws-sam-cli (setup.py)
 types-pywin32==304.0.0.1 \
     --hash=sha256:a40781d574c39f2de2eae7e90d0215171c6a9778229b6ec2affc843acffa86c9 \
     --hash=sha256:dfb9ff63f716a6cf9321622dea2d6e45d1e08b94c357489e97672cc7bcd75b96
+    # via aws-sam-cli (setup.py)
+types-pyyaml==6.0.12 \
+    --hash=sha256:29228db9f82df4f1b7febee06bbfb601677882e98a3da98132e31c6874163e15 \
+    --hash=sha256:f6f350418125872f3f0409d96a62a5a5ceb45231af5cc07ee0034ec48a3c82fa
     # via aws-sam-cli (setup.py)
 typing-extensions==3.10.0.0 \
     --hash=sha256:0ac0f89795dd19de6b97debb0c6af1c70987fd80a2d62d1958f7e56fcc31b497 \

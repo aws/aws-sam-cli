@@ -13,7 +13,7 @@ from queue import Queue
 import shutil
 from uuid import uuid4
 
-import psutil  # type: ignore
+import psutil
 
 IS_WINDOWS = platform.system().lower() == "windows"
 RUNNING_ON_CI = os.environ.get("APPVEYOR", False)
@@ -110,9 +110,9 @@ def kill_process(process: Popen) -> None:
     root_process = psutil.Process(process.pid)
     all_processes = root_process.children(recursive=True)
     all_processes.append(root_process)
-    for process in all_processes:
+    for process_to_kill in all_processes:
         try:
-            process.kill()
+            process_to_kill.kill()
         except psutil.NoSuchProcess:
             pass
     _, alive = psutil.wait_procs(all_processes, timeout=10)
