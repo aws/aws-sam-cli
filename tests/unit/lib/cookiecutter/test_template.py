@@ -73,7 +73,7 @@ class TestTemplate(TestCase):
         # Template with no interactive-flows neither direct nor through a plugin
         t = Template(location=self._ANY_LOCATION)
         context = t.run_interactive_flows()
-        self.assertEqual(context, {})
+        self.assertEqual(context, {"shared_values": "default"})
         # Template with direct interactive flow only
         mock_interactive_flow.run.return_value = self._ANY_INTERACTIVE_FLOW_CONTEXT
         mock_plugin.interactive_flow = None
