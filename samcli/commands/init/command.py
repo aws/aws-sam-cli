@@ -120,6 +120,7 @@ def non_interactive_validation(func):
             dependency_manager = ctx.params.get("dependency_manager")
             location = ctx.params.get("location")
 
+            # TODO: improve how we check for java type images instead of searching for substring
             java_base_image = base_image and "java" in base_image
 
             # dependency manager is only required for ZIP types if location is not also specified
