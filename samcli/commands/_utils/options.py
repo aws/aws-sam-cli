@@ -689,8 +689,8 @@ def role_arn_click_option():
     return click.option(
         "--role-arn",
         required=False,
-        help="The Amazon Resource Name (ARN) of an  AWS  Identity "
-        "and  Access  Management (IAM) role that AWS CloudFormation assumes when "
+        help="The Amazon Resource Name (ARN) of an AWS Identity "
+        "and Access Management (IAM) role that AWS CloudFormation assumes when "
         "executing the change set.",
     )
 
