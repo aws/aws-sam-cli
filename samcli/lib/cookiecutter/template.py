@@ -121,6 +121,7 @@ class Template:
         """
         try:
             context = context if context else {}
+            context["shared_values"] = "default"
             for flow in self._interactive_flows:
                 context = flow.run(context)
             return context
