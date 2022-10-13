@@ -279,6 +279,7 @@ class TestInitWithBootstrap(BootstrapIntegBase):
             stage_configuration_names[0],
             CREDENTIAL_PROFILE,
             self.region,  # region
+            "1",  # IAM permissions
             "",  # pipeline user
             "",  # Pipeline execution role
             "",  # CloudFormation execution role
