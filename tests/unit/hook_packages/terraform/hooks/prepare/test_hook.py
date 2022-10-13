@@ -2,7 +2,7 @@
 from pathlib import Path
 from subprocess import CalledProcessError
 from unittest import TestCase
-from unittest.mock import Mock, call, patch, MagicMock
+from unittest.mock import Mock, call, patch, MagicMock, ANY
 import copy
 from parameterized import parameterized
 
@@ -38,7 +38,9 @@ from samcli.hook_packages.terraform.hooks.prepare.hook import (
     _validate_referenced_resource_layer_matches_metadata_type,
     _format_makefile_recipe,
     _build_show_command,
+    _link_lambda_functions_to_layers,
 )
+from samcli.hook_packages.terraform.hooks.prepare.resource_linking import TFModule, TFResource
 from samcli.lib.hook.exceptions import PrepareHookException, InvalidSamMetadataPropertiesException
 from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
@@ -926,8 +928,15 @@ class TestPrepareHook(TestCase):
         )
         self.assertEqual(cfn_resources, expected_cfn_resources_after_mapping_s3_sources)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
-    def test_translate_to_cfn_empty(self, mock_enrich_resources_and_generate_makefile):
+    def test_translate_to_cfn_empty(
+        self,
+        mock_enrich_resources_and_generate_makefile,
+        mock_link_lambda_functions_to_layers,
+        mock_get_configuration_address,
+    ):
         expected_empty_cfn_dict = {"AWSTemplateFormatVersion": "2010-09-09", "Resources": {}}
 
         tf_json_empty = {}
@@ -947,26 +956,74 @@ class TestPrepareHook(TestCase):
             self.assertEqual(translated_cfn_dict, expected_empty_cfn_dict)
             mock_enrich_resources_and_generate_makefile.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
-    def test_translate_to_cfn_with_root_module_only(self, checksum_mock, mock_enrich_resources_and_generate_makefile):
+    def test_translate_to_cfn_with_root_module_only(
+        self,
+        checksum_mock,
+        mock_enrich_resources_and_generate_makefile,
+        mock_link_lambda_functions_to_layers,
+        mock_get_configuration_address,
+    ):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(self.tf_json_with_root_module_only, self.output_dir, self.project_root)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_root_module_only)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
+        lambda_functions = dict(
+            filter(
+                lambda resource: resource[1].get("Type") == "AWS::Lambda::Function",
+                translated_cfn_dict.get("Resources").items(),
+            )
+        )
+        expected_arguments_in_call = [
+            self.tf_json_with_root_module_only,
+            {mock_get_configuration_address(): [val for _, val in lambda_functions.items()]},
+            {},
+        ]
+        mock_link_lambda_functions_to_layers.assert_called_once_with(*expected_arguments_in_call)
+        mock_get_configuration_address.assert_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
-    def test_translate_to_cfn_with_child_modules(self, checksum_mock, mock_enrich_resources_and_generate_makefile):
+    def test_translate_to_cfn_with_child_modules(
+        self,
+        checksum_mock,
+        mock_enrich_resources_and_generate_makefile,
+        mock_link_lambda_functions_to_layers,
+        mock_get_configuration_address,
+    ):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(self.tf_json_with_child_modules, self.output_dir, self.project_root)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_child_modules)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
+        lambda_functions = dict(
+            filter(
+                lambda resource: resource[1].get("Type") == "AWS::Lambda::Function",
+                translated_cfn_dict.get("Resources").items(),
+            )
+        )
+        expected_arguments_in_call = [
+            self.tf_json_with_child_modules,
+            {mock_get_configuration_address(): [val for _, val in lambda_functions.items()]},
+            {},
+        ]
+        mock_link_lambda_functions_to_layers.assert_called_once_with(*expected_arguments_in_call)
+        mock_get_configuration_address.assert_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_root_module_with_sam_metadata_resource(
-        self, checksum_mock, mock_enrich_resources_and_generate_makefile
+        self,
+        checksum_mock,
+        mock_enrich_resources_and_generate_makefile,
+        mock_link_lambda_functions_to_layers,
+        mock_get_configuration_address,
     ):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(
@@ -994,10 +1051,16 @@ class TestPrepareHook(TestCase):
 
         mock_enrich_resources_and_generate_makefile.assert_called_once_with(*expected_arguments_in_call)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_child_modules_with_sam_metadata_resource(
-        self, checksum_mock, mock_enrich_resources_and_generate_makefile
+        self,
+        checksum_mock,
+        mock_enrich_resources_and_generate_makefile,
+        mock_link_lambda_functions_to_layers,
+        mock_get_configuration_address,
     ):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(
@@ -1038,10 +1101,16 @@ class TestPrepareHook(TestCase):
 
         mock_enrich_resources_and_generate_makefile.assert_called_once_with(*expected_arguments_in_call)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_unsupported_provider(
-        self, checksum_mock, mock_enrich_resources_and_generate_makefile
+        self,
+        checksum_mock,
+        mock_enrich_resources_and_generate_makefile,
+        mock_link_lambda_functions_to_layers,
+        mock_get_configuration_address,
     ):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(
@@ -1050,10 +1119,16 @@ class TestPrepareHook(TestCase):
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_unsupported_provider)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_unsupported_resource_type(
-        self, checksum_mock, mock_enrich_resources_and_generate_makefile
+        self,
+        checksum_mock,
+        mock_enrich_resources_and_generate_makefile,
+        mock_link_lambda_functions_to_layers,
+        mock_get_configuration_address,
     ):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(
@@ -1062,10 +1137,16 @@ class TestPrepareHook(TestCase):
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_unsupported_resource_type)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_mapping_s3_source_to_function(
-        self, checksum_mock, mock_enrich_resources_and_generate_makefile
+        self,
+        checksum_mock,
+        mock_enrich_resources_and_generate_makefile,
+        mock_link_lambda_functions_to_layers,
+        mock_get_configuration_address,
     ):
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(
@@ -2683,3 +2764,95 @@ class TestPrepareHook(TestCase):
     def test__format_makefile_recipe(self):
         output_string = _format_makefile_recipe("terraform show -json | python3")
         self.assertRegex(output_string, r"^\tterraform show -json \| python3(\n|\r\n)$")
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._build_module")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_function_to_layer")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
+    def test_link_lambda_functions_to_layers(
+        self, mock_get_configuration_address, mock_link_lambda_function_to_layer, mock_build_module
+    ):
+        lambda_funcs_config_resources = {
+            "aws_lambda_function.remote_lambda_code": [
+                {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {
+                        "FunctionName": "s3_remote_lambda_function",
+                        "Code": {"S3Bucket": "lambda_code_bucket", "S3Key": "remote_lambda_code_key"},
+                        "Handler": "app.lambda_handler",
+                        "PackageType": "Zip",
+                        "Runtime": "python3.8",
+                        "Timeout": 3,
+                    },
+                    "Metadata": {"SamResourceId": "aws_lambda_function.remote_lambda_code", "SkipBuild": True},
+                }
+            ],
+            "aws_lambda_function.root_lambda": [
+                {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {
+                        "FunctionName": "root_lambda",
+                        "Code": "HelloWorldFunction.zip",
+                        "Handler": "app.lambda_handler",
+                        "PackageType": "Zip",
+                        "Runtime": "python3.8",
+                        "Timeout": 3,
+                    },
+                    "Metadata": {"SamResourceId": "aws_lambda_function.root_lambda", "SkipBuild": True},
+                }
+            ],
+        }
+        terraform_layers_resources = {
+            "AwsLambdaLayerVersionLambdaLayer556B22D0": {
+                "address": "aws_lambda_layer_version.lambda_layer",
+                "mode": "managed",
+                "type": "aws_lambda_layer_version",
+                "name": "lambda_layer",
+                "provider_name": "registry.terraform.io/hashicorp/aws",
+                "schema_version": 0,
+                "values": {
+                    "compatible_architectures": ["arm64"],
+                    "compatible_runtimes": ["nodejs14.x", "nodejs16.x"],
+                    "description": None,
+                    "filename": None,
+                    "layer_name": "lambda_layer_name",
+                    "license_info": None,
+                    "s3_bucket": "layer_code_bucket",
+                    "s3_key": "s3_lambda_layer_code_key",
+                    "s3_object_version": "1",
+                    "skip_destroy": False,
+                },
+                "sensitive_values": {"compatible_architectures": [False], "compatible_runtimes": [False, False]},
+            }
+        }
+        resources = [
+            TFResource("aws_lambda_function.remote_lambda_code", "", None, {}),
+            TFResource("aws_lambda_function.root_lambda", "", None, {}),
+        ]
+        module = TFModule("", None, {}, resources, {}, {})
+        mock_build_module.return_value = module
+        mock_get_configuration_address.side_effect = [
+            "aws_lambda_function.remote_lambda_code",
+            "aws_lambda_function.root_lambda",
+        ]
+        _link_lambda_functions_to_layers({}, lambda_funcs_config_resources, terraform_layers_resources)
+        mock_build_module.assert_called_once_with("", None, {}, None)
+        mock_get_configuration_address.assert_has_calls(
+            [
+                call("aws_lambda_function.remote_lambda_code"),
+                call("aws_lambda_function.root_lambda"),
+            ]
+        )
+        mock_link_lambda_function_to_layer.assert_has_calls(
+            [
+                call(
+                    resources[0],
+                    lambda_funcs_config_resources.get("aws_lambda_function.remote_lambda_code"),
+                    terraform_layers_resources,
+                ),
+                call(
+                    resources[1],
+                    lambda_funcs_config_resources.get("aws_lambda_function.root_lambda"),
+                    terraform_layers_resources,
+                ),
+            ]
+        )
