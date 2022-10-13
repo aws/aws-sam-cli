@@ -9,7 +9,13 @@ from parameterized import parameterized
 
 from samcli.commands.exceptions import UserException, CredentialsError, RegionError
 from samcli.lib.bootstrap.bootstrap import _get_stack_template, SAM_CLI_STACK_NAME
-from samcli.lib.utils.managed_cloudformation_stack import manage_stack, _create_or_get_stack, ManagedStackError
+from samcli.lib.utils.managed_cloudformation_stack import (
+    manage_stack,
+    update_stack,
+    _create_or_get_stack,
+    _create_or_update_stack,
+    ManagedStackError,
+)
 
 CLOUDFORMATION_CLIENT = botocore.session.get_session().create_client("cloudformation", region_name="us-west-2")
 
@@ -37,6 +43,17 @@ class TestManagedCloudFormationStack(TestCase):
                 template_body=_get_stack_template(),
             )
 
+    @patch("boto3.Session")
+    def test_session_missing_profile_update(self, boto_mock):
+        boto_mock.side_effect = ProfileNotFound(profile="test-profile")
+        with self.assertRaises(CredentialsError):
+            update_stack(
+                profile="test-profile",
+                region="fake-region",
+                stack_name=SAM_CLI_STACK_NAME,
+                template_body=_get_stack_template(),
+            )
+
     @patch("boto3.client")
     def test_client_missing_credentials(self, boto_mock):
         boto_mock.side_effect = NoCredentialsError()
@@ -46,10 +63,26 @@ class TestManagedCloudFormationStack(TestCase):
             )
 
     @patch("boto3.client")
+    def test_client_missing_credentials_update(self, boto_mock):
+        boto_mock.side_effect = NoCredentialsError()
+        with self.assertRaises(CredentialsError):
+            update_stack(
+                profile=None, region="fake-region", stack_name=SAM_CLI_STACK_NAME, template_body=_get_stack_template()
+            )
+
+    @patch("boto3.client")
     def test_client_missing_region(self, boto_mock):
         boto_mock.side_effect = NoRegionError()
         with self.assertRaises(RegionError):
             manage_stack(
+                profile=None, region="fake-region", stack_name=SAM_CLI_STACK_NAME, template_body=_get_stack_template()
+            )
+
+    @patch("boto3.client")
+    def test_client_missing_region_update(self, boto_mock):
+        boto_mock.side_effect = NoRegionError()
+        with self.assertRaises(RegionError):
+            update_stack(
                 profile=None, region="fake-region", stack_name=SAM_CLI_STACK_NAME, template_body=_get_stack_template()
             )
 
