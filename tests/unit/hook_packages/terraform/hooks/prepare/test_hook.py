@@ -11,7 +11,6 @@ from samcli.hook_packages.terraform.hooks.prepare.hook import (
     AWS_PROVIDER_NAME,
     prepare,
     _get_s3_object_hash,
-    _build_cfn_logical_id,
     _get_property_extractor,
     _build_lambda_function_environment_property,
     _build_code_property,
@@ -783,44 +782,6 @@ class TestPrepareHook(TestCase):
             _get_s3_object_hash(self.s3_bucket, self.s3_key), _get_s3_object_hash(self.s3_bucket, self.s3_key_2)
         )
 
-    @parameterized.expand(
-        [
-            ("aws_lambda_function.s3_lambda", "AwsLambdaFunctionS3Lambda"),
-            ("aws_lambda_function.S3-Lambda", "AwsLambdaFunctionS3Lambda"),
-            ("aws_lambda_function.s3Lambda", "AwsLambdaFunctionS3Lambda"),
-            (
-                "module.lambda1.module.lambda5.aws_iam_role.iam_for_lambda",
-                "ModuleLambda1ModuleLambda5AwsIamRoleIamForLambda",
-            ),
-            (
-                # Name too long, logical id human (non-hash) part will be cut to 247 characters max
-                "module.lambda1.module.lambda5.aws_iam_role.reallyreallyreallyreallyreallyreallyreallyreally"
-                "reallyreallyreallyreallyreallyreallyreallyreallyreallyreallyreallyreallyreallyreallyreallyreally"
-                "reallyreallyreallyreallyreallyreallyreallyreallyreallyreallyreallyreallyreallyreally_long_name",
-                "ModuleLambda1ModuleLambda5AwsIamRoleReallyreallyreallyreallyreallyreallyreallyreallyreally"
-                "reallyreallyreallyreallyreallyreallyreallyreallyreallyreallyreallyreallyreallyreallyreallyreally"
-                "reallyreallyreallyreallyreallyreallyreallyreallyreallyreallyr",
-            ),
-        ]
-    )
-    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.str_checksum")
-    def test_build_cfn_logical_id(self, tf_address, expected_logical_id_human_part, checksum_mock):
-        checksum_mock.return_value = self.mock_logical_id_hash
-
-        logical_id = _build_cfn_logical_id(tf_address)
-        checksum_mock.assert_called_once_with(tf_address)
-        self.assertEqual(logical_id, expected_logical_id_human_part + self.mock_logical_id_hash)
-
-    def test_build_cfn_logical_id_hash(self):
-        # these two addresses should end up with the same human part of the logical id but should
-        # have different logical IDs overall because of the hash
-        tf_address1 = "aws_lambda_function.s3_lambda"
-        tf_address2 = "aws_lambda_function.S3-Lambda"
-
-        logical_id1 = _build_cfn_logical_id(tf_address1)
-        logical_id2 = _build_cfn_logical_id(tf_address2)
-        self.assertNotEqual(logical_id1, logical_id2)
-
     @parameterized.expand(["function_name", "handler"])
     def test_get_property_extractor(self, tf_property_name):
         property_extractor = _get_property_extractor(tf_property_name)
@@ -998,7 +959,7 @@ class TestPrepareHook(TestCase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.str_checksum")
+    @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_root_module_only(
         self,
         checksum_mock,
@@ -1027,7 +988,7 @@ class TestPrepareHook(TestCase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.str_checksum")
+    @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_child_modules(
         self,
         checksum_mock,
@@ -1056,7 +1017,7 @@ class TestPrepareHook(TestCase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.str_checksum")
+    @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_root_module_with_sam_metadata_resource(
         self,
         checksum_mock,
@@ -1093,7 +1054,7 @@ class TestPrepareHook(TestCase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.str_checksum")
+    @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_child_modules_with_sam_metadata_resource(
         self,
         checksum_mock,
@@ -1143,7 +1104,7 @@ class TestPrepareHook(TestCase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.str_checksum")
+    @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_unsupported_provider(
         self,
         checksum_mock,
@@ -1161,7 +1122,7 @@ class TestPrepareHook(TestCase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.str_checksum")
+    @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_unsupported_resource_type(
         self,
         checksum_mock,
@@ -1179,7 +1140,7 @@ class TestPrepareHook(TestCase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.str_checksum")
+    @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_mapping_s3_source_to_function(
         self,
         checksum_mock,
@@ -1449,7 +1410,7 @@ class TestPrepareHook(TestCase):
                 "source code",
             )
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._build_cfn_logical_id")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.build_cfn_logical_id")
     def test_get_relevant_cfn_resource(self, mock_build_cfn_logical_id):
         sam_metadata_resource = SamMetadataResource(
             current_module_address="module.mymodule1",
@@ -1494,7 +1455,7 @@ class TestPrepareHook(TestCase):
             ),
         ]
     )
-    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._build_cfn_logical_id")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.build_cfn_logical_id")
     def test_get_relevant_cfn_resource_exceptions(
         self, resource_name, module_name, build_logical_id_output, exception_message, mock_build_cfn_logical_id
     ):
