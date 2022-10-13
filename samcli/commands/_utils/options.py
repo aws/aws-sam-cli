@@ -675,7 +675,8 @@ def resolve_s3_click_option(guided):
         callback=callback,
         help="Automatically resolve s3 bucket for non-guided deployments. "
         "Enabling this option will also create a managed default s3 bucket for you. "
-        "If you do not provide a --s3-bucket value, the managed bucket will be used. ",
+        "If you do not provide a --s3-bucket value, the managed bucket will be used. "
+        "Do not use --guided with this option.",
     )
 
 
