@@ -46,6 +46,8 @@ class TestInteractiveInitFlow(TestCase):
         app_pipeline_templates_path_mock = Mock()
         selected_pipeline_template_path_mock = Mock()
         pipeline_templates_manifest_mock = Mock()
+        selected_pipeline_template_metadata = select_pipeline_template_mock.return_value = Mock()
+        selected_pipeline_template_metadata.provider = "gitlab"
         shared_path_mock.joinpath.return_value = app_pipeline_templates_path_mock
         app_pipeline_templates_path_mock.exists.return_value = True  # An old clone exists
         app_pipeline_templates_path_mock.joinpath.return_value = selected_pipeline_template_path_mock
@@ -62,7 +64,7 @@ class TestInteractiveInitFlow(TestCase):
         app_pipeline_templates_path_mock.exists.assert_called_once()
         read_app_pipeline_templates_manifest_mock.assert_called_once_with(app_pipeline_templates_path_mock)
         select_pipeline_template_mock.assert_called_once_with(pipeline_templates_manifest_mock)
-        generate_from_pipeline_template_mock.assert_called_once_with(selected_pipeline_template_path_mock)
+        generate_from_pipeline_template_mock.assert_called_once_with(selected_pipeline_template_path_mock, "gitlab")
 
     @patch("samcli.commands.pipeline.init.interactive_init_flow.shared_path")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
@@ -185,8 +187,10 @@ class TestInteractiveInitFlow(TestCase):
                 str(["1", "pipeline_execution_role"]): "arn:aws:iam::123456789012:role/execution-role",
                 str(["prod", "pipeline_execution_role"]): "arn:aws:iam::123456789012:role/execution-role",
                 str(["2", "pipeline_execution_role"]): "arn:aws:iam::123456789012:role/execution-role",
+                str(["default", "pipeline_execution_role"]): "arn:aws:iam::123456789012:role/execution-role",
                 str(["stage_names_message"]): "Here are the stage configuration names detected "
                 f'in {os.path.join(".aws-sam", "pipeline", "pipelineconfig.toml")}:\n\t1 - testing\n\t2 - prod',
+                "shared_values": "default",
             }
         )
         cookiecutter_mock.assert_called_once_with(
@@ -507,12 +511,12 @@ class TestInteractiveInitFlowWithBootstrap(TestCase):
         InteractiveInitFlow(allow_bootstrap=True).do_interactive()
 
         # verify
-        _prompt_run_bootstrap_within_pipeline_init_mock.assert_called_once_with(["testing"], 2)
+        _prompt_run_bootstrap_within_pipeline_init_mock.assert_called_once_with(["testing"], 2, "jenkins")
 
     @parameterized.expand(
         [
-            ([["testing"], ["testing", "prod"]], [call(["testing"], 2)]),
-            ([[], ["testing"], ["testing", "prod"]], [call([], 2), call(["testing"], 2)]),
+            ([["testing"], ["testing", "prod"]], [call(["testing"], 2, "jenkins")]),
+            ([[], ["testing"], ["testing", "prod"]], [call([], 2, "jenkins"), call(["testing"], 2, "jenkins")]),
         ]
     )
     @patch("samcli.commands.pipeline.init.interactive_init_flow.SamConfig")
