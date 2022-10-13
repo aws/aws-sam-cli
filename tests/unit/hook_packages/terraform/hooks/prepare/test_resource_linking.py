@@ -1089,8 +1089,8 @@ class TestResourceLinking(TestCase):
         expected_exception = (
             "The current version of SAM CLI could not process a Terraform project that contains Lambda "
             f"functions that are linked to more than one lambda layer. Layer(s) defined by {layers} could not be "
-            "linked to lambda function func_full_address. Please add +1 to this issue "
-            f"{ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK} if you need to support this case."
+            "linked to lambda function func_full_address. Related issue: "
+            f"{ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK}."
         )
         with self.assertRaises(OneLambdaLayerLinkingLimitationException) as exc:
             _link_lambda_function_to_layer(resource, cfn_functions, tf_layers)
@@ -1149,8 +1149,7 @@ class TestResourceLinking(TestCase):
         expected_exception = (
             "The current version of SAM CLI could not process a Terraform project that uses local variables to "
             "define the Lambda functions layers. Layer(s) defined by local.layer_arn could be linked to lambda "
-            f"function func_full_address. Please add +1 to this issue {LOCAL_VARIABLES_SUPPORT_ISSUE_LINK} if you "
-            f"need to support this case."
+            f"function func_full_address. Related issue: {LOCAL_VARIABLES_SUPPORT_ISSUE_LINK}."
         )
         with self.assertRaises(LocalVariablesLinkingLimitationException) as exc:
             _process_reference_layer_value(resource, reference_resolved_layer, tf_layers)

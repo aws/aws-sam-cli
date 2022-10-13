@@ -18,7 +18,7 @@ class OneLambdaLayerLinkingLimitationException(Exception):
     fmt = (
         "The current version of SAM CLI could not process a Terraform project that contains Lambda functions "
         "that are linked to more than one lambda layer. Layer(s) defined by {layers_list} could not be linked to "
-        "lambda function {function_id}. Please add +1 to this issue {issue_link} if you need to support this case."
+        "lambda function {function_id}. Related issue: {issue_link}."
     )
 
     def __init__(self, layers_list, function_id):
@@ -32,7 +32,7 @@ class LocalVariablesLinkingLimitationException(Exception):
     fmt = (
         "The current version of SAM CLI could not process a Terraform project that uses local variables to "
         "define the Lambda functions layers. Layer(s) defined by {local_variable_reference} could be linked to lambda "
-        "function {function_id}. Please add +1 to this issue {issue_link} if you need to support this case."
+        "function {function_id}. Related issue: {issue_link}."
     )
 
     def __init__(self, local_variable_reference, function_id):
