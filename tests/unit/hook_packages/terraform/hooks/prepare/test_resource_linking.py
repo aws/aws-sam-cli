@@ -1,3 +1,4 @@
+import os
 from copy import deepcopy
 from unittest import TestCase
 from unittest.mock import Mock, patch, call
@@ -1088,8 +1089,8 @@ class TestResourceLinking(TestCase):
         resource.full_address = "func_full_address"
         expected_exception = (
             "SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more than "
-            f"one lambda layer. Layer(s) defined by {layers} could not be linked to lambda function func_full_address. "
-            f"Related issue: {ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK}."
+            f"one lambda layer. Layer(s) defined by {layers} could not be linked to lambda function func_full_address."
+            f"{os.linesep}Related issue: {ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK}."
         )
         with self.assertRaises(OneLambdaLayerLinkingLimitationException) as exc:
             _link_lambda_function_to_layer(resource, cfn_functions, tf_layers)
@@ -1147,8 +1148,8 @@ class TestResourceLinking(TestCase):
         tf_layers = Mock()
         expected_exception = (
             "SAM CLI could not process a Terraform project that uses local variables to define the Lambda functions "
-            "layers. Layer(s) defined by local.layer_arn could be linked to lambda function func_full_address. Related "
-            f"issue: {LOCAL_VARIABLES_SUPPORT_ISSUE_LINK}."
+            "layers. Layer(s) defined by local.layer_arn could be linked to lambda function func_full_address."
+            f"{os.linesep}Related issue: {LOCAL_VARIABLES_SUPPORT_ISSUE_LINK}."
         )
         with self.assertRaises(LocalVariablesLinkingLimitationException) as exc:
             _process_reference_layer_value(resource, reference_resolved_layer, tf_layers)
