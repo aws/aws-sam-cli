@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Optional, cast, Dict
 
 import tomlkit
-from tomlkit.api import _TOMLDocument as TOMLDocument
+from tomlkit.toml_document import TOMLDocument
 from tomlkit.items import Item
 
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
