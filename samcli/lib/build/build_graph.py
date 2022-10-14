@@ -7,13 +7,13 @@ import logging
 import os
 import threading
 from abc import abstractmethod
+from copy import deepcopy
 from pathlib import Path
 from typing import Sequence, Tuple, List, Any, Optional, Dict, cast, NamedTuple
-from tomlkit.toml_document import TOMLDocument
-from copy import deepcopy
 from uuid import uuid4
 
 import tomlkit
+from tomlkit.toml_document import TOMLDocument
 
 from samcli.commands._utils.experimental import is_experimental_enabled, ExperimentalFlag
 from samcli.lib.build.exceptions import InvalidBuildGraphException
