@@ -653,6 +653,11 @@ class TestInitWithArbitraryProject(TestCase):
     def tearDown(self):
         shutil.rmtree(self.tempdir)
 
+    def _validate_expected_files_exist(self, output_folder: Path):
+        self.assertTrue(output_folder.exists())
+        self.assertEqual(os.listdir(str(output_folder)), ["test.txt"])
+        self.assertEqual(Path(output_folder, "test.txt").read_text(), "hello world")
+
     @parameterized.expand([(None,), ("project_name",)])
     def test_arbitrary_project(self, project_name):
         with tempfile.TemporaryDirectory() as temp:
@@ -668,10 +673,9 @@ class TestInitWithArbitraryProject(TestCase):
                 raise
 
             expected_output_folder = Path(temp, project_name) if project_name else Path(temp)
+
             self.assertEqual(process.returncode, 0)
-            self.assertTrue(expected_output_folder.exists())
-            self.assertEqual(os.listdir(str(expected_output_folder)), ["test.txt"])
-            self.assertEqual(Path(expected_output_folder, "test.txt").read_text(), "hello world")
+            self._validate_expected_files_exist(expected_output_folder)
 
     def test_zip_not_exists(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -685,6 +689,32 @@ class TestInitWithArbitraryProject(TestCase):
                 raise
 
             self.assertEqual(process.returncode, 1)
+
+    def test_location_with_no_interactive_and_name(self):
+        project_name = "test-project"
+
+        with tempfile.TemporaryDirectory() as tmp:
+            args = [
+                get_sam_command(),
+                "init",
+                "--name",
+                project_name,
+                "--location",
+                self.zip_path,
+                "--no-interactive",
+                "-o",
+                tmp,
+            ]
+            process = Popen(args)
+
+            try:
+                process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 0)
+            self._validate_expected_files_exist(Path(tmp, project_name))
 
 
 class TestInteractiveInit(TestCase):
