@@ -207,6 +207,12 @@ def _build_module_resources_from_configuration(module_configuration: Dict, modul
 
         expressions = config_resource.get("expressions", {})
         for expression_name, expression_value in expressions.items():
+            # we do not process the attributes of type dictionary
+            # Todo add dictionary type attributes post beta
+            if isinstance(expression_value, list):
+                LOG.debug("Skip processing the attribute %s as its value is a map.", expression_name)
+                continue
+
             parsed_expression = _build_expression_from_configuration(expression_value)
             resource_attributes[expression_name] = parsed_expression
 
