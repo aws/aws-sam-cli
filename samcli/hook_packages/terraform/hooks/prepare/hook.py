@@ -11,6 +11,7 @@ from json.decoder import JSONDecodeError
 from pathlib import Path
 import re
 from subprocess import run, CalledProcessError
+import time
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import hashlib
 import logging
@@ -101,11 +102,15 @@ def prepare(params: dict) -> dict:
         LOG.debug("The normalized OutputDirPath value is %s", output_dir_path)
 
     try:
+
+        start = time.time()
         # initialize terraform application
         LOG.info("Initializing Terraform application")
         run(["terraform", "init"], check=True, capture_output=True, cwd=terraform_application_dir)
-
+        end = time.time()
+        LOG.info("Initializing Terraform application took %.2f", end - start)
         # get json output of terraform plan
+        start = time.time()
         LOG.info("Creating terraform plan and getting JSON output")
 
         with osutils.tempfile_platform_independent() as temp_file:
@@ -122,8 +127,11 @@ def prepare(params: dict) -> dict:
                 cwd=terraform_application_dir,
             )
         tf_json = json.loads(result.stdout)
+        end = time.time()
+        LOG.info("Creating terraform plan and getting JSON output took %.2f", end - start)
 
         # convert terraform to cloudformation
+        start = time.time()
         LOG.info("Generating metadata file")
         cfn_dict = _translate_to_cfn(tf_json, output_dir_path, terraform_application_dir)
 
@@ -137,7 +145,8 @@ def prepare(params: dict) -> dict:
         LOG.info("Finished generating metadata file. Storing in %s", metadataFilePath)
         with open(metadataFilePath, "w+") as metadata_file:
             json.dump(cfn_dict, metadata_file)
-
+        end = time.time()
+        LOG.info("Generating metadata file took %.2f", end - start)
         return {"iac_applications": {"MainApplication": {"metadata_file": metadataFilePath}}}
 
     except CalledProcessError as e:
