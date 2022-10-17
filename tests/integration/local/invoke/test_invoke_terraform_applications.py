@@ -53,7 +53,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
         try:
             shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".aws-sam-iacs")))  # type: ignore
             shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".terraform")))  # type: ignore
-            os.remove(str(Path(self.terraform_application_path).joinpath(".terraform.lock.hcl"))) # type: ignore
+            os.remove(str(Path(self.terraform_application_path).joinpath(".terraform.lock.hcl")))  # type: ignore
         except FileNotFoundError:
             pass
 
