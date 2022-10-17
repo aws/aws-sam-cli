@@ -20,7 +20,3 @@ class InvalidHookPackageConfigException(UserException):
 
 class PrepareHookException(UserException):
     pass
-
-
-class InvalidSamMetadataPropertiesException(UserException):
-    pass

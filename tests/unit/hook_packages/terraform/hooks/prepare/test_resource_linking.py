@@ -2,6 +2,7 @@ import os
 from copy import deepcopy
 from unittest import TestCase
 from unittest.mock import Mock, patch, call
+from uuid import uuid4
 
 from parameterized import parameterized
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
@@ -17,10 +18,6 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _clean_references_list,
     _get_configuration_address,
     _resolve_module_output,
-    TFModule,
-    TFResource,
-    References,
-    ConstantValue,
     _resolve_module_variable,
     _build_module,
     _build_expression_from_configuration,
@@ -30,12 +27,18 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _build_module_resources_from_configuration,
     _build_module_variables_from_configuration,
     _resolve_resource_attribute,
-    ResolvedReference,
     _link_lambda_function_to_layer,
     _process_resolved_layers,
     _process_constant_layer_value,
     _process_reference_layer_value,
     _update_mapped_lambda_function_with_resolved_layers,
+)
+from samcli.hook_packages.terraform.hooks.prepare.types import (
+    ConstantValue,
+    References,
+    ResolvedReference,
+    TFModule,
+    TFResource,
 )
 
 
@@ -132,19 +135,40 @@ class TestResourceLinking(TestCase):
         child_module2_resources = [Mock(), Mock()]
         grandchild_module_resources = [Mock(), Mock()]
 
-        root_module = TFModule(None, None, {}, root_module_resources, {}, {})
-        child_module1 = TFModule("module.child_module1", root_module, {}, child_module1_resources, {}, {})
-        child_module2 = TFModule("module.child_module2", root_module, {}, child_module2_resources, {}, {})
+        root_module = TFModule(None, None, {}, {str(uuid4()): resource for resource in root_module_resources}, {}, {})
+        child_module1 = TFModule(
+            "module.child_module1",
+            root_module,
+            {},
+            {str(uuid4()): resource for resource in child_module1_resources},
+            {},
+            {},
+        )
+        child_module2 = TFModule(
+            "module.child_module2",
+            root_module,
+            {},
+            {str(uuid4()): resource for resource in child_module2_resources},
+            {},
+            {},
+        )
         grandchild_module = TFModule(
-            "module.child_module.grandchild_module", child_module1, {}, grandchild_module_resources, {}, {}
+            "module.child_module.grandchild_module",
+            child_module1,
+            {},
+            {str(uuid4()): resource for resource in grandchild_module_resources},
+            {},
+            {},
         )
 
         root_module.child_modules.update({"child_module1": child_module1, "child_module2": child_module2})
         child_module1.child_modules.update({"grandchild_module": grandchild_module})
 
-        self.assertCountEqual(
-            root_module.get_all_resources(),
-            root_module_resources + child_module1_resources + child_module2_resources + grandchild_module_resources,
+        self.assertEqual(
+            len(root_module.get_all_resources()),
+            len(
+                root_module_resources + child_module1_resources + child_module2_resources + grandchild_module_resources
+            ),
         )
 
     def test_resource_full_address(self):
@@ -216,10 +240,10 @@ class TestResourceLinking(TestCase):
     @parameterized.expand(
         [
             (
-                TFModule("module.name", None, {}, [], {}, {"mycooloutput": References(["local.mycoolconst"])}),
+                TFModule("module.name", None, {}, {}, {}, {"mycooloutput": References(["local.mycoolconst"])}),
                 "module.name",
             ),
-            (TFModule(None, None, {}, [], {}, {"mycooloutput": References(["local.mycoolconst"])}), None),
+            (TFModule(None, None, {}, {}, {}, {"mycooloutput": References(["local.mycoolconst"])}), None),
         ]
     )
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
@@ -621,20 +645,20 @@ class TestResourceLinking(TestCase):
 
         result = _build_module_resources_from_configuration(module_configuration, mock_module)
 
-        expected_resources = [
-            TFResource(
+        expected_resources = {
+            "resource1_address": TFResource(
                 "resource1_address",
                 "resource1_type",
                 mock_module,
                 {"expression1": mock_parsed_expression, "expression2": mock_parsed_expression},
             ),
-            TFResource(
+            "resource2_address": TFResource(
                 "resource2_address",
                 "resource2_type",
                 mock_module,
                 {"expression3": mock_parsed_expression, "expression4": mock_parsed_expression},
             ),
-        ]
+        }
 
         self.assertEqual(result, expected_resources)
 

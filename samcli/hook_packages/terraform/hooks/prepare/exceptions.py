@@ -3,19 +3,21 @@ Module containing prepare hook-related exceptions
 """
 import os
 
+from samcli.commands.exceptions import UserException
+
 ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK = "<<TODO: create this issue before the release>>"
 LOCAL_VARIABLES_SUPPORT_ISSUE_LINK = "<<TODO: create this issue before the release>>"
 
 
-class InvalidResourceLinkingException(Exception):
+class InvalidResourceLinkingException(UserException):
     fmt = "An error occurred when attempting to link two resources: {message}"
 
     def __init__(self, message):
         msg = self.fmt.format(message=message)
-        Exception.__init__(self, msg)
+        UserException.__init__(self, msg)
 
 
-class OneLambdaLayerLinkingLimitationException(Exception):
+class OneLambdaLayerLinkingLimitationException(UserException):
     fmt = (
         "SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more than one "
         "lambda layer. Layer(s) defined by {layers_list} could not be linked to lambda function {function_id}."
@@ -29,10 +31,10 @@ class OneLambdaLayerLinkingLimitationException(Exception):
             issue_link=ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK,
             line_sep=os.linesep,
         )
-        Exception.__init__(self, msg)
+        UserException.__init__(self, msg)
 
 
-class LocalVariablesLinkingLimitationException(Exception):
+class LocalVariablesLinkingLimitationException(UserException):
     fmt = (
         "SAM CLI could not process a Terraform project that uses local variables to define the Lambda functions "
         "layers. Layer(s) defined by {local_variable_reference} could be linked to lambda function {function_id}."
@@ -46,4 +48,8 @@ class LocalVariablesLinkingLimitationException(Exception):
             issue_link=LOCAL_VARIABLES_SUPPORT_ISSUE_LINK,
             line_sep=os.linesep,
         )
-        Exception.__init__(self, msg)
+        UserException.__init__(self, msg)
+
+
+class InvalidSamMetadataPropertiesException(UserException):
+    pass

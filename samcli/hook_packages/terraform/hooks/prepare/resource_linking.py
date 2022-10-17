@@ -2,8 +2,7 @@
 Use Terraform plan to link resources together
 e.g. linking layers to functions
 """
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 import re
 import logging
 
@@ -12,6 +11,14 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     OneLambdaLayerLinkingLimitationException,
     LocalVariablesLinkingLimitationException,
 )
+from samcli.hook_packages.terraform.hooks.prepare.types import (
+    ConstantValue,
+    References,
+    Expression,
+    ResolvedReference,
+    TFModule,
+    TFResource,
+)
 from samcli.hook_packages.terraform.lib.utils import build_cfn_logical_id
 
 LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX = "aws_lambda_layer_version."
@@ -19,64 +26,6 @@ TERRAFORM_LOCAL_VARIABLES_ADDRESS_PREFIX = "local."
 LAMBDA_LAYER_DATA_RESOURCE_ADDRESS_PREFIX = "data.aws_lambda_layer_version."
 
 LOG = logging.getLogger(__name__)
-
-
-@dataclass
-class ConstantValue:
-    value: Any
-
-
-@dataclass
-class References:
-    value: List[str]
-
-
-Expression = Union[ConstantValue, References]
-
-
-@dataclass
-class ResolvedReference:
-    value: str
-    # root module address is None
-    module_address: Optional[str]
-
-
-@dataclass
-class TFModule:
-    # full path to the module, including parent modules
-    full_address: Optional[str]
-    parent_module: Optional["TFModule"]
-    variables: Dict[str, Expression]
-    resources: List["TFResource"]
-    child_modules: Dict[str, "TFModule"]
-    outputs: Dict[str, Expression]
-
-    # current module's + all child modules' resources
-    def get_all_resources(self) -> List["TFResource"]:
-        all_resources = self.resources.copy()
-        for _, module in self.child_modules.items():
-            all_resources += module.get_all_resources()
-
-        return all_resources
-
-    @property
-    def module_name(self):
-        return self.full_address if self.full_address else "root module"
-
-
-@dataclass
-class TFResource:
-    address: str
-    type: str
-    # the module this resource is defined in
-    module: TFModule
-    attributes: Dict[str, Expression]
-
-    @property
-    def full_address(self) -> str:
-        if self.module and self.module.full_address:
-            return f"{self.module.full_address}.{self.address}"
-        return self.address
 
 
 def _build_module(
@@ -104,7 +53,7 @@ def _build_module(
     TFModule
         The constructed TFModule
     """
-    module = TFModule(None, None, {}, [], {}, {})
+    module = TFModule(None, None, {}, {}, {}, {})
 
     module.full_address = _build_module_full_address(module_name, parent_module_address)
     LOG.debug("Parsing module:` %s", module.full_address or "root")
@@ -183,7 +132,7 @@ def _build_module_variables_from_configuration(
     return module_variables
 
 
-def _build_module_resources_from_configuration(module_configuration: Dict, module: TFModule) -> List[TFResource]:
+def _build_module_resources_from_configuration(module_configuration: Dict, module: TFModule) -> Dict[str, TFResource]:
     """
     Builds and returns module TFResources using a module terraform configuration
 
@@ -191,15 +140,15 @@ def _build_module_resources_from_configuration(module_configuration: Dict, modul
     ==========
     module_configuration: dict
         The module object from the terraform configuration
+    module: TFModule
+        The TFModule whose resources we're parsing
 
     Returns
     =======
-    List[TFResource]
-        List of TFResource for the parsed resources from the config
-    module: TFModule
-        The TFModule whose resources we're parsing
+    Dict[TFResource]
+        Dictionary of TFResource for the parsed resources from the config, and the key is the resource address
     """
-    module_resources = []
+    module_resources = {}
 
     config_resources = module_configuration.get("resources", [])
     for config_resource in config_resources:
@@ -219,7 +168,7 @@ def _build_module_resources_from_configuration(module_configuration: Dict, modul
 
         resource_address = config_resource.get("address")
         resource_type = config_resource.get("type")
-        module_resources.append(TFResource(resource_address, resource_type, module, resource_attributes))
+        module_resources[resource_address] = TFResource(resource_address, resource_type, module, resource_attributes)
 
     return module_resources
 
