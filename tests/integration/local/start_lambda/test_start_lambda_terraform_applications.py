@@ -189,8 +189,8 @@ class TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild(StartLambda
         # delete the override file
         try:
             os.remove(str(Path(cls.working_dir).joinpath("const_layer", f"variable_name_override.tf")))
-            shutil.rmtree(str(Path(cls.working_dir).joinpath(".aws-sam-iacs")))  # type: ignore
-            shutil.rmtree(str(Path(cls.working_dir).joinpath(".terraform")))  # type: ignore
+            shutil.rmtree(str(Path(cls.working_dir).joinpath(".aws-sam-iacs")))
+            shutil.rmtree(str(Path(cls.working_dir).joinpath(".terraform")))
             os.remove(str(Path(cls.working_dir).joinpath(".terraform.lock.hcl")))
         except FileNotFoundError:
             pass
