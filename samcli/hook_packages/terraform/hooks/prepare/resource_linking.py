@@ -538,9 +538,8 @@ def _resolve_resource_attribute(
 
     attribute_value = resource.attributes.get(attribute_name)
     if attribute_value is None:
-        raise InvalidResourceLinkingException(
-            message=f"The attribute {attribute_name} could not be found in resource {resource.full_address}."
-        )
+        LOG.debug("The value of the attribute %s is None for resource %s", attribute_name, resource.full_address)
+        return results
 
     if not isinstance(attribute_value, ConstantValue) and not isinstance(attribute_value, References):
         raise InvalidResourceLinkingException(
@@ -638,6 +637,7 @@ def _link_lambda_function_to_layer(
     resolved_layers = _resolve_resource_attribute(function_tf_resource, "layers")
     LOG.debug("The resolved layers for function %s are %s", function_tf_resource.full_address, resolved_layers)
     layers = _process_resolved_layers(function_tf_resource, resolved_layers, tf_layers)
+
     # The agreed limitation to support only 1 lambda layer reference.
     if len(layers) > 1:
         LOG.debug(
@@ -645,7 +645,10 @@ def _link_lambda_function_to_layer(
             function_tf_resource.full_address,
         )
         raise OneLambdaLayerLinkingLimitationException(layers, function_tf_resource.full_address)
-    _update_mapped_lambda_function_with_resolved_layers(cfn_functions, layers, tf_layers)
+    if not layers:
+        LOG.debug("There is no layers defined for lambda function %s", function_tf_resource.full_address)
+    else:
+        _update_mapped_lambda_function_with_resolved_layers(cfn_functions, layers, tf_layers)
 
 
 def _process_resolved_layers(
