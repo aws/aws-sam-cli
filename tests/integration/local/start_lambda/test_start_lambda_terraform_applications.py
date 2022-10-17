@@ -141,7 +141,8 @@ class TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild(StartLambda
             cls.layerUtils.upsert_layer(
                 f"{lambda_layer_name}-{cls.layer_postfix}",
                 f"{lambda_layer_name}-{cls.layer_postfix}",
-                f"{lambda_layer_name}.zip")
+                f"{lambda_layer_name}.zip",
+            )
 
         # create override file in const_layer module to test using the module default provided value
         const_layer_module_input_layer_overwrite = str(
@@ -149,10 +150,10 @@ class TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild(StartLambda
         )
         _2nd_layer_arn = cls.layerUtils.parameters_overrides[f"{cls.pre_create_lambda_layers[1]}-{cls.layer_postfix}"]
         lines = [
-            bytes("variable \"input_layer\" {"+os.linesep, "utf-8"),
-            bytes("   type = string"+os.linesep, "utf-8"),
-            bytes(f"   default=\"{_2nd_layer_arn}\""+os.linesep, "utf-8"),
-            bytes("}", "utf-8")
+            bytes('variable "input_layer" {' + os.linesep, "utf-8"),
+            bytes("   type = string" + os.linesep, "utf-8"),
+            bytes(f'   default="{_2nd_layer_arn}"' + os.linesep, "utf-8"),
+            bytes("}", "utf-8"),
         ]
         with open(const_layer_module_input_layer_overwrite, "wb") as file:
             file.writelines(lines)
@@ -221,7 +222,7 @@ class TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild(StartLambda
         response = self.lambda_client.invoke(FunctionName=function_name)
 
         response_body = json.loads(response.get("Payload").read().decode("utf-8"))
-        expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"'+expected_output+'\\"}"}')
+        expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"' + expected_output + '\\"}"}')
 
         self.assertEqual(response_body, expected_response)
         self.assertEqual(response.get("StatusCode"), 200)

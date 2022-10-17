@@ -15,8 +15,11 @@ class LayerUtils(object):
         self.lambda_client = boto3.client("lambda", region_name=region)
         self.parameters_overrides = {}
         self.layers_meta = []
-        self.layer_zip_parent = Path(layer_zip_parent) if layer_zip_parent else \
-            InvokeIntegBase.get_integ_dir().joinpath("testdata", "invoke", "layer_zips")
+        self.layer_zip_parent = (
+            Path(layer_zip_parent)
+            if layer_zip_parent
+            else InvokeIntegBase.get_integ_dir().joinpath("testdata", "invoke", "layer_zips")
+        )
 
     @staticmethod
     def generate_layer_name():

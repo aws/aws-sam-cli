@@ -27,9 +27,7 @@ class InvokeTerraformApplicationIntegBase(InvokeIntegBase):
 
     @classmethod
     def run_command(cls, command_list, env=None, input=None):
-        process = Popen(
-            command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE, env=env, cwd=cls.terraform_application_path
-        )
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE, env=env, cwd=cls.terraform_application_path)
         try:
             (stdout, stderr) = process.communicate(input=input, timeout=TIMEOUT)
             return stdout, stderr, process.returncode
@@ -201,7 +199,8 @@ class TestInvokeTerraformApplicationWithLayersWithoutBuild(InvokeTerraformApplic
             cls.layerUtils.upsert_layer(
                 f"{lambda_layer_name}-{cls.layer_postfix}",
                 f"{lambda_layer_name}-{cls.layer_postfix}",
-                f"{lambda_layer_name}.zip")
+                f"{lambda_layer_name}.zip",
+            )
 
         # create override file in const_layer module to test using the module default provided value
         const_layer_module_input_layer_overwrite = str(
@@ -209,10 +208,10 @@ class TestInvokeTerraformApplicationWithLayersWithoutBuild(InvokeTerraformApplic
         )
         _2nd_layer_arn = cls.layerUtils.parameters_overrides[f"{cls.pre_create_lambda_layers[1]}-{cls.layer_postfix}"]
         lines = [
-            bytes("variable \"input_layer\" {"+os.linesep, "utf-8"),
-            bytes("   type = string"+os.linesep, "utf-8"),
-            bytes(f"   default=\"{_2nd_layer_arn}\""+os.linesep, "utf-8"),
-            bytes("}", "utf-8")
+            bytes('variable "input_layer" {' + os.linesep, "utf-8"),
+            bytes("   type = string" + os.linesep, "utf-8"),
+            bytes(f'   default="{_2nd_layer_arn}"' + os.linesep, "utf-8"),
+            bytes("}", "utf-8"),
         ]
         with open(const_layer_module_input_layer_overwrite, "wb") as file:
             file.writelines(lines)
@@ -268,7 +267,7 @@ class TestInvokeTerraformApplicationWithLayersWithoutBuild(InvokeTerraformApplic
         # Get the response without the sam-cli prompts that proceed it
         response = json.loads(stdout.decode("utf-8").split("\n")[0])
 
-        expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"'+expected_output+'\\"}"}')
+        expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"' + expected_output + '\\"}"}')
 
         self.assertEqual(return_code, 0)
         self.assertEqual(response, expected_response)
