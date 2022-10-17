@@ -134,6 +134,7 @@ class TestBootstrap(BootstrapIntegBase):
             "ArtifactsLoggingBucketPolicy",
             "ArtifactsBucketPolicy",
             "PipelineExecutionRolePermissionPolicy",
+            "OidcProvider",
         }
         CFN_OUTPUT_TO_CONFIG_KEY["OidcProvider"] = "oidc_provider_url"
         del CFN_OUTPUT_TO_CONFIG_KEY["PipelineUser"]
