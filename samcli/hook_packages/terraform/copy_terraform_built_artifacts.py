@@ -1,9 +1,17 @@
 """
-Python script that takes in an expression, input_directory and a json input from the standard input,
-tries to find the appropriate element within the json based on the element. It then takes action to
-either copy or zip to the specified input_directory.
+Python script that prepares artifacts for SAM CLI to invoke. 
+This script will work in both Linux/MacOS and Windows.
+
+It consists of 5 steps:
+1. create a temporary TF backend (create_backend_override)
+2. run `terraform init -reconfigure`
+3. run `terraform apply` on the SAM CLI Metadata resource
+4. run `terraform out` to produce an output
+5. parse the output to locate the built artifact, and move it to the SAM CLI 
+build artifact directory (find_and_copy_assets)
 
 Note: This script intentionally does not use Python3 specific syntax.
+
 """
 
 # Sample file:
@@ -39,12 +47,15 @@ import os
 import json
 import shutil
 import sys
+import subprocess
 import zipfile
 import logging
 
 from six import string_types
 
 LOG = logging.getLogger(__name__)
+
+TF_BACKEND_OVERRIDE_FILENAME = "z_samcli_backend_override"
 
 
 class ResolverException(Exception):
@@ -197,46 +208,31 @@ def cli_exit():
     sys.exit(1)
 
 
-if __name__ == "__main__":
-    # Gather inputs and clean them
-    argparser = argparse.ArgumentParser(
-        description="Copy built artifacts referenced in a json file " "(passed via stdin) matching a search pattern"
-    )
-    argparser.add_argument(
-        "--expression",
-        type=str,
-        required=True,
-        help="Jpath query expression separated by | (delimiter) "
-        "and allows for searching within a json object."
-        "eg: |values|sub_module|[?address==me]|output",
-    )
-    argparser.add_argument(
-        "--directory",
-        type=str,
-        required=True,
-        help="Directory to which extracted expression " "contents are copied/unzipped to",
-    )
+def find_and_copy_assets(directory_path, expression, data_object):
+    """
+    Takes in an expression, directory_path and a json input from the standard input,
+    tries to find the appropriate element within the json based on the element. It then takes action to
+    either copy or unzip to the specified directory_path.
 
-    arguments = argparser.parse_args()
-    directory_path = os.path.abspath(arguments.directory)
-
+    Parameters:
+    -----------
+    directory_path: str
+        path of the directory to move the built artifact to
+    expression: str
+        jpath-like expression to locate the original location of the built artifact
+    data_object: str/bytes
+        a json input, produced from `terraform out`
+    """
+    directory_path = os.path.abspath(directory_path)
     terraform_project_root = os.getcwd()
     extracted_attribute_path = None
-    data_object = None
 
     if not os.path.exists(directory_path) or not os.path.isdir(directory_path):
         LOG.error("Expected --directory to be a valid directory!")
         cli_exit()
 
-    # Load and Parse
     try:
-        data_object = json.load(sys.stdin)
-    except ValueError as ex:
-        LOG.error("Parsing JSON from stdin unsuccessful!", exc_info=True)
-        cli_exit()
-
-    try:
-        extracted_attribute_path = Parser(expression=arguments.expression).parse().search(data=data_object)
+        extracted_attribute_path = Parser(expression=expression).parse().search(data=data_object)
     except ResolverException as ex:
         LOG.error(ex.message, exc_info=True)
         cli_exit()
@@ -268,3 +264,61 @@ if __name__ == "__main__":
     except OSError as ex:
         LOG.error("Copy/Unzip unsuccessful!", exc_info=ex)
         cli_exit()
+
+
+def create_backend_override():
+    """
+    Copies and rename the override tf file from the metadata directory to the root
+    directory of the TF application.
+    """
+    override_src_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), TF_BACKEND_OVERRIDE_FILENAME)
+    override_dest_path = os.path.join(os.getcwd(), TF_BACKEND_OVERRIDE_FILENAME + ".tf")
+    shutil.copyfile(override_src_path, override_dest_path)
+
+
+if __name__ == "__main__":
+    # Gather inputs and clean them
+    argparser = argparse.ArgumentParser(
+        description="Copy built artifacts referenced in a json file " "(passed via stdin) matching a search pattern"
+    )
+    argparser.add_argument(
+        "--expression",
+        type=str,
+        required=True,
+        help="Jpath query expression separated by | (delimiter) "
+        "and allows for searching within a json object."
+        "eg: |values|sub_module|[?address==me]|output",
+    )
+    argparser.add_argument(
+        "--directory",
+        type=str,
+        required=True,
+        help="Directory to which extracted expression " "contents are copied/unzipped to",
+    )
+    argparser.add_argument(
+        "--target",
+        type=str,
+        required=True,
+        help="Terraform resource path for the SAM CLI Metadata resource",
+    )
+
+    arguments = argparser.parse_args()
+    directory_path = os.path.abspath(arguments.directory)
+    expression = arguments.expression
+    target = arguments.target
+
+    create_backend_override()
+
+    subprocess.check_call(["terraform", "init", "-reconfigure"])
+
+    subprocess.check_call(["terraform", "apply", "-target", target, "-replace", target, "-auto-approve"])
+
+    terraform_out = subprocess.check_output(["terraform", "show", "-json"])
+
+    try:
+        data_object = json.loads(terraform_out)
+    except ValueError as ex:
+        LOG.error("Parsing JSON from terraform out unsuccessful!", exc_info=True)
+        cli_exit()
+
+    find_and_copy_assets(directory_path, expression, data_object)

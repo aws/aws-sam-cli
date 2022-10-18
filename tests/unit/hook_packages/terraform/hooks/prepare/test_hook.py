@@ -38,7 +38,7 @@ from samcli.hook_packages.terraform.hooks.prepare.hook import (
     _build_jpath_string,
     _validate_referenced_resource_layer_matches_metadata_type,
     _format_makefile_recipe,
-    _build_show_command,
+    _build_python_command,
 )
 from samcli.lib.hook.exceptions import PrepareHookException, InvalidSamMetadataPropertiesException
 from samcli.lib.utils.resources import (
@@ -2610,13 +2610,10 @@ class TestPrepareHook(TestCase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._format_makefile_recipe")
     def test_generate_makefile_rule_for_lambda_resource(self, format_recipe_mock, get_build_target_mock):
         format_recipe_mock.side_effect = [
-            "\tcp .aws-sam-iacs/iacs_metadata/z_samcli_backend_override.tf ./z_samcli_backend_override.tf\n",
-            "\tterraform init -reconfigure\n",
-            "\tterraform apply -target null_resource.sam_metadata_aws_lambda_function -auto-approve\n",
-            "\tterraform show -json | python3 .aws-sam/iacs_metadata/copy_terraform_built_artifacts.py --expression "
+            "\tpython3 .aws-sam/iacs_metadata/copy_terraform_built_artifacts.py --expression "
             '"|values|root_module|resources|[?address=="null_resource.sam_metadata_aws_lambda_function"]'
             '|values|triggers|built_output_path" --directory "$(ARTIFACTS_DIR)" '
-            '--terraform-project-root "/some/dir/path"\n',
+            '--target "null_resource.sam_metadata_aws_lambda_function"\n',
         ]
         get_build_target_mock.return_value = "build-function_logical_id:\n"
         sam_metadata_resource = SamMetadataResource(
@@ -2631,25 +2628,22 @@ class TestPrepareHook(TestCase):
         )
         expected_makefile_rule = (
             "build-function_logical_id:\n"
-            "\tcp .aws-sam-iacs/iacs_metadata/z_samcli_backend_override.tf ./z_samcli_backend_override.tf\n"
-            "\tterraform init -reconfigure\n"
-            "\tterraform apply -target null_resource.sam_metadata_aws_lambda_function -auto-approve\n"
-            "\tterraform show -json | python3 .aws-sam/iacs_metadata/copy_terraform_built_artifacts.py "
+            "\tpython3 .aws-sam/iacs_metadata/copy_terraform_built_artifacts.py "
             '--expression "|values|root_module|resources|[?address=="null_resource.sam_metadata_aws_lambda_function"]'
             '|values|triggers|built_output_path" --directory "$(ARTIFACTS_DIR)" '
-            '--terraform-project-root "/some/dir/path"\n'
+            '--target "null_resource.sam_metadata_aws_lambda_function"\n'
         )
         self.assertEqual(makefile_rule, expected_makefile_rule)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._build_jpath_string")
-    def test_build_show_command(self, jpath_string_mock):
+    def test_build_python_command(self, jpath_string_mock):
         jpath_string_mock.return_value = (
             "|values|root_module|resources|"
             '[?address=="null_resource.sam_metadata_aws_lambda_function"]'
             "|values|triggers|built_output_path"
         )
         sam_metadata_resource = SamMetadataResource(current_module_address=None, resource={})
-        show_command = _build_show_command(
+        show_command = _build_python_command(
             python_command_name="python",
             output_dir="/some/dir/path/.aws-sam/output",
             resource_address="null_resource.sam_metadata_aws_lambda_function",
@@ -2658,10 +2652,11 @@ class TestPrepareHook(TestCase):
         )
         script_path = Path(".aws-sam", "output", "copy_terraform_built_artifacts.py")
         expected_show_command = (
-            f"terraform show -json | python {script_path} "
+            f"python {script_path} "
             '--expression "|values|root_module|resources|'
             '[?address=="null_resource.sam_metadata_aws_lambda_function"]'
-            '|values|triggers|built_output_path" --directory "$(ARTIFACTS_DIR)"'
+            '|values|triggers|built_output_path" --directory "$(ARTIFACTS_DIR)" '
+            '--target "null_resource.sam_metadata_aws_lambda_function"'
         )
         self.assertEqual(show_command, expected_show_command)
 
