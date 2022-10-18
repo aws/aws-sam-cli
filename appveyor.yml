@@ -205,6 +205,6 @@ for:
       # Presence of the RUN_SMOKE envvar will run the smoke tests
       - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"
 
-    on_finish:
-      - sh: |
-        find "$APPVEYOR_BUILD_FOLDER" -type f -name 'TEST*.xml' -print0 | xargs -0 -I '{}' curl -F 'file=@{}' "https://ci.appveyor.com/api/testresults/junit/$APPVEYOR_JOB_ID"
+    # on_finish:
+    #   - sh: |
+    #     find "$APPVEYOR_BUILD_FOLDER" -type f -name 'TEST*.xml' -print0 | xargs -0 -I '{}' curl -F 'file=@{}' "https://ci.appveyor.com/api/testresults/junit/$APPVEYOR_JOB_ID"
