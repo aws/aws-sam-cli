@@ -7,7 +7,16 @@ from typing import Any, Dict, List, Optional, Union
 import re
 import logging
 
-from samcli.hook_packages.terraform.hooks.prepare.exceptions import InvalidResourceLinkingException
+from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
+    InvalidResourceLinkingException,
+    OneLambdaLayerLinkingLimitationException,
+    LocalVariablesLinkingLimitationException,
+)
+from samcli.hook_packages.terraform.lib.utils import build_cfn_logical_id
+
+LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX = "aws_lambda_layer_version."
+TERRAFORM_LOCAL_VARIABLES_ADDRESS_PREFIX = "local."
+LAMBDA_LAYER_DATA_RESOURCE_ADDRESS_PREFIX = "data.aws_lambda_layer_version."
 
 LOG = logging.getLogger(__name__)
 
@@ -620,3 +629,219 @@ def _link_lambda_function_to_layer(
         Dictionary of all actual terraform layers resources (not configuration resources). The dictionary's key is the
         calculated logical id for each resource
     """
+
+    LOG.debug(
+        "Link function configuration %s layer that has these instances %s.",
+        function_tf_resource.full_address,
+        cfn_functions,
+    )
+    resolved_layers = _resolve_resource_attribute(function_tf_resource, "layers")
+    LOG.debug("The resolved layers for function %s are %s", function_tf_resource.full_address, resolved_layers)
+    layers = _process_resolved_layers(function_tf_resource, resolved_layers, tf_layers)
+    # The agreed limitation to support only 1 lambda layer reference.
+    if len(layers) > 1:
+        LOG.debug(
+            "SAM CLI does not support mapping the lambda function %s to more than one layer.",
+            function_tf_resource.full_address,
+        )
+        raise OneLambdaLayerLinkingLimitationException(layers, function_tf_resource.full_address)
+    _update_mapped_lambda_function_with_resolved_layers(cfn_functions, layers, tf_layers)
+
+
+def _process_resolved_layers(
+    function_tf_resource: TFResource,
+    resolved_layers: List[Union[ConstantValue, ResolvedReference]],
+    tf_layers: Dict[str, Dict],
+) -> List:
+    """
+    Process the resolved layers.
+
+    Parameters
+    ----------
+    function_tf_resource: TFResource
+        The input lambda function terraform configuration resource
+
+    resolved_layers: List[Union[ConstantValue, ResolvedReference]]
+        The resolved layers to be processed for the input lambda function.
+
+    tf_layers: Dict[str, Dict]
+        Dictionary of all actual terraform layers resources (not configuration resources). The dictionary's key is the
+        calculated logical id for each resource
+
+    Returns
+    --------
+    List:
+        The list of layers after processing
+
+    """
+    LOG.debug(
+        "Map the resolved layers %s to configuration function %s.", resolved_layers, function_tf_resource.full_address
+    )
+    layers = []
+    for resolved_layer in resolved_layers:
+        if isinstance(resolved_layer, ConstantValue):
+            layers += _process_constant_layer_value(function_tf_resource, resolved_layer)
+        else:
+            layers += _process_reference_layer_value(function_tf_resource, resolved_layer, tf_layers)
+    return layers
+
+
+def _process_constant_layer_value(function_tf_resource: TFResource, resolved_layer: ConstantValue) -> List:
+    """
+    Process the layer value of type ConstantValue.
+
+    Parameters
+    ----------
+    function_tf_resource: TFResource
+        The input lambda function terraform configuration resource
+
+    resolved_layer: ConstantValue
+        The layer arn value.
+
+    Returns
+    -------
+    List
+        The resolved layers values that will be used as a value for the mapped CFN function Layers attribute.
+    """
+    LOG.debug("Process the constant layer %s.", resolved_layer.value)
+    layer_arn = resolved_layer.value
+    if not isinstance(layer_arn, str):
+        LOG.debug("The constant layer %s is not a string.", resolved_layer.value)
+        raise InvalidResourceLinkingException(
+            f"Could not use the value {layer_arn} as a Layer for lambda function "
+            f"{function_tf_resource.full_address}. Lambda Function Layer value should be a valid ARN String"
+        )
+    return [layer_arn]
+
+
+def _process_reference_layer_value(
+    function_tf_resource: TFResource, resolved_layer: ResolvedReference, tf_layers: Dict[str, Dict]
+) -> List:
+    """
+    Process the layer value of type ResolvedReference.
+
+    Parameters
+    ----------
+    function_tf_resource: TFResource
+        The input lambda function terraform configuration resource
+
+    resolved_layer: ResolvedReference
+        The layer reference.
+
+    tf_layers: Dict[str, Dict]
+        Dictionary of all actual terraform layers resources (not configuration resources). The dictionary's key is the
+        calculated logical id for each resource
+
+    Returns
+    -------
+    List
+        The resolved layers values that will be used as a value for the mapped CFN function Layers attribute.
+
+    """
+    LOG.debug("Process the reference layer %s.", resolved_layer.value)
+    # skip processing the layers defined using the data source block, as it should be mapped to
+    # Layer ARN string while executing the terraform plan command.
+    if resolved_layer.value.startswith(LAMBDA_LAYER_DATA_RESOURCE_ADDRESS_PREFIX):
+        LOG.debug("Skip processing the reference layer %s, as it is referring to a data resource", resolved_layer.value)
+        return []
+
+    # resolved reference is a local variable
+    if resolved_layer.value.startswith(TERRAFORM_LOCAL_VARIABLES_ADDRESS_PREFIX):
+        LOG.debug("SAM CLI could not process the Local variables %s", resolved_layer.value)
+        raise LocalVariablesLinkingLimitationException(resolved_layer.value, function_tf_resource.full_address)
+
+    # Valid Layer resource
+    if resolved_layer.value.startswith(LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX):
+        LOG.debug("Process the Layer version resource %s", resolved_layer.value)
+        if not resolved_layer.value.endswith("arn"):
+            LOG.debug("The used property in reference %s is not an ARN property", resolved_layer.value)
+            raise InvalidResourceLinkingException(
+                f"Could not use the value {resolved_layer.value} as a Layer for lambda function "
+                f"{function_tf_resource.full_address}. Lambda Function Layer value should refer to valid "
+                f"lambda layer ARN property"
+            )
+
+        tf_layer_res_name = resolved_layer.value[len(LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX) : -len(".arn")]
+        if resolved_layer.module_address:
+            tf_layer_full_address = (
+                f"{resolved_layer.module_address}.{LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX}" f"{tf_layer_res_name}"
+            )
+        else:
+            tf_layer_full_address = f"{LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX}{tf_layer_res_name}"
+        cfn_layer_logical_id = build_cfn_logical_id(tf_layer_full_address)
+        LOG.debug("The logical id of the resource referred by %s is %s", resolved_layer.value, cfn_layer_logical_id)
+
+        # validate that the found layer is in mapped layers resources, which means that it is created.
+        # The resource can be defined in the TF plan configuration, but will not be created.
+        layers = []
+        if cfn_layer_logical_id in tf_layers:
+            LOG.debug("The resource referred by %s can be found in the mapped layers resources", resolved_layer.value)
+            layers.append({"Ref": cfn_layer_logical_id})
+        return layers
+    # it means the Lambda function is referring to a wrong layer resource type
+    LOG.debug("The used reference %s is not a Layer Version resource.", resolved_layer.value)
+    raise InvalidResourceLinkingException(
+        f"Could not use the value {resolved_layer.value} as a Layer for lambda function "
+        f"{function_tf_resource.full_address}. Lambda Function Layer value should refer to valid lambda layer ARN "
+        f"property"
+    )
+
+
+def _update_mapped_lambda_function_with_resolved_layers(
+    cfn_functions: List[Dict], layers: List, tf_layers: Dict[str, Dict]
+) -> None:
+    """
+    Set The resolved layers list to the mapped lambda functions.
+
+    Parameters
+    ----------
+    cfn_functions: List[Dict]
+        A list of mapped lambda functions that are equivalent to the input terraform configuration lambda function
+
+    layers: List
+        The resolved layers values that will be used as a value for the mapped CFN function Layers attribute.
+
+    tf_layers: Dict[str, Dict]
+        Dictionary of all actual terraform layers resources (not configuration resources). The dictionary's key is the
+        calculated logical id for each resource
+    """
+    LOG.debug("Set the resolved layers %s to the cfn functions %s", layers, cfn_functions)
+    for cfn_func in cfn_functions:
+        LOG.debug("Process the Lambda function %s", cfn_func)
+        # Add the resolved layers list as it is to the mapped function that does not have any layers defined
+        if not cfn_func["Properties"].get("Layers"):
+            LOG.debug("The Lambda function %s does not have any layers defined.", cfn_func)
+            cfn_func["Properties"]["Layers"] = layers
+            continue
+
+        # Check if the the mapped function layers list contains any arn value for one of the resolved layers to replace
+        # it.
+        for layer in layers:
+            # resolve the layer arn string to check if it is already there in the CFN func layer property
+            # layer logical id will be always in tf_layers, as we do not consider the references to layers that does not
+            # exist in the tf_layers list as it means that this layer will not be created.
+            LOG.debug("Check if the layer %s is already defined in function % layers.", layer, cfn_func)
+            layer_arn = layer if isinstance(layer, str) else tf_layers[layer["Ref"]].get("values", {}).get("arn")
+
+            # The resolved layer is a reference to a layers which is not applied yet, so there is no ARN value yet.
+            if not layer_arn:
+                LOG.debug("The layer %s is not applied yet, and does not have ARN property.", layer)
+                cfn_func["Properties"]["Layers"].append(layer)
+                continue
+
+            # try to find a layer arn that equals the resolved layer arn so we can replace it with Ref value.
+            try:
+                layer_index = cfn_func["Properties"].get("Layers", []).index(layer_arn)
+                LOG.debug(
+                    "The layer %s has the arn value %s that exists in function %s layers.", layer, layer_arn, cfn_func
+                )
+                cfn_func["Properties"]["Layers"][layer_index] = layer
+            except ValueError:
+                # there is no matching layer ARN.
+                LOG.debug(
+                    "The layer %s has the arn value %s that does not exist in function %s layers.",
+                    layer,
+                    layer_arn,
+                    cfn_func,
+                )
+                cfn_func["Properties"]["Layers"].append(layer)
