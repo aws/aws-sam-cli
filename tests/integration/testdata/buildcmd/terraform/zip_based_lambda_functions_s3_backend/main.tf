@@ -32,6 +32,12 @@ locals {
     lambda_code_filename = "list_books.zip"
     layer_src_path = "./my_layer_code"
     layer_code_filename = "my_layer.zip"
+    hello_world_function_src_path = "./artifacts/HelloWorldFunction"
+    hello_world_artifact_file_name = "hello_world.zip"
+    layer1_src_path = "./artifacts/layer1"
+    layer1_artifact_file_name = "layer1.zip"
+    layer2_src_path = "./artifacts/layer2"
+    layer2_artifact_file_name = "layer2.zip"
 }
 
 resource "random_uuid" "s3_bucket" {
@@ -57,7 +63,7 @@ resource "null_resource" "build_lambda_function" {
     }
 
     provisioner "local-exec" {
-        command = "./py_build.sh \"${local.lambda_src_path}\" \"${local.building_path}\" \"${local.lambda_code_filename}\""
+        command = "./py_build.sh \"${local.lambda_src_path}\" \"${local.building_path}\" \"${local.lambda_code_filename}\" Function"
     }
 }
 
@@ -67,7 +73,7 @@ resource "null_resource" "build_layer_version" {
     }
 
     provisioner "local-exec" {
-        command = "./py_build.sh \"${local.layer_src_path}\" \"${local.building_path}\" \"${local.layer_code_filename}\""
+        command = "./py_build.sh \"${local.layer_src_path}\" \"${local.building_path}\" \"${local.layer_code_filename}\" layer"
     }
 }
 
@@ -184,3 +190,140 @@ resource "null_resource" "sam_metadata_aws_lambda_layer_version_from_local" {
     ]
 }
 ## */
+
+## /* hello world code builder
+resource "null_resource" "build_hello_world_lambda_function" {
+    triggers = {
+        build_number = "${timestamp()}"
+    }
+
+    provisioner "local-exec" {
+        command = "./py_build.sh \"${local.hello_world_function_src_path}\" \"${local.building_path}\" \"${local.hello_world_artifact_file_name}\" Function"
+    }
+}
+
+## */
+
+## /* layer1
+resource "null_resource" "build_layer1_version" {
+    triggers = {
+        build_number = "${timestamp()}"
+    }
+
+    provisioner "local-exec" {
+        command = "./py_build.sh \"${local.layer1_src_path}\" \"${local.building_path}\" \"${local.layer1_artifact_file_name}\" Layer"
+    }
+}
+
+resource "null_resource" "sam_metadata_aws_lambda_layer_version_layer1" {
+    triggers = {
+        resource_name = "aws_lambda_layer_version.layer1[0]"
+        resource_type = "LAMBDA_LAYER"
+
+        original_source_code = local.layer1_src_path
+        built_output_path = "${local.building_path}/${local.layer1_artifact_file_name}"
+    }
+    depends_on = [
+        null_resource.build_layer1_version
+    ]
+}
+
+resource "aws_lambda_layer_version" "layer1" {
+  count = 1
+  filename   = "${local.building_path}/${local.layer1_artifact_file_name}"
+  layer_name = "lambda_layer1"
+  compatible_runtimes = ["python3.8"]
+  depends_on = [
+      null_resource.build_layer1_version
+  ]
+}
+
+## */ layer1
+
+## /* layer2
+resource "null_resource" "build_layer2_version" {
+    triggers = {
+        build_number = "${timestamp()}"
+    }
+
+    provisioner "local-exec" {
+        command = "./py_build.sh \"${local.layer2_src_path}\" \"${local.building_path}\" \"${local.layer2_artifact_file_name}\" Layer"
+    }
+}
+
+resource "null_resource" "sam_metadata_aws_lambda_layer_version_layer2" {
+    triggers = {
+        resource_name = "module.layer2.aws_lambda_layer_version.layer"
+        resource_type = "LAMBDA_LAYER"
+
+        original_source_code = local.layer2_src_path
+        built_output_path = "${local.building_path}/${local.layer2_artifact_file_name}"
+    }
+    depends_on = [
+        null_resource.build_layer2_version
+    ]
+}
+
+module "layer2" {
+  source = "./lambda_layer"
+  source_code   = "${local.building_path}/${local.layer2_artifact_file_name}"
+  name = "lambda_layer2"
+  depends_on = [
+      null_resource.build_layer2_version
+  ]
+}
+
+## */ layer2
+
+## /* function1 connected to layer1
+
+resource "null_resource" "sam_metadata_aws_lambda_function1" {
+    triggers = {
+        resource_name = "aws_lambda_function.function1"
+        resource_type = "ZIP_LAMBDA_FUNCTION"
+        original_source_code = local.hello_world_function_src_path
+        built_output_path = "${local.building_path}/${local.hello_world_artifact_file_name}"
+    }
+    depends_on = [
+        null_resource.build_hello_world_lambda_function
+    ]
+}
+
+resource "aws_lambda_function" "function1" {
+    filename = "${local.building_path}/${local.hello_world_artifact_file_name}"
+    handler = "app.lambda_handler"
+    runtime = "python3.8"
+    function_name = "function1"
+    role = aws_iam_role.iam_for_lambda.arn
+    layers = [
+        aws_lambda_layer_version.layer1[0].arn,
+    ]
+    depends_on = [
+        null_resource.build_hello_world_lambda_function
+    ]
+}
+
+## /* function1 connected to layer1
+
+## /* function2 connected to layer2
+
+resource "null_resource" "sam_metadata_aws_lambda_function2" {
+    triggers = {
+        resource_name = "module.function2.aws_lambda_function.this"
+        resource_type = "ZIP_LAMBDA_FUNCTION"
+        original_source_code = local.hello_world_function_src_path
+        built_output_path = "${local.building_path}/${local.hello_world_artifact_file_name}"
+    }
+    depends_on = [
+        null_resource.build_hello_world_lambda_function
+    ]
+}
+
+module "function2" {
+  source = "./lambda_function"
+  source_code = "${local.building_path}/${local.hello_world_artifact_file_name}"
+  function_name = "function2"
+  layers = [module.layer2.arn]
+}
+
+## /* function2 connected to layer2
