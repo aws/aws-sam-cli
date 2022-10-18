@@ -1,6 +1,9 @@
 """
 Provides methods to generate and send metrics
 """
+from dataclasses import dataclass
+
+from pathlib import Path
 from timeit import default_timer
 from functools import wraps, reduce
 
@@ -8,7 +11,7 @@ import uuid
 import platform
 import logging
 import traceback
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict
 
 import click
 
@@ -21,7 +24,10 @@ from samcli.lib.telemetry.cicd import CICDDetector, CICDPlatform
 from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.telemetry.project_metadata import get_git_remote_origin_url, get_project_name, get_initial_commit_hash
 from samcli.commands._utils.experimental import get_all_experimental_statues
+from samcli.lib.hook.hook_config import HookPackageConfig
+from samcli.lib.hook.hook_wrapper import INTERNAL_PACKAGES_ROOT
 from .telemetry import Telemetry
+from ..hook.exceptions import InvalidHookPackageConfigException
 from ..iac.cdk.utils import is_cdk_project
 from ..iac.plugins_interfaces import ProjectTypes
 
@@ -36,6 +42,13 @@ No side effect will result in this as it is write-only for code outside of telem
 Decorators should be used to minimize logic involving telemetry.
 """
 _METRICS = dict()
+
+
+@dataclass
+class ProjectDetails:
+    project_type: str
+    hook_package_id: Optional[str]
+    hook_package_version: Optional[str]
 
 
 def send_installed_metric():
@@ -150,10 +163,14 @@ def track_command(func):
             metric_specific_attributes = get_all_experimental_statues() if ctx.experimental else {}
             try:
                 template_dict = ctx.template_dict
-                project_type = ProjectTypes.CDK.value if is_cdk_project(template_dict) else ProjectTypes.CFN.value
-                if project_type == ProjectTypes.CDK.value:
+                project_details = _get_project_details(kwargs.get("hook_package_id", ""), template_dict)
+                if project_details.project_type == ProjectTypes.CDK.value:
                     EventTracker.track_event("UsedFeature", "CDK")
-                metric_specific_attributes["projectType"] = project_type
+                metric_specific_attributes["projectType"] = project_details.project_type
+                if project_details.hook_package_id:
+                    metric_specific_attributes["hookPackageId"] = project_details.hook_package_id
+                if project_details.hook_package_version:
+                    metric_specific_attributes["hookPackageVersion"] = project_details.hook_package_version
             except AttributeError:
                 LOG.debug("Template is not provided in context, skip adding project type metric")
             metric_name = "commandRunExperimental" if ctx.experimental else "commandRun"
@@ -183,6 +200,22 @@ def track_command(func):
         return return_value
 
     return wrapped
+
+
+def _get_project_details(hook_package_id: str, template_dict: Dict) -> ProjectDetails:
+    if not hook_package_id:
+        project_type = ProjectTypes.CDK.value if is_cdk_project(template_dict) else ProjectTypes.CFN.value
+        return ProjectDetails(project_type=project_type, hook_package_id=None, hook_package_version=None)
+    hook_location = Path(INTERNAL_PACKAGES_ROOT, hook_package_id)
+    try:
+        hook_package_config = HookPackageConfig(package_dir=hook_location)
+    except InvalidHookPackageConfigException:
+        return ProjectDetails(project_type=hook_package_id, hook_package_id=hook_package_id, hook_package_version=None)
+    return ProjectDetails(
+        project_type=hook_package_config.iac_framework,
+        hook_package_id=hook_package_config.package_id,
+        hook_package_version=hook_package_config.version,
+    )
 
 
 def _get_stack_trace_info(exception: Exception) -> Tuple[str, str]:

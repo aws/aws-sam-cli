@@ -87,3 +87,7 @@ class HookPackageConfig:
     @property
     def functionalities(self) -> Dict[str, HookFunctionality]:
         return cast(Dict[str, HookFunctionality], self._config["functionalities"])
+
+    @property
+    def iac_framework(self) -> str:
+        return cast(str, self._config["iac_framework"])
