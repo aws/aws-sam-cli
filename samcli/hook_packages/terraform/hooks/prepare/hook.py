@@ -994,15 +994,15 @@ def _generate_makefile_rule_for_lambda_resource(
     """
     target = _get_makefile_build_target(logical_id)
     resource_address = sam_metadata_resource.resource.get("address", "")
-    show_command_recipe = _format_makefile_recipe(
-        _build_python_command(
+    python_command_recipe = _format_makefile_recipe(
+        _build_makerule_python_command(
             python_command_name, output_dir, resource_address, sam_metadata_resource, terraform_application_dir
         )
     )
-    return f"{target}{show_command_recipe}"
+    return f"{target}{python_command_recipe}"
 
 
-def _build_python_command(
+def _build_makerule_python_command(
     python_command_name: str,
     output_dir: str,
     resource_address: str,
@@ -1010,7 +1010,7 @@ def _build_python_command(
     terraform_application_dir: str,
 ) -> str:
     """
-    Build the Terraform show command recipe to be used inside of the Makefile rule
+    Build the Python command recipe to be used inside of the Makefile rule
 
     Parameters
     ----------

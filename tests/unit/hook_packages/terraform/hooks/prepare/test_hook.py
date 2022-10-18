@@ -37,7 +37,7 @@ from samcli.hook_packages.terraform.hooks.prepare.hook import (
     _build_jpath_string,
     _validate_referenced_resource_layer_matches_metadata_type,
     _format_makefile_recipe,
-    _build_python_command,
+    _build_makerule_python_command,
     _link_lambda_functions_to_layers,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import TFModule, TFResource
@@ -2678,14 +2678,14 @@ class TestPrepareHook(TestCase):
         self.assertEqual(makefile_rule, expected_makefile_rule)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._build_jpath_string")
-    def test_build_python_command(self, jpath_string_mock):
+    def test_build_makerule_python_command(self, jpath_string_mock):
         jpath_string_mock.return_value = (
             "|values|root_module|resources|"
             '[?address=="null_resource.sam_metadata_aws_lambda_function"]'
             "|values|triggers|built_output_path"
         )
         sam_metadata_resource = SamMetadataResource(current_module_address=None, resource={})
-        show_command = _build_python_command(
+        show_command = _build_makerule_python_command(
             python_command_name="python",
             output_dir="/some/dir/path/.aws-sam/output",
             resource_address="null_resource.sam_metadata_aws_lambda_function",
