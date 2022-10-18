@@ -2361,7 +2361,7 @@ class TestPrepareHook(TestCase):
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.run")
     def test_prepare_with_called_process_error(self, mock_subprocess_run):
-        mock_subprocess_run.side_effect = CalledProcessError(-2, "terraform init")
+        mock_subprocess_run.side_effect = CalledProcessError(-2, "terraform init", stderr=b"")
         with self.assertRaises(PrepareHookException):
             prepare(self.prepare_params)
 

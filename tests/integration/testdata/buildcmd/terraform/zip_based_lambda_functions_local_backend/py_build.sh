@@ -21,4 +21,3 @@ pushd ${build_path}/tmp_building/ && zip -r $output_name . && popd
 mv "${build_path}/tmp_building/${output_name}" "${build_path}/$output_name"
 rm -rf ${build_path}/tmp_building
 pwd
-tree ./
