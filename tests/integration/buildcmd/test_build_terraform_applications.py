@@ -219,7 +219,11 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
     "Skip Terraform test cases unless running in CI",
 )
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(BuildTerraformApplicationIntegBase):
-    terraform_application = Path("terraform/zip_based_lambda_functions_local_backend")
+    terraform_application = (
+        Path("terraform/zip_based_lambda_functions_local_backend")
+        if not IS_WINDOWS
+        else Path("terraform/zip_based_lambda_functions_local_backend_windows")
+    )
     functions = [
         "aws_lambda_function.from_localfile",
         "aws_lambda_function.from_s3",
@@ -253,7 +257,11 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
     "Skip Terraform test cases unless running in CI",
 )
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(BuildTerraformApplicationS3BackendIntegBase):
-    terraform_application = Path("terraform/zip_based_lambda_functions_s3_backend")
+    terraform_application = (
+        Path("terraform/zip_based_lambda_functions_s3_backend")
+        if not IS_WINDOWS
+        else Path("terraform/zip_based_lambda_functions_s3_backend_windows")
+    )
     functions = [
         "aws_lambda_function.from_localfile",
         "aws_lambda_function.from_s3",
