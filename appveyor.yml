@@ -182,10 +182,10 @@ for:
 
       # Dev Tests
       - "pip install -e \".[dev]\""
-      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
+      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit --junitxml=TEST-py${PYTHON_VERSION}-unit-test-results.xml"
       - "pylint --rcfile .pylintrc samcli"
       - "mypy setup.py samcli tests"
-      - "pytest -n 4 tests/functional"
+      - "pytest -n 4 tests/functional --junitxml=py${PYTHON_VERSION}-functional-test-results.xml"
 
       # Runs only in Linux, logging Public ECR when running canary and cred is available
       - sh: "
@@ -204,3 +204,7 @@ for:
       # Smoke tests run in parallel - it runs on both Linux & Windows
       # Presence of the RUN_SMOKE envvar will run the smoke tests
       - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"
+
+    on_finish:
+      - sh: |
+        find "$APPVEYOR_BUILD_FOLDER" -type f -name 'TEST*.xml' -print0 | xargs -0 -I '{}' curl -F 'file=@{}' "https://ci.appveyor.com/api/testresults/junit/$APPVEYOR_JOB_ID"
