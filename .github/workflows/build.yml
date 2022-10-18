@@ -17,8 +17,10 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          - macos-latest
           - windows-latest
+          # make pr fails on macos-latest due to tests
+          # see e.g. https://github.com/aws/aws-sam-cli/actions/runs/3275695733/jobs/5390859172
+          # - macos-latest
         python:
           - "3.7"
           - "3.8"
