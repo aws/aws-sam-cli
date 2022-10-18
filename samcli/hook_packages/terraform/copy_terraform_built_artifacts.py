@@ -273,13 +273,17 @@ def create_backend_override():
     """
     override_src_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), TF_BACKEND_OVERRIDE_FILENAME)
     override_dest_path = os.path.join(os.getcwd(), TF_BACKEND_OVERRIDE_FILENAME + ".tf")
-    shutil.copyfile(override_src_path, override_dest_path)
+    try:
+        shutil.copy2(override_src_path, override_dest_path)
+    except OSError as ex:
+        LOG.error("Copy unsuccessful!", exc_info=ex)
+        cli_exit()
 
 
 if __name__ == "__main__":
     # Gather inputs and clean them
     argparser = argparse.ArgumentParser(
-        description="Copy built artifacts referenced in a json file " "(passed via stdin) matching a search pattern"
+        description="Copy built artifacts referenced in a json file (passed via stdin) matching a search pattern"
     )
     argparser.add_argument(
         "--expression",
@@ -293,7 +297,7 @@ if __name__ == "__main__":
         "--directory",
         type=str,
         required=True,
-        help="Directory to which extracted expression " "contents are copied/unzipped to",
+        help="Directory to which extracted expression contents are copied/unzipped to",
     )
     argparser.add_argument(
         "--target",
@@ -307,18 +311,24 @@ if __name__ == "__main__":
     expression = arguments.expression
     target = arguments.target
 
+    LOG.info("Create TF backend override")
     create_backend_override()
 
+    LOG.info("Running `terraform init` with backend override")
     subprocess.check_call(["terraform", "init", "-reconfigure"])
 
+    LOG.info("Running `terraform apply` on the target '%s'", target)
     subprocess.check_call(["terraform", "apply", "-target", target, "-replace", target, "-auto-approve"])
 
+    LOG.info("Generating terraform output")
     terraform_out = subprocess.check_output(["terraform", "show", "-json"])
 
+    LOG.info("Parsing terraform output")
     try:
         data_object = json.loads(terraform_out)
     except ValueError as ex:
         LOG.error("Parsing JSON from terraform out unsuccessful!", exc_info=True)
         cli_exit()
 
+    LOG.info("Find and copy built assets")
     find_and_copy_assets(directory_path, expression, data_object)
