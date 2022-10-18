@@ -214,7 +214,8 @@ def _build_module_resources_from_configuration(module_configuration: Dict, modul
                 continue
 
             parsed_expression = _build_expression_from_configuration(expression_value)
-            resource_attributes[expression_name] = parsed_expression
+            if parsed_expression:
+                resource_attributes[expression_name] = parsed_expression
 
         resource_address = config_resource.get("address")
         resource_type = config_resource.get("type")
@@ -243,7 +244,8 @@ def _build_module_outputs_from_configuration(module_configuration: Dict) -> Dict
     for output_name, output_value in config_outputs.items():
         expression = output_value.get("expression", {})
         parsed_expression = _build_expression_from_configuration(expression)
-        module_outputs[output_name] = parsed_expression
+        if parsed_expression:
+            module_outputs[output_name] = parsed_expression
 
     return module_outputs
 
@@ -273,7 +275,8 @@ def _build_child_modules_from_configuration(module_configuration: Dict, module: 
         expressions = module_call_value.get("expressions", {})
         for expression_name, expression_value in expressions.items():
             parsed_expression = _build_expression_from_configuration(expression_value)
-            module_call_input_variables[expression_name] = parsed_expression
+            if parsed_expression:
+                module_call_input_variables[expression_name] = parsed_expression
 
         module_call_module_config = module_call_value.get("module", {})
         module_call_built_module = _build_module(
@@ -286,7 +289,7 @@ def _build_child_modules_from_configuration(module_configuration: Dict, module: 
     return child_modules
 
 
-def _build_expression_from_configuration(expression_configuration: Dict) -> Expression:
+def _build_expression_from_configuration(expression_configuration: Dict) -> Optional[Expression]:
     """
     Parses an Expression from an expression terraform configuration.
 
@@ -303,7 +306,7 @@ def _build_expression_from_configuration(expression_configuration: Dict) -> Expr
     constant_value = expression_configuration.get("constant_value")
     references = expression_configuration.get("references")
 
-    parsed_expression: Expression
+    parsed_expression: Optional[Expression] = None
 
     if constant_value is not None:
         parsed_expression = ConstantValue(constant_value)
