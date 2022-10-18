@@ -2383,7 +2383,7 @@ def handler(event, context):
 class TestWatchingImageWarmContainers(WatchWarmContainersIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
-Parameteres:
+Parameters:
   Tag:
     Type: String
   ImageUri:
@@ -2447,7 +2447,7 @@ COPY main.py ./"""
 class TestWatchingTemplateChangesImageDockerFileChangedLocation(WatchWarmContainersIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
-Parameteres:
+Parameters:
   Tag:
     Type: String
   ImageUri:
@@ -2475,7 +2475,7 @@ Resources:
         """
     template_content_2 = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
-Parameteres:
+Parameters:
   Tag:
     Type: String
   ImageUri:
@@ -2590,7 +2590,7 @@ def handler(event, context):
 class TestWatchingImageLazyContainers(WatchWarmContainersIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
-Parameteres:
+Parameters:
   Tag:
     Type: String
   ImageUri:
@@ -2789,7 +2789,7 @@ def handler(event, context):
 class TestWatchingTemplateChangesImageDockerFileChangedLocationLazyContainers(WatchWarmContainersIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
-Parameteres:
+Parameters:
   Tag:
     Type: String
   ImageUri:
@@ -2817,7 +2817,7 @@ Resources:
         """
     template_content_2 = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
-Parameteres:
+Parameters:
   Tag:
     Type: String
   ImageUri:

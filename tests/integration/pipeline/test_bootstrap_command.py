@@ -94,8 +94,7 @@ class TestBootstrap(BootstrapIntegBase):
             self.assertSetEqual(common_resources, set(self._extract_created_resource_logical_ids(stack_name)))
             self.validate_pipeline_config(stack_name, stage_configuration_name)
 
-    @parameterized.expand([("create_image_repository",), (False,)])
-    def test_interactive_with_no_resources_provided_using_oidc(self, create_image_repository):
+    def test_interactive_with_no_resources_provided_using_oidc(self):
         stage_configuration_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
 
@@ -115,11 +114,8 @@ class TestBootstrap(BootstrapIntegBase):
             "",  # Pipeline execution role
             "",  # CloudFormation execution role
             "",  # Artifacts bucket
-            "y" if create_image_repository else "N",  # Should we create ECR repo
+            "N",  # Should we create ECR repo
         ]
-
-        if create_image_repository:
-            inputs.append("")  # Create image repository
 
         inputs.append("")  # Confirm summary
         inputs.append("y")  # Create resources
@@ -138,23 +134,14 @@ class TestBootstrap(BootstrapIntegBase):
             "ArtifactsLoggingBucketPolicy",
             "ArtifactsBucketPolicy",
             "PipelineExecutionRolePermissionPolicy",
+            "OidcProvider",
         }
         CFN_OUTPUT_TO_CONFIG_KEY["OidcProvider"] = "oidc_provider_url"
         del CFN_OUTPUT_TO_CONFIG_KEY["PipelineUser"]
-        if create_image_repository:
-            self.assertSetEqual(
-                {
-                    *common_resources,
-                    "ImageRepository",
-                },
-                set(self._extract_created_resource_logical_ids(stack_name)),
-            )
-            CFN_OUTPUT_TO_CONFIG_KEY["ImageRepository"] = "image_repository"
-            self.validate_pipeline_config(stack_name, stage_configuration_name, list(CFN_OUTPUT_TO_CONFIG_KEY.keys()))
-            del CFN_OUTPUT_TO_CONFIG_KEY["ImageRepository"]
-        else:
-            self.assertSetEqual(common_resources, set(self._extract_created_resource_logical_ids(stack_name)))
-            self.validate_pipeline_config(stack_name, stage_configuration_name)
+
+        self.assertSetEqual(common_resources, set(self._extract_created_resource_logical_ids(stack_name)))
+        self.validate_pipeline_config(stack_name, stage_configuration_name)
+
         del CFN_OUTPUT_TO_CONFIG_KEY["OidcProvider"]
         CFN_OUTPUT_TO_CONFIG_KEY["PipelineUser"] = "pipeline_user"
 
