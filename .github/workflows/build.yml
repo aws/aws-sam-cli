@@ -1,4 +1,4 @@
-name: Tests
+name: Unit Tests
 
 on:
   push:
@@ -28,8 +28,5 @@ jobs:
     - uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
-    # https://github.com/actions/runner-images/issues/2150#issuecomment-1241017890
-    - if: runner.os == 'macOS'
-      run: brew install docker && colima start
     - run: make init
     - run: make pr
