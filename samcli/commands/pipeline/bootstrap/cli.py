@@ -265,9 +265,6 @@ def do_cli(
         Stage,
     )
 
-    if not pipeline_user_arn and not permissions_provider == OPEN_ID_CONNECT:
-        pipeline_user_arn = _load_saved_pipeline_user_arn()
-
     enable_oidc_option = False
     if not cicd_provider or cicd_provider in OIDC_SUPPORTED_PROVIDER:
         enable_oidc_option = True
