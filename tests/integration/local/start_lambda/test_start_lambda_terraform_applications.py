@@ -1,7 +1,10 @@
 import json
+import os
+import shutil
+import uuid
 from pathlib import Path
 from subprocess import Popen, PIPE, TimeoutExpired
-from typing import Optional
+from typing import Optional, Dict
 from unittest import skipIf
 
 import logging
@@ -12,8 +15,9 @@ from botocore.config import Config
 import docker
 import pytest
 from docker.errors import APIError
-from parameterized import parameterized
+from parameterized import parameterized, parameterized_class
 
+from tests.integration.local.invoke.layer_utils import LayerUtils
 from tests.integration.local.start_lambda.start_lambda_api_integ_base import StartLambdaIntegBaseClass
 from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUNNING_ON_CI
 
@@ -23,6 +27,7 @@ LOG = logging.getLogger(__name__)
 class StartLambdaTerraformApplicationIntegBase(StartLambdaIntegBaseClass):
     terraform_application: Optional[str] = None
     input: Optional[bytes] = None
+    env: Optional[Dict] = None
 
     @classmethod
     def setUpClass(cls):
@@ -48,7 +53,17 @@ class StartLambdaTerraformApplicationIntegBase(StartLambdaIntegBaseClass):
             except APIError as ex:
                 LOG.error("Failed to remove container %s", container, exc_info=ex)
 
-        cls.start_lambda(input=cls.input)
+        cls.start_lambda(input=cls.input, env=cls.env)
+
+    @classmethod
+    def _run_command(cls, command_list, env=None, tf_application=None):
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE, env=env, cwd=tf_application)
+        try:
+            (stdout, stderr) = process.communicate(timeout=5)
+            return stdout, stderr, process.returncode
+        except TimeoutExpired:
+            process.kill()
+            raise
 
 
 class TestLocalStartLambdaTerraformApplicationWithoutBuild(StartLambdaTerraformApplicationIntegBase):
@@ -90,6 +105,124 @@ class TestLocalStartLambdaTerraformApplicationWithoutBuild(StartLambdaTerraformA
 
         response_body = json.loads(response.get("Payload").read().decode("utf-8"))
         expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"hello world\\"}"}')
+
+        self.assertEqual(response_body, expected_response)
+        self.assertEqual(response.get("StatusCode"), 200)
+
+
+@skipIf(
+    not CI_OVERRIDE,
+    "Skip Terraform test cases unless running in CI",
+)
+@parameterized_class(
+    ("should_apply_first",),
+    [
+        (False,),
+        (True,),
+    ],
+)
+class TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild(StartLambdaTerraformApplicationIntegBase):
+    terraform_application = "/testdata/invoke/terraform/simple_application_with_layers_no_building_logic"
+    pre_create_lambda_layers = ["simple_layer1", "simple_layer2", "simple_layer3"]
+    template_path = None
+    hook_package_id = "terraform"
+    beta_features = True
+
+    @classmethod
+    def setUpClass(cls):
+        cls.region_name = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+
+        # create some Lambda Layers to be used in the Terraform project
+        working_dir = cls.integration_dir + cls.terraform_application
+        cls.layerUtils = LayerUtils(cls.region_name, str(Path(working_dir).joinpath("artifacts")))
+        cls.layer_postfix = str(uuid.uuid4())
+
+        for lambda_layer_name in cls.pre_create_lambda_layers:
+            cls.layerUtils.upsert_layer(
+                f"{lambda_layer_name}-{cls.layer_postfix}",
+                f"{lambda_layer_name}-{cls.layer_postfix}",
+                f"{lambda_layer_name}.zip",
+            )
+
+        # create override file in const_layer module to test using the module default provided value
+        const_layer_module_input_layer_overwrite = str(
+            Path(working_dir).joinpath("const_layer", f"variable_name_override.tf")
+        )
+        _2nd_layer_arn = cls.layerUtils.parameters_overrides[f"{cls.pre_create_lambda_layers[1]}-{cls.layer_postfix}"]
+        lines = [
+            bytes('variable "input_layer" {' + os.linesep, "utf-8"),
+            bytes("   type = string" + os.linesep, "utf-8"),
+            bytes(f'   default="{_2nd_layer_arn}"' + os.linesep, "utf-8"),
+            bytes("}", "utf-8"),
+        ]
+        with open(const_layer_module_input_layer_overwrite, "wb") as file:
+            file.writelines(lines)
+
+        # apply the terraform project
+        if cls.should_apply_first:
+            apply_command = ["terraform", "apply", "-auto-approve"]
+            stdout, _, return_code = cls._run_command(command_list=apply_command, env=cls._add_tf_project_variables())
+        cls.env = cls._add_tf_project_variables()
+        super(TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild, cls).setUpClass()
+
+    @classmethod
+    def _add_tf_project_variables(cls):
+        environment_variables = os.environ.copy()
+        environment_variables["TF_VAR_input_layer"] = cls.layerUtils.parameters_overrides[
+            f"{cls.pre_create_lambda_layers[0]}-{cls.layer_postfix}"
+        ]
+        environment_variables["TF_VAR_layer_name"] = f"{cls.pre_create_lambda_layers[2]}-{cls.layer_postfix}"
+        return environment_variables
+
+    @classmethod
+    def tearDownClass(cls):
+        """Clean up and delete the lambda layers, and bucket if it is not pre-created"""
+
+        # delete the created terraform project
+        if cls.should_apply_first:
+            apply_command = ["terraform", "destroy", "-auto-approve"]
+            stdout, _, return_code = cls._run_command(command_list=apply_command, env=cls._add_tf_project_variables())
+
+        # delete the created layers
+        cls.layerUtils.delete_layers()
+
+        # delete the override file
+        try:
+            os.remove(str(Path(cls.working_dir).joinpath("const_layer", f"variable_name_override.tf")))
+            shutil.rmtree(str(Path(cls.working_dir).joinpath(".aws-sam-iacs")))
+            shutil.rmtree(str(Path(cls.working_dir).joinpath(".terraform")))
+            os.remove(str(Path(cls.working_dir).joinpath(".terraform.lock.hcl")))
+        except FileNotFoundError:
+            pass
+
+        super(TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild, cls).tearDownClass()
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+        self.lambda_client = boto3.client(
+            "lambda",
+            endpoint_url=self.url,
+            region_name="us-east-1",
+            use_ssl=False,
+            verify=False,
+            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
+        )
+
+    functions = [
+        ("aws_lambda_function.function1", "hello world 1"),
+        ("aws_lambda_function.function2", "hello world 2"),
+        ("aws_lambda_function.function3", "hello world 3"),
+        ("aws_lambda_function.function4", "hello world 4"),
+        ("module.function5.aws_lambda_function.this", "hello world 5"),
+    ]
+
+    @parameterized.expand(functions)
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_function(self, function_name, expected_output):
+        response = self.lambda_client.invoke(FunctionName=function_name)
+
+        response_body = json.loads(response.get("Payload").read().decode("utf-8"))
+        expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"' + expected_output + '\\"}"}')
 
         self.assertEqual(response_body, expected_response)
         self.assertEqual(response.get("StatusCode"), 200)
@@ -173,11 +306,11 @@ class TestLocalStartLambdaInvalidUsecasesTerraform(StartLambdaTerraformApplicati
     def setUp(self):
         self.integration_dir = str(Path(__file__).resolve().parents[2])
         terraform_application = "/testdata/invoke/terraform/simple_application_no_building_logic"
-        self.terraform_application_path = self.integration_dir + terraform_application
+        self.working_dir = self.integration_dir + terraform_application
 
     def test_invalid_hook_package_id(self):
         command_list = self.get_start_lambda_command(hook_package_id="tf")
-        _, stderr, return_code = self._run_command(command_list, tf_application=self.terraform_application_path)
+        _, stderr, return_code = self._run_command(command_list, tf_application=self.working_dir)
 
         process_stderr = stderr.strip()
         self.assertRegex(
@@ -189,7 +322,7 @@ class TestLocalStartLambdaInvalidUsecasesTerraform(StartLambdaTerraformApplicati
     def test_start_lambda_with_no_beta_feature(self):
         command_list = self.get_start_lambda_command(hook_package_id="terraform", beta_features=False)
 
-        _, stderr, return_code = self._run_command(command_list, tf_application=self.terraform_application_path)
+        _, stderr, return_code = self._run_command(command_list, tf_application=self.working_dir)
 
         process_stderr = stderr.strip()
         self.assertRegex(
@@ -201,7 +334,7 @@ class TestLocalStartLambdaInvalidUsecasesTerraform(StartLambdaTerraformApplicati
     def test_invalid_coexist_parameters(self):
 
         command_list = self.get_start_lambda_command(hook_package_id="terraform", template_path="path/template.yaml")
-        _, stderr, return_code = self._run_command(command_list, tf_application=self.terraform_application_path)
+        _, stderr, return_code = self._run_command(command_list, tf_application=self.working_dir)
 
         process_stderr = stderr.strip()
         self.assertRegex(
@@ -210,15 +343,6 @@ class TestLocalStartLambdaInvalidUsecasesTerraform(StartLambdaTerraformApplicati
             "not be used together",
         )
         self.assertNotEqual(return_code, 0)
-
-    def _run_command(self, command_list, env=None, tf_application=None):
-        process = Popen(command_list, stdout=PIPE, stderr=PIPE, env=env, cwd=tf_application)
-        try:
-            (stdout, stderr) = process.communicate(timeout=5)
-            return stdout, stderr, process.returncode
-        except TimeoutExpired:
-            process.kill()
-            raise
 
 
 @skipIf(

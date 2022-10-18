@@ -655,7 +655,7 @@ def _link_lambda_function_to_layer(
         )
         raise OneLambdaLayerLinkingLimitationException(layers, function_tf_resource.full_address)
     if not layers:
-        LOG.debug("There is no layers defined for lambda function %s", function_tf_resource.full_address)
+        LOG.debug("There are no layers defined for lambda function %s", function_tf_resource.full_address)
     else:
         _update_mapped_lambda_function_with_resolved_layers(cfn_functions, layers, tf_layers)
 
