@@ -302,26 +302,45 @@ if __name__ == "__main__":
     argparser.add_argument(
         "--target",
         type=str,
-        required=True,
-        help="Terraform resource path for the SAM CLI Metadata resource",
+        required=False,
+        help="Terraform resource path for the SAM CLI Metadata resource. This option is not to be used with --json",
+    )
+    argparser.add_argument(
+        "--json",
+        type=str,
+        required=False,
+        help="Terraform output json body. This option is not to be used with --target."
     )
 
     arguments = argparser.parse_args()
     directory_path = os.path.abspath(arguments.directory)
     expression = arguments.expression
     target = arguments.target
+    json_str = arguments.json
 
-    LOG.info("Create TF backend override")
-    create_backend_override()
+    if target and json_str:
+        LOG.error("Provide either --target or --json. Do not provide both.")
+        cli_exit()
+        
+    if not target and not json_str:
+        LOG.error("One of --target and --json must be provided.")
+        cli_exit()
 
-    LOG.info("Running `terraform init` with backend override")
-    subprocess.check_call(["terraform", "init", "-reconfigure"])
+    if target:
+        LOG.info("Create TF backend override")
+        create_backend_override()
 
-    LOG.info("Running `terraform apply` on the target '%s'", target)
-    subprocess.check_call(["terraform", "apply", "-target", target, "-replace", target, "-auto-approve"])
+        LOG.info("Running `terraform init` with backend override")
+        subprocess.check_call(["terraform", "init", "-reconfigure"])
 
-    LOG.info("Generating terraform output")
-    terraform_out = subprocess.check_output(["terraform", "show", "-json"])
+        LOG.info("Running `terraform apply` on the target '%s'", target)
+        subprocess.check_call(["terraform", "apply", "-target", target, "-replace", target, "-auto-approve"])
+
+        LOG.info("Generating terraform output")
+        terraform_out = subprocess.check_output(["terraform", "show", "-json"])
+
+    if json_str:
+        terraform_out = json_str
 
     LOG.info("Parsing terraform output")
     try:
