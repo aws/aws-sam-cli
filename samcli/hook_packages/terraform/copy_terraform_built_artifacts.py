@@ -309,7 +309,7 @@ if __name__ == "__main__":
         "--json",
         type=str,
         required=False,
-        help="Terraform output json body. This option is not to be used with --target."
+        help="Terraform output json body. This option is not to be used with --target.",
     )
 
     arguments = argparser.parse_args()
@@ -321,7 +321,7 @@ if __name__ == "__main__":
     if target and json_str:
         LOG.error("Provide either --target or --json. Do not provide both.")
         cli_exit()
-        
+
     if not target and not json_str:
         LOG.error("One of --target and --json must be provided.")
         cli_exit()

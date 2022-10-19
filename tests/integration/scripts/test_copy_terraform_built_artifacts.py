@@ -170,13 +170,12 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
                 "--json",
                 json_str,
                 "--target",
-                "resource.path"
+                "resource.path",
             ]
         with self.assertRaises(subprocess.CalledProcessError):
             subprocess.check_call(
                 command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, cwd=self.working_dir
             )
-        
 
     def test_script_output_path_invalid_json(self):
         with self.assertRaises(subprocess.CalledProcessError):
