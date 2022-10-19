@@ -14,7 +14,7 @@ class DeleteFailedError(UserException):
         if self.stack_status:
             message += f", status: {self.stack_status}"
 
-        super().__init__(message=message.format(stack_name=self.stack_name, msg=msg))
+        super().__init__(message=message)
 
 
 class CfDeleteFailedStatusError(UserException):

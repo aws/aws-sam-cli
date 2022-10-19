@@ -116,8 +116,8 @@ class CfnUtils:
 
         # Wait for Delete to Finish
         waiter = self._client.get_waiter("stack_delete_complete")
-        # Poll every 5 seconds and set max attempts to be 3.
-        waiter_config = {"Delay": 5, "MaxAttempts": 3}
+        # Poll every 30 seconds and set max attempts to be 3.
+        waiter_config = {"Delay": 30, "MaxAttempts": 3}
         try:
             waiter.wait(StackName=stack_name, WaiterConfig=waiter_config)
         except WaiterError as ex:
