@@ -182,10 +182,10 @@ for:
 
       # Dev Tests
       - "pip install -e \".[dev]\""
-      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit --junitxml=TEST-py${PYTHON_VERSION}-unit-test-results.xml"
+      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit --junitxml=TEST_REPORT-unit.xml"
       - "pylint --rcfile .pylintrc samcli"
       - "mypy setup.py samcli tests"
-      - "pytest -n 4 tests/functional --junitxml=py${PYTHON_VERSION}-functional-test-results.xml"
+      - "pytest -n 4 tests/functional --junitxml=TEST_REPORT-functional.xml"
 
       # Runs only in Linux, logging Public ECR when running canary and cred is available
       - sh: "
@@ -193,19 +193,22 @@ for:
           then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
         fi"
 
-      - sh: "pytest -vv tests/integration"
-      - sh: "pytest -vv tests/regression"
+      - sh: "pytest -vv tests/integration --junitxml=TEST_REPORT-integration.xml"
+      - sh: "pytest -vv tests/regression --junitxml=TEST_REPORT-regression.xml"
       - sh: "black --check setup.py tests samcli"
 
       # Set JAVA_HOME to java11
       - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
-      - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process"
+      - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process --junitxml=TEST_REPORT-integration_build_java11.xml"
 
       # Smoke tests run in parallel - it runs on both Linux & Windows
       # Presence of the RUN_SMOKE envvar will run the smoke tests
-      - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"
+      - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke --junitxml=TEST_REPORT-smoke.xml}"
 
     on_finish:
 
       - sh: find "$APPVEYOR_BUILD_FOLDER" -type f -name 'TEST*.xml' -print0 | xargs -0 -I '{}' curl -F 'file=@{}' "https://ci.appveyor.com/api/testresults/junit/$APPVEYOR_JOB_ID"
 
+
+artifacts:
+  - path: './TEST_REPORT*.xml'
