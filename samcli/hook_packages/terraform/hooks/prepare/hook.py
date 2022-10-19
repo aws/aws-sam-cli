@@ -955,6 +955,8 @@ def _get_python_command_name() -> str:
             run_result = run([command_name, "--version"], check=True, capture_output=True, text=True)
         except CalledProcessError:
             pass
+        except OSError:
+            pass
         else:
             # check python version
             if not PYTHON_VERSION_REGEX.match(run_result.stdout):
