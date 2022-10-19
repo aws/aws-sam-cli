@@ -90,4 +90,4 @@ class HookPackageConfig:
 
     @property
     def iac_framework(self) -> str:
-        return cast(str, self._config.get("iac_framework") if self._config.get("iac_framework") else "")
+        return cast(str, self._config.get("iac_framework", ""))
