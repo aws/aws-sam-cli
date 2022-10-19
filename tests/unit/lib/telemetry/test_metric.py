@@ -10,6 +10,10 @@ import samcli
 
 from unittest import TestCase
 from unittest.mock import patch, Mock, ANY, call
+
+from samcli.lib.hook.exceptions import InvalidHookPackageConfigException
+from samcli.lib.hook.hook_config import HookPackageConfig
+from samcli.lib.iac.plugins_interfaces import ProjectTypes
 from samcli.lib.telemetry.event import EventTracker
 
 import samcli.lib.telemetry.metric
@@ -24,6 +28,8 @@ from samcli.lib.telemetry.metric import (
     track_template_warnings,
     capture_parameter,
     Metric,
+    _get_project_details,
+    ProjectDetails,
 )
 from samcli.commands.exceptions import UserException
 
@@ -392,6 +398,29 @@ class TestTrackCommand(TestCase):
 
         send_mock.assert_called()
 
+    @patch("samcli.lib.telemetry.metric._get_project_details")
+    @patch("samcli.lib.telemetry.event.EventTracker.send_events", return_value=None)
+    @patch("samcli.lib.telemetry.metric.Context")
+    def test_collects_project_details(self, ContextMock, send_mock, project_details_mock):
+        ContextMock.get_current_context.return_value = self.context_mock
+        project_details_mock.return_value = ProjectDetails(
+            project_type="Terraform", hook_package_version="1.0.0", hook_package_id="terraform"
+        )
+
+        def real_fn(**kwargs):
+            pass
+
+        track_command(real_fn)(hook_package_id="terraform")
+        args, _ = self.telemetry_instance.emit.call_args_list[0]
+        metric_data = args[0]._data
+        send_mock.assert_called()
+        self.assertIn("metricSpecificAttributes", metric_data)
+        metric_specific_attributes = metric_data.get("metricSpecificAttributes")
+        self.assertEqual(metric_specific_attributes.get("projectType"), "Terraform")
+        self.assertEqual(metric_specific_attributes.get("hookPackageId"), "terraform")
+        self.assertEqual(metric_specific_attributes.get("hookPackageVersion"), "1.0.0")
+        project_details_mock.assert_called_once_with("terraform", {})
+
 
 class TestStackTrace(TestCase):
     def setUp(self):
@@ -587,3 +616,45 @@ def _ignore_common_attributes(data):
             data[a] = ANY
 
     return data
+
+
+class TestGetProjectDetails(TestCase):
+    @parameterized.expand(
+        [
+            (
+                True,
+                ProjectDetails(hook_package_id=None, hook_package_version=None, project_type=ProjectTypes.CDK.value),
+            ),
+            (
+                False,
+                ProjectDetails(hook_package_id=None, hook_package_version=None, project_type=ProjectTypes.CFN.value),
+            ),
+        ]
+    )
+    @patch("samcli.lib.telemetry.metric.is_cdk_project")
+    def test_cfn_cdk_project_types(self, project_type_cdk, expected, cdk_project_mock):
+        cdk_project_mock.return_value = project_type_cdk
+        result = _get_project_details("", {})
+        self.assertEqual(result, expected)
+
+    @patch("samcli.lib.telemetry.metric.HookPackageConfig")
+    @patch("samcli.lib.telemetry.metric.is_cdk_project")
+    def test_terraform_project(self, cdk_project_mock, mock_hook_package_config):
+        cdk_project_mock.return_value = False
+        hook_package = Mock()
+        hook_package.package_id = "terraform"
+        hook_package.version = "1.0.0"
+        hook_package.iac_framework = "Terraform"
+        mock_hook_package_config.return_value = hook_package
+        expected = ProjectDetails(hook_package_id="terraform", hook_package_version="1.0.0", project_type="Terraform")
+        result = _get_project_details("terraform", {})
+        self.assertEqual(result, expected)
+
+    @patch("samcli.lib.telemetry.metric.HookPackageConfig")
+    @patch("samcli.lib.telemetry.metric.is_cdk_project")
+    def test_invalid_hook_id(self, cdk_project_mock, mock_hook_package_config):
+        cdk_project_mock.return_value = False
+        mock_hook_package_config.side_effect = InvalidHookPackageConfigException(message="Something went wrong")
+        expected = ProjectDetails(hook_package_id="pulumi", hook_package_version=None, project_type="pulumi")
+        result = _get_project_details("pulumi", {})
+        self.assertEqual(result, expected)
