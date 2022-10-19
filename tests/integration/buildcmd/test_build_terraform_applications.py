@@ -15,7 +15,7 @@ import boto3
 from parameterized import parameterized
 
 from tests.integration.buildcmd.build_integ_base import BuildIntegBase
-from tests.testing_utils import CI_OVERRIDE
+from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS
 
 
 LOG = logging.getLogger(__name__)
