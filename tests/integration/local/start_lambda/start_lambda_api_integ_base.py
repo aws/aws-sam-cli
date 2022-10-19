@@ -124,7 +124,7 @@ class StartLambdaIntegBaseClass(TestCase):
         return command_list
 
     @classmethod
-    def start_lambda(cls, wait_time=5, input=None):
+    def start_lambda(cls, wait_time=5, input=None, env=None):
         command_list = cls.get_start_lambda_command(
             port=cls.port,
             template_path=cls.template,
@@ -136,7 +136,7 @@ class StartLambdaIntegBaseClass(TestCase):
             beta_features=cls.beta_features,
         )
 
-        cls.start_lambda_process = Popen(command_list, stderr=PIPE, stdin=PIPE, cwd=cls.working_dir)
+        cls.start_lambda_process = Popen(command_list, stderr=PIPE, stdin=PIPE, env=env, cwd=cls.working_dir)
         cls.start_lambda_process_output = ""
 
         if input:
