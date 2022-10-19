@@ -207,8 +207,15 @@ def _build_module_resources_from_configuration(module_configuration: Dict, modul
 
         expressions = config_resource.get("expressions", {})
         for expression_name, expression_value in expressions.items():
+            # we do not process the attributes of type dictionary
+            # Todo add dictionary type attributes post beta
+            if isinstance(expression_value, list):
+                LOG.debug("Skip processing the attribute %s as its value is a map.", expression_name)
+                continue
+
             parsed_expression = _build_expression_from_configuration(expression_value)
-            resource_attributes[expression_name] = parsed_expression
+            if parsed_expression:
+                resource_attributes[expression_name] = parsed_expression
 
         resource_address = config_resource.get("address")
         resource_type = config_resource.get("type")
@@ -237,7 +244,8 @@ def _build_module_outputs_from_configuration(module_configuration: Dict) -> Dict
     for output_name, output_value in config_outputs.items():
         expression = output_value.get("expression", {})
         parsed_expression = _build_expression_from_configuration(expression)
-        module_outputs[output_name] = parsed_expression
+        if parsed_expression:
+            module_outputs[output_name] = parsed_expression
 
     return module_outputs
 
@@ -267,7 +275,8 @@ def _build_child_modules_from_configuration(module_configuration: Dict, module: 
         expressions = module_call_value.get("expressions", {})
         for expression_name, expression_value in expressions.items():
             parsed_expression = _build_expression_from_configuration(expression_value)
-            module_call_input_variables[expression_name] = parsed_expression
+            if parsed_expression:
+                module_call_input_variables[expression_name] = parsed_expression
 
         module_call_module_config = module_call_value.get("module", {})
         module_call_built_module = _build_module(
@@ -280,7 +289,7 @@ def _build_child_modules_from_configuration(module_configuration: Dict, module: 
     return child_modules
 
 
-def _build_expression_from_configuration(expression_configuration: Dict) -> Expression:
+def _build_expression_from_configuration(expression_configuration: Dict) -> Optional[Expression]:
     """
     Parses an Expression from an expression terraform configuration.
 
@@ -297,7 +306,7 @@ def _build_expression_from_configuration(expression_configuration: Dict) -> Expr
     constant_value = expression_configuration.get("constant_value")
     references = expression_configuration.get("references")
 
-    parsed_expression: Expression
+    parsed_expression: Optional[Expression] = None
 
     if constant_value is not None:
         parsed_expression = ConstantValue(constant_value)
@@ -538,9 +547,8 @@ def _resolve_resource_attribute(
 
     attribute_value = resource.attributes.get(attribute_name)
     if attribute_value is None:
-        raise InvalidResourceLinkingException(
-            message=f"The attribute {attribute_name} could not be found in resource {resource.full_address}."
-        )
+        LOG.debug("The value of the attribute %s is None for resource %s", attribute_name, resource.full_address)
+        return results
 
     if not isinstance(attribute_value, ConstantValue) and not isinstance(attribute_value, References):
         raise InvalidResourceLinkingException(
@@ -638,6 +646,7 @@ def _link_lambda_function_to_layer(
     resolved_layers = _resolve_resource_attribute(function_tf_resource, "layers")
     LOG.debug("The resolved layers for function %s are %s", function_tf_resource.full_address, resolved_layers)
     layers = _process_resolved_layers(function_tf_resource, resolved_layers, tf_layers)
+
     # The agreed limitation to support only 1 lambda layer reference.
     if len(layers) > 1:
         LOG.debug(
@@ -645,7 +654,10 @@ def _link_lambda_function_to_layer(
             function_tf_resource.full_address,
         )
         raise OneLambdaLayerLinkingLimitationException(layers, function_tf_resource.full_address)
-    _update_mapped_lambda_function_with_resolved_layers(cfn_functions, layers, tf_layers)
+    if not layers:
+        LOG.debug("There are no layers defined for lambda function %s", function_tf_resource.full_address)
+    else:
+        _update_mapped_lambda_function_with_resolved_layers(cfn_functions, layers, tf_layers)
 
 
 def _process_resolved_layers(

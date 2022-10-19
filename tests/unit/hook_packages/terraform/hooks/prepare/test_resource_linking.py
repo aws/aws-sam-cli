@@ -1023,7 +1023,7 @@ class TestResourceLinking(TestCase):
         self.assertEqual(exc.exception.args[0], expected_exception_message)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
-    def test_resolve_resource_attribute_none_value_exception_scenario(self, clean_references_mock):
+    def test_resolve_resource_attribute_no_value_use_case(self, clean_references_mock):
         resource = TFResource(
             address="aws_lambda_function.func",
             type="aws_lambda_function",
@@ -1032,15 +1032,9 @@ class TestResourceLinking(TestCase):
                 "Code": ConstantValue(value="/path/code"),
             },
         )
-        expected_exception_message = (
-            "An error occurred when attempting to link two resources: The attribute Layers "
-            "could not be found in resource aws_lambda_function.func."
-        )
 
-        with self.assertRaises(InvalidResourceLinkingException) as exc:
-            _resolve_resource_attribute(resource, "Layers")
-
-        self.assertEqual(exc.exception.args[0], expected_exception_message)
+        results = _resolve_resource_attribute(resource, "Layers")
+        self.assertEqual(len(results), 0)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_resource_attribute")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._process_resolved_layers")

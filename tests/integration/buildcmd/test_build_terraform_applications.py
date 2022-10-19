@@ -15,7 +15,7 @@ import boto3
 from parameterized import parameterized
 
 from tests.integration.buildcmd.build_integ_base import BuildIntegBase
-from tests.testing_utils import CI_OVERRIDE, RUNNING_ON_CI, RUN_BY_CANARY, IS_WINDOWS
+from tests.testing_utils import CI_OVERRIDE
 
 
 LOG = logging.getLogger(__name__)
@@ -37,6 +37,7 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
             shutil.rmtree(str(Path(self.terraform_application_path) / ".aws-sam"))
             shutil.rmtree(str(Path(self.terraform_application_path) / ".aws-sam-iacs"))
             shutil.rmtree(str(Path(self.terraform_application_path) / ".terraform"))
+            os.remove(str(Path(self.terraform_application_path) / ".terraform.lock.hcl"))
         except FileNotFoundError:
             pass
 
@@ -225,18 +226,22 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
         else Path("terraform/zip_based_lambda_functions_local_backend_windows")
     )
     functions = [
-        "aws_lambda_function.from_localfile",
-        "aws_lambda_function.from_s3",
-        "module.level1_lambda.aws_lambda_function.this",
-        "module.level1_lambda.module.level2_lambda.aws_lambda_function.this",
-        "my_function_from_localfile",
-        "my_function_from_s3",
-        "my_level1_lambda",
-        "my_level2_lambda",
+        ("module.function2.aws_lambda_function.this", "hello world 2"),
+        ("function2", "hello world 2"),
+        ("aws_lambda_function.function1", "hello world 1"),
+        ("function1", "hello world 1"),
+        ("aws_lambda_function.from_localfile", "[]"),
+        ("aws_lambda_function.from_s3", "[]"),
+        ("module.level1_lambda.aws_lambda_function.this", "[]"),
+        ("module.level1_lambda.module.level2_lambda.aws_lambda_function.this", "[]"),
+        ("my_function_from_localfile", "[]"),
+        ("my_function_from_s3", "[]"),
+        ("my_level1_lambda", "[]"),
+        ("my_level2_lambda", "[]"),
     ]
 
     @parameterized.expand(functions)
-    def test_build_and_invoke_lambda_functions(self, function_identifier):
+    def test_build_and_invoke_lambda_functions(self, function_identifier, expected_output):
         build_cmd_list = self.get_command_list(
             beta_features=True, hook_package_id="terraform", function_identifier=function_identifier
         )
@@ -248,7 +253,7 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
         self._verify_invoke_built_function(
             function_logical_id=function_identifier,
             overrides=None,
-            expected_result={"statusCode": 200, "body": "[]"},
+            expected_result={"statusCode": 200, "body": expected_output},
         )
 
 
@@ -263,18 +268,22 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(Build
         else Path("terraform/zip_based_lambda_functions_s3_backend_windows")
     )
     functions = [
-        "aws_lambda_function.from_localfile",
-        "aws_lambda_function.from_s3",
-        "module.level1_lambda.aws_lambda_function.this",
-        "module.level1_lambda.module.level2_lambda.aws_lambda_function.this",
-        "my_function_from_localfile",
-        "my_function_from_s3",
-        "my_level1_lambda",
-        "my_level2_lambda",
+        ("module.function2.aws_lambda_function.this", "hello world 2"),
+        ("function2", "hello world 2"),
+        ("aws_lambda_function.function1", "hello world 1"),
+        ("function1", "hello world 1"),
+        ("aws_lambda_function.from_localfile", "[]"),
+        ("aws_lambda_function.from_s3", "[]"),
+        ("module.level1_lambda.aws_lambda_function.this", "[]"),
+        ("module.level1_lambda.module.level2_lambda.aws_lambda_function.this", "[]"),
+        ("my_function_from_localfile", "[]"),
+        ("my_function_from_s3", "[]"),
+        ("my_level1_lambda", "[]"),
+        ("my_level2_lambda", "[]"),
     ]
 
     @parameterized.expand(functions)
-    def test_build_and_invoke_lambda_functions(self, function_identifier):
+    def test_build_and_invoke_lambda_functions(self, function_identifier, expected_output):
         build_cmd_list = self.get_command_list(
             beta_features=True, hook_package_id="terraform", function_identifier=function_identifier
         )
@@ -286,7 +295,7 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(Build
         self._verify_invoke_built_function(
             function_logical_id=function_identifier,
             overrides=None,
-            expected_result={"statusCode": 200, "body": "[]"},
+            expected_result={"statusCode": 200, "body": expected_output},
         )
 
 

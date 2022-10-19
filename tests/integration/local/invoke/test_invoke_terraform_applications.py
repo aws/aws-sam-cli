@@ -1,5 +1,7 @@
 import json
+import os
 import shutil
+import uuid
 from pathlib import Path
 from subprocess import Popen, PIPE, TimeoutExpired
 from typing import Optional
@@ -8,9 +10,10 @@ from unittest import skipIf
 import docker
 import pytest
 from docker.errors import APIError
-from parameterized import parameterized
+from parameterized import parameterized, parameterized_class
 
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase, TIMEOUT
+from tests.integration.local.invoke.layer_utils import LayerUtils
 from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUNNING_ON_CI
 
 
@@ -22,10 +25,9 @@ class InvokeTerraformApplicationIntegBase(InvokeIntegBase):
         super(InvokeTerraformApplicationIntegBase, cls).setUpClass()
         cls.terraform_application_path = str(cls.test_data_path.joinpath("invoke", cls.terraform_application))
 
-    def run_command(self, command_list, env=None, input=None):
-        process = Popen(
-            command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE, env=env, cwd=self.terraform_application_path
-        )
+    @classmethod
+    def run_command(cls, command_list, env=None, input=None):
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE, env=env, cwd=cls.terraform_application_path)
         try:
             (stdout, stderr) = process.communicate(input=input, timeout=TIMEOUT)
             return stdout, stderr, process.returncode
@@ -49,7 +51,9 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
 
     def tearDown(self) -> None:
         try:
-            shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".aws-sam")))  # type: ignore
+            shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".aws-sam-iacs")))  # type: ignore
+            shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".terraform")))  # type: ignore
+            os.remove(str(Path(self.terraform_application_path).joinpath(".terraform.lock.hcl")))  # type: ignore
         except FileNotFoundError:
             pass
 
@@ -161,6 +165,115 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
 
 
 @skipIf(
+    not CI_OVERRIDE,
+    "Skip Terraform test cases unless running in CI",
+)
+@parameterized_class(
+    ("should_apply_first",),
+    [
+        (False,),
+        (True,),
+    ],
+)
+class TestInvokeTerraformApplicationWithLayersWithoutBuild(InvokeTerraformApplicationIntegBase):
+    terraform_application = Path("terraform/simple_application_with_layers_no_building_logic")
+    pre_create_lambda_layers = ["simple_layer1", "simple_layer2", "simple_layer3"]
+    functions = [
+        ("aws_lambda_function.function1", "hello world 1"),
+        ("aws_lambda_function.function2", "hello world 2"),
+        ("aws_lambda_function.function3", "hello world 3"),
+        ("aws_lambda_function.function4", "hello world 4"),
+        ("module.function5.aws_lambda_function.this", "hello world 5"),
+    ]
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestInvokeTerraformApplicationWithLayersWithoutBuild, cls).setUpClass()
+        cls.region_name = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+
+        # create some Lambda Layers to be used in the Terraform project
+        cls.layerUtils = LayerUtils(cls.region_name, str(Path(cls.terraform_application_path).joinpath("artifacts")))
+        cls.layer_postfix = str(uuid.uuid4())
+
+        for lambda_layer_name in cls.pre_create_lambda_layers:
+            cls.layerUtils.upsert_layer(
+                f"{lambda_layer_name}-{cls.layer_postfix}",
+                f"{lambda_layer_name}-{cls.layer_postfix}",
+                f"{lambda_layer_name}.zip",
+            )
+
+        # create override file in const_layer module to test using the module default provided value
+        const_layer_module_input_layer_overwrite = str(
+            Path(cls.terraform_application_path).joinpath("const_layer", f"variable_name_override.tf")
+        )
+        _2nd_layer_arn = cls.layerUtils.parameters_overrides[f"{cls.pre_create_lambda_layers[1]}-{cls.layer_postfix}"]
+        lines = [
+            bytes('variable "input_layer" {' + os.linesep, "utf-8"),
+            bytes("   type = string" + os.linesep, "utf-8"),
+            bytes(f'   default="{_2nd_layer_arn}"' + os.linesep, "utf-8"),
+            bytes("}", "utf-8"),
+        ]
+        with open(const_layer_module_input_layer_overwrite, "wb") as file:
+            file.writelines(lines)
+
+        # apply the terraform project
+        if cls.should_apply_first:
+            apply_command = ["terraform", "apply", "-auto-approve"]
+            stdout, _, return_code = cls.run_command(command_list=apply_command, env=cls._add_tf_project_variables())
+
+    @classmethod
+    def _add_tf_project_variables(cls):
+        environment_variables = os.environ.copy()
+        environment_variables["TF_VAR_input_layer"] = cls.layerUtils.parameters_overrides[
+            f"{cls.pre_create_lambda_layers[0]}-{cls.layer_postfix}"
+        ]
+        environment_variables["TF_VAR_layer_name"] = f"{cls.pre_create_lambda_layers[2]}-{cls.layer_postfix}"
+        return environment_variables
+
+    @classmethod
+    def tearDownClass(cls):
+        """Clean up and delete the lambda layers, and bucket if it is not pre-created"""
+
+        # delete the created terraform project
+        if cls.should_apply_first:
+            apply_command = ["terraform", "destroy", "-auto-approve"]
+            stdout, _, return_code = cls.run_command(command_list=apply_command, env=cls._add_tf_project_variables())
+
+        # delete the created layers
+        cls.layerUtils.delete_layers()
+
+        # delete the override file
+        try:
+            os.remove(str(Path(cls.terraform_application_path).joinpath("const_layer", f"variable_name_override.tf")))
+        except FileNotFoundError:
+            pass
+
+    def tearDown(self) -> None:
+        try:
+            shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".aws-sam-iacs")))  # type: ignore
+            shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".terraform")))  # type: ignore
+            os.remove(str(Path(self.terraform_application_path).joinpath(".terraform.lock.hcl")))  # type: ignore
+        except FileNotFoundError:
+            pass
+
+    @parameterized.expand(functions)
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_function(self, function_name, expected_output):
+        local_invoke_command_list = self.get_command_list(
+            function_to_invoke=function_name, hook_package_id="terraform", beta_features=True
+        )
+        stdout, _, return_code = self.run_command(local_invoke_command_list, env=self._add_tf_project_variables())
+
+        # Get the response without the sam-cli prompts that proceed it
+        response = json.loads(stdout.decode("utf-8").split("\n")[0])
+
+        expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"' + expected_output + '\\"}"}')
+
+        self.assertEqual(return_code, 0)
+        self.assertEqual(response, expected_response)
+
+
+@skipIf(
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip local invoke terraform application tests on windows when running in CI unless overridden",
 )
@@ -189,6 +302,14 @@ class TestInvokeTerraformApplicationWithLocalImageUri(InvokeTerraformApplication
         try:
             cls.client.api.remove_image(cls.docker_tag)
         except APIError:
+            pass
+
+    def tearDown(self) -> None:
+        try:
+            shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".aws-sam-iacs")))  # type: ignore
+            shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".terraform")))  # type: ignore
+            os.remove(str(Path(self.terraform_application_path).joinpath(".terraform.lock.hcl")))  # type: ignore
+        except FileNotFoundError:
             pass
 
     @parameterized.expand(functions)
