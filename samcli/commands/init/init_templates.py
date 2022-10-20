@@ -89,7 +89,7 @@ class InitTemplates:
 
                 if platform.system().lower() == "windows":
                     msg = (
-                        "Failed to find a file when cloning app templates. "
+                        "Failed modify a local file when cloning app templates. "
                         "MAX_PATH should be enabled in the Windows registry."
                         "\nFor more details on how to enable MAX_PATH, please visit: <link to documentation>"
                     )
