@@ -141,14 +141,23 @@ def prepare(params: dict) -> dict:
         return {"iac_applications": {"MainApplication": {"metadata_file": metadataFilePath}}}
 
     except CalledProcessError as e:
+        stderr_output = str(e.stderr)
+
+        # stderr can take on bytes or just be a plain string depending on terminal
+        if isinstance(e.stderr, bytes):
+            stderr_output = e.stderr.decode("utf-8")
+
         # one of the subprocess.run calls resulted in non-zero exit code or some OS error
         LOG.debug(
             "Error running terraform command: \n" "cmd: %s \n" "stdout: %s \n" "stderr: %s \n",
             e.cmd,
             e.stdout,
-            e.stderr,
+            stderr_output,
         )
-        raise PrepareHookException("There was an error while preparing the Terraform application.") from e
+
+        raise PrepareHookException(
+            f"There was an error while preparing the Terraform application.\n{stderr_output}"
+        ) from e
     except OSError as e:
         raise PrepareHookException(f"OSError: {e}") from e
 
@@ -352,7 +361,7 @@ def _validate_referenced_resource_matches_sam_metadata_type(
     resource_type = sam_metadata_attributes.get("resource_type")
     cfn_resource_type = cfn_resource.get("Type")
     lambda_function_package_type = cfn_resource_properties.get("PackageType", ZIP)
-    LOG.info(
+    LOG.debug(
         "Validate if the referenced resource in sam metadata resource %s is of the expected type %s",
         sam_metadata_resource_address,
         resource_type,
@@ -410,7 +419,7 @@ def _get_source_code_path(
     str
         The lambda function or layer source code or docker context paths
     """
-    LOG.info(
+    LOG.debug(
         "Extract the %s from the sam metadata resource %s from property %s",
         src_code_attribute_name,
         sam_metadata_resource_address,
@@ -535,7 +544,7 @@ def _enrich_zip_lambda_function(
             "Invalid Terraform plan output. The address property should not be null to any terraform resource."
         )
 
-    LOG.info(
+    LOG.debug(
         "Enrich the ZIP lambda function %s using the metadata properties defined in resource %s",
         cfn_lambda_function_logical_id,
         sam_metadata_resource_address,
@@ -593,7 +602,7 @@ def _enrich_image_lambda_function(
         )
     cfn_resource_properties = cfn_lambda_function.get("Properties", {})
 
-    LOG.info(
+    LOG.debug(
         "Enrich the IMAGE lambda function %s using the metadata properties defined in resource %s",
         cfn_lambda_function_logical_id,
         sam_metadata_resource_address,
@@ -678,7 +687,7 @@ def _enrich_lambda_layer(
     _validate_referenced_resource_layer_matches_metadata_type(
         cfn_lambda_layer, sam_metadata_attributes, sam_metadata_resource_address
     )
-    LOG.info(
+    LOG.debug(
         "Enrich the Lambda Layer Version %s using the metadata properties defined in resource %s",
         cfn_lambda_layer_logical_id,
         sam_metadata_resource_address,
@@ -723,7 +732,7 @@ def _validate_referenced_resource_layer_matches_metadata_type(
     cfn_resource_properties = cfn_resource.get("Properties", {})
     resource_type = sam_metadata_attributes.get("resource_type")
     cfn_resource_type = cfn_resource.get("Type")
-    LOG.info(
+    LOG.debug(
         "Validate if the referenced resource in sam metadata resource %s is of the expected type %s",
         sam_metadata_resource_address,
         resource_type,
@@ -918,7 +927,7 @@ def _get_relevant_cfn_resource(
 
     # the provided resource name will be always a postfix to the module address. The customer could not set a full
     # address within a module.
-    LOG.info(
+    LOG.debug(
         "Check if the input resource name %s is a postfix to the current module address %s",
         resource_name,
         sam_metadata_resource.current_module_address,
@@ -932,7 +941,7 @@ def _get_relevant_cfn_resource(
     logical_id = build_cfn_logical_id(full_resource_address)
     cfn_resource = cfn_resources.get(logical_id)
     if cfn_resource:
-        LOG.info("The CFN resource that match the input resource name %s is %s", resource_name, logical_id)
+        LOG.debug("The CFN resource that match the input resource name %s is %s", resource_name, logical_id)
         return cfn_resource, logical_id
 
     raise InvalidSamMetadataPropertiesException(
