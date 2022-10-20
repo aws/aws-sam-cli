@@ -78,7 +78,7 @@ sudo make install
 cd ..
 
 echo "Installing Python Libraries"
-python3.8 -m venv venv
+/usr/local/bin/python3.8 -m venv venv
 ./venv/bin/pip install --upgrade pip
 ./venv/bin/pip install -r src/requirements/reproducible-linux.txt
 
