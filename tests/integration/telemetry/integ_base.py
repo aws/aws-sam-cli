@@ -81,7 +81,7 @@ class IntegBase(TestCase):
         return self._gc
 
 
-class TelemetryServer():
+class TelemetryServer:
     """
     HTTP Server that can receive and store Telemetry requests. Caller can later retrieve the responses for
     assertion
@@ -117,10 +117,9 @@ class TelemetryServer():
         # Thread-safe data structure to record requests sent to the server
         self._requests = deque()
 
-
     def __enter__(self):
         self.server = make_server(TELEMETRY_ENDPOINT_HOST, TELEMETRY_ENDPOINT_PORT, self.flask_app)
-        self.thread  = Thread(target=self.server.serve_forever)
+        self.thread = Thread(target=self.server.serve_forever)
         self.thread.daemon = True  # When test completes, this thread will die automatically
         self.thread.start()  # Start the thread
 

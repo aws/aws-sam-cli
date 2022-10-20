@@ -152,10 +152,10 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 {"Key": "Value", "Key2": "Value2"},
                 None,
-                ('',),
+                ("",),
                 "file",
-                ('',),
-                ('',),
+                ("",),
+                ("",),
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -208,10 +208,10 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 {"Key": "Value", "Key2": "Value2"},
                 None,
-                ('',),
+                ("",),
                 "file",
-                ('',),
-                ('',),
+                ("",),
+                ("",),
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -262,7 +262,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 {"Key": "Value", "Key2": "Value2"},
                 None,
-                ('',),
+                ("",),
                 "env_vars_file",
                 (),
                 (),
