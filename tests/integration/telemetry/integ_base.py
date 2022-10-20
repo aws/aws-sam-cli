@@ -136,12 +136,10 @@ class TelemetryServer(Thread):
         return self
 
     def __exit__(self, *args, **kwargs):
-        shutdown_endpoint = "{}/_shutdown".format(TELEMETRY_ENDPOINT_URL)
-        requests.get(shutdown_endpoint)
-
         # Flask will start shutting down only *after* the above request completes.
         # Just give the server a little bit of time to teardown finish
         time.sleep(2)
+        os._exit(0)      
 
     def get_request(self, index):
         return self._requests[index]
@@ -165,9 +163,3 @@ class TelemetryServer(Thread):
         self._requests.append(request_data)
 
         return Response(response={}, status=200)
-
-    def _shutdown_flask(self):
-        # Based on http://flask.pocoo.org/snippets/67/
-        request.environ.get("werkzeug.server.shutdown")()
-        print("Server shutting down...")
-        return ""
