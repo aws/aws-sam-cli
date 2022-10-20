@@ -461,7 +461,7 @@ def _resolve_module_variable(module: TFModule, variable_name: str) -> List[Union
                 else:
                     raise InvalidResourceLinkingException(f"Couldn't find child module {config_module_name}.")
             # this means either a resource, data source, or local.variables.
-            elif module.parent_module and module.parent_module.full_address is not None:
+            elif module.parent_module:
                 results.append(ResolvedReference(reference, module.parent_module.full_address))
             else:
                 raise InvalidResourceLinkingException("Resource linking entered an invalid state.")
