@@ -15,7 +15,7 @@ import boto3
 from parameterized import parameterized
 
 from tests.integration.buildcmd.build_integ_base import BuildIntegBase
-from tests.testing_utils import CI_OVERRIDE
+from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS
 
 
 LOG = logging.getLogger(__name__)
@@ -220,7 +220,11 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
     "Skip Terraform test cases unless running in CI",
 )
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(BuildTerraformApplicationIntegBase):
-    terraform_application = Path("terraform/zip_based_lambda_functions_local_backend")
+    terraform_application = (
+        Path("terraform/zip_based_lambda_functions_local_backend")
+        if not IS_WINDOWS
+        else Path("terraform/zip_based_lambda_functions_local_backend_windows")
+    )
     functions = [
         ("module.function2.aws_lambda_function.this", "hello world 2"),
         ("function2", "hello world 2"),
@@ -258,7 +262,11 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
     "Skip Terraform test cases unless running in CI",
 )
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(BuildTerraformApplicationS3BackendIntegBase):
-    terraform_application = Path("terraform/zip_based_lambda_functions_s3_backend")
+    terraform_application = (
+        Path("terraform/zip_based_lambda_functions_s3_backend")
+        if not IS_WINDOWS
+        else Path("terraform/zip_based_lambda_functions_s3_backend_windows")
+    )
     functions = [
         ("module.function2.aws_lambda_function.this", "hello world 2"),
         ("function2", "hello world 2"),
