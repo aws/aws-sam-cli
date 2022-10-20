@@ -14,7 +14,7 @@ from .exceptions import (
 
 
 LOG = logging.getLogger(__name__)
-_INTERNAL_PACKAGES_ROOT = Path(__file__).parent / ".." / ".." / "hook_packages"
+INTERNAL_PACKAGES_ROOT = Path(__file__).parent / ".." / ".." / "hook_packages"
 
 
 class IacHookWrapper:
@@ -110,7 +110,7 @@ class IacHookWrapper:
         """
         # locate hook package from internal first
         LOG.debug("Looking for internal hook package")
-        for child in _INTERNAL_PACKAGES_ROOT.iterdir():
+        for child in INTERNAL_PACKAGES_ROOT.iterdir():
             if child.name == hook_package_id:
                 LOG.debug('Loaded internal hook package "%s"', hook_package_id)
                 self._config = HookPackageConfig(child)
@@ -190,7 +190,7 @@ def get_available_hook_packages_ids() -> List[str]:
     """
     LOG.debug("Return available internal hook packages")
     hook_packages_ids = []
-    for child in _INTERNAL_PACKAGES_ROOT.iterdir():
+    for child in INTERNAL_PACKAGES_ROOT.iterdir():
         if child.is_dir():
             hook_packages_ids.append(child.name)
 
