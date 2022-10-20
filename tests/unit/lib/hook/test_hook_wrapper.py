@@ -42,9 +42,9 @@ TEST_HOOK_PACKAGE_CONFIG = {
 
 class TestIacHookWrapper(TestCase):
     @patch("samcli.lib.hook.hook_wrapper.HookPackageConfig")
-    @patch("samcli.lib.hook.hook_wrapper._INTERNAL_PACKAGES_ROOT")
-    def test_instantiate_success(self, _INTERNAL_PACKAGES_ROOT_MOCK, HookPackageConfigMock):
-        _INTERNAL_PACKAGES_ROOT_MOCK.iterdir.return_value = [
+    @patch("samcli.lib.hook.hook_wrapper.INTERNAL_PACKAGES_ROOT")
+    def test_instantiate_success(self, INTERNAL_PACKAGES_ROOT_MOCK, HookPackageConfigMock):
+        INTERNAL_PACKAGES_ROOT_MOCK.iterdir.return_value = [
             Path("path/to/hook_package_1"),
             Path("path/to/hook_package_2"),
             Path("path/to/hook_package_3"),
@@ -58,9 +58,9 @@ class TestIacHookWrapper(TestCase):
         hook_package = IacHookWrapper("hook_package_3")
         self.assertEqual(hook_package._config, hook_package_3_config_mock)
 
-    @patch("samcli.lib.hook.hook_wrapper._INTERNAL_PACKAGES_ROOT")
-    def test_instantiate_package_not_found(self, _INTERNAL_PACKAGES_ROOT_MOCK):
-        _INTERNAL_PACKAGES_ROOT_MOCK.iterdir.return_value = [
+    @patch("samcli.lib.hook.hook_wrapper.INTERNAL_PACKAGES_ROOT")
+    def test_instantiate_package_not_found(self, INTERNAL_PACKAGES_ROOT_MOCK):
+        INTERNAL_PACKAGES_ROOT_MOCK.iterdir.return_value = [
             Path("path/to/hook_package_1"),
             Path("path/to/hook_package_2"),
             Path("path/to/hook_package_3"),
@@ -72,9 +72,9 @@ class TestIacHookWrapper(TestCase):
         self.assertEqual(e.exception.message, 'Cannot locate hook package with hook_package_id "hook_package_4"')
 
     @patch("samcli.lib.hook.hook_wrapper.HookPackageConfig")
-    @patch("samcli.lib.hook.hook_wrapper._INTERNAL_PACKAGES_ROOT")
-    def test_instantiate_fail_with_invalid_config(self, _INTERNAL_PACKAGES_ROOT_MOCK, HookPackageConfigMock):
-        _INTERNAL_PACKAGES_ROOT_MOCK.iterdir.return_value = [
+    @patch("samcli.lib.hook.hook_wrapper.INTERNAL_PACKAGES_ROOT")
+    def test_instantiate_fail_with_invalid_config(self, INTERNAL_PACKAGES_ROOT_MOCK, HookPackageConfigMock):
+        INTERNAL_PACKAGES_ROOT_MOCK.iterdir.return_value = [
             Path("path/to/hook_package_1"),
             Path("path/to/hook_package_2"),
             Path("path/to/hook_package_3"),
@@ -241,8 +241,8 @@ class TestExecuteAsModule(TestCase):
 
 
 class TestGetAvailableHookPackagesIds(TestCase):
-    @patch("samcli.lib.hook.hook_wrapper._INTERNAL_PACKAGES_ROOT")
-    def test_get_available_hook_pacakges(self, _INTERNAL_PACKAGES_ROOT_MOCK):
+    @patch("samcli.lib.hook.hook_wrapper.INTERNAL_PACKAGES_ROOT")
+    def test_get_available_hook_pacakges(self, INTERNAL_PACKAGES_ROOT_MOCK):
         path1_mock = Mock()
         path1_mock.name = "hook_package_1"
         path1_mock.is_dir.return_value = True
@@ -255,7 +255,7 @@ class TestGetAvailableHookPackagesIds(TestCase):
         path3_mock.name = "hook_package_3"
         path3_mock.is_dir.return_value = False
 
-        _INTERNAL_PACKAGES_ROOT_MOCK.iterdir.return_value = [
+        INTERNAL_PACKAGES_ROOT_MOCK.iterdir.return_value = [
             path1_mock,
             path2_mock,
             path3_mock,
