@@ -184,3 +184,68 @@ resource "aws_lambda_function" "function7" {
         aws_lambda_layer_version.layer7.arn,
     ]
 }
+
+# serverless.tf 3rd party module
+module "layer8" {
+  # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
+  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  create_layer = true
+  create_package = false
+  layer_name = "lambda_layer8_${random_pet.this.id}"
+  compatible_runtimes = ["python3.8"]
+  runtime = "python3.8"
+  local_existing_package = "./artifacts/simple_layer8.zip"
+}
+
+resource "aws_s3_object" "layer9_code" {
+  bucket = var.bucket_name
+  key    = "layer9_code"
+  source = "./artifacts/simple_layer9.zip"
+}
+
+module "layer9" {
+  # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
+  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  create_layer = true
+  create_package = false
+  s3_existing_package = {
+    bucket = var.bucket_name
+    key = "layer9_code"
+  }
+  layer_name = "lambda_layer9_${random_pet.this.id}"
+  compatible_runtimes = ["python3.8"]
+  runtime = "python3.8"
+}
+
+module "function8" {
+  # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
+  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  create_package = false
+  function_name = "function8_${random_pet.this.id}"
+  handler       = "app.lambda_handler"
+  runtime       = "python3.8"
+
+  layers = [module.layer8.lambda_layer_arn]
+
+  local_existing_package = "./artifacts/HelloWorldFunction.zip"
+}
+
+resource "aws_s3_object" "function9_code" {
+  bucket = var.bucket_name
+  key    = "function9_code"
+  source = "./artifacts/HelloWorldFunction.zip"
+}
+
+module "function9" {
+  # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
+  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  create_package = false
+  s3_existing_package = {
+    bucket = var.bucket_name
+    key = "function9_code"
+  }
+  function_name = "function9_${random_pet.this.id}"
+  handler       = "app.lambda_handler"
+  runtime       = "python3.8"
+  layers = [module.layer9.lambda_layer_arn]
+}
