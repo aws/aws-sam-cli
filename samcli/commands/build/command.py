@@ -18,6 +18,7 @@ from samcli.commands._utils.options import (
     base_dir_option,
     manifest_option,
     cached_option,
+    use_container_build_option,
     hook_package_id_click_option,
 )
 from samcli.commands._utils.option_value_processor import process_env_var, process_image_options
@@ -84,13 +85,7 @@ $ sam build MyFunction
     invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"],
 )
 @configuration_option(provider=TomlProvider(section="parameters"))
-@click.option(
-    "--use-container",
-    "-u",
-    is_flag=True,
-    help="If your functions depend on packages that have natively compiled dependencies, use this flag "
-    "to build your function inside an AWS Lambda-like Docker container",
-)
+@use_container_build_option
 @click.option(
     "--container-env-var",
     "-e",
