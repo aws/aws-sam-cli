@@ -86,9 +86,9 @@ def get_local_lambda_images_location(mapping, runtime):
 SUPPORTED_DEP_MANAGERS: List[str] = list(
     set(
         {
-            c["dependency_manager"]  # type: ignore
+            c.get("dependency_manager")  # type: ignore
             for c in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))
-            if c["dependency_manager"]
+            if c.get("dependency_manager")
         }
     )
 )
