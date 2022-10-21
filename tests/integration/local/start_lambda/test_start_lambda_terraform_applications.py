@@ -266,6 +266,18 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(StartLambd
         # over write the parent tear down
         pass
 
+    def setUp(self):
+        self.working_dir = self.integration_dir + self.terraform_application
+        self.port = str(StartLambdaIntegBaseClass.random_port())
+
+        # remove all containers if there
+        self.docker_client = docker.from_env()
+        for container in self.docker_client.api.containers():
+            try:
+                self.docker_client.api.remove_container(container, force=True)
+            except APIError as ex:
+                LOG.error("Failed to remove container %s", container, exc_info=ex)
+
     def tearDown(self):
         # delete the override file
         try:
@@ -277,19 +289,8 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(StartLambd
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_function(self):
-        self.working_dir = self.integration_dir + self.terraform_application
-        port = str(StartLambdaIntegBaseClass.random_port())
-
-        # remove all containers if there
-        self.docker_client = docker.from_env()
-        for container in self.docker_client.api.containers():
-            try:
-                self.docker_client.api.remove_container(container, force=True)
-            except APIError as ex:
-                LOG.error("Failed to remove container %s", container, exc_info=ex)
-
         command_list = self.get_start_lambda_command(
-            port=port,
+            port=self.port,
             hook_package_id=self.hook_package_id,
             beta_features=self.beta_features,
         )

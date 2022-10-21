@@ -14,7 +14,7 @@ class InvalidResourceLinkingException(UserException):
 
     def __init__(self, message):
         msg = self.fmt.format(message=message)
-        UserException.__init__(self, msg)
+        super().__init__(self, msg)
 
 
 class OneLambdaLayerLinkingLimitationException(UserException):
@@ -31,7 +31,7 @@ class OneLambdaLayerLinkingLimitationException(UserException):
             issue_link=ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK,
             line_sep=os.linesep,
         )
-        UserException.__init__(self, msg)
+        super().__init__(self, msg)
 
 
 class LocalVariablesLinkingLimitationException(UserException):
@@ -48,7 +48,7 @@ class LocalVariablesLinkingLimitationException(UserException):
             issue_link=LOCAL_VARIABLES_SUPPORT_ISSUE_LINK,
             line_sep=os.linesep,
         )
-        UserException.__init__(self, msg)
+        super().__init__(self, msg)
 
 
 class InvalidSamMetadataPropertiesException(UserException):

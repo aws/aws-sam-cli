@@ -241,8 +241,7 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
     module_queue = [(root_module, root_tf_module)]
     while module_queue:
         modules_pair = module_queue.pop(0)
-        curr_module = modules_pair[0]
-        curr_tf_module = modules_pair[1]
+        curr_module, curr_tf_module = modules_pair
         curr_module_address = curr_module.get("address")
 
         _add_child_modules_to_queue(curr_module, curr_tf_module, module_queue)
