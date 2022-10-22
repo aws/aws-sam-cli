@@ -2724,7 +2724,7 @@ class TestApplicationBuilder_get_build_options(TestCase):
     ):
         metadata = {"BuildProperties": build_properties}
         options = ApplicationBuilder._get_build_options(
-            "Function", language, "app.handler", dependency_manager, metadata
+            "Function", language, "base_dir", "app.handler", dependency_manager, metadata
         )
         self.assertEqual(options, expected_options)
 

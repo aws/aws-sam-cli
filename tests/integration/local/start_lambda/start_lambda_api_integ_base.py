@@ -82,12 +82,12 @@ class StartLambdaIntegBaseClass(TestCase):
         run_command(command_list, cwd=cls.working_dir)
 
     @classmethod
-    def start_lambda_with_retry(cls, retries=3):
+    def start_lambda_with_retry(cls, retries=3, input=None, env=None):
         retry_count = 0
         while retry_count < retries:
             cls.port = str(random_port())
             try:
-                cls.start_lambda()
+                cls.start_lambda(input=input, env=env)
             except InvalidAddressException:
                 retry_count += 1
                 continue
@@ -157,14 +157,9 @@ class StartLambdaIntegBaseClass(TestCase):
             cls.start_lambda_process.stdin.write(input)
             cls.start_lambda_process.stdin.close()
 
-        wait_for_local_process(cls.start_lambda_process, cls.port)
-
-        #while True:
-        #    line = cls.start_lambda_process.stderr.readline()
-        #    if cls.collect_start_lambda_process_output:
-        #        cls.start_lambda_process_output += f"{line.decode('utf-8')}\n"
-        #    if "(Press CTRL+C to quit)" in str(line) or "Terraform Support beta feature is not enabled." in str(line):
-        #       break
+        cls.start_lambda_process_output = wait_for_local_process(
+            cls.start_lambda_process, cls.port, cls.collect_start_lambda_process_output
+        )
 
         cls.stop_reading_thread = False
 
