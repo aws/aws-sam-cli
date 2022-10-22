@@ -1,9 +1,10 @@
 """Test Terraform utilities"""
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import patch, Mock, call
 from parameterized import parameterized
 
-from samcli.hook_packages.terraform.lib.utils import build_cfn_logical_id
+from samcli.hook_packages.terraform.hooks.prepare.types import ConstantValue, ResolvedReference
+from samcli.hook_packages.terraform.lib.utils import build_cfn_logical_id, _calculate_configuration_attribute_value_hash
 
 
 class TestPrepareHook(TestCase):
@@ -47,3 +48,41 @@ class TestPrepareHook(TestCase):
         logical_id1 = build_cfn_logical_id(tf_address1)
         logical_id2 = build_cfn_logical_id(tf_address2)
         self.assertNotEqual(logical_id1, logical_id2)
+
+    @patch("samcli.hook_packages.terraform.lib.utils.hashlib")
+    def test_calculate_configuration_attribute_value_hash_with_string_attribute_value(self, mock_hashlib):
+        md5_mock = Mock()
+        hash_value = Mock()
+        md5_mock.hexdigest.return_value = hash_value
+        mock_hashlib.md5.return_value = md5_mock
+        attribute_value = "fixed string"
+        res = _calculate_configuration_attribute_value_hash(attribute_value)
+        self.assertEqual(res, hash_value)
+        md5_mock.update.assert_called_with(attribute_value.encode())
+
+    @patch("samcli.hook_packages.terraform.lib.utils.hashlib")
+    def test_calculate_configuration_attribute_value_hash_with_reference_attribute_value(self, mock_hashlib):
+        md5_mock = Mock()
+        hash_value = Mock()
+        md5_mock.hexdigest.return_value = hash_value
+        mock_hashlib.md5.return_value = md5_mock
+        attribute_value = [
+            ConstantValue("C"),
+            ResolvedReference("aws_lambda_function.arn", "module.m1"),
+            ConstantValue("A"),
+        ]
+        res = _calculate_configuration_attribute_value_hash(attribute_value)
+        self.assertEqual(res, hash_value)
+        md5_mock.update.assert_has_calls(
+            [
+                call(
+                    "A".encode(),
+                ),
+                call(
+                    "C".encode(),
+                ),
+                call(
+                    "module.m1.aws_lambda_function.arn".encode(),
+                ),
+            ]
+        )

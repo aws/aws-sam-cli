@@ -226,27 +226,42 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
         else Path("terraform/zip_based_lambda_functions_local_backend_windows")
     )
     functions = [
-        ("module.function2.aws_lambda_function.this", "hello world 2"),
-        ("function2", "hello world 2"),
-        ("aws_lambda_function.function1", "hello world 1"),
-        ("function1", "hello world 1"),
-        ("aws_lambda_function.from_localfile", "[]"),
-        ("aws_lambda_function.from_s3", "[]"),
-        ("module.level1_lambda.aws_lambda_function.this", "[]"),
-        ("module.level1_lambda.module.level2_lambda.aws_lambda_function.this", "[]"),
-        ("my_function_from_localfile", "[]"),
-        ("my_function_from_s3", "[]"),
-        ("my_level1_lambda", "[]"),
-        ("my_level2_lambda", "[]"),
+        ("aws_lambda_function.function4", "hello world 4 - override version", True),
+        ("function4", "hello world 4 - override version", True),
+        ("aws_lambda_function.function4", "hello world 4", False),
+        ("function4", "hello world 4", False),
+        ("aws_lambda_function.function3", "hello world 3 - override version", True),
+        ("function3", "hello world 3 - override version", True),
+        ("aws_lambda_function.function3", "hello world 3", False),
+        ("function3", "hello world 3", False),
+        ("module.function2.aws_lambda_function.this", "hello world 2 - override version", True),
+        ("function2", "hello world 2 - override version", True),
+        ("aws_lambda_function.function1", "hello world 1 - override version", True),
+        ("function1", "hello world 1 - override version", True),
+        ("module.function2.aws_lambda_function.this", "hello world 2", False),
+        ("function2", "hello world 2", False),
+        ("aws_lambda_function.function1", "hello world 1", False),
+        ("function1", "hello world 1", False),
+        ("aws_lambda_function.from_localfile", "[]", False),
+        ("aws_lambda_function.from_s3", "[]", False),
+        ("module.level1_lambda.aws_lambda_function.this", "[]", False),
+        ("module.level1_lambda.module.level2_lambda.aws_lambda_function.this", "[]", False),
+        ("my_function_from_localfile", "[]", False),
+        ("my_function_from_s3", "[]", False),
+        ("my_level1_lambda", "[]", False),
+        ("my_level2_lambda", "[]", False),
     ]
 
     @parameterized.expand(functions)
-    def test_build_and_invoke_lambda_functions(self, function_identifier, expected_output):
+    def test_build_and_invoke_lambda_functions(self, function_identifier, expected_output, should_override_code):
         build_cmd_list = self.get_command_list(
             beta_features=True, hook_package_id="terraform", function_identifier=function_identifier
         )
         LOG.info("command list: %s", build_cmd_list)
-        _, stderr, return_code = self.run_command(build_cmd_list)
+        environment_variables = os.environ.copy()
+        if should_override_code:
+            environment_variables["TF_VAR_hello_function_src_code"] = "./artifacts/HelloWorldFunction2"
+        _, stderr, return_code = self.run_command(build_cmd_list, env=environment_variables)
         LOG.info(stderr)
         self.assertEqual(return_code, 0)
 
@@ -261,6 +276,33 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
     not CI_OVERRIDE,
     "Skip Terraform test cases unless running in CI",
 )
+class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(BuildTerraformApplicationIntegBase):
+    terraform_application = Path("terraform/invalid_no_local_code_project")
+
+    def test_invoke_function(self):
+        function_identifier = "aws_lambda_function.function"
+        build_cmd_list = self.get_command_list(
+            beta_features=True, hook_package_id="terraform", function_identifier=function_identifier
+        )
+
+        LOG.info("command list: %s", build_cmd_list)
+        environment_variables = os.environ.copy()
+
+        _, stderr, return_code = self.run_command(build_cmd_list, env=environment_variables)
+        LOG.info(stderr)
+        process_stderr = stderr.strip()
+        self.assertRegex(
+            process_stderr.decode("utf-8"),
+            "Error: Lambda resource aws_lambda_function.function is referring to an S3 bucket that is not created yet, "
+            "and there is no sam metadata resource set for it to build its code locally",
+        )
+        self.assertNotEqual(return_code, 0)
+
+
+@skipIf(
+    not CI_OVERRIDE,
+    "Skip Terraform test cases unless running in CI",
+)
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(BuildTerraformApplicationS3BackendIntegBase):
     terraform_application = (
         Path("terraform/zip_based_lambda_functions_s3_backend")
@@ -268,27 +310,42 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(Build
         else Path("terraform/zip_based_lambda_functions_s3_backend_windows")
     )
     functions = [
-        ("module.function2.aws_lambda_function.this", "hello world 2"),
-        ("function2", "hello world 2"),
-        ("aws_lambda_function.function1", "hello world 1"),
-        ("function1", "hello world 1"),
-        ("aws_lambda_function.from_localfile", "[]"),
-        ("aws_lambda_function.from_s3", "[]"),
-        ("module.level1_lambda.aws_lambda_function.this", "[]"),
-        ("module.level1_lambda.module.level2_lambda.aws_lambda_function.this", "[]"),
-        ("my_function_from_localfile", "[]"),
-        ("my_function_from_s3", "[]"),
-        ("my_level1_lambda", "[]"),
-        ("my_level2_lambda", "[]"),
+        ("aws_lambda_function.function4", "hello world 4 - override version", True),
+        ("function4", "hello world 4 - override version", True),
+        ("aws_lambda_function.function4", "hello world 4", False),
+        ("function4", "hello world 4", False),
+        ("aws_lambda_function.function3", "hello world 3 - override version", True),
+        ("function3", "hello world 3 - override version", True),
+        ("aws_lambda_function.function3", "hello world 3", False),
+        ("function3", "hello world 3", False),
+        ("module.function2.aws_lambda_function.this", "hello world 2 - override version", True),
+        ("function2", "hello world 2 - override version", True),
+        ("aws_lambda_function.function1", "hello world 1 - override version", True),
+        ("function1", "hello world 1 - override version", True),
+        ("module.function2.aws_lambda_function.this", "hello world 2", False),
+        ("function2", "hello world 2", False),
+        ("aws_lambda_function.function1", "hello world 1", False),
+        ("function1", "hello world 1", False),
+        ("aws_lambda_function.from_localfile", "[]", False),
+        ("aws_lambda_function.from_s3", "[]", False),
+        ("module.level1_lambda.aws_lambda_function.this", "[]", False),
+        ("module.level1_lambda.module.level2_lambda.aws_lambda_function.this", "[]", False),
+        ("my_function_from_localfile", "[]", False),
+        ("my_function_from_s3", "[]", False),
+        ("my_level1_lambda", "[]", False),
+        ("my_level2_lambda", "[]", False),
     ]
 
     @parameterized.expand(functions)
-    def test_build_and_invoke_lambda_functions(self, function_identifier, expected_output):
+    def test_build_and_invoke_lambda_functions(self, function_identifier, expected_output, should_override_code):
         build_cmd_list = self.get_command_list(
             beta_features=True, hook_package_id="terraform", function_identifier=function_identifier
         )
         LOG.info("command list: %s", build_cmd_list)
-        _, stderr, return_code = self.run_command(build_cmd_list)
+        environment_variables = os.environ.copy()
+        if should_override_code:
+            environment_variables["TF_VAR_hello_function_src_code"] = "./artifacts/HelloWorldFunction2"
+        _, stderr, return_code = self.run_command(build_cmd_list, env=environment_variables)
         LOG.info(stderr)
         self.assertEqual(return_code, 0)
 
@@ -306,6 +363,7 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(Build
 class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndLocalBackend(BuildTerraformApplicationIntegBase):
     terraform_application = Path("terraform/image_based_lambda_functions_local_backend")
     functions = [
+        "aws_lambda_function.function_with_non_image_uri",
         "aws_lambda_function.my_image_function",
         "module.l1_lambda.aws_lambda_function.this",
         "module.l1_lambda.module.l2_lambda.aws_lambda_function.this",
@@ -345,6 +403,7 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndS3Backend(
 ):
     terraform_application = Path("terraform/image_based_lambda_functions_s3_backend")
     functions = [
+        "aws_lambda_function.function_with_non_image_uri",
         "aws_lambda_function.my_image_function",
         "module.l1_lambda.aws_lambda_function.this",
         "module.l1_lambda.module.l2_lambda.aws_lambda_function.this",

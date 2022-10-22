@@ -33,6 +33,28 @@ locals {
     lambda_src_path = "./hello_world"
 }
 
+resource "random_pet" "this" {
+  length = 2
+}
+
+resource "aws_lambda_function" "function_with_non_image_uri" {
+    function_name = "function_with_non_image_uri"
+    role = aws_iam_role.iam_for_lambda.arn
+    package_type = "Image"
+    image_uri = "some_image_uri_${random_pet.this.id}"
+}
+
+resource "null_resource" "sam_metadata_aws_lambda_function_function_with_non_image_uri" {
+    triggers = {
+        resource_name = "aws_lambda_function.function_with_non_image_uri"
+        resource_type = "IMAGE_LAMBDA_FUNCTION"
+
+        docker_context = local.lambda_src_path
+        docker_file = "Dockerfile"
+        docker_tag = "latest"
+    }
+}
+
 resource "aws_lambda_function" "my_image_function" {
     function_name = "my_image_function"
     role = aws_iam_role.iam_for_lambda.arn

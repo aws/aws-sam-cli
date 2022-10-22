@@ -39,12 +39,17 @@ from samcli.hook_packages.terraform.hooks.prepare.hook import (
     _format_makefile_recipe,
     _build_makerule_python_command,
     _link_lambda_functions_to_layers,
+    _add_child_modules_to_queue,
+    _check_dummy_remote_values,
+    REMOTE_DUMMY_VALUE,
 )
-from samcli.hook_packages.terraform.hooks.prepare.resource_linking import TFModule, TFResource
-from samcli.lib.hook.exceptions import PrepareHookException, InvalidSamMetadataPropertiesException
+from samcli.hook_packages.terraform.hooks.prepare.types import TFModule, TFResource, ConstantValue, ResolvedReference
+from samcli.lib.hook.exceptions import PrepareHookException
+from samcli.hook_packages.terraform.hooks.prepare.exceptions import InvalidSamMetadataPropertiesException
 from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_LAYERVERSION,
+    AWS_LAMBDA_FUNCTION,
 )
 
 
@@ -57,6 +62,7 @@ class TestPrepareHook(TestCase):
 
         self.s3_bucket = "mybucket"
         self.s3_key = "mykey"
+        self.s3_object_version = "myversion"
         self.s3_source = "mysource1.zip"
         self.s3_bucket_2 = "mybucket2"
         self.s3_key_2 = "mykey2"
@@ -216,11 +222,12 @@ class TestPrepareHook(TestCase):
             "function_name": self.s3_function_name,
             "s3_bucket": self.s3_bucket,
             "s3_key": self.s3_key,
+            "s3_object_version": self.s3_object_version,
         }
         self.expected_cfn_s3_function_properties: dict = {
             **self.expected_cfn_function_common_properties,
             "FunctionName": self.s3_function_name,
-            "Code": {"S3Bucket": self.s3_bucket, "S3Key": self.s3_key},
+            "Code": {"S3Bucket": self.s3_bucket, "S3Key": self.s3_key, "S3ObjectVersion": self.s3_object_version},
         }
         self.expected_cfn_s3_function_properties_after_source_mapping: dict = {
             **self.expected_cfn_function_common_properties,
@@ -244,6 +251,7 @@ class TestPrepareHook(TestCase):
             "function_name": self.s3_function_name_2,
             "s3_bucket": self.s3_bucket_2,
             "s3_key": self.s3_key_2,
+            "s3_object_version": self.s3_object_version,
         }
         self.expected_cfn_s3_function_properties_2: dict = {
             **self.expected_cfn_function_common_properties,
@@ -554,6 +562,7 @@ class TestPrepareHook(TestCase):
                                             "address": f"module.mymodule1.module.mymodule2.aws_lambda_function.{self.zip_function_name_3}",
                                         },
                                     ],
+                                    "address": "module.m1.module.m2",
                                 },
                                 {
                                     "resources": [
@@ -562,8 +571,10 @@ class TestPrepareHook(TestCase):
                                             "address": f"module.mymodule1.module.mymodule2.aws_lambda_function.{self.zip_function_name_4}",
                                         },
                                     ],
+                                    "address": "module.m1.module.m3",
                                 },
                             ],
+                            "address": "module.m1",
                         }
                     ],
                 }
@@ -716,6 +727,7 @@ class TestPrepareHook(TestCase):
                                             "address": f"module.mymodule1.module.mymodule2.aws_lambda_function.{self.s3_function_name_2}",
                                         },
                                     ],
+                                    "address": "module.m1.module.m2",
                                 },
                                 {
                                     "resources": [
@@ -724,8 +736,10 @@ class TestPrepareHook(TestCase):
                                             "address": f"module.mymodule1.module.mymodule2.aws_lambda_function.{self.zip_function_name_4}",
                                         },
                                     ],
+                                    "address": "module.m1.module.m2\3",
                                 },
                             ],
+                            "address": "module.m1",
                         }
                     ],
                 }
@@ -772,6 +786,56 @@ class TestPrepareHook(TestCase):
         self.assertEqual(
             _get_s3_object_hash(self.s3_bucket, self.s3_key), _get_s3_object_hash(self.s3_bucket, self.s3_key)
         )
+        self.assertEqual(
+            _get_s3_object_hash(
+                [ConstantValue("A"), ResolvedReference("aws_lambda_function.arn", "module.m1")], self.s3_key
+            ),
+            _get_s3_object_hash(
+                [ResolvedReference("aws_lambda_function.arn", "module.m1"), ConstantValue("A")], self.s3_key
+            ),
+        )
+        self.assertEqual(
+            _get_s3_object_hash(
+                self.s3_bucket, [ConstantValue("A"), ResolvedReference("aws_lambda_function.arn", "module.m1")]
+            ),
+            _get_s3_object_hash(
+                self.s3_bucket, [ResolvedReference("aws_lambda_function.arn", "module.m1"), ConstantValue("A")]
+            ),
+        )
+        self.assertEqual(
+            _get_s3_object_hash(
+                [ConstantValue("B"), ResolvedReference("aws_s3_bucket.id", "module.m2")],
+                [ConstantValue("A"), ResolvedReference("aws_lambda_function.arn", "module.m1")],
+            ),
+            _get_s3_object_hash(
+                [ResolvedReference("aws_s3_bucket.id", "module.m2"), ConstantValue("B")],
+                [ResolvedReference("aws_lambda_function.arn", "module.m1"), ConstantValue("A")],
+            ),
+        )
+        self.assertNotEqual(
+            _get_s3_object_hash(
+                [ConstantValue("B"), ConstantValue("C"), ResolvedReference("aws_s3_bucket.id", "module.m2")],
+                [ConstantValue("A"), ResolvedReference("aws_lambda_function.arn", "module.m1")],
+            ),
+            _get_s3_object_hash(
+                [ResolvedReference("aws_s3_bucket.id", "module.m2"), ConstantValue("B")],
+                [ResolvedReference("aws_lambda_function.arn", "module.m1"), ConstantValue("A")],
+            ),
+        )
+        self.assertNotEqual(
+            _get_s3_object_hash([ConstantValue("B"), ResolvedReference("aws_s3_bucket.id", "module.m2")], self.s3_key),
+            _get_s3_object_hash(
+                [ResolvedReference("aws_s3_bucket.id", "module.m2"), ConstantValue("B")], self.s3_key_2
+            ),
+        )
+        self.assertNotEqual(
+            _get_s3_object_hash(
+                self.s3_bucket, [ConstantValue("A"), ResolvedReference("aws_lambda_function.arn", "module.m1")]
+            ),
+            _get_s3_object_hash(
+                self.s3_bucket_2, [ResolvedReference("aws_lambda_function.arn", "module.m1"), ConstantValue("A")]
+            ),
+        )
         self.assertNotEqual(
             _get_s3_object_hash(self.s3_bucket, self.s3_key), _get_s3_object_hash(self.s3_bucket_2, self.s3_key_2)
         )
@@ -786,63 +850,123 @@ class TestPrepareHook(TestCase):
     def test_get_property_extractor(self, tf_property_name):
         property_extractor = _get_property_extractor(tf_property_name)
         self.assertEqual(
-            property_extractor(self.tf_zip_function_properties), self.tf_zip_function_properties[tf_property_name]
+            property_extractor(self.tf_zip_function_properties, None), self.tf_zip_function_properties[tf_property_name]
         )
 
     def test_build_lambda_function_environment_property(self):
         expected_cfn_property = self.expected_cfn_zip_function_properties["Environment"]
-        translated_cfn_property = _build_lambda_function_environment_property(self.tf_zip_function_properties)
+        translated_cfn_property = _build_lambda_function_environment_property(self.tf_zip_function_properties, None)
         self.assertEqual(translated_cfn_property, expected_cfn_property)
 
     def test_build_lambda_function_environment_property_no_variables(self):
         tf_properties = {"function_name": self.zip_function_name}
-        self.assertIsNone(_build_lambda_function_environment_property(tf_properties))
+        self.assertIsNone(_build_lambda_function_environment_property(tf_properties, None))
 
         tf_properties = {"environment": [], "function_name": self.zip_function_name}
-        self.assertIsNone(_build_lambda_function_environment_property(tf_properties))
+        self.assertIsNone(_build_lambda_function_environment_property(tf_properties, None))
 
     def test_build_lambda_function_code_property_zip(self):
+        resource_mock = Mock()
         expected_cfn_property = self.expected_cfn_zip_function_properties["Code"]
-        translated_cfn_property = _build_code_property(self.tf_zip_function_properties)
+        translated_cfn_property = _build_code_property(self.tf_zip_function_properties, resource_mock)
+        resource_mock.assert_not_called()
         self.assertEqual(translated_cfn_property, expected_cfn_property)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._resolve_resource_attribute")
+    def test_build_lambda_function_code_property_s3_with_null_bucket_only_in_planned_values(
+        self,
+        mock_resolve_resource_attribute,
+    ):
+        resource_mock = Mock()
+        reference_mock = Mock()
+        mock_resolve_resource_attribute.return_value = reference_mock
+        tf_s3_function_properties = {
+            **self.tf_function_common_properties,
+            "s3_key": "bucket_key",
+            "s3_object_version": "1",
+        }
+        expected_cfn_property = {
+            "S3Bucket": REMOTE_DUMMY_VALUE,
+            "S3Bucket_config_value": reference_mock,
+            "S3Key": "bucket_key",
+            "S3ObjectVersion": "1",
+        }
+        translated_cfn_property = _build_code_property(tf_s3_function_properties, resource_mock)
+        self.assertEqual(translated_cfn_property, expected_cfn_property)
+        mock_resolve_resource_attribute.assert_has_calls(
+            [call(resource_mock, "s3_bucket"), call(resource_mock, "s3_key"), call(resource_mock, "s3_object_version")]
+        )
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._resolve_resource_attribute")
+    def test_build_lambda_function_code_property_with_null_imageuri_only_in_planned_values(
+        self,
+        mock_resolve_resource_attribute,
+    ):
+        resource_mock = Mock()
+        reference_mock = Mock()
+        mock_resolve_resource_attribute.return_value = reference_mock
+        tf_image_function_properties = {
+            **self.tf_image_package_type_function_common_properties,
+            "image_config": [
+                {
+                    "command": ["cmd1", "cmd2"],
+                    "entry_point": ["entry1", "entry2"],
+                    "working_directory": "/working/dir/path",
+                }
+            ],
+        }
+        expected_cfn_property = {
+            "ImageUri": REMOTE_DUMMY_VALUE,
+        }
+        translated_cfn_property = _build_code_property(tf_image_function_properties, resource_mock)
+        self.assertEqual(translated_cfn_property, expected_cfn_property)
+        mock_resolve_resource_attribute.assert_has_calls([call(resource_mock, "image_uri")])
+
     def test_build_lambda_function_code_property_s3(self):
+        resource_mock = Mock()
         expected_cfn_property = self.expected_cfn_s3_function_properties["Code"]
-        translated_cfn_property = _build_code_property(self.tf_s3_function_properties)
+        translated_cfn_property = _build_code_property(self.tf_s3_function_properties, resource_mock)
+        resource_mock.assert_not_called()
         self.assertEqual(translated_cfn_property, expected_cfn_property)
 
     def test_build_lambda_function_code_property_image(self):
         expected_cfn_property = self.expected_cfn_image_package_function_properties["Code"]
-        translated_cfn_property = _build_code_property(self.tf_image_package_type_function_properties)
+        resource_mock = Mock()
+        translated_cfn_property = _build_code_property(self.tf_image_package_type_function_properties, resource_mock)
+        resource_mock.assert_not_called()
         self.assertEqual(translated_cfn_property, expected_cfn_property)
 
     def test_build_lambda_function_image_config_property(self):
         expected_cfn_property = self.expected_cfn_image_package_function_properties["ImageConfig"]
         translated_cfn_property = _build_lambda_function_image_config_property(
-            self.tf_image_package_type_function_properties
+            self.tf_image_package_type_function_properties, None
         )
         self.assertEqual(translated_cfn_property, expected_cfn_property)
 
     def test_build_lambda_function_image_config_property_no_image_config(self):
         tf_properties = {**self.tf_image_package_type_function_properties}
         del tf_properties["image_config"]
-        translated_cfn_property = _build_lambda_function_image_config_property(tf_properties)
+        translated_cfn_property = _build_lambda_function_image_config_property(tf_properties, None)
         self.assertEqual(translated_cfn_property, None)
 
     def test_build_lambda_function_image_config_property_empty_image_config_list(self):
         tf_properties = {**self.tf_image_package_type_function_properties}
         tf_properties["image_config"] = []
-        translated_cfn_property = _build_lambda_function_image_config_property(tf_properties)
+        translated_cfn_property = _build_lambda_function_image_config_property(tf_properties, None)
         self.assertEqual(translated_cfn_property, None)
 
     def test_build_lambda_layer_code_property_zip(self):
+        resource_mock = Mock()
         expected_cfn_property = self.expected_cfn_lambda_layer_properties_zip["Content"]
-        translated_cfn_property = _build_code_property(self.tf_lambda_layer_properties_zip)
+        translated_cfn_property = _build_code_property(self.tf_lambda_layer_properties_zip, resource_mock)
+        resource_mock.assert_not_called()
         self.assertEqual(translated_cfn_property, expected_cfn_property)
 
     def test_build_lambda_layer_code_property_s3(self):
+        resource_mock = Mock()
         expected_cfn_property = self.expected_cfn_lambda_layer_properties_s3["Content"]
-        translated_cfn_property = _build_code_property(self.tf_lambda_layer_properties_s3)
+        translated_cfn_property = _build_code_property(self.tf_lambda_layer_properties_s3, resource_mock)
+        resource_mock.assert_not_called()
         self.assertEqual(translated_cfn_property, expected_cfn_property)
 
     @parameterized.expand(
@@ -855,18 +979,18 @@ class TestPrepareHook(TestCase):
         del expected_cfn_property[missing_cfn_property]
         tf_properties = {**self.tf_image_package_type_function_properties}
         del tf_properties["image_config"][0][missing_tf_property]
-        translated_cfn_property = _build_lambda_function_image_config_property(tf_properties)
+        translated_cfn_property = _build_lambda_function_image_config_property(tf_properties, None)
         self.assertEqual(translated_cfn_property, expected_cfn_property)
 
     def test_translate_properties_function(self):
         translated_cfn_properties = _translate_properties(
-            self.tf_zip_function_properties, AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING
+            self.tf_zip_function_properties, AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING, Mock()
         )
         self.assertEqual(translated_cfn_properties, self.expected_cfn_zip_function_properties)
 
     def test_translate_properties_function_with_missing_or_none_properties(self):
         translated_cfn_properties = _translate_properties(
-            self.tf_function_properties_with_missing_or_none, AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING
+            self.tf_function_properties_with_missing_or_none, AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING, Mock()
         )
         self.assertEqual(translated_cfn_properties, self.expected_cfn_function_properties_with_missing_or_none)
 
@@ -928,6 +1052,7 @@ class TestPrepareHook(TestCase):
         )
         self.assertEqual(cfn_resources, expected_cfn_resources_after_mapping_s3_sources)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
@@ -936,6 +1061,7 @@ class TestPrepareHook(TestCase):
         mock_enrich_resources_and_generate_makefile,
         mock_link_lambda_functions_to_layers,
         mock_get_configuration_address,
+        mock_build_module,
     ):
         expected_empty_cfn_dict = {"AWSTemplateFormatVersion": "2010-09-09", "Resources": {}}
 
@@ -956,6 +1082,8 @@ class TestPrepareHook(TestCase):
             self.assertEqual(translated_cfn_dict, expected_empty_cfn_dict)
             mock_enrich_resources_and_generate_makefile.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._check_dummy_remote_values")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
@@ -966,7 +1094,21 @@ class TestPrepareHook(TestCase):
         mock_enrich_resources_and_generate_makefile,
         mock_link_lambda_functions_to_layers,
         mock_get_configuration_address,
+        mock_build_module,
+        mock_check_dummy_remote_values,
     ):
+        root_module = MagicMock()
+        root_module.get.return_value = "module.m1"
+        resources_mock = MagicMock()
+        root_module.resources = resources_mock
+        child_modules = MagicMock()
+        child_modules.__getitem__.return_value = Mock()
+        child_modules.__contains__.return_value = True
+        child_modules.get.return_value = root_module
+        root_module.child_modules = child_modules
+        resources_mock.__getitem__.return_value = Mock()
+        resources_mock.__contains__.return_value = True
+        mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(self.tf_json_with_root_module_only, self.output_dir, self.project_root)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_root_module_only)
@@ -978,13 +1120,66 @@ class TestPrepareHook(TestCase):
             )
         )
         expected_arguments_in_call = [
-            self.tf_json_with_root_module_only,
+            root_module,
             {mock_get_configuration_address(): [val for _, val in lambda_functions.items()]},
             {},
         ]
         mock_link_lambda_functions_to_layers.assert_called_once_with(*expected_arguments_in_call)
         mock_get_configuration_address.assert_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._resolve_resource_attribute")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._check_dummy_remote_values")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._build_module")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
+    @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
+    def test_translate_to_cfn_with_s3_object_which_linked_to_uncreated_bucket(
+        self,
+        checksum_mock,
+        mock_enrich_resources_and_generate_makefile,
+        mock_link_lambda_functions_to_layers,
+        mock_get_configuration_address,
+        mock_build_module,
+        mock_check_dummy_remote_values,
+        mock_resolve_resource_attribute,
+    ):
+        root_module = MagicMock()
+        root_module.get.return_value = "module.m1"
+        resources_mock = MagicMock()
+        root_module.resources = resources_mock
+        child_modules = MagicMock()
+        child_modules.__getitem__.return_value = Mock()
+        child_modules.__contains__.return_value = True
+        child_modules.get.return_value = root_module
+        root_module.child_modules = child_modules
+        resource_mock = Mock()
+        resources_mock.__getitem__.return_value = resource_mock
+        resources_mock.__contains__.return_value = True
+        mock_build_module.return_value = root_module
+        checksum_mock.return_value = self.mock_logical_id_hash
+
+        tf_json_with_root_module_contains_s3_object: dict = {
+            "planned_values": {
+                "root_module": {
+                    "resources": [
+                        {
+                            "type": "aws_s3_object",
+                            "provider_name": AWS_PROVIDER_NAME,
+                            "values": {"source": self.s3_source},
+                            "address": "aws_lambda_function.code_object",
+                            "name": "code_object",
+                        }
+                    ]
+                }
+            }
+        }
+
+        _translate_to_cfn(tf_json_with_root_module_contains_s3_object, self.output_dir, self.project_root)
+        mock_resolve_resource_attribute.assert_has_calls([call(resource_mock, "bucket"), call(resource_mock, "key")])
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._check_dummy_remote_values")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
@@ -995,7 +1190,21 @@ class TestPrepareHook(TestCase):
         mock_enrich_resources_and_generate_makefile,
         mock_link_lambda_functions_to_layers,
         mock_get_configuration_address,
+        mock_build_module,
+        mock_check_dummy_remote_values,
     ):
+        root_module = MagicMock()
+        root_module.get.return_value = "module.m1"
+        resources_mock = MagicMock()
+        root_module.resources = resources_mock
+        child_modules = MagicMock()
+        child_modules.__getitem__.return_value = Mock()
+        child_modules.__contains__.return_value = True
+        child_modules.get.return_value = root_module
+        root_module.child_modules = child_modules
+        resources_mock.__getitem__.return_value = Mock()
+        resources_mock.__contains__.return_value = True
+        mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(self.tf_json_with_child_modules, self.output_dir, self.project_root)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_child_modules)
@@ -1007,13 +1216,16 @@ class TestPrepareHook(TestCase):
             )
         )
         expected_arguments_in_call = [
-            self.tf_json_with_child_modules,
+            root_module,
             {mock_get_configuration_address(): [val for _, val in lambda_functions.items()]},
             {},
         ]
         mock_link_lambda_functions_to_layers.assert_called_once_with(*expected_arguments_in_call)
         mock_get_configuration_address.assert_called()
+        mock_check_dummy_remote_values.assert_called_once_with(translated_cfn_dict.get("Resources"))
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._check_dummy_remote_values")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
@@ -1024,7 +1236,21 @@ class TestPrepareHook(TestCase):
         mock_enrich_resources_and_generate_makefile,
         mock_link_lambda_functions_to_layers,
         mock_get_configuration_address,
+        mock_build_module,
+        mock_check_dummy_remote_values,
     ):
+        root_module = MagicMock()
+        root_module.get.return_value = "module.m1"
+        resources_mock = MagicMock()
+        root_module.resources = resources_mock
+        child_modules = MagicMock()
+        child_modules.__getitem__.return_value = Mock()
+        child_modules.__contains__.return_value = True
+        child_modules.get.return_value = root_module
+        root_module.child_modules = child_modules
+        resources_mock.__getitem__.return_value = Mock()
+        resources_mock.__contains__.return_value = True
+        mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(
             self.tf_json_with_root_module_with_sam_metadata_resources, self.output_dir, self.project_root
@@ -1051,6 +1277,8 @@ class TestPrepareHook(TestCase):
 
         mock_enrich_resources_and_generate_makefile.assert_called_once_with(*expected_arguments_in_call)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._check_dummy_remote_values")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
@@ -1061,7 +1289,21 @@ class TestPrepareHook(TestCase):
         mock_enrich_resources_and_generate_makefile,
         mock_link_lambda_functions_to_layers,
         mock_get_configuration_address,
+        mock_build_module,
+        mock_check_dummy_remote_values,
     ):
+        root_module = MagicMock()
+        root_module.get.return_value = "module.m1"
+        resources_mock = MagicMock()
+        root_module.resources = resources_mock
+        child_modules = MagicMock()
+        child_modules.__getitem__.return_value = Mock()
+        child_modules.__contains__.return_value = True
+        child_modules.get.return_value = root_module
+        root_module.child_modules = child_modules
+        resources_mock.__getitem__.return_value = Mock()
+        resources_mock.__contains__.return_value = True
+        mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(
             self.tf_json_with_child_modules_with_sam_metadata_resource, self.output_dir, self.project_root
@@ -1101,6 +1343,8 @@ class TestPrepareHook(TestCase):
 
         mock_enrich_resources_and_generate_makefile.assert_called_once_with(*expected_arguments_in_call)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._check_dummy_remote_values")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
@@ -1111,7 +1355,21 @@ class TestPrepareHook(TestCase):
         mock_enrich_resources_and_generate_makefile,
         mock_link_lambda_functions_to_layers,
         mock_get_configuration_address,
+        mock_build_module,
+        mock_check_dummy_remote_values,
     ):
+        root_module = MagicMock()
+        root_module.get.return_value = "module.m1"
+        resources_mock = MagicMock()
+        root_module.resources = resources_mock
+        child_modules = MagicMock()
+        child_modules.__getitem__.return_value = Mock()
+        child_modules.__contains__.return_value = True
+        child_modules.get.return_value = root_module
+        root_module.child_modules = child_modules
+        resources_mock.__getitem__.return_value = Mock()
+        resources_mock.__contains__.return_value = True
+        mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(
             self.tf_json_with_unsupported_provider, self.output_dir, self.project_root
@@ -1119,6 +1377,8 @@ class TestPrepareHook(TestCase):
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_unsupported_provider)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._check_dummy_remote_values")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
@@ -1129,7 +1389,21 @@ class TestPrepareHook(TestCase):
         mock_enrich_resources_and_generate_makefile,
         mock_link_lambda_functions_to_layers,
         mock_get_configuration_address,
+        mock_build_module,
+        mock_check_dummy_remote_values,
     ):
+        root_module = MagicMock()
+        root_module.get.return_value = "module.m1"
+        resources_mock = MagicMock()
+        root_module.resources = resources_mock
+        child_modules = MagicMock()
+        child_modules.__getitem__.return_value = Mock()
+        child_modules.__contains__.return_value = True
+        child_modules.get.return_value = root_module
+        root_module.child_modules = child_modules
+        resources_mock.__getitem__.return_value = Mock()
+        resources_mock.__contains__.return_value = True
+        mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(
             self.tf_json_with_unsupported_resource_type, self.output_dir, self.project_root
@@ -1137,6 +1411,8 @@ class TestPrepareHook(TestCase):
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_unsupported_resource_type)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._check_dummy_remote_values")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._enrich_resources_and_generate_makefile")
@@ -1147,7 +1423,21 @@ class TestPrepareHook(TestCase):
         mock_enrich_resources_and_generate_makefile,
         mock_link_lambda_functions_to_layers,
         mock_get_configuration_address,
+        mock_build_module,
+        mock_check_dummy_remote_values,
     ):
+        root_module = MagicMock()
+        root_module.get.return_value = "module.m1"
+        resources_mock = MagicMock()
+        root_module.resources = resources_mock
+        child_modules = MagicMock()
+        child_modules.__getitem__.return_value = Mock()
+        child_modules.__contains__.return_value = True
+        child_modules.get.return_value = root_module
+        root_module.child_modules = child_modules
+        resources_mock.__getitem__.return_value = Mock()
+        resources_mock.__contains__.return_value = True
+        mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = _translate_to_cfn(
             self.tf_json_with_child_modules_and_s3_source_mapping, self.output_dir, self.project_root
@@ -2257,7 +2547,7 @@ class TestPrepareHook(TestCase):
             [
                 call(["terraform", "init"], check=True, capture_output=True, cwd="iac/project/path"),
                 call(
-                    ["terraform", "plan", "-out", tf_plan_filename],
+                    ["terraform", "plan", "-out", tf_plan_filename, "-input=false"],
                     check=True,
                     capture_output=True,
                     cwd="iac/project/path",
@@ -2337,7 +2627,7 @@ class TestPrepareHook(TestCase):
             [
                 call(["terraform", "init"], check=True, capture_output=True, cwd="/current/dir/iac/project/path"),
                 call(
-                    ["terraform", "plan", "-out", tf_plan_filename],
+                    ["terraform", "plan", "-out", tf_plan_filename, "-input=false"],
                     check=True,
                     capture_output=True,
                     cwd="/current/dir/iac/project/path",
@@ -2760,12 +3050,9 @@ class TestPrepareHook(TestCase):
         output_string = _format_makefile_recipe("terraform show -json | python3")
         self.assertRegex(output_string, r"^\tterraform show -json \| python3(\n|\r\n)$")
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_function_to_layer")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
-    def test_link_lambda_functions_to_layers(
-        self, mock_get_configuration_address, mock_link_lambda_function_to_layer, mock_build_module
-    ):
+    def test_link_lambda_functions_to_layers(self, mock_get_configuration_address, mock_link_lambda_function_to_layer):
         lambda_funcs_config_resources = {
             "aws_lambda_function.remote_lambda_code": [
                 {
@@ -2819,18 +3106,18 @@ class TestPrepareHook(TestCase):
                 "sensitive_values": {"compatible_architectures": [False], "compatible_runtimes": [False, False]},
             }
         }
-        resources = [
-            TFResource("aws_lambda_function.remote_lambda_code", "", None, {}),
-            TFResource("aws_lambda_function.root_lambda", "", None, {}),
-        ]
+        resources = {
+            "aws_lambda_function.remote_lambda_code": TFResource(
+                "aws_lambda_function.remote_lambda_code", "", None, {}
+            ),
+            "aws_lambda_function.root_lambda": TFResource("aws_lambda_function.root_lambda", "", None, {}),
+        }
         module = TFModule("", None, {}, resources, {}, {})
-        mock_build_module.return_value = module
         mock_get_configuration_address.side_effect = [
             "aws_lambda_function.remote_lambda_code",
             "aws_lambda_function.root_lambda",
         ]
-        _link_lambda_functions_to_layers({}, lambda_funcs_config_resources, terraform_layers_resources)
-        mock_build_module.assert_called_once_with("", None, {}, None)
+        _link_lambda_functions_to_layers(module, lambda_funcs_config_resources, terraform_layers_resources)
         mock_get_configuration_address.assert_has_calls(
             [
                 call("aws_lambda_function.remote_lambda_code"),
@@ -2840,14 +3127,245 @@ class TestPrepareHook(TestCase):
         mock_link_lambda_function_to_layer.assert_has_calls(
             [
                 call(
-                    resources[0],
+                    resources["aws_lambda_function.remote_lambda_code"],
                     lambda_funcs_config_resources.get("aws_lambda_function.remote_lambda_code"),
                     terraform_layers_resources,
                 ),
                 call(
-                    resources[1],
+                    resources["aws_lambda_function.root_lambda"],
                     lambda_funcs_config_resources.get("aws_lambda_function.root_lambda"),
                     terraform_layers_resources,
                 ),
             ]
         )
+
+    def test_add_child_modules_to_queue(self):
+        m20_planned_value_module = {
+            "resources": [
+                {
+                    **self.tf_lambda_function_resource_zip_3,
+                    "address": f"module.mymodule1.module.mymodule2.aws_lambda_function.{self.zip_function_name_3}",
+                },
+            ],
+            "address": "module.m1.module.m2[0]",
+        }
+        m21_planned_value_module = {
+            "resources": [
+                {
+                    **self.tf_lambda_function_resource_zip_4,
+                    "address": f"module.mymodule1.module.mymodule2.aws_lambda_function.{self.zip_function_name_4}",
+                },
+            ],
+            "address": "module.m1.module.m2[1]",
+        }
+        m1_planned_value_module = {
+            "resources": [
+                {
+                    **self.tf_lambda_function_resource_zip_2,
+                    "address": f"module.mymodule1.aws_lambda_function.{self.zip_function_name_2}",
+                },
+            ],
+            "child_modules": [
+                m20_planned_value_module,
+                m21_planned_value_module,
+            ],
+            "address": "module.m1",
+        }
+        curr_module = {
+            "resources": [
+                self.tf_lambda_function_resource_zip,
+            ],
+            "child_modules": [m1_planned_value_module],
+        }
+        m2_config_module = TFModule(
+            "module.m1.module.m2",
+            None,
+            {},
+            {
+                f"module.mymodule1.module.mymodule2.aws_lambda_function.{self.zip_function_name_3}": Mock(),
+            },
+            {},
+            {},
+        )
+        m1_config_module = TFModule(
+            "module.m1",
+            None,
+            {},
+            {
+                f"module.mymodule1.aws_lambda_function.{self.zip_function_name_2}": Mock(),
+            },
+            {"m2": m2_config_module},
+            {},
+        )
+        m2_config_module.parent_module = m1_config_module
+        curr_config_module = TFModule(
+            None,
+            None,
+            {},
+            {
+                f"aws_lambda_function.{self.zip_function_name}": Mock(),
+            },
+            {"m1": m1_config_module},
+            {},
+        )
+        m1_config_module.parent_module = curr_config_module
+        modules_queue = []
+        _add_child_modules_to_queue(curr_module, curr_config_module, modules_queue)
+        self.assertEquals(modules_queue, [(m1_planned_value_module, m1_config_module)])
+        modules_queue = []
+        _add_child_modules_to_queue(m1_planned_value_module, m1_config_module, modules_queue)
+        self.assertEquals(
+            modules_queue, [(m20_planned_value_module, m2_config_module), (m21_planned_value_module, m2_config_module)]
+        )
+
+    def test_add_child_modules_to_queue_invalid_config(self):
+        m20_planned_value_module = {
+            "resources": [
+                {
+                    **self.tf_lambda_function_resource_zip_3,
+                    "address": f"module.mymodule1.module.mymodule2.aws_lambda_function.{self.zip_function_name_3}",
+                },
+            ],
+            "address": "module.m1.module.m2[0]",
+        }
+        m21_planned_value_module = {
+            "resources": [
+                {
+                    **self.tf_lambda_function_resource_zip_4,
+                    "address": f"module.mymodule1.module.mymodule2.aws_lambda_function.{self.zip_function_name_4}",
+                },
+            ],
+            "address": "module.m1.module.m2[1]",
+        }
+        m1_planned_value_module = {
+            "resources": [
+                {
+                    **self.tf_lambda_function_resource_zip_2,
+                    "address": f"module.mymodule1.aws_lambda_function.{self.zip_function_name_2}",
+                },
+            ],
+            "child_modules": [
+                m20_planned_value_module,
+                m21_planned_value_module,
+            ],
+            "address": "module.m1",
+        }
+        m2_config_module = TFModule(
+            "module.m1.module.m2",
+            None,
+            {},
+            {
+                f"module.mymodule1.module.mymodule2.aws_lambda_function.{self.zip_function_name_3}": Mock(),
+            },
+            {},
+            {},
+        )
+        m1_config_module = TFModule(
+            "module.m1",
+            None,
+            {},
+            {
+                f"module.mymodule1.aws_lambda_function.{self.zip_function_name_2}": Mock(),
+            },
+            {"m3": m2_config_module},
+            {},
+        )
+        m2_config_module.parent_module = m1_config_module
+        modules_queue = []
+        with self.assertRaises(
+            PrepareHookException,
+            msg=f"Module module.m1.module.m2[0] exists in terraform planned_value, but does not exist in "
+            "terraform configuration",
+        ):
+            _add_child_modules_to_queue(m1_planned_value_module, m1_config_module, modules_queue)
+
+    def test_check_dummy_remote_values_no_exception(self):
+        no_exception = True
+        try:
+            _check_dummy_remote_values(
+                {
+                    "func1": {
+                        "Properties": {
+                            "Code": {
+                                "S3bucket": "bucket1",
+                                "S3Key": "key1",
+                                "S3ObjectVersion": "version",
+                            }
+                        }
+                    },
+                    "func2": {
+                        "Properties": {
+                            "Code": {
+                                "ImageUri": "uri",
+                            }
+                        }
+                    },
+                }
+            )
+        except PrepareHookException as e:
+            no_exception = False
+        self.assertTrue(no_exception)
+
+    def test_check_dummy_remote_values_s3_bucket_remote_issue(self):
+        no_exception = True
+        with self.assertRaises(
+            PrepareHookException,
+            msg=f"Lambda resource resource1 is referring to an S3 bucket that is not created yet"
+            f", and there is no sam metadata resource set for it to build its code locally",
+        ):
+            _check_dummy_remote_values(
+                {
+                    "func1": {
+                        "Type": AWS_LAMBDA_FUNCTION,
+                        "Properties": {
+                            "Code": {
+                                "S3Bucket": REMOTE_DUMMY_VALUE,
+                                "S3Key": "key1",
+                                "S3ObjectVersion": "version",
+                            }
+                        },
+                        "Metadata": {"SamResourceId": "resource1"},
+                    },
+                    "func2": {
+                        "Type": AWS_LAMBDA_FUNCTION,
+                        "Properties": {
+                            "Code": {
+                                "ImageUri": "uri",
+                            }
+                        },
+                    },
+                }
+            )
+
+    def test_check_dummy_remote_values_for_image_uri(self):
+        no_exception = True
+
+        with self.assertRaises(
+            PrepareHookException,
+            msg=f"Lambda resource resource1 is referring to an image uri "
+            "that is not created yet, and there is no sam metadata resource set for it to build its image "
+            "locally.",
+        ):
+            _check_dummy_remote_values(
+                {
+                    "func1": {
+                        "Type": AWS_LAMBDA_FUNCTION,
+                        "Properties": {
+                            "Code": {
+                                "S3Bucket": REMOTE_DUMMY_VALUE,
+                                "S3Key": "key1",
+                                "S3ObjectVersion": "version",
+                            }
+                        },
+                        "Metadata": {"SamResourceId": "resource1"},
+                    },
+                    "func2": {
+                        "Type": AWS_LAMBDA_FUNCTION,
+                        "Properties": {
+                            "Code": {
+                                "ImageUri": "uri",
+                            }
+                        },
+                    },
+                }
+            )

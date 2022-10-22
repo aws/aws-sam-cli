@@ -10,8 +10,17 @@ variable "layer_name" {
     type = string
 }
 
+variable "bucket_name" {
+    type = string
+}
+
 resource "random_pet" "this" {
   length = 2
+}
+
+resource "aws_s3_bucket" "lambda_functions_code_bucket" {
+  bucket = "simpleapplicationtesting${random_pet.this.id}"
+  force_destroy = true
 }
 
 resource "aws_iam_role" "iam_for_lambda" {
@@ -33,7 +42,6 @@ resource "aws_iam_role" "iam_for_lambda" {
 }
 EOF
 }
-
 
 module const_layer1 {
     source = "./const_layer"
@@ -61,6 +69,32 @@ module "layer5" {
   source = "./lambda_layer"
   source_code   = "./artifacts/simple_layer5.zip"
   name = "lambda_layer5_${random_pet.this.id}"
+}
+
+resource "aws_s3_object" "layer6_code" {
+  bucket = aws_s3_bucket.lambda_functions_code_bucket.id
+  key    = "layer6_code"
+  source = "./artifacts/simple_layer6.zip"
+}
+
+resource "aws_lambda_layer_version" "layer6" {
+  s3_bucket = aws_s3_bucket.lambda_functions_code_bucket.id
+  s3_key = "layer6_code"
+  layer_name = "lambda_layer6_${random_pet.this.id}"
+  compatible_runtimes = ["python3.8"]
+}
+
+resource "aws_s3_object" "layer7_code" {
+  bucket = var.bucket_name
+  key    = "layer7_code"
+  source = "./artifacts/simple_layer7.zip"
+}
+
+resource "aws_lambda_layer_version" "layer7" {
+  s3_bucket = var.bucket_name
+  s3_key = "layer7_code"
+  layer_name = "lambda_layer7_${random_pet.this.id}"
+  compatible_runtimes = ["python3.8"]
 }
 
 resource "aws_lambda_function" "function1" {
@@ -108,8 +142,45 @@ resource "aws_lambda_function" "function4" {
 }
 
 module "function5" {
+  count = 1
   source = "./lambda_function"
   source_code = "./artifacts/HelloWorldFunction.zip"
   function_name = "function5_${random_pet.this.id}"
   layers = [module.layer5.arn]
+}
+
+resource "aws_s3_object" "function6_code" {
+  bucket = aws_s3_bucket.lambda_functions_code_bucket.id
+  key    = "function6_code"
+  source = "./artifacts/HelloWorldFunction.zip"
+}
+
+resource "aws_lambda_function" "function6" {
+    s3_bucket = aws_s3_bucket.lambda_functions_code_bucket.id
+    s3_key = "function6_code"
+    handler = "app.lambda_handler"
+    runtime = "python3.8"
+    function_name = "function6_${random_pet.this.id}"
+    role = aws_iam_role.iam_for_lambda.arn
+    layers = [
+        aws_lambda_layer_version.layer6.arn,
+    ]
+}
+
+resource "aws_s3_object" "function7_code" {
+  bucket = var.bucket_name
+  key    = "function7_code"
+  source = "./artifacts/HelloWorldFunction.zip"
+}
+
+resource "aws_lambda_function" "function7" {
+    s3_bucket = var.bucket_name
+    s3_key = "function7_code"
+    handler = "app.lambda_handler"
+    runtime = "python3.8"
+    function_name = "function7_${random_pet.this.id}"
+    role = aws_iam_role.iam_for_lambda.arn
+    layers = [
+        aws_lambda_layer_version.layer7.arn,
+    ]
 }

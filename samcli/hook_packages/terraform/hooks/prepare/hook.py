@@ -20,18 +20,27 @@ import uuid
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _link_lambda_function_to_layer,
     _get_configuration_address,
-    ConstantValue,
     _build_module,
-    References,
+    _resolve_resource_attribute,
 )
-from samcli.hook_packages.terraform.lib.utils import build_cfn_logical_id
-from samcli.lib.hook.exceptions import PrepareHookException, InvalidSamMetadataPropertiesException
+from samcli.hook_packages.terraform.hooks.prepare.types import (
+    ConstantValue,
+    References,
+    ResolvedReference,
+    TFModule,
+    TFResource,
+)
+from samcli.hook_packages.terraform.lib.utils import build_cfn_logical_id, _calculate_configuration_attribute_value_hash
+from samcli.lib.hook.exceptions import PrepareHookException
+from samcli.hook_packages.terraform.hooks.prepare.exceptions import InvalidSamMetadataPropertiesException
 from samcli.lib.utils import osutils
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_LAYERVERSION as CFN_AWS_LAMBDA_LAYER_VERSION,
 )
+
+REMOTE_DUMMY_VALUE = "<<REMOTE DUMMY VALUE - RAISE ERROR IF IT IS STILL THERE>>"
 
 LOG = logging.getLogger(__name__)
 
@@ -46,7 +55,7 @@ NULL_RESOURCE_PROVIDER_NAME = "registry.terraform.io/hashicorp/null"
 SAM_METADATA_RESOURCE_TYPE = "null_resource"
 SAM_METADATA_NAME_PREFIX = "sam_metadata_"
 
-PropertyBuilder = Callable[[dict], Any]
+PropertyBuilder = Callable[[dict, TFResource], Any]
 PropertyBuilderMapping = Dict[str, PropertyBuilder]
 
 TERRAFORM_BUILD_SCRIPT = "copy_terraform_built_artifacts.py"
@@ -110,7 +119,9 @@ def prepare(params: dict) -> dict:
 
         with osutils.tempfile_platform_independent() as temp_file:
             run(
-                ["terraform", "plan", "-out", temp_file.name],
+                # input false to avoid SAM CLI to stuck in case if the Terraform project expects input, and customer
+                # does not provide it.
+                ["terraform", "plan", "-out", temp_file.name, "-input=false"],
                 check=True,
                 capture_output=True,
                 cwd=terraform_application_dir,
@@ -211,6 +222,13 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
     if not root_module:
         return cfn_dict
 
+    LOG.debug("Mapping Lambda functions to their corresponding layers.")
+    input_vars: Dict[str, Union[ConstantValue, References]] = {
+        var_name: ConstantValue(value=var_value.get("value"))
+        for var_name, var_value in tf_json.get("variables", {}).items()
+    }
+    root_tf_module = _build_module("", tf_json.get("configuration", {}).get("root_module"), input_vars, None)
+
     # to map s3 object sources to respective functions later
     s3_hash_to_source = {}
 
@@ -220,15 +238,13 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
     lambda_funcs_conf_cfn_resources: Dict[str, List] = {}
 
     # create and iterate over queue of modules to handle child modules
-    module_queue = [root_module]
+    module_queue = [(root_module, root_tf_module)]
     while module_queue:
-        curr_module = module_queue.pop(0)
+        modules_pair = module_queue.pop(0)
+        curr_module, curr_tf_module = modules_pair
         curr_module_address = curr_module.get("address")
 
-        # add child modules, if any, to queue
-        child_modules = curr_module.get("child_modules")
-        if child_modules:
-            module_queue += child_modules
+        _add_child_modules_to_queue(curr_module, curr_tf_module, module_queue)
 
         # iterate over resources for current module
         resources = curr_module.get("resources", {})
@@ -238,6 +254,15 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
             resource_values = resource.get("values")
             resource_address = resource.get("address")
             resource_name = resource.get("name")
+
+            config_resource_address = _get_configuration_address(f"{resource_type}.{resource_name}")
+            if config_resource_address not in curr_tf_module.resources:
+                raise PrepareHookException(
+                    f"There is no configuration resource for resource address {resource_address} and configuration "
+                    f"address {config_resource_address}"
+                )
+
+            config_resource = curr_tf_module.resources[config_resource_address]
 
             if (
                 resource_provider == NULL_RESOURCE_PROVIDER_NAME
@@ -253,7 +278,17 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
 
             # store S3 sources
             if resource_type == "aws_s3_object":
-                obj_hash = _get_s3_object_hash(resource_values.get("bucket"), resource_values.get("key"))
+                s3_bucket = (
+                    resource_values.get("bucket")
+                    if "bucket" in resource_values
+                    else _resolve_resource_attribute(config_resource, "bucket")
+                )
+                s3_key = (
+                    resource_values.get("key")
+                    if "key" in resource_values
+                    else _resolve_resource_attribute(config_resource, "key")
+                )
+                obj_hash = _get_s3_object_hash(s3_bucket, s3_key)
                 s3_hash_to_source[obj_hash] = resource_values.get("source")
 
             resource_translator = RESOURCE_TRANSLATOR_MAPPING.get(resource_type)
@@ -263,7 +298,9 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
 
             # translate TF resource "values" to CFN properties
             LOG.debug("Processing resource %s", resource_address)
-            translated_properties = _translate_properties(resource_values, resource_translator.property_builder_mapping)
+            translated_properties = _translate_properties(
+                resource_values, resource_translator.property_builder_mapping, config_resource
+            )
             translated_resource = {
                 "Type": resource_translator.cfn_name,
                 "Properties": translated_properties,
@@ -289,7 +326,7 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
     LOG.debug("Mapping S3 object sources to corresponding functions")
     _map_s3_sources_to_functions(s3_hash_to_source, cfn_dict.get("Resources", {}))
 
-    _link_lambda_functions_to_layers(tf_json, lambda_funcs_conf_cfn_resources, lambda_layers_terraform_resources)
+    _link_lambda_functions_to_layers(root_tf_module, lambda_funcs_conf_cfn_resources, lambda_layers_terraform_resources)
 
     if sam_metadata_resources:
         LOG.debug("Enrich the mapped resources with the sam metadata information and generate Makefile")
@@ -299,19 +336,58 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
     else:
         LOG.debug("There is no sam metadata resources, no enrichment or Makefile is required")
 
+    # check if there is still any dummy remote values for lambda resource imagesUri or S3 attributes
+    _check_dummy_remote_values(cfn_dict.get("Resources", {}))
+
     return cfn_dict
 
 
+def _add_child_modules_to_queue(curr_module: Dict, curr_module_configuration: TFModule, modules_queue: List) -> None:
+    """
+    Iterate over the children modules of current module and add each module with its related child module configuration
+    to the modules_queue.
+
+    Parameters
+    ----------
+    curr_module: Dict
+        The current module in the planned values
+    curr_module_configuration: TFModule
+        The current module configuration
+    modules_queue: List
+        The list of modules
+    """
+    child_modules = curr_module.get("child_modules")
+    if child_modules:
+        for child_module in child_modules:
+            config_child_module_address = (
+                _get_configuration_address(child_module["address"]) if "address" in child_module else None
+            )
+            module_name = (
+                config_child_module_address[config_child_module_address.rfind(".") + 1 :]
+                if config_child_module_address
+                else None
+            )
+            child_tf_module = curr_module_configuration.child_modules.get(module_name) if module_name else None
+            if child_tf_module is None:
+                raise PrepareHookException(
+                    f"Module {config_child_module_address} exists in terraform planned_value, but does not exist "
+                    "in terraform configuration"
+                )
+            modules_queue.append((child_module, child_tf_module))
+
+
 def _link_lambda_functions_to_layers(
-    tf_json: dict, lambda_funcs_conf_cfn_resources: Dict[str, List], lambda_layers_terraform_resources: Dict[str, Dict]
+    root_module: TFModule,
+    lambda_funcs_conf_cfn_resources: Dict[str, List],
+    lambda_layers_terraform_resources: Dict[str, Dict],
 ):
     """
     Iterate through all of the resources and link the corresponding Lambda Layers to each Lambda Function
 
     Parameters
     ----------
-    tf_json: dict
-        A terraform show json output
+    root_module: TFModule
+        the parsed terraform project root module
     lambda_funcs_conf_cfn_resources: Dict[str, List]
         Dictionary containing resolved configuration addresses matched up to the cfn Lambda functions
     lambda_layers_terraform_resources: Dict[str, Dict]
@@ -323,13 +399,6 @@ def _link_lambda_functions_to_layers(
     dict
         The CloudFormation resulting from translating tf_json
     """
-    LOG.debug("Mapping Lambda functions to their corresponding layers.")
-    input_vars: Dict[str, Union[ConstantValue, References]] = {
-        var_name: ConstantValue(value=var_value.get("value"))
-        for var_name, var_value in tf_json.get("variables", {}).items()
-    }
-    root_module = _build_module("", tf_json.get("configuration", {}).get("root_module"), input_vars, None)
-
     for resource in root_module.get_all_resources():
         resolved_config_address = _get_configuration_address(resource.full_address)
         if resolved_config_address in lambda_funcs_conf_cfn_resources:
@@ -1164,7 +1233,9 @@ def _format_makefile_recipe(rule_string: str) -> str:
     return f"\t{rule_string}{os.linesep}"
 
 
-def _translate_properties(tf_properties: dict, property_builder_mapping: PropertyBuilderMapping) -> dict:
+def _translate_properties(
+    tf_properties: dict, property_builder_mapping: PropertyBuilderMapping, resource: TFResource
+) -> dict:
     """
     Translates the properties of a terraform resource into the equivalent properties of a CloudFormation resource
 
@@ -1174,6 +1245,8 @@ def _translate_properties(tf_properties: dict, property_builder_mapping: Propert
         The terraform properties to translate
     property_builder_mappping: PropertyBuilderMapping
         A mapping of the CloudFormation property name to a function for building that property
+    resource: TFResource
+        The terraform configuration resource that can be used to retrieve some attributes values if needed
 
     Returns
     -------
@@ -1182,7 +1255,7 @@ def _translate_properties(tf_properties: dict, property_builder_mapping: Propert
     """
     cfn_properties = {}
     for cfn_property_name, cfn_property_builder in property_builder_mapping.items():
-        cfn_property_value = cfn_property_builder(tf_properties)
+        cfn_property_value = cfn_property_builder(tf_properties, resource)
         if cfn_property_value is not None:
             cfn_properties[cfn_property_name] = cfn_property_value
     return cfn_properties
@@ -1202,10 +1275,10 @@ def _get_property_extractor(property_name: str) -> PropertyBuilder:
     PropertyBuilder
         function that takes in a dict and extracts the given property name from it
     """
-    return lambda properties: properties.get(property_name)
+    return lambda properties, _: properties.get(property_name)
 
 
-def _build_lambda_function_environment_property(tf_properties: dict) -> Optional[dict]:
+def _build_lambda_function_environment_property(tf_properties: dict, resource: TFResource) -> Optional[dict]:
     """
     Builds the Environment property of a CloudFormation AWS Lambda Function out of the
     properties of the equivalent terraform resource
@@ -1214,6 +1287,8 @@ def _build_lambda_function_environment_property(tf_properties: dict) -> Optional
     ----------
     tf_properties: dict
         Properties of the terraform AWS Lambda function resource
+    resource: TFResource
+        Configuration terraform resource
 
     Returns
     -------
@@ -1233,7 +1308,7 @@ def _build_lambda_function_environment_property(tf_properties: dict) -> Optional
     return None
 
 
-def _build_code_property(tf_properties: dict) -> Any:
+def _build_code_property(tf_properties: dict, resource: TFResource) -> Any:
     """
     Builds the Code property of a CloudFormation AWS Lambda Function out of the
     properties of the equivalent terraform resource
@@ -1242,6 +1317,8 @@ def _build_code_property(tf_properties: dict) -> Any:
     ----------
     tf_properties: dict
         Properties of the terraform AWS Lambda function resource
+    resource: TFResource
+        Configuration terraform resource
 
     Returns
     -------
@@ -1263,10 +1340,34 @@ def _build_code_property(tf_properties: dict) -> Any:
         tf_prop_value = tf_properties.get(tf_prop_name)
         if tf_prop_value is not None:
             code[cfn_prop_name] = tf_prop_value
+
+    package_type = tf_properties.get("package_type", "Zip")
+
+    # Get the S3 Bucket details from configuration in case if the customer is creating the S3 bucket in the tf project
+    if package_type == "Zip" and ("S3Bucket" not in code or "S3Key" not in code or "S3ObjectVersion" not in code):
+        s3_bucket_tf_config_value = _resolve_resource_attribute(resource, "s3_bucket")
+        s3_key_tf_config_value = _resolve_resource_attribute(resource, "s3_key")
+        s3_object_version_tf_config_value = _resolve_resource_attribute(resource, "s3_object_version")
+        if "S3Bucket" not in code and s3_bucket_tf_config_value:
+            code["S3Bucket"] = REMOTE_DUMMY_VALUE
+            code["S3Bucket_config_value"] = s3_bucket_tf_config_value
+        if "S3Key" not in code and s3_key_tf_config_value:
+            code["S3Key"] = REMOTE_DUMMY_VALUE
+            code["S3Key_config_value"] = s3_key_tf_config_value
+        if "S3ObjectVersion" not in code and s3_object_version_tf_config_value:
+            code["S3ObjectVersion"] = REMOTE_DUMMY_VALUE
+            code["S3ObjectVersion_config_value"] = s3_object_version_tf_config_value
+
+    # Get the Image URI details from configuration in case if the customer is creating the ecr repo in the tf project
+    if package_type == "Image" and "ImageUri" not in code:
+        image_uri_tf_config_value = _resolve_resource_attribute(resource, "image_uri")
+        if image_uri_tf_config_value:
+            code["ImageUri"] = REMOTE_DUMMY_VALUE
+
     return code
 
 
-def _build_lambda_function_image_config_property(tf_properties: dict) -> Optional[dict]:
+def _build_lambda_function_image_config_property(tf_properties: dict, resource: TFResource) -> Optional[dict]:
     """
     Builds the ImageConfig property of a CloudFormation AWS Lambda Function out of the
     properties of the equivalent terraform resource
@@ -1275,6 +1376,8 @@ def _build_lambda_function_image_config_property(tf_properties: dict) -> Optiona
     ----------
     tf_properties: dict
         Properties of the terraform AWS Lambda function resource
+    resource: TFResource
+        Configuration terraform resource
 
     Returns
     -------
@@ -1360,15 +1463,18 @@ RESOURCE_TRANSLATOR_MAPPING: Dict[str, ResourceTranslator] = {
 }
 
 
-def _get_s3_object_hash(bucket: str, key: str) -> str:
+def _get_s3_object_hash(
+    bucket: Union[str, List[Union[ConstantValue, ResolvedReference]]],
+    key: Union[str, List[Union[ConstantValue, ResolvedReference]]],
+) -> str:
     """
     Creates a hash for an AWS S3 object out of the bucket and key
 
     Parameters
     ----------
-    bucket: str
+    bucket: Union[str, List[Union[ConstantValue, ResolvedReference]]]
         bucket for the S3 object
-    key: str
+    key: Union[str, List[Union[ConstantValue, ResolvedReference]]]
         key for the S3 object
 
     Returns
@@ -1377,8 +1483,8 @@ def _get_s3_object_hash(bucket: str, key: str) -> str:
         hash for the given bucket and key
     """
     md5 = hashlib.md5()
-    md5.update(bucket.encode())
-    md5.update(key.encode())
+    md5.update(_calculate_configuration_attribute_value_hash(bucket).encode())
+    md5.update(_calculate_configuration_attribute_value_hash(key).encode())
     # TODO: Hash version if it exists in addition to key and bucket
     return md5.hexdigest()
 
@@ -1406,8 +1512,9 @@ def _map_s3_sources_to_functions(s3_hash_to_source: Dict[str, str], cfn_resource
             if isinstance(code, str):
                 continue
 
-            bucket = code.get("S3Bucket")
-            key = code.get("S3Key")
+            bucket = code.get("S3Bucket_config_value") if "S3Bucket_config_value" in code else code.get("S3Bucket")
+            key = code.get("S3Key_config_value") if "S3Key_config_value" in code else code.get("S3Key")
+
             if bucket and key:
                 obj_hash = _get_s3_object_hash(bucket, key)
                 source = s3_hash_to_source.get(obj_hash)
@@ -1420,3 +1527,47 @@ def _map_s3_sources_to_functions(s3_hash_to_source: Dict[str, str], cfn_resource
                         source,
                     )
                     resource["Properties"][code_property] = source
+
+
+def _check_dummy_remote_values(cfn_resources: Dict[str, Any]) -> None:
+    """
+    Check if there is any lambda function/layer that has a dummy remote value for its code.imageuri or
+    code.s3 attributes, and raise a validation error for it.
+
+    Parameters
+    ----------
+    cfn_resources: dict
+        CloudFormation resources
+    """
+    for _, resource in cfn_resources.items():
+        resource_type = resource.get("Type")
+        if resource_type in CFN_CODE_PROPERTIES:
+            code_property = CFN_CODE_PROPERTIES[resource_type]
+
+            code = resource.get("Properties").get(code_property)
+
+            # there is no code property, this is the expected behaviour in image package type functions
+            if code is None:
+                continue
+
+            # its value is a path to a local source code
+            if isinstance(code, str):
+                continue
+
+            bucket = code.get("S3Bucket")
+            key = code.get("S3Key")
+            image_uri = code.get("ImageUri")
+
+            if (bucket and bucket == REMOTE_DUMMY_VALUE) or (key and key == REMOTE_DUMMY_VALUE):
+                raise PrepareHookException(
+                    f"Lambda resource {resource.get('Metadata', {}).get('SamResourceId')} is referring to an S3 bucket "
+                    f"that is not created yet, and there is no sam metadata resource set for it to build its code "
+                    f"locally"
+                )
+
+            if image_uri and image_uri == REMOTE_DUMMY_VALUE:
+                raise PrepareHookException(
+                    f"Lambda resource {resource.get('Metadata', {}).get('SamResourceId')} is referring to an image uri "
+                    "that is not created yet, and there is no sam metadata resource set for it to build its image "
+                    "locally."
+                )

@@ -1,6 +1,7 @@
 import json
 import os
 import shutil
+import time
 import uuid
 from pathlib import Path
 from subprocess import Popen, PIPE, TimeoutExpired
@@ -22,6 +23,7 @@ from tests.integration.local.start_lambda.start_lambda_api_integ_base import Sta
 from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUNNING_ON_CI
 
 LOG = logging.getLogger(__name__)
+S3_SLEEP = 3
 
 
 class StartLambdaTerraformApplicationIntegBase(StartLambdaIntegBaseClass):
@@ -59,7 +61,7 @@ class StartLambdaTerraformApplicationIntegBase(StartLambdaIntegBaseClass):
     def _run_command(cls, command_list, env=None, tf_application=None):
         process = Popen(command_list, stdout=PIPE, stderr=PIPE, env=env, cwd=tf_application)
         try:
-            (stdout, stderr) = process.communicate(timeout=5)
+            (stdout, stderr) = process.communicate(timeout=300)
             return stdout, stderr, process.returncode
         except TimeoutExpired:
             process.kill()
@@ -158,9 +160,17 @@ class TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild(StartLambda
         with open(const_layer_module_input_layer_overwrite, "wb") as file:
             file.writelines(lines)
 
+        # create Functions code bucket
+        cls.bucket_name = str(uuid.uuid4())
+
+        s3 = boto3.resource("s3")
+        cls.s3_bucket = s3.Bucket(cls.bucket_name)
+        cls.s3_bucket.create()
+        time.sleep(S3_SLEEP)
+
         # apply the terraform project
         if cls.should_apply_first:
-            apply_command = ["terraform", "apply", "-auto-approve"]
+            apply_command = ["terraform", "apply", "-auto-approve", "-input=false"]
             stdout, _, return_code = cls._run_command(command_list=apply_command, env=cls._add_tf_project_variables())
         cls.env = cls._add_tf_project_variables()
         super(TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild, cls).setUpClass()
@@ -172,6 +182,7 @@ class TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild(StartLambda
             f"{cls.pre_create_lambda_layers[0]}-{cls.layer_postfix}"
         ]
         environment_variables["TF_VAR_layer_name"] = f"{cls.pre_create_lambda_layers[2]}-{cls.layer_postfix}"
+        environment_variables["TF_VAR_bucket_name"] = cls.bucket_name
         return environment_variables
 
     @classmethod
@@ -180,7 +191,7 @@ class TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild(StartLambda
 
         # delete the created terraform project
         if cls.should_apply_first:
-            apply_command = ["terraform", "destroy", "-auto-approve"]
+            apply_command = ["terraform", "destroy", "-auto-approve", "-input=false"]
             stdout, _, return_code = cls._run_command(command_list=apply_command, env=cls._add_tf_project_variables())
 
         # delete the created layers
@@ -194,6 +205,11 @@ class TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild(StartLambda
             os.remove(str(Path(cls.working_dir).joinpath(".terraform.lock.hcl")))
         except FileNotFoundError:
             pass
+
+        # delete the function code bucket
+        cls.s3_bucket.objects.all().delete()
+        time.sleep(S3_SLEEP)
+        cls.s3_bucket.delete()
 
         super(TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild, cls).tearDownClass()
 
@@ -213,7 +229,9 @@ class TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild(StartLambda
         ("aws_lambda_function.function2", "hello world 2"),
         ("aws_lambda_function.function3", "hello world 3"),
         ("aws_lambda_function.function4", "hello world 4"),
-        ("module.function5.aws_lambda_function.this", "hello world 5"),
+        ("module.function5[0].aws_lambda_function.this[0]", "hello world 5"),
+        ("aws_lambda_function.function6", "hello world 6"),
+        ("aws_lambda_function.function7", "hello world 7"),
     ]
 
     @parameterized.expand(functions)
@@ -226,6 +244,65 @@ class TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild(StartLambda
 
         self.assertEqual(response_body, expected_response)
         self.assertEqual(response.get("StatusCode"), 200)
+
+
+@skipIf(
+    not CI_OVERRIDE,
+    "Skip Terraform test cases unless running in CI",
+)
+class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(StartLambdaTerraformApplicationIntegBase):
+    terraform_application = "/testdata/invoke/terraform/invalid_no_local_code_project"
+    template_path = None
+    hook_package_id = "terraform"
+    beta_features = True
+
+    @classmethod
+    def setUpClass(cls):
+        # over write the parent setup
+        pass
+
+    @classmethod
+    def tearDownClass(cls):
+        # over write the parent tear down
+        pass
+
+    def setUp(self):
+        self.working_dir = self.integration_dir + self.terraform_application
+        self.port = str(StartLambdaIntegBaseClass.random_port())
+
+        # remove all containers if there
+        self.docker_client = docker.from_env()
+        for container in self.docker_client.api.containers():
+            try:
+                self.docker_client.api.remove_container(container, force=True)
+            except APIError as ex:
+                LOG.error("Failed to remove container %s", container, exc_info=ex)
+
+    def tearDown(self):
+        # delete the override file
+        try:
+            shutil.rmtree(str(Path(self.working_dir).joinpath(".aws-sam-iacs")))
+            shutil.rmtree(str(Path(self.working_dir).joinpath(".terraform")))
+            os.remove(str(Path(self.working_dir).joinpath(".terraform.lock.hcl")))
+        except FileNotFoundError:
+            pass
+
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_function(self):
+        command_list = self.get_start_lambda_command(
+            port=self.port,
+            hook_package_id=self.hook_package_id,
+            beta_features=self.beta_features,
+        )
+        _, stderr, return_code = self._run_command(command_list, tf_application=self.working_dir)
+
+        process_stderr = stderr.strip()
+        self.assertRegex(
+            process_stderr.decode("utf-8"),
+            "Error: Lambda resource aws_lambda_function.function is referring to an S3 bucket that is not created yet, "
+            "and there is no sam metadata resource set for it to build its code locally",
+        )
+        self.assertNotEqual(return_code, 0)
 
 
 class TestLocalStartLambdaTerraformApplicationWithExperimentalPromptYes(StartLambdaTerraformApplicationIntegBase):
