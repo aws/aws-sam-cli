@@ -1,5 +1,4 @@
 import json
-
 def lambda_handler(event, context):
     print("list books function start")
 

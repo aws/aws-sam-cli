@@ -946,8 +946,8 @@ def _generate_makefile(
     shutil.copy(copy_terraform_built_artifacts_script_path, output_directory_path)
 
     # create makefile
-    makefilePath = os.path.join(output_directory_path, "Makefile")
-    with open(makefilePath, "w+") as makefile:
+    makefile_path = os.path.join(output_directory_path, "Makefile")
+    with open(makefile_path, "w+") as makefile:
         makefile.writelines(makefile_rules)
 
 
@@ -1033,6 +1033,8 @@ def _get_python_command_name() -> str:
             run_result = run([command_name, "--version"], check=True, capture_output=True, text=True)
         except CalledProcessError:
             pass
+        except OSError:
+            pass
         else:
             # check python version
             if not PYTHON_VERSION_REGEX.match(run_result.stdout):
@@ -1072,29 +1074,15 @@ def _generate_makefile_rule_for_lambda_resource(
     """
     target = _get_makefile_build_target(logical_id)
     resource_address = sam_metadata_resource.resource.get("address", "")
-    move_override_recipe = _format_makefile_recipe(
-        "cp "
-        f"{Path(output_dir, TF_BACKEND_OVERRIDE_FILENAME).relative_to(terraform_application_dir)} "
-        f"./{TF_BACKEND_OVERRIDE_FILENAME}.tf"
-    )
-    init_command_recipe = _format_makefile_recipe("terraform init -reconfigure")
-    apply_command_template = "terraform apply -target {resource_address} -replace {resource_address} -auto-approve"
-    apply_command_recipe = _format_makefile_recipe(apply_command_template.format(resource_address=resource_address))
-    show_command_recipe = _format_makefile_recipe(
-        _build_show_command(
+    python_command_recipe = _format_makefile_recipe(
+        _build_makerule_python_command(
             python_command_name, output_dir, resource_address, sam_metadata_resource, terraform_application_dir
         )
     )
-    return (
-        f"{target}"
-        f"{move_override_recipe}"
-        f"{init_command_recipe}"
-        f"{apply_command_recipe}"
-        f"{show_command_recipe}"
-    )
+    return f"{target}{python_command_recipe}"
 
 
-def _build_show_command(
+def _build_makerule_python_command(
     python_command_name: str,
     output_dir: str,
     resource_address: str,
@@ -1102,7 +1090,7 @@ def _build_show_command(
     terraform_application_dir: str,
 ) -> str:
     """
-    Build the Terraform show command recipe to be used inside of the Makefile rule
+    Build the Python command recipe to be used inside of the Makefile rule
 
     Parameters
     ----------
@@ -1124,8 +1112,8 @@ def _build_show_command(
         Fully resolved Terraform show command
     """
     show_command_template = (
-        "terraform show -json | {python_command_name} {terraform_built_artifacts_script_path} "
-        '--expression "{jpath_string}" --directory "$(ARTIFACTS_DIR)"'
+        "{python_command_name} {terraform_built_artifacts_script_path} "
+        '--expression "{jpath_string}" --directory "$(ARTIFACTS_DIR)" --target "{resource_address}"'
     )
     jpath_string = _build_jpath_string(sam_metadata_resource, resource_address)
     terraform_built_artifacts_script_path = Path(output_dir, TERRAFORM_BUILD_SCRIPT).relative_to(
@@ -1135,6 +1123,7 @@ def _build_show_command(
         python_command_name=python_command_name,
         terraform_built_artifacts_script_path=terraform_built_artifacts_script_path,
         jpath_string=jpath_string,
+        resource_address=resource_address,
     )
 
 
