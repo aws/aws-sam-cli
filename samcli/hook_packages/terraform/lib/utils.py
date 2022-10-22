@@ -1,7 +1,8 @@
 """Terraform utilities"""
+import hashlib
+from typing import List, Union
 
-from typing import List
-
+from samcli.hook_packages.terraform.hooks.prepare.types import ConstantValue, ResolvedReference
 from samcli.lib.utils.hash import str_checksum
 
 # max logical id len is 255
@@ -44,3 +45,36 @@ def build_cfn_logical_id(tf_address: str) -> str:
     hash_part = str_checksum(tf_address)[:LOGICAL_ID_HASH_LEN].upper()
 
     return human_part + hash_part
+
+
+def _calculate_configuration_attribute_value_hash(
+    configuration_attribute_value: Union[str, List[Union[ConstantValue, ResolvedReference]]]
+) -> str:
+    """
+    Create a hash value of an attribute value of the resource configuration.
+
+    Parameters
+    ----------
+    configuration_attribute_value: Union[str, List[Union[ConstantValue, ResolvedReference]]]
+        An attribute value of the resource configuration. Its value can be either string if it can be resolved from
+        the planned value section, or a list of references to other attributes.
+
+    Returns
+    -------
+    str
+        hash for the given object
+    """
+    md5 = hashlib.md5()
+
+    if isinstance(configuration_attribute_value, str):
+        md5.update(configuration_attribute_value.encode())
+    else:
+        sorted_references_list = sorted(
+            configuration_attribute_value,
+            key=lambda x: x.value if isinstance(x, ConstantValue) else f"{x.module_address}.{x.value}",  # type: ignore
+        )
+        for ref in sorted_references_list:
+            md5.update(
+                ref.value.encode() if isinstance(ref, ConstantValue) else f"{ref.module_address}.{ref.value}".encode()
+            )
+    return md5.hexdigest()

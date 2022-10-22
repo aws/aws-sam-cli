@@ -1,14 +1,5 @@
-variable "source_code" {
-  type = string
-}
-
-variable "function_name" {
-  type = string
-}
-
-variable "layers" {
-  type = list
-  default = []
+provider "aws" {
+  region = "us-east-1"
 }
 
 resource "random_pet" "this" {
@@ -16,7 +7,7 @@ resource "random_pet" "this" {
 }
 
 resource "aws_iam_role" "iam_for_lambda" {
-  name = "iam_for_lambda_${random_pet.this.id}"
+  name = "iam_for_lambda"
 
   assume_role_policy = <<EOF
 {
@@ -35,12 +26,17 @@ resource "aws_iam_role" "iam_for_lambda" {
 EOF
 }
 
-resource "aws_lambda_function" "this" {
-    count = 1
-    filename = var.source_code
+resource "aws_s3_bucket" "lambda_functions_code_bucket" {
+  bucket = "simpleapplicationtesting${random_pet.this.id}"
+  force_destroy = true
+}
+
+resource "aws_lambda_function" "function" {
+    s3_bucket = aws_s3_bucket.lambda_functions_code_bucket.id
+    s3_key = "s3_lambda_code_key"
     handler = "app.lambda_handler"
     runtime = "python3.8"
-    function_name = var.function_name
+    function_name = "s3_lambda_function"
+    timeout = 500
     role = aws_iam_role.iam_for_lambda.arn
-    layers = var.layers
 }
