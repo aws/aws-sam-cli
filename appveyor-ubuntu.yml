@@ -176,11 +176,11 @@ for:
       - "pip install -e \".[pre-dev]\""
 
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/buildcmd"
+      - sh: "pytest -vv tests/integration/buildcmd --junitxml=TEST_REPORT-integration-buildcmd.xml"
 
       # Set JAVA_HOME to java11
       - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
-      - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process"
+      - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process --junitxml=TEST_REPORT-integration-buildcmd-java11"
 
   # Integ testing deploy
   -
@@ -191,7 +191,7 @@ for:
 
     test_script:
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/deploy"
+      - sh: "pytest -vv tests/integration/deploy --junitxml=TEST_REPORT-integration-deploy.xml"
 
   # Integ testing package
   -
@@ -202,7 +202,7 @@ for:
 
     test_script:
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/package"
+      - sh: "pytest -vv tests/integration/package --junitxml=TEST_REPORT-integration-package.xml"
 
   # Integ testing delete
   -
@@ -213,7 +213,7 @@ for:
 
     test_script:
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/delete"
+      - sh: "pytest -vv tests/integration/delete --junitxml=TEST_REPORT-integration-delete.xml"
 
   # Integ testing sync
   -
@@ -224,7 +224,7 @@ for:
 
     test_script:
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/sync"
+      - sh: "pytest -vv tests/integration/sync --junitxml=TEST_REPORT-integration-sync.xml"
 
   # Integ testing local
   -
@@ -239,7 +239,7 @@ for:
       - "pylint --rcfile .pylintrc samcli"
 
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/local"
+      - sh: "pytest -vv tests/integration/local --junitxml=TEST_REPORT-integration-local.xml"
 
   # Other testing
   -
@@ -255,15 +255,18 @@ for:
 
       # Dev Tests
       - "pip install -e \".[dev]\""
-      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
+      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit --junitxml=TEST_REPORT-unit.xml"
       - "pylint --rcfile .pylintrc samcli"
       - "mypy setup.py samcli tests"
-      - "pytest -n 4 tests/functional"
+      - "pytest -n 4 tests/functional --junitxml=TEST_REPORT-functional.xml"
       
-      - sh: "pytest tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local"
-      - sh: "pytest -vv tests/regression"
+      - sh: "pytest tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --junitxml=TEST_REPORT-integration-others.xml"
+      - sh: "pytest -vv tests/regression --junitxml=TEST_REPORT-regression.xml"
       - sh: "black --check setup.py tests samcli"
 
       # Smoke tests run in parallel - it runs on both Linux & Windows
       # Presence of the RUN_SMOKE envvar will run the smoke tests
-      - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"
+      - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke --junitxml=TEST_REPORT-smoke.xml}"
+
+artifacts:
+  - path: './TEST_REPORT*.xml'
