@@ -236,6 +236,7 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
 
     lambda_layers_terraform_resources: Dict[str, Dict] = {}
     lambda_funcs_conf_cfn_resources: Dict[str, List] = {}
+    lambda_config_funcs_conf_cfn_resources: Dict[str, TFResource] = {}
 
     # create and iterate over queue of modules to handle child modules
     module_queue = [(root_module, root_tf_module)]
@@ -321,12 +322,15 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
                 matched_lambdas = lambda_funcs_conf_cfn_resources.get(resolved_config_address, [])
                 matched_lambdas.append(translated_resource)
                 lambda_funcs_conf_cfn_resources[resolved_config_address] = matched_lambdas
+                lambda_config_funcs_conf_cfn_resources[resolved_config_address] = config_resource
 
     # map s3 object sources to corresponding functions
     LOG.debug("Mapping S3 object sources to corresponding functions")
     _map_s3_sources_to_functions(s3_hash_to_source, cfn_dict.get("Resources", {}))
 
-    _link_lambda_functions_to_layers(root_tf_module, lambda_funcs_conf_cfn_resources, lambda_layers_terraform_resources)
+    _link_lambda_functions_to_layers(
+        lambda_config_funcs_conf_cfn_resources, lambda_funcs_conf_cfn_resources, lambda_layers_terraform_resources
+    )
 
     if sam_metadata_resources:
         LOG.debug("Enrich the mapped resources with the sam metadata information and generate Makefile")
@@ -377,7 +381,7 @@ def _add_child_modules_to_queue(curr_module: Dict, curr_module_configuration: TF
 
 
 def _link_lambda_functions_to_layers(
-    root_module: TFModule,
+    lambda_config_funcs_conf_cfn_resources: Dict[str, TFResource],
     lambda_funcs_conf_cfn_resources: Dict[str, List],
     lambda_layers_terraform_resources: Dict[str, Dict],
 ):
@@ -386,8 +390,8 @@ def _link_lambda_functions_to_layers(
 
     Parameters
     ----------
-    root_module: TFModule
-        the parsed terraform project root module
+    lambda_config_funcs_conf_cfn_resources: Dict[str, TFResource]
+        Dictionary of configuration lambda resources
     lambda_funcs_conf_cfn_resources: Dict[str, List]
         Dictionary containing resolved configuration addresses matched up to the cfn Lambda functions
     lambda_layers_terraform_resources: Dict[str, Dict]
@@ -399,12 +403,11 @@ def _link_lambda_functions_to_layers(
     dict
         The CloudFormation resulting from translating tf_json
     """
-    for resource in root_module.get_all_resources():
-        resolved_config_address = _get_configuration_address(resource.full_address)
-        if resolved_config_address in lambda_funcs_conf_cfn_resources:
+    for config_address, resource in lambda_config_funcs_conf_cfn_resources.items():
+        if config_address in lambda_funcs_conf_cfn_resources:
             LOG.debug("Linking layers for Lambda function %s", resource.full_address)
             _link_lambda_function_to_layer(
-                resource, lambda_funcs_conf_cfn_resources[resolved_config_address], lambda_layers_terraform_resources
+                resource, lambda_funcs_conf_cfn_resources[config_address], lambda_layers_terraform_resources
             )
 
 

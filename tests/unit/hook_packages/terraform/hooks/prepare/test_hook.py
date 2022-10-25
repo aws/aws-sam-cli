@@ -1106,7 +1106,8 @@ class TestPrepareHook(TestCase):
         child_modules.__contains__.return_value = True
         child_modules.get.return_value = root_module
         root_module.child_modules = child_modules
-        resources_mock.__getitem__.return_value = Mock()
+        config_resource = Mock()
+        resources_mock.__getitem__.return_value = config_resource
         resources_mock.__contains__.return_value = True
         mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
@@ -1120,7 +1121,7 @@ class TestPrepareHook(TestCase):
             )
         )
         expected_arguments_in_call = [
-            root_module,
+            {mock_get_configuration_address(): config_resource},
             {mock_get_configuration_address(): [val for _, val in lambda_functions.items()]},
             {},
         ]
@@ -1202,7 +1203,8 @@ class TestPrepareHook(TestCase):
         child_modules.__contains__.return_value = True
         child_modules.get.return_value = root_module
         root_module.child_modules = child_modules
-        resources_mock.__getitem__.return_value = Mock()
+        conf_resource = Mock()
+        resources_mock.__getitem__.return_value = conf_resource
         resources_mock.__contains__.return_value = True
         mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
@@ -1216,7 +1218,7 @@ class TestPrepareHook(TestCase):
             )
         )
         expected_arguments_in_call = [
-            root_module,
+            {mock_get_configuration_address(): conf_resource},
             {mock_get_configuration_address(): [val for _, val in lambda_functions.items()]},
             {},
         ]
@@ -3112,18 +3114,7 @@ class TestPrepareHook(TestCase):
             ),
             "aws_lambda_function.root_lambda": TFResource("aws_lambda_function.root_lambda", "", None, {}),
         }
-        module = TFModule("", None, {}, resources, {}, {})
-        mock_get_configuration_address.side_effect = [
-            "aws_lambda_function.remote_lambda_code",
-            "aws_lambda_function.root_lambda",
-        ]
-        _link_lambda_functions_to_layers(module, lambda_funcs_config_resources, terraform_layers_resources)
-        mock_get_configuration_address.assert_has_calls(
-            [
-                call("aws_lambda_function.remote_lambda_code"),
-                call("aws_lambda_function.root_lambda"),
-            ]
-        )
+        _link_lambda_functions_to_layers(resources, lambda_funcs_config_resources, terraform_layers_resources)
         mock_link_lambda_function_to_layer.assert_has_calls(
             [
                 call(
