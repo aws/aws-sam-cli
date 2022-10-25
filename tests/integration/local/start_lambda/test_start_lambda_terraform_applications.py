@@ -41,7 +41,6 @@ class StartLambdaTerraformApplicationIntegBase(StartLambdaIntegBaseClass):
         if cls.terraform_application:
             cls.working_dir = cls.integration_dir + cls.terraform_application
 
-        cls.port = str(StartLambdaIntegBaseClass.random_port())
         cls.env_var_path = cls.integration_dir + "/testdata/invoke/vars.json"
 
         if cls.build_before_invoke:
@@ -55,7 +54,7 @@ class StartLambdaTerraformApplicationIntegBase(StartLambdaIntegBaseClass):
             except APIError as ex:
                 LOG.error("Failed to remove container %s", container, exc_info=ex)
 
-        cls.start_lambda(input=cls.input, env=cls.env)
+        cls.start_lambda_with_retry(input=cls.input, env=cls.env)
 
     @classmethod
     def _run_command(cls, command_list, env=None, tf_application=None):
@@ -455,7 +454,6 @@ class TestLocalStartLambdaTerraformApplicationWithLocalImageUri(StartLambdaTerra
         if cls.terraform_application:
             cls.working_dir = cls.integration_dir + cls.terraform_application
 
-        cls.port = str(StartLambdaIntegBaseClass.random_port())
         cls.env_var_path = cls.integration_dir + "/testdata/invoke/vars.json"
 
         if cls.build_before_invoke:
@@ -471,7 +469,7 @@ class TestLocalStartLambdaTerraformApplicationWithLocalImageUri(StartLambdaTerra
         ):
             print(log)
 
-        cls.start_lambda()
+        cls.start_lambda_with_retry()
 
     @classmethod
     def tearDownClass(cls):

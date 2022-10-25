@@ -5,6 +5,9 @@ image:
 configuration:
   - BuildIntegTesting
   - DeployIntegTesting
+  - PackageIntegTesting
+  - DeleteIntegTesting
+  - SyncIntegTesting
   - LocalIntegTesting
   # other Integration testing, Dev, regression and smoke testing
   - OtherTesting
@@ -187,7 +190,7 @@ for:
       - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
       - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process"
 
-  # Integ testing deploy, package, delete, and sync
+  # Integ testing deploy
   -
     matrix:
       only:
@@ -196,7 +199,40 @@ for:
 
     test_script:
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/delete tests/integration/deploy tests/integration/package tests/integration/sync"
+      - sh: "pytest -vv tests/integration/deploy"
+
+  # Integ testing package
+  -
+    matrix:
+      only:
+        - image: Ubuntu
+          configuration: PackageIntegTesting
+
+    test_script:
+      - "pip install -e \".[dev]\""
+      - sh: "pytest -vv tests/integration/package"
+
+  # Integ testing delete
+  -
+    matrix:
+      only:
+        - image: Ubuntu
+          configuration: DeleteIntegTesting
+
+    test_script:
+      - "pip install -e \".[dev]\""
+      - sh: "pytest -vv tests/integration/delete"
+
+  # Integ testing sync
+  -
+    matrix:
+      only:
+        - image: Ubuntu
+          configuration: SyncIntegTesting
+
+    test_script:
+      - "pip install -e \".[dev]\""
+      - sh: "pytest -vv tests/integration/sync"
 
   # Integ testing local
   -

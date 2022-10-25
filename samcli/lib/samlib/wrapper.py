@@ -20,7 +20,9 @@ from samtranslator.model.exceptions import (
     InvalidResourceException,
     InvalidEventException,
 )
+from samtranslator.model.types import is_str
 from samtranslator.plugins import LifeCycleEvents
+from samtranslator.sdk.resource import SamResource, SamResourceType
 from samtranslator.translator.translator import prepare_plugins
 from samtranslator.validator.validator import SamTemplateValidator
 
@@ -64,6 +66,9 @@ class SamTranslatorWrapper:
             additional_plugins, parameters=self.parameter_values if self.parameter_values else {}
         )
 
+        # Temporarily disabling validation for DeletionPolicy and UpdateReplacePolicy when language extensions are set
+        self._patch_language_extensions()
+
         try:
             parser.parse(template_copy, all_plugins)  # parse() will run all configured plugins
         except InvalidDocumentException as e:
@@ -76,6 +81,43 @@ class SamTranslatorWrapper:
     @property
     def template(self):
         return copy.deepcopy(self._sam_template)
+
+    def _patch_language_extensions(self) -> None:
+        """
+        Monkey patch SamResource.valid function to exclude checking DeletionPolicy
+        and UpdateReplacePolicy when language extensions are set
+        """
+        template_copy = self.template
+        if self._check_using_language_extension(template_copy):
+
+            def patched_func(self):
+                if self.condition:
+                    if not is_str()(self.condition, should_raise=False):
+                        raise InvalidDocumentException(
+                            [InvalidTemplateException("Every Condition member must be a string.")]
+                        )
+                return SamResourceType.has_value(self.type)
+
+            SamResource.valid = patched_func
+
+    @staticmethod
+    def _check_using_language_extension(template: Dict) -> bool:
+        """
+        Check if language extensions are set in the template's Transform
+        :param template: template to check
+        :return: True if language extensions are set in the template, False otherwise
+        """
+        transform = template.get("Transform")
+        if transform:
+            if isinstance(transform, str) and transform.startswith("AWS::LanguageExtensions"):
+                return True
+            if isinstance(transform, list):
+                for transform_instance in transform:
+                    if not isinstance(transform_instance, str):
+                        continue
+                    if transform_instance.startswith("AWS::LanguageExtensions"):
+                        return True
+        return False
 
 
 class _SamParserReimplemented:
