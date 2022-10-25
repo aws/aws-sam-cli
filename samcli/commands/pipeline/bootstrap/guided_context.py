@@ -6,11 +6,18 @@ import os
 import sys
 from textwrap import dedent
 from typing import Optional, List, Tuple, Callable
+from xmlrpc.client import boolean
 
 import click
 from botocore.credentials import EnvProvider
 
 from samcli.commands.exceptions import CredentialsError
+from samcli.commands.pipeline.bootstrap.oidc_config import (
+    BitbucketOidcConfig,
+    GitHubOidcConfig,
+    GitLabOidcConfig,
+    OidcConfig,
+)
 from samcli.commands.pipeline.external_links import CONFIG_AWS_CRED_DOC_URL
 from samcli.lib.bootstrap.bootstrap import get_current_account_id
 from samcli.lib.utils.colors import Colored
@@ -19,9 +26,33 @@ from samcli.lib.utils.defaults import get_default_aws_region
 from samcli.lib.utils.profile import list_available_profiles
 
 
+GITHUB_ACTIONS = "github-actions"
+GITLAB = "gitlab"
+BITBUCKET = "bitbucket-pipelines"
+OPEN_ID_CONNECT = "oidc"
+OIDC_SUPPORTED_PROVIDER = [GITHUB_ACTIONS, GITLAB, BITBUCKET]
+IAM = "iam"
+
+
 class GuidedContext:
+
+    SUPPORTED_OIDC_PROVIDERS = {"1": GITHUB_ACTIONS, "2": GITLAB, "3": BITBUCKET}
+    OIDC_PROVIDER_NAME_MAPPINGS = {GITHUB_ACTIONS: "GitHub Actions", GITLAB: "GitLab", BITBUCKET: "Bitbucket"}
+    # GitHub defaults: https://tinyurl.com/github-defaults
+    # GitLab defaults: https://docs.gitlab.com/ee/ci/cloud_services/aws/#add-the-identity-provider
+    DEFAULT_OIDC_URLS = {
+        GITHUB_ACTIONS: "https://token.actions.githubusercontent.com",
+        GITLAB: "https://gitlab.com",
+        BITBUCKET: None,
+    }
+    DEFAULT_CLIENT_IDS = {GITHUB_ACTIONS: "sts.amazonaws.com", GITLAB: "https://gitlab.com", BITBUCKET: None}
+
     def __init__(
         self,
+        oidc_config: OidcConfig,
+        github_config: GitHubOidcConfig,
+        gitlab_config: GitLabOidcConfig,
+        bitbucket_config: BitbucketOidcConfig,
         profile: Optional[str] = None,
         stage_configuration_name: Optional[str] = None,
         pipeline_user_arn: Optional[str] = None,
@@ -31,6 +62,8 @@ class GuidedContext:
         create_image_repository: bool = False,
         image_repository_arn: Optional[str] = None,
         region: Optional[str] = None,
+        permissions_provider: Optional[str] = None,
+        enable_oidc_option: boolean = True,
     ) -> None:
         self.profile = profile
         self.stage_configuration_name = stage_configuration_name
@@ -41,6 +74,12 @@ class GuidedContext:
         self.create_image_repository = create_image_repository
         self.image_repository_arn = image_repository_arn
         self.region = region
+        self.permissions_provider = permissions_provider
+        self.oidc_config = oidc_config
+        self.github_config = github_config
+        self.gitlab_config = gitlab_config
+        self.bitbucket_config = bitbucket_config
+        self.enable_oidc_option = enable_oidc_option
         self.color = Colored()
 
     def _prompt_account_id(self) -> None:
@@ -144,42 +183,180 @@ class GuidedContext:
         else:
             self.create_image_repository = False
 
+    def _prompt_permissions_provider(self) -> None:
+        click.echo("Select a user permissions provider:")
+        click.echo("\t1 - IAM (default)")
+        click.echo("\t2 - OpenID Connect (OIDC)")
+        user_provider = click.prompt("Choice", type=click.Choice((["1", "2"])), show_default=False, default="1")
+        self.permissions_provider = OPEN_ID_CONNECT if user_provider == "2" else IAM
+
+    def _prompt_oidc_provider(self) -> None:
+        click.echo("Select an OIDC provider:")
+        for (key, provider) in self.SUPPORTED_OIDC_PROVIDERS.items():
+            click.echo("\t{key} - {provider}".format(key=key, provider=self.OIDC_PROVIDER_NAME_MAPPINGS[provider]))
+        oidc_provider = click.prompt(
+            "Choice",
+            type=click.Choice((list(self.SUPPORTED_OIDC_PROVIDERS))),
+            show_default=False,
+        )
+        self.oidc_config.oidc_provider = self.SUPPORTED_OIDC_PROVIDERS[oidc_provider]
+
+    def _prompt_oidc_provider_url(self) -> None:
+        self.oidc_config.oidc_provider_url = click.prompt(
+            "Enter the URL of the OIDC provider",
+            type=click.STRING,
+            default=self.DEFAULT_OIDC_URLS[self.oidc_config.oidc_provider] if self.oidc_config.oidc_provider else None,
+        )
+
+    def _prompt_oidc_client_id(self) -> None:
+        self.oidc_config.oidc_client_id = click.prompt(
+            "Enter the OIDC client ID (sometimes called audience)",
+            type=click.STRING,
+            default=self.DEFAULT_CLIENT_IDS[self.oidc_config.oidc_provider] if self.oidc_config.oidc_provider else None,
+        )
+
+    def _prompt_subject_claim(self) -> None:
+        if self.oidc_config.oidc_provider == GITHUB_ACTIONS:
+            if not self.github_config.github_org:
+                self._prompt_github_org()
+            if not self.github_config.github_repo:
+                self._prompt_github_repo()
+            if not self.github_config.deployment_branch:
+                self._prompt_deployment_branch()
+        elif self.oidc_config.oidc_provider == GITLAB:
+            if not self.gitlab_config.gitlab_group:
+                self._prompt_gitlab_group()
+            if not self.gitlab_config.gitlab_project:
+                self._prompt_gitlab_project()
+            if not self.gitlab_config.deployment_branch:
+                self._prompt_deployment_branch()
+        elif self.oidc_config.oidc_provider == BITBUCKET:
+            if not self.bitbucket_config.bitbucket_repo_uuid:
+                self._prompt_bitbucket_repo_uuid()
+
+    def _prompt_bitbucket_repo_uuid(self) -> None:
+        self.bitbucket_config.bitbucket_repo_uuid = click.prompt(
+            "Enter the Bitbucket repository UUID", type=click.STRING
+        )
+
+    def _prompt_gitlab_group(self) -> None:
+        self.gitlab_config.gitlab_group = click.prompt(
+            "Enter the GitLab group that the code repository belongs to."
+            " If there is no group enter your username instead",
+            type=click.STRING,
+        )
+
+    def _prompt_gitlab_project(self) -> None:
+        self.gitlab_config.gitlab_project = click.prompt("Enter GitLab project name", type=click.STRING)
+
+    def _prompt_github_org(self) -> None:
+        self.github_config.github_org = click.prompt(
+            "Enter the GitHub organization that the code repository belongs to."
+            " If there is no organization enter your username instead",
+            type=click.STRING,
+        )
+
+    def _prompt_github_repo(self) -> None:
+        self.github_config.github_repo = click.prompt("Enter GitHub repository name", type=click.STRING)
+
+    def _prompt_deployment_branch(self) -> None:
+        deployment_branch = click.prompt(
+            "Enter the name of the branch that deployments will occur from", type=click.STRING, default="main"
+        )
+        self.github_config.deployment_branch = deployment_branch
+        self.gitlab_config.deployment_branch = deployment_branch
+
+    def _validate_oidc_provider_url(self) -> None:
+        while not self.oidc_config.oidc_provider_url:
+            click.echo("Please enter the URL of the OIDC provider")
+            self._prompt_oidc_provider_url()
+        while self.oidc_config.oidc_provider_url.find("https://") == -1:
+            click.echo("Please ensure the OIDC URL begins with 'https://'")
+            self._prompt_oidc_provider_url()
+
     def _get_user_inputs(self) -> List[Tuple[str, Callable[[], None]]]:
-        return [
+        inputs = [
             (f"Account: {get_current_account_id(self.profile)}", self._prompt_account_id),
             (f"Stage configuration name: {self.stage_configuration_name}", self._prompt_stage_configuration_name),
             (f"Region: {self.region}", self._prompt_region_name),
-            (
-                f"Pipeline user ARN: {self.pipeline_user_arn}"
-                if self.pipeline_user_arn
-                else "Pipeline user: [to be created]",
-                self._prompt_pipeline_user,
-            ),
-            (
-                f"Pipeline execution role ARN: {self.pipeline_execution_role_arn}"
-                if self.pipeline_execution_role_arn
-                else "Pipeline execution role: [to be created]",
-                self._prompt_pipeline_execution_role,
-            ),
-            (
-                f"CloudFormation execution role ARN: {self.cloudformation_execution_role_arn}"
-                if self.cloudformation_execution_role_arn
-                else "CloudFormation execution role: [to be created]",
-                self._prompt_cloudformation_execution_role,
-            ),
-            (
-                f"Artifacts bucket ARN: {self.artifacts_bucket_arn}"
-                if self.artifacts_bucket_arn
-                else "Artifacts bucket: [to be created]",
-                self._prompt_artifacts_bucket,
-            ),
-            (
-                f"ECR image repository ARN: {self.image_repository_arn}"
-                if self.image_repository_arn
-                else f"ECR image repository: [{'to be created' if self.create_image_repository else 'skipped'}]",
-                self._prompt_image_repository,
-            ),
         ]
+
+        if self.permissions_provider == OPEN_ID_CONNECT:
+            inputs.extend(
+                [
+                    (
+                        f"OIDC identity provider URL: {self.oidc_config.oidc_provider_url}",
+                        self._prompt_oidc_provider_url,
+                    ),
+                    (f"OIDC client ID: {self.oidc_config.oidc_client_id}", self._prompt_oidc_client_id),
+                ]
+            )
+            if self.oidc_config.oidc_provider == GITHUB_ACTIONS:
+                inputs.extend(
+                    [
+                        (f"GitHub organization: {self.github_config.github_org}", self._prompt_github_org),
+                        (f"GitHub repository: {self.github_config.github_repo}", self._prompt_github_repo),
+                        (f"Deployment branch:  {self.github_config.deployment_branch}", self._prompt_deployment_branch),
+                    ]
+                )
+            elif self.oidc_config.oidc_provider == GITLAB:
+                inputs.extend(
+                    [
+                        (f"GitLab group: {self.gitlab_config.gitlab_group}", self._prompt_gitlab_group),
+                        (f"GitLab project: {self.gitlab_config.gitlab_project}", self._prompt_gitlab_project),
+                        (f"Deployment branch: {self.gitlab_config.deployment_branch}", self._prompt_deployment_branch),
+                    ]
+                )
+            elif self.oidc_config.oidc_provider == BITBUCKET:
+                inputs.extend(
+                    [
+                        (
+                            f"Bitbucket repository UUID: {self.bitbucket_config.bitbucket_repo_uuid}",
+                            self._prompt_bitbucket_repo_uuid,
+                        ),
+                    ]
+                )
+        else:
+            inputs.extend(
+                [
+                    (
+                        f"Pipeline user ARN: {self.pipeline_user_arn}"
+                        if self.pipeline_user_arn
+                        else "Pipeline user: [to be created]",
+                        self._prompt_pipeline_user,
+                    )
+                ]
+            )
+
+        inputs.extend(
+            [
+                (
+                    f"Pipeline execution role ARN: {self.pipeline_execution_role_arn}"
+                    if self.pipeline_execution_role_arn
+                    else "Pipeline execution role: [to be created]",
+                    self._prompt_pipeline_execution_role,
+                ),
+                (
+                    f"CloudFormation execution role ARN: {self.cloudformation_execution_role_arn}"
+                    if self.cloudformation_execution_role_arn
+                    else "CloudFormation execution role: [to be created]",
+                    self._prompt_cloudformation_execution_role,
+                ),
+                (
+                    f"Artifacts bucket ARN: {self.artifacts_bucket_arn}"
+                    if self.artifacts_bucket_arn
+                    else "Artifacts bucket: [to be created]",
+                    self._prompt_artifacts_bucket,
+                ),
+                (
+                    f"ECR image repository ARN: {self.image_repository_arn}"
+                    if self.image_repository_arn
+                    else f"ECR image repository: [{'to be created' if self.create_image_repository else 'skipped'}]",
+                    self._prompt_image_repository,
+                ),
+            ]
+        )
+        return inputs
 
     def run(self) -> None:  # pylint: disable=too-many-branches
         """
@@ -201,7 +378,19 @@ class GuidedContext:
         if not self.region:
             self._prompt_region_name()
 
-        if self.pipeline_user_arn:
+        if self.enable_oidc_option and not self.permissions_provider == OPEN_ID_CONNECT and not self.pipeline_user_arn:
+            self._prompt_permissions_provider()
+
+        if self.permissions_provider == OPEN_ID_CONNECT:
+            if not self.oidc_config.oidc_provider:
+                self._prompt_oidc_provider()
+            if not self.oidc_config.oidc_provider_url:
+                self._prompt_oidc_provider_url()
+            self._validate_oidc_provider_url()
+            if not self.oidc_config.oidc_client_id:
+                self._prompt_oidc_client_id()
+            self._prompt_subject_claim()
+        elif self.pipeline_user_arn:
             click.echo(f"Pipeline IAM user ARN: {self.pipeline_user_arn}")
         else:
             self._prompt_pipeline_user()

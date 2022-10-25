@@ -31,7 +31,7 @@ class TestPackageCommand(TestCase):
 
     @patch.object(SamLocalStackProvider, "get_stacks")
     @patch.object(Template, "export", MagicMock(sideeffect=OSError))
-    @patch("boto3.Session")
+    @patch("boto3.client")
     def test_template_permissions_error(self, patched_boto, patched_get_stacks):
         patched_get_stacks.return_value = Mock(), Mock()
         with self.assertRaises(PackageFailedError):
@@ -39,7 +39,7 @@ class TestPackageCommand(TestCase):
 
     @patch.object(ResourceMetadataNormalizer, "normalize", MagicMock())
     @patch.object(Template, "export", MagicMock(return_value={}))
-    @patch("boto3.Session")
+    @patch("boto3.client")
     def test_template_path_valid_with_output_template(self, patched_boto):
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp_template_file:
             with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp_output_template_file:
@@ -62,7 +62,7 @@ class TestPackageCommand(TestCase):
 
     @patch.object(ResourceMetadataNormalizer, "normalize", MagicMock())
     @patch.object(Template, "export", MagicMock(return_value={}))
-    @patch("boto3.Session")
+    @patch("boto3.client")
     def test_template_path_valid(self, patched_boto):
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp_template_file:
             package_command_context = PackageContext(
@@ -84,7 +84,7 @@ class TestPackageCommand(TestCase):
 
     @patch.object(ResourceMetadataNormalizer, "normalize", MagicMock())
     @patch.object(Template, "export", MagicMock(return_value={}))
-    @patch("boto3.Session")
+    @patch("boto3.client")
     def test_template_path_valid_no_json(self, patched_boto):
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp_template_file:
             package_command_context = PackageContext(

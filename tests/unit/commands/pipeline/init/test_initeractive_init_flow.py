@@ -46,6 +46,8 @@ class TestInteractiveInitFlow(TestCase):
         app_pipeline_templates_path_mock = Mock()
         selected_pipeline_template_path_mock = Mock()
         pipeline_templates_manifest_mock = Mock()
+        selected_pipeline_template_metadata = select_pipeline_template_mock.return_value = Mock()
+        selected_pipeline_template_metadata.provider = "gitlab"
         shared_path_mock.joinpath.return_value = app_pipeline_templates_path_mock
         app_pipeline_templates_path_mock.exists.return_value = True  # An old clone exists
         app_pipeline_templates_path_mock.joinpath.return_value = selected_pipeline_template_path_mock
@@ -62,7 +64,7 @@ class TestInteractiveInitFlow(TestCase):
         app_pipeline_templates_path_mock.exists.assert_called_once()
         read_app_pipeline_templates_manifest_mock.assert_called_once_with(app_pipeline_templates_path_mock)
         select_pipeline_template_mock.assert_called_once_with(pipeline_templates_manifest_mock)
-        generate_from_pipeline_template_mock.assert_called_once_with(selected_pipeline_template_path_mock)
+        generate_from_pipeline_template_mock.assert_called_once_with(selected_pipeline_template_path_mock, "gitlab")
 
     @patch("samcli.commands.pipeline.init.interactive_init_flow.shared_path")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
@@ -185,8 +187,10 @@ class TestInteractiveInitFlow(TestCase):
                 str(["1", "pipeline_execution_role"]): "arn:aws:iam::123456789012:role/execution-role",
                 str(["prod", "pipeline_execution_role"]): "arn:aws:iam::123456789012:role/execution-role",
                 str(["2", "pipeline_execution_role"]): "arn:aws:iam::123456789012:role/execution-role",
+                str(["default", "pipeline_execution_role"]): "arn:aws:iam::123456789012:role/execution-role",
                 str(["stage_names_message"]): "Here are the stage configuration names detected "
                 f'in {os.path.join(".aws-sam", "pipeline", "pipelineconfig.toml")}:\n\t1 - testing\n\t2 - prod',
+                "shared_values": "default",
             }
         )
         cookiecutter_mock.assert_called_once_with(
@@ -323,6 +327,61 @@ class TestInteractiveInitFlow(TestCase):
             overwrite_if_exists=True,
         )
 
+    @patch("samcli.lib.cookiecutter.template.cookiecutter")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.InteractiveFlowCreator.create_flow")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow._prompt_pipeline_template")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.osutils")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.click")
+    @patch("samcli.lib.cookiecutter.question.click")
+    def test_generate_pipeline_configuration_file_from_custom_remote_pipeline_template_with_manifest_happy_case(
+        self,
+        questions_click_mock,
+        init_flow_click_mock,
+        osutils_mock,
+        git_clone_mock,
+        prompt_pipeline_template_mock,
+        create_interactive_flow_mock,
+        cookiecutter_mock,
+    ):
+        # setup
+        questions_click_mock.prompt.return_value = "2"  # Custom pipeline templates
+        init_flow_click_mock.prompt.return_value = "https://github.com/any-custom-pipeline-template-repo.git"
+        clone_temp_dir = "/tmp/any/dir"
+        cookiecutter_output_dir_mock = "/tmp/any/dir2"
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(
+            side_effect=[clone_temp_dir, cookiecutter_output_dir_mock]
+        )
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+        templates_path = Path(__file__).parent.parent.parent.parent.parent.joinpath(
+            Path("integration", "testdata", "pipeline", "custom_template_with_manifest")
+        )
+        weather_templates_path = templates_path.joinpath("weather")
+        git_clone_mock.return_value = templates_path
+        # Mock that the user selected the 'weather' pipeline. The click-based mocking
+        # approach can't be used here because it was already used to pass a fake Git
+        # repository address for `init_flow_click_mock`.
+        prompt_pipeline_template_mock.return_value = Mock(location="weather")
+        interactive_flow_mock = Mock()
+        create_interactive_flow_mock.return_value = interactive_flow_mock
+        cookiecutter_context_mock = {"key": "value"}
+        interactive_flow_mock.run.return_value = cookiecutter_context_mock
+
+        # trigger
+        InteractiveInitFlow(allow_bootstrap=False).do_interactive()
+
+        # verify
+        git_clone_mock.assert_called_once_with(Path(clone_temp_dir), "custom-pipeline-template", replace_existing=True)
+        create_interactive_flow_mock.assert_called_once_with(str(weather_templates_path.joinpath("questions.json")))
+        interactive_flow_mock.run.assert_called_once()
+        cookiecutter_mock.assert_called_once_with(
+            template=str(weather_templates_path),
+            output_dir=cookiecutter_output_dir_mock,
+            no_input=True,
+            extra_context=cookiecutter_context_mock,
+            overwrite_if_exists=True,
+        )
+
     @patch("samcli.lib.cookiecutter.question.click")
     def test_prompt_cicd_provider_will_not_prompt_if_the_list_of_providers_has_only_one_provider(self, click_mock):
         gitlab_provider = Mock(id="gitlab", display_name="Gitlab CI/CD")
@@ -452,12 +511,12 @@ class TestInteractiveInitFlowWithBootstrap(TestCase):
         InteractiveInitFlow(allow_bootstrap=True).do_interactive()
 
         # verify
-        _prompt_run_bootstrap_within_pipeline_init_mock.assert_called_once_with(["testing"], 2)
+        _prompt_run_bootstrap_within_pipeline_init_mock.assert_called_once_with(["testing"], 2, "jenkins")
 
     @parameterized.expand(
         [
-            ([["testing"], ["testing", "prod"]], [call(["testing"], 2)]),
-            ([[], ["testing"], ["testing", "prod"]], [call([], 2), call(["testing"], 2)]),
+            ([["testing"], ["testing", "prod"]], [call(["testing"], 2, "jenkins")]),
+            ([[], ["testing"], ["testing", "prod"]], [call([], 2, "jenkins"), call(["testing"], 2, "jenkins")]),
         ]
     )
     @patch("samcli.commands.pipeline.init.interactive_init_flow.SamConfig")

@@ -88,7 +88,14 @@ class TestSyncCodeBase(SyncIntegBase):
 
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
-@parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
+@parameterized_class(
+    [
+        {"dependency_layer": True, "use_container": True},
+        {"dependency_layer": True, "use_container": False},
+        {"dependency_layer": False, "use_container": False},
+        {"dependency_layer": False, "use_container": True},
+    ]
+)
 class TestSyncCode(TestSyncCodeBase):
     template = "template-python.yaml"
     folder = "code"
@@ -101,7 +108,7 @@ class TestSyncCode(TestSyncCodeBase):
         )
 
         self.stack_resources = self._get_stacks(TestSyncCodeBase.stack_name)
-        if self.dependency_layer:
+        if self.dependency_layer and not self.use_container:
             # Test update manifest
             layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "python", 1)
             self.assertNotIn("requests", layer_contents)
@@ -119,6 +126,7 @@ class TestSyncCode(TestSyncCodeBase):
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
+            use_container=self.use_container,
         )
         sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
         self.assertEqual(sync_process_execute.process.returncode, 0)
@@ -133,7 +141,7 @@ class TestSyncCode(TestSyncCodeBase):
                 self.assertIn("extra_message", lambda_response)
                 self.assertEqual(lambda_response.get("message"), "8")
 
-        if self.dependency_layer:
+        if self.dependency_layer and not self.use_container:
             layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "python", 2)
             self.assertIn("requests", layer_contents)
 
@@ -156,6 +164,7 @@ class TestSyncCode(TestSyncCodeBase):
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
+            use_container=self.use_container,
         )
         sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
         self.assertEqual(sync_process_execute.process.returncode, 0)

@@ -190,11 +190,11 @@ class TestSyncWatchEsbuildBase(TestSyncWatchBase):
 @parameterized_class(
     [{"runtime": "python", "dependency_layer": True}, {"runtime": "python", "dependency_layer": False}]
 )
-class TestSyncCodeInfra(TestSyncWatchBase):
+class TestSyncWatchInfra(TestSyncWatchBase):
     @classmethod
     def setUpClass(cls):
         cls.template_before = f"infra/template-{cls.runtime}-before.yaml"
-        super(TestSyncCodeInfra, cls).setUpClass()
+        super(TestSyncWatchInfra, cls).setUpClass()
 
     def test_sync_watch_infra(self):
 
@@ -414,3 +414,154 @@ class TestSyncWatchCodeEsbuild(TestSyncWatchEsbuildBase):
             lambda_response = json.loads(self._get_lambda_response(lambda_function))
             self.assertIn("extra_message", lambda_response)
             self.assertEqual(lambda_response.get("message"), "Hello world!")
+
+
+class TestSyncWatchUseContainer(TestSyncWatchBase):
+    @classmethod
+    def setUpClass(cls):
+        super(TestSyncWatchBase, cls).setUpClass()
+        cls.use_container = True
+        cls.dependency_layer = False
+
+    def _verify_infra_changes(self, resources):
+        # Lambda
+        lambda_functions = resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "9")
+
+
+class TestSyncWatchInfraUseContainer(TestSyncWatchUseContainer):
+    template_before = f"infra/template-python-before.yaml"
+
+    def test_sync_watch_infra(self):
+        self.update_file(
+            self.test_dir.joinpath(f"infra/template-python-after.yaml"),
+            self.test_dir.joinpath(f"infra/template-python-before.yaml"),
+        )
+
+        read_until_string(self.watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n", timeout=600)
+
+        # Updated Infra Validation
+        self.stack_resources = self._get_stacks(self.stack_name)
+        self._verify_infra_changes(self.stack_resources)
+
+
+class TestSyncWatchCodeUseContainer(TestSyncWatchUseContainer):
+    template_before = str(Path("code", "before", "template-python.yaml"))
+
+    def test_sync_watch_code(self):
+        self.stack_resources = self._get_stacks(self.stack_name)
+
+        # Test Lambda Function
+        self.update_file(
+            self.test_dir.joinpath("code", "after", "function", "requirements.txt"),
+            self.test_dir.joinpath("code", "before", "function", "requirements.txt"),
+        )
+        read_until_string(
+            self.watch_process, "\x1b[32mFinished syncing Lambda Function HelloWorldFunction.\x1b[0m\n", timeout=45
+        )
+
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "7")
+
+
+@parameterized_class(
+    [{"runtime": "python", "dependency_layer": True}, {"runtime": "python", "dependency_layer": False}]
+)
+class TestSyncWatchCodeOnly(TestSyncWatchBase):
+    template_before = str(Path("code", "before", "template-python-code-only.yaml"))
+
+    def run_initial_infra_validation(self) -> None:
+        """Runs initial infra validation after deployment is completed"""
+        self.stack_resources = self._get_stacks(self.stack_name)
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "7")
+
+    def test_sync_watch_code(self):
+        # first kill previously started sync process
+        kill_process(self.watch_process)
+        # start new one with code only
+        template_path = self.test_dir.joinpath(self.template_before)
+        sync_command_list = self.get_sync_command_list(
+            template_file=str(template_path),
+            code=True,
+            watch=True,
+            dependency_layer=self.dependency_layer,
+            stack_name=self.stack_name,
+            parameter_overrides="Parameter=Clarity",
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+        self.watch_process = start_persistent_process(sync_command_list, cwd=self.test_dir)
+        read_until_string(self.watch_process, "\x1b[32mSync watch started.\x1b[0m\n", timeout=30)
+
+        self.stack_resources = self._get_stacks(self.stack_name)
+
+        if self.dependency_layer:
+            # Test update manifest
+            layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "python", 1)
+            self.assertNotIn("requests", layer_contents)
+            self.update_file(
+                self.test_dir.joinpath("code", "after", "function", "requirements.txt"),
+                self.test_dir.joinpath("code", "before", "function", "requirements.txt"),
+            )
+            read_until_string(
+                self.watch_process,
+                "\x1b[32mFinished syncing Function Layer Reference Sync HelloWorldFunction.\x1b[0m\n",
+                timeout=45,
+            )
+            layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "python", 2)
+            self.assertIn("requests", layer_contents)
+
+        # Test Lambda Function
+        self.update_file(
+            self.test_dir.joinpath("code", "after", "function", "app.py"),
+            self.test_dir.joinpath("code", "before", "function", "app.py"),
+        )
+        read_until_string(
+            self.watch_process, "\x1b[32mFinished syncing Lambda Function HelloWorldFunction.\x1b[0m\n", timeout=30
+        )
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "8")
+
+        # Test Lambda Layer
+        self.update_file(
+            self.test_dir.joinpath("code", "after", "layer", "layer_method.py"),
+            self.test_dir.joinpath("code", "before", "layer", "layer_method.py"),
+        )
+        read_until_string(
+            self.watch_process,
+            "\x1b[32mFinished syncing Function Layer Reference Sync HelloWorldFunction.\x1b[0m\n",
+            timeout=30,
+        )
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "9")
+
+        # updating infra should not trigger an infra sync
+        self.update_file(
+            self.test_dir.joinpath(f"infra/template-{self.runtime}-after.yaml"),
+            self.test_dir.joinpath(f"code/before/template-{self.runtime}-code-only.yaml"),
+        )
+
+        read_until_string(
+            self.watch_process,
+            "\x1b[33mYou have enabled the --code flag, which limits sam sync updates to code changes only. To do a "
+            "complete infrastructure and code sync, remove the --code flag.\x1b[0m\n",
+            timeout=30,
+        )

@@ -3,16 +3,25 @@ import json
 import os
 import pathlib
 import re
+import socket
+import hashlib
 from itertools import chain
 from typing import Dict, List, Optional, Tuple
+from urllib.parse import urlparse
 
 import boto3
+from botocore.exceptions import ClientError
 import click
+import requests
+
+from OpenSSL import SSL, crypto  # type: ignore
+from samcli.commands.pipeline.bootstrap.guided_context import OPEN_ID_CONNECT, GITHUB_ACTIONS, GITLAB, BITBUCKET
+from samcli.commands.pipeline.bootstrap.pipeline_oidc_provider import PipelineOidcProvider
 
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.utils.colors import Colored
-from samcli.lib.utils.managed_cloudformation_stack import manage_stack, StackOutput
-from samcli.lib.pipeline.bootstrap.resource import Resource, IAMUser, ECRImageRepository
+from samcli.lib.utils.managed_cloudformation_stack import update_stack, StackOutput
+from samcli.lib.pipeline.bootstrap.resource import OidcProvider, Resource, IAMUser, ECRImageRepository
 
 CFN_TEMPLATE_PATH = str(pathlib.Path(os.path.dirname(__file__)))
 STACK_NAME_PREFIX = "aws-sam-cli-managed"
@@ -23,6 +32,17 @@ PIPELINE_EXECUTION_ROLE = "pipeline_execution_role"
 CLOUDFORMATION_EXECUTION_ROLE = "cloudformation_execution_role"
 ARTIFACTS_BUCKET = "artifacts_bucket"
 ECR_IMAGE_REPOSITORY = "image_repository"
+OIDC_PROVIDER_URL = "oidc_provider_url"
+OIDC_CLIENT_ID = "oidc_client_id"
+OIDC_PROVIDER = "oidc_provider"
+GITHUB_ORG = "github_org"
+GITHUB_REPO = "github_repo"
+GITLAB_GROUP = "gitlab_group"
+GITLAB_PROJECT = "gitlab_project"
+DEPLOYMENT_BRANCH = "deployment_branch"
+BITBUCKET_REPO_UUID = "bitbucket_repo_uuid"
+PERMISSIONS_PROVIDER = "permissions_provider"
+OIDC_SUPPORTED_PROVIDER = [GITHUB_ACTIONS, GITLAB, BITBUCKET]
 REGION = "region"
 
 
@@ -51,6 +71,10 @@ class Stage:
         A boolean flag that determines whether the user wants to create an ECR image repository or not
     image_repository: ECRImageRepository
         The ECR image repository to hold the image container of lambda functions with Image package-type
+    oidc_provider: OidcProvider
+        The OIDCProvider to be created/used for assuming the pipeline execution role
+    subject_claim: Optional[str]
+        The subject claim that will be returned by the OIDC Provider to assume the role
 
     Methods:
     --------
@@ -69,11 +93,20 @@ class Stage:
         the `sam pipeline init` command.
     print_resources_summary(self) -> None:
         prints to the screen(console) the ARNs of the created and provided resources.
+    _should_create_new_provider(self) -> bool:
+        checks if there are any existing OIDC Providers configured in IAM by getting a list of all OIDC Providers
+        setup in the account and seeing if the URL provided is in the ARN
+    generate_thumbprint(oidc_provider_url) -> Optional[str]:
+        retrieves the certificate of the top intermidate cerficate authority that signed the certificate
+        used by the external identity provider and then returns the SHA1 hash of it. For more information on
+        why the thumbprint is needed and the steps required to obtain it see the following page
+        https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc_verify-thumbprint.html
     """
 
     def __init__(
         self,
         name: str,
+        permissions_provider: Optional[str] = None,
         aws_profile: Optional[str] = None,
         aws_region: Optional[str] = None,
         pipeline_user_arn: Optional[str] = None,
@@ -82,8 +115,16 @@ class Stage:
         artifacts_bucket_arn: Optional[str] = None,
         create_image_repository: bool = False,
         image_repository_arn: Optional[str] = None,
+        oidc_provider_url: Optional[str] = None,
+        oidc_client_id: Optional[str] = None,
+        subject_claim: Optional[str] = None,
+        pipeline_oidc_provider: Optional[PipelineOidcProvider] = None,
     ) -> None:
         self.name: str = name
+        self.create_new_oidc_provider = False
+        self.subject_claim = subject_claim
+        self.use_oidc_provider = permissions_provider == OPEN_ID_CONNECT
+        self.pipeline_oidc_provider = pipeline_oidc_provider
         self.aws_profile: Optional[str] = aws_profile
         self.aws_region: Optional[str] = aws_region
         self.pipeline_user: IAMUser = IAMUser(arn=pipeline_user_arn, comment="Pipeline IAM user")
@@ -100,6 +141,84 @@ class Stage:
         )
         self.color = Colored()
 
+        self.oidc_provider: OidcProvider = OidcProvider(
+            client_id=oidc_client_id,
+            provider_url=oidc_provider_url,
+            thumbprint="",
+            comment="IAM OIDC Identity Provider",
+            arn="",
+        )
+
+    def _should_create_new_provider(self, stack_name: str) -> bool:
+        """
+        Checks if there is an existing Identity Provider in the account already
+        whos ARN contains the URL provided by the user.
+
+        OIDC Provider arns are of the following format
+        arn:aws:iam:::oidc-provider/api.bitbucket.org/2.0/workspaces//pipelines-config/identity/oidc
+        we can check if the URL provided is already in an existing provider to see if a new one should be made
+        -------
+        """
+        if not self.oidc_provider.provider_url:
+            return False
+        session = boto3.Session(profile_name=self.aws_profile, region_name=self.aws_region)
+        iam_client = session.client("iam")
+        cfn_client = session.client("cloudformation")
+        providers = iam_client.list_open_id_connect_providers()
+
+        url_to_compare = self.oidc_provider.provider_url.replace("https://", "")
+        for provider_resource in providers["OpenIDConnectProviderList"]:
+            if url_to_compare in provider_resource["Arn"]:
+                try:
+                    stack_res = cfn_client.describe_stack_resource(
+                        StackName=stack_name, LogicalResourceId="OidcProvider"
+                    )
+                    return url_to_compare in stack_res["StackResourceDetail"]["PhysicalResourceId"]
+                except ClientError as ex:
+                    if "does not exist" in str(ex):
+                        return False
+                    raise ex
+        return True
+
+    @staticmethod
+    def generate_thumbprint(oidc_provider_url: Optional[str]) -> Optional[str]:
+        """
+        retrieves the certificate of the top intermidate cerficate authority that signed the certificate
+        used by the external identity provider and then returns the SHA1 hash of it. For more information on
+        why the thumbprint is needed and the steps required to obtain it see the following page
+        https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc_verify-thumbprint.html
+        -------
+        oidc_provider_url : Optional[str]
+            The URL of the OIDC provider that will be used for authentication.
+        """
+        # Send HTTP GET to retrieve jwks_uri field from openid-configuration document
+        oidc_config_url = "{url}/.well-known/openid-configuration".format(url=oidc_provider_url)
+        r = requests.get(oidc_config_url, timeout=5)
+        jwks_uri = r.json()["jwks_uri"]
+        url_for_certificate = urlparse(jwks_uri).hostname
+
+        # Create connection to retrieve certificate
+        # Create an IPV4 socket and use TLS for the SSL connection
+        address = (url_for_certificate, 443)
+        ctx = SSL.Context(SSL.TLS_METHOD)
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect(address)
+        c = SSL.Connection(ctx, s)
+        c.set_connect_state()
+        # set the servername extension becuase not setting it can cause errors with some sites
+        c.set_tlsext_host_name(str.encode(address[0]))
+
+        # If we attempt to get the cert chain without exchanging some traffic it will be empty
+        c.sendall(str.encode("HEAD / HTTP/1.0\n\n"))
+        peerCertChain = c.get_peer_cert_chain()
+        cert = peerCertChain[-1]
+
+        # Dump the certificate in DER/ASN1 format so that its SHA1 hash can be computed
+        dumped_cert = crypto.dump_certificate(crypto.FILETYPE_ASN1, cert)
+        s.close()
+
+        return hashlib.sha1(dumped_cert).hexdigest()
+
     def did_user_provide_all_required_resources(self) -> bool:
         """Check if the user provided all of the environment resources or not"""
         return all(resource.is_user_provided for resource in self._get_resources())
@@ -107,7 +226,8 @@ class Stage:
     def _get_non_user_provided_resources_msg(self) -> str:
         resource_comments = chain.from_iterable(
             [
-                [] if self.pipeline_user.is_user_provided else [self.pipeline_user.comment],
+                [] if self.pipeline_user.is_user_provided or self.use_oidc_provider else [self.pipeline_user.comment],
+                [] if not self.use_oidc_provider else [self.oidc_provider.comment],
                 [] if self.pipeline_execution_role.is_user_provided else [self.pipeline_execution_role.comment],
                 []
                 if self.cloudformation_execution_role.is_user_provided
@@ -123,7 +243,7 @@ class Stage:
     def bootstrap(self, confirm_changeset: bool = True) -> bool:
         """
         Deploys the CFN template(./stage_resources.yaml) which deploys:
-            * Pipeline IAM User
+            * Pipeline IAM User or IAM OIDC Identity Provider
             * Pipeline execution IAM role
             * CloudFormation execution IAM role
             * Artifacts' S3 Bucket
@@ -162,9 +282,16 @@ class Stage:
                 click.secho(self.color.red("Canceling pipeline bootstrap creation."))
                 return False
 
+        stack_name = self._get_stack_name()
+
+        if self.use_oidc_provider:
+            self.create_new_oidc_provider = self._should_create_new_provider(stack_name)
+            if self.create_new_oidc_provider:
+                self.oidc_provider.thumbprint = self.generate_thumbprint(self.oidc_provider.provider_url)
+
         environment_resources_template_body = Stage._read_template(STAGE_RESOURCES_CFN_TEMPLATE)
-        output: StackOutput = manage_stack(
-            stack_name=self._get_stack_name(),
+        output: StackOutput = update_stack(
+            stack_name=stack_name,
             region=self.aws_region,
             profile=self.aws_profile,
             template_body=environment_resources_template_body,
@@ -175,17 +302,24 @@ class Stage:
                 "ArtifactsBucketArn": self.artifacts_bucket.arn or "",
                 "CreateImageRepository": "true" if self.create_image_repository else "false",
                 "ImageRepositoryArn": self.image_repository.arn or "",
+                "IdentityProviderThumbprint": self.oidc_provider.thumbprint or "",
+                "OidcClientId": self.oidc_provider.client_id or "",
+                "OidcProviderUrl": self.oidc_provider.provider_url or "",
+                "UseOidcProvider": "true" if self.use_oidc_provider else "false",
+                "SubjectClaim": self.subject_claim or "",
+                "CreateNewOidcProvider": "true" if self.create_new_oidc_provider else "false",
             },
         )
 
-        pipeline_user_secret_sm_id = output.get("PipelineUserSecretKey")
+        if not self.use_oidc_provider:
+            pipeline_user_secret_sm_id = output.get("PipelineUserSecretKey")
 
-        self.pipeline_user.arn = output.get("PipelineUser")
-        if pipeline_user_secret_sm_id:
-            (
-                self.pipeline_user.access_key_id,
-                self.pipeline_user.secret_access_key,
-            ) = Stage._get_pipeline_user_secret_pair(pipeline_user_secret_sm_id, self.aws_profile, self.aws_region)
+            self.pipeline_user.arn = output.get("PipelineUser")
+            if pipeline_user_secret_sm_id:
+                (
+                    self.pipeline_user.access_key_id,
+                    self.pipeline_user.secret_access_key,
+                ) = Stage._get_pipeline_user_secret_pair(pipeline_user_secret_sm_id, self.aws_profile, self.aws_region)
         self.pipeline_execution_role.arn = output.get("PipelineExecutionRole")
         self.cloudformation_execution_role.arn = output.get("CloudFormationExecutionRole")
         self.artifacts_bucket.arn = output.get("ArtifactsBucket")
@@ -252,6 +386,9 @@ class Stage:
 
         if self.pipeline_user.arn:
             samconfig.put(cmd_names=cmd_names, section="parameters", key=PIPELINE_USER, value=self.pipeline_user.arn)
+            samconfig.put(cmd_names=cmd_names, section="parameters", key=PERMISSIONS_PROVIDER, value="AWS IAM")
+        if self.use_oidc_provider and self.pipeline_oidc_provider:
+            self.pipeline_oidc_provider.save_values(cmd_names=cmd_names, section="parameters", samconfig=samconfig)
 
         # Computing Artifacts bucket name and ECR image repository URL may through an exception if the ARNs are wrong
         # Let's swallow such an exception to be able to save the remaining resources
@@ -297,11 +434,14 @@ class Stage:
 
     def _get_resources(self) -> List[Resource]:
         resources = [
-            self.pipeline_user,
             self.pipeline_execution_role,
             self.cloudformation_execution_role,
             self.artifacts_bucket,
         ]
+        if self.use_oidc_provider:
+            resources.append(self.oidc_provider)
+        else:
+            resources.append(self.pipeline_user)
         if self.create_image_repository or self.image_repository.arn:  # Image Repository is optional
             resources.append(self.image_repository)
         return resources
@@ -322,7 +462,7 @@ class Stage:
             for resource in created_resources:
                 click.secho(self.color.green(f"\t- {resource.comment}"))
 
-        if not self.pipeline_user.is_user_provided:
+        if not self.pipeline_user.is_user_provided and not self.use_oidc_provider:
             click.secho(self.color.green("Pipeline IAM user credential:"))
             click.secho(self.color.green(f"\tAWS_ACCESS_KEY_ID: {self.pipeline_user.access_key_id}"))
             click.secho(self.color.green(f"\tAWS_SECRET_ACCESS_KEY: {self.pipeline_user.secret_access_key}"))

@@ -748,7 +748,10 @@ class ApplicationBuilder:
             return normalized_build_props
 
         _build_options: Dict[str, Dict] = {
-            "go": {"artifact_executable_name": handler},
+            "go": {
+                "artifact_executable_name": handler,
+                "trim_go_path": build_props.get("TrimGoPath", False),
+            },
             "provided": {"build_logical_id": function_name},
             "nodejs": {"use_npm_ci": build_props.get("UseNpmCi", False)},
         }

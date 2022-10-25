@@ -2712,15 +2712,31 @@ class TestApplicationBuilder_get_build_options(TestCase):
 
     @parameterized.expand(
         [
-            ("go", "", {"artifact_executable_name": "app.handler"}),
-            ("python", "", None),
-            ("nodejs", "npm", {"use_npm_ci": True}),
-            ("esbuild", "npm-esbuild", {"entry_points": ["app"], "use_npm_ci": True}),
-            ("provided", "", {"build_logical_id": "Function"}),
+            ("go", "", {"TrimGoPath": True}, {"artifact_executable_name": "app.handler", "trim_go_path": True}),
+            ("python", "", {}, None),
+            ("nodejs", "npm", {"UseNpmCi": True}, {"use_npm_ci": True}),
+            ("esbuild", "npm-esbuild", {"UseNpmCi": True}, {"entry_points": ["app"], "use_npm_ci": True}),
+            ("provided", "", {}, {"build_logical_id": "Function"}),
         ]
     )
-    def test_get_options_various_languages_dependency_managers(self, language, dependency_manager, expected_options):
-        build_properties = {"UseNpmCi": True}
+    def test_get_options_various_languages_dependency_managers(
+        self, language, dependency_manager, build_properties, expected_options
+    ):
+        metadata = {"BuildProperties": build_properties}
+        options = ApplicationBuilder._get_build_options(
+            "Function", language, "base_dir", "app.handler", dependency_manager, metadata
+        )
+        self.assertEqual(options, expected_options)
+
+    @parameterized.expand(
+        [
+            ("go", "", {}, {"artifact_executable_name": "app.handler", "trim_go_path": False}),
+            ("nodejs", "npm", {}, {"use_npm_ci": False}),
+        ]
+    )
+    def test_get_default_options_various_languages_dependency_managers(
+        self, language, dependency_manager, build_properties, expected_options
+    ):
         metadata = {"BuildProperties": build_properties}
         options = ApplicationBuilder._get_build_options(
             "Function", language, "base_dir", "app.handler", dependency_manager, metadata
