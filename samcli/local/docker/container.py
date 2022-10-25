@@ -169,8 +169,6 @@ class Container:
         if self._env_vars:
             kwargs["environment"] = self._env_vars
 
-        kwargs["ports"] = {self.RAPID_PORT_CONTAINER: (self._container_host_interface, self.rapid_port_host)}
-
         if self._exposed_ports:
             kwargs["ports"].update(
                 {
@@ -188,6 +186,12 @@ class Container:
 
         if self.network_id == "host":
             kwargs["network_mode"] = self.network_id
+        else:
+            # only add when host network is not defined. 
+            # This issue stems from a change in docker-py
+            # https://github.com/docker/docker-py/commit/6da140e26c1cbe8e362b328b1c78d9c736f3a1a2
+            kwargs["ports"] = {self.RAPID_PORT_CONTAINER: (self._container_host_interface, self.rapid_port_host)}
+
 
         real_container = self.docker_client.containers.create(self._image, **kwargs)
         self.id = real_container.id
