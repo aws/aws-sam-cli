@@ -676,7 +676,7 @@ def resolve_s3_click_option(guided):
         help="Automatically resolve s3 bucket for non-guided deployments. "
         "Enabling this option will also create a managed default s3 bucket for you. "
         "If you do not provide a --s3-bucket value, the managed bucket will be used. "
-        "Do not use --s3-guided parameter with this option.",
+        "Do not use --guided with this option.",
     )
 
 
@@ -689,8 +689,8 @@ def role_arn_click_option():
     return click.option(
         "--role-arn",
         required=False,
-        help="The Amazon Resource Name (ARN) of an  AWS  Identity "
-        "and  Access  Management (IAM) role that AWS CloudFormation assumes when "
+        help="The Amazon Resource Name (ARN) of an AWS Identity "
+        "and Access Management (IAM) role that AWS CloudFormation assumes when "
         "executing the change set.",
     )
 
