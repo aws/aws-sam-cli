@@ -51,8 +51,6 @@ import subprocess
 import zipfile
 import logging
 
-from six import string_types
-
 LOG = logging.getLogger(__name__)
 
 TF_BACKEND_OVERRIDE_FILENAME = "z_samcli_backend_override"
@@ -237,7 +235,7 @@ def find_and_copy_assets(directory_path, expression, data_object):
         LOG.error(ex.message, exc_info=True)
         cli_exit()
 
-    if not isinstance(extracted_attribute_path, string_types):
+    if not isinstance(extracted_attribute_path, str):
         LOG.error("Expected the extracted attribute to be a string")
         cli_exit()
     extracted_attribute_path = str(extracted_attribute_path)
