@@ -2,7 +2,6 @@
 
 import json
 import logging
-import os
 
 from flask import Response
 
@@ -59,6 +58,7 @@ class BaseLocalService:
         # Suppress flask dev server output
         # See: https://github.com/cs01/gdbgui/issues/425#issuecomment-1119836533
         import flask.cli
+
         flask.cli.show_server_banner = lambda *args: None
 
         self._app.run(threaded=multi_threaded, host=self.host, port=self.port)
