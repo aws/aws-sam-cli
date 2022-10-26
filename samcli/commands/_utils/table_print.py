@@ -2,7 +2,6 @@
 Utilities for table pretty printing using click
 """
 from itertools import count, zip_longest
-import shutil
 import textwrap
 from functools import wraps
 from typing import Sized
@@ -31,7 +30,7 @@ def pprint_column_names(
 
     def pprint_wrap(func):
         # Calculate terminal width, number of columns in the table
-        width, _ = shutil.get_terminal_size()
+        width, _ = click.get_terminal_size()
         # For UX purposes, set a minimum width for the table to be usable
         # and usable_width keeps margins in mind.
         width = max(width, min_width)

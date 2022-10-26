@@ -116,10 +116,10 @@ class TestSamConfigForAllCommands(TestCase):
             "docker_network": "mynetwork",
             "skip_pull_image": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
-            "container_env_var": [("")],
+            "container_env_var": (""),
             "container_env_var_file": "file",
-            "build_image": [("")],
-            "exclude": [("")],
+            "build_image": (""),
+            "exclude": (""),
         }
 
         with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
@@ -152,10 +152,10 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 {"Key": "Value", "Key2": "Value2"},
                 None,
-                ("",),
+                (),
                 "file",
-                ("",),
-                ("",),
+                (),
+                (),
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -173,10 +173,10 @@ class TestSamConfigForAllCommands(TestCase):
             "docker_network": "mynetwork",
             "skip_pull_image": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
-            "container_env_var": [("")],
+            "container_env_var": (""),
             "container_env_var_file": "file",
-            "build_image": [("")],
-            "exclude": [("")],
+            "build_image": (""),
+            "exclude": (""),
         }
 
         with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
@@ -208,10 +208,10 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 {"Key": "Value", "Key2": "Value2"},
                 None,
-                ("",),
+                (),
                 "file",
-                ("",),
-                ("",),
+                (),
+                (),
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -228,7 +228,7 @@ class TestSamConfigForAllCommands(TestCase):
             "docker_network": "mynetwork",
             "skip_pull_image": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
-            "container_env_var": [("")],
+            "container_env_var": (""),
             "container_env_var_file": "env_vars_file",
         }
 
@@ -262,7 +262,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 {"Key": "Value", "Key2": "Value2"},
                 None,
-                ("",),
+                (),
                 "env_vars_file",
                 (),
                 (),

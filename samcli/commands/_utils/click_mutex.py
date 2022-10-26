@@ -1,7 +1,7 @@
 """
 Module to check mutually exclusive cli parameters
 """
-from typing import Any, List, Tuple, Mapping, cast
+from typing import Any, List, Dict, Tuple
 
 import click
 
@@ -35,9 +35,7 @@ class ClickMutex(click.Option):
 
         super().__init__(*args, **kwargs)
 
-    def handle_parse_result(
-        self, ctx: click.Context, opts: Mapping[str, Any], args: List[str]
-    ) -> Tuple[Any, List[str]]:
+    def handle_parse_result(self, ctx: click.Context, opts: Dict[str, Any], args: List[str]) -> Tuple[Any, List[str]]:
         """
         Checks whether any option is in self.incompatible_params
         If one is found, prompt and throw an UsageError
@@ -50,13 +48,11 @@ class ClickMutex(click.Option):
         if self.name not in opts:
             return super().handle_parse_result(ctx, opts, args)
 
-        option_name: str = cast(str, self.name)
-
         # Check for parameters not compatible with each other
         for incompatible_param in self.incompatible_params:
             if incompatible_param in opts:
                 msg = (
-                    f"You must not provide both the {ClickMutex._to_param_name(option_name)} and "
+                    f"You must not provide both the {ClickMutex._to_param_name(self.name)} and "
                     f"{ClickMutex._to_param_name(incompatible_param)} parameters.\n"
                 )
                 msg += self.incompatible_params_hint
@@ -74,7 +70,7 @@ class ClickMutex(click.Option):
                     break
             else:
                 msg = (
-                    f"Missing required parameters, with --{option_name.replace('_', '-')} set.\n"
+                    f"Missing required parameters, with --{self.name.replace('_', '-')} set.\n"
                     "Must provide one of the following required parameter combinations:\n"
                 )
                 for required_params in self.required_param_lists:
