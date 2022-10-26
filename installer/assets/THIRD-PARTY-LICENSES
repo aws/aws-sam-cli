@@ -699,11 +699,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ** click; version 8.1.3 -- https://click.palletsprojects.com/en/8.1.x/
 Copyright 2014 Pallets
-** Flask; version 2.2.2 -- https://pypi.org/project/Flask/
+** Flask; version 2.0.3 -- https://pypi.org/project/Flask/
 Copyright 2010 Pallets
 ** jinja2; version 3.1.2 -- https://github.com/pallets/jinja
 Copyright 2007 Pallets
-** Werkzeug; version 2.2.2 -- https://pypi.org/project/Werkzeug/
+** Werkzeug; version 2.0.3 -- https://pypi.org/project/Werkzeug/
 Copyright 2007 Pallets
 
 Redistribution and use in source and binary forms, with or without
