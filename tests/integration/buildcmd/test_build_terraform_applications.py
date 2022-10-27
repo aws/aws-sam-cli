@@ -350,7 +350,7 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(BuildTerra
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(BuildTerraformApplicationS3BackendIntegBase):
     terraform_application = (
         Path("terraform/zip_based_lambda_functions_s3_backend")
-        if not IS_WINDOWS or build_in_container
+        if not IS_WINDOWS or build_in_container # type: ignore
         else Path("terraform/zip_based_lambda_functions_s3_backend_windows")
     )
     functions = [
