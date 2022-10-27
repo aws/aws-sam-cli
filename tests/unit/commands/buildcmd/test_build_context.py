@@ -712,7 +712,7 @@ class TestBuildContext__enter__(TestCase):
             create_auto_dependency_layer=auto_dependency_layer,
             print_success_message=False,
         ) as build_context:
-            with patch("samcli.commands.build.build_context.BuildContext.gen_success_msg") as mock_message:
+            with patch("samcli.commands.build.build_context.BuildContext._gen_success_msg") as mock_message:
                 build_context.run()
                 mock_message.assert_not_called()
 
