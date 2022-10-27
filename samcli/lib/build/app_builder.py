@@ -513,6 +513,11 @@ class ApplicationBuilder:
             manifest_path = self._manifest_path_override or os.path.join(manifest_context_path, config.manifest_name)
 
             # By default prefer to build in-process for speed
+            scratch_dir_path = (
+                LambdaBuildContainer.get_container_dirs(code_dir, manifest_path)["scratch_dir"]
+                if self._container_manager
+                else scratch_dir
+            )
             build_runtime = specified_workflow
             options = ApplicationBuilder._get_build_options(
                 layer_name,
@@ -521,7 +526,7 @@ class ApplicationBuilder:
                 None,
                 metadata=layer_metadata,
                 source_code_path=code_dir,
-                scratch_dir=scratch_dir,
+                scratch_dir=scratch_dir_path,
             )
             if self._container_manager:
                 # None key represents the global build image for all functions/layers
@@ -652,7 +657,11 @@ class ApplicationBuilder:
                 manifest_path = self._manifest_path_override or os.path.join(
                     manifest_context_path, config.manifest_name
                 )
-
+                scratch_dir_path = (
+                    LambdaBuildContainer.get_container_dirs(code_dir, manifest_path)["scratch_dir"]
+                    if self._container_manager
+                    else scratch_dir
+                )
                 options = ApplicationBuilder._get_build_options(
                     function_name,
                     config.language,
@@ -661,7 +670,7 @@ class ApplicationBuilder:
                     config.dependency_manager,
                     metadata,
                     source_code_path=code_dir,
-                    scratch_dir=scratch_dir,
+                    scratch_dir=scratch_dir_path,
                 )
                 # By default prefer to build in-process for speed
                 if self._container_manager:
