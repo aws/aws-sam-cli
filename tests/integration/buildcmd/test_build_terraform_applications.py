@@ -49,7 +49,7 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
                 tag=cls.docker_tag,
                 decode=True,
             ):
-                print(log)
+                LOG.info(log)
 
     def tearDown(self):
         """Clean up the generated files during integ test run"""
