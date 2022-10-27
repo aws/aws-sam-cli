@@ -2,6 +2,7 @@ chevron~=0.12
 click~=8.0
 #2.1.x and later versions of Werkzeug library has a bug for setting up <path:*> endpoints
 Flask<2.1
+Werkzeug<2.1
 #Need to add Schemas latest SDK.
 boto3>=1.19.5,==1.*
 jmespath~=0.10.0
