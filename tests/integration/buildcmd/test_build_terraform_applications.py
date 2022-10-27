@@ -279,6 +279,12 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
         ("my_level2_lambda", "[]", False),
     ]
 
+    @classmethod
+    def setUpClass(cls):
+        if cls.build_in_container:
+            cls.terraform_application = "terraform/zip_based_lambda_functions_local_backend"
+        super().setUpClass()
+
     @parameterized.expand(functions)
     def test_build_and_invoke_lambda_functions(self, function_identifier, expected_output, should_override_code):
         command_list_parameters = {
@@ -350,7 +356,7 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(BuildTerra
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(BuildTerraformApplicationS3BackendIntegBase):
     terraform_application = (
         Path("terraform/zip_based_lambda_functions_s3_backend")
-        if not IS_WINDOWS or build_in_container # type: ignore
+        if not IS_WINDOWS
         else Path("terraform/zip_based_lambda_functions_s3_backend_windows")
     )
     functions = [
@@ -379,6 +385,12 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(Build
         ("my_level1_lambda", "[]", False),
         ("my_level2_lambda", "[]", False),
     ]
+
+    @classmethod
+    def setUpClass(cls):
+        if cls.build_in_container:
+            cls.terraform_application = "terraform/zip_based_lambda_functions_s3_backend"
+        super().setUpClass()
 
     @parameterized.expand(functions)
     def test_build_and_invoke_lambda_functions(self, function_identifier, expected_output, should_override_code):
