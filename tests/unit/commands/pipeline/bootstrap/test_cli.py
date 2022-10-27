@@ -5,14 +5,13 @@ import click
 from click.testing import CliRunner
 
 from samcli.commands.pipeline.bootstrap.cli import (
-    _load_saved_pipeline_user_arn,
     _load_config_values,
     PIPELINE_CONFIG_FILENAME,
     PIPELINE_CONFIG_DIR,
 )
 from samcli.commands.pipeline.bootstrap.cli import cli as bootstrap_cmd
 from samcli.commands.pipeline.bootstrap.cli import do_cli as bootstrap_cli
-from samcli.commands.pipeline.bootstrap.guided_context import GITHUB_ACTIONS, GITLAB
+from samcli.commands.pipeline.bootstrap.guided_context import BITBUCKET, GITHUB_ACTIONS, GITLAB
 from samcli.commands.pipeline.bootstrap.oidc_config import (
     GitHubOidcConfig,
     OidcConfig,
@@ -69,11 +68,11 @@ class TestCli(TestCase):
             "oidc_provider_url": ANY_OIDC_PROVIDER_URL,
             "oidc_client_id": ANY_OIDC_CLIENT_ID,
             "oidc_provider": GITHUB_ACTIONS,
-            "github_org": ANY_GITHUB_ORG,
-            "github_repo": ANY_GITHUB_REPO,
-            "gitlab_project": ANY_GITLAB_PROJECT,
-            "gitlab_group": ANY_GITLAB_GROUP,
-            "bitbucket_repo_uuid": ANY_BITBUCKET_REPO_UUID,
+            "github_org": None,
+            "github_repo": None,
+            "gitlab_project": None,
+            "gitlab_group": None,
+            "bitbucket_repo_uuid": None,
             "deployment_branch": ANY_DEPLOYMENT_BRANCH,
             "cicd_provider": ANY_CICD_PROVIDER,
         }
@@ -142,19 +141,15 @@ class TestCli(TestCase):
         self.assertEqual(kwargs["artifacts_bucket_arn"], "bucketARN")
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
-    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
     @patch("samcli.lib.pipeline.bootstrap.stage.Stage")
     @patch("samcli.commands.pipeline.bootstrap.guided_context.GuidedContext")
-    def test_bootstrapping_normal_interactive_flow(
-        self, guided_context_mock, environment_mock, load_saved_pipeline_user_arn_mock, get_command_names_mock
-    ):
+    def test_bootstrapping_normal_interactive_flow(self, guided_context_mock, environment_mock, get_command_names_mock):
         # setup
         gc_instance = Mock()
         gc_instance.permissions_provider = "iam"
         guided_context_mock.return_value = gc_instance
         environment_instance = Mock()
         environment_mock.return_value = environment_instance
-        load_saved_pipeline_user_arn_mock.return_value = ANY_PIPELINE_USER_ARN
         self.cli_context["interactive"] = True
         self.cli_context["pipeline_user_arn"] = None
         get_command_names_mock.return_value = PIPELINE_BOOTSTRAP_COMMAND_NAMES
@@ -163,7 +158,6 @@ class TestCli(TestCase):
         bootstrap_cli(**self.cli_context)
 
         # verify
-        load_saved_pipeline_user_arn_mock.assert_called_once()
         gc_instance.run.assert_called_once()
         environment_instance.bootstrap.assert_called_once_with(confirm_changeset=True)
         environment_instance.print_resources_summary.assert_called_once()
@@ -231,11 +225,10 @@ class TestCli(TestCase):
         guided_context_mock.return_value = gc_instance
         environment_instance = Mock()
         environment_mock.return_value = environment_instance
-        """ oidc_config_instance = Mock()
-        oidc_config_instance.oidc_provider = "github-actions"
-        oidc_config_mock.return_value = oidc_config_instance"""
         self.cli_context["interactive"] = True
         self.cli_context["permissions_provider"] = "oidc"
+        self.cli_context["github_org"] = ANY_GITHUB_ORG
+        self.cli_context["github_repo"] = ANY_GITHUB_REPO
         get_command_names_mock.return_value = PIPELINE_BOOTSTRAP_COMMAND_NAMES
 
         # trigger
@@ -270,7 +263,9 @@ class TestCli(TestCase):
         environment_mock.return_value = environment_instance
         self.cli_context["interactive"] = True
         self.cli_context["permissions_provider"] = "oidc"
-        self.cli_context["oidc_provider"] = "gitlab"
+        self.cli_context["oidc_provider"] = GITLAB
+        self.cli_context["gitlab_group"] = ANY_GITLAB_GROUP
+        self.cli_context["gitlab_project"] = ANY_GITLAB_PROJECT
         get_command_names_mock.return_value = PIPELINE_BOOTSTRAP_COMMAND_NAMES
 
         # trigger
@@ -305,7 +300,8 @@ class TestCli(TestCase):
         environment_mock.return_value = environment_instance
         self.cli_context["interactive"] = True
         self.cli_context["permissions_provider"] = "oidc"
-        self.cli_context["oidc_provider"] = "bitbucket-pipelines"
+        self.cli_context["oidc_provider"] = BITBUCKET
+        self.cli_context["bitbucket_repo_uuid"] = ANY_BITBUCKET_REPO_UUID
         get_command_names_mock.return_value = PIPELINE_BOOTSTRAP_COMMAND_NAMES
 
         # trigger
@@ -322,25 +318,15 @@ class TestCli(TestCase):
         )
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
-    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
-    @patch("samcli.lib.pipeline.bootstrap.stage.Stage")
-    @patch("samcli.commands.pipeline.bootstrap.guided_context.GuidedContext")
-    def test_bootstrap_will_not_try_loading_pipeline_user_if_already_provided(
-        self, guided_context_mock, environment_mock, load_saved_pipeline_user_arn_mock, get_command_names_mock
-    ):
-        bootstrap_cli(**self.cli_context)
-        load_saved_pipeline_user_arn_mock.assert_not_called()
-
-    @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
-    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
+    @patch("samcli.commands.pipeline.bootstrap.cli._load_config_values")
     @patch("samcli.lib.pipeline.bootstrap.stage.Stage")
     @patch("samcli.commands.pipeline.bootstrap.guided_context.GuidedContext")
     def test_bootstrap_will_try_loading_pipeline_user_if_not_provided(
-        self, guided_context_mock, environment_mock, load_saved_pipeline_user_arn_mock, get_command_names_mock
+        self, guided_context_mock, environment_mock, load_config_values_mock, get_command_names_mock
     ):
         self.cli_context["pipeline_user_arn"] = None
         bootstrap_cli(**self.cli_context)
-        load_saved_pipeline_user_arn_mock.assert_called_once()
+        load_config_values_mock.assert_called_once()
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli._load_config_values")
@@ -354,11 +340,11 @@ class TestCli(TestCase):
         load_saved_oidc_values_arn_mock.assert_called_once()
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
-    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
+    @patch("samcli.commands.pipeline.bootstrap.cli._load_config_values")
     @patch("samcli.lib.pipeline.bootstrap.stage.Stage")
     @patch("samcli.commands.pipeline.bootstrap.guided_context.GuidedContext")
     def test_stage_configuration_name_is_required_to_be_provided_in_case_of_non_interactive_mode(
-        self, guided_context_mock, environment_mock, load_saved_pipeline_user_arn_mock, get_command_names_mock
+        self, guided_context_mock, environment_mock, load_config_values_mock, get_command_names_mock
     ):
         self.cli_context["interactive"] = False
         self.cli_context["stage_configuration_name"] = None
@@ -366,22 +352,22 @@ class TestCli(TestCase):
             bootstrap_cli(**self.cli_context)
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
-    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
+    @patch("samcli.commands.pipeline.bootstrap.cli._load_config_values")
     @patch("samcli.lib.pipeline.bootstrap.stage.Stage")
     @patch("samcli.commands.pipeline.bootstrap.guided_context.GuidedContext")
     def test_stage_configuration_name_is_not_required_to_be_provided_in_case_of_interactive_mode(
-        self, guided_context_mock, environment_mock, load_saved_pipeline_user_arn_mock, get_command_names_mock
+        self, guided_context_mock, environment_mock, load_config_values_mock, get_command_names_mock
     ):
         self.cli_context["interactive"] = True
         self.cli_context["stage_configuration_name"] = None
         bootstrap_cli(**self.cli_context)  # No exception is thrown
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
-    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
+    @patch("samcli.commands.pipeline.bootstrap.cli._load_config_values")
     @patch("samcli.lib.pipeline.bootstrap.stage.Stage")
     @patch("samcli.commands.pipeline.bootstrap.guided_context.GuidedContext")
     def test_guided_context_will_be_enabled_or_disabled_based_on_the_interactive_mode(
-        self, guided_context_mock, environment_mock, load_saved_pipeline_user_arn_mock, get_command_names_mock
+        self, guided_context_mock, environment_mock, load_config_values_mock, get_command_names_mock
     ):
         gc_instance = Mock()
         guided_context_mock.return_value = gc_instance
@@ -393,11 +379,11 @@ class TestCli(TestCase):
         gc_instance.run.assert_called_once()
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
-    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
+    @patch("samcli.commands.pipeline.bootstrap.cli._load_config_values")
     @patch("samcli.lib.pipeline.bootstrap.stage.Stage")
     @patch("samcli.commands.pipeline.bootstrap.guided_context.GuidedContext")
     def test_bootstrapping_will_confirm_before_creating_the_resources_unless_the_user_choose_not_to(
-        self, guided_context_mock, environment_mock, load_saved_pipeline_user_arn_mock, get_command_names_mock
+        self, guided_context_mock, environment_mock, load_config_values_mock, get_command_names_mock
     ):
         environment_instance = Mock()
         environment_mock.return_value = environment_instance
@@ -411,9 +397,7 @@ class TestCli(TestCase):
 
     @patch("samcli.commands.pipeline.bootstrap.cli.SamConfig")
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
-    def test_load_saved_pipeline_user_arn_will_read_from_the_correct_file(
-        self, get_command_names_mock, sam_config_mock
-    ):
+    def test_load_config_values_will_read_from_the_correct_file(self, get_command_names_mock, sam_config_mock):
         # setup
         get_command_names_mock.return_value = PIPELINE_BOOTSTRAP_COMMAND_NAMES
         sam_config_instance_mock = Mock()
@@ -421,14 +405,14 @@ class TestCli(TestCase):
         sam_config_instance_mock.exists.return_value = False
 
         # trigger
-        _load_saved_pipeline_user_arn()
+        _load_config_values()
 
         # verify
         sam_config_mock.assert_called_once_with(config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME)
 
     @patch("samcli.commands.pipeline.bootstrap.cli.SamConfig")
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
-    def test_load_saved_pipeline_user_arn_will_return_non_if_the_pipeline_toml_file_is_not_found(
+    def test_load_config_values_will_return_non_if_the_pipeline_toml_file_is_not_found(
         self, get_command_names_mock, sam_config_mock
     ):
         # setup
@@ -438,14 +422,14 @@ class TestCli(TestCase):
         sam_config_instance_mock.exists.return_value = False
 
         # trigger
-        pipeline_user_arn = _load_saved_pipeline_user_arn()
+        config_values = _load_config_values()
 
         # verify
-        self.assertIsNone(pipeline_user_arn)
+        self.assertEqual(config_values, {})
 
     @patch("samcli.commands.pipeline.bootstrap.cli.SamConfig")
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
-    def test_load_saved_pipeline_user_arn_will_return_non_if_the_pipeline_toml_file_does_not_contain_pipeline_user(
+    def test_load_config_values_will_return_no_pipeline_user_if_the_pipeline_toml_file_does_not_contain_pipeline_user(
         self, get_command_names_mock, sam_config_mock
     ):
         # setup
@@ -456,16 +440,14 @@ class TestCli(TestCase):
         sam_config_instance_mock.get_all.return_value = {"non-pipeline_user-key": "any_value"}
 
         # trigger
-        pipeline_user_arn = _load_saved_pipeline_user_arn()
+        pipeline_user_arn = _load_config_values().get("pipeline_user")
 
         # verify
         self.assertIsNone(pipeline_user_arn)
 
     @patch("samcli.commands.pipeline.bootstrap.cli.SamConfig")
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
-    def test_load_saved_pipeline_user_arn_returns_the_pipeline_user_arn_from_the_pipeline_toml_file(
-        self, get_command_names_mock, sam_config_mock
-    ):
+    def test_load_config_values_works_from_the_pipeline_toml_file(self, get_command_names_mock, sam_config_mock):
         # setup
         get_command_names_mock.return_value = PIPELINE_BOOTSTRAP_COMMAND_NAMES
         sam_config_instance_mock = Mock()
@@ -474,10 +456,10 @@ class TestCli(TestCase):
         sam_config_instance_mock.get_all.return_value = {"pipeline_user": ANY_PIPELINE_USER_ARN}
 
         # trigger
-        pipeline_user_arn = _load_saved_pipeline_user_arn()
+        config_values = _load_config_values()
 
         # verify
-        self.assertEqual(pipeline_user_arn, ANY_PIPELINE_USER_ARN)
+        self.assertEqual(config_values, {"pipeline_user": ANY_PIPELINE_USER_ARN})
 
     @patch("samcli.lib.pipeline.bootstrap.stage.Stage")
     @patch("samcli.commands.pipeline.bootstrap.guided_context.GuidedContext")
@@ -500,16 +482,16 @@ class TestCli(TestCase):
             "deployment_branch": "saved_branch",
             "permissions_provider": "OpenID Connect (OIDC)",
         }
+        self.cli_context["github_org"] = ANY_GITHUB_ORG
+        self.cli_context["github_repo"] = ANY_GITHUB_REPO
         github_config = GitHubOidcConfig(
             github_repo="saved_repo", github_org="saved_org", deployment_branch="saved_branch"
         )
         oidc_config = OidcConfig(
             oidc_provider="saved_provider", oidc_client_id="saved_client_id", oidc_provider_url="saved_url"
         )
-        gitlab_config = GitLabOidcConfig(
-            gitlab_group=ANY_GITLAB_GROUP, gitlab_project=ANY_GITLAB_PROJECT, deployment_branch="saved_branch"
-        )
-        bitbucket_config = BitbucketOidcConfig(ANY_BITBUCKET_REPO_UUID)
+        gitlab_config = GitLabOidcConfig(gitlab_group=None, gitlab_project=None, deployment_branch="saved_branch")
+        bitbucket_config = BitbucketOidcConfig(None)
         # trigger
         bootstrap_cli(**self.cli_context)
 
@@ -533,11 +515,11 @@ class TestCli(TestCase):
         )
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
-    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
+    @patch("samcli.commands.pipeline.bootstrap.cli._load_config_values")
     @patch("samcli.lib.pipeline.bootstrap.stage.Stage")
     @patch("samcli.commands.pipeline.bootstrap.guided_context.GuidedContext")
     def test_bootstrapping_normal_interactive_flow_with_non_user_provided_user(
-        self, guided_context_mock, environment_mock, load_saved_pipeline_user_arn_mock, get_command_names_mock
+        self, guided_context_mock, environment_mock, load_config_values_mock, get_command_names_mock
     ):
         # setup
         gc_instance = Mock()
@@ -546,7 +528,7 @@ class TestCli(TestCase):
         environment_instance = Mock()
         environment_mock.return_value = environment_instance
         environment_instance.permissions_provider = "iam"
-        load_saved_pipeline_user_arn_mock.return_value = ANY_PIPELINE_USER_ARN
+        load_config_values_mock.return_value = {"pipeline_user": ANY_PIPELINE_USER_ARN}
         environment_instance.pipeline_user.is_user_provided = False
         self.cli_context["interactive"] = True
         self.cli_context["pipeline_user_arn"] = None
@@ -556,7 +538,7 @@ class TestCli(TestCase):
         bootstrap_cli(**self.cli_context)
 
         # verify
-        load_saved_pipeline_user_arn_mock.assert_called_once()
+        load_config_values_mock.assert_called_once()
         gc_instance.run.assert_called_once()
         environment_instance.bootstrap.assert_called_once_with(confirm_changeset=True)
         environment_instance.print_resources_summary.assert_called_once()

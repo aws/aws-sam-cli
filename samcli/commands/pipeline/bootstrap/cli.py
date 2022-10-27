@@ -216,7 +216,7 @@ def cli(
         cicd_provider=cicd_provider,
     )  # pragma: no cover
 
-
+# pylint: disable=too-many-branches
 def do_cli(
     region: Optional[str],
     profile: Optional[str],
@@ -265,15 +265,29 @@ def do_cli(
         Stage,
     )
 
+    is_github_parameters_provided = github_org is not None and github_repo is not None
+    is_gitlab_parameters_provided = gitlab_group is not None and gitlab_project is not None
+
+    if permissions_provider == OPEN_ID_CONNECT:
+        if oidc_provider == GITHUB_ACTIONS:
+            if not (is_github_parameters_provided and not is_gitlab_parameters_provided and not bitbucket_repo_uuid):
+                raise click.UsageError("Github Actions can only accept parameters '--github-org' and '--github-repo'")
+        elif oidc_provider == GITLAB:
+            if not (is_gitlab_parameters_provided and not is_github_parameters_provided and not bitbucket_repo_uuid):
+                raise click.UsageError("Gitlab can only accept parameters '--gitlab-group' and '--gitlab-project'")
+        elif oidc_provider == BITBUCKET:
+            if not (bitbucket_repo_uuid and not is_github_parameters_provided and not is_gitlab_parameters_provided):
+                raise click.UsageError("Bitbucket can only accept parameter '--bitbucket-repo-uuid'")
+
+    config_parameters = _load_config_values()
     if not pipeline_user_arn and not permissions_provider == OPEN_ID_CONNECT:
-        pipeline_user_arn = _load_saved_pipeline_user_arn()
+        pipeline_user_arn = config_parameters.get("pipeline_user")
 
     enable_oidc_option = False
     if not cicd_provider or cicd_provider in OIDC_SUPPORTED_PROVIDER:
         enable_oidc_option = True
         oidc_provider = cicd_provider
 
-    config_parameters = _load_config_values()
     oidc_config = OidcConfig(
         oidc_client_id=oidc_client_id, oidc_provider=oidc_provider, oidc_provider_url=oidc_provider_url
     )
@@ -446,14 +460,6 @@ def _get_pipeline_oidc_provider(
         }
         return BitbucketOidcProvider(bitbucket_oidc_params, oidc_config.get_oidc_parameters())
     raise click.UsageError("Missing required parameter '--oidc-provider'")
-
-
-def _load_saved_pipeline_user_arn() -> Optional[str]:
-    samconfig: SamConfig = SamConfig(config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME)
-    if not samconfig.exists():
-        return None
-    config: Dict[str, str] = samconfig.get_all(cmd_names=_get_bootstrap_command_names(), section="parameters")
-    return config.get("pipeline_user")
 
 
 def _load_config_values() -> Dict[str, str]:
