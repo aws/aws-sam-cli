@@ -216,6 +216,7 @@ def cli(
         cicd_provider=cicd_provider,
     )  # pragma: no cover
 
+
 # pylint: disable=too-many-branches
 def do_cli(
     region: Optional[str],
