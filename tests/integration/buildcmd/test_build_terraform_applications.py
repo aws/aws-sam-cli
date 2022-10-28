@@ -452,11 +452,11 @@ class TestUnsupportedCases(BuildTerraformApplicationIntegBase):
         [
             (
                 "conditional_layers",
-                r"SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more than one lambda layer",
+                r"AWS SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more than one lambda layer",
             ),
             (
                 "conditional_layers_null",
-                r"SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more than one lambda layer",
+                r"AWS SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more than one lambda layer",
             ),
             (
                 "lambda_function_with_count_and_invalid_sam_metadata",
@@ -464,7 +464,7 @@ class TestUnsupportedCases(BuildTerraformApplicationIntegBase):
             ),
             (
                 "one_lambda_function_linked_to_two_layers",
-                r"SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more than one lambda layer",
+                r"AWS SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more than one lambda layer",
             ),
         ]
     )

@@ -1106,7 +1106,7 @@ class TestResourceLinking(TestCase):
         resource = Mock()
         resource.full_address = "func_full_address"
         expected_exception = (
-            "SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more than "
+            "AWS SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more than "
             f"one lambda layer. Layer(s) defined by {layers} could not be linked to lambda function func_full_address."
             f"{os.linesep}Related issue: {ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK}."
         )
@@ -1165,7 +1165,7 @@ class TestResourceLinking(TestCase):
         resource.full_address = "func_full_address"
         tf_layers = Mock()
         expected_exception = (
-            "SAM CLI could not process a Terraform project that uses local variables to define the Lambda functions "
+            "AWS SAM CLI could not process a Terraform project that uses local variables to define the Lambda functions "
             "layers. Layer(s) defined by local.layer_arn could be linked to lambda function func_full_address."
             f"{os.linesep}Related issue: {LOCAL_VARIABLES_SUPPORT_ISSUE_LINK}."
         )
