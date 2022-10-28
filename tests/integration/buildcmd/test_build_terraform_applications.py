@@ -442,8 +442,8 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndS3Backend(
 
 
 @skipIf(
-    not (CI_OVERRIDE and not IS_WINDOWS),
-    "Skip Terraform test cases unless running in CI and not in Windows",
+    not (CI_OVERRIDE),
+    "Skip Terraform test cases unless running in CI",
 )
 class TestUnsupportedCases(BuildTerraformApplicationIntegBase):
     terraform_application = Path("terraform/unsupported")
@@ -466,6 +466,10 @@ class TestUnsupportedCases(BuildTerraformApplicationIntegBase):
                 "one_lambda_function_linked_to_two_layers",
                 r"AWS SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more than one lambda layer",
             ),
+            (
+                "lambda_function_referencing_local_var_layer",
+                r"AWS SAM CLI could not process a Terraform project that uses local variables to define the Lambda functions layers",
+            )
         ]
     )
     def test_unsupported_cases(self, app, expected_error_message):
