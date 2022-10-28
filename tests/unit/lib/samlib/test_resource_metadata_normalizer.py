@@ -434,7 +434,7 @@ class TestResourceMetadataNormalizerGetResourceId(TestCase):
             "logical_id",
         )
 
-        self.assertEquals(expected_resource_id, resource_id)
+        self.assertEqual(expected_resource_id, resource_id)
 
     def test_use_logical_id_as_resource_id_incase_of_invalid_cdk_path(self):
         resource_id = ResourceMetadataNormalizer.get_resource_id(
@@ -442,7 +442,7 @@ class TestResourceMetadataNormalizerGetResourceId(TestCase):
             "logical_id",
         )
 
-        self.assertEquals("logical_id", resource_id)
+        self.assertEqual("logical_id", resource_id)
 
     def test_use_cdk_id_as_resource_id_for_nested_stack(self):
         resource_id = ResourceMetadataNormalizer.get_resource_id(
@@ -456,7 +456,7 @@ class TestResourceMetadataNormalizerGetResourceId(TestCase):
             "logical_id",
         )
 
-        self.assertEquals("nested_stack_id", resource_id)
+        self.assertEqual("nested_stack_id", resource_id)
 
     def test_use_provided_customer_defined_id(self):
         resource_id = ResourceMetadataNormalizer.get_resource_id(
@@ -468,7 +468,7 @@ class TestResourceMetadataNormalizerGetResourceId(TestCase):
             "logical_id",
         )
 
-        self.assertEquals("custom_id", resource_id)
+        self.assertEqual("custom_id", resource_id)
 
     def test_use_provided_customer_defined_id_for_nested_stack(self):
         resource_id = ResourceMetadataNormalizer.get_resource_id(
@@ -483,21 +483,21 @@ class TestResourceMetadataNormalizerGetResourceId(TestCase):
             "logical_id",
         )
 
-        self.assertEquals("custom_nested_stack_id", resource_id)
+        self.assertEqual("custom_nested_stack_id", resource_id)
 
     def test_use_logical_id_if_metadata_is_not_therer(self):
         resource_id = ResourceMetadataNormalizer.get_resource_id(
             {"Type": "any:value", "Properties": {"key": "value"}}, "logical_id"
         )
 
-        self.assertEquals("logical_id", resource_id)
+        self.assertEqual("logical_id", resource_id)
 
     def test_use_logical_id_if_cdk_path_not_exist(self):
         resource_id = ResourceMetadataNormalizer.get_resource_id(
             {"Type": "any:value", "Properties": {"key": "value"}, "Metadata": {}}, "logical_id"
         )
 
-        self.assertEquals("logical_id", resource_id)
+        self.assertEqual("logical_id", resource_id)
 
 
 class TestResourceMetadataNormalizerBuildPropertiesNormalizer(TestCase):

@@ -630,7 +630,7 @@ class TestInitForParametersCompatibility(TestCase):
 Usage: {0} init [OPTIONS]
 Try '{0} init -h' for help.
 
-Error: Invalid value for '-p' / '--package-type': invalid choice: WrongPT. (choose from Zip, Image)
+Error: Invalid value for '-p' / '--package-type': 'WrongPT' is not one of 'Zip', 'Image'.
                         """.format(
                 get_sam_command()
             )
