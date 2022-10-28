@@ -253,6 +253,30 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
         else Path("terraform/zip_based_lambda_functions_local_backend_windows")
     )
     functions = [
+        ("module.function7.aws_lambda_function.this[0]", "hello world 7 - override version", True),
+        ("function7", "hello world 7 - override version", True),
+        ("module.function7.aws_lambda_function.this[0]", "hello world 7", False),
+        ("function7", "hello world 7", False),
+        ("module.function8.aws_lambda_function.this[0]", "hello world 8 - override version", True),
+        ("function8", "hello world 8 - override version", True),
+        ("module.function8.aws_lambda_function.this[0]", "hello world 8", False),
+        ("function8", "hello world 8", False),
+        ("module.function9.aws_lambda_function.this[0]", "hello world 9 - override version", True),
+        ("function9", "hello world 9 - override version", True),
+        ("module.function9.aws_lambda_function.this[0]", "hello world 9", False),
+        ("function9", "hello world 9", False),
+        ("module.function10.aws_lambda_function.this[0]", "hello world 10 - override version", True),
+        ("function10", "hello world 10 - override version", True),
+        ("module.function10.aws_lambda_function.this[0]", "hello world 10", False),
+        ("function10", "hello world 10", False),
+        ("aws_lambda_function.function6", "hello world 6 - override version", True),
+        ("function6", "hello world 6 - override version", True),
+        ("aws_lambda_function.function6", "hello world 6", False),
+        ("function6", "hello world 6", False),
+        ("aws_lambda_function.function5", "hello world 5 - override version", True),
+        ("function5", "hello world 5 - override version", True),
+        ("aws_lambda_function.function5", "hello world 5", False),
+        ("function5", "hello world 5", False),
         ("aws_lambda_function.function4", "hello world 4 - override version", True),
         ("function4", "hello world 4 - override version", True),
         ("aws_lambda_function.function4", "hello world 4", False),
@@ -360,6 +384,30 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(Build
         else Path("terraform/zip_based_lambda_functions_s3_backend_windows")
     )
     functions = [
+        ("module.function7.aws_lambda_function.this[0]", "hello world 7 - override version", True),
+        ("function7", "hello world 7 - override version", True),
+        ("module.function7.aws_lambda_function.this[0]", "hello world 7", False),
+        ("function7", "hello world 7", False),
+        ("module.function8.aws_lambda_function.this[0]", "hello world 8 - override version", True),
+        ("function8", "hello world 8 - override version", True),
+        ("module.function8.aws_lambda_function.this[0]", "hello world 8", False),
+        ("function8", "hello world 8", False),
+        ("module.function9.aws_lambda_function.this[0]", "hello world 9 - override version", True),
+        ("function9", "hello world 9 - override version", True),
+        ("module.function9.aws_lambda_function.this[0]", "hello world 9", False),
+        ("function9", "hello world 9", False),
+        ("module.function10.aws_lambda_function.this[0]", "hello world 10 - override version", True),
+        ("function10", "hello world 10 - override version", True),
+        ("module.function10.aws_lambda_function.this[0]", "hello world 10", False),
+        ("function10", "hello world 10", False),
+        ("aws_lambda_function.function5", "hello world 5 - override version", True),
+        ("function5", "hello world 5 - override version", True),
+        ("aws_lambda_function.function5", "hello world 5", False),
+        ("function5", "hello world 5", False),
+        ("aws_lambda_function.function6", "hello world 6 - override version", True),
+        ("function6", "hello world 6 - override version", True),
+        ("aws_lambda_function.function6", "hello world 6", False),
+        ("function6", "hello world 6", False),
         ("aws_lambda_function.function4", "hello world 4 - override version", True),
         ("function4", "hello world 4 - override version", True),
         ("aws_lambda_function.function4", "hello world 4", False),
@@ -436,6 +484,8 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndLocalBackend(
         "my_image_function",
         "my_l1_lambda",
         "my_l2_lambda",
+        "module.serverless_tf_image_function.aws_lambda_function.this[0]",
+        "serverless_tf_image_function",
     ]
 
     @parameterized.expand(functions)
@@ -476,6 +526,8 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndS3Backend(
         "my_image_function",
         "my_l1_lambda",
         "my_l2_lambda",
+        "module.serverless_tf_image_function.aws_lambda_function.this[0]",
+        "serverless_tf_image_function",
     ]
 
     @parameterized.expand(functions)

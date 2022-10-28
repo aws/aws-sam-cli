@@ -110,3 +110,22 @@ resource "null_resource" "sam_metadata_aws_lambda_function_l2_function" {
         docker_tag = "latest"
     }
 }
+
+## Serverless TF
+module "docker_image" {
+  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git//modules/docker-build?ref=master_sam_cli_integration_null_resource_solution"
+
+  create_ecr_repo = false
+  ecr_repo        = "existing_test_repo"
+  image_tag       = "latest"
+  source_path     = local.lambda_src_path
+}
+
+module "serverless_tf_image_function" {
+  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+
+  function_name = "serverless_tf_image_function"
+  create_package = false
+  image_uri     = module.docker_image.image_uri
+  package_type  = "Image"
+}

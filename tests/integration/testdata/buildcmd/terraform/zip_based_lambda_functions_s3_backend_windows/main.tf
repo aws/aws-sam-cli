@@ -6,6 +6,11 @@ provider "aws" {
     region = "us-west-1"
 }
 
+variable "hello_function_src_code"{
+    type = string
+    default = "./artifacts/HelloWorldFunction"
+}
+
 resource "aws_iam_role" "iam_for_lambda" {
     name = "dummy_iam_role"
 
@@ -32,12 +37,25 @@ locals {
     lambda_code_filename = "list_books.zip"
     layer_src_path = "./my_layer_code"
     layer_code_filename = "my_layer.zip"
-    hello_world_function_src_path = "./artifacts/HelloWorldFunction"
+    hello_world_function_src_path = var.hello_function_src_code
     hello_world_artifact_file_name = "hello_world.zip"
     layer1_src_path = "./artifacts/layer1"
     layer1_artifact_file_name = "layer1.zip"
     layer2_src_path = "./artifacts/layer2"
     layer2_artifact_file_name = "layer2.zip"
+    layer3_src_path = "./artifacts/layer3"
+    layer3_artifact_file_name = "layer3.zip"
+    layer4_src_path = "./artifacts/layer4"
+    layer4_artifact_file_name = "layer4.zip"
+    layer5_src_path = "./artifacts/layer5"
+    layer5_artifact_file_name = "layer5.zip"
+    layer6_src_path = "./artifacts/layer6"
+    layer6_artifact_file_name = "layer6.zip"
+    layer7_src_path = "./artifacts/layer7"
+    layer8_src_path = "./artifacts/layer8"
+    layer10_src_path = "./artifacts/layer10"
+    layer9_src_path = "./artifacts/layer9"
+    layer9_artifact_file_name = "layer9.zip"
 }
 
 resource "random_uuid" "s3_bucket" {
@@ -47,12 +65,11 @@ resource "random_uuid" "s3_bucket" {
 }
 
 resource "aws_s3_bucket" "lambda_code_bucket" {
-    # bucket = "lambda_code_bucket-${random_uuid.s3_bucket.result}"
-    bucket = "lambda_code_bucket"
+    bucket = "lambda_code_bucket-${random_uuid.s3_bucket.result}"
 }
 
 resource "aws_s3_object" "s3_lambda_code" {
-    bucket = aws_s3_bucket.lambda_code_bucket.bucket
+    bucket = aws_s3_bucket.lambda_code_bucket.id
     key = "s3_lambda_code"
     source = "${local.building_path}/${local.lambda_code_filename}"
 }
@@ -275,6 +292,168 @@ module "layer2" {
 
 ## */ layer2
 
+## /* layer3
+resource "null_resource" "build_layer3_version" {
+    triggers = {
+        build_number = "${timestamp()}"
+    }
+
+    provisioner "local-exec" {
+        command = "powershell.exe -File .\\PyBuild.ps1 ${local.layer3_src_path} ${local.building_path} ${local.layer3_artifact_file_name} Layer"
+    }
+}
+
+resource "null_resource" "sam_metadata_aws_lambda_layer_version_layer3" {
+    triggers = {
+        resource_name = "aws_lambda_layer_version.layer3"
+        resource_type = "LAMBDA_LAYER"
+
+        original_source_code = local.layer3_src_path
+        built_output_path = "${local.building_path}/${local.layer3_artifact_file_name}"
+    }
+    depends_on = [
+        null_resource.build_layer3_version
+    ]
+}
+
+resource "aws_s3_object" "layer3_code" {
+  bucket = aws_s3_bucket.lambda_code_bucket.id
+  key    = "layer3_code"
+  source = "${local.building_path}/${local.layer3_artifact_file_name}"
+  depends_on = [
+    null_resource.build_layer3_version
+  ]
+}
+
+resource "aws_lambda_layer_version" "layer3" {
+  s3_bucket = aws_s3_bucket.lambda_code_bucket.id
+  s3_key = "layer3_code"
+  layer_name = "lambda_layer3"
+  compatible_runtimes = ["python3.8"]
+  depends_on = [
+      null_resource.build_layer3_version, aws_s3_object.layer3_code
+  ]
+}
+## */ layer3
+
+## /* layer4
+resource "null_resource" "build_layer4_version" {
+    triggers = {
+        build_number = "${timestamp()}"
+    }
+
+    provisioner "local-exec" {
+        command = "powershell.exe -File .\\PyBuild.ps1 ${local.layer4_src_path} ${local.building_path} ${local.layer4_artifact_file_name} Layer"
+    }
+}
+
+resource "null_resource" "sam_metadata_aws_lambda_layer_version_layer4" {
+    triggers = {
+        resource_name = "aws_lambda_layer_version.layer4"
+        resource_type = "LAMBDA_LAYER"
+
+        original_source_code = local.layer4_src_path
+        built_output_path = "${local.building_path}/${local.layer4_artifact_file_name}"
+    }
+    depends_on = [
+        null_resource.build_layer4_version
+    ]
+}
+
+resource "aws_s3_object" "layer4_code" {
+  bucket = "existing_s3_bucket_name"
+  key    = "layer4_code"
+  source = "${local.building_path}/${local.layer4_artifact_file_name}"
+  depends_on = [
+    null_resource.build_layer4_version
+  ]
+}
+
+resource "aws_lambda_layer_version" "layer4" {
+  s3_bucket = "existing_s3_bucket_name"
+  s3_key = "layer4_code"
+  layer_name = "lambda_layer4"
+  compatible_runtimes = ["python3.8"]
+  depends_on = [
+      null_resource.build_layer4_version, aws_s3_object.layer4_code
+  ]
+}
+## */ layer4
+
+## /* layer5
+resource "null_resource" "build_layer5_version" {
+    triggers = {
+        build_number = "${timestamp()}"
+    }
+
+    provisioner "local-exec" {
+        command = "powershell.exe -File .\\PyBuild.ps1 ${local.layer5_src_path} ${local.building_path} ${local.layer5_artifact_file_name} Layer"
+    }
+}
+
+resource "null_resource" "sam_metadata_aws_lambda_layer_version_layer5" {
+    triggers = {
+        resource_type = "LAMBDA_LAYER"
+        original_source_code = local.layer5_src_path
+        built_output_path = "${local.building_path}/${local.layer5_artifact_file_name}"
+    }
+    depends_on = [
+        null_resource.build_layer5_version
+    ]
+}
+
+resource "aws_s3_object" "layer5_code" {
+  bucket = "existing_s3_bucket_name"
+  key    = "layer5_code"
+  source = "${local.building_path}/${local.layer5_artifact_file_name}"
+  depends_on = [
+    null_resource.build_layer5_version
+  ]
+}
+
+resource "aws_lambda_layer_version" "layer5" {
+  s3_bucket = "existing_s3_bucket_name"
+  s3_key = "layer5_code"
+  layer_name = "lambda_layer5"
+  compatible_runtimes = ["python3.8"]
+  depends_on = [
+      null_resource.build_layer5_version, aws_s3_object.layer5_code
+  ]
+}
+## */ layer5
+
+## /* layer6
+resource "null_resource" "build_layer6_version" {
+    triggers = {
+        build_number = "${timestamp()}"
+    }
+
+    provisioner "local-exec" {
+        command = "powershell.exe -File .\\PyBuild.ps1 ${local.layer6_src_path} ${local.building_path} ${local.layer6_artifact_file_name} Layer"
+    }
+}
+
+resource "null_resource" "sam_metadata_aws_lambda_layer_version_layer6" {
+    triggers = {
+        resource_type = "LAMBDA_LAYER"
+        original_source_code = local.layer6_src_path
+        built_output_path = "${local.building_path}/${local.layer6_artifact_file_name}"
+    }
+    depends_on = [
+        null_resource.build_layer6_version
+    ]
+}
+
+resource "aws_lambda_layer_version" "layer6" {
+  filename = "${local.building_path}/${local.layer6_artifact_file_name}"
+  layer_name = "lambda_layer6"
+  compatible_runtimes = ["python3.8"]
+  depends_on = [
+      null_resource.build_layer6_version
+  ]
+}
+## */ layer6
+
 ## /* function1 connected to layer1
 
 resource "null_resource" "sam_metadata_aws_lambda_function1" {
@@ -327,3 +506,288 @@ module "function2" {
 }
 
 ## /* function2 connected to layer2
+
+## /* function3 connected to layer3
+resource "null_resource" "sam_metadata_aws_lambda_function3" {
+    triggers = {
+        resource_name = "aws_lambda_function.function3"
+        resource_type = "ZIP_LAMBDA_FUNCTION"
+        original_source_code = local.hello_world_function_src_path
+        built_output_path = "${local.building_path}/${local.hello_world_artifact_file_name}"
+    }
+    depends_on = [
+        null_resource.build_hello_world_lambda_function
+    ]
+}
+
+resource "aws_s3_object" "function3_code" {
+  bucket = aws_s3_bucket.lambda_code_bucket.id
+  key    = "function3_code"
+  source = "${local.building_path}/${local.hello_world_artifact_file_name}"
+  depends_on = [
+    null_resource.build_hello_world_lambda_function
+  ]
+}
+
+resource "aws_lambda_function" "function3" {
+    s3_bucket = aws_s3_bucket.lambda_code_bucket.id
+    s3_key = "function3_code"
+    handler = "app.lambda_handler"
+    runtime = "python3.8"
+    function_name = "function3"
+    role = aws_iam_role.iam_for_lambda.arn
+    layers = [
+        aws_lambda_layer_version.layer3.arn,
+    ]
+    depends_on = [
+        null_resource.build_hello_world_lambda_function, aws_s3_object.function3_code
+    ]
+}
+## /* function3 connected to layer3
+
+## /* function4 connected to layer4
+resource "null_resource" "sam_metadata_aws_lambda_function4" {
+    triggers = {
+        resource_name = "aws_lambda_function.function4"
+        resource_type = "ZIP_LAMBDA_FUNCTION"
+        original_source_code = local.hello_world_function_src_path
+        built_output_path = "${local.building_path}/${local.hello_world_artifact_file_name}"
+    }
+    depends_on = [
+        null_resource.build_hello_world_lambda_function
+    ]
+}
+
+resource "aws_s3_object" "function4_code" {
+  bucket = "existing_s3_bucket_name"
+  key    = "function4_code"
+  source = "${local.building_path}/${local.hello_world_artifact_file_name}"
+  depends_on = [
+    null_resource.build_hello_world_lambda_function
+  ]
+}
+
+resource "aws_lambda_function" "function4" {
+    s3_bucket = "existing_s3_bucket_name"
+    s3_key = "function4_code"
+    handler = "app.lambda_handler"
+    runtime = "python3.8"
+    function_name = "function4"
+    role = aws_iam_role.iam_for_lambda.arn
+    layers = [
+        aws_lambda_layer_version.layer4.arn,
+    ]
+    depends_on = [
+        null_resource.build_hello_world_lambda_function, aws_s3_object.function4_code
+    ]
+}
+## /* function4 connected to layer4
+
+## /* function5 connected to layer5
+resource "null_resource" "sam_metadata_aws_lambda_function5" {
+    triggers = {
+        resource_type = "ZIP_LAMBDA_FUNCTION"
+        original_source_code = local.hello_world_function_src_path
+        built_output_path = "${local.building_path}/${local.hello_world_artifact_file_name}"
+    }
+    depends_on = [
+        null_resource.build_hello_world_lambda_function
+    ]
+}
+
+resource "aws_s3_object" "function5_code" {
+  bucket = "existing_s3_bucket_name"
+  key    = "function5_code"
+  source = "${local.building_path}/${local.hello_world_artifact_file_name}"
+  depends_on = [
+    null_resource.build_hello_world_lambda_function
+  ]
+}
+
+resource "aws_lambda_function" "function5" {
+    s3_bucket = "existing_s3_bucket_name"
+    s3_key = "function5_code"
+    handler = "app.lambda_handler"
+    runtime = "python3.8"
+    function_name = "function5"
+    role = aws_iam_role.iam_for_lambda.arn
+    layers = [
+        aws_lambda_layer_version.layer5.arn,
+    ]
+    depends_on = [
+        null_resource.build_hello_world_lambda_function, aws_s3_object.function5_code
+    ]
+}
+## /* function5 connected to layer5
+
+
+## /* function6 connected to layer6
+resource "null_resource" "sam_metadata_aws_lambda_function6" {
+    triggers = {
+        resource_type = "ZIP_LAMBDA_FUNCTION"
+        original_source_code = local.hello_world_function_src_path
+        built_output_path = "${local.building_path}/${local.hello_world_artifact_file_name}"
+    }
+    depends_on = [
+        null_resource.build_hello_world_lambda_function
+    ]
+}
+
+resource "aws_lambda_function" "function6" {
+  filename = "${local.building_path}/${local.hello_world_artifact_file_name}"
+  handler = "app.lambda_handler"
+  runtime = "python3.8"
+  function_name = "function6"
+  role = aws_iam_role.iam_for_lambda.arn
+  layers = [
+      aws_lambda_layer_version.layer6.arn,
+  ]
+  depends_on = [
+      null_resource.build_hello_world_lambda_function
+  ]
+}
+## /* function6 connected to layer6
+
+# serverless.tf 3rd party module
+module "layer7" {
+  # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
+  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  create_layer = true
+  layer_name = "lambda_layer7"
+  compatible_runtimes = ["python3.8"]
+  runtime = "python3.8"
+  source_path = {
+    path = local.layer7_src_path
+    prefix_in_zip = "python"
+    pip_requirements = true
+  }
+}
+
+module "function7" {
+  # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
+  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  source_path = local.hello_world_function_src_path
+  function_name = "function7"
+  handler       = "app.lambda_handler"
+  runtime       = "python3.8"
+  layers = [module.layer7.lambda_layer_arn]
+}
+
+module "layer8" {
+  # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
+  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  create_layer = true
+  layer_name = "lambda_layer8"
+  compatible_runtimes = ["python3.8"]
+  runtime = "python3.8"
+  store_on_s3 = true
+  s3_bucket = "existing_s3_bucket"
+  source_path = {
+    path = local.layer8_src_path
+    prefix_in_zip = "python"
+    pip_requirements = true
+  }
+}
+
+module "function8" {
+  # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
+  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  source_path = local.hello_world_function_src_path
+  function_name = "function8"
+  handler       = "app.lambda_handler"
+  runtime       = "python3.8"
+  layers = [module.layer8.lambda_layer_arn]
+  store_on_s3 = true
+  s3_bucket = "existing_s3_bucket"
+}
+
+## /* layer 9 - Serverless tf
+resource "null_resource" "build_layer9_version" {
+    triggers = {
+        build_number = "${timestamp()}"
+    }
+
+    provisioner "local-exec" {
+        command = "powershell.exe -File .\\PyBuild.ps1 ${local.layer9_src_path} ${local.building_path} ${local.layer9_artifact_file_name} Layer"
+    }
+}
+
+resource "null_resource" "sam_metadata_aws_lambda_layer_version_layer9" {
+    triggers = {
+        resource_name = "module.layer9.aws_lambda_layer_version.this[0]"
+        resource_type = "LAMBDA_LAYER"
+        original_source_code = local.layer1_src_path
+        built_output_path = "${local.building_path}/${local.layer9_artifact_file_name}"
+    }
+    depends_on = [
+        null_resource.build_layer9_version
+    ]
+}
+
+module "layer9" {
+  # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
+  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  create_layer = true
+  create_package = false
+  layer_name = "lambda_layer9"
+  compatible_runtimes = ["python3.8"]
+  runtime = "python3.8"
+  s3_bucket = "existing_s3_bucket"
+  local_existing_package = "${local.building_path}/${local.layer9_artifact_file_name}"
+}
+## */ Layer9
+
+
+## /* function1 connected to layer1 - Serverless tf
+resource "null_resource" "sam_metadata_aws_lambda_function9" {
+    triggers = {
+        resource_name = "module.function9.aws_lambda_function.this[0]"
+        resource_type = "ZIP_LAMBDA_FUNCTION"
+        original_source_code = local.hello_world_function_src_path
+        built_output_path = "${local.building_path}/${local.hello_world_artifact_file_name}"
+    }
+    depends_on = [
+        null_resource.build_hello_world_lambda_function
+    ]
+}
+
+module "function9" {
+  # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
+  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  local_existing_package = "${local.building_path}/${local.hello_world_artifact_file_name}"
+  create_package = false
+  function_name = "function9"
+  handler       = "app.lambda_handler"
+  runtime       = "python3.8"
+  layers = [module.layer9.lambda_layer_arn]
+}
+## /* function9 connected to layer9
+
+
+module "layer10" {
+  # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
+  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  create_layer = true
+  layer_name = "lambda_layer10"
+  compatible_runtimes = ["python3.8"]
+  runtime = "python3.8"
+  store_on_s3 = true
+  s3_bucket = aws_s3_bucket.lambda_code_bucket.id
+  source_path = {
+    path = local.layer10_src_path
+    prefix_in_zip = "python"
+    pip_requirements = true
+  }
+}
+
+module "function10" {
+  # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
+  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  source_path = local.hello_world_function_src_path
+  function_name = "function10"
+  handler       = "app.lambda_handler"
+  runtime       = "python3.8"
+  layers = [module.layer10.lambda_layer_arn]
+  store_on_s3 = true
+  s3_bucket = aws_s3_bucket.lambda_code_bucket.id
+}
