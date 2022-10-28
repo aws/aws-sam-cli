@@ -371,7 +371,6 @@ class BuildContext:
         invoke_suggestion = "Invoke Function: sam local invoke"
         sync_suggestion = "Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch"
         deploy_suggestion = "Deploy: sam deploy --guided"
-        start_api_suggestion = "Start a local API: sam local start-api"
         start_lambda_suggestion = "Emulate local Lambda functions: sam local start-lambda"
 
         if not is_default_build_dir:
@@ -383,10 +382,9 @@ class BuildContext:
         # check if we have used a hook package before building
         if self._hook_package_id:
             hook_package_flag = f" --hook-package-id {self._hook_package_id}"
-            start_api_suggestion += hook_package_flag
             start_lambda_suggestion += hook_package_flag
 
-            commands = [invoke_suggestion, start_api_suggestion, start_lambda_suggestion]
+            commands = [invoke_suggestion, start_lambda_suggestion]
 
         msg = f"""\nBuilt Artifacts  : {artifacts_dir}
 Built Template   : {output_template_path}
