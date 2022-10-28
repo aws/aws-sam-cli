@@ -382,7 +382,9 @@ class BuildContext:
         # check if we have used a hook package before building
         if self._hook_package_id:
             hook_package_flag = f" --hook-package-id {self._hook_package_id}"
+
             start_lambda_suggestion += hook_package_flag
+            invoke_suggestion += hook_package_flag
 
             commands = [invoke_suggestion, start_lambda_suggestion]
 
