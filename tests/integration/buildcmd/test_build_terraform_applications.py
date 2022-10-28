@@ -11,8 +11,9 @@ from typing import Optional
 from unittest import skipIf
 
 import boto3
+import docker
 
-from parameterized import parameterized
+from parameterized import parameterized, parameterized_class
 
 from tests.integration.buildcmd.build_integ_base import BuildIntegBase
 from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS
@@ -25,11 +26,30 @@ S3_SLEEP = 3
 class BuildTerraformApplicationIntegBase(BuildIntegBase):
     terraform_application: Optional[Path] = None
     template = None
+    build_in_container = False
 
     @classmethod
     def setUpClass(cls):
         super(BuildTerraformApplicationIntegBase, cls).setUpClass()
         cls.terraform_application_path = str(Path(cls.test_data_path, cls.terraform_application))
+        if cls.build_in_container:
+            cls.client = docker.from_env()
+            cls.image_name = "sam-terraform-python-build"
+            cls.docker_tag = f"{cls.image_name}:v1"
+            cls.terraform_sam_build_image_context_path = str(
+                Path(__file__)
+                .resolve()
+                .parents[2]
+                .joinpath("integration", "testdata", "buildcmd", "terraform", "build_image_docker")
+            )
+            # Directly build an image that will be used across all local invokes in this class.
+            for log in cls.client.api.build(
+                path=cls.terraform_sam_build_image_context_path,
+                dockerfile="Dockerfile",
+                tag=cls.docker_tag,
+                decode=True,
+            ):
+                LOG.info(log)
 
     def tearDown(self):
         """Clean up the generated files during integ test run"""
@@ -226,6 +246,13 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
     not CI_OVERRIDE,
     "Skip Terraform test cases unless running in CI",
 )
+@parameterized_class(
+    ("build_in_container",),
+    [
+        (False,),
+        (True,),
+    ],
+)
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(BuildTerraformApplicationIntegBase):
     terraform_application = (
         Path("terraform/zip_based_lambda_functions_local_backend")
@@ -259,11 +286,27 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
         ("my_level2_lambda", "[]", False),
     ]
 
+    @classmethod
+    def setUpClass(cls):
+        if cls.build_in_container:
+            cls.terraform_application = "terraform/zip_based_lambda_functions_local_backend"
+        super().setUpClass()
+
     @parameterized.expand(functions)
     def test_build_and_invoke_lambda_functions(self, function_identifier, expected_output, should_override_code):
-        build_cmd_list = self.get_command_list(
-            beta_features=True, hook_package_id="terraform", function_identifier=function_identifier
-        )
+        command_list_parameters = {
+            "beta_features": True,
+            "hook_package_id": "terraform",
+            "function_identifier": function_identifier,
+        }
+        if self.build_in_container:
+            command_list_parameters["use_container"] = True
+            command_list_parameters["build_image"] = self.docker_tag
+            if should_override_code:
+                command_list_parameters[
+                    "container_env_var"
+                ] = "TF_VAR_hello_function_src_code=./artifacts/HelloWorldFunction2"
+        build_cmd_list = self.get_command_list(**command_list_parameters)
         LOG.info("command list: %s", build_cmd_list)
         environment_variables = os.environ.copy()
         if should_override_code:
@@ -310,6 +353,13 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(BuildTerra
     not CI_OVERRIDE,
     "Skip Terraform test cases unless running in CI",
 )
+@parameterized_class(
+    ("build_in_container",),
+    [
+        (False,),
+        (True,),
+    ],
+)
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(BuildTerraformApplicationS3BackendIntegBase):
     terraform_application = (
         Path("terraform/zip_based_lambda_functions_s3_backend")
@@ -343,11 +393,27 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(Build
         ("my_level2_lambda", "[]", False),
     ]
 
+    @classmethod
+    def setUpClass(cls):
+        if cls.build_in_container:
+            cls.terraform_application = "terraform/zip_based_lambda_functions_s3_backend"
+        super().setUpClass()
+
     @parameterized.expand(functions)
     def test_build_and_invoke_lambda_functions(self, function_identifier, expected_output, should_override_code):
-        build_cmd_list = self.get_command_list(
-            beta_features=True, hook_package_id="terraform", function_identifier=function_identifier
-        )
+        command_list_parameters = {
+            "beta_features": True,
+            "hook_package_id": "terraform",
+            "function_identifier": function_identifier,
+        }
+        if self.build_in_container:
+            command_list_parameters["use_container"] = True
+            command_list_parameters["build_image"] = self.docker_tag
+            if should_override_code:
+                command_list_parameters[
+                    "container_env_var"
+                ] = "TF_VAR_hello_function_src_code=./artifacts/HelloWorldFunction2"
+        build_cmd_list = self.get_command_list(**command_list_parameters)
         LOG.info("command list: %s", build_cmd_list)
         environment_variables = os.environ.copy()
         if should_override_code:
