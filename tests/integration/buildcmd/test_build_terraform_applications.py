@@ -535,7 +535,7 @@ class TestUnsupportedCases(BuildTerraformApplicationIntegBase):
             (
                 "lambda_function_referencing_local_var_layer",
                 r"AWS SAM CLI could not process a Terraform project that uses local variables to define the Lambda functions layers",
-            )
+            ),
         ]
     )
     def test_unsupported_cases(self, app, expected_error_message):
