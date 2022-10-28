@@ -59,6 +59,7 @@ class TestDoCli(TestCase):
             build_images={},
             excluded_resources=(),
             aws_region=ctx_mock.region,
+            hook_package_id=None,
         )
         ctx_mock.run.assert_called_with()
         self.assertEqual(ctx_mock.run.call_count, 1)

@@ -268,6 +268,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         build_images=processed_build_images,
         excluded_resources=exclude,
         aws_region=click_ctx.region,
+        hook_package_id=hook_package_id,
     ) as ctx:
         ctx.run()
 
