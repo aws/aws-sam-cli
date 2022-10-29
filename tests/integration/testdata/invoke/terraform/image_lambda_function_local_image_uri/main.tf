@@ -32,3 +32,15 @@ resource "aws_lambda_function" "image_lambda" {
         timeout = 500
         role = aws_iam_role.iam_for_lambda.arn
 }
+
+# serverless.tf 3rd party module
+module "image_lambda2" {
+  # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
+  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  create_package = false
+  function_name = "image_lambda2"
+  image_uri     = "sam-test-lambdaimage:v1"
+  timeout = 500
+  package_type  = "Image"
+  image_config_command = ["main.handler"]
+}
