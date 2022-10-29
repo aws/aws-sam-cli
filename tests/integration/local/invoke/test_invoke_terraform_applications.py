@@ -184,6 +184,8 @@ class TestInvokeTerraformApplicationWithLayersWithoutBuild(InvokeTerraformApplic
     terraform_application = Path("terraform/simple_application_with_layers_no_building_logic")
     pre_create_lambda_layers = ["simple_layer1", "simple_layer2", "simple_layer3"]
     functions = [
+        ("module.function8.aws_lambda_function.this[0]", "hello world 8"),
+        ("module.function9.aws_lambda_function.this[0]", "hello world 9"),
         ("aws_lambda_function.function1", "hello world 1"),
         ("aws_lambda_function.function2", "hello world 2"),
         ("aws_lambda_function.function3", "hello world 3"),
@@ -332,6 +334,8 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(InvokeTerr
 class TestInvokeTerraformApplicationWithLocalImageUri(InvokeTerraformApplicationIntegBase):
     terraform_application = Path("terraform/image_lambda_function_local_image_uri")
     functions = [
+        "module.image_lambda2.aws_lambda_function.this[0]",
+        "image_lambda2",
         "image_lambda_function",
         "aws_lambda_function.image_lambda",
     ]
