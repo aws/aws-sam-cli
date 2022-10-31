@@ -7,6 +7,9 @@ clone_folder: C:\source
 configuration:
   - BuildIntegTesting
   - DeployIntegTesting
+  - PackageIntegTesting
+  - DeleteIntegTesting
+  - SyncIntegTesting
   - LocalIntegTesting
   # other Integration testing, Dev, regression and smoke testing
   - OtherTesting
@@ -146,7 +149,43 @@ for:
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
-      - ps: "pytest -vv tests/integration/delete tests/integration/deploy tests/integration/package tests/integration/sync"
+      - ps: "pytest -vv tests/integration/deploy"
+
+  # Integ testing package
+  - matrix:
+      only:
+        - configuration: PackageIntegTesting
+
+    test_script:
+      # Reactivate virtualenv before running tests
+      - "git --version"
+      - "venv\\Scripts\\activate"
+      - "docker system prune -a -f"
+      - ps: "pytest -vv tests/integration/package"
+
+  # Integ testing delete
+  - matrix:
+      only:
+        - configuration: DeleteIntegTesting
+
+    test_script:
+      # Reactivate virtualenv before running tests
+      - "git --version"
+      - "venv\\Scripts\\activate"
+      - "docker system prune -a -f"
+      - ps: "pytest -vv tests/integration/delete"
+
+  # Integ testing sync
+  - matrix:
+      only:
+        - configuration: SyncIntegTesting
+
+    test_script:
+      # Reactivate virtualenv before running tests
+      - "git --version"
+      - "venv\\Scripts\\activate"
+      - "docker system prune -a -f"
+      - ps: "pytest -vv tests/integration/sync"
 
   #Integ testing local
   - matrix:

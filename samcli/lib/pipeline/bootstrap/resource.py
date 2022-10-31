@@ -136,3 +136,31 @@ class ECRImageRepository(Resource):
         i = len("repository/")
         repo_name = arn_parts.resource_id[i:]
         return f"{arn_parts.account_id}.dkr.ecr.{arn_parts.region}.amazonaws.com/{repo_name}"
+
+
+class OidcProvider(Resource):
+    """
+    Represents an AWS OIDC Provider resource
+    Attributes
+    ----------
+    client_id: str
+        the client id used to authenticate the user with the OIDC provider.
+    provider_url: str
+        url of the OIDC provider.
+    thumbprint: str
+        thumbprint for the top intermediate certificate authority (CA)
+         that signed the certificate used by the identity provider
+    """
+
+    def __init__(
+        self,
+        arn: Optional[str],
+        comment: Optional[str],
+        client_id: Optional[str],
+        provider_url: Optional[str],
+        thumbprint: Optional[str],
+    ) -> None:
+        self.client_id: Optional[str] = client_id
+        self.provider_url: Optional[str] = provider_url
+        self.thumbprint: Optional[str] = thumbprint
+        super().__init__(arn=arn, comment=comment)

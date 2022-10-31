@@ -17,6 +17,7 @@ from samcli.commands._utils.options import (
     tags_option,
     stack_name_option,
     base_dir_option,
+    use_container_build_option,
     image_repository_option,
     image_repositories_option,
     s3_prefix_option,
@@ -62,13 +63,24 @@ Update/Sync local artifacts to AWS
 By default, the sync command runs a full stack update. You can specify --code or --watch to switch modes.
 \b
 Sync also supports nested stacks and nested stack resources. For example
-$ sam sync --code --stack-name {stack} --resource-id {ChildStack}/{ResourceId}
+
+$ sam sync --code --stack-name {stack} --resource-id \\
+{ChildStack}/{ResourceId}
+
+Running --watch with --code option will provide a way to run code synchronization only, that will speed up start time
+and will skip any template change. Please remember to update your deployed stack by running without --code option.
+
+$ sam sync --code --watch --stack-name {stack} 
+
 """
 
-SYNC_CONFIRMATION_TEXT = """
+SYNC_INFO_TEXT = """
 The SAM CLI will use the AWS Lambda, Amazon API Gateway, and AWS StepFunctions APIs to upload your code without 
 performing a CloudFormation deployment. This will cause drift in your CloudFormation stack. 
 **The sync command should only be used against a development stack**.
+"""
+
+SYNC_CONFIRMATION_TEXT = """
 Confirm that you are synchronizing a development stack.
 
 Enter Y to proceed with the command, or enter N to cancel:
@@ -89,14 +101,12 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
     is_flag=True,
     help="Sync code resources. This includes Lambda Functions, API Gateway, and Step Functions.",
     cls=ClickMutex,
-    incompatible_params=["watch"],
 )
 @click.option(
     "--watch",
     is_flag=True,
     help="Watch local files and automatically sync with remote.",
     cls=ClickMutex,
-    incompatible_params=["code"],
 )
 @click.option(
     "--resource-id",
@@ -119,6 +129,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 )
 @stack_name_option(required=True)  # pylint: disable=E1120
 @base_dir_option
+@use_container_build_option
 @image_repository_option
 @image_repositories_option
 @s3_bucket_option(disable_callback=True)  # pylint: disable=E1120
@@ -161,6 +172,7 @@ def cli(
     notification_arns: Optional[List[str]],
     tags: dict,
     metadata: dict,
+    use_container: bool,
     config_file: str,
     config_env: str,
 ) -> None:
@@ -193,6 +205,7 @@ def cli(
         notification_arns,
         tags,
         metadata,
+        use_container,
         config_file,
         config_env,
     )  # pragma: no cover
@@ -221,24 +234,39 @@ def do_cli(
     notification_arns: Optional[List[str]],
     tags: dict,
     metadata: dict,
+    use_container: bool,
     config_file: str,
     config_env: str,
 ) -> None:
     """
     Implementation of the ``cli`` method
     """
+    from samcli.cli.global_config import GlobalConfig
     from samcli.lib.utils import osutils
     from samcli.commands.build.build_context import BuildContext
     from samcli.commands.package.package_context import PackageContext
     from samcli.commands.deploy.deploy_context import DeployContext
 
-    if not click.confirm(Colored().yellow(SYNC_CONFIRMATION_TEXT), default=True):
-        return
+    global_config = GlobalConfig()
+    if not global_config.is_accelerate_opt_in_stack(template_file, stack_name):
+        if not click.confirm(Colored().yellow(SYNC_INFO_TEXT + SYNC_CONFIRMATION_TEXT), default=True):
+            return
+        global_config.set_accelerate_opt_in_stack(template_file, stack_name)
+    else:
+        LOG.info(Colored().yellow(SYNC_INFO_TEXT))
 
     s3_bucket_name = s3_bucket or manage_stack(profile=profile, region=region)
 
     if dependency_layer is True:
         dependency_layer = check_enable_dependency_layer(template_file)
+
+    # Note: ADL with use-container is not supported yet. Remove this logic once its supported.
+    if use_container and dependency_layer:
+        LOG.info(
+            "Note: Automatic Dependency Layer is not yet supported with use-container. \
+            sam sync will be run without Automatic Dependency Layer."
+        )
+        dependency_layer = False
 
     build_dir = DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER if dependency_layer else DEFAULT_BUILD_DIR
     LOG.debug("Using build directory as %s", build_dir)
@@ -251,7 +279,7 @@ def do_cli(
         build_dir=build_dir,
         cache_dir=DEFAULT_CACHE_DIR,
         clean=True,
-        use_container=False,
+        use_container=use_container,
         cached=True,
         parallel=True,
         parameter_overrides=parameter_overrides,
@@ -318,7 +346,7 @@ def do_cli(
                     with SyncContext(dependency_layer, build_context.build_dir, build_context.cache_dir):
                         if watch:
                             execute_watch(
-                                template_file, build_context, package_context, deploy_context, dependency_layer
+                                template_file, build_context, package_context, deploy_context, dependency_layer, code
                             )
                         elif code:
                             execute_code_sync(
@@ -403,6 +431,7 @@ def execute_watch(
     package_context: "PackageContext",
     deploy_context: "DeployContext",
     auto_dependency_layer: bool,
+    skip_infra_syncs: bool,
 ):
     """Start sync watch execution
 
@@ -417,7 +446,9 @@ def execute_watch(
     deploy_context : DeployContext
         DeployContext
     """
-    watch_manager = WatchManager(template, build_context, package_context, deploy_context, auto_dependency_layer)
+    watch_manager = WatchManager(
+        template, build_context, package_context, deploy_context, auto_dependency_layer, skip_infra_syncs
+    )
     watch_manager.start()
 
 

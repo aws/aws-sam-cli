@@ -123,7 +123,7 @@ for:
       # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
       - sh: "sudo apt-get update"
 
-      - sh: "gvm use go1.15"
+      - sh: "gvm use go1.19"
       - sh: "echo $PATH"
       - sh: "ls /usr/"
       - sh: "JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64"
