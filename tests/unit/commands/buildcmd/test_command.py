@@ -63,11 +63,13 @@ class TestDoCli(TestCase):
         ctx_mock.run.assert_called_with()
         self.assertEqual(ctx_mock.run.call_count, 1)
 
+    @patch("samcli.commands.build.command.is_experimental_enabled")
     @patch("samcli.commands.build.build_context.BuildContext")
-    def test_build_exits_supplied_hook_package_id(self, BuildContextMock):
+    def test_build_exits_supplied_hook_package_id(self, BuildContextMock, is_experimental_enabled_mock):
 
         ctx_mock = Mock()
         BuildContextMock.return_value.__enter__.return_value = ctx_mock
+        is_experimental_enabled_mock.return_value = False
 
         do_cli(
             ctx_mock,

@@ -18,6 +18,9 @@ import pytest
 from docker.errors import APIError
 from parameterized import parameterized, parameterized_class
 
+from samcli.commands._utils.experimental import EXPERIMENTAL_WARNING
+from samcli.lib.utils.colors import Colored
+from tests.integration.local.common_utils import random_port
 from tests.integration.local.invoke.layer_utils import LayerUtils
 from tests.integration.local.start_lambda.start_lambda_api_integ_base import StartLambdaIntegBaseClass
 from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUNNING_ON_CI
@@ -267,7 +270,7 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(StartLambd
 
     def setUp(self):
         self.working_dir = self.integration_dir + self.terraform_application
-        self.port = str(StartLambdaIntegBaseClass.random_port())
+        self.port = str(random_port())
 
         # remove all containers if there
         self.docker_client = docker.from_env()
@@ -304,11 +307,16 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(StartLambd
         self.assertNotEqual(return_code, 0)
 
 
+@skipIf(
+    not CI_OVERRIDE,
+    "Skip Terraform test cases unless running in CI",
+)
 class TestLocalStartLambdaTerraformApplicationWithExperimentalPromptYes(StartLambdaTerraformApplicationIntegBase):
     terraform_application = "/testdata/invoke/terraform/simple_application_no_building_logic"
     template_path = None
     hook_package_id = "terraform"
     input = b"Y\n"
+    collect_start_lambda_process_output = True
 
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
@@ -321,10 +329,6 @@ class TestLocalStartLambdaTerraformApplicationWithExperimentalPromptYes(StartLam
             config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
         )
 
-    @skipIf(
-        not CI_OVERRIDE,
-        "Skip Terraform test cases unless running in CI",
-    )
     @pytest.mark.flaky(reruns=3)
     def test_invoke_function(self):
         response = self.lambda_client.invoke(FunctionName="s3_lambda_function")
@@ -334,6 +338,33 @@ class TestLocalStartLambdaTerraformApplicationWithExperimentalPromptYes(StartLam
 
         self.assertEqual(response_body, expected_response)
         self.assertEqual(response.get("StatusCode"), 200)
+
+
+@skipIf(
+    not CI_OVERRIDE,
+    "Skip Terraform test cases unless running in CI",
+)
+class TestLocalStartLambdaTerraformApplicationWithBetaFeatures(StartLambdaTerraformApplicationIntegBase):
+    terraform_application = "/testdata/invoke/terraform/simple_application_no_building_logic"
+    template_path = None
+    hook_package_id = "terraform"
+    beta_features = True
+    collect_start_lambda_process_output = True
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+        self.lambda_client = boto3.client(
+            "lambda",
+            endpoint_url=self.url,
+            region_name="us-east-1",
+            use_ssl=False,
+            verify=False,
+            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
+        )
+
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_function_and_warning_message_is_printed(self):
+        self.assertTrue(self.start_lambda_process_error.startswith(Colored().yellow(EXPERIMENTAL_WARNING)))
 
 
 class TestLocalStartLambdaTerraformApplicationWithExperimentalPromptNo(StartLambdaTerraformApplicationIntegBase):
@@ -361,7 +392,7 @@ class TestLocalStartLambdaTerraformApplicationWithExperimentalPromptNo(StartLamb
     @pytest.mark.flaky(reruns=3)
     def test_invoke_function(self):
         self.assertRegex(
-            self.start_lambda_process_output,
+            self.start_lambda_process_error,
             "Terraform Support beta feature is not enabled.",
         )
 

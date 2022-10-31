@@ -14,6 +14,8 @@ import pytest
 from docker.errors import APIError
 from parameterized import parameterized, parameterized_class
 
+from samcli.commands._utils.experimental import EXPERIMENTAL_WARNING
+from samcli.lib.utils.colors import Colored
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase, TIMEOUT
 from tests.integration.local.invoke.layer_utils import LayerUtils
 from tests.integration.local.start_lambda.start_lambda_api_integ_base import StartLambdaIntegBaseClass
@@ -90,7 +92,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
         local_invoke_command_list = self.get_command_list(
             function_to_invoke="s3_lambda_function", hook_package_id="terraform"
         )
-        stdout, _, return_code = self.run_command(local_invoke_command_list, input=b"Y\n\n")
+        stdout, stderr, return_code = self.run_command(local_invoke_command_list, input=b"Y\n\n")
 
         terraform_beta_feature_prompted_text = (
             "Supporting Terraform applications is a beta feature.\n"
@@ -98,7 +100,34 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
             "You can also enable this beta feature with 'sam local invoke --beta-features'."
         )
         self.assertRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
+        self.assertTrue(stderr.decode("utf-8").startswith(Colored().yellow(EXPERIMENTAL_WARNING)))
+
         response = json.loads(stdout.decode("utf-8").split("\n")[2][85:].strip())
+        expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"hello world\\"}"}')
+
+        self.assertEqual(return_code, 0)
+        self.assertEqual(response, expected_response)
+
+    @skipIf(
+        not CI_OVERRIDE,
+        "Skip Terraform test cases unless running in CI",
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_function_with_beta_feature_expect_warning_message(self):
+        local_invoke_command_list = self.get_command_list(
+            function_to_invoke="s3_lambda_function", hook_package_id="terraform", beta_features=True
+        )
+        stdout, stderr, return_code = self.run_command(local_invoke_command_list)
+
+        terraform_beta_feature_prompted_text = (
+            "Supporting Terraform applications is a beta feature.\n"
+            "Please confirm if you would like to proceed using SAM CLI with terraform application.\n"
+            "You can also enable this beta feature with 'sam local invoke --beta-features'."
+        )
+        self.assertNotRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
+        self.assertTrue(stderr.decode("utf-8").startswith(Colored().yellow(EXPERIMENTAL_WARNING)))
+
+        response = json.loads(stdout.decode("utf-8").split("\n")[0])
         expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"hello world\\"}"}')
 
         self.assertEqual(return_code, 0)

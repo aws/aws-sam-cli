@@ -15,6 +15,8 @@ import docker
 
 from parameterized import parameterized, parameterized_class
 
+from samcli.commands._utils.experimental import EXPERIMENTAL_WARNING
+from samcli.lib.utils.colors import Colored
 from tests.integration.buildcmd.build_integ_base import BuildIntegBase
 from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS
 
@@ -224,7 +226,13 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
 
     def test_exit_success_no_beta_feature_flags_hooks(self):
         cmdlist = self.get_command_list(beta_features=None, hook_package_id="terraform")
-        _, stderr, return_code = self.run_command(cmdlist, input=b"N\n\n")
+        stdout, stderr, return_code = self.run_command(cmdlist, input=b"N\n\n")
+        terraform_beta_feature_prompted_text = (
+            "Supporting Terraform applications is a beta feature.\n"
+            "Please confirm if you would like to proceed using SAM CLI with terraform application.\n"
+            "You can also enable this beta feature with 'sam build --beta-features'."
+        )
+        self.assertNotRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
         self.assertEqual(return_code, 0)
         self.assertEqual(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
 
@@ -304,7 +312,14 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
         environment_variables = os.environ.copy()
         if should_override_code:
             environment_variables["TF_VAR_hello_function_src_code"] = "./artifacts/HelloWorldFunction2"
-        _, stderr, return_code = self.run_command(build_cmd_list, env=environment_variables)
+        stdout, stderr, return_code = self.run_command(build_cmd_list, env=environment_variables)
+        terraform_beta_feature_prompted_text = (
+            "Supporting Terraform applications is a beta feature.\n"
+            "Please confirm if you would like to proceed using SAM CLI with terraform application.\n"
+            "You can also enable this beta feature with 'sam build --beta-features'."
+        )
+        self.assertNotRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
+        self.assertTrue(stderr.decode("utf-8").startswith(Colored().yellow(EXPERIMENTAL_WARNING)))
         LOG.info(stderr)
         self.assertEqual(return_code, 0)
 

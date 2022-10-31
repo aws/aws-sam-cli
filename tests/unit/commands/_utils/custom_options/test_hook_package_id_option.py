@@ -65,11 +65,12 @@ class TestHookPackageIdOption(TestCase):
             f"Parameters hook-package-id, and {','.join(invalid_coexist_options)} can not be used together",
         )
 
+    @patch("samcli.commands._utils.custom_options.hook_package_id_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.prompt_experimental")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.IacHookWrapper")
     def test_valid_hook_package_with_only_hook_id_option(
-        self, iac_hook_wrapper_mock, getcwd_mock, prompt_experimental_mock
+        self, iac_hook_wrapper_mock, getcwd_mock, prompt_experimental_mock, update_experimental_context_mock
     ):
         metadata_path = "path/metadata.json"
         cwd_path = "path/current"
@@ -98,10 +99,13 @@ class TestHookPackageIdOption(TestCase):
         )
         self.assertEqual(opts.get("template_file"), metadata_path)
 
+    @patch("samcli.commands._utils.custom_options.hook_package_id_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.prompt_experimental")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.IacHookWrapper")
-    def test_valid_hook_package_with_other_options(self, iac_hook_wrapper_mock, getcwd_mock, prompt_experimental_mock):
+    def test_valid_hook_package_with_other_options(
+        self, iac_hook_wrapper_mock, getcwd_mock, prompt_experimental_mock, update_experimental_context_mock
+    ):
 
         metadata_path = "path/metadata.json"
         cwd_path = "path/current"
@@ -137,12 +141,18 @@ class TestHookPackageIdOption(TestCase):
         )
         self.assertEqual(opts.get("template_file"), metadata_path)
 
+    @patch("samcli.commands._utils.custom_options.hook_package_id_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.prompt_experimental")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.path.exists")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.IacHookWrapper")
     def test_valid_hook_package_with_skipping_prepare_hook_and_built_path_exists(
-        self, iac_hook_wrapper_mock, path_exists_mock, getcwd_mock, prompt_experimental_mock
+        self,
+        iac_hook_wrapper_mock,
+        path_exists_mock,
+        getcwd_mock,
+        prompt_experimental_mock,
+        update_experimental_context_mock,
     ):
 
         metadata_path = "path/metadata.json"
@@ -172,12 +182,18 @@ class TestHookPackageIdOption(TestCase):
         iac_hook_wrapper_instance_mock.prepare.assert_not_called()
         self.assertEqual(opts.get("template_file"), None)
 
+    @patch("samcli.commands._utils.custom_options.hook_package_id_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.prompt_experimental")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.path.exists")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.IacHookWrapper")
     def test_valid_hook_package_with_disable_terraform_beta_feature(
-        self, iac_hook_wrapper_mock, path_exists_mock, getcwd_mock, prompt_experimental_mock
+        self,
+        iac_hook_wrapper_mock,
+        path_exists_mock,
+        getcwd_mock,
+        prompt_experimental_mock,
+        update_experimental_context_mock,
     ):
 
         metadata_path = "path/metadata.json"
@@ -205,12 +221,18 @@ class TestHookPackageIdOption(TestCase):
         iac_hook_wrapper_instance_mock.prepare.assert_not_called()
         self.assertEqual(opts.get("template_file"), None)
 
+    @patch("samcli.commands._utils.custom_options.hook_package_id_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.prompt_experimental")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.path.exists")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.IacHookWrapper")
     def test_valid_hook_package_with_no_beta_feature_option(
-        self, iac_hook_wrapper_mock, path_exists_mock, getcwd_mock, prompt_experimental_mock
+        self,
+        iac_hook_wrapper_mock,
+        path_exists_mock,
+        getcwd_mock,
+        prompt_experimental_mock,
+        update_experimental_context_mock,
     ):
 
         metadata_path = "path/metadata.json"
@@ -240,12 +262,18 @@ class TestHookPackageIdOption(TestCase):
         iac_hook_wrapper_instance_mock.prepare.assert_not_called()
         self.assertEqual(opts.get("template_file"), None)
 
+    @patch("samcli.commands._utils.custom_options.hook_package_id_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.prompt_experimental")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.path.exists")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.IacHookWrapper")
     def test_valid_hook_package_with_beta_feature_option(
-        self, iac_hook_wrapper_mock, path_exists_mock, getcwd_mock, prompt_experimental_mock
+        self,
+        iac_hook_wrapper_mock,
+        path_exists_mock,
+        getcwd_mock,
+        prompt_experimental_mock,
+        update_experimental_context_mock,
     ):
 
         metadata_path = "path/metadata.json"
@@ -281,12 +309,18 @@ class TestHookPackageIdOption(TestCase):
         )
         self.assertEqual(opts.get("template_file"), metadata_path)
 
+    @patch("samcli.commands._utils.custom_options.hook_package_id_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.prompt_experimental")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.path.exists")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.IacHookWrapper")
     def test_valid_hook_package_with_skipping_prepare_hook_and_built_path_doesnot_exist(
-        self, iac_hook_wrapper_mock, path_exists_mock, getcwd_mock, prompt_experimental_mock
+        self,
+        iac_hook_wrapper_mock,
+        path_exists_mock,
+        getcwd_mock,
+        prompt_experimental_mock,
+        update_experimental_context_mock,
     ):
 
         metadata_path = "path/metadata.json"
@@ -318,12 +352,18 @@ class TestHookPackageIdOption(TestCase):
         )
         self.assertEqual(opts.get("template_file"), metadata_path)
 
+    @patch("samcli.commands._utils.custom_options.hook_package_id_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.prompt_experimental")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.path.exists")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.IacHookWrapper")
     def test_valid_hook_package_with_use_container_and_build_image(
-        self, iac_hook_wrapper_mock, path_exists_mock, getcwd_mock, prompt_experimental_mock
+        self,
+        iac_hook_wrapper_mock,
+        path_exists_mock,
+        getcwd_mock,
+        prompt_experimental_mock,
+        update_experimental_context_mock,
     ):
 
         metadata_path = "path/metadata.json"
@@ -358,12 +398,18 @@ class TestHookPackageIdOption(TestCase):
         )
         self.assertEqual(opts.get("template_file"), metadata_path)
 
+    @patch("samcli.commands._utils.custom_options.hook_package_id_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.prompt_experimental")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.path.exists")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.IacHookWrapper")
     def test_invalid_hook_package_with_use_container_and_no_build_image(
-        self, iac_hook_wrapper_mock, path_exists_mock, getcwd_mock, prompt_experimental_mock
+        self,
+        iac_hook_wrapper_mock,
+        path_exists_mock,
+        getcwd_mock,
+        prompt_experimental_mock,
+        update_experimental_context_mock,
     ):
 
         metadata_path = "path/metadata.json"
@@ -397,12 +443,18 @@ class TestHookPackageIdOption(TestCase):
         ):
             hook_package_id_option.handle_parse_result(ctx, opts, args)
 
+    @patch("samcli.commands._utils.custom_options.hook_package_id_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.prompt_experimental")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.path.exists")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.IacHookWrapper")
     def test_valid_hook_package_with_use_container_false_and_no_build_image(
-        self, iac_hook_wrapper_mock, path_exists_mock, getcwd_mock, prompt_experimental_mock
+        self,
+        iac_hook_wrapper_mock,
+        path_exists_mock,
+        getcwd_mock,
+        prompt_experimental_mock,
+        update_experimental_context_mock,
     ):
 
         metadata_path = "path/metadata.json"
