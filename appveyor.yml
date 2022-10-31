@@ -105,10 +105,10 @@ for:
 
       # Run tests with dev env
       - "venv\\Scripts\\activate"
-      - ps: "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit --junitxml=TEST_REPORT-unit.xml --html=TEST_REPORT-unit.html --self-contained-html"
+      - ps: "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit --json-report --json-report-file=TEST_REPORT-unit.json --html=TEST_REPORT-unit.html --self-contained-html"
       - ps: "pylint --rcfile .pylintrc samcli"
       - ps: "mypy setup.py samcli tests"
-      - ps: "pytest -n 4 tests/functional --junitxml=TEST_REPORT-functional.xml --html=TEST_REPORT-functional.html --self-contained-html"
+      - ps: "pytest -n 4 tests/functional --json-report --json-report-file=TEST_REPORT-functional.json --html=TEST_REPORT-functional.html --self-contained-html"
       - "deactivate"
 
 
@@ -182,10 +182,10 @@ for:
 
       # Dev Tests
       - "pip install -e \".[dev]\""
-      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit --junitxml=TEST_REPORT-unit.xml --html=TEST_REPORT-unit.html --self-contained-html"
+      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit --json-report --json-report-file=TEST_REPORT-unit.json --html=TEST_REPORT-unit.html --self-contained-html"
       - "pylint --rcfile .pylintrc samcli"
       - "mypy setup.py samcli tests"
-      - "pytest -n 4 tests/functional --junitxml=TEST_REPORT-functional.xml --html=TEST_REPORT-functional.html --self-contained-html"
+      - "pytest -n 4 tests/functional --json-report --json-report-file=TEST_REPORT-functional.json --html=TEST_REPORT-functional.html --self-contained-html"
 
       # Runs only in Linux, logging Public ECR when running canary and cred is available
       - sh: "
@@ -193,23 +193,23 @@ for:
           then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
         fi"
 
-      - sh: "pytest -vv tests/integration --junitxml=TEST_REPORT-integration.xml --html=TEST_REPORT-integration.html --self-contained-html"
-      - sh: "pytest -vv tests/regression --junitxml=TEST_REPORT-regression.xml --html=TEST_REPORT-regression.html --self-contained-html"
+      - sh: "pytest -vv tests/integration --json-report --json-report-file=TEST_REPORT-integration.json --html=TEST_REPORT-integration.html --self-contained-html"
+      - sh: "pytest -vv tests/regression --json-report --json-report-file=TEST_REPORT-regression.json --html=TEST_REPORT-regression.html --self-contained-html"
       - sh: "black --check setup.py tests samcli"
 
       # Set JAVA_HOME to java11
       - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
-      - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process --junitxml=TEST_REPORT-integration_build_java11.xml --html=TEST_REPORT-integration_build_java11.html --self-contained-html"
+      - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process --json-report --json-report-file=TEST_REPORT-integration_build_java11.json --html=TEST_REPORT-integration_build_java11.html --self-contained-html"
 
       # Smoke tests run in parallel - it runs on both Linux & Windows
       # Presence of the RUN_SMOKE envvar will run the smoke tests
-      - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke --junitxml=TEST_REPORT-smoke.xml --html=TEST_REPORT-smoke.html --self-contained-html}"
+      - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke --json-report --json-report-file=TEST_REPORT-smoke.json --html=TEST_REPORT-smoke.html --self-contained-html}"
 
     on_finish:
 
-      - sh: find "$APPVEYOR_BUILD_FOLDER" -type f -name 'TEST*.xml' -print0 | xargs -0 -I '{}' curl -F 'file=@{}' "https://ci.appveyor.com/api/testresults/junit/$APPVEYOR_JOB_ID"
+      - sh: find "$APPVEYOR_BUILD_FOLDER" -type f -name 'TEST*.json' -print0 | xargs -0 -I '{}' curl -F 'file=@{}' "https://ci.appveyor.com/api/testresults/junit/$APPVEYOR_JOB_ID"
 
 
 artifacts:
-  - path: './TEST_REPORT*.xml'
+  - path: './TEST_REPORT*.json'
   - path: './TEST_REPORT*.html'
