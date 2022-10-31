@@ -55,9 +55,16 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
         """Clean up the generated files during integ test run"""
         try:
             shutil.rmtree(str(Path(self.terraform_application_path) / ".aws-sam"))
+        except FileNotFoundError:
+            pass
+
+        try:
             shutil.rmtree(str(Path(self.terraform_application_path) / ".aws-sam-iacs"))
+        except FileNotFoundError:
+            pass
+
+        try:
             shutil.rmtree(str(Path(self.terraform_application_path) / ".terraform"))
-            os.remove(str(Path(self.terraform_application_path) / ".terraform.lock.hcl"))
         except FileNotFoundError:
             pass
 
@@ -550,3 +557,44 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndS3Backend(
                 "multiValueHeaders": None,
             },
         )
+
+
+@skipIf(
+    not (CI_OVERRIDE),
+    "Skip Terraform test cases unless running in CI",
+)
+class TestUnsupportedCases(BuildTerraformApplicationIntegBase):
+    terraform_application = Path("terraform/unsupported")
+
+    @parameterized.expand(
+        [
+            (
+                "conditional_layers",
+                r"AWS SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more than one lambda layer",
+            ),
+            (
+                "conditional_layers_null",
+                r"AWS SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more than one lambda layer",
+            ),
+            (
+                "lambda_function_with_count_and_invalid_sam_metadata",
+                r"There is no resource found that match the provided resource name aws_lambda_function.function1",
+            ),
+            (
+                "one_lambda_function_linked_to_two_layers",
+                r"AWS SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more than one lambda layer",
+            ),
+            (
+                "lambda_function_referencing_local_var_layer",
+                r"AWS SAM CLI could not process a Terraform project that uses local variables to define the Lambda functions layers",
+            ),
+        ]
+    )
+    def test_unsupported_cases(self, app, expected_error_message):
+        self.terraform_application_path = Path(self.terraform_application_path) / app
+        build_cmd_list = self.get_command_list(beta_features=True, hook_package_id="terraform")
+        LOG.info("command list: %s", build_cmd_list)
+        _, stderr, return_code = self.run_command(build_cmd_list)
+        LOG.info(stderr)
+        self.assertEqual(return_code, 1)
+        self.assertRegex(stderr.decode("utf-8"), expected_error_message)
