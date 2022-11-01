@@ -2969,17 +2969,17 @@ class TestPrepareHook(TestCase):
         )
         self.assertEqual(makefile_rule, expected_makefile_rule)
 
-    @parameterized.expand([
-        "null_resource.sam_metadata_aws_lambda_function",
-        'null_resource.sam_metadata_aws_lambda_function[2]',
-        'null_resource.sam_metadata_aws_lambda_layer_version_layers["layer3"]',
-    ])
+    @parameterized.expand(
+        [
+            "null_resource.sam_metadata_aws_lambda_function",
+            "null_resource.sam_metadata_aws_lambda_function[2]",
+            'null_resource.sam_metadata_aws_lambda_layer_version_layers["layer3"]',
+        ]
+    )
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._build_jpath_string")
     def test_build_makerule_python_command(self, resource, jpath_string_mock):
         jpath_string_mock.return_value = (
-            "|values|root_module|resources|"
-            f'[?address=="{resource}"]'
-            "|values|triggers|built_output_path"
+            "|values|root_module|resources|" f'[?address=="{resource}"]' "|values|triggers|built_output_path"
         )
         sam_metadata_resource = SamMetadataResource(current_module_address=None, resource={})
         show_command = _build_makerule_python_command(
