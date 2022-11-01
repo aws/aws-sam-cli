@@ -227,6 +227,8 @@ class TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild(StartLambda
         )
 
     functions = [
+        ("module.function8.aws_lambda_function.this[0]", "hello world 8"),
+        ("module.function9.aws_lambda_function.this[0]", "hello world 9"),
         ("aws_lambda_function.function1", "hello world 1"),
         ("aws_lambda_function.function2", "hello world 2"),
         ("aws_lambda_function.function3", "hello world 3"),
@@ -462,6 +464,8 @@ class TestLocalStartLambdaTerraformApplicationWithLocalImageUri(StartLambdaTerra
     hook_package_id = "terraform"
     beta_features = True
     functions = [
+        "module.image_lambda2.aws_lambda_function.this[0]",
+        "image_lambda2",
         "image_lambda_function",
         "aws_lambda_function.image_lambda",
     ]

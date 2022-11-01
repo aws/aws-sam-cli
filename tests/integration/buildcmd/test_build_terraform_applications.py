@@ -57,9 +57,16 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
         """Clean up the generated files during integ test run"""
         try:
             shutil.rmtree(str(Path(self.terraform_application_path) / ".aws-sam"))
+        except FileNotFoundError:
+            pass
+
+        try:
             shutil.rmtree(str(Path(self.terraform_application_path) / ".aws-sam-iacs"))
+        except FileNotFoundError:
+            pass
+
+        try:
             shutil.rmtree(str(Path(self.terraform_application_path) / ".terraform"))
-            os.remove(str(Path(self.terraform_application_path) / ".terraform.lock.hcl"))
         except FileNotFoundError:
             pass
 
@@ -261,6 +268,30 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
         else Path("terraform/zip_based_lambda_functions_local_backend_windows")
     )
     functions = [
+        ("module.function7.aws_lambda_function.this[0]", "hello world 7 - override version", True),
+        ("function7", "hello world 7 - override version", True),
+        ("module.function7.aws_lambda_function.this[0]", "hello world 7", False),
+        ("function7", "hello world 7", False),
+        ("module.function8.aws_lambda_function.this[0]", "hello world 8 - override version", True),
+        ("function8", "hello world 8 - override version", True),
+        ("module.function8.aws_lambda_function.this[0]", "hello world 8", False),
+        ("function8", "hello world 8", False),
+        ("module.function9.aws_lambda_function.this[0]", "hello world 9 - override version", True),
+        ("function9", "hello world 9 - override version", True),
+        ("module.function9.aws_lambda_function.this[0]", "hello world 9", False),
+        ("function9", "hello world 9", False),
+        ("module.function10.aws_lambda_function.this[0]", "hello world 10 - override version", True),
+        ("function10", "hello world 10 - override version", True),
+        ("module.function10.aws_lambda_function.this[0]", "hello world 10", False),
+        ("function10", "hello world 10", False),
+        ("aws_lambda_function.function6", "hello world 6 - override version", True),
+        ("function6", "hello world 6 - override version", True),
+        ("aws_lambda_function.function6", "hello world 6", False),
+        ("function6", "hello world 6", False),
+        ("aws_lambda_function.function5", "hello world 5 - override version", True),
+        ("function5", "hello world 5 - override version", True),
+        ("aws_lambda_function.function5", "hello world 5", False),
+        ("function5", "hello world 5", False),
         ("aws_lambda_function.function4", "hello world 4 - override version", True),
         ("function4", "hello world 4 - override version", True),
         ("aws_lambda_function.function4", "hello world 4", False),
@@ -375,6 +406,30 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(Build
         else Path("terraform/zip_based_lambda_functions_s3_backend_windows")
     )
     functions = [
+        ("module.function7.aws_lambda_function.this[0]", "hello world 7 - override version", True),
+        ("function7", "hello world 7 - override version", True),
+        ("module.function7.aws_lambda_function.this[0]", "hello world 7", False),
+        ("function7", "hello world 7", False),
+        ("module.function8.aws_lambda_function.this[0]", "hello world 8 - override version", True),
+        ("function8", "hello world 8 - override version", True),
+        ("module.function8.aws_lambda_function.this[0]", "hello world 8", False),
+        ("function8", "hello world 8", False),
+        ("module.function9.aws_lambda_function.this[0]", "hello world 9 - override version", True),
+        ("function9", "hello world 9 - override version", True),
+        ("module.function9.aws_lambda_function.this[0]", "hello world 9", False),
+        ("function9", "hello world 9", False),
+        ("module.function10.aws_lambda_function.this[0]", "hello world 10 - override version", True),
+        ("function10", "hello world 10 - override version", True),
+        ("module.function10.aws_lambda_function.this[0]", "hello world 10", False),
+        ("function10", "hello world 10", False),
+        ("aws_lambda_function.function5", "hello world 5 - override version", True),
+        ("function5", "hello world 5 - override version", True),
+        ("aws_lambda_function.function5", "hello world 5", False),
+        ("function5", "hello world 5", False),
+        ("aws_lambda_function.function6", "hello world 6 - override version", True),
+        ("function6", "hello world 6 - override version", True),
+        ("aws_lambda_function.function6", "hello world 6", False),
+        ("function6", "hello world 6", False),
         ("aws_lambda_function.function4", "hello world 4 - override version", True),
         ("function4", "hello world 4 - override version", True),
         ("aws_lambda_function.function4", "hello world 4", False),
@@ -451,6 +506,8 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndLocalBackend(
         "my_image_function",
         "my_l1_lambda",
         "my_l2_lambda",
+        "module.serverless_tf_image_function.aws_lambda_function.this[0]",
+        "serverless_tf_image_function",
     ]
 
     @parameterized.expand(functions)
@@ -491,6 +548,8 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndS3Backend(
         "my_image_function",
         "my_l1_lambda",
         "my_l2_lambda",
+        "module.serverless_tf_image_function.aws_lambda_function.this[0]",
+        "serverless_tf_image_function",
     ]
 
     @parameterized.expand(functions)
@@ -513,3 +572,44 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndS3Backend(
                 "multiValueHeaders": None,
             },
         )
+
+
+@skipIf(
+    not (CI_OVERRIDE),
+    "Skip Terraform test cases unless running in CI",
+)
+class TestUnsupportedCases(BuildTerraformApplicationIntegBase):
+    terraform_application = Path("terraform/unsupported")
+
+    @parameterized.expand(
+        [
+            (
+                "conditional_layers",
+                r"AWS SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more than one lambda layer",
+            ),
+            (
+                "conditional_layers_null",
+                r"AWS SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more than one lambda layer",
+            ),
+            (
+                "lambda_function_with_count_and_invalid_sam_metadata",
+                r"There is no resource found that match the provided resource name aws_lambda_function.function1",
+            ),
+            (
+                "one_lambda_function_linked_to_two_layers",
+                r"AWS SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more than one lambda layer",
+            ),
+            (
+                "lambda_function_referencing_local_var_layer",
+                r"AWS SAM CLI could not process a Terraform project that uses local variables to define the Lambda functions layers",
+            ),
+        ]
+    )
+    def test_unsupported_cases(self, app, expected_error_message):
+        self.terraform_application_path = Path(self.terraform_application_path) / app
+        build_cmd_list = self.get_command_list(beta_features=True, hook_package_id="terraform")
+        LOG.info("command list: %s", build_cmd_list)
+        _, stderr, return_code = self.run_command(build_cmd_list)
+        LOG.info(stderr)
+        self.assertEqual(return_code, 1)
+        self.assertRegex(stderr.decode("utf-8"), expected_error_message)
