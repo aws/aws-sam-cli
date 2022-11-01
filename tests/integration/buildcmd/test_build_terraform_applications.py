@@ -236,7 +236,7 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
         stdout, stderr, return_code = self.run_command(cmdlist, input=b"N\n\n")
         terraform_beta_feature_prompted_text = (
             "Supporting Terraform applications is a beta feature.\n"
-            "Please confirm if you would like to proceed using SAM CLI with terraform application.\n"
+            "Please confirm if you would like to proceed using AWS SAM CLI with terraform application.\n"
             "You can also enable this beta feature with 'sam build --beta-features'."
         )
         self.assertNotRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
@@ -346,7 +346,7 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
         stdout, stderr, return_code = self.run_command(build_cmd_list, env=environment_variables)
         terraform_beta_feature_prompted_text = (
             "Supporting Terraform applications is a beta feature.\n"
-            "Please confirm if you would like to proceed using SAM CLI with terraform application.\n"
+            "Please confirm if you would like to proceed using AWS SAM CLI with terraform application.\n"
             "You can also enable this beta feature with 'sam build --beta-features'."
         )
         self.assertNotRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)

@@ -96,7 +96,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
 
         terraform_beta_feature_prompted_text = (
             "Supporting Terraform applications is a beta feature.\n"
-            "Please confirm if you would like to proceed using SAM CLI with terraform application.\n"
+            "Please confirm if you would like to proceed using AWS SAM CLI with terraform application.\n"
             "You can also enable this beta feature with 'sam local invoke --beta-features'."
         )
         self.assertRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
@@ -121,7 +121,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
 
         terraform_beta_feature_prompted_text = (
             "Supporting Terraform applications is a beta feature.\n"
-            "Please confirm if you would like to proceed using SAM CLI with terraform application.\n"
+            "Please confirm if you would like to proceed using AWS SAM CLI with terraform application.\n"
             "You can also enable this beta feature with 'sam local invoke --beta-features'."
         )
         self.assertNotRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
@@ -146,7 +146,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
 
         terraform_beta_feature_prompted_text = (
             "Supporting Terraform applications is a beta feature.\n"
-            "Please confirm if you would like to proceed using SAM CLI with terraform application.\n"
+            "Please confirm if you would like to proceed using AWS SAM CLI with terraform application.\n"
             "You can also enable this beta feature with 'sam local invoke --beta-features'."
         )
         self.assertRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)

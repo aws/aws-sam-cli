@@ -38,8 +38,8 @@ class TestHookPackageIdOption(TestCase):
 
         self.assertEqual(
             e.exception.message,
-            f"{hook_package_id} is not a valid hook package id. This is the list of valid "
-            f"packages ids {available_hook_packages}",
+            f"{hook_package_id} is not a valid hook package id."
+            f"{os.linesep}valid package ids: {available_hook_packages}",
         )
 
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.IacHookWrapper")
@@ -62,7 +62,7 @@ class TestHookPackageIdOption(TestCase):
 
         self.assertEqual(
             e.exception.message,
-            f"Parameters hook-package-id, and {','.join(invalid_coexist_options)} can not be used together",
+            f"Parameters hook-package-id, and {','.join(invalid_coexist_options)} cannot be used together",
         )
 
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.update_experimental_context")

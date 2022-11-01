@@ -45,8 +45,8 @@ class HookPackageIdOption(click.Option):
             iac_hook_wrapper = IacHookWrapper(hook_package_id)
         except InvalidHookWrapperException as e:
             raise click.BadParameter(
-                f"{hook_package_id} is not a valid hook package id. This is the list of valid "
-                f"packages ids {get_available_hook_packages_ids()}"
+                f"{hook_package_id} is not a valid hook package id."
+                f"{os.linesep}valid package ids: {get_available_hook_packages_ids()}"
             ) from e
 
         self._validate_coexist_options(opt_name, opts)
@@ -63,7 +63,7 @@ class HookPackageIdOption(click.Option):
         # call prepare hook
         built_template_path = DEFAULT_BUILT_TEMPLATE_PATH
         if not self._force_prepare and os.path.exists(built_template_path):
-            LOG.info("Skip Running Prepare hook. The current application is already prepared.")
+            LOG.info("Skipped prepare hook. Current application is already prepared.")
         else:
             LOG.info("Running Prepare Hook to prepare the current application")
 
@@ -76,7 +76,7 @@ class HookPackageIdOption(click.Option):
             aws_region = opts.get("region")
             metadata_file = iac_hook_wrapper.prepare(output_dir_path, iac_project_path, debug, aws_profile, aws_region)
 
-            LOG.info("Prepare Hook is done, and metadata file generated at %s", metadata_file)
+            LOG.info("Prepare hook completed and metadata file generated at: %s", metadata_file)
             opts["template_file"] = metadata_file
 
     def _validate_coexist_options(self, opt_name, opts):
@@ -85,7 +85,7 @@ class HookPackageIdOption(click.Option):
             invalid_opt_name = invalid_opt.replace("-", "_")
             if invalid_opt_name in opts:
                 raise click.BadParameter(
-                    f"Parameters {opt_name}, and {','.join(self._invalid_coexist_options)} can not be used together"
+                    f"Parameters {opt_name}, and {','.join(self._invalid_coexist_options)} cannot be used together"
                 )
 
 
@@ -114,7 +114,7 @@ def _check_experimental_flag(hook_package_id, command_name, opts):
         LOG.debug("beta-feature flag is disabled and prepare hook is not run")
         return False
     elif beta_features:
-        LOG.debug("beta-feature flag is enabled, update the experimental flag.")
+        LOG.debug("--beta-feature flag is enabled, update the experimental flag.")
         set_experimental(experimental_entry, True)
         update_experimental_context()
     return True
@@ -140,7 +140,7 @@ def _get_iac_support_experimental_prompt_message(hook_package_id: str, command: 
     supported_iacs_messages = {
         "terraform": (
             "Supporting Terraform applications is a beta feature.\n"
-            "Please confirm if you would like to proceed using SAM CLI with terraform application.\n"
+            "Please confirm if you would like to proceed using AWS SAM CLI with terraform application.\n"
             f"You can also enable this beta feature with 'sam {command} --beta-features'."
         )
     }
