@@ -116,8 +116,9 @@ class CfnUtils:
 
         # Wait for Delete to Finish
         waiter = self._client.get_waiter("stack_delete_complete")
-        # Poll every 30 seconds and set max attempts to be 3.
-        waiter_config = {"Delay": 30, "MaxAttempts": 3}
+        # Remove `MaxAttempts` from waiter_config.
+        # Regression: https://github.com/aws/aws-sam-cli/issues/4361
+        waiter_config = {"Delay": 30}
         try:
             waiter.wait(StackName=stack_name, WaiterConfig=waiter_config)
         except WaiterError as ex:
