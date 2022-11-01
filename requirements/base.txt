@@ -7,6 +7,7 @@ Werkzeug<2.1
 boto3>=1.19.5,==1.*
 jmespath~=0.10.0
 PyYAML~=5.3
+ruamel_yaml==0.17.21
 cookiecutter~=2.1.1
 aws-sam-translator==1.53.0
 #docker minor version updates can include breaking changes. Auto update micro version only.

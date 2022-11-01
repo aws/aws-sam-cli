@@ -240,6 +240,11 @@ def non_interactive_validation(func):
     default=None,
     help="Enable AWS X-Ray tracing for your lambda functions",
 )
+@click.option(
+    "--application-insights/--no-application-insights",
+    default=None,
+    help="Enable CloudWatch Application Insights monitoring for your application",
+)
 @common_options
 @non_interactive_validation
 @pass_context
@@ -261,6 +266,7 @@ def cli(
     no_input,
     extra_context,
     tracing,
+    application_insights,
     config_file,
     config_env,
 ):
@@ -283,6 +289,7 @@ def cli(
         no_input,
         extra_context,
         tracing,
+        application_insights,
     )  # pragma: no cover
 
 
@@ -303,6 +310,7 @@ def do_cli(
     no_input,
     extra_context,
     tracing,
+    application_insights,
 ):
     """
     Implementation of the ``cli`` method
@@ -352,6 +360,7 @@ def do_cli(
             no_input,
             extra_context,
             tracing,
+            application_insights,
         )
     else:
         if not (pt_explicit or runtime or dependency_manager or base_image or architecture):
@@ -371,6 +380,7 @@ def do_cli(
             app_template,
             no_input,
             tracing,
+            application_insights,
         )
 
 

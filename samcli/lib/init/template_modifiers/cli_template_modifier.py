@@ -13,9 +13,10 @@ LOG = logging.getLogger(__name__)
 
 
 class TemplateModifier:
-    def __init__(self, location):
+    def __init__(self, location, name):
         self.template_location = location
         self.template = self._get_template()
+        self.name = name
         self.copy_of_original_template = deepcopy(self.template)
 
     def modify_template(self):
@@ -24,6 +25,9 @@ class TemplateModifier:
         and then run a sanity check on the template to know if the template matches the
         CFN yaml
         """
+        print("test123:")
+        print(type(self.template))
+        print(self.template)
         self._add_new_field_to_template()
         self._write(self.template)
         if not self._sanity_check():
@@ -125,27 +129,10 @@ class TemplateModifier:
     def _print_sanity_check_error(self):
         pass
 
+    @abstractmethod
     def _write(self, template: list):
-        """
-        write generated template into SAM template
+        pass
 
-        Parameters
-        ----------
-        template : list
-            array with updated template data
-        """
-        with open(self.template_location, "w") as file:
-            for line in template:
-                file.write(line)
-
-    def _get_template(self) -> List[str]:
-        """
-        Gets data the SAM templates and returns it in a array
-
-        Returns
-        -------
-        list
-            array with updated template data
-        """
-        with open(self.template_location, "r") as file:
-            return file.readlines()
+    @abstractmethod
+    def _get_template(self) -> Any:
+        pass

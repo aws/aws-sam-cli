@@ -371,6 +371,64 @@ class TestBasicInitCommand(TestCase):
             self.assertEqual(process.returncode, 0)
             self.assertTrue(Path(temp, "sam-app").is_dir())
 
+    def test_init_command_passes_with_enabled_application_insights(self):
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    get_sam_command(),
+                    "init",
+                    "--runtime",
+                    "nodejs14.x",
+                    "--dependency-manager",
+                    "npm",
+                    "--app-template",
+                    "hello-world",
+                    "--name",
+                    "sam-app",
+                    "--no-interactive",
+                    "-o",
+                    temp,
+                    "--application-insights",
+                ]
+            )
+            try:
+                process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 0)
+            self.assertTrue(Path(temp, "sam-app").is_dir())
+
+    def test_init_command_passes_with_disabled_application_insights(self):
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    get_sam_command(),
+                    "init",
+                    "--runtime",
+                    "nodejs14.x",
+                    "--dependency-manager",
+                    "npm",
+                    "--app-template",
+                    "hello-world",
+                    "--name",
+                    "sam-app",
+                    "--no-interactive",
+                    "-o",
+                    temp,
+                    "--no-application-insights",
+                ]
+            )
+            try:
+                process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 0)
+            self.assertTrue(Path(temp, "sam-app").is_dir())
+
 
 MISSING_REQUIRED_PARAM_MESSAGE = """Error: Missing required parameters, with --no-interactive set.
 Must provide one of the following required parameter combinations:
@@ -726,6 +784,7 @@ class TestInteractiveInit(TestCase):
         # 1: Zip
         # 1: Hello World Example
         # N: Would you like to enable X-Ray tracing on the function(s) in your application?  [y/N]
+        # Y: Would you like to enable monitoring using Cloudwatch Application Insights? [y/N]
         user_input = """
 1
 1
@@ -734,6 +793,7 @@ N
 1
 1
 N
+Y
 sam-interactive-init-app
         """
         with tempfile.TemporaryDirectory() as temp:
@@ -752,6 +812,7 @@ sam-interactive-init-app
 1
 1
 Y
+N
 N
 sam-interactive-init-app-default-runtime
         """
