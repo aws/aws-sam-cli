@@ -129,7 +129,7 @@ public class JavaStack extends Stack {
         cfnLayerVersionNodeJsRuntime.addMetadata("BuildMethod", "nodejs14.x");
 
         NodejsFunction nodejsFunction = NodejsFunction.Builder.create(this, "NodejsFunction")
-                .entry("../../src/nodejs/NodeJsFunctionConstruct/handler.rb")
+                .entry("../../src/nodejs/NodeJsFunctionConstruct/app.ts")
                 .depsLockFilePath("../../src/nodejs/NodeJsFunctionConstruct/package-lock.json")
                 .handler("lambdaHandler")
                 .layers(Arrays.asList(layerVersionNodeJsRuntime))
