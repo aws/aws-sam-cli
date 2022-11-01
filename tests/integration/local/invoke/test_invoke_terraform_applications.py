@@ -230,11 +230,9 @@ class TestInvokeTerraformApplicationWithLayersWithoutBuild(InvokeTerraformApplic
         # create override file in lambda_function_with_const_layer module to test using the function with constant
         # layers list
         function_with_const_layer_module_function_definition_overwrite = str(
-            Path(cls.terraform_application_path).joinpath("lambda_function_with_const_layer",
-                                                          "function_override.tf")
+            Path(cls.terraform_application_path).joinpath("lambda_function_with_const_layer", "function_override.tf")
         )
-        _4th_layer_arn = cls.layerUtils.parameters_overrides[
-            f"{cls.pre_create_lambda_layers[3]}-{cls.layer_postfix}"]
+        _4th_layer_arn = cls.layerUtils.parameters_overrides[f"{cls.pre_create_lambda_layers[3]}-{cls.layer_postfix}"]
 
         function_lines = [
             bytes('resource "aws_lambda_function" "this" {' + os.linesep, "utf-8"),
