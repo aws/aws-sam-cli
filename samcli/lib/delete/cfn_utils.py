@@ -116,7 +116,7 @@ class CfnUtils:
 
         # Wait for Delete to Finish
         waiter = self._client.get_waiter("stack_delete_complete")
-        # Do not set `MaxAttempts` in waiter_config
+        # Remove `MaxAttempts` from waiter_config.
         # Regression: https://github.com/aws/aws-sam-cli/issues/4361
         waiter_config = {"Delay": 30}
         try:
