@@ -19,8 +19,8 @@ class InvalidResourceLinkingException(UserException):
 
 class OneLambdaLayerLinkingLimitationException(UserException):
     fmt = (
-        "SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more than one "
-        "lambda layer. Layer(s) defined by {layers_list} could not be linked to lambda function {function_id}."
+        "AWS SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more "
+        "than one lambda layer. Layer(s) defined by {layers_list} could not be linked to lambda function {function_id}."
         "{line_sep}Related issue: {issue_link}."
     )
 
@@ -36,7 +36,7 @@ class OneLambdaLayerLinkingLimitationException(UserException):
 
 class LocalVariablesLinkingLimitationException(UserException):
     fmt = (
-        "SAM CLI could not process a Terraform project that uses local variables to define the Lambda functions "
+        "AWS SAM CLI could not process a Terraform project that uses local variables to define the Lambda functions "
         "layers. Layer(s) defined by {local_variable_reference} could be linked to lambda function {function_id}."
         "{line_sep}Related issue: {issue_link}."
     )
