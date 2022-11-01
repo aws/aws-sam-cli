@@ -200,6 +200,23 @@ def resolve_s3_callback(ctx, param, provided_value, artifact, exc_set, exc_not_s
     return provided_value
 
 
+def skip_prepare_iac_callback(ctx: click.core.Context, param: click.Option, provided_value: bool):
+    """
+    Callback for --skip-prepare-iac to check if --hook-package-id is also specified
+
+    Parameters
+    ----------
+    ctx: click.core.Context
+        Click context
+    param: click.Option
+        Parameter properties
+    provided_value: bool
+        True if option was provided
+    """
+    if provided_value and not ctx.params.get("hook_package_id", None):
+        raise click.BadOptionUsage(option_name=param.name, ctx=ctx, message="Missing option --hook-package-id")
+
+
 def template_common_option(f):
     """
     Common ClI option for template
@@ -663,6 +680,20 @@ def hook_package_id_click_option(force_prepare=True, invalid_coexist_options=Non
         help=f"The id of the hook package to be used to extend the SAM CLI commands functionality. As an example, you "
         f"can use `terraform` to extend SAM CLI commands functionality to support terraform applications. "
         f"Available Hook Packages Ids {get_available_hook_packages_ids()}",
+    )
+
+
+def skip_prepare_iac_option():
+    """
+    Click option to skip the hook preparation stage
+    """
+    return click.option(
+        "--skip-prepare-iac",
+        is_flag=True,
+        required=False,
+        callback=skip_prepare_iac_callback,
+        help="Skips the preparation stage for the hook package if the metadata file has already been generated. "
+        "This option should be used together with --hook-package-id.",
     )
 
 

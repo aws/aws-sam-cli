@@ -74,15 +74,26 @@ class HookPackageIdOption(click.Option):
                 LOG.debug("beta-feature flag is disabled and prepare hook is not run")
                 return super().handle_parse_result(ctx, opts, args)
 
+            iac_project_path = os.getcwd()
+            output_dir_path = os.path.join(iac_project_path, ".aws-sam-iacs", "iacs_metadata")
+
+            # check if user provided --skip-prepare-iac
+            skip_prepare_hook = opts.get("skip_prepare_iac")
+            metadata_file_path = os.path.join(output_dir_path, "template.json")
+
             # call prepare hook
             built_template_path = DEFAULT_BUILT_TEMPLATE_PATH
             if not self._force_prepare and os.path.exists(built_template_path):
                 LOG.info("Skip Running Prepare hook. The current application is already prepared.")
+            elif skip_prepare_hook:
+                if os.path.exists(metadata_file_path):
+                    LOG.info("Skipping prepare hook, --skip-prepare-iac was provided and metadata file already exists.")
+                    opts["template_file"] = metadata_file_path
+                else:
+                    raise click.UsageError("No metadata file found, rerun without the --skip-prepare-iac flag.")
             else:
                 LOG.info("Running Prepare Hook to prepare the current application")
 
-                iac_project_path = os.getcwd()
-                output_dir_path = os.path.join(iac_project_path, ".aws-sam-iacs", "iacs_metadata")
                 if not os.path.exists(output_dir_path):
                     os.makedirs(output_dir_path, exist_ok=True)
                 debug = opts.get("debug", False)
