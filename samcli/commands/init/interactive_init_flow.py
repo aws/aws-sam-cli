@@ -407,8 +407,10 @@ def prompt_user_to_enable_application_insights():
     Prompt user to choose if AppInsights monitoring should be enabled for their application and vice versa
     """
     doc_link = "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch-application-insights.html"
-    if click.confirm(f"\nWould you like to enable monitoring using CloudWatch Application Insights?\nFor more info, please view {doc_link}"):
-        pricing_link = "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/appinsights-what-is.html#appinsights-pricing"
+    if click.confirm(f"\nWould you like to enable monitoring using CloudWatch Application Insights?"
+                     f"\nFor more info, please view {doc_link}"):
+        pricing_link = "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring" \
+                       "/appinsights-what-is.html#appinsights-pricing"
         click.echo(f"AppInsights monitoring may incur additional cost. View {pricing_link} for more details")
         return True
     return False

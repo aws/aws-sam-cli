@@ -19,6 +19,7 @@ class TestTemplateModifier(TestCase):
             "      CodeUri: hello_world/\n",
             "      Handler: app.lambda_handler\n",
         ]
+        self.template_location = "/test.yaml"
 
     @patch("samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template")
     def test_must_update_template_fields(self, get_template_patch):
@@ -395,3 +396,14 @@ class TestTemplateModifier(TestCase):
         template_modifier._update_template_fields()
 
         self.assertEqual(template_modifier.template, expected_template_data)
+
+    @patch("samcli.lib.init.template_modifiers.application_insights_template_modifier.LOG")
+    def test_must_log_warning_message_appinsights(self, log_mock):
+        expected_warning_msg = (
+            "Warning: Unable to add Application Insights monitoring to the application.\n"
+            "To learn more about Application Insights, visit "
+            "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch-application-insights.html"
+        )
+        template_modifier = ApplicationInsightsTemplateModifier(self.location, self.name)
+        template_modifier._print_sanity_check_error()
+        log_mock.warning.assert_called_once_with(expected_warning_msg)

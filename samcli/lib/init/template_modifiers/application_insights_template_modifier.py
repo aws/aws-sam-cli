@@ -4,7 +4,7 @@ Class used to parse and update template when application-insights is enabled
 import logging
 from typing import Any
 from ruamel.yaml.comments import CommentedMap
-from ruamel.yaml.main import round_trip_load as yaml_load, round_trip_dump as yaml_dump
+from ruamel.yaml.main import round_trip_load, round_trip_dump
 from samcli.lib.init.template_modifiers.cli_template_modifier import TemplateModifier
 
 LOG = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ class ApplicationInsightsTemplateModifier(TemplateModifier):
     AUTO_CONFIG_VALUE = "true"
     def _get_template(self) -> Any:
         with open(self.template_location) as file:
-            return yaml_load(file)
+            return round_trip_load(file)
 
     def _update_template_fields(self):
         """
@@ -59,8 +59,8 @@ class ApplicationInsightsTemplateModifier(TemplateModifier):
         link = (
             "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch-application-insights.html"
         )
-        message = f"""Warning: Unable to add Application Insights monitoring to the application.
-        To learn more about Application Insights, visit {link}"""
+        message = f"Warning: Unable to add Application Insights monitoring to the application." \
+                  f"\nTo learn more about Application Insights, visit {link}"
         LOG.warning(message)
 
     def _write(self, template: list):
@@ -73,4 +73,4 @@ class ApplicationInsightsTemplateModifier(TemplateModifier):
             array with updated template data
         """
         with open(self.template_location, "w") as file:
-            yaml_dump(self.template, file)
+            round_trip_dump(self.template, file)
