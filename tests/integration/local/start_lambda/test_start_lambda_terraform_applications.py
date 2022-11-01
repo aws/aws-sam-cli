@@ -18,6 +18,7 @@ import pytest
 from docker.errors import APIError
 from parameterized import parameterized, parameterized_class
 
+from tests.integration.local.common_utils import random_port
 from tests.integration.local.invoke.layer_utils import LayerUtils
 from tests.integration.local.start_lambda.start_lambda_api_integ_base import StartLambdaIntegBaseClass
 from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUNNING_ON_CI
@@ -294,7 +295,7 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(StartLambd
 
     def setUp(self):
         self.working_dir = self.integration_dir + self.terraform_application
-        self.port = str(StartLambdaIntegBaseClass.random_port())
+        self.port = str(random_port())
 
         # remove all containers if there
         self.docker_client = docker.from_env()
