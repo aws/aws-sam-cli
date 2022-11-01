@@ -208,6 +208,28 @@ class TestCli(TestCase):
         environment_instance.print_resources_summary.assert_not_called()
         environment_instance.save_config_safe.assert_not_called()
 
+    @patch("samcli.lib.pipeline.bootstrap.stage.Stage")
+    def test_bootstrapping_oidc_fails_conflict_parameters(self, environment_mock):
+        # setup
+        environment_instance = Mock()
+        environment_mock.return_value = environment_instance
+        self.cli_context["interactive"] = False
+        self.cli_context["permissions_provider"] = "oidc"
+        self.cli_context["oidc_provider"] = GITHUB_ACTIONS
+        self.cli_context["github_org"] = ANY_GITHUB_ORG
+        self.cli_context["github_repo"] = ANY_GITHUB_REPO
+        self.cli_context["gitlab_group"] = ANY_GITLAB_GROUP
+        self.cli_context["deployment_branch"] = None
+
+        # trigger
+        with self.assertRaises(click.UsageError):
+            bootstrap_cli(**self.cli_context)
+
+        # verify
+        environment_instance.bootstrap.assert_not_called()
+        environment_instance.print_resources_summary.assert_not_called()
+        environment_instance.save_config_safe.assert_not_called()
+
     @patch("samcli.commands.pipeline.bootstrap.pipeline_oidc_provider")
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.lib.pipeline.bootstrap.stage.Stage")

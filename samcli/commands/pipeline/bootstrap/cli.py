@@ -9,6 +9,7 @@ import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, aws_creds_options, print_cmdline_args
+from samcli.commands._utils.click_mutex import ClickMutex
 
 from samcli.commands.pipeline.bootstrap.pipeline_oidc_provider import PipelineOidcProvider
 from samcli.lib.config.samconfig import SamConfig
@@ -114,12 +115,16 @@ OPENID_CONNECT = "OpenID Connect (OIDC)"
     "If there is no organization enter the Username of the repository owner instead "
     "Only used if using GitHub Actions OIDC for user permissions",
     required=False,
+    cls=ClickMutex,
+    incompatible_params=["bitbucket_repo_uuid", "gitlab_group", "gitlab_project"],
 )
 @click.option(
     "--github-repo",
     help="The name of the GitHub Repository that deployments will occur from. "
     "Only used if using GitHub Actions OIDC for permissions",
     required=False,
+    cls=ClickMutex,
+    incompatible_params=["bitbucket_repo_uuid", "gitlab_group", "gitlab_project"],
 )
 @click.option(
     "--deployment-branch",
@@ -133,22 +138,35 @@ OPENID_CONNECT = "OpenID Connect (OIDC)"
     "we currently only support GitLab, GitHub, and Bitbucket",
     type=click.Choice([GITHUB_ACTIONS, GITLAB, BITBUCKET]),
     required=False,
+    cls=ClickMutex,
+    required_param_lists=[
+        ["gitlab_group", "gitlab_project"],
+        ["github_org", "github_repo"],
+        ["bitbucket_repo_uuid"],
+        # check non_interactive_validation for additional validations
+    ],
 )
 @click.option(
     "--gitlab-group",
     help="The GitLab group that the repository belongs to. Only used if using GitLab OIDC for permissions",
     required=False,
+    cls=ClickMutex,
+    incompatible_params=["bitbucket_repo_uuid", "github_org", "github_repo"],
 )
 @click.option(
     "--gitlab-project",
     help="The GitLab project name. Only used if using GitLab OIDC for permissions",
     required=False,
+    cls=ClickMutex,
+    incompatible_params=["bitbucket_repo_uuid", "github_org", "github_repo"],
 )
 @click.option(
     "--bitbucket-repo-uuid",
     help="The UUID of the Bitbucket repository. Only used if using Bitbucket OIDC for permissions. "
     "Found at https://bitbucket.org/<WORKSPACE>/<REPOSITORY>/admin/addon/admin/pipelines/openid-connect",
     required=False,
+    cls=ClickMutex,
+    incompatible_params=["gitlab_group", "gitlab_project", "github_org", "github_repo"],
 )
 @click.option(
     "--cicd-provider",
@@ -265,20 +283,6 @@ def do_cli(
         OIDC_SUPPORTED_PROVIDER,
         Stage,
     )
-
-    is_github_parameters_provided = github_org is not None and github_repo is not None
-    is_gitlab_parameters_provided = gitlab_group is not None and gitlab_project is not None
-
-    if permissions_provider == OPEN_ID_CONNECT:
-        if oidc_provider == GITHUB_ACTIONS:
-            if not (is_github_parameters_provided and not is_gitlab_parameters_provided and not bitbucket_repo_uuid):
-                raise click.UsageError("Github Actions can only accept parameters '--github-org' and '--github-repo'")
-        elif oidc_provider == GITLAB:
-            if not (is_gitlab_parameters_provided and not is_github_parameters_provided and not bitbucket_repo_uuid):
-                raise click.UsageError("Gitlab can only accept parameters '--gitlab-group' and '--gitlab-project'")
-        elif oidc_provider == BITBUCKET:
-            if not (bitbucket_repo_uuid and not is_github_parameters_provided and not is_gitlab_parameters_provided):
-                raise click.UsageError("Bitbucket can only accept parameter '--bitbucket-repo-uuid'")
 
     config_parameters = _load_config_values()
     if not pipeline_user_arn and not permissions_provider == OPEN_ID_CONNECT:
