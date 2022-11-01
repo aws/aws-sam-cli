@@ -3,8 +3,9 @@ Class used to parse and update template when application-insights is enabled
 """
 import logging
 from typing import Any
+from ruamel.yaml import YAML
 from ruamel.yaml.comments import CommentedMap
-from ruamel.yaml.main import round_trip_load, round_trip_dump
+from ruamel.yaml.main import round_trip_dump as yaml_dump
 from samcli.lib.init.template_modifiers.cli_template_modifier import TemplateModifier
 
 LOG = logging.getLogger(__name__)
@@ -28,8 +29,9 @@ class ApplicationInsightsTemplateModifier(TemplateModifier):
     APPLICATION_INSIGHTS_REF = "ApplicationInsightsMonitoring"
     AUTO_CONFIG_VALUE = "true"
     def _get_template(self) -> Any:
+        yaml=YAML()
         with open(self.template_location) as file:
-            return round_trip_load(file)
+            return yaml.load(file)
 
     def _update_template_fields(self):
         """
@@ -73,4 +75,4 @@ class ApplicationInsightsTemplateModifier(TemplateModifier):
             array with updated template data
         """
         with open(self.template_location, "w") as file:
-            round_trip_dump(self.template, file)
+            yaml_dump(self.template, file)
