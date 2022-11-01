@@ -111,7 +111,7 @@ def _check_experimental_flag(hook_package_id, command_name, opts):
             LOG.debug("Experimental flag is disabled and prepare hook is not run")
             return False
     elif not beta_features:
-        LOG.debug("beta-feature flag is disabled and prepare hook is not run")
+        LOG.debug("--beta-feature flag is disabled and prepare hook is not run")
         return False
     elif beta_features:
         LOG.debug("--beta-feature flag is enabled, update the experimental flag.")
