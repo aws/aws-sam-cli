@@ -1160,9 +1160,7 @@ def _build_jpath_string(sam_metadata_resource: SamMetadataResource, resource_add
     for module in parent_modules:
         full_module_path += child_modules_template.format(module_address=module)
     jpath_string = jpath_string_template.format(child_modules=full_module_path, resource_address=resource_address)
-    # return jpath_string.replace("\"", "\\\"")
     return jpath_string
-    # return jpath_string_template.format(child_modules=full_module_path, resource_address=resource_address)
 
 
 def _get_parent_modules(module_address: Optional[str]) -> List[str]:
