@@ -25,16 +25,13 @@ class TemplateModifier:
         and then run a sanity check on the template to know if the template matches the
         CFN yaml
         """
-        print("test123:")
-        print(type(self.template))
-        print(self.template)
-        self._add_new_field_to_template()
+        self._update_template_fields()
         self._write(self.template)
         if not self._sanity_check():
             self._write(self.copy_of_original_template)
 
     @abstractmethod
-    def _add_new_field_to_template(self):
+    def _update_template_fields(self):
         pass
 
     def _section_position(self, section: str, position: int = 0) -> int:

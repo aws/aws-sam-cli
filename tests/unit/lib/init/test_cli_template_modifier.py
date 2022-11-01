@@ -21,7 +21,7 @@ class TestTemplateModifier(TestCase):
         ]
 
     @patch("samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template")
-    def test_must_add_new_field_to_template(self, get_template_patch):
+    def test_must_update_template_fields(self, get_template_patch):
         get_template_patch.return_value = [
             "Resources:\n",
             "  HelloWorldFunction:\n",
@@ -48,7 +48,7 @@ class TestTemplateModifier(TestCase):
         ]
 
         template_modifier = XRayTracingTemplateModifier(self.location, self.name)
-        template_modifier._add_new_field_to_template()
+        template_modifier._update_template_fields()
 
         self.assertEqual(template_modifier.template, expected_template_data)
 
@@ -86,7 +86,7 @@ class TestTemplateModifier(TestCase):
         ]
 
         template_modifier = XRayTracingTemplateModifier(self.location, self.name)
-        template_modifier._add_new_field_to_template()
+        template_modifier._update_template_fields()
 
         self.assertEqual(template_modifier.template, expected_template_data)
 
@@ -125,7 +125,7 @@ class TestTemplateModifier(TestCase):
         ]
 
         template_modifier = XRayTracingTemplateModifier(self.location, self.name)
-        template_modifier._add_new_field_to_template()
+        template_modifier._update_template_fields()
         self.assertEqual(template_modifier.template, expected_template_data)
 
     @patch("samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template")
@@ -167,7 +167,7 @@ class TestTemplateModifier(TestCase):
         ]
 
         template_modifier = XRayTracingTemplateModifier(self.location, self.name)
-        template_modifier._add_new_field_to_template()
+        template_modifier._update_template_fields()
 
         self.assertEqual(template_modifier.template, expected_template_data)
 
@@ -205,7 +205,7 @@ class TestTemplateModifier(TestCase):
         ]
 
         template_modifier = XRayTracingTemplateModifier(self.location, self.name)
-        template_modifier._add_new_field_to_template()
+        template_modifier._update_template_fields()
         self.assertEqual(template_modifier.template, expected_template_data)
 
     @patch("samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template")
@@ -392,6 +392,6 @@ class TestTemplateModifier(TestCase):
                                                             ]))]))])
 
         template_modifier = ApplicationInsightsTemplateModifier(self.location, self.name)
-        template_modifier._add_new_field_to_template()
+        template_modifier._update_template_fields()
 
         self.assertEqual(template_modifier.template, expected_template_data)

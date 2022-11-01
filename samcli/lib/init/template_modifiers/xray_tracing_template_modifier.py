@@ -35,7 +35,7 @@ class XRayTracingTemplateModifier(TemplateModifier):
         with open(self.template_location, "r") as file:
             return file.readlines()
 
-    def _add_new_field_to_template(self):
+    def _update_template_fields(self):
         """
         Add new field to SAM template
         """

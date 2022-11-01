@@ -1,5 +1,5 @@
 """
-Class used to parse and update template when tracing is enabled
+Class used to parse and update template when application-insights is enabled
 """
 import logging
 from typing import Any
@@ -31,9 +31,9 @@ class ApplicationInsightsTemplateModifier(TemplateModifier):
         with open(self.template_location) as file:
             return yaml_load(file)
 
-    def _add_new_field_to_template(self):
+    def _update_template_fields(self):
         """
-        Add new field to SAM template
+        Add new resources to SAM template
         """
         self._add_app_insights_monitoring_section()
 
@@ -57,8 +57,7 @@ class ApplicationInsightsTemplateModifier(TemplateModifier):
 
     def _print_sanity_check_error(self):
         link = (
-            "https://docs.aws.amazon.com/serverless-application-model/latest"
-            "/developerguide/sam-resource-function.html#sam-function-tracing"
+            "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch-application-insights.html"
         )
         message = f"""Warning: Unable to add Application Insights monitoring to the application.
         To learn more about Application Insights, visit {link}"""
