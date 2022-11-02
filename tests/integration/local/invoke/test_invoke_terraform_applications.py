@@ -182,8 +182,10 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
 )
 class TestInvokeTerraformApplicationWithLayersWithoutBuild(InvokeTerraformApplicationIntegBase):
     terraform_application = Path("terraform/simple_application_with_layers_no_building_logic")
-    pre_create_lambda_layers = ["simple_layer1", "simple_layer2", "simple_layer3"]
+    pre_create_lambda_layers = ["simple_layer1", "simple_layer2", "simple_layer3", "simple_layer33", "simple_layer44"]
     functions = [
+        ("module.function44.aws_lambda_function.this", "hello world 44"),
+        ("module.function33.aws_lambda_function.this", "hello world 33"),
         ("module.function8.aws_lambda_function.this[0]", "hello world 8"),
         ("module.function9.aws_lambda_function.this[0]", "hello world 9"),
         ("aws_lambda_function.function1", "hello world 1"),
@@ -213,7 +215,7 @@ class TestInvokeTerraformApplicationWithLayersWithoutBuild(InvokeTerraformApplic
 
         # create override file in const_layer module to test using the module default provided value
         const_layer_module_input_layer_overwrite = str(
-            Path(cls.terraform_application_path).joinpath("const_layer", f"variable_name_override.tf")
+            Path(cls.terraform_application_path).joinpath("const_layer", "variable_name_override.tf")
         )
         _2nd_layer_arn = cls.layerUtils.parameters_overrides[f"{cls.pre_create_lambda_layers[1]}-{cls.layer_postfix}"]
         lines = [
@@ -224,6 +226,26 @@ class TestInvokeTerraformApplicationWithLayersWithoutBuild(InvokeTerraformApplic
         ]
         with open(const_layer_module_input_layer_overwrite, "wb") as file:
             file.writelines(lines)
+
+        # create override file in lambda_function_with_const_layer module to test using the function with constant
+        # layers list
+        function_with_const_layer_module_function_definition_overwrite = str(
+            Path(cls.terraform_application_path).joinpath("lambda_function_with_const_layer", "function_override.tf")
+        )
+        _4th_layer_arn = cls.layerUtils.parameters_overrides[f"{cls.pre_create_lambda_layers[3]}-{cls.layer_postfix}"]
+
+        function_lines = [
+            bytes('resource "aws_lambda_function" "this" {' + os.linesep, "utf-8"),
+            bytes("   filename = var.source_code" + os.linesep, "utf-8"),
+            bytes('   handler = "app.lambda_handler"' + os.linesep, "utf-8"),
+            bytes('   runtime = "python3.8"' + os.linesep, "utf-8"),
+            bytes("   function_name = var.function_name" + os.linesep, "utf-8"),
+            bytes("   role = aws_iam_role.iam_for_lambda.arn" + os.linesep, "utf-8"),
+            bytes(f'   layers = ["{_4th_layer_arn}"]' + os.linesep, "utf-8"),
+            bytes("}", "utf-8"),
+        ]
+        with open(function_with_const_layer_module_function_definition_overwrite, "wb") as file:
+            file.writelines(function_lines)
 
         # create Functions code bucket
         cls.bucket_name = str(uuid.uuid4())
@@ -245,6 +267,7 @@ class TestInvokeTerraformApplicationWithLayersWithoutBuild(InvokeTerraformApplic
             f"{cls.pre_create_lambda_layers[0]}-{cls.layer_postfix}"
         ]
         environment_variables["TF_VAR_layer_name"] = f"{cls.pre_create_lambda_layers[2]}-{cls.layer_postfix}"
+        environment_variables["TF_VAR_layer44_name"] = f"{cls.pre_create_lambda_layers[4]}-{cls.layer_postfix}"
         environment_variables["TF_VAR_bucket_name"] = cls.bucket_name
         return environment_variables
 
@@ -262,7 +285,14 @@ class TestInvokeTerraformApplicationWithLayersWithoutBuild(InvokeTerraformApplic
 
         # delete the override file
         try:
-            os.remove(str(Path(cls.terraform_application_path).joinpath("const_layer", f"variable_name_override.tf")))
+            os.remove(str(Path(cls.terraform_application_path).joinpath("const_layer", "variable_name_override.tf")))
+            os.remove(
+                str(
+                    Path(cls.terraform_application_path).joinpath(
+                        "lambda_function_with_const_layer", "function_override.tf"
+                    )
+                )
+            )
         except FileNotFoundError:
             pass
 
