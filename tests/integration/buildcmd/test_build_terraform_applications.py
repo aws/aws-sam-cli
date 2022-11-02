@@ -496,6 +496,32 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(Build
     not CI_OVERRIDE,
     "Skip Terraform test cases unless running in CI",
 )
+class TestInvalidBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3BackendNoS3Config(
+    BuildTerraformApplicationIntegBase
+):
+    terraform_application = (
+        Path("terraform/zip_based_lambda_functions_s3_backend")
+        if not IS_WINDOWS
+        else Path("terraform/zip_based_lambda_functions_s3_backend_windows")
+    )
+
+    def test_build_no_s3_config(self):
+        command_list_parameters = {
+            "beta_features": True,
+            "hook_package_id": "terraform",
+        }
+        build_cmd_list = self.get_command_list(**command_list_parameters)
+        LOG.info("command list: %s", build_cmd_list)
+        environment_variables = os.environ.copy()
+        _, stderr, return_code = self.run_command(build_cmd_list, env=environment_variables)
+        LOG.info(stderr)
+        self.assertNotEqual(return_code, 0)
+
+
+@skipIf(
+    not CI_OVERRIDE,
+    "Skip Terraform test cases unless running in CI",
+)
 class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndLocalBackend(BuildTerraformApplicationIntegBase):
     terraform_application = Path("terraform/image_based_lambda_functions_local_backend")
     functions = [

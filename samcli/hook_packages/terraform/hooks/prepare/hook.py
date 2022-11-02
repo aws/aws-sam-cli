@@ -112,7 +112,7 @@ def prepare(params: dict) -> dict:
     try:
         # initialize terraform application
         LOG.info("Initializing Terraform application")
-        run(["terraform", "init"], check=True, capture_output=True, cwd=terraform_application_dir)
+        run(["terraform", "init", "-input=false"], check=True, capture_output=True, cwd=terraform_application_dir)
 
         # get json output of terraform plan
         LOG.info("Creating terraform plan and getting JSON output")
