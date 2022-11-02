@@ -729,9 +729,6 @@ def _update_mapped_lambda_function_with_resolved_layers(
 
     Parameters
     ----------
-    function_tf_resource: TFResource
-        The input lambda function terraform configuration resource
-
     cfn_functions: List[Dict]
         A list of mapped lambda functions that are equivalent to the input terraform configuration lambda function
 
