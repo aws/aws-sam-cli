@@ -373,7 +373,7 @@ class BuildContext:
         deploy_suggestion = "Deploy: sam deploy --guided"
         start_lambda_suggestion = "Emulate local Lambda functions: sam local start-lambda"
 
-        if not is_default_build_dir:
+        if not is_default_build_dir and not self._hook_package_id:
             invoke_suggestion += " -t {}".format(output_template_path)
             deploy_suggestion += " --template-file {}".format(output_template_path)
 
