@@ -85,7 +85,7 @@ $ sam build MyFunction
     force_prepare=True,
     invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"],
 )
-@skip_prepare_iac_option()
+@skip_prepare_iac_option
 @configuration_option(provider=TomlProvider(section="parameters"))
 @use_container_build_option
 @click.option(

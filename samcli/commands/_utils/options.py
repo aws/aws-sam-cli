@@ -683,7 +683,7 @@ def hook_package_id_click_option(force_prepare=True, invalid_coexist_options=Non
     )
 
 
-def skip_prepare_iac_option():
+def skip_prepare_iac_click_option():
     """
     Click option to skip the hook preparation stage
     """
@@ -695,6 +695,10 @@ def skip_prepare_iac_option():
         help="Skips the preparation stage for the hook package if the metadata file has already been generated. "
         "This option should be used together with --hook-package-id.",
     )
+
+
+def skip_prepare_iac_option(f):
+    return skip_prepare_iac_click_option()(f)
 
 
 @parameterized_option
