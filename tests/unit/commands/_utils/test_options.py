@@ -496,6 +496,7 @@ class TestParameterizedOption(TestCase):
     def test_option_dec_without_value(self):
         self.assertEqual(TestParameterizedOption.some_function_without_value(), 4)
 
+
 class TestSkipPrepareIacOption(TestCase):
     def test_skip_with_hook_package(self):
         ctx_mock = Mock()
