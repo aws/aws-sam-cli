@@ -10,6 +10,10 @@ variable "layer_name" {
     type = string
 }
 
+variable "layer44_name" {
+    type = string
+}
+
 variable "bucket_name" {
     type = string
 }
@@ -248,4 +252,17 @@ module "function9" {
   handler       = "app.lambda_handler"
   runtime       = "python3.8"
   layers = [module.layer9.lambda_layer_arn]
+}
+
+module "function33" {
+  source = "./lambda_function_with_const_layer"
+  source_code = "./artifacts/HelloWorldFunction.zip"
+  function_name = "function33_${random_pet.this.id}"
+}
+
+module "function44" {
+  source = "./lambda_function_with_const_layers_using_data_sources"
+  source_code = "./artifacts/HelloWorldFunction.zip"
+  function_name = "function44_${random_pet.this.id}"
+  layer_name = var.layer44_name
 }

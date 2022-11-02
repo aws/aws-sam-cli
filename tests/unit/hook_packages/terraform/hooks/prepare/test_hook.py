@@ -2547,7 +2547,7 @@ class TestPrepareHook(TestCase):
 
         mock_subprocess_run.assert_has_calls(
             [
-                call(["terraform", "init"], check=True, capture_output=True, cwd="iac/project/path"),
+                call(["terraform", "init", "-input=false"], check=True, capture_output=True, cwd="iac/project/path"),
                 call(
                     ["terraform", "plan", "-out", tf_plan_filename, "-input=false"],
                     check=True,
@@ -2627,7 +2627,12 @@ class TestPrepareHook(TestCase):
 
         mock_subprocess_run.assert_has_calls(
             [
-                call(["terraform", "init"], check=True, capture_output=True, cwd="/current/dir/iac/project/path"),
+                call(
+                    ["terraform", "init", "-input=false"],
+                    check=True,
+                    capture_output=True,
+                    cwd="/current/dir/iac/project/path",
+                ),
                 call(
                     ["terraform", "plan", "-out", tf_plan_filename, "-input=false"],
                     check=True,
