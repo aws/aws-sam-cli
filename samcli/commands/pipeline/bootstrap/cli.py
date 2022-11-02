@@ -135,7 +135,7 @@ OPENID_CONNECT = "OpenID Connect (OIDC)"
 @click.option(
     "--oidc-provider",
     help="The name of the CI/CD system that will be used for OIDC permissions "
-    "we currently only support GitLab, GitHub, and Bitbucket",
+    "Currently supported CI/CD systems are : <GitLab>, <GitHub>, <Bitbucket>",
     type=click.Choice([GITHUB_ACTIONS, GITLAB, BITBUCKET]),
     required=False,
     cls=ClickMutex,
@@ -143,7 +143,6 @@ OPENID_CONNECT = "OpenID Connect (OIDC)"
         ["gitlab_group", "gitlab_project"],
         ["github_org", "github_repo"],
         ["bitbucket_repo_uuid"],
-        # check non_interactive_validation for additional validations
     ],
 )
 @click.option(
@@ -235,7 +234,6 @@ def cli(
     )  # pragma: no cover
 
 
-# pylint: disable=too-many-branches
 def do_cli(
     region: Optional[str],
     profile: Optional[str],
