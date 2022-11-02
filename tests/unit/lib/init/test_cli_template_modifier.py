@@ -5,7 +5,10 @@ from collections import OrderedDict
 
 from samcli.lib.init.template_modifiers.cli_template_modifier import TemplateModifier
 from samcli.lib.init.template_modifiers.xray_tracing_template_modifier import XRayTracingTemplateModifier
-from samcli.lib.init.template_modifiers.application_insights_template_modifier import ApplicationInsightsTemplateModifier
+from samcli.lib.init.template_modifiers.application_insights_template_modifier import (
+    ApplicationInsightsTemplateModifier,
+)
+
 
 class TestTemplateModifier(TestCase):
     def setUp(self):
@@ -21,7 +24,9 @@ class TestTemplateModifier(TestCase):
         ]
         self.template_location = "/test.yaml"
 
-    @patch("samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template")
+    @patch(
+        "samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template"
+    )
     def test_must_update_template_fields(self, get_template_patch):
         get_template_patch.return_value = [
             "Resources:\n",
@@ -53,7 +58,9 @@ class TestTemplateModifier(TestCase):
 
         self.assertEqual(template_modifier.template, expected_template_data)
 
-    @patch("samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template")
+    @patch(
+        "samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template"
+    )
     def test_must_add_new_function_field_to_template(self, get_template_patch):
         get_template_patch.return_value = [
             "# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst\n",
@@ -91,7 +98,9 @@ class TestTemplateModifier(TestCase):
 
         self.assertEqual(template_modifier.template, expected_template_data)
 
-    @patch("samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template")
+    @patch(
+        "samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template"
+    )
     def test_must_add_new_api_function_field_to_template(self, get_template_patch):
         get_template_patch.return_value = [
             "# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst\n",
@@ -129,7 +138,9 @@ class TestTemplateModifier(TestCase):
         template_modifier._update_template_fields()
         self.assertEqual(template_modifier.template, expected_template_data)
 
-    @patch("samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template")
+    @patch(
+        "samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template"
+    )
     def test_must_replace_new_field_to_template(self, get_template_patch):
         get_template_patch.return_value = [
             "# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst\n",
@@ -172,7 +183,9 @@ class TestTemplateModifier(TestCase):
 
         self.assertEqual(template_modifier.template, expected_template_data)
 
-    @patch("samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template")
+    @patch(
+        "samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template"
+    )
     def test_must_add_new_tracing_field_to_template(self, get_template_patch):
         get_template_patch.return_value = [
             "# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst\n",
@@ -209,7 +222,9 @@ class TestTemplateModifier(TestCase):
         template_modifier._update_template_fields()
         self.assertEqual(template_modifier.template, expected_template_data)
 
-    @patch("samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template")
+    @patch(
+        "samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template"
+    )
     def test_must_get_section_position(self, get_template_patch):
         get_template_patch.return_value = [
             "# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst\n",
@@ -238,7 +253,9 @@ class TestTemplateModifier(TestCase):
         self.assertEqual(api_location, 4)
         self.assertEqual(resource_location, 7)
 
-    @patch("samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template")
+    @patch(
+        "samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template"
+    )
     def test_must_get_section_position_desc(self, get_template_patch):
         get_template_patch.return_value = [
             "# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst\n",
@@ -267,7 +284,9 @@ class TestTemplateModifier(TestCase):
         self.assertEqual(function_location, 4)
         self.assertEqual(resource_location, 7)
 
-    @patch("samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template")
+    @patch(
+        "samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template"
+    )
     def test_must_get_function_field_position(self, get_template_patch):
         get_template_patch.return_value = [
             "Resources:\n",
@@ -283,7 +302,9 @@ class TestTemplateModifier(TestCase):
 
         self.assertEqual(tracing_location, -1)
 
-    @patch("samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template")
+    @patch(
+        "samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template"
+    )
     def test_must_get_api_field_position(self, get_template_patch):
         get_template_patch.return_value = [
             "Resources:\n",
@@ -331,66 +352,165 @@ class TestTemplateModifier(TestCase):
         result = template_modifier._sanity_check()
         self.assertTrue(result)
 
-    @patch("samcli.lib.init.template_modifiers.application_insights_template_modifier.ApplicationInsightsTemplateModifier._get_template")
+    @patch(
+        "samcli.lib.init.template_modifiers.application_insights_template_modifier.ApplicationInsightsTemplateModifier._get_template"
+    )
     def test_must_add_application_insights_monitoring(self, get_template_patch):
-        get_template_patch.return_value = OrderedDict([('AWSTemplateFormatVersion', '2010-09-09'),
-                                                       ('Transform', 'AWS::Serverless-2016-10-31'),
-                                                       ('Description', 'testing2\nSample SAM Template for testing2\n'),
-                                                       ('Globals', OrderedDict(
-                                                           [('Function', OrderedDict(
-                                                               [('Timeout', 3)]))])),
-                                                       ('Resources', OrderedDict(
-                                                           [('HelloWorldFunction', OrderedDict(
-                                                               [('Type', 'AWS::Serverless::Function'),
-                                                                ('Properties', OrderedDict(
-                                                                    [('CodeUri', 'hello_world/'),
-                                                                    ('Handler', 'app.lambda_handler'),
-                                                                     ('Runtime', 'python3.9'),
-                                                                     ('Architectures', ['x86_64']),
-                                                                     ('Events', OrderedDict(
-                                                                         [('HelloWorld', OrderedDict(
-                                                                             [('Type', 'Api'),
-                                                                              ('Properties', OrderedDict(
-                                                                                  [('Path', '/hello'),
-                                                                                   ('Method', 'get')]))]))]))]))]))]))])
+        get_template_patch.return_value = OrderedDict(
+            [
+                ("AWSTemplateFormatVersion", "2010-09-09"),
+                ("Transform", "AWS::Serverless-2016-10-31"),
+                ("Description", "testing2\nSample SAM Template for testing2\n"),
+                ("Globals", OrderedDict([("Function", OrderedDict([("Timeout", 3)]))])),
+                (
+                    "Resources",
+                    OrderedDict(
+                        [
+                            (
+                                "HelloWorldFunction",
+                                OrderedDict(
+                                    [
+                                        ("Type", "AWS::Serverless::Function"),
+                                        (
+                                            "Properties",
+                                            OrderedDict(
+                                                [
+                                                    ("CodeUri", "hello_world/"),
+                                                    ("Handler", "app.lambda_handler"),
+                                                    ("Runtime", "python3.9"),
+                                                    ("Architectures", ["x86_64"]),
+                                                    (
+                                                        "Events",
+                                                        OrderedDict(
+                                                            [
+                                                                (
+                                                                    "HelloWorld",
+                                                                    OrderedDict(
+                                                                        [
+                                                                            ("Type", "Api"),
+                                                                            (
+                                                                                "Properties",
+                                                                                OrderedDict(
+                                                                                    [
+                                                                                        ("Path", "/hello"),
+                                                                                        ("Method", "get"),
+                                                                                    ]
+                                                                                ),
+                                                                            ),
+                                                                        ]
+                                                                    ),
+                                                                )
+                                                            ]
+                                                        ),
+                                                    ),
+                                                ]
+                                            ),
+                                        ),
+                                    ]
+                                ),
+                            )
+                        ]
+                    ),
+                ),
+            ]
+        )
 
-        expected_template_data = OrderedDict([('AWSTemplateFormatVersion', '2010-09-09'),
-                                                       ('Transform', 'AWS::Serverless-2016-10-31'),
-                                                       ('Description', 'testing2\nSample SAM Template for testing2\n'),
-                                                       ('Globals', OrderedDict(
-                                                           [('Function', OrderedDict(
-                                                               [('Timeout', 3)]))])),
-                                                       ('Resources', OrderedDict(
-                                                           [('HelloWorldFunction', OrderedDict(
-                                                               [('Type', 'AWS::Serverless::Function'),
-                                                                ('Properties', OrderedDict(
-                                                                    [('CodeUri', 'hello_world/'),
-                                                                    ('Handler', 'app.lambda_handler'),
-                                                                     ('Runtime', 'python3.9'),
-                                                                     ('Architectures', ['x86_64']),
-                                                                     ('Events', OrderedDict(
-                                                                         [('HelloWorld', OrderedDict(
-                                                                             [('Type', 'Api'),
-                                                                              ('Properties', OrderedDict(
-                                                                                  [('Path', '/hello'),
-                                                                                   ('Method', 'get')]))]))]))]))])),
-                                                            ('ApplicationResourceGroup', OrderedDict([
-                                                                ('Type', 'AWS::ResourceGroups::Group'),
-                                                                ('Properties', OrderedDict([
-                                                                    ('Name', 'ApplicationInsights-SAM-testApp'),
-                                                                    ('ResourceQuery', OrderedDict([
-                                                                        ('Type', 'CLOUDFORMATION_STACK_1_0')
-                                                                    ]))
-                                                                ]))
-                                                            ])),
-                                                            ('ApplicationInsightsMonitoring', OrderedDict([
-                                                                ('Type', 'AWS::ApplicationInsights::Application'),
-                                                                ('Properties', OrderedDict([
-                                                                    ('ResourceGroupName', 'ApplicationInsights-SAM-testApp'),
-                                                                    ('AutoConfigurationEnabled', 'true')
-                                                                ])),
-                                                                ('DependsOn', 'ApplicationResourceGroup')
-                                                            ]))]))])
+        expected_template_data = OrderedDict(
+            [
+                ("AWSTemplateFormatVersion", "2010-09-09"),
+                ("Transform", "AWS::Serverless-2016-10-31"),
+                ("Description", "testing2\nSample SAM Template for testing2\n"),
+                ("Globals", OrderedDict([("Function", OrderedDict([("Timeout", 3)]))])),
+                (
+                    "Resources",
+                    OrderedDict(
+                        [
+                            (
+                                "HelloWorldFunction",
+                                OrderedDict(
+                                    [
+                                        ("Type", "AWS::Serverless::Function"),
+                                        (
+                                            "Properties",
+                                            OrderedDict(
+                                                [
+                                                    ("CodeUri", "hello_world/"),
+                                                    ("Handler", "app.lambda_handler"),
+                                                    ("Runtime", "python3.9"),
+                                                    ("Architectures", ["x86_64"]),
+                                                    (
+                                                        "Events",
+                                                        OrderedDict(
+                                                            [
+                                                                (
+                                                                    "HelloWorld",
+                                                                    OrderedDict(
+                                                                        [
+                                                                            ("Type", "Api"),
+                                                                            (
+                                                                                "Properties",
+                                                                                OrderedDict(
+                                                                                    [
+                                                                                        ("Path", "/hello"),
+                                                                                        ("Method", "get"),
+                                                                                    ]
+                                                                                ),
+                                                                            ),
+                                                                        ]
+                                                                    ),
+                                                                )
+                                                            ]
+                                                        ),
+                                                    ),
+                                                ]
+                                            ),
+                                        ),
+                                    ]
+                                ),
+                            ),
+                            (
+                                "ApplicationResourceGroup",
+                                OrderedDict(
+                                    [
+                                        ("Type", "AWS::ResourceGroups::Group"),
+                                        (
+                                            "Properties",
+                                            OrderedDict(
+                                                [
+                                                    ("Name", "ApplicationInsights-SAM-testApp"),
+                                                    (
+                                                        "ResourceQuery",
+                                                        OrderedDict([("Type", "CLOUDFORMATION_STACK_1_0")]),
+                                                    ),
+                                                ]
+                                            ),
+                                        ),
+                                    ]
+                                ),
+                            ),
+                            (
+                                "ApplicationInsightsMonitoring",
+                                OrderedDict(
+                                    [
+                                        ("Type", "AWS::ApplicationInsights::Application"),
+                                        (
+                                            "Properties",
+                                            OrderedDict(
+                                                [
+                                                    ("ResourceGroupName", "ApplicationInsights-SAM-testApp"),
+                                                    ("AutoConfigurationEnabled", "true"),
+                                                ]
+                                            ),
+                                        ),
+                                        ("DependsOn", "ApplicationResourceGroup"),
+                                    ]
+                                ),
+                            ),
+                        ]
+                    ),
+                ),
+            ]
+        )
 
         template_modifier = ApplicationInsightsTemplateModifier(self.location, self.name)
         template_modifier._update_template_fields()
