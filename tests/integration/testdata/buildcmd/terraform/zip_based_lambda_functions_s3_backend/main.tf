@@ -305,7 +305,7 @@ resource "null_resource" "build_layer3_version" {
 
 resource "null_resource" "sam_metadata_aws_lambda_layer_version_layer3" {
     triggers = {
-        resource_name = "aws_lambda_layer_version.layer3"
+        resource_name = "aws_lambda_layer_version.layer3[\"my_idx\"]"
         resource_type = "LAMBDA_LAYER"
 
         original_source_code = local.layer3_src_path
@@ -326,9 +326,12 @@ resource "aws_s3_object" "layer3_code" {
 }
 
 resource "aws_lambda_layer_version" "layer3" {
+  for_each = {
+    my_idx = "lambda_layer3"
+  }
   s3_bucket = aws_s3_bucket.lambda_code_bucket.id
   s3_key = "layer3_code"
-  layer_name = "lambda_layer3"
+  layer_name = each.value
   compatible_runtimes = ["python3.8"]
   depends_on = [
       null_resource.build_layer3_version, aws_s3_object.layer3_code
@@ -537,7 +540,7 @@ resource "aws_lambda_function" "function3" {
     function_name = "function3"
     role = aws_iam_role.iam_for_lambda.arn
     layers = [
-        aws_lambda_layer_version.layer3.arn,
+        aws_lambda_layer_version.layer3["my_idx"].arn,
     ]
     depends_on = [
         null_resource.build_hello_world_lambda_function, aws_s3_object.function3_code
