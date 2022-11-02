@@ -1274,15 +1274,13 @@ class TestBuildContext_gen_success_msg(TestCase):
         self.build_context._hook_package_id = False
 
         msg = self.build_context._gen_success_msg(self.build_dir, self.template_file, False)
-        expected_msg = """\nBuilt Artifacts  : build_dir
+        expected_msg = f"""\nBuilt Artifacts  : build_dir
 Built Template   : template_file
-
 Commands you can use next
 =========================
-[*] Validate SAM template: sam validate
-[*] Invoke Function: sam local invoke -t template_file
-[*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
-[*] Deploy: sam deploy --guided --template-file template_file"""
+[*] Validate SAM template: sam validate{os.linesep}[*] Invoke Function: sam local invoke -t template_file{os.linesep}"""
+f"""[*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch{os.linesep}[*] Deploy: sam deploy """
+"""--guided --template-file template_file"""
 
         self.assertEqual(msg, expected_msg)
 
@@ -1290,12 +1288,12 @@ Commands you can use next
         self.build_context._hook_package_id = "iac"
 
         msg = self.build_context._gen_success_msg(self.build_dir, self.template_file, False)
-        expected_msg = """\nBuilt Artifacts  : build_dir
+        expected_msg = f"""\nBuilt Artifacts  : build_dir
 Built Template   : template_file
 
 Commands you can use next
 =========================
-[*] Invoke Function: sam local invoke --hook-package-id iac
-[*] Emulate local Lambda functions: sam local start-lambda --hook-package-id iac"""
+[*] Invoke Function: sam local invoke --hook-package-id iac{os.linesep}[*] Emulate local Lambda functions: sam local """
+"""start-lambda --hook-package-id iac"""
 
         self.assertEqual(msg, expected_msg)
