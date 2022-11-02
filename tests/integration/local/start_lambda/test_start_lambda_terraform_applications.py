@@ -464,6 +464,48 @@ class TestLocalStartLambdaInvalidUsecasesTerraform(StartLambdaTerraformApplicati
         )
         self.assertEqual(return_code, 0)
 
+    def test_start_lambda_with_no_beta_feature_option_in_samconfig_toml(self):
+        samconfig_toml_path = Path(self.working_dir).joinpath("samconfig.toml")
+        samconfig_lines = [
+            bytes("version = 0.1" + os.linesep, "utf-8"),
+            bytes("[default.global.parameters]" + os.linesep, "utf-8"),
+            bytes("beta_features = false" + os.linesep, "utf-8"),
+        ]
+        with open(samconfig_toml_path, "wb") as file:
+            file.writelines(samconfig_lines)
+
+        command_list = self.get_start_lambda_command(hook_package_id="terraform")
+
+        _, stderr, return_code = self._run_command(command_list, tf_application=self.working_dir)
+
+        process_stderr = stderr.strip()
+        self.assertRegex(
+            process_stderr.decode("utf-8"),
+            "Terraform Support beta feature is not enabled.",
+        )
+        self.assertEqual(return_code, 0)
+        # delete the samconfig file
+        try:
+            os.remove(samconfig_toml_path)
+        except FileNotFoundError:
+            pass
+
+    def test_start_lambda_with_no_beta_feature_option_in_environment_variables(self):
+        environment_variables = os.environ.copy()
+        environment_variables["SAM_CLI_BETA_TERRAFORM_SUPPORT"] = "False"
+
+        command_list = self.get_start_lambda_command(hook_package_id="terraform")
+        _, stderr, return_code = self._run_command(
+            command_list, tf_application=self.working_dir, env=environment_variables
+        )
+
+        process_stderr = stderr.strip()
+        self.assertRegex(
+            process_stderr.decode("utf-8"),
+            "Terraform Support beta feature is not enabled.",
+        )
+        self.assertEqual(return_code, 0)
+
     def test_invalid_coexist_parameters(self):
 
         command_list = self.get_start_lambda_command(hook_package_id="terraform", template_path="path/template.yaml")

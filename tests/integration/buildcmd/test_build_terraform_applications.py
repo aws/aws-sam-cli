@@ -249,6 +249,35 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
         self.assertEqual(return_code, 0)
         self.assertEqual(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
 
+    def test_build_terraform_with_no_beta_feature_option_in_samconfig_toml(self):
+        samconfig_toml_path = Path(self.terraform_application_path).joinpath("samconfig.toml")
+        samconfig_lines = [
+            bytes("version = 0.1" + os.linesep, "utf-8"),
+            bytes("[default.global.parameters]" + os.linesep, "utf-8"),
+            bytes("beta_features = false" + os.linesep, "utf-8"),
+        ]
+        with open(samconfig_toml_path, "wb") as file:
+            file.writelines(samconfig_lines)
+
+        cmdlist = self.get_command_list(hook_package_id="terraform")
+        _, stderr, return_code = self.run_command(cmdlist)
+        self.assertEqual(return_code, 0)
+        self.assertEqual(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
+        # delete the samconfig file
+        try:
+            os.remove(samconfig_toml_path)
+        except FileNotFoundError:
+            pass
+
+    def test_build_terraform_with_no_beta_feature_option_as_environment_variable(self):
+        environment_variables = os.environ.copy()
+        environment_variables["SAM_CLI_BETA_TERRAFORM_SUPPORT"] = "False"
+
+        build_command_list = self.get_command_list(hook_package_id="terraform")
+        _, stderr, return_code = self.run_command(build_command_list, env=environment_variables)
+        self.assertEqual(return_code, 0)
+        self.assertEqual(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
+
 
 @skipIf(
     not CI_OVERRIDE,

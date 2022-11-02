@@ -87,6 +87,57 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
         not CI_OVERRIDE,
         "Skip Terraform test cases unless running in CI",
     )
+    @parameterized.expand(functions)
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_terraform_with_beta_feature_option_in_samconfig_toml(self, function_name):
+        samconfig_toml_path = Path(self.terraform_application_path).joinpath("samconfig.toml")
+        samconfig_lines = [
+            bytes("version = 0.1" + os.linesep, "utf-8"),
+            bytes("[default.global.parameters]" + os.linesep, "utf-8"),
+            bytes("beta_features = true" + os.linesep, "utf-8"),
+        ]
+        with open(samconfig_toml_path, "wb") as file:
+            file.writelines(samconfig_lines)
+
+        local_invoke_command_list = self.get_command_list(function_to_invoke=function_name, hook_package_id="terraform")
+        stdout, _, return_code = self.run_command(local_invoke_command_list)
+
+        # Get the response without the sam-cli prompts that proceed it
+        response = json.loads(stdout.decode("utf-8").split("\n")[0])
+        expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"hello world\\"}"}')
+
+        self.assertEqual(return_code, 0)
+        self.assertEqual(response, expected_response)
+        # delete the samconfig file
+        try:
+            os.remove(samconfig_toml_path)
+        except FileNotFoundError:
+            pass
+
+    @skipIf(
+        not CI_OVERRIDE,
+        "Skip Terraform test cases unless running in CI",
+    )
+    @parameterized.expand(functions)
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_terraform_with_beta_feature_option_as_environment_variable(self, function_name):
+        environment_variables = os.environ.copy()
+        environment_variables["SAM_CLI_BETA_TERRAFORM_SUPPORT"] = "True"
+
+        local_invoke_command_list = self.get_command_list(function_to_invoke=function_name, hook_package_id="terraform")
+        stdout, _, return_code = self.run_command(local_invoke_command_list, env=environment_variables)
+
+        # Get the response without the sam-cli prompts that proceed it
+        response = json.loads(stdout.decode("utf-8").split("\n")[0])
+        expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"hello world\\"}"}')
+
+        self.assertEqual(return_code, 0)
+        self.assertEqual(response, expected_response)
+
+    @skipIf(
+        not CI_OVERRIDE,
+        "Skip Terraform test cases unless running in CI",
+    )
     @pytest.mark.flaky(reruns=3)
     def test_invoke_function_get_experimental_prompted(self):
         local_invoke_command_list = self.get_command_list(
@@ -175,6 +226,45 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
             function_to_invoke="func", hook_package_id="terraform", beta_features=False
         )
         _, stderr, return_code = self.run_command(local_invoke_command_list)
+
+        process_stderr = stderr.strip()
+        self.assertRegex(
+            process_stderr.decode("utf-8"),
+            "Terraform Support beta feature is not enabled.",
+        )
+        self.assertEqual(return_code, 0)
+
+    def test_invoke_terraform_with_no_beta_feature_option_in_samconfig_toml(self):
+        samconfig_toml_path = Path(self.terraform_application_path).joinpath("samconfig.toml")
+        samconfig_lines = [
+            bytes("version = 0.1" + os.linesep, "utf-8"),
+            bytes("[default.global.parameters]" + os.linesep, "utf-8"),
+            bytes("beta_features = false" + os.linesep, "utf-8"),
+        ]
+        with open(samconfig_toml_path, "wb") as file:
+            file.writelines(samconfig_lines)
+
+        local_invoke_command_list = self.get_command_list(function_to_invoke="func", hook_package_id="terraform")
+        _, stderr, return_code = self.run_command(local_invoke_command_list)
+
+        process_stderr = stderr.strip()
+        self.assertRegex(
+            process_stderr.decode("utf-8"),
+            "Terraform Support beta feature is not enabled.",
+        )
+        self.assertEqual(return_code, 0)
+        # delete the samconfig file
+        try:
+            os.remove(samconfig_toml_path)
+        except FileNotFoundError:
+            pass
+
+    def test_invoke_terraform_with_no_beta_feature_option_as_environment_variable(self):
+        environment_variables = os.environ.copy()
+        environment_variables["SAM_CLI_BETA_TERRAFORM_SUPPORT"] = "False"
+
+        local_invoke_command_list = self.get_command_list(function_to_invoke="func", hook_package_id="terraform")
+        _, stderr, return_code = self.run_command(local_invoke_command_list, env=environment_variables)
 
         process_stderr = stderr.strip()
         self.assertRegex(
