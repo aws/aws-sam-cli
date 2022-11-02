@@ -1,5 +1,6 @@
 from unittest import TestCase
 from unittest.mock import patch, Mock
+from parameterized import parameterized
 
 import click
 from click.testing import CliRunner
@@ -208,17 +209,29 @@ class TestCli(TestCase):
         environment_instance.print_resources_summary.assert_not_called()
         environment_instance.save_config_safe.assert_not_called()
 
+    @parameterized.expand(
+        [
+            ("any_github_org", None, "any_gitlab_group", None, None),
+            (None, "any_github_repo", None, "any_gitlab_project", None),
+            (None, "any_github_repo", None, None, "bitbucket_repo_uuid"),
+            (None, None, None, "any_gitlab_group", "bitbucket_repo_uuid"),
+        ]
+    )
     @patch("samcli.lib.pipeline.bootstrap.stage.Stage")
-    def test_bootstrapping_oidc_fails_conflict_parameters(self, environment_mock):
+    def test_bootstrapping_oidc_fails_conflict_parameters(
+        self, github_org, github_repo, gitlab_group, gitlab_project, bitbucket_repo_uuid, environment_mock
+    ):
         # setup
         environment_instance = Mock()
         environment_mock.return_value = environment_instance
         self.cli_context["interactive"] = False
         self.cli_context["permissions_provider"] = "oidc"
         self.cli_context["oidc_provider"] = GITHUB_ACTIONS
-        self.cli_context["github_org"] = ANY_GITHUB_ORG
-        self.cli_context["github_repo"] = ANY_GITHUB_REPO
-        self.cli_context["gitlab_group"] = ANY_GITLAB_GROUP
+        self.cli_context["github_org"] = github_org
+        self.cli_context["github_repo"] = github_repo
+        self.cli_context["gitlab_group"] = gitlab_group
+        self.cli_context["gitlab_project"] = gitlab_project
+        self.cli_context["bitbucket_repo_uuid"] = bitbucket_repo_uuid
         self.cli_context["deployment_branch"] = None
 
         # trigger

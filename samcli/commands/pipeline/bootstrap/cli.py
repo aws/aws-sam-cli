@@ -135,7 +135,7 @@ OPENID_CONNECT = "OpenID Connect (OIDC)"
 @click.option(
     "--oidc-provider",
     help="The name of the CI/CD system that will be used for OIDC permissions "
-    "Currently supported CI/CD systems are : <GitLab>, <GitHub>, <Bitbucket>",
+    "Currently supported CI/CD systems are : GitLab, GitHub and Bitbucket",
     type=click.Choice([GITHUB_ACTIONS, GITLAB, BITBUCKET]),
     required=False,
     cls=ClickMutex,
