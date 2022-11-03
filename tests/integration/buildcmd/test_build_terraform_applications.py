@@ -15,6 +15,8 @@ import docker
 
 from parameterized import parameterized, parameterized_class
 
+from samcli.commands._utils.experimental import EXPERIMENTAL_WARNING
+from samcli.lib.utils.colors import Colored
 from tests.integration.buildcmd.build_integ_base import BuildIntegBase
 from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS
 
@@ -193,8 +195,8 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
         process_stderr = stderr.strip()
         self.assertRegex(
             process_stderr.decode("utf-8"),
-            "Error: Invalid value: Parameters hook-package-id, and t,template-file,template,parameter-overrides can "
-            "not be used together",
+            "Error: Invalid value: Parameters hook-package-id, and t,template-file,template,parameter-overrides cannot "
+            "be used together",
         )
         self.assertNotEqual(return_code, 0)
 
@@ -231,15 +233,50 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
 
     def test_exit_success_no_beta_feature_flags_hooks(self):
         cmdlist = self.get_command_list(beta_features=None, hook_package_id="terraform")
-        _, stderr, return_code = self.run_command(cmdlist, input=b"N\n\n")
+        stdout, stderr, return_code = self.run_command(cmdlist, input=b"N\n\n")
+        terraform_beta_feature_prompted_text = (
+            f"Supporting Terraform applications is a beta feature.{os.linesep}"
+            f"Please confirm if you would like to proceed using AWS SAM CLI with terraform application.{os.linesep}"
+            "You can also enable this beta feature with 'sam build --beta-features'."
+        )
+        self.assertRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
         self.assertEqual(return_code, 0)
-        self.assertEqual(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
+        self.assertRegex(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
 
     def test_exit_success_no_beta_features_flags_supplied_hooks(self):
         cmdlist = self.get_command_list(beta_features=False, hook_package_id="terraform")
         _, stderr, return_code = self.run_command(cmdlist)
         self.assertEqual(return_code, 0)
-        self.assertEqual(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
+        self.assertRegex(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
+
+    def test_build_terraform_with_no_beta_feature_option_in_samconfig_toml(self):
+        samconfig_toml_path = Path(self.terraform_application_path).joinpath("samconfig.toml")
+        samconfig_lines = [
+            bytes("version = 0.1" + os.linesep, "utf-8"),
+            bytes("[default.global.parameters]" + os.linesep, "utf-8"),
+            bytes("beta_features = false" + os.linesep, "utf-8"),
+        ]
+        with open(samconfig_toml_path, "wb") as file:
+            file.writelines(samconfig_lines)
+
+        cmdlist = self.get_command_list(hook_package_id="terraform")
+        _, stderr, return_code = self.run_command(cmdlist)
+        self.assertEqual(return_code, 0)
+        self.assertRegex(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
+        # delete the samconfig file
+        try:
+            os.remove(samconfig_toml_path)
+        except FileNotFoundError:
+            pass
+
+    def test_build_terraform_with_no_beta_feature_option_as_environment_variable(self):
+        environment_variables = os.environ.copy()
+        environment_variables["SAM_CLI_BETA_TERRAFORM_SUPPORT"] = "False"
+
+        build_command_list = self.get_command_list(hook_package_id="terraform")
+        _, stderr, return_code = self.run_command(build_command_list, env=environment_variables)
+        self.assertEqual(return_code, 0)
+        self.assertRegex(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
 
 
 @skipIf(
@@ -335,7 +372,14 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
         environment_variables = os.environ.copy()
         if should_override_code:
             environment_variables["TF_VAR_hello_function_src_code"] = "./artifacts/HelloWorldFunction2"
-        _, stderr, return_code = self.run_command(build_cmd_list, env=environment_variables)
+        stdout, stderr, return_code = self.run_command(build_cmd_list, env=environment_variables)
+        terraform_beta_feature_prompted_text = (
+            "Supporting Terraform applications is a beta feature.\n"
+            "Please confirm if you would like to proceed using AWS SAM CLI with terraform application.\n"
+            "You can also enable this beta feature with 'sam build --beta-features'."
+        )
+        self.assertNotRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
+        self.assertTrue(stderr.decode("utf-8").startswith(Colored().yellow(EXPERIMENTAL_WARNING)))
         LOG.info(stderr)
         self.assertEqual(return_code, 0)
 
