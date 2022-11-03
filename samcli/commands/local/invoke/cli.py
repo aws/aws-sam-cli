@@ -7,7 +7,7 @@ import click
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands._utils.experimental import experimental, is_experimental_enabled, ExperimentalFlag
-from samcli.commands._utils.options import hook_package_id_click_option, skip_prepare_iac_option
+from samcli.commands._utils.options import hook_package_id_click_option, skip_prepare_infra_option
 from samcli.commands.local.cli_common.options import invoke_common_options, local_common_options
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.telemetry.metric import track_command
@@ -39,8 +39,8 @@ STDIN_FILE_NAME = "-"
 @hook_package_id_click_option(
     force_prepare=False, invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"]
 )
-@skip_prepare_iac_option
 @configuration_option(provider=TomlProvider(section="parameters"))
+@skip_prepare_infra_option
 @click.option(
     "--event",
     "-e",
@@ -84,7 +84,7 @@ def cli(
     container_host_interface,
     invoke_image,
     hook_package_id,
-    skip_prepare_iac,
+    skip_prepare_infra,
 ):
     """
     `sam local invoke` command entry point

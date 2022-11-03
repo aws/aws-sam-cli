@@ -20,7 +20,7 @@ from samcli.commands._utils.options import (
     resolve_s3_callback,
     image_repositories_callback,
     _space_separated_list_func_type,
-    skip_prepare_iac_callback,
+    skip_prepare_infra_callback,
 )
 from samcli.commands._utils.parameterized_option import parameterized_option
 from samcli.commands.package.exceptions import PackageResolveS3AndS3SetError, PackageResolveS3AndS3NotSetError
@@ -497,12 +497,12 @@ class TestParameterizedOption(TestCase):
         self.assertEqual(TestParameterizedOption.some_function_without_value(), 4)
 
 
-class TestSkipPrepareIacOption(TestCase):
+class TestSkipPrepareInfraOption(TestCase):
     def test_skip_with_hook_package(self):
         ctx_mock = Mock()
         ctx_mock.params = {"hook_package_id": "test"}
 
-        skip_prepare_iac_callback(ctx_mock, Mock(), True)
+        skip_prepare_infra_callback(ctx_mock, Mock(), True)
 
     def test_skip_without_hook_package(self):
         ctx_mock = Mock()
@@ -513,6 +513,6 @@ class TestSkipPrepareIacOption(TestCase):
         param_mock.name = "test"
 
         with self.assertRaises(click.BadOptionUsage) as ex:
-            skip_prepare_iac_callback(ctx_mock, param_mock, True)
+            skip_prepare_infra_callback(ctx_mock, param_mock, True)
 
         self.assertEqual(str(ex.exception), "Missing option --hook-package-id")

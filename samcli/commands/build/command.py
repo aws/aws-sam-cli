@@ -10,7 +10,7 @@ import click
 from samcli.cli.context import Context
 from samcli.commands._utils.experimental import experimental, ExperimentalFlag, is_experimental_enabled
 from samcli.commands._utils.options import (
-    skip_prepare_iac_option,
+    skip_prepare_infra_option,
     template_option_without_build,
     docker_common_options,
     parameter_override_option,
@@ -85,8 +85,8 @@ $ sam build MyFunction
     force_prepare=True,
     invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"],
 )
-@skip_prepare_iac_option
 @configuration_option(provider=TomlProvider(section="parameters"))
+@skip_prepare_infra_option
 @use_container_build_option
 @click.option(
     "--container-env-var",
@@ -174,7 +174,7 @@ def cli(
     config_file: str,
     config_env: str,
     hook_package_id: Optional[str],
-    skip_prepare_iac: bool,
+    skip_prepare_infra: bool,
 ) -> None:
     """
     `sam build` command entry point

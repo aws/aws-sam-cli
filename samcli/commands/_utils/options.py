@@ -200,9 +200,9 @@ def resolve_s3_callback(ctx, param, provided_value, artifact, exc_set, exc_not_s
     return provided_value
 
 
-def skip_prepare_iac_callback(ctx: click.core.Context, param: click.Option, provided_value: bool):
+def skip_prepare_infra_callback(ctx: click.core.Context, param: click.Option, provided_value: bool):
     """
-    Callback for --skip-prepare-iac to check if --hook-package-id is also specified
+    Callback for --skip-prepare-infra to check if --hook-package-id is also specified
 
     Parameters
     ----------
@@ -683,22 +683,22 @@ def hook_package_id_click_option(force_prepare=True, invalid_coexist_options=Non
     )
 
 
-def skip_prepare_iac_click_option():
+def skip_prepare_infra_click_option():
     """
     Click option to skip the hook preparation stage
     """
     return click.option(
-        "--skip-prepare-iac",
+        "--skip-prepare-infra",
         is_flag=True,
         required=False,
-        callback=skip_prepare_iac_callback,
+        callback=skip_prepare_infra_callback,
         help="Skips the preparation stage for the hook package if the metadata file has already been generated. "
         "This option should be used together with --hook-package-id.",
     )
 
 
-def skip_prepare_iac_option(f):
-    return skip_prepare_iac_click_option()(f)
+def skip_prepare_infra_option(f):
+    return skip_prepare_infra_click_option()(f)
 
 
 @parameterized_option
