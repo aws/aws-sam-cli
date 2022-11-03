@@ -1731,7 +1731,7 @@ class TestPrepareHook(TestCase):
                 None,
                 "module.mymodule1",
                 ["ABCDEFG"],
-                "sam cli expects the sam metadata resource null_resource.sam_metadata_func2 to contain a resource name "
+                "AWS SAM CLI expects the sam metadata resource null_resource.sam_metadata_func2 to contain a resource name "
                 "that will be enriched using this metadata resource",
             ),
             (
@@ -2839,7 +2839,7 @@ class TestPrepareHook(TestCase):
             "entry_point": ["entry1", "entry2"],
             "working_directory": "/working/dir/path",
         }
-        expected_message = f"SAM CLI expects that the value of image_config of aws_lambda_function resource in "
+        expected_message = f"AWS SAM CLI expects that the value of image_config of aws_lambda_function resource in "
         f"the terraform plan output to be of type list instead of {type(image_config)}"
         with self.assertRaises(PrepareHookException, msg=expected_message):
             _check_image_config_value(image_config)
@@ -2857,7 +2857,7 @@ class TestPrepareHook(TestCase):
                 "working_directory": "/working/dir/path",
             },
         ]
-        expected_message = f"SAM CLI expects that there is only one item in the  image_config property of "
+        expected_message = f"AWS SAM CLI expects that there is only one item in the  image_config property of "
         f"aws_lambda_function resource in the terraform plan output, but there are {len(image_config)} items"
         with self.assertRaises(PrepareHookException, msg=expected_message):
             _check_image_config_value(image_config)

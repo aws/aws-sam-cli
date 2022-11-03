@@ -60,10 +60,10 @@ Here is a Python example:
     help=HELP_TEXT,
     short_help="Starts a local endpoint you can use to invoke your local Lambda functions.",
 )
+@configuration_option(provider=TomlProvider(section="parameters"))
 @hook_package_id_click_option(
     force_prepare=False, invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"]
 )
-@configuration_option(provider=TomlProvider(section="parameters"))
 @service_common_options(3001)
 @invoke_common_options
 @experimental
