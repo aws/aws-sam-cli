@@ -6,13 +6,13 @@ import logging
 import os
 import click
 
+from samcli.cli.global_config import GlobalConfig
 from samcli.commands._utils.constants import DEFAULT_BUILT_TEMPLATE_PATH
 from samcli.commands._utils.experimental import (
     prompt_experimental,
     ExperimentalFlag,
     set_experimental,
     update_experimental_context,
-    is_experimental_enabled,
 )
 from samcli.lib.hook.exceptions import InvalidHookWrapperException
 from samcli.lib.hook.hook_wrapper import IacHookWrapper, get_available_hook_packages_ids
@@ -136,7 +136,11 @@ def _get_customer_input_beta_features_option(default_map, experimental_entry, op
 
     # Get the beta-features flag value from the environment variables.
     if experimental_entry:
-        return is_experimental_enabled(experimental_entry)
+        gc = GlobalConfig()
+        beta_features = gc.get_value(experimental_entry, default=None, value_type=bool, is_flag=True)
+        if beta_features is not None:
+            return beta_features
+        return gc.get_value(ExperimentalFlag.All, default=None, value_type=bool, is_flag=True)
 
     return None
 

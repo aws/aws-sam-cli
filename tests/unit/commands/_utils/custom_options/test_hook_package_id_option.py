@@ -182,7 +182,7 @@ class TestHookPackageIdOption(TestCase):
         iac_hook_wrapper_instance_mock.prepare.assert_not_called()
         self.assertEqual(opts.get("template_file"), None)
 
-    @patch("samcli.commands._utils.custom_options.hook_package_id_option.is_experimental_enabled")
+    @patch("samcli.commands._utils.custom_options.hook_package_id_option.GlobalConfig")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.prompt_experimental")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.getcwd")
@@ -195,7 +195,7 @@ class TestHookPackageIdOption(TestCase):
         getcwd_mock,
         prompt_experimental_mock,
         update_experimental_context_mock,
-        is_experimental_enabled_mock,
+        global_config_mock,
     ):
 
         metadata_path = "path/metadata.json"
@@ -206,7 +206,9 @@ class TestHookPackageIdOption(TestCase):
         iac_hook_wrapper_instance_mock.prepare.return_value = metadata_path
         iac_hook_wrapper_mock.return_value = iac_hook_wrapper_instance_mock
         prompt_experimental_mock.return_value = False
-        is_experimental_enabled_mock.return_value = False
+        gc_mock = MagicMock()
+        global_config_mock.return_value = gc_mock
+        gc_mock.get_value.return_value = False
 
         getcwd_mock.return_value = cwd_path
 
@@ -359,7 +361,7 @@ class TestHookPackageIdOption(TestCase):
         )
         self.assertEqual(opts.get("template_file"), metadata_path)
 
-    @patch("samcli.commands._utils.custom_options.hook_package_id_option.is_experimental_enabled")
+    @patch("samcli.commands._utils.custom_options.hook_package_id_option.GlobalConfig")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.prompt_experimental")
     @patch("samcli.commands._utils.custom_options.hook_package_id_option.os.getcwd")
@@ -372,7 +374,7 @@ class TestHookPackageIdOption(TestCase):
         getcwd_mock,
         prompt_experimental_mock,
         update_experimental_context_mock,
-        is_experimental_enabled_mock,
+        global_config_mock,
     ):
         metadata_path = "path/metadata.json"
         cwd_path = "path/current"
@@ -395,7 +397,9 @@ class TestHookPackageIdOption(TestCase):
         opts = {
             "hook_package_id": self.terraform,
         }
-        is_experimental_enabled_mock.return_value = True
+        gc_mock = MagicMock()
+        global_config_mock.return_value = gc_mock
+        gc_mock.get_value.return_value = True
         args = []
         hook_package_id_option.handle_parse_result(ctx, opts, args)
         prompt_experimental_mock.assert_not_called()

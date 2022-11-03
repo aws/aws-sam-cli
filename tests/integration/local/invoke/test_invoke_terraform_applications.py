@@ -122,7 +122,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
     @pytest.mark.flaky(reruns=3)
     def test_invoke_terraform_with_beta_feature_option_as_environment_variable(self, function_name):
         environment_variables = os.environ.copy()
-        environment_variables["SAM_CLI_BETA_TERRAFORM_SUPPORT"] = "True"
+        environment_variables["SAM_CLI_BETA_TERRAFORM_SUPPORT"] = "1"
 
         local_invoke_command_list = self.get_command_list(function_to_invoke=function_name, hook_package_id="terraform")
         stdout, _, return_code = self.run_command(local_invoke_command_list, env=environment_variables)
@@ -282,8 +282,8 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
         process_stderr = stderr.strip()
         self.assertRegex(
             process_stderr.decode("utf-8"),
-            "Error: Invalid value: Parameters hook-package-id, and t,template-file,template,parameter-overrides can "
-            "not be used together",
+            "Error: Invalid value: Parameters hook-package-id, and t,template-file,template,parameter-overrides cannot "
+            "be used together",
         )
         self.assertNotEqual(return_code, 0)
 

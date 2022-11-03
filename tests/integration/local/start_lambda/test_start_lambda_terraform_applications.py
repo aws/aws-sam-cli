@@ -514,8 +514,8 @@ class TestLocalStartLambdaInvalidUsecasesTerraform(StartLambdaTerraformApplicati
         process_stderr = stderr.strip()
         self.assertRegex(
             process_stderr.decode("utf-8"),
-            "Error: Invalid value: Parameters hook-package-id, and t,template-file,template,parameter-overrides can "
-            "not be used together",
+            "Error: Invalid value: Parameters hook-package-id, and t,template-file,template,parameter-overrides cannot "
+            "be used together",
         )
         self.assertNotEqual(return_code, 0)
 
