@@ -10,7 +10,7 @@ import os
 from json.decoder import JSONDecodeError
 from pathlib import Path
 import re
-from subprocess import run, CalledProcessError
+from subprocess import run, CalledProcessError, PIPE
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import hashlib
 import logging
@@ -39,6 +39,7 @@ from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_LAYERVERSION as CFN_AWS_LAMBDA_LAYER_VERSION,
 )
+from samcli.lib.utils.subprocess_utils import invoke_subprocess_with_loading_pattern, LoadingPatternError
 
 REMOTE_DUMMY_VALUE = "<<REMOTE DUMMY VALUE - RAISE ERROR IF IT IS STILL THERE>>"
 
@@ -112,20 +113,26 @@ def prepare(params: dict) -> dict:
     try:
         # initialize terraform application
         LOG.info("Initializing Terraform application")
-        run(["terraform", "init"], check=True, capture_output=True, cwd=terraform_application_dir)
+        invoke_subprocess_with_loading_pattern(
+            command_args={"args": ["terraform", "init"], "cwd": terraform_application_dir, "stdout": PIPE}
+        )
 
         # get json output of terraform plan
         LOG.info("Creating terraform plan and getting JSON output")
-
         with osutils.tempfile_platform_independent() as temp_file:
-            run(
-                # input false to avoid SAM CLI to stuck in case if the Terraform project expects input, and customer
-                # does not provide it.
-                ["terraform", "plan", "-out", temp_file.name, "-input=false"],
-                check=True,
-                capture_output=True,
-                cwd=terraform_application_dir,
+            process_output = invoke_subprocess_with_loading_pattern(
+                # input false to avoid SAM CLI to stuck in case if the
+                # Terraform project expects input, and customer does not provide it.
+                command_args={
+                    "args": ["terraform", "plan", "-out", temp_file.name, "-input=false"],
+                    "cwd": terraform_application_dir,
+                    "stdout": PIPE,
+                }
             )
+            if isinstance(process_output, bytes):
+                process_output = process_output.decode("utf-8")
+            LOG.debug(process_output)
+
             result = run(
                 ["terraform", "show", "-json", temp_file.name],
                 check=True,
@@ -169,6 +176,8 @@ def prepare(params: dict) -> dict:
         raise PrepareHookException(
             f"There was an error while preparing the Terraform application.\n{stderr_output}"
         ) from e
+    except LoadingPatternError as e:
+        raise PrepareHookException(f"Error occurred when invoking a process: {e}") from e
     except OSError as e:
         raise PrepareHookException(f"OSError: {e}") from e
 
