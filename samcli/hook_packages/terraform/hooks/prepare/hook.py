@@ -373,10 +373,10 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
                 lambda_config_funcs_conf_cfn_resources[resolved_config_address] = config_resource
 
                 resource_type = translated_properties.get("PackageType", ZIP)
-                resource_type_constants = {"Zip": ("zip", "filename"), "Image": ("image", "image_uri")}
+                resource_type_constants = {ZIP: ("zip", "filename"), IMAGE: ("image", "image_uri")}
                 planned_value_function_code_path = (
                     translated_properties.get("Code")
-                    if resource_type == "Zip"
+                    if resource_type == ZIP
                     else translated_properties.get("Code", {}).get("ImageUri")
                 )
                 func_type, tf_code_property = resource_type_constants[resource_type]
@@ -1534,10 +1534,10 @@ def _build_code_property(tf_properties: dict, resource: TFResource) -> Any:
         if tf_prop_value is not None:
             code[cfn_prop_name] = tf_prop_value
 
-    package_type = tf_properties.get("package_type", "Zip")
+    package_type = tf_properties.get("package_type", ZIP)
 
     # Get the S3 Bucket details from configuration in case if the customer is creating the S3 bucket in the tf project
-    if package_type == "Zip" and ("S3Bucket" not in code or "S3Key" not in code or "S3ObjectVersion" not in code):
+    if package_type == ZIP and ("S3Bucket" not in code or "S3Key" not in code or "S3ObjectVersion" not in code):
         s3_bucket_tf_config_value = _resolve_resource_attribute(resource, "s3_bucket")
         s3_key_tf_config_value = _resolve_resource_attribute(resource, "s3_key")
         s3_object_version_tf_config_value = _resolve_resource_attribute(resource, "s3_object_version")
@@ -1552,7 +1552,7 @@ def _build_code_property(tf_properties: dict, resource: TFResource) -> Any:
             code["S3ObjectVersion_config_value"] = s3_object_version_tf_config_value
 
     # Get the Image URI details from configuration in case if the customer is creating the ecr repo in the tf project
-    if package_type == "Image" and "ImageUri" not in code:
+    if package_type == IMAGE and "ImageUri" not in code:
         image_uri_tf_config_value = _resolve_resource_attribute(resource, "image_uri")
         if image_uri_tf_config_value:
             code["ImageUri"] = REMOTE_DUMMY_VALUE
