@@ -141,6 +141,11 @@ def prepare(params: dict) -> dict:
         if cfn_dict.get("Resources"):
             _update_resources_paths(cfn_dict.get("Resources"), terraform_application_dir)  # type: ignore
 
+        # Add hook metadata
+        cfn_dict["Metadata"]["AWS::SAM::Hook"] = {
+            "HookPackageId": "terraform",
+        }
+
         # store in supplied output dir
         if not os.path.exists(output_dir_path):
             os.makedirs(output_dir_path, exist_ok=True)

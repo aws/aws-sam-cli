@@ -22,6 +22,7 @@ from samcli.commands.exceptions import UserException
 from samcli.lib.hook.hook_config import HookPackageConfig
 from samcli.lib.hook.hook_wrapper import INTERNAL_PACKAGES_ROOT
 from samcli.lib.hook.exceptions import InvalidHookPackageConfigException
+from samcli.lib.hook.utils import get_hook_metadata
 from samcli.lib.iac.cdk.utils import is_cdk_project
 from samcli.lib.iac.plugins_interfaces import ProjectTypes
 from samcli.lib.telemetry.cicd import CICDDetector, CICDPlatform
@@ -199,8 +200,11 @@ def track_command(func):
 
 def _get_project_details(hook_package_id: str, template_dict: Dict) -> ProjectDetails:
     if not hook_package_id:
-        project_type = ProjectTypes.CDK.value if is_cdk_project(template_dict) else ProjectTypes.CFN.value
-        return ProjectDetails(project_type=project_type, hook_package_id=None, hook_package_version=None)
+        hook_metadata = get_hook_metadata(template_dict)
+        if not hook_metadata:
+            project_type = ProjectTypes.CDK.value if is_cdk_project(template_dict) else ProjectTypes.CFN.value
+            return ProjectDetails(project_type=project_type, hook_package_id=None, hook_package_version=None)
+        hook_package_id = str(hook_metadata.get("HookPackageId"))
     hook_location = Path(INTERNAL_PACKAGES_ROOT, hook_package_id)
     try:
         hook_package_config = HookPackageConfig(package_dir=hook_location)
