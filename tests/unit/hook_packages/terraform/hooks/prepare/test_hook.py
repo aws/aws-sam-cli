@@ -2550,7 +2550,13 @@ class TestPrepareHook(TestCase):
 
         mock_subprocess_loader.assert_has_calls(
             [
-                call(command_args={"args": ["terraform", "init"], "cwd": "iac/project/path", "stdout": PIPE}),
+                call(
+                    command_args={
+                        "args": ["terraform", "init", "-input=false"],
+                        "cwd": "iac/project/path",
+                        "stdout": PIPE,
+                    }
+                ),
                 call(
                     command_args={
                         "args": ["terraform", "plan", "-out", tf_plan_filename, "-input=false"],
@@ -2638,7 +2644,11 @@ class TestPrepareHook(TestCase):
         mock_subprocess_loader.assert_has_calls(
             [
                 call(
-                    command_args={"args": ["terraform", "init"], "cwd": "/current/dir/iac/project/path", "stdout": PIPE}
+                    command_args={
+                        "args": ["terraform", "init", "-input=false"],
+                        "cwd": "/current/dir/iac/project/path",
+                        "stdout": PIPE,
+                    }
                 ),
                 call(
                     command_args={
@@ -3001,28 +3011,34 @@ class TestPrepareHook(TestCase):
         )
         self.assertEqual(makefile_rule, expected_makefile_rule)
 
+    @parameterized.expand(
+        [
+            "null_resource.sam_metadata_aws_lambda_function",
+            "null_resource.sam_metadata_aws_lambda_function[2]",
+            'null_resource.sam_metadata_aws_lambda_layer_version_layers["layer3"]',
+        ]
+    )
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._build_jpath_string")
-    def test_build_makerule_python_command(self, jpath_string_mock):
+    def test_build_makerule_python_command(self, resource, jpath_string_mock):
         jpath_string_mock.return_value = (
-            "|values|root_module|resources|"
-            '[?address=="null_resource.sam_metadata_aws_lambda_function"]'
-            "|values|triggers|built_output_path"
+            "|values|root_module|resources|" f'[?address=="{resource}"]' "|values|triggers|built_output_path"
         )
         sam_metadata_resource = SamMetadataResource(current_module_address=None, resource={})
         show_command = _build_makerule_python_command(
             python_command_name="python",
             output_dir="/some/dir/path/.aws-sam/output",
-            resource_address="null_resource.sam_metadata_aws_lambda_function",
+            resource_address=resource,
             sam_metadata_resource=sam_metadata_resource,
             terraform_application_dir="/some/dir/path",
         )
         script_path = Path(".aws-sam", "output", "copy_terraform_built_artifacts.py")
+        escaped_resource = resource.replace('"', '\\"')
         expected_show_command = (
             f"python {script_path} "
             '--expression "|values|root_module|resources|'
-            '[?address=="null_resource.sam_metadata_aws_lambda_function"]'
+            f'[?address==\\"{escaped_resource}\\"]'
             '|values|triggers|built_output_path" --directory "$(ARTIFACTS_DIR)" '
-            '--target "null_resource.sam_metadata_aws_lambda_function"'
+            f'--target "{escaped_resource}"'
         )
         self.assertEqual(show_command, expected_show_command)
 

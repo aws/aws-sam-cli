@@ -114,7 +114,11 @@ def prepare(params: dict) -> dict:
         # initialize terraform application
         LOG.info("Initializing Terraform application")
         invoke_subprocess_with_loading_pattern(
-            command_args={"args": ["terraform", "init"], "cwd": terraform_application_dir, "stdout": PIPE}
+            command_args={
+                "args": ["terraform", "init", "-input=false"],
+                "cwd": terraform_application_dir,
+                "stdout": PIPE,
+            }
         )
 
         # get json output of terraform plan
@@ -1134,8 +1138,8 @@ def _build_makerule_python_command(
     return show_command_template.format(
         python_command_name=python_command_name,
         terraform_built_artifacts_script_path=terraform_built_artifacts_script_path,
-        jpath_string=jpath_string,
-        resource_address=resource_address,
+        jpath_string=jpath_string.replace('"', '\\"'),
+        resource_address=resource_address.replace('"', '\\"'),
     )
 
 
@@ -1168,7 +1172,8 @@ def _build_jpath_string(sam_metadata_resource: SamMetadataResource, resource_add
     parent_modules = _get_parent_modules(module_address)
     for module in parent_modules:
         full_module_path += child_modules_template.format(module_address=module)
-    return jpath_string_template.format(child_modules=full_module_path, resource_address=resource_address)
+    jpath_string = jpath_string_template.format(child_modules=full_module_path, resource_address=resource_address)
+    return jpath_string
 
 
 def _get_parent_modules(module_address: Optional[str]) -> List[str]:

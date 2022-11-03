@@ -29,7 +29,6 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _resolve_resource_attribute,
     _link_lambda_function_to_layer,
     _process_resolved_layers,
-    _process_constant_layer_value,
     _process_reference_layer_value,
     _update_mapped_lambda_function_with_resolved_layers,
 )
@@ -1106,7 +1105,7 @@ class TestResourceLinking(TestCase):
         resource = Mock()
         resource.full_address = "func_full_address"
         expected_exception = (
-            "SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more than "
+            "AWS SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more than "
             f"one lambda layer. Layer(s) defined by {layers} could not be linked to lambda function func_full_address."
             f"{os.linesep}Related issue: {ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK}."
         )
@@ -1114,12 +1113,10 @@ class TestResourceLinking(TestCase):
             _link_lambda_function_to_layer(resource, cfn_functions, tf_layers)
         self.assertEqual(exc.exception.args[0], expected_exception)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._process_constant_layer_value")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._process_reference_layer_value")
     def test_process_resolved_layers(
         self,
         process_reference_layer_value_mock,
-        process_constant_layer_value_mock,
     ):
         tf_layers = Mock()
         resource = Mock()
@@ -1127,30 +1124,9 @@ class TestResourceLinking(TestCase):
         reference_resolved_layer = ResolvedReference("aws_lambda_layer_version.layer1.arn", "module.layer1")
         resolved_layers = [reference_resolved_layer, constant_value_resolved_layer]
         process_reference_layer_value_mock.return_value = [{"Ref": "Layer1LogicalId"}]
-        process_constant_layer_value_mock.return_value = ["Layer1.arn"]
         layers = _process_resolved_layers(resource, resolved_layers, tf_layers)
-        self.assertEquals(layers, [{"Ref": "Layer1LogicalId"}, "Layer1.arn"])
-        process_constant_layer_value_mock.assert_called_with(resource, constant_value_resolved_layer)
+        self.assertEquals(layers, [{"Ref": "Layer1LogicalId"}])
         process_reference_layer_value_mock.assert_called_with(resource, reference_resolved_layer, tf_layers)
-
-    def test_process_constant_layer_value(self):
-        constant_value_resolved_layer = ConstantValue("layer1.arn")
-        resource = Mock()
-        layers = _process_constant_layer_value(resource, constant_value_resolved_layer)
-        self.assertEquals(layers, ["layer1.arn"])
-
-    def test_process_constant_layer_value_invalid_arn(self):
-        constant_value_resolved_layer = ConstantValue(["layer1"])
-        resource = Mock()
-        resource.full_address = "func_full_address"
-        expected_exception = (
-            f"An error occurred when attempting to link two resources: Could not use the value "
-            f"{constant_value_resolved_layer.value} as a Layer for lambda function func_full_address. Lambda Function "
-            f"Layer value should be a valid ARN String"
-        )
-        with self.assertRaises(InvalidResourceLinkingException) as exc:
-            _process_constant_layer_value(resource, constant_value_resolved_layer)
-        self.assertEqual(exc.exception.args[0], expected_exception)
 
     def test_process_reference_layer_value_data_resource_reference(self):
         reference_resolved_layer = ResolvedReference("data.aws_lambda_layer_version.layer1", "module.layer1")
@@ -1165,7 +1141,7 @@ class TestResourceLinking(TestCase):
         resource.full_address = "func_full_address"
         tf_layers = Mock()
         expected_exception = (
-            "SAM CLI could not process a Terraform project that uses local variables to define the Lambda functions "
+            "AWS SAM CLI could not process a Terraform project that uses local variables to define the Lambda functions "
             "layers. Layer(s) defined by local.layer_arn could be linked to lambda function func_full_address."
             f"{os.linesep}Related issue: {LOCAL_VARIABLES_SUPPORT_ISSUE_LINK}."
         )
@@ -1268,10 +1244,10 @@ class TestResourceLinking(TestCase):
                 },
             },
         }
-        layers = ["layer2.arn", {"Ref": "layer1_logical_id"}, {"Ref": "layer3_logical_id"}]
+        layers = [{"Ref": "layer1_logical_id"}, {"Ref": "layer3_logical_id"}]
         _update_mapped_lambda_function_with_resolved_layers(cfn_functions, layers, tf_layers)
         self.assertEquals(cfn_functions[0]["Properties"]["Layers"], layers)
         self.assertEquals(
             cfn_functions[1]["Properties"]["Layers"],
-            ["layer3.arn", {"Ref": "layer1_logical_id"}, "layer2.arn", {"Ref": "layer3_logical_id"}],
+            ["layer3.arn", {"Ref": "layer1_logical_id"}, {"Ref": "layer3_logical_id"}],
         )

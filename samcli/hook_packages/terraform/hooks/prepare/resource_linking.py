@@ -23,7 +23,7 @@ from samcli.hook_packages.terraform.lib.utils import build_cfn_logical_id
 
 LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX = "aws_lambda_layer_version."
 TERRAFORM_LOCAL_VARIABLES_ADDRESS_PREFIX = "local."
-LAMBDA_LAYER_DATA_RESOURCE_ADDRESS_PREFIX = "data.aws_lambda_layer_version."
+DATA_RESOURCE_ADDRESS_PREFIX = "data."
 
 LOG = logging.getLogger(__name__)
 
@@ -613,7 +613,7 @@ def _process_resolved_layers(
     function_tf_resource: TFResource,
     resolved_layers: List[Union[ConstantValue, ResolvedReference]],
     tf_layers: Dict[str, Dict],
-) -> List:
+) -> List[Dict[str, str]]:
     """
     Process the resolved layers.
 
@@ -631,7 +631,7 @@ def _process_resolved_layers(
 
     Returns
     --------
-    List:
+    List[Dict[str, str]]:
         The list of layers after processing
 
     """
@@ -640,44 +640,16 @@ def _process_resolved_layers(
     )
     layers = []
     for resolved_layer in resolved_layers:
-        if isinstance(resolved_layer, ConstantValue):
-            layers += _process_constant_layer_value(function_tf_resource, resolved_layer)
-        else:
+        # Skip ConstantValue layers reference, as it will be already handled by terraform plan command.
+        if isinstance(resolved_layer, ResolvedReference):
             layers += _process_reference_layer_value(function_tf_resource, resolved_layer, tf_layers)
+
     return layers
-
-
-def _process_constant_layer_value(function_tf_resource: TFResource, resolved_layer: ConstantValue) -> List:
-    """
-    Process the layer value of type ConstantValue.
-
-    Parameters
-    ----------
-    function_tf_resource: TFResource
-        The input lambda function terraform configuration resource
-
-    resolved_layer: ConstantValue
-        The layer arn value.
-
-    Returns
-    -------
-    List
-        The resolved layers values that will be used as a value for the mapped CFN function Layers attribute.
-    """
-    LOG.debug("Process the constant layer %s.", resolved_layer.value)
-    layer_arn = resolved_layer.value
-    if not isinstance(layer_arn, str):
-        LOG.debug("The constant layer %s is not a string.", resolved_layer.value)
-        raise InvalidResourceLinkingException(
-            f"Could not use the value {layer_arn} as a Layer for lambda function "
-            f"{function_tf_resource.full_address}. Lambda Function Layer value should be a valid ARN String"
-        )
-    return [layer_arn]
 
 
 def _process_reference_layer_value(
     function_tf_resource: TFResource, resolved_layer: ResolvedReference, tf_layers: Dict[str, Dict]
-) -> List:
+) -> List[Dict[str, str]]:
     """
     Process the layer value of type ResolvedReference.
 
@@ -695,14 +667,13 @@ def _process_reference_layer_value(
 
     Returns
     -------
-    List
+    List[Dict[str, str]]
         The resolved layers values that will be used as a value for the mapped CFN function Layers attribute.
 
     """
     LOG.debug("Process the reference layer %s.", resolved_layer.value)
-    # skip processing the layers defined using the data source block, as it should be mapped to
-    # Layer ARN string while executing the terraform plan command.
-    if resolved_layer.value.startswith(LAMBDA_LAYER_DATA_RESOURCE_ADDRESS_PREFIX):
+    # skip processing the data source block, as it should be mapped while executing the terraform plan command.
+    if resolved_layer.value.startswith(DATA_RESOURCE_ADDRESS_PREFIX):
         LOG.debug("Skip processing the reference layer %s, as it is referring to a data resource", resolved_layer.value)
         return []
 
@@ -749,7 +720,9 @@ def _process_reference_layer_value(
 
 
 def _update_mapped_lambda_function_with_resolved_layers(
-    cfn_functions: List[Dict], layers: List, tf_layers: Dict[str, Dict]
+    cfn_functions: List[Dict],
+    layers: List[Dict[str, str]],
+    tf_layers: Dict[str, Dict],
 ) -> None:
     """
     Set The resolved layers list to the mapped lambda functions.
@@ -782,7 +755,7 @@ def _update_mapped_lambda_function_with_resolved_layers(
             # layer logical id will be always in tf_layers, as we do not consider the references to layers that does not
             # exist in the tf_layers list as it means that this layer will not be created.
             LOG.debug("Check if the layer %s is already defined in function % layers.", layer, cfn_func)
-            layer_arn = layer if isinstance(layer, str) else tf_layers[layer["Ref"]].get("values", {}).get("arn")
+            layer_arn = tf_layers[layer["Ref"]].get("values", {}).get("arn")
 
             # The resolved layer is a reference to a layers which is not applied yet, so there is no ARN value yet.
             if not layer_arn:
