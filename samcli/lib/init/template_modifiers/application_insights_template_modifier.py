@@ -3,17 +3,21 @@ Class used to parse and update template when application-insights is enabled
 """
 import logging
 from typing import Any
+import ruamel.yaml
 from ruamel.yaml import YAML
 from ruamel.yaml.comments import CommentedMap
 from samcli.lib.init.template_modifiers.cli_template_modifier import TemplateModifier
 
 LOG = logging.getLogger(__name__)
 yaml = YAML()
+# set ignore aliases to true
+class NonAliasingRTRepresenter(ruamel.yaml.representer.RoundTripRepresenter):
+    def ignore_aliases(self, data):
+        return True
 
 
 class ApplicationInsightsTemplateModifier(TemplateModifier):
 
-    APPLICATION_INSIGHTS_NAME_PREFIX = "ApplicationInsights-SAM-"
     TYPE_KEY = "Type"
     RESOURCES_KEY = "Resources"
     PROPERTIES_KEY = "Properties"
@@ -28,8 +32,10 @@ class ApplicationInsightsTemplateModifier(TemplateModifier):
     RESOURCE_GROUP_REF = "ApplicationResourceGroup"
     APPLICATION_INSIGHTS_REF = "ApplicationInsightsMonitoring"
     AUTO_CONFIG_VALUE = "true"
+    RESOURCE_GROUP_NAME = {"Fn::Join": ["", ["ApplicationInsights-SAM-", {"Ref": "AWS::StackName"}]]}
 
     def _get_template(self) -> Any:
+        yaml.Representer = NonAliasingRTRepresenter
         with open(self.template_location) as file:
             return yaml.load(file)
 
@@ -40,11 +46,10 @@ class ApplicationInsightsTemplateModifier(TemplateModifier):
         self._add_app_insights_monitoring_section()
 
     def _add_app_insights_monitoring_section(self):
-        resourceGroupName = self.APPLICATION_INSIGHTS_NAME_PREFIX + self.name
         resourceGroup = {
             self.TYPE_KEY: self.RESOURCE_GROUP_TYPE,
             self.PROPERTIES_KEY: {
-                self.NAME_KEY: resourceGroupName,
+                self.NAME_KEY: self.RESOURCE_GROUP_NAME,
                 self.RESOURCE_QUERY_KEY: {self.TYPE_KEY: self.CFN_STACK_TYPE},
             },
         }
@@ -52,7 +57,7 @@ class ApplicationInsightsTemplateModifier(TemplateModifier):
         appInsightsApplication = {
             self.TYPE_KEY: self.APPLICATION_INSIGHTS_TYPE,
             self.PROPERTIES_KEY: {
-                self.RESOURCE_GROUP_NAME_KEY: resourceGroupName,
+                self.RESOURCE_GROUP_NAME_KEY: self.RESOURCE_GROUP_NAME,
                 self.AUTO_CONFIG_ENABLED_KEY: self.AUTO_CONFIG_VALUE,
             },
             self.DEPENDS_ON_KEY: self.RESOURCE_GROUP_REF,
@@ -60,6 +65,8 @@ class ApplicationInsightsTemplateModifier(TemplateModifier):
 
         self.template[self.RESOURCES_KEY][self.RESOURCE_GROUP_REF] = CommentedMap(resourceGroup)
         self.template[self.RESOURCES_KEY][self.APPLICATION_INSIGHTS_REF] = CommentedMap(appInsightsApplication)
+        print("test")
+        print(self.template)
 
     def _print_sanity_check_error(self):
         link = "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch-application-insights.html"
@@ -78,5 +85,8 @@ class ApplicationInsightsTemplateModifier(TemplateModifier):
         template : list
             array with updated template data
         """
+        yaml.Representer = NonAliasingRTRepresenter
+        print("test")
+        print(self.template)
         with open(self.template_location, "w") as file:
             yaml.dump(self.template, file)

@@ -53,7 +53,7 @@ class TestTemplateModifier(TestCase):
             "      Handler: app.lambda_handler\n",
         ]
 
-        template_modifier = XRayTracingTemplateModifier(self.location, self.name)
+        template_modifier = XRayTracingTemplateModifier(self.location)
         template_modifier._update_template_fields()
 
         self.assertEqual(template_modifier.template, expected_template_data)
@@ -93,7 +93,7 @@ class TestTemplateModifier(TestCase):
             "      Handler: app.lambda_handler\n",
         ]
 
-        template_modifier = XRayTracingTemplateModifier(self.location, self.name)
+        template_modifier = XRayTracingTemplateModifier(self.location)
         template_modifier._update_template_fields()
 
         self.assertEqual(template_modifier.template, expected_template_data)
@@ -134,7 +134,7 @@ class TestTemplateModifier(TestCase):
             "      Handler: app.lambda_handler\n",
         ]
 
-        template_modifier = XRayTracingTemplateModifier(self.location, self.name)
+        template_modifier = XRayTracingTemplateModifier(self.location)
         template_modifier._update_template_fields()
         self.assertEqual(template_modifier.template, expected_template_data)
 
@@ -178,7 +178,7 @@ class TestTemplateModifier(TestCase):
             "      Handler: app.lambda_handler\n",
         ]
 
-        template_modifier = XRayTracingTemplateModifier(self.location, self.name)
+        template_modifier = XRayTracingTemplateModifier(self.location)
         template_modifier._update_template_fields()
 
         self.assertEqual(template_modifier.template, expected_template_data)
@@ -218,7 +218,7 @@ class TestTemplateModifier(TestCase):
             "      Handler: app.lambda_handler\n",
         ]
 
-        template_modifier = XRayTracingTemplateModifier(self.location, self.name)
+        template_modifier = XRayTracingTemplateModifier(self.location)
         template_modifier._update_template_fields()
         self.assertEqual(template_modifier.template, expected_template_data)
 
@@ -242,7 +242,7 @@ class TestTemplateModifier(TestCase):
             "      Handler: app.lambda_handler\n",
         ]
 
-        template_modifier = XRayTracingTemplateModifier(self.location, self.name)
+        template_modifier = XRayTracingTemplateModifier(self.location)
         global_location = template_modifier._section_position("Globals:\n")
         function_location = template_modifier._section_position("  Function:\n")
         api_location = template_modifier._section_position("  Api:\n")
@@ -273,7 +273,7 @@ class TestTemplateModifier(TestCase):
             "      Handler: app.lambda_handler\n",
         ]
 
-        template_modifier = XRayTracingTemplateModifier(self.location, self.name)
+        template_modifier = XRayTracingTemplateModifier(self.location)
         global_location = template_modifier._section_position("Globals:\n")
         function_location = template_modifier._section_position("  Function:\n")
         api_location = template_modifier._section_position("  Api:\n")
@@ -297,7 +297,7 @@ class TestTemplateModifier(TestCase):
             "      Handler: app.lambda_handler\n",
         ]
 
-        template_modifier = XRayTracingTemplateModifier(self.location, self.name)
+        template_modifier = XRayTracingTemplateModifier(self.location)
         tracing_location = template_modifier._field_position(0, "Tracing")
 
         self.assertEqual(tracing_location, -1)
@@ -315,7 +315,7 @@ class TestTemplateModifier(TestCase):
             "      Handler: app.lambda_handler\n",
         ]
 
-        template_modifier = XRayTracingTemplateModifier(self.location, self.name)
+        template_modifier = XRayTracingTemplateModifier(self.location)
         tracing_location = template_modifier._field_position(0, "TracingEnabled")
 
         self.assertEqual(tracing_location, -1)
@@ -328,7 +328,7 @@ class TestTemplateModifier(TestCase):
             "https://docs.aws.amazon.com/serverless-application-model/latest"
             "/developerguide/sam-resource-function.html#sam-function-tracing"
         )
-        template_modifier = XRayTracingTemplateModifier(self.location, self.name)
+        template_modifier = XRayTracingTemplateModifier(self.location)
         parse_yaml_file_mock.side_effect = ParserError
         result = template_modifier._sanity_check()
         self.assertFalse(result)
@@ -341,13 +341,13 @@ class TestTemplateModifier(TestCase):
             "https://docs.aws.amazon.com/serverless-application-model/latest"
             "/developerguide/sam-resource-function.html#sam-function-tracing"
         )
-        template_modifier = XRayTracingTemplateModifier(self.location, self.name)
+        template_modifier = XRayTracingTemplateModifier(self.location)
         template_modifier._print_sanity_check_error()
         log_mock.warning.assert_called_once_with(expected_warning_msg)
 
     @patch("samcli.lib.init.template_modifiers.cli_template_modifier.parse_yaml_file")
     def test_must_pass_sanity_check(self, parse_yaml_file_mock):
-        template_modifier = XRayTracingTemplateModifier(self.location, self.name)
+        template_modifier = XRayTracingTemplateModifier(self.location)
         parse_yaml_file_mock.return_value = {"add: add_value"}
         result = template_modifier._sanity_check()
         self.assertTrue(result)
@@ -475,15 +475,15 @@ class TestTemplateModifier(TestCase):
                                         ("Type", "AWS::ResourceGroups::Group"),
                                         (
                                             "Properties",
-                                            OrderedDict(
-                                                [
-                                                    ("Name", "ApplicationInsights-SAM-testApp"),
-                                                    (
-                                                        "ResourceQuery",
-                                                        OrderedDict([("Type", "CLOUDFORMATION_STACK_1_0")]),
-                                                    ),
-                                                ]
-                                            ),
+                                            {
+                                                "Name": {
+                                                    "Fn::Join": [
+                                                        "",
+                                                        ["ApplicationInsights-SAM-", {"Ref": "AWS::StackName"}],
+                                                    ]
+                                                },
+                                                "ResourceQuery": {"Type": "CLOUDFORMATION_STACK_1_0"},
+                                            },
                                         ),
                                     ]
                                 ),
@@ -495,12 +495,15 @@ class TestTemplateModifier(TestCase):
                                         ("Type", "AWS::ApplicationInsights::Application"),
                                         (
                                             "Properties",
-                                            OrderedDict(
-                                                [
-                                                    ("ResourceGroupName", "ApplicationInsights-SAM-testApp"),
-                                                    ("AutoConfigurationEnabled", "true"),
-                                                ]
-                                            ),
+                                            {
+                                                "ResourceGroupName": {
+                                                    "Fn::Join": [
+                                                        "",
+                                                        ["ApplicationInsights-SAM-", {"Ref": "AWS::StackName"}],
+                                                    ]
+                                                },
+                                                "AutoConfigurationEnabled": "true",
+                                            },
                                         ),
                                         ("DependsOn", "ApplicationResourceGroup"),
                                     ]
@@ -512,9 +515,10 @@ class TestTemplateModifier(TestCase):
             ]
         )
 
-        template_modifier = ApplicationInsightsTemplateModifier(self.location, self.name)
+        template_modifier = ApplicationInsightsTemplateModifier(self.location)
         template_modifier._update_template_fields()
 
+        print(expected_template_data)
         self.assertEqual(template_modifier.template, expected_template_data)
 
     @patch("samcli.lib.init.template_modifiers.application_insights_template_modifier.LOG")
@@ -524,6 +528,6 @@ class TestTemplateModifier(TestCase):
             "To learn more about Application Insights, visit "
             "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch-application-insights.html"
         )
-        template_modifier = ApplicationInsightsTemplateModifier(self.location, self.name)
+        template_modifier = ApplicationInsightsTemplateModifier(self.location)
         template_modifier._print_sanity_check_error()
         log_mock.warning.assert_called_once_with(expected_warning_msg)

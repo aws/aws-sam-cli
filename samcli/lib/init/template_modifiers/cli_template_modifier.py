@@ -13,10 +13,9 @@ LOG = logging.getLogger(__name__)
 
 
 class TemplateModifier:
-    def __init__(self, location, name):
+    def __init__(self, location):
         self.template_location = location
         self.template = self._get_template()
-        self.name = name
         self.copy_of_original_template = deepcopy(self.template)
 
     def modify_template(self):

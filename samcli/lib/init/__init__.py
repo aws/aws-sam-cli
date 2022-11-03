@@ -11,6 +11,7 @@ from cookiecutter.exceptions import CookiecutterException, RepositoryNotFound, U
 from cookiecutter.main import cookiecutter
 
 from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING, is_custom_runtime
+from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.init.template_modifiers.xray_tracing_template_modifier import XRayTracingTemplateModifier
 from samcli.lib.init.template_modifiers.application_insights_template_modifier import (
     ApplicationInsightsTemplateModifier,
@@ -133,12 +134,13 @@ def generate_project(
 def _apply_tracing(tracing: bool, output_dir: str, name: str) -> None:
     if tracing:
         template_file_path = f"{output_dir}/{name}/template.yaml"
-        template_modifier = XRayTracingTemplateModifier(template_file_path, name)
+        template_modifier = XRayTracingTemplateModifier(template_file_path)
         template_modifier.modify_template()
 
 
 def _enable_application_insights(application_insights: bool, output_dir: str, name: str) -> None:
     if application_insights:
         template_file_path = f"{output_dir}/{name}/template.yaml"
-        template_modifier = ApplicationInsightsTemplateModifier(template_file_path, name)
+        template_modifier = ApplicationInsightsTemplateModifier(template_file_path)
         template_modifier.modify_template()
+        EventTracker.track_event("UsedFeature", "ApplicationInsights")
