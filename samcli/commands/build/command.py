@@ -80,11 +80,11 @@ $ sam build MyFunction
 
 
 @click.command("build", help=HELP_TEXT, short_help="Build your Lambda function code")
+@configuration_option(provider=TomlProvider(section="parameters"))
 @hook_package_id_click_option(
     force_prepare=True,
     invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"],
 )
-@configuration_option(provider=TomlProvider(section="parameters"))
 @use_container_build_option
 @click.option(
     "--container-env-var",

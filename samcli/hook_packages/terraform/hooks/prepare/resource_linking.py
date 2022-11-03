@@ -26,6 +26,7 @@ TERRAFORM_LOCAL_VARIABLES_ADDRESS_PREFIX = "local."
 DATA_RESOURCE_ADDRESS_PREFIX = "data."
 
 LOG = logging.getLogger(__name__)
+COMPILED_REGULAR_EXPRESSION = re.compile(r"\[[^\[\]]*\]")
 
 
 def _build_module(
@@ -312,7 +313,7 @@ def _get_configuration_address(address: str) -> str:
     str
         The address clean of indices
     """
-    return re.sub(r"\[[^\[\]]*\]", "", address)
+    return COMPILED_REGULAR_EXPRESSION.sub("", address)
 
 
 def _resolve_module_output(module: TFModule, output_name: str) -> List[Union[ConstantValue, ResolvedReference]]:
@@ -461,7 +462,7 @@ def _resolve_module_variable(module: TFModule, variable_name: str) -> List[Union
                 else:
                     raise InvalidResourceLinkingException(f"Couldn't find child module {config_module_name}.")
             # this means either a resource, data source, or local.variables.
-            elif module.parent_module and module.parent_module.full_address is not None:
+            elif module.parent_module:
                 results.append(ResolvedReference(reference, module.parent_module.full_address))
             else:
                 raise InvalidResourceLinkingException("Resource linking entered an invalid state.")
@@ -599,7 +600,7 @@ def _link_lambda_function_to_layer(
     # The agreed limitation to support only 1 lambda layer reference.
     if len(layers) > 1:
         LOG.debug(
-            "SAM CLI does not support mapping the lambda function %s to more than one layer.",
+            "AWS SAM CLI does not support mapping the lambda function %s to more than one layer.",
             function_tf_resource.full_address,
         )
         raise OneLambdaLayerLinkingLimitationException(layers, function_tf_resource.full_address)
@@ -679,7 +680,7 @@ def _process_reference_layer_value(
 
     # resolved reference is a local variable
     if resolved_layer.value.startswith(TERRAFORM_LOCAL_VARIABLES_ADDRESS_PREFIX):
-        LOG.debug("SAM CLI could not process the Local variables %s", resolved_layer.value)
+        LOG.debug("AWS SAM CLI could not process the Local variables %s", resolved_layer.value)
         raise LocalVariablesLinkingLimitationException(resolved_layer.value, function_tf_resource.full_address)
 
     # Valid Layer resource
