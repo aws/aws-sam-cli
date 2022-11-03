@@ -186,7 +186,7 @@ class ResourceMetadataNormalizer:
         """
         asset_path = Path(metadata.get(ASSET_PATH_METADATA_KEY, ""))
         dockerfile_path = Path(metadata.get(ASSET_DOCKERFILE_PATH_KEY), "")
-        dockerfile, path_from_asset = dockerfile_path.stem, dockerfile_path.parent
+        dockerfile, path_from_asset = dockerfile_path.name, dockerfile_path.parent
         dockerfile_context = str(Path(asset_path.joinpath(path_from_asset)))
         return {
             SAM_METADATA_DOCKERFILE_KEY: dockerfile,

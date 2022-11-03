@@ -86,6 +86,34 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
             self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
         )
 
+    @parameterized.expand([("3.6", False), ("3.7", False), ("3.8", False), ("3.9", False)])
+    @pytest.mark.flaky(reruns=3)
+    def test_with_dockerfile_extension(self, runtime, use_container):
+        _tag = f"{random.randint(1,100)}"
+        overrides = {
+            "Runtime": runtime,
+            "Handler": "main.handler",
+            "DockerFile": "Dockerfile.production",
+            "Tag": _tag,
+        }
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+
+        LOG.info("Running Command: ")
+        LOG.info(cmdlist)
+        run_command(cmdlist, cwd=self.working_dir)
+
+        self._verify_image_build_artifact(
+            self.built_template,
+            self.FUNCTION_LOGICAL_ID_IMAGE,
+            "ImageUri",
+            f"{self.FUNCTION_LOGICAL_ID_IMAGE.lower()}:{_tag}",
+        )
+
+        expected = {"pi": "3.14"}
+        self._verify_invoke_built_function(
+            self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
+        )
+
     @pytest.mark.flaky(reruns=3)
     def test_intermediate_container_deleted(self):
         _tag = f"{random.randint(1, 100)}"
