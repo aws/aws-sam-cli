@@ -315,8 +315,9 @@ class TestTrackCommand(TestCase):
         actual = track_command(real_fn)()
         self.assertEqual(actual, "some return value")
 
+    @patch("samcli.lib.telemetry.metric.get_hook_metadata", return_value=None)
     @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_pass_all_arguments_to_wrapped_function(self, ContextMock):
+    def test_must_pass_all_arguments_to_wrapped_function(self, ContextMock, get_hook_metadata_mock):
         def real_fn(*args, **kwargs):
             # simply return the arguments to be able to examine & assert
             return args, kwargs
