@@ -241,13 +241,13 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
         )
         self.assertRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
         self.assertEqual(return_code, 0)
-        self.assertEqual(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
+        self.assertRegex(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
 
     def test_exit_success_no_beta_features_flags_supplied_hooks(self):
         cmdlist = self.get_command_list(beta_features=False, hook_package_id="terraform")
         _, stderr, return_code = self.run_command(cmdlist)
         self.assertEqual(return_code, 0)
-        self.assertEqual(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
+        self.assertRegex(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
 
     def test_build_terraform_with_no_beta_feature_option_in_samconfig_toml(self):
         samconfig_toml_path = Path(self.terraform_application_path).joinpath("samconfig.toml")
@@ -262,7 +262,7 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
         cmdlist = self.get_command_list(hook_package_id="terraform")
         _, stderr, return_code = self.run_command(cmdlist)
         self.assertEqual(return_code, 0)
-        self.assertEqual(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
+        self.assertRegex(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
         # delete the samconfig file
         try:
             os.remove(samconfig_toml_path)
@@ -276,7 +276,7 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
         build_command_list = self.get_command_list(hook_package_id="terraform")
         _, stderr, return_code = self.run_command(build_command_list, env=environment_variables)
         self.assertEqual(return_code, 0)
-        self.assertEqual(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
+        self.assertRegex(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
 
 
 @skipIf(
