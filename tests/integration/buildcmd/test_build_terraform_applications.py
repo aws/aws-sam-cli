@@ -235,8 +235,8 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
         cmdlist = self.get_command_list(beta_features=None, hook_package_id="terraform")
         stdout, stderr, return_code = self.run_command(cmdlist, input=b"N\n\n")
         terraform_beta_feature_prompted_text = (
-            "Supporting Terraform applications is a beta feature.\n"
-            "Please confirm if you would like to proceed using AWS SAM CLI with terraform application.\n"
+            f"Supporting Terraform applications is a beta feature.{os.linesep}"
+            f"Please confirm if you would like to proceed using AWS SAM CLI with terraform application.{os.linesep}"
             "You can also enable this beta feature with 'sam build --beta-features'."
         )
         self.assertRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
