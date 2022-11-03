@@ -79,7 +79,7 @@ class BuildIntegBase(TestCase):
         build_image=None,
         exclude=None,
         region=None,
-        hook_package_id=None,
+        hook_name=None,
         beta_features=None,
     ):
 
@@ -136,8 +136,8 @@ class BuildIntegBase(TestCase):
         if beta_features is not None:
             command_list += ["--beta-features"] if beta_features else ["--no-beta-features"]
 
-        if hook_package_id:
-            command_list += ["--hook-package-id", hook_package_id]
+        if hook_name:
+            command_list += ["--hook-name", hook_name]
 
         return command_list
 
