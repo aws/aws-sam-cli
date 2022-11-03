@@ -42,6 +42,7 @@ from samcli.hook_packages.terraform.hooks.prepare.hook import (
     _add_child_modules_to_queue,
     _check_dummy_remote_values,
     REMOTE_DUMMY_VALUE,
+    _add_metadata_resource_to_metadata_list,
 )
 from samcli.hook_packages.terraform.hooks.prepare.types import TFModule, TFResource, ConstantValue, ResolvedReference
 from samcli.lib.hook.exceptions import PrepareHookException
@@ -995,11 +996,15 @@ class TestPrepareHook(TestCase):
         )
         self.assertEqual(translated_cfn_properties, self.expected_cfn_function_properties_with_missing_or_none)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._calculate_configuration_attribute_value_hash")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_s3_object_hash")
-    def test_map_s3_sources_to_functions(self, mock_get_s3_object_hash):
+    def test_map_s3_sources_to_functions(
+        self, mock_get_s3_object_hash, mock_calculate_configuration_attribute_value_hash
+    ):
         mock_get_s3_object_hash.side_effect = ["hash1", "hash2"]
+        mock_calculate_configuration_attribute_value_hash.side_effect = ["code_hash1", "code_hash2"]
 
-        s3_hash_to_source = {"hash1": self.s3_source, "hash2": self.s3_source_2}
+        s3_hash_to_source = {"hash1": (self.s3_source, None), "hash2": (self.s3_source_2, None)}
         cfn_resources = {
             "s3Function1": copy.deepcopy(self.expected_cfn_lambda_function_resource_s3),
             "s3Function2": copy.deepcopy(self.expected_cfn_lambda_function_resource_s3_2),
@@ -1017,7 +1022,23 @@ class TestPrepareHook(TestCase):
             },
             "nonS3Function": self.expected_cfn_lambda_function_resource_zip,  # should be unchanged
         }
-        _map_s3_sources_to_functions(s3_hash_to_source, cfn_resources)
+        functions_code_map = {}
+        expected_functions_code_map = {
+            "zip_code_hash1": [(self.expected_cfn_lambda_function_resource_s3_after_source_mapping, "s3Function1")],
+            "zip_code_hash2": [
+                (
+                    {
+                        **self.expected_cfn_lambda_function_resource_s3_2,
+                        "Properties": {
+                            **self.expected_cfn_lambda_function_resource_s3_2["Properties"],
+                            "Code": self.s3_source_2,
+                        },
+                    },
+                    "s3Function2",
+                )
+            ],
+        }
+        _map_s3_sources_to_functions(s3_hash_to_source, cfn_resources, functions_code_map)
 
         s3Function1CodeBeforeMapping = self.expected_cfn_lambda_function_resource_s3["Properties"]["Code"]
         s3Function2CodeBeforeMapping = self.expected_cfn_lambda_function_resource_s3_2["Properties"]["Code"]
@@ -1027,13 +1048,19 @@ class TestPrepareHook(TestCase):
                 call(s3Function2CodeBeforeMapping["S3Bucket"], s3Function2CodeBeforeMapping["S3Key"]),
             ]
         )
+        mock_calculate_configuration_attribute_value_hash.assert_has_calls(
+            [call(self.s3_source), call(self.s3_source_2)]
+        )
         self.assertEqual(cfn_resources, expected_cfn_resources_after_mapping_s3_sources)
+        self.assertEquals(functions_code_map, expected_functions_code_map)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._calculate_configuration_attribute_value_hash")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_s3_object_hash")
-    def test_map_s3_sources_to_layers(self, mock_get_s3_object_hash):
+    def test_map_s3_sources_to_layers(self, mock_get_s3_object_hash, mock_calculate_configuration_attribute_value_hash):
         mock_get_s3_object_hash.side_effect = ["hash1"]
+        mock_calculate_configuration_attribute_value_hash.side_effect = ["code_hash1"]
 
-        s3_hash_to_source = {"hash1": self.s3_source}
+        s3_hash_to_source = {"hash1": (self.s3_source, None)}
         cfn_resources = {
             "s3Layer": copy.deepcopy(self.expected_cfn_layer_resource_s3),
             "nonS3Layer": self.expected_cfn_layer_resource_zip,
@@ -1043,7 +1070,11 @@ class TestPrepareHook(TestCase):
             "s3Layer": self.expected_cfn_s3_layer_resource_after_source_mapping,
             "nonS3Layer": self.expected_cfn_layer_resource_zip,  # should be unchanged
         }
-        _map_s3_sources_to_functions(s3_hash_to_source, cfn_resources)
+        layers_code_map = {}
+        expected_layers_code_map = {
+            "layer_code_hash1": [(self.expected_cfn_s3_layer_resource_after_source_mapping, "s3Layer")],
+        }
+        _map_s3_sources_to_functions(s3_hash_to_source, cfn_resources, layers_code_map)
 
         s3LayerCodeBeforeMapping = self.expected_cfn_layer_resource_s3["Properties"]["Content"]
         mock_get_s3_object_hash.assert_has_calls(
@@ -1051,7 +1082,43 @@ class TestPrepareHook(TestCase):
                 call(s3LayerCodeBeforeMapping["S3Bucket"], s3LayerCodeBeforeMapping["S3Key"]),
             ]
         )
+        mock_calculate_configuration_attribute_value_hash.assert_has_calls([call(self.s3_source)])
+        self.assertEquals(layers_code_map, expected_layers_code_map)
         self.assertEqual(cfn_resources, expected_cfn_resources_after_mapping_s3_sources)
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._calculate_configuration_attribute_value_hash")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_s3_object_hash")
+    def test_map_s3_sources_to_functions_that_does_not_contain_constant_value_filename(
+        self, mock_get_s3_object_hash, mock_calculate_configuration_attribute_value_hash
+    ):
+        mock_get_s3_object_hash.side_effect = ["hash1"]
+        mock_calculate_configuration_attribute_value_hash.side_effect = ["code_hash1"]
+        mock_reference = Mock()
+        s3_hash_to_source = {"hash1": (None, mock_reference)}
+        cfn_resources = {
+            "s3Function1": copy.deepcopy(self.expected_cfn_lambda_function_resource_s3),
+            "nonS3Function": self.expected_cfn_lambda_function_resource_zip,
+        }
+
+        expected_cfn_resources_after_mapping_s3_sources = {
+            "s3Function1": copy.deepcopy(self.expected_cfn_lambda_function_resource_s3),
+            "nonS3Function": self.expected_cfn_lambda_function_resource_zip,  # should be unchanged
+        }
+        functions_code_map = {}
+        expected_functions_code_map = {
+            "zip_code_hash1": [(copy.deepcopy(self.expected_cfn_lambda_function_resource_s3), "s3Function1")],
+        }
+        _map_s3_sources_to_functions(s3_hash_to_source, cfn_resources, functions_code_map)
+
+        s3Function1CodeBeforeMapping = self.expected_cfn_lambda_function_resource_s3["Properties"]["Code"]
+        mock_get_s3_object_hash.assert_has_calls(
+            [
+                call(s3Function1CodeBeforeMapping["S3Bucket"], s3Function1CodeBeforeMapping["S3Key"]),
+            ]
+        )
+        mock_calculate_configuration_attribute_value_hash.assert_has_calls([call(mock_reference)])
+        self.assertEqual(cfn_resources, expected_cfn_resources_after_mapping_s3_sources)
+        self.assertEquals(functions_code_map, expected_functions_code_map)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
@@ -1227,6 +1294,8 @@ class TestPrepareHook(TestCase):
         mock_get_configuration_address.assert_called()
         mock_check_dummy_remote_values.assert_called_once_with(translated_cfn_dict.get("Resources"))
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.build_cfn_logical_id")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._add_lambda_resource_code_path_to_code_map")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._check_dummy_remote_values")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
@@ -1241,6 +1310,8 @@ class TestPrepareHook(TestCase):
         mock_get_configuration_address,
         mock_build_module,
         mock_check_dummy_remote_values,
+        mock_add_lambda_resource_code_path_to_code_map,
+        mock_build_cfn_logical_id,
     ):
         root_module = MagicMock()
         root_module.get.return_value = "module.m1"
@@ -1251,10 +1322,12 @@ class TestPrepareHook(TestCase):
         child_modules.__contains__.return_value = True
         child_modules.get.return_value = root_module
         root_module.child_modules = child_modules
-        resources_mock.__getitem__.return_value = Mock()
+        resource_mock = Mock()
+        resources_mock.__getitem__.return_value = resource_mock
         resources_mock.__contains__.return_value = True
         mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
+        mock_build_cfn_logical_id.side_effect = ["logical_id1", "logical_id2", "logical_id3"]
         translated_cfn_dict = _translate_to_cfn(
             self.tf_json_with_root_module_with_sam_metadata_resources, self.output_dir, self.project_root
         )
@@ -1262,24 +1335,61 @@ class TestPrepareHook(TestCase):
         expected_arguments_in_call = (
             [
                 SamMetadataResource(
-                    current_module_address=None, resource=self.tf_lambda_function_resource_zip_sam_metadata
+                    current_module_address=None,
+                    resource=self.tf_lambda_function_resource_zip_sam_metadata,
+                    config_resource=resource_mock,
                 ),
                 SamMetadataResource(
                     current_module_address=None,
                     resource=self.tf_lambda_function_resource_zip_2_sam_metadata,
+                    config_resource=resource_mock,
                 ),
                 SamMetadataResource(
                     current_module_address=None,
                     resource=self.tf_image_package_type_lambda_function_resource_sam_metadata,
+                    config_resource=resource_mock,
                 ),
             ],
             translated_cfn_dict["Resources"],
             self.output_dir,
             self.project_root,
+            {},
         )
 
         mock_enrich_resources_and_generate_makefile.assert_called_once_with(*expected_arguments_in_call)
+        mock_add_lambda_resource_code_path_to_code_map.assert_has_calls(
+            [
+                call(
+                    resource_mock,
+                    "zip",
+                    {},
+                    "logical_id1",
+                    "file.zip",
+                    "filename",
+                    translated_cfn_dict["Resources"]["logical_id1"],
+                ),
+                call(
+                    resource_mock,
+                    "zip",
+                    {},
+                    "logical_id2",
+                    "file2.zip",
+                    "filename",
+                    translated_cfn_dict["Resources"]["logical_id2"],
+                ),
+                call(
+                    resource_mock,
+                    "image",
+                    {},
+                    "logical_id3",
+                    "image/uri:tag",
+                    "image_uri",
+                    translated_cfn_dict["Resources"]["logical_id3"],
+                ),
+            ]
+        )
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._add_lambda_resource_code_path_to_code_map")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._check_dummy_remote_values")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
@@ -1294,6 +1404,7 @@ class TestPrepareHook(TestCase):
         mock_get_configuration_address,
         mock_build_module,
         mock_check_dummy_remote_values,
+        mock_add_lambda_resource_code_path_to_code_map,
     ):
         root_module = MagicMock()
         root_module.get.return_value = "module.m1"
@@ -1304,7 +1415,8 @@ class TestPrepareHook(TestCase):
         child_modules.__contains__.return_value = True
         child_modules.get.return_value = root_module
         root_module.child_modules = child_modules
-        resources_mock.__getitem__.return_value = Mock()
+        resource_mock = Mock()
+        resources_mock.__getitem__.return_value = resource_mock
         resources_mock.__contains__.return_value = True
         mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
@@ -1315,7 +1427,9 @@ class TestPrepareHook(TestCase):
         expected_arguments_in_call = (
             [
                 SamMetadataResource(
-                    current_module_address=None, resource=self.tf_lambda_function_resource_zip_sam_metadata
+                    current_module_address=None,
+                    resource=self.tf_lambda_function_resource_zip_sam_metadata,
+                    config_resource=resource_mock,
                 ),
                 SamMetadataResource(
                     current_module_address="module.mymodule1",
@@ -1323,6 +1437,7 @@ class TestPrepareHook(TestCase):
                         **self.tf_lambda_function_resource_zip_2_sam_metadata,
                         "address": f"module.mymodule1.null_resource.sam_metadata_{self.zip_function_name_2}",
                     },
+                    config_resource=resource_mock,
                 ),
                 SamMetadataResource(
                     current_module_address="module.mymodule1.module.mymodule2",
@@ -1330,6 +1445,7 @@ class TestPrepareHook(TestCase):
                         **self.tf_lambda_function_resource_zip_3_sam_metadata,
                         "address": f"module.mymodule1.module.mymodule2.null_resource.sam_metadata_{self.zip_function_name_3}",
                     },
+                    config_resource=resource_mock,
                 ),
                 SamMetadataResource(
                     current_module_address="module.mymodule1.module.mymodule3",
@@ -1337,11 +1453,13 @@ class TestPrepareHook(TestCase):
                         **self.tf_lambda_function_resource_zip_4_sam_metadata,
                         "address": f"module.mymodule1.module.mymodule3.null_resource.sam_metadata_{self.zip_function_name_4}",
                     },
+                    config_resource=resource_mock,
                 ),
             ],
             translated_cfn_dict["Resources"],
             self.output_dir,
             self.project_root,
+            {},
         )
 
         mock_enrich_resources_and_generate_makefile.assert_called_once_with(*expected_arguments_in_call)
@@ -1414,6 +1532,7 @@ class TestPrepareHook(TestCase):
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_unsupported_resource_type)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._add_lambda_resource_code_path_to_code_map")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._check_dummy_remote_values")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
@@ -1428,6 +1547,7 @@ class TestPrepareHook(TestCase):
         mock_get_configuration_address,
         mock_build_module,
         mock_check_dummy_remote_values,
+        mock_add_lambda_resource_code_path_to_code_map,
     ):
         root_module = MagicMock()
         root_module.get.return_value = "module.m1"
@@ -1587,8 +1707,9 @@ class TestPrepareHook(TestCase):
                 **sam_metadata_attributes,
                 "source_code_property": source_code_property,
             }
+        sam_resource = {"values": {"triggers": sam_metadata_attributes}}
         path = _get_source_code_path(
-            sam_metadata_attributes,
+            sam_resource,
             "resource_address",
             "/project/root/dir",
             "original_source_code",
@@ -1711,13 +1832,16 @@ class TestPrepareHook(TestCase):
                 **self.tf_lambda_function_resource_zip_2_sam_metadata,
                 "address": f"module.mymodule1.null_resource.sam_metadata_{self.zip_function_name_2}",
             },
+            config_resource=TFResource("", "", None, {}),
         )
         cfn_resources = {
             "ABCDEFG": self.expected_cfn_lambda_function_resource_zip_2,
             "logical_id_3": self.expected_cfn_lambda_function_resource_zip_3,
         }
         mock_build_cfn_logical_id.side_effect = ["ABCDEFG"]
-        relevant_resource, return_logical_id = _get_relevant_cfn_resource(sam_metadata_resource, cfn_resources)
+        resources_list = _get_relevant_cfn_resource(sam_metadata_resource, cfn_resources, {})
+        self.assertEquals(len(resources_list), 1)
+        relevant_resource, return_logical_id = resources_list[0]
 
         mock_build_cfn_logical_id.assert_called_once_with(
             f"module.mymodule1.aws_lambda_function.{self.zip_function_name_2}"
@@ -1725,13 +1849,48 @@ class TestPrepareHook(TestCase):
         self.assertEqual(relevant_resource, self.expected_cfn_lambda_function_resource_zip_2)
         self.assertEqual(return_logical_id, "ABCDEFG")
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._calculate_configuration_attribute_value_hash")
+    def test_get_relevant_cfn_resource_for_metadata_does_not_contain_resource_name(
+        self, mock_calculate_configuration_attribute_value_hash
+    ):
+        sam_metadata_resource = SamMetadataResource(
+            current_module_address="module.mymodule1",
+            resource={
+                "type": "null_resource",
+                "provider_name": NULL_RESOURCE_PROVIDER_NAME,
+                "values": {
+                    "triggers": {
+                        "built_output_path": "builds/func2.zip",
+                        "original_source_code": "./src/lambda_func2",
+                        "resource_type": "ZIP_LAMBDA_FUNCTION",
+                    }
+                },
+                "name": f"sam_metadata_{self.zip_function_name_2}",
+                "address": f"module.mymodule1.null_resource.sam_metadata_{self.zip_function_name_2}",
+            },
+            config_resource=TFResource("", "", None, {}),
+        )
+        cfn_resources = {
+            "ABCDEFG": self.expected_cfn_lambda_function_resource_zip_2,
+            "logical_id_3": self.expected_cfn_lambda_function_resource_zip_3,
+        }
+        mock_calculate_configuration_attribute_value_hash.side_effect = ["code_hash"]
+        lambda_resources_code_map = {"zip_code_hash": [(self.expected_cfn_lambda_function_resource_zip_2, "ABCDEFG")]}
+        resources_list = _get_relevant_cfn_resource(sam_metadata_resource, cfn_resources, lambda_resources_code_map)
+        self.assertEquals(len(resources_list), 1)
+        relevant_resource, return_logical_id = resources_list[0]
+
+        self.assertEqual(relevant_resource, self.expected_cfn_lambda_function_resource_zip_2)
+        self.assertEqual(return_logical_id, "ABCDEFG")
+        mock_calculate_configuration_attribute_value_hash.assert_has_calls([call("builds/func2.zip")])
+
     @parameterized.expand(
         [
             (
                 None,
                 "module.mymodule1",
                 ["ABCDEFG"],
-                "sam cli expects the sam metadata resource null_resource.sam_metadata_func2 to contain a resource name "
+                "AWS SAM CLI expects the sam metadata resource null_resource.sam_metadata_func2 to contain a resource name "
                 "that will be enriched using this metadata resource",
             ),
             (
@@ -1767,6 +1926,7 @@ class TestPrepareHook(TestCase):
                 "address": "null_resource.sam_metadata_func2",
                 "name": "sam_metadata_func2",
             },
+            config_resource=TFResource("", "", None, {}),
         )
         cfn_resources = {
             "ABCDEFG": self.expected_cfn_lambda_function_resource_zip_2,
@@ -1774,7 +1934,7 @@ class TestPrepareHook(TestCase):
         }
         mock_build_cfn_logical_id.side_effect = build_logical_id_output
         with self.assertRaises(InvalidSamMetadataPropertiesException, msg=exception_message):
-            _get_relevant_cfn_resource(sam_metadata_resource, cfn_resources)
+            _get_relevant_cfn_resource(sam_metadata_resource, cfn_resources, {})
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_python_command_name")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._generate_makefile")
@@ -1815,15 +1975,19 @@ class TestPrepareHook(TestCase):
             "logical_id2": zip_function_2,
         }
         mock_get_relevant_cfn_resource.side_effect = [
-            (zip_function_1, "logical_id1"),
-            (zip_function_2, "logical_id2"),
+            [(zip_function_1, "logical_id1")],
+            [(zip_function_2, "logical_id2")],
         ]
         sam_metadata_resources = [
             SamMetadataResource(
-                current_module_address=None, resource=self.tf_lambda_function_resource_zip_sam_metadata
+                current_module_address=None,
+                resource=self.tf_lambda_function_resource_zip_sam_metadata,
+                config_resource=TFResource("", "", None, {}),
             ),
             SamMetadataResource(
-                current_module_address=None, resource=self.tf_lambda_function_resource_zip_2_sam_metadata
+                current_module_address=None,
+                resource=self.tf_lambda_function_resource_zip_2_sam_metadata,
+                config_resource=TFResource("", "", None, {}),
             ),
         ]
 
@@ -1867,7 +2031,7 @@ class TestPrepareHook(TestCase):
         mock_generate_makefile_rule_for_lambda_resource.side_effect = makefile_rules
 
         _enrich_resources_and_generate_makefile(
-            sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root"
+            sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root", {}
         )
         self.assertEqual(cfn_resources, expected_cfn_resources)
 
@@ -1917,10 +2081,14 @@ class TestPrepareHook(TestCase):
             "logical_id1": lambda_layer,
         }
         mock_get_relevant_cfn_resource.side_effect = [
-            (lambda_layer, "logical_id1"),
+            [(lambda_layer, "logical_id1")],
         ]
         sam_metadata_resources = [
-            SamMetadataResource(current_module_address=None, resource=self.tf_lambda_layer_resource_zip_sam_metadata),
+            SamMetadataResource(
+                current_module_address=None,
+                resource=self.tf_lambda_layer_resource_zip_sam_metadata,
+                config_resource=TFResource("", "", None, {}),
+            ),
         ]
 
         expected_layer = {
@@ -1947,7 +2115,7 @@ class TestPrepareHook(TestCase):
         mock_generate_makefile_rule_for_lambda_resource.side_effect = makefile_rules
 
         _enrich_resources_and_generate_makefile(
-            sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root"
+            sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root", {}
         )
         self.assertEqual(cfn_resources, expected_cfn_resources)
 
@@ -2009,15 +2177,19 @@ class TestPrepareHook(TestCase):
             "logical_id2": zip_function_2,
         }
         mock_get_relevant_cfn_resource.side_effect = [
-            (zip_function_1, "logical_id1"),
-            (zip_function_2, "logical_id2"),
+            [(zip_function_1, "logical_id1")],
+            [(zip_function_2, "logical_id2")],
         ]
         sam_metadata_resources = [
             SamMetadataResource(
-                current_module_address=None, resource=self.tf_lambda_function_resource_zip_sam_metadata
+                current_module_address=None,
+                resource=self.tf_lambda_function_resource_zip_sam_metadata,
+                config_resource=TFResource("", "", None, {}),
             ),
             SamMetadataResource(
-                current_module_address=None, resource=self.tf_lambda_function_resource_zip_2_sam_metadata
+                current_module_address=None,
+                resource=self.tf_lambda_function_resource_zip_2_sam_metadata,
+                config_resource=TFResource("", "", None, {}),
             ),
         ]
 
@@ -2025,7 +2197,7 @@ class TestPrepareHook(TestCase):
         mock_generate_makefile_rule_for_lambda_resource.side_effect = makefile_rules
 
         _enrich_resources_and_generate_makefile(
-            sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root"
+            sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root", {}
         )
         mock_enrich_zip_lambda_function.assert_has_calls(
             [
@@ -2194,12 +2366,13 @@ class TestPrepareHook(TestCase):
             "logical_id1": image_function_1,
         }
         mock_get_relevant_cfn_resource.side_effect = [
-            (image_function_1, "logical_id1"),
+            [(image_function_1, "logical_id1")],
         ]
         sam_metadata_resources = [
             SamMetadataResource(
                 current_module_address=None,
                 resource=self.tf_image_package_type_lambda_function_resource_sam_metadata,
+                config_resource=TFResource("", "", None, {}),
             ),
         ]
 
@@ -2231,7 +2404,7 @@ class TestPrepareHook(TestCase):
         mock_generate_makefile_rule_for_lambda_resource.side_effect = makefile_rules
 
         _enrich_resources_and_generate_makefile(
-            sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root"
+            sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root", {}
         )
         self.assertEqual(cfn_resources, expected_cfn_resources)
 
@@ -2351,12 +2524,13 @@ class TestPrepareHook(TestCase):
             "logical_id1": image_function_1,
         }
         mock_get_relevant_cfn_resource.side_effect = [
-            (image_function_1, "logical_id1"),
+            [(image_function_1, "logical_id1")],
         ]
         sam_metadata_resources = [
             SamMetadataResource(
                 current_module_address=None,
                 resource=self.tf_image_package_type_lambda_function_resource_sam_metadata,
+                config_resource=TFResource("", "", None, {}),
             ),
         ]
 
@@ -2364,7 +2538,7 @@ class TestPrepareHook(TestCase):
         mock_generate_makefile_rule_for_lambda_resource.side_effect = makefile_rules
 
         _enrich_resources_and_generate_makefile(
-            sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root"
+            sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root", {}
         )
         mock_enrich_image_lambda_function.assert_called_once_with(
             self.tf_image_package_type_lambda_function_resource_sam_metadata,
@@ -2493,6 +2667,7 @@ class TestPrepareHook(TestCase):
                     "address": f"null_resource.sam_metadata_func1",
                     "name": f"sam_metadata_func1",
                 },
+                config_resource=TFResource("", "", None, {}),
             ),
         ]
         with self.assertRaises(
@@ -2502,7 +2677,7 @@ class TestPrepareHook(TestCase):
             "these values [ZIP_LAMBDA_FUNCTION, IMAGE_LAMBDA_FUNCTION]",
         ):
             _enrich_resources_and_generate_makefile(
-                sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root"
+                sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root", {}
             )
 
     @parameterized.expand(
@@ -2814,7 +2989,7 @@ class TestPrepareHook(TestCase):
             "entry_point": ["entry1", "entry2"],
             "working_directory": "/working/dir/path",
         }
-        expected_message = f"SAM CLI expects that the value of image_config of aws_lambda_function resource in "
+        expected_message = f"AWS SAM CLI expects that the value of image_config of aws_lambda_function resource in "
         f"the terraform plan output to be of type list instead of {type(image_config)}"
         with self.assertRaises(PrepareHookException, msg=expected_message):
             _check_image_config_value(image_config)
@@ -2832,7 +3007,7 @@ class TestPrepareHook(TestCase):
                 "working_directory": "/working/dir/path",
             },
         ]
-        expected_message = f"SAM CLI expects that there is only one item in the  image_config property of "
+        expected_message = f"AWS SAM CLI expects that there is only one item in the  image_config property of "
         f"aws_lambda_function resource in the terraform plan output, but there are {len(image_config)} items"
         with self.assertRaises(PrepareHookException, msg=expected_message):
             _check_image_config_value(image_config)
@@ -2968,7 +3143,9 @@ class TestPrepareHook(TestCase):
         ]
         get_build_target_mock.return_value = "build-function_logical_id:\n"
         sam_metadata_resource = SamMetadataResource(
-            current_module_address=None, resource={"address": "null_resource.sam_metadata_aws_lambda_function"}
+            current_module_address=None,
+            resource={"address": "null_resource.sam_metadata_aws_lambda_function"},
+            config_resource=TFResource("", "", None, {}),
         )
         makefile_rule = _generate_makefile_rule_for_lambda_resource(
             python_command_name="python",
@@ -2998,7 +3175,9 @@ class TestPrepareHook(TestCase):
         jpath_string_mock.return_value = (
             "|values|root_module|resources|" f'[?address=="{resource}"]' "|values|triggers|built_output_path"
         )
-        sam_metadata_resource = SamMetadataResource(current_module_address=None, resource={})
+        sam_metadata_resource = SamMetadataResource(
+            current_module_address=None, resource={}, config_resource=TFResource("", "", None, {})
+        )
         show_command = _build_makerule_python_command(
             python_command_name="python",
             output_dir="/some/dir/path/.aws-sam/output",
@@ -3038,7 +3217,9 @@ class TestPrepareHook(TestCase):
         ]
     )
     def test_build_jpath_string(self, module_address, expected_jpath):
-        sam_metadata_resource = SamMetadataResource(current_module_address=module_address, resource={})
+        sam_metadata_resource = SamMetadataResource(
+            current_module_address=module_address, resource={}, config_resource=TFResource("", "", None, {})
+        )
         self.assertEqual(
             _build_jpath_string(sam_metadata_resource, "null_resource.sam_metadata_aws_lambda_function"), expected_jpath
         )
@@ -3402,3 +3583,52 @@ class TestPrepareHook(TestCase):
         )
 
         run_mock.assert_not_called()
+
+    def test_add_metadata_resource_to_metadata_list(self):
+        metadata_resource_mock1 = Mock()
+        metadata_resource_mock2 = Mock()
+        new_metadata_resource_mock = Mock()
+        planned_Value_resource = {
+            **self.tf_sam_metadata_resource_common_attributes,
+            "values": {
+                "triggers": {
+                    "built_output_path": "builds/func2.zip",
+                    "original_source_code": "./src/lambda_func2",
+                    "resource_name": "aws_lambda_function.func1",
+                    "resource_type": "ZIP_LAMBDA_FUNCTION",
+                },
+            },
+            "address": "null_resource.sam_metadata_func2",
+            "name": "sam_metadata_func2",
+        }
+        metadata_resources_list = [metadata_resource_mock1, metadata_resource_mock2]
+        _add_metadata_resource_to_metadata_list(
+            new_metadata_resource_mock, planned_Value_resource, metadata_resources_list
+        )
+        self.assertEquals(
+            metadata_resources_list, [metadata_resource_mock1, metadata_resource_mock2, new_metadata_resource_mock]
+        )
+
+    def test_add_metadata_resource_without_resource_name_to_metadata_list(self):
+        metadata_resource_mock1 = Mock()
+        metadata_resource_mock2 = Mock()
+        new_metadata_resource_mock = Mock()
+        planned_Value_resource = {
+            **self.tf_sam_metadata_resource_common_attributes,
+            "values": {
+                "triggers": {
+                    "built_output_path": "builds/func2.zip",
+                    "original_source_code": "./src/lambda_func2",
+                    "resource_type": "ZIP_LAMBDA_FUNCTION",
+                },
+            },
+            "address": "null_resource.sam_metadata_func2",
+            "name": "sam_metadata_func2",
+        }
+        metadata_resources_list = [metadata_resource_mock1, metadata_resource_mock2]
+        _add_metadata_resource_to_metadata_list(
+            new_metadata_resource_mock, planned_Value_resource, metadata_resources_list
+        )
+        self.assertEquals(
+            metadata_resources_list, [new_metadata_resource_mock, metadata_resource_mock1, metadata_resource_mock2]
+        )

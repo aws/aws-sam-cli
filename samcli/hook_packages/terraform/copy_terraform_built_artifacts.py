@@ -329,7 +329,7 @@ if __name__ == "__main__":
         create_backend_override()
 
         LOG.info("Running `terraform init` with backend override")
-        subprocess.check_call(["terraform", "init", "-reconfigure"])
+        subprocess.check_call(["terraform", "init", "-reconfigure", "-input=false", "-force-copy"])
 
         LOG.info("Running `terraform apply` on the target '%s'", target)
         subprocess.check_call(["terraform", "apply", "-target", target, "-replace", target, "-auto-approve"])

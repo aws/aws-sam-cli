@@ -668,19 +668,46 @@ def hook_package_id_click_option(force_prepare=True, invalid_coexist_options=Non
     """
     Click Option for hook-package-id option
     """
-    return click.option(
-        "--hook-package-id",
-        default=None,
-        type=click.STRING,
-        cls=HookPackageIdOption,
-        required=False,
-        is_eager=True,
-        force_prepare=force_prepare,
-        invalid_coexist_options=invalid_coexist_options if invalid_coexist_options else [],
-        help=f"The id of the hook package to be used to extend the SAM CLI commands functionality. As an example, you "
-        f"can use `terraform` to extend SAM CLI commands functionality to support terraform applications. "
-        f"Available Hook Packages Ids {get_available_hook_packages_ids()}",
-    )
+
+    def hook_package_id_setup(f):
+        return click.option(
+            "--hook-package-id",
+            default=None,
+            type=click.STRING,
+            required=False,
+            help=f"The id of the hook package to be used to extend the SAM CLI commands functionality. As an example, "
+            f"you can use `terraform` to extend SAM CLI commands functionality to support terraform applications. "
+            f"Available Hook Packages Ids {get_available_hook_packages_ids()}",
+        )(f)
+
+    def hook_package_id_processer_wrapper(f):
+        configuration_setup_params = ()
+        configuration_setup_attrs = {}
+        configuration_setup_attrs[
+            "help"
+        ] = "This is a hidden click option whose callback function to run the provided hook package."
+        configuration_setup_attrs["is_eager"] = True
+        configuration_setup_attrs["expose_value"] = False
+        configuration_setup_attrs["hidden"] = True
+        configuration_setup_attrs["type"] = click.STRING
+        configuration_setup_attrs["cls"] = HookPackageIdOption
+        configuration_setup_attrs["force_prepare"] = force_prepare
+        configuration_setup_attrs["invalid_coexist_options"] = (
+            invalid_coexist_options if invalid_coexist_options else []
+        )
+        return click.option(*configuration_setup_params, **configuration_setup_attrs)(f)
+
+    def composed_decorator(decorators):
+        def decorator(f):
+            for deco in decorators:
+                f = deco(f)
+            return f
+
+        return decorator
+
+    # Compose decorators here to make sure the context parameters are updated before callback function
+    decorator_list = [hook_package_id_setup, hook_package_id_processer_wrapper]
+    return composed_decorator(decorator_list)
 
 
 def skip_prepare_infra_click_option():

@@ -1,6 +1,6 @@
 """Terraform utilities"""
 import hashlib
-from typing import List, Union
+from typing import List, Union, Dict, Any
 
 from samcli.hook_packages.terraform.hooks.prepare.types import ConstantValue, ResolvedReference
 from samcli.lib.utils.hash import str_checksum
@@ -78,3 +78,9 @@ def _calculate_configuration_attribute_value_hash(
                 ref.value.encode() if isinstance(ref, ConstantValue) else f"{ref.module_address}.{ref.value}".encode()
             )
     return md5.hexdigest()
+
+
+def get_sam_metadata_planned_resource_value_attribute(
+    sam_metadata_resource_planned_values: Dict, attr_name: str
+) -> Any:
+    return sam_metadata_resource_planned_values.get("values", {}).get("triggers", {}).get(attr_name)

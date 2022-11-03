@@ -36,6 +36,7 @@ STDIN_FILE_NAME = "-"
 
 
 @click.command("invoke", help=HELP_TEXT, short_help="Invokes a local Lambda function once.")
+@configuration_option(provider=TomlProvider(section="parameters"))
 @hook_package_id_click_option(
     force_prepare=False, invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"]
 )
