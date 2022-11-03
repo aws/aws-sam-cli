@@ -5,7 +5,7 @@ import time
 
 LOG = logging.getLogger(__name__)
 
-START_WAIT_TIME_SECONDS = 60
+START_WAIT_TIME_SECONDS = 300
 
 
 class InvalidAddressException(Exception):

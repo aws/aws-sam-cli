@@ -18,6 +18,9 @@ import pytest
 from docker.errors import APIError
 from parameterized import parameterized, parameterized_class
 
+from samcli.commands._utils.experimental import EXPERIMENTAL_WARNING
+from samcli.lib.utils.colors import Colored
+from tests.integration.local.common_utils import random_port
 from tests.integration.local.invoke.layer_utils import LayerUtils
 from tests.integration.local.start_lambda.start_lambda_api_integ_base import StartLambdaIntegBaseClass
 from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUNNING_ON_CI
@@ -293,7 +296,7 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(StartLambd
 
     def setUp(self):
         self.working_dir = self.integration_dir + self.terraform_application
-        self.port = str(StartLambdaIntegBaseClass.random_port())
+        self.port = str(random_port())
 
         # remove all containers if there
         self.docker_client = docker.from_env()
@@ -330,11 +333,16 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(StartLambd
         self.assertNotEqual(return_code, 0)
 
 
+@skipIf(
+    not CI_OVERRIDE,
+    "Skip Terraform test cases unless running in CI",
+)
 class TestLocalStartLambdaTerraformApplicationWithExperimentalPromptYes(StartLambdaTerraformApplicationIntegBase):
     terraform_application = "/testdata/invoke/terraform/simple_application_no_building_logic"
     template_path = None
     hook_package_id = "terraform"
     input = b"Y\n"
+    collect_start_lambda_process_output = True
 
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
@@ -347,10 +355,6 @@ class TestLocalStartLambdaTerraformApplicationWithExperimentalPromptYes(StartLam
             config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
         )
 
-    @skipIf(
-        not CI_OVERRIDE,
-        "Skip Terraform test cases unless running in CI",
-    )
     @pytest.mark.flaky(reruns=3)
     def test_invoke_function(self):
         response = self.lambda_client.invoke(FunctionName="s3_lambda_function")
@@ -360,6 +364,33 @@ class TestLocalStartLambdaTerraformApplicationWithExperimentalPromptYes(StartLam
 
         self.assertEqual(response_body, expected_response)
         self.assertEqual(response.get("StatusCode"), 200)
+
+
+@skipIf(
+    not CI_OVERRIDE,
+    "Skip Terraform test cases unless running in CI",
+)
+class TestLocalStartLambdaTerraformApplicationWithBetaFeatures(StartLambdaTerraformApplicationIntegBase):
+    terraform_application = "/testdata/invoke/terraform/simple_application_no_building_logic"
+    template_path = None
+    hook_package_id = "terraform"
+    beta_features = True
+    collect_start_lambda_process_output = True
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+        self.lambda_client = boto3.client(
+            "lambda",
+            endpoint_url=self.url,
+            region_name="us-east-1",
+            use_ssl=False,
+            verify=False,
+            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
+        )
+
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_function_and_warning_message_is_printed(self):
+        self.assertTrue(self.start_lambda_process_error.startswith(Colored().yellow(EXPERIMENTAL_WARNING)))
 
 
 class TestLocalStartLambdaTerraformApplicationWithExperimentalPromptNo(StartLambdaTerraformApplicationIntegBase):
@@ -387,7 +418,7 @@ class TestLocalStartLambdaTerraformApplicationWithExperimentalPromptNo(StartLamb
     @pytest.mark.flaky(reruns=3)
     def test_invoke_function(self):
         self.assertRegex(
-            self.start_lambda_process_output,
+            self.start_lambda_process_error,
             "Terraform Support beta feature is not enabled.",
         )
 
@@ -433,6 +464,48 @@ class TestLocalStartLambdaInvalidUsecasesTerraform(StartLambdaTerraformApplicati
         )
         self.assertEqual(return_code, 0)
 
+    def test_start_lambda_with_no_beta_feature_option_in_samconfig_toml(self):
+        samconfig_toml_path = Path(self.working_dir).joinpath("samconfig.toml")
+        samconfig_lines = [
+            bytes("version = 0.1" + os.linesep, "utf-8"),
+            bytes("[default.global.parameters]" + os.linesep, "utf-8"),
+            bytes("beta_features = false" + os.linesep, "utf-8"),
+        ]
+        with open(samconfig_toml_path, "wb") as file:
+            file.writelines(samconfig_lines)
+
+        command_list = self.get_start_lambda_command(hook_package_id="terraform")
+
+        _, stderr, return_code = self._run_command(command_list, tf_application=self.working_dir)
+
+        process_stderr = stderr.strip()
+        self.assertRegex(
+            process_stderr.decode("utf-8"),
+            "Terraform Support beta feature is not enabled.",
+        )
+        self.assertEqual(return_code, 0)
+        # delete the samconfig file
+        try:
+            os.remove(samconfig_toml_path)
+        except FileNotFoundError:
+            pass
+
+    def test_start_lambda_with_no_beta_feature_option_in_environment_variables(self):
+        environment_variables = os.environ.copy()
+        environment_variables["SAM_CLI_BETA_TERRAFORM_SUPPORT"] = "False"
+
+        command_list = self.get_start_lambda_command(hook_package_id="terraform")
+        _, stderr, return_code = self._run_command(
+            command_list, tf_application=self.working_dir, env=environment_variables
+        )
+
+        process_stderr = stderr.strip()
+        self.assertRegex(
+            process_stderr.decode("utf-8"),
+            "Terraform Support beta feature is not enabled.",
+        )
+        self.assertEqual(return_code, 0)
+
     def test_invalid_coexist_parameters(self):
 
         command_list = self.get_start_lambda_command(hook_package_id="terraform", template_path="path/template.yaml")
@@ -441,8 +514,8 @@ class TestLocalStartLambdaInvalidUsecasesTerraform(StartLambdaTerraformApplicati
         process_stderr = stderr.strip()
         self.assertRegex(
             process_stderr.decode("utf-8"),
-            "Error: Invalid value: Parameters hook-package-id, and t,template-file,template,parameter-overrides can "
-            "not be used together",
+            "Error: Invalid value: Parameters hook-package-id, and t,template-file,template,parameter-overrides cannot "
+            "be used together",
         )
         self.assertNotEqual(return_code, 0)
 

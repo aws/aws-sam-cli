@@ -993,7 +993,7 @@ def _get_relevant_cfn_resource(
     resource_name = sam_metadata_resource.resource.get("values", {}).get("triggers", {}).get("resource_name")
     if not resource_name:
         raise InvalidSamMetadataPropertiesException(
-            f"sam cli expects the sam metadata resource {sam_metadata_resource_address} to contain a resource name "
+            f"AWS SAM CLI expects the sam metadata resource {sam_metadata_resource_address} to contain a resource name "
             f"that will be enriched using this metadata resource"
         )
 
@@ -1427,12 +1427,12 @@ def _check_image_config_value(image_config: Any) -> bool:
     """
     if not isinstance(image_config, list):
         raise PrepareHookException(
-            f"SAM CLI expects that the value of image_config of aws_lambda_function resource in "
+            f"AWS SAM CLI expects that the value of image_config of aws_lambda_function resource in "
             f"the terraform plan output to be of type list instead of {type(image_config)}"
         )
     if len(image_config) > 1:
         raise PrepareHookException(
-            f"SAM CLI expects that there is only one item in the  image_config property of "
+            f"AWS SAM CLI expects that there is only one item in the  image_config property of "
             f"aws_lambda_function resource in the terraform plan output, but there are "
             f"{len(image_config)} items"
         )

@@ -157,7 +157,7 @@ class StartLambdaIntegBaseClass(TestCase):
             cls.start_lambda_process.stdin.write(input)
             cls.start_lambda_process.stdin.close()
 
-        cls.start_lambda_process_output = wait_for_local_process(
+        cls.start_lambda_process_error = wait_for_local_process(
             cls.start_lambda_process, cls.port, cls.collect_start_lambda_process_output
         )
 
