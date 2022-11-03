@@ -7,7 +7,7 @@ from typing import Dict, Optional, Any
 HOOK_METADATA_KEY = "AWS::SAM::Hook"
 
 
-def get_hook_metadata(template: Dict) -> Optional[Any]:
+def get_hook_metadata(template: Dict[str, Dict]) -> Optional[Dict]:
     """
     Returns Hook Metadata from the given template if it exists.
     If the metadata is not found, returns None.
