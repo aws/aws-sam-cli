@@ -30,7 +30,11 @@ from samcli.hook_packages.terraform.hooks.prepare.types import (
     TFModule,
     TFResource,
 )
-from samcli.hook_packages.terraform.lib.utils import build_cfn_logical_id, _calculate_configuration_attribute_value_hash
+from samcli.hook_packages.terraform.lib.utils import (
+    build_cfn_logical_id,
+    _calculate_configuration_attribute_value_hash,
+    get_sam_metadata_planned_resource_value_attribute,
+)
 from samcli.lib.hook.exceptions import PrepareHookException
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import InvalidSamMetadataPropertiesException
 from samcli.lib.utils import osutils
@@ -39,6 +43,18 @@ from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_LAYERVERSION as CFN_AWS_LAMBDA_LAYER_VERSION,
 )
+
+SAM_METADATA_DOCKER_TAG_ATTRIBUTE = "docker_tag"
+
+SAM_METADATA_DOCKER_BUILD_ARGS_ATTRIBUTE = "docker_build_args"
+
+SAM_METADATA_DOCKER_FILE_ATTRIBUTE = "docker_file"
+
+SAM_METADATA_RESOURCE_TYPE_ATTRIBUTE = "resource_type"
+
+SAM_METADATA_ADDRESS_ATTRIBUTE = "address"
+
+SAM_METADATA_RESOURCE_NAME_ATTRIBUTE = "resource_name"
 
 REMOTE_DUMMY_VALUE = "<<REMOTE DUMMY VALUE - RAISE ERROR IF IT IS STILL THERE>>"
 
@@ -356,7 +372,7 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
                 lambda_funcs_conf_cfn_resources[resolved_config_address] = matched_lambdas
                 lambda_config_funcs_conf_cfn_resources[resolved_config_address] = config_resource
 
-                resource_type = translated_properties.get("PackageType", "Zip")
+                resource_type = translated_properties.get("PackageType", ZIP)
                 resource_type_constants = {"Zip": ("zip", "filename"), "Image": ("image", "image_uri")}
                 planned_value_function_code_path = (
                     translated_properties.get("Code")
@@ -462,7 +478,9 @@ def _add_metadata_resource_to_metadata_list(
     sam_metadata_resources: List[SamMetadataResource]
         The list of metadata resources
     """
-    if sam_metadata_resource_planned_values.get("values", {}).get("triggers", {}).get("resource_name"):
+    if get_sam_metadata_planned_resource_value_attribute(
+        sam_metadata_resource_planned_values, SAM_METADATA_RESOURCE_NAME_ATTRIBUTE
+    ):
         sam_metadata_resources.append(sam_metadata_resource)
     else:
         sam_metadata_resources.insert(0, sam_metadata_resource)
@@ -534,7 +552,7 @@ def _link_lambda_functions_to_layers(
 
 
 def _validate_referenced_resource_matches_sam_metadata_type(
-    cfn_resource: dict, sam_metadata_attributes: dict, sam_metadata_resource_address: str, expected_package_type: str
+    cfn_resource: dict, sam_metadata_resource: dict, sam_metadata_resource_address: str, expected_package_type: str
 ) -> None:
     """
     Validate if the resource that match the resource name provided in the sam metadata resource matches the resource
@@ -544,15 +562,17 @@ def _validate_referenced_resource_matches_sam_metadata_type(
     ----------
     cfn_resource: dict
         The CFN resource that matches the sam metadata resource name
-    sam_metadata_attributes: dict
-        The sam metadata properties
+    sam_metadata_resource: Dict
+        The sam metadata resource properties
     sam_metadata_resource_address: str
         The sam metadata resource address
     expected_package_type: str
         The expected lambda function package type.
     """
     cfn_resource_properties = cfn_resource.get("Properties", {})
-    resource_type = sam_metadata_attributes.get("resource_type")
+    resource_type = get_sam_metadata_planned_resource_value_attribute(
+        sam_metadata_resource, SAM_METADATA_RESOURCE_TYPE_ATTRIBUTE
+    )
     cfn_resource_type = cfn_resource.get("Type")
     lambda_function_package_type = cfn_resource_properties.get("PackageType", ZIP)
     LOG.debug(
@@ -581,7 +601,7 @@ def _validate_referenced_resource_matches_sam_metadata_type(
 
 
 def _get_source_code_path(
-    sam_metadata_attributes: dict,
+    sam_metadata_resource: dict,
     sam_metadata_resource_address: str,
     project_root_dir: str,
     src_code_property_name: str,
@@ -594,8 +614,8 @@ def _get_source_code_path(
 
     Parameters
     ----------
-    sam_metadata_attributes: dict
-        The sam metadata properties
+    sam_metadata_resource: Dict
+        The sam metadata resource properties
     sam_metadata_resource_address: str
         The sam metadata resource address
     project_root_dir: str
@@ -619,8 +639,10 @@ def _get_source_code_path(
         sam_metadata_resource_address,
         src_code_property_name,
     )
-    source_code = sam_metadata_attributes.get(src_code_property_name)
-    source_code_property = sam_metadata_attributes.get(property_path_property_name)
+    source_code = get_sam_metadata_planned_resource_value_attribute(sam_metadata_resource, src_code_property_name)
+    source_code_property = get_sam_metadata_planned_resource_value_attribute(
+        sam_metadata_resource, property_path_property_name
+    )
     LOG.debug(
         "The found %s value is %s and property value is %s", src_code_attribute_name, source_code, source_code_property
     )
@@ -731,7 +753,6 @@ def _enrich_zip_lambda_function(
     terraform_application_dir: str
         the terraform project root directory
     """
-    sam_metadata_attributes = sam_metadata_resource.get("values", {}).get("triggers", {})
     sam_metadata_resource_address = sam_metadata_resource.get("address")
     if not sam_metadata_resource_address:
         raise PrepareHookException(
@@ -745,11 +766,11 @@ def _enrich_zip_lambda_function(
     )
 
     _validate_referenced_resource_matches_sam_metadata_type(
-        cfn_lambda_function, sam_metadata_attributes, sam_metadata_resource_address, ZIP
+        cfn_lambda_function, sam_metadata_resource, sam_metadata_resource_address, ZIP
     )
 
     cfn_source_code_path = _get_source_code_path(
-        sam_metadata_attributes,
+        sam_metadata_resource,
         sam_metadata_resource_address,
         terraform_application_dir,
         "original_source_code",
@@ -788,7 +809,6 @@ def _enrich_image_lambda_function(
     terraform_application_dir: str
         the terraform project root directory
     """
-    sam_metadata_attributes = sam_metadata_resource.get("values", {}).get("triggers", {})
     sam_metadata_resource_address = sam_metadata_resource.get("address")
     if not sam_metadata_resource_address:
         raise PrepareHookException(
@@ -803,19 +823,23 @@ def _enrich_image_lambda_function(
     )
 
     _validate_referenced_resource_matches_sam_metadata_type(
-        cfn_lambda_function, sam_metadata_attributes, sam_metadata_resource_address, IMAGE
+        cfn_lambda_function, sam_metadata_resource, sam_metadata_resource_address, IMAGE
     )
 
     cfn_docker_context_path = _get_source_code_path(
-        sam_metadata_attributes,
+        sam_metadata_resource,
         sam_metadata_resource_address,
         terraform_application_dir,
         "docker_context",
         "docker_context_property_path",
         "docker context",
     )
-    cfn_docker_file = sam_metadata_attributes.get("docker_file")
-    cfn_docker_build_args_string = sam_metadata_attributes.get("docker_build_args")
+    cfn_docker_file = get_sam_metadata_planned_resource_value_attribute(
+        sam_metadata_resource, SAM_METADATA_DOCKER_FILE_ATTRIBUTE
+    )
+    cfn_docker_build_args_string = get_sam_metadata_planned_resource_value_attribute(
+        sam_metadata_resource, SAM_METADATA_DOCKER_BUILD_ARGS_ATTRIBUTE
+    )
     cfn_docker_build_args = None
     if cfn_docker_build_args_string:
         try:
@@ -832,7 +856,9 @@ def _enrich_image_lambda_function(
                 f"string for the lambda function docker build arguments."
             ) from exc
 
-    cfn_docker_tag = sam_metadata_attributes.get("docker_tag")
+    cfn_docker_tag = get_sam_metadata_planned_resource_value_attribute(
+        sam_metadata_resource, SAM_METADATA_DOCKER_TAG_ATTRIBUTE
+    )
 
     if cfn_resource_properties.get("Code"):
         cfn_resource_properties.pop("Code")
@@ -872,14 +898,13 @@ def _enrich_lambda_layer(
     terraform_application_dir: str
        the terraform project root directory
     """
-    sam_metadata_attributes = sam_metadata_resource.get("values", {}).get("triggers", {})
     sam_metadata_resource_address = sam_metadata_resource.get("address")
     if not sam_metadata_resource_address:
         raise PrepareHookException(
             "Invalid Terraform plan output. The address property should not be null to any terraform resource."
         )
     _validate_referenced_resource_layer_matches_metadata_type(
-        cfn_lambda_layer, sam_metadata_attributes, sam_metadata_resource_address
+        cfn_lambda_layer, sam_metadata_resource, sam_metadata_resource_address
     )
     LOG.debug(
         "Enrich the Lambda Layer Version %s using the metadata properties defined in resource %s",
@@ -888,7 +913,7 @@ def _enrich_lambda_layer(
     )
 
     cfn_source_code_path = _get_source_code_path(
-        sam_metadata_attributes,
+        sam_metadata_resource,
         sam_metadata_resource_address,
         terraform_application_dir,
         "original_source_code",
@@ -907,7 +932,7 @@ def _enrich_lambda_layer(
 
 def _validate_referenced_resource_layer_matches_metadata_type(
     cfn_resource: dict,
-    sam_metadata_attributes: dict,
+    sam_metadata_resource: dict,
     sam_metadata_resource_address: str,
 ) -> None:
     """
@@ -918,13 +943,13 @@ def _validate_referenced_resource_layer_matches_metadata_type(
     ----------
     cfn_resource: dict
         The CFN resource that matches the sam metadata resource name
-    sam_metadata_attributes: dict
-        The sam metadata properties
+    sam_metadata_resource: Dict
+       The sam metadata resource properties
     sam_metadata_resource_address: str
         The sam metadata resource address
     """
     cfn_resource_properties = cfn_resource.get("Properties", {})
-    resource_type = sam_metadata_attributes.get("resource_type")
+    resource_type = sam_metadata_resource.get(SAM_METADATA_RESOURCE_TYPE_ATTRIBUTE)
     cfn_resource_type = cfn_resource.get("Type")
     LOG.debug(
         "Validate if the referenced resource in sam metadata resource %s is of the expected type %s",
@@ -1017,7 +1042,9 @@ def _enrich_resources_and_generate_makefile(
     makefile_rules = []
     for sam_metadata_resource in sam_metadata_resources:
         # enrich resource
-        resource_type = sam_metadata_resource.resource.get("values", {}).get("triggers", {}).get("resource_type")
+        resource_type = get_sam_metadata_planned_resource_value_attribute(
+            sam_metadata_resource.resource, SAM_METADATA_RESOURCE_TYPE_ATTRIBUTE
+        )
         sam_metadata_resource_address = sam_metadata_resource.resource.get("address")
         enrichment_function = resources_types_enrichment_functions.get(resource_type)
         if enrichment_function is None:
@@ -1116,6 +1143,8 @@ def _get_relevant_cfn_resource(
         sam metadata resource that contain extra information about some resource.
     cfn_resources: Dict
         CloudFormation resources
+    lambda_resources_to_code_map: Dict
+        The map between lambda resources code path, and lambda resources logical ids
 
     Returns
     -------
@@ -1130,14 +1159,18 @@ def _get_relevant_cfn_resource(
     }
 
     sam_metadata_resource_address = sam_metadata_resource.resource.get("address")
-    resource_name = sam_metadata_resource.resource.get("values", {}).get("triggers", {}).get("resource_name")
-    resource_type = sam_metadata_resource.resource.get("values", {}).get("triggers", {}).get("resource_type")
+    resource_name = get_sam_metadata_planned_resource_value_attribute(
+        sam_metadata_resource.resource, SAM_METADATA_RESOURCE_NAME_ATTRIBUTE
+    )
+    resource_type = get_sam_metadata_planned_resource_value_attribute(
+        sam_metadata_resource.resource, SAM_METADATA_RESOURCE_TYPE_ATTRIBUTE
+    )
     if not resource_name:
         artifact_property_name = (
             "built_output_path" if resource_type in ["ZIP_LAMBDA_FUNCTION", "LAMBDA_LAYER"] else "built_image_uri"
         )
-        artifact_path_value = (
-            sam_metadata_resource.resource.get("values", {}).get("triggers", {}).get(artifact_property_name)
+        artifact_path_value = get_sam_metadata_planned_resource_value_attribute(
+            sam_metadata_resource.resource, artifact_property_name
         )
         if not artifact_path_value:
             artifact_path_value = _resolve_resource_attribute(

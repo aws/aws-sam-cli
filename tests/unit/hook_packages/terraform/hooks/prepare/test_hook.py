@@ -1706,8 +1706,9 @@ class TestPrepareHook(TestCase):
                 **sam_metadata_attributes,
                 "source_code_property": source_code_property,
             }
+        sam_resource = {"values": {"triggers": sam_metadata_attributes}}
         path = _get_source_code_path(
-            sam_metadata_attributes,
+            sam_resource,
             "resource_address",
             "/project/root/dir",
             "original_source_code",
