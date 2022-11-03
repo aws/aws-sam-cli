@@ -30,6 +30,7 @@ class Runtime(Enum):
     nodejs12x = "nodejs12.x"
     nodejs14x = "nodejs14.x"
     nodejs16x = "nodejs16.x"
+    nodejs18x = "nodejs18.x"
     python36 = "python3.6"
     python37 = "python3.7"
     python38 = "python3.8"
