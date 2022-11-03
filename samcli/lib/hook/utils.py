@@ -2,7 +2,7 @@
 Hook-related utils
 """
 
-from typing import Dict, Optional, Any
+from typing import Dict, Optional
 
 HOOK_METADATA_KEY = "AWS::SAM::Hook"
 
