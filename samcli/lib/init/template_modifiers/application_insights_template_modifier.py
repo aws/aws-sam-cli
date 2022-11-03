@@ -3,20 +3,15 @@ Class used to parse and update template when application-insights is enabled
 """
 import logging
 from typing import Any
-import ruamel.yaml
-from ruamel.yaml import YAML
-from ruamel.yaml.comments import CommentedMap
 from samcli.lib.init.template_modifiers.cli_template_modifier import TemplateModifier
 
 LOG = logging.getLogger(__name__)
-yaml = YAML()
-# set ignore aliases to true
-class NonAliasingRTRepresenter(ruamel.yaml.representer.RoundTripRepresenter):
-    def ignore_aliases(self, data):
-        return True
 
 
 class ApplicationInsightsTemplateModifier(TemplateModifier):
+    import ruamel.yaml
+    from ruamel.yaml import YAML
+    from ruamel.yaml.comments import CommentedMap
 
     TYPE_KEY = "Type"
     RESOURCES_KEY = "Resources"
@@ -34,10 +29,19 @@ class ApplicationInsightsTemplateModifier(TemplateModifier):
     AUTO_CONFIG_VALUE = "true"
     RESOURCE_GROUP_NAME = {"Fn::Join": ["", ["ApplicationInsights-SAM-", {"Ref": "AWS::StackName"}]]}
 
+    # set ignore aliases to true. This configuration avoids usage yaml aliases which is not parsed by CloudFormation.
+    class NonAliasingRTRepresenter(ruamel.yaml.representer.RoundTripRepresenter):
+        def ignore_aliases(self, data):
+            return True
+
+    def __init__(self, location):
+        self.yaml = ApplicationInsightsTemplateModifier.YAML()
+        self.yaml.Representer = ApplicationInsightsTemplateModifier.NonAliasingRTRepresenter
+        super().__init__(location)
+
     def _get_template(self) -> Any:
-        yaml.Representer = NonAliasingRTRepresenter
         with open(self.template_location) as file:
-            return yaml.load(file)
+            return self.yaml.load(file)
 
     def _update_template_fields(self):
         """
@@ -63,10 +67,11 @@ class ApplicationInsightsTemplateModifier(TemplateModifier):
             self.DEPENDS_ON_KEY: self.RESOURCE_GROUP_REF,
         }
 
-        self.template[self.RESOURCES_KEY][self.RESOURCE_GROUP_REF] = CommentedMap(resourceGroup)
-        self.template[self.RESOURCES_KEY][self.APPLICATION_INSIGHTS_REF] = CommentedMap(appInsightsApplication)
-        print("test")
-        print(self.template)
+        self.template[self.RESOURCES_KEY][self.RESOURCE_GROUP_REF] = \
+            ApplicationInsightsTemplateModifier.CommentedMap(resourceGroup)
+        self.template[self.RESOURCES_KEY][self.APPLICATION_INSIGHTS_REF] = \
+            ApplicationInsightsTemplateModifier.CommentedMap(appInsightsApplication)
+        LOG.info(self.template)
 
     def _print_sanity_check_error(self):
         link = "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch-application-insights.html"
@@ -85,8 +90,5 @@ class ApplicationInsightsTemplateModifier(TemplateModifier):
         template : list
             array with updated template data
         """
-        yaml.Representer = NonAliasingRTRepresenter
-        print("test")
-        print(self.template)
         with open(self.template_location, "w") as file:
-            yaml.dump(self.template, file)
+            self.yaml.dump(self.template, file)

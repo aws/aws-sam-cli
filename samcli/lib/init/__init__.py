@@ -16,6 +16,7 @@ from samcli.lib.init.template_modifiers.xray_tracing_template_modifier import XR
 from samcli.lib.init.template_modifiers.application_insights_template_modifier import (
     ApplicationInsightsTemplateModifier,
 )
+from samcli.lib.telemetry.event import EventName, UsedFeature
 from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.utils import osutils
 from .exceptions import GenerateProjectFailedError, InvalidLocationError
@@ -143,4 +144,4 @@ def _enable_application_insights(application_insights: bool, output_dir: str, na
         template_file_path = f"{output_dir}/{name}/template.yaml"
         template_modifier = ApplicationInsightsTemplateModifier(template_file_path)
         template_modifier.modify_template()
-        EventTracker.track_event("UsedFeature", "ApplicationInsights")
+        EventTracker.track_event(EventName.USED_FEATURE.value, UsedFeature.INIT_WITH_APPLICATION_INSIGHTS.value)

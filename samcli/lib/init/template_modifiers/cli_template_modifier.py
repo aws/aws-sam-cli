@@ -130,5 +130,5 @@ class TemplateModifier:
         pass
 
     @abstractmethod
-    def _get_template(self) -> Any:
+    def _get_template(self):
         pass

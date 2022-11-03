@@ -27,7 +27,11 @@ class EventName(Enum):
     SYNC_FLOW_END = "SyncFlowEnd"
     BUILD_WORKFLOW_USED = "BuildWorkflowUsed"
 
-
+class UsedFeature(Enum):
+    """Enum for the names of event values of UsedFeature"""
+    ACCELERATE = "Accelerate"
+    CDK = "CDK"
+    INIT_WITH_APPLICATION_INSIGHTS = "InitWithApplicationInsights"
 class EventType:
     """Class for Events and the types of values they may have."""
 
@@ -48,7 +52,7 @@ class EventType:
     _WORKFLOWS = [f"{config.language}-{config.dependency_manager}" for config in ALL_CONFIGS]
 
     _event_values = {  # Contains allowable values for Events
-        EventName.USED_FEATURE: ["Accelerate", "CDK", "ApplicationInsights"],
+        EventName.USED_FEATURE: [event.value for event in UsedFeature],
         EventName.BUILD_FUNCTION_RUNTIME: INIT_RUNTIMES,
         EventName.SYNC_USED: [
             "Start",
