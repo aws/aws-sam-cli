@@ -239,7 +239,7 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
             "Please confirm if you would like to proceed using AWS SAM CLI with terraform application.\n"
             "You can also enable this beta feature with 'sam build --beta-features'."
         )
-        self.assertNotRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
+        self.assertRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
         self.assertEqual(return_code, 0)
         self.assertEqual(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
 
