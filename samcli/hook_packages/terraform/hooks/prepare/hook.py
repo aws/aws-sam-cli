@@ -124,7 +124,7 @@ def prepare(params: dict) -> dict:
         # get json output of terraform plan
         LOG.info("Creating terraform plan and getting JSON output")
         with osutils.tempfile_platform_independent() as temp_file:
-            process_output = invoke_subprocess_with_loading_pattern(
+            invoke_subprocess_with_loading_pattern(
                 # input false to avoid SAM CLI to stuck in case if the
                 # Terraform project expects input, and customer does not provide it.
                 command_args={
@@ -133,9 +133,6 @@ def prepare(params: dict) -> dict:
                     "stdout": PIPE,
                 }
             )
-            if isinstance(process_output, bytes):
-                process_output = process_output.decode("utf-8")
-            LOG.debug(process_output)
 
             result = run(
                 ["terraform", "show", "-json", temp_file.name],
