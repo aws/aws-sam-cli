@@ -30,7 +30,11 @@ from samcli.hook_packages.terraform.hooks.prepare.types import (
     TFModule,
     TFResource,
 )
-from samcli.hook_packages.terraform.lib.utils import build_cfn_logical_id, _calculate_configuration_attribute_value_hash
+from samcli.hook_packages.terraform.lib.utils import (
+    build_cfn_logical_id,
+    _calculate_configuration_attribute_value_hash,
+    get_sam_metadata_planned_resource_value_attribute,
+)
 from samcli.lib.hook.exceptions import PrepareHookException
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import InvalidSamMetadataPropertiesException
 from samcli.lib.utils import osutils
@@ -40,6 +44,18 @@ from samcli.lib.utils.resources import (
     AWS_LAMBDA_LAYERVERSION as CFN_AWS_LAMBDA_LAYER_VERSION,
 )
 from samcli.lib.utils.subprocess_utils import invoke_subprocess_with_loading_pattern, LoadingPatternError
+
+SAM_METADATA_DOCKER_TAG_ATTRIBUTE = "docker_tag"
+
+SAM_METADATA_DOCKER_BUILD_ARGS_ATTRIBUTE = "docker_build_args"
+
+SAM_METADATA_DOCKER_FILE_ATTRIBUTE = "docker_file"
+
+SAM_METADATA_RESOURCE_TYPE_ATTRIBUTE = "resource_type"
+
+SAM_METADATA_ADDRESS_ATTRIBUTE = "address"
+
+SAM_METADATA_RESOURCE_NAME_ATTRIBUTE = "resource_name"
 
 REMOTE_DUMMY_VALUE = "<<REMOTE DUMMY VALUE - RAISE ERROR IF IT IS STILL THERE>>"
 
@@ -78,6 +94,7 @@ class ResourceTranslator:
 class SamMetadataResource:
     current_module_address: Optional[str]
     resource: Dict
+    config_resource: TFResource
 
 
 def prepare(params: dict) -> dict:
@@ -238,7 +255,14 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
     root_tf_module = _build_module("", tf_json.get("configuration", {}).get("root_module"), input_vars, None)
 
     # to map s3 object sources to respective functions later
-    s3_hash_to_source = {}
+    # this dictionary will map between the hash value of the S3 Bucket attributes, and a tuple of the planned value
+    # source code path, and the configuration value of the source code path.
+    s3_hash_to_source: Dict[str, Tuple[str, List[Union[ConstantValue, ResolvedReference]]]] = {}
+
+    # map code/imageuri to Lambda resources
+    # the key is the hash value of lambda code/imageuri
+    # the value is the list of pair of the resource logical id, and the lambda cfn resource dict
+    lambda_resources_to_code_map: Dict[str, List[Tuple[Dict, str]]] = {}
 
     sam_metadata_resources: List[SamMetadataResource] = []
 
@@ -261,14 +285,20 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
             resource_provider = resource.get("provider_name")
             resource_type = resource.get("type")
             resource_values = resource.get("values")
-            resource_address = resource.get("address")
+            resource_full_address = resource.get("address")
             resource_name = resource.get("name")
+            resource_mode = resource.get("mode")
 
-            config_resource_address = _get_configuration_address(f"{resource_type}.{resource_name}")
+            resource_address = (
+                f"data.{resource_type}.{resource_name}"
+                if resource_mode == "data"
+                else f"{resource_type}.{resource_name}"
+            )
+            config_resource_address = _get_configuration_address(resource_address)
             if config_resource_address not in curr_tf_module.resources:
                 raise PrepareHookException(
-                    f"There is no configuration resource for resource address {resource_address} and configuration "
-                    f"address {config_resource_address}"
+                    f"There is no configuration resource for resource address {resource_full_address} and "
+                    f"configuration address {config_resource_address}"
                 )
 
             config_resource = curr_tf_module.resources[config_resource_address]
@@ -278,7 +308,11 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
                 and resource_type == SAM_METADATA_RESOURCE_TYPE
                 and resource_name.startswith(SAM_METADATA_NAME_PREFIX)
             ):
-                sam_metadata_resources.append(SamMetadataResource(curr_module_address, resource))
+                _add_metadata_resource_to_metadata_list(
+                    SamMetadataResource(curr_module_address, resource, config_resource),
+                    resource,
+                    sam_metadata_resources,
+                )
                 continue
 
             # only process supported provider
@@ -298,7 +332,11 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
                     else _resolve_resource_attribute(config_resource, "key")
                 )
                 obj_hash = _get_s3_object_hash(s3_bucket, s3_key)
-                s3_hash_to_source[obj_hash] = resource_values.get("source")
+                code_artifact = resource_values.get("source")
+                config_code_artifact = (
+                    code_artifact if code_artifact else _resolve_resource_attribute(config_resource, "source")
+                )
+                s3_hash_to_source[obj_hash] = (code_artifact, config_code_artifact)
 
             resource_translator = RESOURCE_TRANSLATOR_MAPPING.get(resource_type)
             # resource type not supported
@@ -306,35 +344,64 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
                 continue
 
             # translate TF resource "values" to CFN properties
-            LOG.debug("Processing resource %s", resource_address)
+            LOG.debug("Processing resource %s", resource_full_address)
             translated_properties = _translate_properties(
                 resource_values, resource_translator.property_builder_mapping, config_resource
             )
             translated_resource = {
                 "Type": resource_translator.cfn_name,
                 "Properties": translated_properties,
-                "Metadata": {"SamResourceId": resource_address, "SkipBuild": True},
+                "Metadata": {"SamResourceId": resource_full_address, "SkipBuild": True},
             }
 
             # build CFN logical ID from resource address
-            logical_id = build_cfn_logical_id(resource_address)
+            logical_id = build_cfn_logical_id(resource_full_address)
 
             # Add resource to cfn dict
             cfn_dict["Resources"][logical_id] = translated_resource
 
             if resource_type == TF_AWS_LAMBDA_LAYER_VERSION:
                 lambda_layers_terraform_resources[logical_id] = resource
+                planned_value_layer_code_path = translated_properties.get("Content")
+                _add_lambda_resource_code_path_to_code_map(
+                    config_resource,
+                    "layer",
+                    lambda_resources_to_code_map,
+                    logical_id,
+                    planned_value_layer_code_path,
+                    "filename",
+                    translated_resource,
+                )
 
             if resource_type == TF_AWS_LAMBDA_FUNCTION:
-                resolved_config_address = _get_configuration_address(resource_address)
+                resolved_config_address = _get_configuration_address(resource_full_address)
                 matched_lambdas = lambda_funcs_conf_cfn_resources.get(resolved_config_address, [])
                 matched_lambdas.append(translated_resource)
                 lambda_funcs_conf_cfn_resources[resolved_config_address] = matched_lambdas
                 lambda_config_funcs_conf_cfn_resources[resolved_config_address] = config_resource
 
+                resource_type = translated_properties.get("PackageType", ZIP)
+                resource_type_constants = {ZIP: ("zip", "filename"), IMAGE: ("image", "image_uri")}
+                planned_value_function_code_path = (
+                    translated_properties.get("Code")
+                    if resource_type == ZIP
+                    else translated_properties.get("Code", {}).get("ImageUri")
+                )
+                func_type, tf_code_property = resource_type_constants[resource_type]
+
+                _add_lambda_resource_code_path_to_code_map(
+                    config_resource,
+                    func_type,
+                    lambda_resources_to_code_map,
+                    logical_id,
+                    planned_value_function_code_path,
+                    tf_code_property,
+                    translated_resource,
+                )
+
     # map s3 object sources to corresponding functions
     LOG.debug("Mapping S3 object sources to corresponding functions")
-    _map_s3_sources_to_functions(s3_hash_to_source, cfn_dict.get("Resources", {}))
+    _map_s3_sources_to_functions(s3_hash_to_source, cfn_dict.get("Resources", {}), lambda_resources_to_code_map)
 
     _link_lambda_functions_to_layers(
         lambda_config_funcs_conf_cfn_resources, lambda_funcs_conf_cfn_resources, lambda_layers_terraform_resources
@@ -343,7 +410,11 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
     if sam_metadata_resources:
         LOG.debug("Enrich the mapped resources with the sam metadata information and generate Makefile")
         _enrich_resources_and_generate_makefile(
-            sam_metadata_resources, cfn_dict.get("Resources", {}), output_directory_path, terraform_application_dir
+            sam_metadata_resources,
+            cfn_dict.get("Resources", {}),
+            output_directory_path,
+            terraform_application_dir,
+            lambda_resources_to_code_map,
         )
     else:
         LOG.debug("There is no sam metadata resources, no enrichment or Makefile is required")
@@ -352,6 +423,75 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
     _check_dummy_remote_values(cfn_dict.get("Resources", {}))
 
     return cfn_dict
+
+
+def _add_lambda_resource_code_path_to_code_map(
+    terraform_resource: TFResource,
+    lambda_resource_prefix: str,
+    lambda_resources_to_code_map: Dict,
+    logical_id: str,
+    lambda_resource_code_value: Any,
+    terraform_code_property_name: str,
+    translated_resource: Dict,
+) -> None:
+    """
+    Calculate the hash value of  the lambda resource code path planned value or the configuration value and use it to
+    map the lambda resource logical id to the source code path. This will be used later to map the metadata resource to
+    the correct lambda resource.
+
+    Parameters
+    ----------
+    terraform_resource: TFResource
+        The mapped TF resource. This will be used to resolve the configuration value of the code attribute in the lambda
+         resource
+    lambda_resource_prefix: str
+        a string prefix to be added to the hash value to differentiate between the different lambda resources types
+    lambda_resources_to_code_map: dict
+        the map between lambda resources code path values, and the lambda resources logical ids
+    logical_id: str
+        lambda resource logical id
+    lambda_resource_code_value: Any
+        The planned value of the lambda resource code path
+    terraform_code_property_name: str
+        The lambda resource code property name
+    translated_resource: Dict
+        The CFN translated lambda resource
+    """
+    if not lambda_resource_code_value or not isinstance(lambda_resource_code_value, str):
+        lambda_resource_code_value = _resolve_resource_attribute(terraform_resource, terraform_code_property_name)
+    if lambda_resource_code_value:
+        hash_value = (
+            f"{lambda_resource_prefix}_{_calculate_configuration_attribute_value_hash(lambda_resource_code_value)}"
+        )
+        functions_list = lambda_resources_to_code_map.get(hash_value, [])
+        functions_list.append((translated_resource, logical_id))
+        lambda_resources_to_code_map[hash_value] = functions_list
+
+
+def _add_metadata_resource_to_metadata_list(
+    sam_metadata_resource: SamMetadataResource,
+    sam_metadata_resource_planned_values: Dict,
+    sam_metadata_resources: List[SamMetadataResource],
+) -> None:
+    """
+    Prioritize the metadata resources that has resource name value to overwrite the metadata resources that does not
+    have resource name value.
+
+    Parameters
+    ----------
+    sam_metadata_resource: SamMetadataResource
+        The mapped metadata resource
+    sam_metadata_resource_planned_values: Dict
+        The metadata resource in planned values section
+    sam_metadata_resources: List[SamMetadataResource]
+        The list of metadata resources
+    """
+    if get_sam_metadata_planned_resource_value_attribute(
+        sam_metadata_resource_planned_values, SAM_METADATA_RESOURCE_NAME_ATTRIBUTE
+    ):
+        sam_metadata_resources.append(sam_metadata_resource)
+    else:
+        sam_metadata_resources.insert(0, sam_metadata_resource)
 
 
 def _add_child_modules_to_queue(curr_module: Dict, curr_module_configuration: TFModule, modules_queue: List) -> None:
@@ -420,7 +560,7 @@ def _link_lambda_functions_to_layers(
 
 
 def _validate_referenced_resource_matches_sam_metadata_type(
-    cfn_resource: dict, sam_metadata_attributes: dict, sam_metadata_resource_address: str, expected_package_type: str
+    cfn_resource: dict, sam_metadata_resource: dict, sam_metadata_resource_address: str, expected_package_type: str
 ) -> None:
     """
     Validate if the resource that match the resource name provided in the sam metadata resource matches the resource
@@ -430,15 +570,17 @@ def _validate_referenced_resource_matches_sam_metadata_type(
     ----------
     cfn_resource: dict
         The CFN resource that matches the sam metadata resource name
-    sam_metadata_attributes: dict
-        The sam metadata properties
+    sam_metadata_resource: Dict
+        The sam metadata resource properties
     sam_metadata_resource_address: str
         The sam metadata resource address
     expected_package_type: str
         The expected lambda function package type.
     """
     cfn_resource_properties = cfn_resource.get("Properties", {})
-    resource_type = sam_metadata_attributes.get("resource_type")
+    resource_type = get_sam_metadata_planned_resource_value_attribute(
+        sam_metadata_resource, SAM_METADATA_RESOURCE_TYPE_ATTRIBUTE
+    )
     cfn_resource_type = cfn_resource.get("Type")
     lambda_function_package_type = cfn_resource_properties.get("PackageType", ZIP)
     LOG.debug(
@@ -467,7 +609,7 @@ def _validate_referenced_resource_matches_sam_metadata_type(
 
 
 def _get_source_code_path(
-    sam_metadata_attributes: dict,
+    sam_metadata_resource: dict,
     sam_metadata_resource_address: str,
     project_root_dir: str,
     src_code_property_name: str,
@@ -480,8 +622,8 @@ def _get_source_code_path(
 
     Parameters
     ----------
-    sam_metadata_attributes: dict
-        The sam metadata properties
+    sam_metadata_resource: Dict
+        The sam metadata resource properties
     sam_metadata_resource_address: str
         The sam metadata resource address
     project_root_dir: str
@@ -505,8 +647,10 @@ def _get_source_code_path(
         sam_metadata_resource_address,
         src_code_property_name,
     )
-    source_code = sam_metadata_attributes.get(src_code_property_name)
-    source_code_property = sam_metadata_attributes.get(property_path_property_name)
+    source_code = get_sam_metadata_planned_resource_value_attribute(sam_metadata_resource, src_code_property_name)
+    source_code_property = get_sam_metadata_planned_resource_value_attribute(
+        sam_metadata_resource, property_path_property_name
+    )
     LOG.debug(
         "The found %s value is %s and property value is %s", src_code_attribute_name, source_code, source_code_property
     )
@@ -617,7 +761,6 @@ def _enrich_zip_lambda_function(
     terraform_application_dir: str
         the terraform project root directory
     """
-    sam_metadata_attributes = sam_metadata_resource.get("values", {}).get("triggers", {})
     sam_metadata_resource_address = sam_metadata_resource.get("address")
     if not sam_metadata_resource_address:
         raise PrepareHookException(
@@ -631,11 +774,11 @@ def _enrich_zip_lambda_function(
     )
 
     _validate_referenced_resource_matches_sam_metadata_type(
-        cfn_lambda_function, sam_metadata_attributes, sam_metadata_resource_address, ZIP
+        cfn_lambda_function, sam_metadata_resource, sam_metadata_resource_address, ZIP
     )
 
     cfn_source_code_path = _get_source_code_path(
-        sam_metadata_attributes,
+        sam_metadata_resource,
         sam_metadata_resource_address,
         terraform_application_dir,
         "original_source_code",
@@ -674,7 +817,6 @@ def _enrich_image_lambda_function(
     terraform_application_dir: str
         the terraform project root directory
     """
-    sam_metadata_attributes = sam_metadata_resource.get("values", {}).get("triggers", {})
     sam_metadata_resource_address = sam_metadata_resource.get("address")
     if not sam_metadata_resource_address:
         raise PrepareHookException(
@@ -689,19 +831,23 @@ def _enrich_image_lambda_function(
     )
 
     _validate_referenced_resource_matches_sam_metadata_type(
-        cfn_lambda_function, sam_metadata_attributes, sam_metadata_resource_address, IMAGE
+        cfn_lambda_function, sam_metadata_resource, sam_metadata_resource_address, IMAGE
     )
 
     cfn_docker_context_path = _get_source_code_path(
-        sam_metadata_attributes,
+        sam_metadata_resource,
         sam_metadata_resource_address,
         terraform_application_dir,
         "docker_context",
         "docker_context_property_path",
         "docker context",
     )
-    cfn_docker_file = sam_metadata_attributes.get("docker_file")
-    cfn_docker_build_args_string = sam_metadata_attributes.get("docker_build_args")
+    cfn_docker_file = get_sam_metadata_planned_resource_value_attribute(
+        sam_metadata_resource, SAM_METADATA_DOCKER_FILE_ATTRIBUTE
+    )
+    cfn_docker_build_args_string = get_sam_metadata_planned_resource_value_attribute(
+        sam_metadata_resource, SAM_METADATA_DOCKER_BUILD_ARGS_ATTRIBUTE
+    )
     cfn_docker_build_args = None
     if cfn_docker_build_args_string:
         try:
@@ -718,7 +864,9 @@ def _enrich_image_lambda_function(
                 f"string for the lambda function docker build arguments."
             ) from exc
 
-    cfn_docker_tag = sam_metadata_attributes.get("docker_tag")
+    cfn_docker_tag = get_sam_metadata_planned_resource_value_attribute(
+        sam_metadata_resource, SAM_METADATA_DOCKER_TAG_ATTRIBUTE
+    )
 
     if cfn_resource_properties.get("Code"):
         cfn_resource_properties.pop("Code")
@@ -758,14 +906,13 @@ def _enrich_lambda_layer(
     terraform_application_dir: str
        the terraform project root directory
     """
-    sam_metadata_attributes = sam_metadata_resource.get("values", {}).get("triggers", {})
     sam_metadata_resource_address = sam_metadata_resource.get("address")
     if not sam_metadata_resource_address:
         raise PrepareHookException(
             "Invalid Terraform plan output. The address property should not be null to any terraform resource."
         )
     _validate_referenced_resource_layer_matches_metadata_type(
-        cfn_lambda_layer, sam_metadata_attributes, sam_metadata_resource_address
+        cfn_lambda_layer, sam_metadata_resource, sam_metadata_resource_address
     )
     LOG.debug(
         "Enrich the Lambda Layer Version %s using the metadata properties defined in resource %s",
@@ -774,7 +921,7 @@ def _enrich_lambda_layer(
     )
 
     cfn_source_code_path = _get_source_code_path(
-        sam_metadata_attributes,
+        sam_metadata_resource,
         sam_metadata_resource_address,
         terraform_application_dir,
         "original_source_code",
@@ -793,7 +940,7 @@ def _enrich_lambda_layer(
 
 def _validate_referenced_resource_layer_matches_metadata_type(
     cfn_resource: dict,
-    sam_metadata_attributes: dict,
+    sam_metadata_resource: dict,
     sam_metadata_resource_address: str,
 ) -> None:
     """
@@ -804,13 +951,13 @@ def _validate_referenced_resource_layer_matches_metadata_type(
     ----------
     cfn_resource: dict
         The CFN resource that matches the sam metadata resource name
-    sam_metadata_attributes: dict
-        The sam metadata properties
+    sam_metadata_resource: Dict
+       The sam metadata resource properties
     sam_metadata_resource_address: str
         The sam metadata resource address
     """
     cfn_resource_properties = cfn_resource.get("Properties", {})
-    resource_type = sam_metadata_attributes.get("resource_type")
+    resource_type = sam_metadata_resource.get(SAM_METADATA_RESOURCE_TYPE_ATTRIBUTE)
     cfn_resource_type = cfn_resource.get("Type")
     LOG.debug(
         "Validate if the referenced resource in sam metadata resource %s is of the expected type %s",
@@ -872,6 +1019,7 @@ def _enrich_resources_and_generate_makefile(
     cfn_resources: Dict[str, Dict],
     output_directory_path: str,
     terraform_application_dir: str,
+    lambda_resources_to_code_map: Dict,
 ) -> None:
     """
     Use the sam metadata resources to enrich the mapped resources and to create a Makefile with a rule for
@@ -887,6 +1035,8 @@ def _enrich_resources_and_generate_makefile(
         the output directory path to write the generated metadata and makefile
     terraform_application_dir: str
         the terraform project root directory
+    lambda_resources_to_code_map: Dict
+        The map between lambda resources code path, and lambda resources logical ids
     """
 
     python_command_name = _get_python_command_name()
@@ -900,7 +1050,9 @@ def _enrich_resources_and_generate_makefile(
     makefile_rules = []
     for sam_metadata_resource in sam_metadata_resources:
         # enrich resource
-        resource_type = sam_metadata_resource.resource.get("values", {}).get("triggers", {}).get("resource_type")
+        resource_type = get_sam_metadata_planned_resource_value_attribute(
+            sam_metadata_resource.resource, SAM_METADATA_RESOURCE_TYPE_ATTRIBUTE
+        )
         sam_metadata_resource_address = sam_metadata_resource.resource.get("address")
         enrichment_function = resources_types_enrichment_functions.get(resource_type)
         if enrichment_function is None:
@@ -909,20 +1061,24 @@ def _enrich_resources_and_generate_makefile(
                 f"{sam_metadata_resource_address} is not a correct resource type. The resource type should be one "
                 f"of these values {resources_types_enrichment_functions.keys()}"
             )
-        cfn_resource, logical_id = _get_relevant_cfn_resource(sam_metadata_resource, cfn_resources)
-        enrichment_function(
-            sam_metadata_resource.resource,
-            cfn_resource,
-            logical_id,
-            terraform_application_dir,
-            output_directory_path,
-        )
 
-        # get makefile rule for resource
-        makefile_rule = _generate_makefile_rule_for_lambda_resource(
-            sam_metadata_resource, logical_id, terraform_application_dir, python_command_name, output_directory_path
+        lambda_resources = _get_relevant_cfn_resource(
+            sam_metadata_resource, cfn_resources, lambda_resources_to_code_map
         )
-        makefile_rules.append(makefile_rule)
+        for cfn_resource, logical_id in lambda_resources:
+            enrichment_function(
+                sam_metadata_resource.resource,
+                cfn_resource,
+                logical_id,
+                terraform_application_dir,
+                output_directory_path,
+            )
+
+            # get makefile rule for resource
+            makefile_rule = _generate_makefile_rule_for_lambda_resource(
+                sam_metadata_resource, logical_id, terraform_application_dir, python_command_name, output_directory_path
+            )
+            makefile_rules.append(makefile_rule)
 
     # generate makefile
     LOG.debug("Generate Makefile in %s", output_directory_path)
@@ -979,11 +1135,15 @@ def _generate_backend_override_file(output_directory_path: str):
 
 
 def _get_relevant_cfn_resource(
-    sam_metadata_resource: SamMetadataResource, cfn_resources: Dict[str, Dict]
-) -> Tuple[Dict, str]:
+    sam_metadata_resource: SamMetadataResource,
+    cfn_resources: Dict[str, Dict],
+    lambda_resources_to_code_map: Dict[str, List[Tuple[Dict, str]]],
+) -> List[Tuple[Dict, str]]:
     """
     use the sam metadata resource name property to determine the resource address, and transform the address to logical
     id to use it to get the cfn_resource.
+    If the metadata resource does not contain a resource name property, so we need to use the resource built artifact
+    path to find tha lambda resources that use the same artifact path
 
     Parameters
     ----------
@@ -991,20 +1151,49 @@ def _get_relevant_cfn_resource(
         sam metadata resource that contain extra information about some resource.
     cfn_resources: Dict
         CloudFormation resources
+    lambda_resources_to_code_map: Dict
+        The map between lambda resources code path, and lambda resources logical ids
 
     Returns
     -------
-    tuple(Dict, str)
-        The cfn resource that mentioned in the sam metadata resource, and the resource logical id
+    List[tuple(Dict, str)]
+        The cfn resources that mentioned in the sam metadata resource, and the resource logical id
     """
-    sam_metadata_resource_address = sam_metadata_resource.resource.get("address")
-    resource_name = sam_metadata_resource.resource.get("values", {}).get("triggers", {}).get("resource_name")
-    if not resource_name:
-        raise InvalidSamMetadataPropertiesException(
-            f"AWS SAM CLI expects the sam metadata resource {sam_metadata_resource_address} to contain a resource name "
-            f"that will be enriched using this metadata resource"
-        )
 
+    resources_types = {
+        "ZIP_LAMBDA_FUNCTION": "zip",
+        "IMAGE_LAMBDA_FUNCTION": "image",
+        "LAMBDA_LAYER": "layer",
+    }
+
+    sam_metadata_resource_address = sam_metadata_resource.resource.get("address")
+    resource_name = get_sam_metadata_planned_resource_value_attribute(
+        sam_metadata_resource.resource, SAM_METADATA_RESOURCE_NAME_ATTRIBUTE
+    )
+    resource_type = get_sam_metadata_planned_resource_value_attribute(
+        sam_metadata_resource.resource, SAM_METADATA_RESOURCE_TYPE_ATTRIBUTE
+    )
+    if not resource_name:
+        artifact_property_name = (
+            "built_output_path" if resource_type in ["ZIP_LAMBDA_FUNCTION", "LAMBDA_LAYER"] else "built_image_uri"
+        )
+        artifact_path_value = get_sam_metadata_planned_resource_value_attribute(
+            sam_metadata_resource.resource, artifact_property_name
+        )
+        if not artifact_path_value:
+            artifact_path_value = _resolve_resource_attribute(
+                sam_metadata_resource.config_resource, artifact_property_name
+            )
+        hash_value = (
+            f"{resources_types[resource_type]}_{_calculate_configuration_attribute_value_hash(artifact_path_value)}"
+        )
+        lambda_resources = lambda_resources_to_code_map.get(hash_value, [])
+        if not lambda_resources:
+            raise InvalidSamMetadataPropertiesException(
+                f"sam cli expects the sam metadata resource {sam_metadata_resource_address} to contain a resource name "
+                f"that will be enriched using this metadata resource"
+            )
+        return lambda_resources
     # the provided resource name will be always a postfix to the module address. The customer could not set a full
     # address within a module.
     LOG.debug(
@@ -1022,7 +1211,7 @@ def _get_relevant_cfn_resource(
     cfn_resource = cfn_resources.get(logical_id)
     if cfn_resource:
         LOG.debug("The CFN resource that match the input resource name %s is %s", resource_name, logical_id)
-        return cfn_resource, logical_id
+        return [(cfn_resource, logical_id)]
 
     raise InvalidSamMetadataPropertiesException(
         f"There is no resource found that match the provided resource name " f"{resource_name}"
@@ -1353,10 +1542,10 @@ def _build_code_property(tf_properties: dict, resource: TFResource) -> Any:
         if tf_prop_value is not None:
             code[cfn_prop_name] = tf_prop_value
 
-    package_type = tf_properties.get("package_type", "Zip")
+    package_type = tf_properties.get("package_type", ZIP)
 
     # Get the S3 Bucket details from configuration in case if the customer is creating the S3 bucket in the tf project
-    if package_type == "Zip" and ("S3Bucket" not in code or "S3Key" not in code or "S3ObjectVersion" not in code):
+    if package_type == ZIP and ("S3Bucket" not in code or "S3Key" not in code or "S3ObjectVersion" not in code):
         s3_bucket_tf_config_value = _resolve_resource_attribute(resource, "s3_bucket")
         s3_key_tf_config_value = _resolve_resource_attribute(resource, "s3_key")
         s3_object_version_tf_config_value = _resolve_resource_attribute(resource, "s3_object_version")
@@ -1371,7 +1560,7 @@ def _build_code_property(tf_properties: dict, resource: TFResource) -> Any:
             code["S3ObjectVersion_config_value"] = s3_object_version_tf_config_value
 
     # Get the Image URI details from configuration in case if the customer is creating the ecr repo in the tf project
-    if package_type == "Image" and "ImageUri" not in code:
+    if package_type == IMAGE and "ImageUri" not in code:
         image_uri_tf_config_value = _resolve_resource_attribute(resource, "image_uri")
         if image_uri_tf_config_value:
             code["ImageUri"] = REMOTE_DUMMY_VALUE
@@ -1501,19 +1690,26 @@ def _get_s3_object_hash(
     return md5.hexdigest()
 
 
-def _map_s3_sources_to_functions(s3_hash_to_source: Dict[str, str], cfn_resources: Dict[str, Any]) -> None:
+def _map_s3_sources_to_functions(
+    s3_hash_to_source: Dict[str, Tuple[str, List[Union[ConstantValue, ResolvedReference]]]],
+    cfn_resources: Dict[str, Any],
+    lambda_resources_to_code_map: Dict[str, List[Tuple[Dict, str]]],
+) -> None:
     """
     Maps the source property of terraform AWS S3 object resources into the the Code property of
-    CloudFormation AWS Lambda Function resources
+    CloudFormation AWS Lambda Function resources, and append the hash value of the artifacts path to the lambda
+    resources code map.
 
     Parameters
     ----------
-    s3_hash_to_source: Dict[str, str]
-        Mapping of S3 object hash to S3 object source
+    s3_hash_to_source: Dict[str, Tuple[str, List[Union[ConstantValue, ResolvedReference]]]]
+        Mapping of S3 object hash to S3 object source and the S3 Object configuration source value
     cfn_resources: dict
         CloudFormation resources
+    lambda_resources_to_code_map: Dict
+        the map between lambda resources code path values, and the lambda resources logical ids
     """
-    for _, resource in cfn_resources.items():
+    for resource_logical_id, resource in cfn_resources.items():
         resource_type = resource.get("Type")
         if resource_type in CFN_CODE_PROPERTIES:
             code_property = CFN_CODE_PROPERTIES[resource_type]
@@ -1531,14 +1727,23 @@ def _map_s3_sources_to_functions(s3_hash_to_source: Dict[str, str], cfn_resource
                 obj_hash = _get_s3_object_hash(bucket, key)
                 source = s3_hash_to_source.get(obj_hash)
                 if source:
-                    tf_address = resource.get("Metadata", {}).get("SamResourceId")
-                    LOG.debug(
-                        "Found S3 object resource with matching bucket and key for function %s."
-                        " Setting function's Code property to the matching S3 object's source: %s",
-                        tf_address,
-                        source,
-                    )
-                    resource["Properties"][code_property] = source
+                    if source[0]:
+                        tf_address = resource.get("Metadata", {}).get("SamResourceId")
+                        LOG.debug(
+                            "Found S3 object resource with matching bucket and key for function %s."
+                            " Setting function's Code property to the matching S3 object's source: %s",
+                            tf_address,
+                            source[0],
+                        )
+                        resource["Properties"][code_property] = source[0]
+
+                    references = source[0] or source[1]
+                    res_type = "zip" if resource_type == CFN_AWS_LAMBDA_FUNCTION else "layer"
+                    if references:
+                        hash_value = f"{res_type}_{_calculate_configuration_attribute_value_hash(references)}"
+                        resources_list = lambda_resources_to_code_map.get(hash_value, [])
+                        resources_list.append((resource, resource_logical_id))
+                        lambda_resources_to_code_map[hash_value] = resources_list
 
 
 def _check_dummy_remote_values(cfn_resources: Dict[str, Any]) -> None:
