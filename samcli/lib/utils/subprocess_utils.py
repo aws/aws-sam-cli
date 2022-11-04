@@ -1,6 +1,8 @@
 """
 Utils for invoking subprocess calls
 """
+import os
+
 import logging
 from time import sleep
 
@@ -63,7 +65,7 @@ def invoke_subprocess_with_loading_pattern(
     str
         A string containing the process output
     """
-    stream_writer = stream_writer or StreamWriter(sys.stdout)
+    stream_writer = stream_writer or StreamWriter(sys.stderr)
     process_output = ""
     try:
         # Popen is async as opposed to run so we can print while we wait
@@ -81,7 +83,7 @@ def invoke_subprocess_with_loading_pattern(
 
             return_code = process.wait()
 
-            stream_writer.write("\n")
+            stream_writer.write(os.linesep)
             stream_writer.flush()
 
             if not process_output:

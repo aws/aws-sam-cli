@@ -1,3 +1,5 @@
+import os
+
 import sys
 from unittest import TestCase
 
@@ -24,7 +26,7 @@ class TestSubprocessUtils(TestCase):
         mock_process.poll.side_effect = ([None] * pattern_count) + [0]
         patched_Popen.return_value.__enter__.return_value = mock_process
         actual_output = invoke_subprocess_with_loading_pattern({"args": ["ls"]}, mock_pattern, mock_stream_writer)
-        mock_stream_writer.write.assert_called_once_with("\n")
+        mock_stream_writer.write.assert_called_once_with(os.linesep)
         mock_stream_writer.flush.assert_called_once_with()
         patched_Popen.assert_called_once_with(args=["ls"])
         self.assertEqual(mock_pattern.call_count, pattern_count)
