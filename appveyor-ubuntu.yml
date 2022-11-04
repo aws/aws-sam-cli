@@ -176,11 +176,11 @@ for:
       - "pip install -e \".[pre-dev]\""
 
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/buildcmd"
+      - sh: "pytest -vv tests/integration/buildcmd --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
       # Set JAVA_HOME to java11
       - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
-      - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process"
+      - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java11"
 
   # Integ testing deploy
   -
@@ -191,7 +191,7 @@ for:
 
     test_script:
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/deploy"
+      - sh: "pytest -vv tests/integration/deploy --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
 
   # Integ testing package
   -
@@ -202,7 +202,7 @@ for:
 
     test_script:
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/package"
+      - sh: "pytest -vv tests/integration/package --json-report --json-report-file=TEST_REPORT-integration-package.json"
 
   # Integ testing delete
   -
@@ -213,7 +213,7 @@ for:
 
     test_script:
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/delete"
+      - sh: "pytest -vv tests/integration/delete --json-report --json-report-file=TEST_REPORT-integration-delete.json"
 
   # Integ testing sync
   -
@@ -224,7 +224,7 @@ for:
 
     test_script:
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/sync"
+      - sh: "pytest -vv tests/integration/sync --json-report --json-report-file=TEST_REPORT-integration-sync.json"
 
   # Integ testing local
   -
@@ -239,7 +239,7 @@ for:
       - "pylint --rcfile .pylintrc samcli"
 
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/local"
+      - sh: "pytest -vv tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-local.json"
 
   # Other testing
   -
@@ -255,15 +255,18 @@ for:
 
       # Dev Tests
       - "pip install -e \".[dev]\""
-      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
+      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit --json-report --json-report-file=TEST_REPORT-unit.json"
       - "pylint --rcfile .pylintrc samcli"
       - "mypy setup.py samcli tests"
-      - "pytest -n 4 tests/functional"
+      - "pytest -n 4 tests/functional --json-report --json-report-file=TEST_REPORT-functional.json"
       
-      - sh: "pytest tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local"
-      - sh: "pytest -vv tests/regression"
+      - sh: "pytest tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json"
+      - sh: "pytest -vv tests/regression --json-report --json-report-file=TEST_REPORT-regression.json"
       - sh: "black --check setup.py tests samcli"
 
       # Smoke tests run in parallel - it runs on both Linux & Windows
       # Presence of the RUN_SMOKE envvar will run the smoke tests
-      - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"
+      - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke --json-report --json-report-file=TEST_REPORT-smoke.json}"
+
+artifacts:
+  - path: './TEST_REPORT*.json'
