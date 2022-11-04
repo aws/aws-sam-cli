@@ -4,6 +4,11 @@ image:
 
 configuration:
   - BuildIntegTesting
+  - LocalZipTerraformBuildIntegTesting
+  - LocalZipTerraformBuildInContainerIntegTesting
+  - S3ZipTerraformBuildIntegTesting
+  - S3ZipTerraformBuildInContainerIntegTesting
+  - OtherTerraformBuildIntegTesting
   - DeployIntegTesting
   - PackageIntegTesting
   - DeleteIntegTesting
@@ -184,11 +189,81 @@ for:
       - "pip install -e \".[pre-dev]\""
 
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/buildcmd --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      - sh: "pytest -vv tests/integration/buildcmd --ignore tests/integration/buildcmd/test_build_terraform_applications.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
       # Set JAVA_HOME to java11
       - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
       - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java11"
+
+  # Local ZIP  Terraform Build integ testing
+  -
+    matrix:
+      only:
+        - image: Ubuntu
+          configuration: LocalZipTerraformBuildIntegTesting
+
+    test_script:
+      # Pre-dev Tests
+      - "pip install -e \".[pre-dev]\""
+
+      - "pip install -e \".[dev]\""
+      - sh: "pytest -vv -n 10 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend_0 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+  # Local ZIP  Terraform Build In Container  integ testing
+  -
+    matrix:
+      only:
+        - image: Ubuntu
+          configuration: LocalZipTerraformBuildInContainerIntegTesting
+
+    test_script:
+      # Pre-dev Tests
+      - "pip install -e \".[pre-dev]\""
+
+      - "pip install -e \".[dev]\""
+      - sh: "pytest -vv -n 10 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend_1 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+  # S3 ZIP  Terraform Build integ testing
+  -
+    matrix:
+      only:
+        - image: Ubuntu
+          configuration: S3ZipTerraformBuildIntegTesting
+
+    test_script:
+      # Pre-dev Tests
+      - "pip install -e \".[pre-dev]\""
+
+      - "pip install -e \".[dev]\""
+      - sh: "pytest -vv -n 10 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend_0 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+  # S3 ZIP  Terraform Build In Container integ testing
+  -
+    matrix:
+      only:
+        - image: Ubuntu
+          configuration: S3ZipTerraformBuildInContainerIntegTesting
+
+    test_script:
+      # Pre-dev Tests
+      - "pip install -e \".[pre-dev]\""
+
+      - "pip install -e \".[dev]\""
+      - sh: "pytest -vv -n 10 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend_1 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+  # Other Terraform Build In Container integ testing
+  -
+    matrix:
+      only:
+        - image: Ubuntu
+          configuration: OtherTerraformBuildIntegTesting
+
+    test_script:
+      # Pre-dev Tests
+      - "pip install -e \".[pre-dev]\""
+
+      - "pip install -e \".[dev]\""
+      - sh: "pytest -vv -n 10 tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend --ignore=tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
   # Integ testing deploy
   -
