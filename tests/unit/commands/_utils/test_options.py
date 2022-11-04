@@ -501,10 +501,10 @@ class TestParameterizedOption(TestCase):
 class TestSkipPrepareInfraOption(TestCase):
     @parameterized.expand(
         [
-            ({}, {"hook_package_id": "test"}, True),
-            ({"hook_package_id": "test"}, {}, True),
-            ({"skip_prepare_infra": True}, {"hook_package_id": "test"}, False),
-            ({"skip_prepare_infra": True, "hook_package_id": "test"}, {}, False),
+            ({}, {"hook_name": "test"}, True),
+            ({"hook_name": "test"}, {}, True),
+            ({"skip_prepare_infra": True}, {"hook_name": "test"}, False),
+            ({"skip_prepare_infra": True, "hook_name": "test"}, {}, False),
         ]
     )
     def test_skip_with_hook_package(self, default_map, params, provided_value):
@@ -526,4 +526,4 @@ class TestSkipPrepareInfraOption(TestCase):
         with self.assertRaises(click.BadOptionUsage) as ex:
             skip_prepare_infra_callback(ctx_mock, param_mock, True)
 
-        self.assertEqual(str(ex.exception), "Missing option --hook-package-id")
+        self.assertEqual(str(ex.exception), "Missing option --hook-name")

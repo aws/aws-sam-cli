@@ -3566,9 +3566,8 @@ class TestPrepareHook(TestCase):
             )
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.os")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.LOG.info")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.run")
-    def test_skip_prepare_infra_with_metadata_file(self, run_mock, log_info_mock, os_mock):
+    def test_skip_prepare_infra_with_metadata_file(self, run_mock, os_mock):
         os_path_join = Mock()
         os_mock.path.join = os_path_join
         os_mock.path.exists.return_value = True
@@ -3576,11 +3575,6 @@ class TestPrepareHook(TestCase):
         self.prepare_params["SkipPrepareInfra"] = True
 
         prepare(self.prepare_params)
-
-        log_info_mock.assert_called_once()
-        log_info_mock.assert_called_with(
-            "Skipping preparation stage, the metadata file already exists at %s", os_path_join()
-        )
 
         run_mock.assert_not_called()
 

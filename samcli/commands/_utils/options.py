@@ -202,7 +202,7 @@ def resolve_s3_callback(ctx, param, provided_value, artifact, exc_set, exc_not_s
 
 def skip_prepare_infra_callback(ctx, param, provided_value):
     """
-    Callback for --skip-prepare-infra to check if --hook-package-id is also specified
+    Callback for --skip-prepare-infra to check if --hook-name is also specified
 
     Parameters
     ----------
@@ -214,10 +214,10 @@ def skip_prepare_infra_callback(ctx, param, provided_value):
         True if option was provided
     """
     is_option_provided = provided_value or ctx.default_map.get("skip_prepare_infra")
-    is_hook_provided = ctx.params.get("hook_package_id") or ctx.default_map.get("hook_package_id")
+    is_hook_provided = ctx.params.get("hook_name") or ctx.default_map.get("hook_name")
 
     if is_option_provided and not is_hook_provided:
-        raise click.BadOptionUsage(option_name=param.name, ctx=ctx, message="Missing option --hook-package-id")
+        raise click.BadOptionUsage(option_name=param.name, ctx=ctx, message="Missing option --hook-name")
 
 
 def template_common_option(f):
