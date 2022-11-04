@@ -204,7 +204,7 @@ def _get_project_details(hook_package_id: str, template_dict: Dict) -> ProjectDe
         if not hook_metadata:
             project_type = ProjectTypes.CDK.value if is_cdk_project(template_dict) else ProjectTypes.CFN.value
             return ProjectDetails(project_type=project_type, hook_package_id=None, hook_package_version=None)
-        hook_package_id = str(hook_metadata.get("HookPackageId"))
+        hook_package_id = str(hook_metadata.get("HookName"))
     hook_location = Path(INTERNAL_PACKAGES_ROOT, hook_package_id)
     try:
         hook_package_config = HookPackageConfig(package_dir=hook_location)

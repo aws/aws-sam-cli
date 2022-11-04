@@ -79,7 +79,7 @@ TF_BACKEND_OVERRIDE_FILENAME = "z_samcli_backend_override"
 
 HOOK_METADATA_KEY = "AWS::SAM::Hook"
 TERRAFORM_HOOK_METADATA = {
-    "HookPackageId": "terraform",
+    "HookName": "terraform",
 }
 
 CFN_CODE_PROPERTIES = {

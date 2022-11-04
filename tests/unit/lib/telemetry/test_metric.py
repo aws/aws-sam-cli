@@ -553,7 +553,7 @@ class TestGetProjectDetails(TestCase):
     @patch("samcli.lib.telemetry.metric.HookPackageConfig")
     @patch("samcli.lib.telemetry.metric.get_hook_metadata")
     def test_terraform_project_from_metadata(self, get_hook_metadata_mock, mock_hook_package_config):
-        get_hook_metadata_mock.return_value = {"HookPackageId": "terraform"}
+        get_hook_metadata_mock.return_value = {"HookName": "terraform"}
         hook_package = Mock()
         hook_package.package_id = "terraform"
         hook_package.version = "1.0.0"
