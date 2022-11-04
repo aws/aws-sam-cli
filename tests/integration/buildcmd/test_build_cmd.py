@@ -154,6 +154,90 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
     ((not RUN_BY_CANARY) or (IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
+    template = "template_images_with_shared_code.yaml"
+
+    EXPECTED_FILES_PROJECT_MANIFEST: Set[str] = set()
+
+    FUNCTION_LOGICAL_ID_IMAGE = "ImageFunction"
+
+    @parameterized.expand(
+        [
+            *[(runtime, "feature_phi/Dockerfile", {"phi": "1.62"}) for runtime in ["3.6", "3.7", "3.8", "3.9"]],
+            *[(runtime, "feature_pi/Dockerfile", {"pi": "3.14"}) for runtime in ["3.6", "3.7", "3.8", "3.9"]],
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_with_default_requirements(self, runtime, dockerfile, expected):
+        _tag = f"{random.randint(1, 100)}"
+        overrides = {
+            "Runtime": runtime,
+            "Handler": "main.handler",
+            "DockerFile": dockerfile,
+            "Tag": _tag,
+        }
+        cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
+
+        LOG.info("Running Command: ")
+        LOG.info(cmdlist)
+        run_command(cmdlist, cwd=self.working_dir)
+
+        self._verify_image_build_artifact(
+            self.built_template,
+            self.FUNCTION_LOGICAL_ID_IMAGE,
+            "ImageUri",
+            f"{self.FUNCTION_LOGICAL_ID_IMAGE.lower()}:{_tag}",
+        )
+
+        self._verify_invoke_built_function(
+            self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
+        )
+
+    @parameterized.expand(
+        [
+            ("feature_phi/Dockerfile", {"phi": "1.62"}),
+            ("feature_pi/Dockerfile", {"pi": "3.14"}),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_intermediate_container_deleted(self, dockerfile, expected):
+        _tag = f"{random.randint(1, 100)}"
+        overrides = {
+            "Runtime": "3.9",
+            "Handler": "main.handler",
+            "DockerFile": dockerfile,
+            "Tag": _tag,
+        }
+        cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
+
+        LOG.info("Running Command: ")
+        LOG.info(cmdlist)
+
+        _num_of_containers_before_build = self.get_number_of_created_containers()
+        run_command(cmdlist, cwd=self.working_dir)
+        _num_of_containers_after_build = self.get_number_of_created_containers()
+
+        self._verify_image_build_artifact(
+            self.built_template,
+            self.FUNCTION_LOGICAL_ID_IMAGE,
+            "ImageUri",
+            f"{self.FUNCTION_LOGICAL_ID_IMAGE.lower()}:{_tag}",
+        )
+
+        self._verify_invoke_built_function(
+            self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
+        )
+
+        self.assertEqual(
+            _num_of_containers_before_build, _num_of_containers_after_build, "Intermediate containers are not removed"
+        )
+
+
+@skipIf(
+    # Hits public ECR pull limitation, move it to canary tests
+    ((not RUN_BY_CANARY) or (IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
 @parameterized_class(
     ("template", "prop"),
     [
