@@ -91,7 +91,9 @@ class InitTemplates:
                     msg = (
                         "Failed modify a local file when cloning app templates. "
                         "MAX_PATH should be enabled in the Windows registry."
-                        "\nFor more details on how to enable MAX_PATH, please visit: <link to documentation>"
+                        "\nFor more details on how to enable MAX_PATH for Windows, please visit: "
+                        "https://docs.aws.amazon.com/serverless-application-model/latest/"
+                        "developerguide/install-sam-cli.html"
                     )
 
                 raise AppTemplateUpdateException(msg) from ex

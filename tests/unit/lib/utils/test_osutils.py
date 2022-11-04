@@ -136,4 +136,4 @@ class Test_rmtree_callback(TestCase):
         patched_os.chmod.side_effect = FileNotFoundError("File not found")
 
         with self.assertRaises(FileNotFoundError):
-            rmtree_callback(Mock(), "/some/path", Mock())
+            rmtree_callback(Mock(), Mock(), Mock())
