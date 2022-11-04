@@ -102,6 +102,7 @@ resource "aws_lambda_function" "from_localfile" {
     runtime = "python3.8"
     function_name = "my_function_from_localfile"
     role = aws_iam_role.iam_for_lambda.arn
+    timeout = 300
     depends_on = [
         null_resource.build_lambda_function
     ]
@@ -128,6 +129,7 @@ resource "aws_lambda_function" "from_s3" {
     runtime = "python3.8"
     function_name = "my_function_from_s3"
     role = aws_iam_role.iam_for_lambda.arn
+    timeout = 300
     depends_on = [
         null_resource.build_lambda_function
     ]    
@@ -477,6 +479,7 @@ resource "aws_lambda_function" "function1" {
     runtime = "python3.8"
     function_name = "function1"
     role = aws_iam_role.iam_for_lambda.arn
+    timeout = 300
     layers = [
         aws_lambda_layer_version.layer1[0].arn,
     ]
@@ -539,6 +542,7 @@ resource "aws_lambda_function" "function3" {
     runtime = "python3.8"
     function_name = "function3"
     role = aws_iam_role.iam_for_lambda.arn
+    timeout = 300
     layers = [
         aws_lambda_layer_version.layer3["my_idx"].arn,
     ]
@@ -577,6 +581,7 @@ resource "aws_lambda_function" "function4" {
     runtime = "python3.8"
     function_name = "function4"
     role = aws_iam_role.iam_for_lambda.arn
+    timeout = 300
     layers = [
         aws_lambda_layer_version.layer4.arn,
     ]
@@ -614,6 +619,7 @@ resource "aws_lambda_function" "function5" {
     runtime = "python3.8"
     function_name = "function5"
     role = aws_iam_role.iam_for_lambda.arn
+    timeout = 300
     layers = [
         aws_lambda_layer_version.layer5.arn,
     ]
@@ -642,6 +648,7 @@ resource "aws_lambda_function" "function6" {
   runtime = "python3.8"
   function_name = "function6"
   role = aws_iam_role.iam_for_lambda.arn
+  timeout = 300
   layers = [
       aws_lambda_layer_version.layer6.arn,
   ]
@@ -671,6 +678,7 @@ module "function7" {
   source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
   source_path = local.hello_world_function_src_path
   function_name = "function7"
+  timeout = 300
   handler       = "app.lambda_handler"
   runtime       = "python3.8"
   layers = [module.layer7.lambda_layer_arn]
@@ -699,6 +707,7 @@ module "function8" {
   function_name = "function8"
   handler       = "app.lambda_handler"
   runtime       = "python3.8"
+  timeout = 300
   layers = [module.layer8.lambda_layer_arn]
   store_on_s3 = true
   s3_bucket = "existing_s3_bucket"
@@ -762,6 +771,7 @@ module "function9" {
   function_name = "function9"
   handler       = "app.lambda_handler"
   runtime       = "python3.8"
+  timeout = 300
   layers = [module.layer9.lambda_layer_arn]
 }
 ## /* function9 connected to layer9
@@ -792,5 +802,6 @@ module "function10" {
   runtime       = "python3.8"
   layers = [module.layer10.lambda_layer_arn]
   store_on_s3 = true
+  timeout = 300
   s3_bucket = aws_s3_bucket.lambda_code_bucket.id
 }
