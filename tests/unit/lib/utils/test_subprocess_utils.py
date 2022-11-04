@@ -103,7 +103,7 @@ class TestSubprocessUtils(TestCase):
         with self.assertRaises(LoadingPatternError) as ex:
             invoke_subprocess_with_loading_pattern({"args": ["ls"]}, mock_pattern, mock_stream_writer)
         self.assertIn(standard_error, ex.exception.message)
-        mock_stream_writer.write.assert_called_once_with("\n")
+        mock_stream_writer.write.assert_called_once_with(os.linesep)
         mock_stream_writer.flush.assert_called_once_with()
 
     @patch("samcli.lib.utils.subprocess_utils.Popen")
