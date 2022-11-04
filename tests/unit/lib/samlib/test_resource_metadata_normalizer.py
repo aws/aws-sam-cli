@@ -139,12 +139,15 @@ class TestResourceMetadataNormalizer(TestCase):
 
         ResourceMetadataNormalizer.normalize(template_data)
 
-        expected_docker_context_path = str(pathlib.Path("/path", "to", "asset", "path", "to"))
+        expected_docker_context_path = str(pathlib.Path("/path", "to", "asset"))
         self.assertEqual("function1", template_data["Resources"]["Function1"]["Properties"]["Code"]["ImageUri"])
         self.assertEqual(
             expected_docker_context_path, template_data["Resources"]["Function1"]["Metadata"]["DockerContext"]
         )
-        self.assertEqual("Dockerfile.production", template_data["Resources"]["Function1"]["Metadata"]["Dockerfile"])
+        self.assertEqual(
+            str(pathlib.Path("path/to/Dockerfile.production")),
+            template_data["Resources"]["Function1"]["Metadata"]["Dockerfile"],
+        )
         self.assertEqual(docker_build_args, template_data["Resources"]["Function1"]["Metadata"]["DockerBuildArgs"])
         self.assertEqual("Function1", template_data["Resources"]["Function1"]["Metadata"]["SamResourceId"])
 
