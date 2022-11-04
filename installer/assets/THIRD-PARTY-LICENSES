@@ -6,7 +6,7 @@ https://pypi.org/project/aws-sam-translator/
 ** boto3; version 1.17.33 -- https://pypi.org/project/boto3/
 ** botocore; version 1.20.33 -- https://github.com/boto/botocore
 ** docker; version 4.2.2 -- https://pypi.org/project/docker/
-** Importlib-metadata; version 4.0.1 --
+** Importlib-metadata; version 5.0.0 --
 https://importlib-metadata.readthedocs.io/en/latest/
 ** python-request; version 2.25.1 --
 https://pypi.python.org/pypi/requests/2.25.1
@@ -2491,7 +2491,7 @@ Copyright (C) 2016 Jason R Coombs <jaraco@jaraco.com>
 Copyright (c) 2018 Sébastien Eustace
 ** tzlocal; version 2.1.0 -- https://pypi.org/project/tzlocal/
 Copyright 2011-2017 Lennart Regebro
-** zipp; version 3.4.1 -- https://github.com/jaraco/zipp
+** zipp; version 3.10.0 -- https://github.com/jaraco/zipp
 Copyright Jason R. Coombs
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -2542,6 +2542,10 @@ IN THE SOFTWARE.
 
 ** attrs; version 20.3.0 -- https://pypi.org/project/attrs/
 Copyright (c) 2015 Hynek Schlawack
+** ruamel-yaml; version 0.17.21 -- https://pypi.org/project/ruamel.yaml/
+Copyright (c) 2014-2022 Anthon van der Neut, Ruamel bvba
+** ruamel-yaml-clib; version 0.2.7 -- https://pypi.org/project/ruamel.yaml.clib/
+Copyright (c) 2019-2021 Anthon van der Neut, Ruamel bvba
 ** wheel; version 0.36.2 -- https://github.com/pypa/wheel
 "wheel" copyright (c) 2012-2014 Daniel Holth <dholth@fastmail.fm> and
 contributors.
