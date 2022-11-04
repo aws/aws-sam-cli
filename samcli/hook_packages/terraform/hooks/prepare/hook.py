@@ -133,6 +133,12 @@ def prepare(params: dict) -> dict:
     if skip_prepare_infra and os.path.exists(metadata_file_path):
         LOG.info("Skipping preparation stage, the metadata file already exists at %s", metadata_file_path)
     else:
+        if skip_prepare_infra:
+            LOG.info(
+                "The option to skip infrastructure preparation was provided, but we could not find "
+                "the metadata file. Preparing anyways."
+            )
+
         try:
             # initialize terraform application
             LOG.info("Initializing Terraform application")
