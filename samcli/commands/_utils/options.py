@@ -200,7 +200,7 @@ def resolve_s3_callback(ctx, param, provided_value, artifact, exc_set, exc_not_s
     return provided_value
 
 
-def skip_prepare_infra_callback(ctx: click.core.Context, param: click.Option, provided_value: bool):
+def skip_prepare_infra_callback(ctx, param, provided_value):
     """
     Callback for --skip-prepare-infra to check if --hook-package-id is also specified
 
@@ -213,7 +213,10 @@ def skip_prepare_infra_callback(ctx: click.core.Context, param: click.Option, pr
     provided_value: bool
         True if option was provided
     """
-    if provided_value and not ctx.params.get("hook_package_id", None):
+    is_option_provided = provided_value or ctx.default_map.get("skip_prepare_infra")
+    is_hook_provided = ctx.params.get("hook_package_id") or ctx.default_map.get("hook_package_id")
+
+    if is_option_provided and not is_hook_provided:
         raise click.BadOptionUsage(option_name=param.name, ctx=ctx, message="Missing option --hook-package-id")
 
 
@@ -719,8 +722,9 @@ def skip_prepare_infra_click_option():
         is_flag=True,
         required=False,
         callback=skip_prepare_infra_callback,
-        help="Skips the preparation stage for the hook package if the metadata file has already been generated. "
-        "This option should be used together with --hook-package-id.",
+        help="This option should be used to skip the preparation stage if there "
+        "have not been any infrastructure changes. The --hook-name option should "
+        "also be specified when using this option.",
     )
 
 

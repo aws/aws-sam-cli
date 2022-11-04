@@ -7,6 +7,7 @@ from datetime import datetime
 
 from unittest import TestCase
 from unittest.mock import patch, MagicMock
+from parameterized import parameterized
 
 import click
 import pytest
@@ -498,15 +499,25 @@ class TestParameterizedOption(TestCase):
 
 
 class TestSkipPrepareInfraOption(TestCase):
-    def test_skip_with_hook_package(self):
+    @parameterized.expand(
+        [
+            ({}, {"hook_package_id": "test"}, True),
+            ({"hook_package_id": "test"}, {}, True),
+            ({"skip_prepare_infra": True}, {"hook_package_id": "test"}, False),
+            ({"skip_prepare_infra": True, "hook_package_id": "test"}, {}, False),
+        ]
+    )
+    def test_skip_with_hook_package(self, default_map, params, provided_value):
         ctx_mock = Mock()
-        ctx_mock.params = {"hook_package_id": "test"}
+        ctx_mock.default_map = default_map
+        ctx_mock.params = params
 
-        skip_prepare_infra_callback(ctx_mock, Mock(), True)
+        skip_prepare_infra_callback(ctx_mock, Mock(), provided_value)
 
     def test_skip_without_hook_package(self):
         ctx_mock = Mock()
         ctx_mock.command = Mock()
+        ctx_mock.default_map = {}
         ctx_mock.params = {}
 
         param_mock = Mock()
