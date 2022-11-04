@@ -21,7 +21,12 @@ jobs:
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
-            const maintainers = ['jfuss', 'hoffa', 'awood45', 'aahung', 'hawflau', 'mndeveci', 'ssenchenko', 'qingchm', 'moelasmar', 'xazhao', 'mildaniel', 'marekaiv', 'torresxb1', 'lucashuy', 'hnnasit', 'sriram-mv']
+            const maintainers = [
+              'aws-sam-cli-bot',
+              'jfuss', 'hoffa', 'awood45', 'aahung', 'hawflau', 'mndeveci', 'ssenchenko',
+              'qingchm', 'moelasmar', 'xazhao', 'mildaniel', 'marekaiv', 'torresxb1',
+              'lucashuy', 'hnnasit', 'sriram-mv'
+            ]
             if (maintainers.includes(context.payload.sender.login)) {
               github.rest.issues.addLabels({
                 issue_number: context.issue.number,
