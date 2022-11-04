@@ -67,10 +67,12 @@ class ApplicationInsightsTemplateModifier(TemplateModifier):
             self.DEPENDS_ON_KEY: self.RESOURCE_GROUP_REF,
         }
 
-        self.template[self.RESOURCES_KEY][self.RESOURCE_GROUP_REF] = \
-            ApplicationInsightsTemplateModifier.CommentedMap(resourceGroup)
-        self.template[self.RESOURCES_KEY][self.APPLICATION_INSIGHTS_REF] = \
-            ApplicationInsightsTemplateModifier.CommentedMap(appInsightsApplication)
+        self.template[self.RESOURCES_KEY][self.RESOURCE_GROUP_REF] = ApplicationInsightsTemplateModifier.CommentedMap(
+            resourceGroup
+        )
+        self.template[self.RESOURCES_KEY][
+            self.APPLICATION_INSIGHTS_REF
+        ] = ApplicationInsightsTemplateModifier.CommentedMap(appInsightsApplication)
         LOG.info(self.template)
 
     def _print_sanity_check_error(self):

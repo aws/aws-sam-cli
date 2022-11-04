@@ -2,7 +2,7 @@
 Class used to parse and update template when tracing is enabled
 """
 import logging
-from typing import Any
+from typing import List
 from samcli.lib.init.template_modifiers.cli_template_modifier import TemplateModifier
 
 LOG = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ class XRayTracingTemplateModifier(TemplateModifier):
         "https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst\n"
     )
 
-    def _get_template(self) -> Any:
+    def _get_template(self) -> List[str]:
         """
         Gets data the SAM templates and returns it in a array
 
