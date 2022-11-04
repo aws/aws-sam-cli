@@ -45,7 +45,7 @@ class TestLocalLambdaService(TestCase):
             methods=["POST"],
             provide_automatic_options=False,
         )
-        self.assertEquals({"function_path": FunctionNamePathConverter}, app_mock.url_map.converters)
+        self.assertEqual({"function_path": FunctionNamePathConverter}, app_mock.url_map.converters)
 
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LocalLambdaInvokeService.service_response")
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LambdaOutputParser")
@@ -274,7 +274,7 @@ class TestPathConverter(TestCase):
         path_converter = FunctionNamePathConverter(map)
         full_path = "parent_stack/function_id"
         output = path_converter.to_url(full_path)
-        self.assertEquals(full_path, output)
+        self.assertEqual(full_path, output)
 
     def test_path_converter_to_python_accepts_function_full_path(self):
         map = Mock()
@@ -282,11 +282,11 @@ class TestPathConverter(TestCase):
         path_converter = FunctionNamePathConverter(map)
         full_path = "parent_stack/function_id"
         output = path_converter.to_python(full_path)
-        self.assertEquals(full_path, output)
+        self.assertEqual(full_path, output)
 
     def test_path_converter_matches_function_full_path(self):
         map = Mock()
         map.charset = "utf-8"
         path_converter = FunctionNamePathConverter(map)
         full_path = "parent_stack/function_id"
-        self.assertRegexpMatches(full_path, path_converter.regex)
+        self.assertRegex(full_path, path_converter.regex)

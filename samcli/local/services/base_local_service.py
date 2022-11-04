@@ -2,7 +2,6 @@
 
 import json
 import logging
-import os
 
 from flask import Response
 
@@ -56,9 +55,11 @@ class BaseLocalService:
 
         LOG.debug("Localhost server is starting up. Multi-threading = %s", multi_threaded)
 
-        # This environ signifies we are running a main function for Flask. This is true, since we are using it within
-        # our cli and not on a production server.
-        os.environ["WERKZEUG_RUN_MAIN"] = "true"
+        # Suppress flask dev server output
+        # See: https://github.com/cs01/gdbgui/issues/425#issuecomment-1119836533
+        import flask.cli
+
+        flask.cli.show_server_banner = lambda *args: None
 
         self._app.run(threaded=multi_threaded, host=self.host, port=self.port)
 

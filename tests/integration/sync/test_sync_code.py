@@ -291,7 +291,7 @@ class TestSyncCode(TestSyncCodeBase):
         sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
         self.assertEqual(sync_process_execute.process.returncode, 2)
         self.assertIn(
-            "Invalid value for '--resource': invalid choice: AWS::Serverless::InvalidResource",
+            "Error: Invalid value for '--resource': 'AWS::Serverless::InvalidResource' is not one of",
             str(sync_process_execute.stderr),
         )
 

@@ -1759,7 +1759,7 @@ class TestPathConverter(TestCase):
         path_converter = CatchAllPathConverter(map)
         path = "/path/test/sub_path"
         output = path_converter.to_url(path)
-        self.assertEquals(path, output)
+        self.assertEqual(path, output)
 
     def test_path_converter_to_python_accepts_any_path(self):
         map = Mock()
@@ -1767,11 +1767,11 @@ class TestPathConverter(TestCase):
         path_converter = CatchAllPathConverter(map)
         path = "/path/test/sub_path"
         output = path_converter.to_python(path)
-        self.assertEquals(path, output)
+        self.assertEqual(path, output)
 
     def test_path_converter_matches_any_path(self):
         map = Mock()
         map.charset = "utf-8"
         path_converter = CatchAllPathConverter(map)
         path = "/path/test/sub_path"
-        self.assertRegexpMatches(path, path_converter.regex)
+        self.assertRegex(path, path_converter.regex)
