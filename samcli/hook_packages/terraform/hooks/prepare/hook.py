@@ -10,7 +10,7 @@ import os
 from json.decoder import JSONDecodeError
 from pathlib import Path
 import re
-from subprocess import run, CalledProcessError, PIPE
+from subprocess import run, CalledProcessError
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import hashlib
 import logging
@@ -117,7 +117,6 @@ def prepare(params: dict) -> dict:
             command_args={
                 "args": ["terraform", "init", "-input=false"],
                 "cwd": terraform_application_dir,
-                "stdout": PIPE,
             }
         )
 
@@ -130,7 +129,6 @@ def prepare(params: dict) -> dict:
                 command_args={
                     "args": ["terraform", "plan", "-out", temp_file.name, "-input=false"],
                     "cwd": terraform_application_dir,
-                    "stdout": PIPE,
                 }
             )
 

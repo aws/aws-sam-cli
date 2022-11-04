@@ -2554,14 +2554,12 @@ class TestPrepareHook(TestCase):
                     command_args={
                         "args": ["terraform", "init", "-input=false"],
                         "cwd": "iac/project/path",
-                        "stdout": PIPE,
                     }
                 ),
                 call(
                     command_args={
                         "args": ["terraform", "plan", "-out", tf_plan_filename, "-input=false"],
                         "cwd": "iac/project/path",
-                        "stdout": PIPE,
                     }
                 ),
             ]
@@ -2647,14 +2645,12 @@ class TestPrepareHook(TestCase):
                     command_args={
                         "args": ["terraform", "init", "-input=false"],
                         "cwd": "/current/dir/iac/project/path",
-                        "stdout": PIPE,
                     }
                 ),
                 call(
                     command_args={
                         "args": ["terraform", "plan", "-out", tf_plan_filename, "-input=false"],
                         "cwd": "/current/dir/iac/project/path",
-                        "stdout": PIPE,
                     }
                 ),
             ]

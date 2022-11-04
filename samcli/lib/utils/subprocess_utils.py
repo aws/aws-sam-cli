@@ -7,7 +7,7 @@ import logging
 from time import sleep
 
 import sys
-from subprocess import Popen
+from subprocess import Popen, PIPE
 
 from typing import Callable, Dict, Any, Optional, Union, AnyStr, IO
 
@@ -67,6 +67,12 @@ def invoke_subprocess_with_loading_pattern(
     """
     stream_writer = stream_writer or StreamWriter(sys.stderr)
     process_output = ""
+
+    if not command_args.get("stdout"):
+        # Default stdout to PIPE if not specified so
+        # that output isn't printed along with dots
+        command_args["stdout"] = PIPE
+
     try:
         # Popen is async as opposed to run so we can print while we wait
         with Popen(**command_args) as process:
