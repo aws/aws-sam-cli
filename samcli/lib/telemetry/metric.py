@@ -46,7 +46,7 @@ _METRICS = dict()
 @dataclass
 class ProjectDetails:
     project_type: str
-    hook_package_id: Optional[str]
+    hook_name: Optional[str]
     hook_package_version: Optional[str]
 
 
@@ -158,12 +158,12 @@ def track_command(func):
             metric_specific_attributes = get_all_experimental_statues() if ctx.experimental else {}
             try:
                 template_dict = ctx.template_dict
-                project_details = _get_project_details(kwargs.get("hook_package_id", ""), template_dict)
+                project_details = _get_project_details(kwargs.get("hook_name", ""), template_dict)
                 if project_details.project_type == ProjectTypes.CDK.value:
                     EventTracker.track_event("UsedFeature", "CDK")
                 metric_specific_attributes["projectType"] = project_details.project_type
-                if project_details.hook_package_id:
-                    metric_specific_attributes["hookPackageId"] = project_details.hook_package_id
+                if project_details.hook_name:
+                    metric_specific_attributes["hookPackageId"] = project_details.hook_name
                 if project_details.hook_package_version:
                     metric_specific_attributes["hookPackageVersion"] = project_details.hook_package_version
             except AttributeError:
@@ -197,18 +197,18 @@ def track_command(func):
     return wrapped
 
 
-def _get_project_details(hook_package_id: str, template_dict: Dict) -> ProjectDetails:
-    if not hook_package_id:
+def _get_project_details(hook_name: str, template_dict: Dict) -> ProjectDetails:
+    if not hook_name:
         project_type = ProjectTypes.CDK.value if is_cdk_project(template_dict) else ProjectTypes.CFN.value
-        return ProjectDetails(project_type=project_type, hook_package_id=None, hook_package_version=None)
-    hook_location = Path(INTERNAL_PACKAGES_ROOT, hook_package_id)
+        return ProjectDetails(project_type=project_type, hook_name=None, hook_package_version=None)
+    hook_location = Path(INTERNAL_PACKAGES_ROOT, hook_name)
     try:
         hook_package_config = HookPackageConfig(package_dir=hook_location)
     except InvalidHookPackageConfigException:
-        return ProjectDetails(project_type=hook_package_id, hook_package_id=hook_package_id, hook_package_version=None)
+        return ProjectDetails(project_type=hook_name, hook_name=hook_name, hook_package_version=None)
     return ProjectDetails(
         project_type=hook_package_config.iac_framework,
-        hook_package_id=hook_package_config.package_id,
+        hook_name=hook_package_config.name,
         hook_package_version=hook_package_config.version,
     )
 

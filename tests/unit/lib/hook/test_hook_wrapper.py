@@ -11,7 +11,7 @@ from samcli.lib.hook.exceptions import (
 )
 
 TEST_HOOK_PACKAGE_CONFIG = {
-    "hook_package_id": "my_test_hook_package_id",
+    "hook_name": "my_test_hook_name",
     "hook_use_case": "IaC",
     "description": "testing",
     "version": "1.0.0",
@@ -69,7 +69,7 @@ class TestIacHookWrapper(TestCase):
         with self.assertRaises(InvalidHookWrapperException) as e:
             IacHookWrapper("hook_package_4")
 
-        self.assertEqual(e.exception.message, 'Cannot locate hook package with hook_package_id "hook_package_4"')
+        self.assertEqual(e.exception.message, 'Cannot locate hook package with hook_name "hook_package_4"')
 
     @patch("samcli.lib.hook.hook_wrapper.HookPackageConfig")
     @patch("samcli.lib.hook.hook_wrapper.INTERNAL_PACKAGES_ROOT")

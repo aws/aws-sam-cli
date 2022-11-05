@@ -20,7 +20,7 @@ from samcli.lib.hook.hook_wrapper import IacHookWrapper, get_available_hook_pack
 LOG = logging.getLogger(__name__)
 
 
-class HookPackageIdOption(click.Option):
+class HookNameOption(click.Option):
     """
     A custom option class that allows do custom validation for the SAM CLI commands options in case if hook package
     id is passed. It also calls the correct IaC prepare hook, and update the SAM CLI commands options based on the
@@ -28,26 +28,26 @@ class HookPackageIdOption(click.Option):
     """
 
     def __init__(self, *args, **kwargs):
-        self.hook_package_id_option_name = "hook_package_id"
+        self.hook_name_option_name = "hook_name"
         self._force_prepare = kwargs.pop("force_prepare", True)
         self._invalid_coexist_options = kwargs.pop("invalid_coexist_options", [])
         super().__init__(*args, **kwargs)
 
     def handle_parse_result(self, ctx, opts, args):
-        opt_name = self.hook_package_id_option_name.replace("_", "-")
-        if self.hook_package_id_option_name not in opts:
+        opt_name = self.hook_name_option_name.replace("_", "-")
+        if self.hook_name_option_name not in opts and self.hook_name_option_name not in ctx.default_map:
             return super().handle_parse_result(ctx, opts, args)
         command_name = ctx.command.name
         if command_name in ["invoke", "start-lambda", "start-api"]:
             command_name = f"local {command_name}"
-        # validate the hook_package_id value exists
-        hook_package_id = opts[self.hook_package_id_option_name]
+        # validate the hook_name value exists
+        hook_name = opts.get(self.hook_name_option_name) or ctx.default_map[self.hook_name_option_name]
         iac_hook_wrapper = None
         try:
-            iac_hook_wrapper = IacHookWrapper(hook_package_id)
+            iac_hook_wrapper = IacHookWrapper(hook_name)
         except InvalidHookWrapperException as e:
             raise click.BadParameter(
-                f"{hook_package_id} is not a valid hook package id."
+                f"{hook_name} is not a valid hook package id."
                 f"{os.linesep}valid package ids: {get_available_hook_packages_ids()}"
             ) from e
 
@@ -55,7 +55,7 @@ class HookPackageIdOption(click.Option):
 
         _validate_build_command_parameters(command_name, opts)
 
-        if not _check_experimental_flag(hook_package_id, command_name, opts, ctx.default_map):
+        if not _check_experimental_flag(hook_name, command_name, opts, ctx.default_map):
             return super().handle_parse_result(ctx, opts, args)
 
         self._call_prepare_hook(iac_hook_wrapper, opts)
@@ -98,9 +98,9 @@ def _validate_build_command_parameters(command_name, opts):
         raise click.UsageError("Missing required parameter --build-image.")
 
 
-def _check_experimental_flag(hook_package_id, command_name, opts, default_map):
+def _check_experimental_flag(hook_name, command_name, opts, default_map):
     # check beta-feature
-    experimental_entry = ExperimentalFlag.IaCsSupport.get(hook_package_id)
+    experimental_entry = ExperimentalFlag.IaCsSupport.get(hook_name)
     beta_features = _get_customer_input_beta_features_option(default_map, experimental_entry, opts)
 
     # check if beta feature flag is required for a specific hook package
@@ -108,7 +108,7 @@ def _check_experimental_flag(hook_package_id, command_name, opts, default_map):
     # hooks, we need to first know that the hook package is an external, and to handle the beta feature of it
     # using different approach
     if beta_features is None and experimental_entry is not None:
-        iac_support_message = _get_iac_support_experimental_prompt_message(hook_package_id, command_name)
+        iac_support_message = _get_iac_support_experimental_prompt_message(hook_name, command_name)
         if not prompt_experimental(experimental_entry, iac_support_message):
             LOG.debug("Experimental flag is disabled and prepare hook is not run")
             return False
@@ -145,13 +145,13 @@ def _get_customer_input_beta_features_option(default_map, experimental_entry, op
     return None
 
 
-def _get_iac_support_experimental_prompt_message(hook_package_id: str, command: str) -> str:
+def _get_iac_support_experimental_prompt_message(hook_name: str, command: str) -> str:
     """
     return the customer prompt message for a specific hook package.
 
     Parameters
     ----------
-    hook_package_id: str
+    hook_name: str
         the hook package id to determine what is the supported iac
 
     command: str
@@ -169,4 +169,4 @@ def _get_iac_support_experimental_prompt_message(hook_package_id: str, command: 
             f"You can also enable this beta feature with 'sam {command} --beta-features'."
         )
     }
-    return supported_iacs_messages.get(hook_package_id, "")
+    return supported_iacs_messages.get(hook_name, "")

@@ -1271,7 +1271,7 @@ class TestBuildContext_gen_success_msg(TestCase):
         )
 
     def test_gen_message_with_non_default_build_without_hook_package(self):
-        self.build_context._hook_package_id = False
+        self.build_context._hook_name = False
 
         msg = self.build_context._gen_success_msg(self.build_dir, self.template_file, False)
         expected_msg = (
@@ -1287,7 +1287,7 @@ Commands you can use next
         self.assertEqual(msg, expected_msg)
 
     def test_gen_message_with_non_default_build_with_hook_package(self):
-        self.build_context._hook_package_id = "iac"
+        self.build_context._hook_name = "iac"
 
         msg = self.build_context._gen_success_msg(self.build_dir, self.template_file, False)
         expected_msg = (
@@ -1296,8 +1296,8 @@ Built Template   : template_file
 
 Commands you can use next
 =========================
-[*] Invoke Function: sam local invoke --hook-package-id iac{os.linesep}[*] Emulate local Lambda functions: sam """
-            """local start-lambda --hook-package-id iac"""
+[*] Invoke Function: sam local invoke --hook-name iac{os.linesep}[*] Emulate local Lambda functions: sam """
+            """local start-lambda --hook-name iac"""
         )
 
         self.assertEqual(msg, expected_msg)

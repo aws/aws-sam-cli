@@ -76,7 +76,7 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
             "invoke",
             function_logical_id,
             "--no-event",
-            "--hook-package-id",
+            "--hook-name",
             "terraform",
             "--beta-features",
         ]
@@ -159,19 +159,19 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
 
     def test_invalid_coexist_parameters(self):
         self.template_path = "template.yaml"
-        cmdlist = self.get_command_list(hook_package_id="terraform")
+        cmdlist = self.get_command_list(hook_name="terraform")
         _, stderr, return_code = self.run_command(cmdlist)
 
         process_stderr = stderr.strip()
         self.assertRegex(
             process_stderr.decode("utf-8"),
-            "Error: Invalid value: Parameters hook-package-id, and t,template-file,template,parameter-overrides cannot "
+            "Error: Invalid value: Parameters hook-name, and t,template-file,template,parameter-overrides cannot "
             "be used together",
         )
         self.assertNotEqual(return_code, 0)
 
-    def test_invalid_hook_package_id(self):
-        cmdlist = self.get_command_list(hook_package_id="tf")
+    def test_invalid_hook_name(self):
+        cmdlist = self.get_command_list(hook_name="tf")
         _, stderr, return_code = self.run_command(cmdlist)
         process_stderr = stderr.strip()
         self.assertRegex(
@@ -181,7 +181,7 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
         self.assertNotEqual(return_code, 0)
 
     def test_exit_failed_use_container_no_build_image_hooks(self):
-        cmdlist = self.get_command_list(beta_features=True, hook_package_id="terraform", use_container=True)
+        cmdlist = self.get_command_list(beta_features=True, hook_name="terraform", use_container=True)
         _, stderr, return_code = self.run_command(cmdlist)
         process_stderr = stderr.strip()
         self.assertRegex(
@@ -191,7 +191,7 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
         self.assertNotEqual(return_code, 0)
 
     def test_exit_failed_use_container_short_format_no_build_image_hooks(self):
-        cmdlist = self.get_command_list(beta_features=True, hook_package_id="terraform")
+        cmdlist = self.get_command_list(beta_features=True, hook_name="terraform")
         cmdlist += ["-u"]
         _, stderr, return_code = self.run_command(cmdlist)
         process_stderr = stderr.strip()
@@ -202,7 +202,7 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
         self.assertNotEqual(return_code, 0)
 
     def test_exit_success_no_beta_feature_flags_hooks(self):
-        cmdlist = self.get_command_list(beta_features=None, hook_package_id="terraform")
+        cmdlist = self.get_command_list(beta_features=None, hook_name="terraform")
         stdout, stderr, return_code = self.run_command(cmdlist, input=b"N\n\n")
         terraform_beta_feature_prompted_text = (
             f"Supporting Terraform applications is a beta feature.{os.linesep}"
@@ -214,7 +214,7 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
         self.assertRegex(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
 
     def test_exit_success_no_beta_features_flags_supplied_hooks(self):
-        cmdlist = self.get_command_list(beta_features=False, hook_package_id="terraform")
+        cmdlist = self.get_command_list(beta_features=False, hook_name="terraform")
         _, stderr, return_code = self.run_command(cmdlist)
         self.assertEqual(return_code, 0)
         self.assertRegex(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
@@ -229,7 +229,7 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
         with open(samconfig_toml_path, "wb") as file:
             file.writelines(samconfig_lines)
 
-        cmdlist = self.get_command_list(hook_package_id="terraform")
+        cmdlist = self.get_command_list(hook_name="terraform")
         _, stderr, return_code = self.run_command(cmdlist)
         self.assertEqual(return_code, 0)
         self.assertRegex(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
@@ -243,7 +243,7 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
         environment_variables = os.environ.copy()
         environment_variables["SAM_CLI_BETA_TERRAFORM_SUPPORT"] = "False"
 
-        build_command_list = self.get_command_list(hook_package_id="terraform")
+        build_command_list = self.get_command_list(hook_name="terraform")
         _, stderr, return_code = self.run_command(build_command_list, env=environment_variables)
         self.assertEqual(return_code, 0)
         self.assertRegex(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
@@ -327,7 +327,7 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
     def test_build_and_invoke_lambda_functions(self, function_identifier, expected_output, should_override_code):
         command_list_parameters = {
             "beta_features": True,
-            "hook_package_id": "terraform",
+            "hook_name": "terraform",
             "function_identifier": function_identifier,
         }
         if self.build_in_container:
@@ -371,7 +371,7 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(BuildTerra
     def test_invoke_function(self):
         function_identifier = "aws_lambda_function.function"
         build_cmd_list = self.get_command_list(
-            beta_features=True, hook_package_id="terraform", function_identifier=function_identifier
+            beta_features=True, hook_name="terraform", function_identifier=function_identifier
         )
 
         LOG.info("command list: %s", build_cmd_list)
@@ -466,7 +466,7 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(Build
     def test_build_and_invoke_lambda_functions(self, function_identifier, expected_output, should_override_code):
         command_list_parameters = {
             "beta_features": True,
-            "hook_package_id": "terraform",
+            "hook_name": "terraform",
             "function_identifier": function_identifier,
         }
         if self.build_in_container:
@@ -508,7 +508,7 @@ class TestInvalidBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backen
     def test_build_no_s3_config(self):
         command_list_parameters = {
             "beta_features": True,
-            "hook_package_id": "terraform",
+            "hook_name": "terraform",
         }
         build_cmd_list = self.get_command_list(**command_list_parameters)
         LOG.info("command list: %s", build_cmd_list)
@@ -539,7 +539,7 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndLocalBackend(
     @parameterized.expand(functions)
     def test_build_and_invoke_lambda_functions(self, function_identifier):
         build_cmd_list = self.get_command_list(
-            beta_features=True, hook_package_id="terraform", function_identifier=function_identifier
+            beta_features=True, hook_name="terraform", function_identifier=function_identifier
         )
         LOG.info("command list: %s", build_cmd_list)
         _, stderr, return_code = self.run_command(build_cmd_list)
@@ -581,7 +581,7 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndS3Backend(
     @parameterized.expand(functions)
     def test_build_and_invoke_lambda_functions(self, function_identifier):
         build_cmd_list = self.get_command_list(
-            beta_features=True, hook_package_id="terraform", function_identifier=function_identifier
+            beta_features=True, hook_name="terraform", function_identifier=function_identifier
         )
         LOG.info("command list: %s", build_cmd_list)
         _, stderr, return_code = self.run_command(build_cmd_list)
@@ -638,8 +638,7 @@ class TestUnsupportedCases(BuildTerraformApplicationIntegBase):
     def test_unsupported_cases(self, app, expected_error_message):
         self.terraform_application_path = Path(self.terraform_application_path) / app
         shutil.copytree(Path(self.terraform_application_path), Path(self.working_dir))
-
-        build_cmd_list = self.get_command_list(beta_features=True, hook_package_id="terraform")
+        build_cmd_list = self.get_command_list(beta_features=True, hook_name="terraform")
         LOG.info("command list: %s", build_cmd_list)
         _, stderr, return_code = self.run_command(build_cmd_list)
         LOG.info(stderr)
