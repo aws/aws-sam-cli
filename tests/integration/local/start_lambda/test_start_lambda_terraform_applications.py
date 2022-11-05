@@ -23,7 +23,7 @@ from samcli.lib.utils.colors import Colored
 from tests.integration.local.common_utils import random_port
 from tests.integration.local.invoke.layer_utils import LayerUtils
 from tests.integration.local.start_lambda.start_lambda_api_integ_base import StartLambdaIntegBaseClass
-from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUNNING_ON_CI
+from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUNNING_ON_CI, RUN_BY_CANARY
 
 LOG = logging.getLogger(__name__)
 S3_SLEEP = 3
@@ -115,7 +115,7 @@ class TestLocalStartLambdaTerraformApplicationWithoutBuild(StartLambdaTerraformA
 
 
 @skipIf(
-    not CI_OVERRIDE,
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
 )
 @parameterized_class(
@@ -275,7 +275,7 @@ class TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild(StartLambda
 
 
 @skipIf(
-    not CI_OVERRIDE,
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
 )
 class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(StartLambdaTerraformApplicationIntegBase):
@@ -334,7 +334,7 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(StartLambd
 
 
 @skipIf(
-    not CI_OVERRIDE,
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
 )
 class TestLocalStartLambdaTerraformApplicationWithExperimentalPromptYes(StartLambdaTerraformApplicationIntegBase):
@@ -367,7 +367,7 @@ class TestLocalStartLambdaTerraformApplicationWithExperimentalPromptYes(StartLam
 
 
 @skipIf(
-    not CI_OVERRIDE,
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
 )
 class TestLocalStartLambdaTerraformApplicationWithBetaFeatures(StartLambdaTerraformApplicationIntegBase):
@@ -521,7 +521,7 @@ class TestLocalStartLambdaInvalidUsecasesTerraform(StartLambdaTerraformApplicati
 
 
 @skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    ((not RUN_BY_CANARY) or (IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip local start-lambda terraform applications tests on windows when running in CI unless overridden",
 )
 class TestLocalStartLambdaTerraformApplicationWithLocalImageUri(StartLambdaTerraformApplicationIntegBase):

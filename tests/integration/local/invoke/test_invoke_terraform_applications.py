@@ -19,7 +19,7 @@ from samcli.lib.utils.colors import Colored
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase, TIMEOUT
 from tests.integration.local.invoke.layer_utils import LayerUtils
 from tests.integration.local.start_lambda.start_lambda_api_integ_base import StartLambdaIntegBaseClass
-from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUNNING_ON_CI
+from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUNNING_ON_CI, RUN_BY_CANARY
 
 S3_SLEEP = 3
 
@@ -287,7 +287,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
 
 
 @skipIf(
-    not CI_OVERRIDE,
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
 )
 @parameterized_class(
@@ -444,7 +444,7 @@ class TestInvokeTerraformApplicationWithLayersWithoutBuild(InvokeTerraformApplic
 
 
 @skipIf(
-    not CI_OVERRIDE,
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
 )
 class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(InvokeTerraformApplicationIntegBase):
@@ -475,7 +475,7 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(InvokeTerr
 
 
 @skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    ((not RUN_BY_CANARY) or (IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip local invoke terraform application tests on windows when running in CI unless overridden",
 )
 class TestInvokeTerraformApplicationWithLocalImageUri(InvokeTerraformApplicationIntegBase):
