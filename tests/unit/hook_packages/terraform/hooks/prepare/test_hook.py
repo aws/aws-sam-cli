@@ -2702,7 +2702,7 @@ class TestPrepareHook(TestCase):
         tf_plan_filename = "tf_plan"
         output_dir_path = self.prepare_params.get("OutputDirPath")
         metadata_file_path = f"{output_dir_path}/template.json"
-        mock_cfn_dict = Mock()
+        mock_cfn_dict = MagicMock()
         mock_metadata_file = Mock()
         mock_cfn_dict_resources = Mock()
         mock_cfn_dict.get.return_value = mock_cfn_dict_resources
@@ -2778,7 +2778,7 @@ class TestPrepareHook(TestCase):
         tf_plan_filename = "tf_plan"
         output_dir_path = self.prepare_params.get("OutputDirPath")
         metadata_file_path = f"/current/dir/iac/project/path/{output_dir_path}/template.json"
-        mock_cfn_dict = Mock()
+        mock_cfn_dict = MagicMock()
         mock_metadata_file = Mock()
         mock_cfn_dict_resources = Mock()
         mock_cfn_dict.get.return_value = mock_cfn_dict_resources

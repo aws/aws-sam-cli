@@ -315,8 +315,9 @@ class TestTrackCommand(TestCase):
         actual = track_command(real_fn)()
         self.assertEqual(actual, "some return value")
 
+    @patch("samcli.lib.telemetry.metric.get_hook_metadata", return_value=None)
     @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_pass_all_arguments_to_wrapped_function(self, ContextMock):
+    def test_must_pass_all_arguments_to_wrapped_function(self, ContextMock, get_hook_metadata_mock):
         def real_fn(*args, **kwargs):
             # simply return the arguments to be able to examine & assert
             return args, kwargs
@@ -547,6 +548,19 @@ class TestGetProjectDetails(TestCase):
         mock_hook_package_config.return_value = hook_package
         expected = ProjectDetails(hook_name="terraform", hook_package_version="1.0.0", project_type="Terraform")
         result = _get_project_details("terraform", {})
+        self.assertEqual(result, expected)
+
+    @patch("samcli.lib.telemetry.metric.HookPackageConfig")
+    @patch("samcli.lib.telemetry.metric.get_hook_metadata")
+    def test_terraform_project_from_metadata(self, get_hook_metadata_mock, mock_hook_package_config):
+        get_hook_metadata_mock.return_value = {"HookName": "terraform"}
+        hook_package = Mock()
+        hook_package.name = "terraform"
+        hook_package.version = "1.0.0"
+        hook_package.iac_framework = "Terraform"
+        mock_hook_package_config.return_value = hook_package
+        expected = ProjectDetails(hook_name="terraform", hook_package_version="1.0.0", project_type="Terraform")
+        result = _get_project_details("", {})
         self.assertEqual(result, expected)
 
     @patch("samcli.lib.telemetry.metric.HookPackageConfig")

@@ -78,6 +78,11 @@ PropertyBuilderMapping = Dict[str, PropertyBuilder]
 TERRAFORM_BUILD_SCRIPT = "copy_terraform_built_artifacts.py"
 TF_BACKEND_OVERRIDE_FILENAME = "z_samcli_backend_override"
 
+HOOK_METADATA_KEY = "AWS::SAM::Hook"
+TERRAFORM_HOOK_METADATA = {
+    "HookName": "terraform",
+}
+
 CFN_CODE_PROPERTIES = {
     CFN_AWS_LAMBDA_FUNCTION: "Code",
     CFN_AWS_LAMBDA_LAYER_VERSION: "Content",
@@ -163,6 +168,9 @@ def prepare(params: dict) -> dict:
 
         if cfn_dict.get("Resources"):
             _update_resources_paths(cfn_dict.get("Resources"), terraform_application_dir)  # type: ignore
+
+        # Add hook metadata
+        cfn_dict["Metadata"][HOOK_METADATA_KEY] = TERRAFORM_HOOK_METADATA
 
         # store in supplied output dir
         if not os.path.exists(output_dir_path):
