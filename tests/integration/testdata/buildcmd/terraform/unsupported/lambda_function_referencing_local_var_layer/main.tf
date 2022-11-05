@@ -78,6 +78,7 @@ resource "aws_lambda_function" "function1" {
     runtime = "python3.8"
     function_name = "${var.namespace}-function1-${random_uuid.s3_bucket.result}"
     role = aws_iam_role.iam_for_lambda.arn
+    timeout = 300
     layers = [
         local.my_layer
     ]

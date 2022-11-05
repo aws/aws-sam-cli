@@ -42,6 +42,7 @@ resource "aws_lambda_function" "function_with_non_image_uri" {
     role = aws_iam_role.iam_for_lambda.arn
     package_type = "Image"
     image_uri = "some_image_uri_${random_pet.this.id}"
+    timeout = 300
 }
 
 resource "null_resource" "sam_metadata_aws_lambda_function_function_with_non_image_uri" {
@@ -60,7 +61,7 @@ resource "aws_lambda_function" "my_image_function" {
     role = aws_iam_role.iam_for_lambda.arn
     package_type = "Image"
     handler = null
-
+    timeout = 300
     image_uri = "some_image_uri"
 }
 
@@ -123,7 +124,7 @@ module "docker_image" {
 
 module "serverless_tf_image_function" {
   source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
-
+  timeout = 300
   function_name = "serverless_tf_image_function"
   create_package = false
   image_uri     = module.docker_image.image_uri

@@ -30,19 +30,19 @@ class IacHookWrapper:
     ```
     """
 
-    _hook_package_id: str
+    _hook_name: str
     _config: Optional[HookPackageConfig]
 
-    def __init__(self, hook_package_id: str):
+    def __init__(self, hook_name: str):
         """
         Parameters
         ----------
-        hook_package_id: str
+        hook_name: str
             Hook package ID
         """
-        self._hook_package_id = hook_package_id
+        self._hook_name = hook_name
         self._config = None
-        self._load_hook_package(hook_package_id)
+        self._load_hook_package(hook_name)
 
     def prepare(
         self,
@@ -76,7 +76,7 @@ class IacHookWrapper:
         str
             Path to the generated IaC Metadata file
         """
-        LOG.info('Executing prepare hook of hook package "%s"', self._hook_package_id)
+        LOG.info('Executing prepare hook of hook "%s"', self._hook_name)
         params = {
             "IACProjectPath": iac_project_path if iac_project_path else str(Path.cwd()),
             "OutputDirPath": output_dir_path,
@@ -104,23 +104,23 @@ class IacHookWrapper:
         LOG.debug("Metadata file location - %s", metadata_file_loc)
         return cast(str, metadata_file_loc)
 
-    def _load_hook_package(self, hook_package_id: str) -> None:
+    def _load_hook_package(self, hook_name: str) -> None:
         """Find and load hook package config with given hook package ID
 
         Parameters
         ----------
-        hook_package_id: str
+        hook_name: str
             Hook package ID
         """
         # locate hook package from internal first
         LOG.debug("Looking for internal hook package")
         for child in INTERNAL_PACKAGES_ROOT.iterdir():
-            if child.name == hook_package_id:
-                LOG.debug('Loaded internal hook package "%s"', hook_package_id)
+            if child.name == hook_name:
+                LOG.debug('Loaded internal hook package "%s"', hook_name)
                 self._config = HookPackageConfig(child)
                 return
 
-        raise InvalidHookWrapperException(f'Cannot locate hook package with hook_package_id "{hook_package_id}"')
+        raise InvalidHookWrapperException(f'Cannot locate hook package with hook_name "{hook_name}"')
 
     def _execute(self, functionality_key: str, params: Optional[Dict] = None) -> Dict:
         """

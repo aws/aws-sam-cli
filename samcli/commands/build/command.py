@@ -20,7 +20,7 @@ from samcli.commands._utils.options import (
     manifest_option,
     cached_option,
     use_container_build_option,
-    hook_package_id_click_option,
+    hook_name_click_option,
 )
 from samcli.commands._utils.option_value_processor import process_env_var, process_image_options
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
@@ -82,7 +82,7 @@ $ sam build MyFunction
 
 @click.command("build", help=HELP_TEXT, short_help="Build your Lambda function code")
 @configuration_option(provider=TomlProvider(section="parameters"))
-@hook_package_id_click_option(
+@hook_name_click_option(
     force_prepare=True,
     invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"],
 )
@@ -173,7 +173,7 @@ def cli(
     parameter_overrides: dict,
     config_file: str,
     config_env: str,
-    hook_package_id: Optional[str],
+    hook_name: Optional[str],
     skip_prepare_infra: bool,
 ) -> None:
     """
@@ -203,7 +203,7 @@ def cli(
         container_env_var_file,
         build_image,
         exclude,
-        hook_package_id,
+        hook_name,
     )  # pragma: no cover
 
 
@@ -227,15 +227,15 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     container_env_var_file: Optional[str],
     build_image: Optional[Tuple[str]],
     exclude: Optional[Tuple[str, ...]],
-    hook_package_id: Optional[str],
+    hook_name: Optional[str],
 ) -> None:
     """
     Implementation of the ``cli`` method
     """
     if (
-        hook_package_id
-        and ExperimentalFlag.IaCsSupport.get(hook_package_id) is not None
-        and not is_experimental_enabled(ExperimentalFlag.IaCsSupport[hook_package_id])
+        hook_name
+        and ExperimentalFlag.IaCsSupport.get(hook_name) is not None
+        and not is_experimental_enabled(ExperimentalFlag.IaCsSupport[hook_name])
     ):
         LOG.info("Terraform Support beta feature is not enabled.")
         return
@@ -271,7 +271,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         build_images=processed_build_images,
         excluded_resources=exclude,
         aws_region=click_ctx.region,
-        hook_package_id=hook_package_id,
+        hook_name=hook_name,
     ) as ctx:
         ctx.run()
 
