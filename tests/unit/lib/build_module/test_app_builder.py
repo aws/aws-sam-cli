@@ -2826,7 +2826,7 @@ class TestApplicationBuilderGetWorkingDirectoryPath(TestCase):
         pathlib_mock.Path.return_value = path_mock
         path_mock.resolve.return_value = str(os.path.join("working", "dir"))
         working_dir = ApplicationBuilder._get_working_directory_path("base_dir", metadata, "source_dir", "scratch_dir")
-        self.assertEquals(working_dir, PathValidator(str(os.path.join("working", "dir"))))
+        self.assertEqual(working_dir, PathValidator(str(os.path.join("working", "dir"))))
 
     @patch("samcli.lib.build.app_builder.pathlib")
     @patch("samcli.lib.build.app_builder.os.path")
@@ -2843,4 +2843,4 @@ class TestApplicationBuilderGetWorkingDirectoryPath(TestCase):
         path_mock.resolve.return_value = str(os.path.join("source_dir", "working", "dir"))
 
         working_dir = ApplicationBuilder._get_working_directory_path("base_dir", metadata, "source_dir", "scratch_dir")
-        self.assertEquals(working_dir, PathValidator(str(os.path.join("source_dir", "working", "dir"))))
+        self.assertEqual(working_dir, PathValidator(str(os.path.join("source_dir", "working", "dir"))))

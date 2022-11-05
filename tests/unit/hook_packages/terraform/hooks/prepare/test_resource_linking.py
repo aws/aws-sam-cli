@@ -1125,7 +1125,7 @@ class TestResourceLinking(TestCase):
         resolved_layers = [reference_resolved_layer, constant_value_resolved_layer]
         process_reference_layer_value_mock.return_value = [{"Ref": "Layer1LogicalId"}]
         layers = _process_resolved_layers(resource, resolved_layers, tf_layers)
-        self.assertEquals(layers, [{"Ref": "Layer1LogicalId"}])
+        self.assertEqual(layers, [{"Ref": "Layer1LogicalId"}])
         process_reference_layer_value_mock.assert_called_with(resource, reference_resolved_layer, tf_layers)
 
     def test_process_reference_layer_value_data_resource_reference(self):
@@ -1157,8 +1157,8 @@ class TestResourceLinking(TestCase):
         tf_layers = {"layer1LogicalId": Mock()}
 
         layers = _process_reference_layer_value(resource, reference_resolved_layer, tf_layers)
-        self.assertEquals(len(layers), 1)
-        self.assertEquals(layers[0], {"Ref": "layer1LogicalId"})
+        self.assertEqual(len(layers), 1)
+        self.assertEqual(layers[0], {"Ref": "layer1LogicalId"})
         build_cfn_logical_id_mock.assert_called_with("module.layer1.aws_lambda_layer_version.layer")
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.build_cfn_logical_id")
@@ -1169,7 +1169,7 @@ class TestResourceLinking(TestCase):
         tf_layers = {"layer2LogicalId": Mock()}
 
         layers = _process_reference_layer_value(resource, reference_resolved_layer, tf_layers)
-        self.assertEquals(len(layers), 0)
+        self.assertEqual(len(layers), 0)
         build_cfn_logical_id_mock.assert_called_with("aws_lambda_layer_version.layer")
 
     def test_process_reference_layer_value_reference_to_not_layer_resource_arn_property(self):
@@ -1246,8 +1246,8 @@ class TestResourceLinking(TestCase):
         }
         layers = [{"Ref": "layer1_logical_id"}, {"Ref": "layer3_logical_id"}]
         _update_mapped_lambda_function_with_resolved_layers(cfn_functions, layers, tf_layers)
-        self.assertEquals(cfn_functions[0]["Properties"]["Layers"], layers)
-        self.assertEquals(
+        self.assertEqual(cfn_functions[0]["Properties"]["Layers"], layers)
+        self.assertEqual(
             cfn_functions[1]["Properties"]["Layers"],
             ["layer3.arn", {"Ref": "layer1_logical_id"}, {"Ref": "layer3_logical_id"}],
         )
