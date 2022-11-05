@@ -7,7 +7,7 @@ import click
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands._utils.experimental import experimental, is_experimental_enabled, ExperimentalFlag
-from samcli.commands._utils.options import hook_name_click_option
+from samcli.commands._utils.options import hook_name_click_option, skip_prepare_infra_option
 from samcli.commands.local.cli_common.options import (
     invoke_common_options,
     service_common_options,
@@ -64,6 +64,7 @@ Here is a Python example:
 @hook_name_click_option(
     force_prepare=False, invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"]
 )
+@skip_prepare_infra_option
 @service_common_options(3001)
 @invoke_common_options
 @experimental
@@ -103,6 +104,7 @@ def cli(
     container_host_interface,
     invoke_image,
     hook_name,
+    skip_prepare_infra,
 ):
     """
     `sam local start-lambda` command entry point

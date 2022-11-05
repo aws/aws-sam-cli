@@ -51,6 +51,7 @@ class IacHookWrapper:
         debug: bool = False,
         aws_profile: Optional[str] = None,
         aws_region: Optional[str] = None,
+        skip_prepare_infra: bool = False,
     ) -> str:
         """
         Run the prepare hook to generate the IaC Metadata file.
@@ -67,6 +68,8 @@ class IacHookWrapper:
             AWS profile to use. Default is None (use default profile)
         aws_region: str
             AWS region to use. Default is None (use default region)
+        skip_prepare_infra: bool
+            Flag to skip skip prepare hook if we already have the metadata file. Default is False.
 
         Returns
         -------
@@ -78,6 +81,7 @@ class IacHookWrapper:
             "IACProjectPath": iac_project_path if iac_project_path else str(Path.cwd()),
             "OutputDirPath": output_dir_path,
             "Debug": debug,
+            "SkipPrepareInfra": skip_prepare_infra,
         }
         if aws_profile:
             params["Profile"] = aws_profile
