@@ -38,4 +38,5 @@ resource "aws_lambda_function" "this" {
     function_name = var.function_name
     role = aws_iam_role.iam_for_lambda.arn
     layers = var.layers
+    timeout = 300
 }

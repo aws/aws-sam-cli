@@ -39,7 +39,7 @@ resource "aws_lambda_function" "this" {
     role = aws_iam_role.iam_for_lambda.arn
     package_type = "Image"
     handler = null
-
+    timeout = 300
     image_uri = var.image_uri
 }
 

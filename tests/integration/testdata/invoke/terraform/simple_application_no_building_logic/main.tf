@@ -47,6 +47,7 @@ resource "aws_lambda_function" "remote_lambda_code" {
         s3_key = "remote_lambda_code_key"
         handler = "app.lambda_handler"
         runtime = "python3.8"
+        timeout = 300
         function_name = "s3_remote_lambda_function"
         role = aws_iam_role.iam_for_lambda.arn
 }
@@ -56,6 +57,7 @@ resource "aws_lambda_function" "root_lambda" {
         handler = "app.lambda_handler"
         runtime = "python3.8"
         function_name = "root_lambda"
+        timeout = 300
         role = aws_iam_role.iam_for_lambda.arn
 }
 module "level1_lambda" {

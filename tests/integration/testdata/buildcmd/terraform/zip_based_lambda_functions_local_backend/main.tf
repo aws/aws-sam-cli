@@ -96,6 +96,7 @@ resource "aws_lambda_function" "from_localfile" {
     filename = "${local.building_path}/${local.lambda_code_filename}"
     handler = "index.lambda_handler"
     runtime = "python3.8"
+    timeout = 300
     function_name = "my_function_from_localfile"
     role = aws_iam_role.iam_for_lambda.arn
     depends_on = [
@@ -122,6 +123,7 @@ resource "aws_lambda_function" "from_s3" {
     s3_key = aws_s3_object.s3_lambda_code.key
     handler = "index.lambda_handler"
     runtime = "python3.8"
+    timeout = 300
     function_name = "my_function_from_s3"
     role = aws_iam_role.iam_for_lambda.arn
     depends_on = [
@@ -472,6 +474,7 @@ resource "aws_lambda_function" "function1" {
     handler = "app.lambda_handler"
     runtime = "python3.8"
     function_name = "function1"
+    timeout = 300
     role = aws_iam_role.iam_for_lambda.arn
     layers = [
         aws_lambda_layer_version.layer1[0].arn,
@@ -534,6 +537,7 @@ resource "aws_lambda_function" "function3" {
     handler = "app.lambda_handler"
     runtime = "python3.8"
     function_name = "function3"
+    timeout = 300
     role = aws_iam_role.iam_for_lambda.arn
     layers = [
         aws_lambda_layer_version.layer3["my_idx"].arn,
@@ -572,6 +576,7 @@ resource "aws_lambda_function" "function4" {
     handler = "app.lambda_handler"
     runtime = "python3.8"
     function_name = "function4"
+    timeout = 300
     role = aws_iam_role.iam_for_lambda.arn
     layers = [
         aws_lambda_layer_version.layer4.arn,
@@ -609,6 +614,7 @@ resource "aws_lambda_function" "function5" {
     handler = "app.lambda_handler"
     runtime = "python3.8"
     function_name = "function5"
+    timeout = 300
     role = aws_iam_role.iam_for_lambda.arn
     layers = [
         aws_lambda_layer_version.layer5.arn,
@@ -638,6 +644,7 @@ resource "aws_lambda_function" "function6" {
   runtime = "python3.8"
   function_name = "function6"
   role = aws_iam_role.iam_for_lambda.arn
+  timeout = 300
   layers = [
       aws_lambda_layer_version.layer6.arn,
   ]
@@ -665,6 +672,7 @@ module "layer7" {
 module "function7" {
   # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
   source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  timeout = 300
   source_path = local.hello_world_function_src_path
   function_name = "function7"
   handler       = "app.lambda_handler"
@@ -693,6 +701,7 @@ module "function8" {
   source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
   source_path = local.hello_world_function_src_path
   function_name = "function8"
+  timeout       = 300
   handler       = "app.lambda_handler"
   runtime       = "python3.8"
   layers = [module.layer8.lambda_layer_arn]
@@ -755,6 +764,7 @@ module "function9" {
   source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
   local_existing_package = "${local.building_path}/${local.hello_world_artifact_file_name}"
   create_package = false
+  timeout = 300
   function_name = "function9"
   handler       = "app.lambda_handler"
   runtime       = "python3.8"
@@ -784,6 +794,7 @@ module "function10" {
   source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
   source_path = local.hello_world_function_src_path
   function_name = "function10"
+  timeout = 300
   handler       = "app.lambda_handler"
   runtime       = "python3.8"
   layers = [module.layer10.lambda_layer_arn]

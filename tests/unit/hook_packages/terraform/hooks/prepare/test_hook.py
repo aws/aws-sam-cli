@@ -1051,7 +1051,7 @@ class TestPrepareHook(TestCase):
             [call(self.s3_source), call(self.s3_source_2)]
         )
         self.assertEqual(cfn_resources, expected_cfn_resources_after_mapping_s3_sources)
-        self.assertEquals(functions_code_map, expected_functions_code_map)
+        self.assertEqual(functions_code_map, expected_functions_code_map)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._calculate_configuration_attribute_value_hash")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_s3_object_hash")
@@ -1082,7 +1082,7 @@ class TestPrepareHook(TestCase):
             ]
         )
         mock_calculate_configuration_attribute_value_hash.assert_has_calls([call(self.s3_source)])
-        self.assertEquals(layers_code_map, expected_layers_code_map)
+        self.assertEqual(layers_code_map, expected_layers_code_map)
         self.assertEqual(cfn_resources, expected_cfn_resources_after_mapping_s3_sources)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._calculate_configuration_attribute_value_hash")
@@ -1117,7 +1117,7 @@ class TestPrepareHook(TestCase):
         )
         mock_calculate_configuration_attribute_value_hash.assert_has_calls([call(mock_reference)])
         self.assertEqual(cfn_resources, expected_cfn_resources_after_mapping_s3_sources)
-        self.assertEquals(functions_code_map, expected_functions_code_map)
+        self.assertEqual(functions_code_map, expected_functions_code_map)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
@@ -1839,7 +1839,7 @@ class TestPrepareHook(TestCase):
         }
         mock_build_cfn_logical_id.side_effect = ["ABCDEFG"]
         resources_list = _get_relevant_cfn_resource(sam_metadata_resource, cfn_resources, {})
-        self.assertEquals(len(resources_list), 1)
+        self.assertEqual(len(resources_list), 1)
         relevant_resource, return_logical_id = resources_list[0]
 
         mock_build_cfn_logical_id.assert_called_once_with(
@@ -1876,7 +1876,7 @@ class TestPrepareHook(TestCase):
         mock_calculate_configuration_attribute_value_hash.side_effect = ["code_hash"]
         lambda_resources_code_map = {"zip_code_hash": [(self.expected_cfn_lambda_function_resource_zip_2, "ABCDEFG")]}
         resources_list = _get_relevant_cfn_resource(sam_metadata_resource, cfn_resources, lambda_resources_code_map)
-        self.assertEquals(len(resources_list), 1)
+        self.assertEqual(len(resources_list), 1)
         relevant_resource, return_logical_id = resources_list[0]
 
         self.assertEqual(relevant_resource, self.expected_cfn_lambda_function_resource_zip_2)
@@ -2325,7 +2325,7 @@ class TestPrepareHook(TestCase):
             "/terraform/project/root",
             "/output/dir",
         )
-        self.assertEquals(lambda_layer_1, expected_lambda_layer_1)
+        self.assertEqual(lambda_layer_1, expected_lambda_layer_1)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_python_command_name")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._generate_makefile")
@@ -3394,10 +3394,10 @@ class TestPrepareHook(TestCase):
         m1_config_module.parent_module = curr_config_module
         modules_queue = []
         _add_child_modules_to_queue(curr_module, curr_config_module, modules_queue)
-        self.assertEquals(modules_queue, [(m1_planned_value_module, m1_config_module)])
+        self.assertEqual(modules_queue, [(m1_planned_value_module, m1_config_module)])
         modules_queue = []
         _add_child_modules_to_queue(m1_planned_value_module, m1_config_module, modules_queue)
-        self.assertEquals(
+        self.assertEqual(
             modules_queue, [(m20_planned_value_module, m2_config_module), (m21_planned_value_module, m2_config_module)]
         )
 
@@ -3574,7 +3574,7 @@ class TestPrepareHook(TestCase):
         _add_metadata_resource_to_metadata_list(
             new_metadata_resource_mock, planned_Value_resource, metadata_resources_list
         )
-        self.assertEquals(
+        self.assertEqual(
             metadata_resources_list, [metadata_resource_mock1, metadata_resource_mock2, new_metadata_resource_mock]
         )
 
@@ -3598,6 +3598,6 @@ class TestPrepareHook(TestCase):
         _add_metadata_resource_to_metadata_list(
             new_metadata_resource_mock, planned_Value_resource, metadata_resources_list
         )
-        self.assertEquals(
+        self.assertEqual(
             metadata_resources_list, [new_metadata_resource_mock, metadata_resource_mock1, metadata_resource_mock2]
         )

@@ -15,7 +15,7 @@ from samcli.commands._utils.constants import (
     DEFAULT_CACHE_DIR,
     DEFAULT_BUILT_TEMPLATE_PATH,
 )
-from samcli.commands._utils.custom_options.hook_package_id_option import HookPackageIdOption
+from samcli.commands._utils.custom_options.hook_name_option import HookNameOption
 from samcli.commands._utils.parameterized_option import parameterized_option
 from samcli.commands._utils.template import get_template_data, TemplateNotFoundException
 from samcli.cli.types import (
@@ -647,14 +647,14 @@ def resolve_s3_click_option(guided):
     )
 
 
-def hook_package_id_click_option(force_prepare=True, invalid_coexist_options=None):
+def hook_name_click_option(force_prepare=True, invalid_coexist_options=None):
     """
-    Click Option for hook-package-id option
+    Click Option for hook-name option
     """
 
-    def hook_package_id_setup(f):
+    def hook_name_setup(f):
         return click.option(
-            "--hook-package-id",
+            "--hook-name",
             default=None,
             type=click.STRING,
             required=False,
@@ -663,7 +663,7 @@ def hook_package_id_click_option(force_prepare=True, invalid_coexist_options=Non
             f"Available Hook Packages Ids {get_available_hook_packages_ids()}",
         )(f)
 
-    def hook_package_id_processer_wrapper(f):
+    def hook_name_processer_wrapper(f):
         configuration_setup_params = ()
         configuration_setup_attrs = {}
         configuration_setup_attrs[
@@ -673,7 +673,7 @@ def hook_package_id_click_option(force_prepare=True, invalid_coexist_options=Non
         configuration_setup_attrs["expose_value"] = False
         configuration_setup_attrs["hidden"] = True
         configuration_setup_attrs["type"] = click.STRING
-        configuration_setup_attrs["cls"] = HookPackageIdOption
+        configuration_setup_attrs["cls"] = HookNameOption
         configuration_setup_attrs["force_prepare"] = force_prepare
         configuration_setup_attrs["invalid_coexist_options"] = (
             invalid_coexist_options if invalid_coexist_options else []
@@ -689,7 +689,7 @@ def hook_package_id_click_option(force_prepare=True, invalid_coexist_options=Non
         return decorator
 
     # Compose decorators here to make sure the context parameters are updated before callback function
-    decorator_list = [hook_package_id_setup, hook_package_id_processer_wrapper]
+    decorator_list = [hook_name_setup, hook_name_processer_wrapper]
     return composed_decorator(decorator_list)
 
 

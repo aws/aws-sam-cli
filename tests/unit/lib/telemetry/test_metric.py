@@ -364,13 +364,13 @@ class TestTrackCommand(TestCase):
     def test_collects_project_details(self, ContextMock, send_mock, project_details_mock):
         ContextMock.get_current_context.return_value = self.context_mock
         project_details_mock.return_value = ProjectDetails(
-            project_type="Terraform", hook_package_version="1.0.0", hook_package_id="terraform"
+            project_type="Terraform", hook_package_version="1.0.0", hook_name="terraform"
         )
 
         def real_fn(**kwargs):
             pass
 
-        track_command(real_fn)(hook_package_id="terraform")
+        track_command(real_fn)(hook_name="terraform")
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric_data = args[0]._data
         send_mock.assert_called()
@@ -523,11 +523,11 @@ class TestGetProjectDetails(TestCase):
         [
             (
                 True,
-                ProjectDetails(hook_package_id=None, hook_package_version=None, project_type=ProjectTypes.CDK.value),
+                ProjectDetails(hook_name=None, hook_package_version=None, project_type=ProjectTypes.CDK.value),
             ),
             (
                 False,
-                ProjectDetails(hook_package_id=None, hook_package_version=None, project_type=ProjectTypes.CFN.value),
+                ProjectDetails(hook_name=None, hook_package_version=None, project_type=ProjectTypes.CFN.value),
             ),
         ]
     )
@@ -542,11 +542,11 @@ class TestGetProjectDetails(TestCase):
     def test_terraform_project(self, cdk_project_mock, mock_hook_package_config):
         cdk_project_mock.return_value = False
         hook_package = Mock()
-        hook_package.package_id = "terraform"
+        hook_package.name = "terraform"
         hook_package.version = "1.0.0"
         hook_package.iac_framework = "Terraform"
         mock_hook_package_config.return_value = hook_package
-        expected = ProjectDetails(hook_package_id="terraform", hook_package_version="1.0.0", project_type="Terraform")
+        expected = ProjectDetails(hook_name="terraform", hook_package_version="1.0.0", project_type="Terraform")
         result = _get_project_details("terraform", {})
         self.assertEqual(result, expected)
 
@@ -568,6 +568,6 @@ class TestGetProjectDetails(TestCase):
     def test_invalid_hook_id(self, cdk_project_mock, mock_hook_package_config):
         cdk_project_mock.return_value = False
         mock_hook_package_config.side_effect = InvalidHookPackageConfigException(message="Something went wrong")
-        expected = ProjectDetails(hook_package_id="pulumi", hook_package_version=None, project_type="pulumi")
+        expected = ProjectDetails(hook_name="pulumi", hook_package_version=None, project_type="pulumi")
         result = _get_project_details("pulumi", {})
         self.assertEqual(result, expected)

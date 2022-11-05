@@ -8,7 +8,7 @@ from samcli.lib.hook.hook_config import HookFunctionality, HookPackageConfig
 from samcli.lib.hook.exceptions import InvalidHookPackageConfigException
 
 TEST_HOOK_PACKAGE_CONFIG = {
-    "hook_package_id": "my_test_hook_package_id",
+    "hook_name": "my_test_hook_name",
     "hook_use_case": "IaC",
     "description": "testing",
     "version": "1.0.0",
@@ -47,7 +47,7 @@ class TestHookPackageConfig(TestCase):
         package_path_mock.__truediv__.return_value = config_loc_mock
 
         hook_config = HookPackageConfig(package_path_mock)
-        self.assertEqual(hook_config.package_id, self._config["hook_package_id"])
+        self.assertEqual(hook_config.name, self._config["hook_name"])
         self.assertEqual(hook_config.use_case, self._config["hook_use_case"])
         self.assertEqual(hook_config.version, self._config["version"])
         self.assertEqual(hook_config.specification, self._config["hook_specification"])
@@ -73,7 +73,7 @@ class TestHookPackageConfig(TestCase):
 
     def test_missing_both_entry_method(self):
         config_dict = {
-            "hook_package_id": "my_test_hook_package_id",
+            "hook_name": "my_test_hook_name",
             "hook_use_case": "IaC",
             "description": "testing",
             "version": "1.0.0",

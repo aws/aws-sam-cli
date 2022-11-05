@@ -663,7 +663,7 @@ modification, are permitted provided that the following conditions are met:
 
 ------
 
-** MarkupSafe; version 1.1.1 -- https://palletsprojects.com/p/markupsafe/
+** MarkupSafe; version 2.1.1 -- https://palletsprojects.com/p/markupsafe/
 Copyright 2010 Pallets
 
 Copyright 2010 Pallets
@@ -697,13 +697,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ------
 
-** click; version 7.1.2 -- https://click.palletsprojects.com/en/7.x/
+** click; version 8.1.3 -- https://click.palletsprojects.com/en/8.1.x/
 Copyright 2014 Pallets
-** Flask; version 1.1.2 -- https://pypi.org/project/Flask/
+** Flask; version 2.0.3 -- https://pypi.org/project/Flask/
 Copyright 2010 Pallets
-** jinja2; version 2.11.3 -- https://github.com/pallets/jinja
+** jinja2; version 3.1.2 -- https://github.com/pallets/jinja
 Copyright 2007 Pallets
-** Werkzeug; version 1.0.1 -- https://pypi.org/project/Werkzeug/
+** Werkzeug; version 2.0.3 -- https://pypi.org/project/Werkzeug/
 Copyright 2007 Pallets
 
 Redistribution and use in source and binary forms, with or without
@@ -766,7 +766,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ------
 
-** itsdangerous; version 1.1.0 -- https://palletsprojects.com/p/itsdangerous/
+** itsdangerous; version 2.1.2 -- https://palletsprojects.com/p/itsdangerous/
 Copyright 2011 Pallets
 
 Copyright 2011 Pallets
