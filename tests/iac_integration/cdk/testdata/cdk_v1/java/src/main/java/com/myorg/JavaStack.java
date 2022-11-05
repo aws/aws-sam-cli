@@ -192,6 +192,23 @@ public class JavaStack extends Stack {
                 .tracing(Tracing.ACTIVE)
                 .build();
 
+        // both ways work when 'file' is a path via subfolders to the Dockerfile
+        // this is useful when multiple docker images share some common code
+        DockerImageFunction dockerImageFunctionWithSharedCode = DockerImageFunction.Builder.create(this, "DockerImageFunctionWithSharedCode")
+                .code(DockerImageCode.fromImageAsset("../../src/docker/ImagesWithSharedCode",
+                        AssetImageCodeProps.builder().file("DockerImageFunctionWithSharedCode/Dockerfile").build()
+                        )
+                ).tracing(Tracing.ACTIVE)
+                .build();
+
+        Function functionImageAssetWithSharedCode = Function.Builder.create(this, "FunctionImageAssetWithSharedCode")
+                .code(Code.fromAssetImage("../../src/docker/ImagesWithSharedCode",
+                        AssetImageCodeProps.builder().file("FunctionImageAssetWithSharedCode/Dockerfile").build()))
+                .handler(Handler.FROM_IMAGE)
+                .runtime(Runtime.FROM_IMAGE)
+                .tracing(Tracing.ACTIVE)
+                .build();
+
         //Rest APIs
 
         // Spec Rest Api
@@ -239,6 +256,10 @@ public class JavaStack extends Stack {
                 .addMethod("GET", new LambdaIntegration(dockerImageFunction));
         normalRootResource.addResource("functionImageAsset")
                 .addMethod("GET", new LambdaIntegration(functionImageAsset));
+        normalRootResource.addResource("dockerImageFunctionWithSharedCode")
+                .addMethod("GET", new LambdaIntegration(dockerImageFunctionWithSharedCode));
+        normalRootResource.addResource("functionImageAssetWithSharedCode")
+                .addMethod("GET", new LambdaIntegration(functionImageAssetWithSharedCode));
 
         // Nested Stack
         new NestedStack1(this, "NestedStack");

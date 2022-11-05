@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameteres:
+  Runtime:
+    Type: String
+  DockerFile:
+    Type: String
+  Handler:
+    Type: String
+  Tag:
+    Type: String
+
+Resources:
+
+  ImageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - !Ref Handler
+      Timeout: 600
+    Metadata:
+      DockerTag: !Ref Tag
+      DockerContext: ./PythonImagesWithSharedCode
+      Dockerfile: !Ref DockerFile
+      DockerBuildArgs:
+        BASE_RUNTIME: !Ref Runtime
