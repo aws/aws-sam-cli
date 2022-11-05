@@ -200,6 +200,26 @@ def resolve_s3_callback(ctx, param, provided_value, artifact, exc_set, exc_not_s
     return provided_value
 
 
+def skip_prepare_infra_callback(ctx, param, provided_value):
+    """
+    Callback for --skip-prepare-infra to check if --hook-name is also specified
+
+    Parameters
+    ----------
+    ctx: click.core.Context
+        Click context
+    param: click.Option
+        Parameter properties
+    provided_value: bool
+        True if option was provided
+    """
+    is_option_provided = provided_value or ctx.default_map.get("skip_prepare_infra")
+    is_hook_provided = ctx.params.get("hook_name") or ctx.default_map.get("hook_name")
+
+    if is_option_provided and not is_hook_provided:
+        raise click.BadOptionUsage(option_name=param.name, ctx=ctx, message="Missing option --hook-name")
+
+
 def template_common_option(f):
     """
     Common ClI option for template
@@ -691,6 +711,25 @@ def hook_name_click_option(force_prepare=True, invalid_coexist_options=None):
     # Compose decorators here to make sure the context parameters are updated before callback function
     decorator_list = [hook_name_setup, hook_name_processer_wrapper]
     return composed_decorator(decorator_list)
+
+
+def skip_prepare_infra_click_option():
+    """
+    Click option to skip the hook preparation stage
+    """
+    return click.option(
+        "--skip-prepare-infra",
+        is_flag=True,
+        required=False,
+        callback=skip_prepare_infra_callback,
+        help="This option should be used to skip the preparation stage if there "
+        "have not been any infrastructure changes. The --hook-name option should "
+        "also be specified when using this option.",
+    )
+
+
+def skip_prepare_infra_option(f):
+    return skip_prepare_infra_click_option()(f)
 
 
 @parameterized_option

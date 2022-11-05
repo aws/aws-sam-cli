@@ -165,6 +165,7 @@ class TestIacHookWrapper(TestCase):
                 "Debug": True,
                 "Profile": "my_profile",
                 "Region": "us-east-1",
+                "SkipPrepareInfra": False,
             },
         )
         self.assertEqual(actual, "path/to/metadata")
@@ -190,6 +191,7 @@ class TestIacHookWrapper(TestCase):
                 "IACProjectPath": "path/to/cwd",
                 "OutputDirPath": "path/to/output_dir",
                 "Debug": False,
+                "SkipPrepareInfra": False,
             },
         )
         self.assertEqual(actual, "path/to/metadata")

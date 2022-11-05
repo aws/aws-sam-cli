@@ -13,6 +13,12 @@ class TestHookPackageIdOption(TestCase):
         self.name = "hook-name"
         self.opt = "--hook-name"
         self.terraform = "terraform"
+        self.invalid_coexist_options = ["t", "template", "template-file", "parameters-override"]
+        self.metadata_path = "path/metadata.json"
+        self.cwd_path = "path/current"
+
+        self.iac_hook_wrapper_instance_mock = MagicMock()
+        self.iac_hook_wrapper_instance_mock.prepare.return_value = self.metadata_path
 
     @patch("samcli.commands._utils.custom_options.hook_name_option.get_available_hook_packages_ids")
     @patch("samcli.lib.hook.hook_wrapper.IacHookWrapper._load_hook_package")
@@ -43,15 +49,13 @@ class TestHookPackageIdOption(TestCase):
 
     @patch("samcli.commands._utils.custom_options.hook_name_option.IacHookWrapper")
     def test_invalid_coexist_options(self, iac_hook_wrapper_mock):
-
-        invalid_coexist_options = ["t", "template", "template-file", "parameters-override"]
         iac_hook_wrapper_instance_mock = MagicMock()
         iac_hook_wrapper_mock.return_value = iac_hook_wrapper_instance_mock
 
         hook_name_option = HookNameOption(
             param_decls=(self.name, self.opt),
             force_prepare=False,
-            invalid_coexist_options=invalid_coexist_options,
+            invalid_coexist_options=self.invalid_coexist_options,
         )
         ctx = MagicMock()
         opts = {"hook_name": self.terraform, "template_file": "any/path/template.yaml"}
@@ -61,7 +65,7 @@ class TestHookPackageIdOption(TestCase):
 
         self.assertEqual(
             e.exception.message,
-            f"Parameters hook-name, and {','.join(invalid_coexist_options)} cannot be used together",
+            f"Parameters hook-name, and {','.join(self.invalid_coexist_options)} cannot be used together",
         )
 
     @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
@@ -71,21 +75,15 @@ class TestHookPackageIdOption(TestCase):
     def test_valid_hook_package_with_only_hook_id_option(
         self, iac_hook_wrapper_mock, getcwd_mock, prompt_experimental_mock, update_experimental_context_mock
     ):
-        metadata_path = "path/metadata.json"
-        cwd_path = "path/current"
-        invalid_coexist_options = ["t", "template", "template-file", "parameters-override"]
-
-        iac_hook_wrapper_instance_mock = MagicMock()
-        iac_hook_wrapper_instance_mock.prepare.return_value = metadata_path
-        iac_hook_wrapper_mock.return_value = iac_hook_wrapper_instance_mock
+        iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
         prompt_experimental_mock.return_value = True
 
-        getcwd_mock.return_value = cwd_path
+        getcwd_mock.return_value = self.cwd_path
 
         hook_name_option = HookNameOption(
             param_decls=(self.name, self.opt),
             force_prepare=True,
-            invalid_coexist_options=invalid_coexist_options,
+            invalid_coexist_options=self.invalid_coexist_options,
         )
         ctx = MagicMock()
         opts = {
@@ -93,10 +91,10 @@ class TestHookPackageIdOption(TestCase):
         }
         args = []
         hook_name_option.handle_parse_result(ctx, opts, args)
-        iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
-            os.path.join(cwd_path, ".aws-sam-iacs", "iacs_metadata"), cwd_path, False, None, None
+        self.iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
+            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"), self.cwd_path, False, None, None, False
         )
-        self.assertEqual(opts.get("template_file"), metadata_path)
+        self.assertEqual(opts.get("template_file"), self.metadata_path)
 
     @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
@@ -105,22 +103,15 @@ class TestHookPackageIdOption(TestCase):
     def test_valid_hook_package_with_other_options(
         self, iac_hook_wrapper_mock, getcwd_mock, prompt_experimental_mock, update_experimental_context_mock
     ):
-
-        metadata_path = "path/metadata.json"
-        cwd_path = "path/current"
-        invalid_coexist_options = ["t", "template", "template-file", "parameters-override"]
-
-        iac_hook_wrapper_instance_mock = MagicMock()
-        iac_hook_wrapper_instance_mock.prepare.return_value = metadata_path
-        iac_hook_wrapper_mock.return_value = iac_hook_wrapper_instance_mock
+        iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
         prompt_experimental_mock.return_value = True
 
-        getcwd_mock.return_value = cwd_path
+        getcwd_mock.return_value = self.cwd_path
 
         hook_name_option = HookNameOption(
             param_decls=(self.name, self.opt),
             force_prepare=True,
-            invalid_coexist_options=invalid_coexist_options,
+            invalid_coexist_options=self.invalid_coexist_options,
         )
         ctx = MagicMock()
         opts = {
@@ -131,14 +122,15 @@ class TestHookPackageIdOption(TestCase):
         }
         args = []
         hook_name_option.handle_parse_result(ctx, opts, args)
-        iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
-            os.path.join(cwd_path, ".aws-sam-iacs", "iacs_metadata"),
-            cwd_path,
+        self.iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
+            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"),
+            self.cwd_path,
             True,
             "test",
             "us-east-1",
+            False,
         )
-        self.assertEqual(opts.get("template_file"), metadata_path)
+        self.assertEqual(opts.get("template_file"), self.metadata_path)
 
     @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
@@ -153,24 +145,17 @@ class TestHookPackageIdOption(TestCase):
         prompt_experimental_mock,
         update_experimental_context_mock,
     ):
-
-        metadata_path = "path/metadata.json"
-        cwd_path = "path/current"
-        invalid_coexist_options = ["t", "template", "template-file", "parameters-override"]
-
-        iac_hook_wrapper_instance_mock = MagicMock()
-        iac_hook_wrapper_instance_mock.prepare.return_value = metadata_path
-        iac_hook_wrapper_mock.return_value = iac_hook_wrapper_instance_mock
+        iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
         prompt_experimental_mock.return_value = True
 
-        getcwd_mock.return_value = cwd_path
+        getcwd_mock.return_value = self.cwd_path
 
         path_exists_mock.return_value = True
 
         hook_name_option = HookNameOption(
             param_decls=(self.name, self.opt),
             force_prepare=False,
-            invalid_coexist_options=invalid_coexist_options,
+            invalid_coexist_options=self.invalid_coexist_options,
         )
         ctx = MagicMock()
         opts = {
@@ -178,7 +163,7 @@ class TestHookPackageIdOption(TestCase):
         }
         args = []
         hook_name_option.handle_parse_result(ctx, opts, args)
-        iac_hook_wrapper_instance_mock.prepare.assert_not_called()
+        self.iac_hook_wrapper_instance_mock.prepare.assert_not_called()
         self.assertEqual(opts.get("template_file"), None)
 
     @patch("samcli.commands._utils.custom_options.hook_name_option.GlobalConfig")
@@ -196,25 +181,18 @@ class TestHookPackageIdOption(TestCase):
         update_experimental_context_mock,
         global_config_mock,
     ):
-
-        metadata_path = "path/metadata.json"
-        cwd_path = "path/current"
-        invalid_coexist_options = ["t", "template", "template-file", "parameters-override"]
-
-        iac_hook_wrapper_instance_mock = MagicMock()
-        iac_hook_wrapper_instance_mock.prepare.return_value = metadata_path
-        iac_hook_wrapper_mock.return_value = iac_hook_wrapper_instance_mock
+        iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
         prompt_experimental_mock.return_value = False
         gc_mock = MagicMock()
         global_config_mock.return_value = gc_mock
         gc_mock.get_value.return_value = False
 
-        getcwd_mock.return_value = cwd_path
+        getcwd_mock.return_value = self.cwd_path
 
         hook_name_option = HookNameOption(
             param_decls=(self.name, self.opt),
             force_prepare=True,
-            invalid_coexist_options=invalid_coexist_options,
+            invalid_coexist_options=self.invalid_coexist_options,
         )
         ctx = MagicMock()
         ctx.default_map = {}
@@ -223,7 +201,7 @@ class TestHookPackageIdOption(TestCase):
         }
         args = []
         hook_name_option.handle_parse_result(ctx, opts, args)
-        iac_hook_wrapper_instance_mock.prepare.assert_not_called()
+        self.iac_hook_wrapper_instance_mock.prepare.assert_not_called()
         self.assertEqual(opts.get("template_file"), None)
 
     @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
@@ -239,22 +217,15 @@ class TestHookPackageIdOption(TestCase):
         prompt_experimental_mock,
         update_experimental_context_mock,
     ):
-
-        metadata_path = "path/metadata.json"
-        cwd_path = "path/current"
-        invalid_coexist_options = ["t", "template", "template-file", "parameters-override"]
-
-        iac_hook_wrapper_instance_mock = MagicMock()
-        iac_hook_wrapper_instance_mock.prepare.return_value = metadata_path
-        iac_hook_wrapper_mock.return_value = iac_hook_wrapper_instance_mock
+        iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
         prompt_experimental_mock.return_value = False
 
-        getcwd_mock.return_value = cwd_path
+        getcwd_mock.return_value = self.cwd_path
 
         hook_name_option = HookNameOption(
             param_decls=(self.name, self.opt),
             force_prepare=True,
-            invalid_coexist_options=invalid_coexist_options,
+            invalid_coexist_options=self.invalid_coexist_options,
         )
         ctx = MagicMock()
         opts = {
@@ -264,7 +235,7 @@ class TestHookPackageIdOption(TestCase):
         args = []
         hook_name_option.handle_parse_result(ctx, opts, args)
         prompt_experimental_mock.assert_not_called()
-        iac_hook_wrapper_instance_mock.prepare.assert_not_called()
+        self.iac_hook_wrapper_instance_mock.prepare.assert_not_called()
         self.assertEqual(opts.get("template_file"), None)
 
     @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
@@ -280,22 +251,15 @@ class TestHookPackageIdOption(TestCase):
         prompt_experimental_mock,
         update_experimental_context_mock,
     ):
-
-        metadata_path = "path/metadata.json"
-        cwd_path = "path/current"
-        invalid_coexist_options = ["t", "template", "template-file", "parameters-override"]
-
-        iac_hook_wrapper_instance_mock = MagicMock()
-        iac_hook_wrapper_instance_mock.prepare.return_value = metadata_path
-        iac_hook_wrapper_mock.return_value = iac_hook_wrapper_instance_mock
+        iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
         prompt_experimental_mock.return_value = False
 
-        getcwd_mock.return_value = cwd_path
+        getcwd_mock.return_value = self.cwd_path
 
         hook_name_option = HookNameOption(
             param_decls=(self.name, self.opt),
             force_prepare=True,
-            invalid_coexist_options=invalid_coexist_options,
+            invalid_coexist_options=self.invalid_coexist_options,
         )
         ctx = MagicMock()
         opts = {
@@ -305,14 +269,15 @@ class TestHookPackageIdOption(TestCase):
         args = []
         hook_name_option.handle_parse_result(ctx, opts, args)
         prompt_experimental_mock.assert_not_called()
-        iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
-            os.path.join(cwd_path, ".aws-sam-iacs", "iacs_metadata"),
-            cwd_path,
+        self.iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
+            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"),
+            self.cwd_path,
             False,
             None,
             None,
+            False,
         )
-        self.assertEqual(opts.get("template_file"), metadata_path)
+        self.assertEqual(opts.get("template_file"), self.metadata_path)
 
     @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
@@ -357,6 +322,7 @@ class TestHookPackageIdOption(TestCase):
             False,
             None,
             None,
+            False,
         )
         self.assertEqual(opts.get("template_file"), metadata_path)
 
@@ -408,6 +374,7 @@ class TestHookPackageIdOption(TestCase):
             False,
             None,
             None,
+            False,
         )
         self.assertEqual(opts.get("template_file"), metadata_path)
 
@@ -416,7 +383,7 @@ class TestHookPackageIdOption(TestCase):
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.path.exists")
     @patch("samcli.commands._utils.custom_options.hook_name_option.IacHookWrapper")
-    def test_valid_hook_package_with_skipping_prepare_hook_and_built_path_doesnot_exist(
+    def test_valid_hook_package_with_skipping_prepare_hook_and_built_path_does_not_exist(
         self,
         iac_hook_wrapper_mock,
         path_exists_mock,
@@ -424,24 +391,17 @@ class TestHookPackageIdOption(TestCase):
         prompt_experimental_mock,
         update_experimental_context_mock,
     ):
-
-        metadata_path = "path/metadata.json"
-        cwd_path = "path/current"
-        invalid_coexist_options = ["t", "template", "template-file", "parameters-override"]
-
-        iac_hook_wrapper_instance_mock = MagicMock()
-        iac_hook_wrapper_instance_mock.prepare.return_value = metadata_path
-        iac_hook_wrapper_mock.return_value = iac_hook_wrapper_instance_mock
+        iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
         prompt_experimental_mock.return_value = True
 
-        getcwd_mock.return_value = cwd_path
+        getcwd_mock.return_value = self.cwd_path
 
         path_exists_mock.return_value = False
 
         hook_name_option = HookNameOption(
             param_decls=(self.name, self.opt),
             force_prepare=False,
-            invalid_coexist_options=invalid_coexist_options,
+            invalid_coexist_options=self.invalid_coexist_options,
         )
         ctx = MagicMock()
         opts = {
@@ -449,10 +409,10 @@ class TestHookPackageIdOption(TestCase):
         }
         args = []
         hook_name_option.handle_parse_result(ctx, opts, args)
-        iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
-            os.path.join(cwd_path, ".aws-sam-iacs", "iacs_metadata"), cwd_path, False, None, None
+        self.iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
+            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"), self.cwd_path, False, None, None, False
         )
-        self.assertEqual(opts.get("template_file"), metadata_path)
+        self.assertEqual(opts.get("template_file"), self.metadata_path)
 
     @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
@@ -467,24 +427,17 @@ class TestHookPackageIdOption(TestCase):
         prompt_experimental_mock,
         update_experimental_context_mock,
     ):
-
-        metadata_path = "path/metadata.json"
-        cwd_path = "path/current"
-        invalid_coexist_options = ["t", "template", "template-file", "parameters-override"]
-
-        iac_hook_wrapper_instance_mock = MagicMock()
-        iac_hook_wrapper_instance_mock.prepare.return_value = metadata_path
-        iac_hook_wrapper_mock.return_value = iac_hook_wrapper_instance_mock
+        iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
         prompt_experimental_mock.return_value = True
 
-        getcwd_mock.return_value = cwd_path
+        getcwd_mock.return_value = self.cwd_path
 
         path_exists_mock.return_value = False
 
         hook_name_option = HookNameOption(
             param_decls=(self.name, self.opt),
             force_prepare=False,
-            invalid_coexist_options=invalid_coexist_options,
+            invalid_coexist_options=self.invalid_coexist_options,
         )
         ctx = MagicMock()
         ctx.command.name = "build"
@@ -495,10 +448,10 @@ class TestHookPackageIdOption(TestCase):
         }
         args = []
         hook_name_option.handle_parse_result(ctx, opts, args)
-        iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
-            os.path.join(cwd_path, ".aws-sam-iacs", "iacs_metadata"), cwd_path, False, None, None
+        self.iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
+            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"), self.cwd_path, False, None, None, False
         )
-        self.assertEqual(opts.get("template_file"), metadata_path)
+        self.assertEqual(opts.get("template_file"), self.metadata_path)
 
     @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
@@ -513,24 +466,17 @@ class TestHookPackageIdOption(TestCase):
         prompt_experimental_mock,
         update_experimental_context_mock,
     ):
-
-        metadata_path = "path/metadata.json"
-        cwd_path = "path/current"
-        invalid_coexist_options = ["t", "template", "template-file", "parameters-override"]
-
-        iac_hook_wrapper_instance_mock = MagicMock()
-        iac_hook_wrapper_instance_mock.prepare.return_value = metadata_path
-        iac_hook_wrapper_mock.return_value = iac_hook_wrapper_instance_mock
+        iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
         prompt_experimental_mock.return_value = True
 
-        getcwd_mock.return_value = cwd_path
+        getcwd_mock.return_value = self.cwd_path
 
         path_exists_mock.return_value = False
 
         hook_name_option = HookNameOption(
             param_decls=(self.name, self.opt),
             force_prepare=False,
-            invalid_coexist_options=invalid_coexist_options,
+            invalid_coexist_options=self.invalid_coexist_options,
         )
         ctx = MagicMock()
         ctx.command.name = "build"
@@ -539,9 +485,9 @@ class TestHookPackageIdOption(TestCase):
             "use_container": True,
         }
         args = []
-        with self.assertRaises(
+        with self.assertRaisesRegex(
             click.UsageError,
-            msg="Missing required parameter --build-image.",
+            "Missing required parameter --build-image.",
         ):
             hook_name_option.handle_parse_result(ctx, opts, args)
 
@@ -558,24 +504,17 @@ class TestHookPackageIdOption(TestCase):
         prompt_experimental_mock,
         update_experimental_context_mock,
     ):
-
-        metadata_path = "path/metadata.json"
-        cwd_path = "path/current"
-        invalid_coexist_options = ["t", "template", "template-file", "parameters-override"]
-
-        iac_hook_wrapper_instance_mock = MagicMock()
-        iac_hook_wrapper_instance_mock.prepare.return_value = metadata_path
-        iac_hook_wrapper_mock.return_value = iac_hook_wrapper_instance_mock
+        iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
         prompt_experimental_mock.return_value = True
 
-        getcwd_mock.return_value = cwd_path
+        getcwd_mock.return_value = self.cwd_path
 
         path_exists_mock.return_value = False
 
         hook_name_option = HookNameOption(
             param_decls=(self.name, self.opt),
             force_prepare=False,
-            invalid_coexist_options=invalid_coexist_options,
+            invalid_coexist_options=self.invalid_coexist_options,
         )
         ctx = MagicMock()
         ctx.command.name = "build"
@@ -585,7 +524,7 @@ class TestHookPackageIdOption(TestCase):
         }
         args = []
         hook_name_option.handle_parse_result(ctx, opts, args)
-        iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
-            os.path.join(cwd_path, ".aws-sam-iacs", "iacs_metadata"), cwd_path, False, None, None
+        self.iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
+            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"), self.cwd_path, False, None, None, False
         )
-        self.assertEqual(opts.get("template_file"), metadata_path)
+        self.assertEqual(opts.get("template_file"), self.metadata_path)

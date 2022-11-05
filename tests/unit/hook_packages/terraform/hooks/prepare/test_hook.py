@@ -782,6 +782,7 @@ class TestPrepareHook(TestCase):
             "Debug": False,
             "Profile": None,
             "Region": None,
+            "SkipPrepareInfra": False,
         }
 
     def test_get_s3_object_hash(self):
@@ -2680,6 +2681,13 @@ class TestPrepareHook(TestCase):
                 sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root", {}
             )
 
+    @parameterized.expand(
+        [
+            (False, False),
+            (False, True),
+            (True, False),
+        ]
+    )
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.invoke_subprocess_with_loading_pattern")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._update_resources_paths")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._translate_to_cfn")
@@ -2690,6 +2698,8 @@ class TestPrepareHook(TestCase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.run")
     def test_prepare(
         self,
+        skip_option,
+        path_exists,
         mock_subprocess_run,
         mock_json,
         mock_os,
@@ -2716,9 +2726,11 @@ class TestPrepareHook(TestCase):
         named_temporary_file_mock.return_value.__enter__.return_value.name = tf_plan_filename
         mock_json.loads.return_value = self.tf_json_with_child_modules_and_s3_source_mapping
         mock_translate_to_cfn.return_value = mock_cfn_dict
-        mock_os.path.exists.return_value = True
+        mock_os.path.exists.side_effect = [path_exists, True]
         mock_os.path.join.return_value = metadata_file_path
         mock_open.return_value.__enter__.return_value = mock_metadata_file
+
+        self.prepare_params["SkipPrepareInfra"] = skip_option
 
         expected_prepare_output_dict = {"iac_applications": {"MainApplication": {"metadata_file": metadata_file_path}}}
         iac_prepare_output = prepare(self.prepare_params)
@@ -3585,6 +3597,19 @@ class TestPrepareHook(TestCase):
                     },
                 }
             )
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.os")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.run")
+    def test_skip_prepare_infra_with_metadata_file(self, run_mock, os_mock):
+        os_path_join = Mock()
+        os_mock.path.join = os_path_join
+        os_mock.path.exists.return_value = True
+
+        self.prepare_params["SkipPrepareInfra"] = True
+
+        prepare(self.prepare_params)
+
+        run_mock.assert_not_called()
 
     def test_add_metadata_resource_to_metadata_list(self):
         metadata_resource_mock1 = Mock()
