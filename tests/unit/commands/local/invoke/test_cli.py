@@ -44,7 +44,7 @@ class TestCli(TestCase):
         self.container_host = "localhost"
         self.container_host_interface = "127.0.0.1"
         self.invoke_image = ("amazon/aws-sam-cli-emulation-image-python3.6",)
-        self.hook_package_id = None
+        self.hook_name = None
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
@@ -82,7 +82,7 @@ class TestCli(TestCase):
             container_host=self.container_host,
             container_host_interface=self.container_host_interface,
             invoke_image=self.invoke_image,
-            hook_package_id=self.hook_package_id,
+            hook_name=self.hook_name,
         )
 
         InvokeContextMock.assert_called_with(
@@ -147,7 +147,7 @@ class TestCli(TestCase):
             container_host=self.container_host,
             container_host_interface=self.container_host_interface,
             invoke_image=self.invoke_image,
-            hook_package_id=self.hook_package_id,
+            hook_name=self.hook_name,
         )
 
         InvokeContextMock.assert_called_with(
@@ -226,7 +226,7 @@ class TestCli(TestCase):
                 container_host=self.container_host,
                 container_host_interface=self.container_host_interface,
                 invoke_image=self.invoke_image,
-                hook_package_id=self.hook_package_id,
+                hook_name=self.hook_name,
             )
 
         msg = str(ex_ctx.exception)
@@ -282,7 +282,7 @@ class TestCli(TestCase):
                 container_host=self.container_host,
                 container_host_interface=self.container_host_interface,
                 invoke_image=self.invoke_image,
-                hook_package_id=self.hook_package_id,
+                hook_name=self.hook_name,
             )
 
         msg = str(ex_ctx.exception)
@@ -336,7 +336,7 @@ class TestCli(TestCase):
                 container_host=self.container_host,
                 container_host_interface=self.container_host_interface,
                 invoke_image=self.invoke_image,
-                hook_package_id=self.hook_package_id,
+                hook_name=self.hook_name,
             )
 
         msg = str(ex_ctx.exception)
@@ -378,7 +378,7 @@ class TestCli(TestCase):
                 container_host=self.container_host,
                 container_host_interface=self.container_host_interface,
                 invoke_image=self.invoke_image,
-                hook_package_id=self.hook_package_id,
+                hook_name=self.hook_name,
             )
 
         msg = str(ex_ctx.exception)
@@ -434,7 +434,7 @@ class TestCli(TestCase):
                 container_host=self.container_host,
                 container_host_interface=self.container_host_interface,
                 invoke_image=self.invoke_image,
-                hook_package_id=self.hook_package_id,
+                hook_name=self.hook_name,
             )
 
         msg = str(ex_ctx.exception)

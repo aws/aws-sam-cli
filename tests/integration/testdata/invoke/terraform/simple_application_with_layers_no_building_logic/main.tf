@@ -107,6 +107,7 @@ resource "aws_lambda_function" "function1" {
     runtime = "python3.8"
     function_name = "function1_${random_pet.this.id}"
     role = aws_iam_role.iam_for_lambda.arn
+    timeout = 300
     layers = [
         module.const_layer1.layer_arn,
     ]
@@ -118,6 +119,7 @@ resource "aws_lambda_function" "function2" {
     runtime = "python3.8"
     function_name = "function2_${random_pet.this.id}"
     role = aws_iam_role.iam_for_lambda.arn
+    timeout = 300
     layers = [
         module.const_layer2.layer_arn,
     ]
@@ -129,6 +131,7 @@ resource "aws_lambda_function" "function3" {
     runtime = "python3.8"
     function_name = "function3_${random_pet.this.id}"
     role = aws_iam_role.iam_for_lambda.arn
+    timeout = 300
     layers = [
         module.existing_data_layer.layer_arn,
     ]
@@ -140,6 +143,7 @@ resource "aws_lambda_function" "function4" {
     runtime = "python3.8"
     function_name = "function4_${random_pet.this.id}"
     role = aws_iam_role.iam_for_lambda.arn
+    timeout = 300
     layers = [
         aws_lambda_layer_version.layer4[0].arn,
     ]
@@ -166,6 +170,7 @@ resource "aws_lambda_function" "function6" {
     runtime = "python3.8"
     function_name = "function6_${random_pet.this.id}"
     role = aws_iam_role.iam_for_lambda.arn
+    timeout = 300
     layers = [
         aws_lambda_layer_version.layer6.arn,
     ]
@@ -184,6 +189,7 @@ resource "aws_lambda_function" "function7" {
     runtime = "python3.8"
     function_name = "function7_${random_pet.this.id}"
     role = aws_iam_role.iam_for_lambda.arn
+    timeout = 300
     layers = [
         aws_lambda_layer_version.layer7.arn,
     ]
@@ -228,7 +234,7 @@ module "function8" {
   function_name = "function8_${random_pet.this.id}"
   handler       = "app.lambda_handler"
   runtime       = "python3.8"
-
+  timeout = 300
   layers = [module.layer8.lambda_layer_arn]
 
   local_existing_package = "./artifacts/HelloWorldFunction.zip"
@@ -248,6 +254,7 @@ module "function9" {
     bucket = var.bucket_name
     key = "function9_code"
   }
+  timeout = 300
   function_name = "function9_${random_pet.this.id}"
   handler       = "app.lambda_handler"
   runtime       = "python3.8"

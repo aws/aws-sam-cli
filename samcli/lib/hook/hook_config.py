@@ -65,8 +65,8 @@ class HookPackageConfig:
         return cast(Dict, jsonschema_dict)
 
     @property
-    def package_id(self) -> str:
-        return cast(str, self._config["hook_package_id"])
+    def name(self) -> str:
+        return cast(str, self._config["hook_name"])
 
     @property
     def use_case(self) -> str:

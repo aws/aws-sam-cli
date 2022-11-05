@@ -73,7 +73,7 @@ class StartLambdaTerraformApplicationIntegBase(StartLambdaIntegBaseClass):
 class TestLocalStartLambdaTerraformApplicationWithoutBuild(StartLambdaTerraformApplicationIntegBase):
     terraform_application = "/testdata/invoke/terraform/simple_application_no_building_logic"
     template_path = None
-    hook_package_id = "terraform"
+    hook_name = "terraform"
     beta_features = True
 
     def setUp(self):
@@ -129,7 +129,7 @@ class TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild(StartLambda
     terraform_application = "/testdata/invoke/terraform/simple_application_with_layers_no_building_logic"
     pre_create_lambda_layers = ["simple_layer1", "simple_layer2", "simple_layer3", "simple_layer33", "simple_layer44"]
     template_path = None
-    hook_package_id = "terraform"
+    hook_name = "terraform"
     beta_features = True
 
     @classmethod
@@ -281,7 +281,7 @@ class TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild(StartLambda
 class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(StartLambdaTerraformApplicationIntegBase):
     terraform_application = "/testdata/invoke/terraform/invalid_no_local_code_project"
     template_path = None
-    hook_package_id = "terraform"
+    hook_name = "terraform"
     beta_features = True
 
     @classmethod
@@ -319,7 +319,7 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(StartLambd
     def test_invoke_function(self):
         command_list = self.get_start_lambda_command(
             port=self.port,
-            hook_package_id=self.hook_package_id,
+            hook_name=self.hook_name,
             beta_features=self.beta_features,
         )
         _, stderr, return_code = self._run_command(command_list, tf_application=self.working_dir)
@@ -340,7 +340,7 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(StartLambd
 class TestLocalStartLambdaTerraformApplicationWithExperimentalPromptYes(StartLambdaTerraformApplicationIntegBase):
     terraform_application = "/testdata/invoke/terraform/simple_application_no_building_logic"
     template_path = None
-    hook_package_id = "terraform"
+    hook_name = "terraform"
     input = b"Y\n"
     collect_start_lambda_process_output = True
 
@@ -373,7 +373,7 @@ class TestLocalStartLambdaTerraformApplicationWithExperimentalPromptYes(StartLam
 class TestLocalStartLambdaTerraformApplicationWithBetaFeatures(StartLambdaTerraformApplicationIntegBase):
     terraform_application = "/testdata/invoke/terraform/simple_application_no_building_logic"
     template_path = None
-    hook_package_id = "terraform"
+    hook_name = "terraform"
     beta_features = True
     collect_start_lambda_process_output = True
 
@@ -396,7 +396,7 @@ class TestLocalStartLambdaTerraformApplicationWithBetaFeatures(StartLambdaTerraf
 class TestLocalStartLambdaTerraformApplicationWithExperimentalPromptNo(StartLambdaTerraformApplicationIntegBase):
     terraform_application = "/testdata/invoke/terraform/simple_application_no_building_logic"
     template_path = None
-    hook_package_id = "terraform"
+    hook_name = "terraform"
     input = b"N\n"
     collect_start_lambda_process_output = True
 
@@ -441,8 +441,8 @@ class TestLocalStartLambdaInvalidUsecasesTerraform(StartLambdaTerraformApplicati
         terraform_application = "/testdata/invoke/terraform/simple_application_no_building_logic"
         self.working_dir = self.integration_dir + terraform_application
 
-    def test_invalid_hook_package_id(self):
-        command_list = self.get_start_lambda_command(hook_package_id="tf")
+    def test_invalid_hook_name(self):
+        command_list = self.get_start_lambda_command(hook_name="tf")
         _, stderr, return_code = self._run_command(command_list, tf_application=self.working_dir)
 
         process_stderr = stderr.strip()
@@ -453,7 +453,7 @@ class TestLocalStartLambdaInvalidUsecasesTerraform(StartLambdaTerraformApplicati
         self.assertNotEqual(return_code, 0)
 
     def test_start_lambda_with_no_beta_feature(self):
-        command_list = self.get_start_lambda_command(hook_package_id="terraform", beta_features=False)
+        command_list = self.get_start_lambda_command(hook_name="terraform", beta_features=False)
 
         _, stderr, return_code = self._run_command(command_list, tf_application=self.working_dir)
 
@@ -474,7 +474,7 @@ class TestLocalStartLambdaInvalidUsecasesTerraform(StartLambdaTerraformApplicati
         with open(samconfig_toml_path, "wb") as file:
             file.writelines(samconfig_lines)
 
-        command_list = self.get_start_lambda_command(hook_package_id="terraform")
+        command_list = self.get_start_lambda_command(hook_name="terraform")
 
         _, stderr, return_code = self._run_command(command_list, tf_application=self.working_dir)
 
@@ -494,7 +494,7 @@ class TestLocalStartLambdaInvalidUsecasesTerraform(StartLambdaTerraformApplicati
         environment_variables = os.environ.copy()
         environment_variables["SAM_CLI_BETA_TERRAFORM_SUPPORT"] = "False"
 
-        command_list = self.get_start_lambda_command(hook_package_id="terraform")
+        command_list = self.get_start_lambda_command(hook_name="terraform")
         _, stderr, return_code = self._run_command(
             command_list, tf_application=self.working_dir, env=environment_variables
         )
@@ -508,13 +508,13 @@ class TestLocalStartLambdaInvalidUsecasesTerraform(StartLambdaTerraformApplicati
 
     def test_invalid_coexist_parameters(self):
 
-        command_list = self.get_start_lambda_command(hook_package_id="terraform", template_path="path/template.yaml")
+        command_list = self.get_start_lambda_command(hook_name="terraform", template_path="path/template.yaml")
         _, stderr, return_code = self._run_command(command_list, tf_application=self.working_dir)
 
         process_stderr = stderr.strip()
         self.assertRegex(
             process_stderr.decode("utf-8"),
-            "Error: Invalid value: Parameters hook-package-id, and t,template-file,template,parameter-overrides cannot "
+            "Error: Invalid value: Parameters hook-name, and t,template-file,template,parameter-overrides cannot "
             "be used together",
         )
         self.assertNotEqual(return_code, 0)
@@ -527,7 +527,7 @@ class TestLocalStartLambdaInvalidUsecasesTerraform(StartLambdaTerraformApplicati
 class TestLocalStartLambdaTerraformApplicationWithLocalImageUri(StartLambdaTerraformApplicationIntegBase):
     terraform_application = "/testdata/invoke/terraform/image_lambda_function_local_image_uri"
     template_path = None
-    hook_package_id = "terraform"
+    hook_name = "terraform"
     beta_features = True
     functions = [
         "module.image_lambda2.aws_lambda_function.this[0]",
