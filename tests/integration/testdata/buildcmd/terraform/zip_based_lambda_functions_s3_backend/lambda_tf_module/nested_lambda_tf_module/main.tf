@@ -37,4 +37,5 @@ resource "aws_lambda_function" "this" {
 	runtime = "python3.8"
 	function_name = var.function_name
 	role = aws_iam_role.iam_for_lambda.arn
+	timeout = 300
 }

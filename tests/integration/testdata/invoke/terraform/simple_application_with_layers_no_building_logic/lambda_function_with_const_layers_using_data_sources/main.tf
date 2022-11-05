@@ -41,6 +41,7 @@ resource "aws_lambda_function" "this" {
     filename = var.source_code
     handler = "app.lambda_handler"
     runtime = "python3.8"
+    timeout = 300
     function_name = var.function_name
     role = aws_iam_role.iam_for_lambda.arn
     layers = ["arn:aws:lambda:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:layer:${var.layer_name}:1"]

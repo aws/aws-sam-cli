@@ -53,44 +53,13 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
             ):
                 LOG.info(log)
 
-    def tearDown(self):
-        """Clean up the generated files during integ test run"""
-        try:
-            shutil.rmtree(str(Path(self.terraform_application_path) / ".aws-sam"))
-        except FileNotFoundError:
-            pass
-
-        try:
-            shutil.rmtree(str(Path(self.terraform_application_path) / ".aws-sam-iacs"))
-        except FileNotFoundError:
-            pass
-
-        try:
-            shutil.rmtree(str(Path(self.terraform_application_path) / ".terraform"))
-        except FileNotFoundError:
-            pass
-
-        try:
-            (Path(self.terraform_application_path) / "terraform.tfstate").unlink()
-        except FileNotFoundError:
-            pass
-
-        try:
-            (Path(self.terraform_application_path) / "terraform.tfstate.backup").unlink()
-        except FileNotFoundError:
-            pass
-
-        try:
-            (Path(self.terraform_application_path) / ".terraform.lock.hcl").unlink()
-        except FileNotFoundError:
-            pass
-
-        super().tearDown()
+    def setUp(self):
+        super().setUp()
+        shutil.rmtree(Path(self.working_dir))
+        shutil.copytree(Path(self.terraform_application_path), Path(self.working_dir))
 
     def run_command(self, command_list, env=None, input=None):
-        process = Popen(
-            command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE, env=env, cwd=self.terraform_application_path
-        )
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE, env=env, cwd=self.working_dir)
         try:
             (stdout, stderr) = process.communicate(input=input)
             return stdout, stderr, process.returncode
@@ -120,9 +89,11 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
 
         LOG.info("Running invoke Command: {}".format(cmdlist))
 
-        stdout, _, _ = self.run_command(cmdlist)
+        stdout, stderr, _ = self.run_command(cmdlist)
 
         process_stdout = stdout.decode("utf-8")
+        LOG.info("sam local invoke stdout: %s", stdout.decode("utf-8"))
+        LOG.info("sam local invoke stderr: %s", stderr.decode("utf-8"))
         self.assertEqual(json.loads(process_stdout), expected_result)
 
 
@@ -156,8 +127,9 @@ class BuildTerraformApplicationS3BackendIntegBase(BuildTerraformApplicationInteg
             cls.s3_bucket.delete()
 
     def setUp(self):
+        super().setUp()
         self.backend_key = str(Path("terraform-backend") / str(uuid.uuid4()))
-        self.backendconfig_path = str(Path(self.terraform_application_path) / "backend.conf")
+        self.backendconfig_path = str(Path(self.working_dir) / "backend.conf")
         with open(self.backendconfig_path, "w") as f:
             f.write(f'bucket="{self.bucket_name}"\n')
             f.write(f'key="{self.backend_key}"\n')
@@ -165,12 +137,10 @@ class BuildTerraformApplicationS3BackendIntegBase(BuildTerraformApplicationInteg
 
         # We have to init the terraform project with specifying the S3 backend first
         _, stderr, _ = self.run_command(
-            ["terraform", "init", f"-backend-config={self.backendconfig_path}", "-reconfigure"]
+            ["terraform", "init", f"-backend-config={self.backendconfig_path}", "-reconfigure", "-input=false"]
         )
         if stderr:
             LOG.error(stderr)
-
-        super().setUp()
 
     def tearDown(self):
         """Clean up the terraform state file on S3 and remove the backendconfg locally"""
@@ -250,7 +220,7 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
         self.assertRegex(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
 
     def test_build_terraform_with_no_beta_feature_option_in_samconfig_toml(self):
-        samconfig_toml_path = Path(self.terraform_application_path).joinpath("samconfig.toml")
+        samconfig_toml_path = Path(self.working_dir).joinpath("samconfig.toml")
         samconfig_lines = [
             bytes("version = 0.1" + os.linesep, "utf-8"),
             bytes("[default.global.parameters]" + os.linesep, "utf-8"),
@@ -380,7 +350,8 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
         )
         self.assertNotRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
         self.assertTrue(stderr.decode("utf-8").startswith(Colored().yellow(EXPERIMENTAL_WARNING)))
-        LOG.info(stderr)
+        LOG.info("sam build stdout: %s", stdout.decode("utf-8"))
+        LOG.info("sam build stderr: %s", stderr.decode("utf-8"))
         self.assertEqual(return_code, 0)
 
         self._verify_invoke_built_function(
@@ -636,6 +607,10 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndS3Backend(
 class TestUnsupportedCases(BuildTerraformApplicationIntegBase):
     terraform_application = Path("terraform/unsupported")
 
+    def setUp(self):
+        super().setUp()
+        shutil.rmtree(Path(self.working_dir))
+
     @parameterized.expand(
         [
             (
@@ -662,6 +637,7 @@ class TestUnsupportedCases(BuildTerraformApplicationIntegBase):
     )
     def test_unsupported_cases(self, app, expected_error_message):
         self.terraform_application_path = Path(self.terraform_application_path) / app
+        shutil.copytree(Path(self.terraform_application_path), Path(self.working_dir))
         build_cmd_list = self.get_command_list(beta_features=True, hook_name="terraform")
         LOG.info("command list: %s", build_cmd_list)
         _, stderr, return_code = self.run_command(build_cmd_list)
