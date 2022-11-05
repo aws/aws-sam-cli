@@ -35,8 +35,8 @@ resource "aws_lambda_function" "image_lambda" {
 
 # serverless.tf 3rd party module
 module "image_lambda2" {
-  # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
-  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  source  = "terraform-aws-modules/lambda/aws"
+  version = "4.6.0"
   create_package = false
   function_name = "image_lambda2"
   image_uri     = "sam-test-lambdaimage:v1"

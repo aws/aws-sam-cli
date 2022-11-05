@@ -660,8 +660,8 @@ resource "aws_lambda_function" "function6" {
 
 # serverless.tf 3rd party module
 module "layer7" {
-  # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
-  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  source  = "terraform-aws-modules/lambda/aws"
+  version = "4.6.0"
   create_layer = true
   layer_name = "lambda_layer7"
   compatible_runtimes = ["python3.8"]
@@ -674,8 +674,8 @@ module "layer7" {
 }
 
 module "function7" {
-  # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
-  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  source  = "terraform-aws-modules/lambda/aws"
+  version = "4.6.0"
   source_path = local.hello_world_function_src_path
   function_name = "function7"
   timeout = 300
@@ -685,8 +685,8 @@ module "function7" {
 }
 
 module "layer8" {
-  # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
-  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  source  = "terraform-aws-modules/lambda/aws"
+  version = "4.6.0"
   create_layer = true
   layer_name = "lambda_layer8"
   compatible_runtimes = ["python3.8"]
@@ -701,8 +701,8 @@ module "layer8" {
 }
 
 module "function8" {
-  # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
-  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  source  = "terraform-aws-modules/lambda/aws"
+  version = "4.6.0"
   source_path = local.hello_world_function_src_path
   function_name = "function8"
   timeout = 300
@@ -737,8 +737,8 @@ resource "null_resource" "sam_metadata_aws_lambda_layer_version_layer9" {
 }
 
 module "layer9" {
-  # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
-  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  source  = "terraform-aws-modules/lambda/aws"
+  version = "4.6.0"
   create_layer = true
   create_package = false
   layer_name = "lambda_layer9"
@@ -764,8 +764,8 @@ resource "null_resource" "sam_metadata_aws_lambda_function9" {
 }
 
 module "function9" {
-  # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
-  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  source  = "terraform-aws-modules/lambda/aws"
+  version = "4.6.0"
   local_existing_package = "${local.building_path}/${local.hello_world_artifact_file_name}"
   create_package = false
   timeout = 300
@@ -778,8 +778,8 @@ module "function9" {
 
 
 module "layer10" {
-  # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
-  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  source  = "terraform-aws-modules/lambda/aws"
+  version = "4.6.0"
   create_layer = true
   layer_name = "lambda_layer10"
   compatible_runtimes = ["python3.8"]
@@ -794,8 +794,8 @@ module "layer10" {
 }
 
 module "function10" {
-  # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
-  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  source  = "terraform-aws-modules/lambda/aws"
+  version = "4.6.0"
   source_path = local.hello_world_function_src_path
   function_name = "function10"
   timeout = 300
