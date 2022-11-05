@@ -1,6 +1,6 @@
 """Test Terraform prepare hook"""
 from pathlib import Path
-from subprocess import CalledProcessError
+from subprocess import CalledProcessError, PIPE
 from unittest import TestCase
 from unittest.mock import Mock, call, patch, MagicMock, ANY
 import copy
@@ -52,6 +52,7 @@ from samcli.lib.utils.resources import (
     AWS_LAMBDA_LAYERVERSION,
     AWS_LAMBDA_FUNCTION,
 )
+from samcli.lib.utils.subprocess_utils import LoadingPatternError
 
 
 class TestPrepareHook(TestCase):
@@ -2687,6 +2688,7 @@ class TestPrepareHook(TestCase):
             (True, False),
         ]
     )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.invoke_subprocess_with_loading_pattern")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._update_resources_paths")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._translate_to_cfn")
     @patch("builtins.open")
@@ -2705,6 +2707,7 @@ class TestPrepareHook(TestCase):
         mock_open,
         mock_translate_to_cfn,
         mock_update_resources_paths,
+        mock_subprocess_loader,
     ):
         tf_plan_filename = "tf_plan"
         output_dir_path = self.prepare_params.get("OutputDirPath")
@@ -2732,15 +2735,24 @@ class TestPrepareHook(TestCase):
         expected_prepare_output_dict = {"iac_applications": {"MainApplication": {"metadata_file": metadata_file_path}}}
         iac_prepare_output = prepare(self.prepare_params)
 
+        mock_subprocess_loader.assert_has_calls(
+            [
+                call(
+                    command_args={
+                        "args": ["terraform", "init", "-input=false"],
+                        "cwd": "iac/project/path",
+                    }
+                ),
+                call(
+                    command_args={
+                        "args": ["terraform", "plan", "-out", tf_plan_filename, "-input=false"],
+                        "cwd": "iac/project/path",
+                    }
+                ),
+            ]
+        )
         mock_subprocess_run.assert_has_calls(
             [
-                call(["terraform", "init", "-input=false"], check=True, capture_output=True, cwd="iac/project/path"),
-                call(
-                    ["terraform", "plan", "-out", tf_plan_filename, "-input=false"],
-                    check=True,
-                    capture_output=True,
-                    cwd="iac/project/path",
-                ),
                 call(
                     ["terraform", "show", "-json", tf_plan_filename],
                     check=True,
@@ -2756,6 +2768,7 @@ class TestPrepareHook(TestCase):
         mock_update_resources_paths.assert_called_once_with(mock_cfn_dict_resources, "iac/project/path")
         self.assertEqual(expected_prepare_output_dict, iac_prepare_output)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.invoke_subprocess_with_loading_pattern")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._update_resources_paths")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._translate_to_cfn")
     @patch("builtins.open")
@@ -2772,6 +2785,7 @@ class TestPrepareHook(TestCase):
         mock_open,
         mock_translate_to_cfn,
         mock_update_resources_paths,
+        mock_subprocess_loader,
     ):
         tf_plan_filename = "tf_plan"
         output_dir_path = self.prepare_params.get("OutputDirPath")
@@ -2812,20 +2826,24 @@ class TestPrepareHook(TestCase):
         expected_prepare_output_dict = {"iac_applications": {"MainApplication": {"metadata_file": metadata_file_path}}}
         iac_prepare_output = prepare(self.prepare_params)
 
-        mock_subprocess_run.assert_has_calls(
+        mock_subprocess_loader.assert_has_calls(
             [
                 call(
-                    ["terraform", "init", "-input=false"],
-                    check=True,
-                    capture_output=True,
-                    cwd="/current/dir/iac/project/path",
+                    command_args={
+                        "args": ["terraform", "init", "-input=false"],
+                        "cwd": "/current/dir/iac/project/path",
+                    }
                 ),
                 call(
-                    ["terraform", "plan", "-out", tf_plan_filename, "-input=false"],
-                    check=True,
-                    capture_output=True,
-                    cwd="/current/dir/iac/project/path",
+                    command_args={
+                        "args": ["terraform", "plan", "-out", tf_plan_filename, "-input=false"],
+                        "cwd": "/current/dir/iac/project/path",
+                    }
                 ),
+            ]
+        )
+        mock_subprocess_run.assert_has_calls(
+            [
                 call(
                     ["terraform", "show", "-json", tf_plan_filename],
                     check=True,
@@ -2843,19 +2861,34 @@ class TestPrepareHook(TestCase):
         mock_update_resources_paths.assert_called_once_with(mock_cfn_dict_resources, "/current/dir/iac/project/path")
         self.assertEqual(expected_prepare_output_dict, iac_prepare_output)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.invoke_subprocess_with_loading_pattern")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.run")
-    def test_prepare_with_called_process_error(self, mock_subprocess_run):
+    def test_prepare_with_called_process_error(self, mock_subprocess_run, mock_subprocess_loader):
         mock_subprocess_run.side_effect = CalledProcessError(-2, "terraform init")
         with self.assertRaises(PrepareHookException):
             prepare(self.prepare_params)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.invoke_subprocess_with_loading_pattern")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.run")
+    def test_prepare_with_loader_error(self, mock_subprocess_run, mock_subprocess_loader):
+        mock_subprocess_loader.side_effect = LoadingPatternError("Error occurred calling a subprocess")
+        with self.assertRaises(PrepareHookException):
+            prepare(self.prepare_params)
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.invoke_subprocess_with_loading_pattern")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._translate_to_cfn")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.osutils.tempfile_platform_independent")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.os")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.json")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.run")
     def test_prepare_with_os_error(
-        self, mock_subprocess_run, mock_json, mock_os, named_temporary_file_mock, mock_translate_to_cfn
+        self,
+        mock_subprocess_run,
+        mock_json,
+        mock_os,
+        named_temporary_file_mock,
+        mock_translate_to_cfn,
+        mock_subprocess_loader,
     ):
         mock_os.path.exists.return_value = False
         mock_os.makedirs.side_effect = OSError()
