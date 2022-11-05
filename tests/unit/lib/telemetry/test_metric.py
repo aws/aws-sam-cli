@@ -555,11 +555,11 @@ class TestGetProjectDetails(TestCase):
     def test_terraform_project_from_metadata(self, get_hook_metadata_mock, mock_hook_package_config):
         get_hook_metadata_mock.return_value = {"HookName": "terraform"}
         hook_package = Mock()
-        hook_package.package_id = "terraform"
+        hook_package.name = "terraform"
         hook_package.version = "1.0.0"
         hook_package.iac_framework = "Terraform"
         mock_hook_package_config.return_value = hook_package
-        expected = ProjectDetails(hook_package_id="terraform", hook_package_version="1.0.0", project_type="Terraform")
+        expected = ProjectDetails(hook_name="terraform", hook_package_version="1.0.0", project_type="Terraform")
         result = _get_project_details("", {})
         self.assertEqual(result, expected)
 
