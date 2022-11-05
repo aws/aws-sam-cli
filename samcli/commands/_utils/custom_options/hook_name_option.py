@@ -73,10 +73,15 @@ class HookNameOption(click.Option):
             output_dir_path = os.path.join(iac_project_path, ".aws-sam-iacs", "iacs_metadata")
             if not os.path.exists(output_dir_path):
                 os.makedirs(output_dir_path, exist_ok=True)
+
             debug = opts.get("debug", False)
             aws_profile = opts.get("profile")
             aws_region = opts.get("region")
-            metadata_file = iac_hook_wrapper.prepare(output_dir_path, iac_project_path, debug, aws_profile, aws_region)
+            skip_prepare_infra = opts.get("skip_prepare_infra", False)
+
+            metadata_file = iac_hook_wrapper.prepare(
+                output_dir_path, iac_project_path, debug, aws_profile, aws_region, skip_prepare_infra
+            )
 
             LOG.info("Prepare hook completed and metadata file generated at: %s", metadata_file)
             opts["template_file"] = metadata_file
