@@ -1,5 +1,5 @@
 {
-    "hook_package_id": "terraform",
+    "hook_name": "terraform",
     "description": "Terraform IaC hooks package",
     "hook_use_case": "IaC",
     "iac_framework": "Terraform",

@@ -1,7 +1,7 @@
 {
     "description": "JSON Schema for a Hook Config.json",
     "type": "object",
-    "required": ["hook_package_id", "hook_use_case", "hook_specification", "version", "functionalities"],
+    "required": ["hook_name", "hook_use_case", "hook_specification", "version", "functionalities"],
     "$defs": {
         "functionality": {
             "type": "object",
@@ -46,7 +46,7 @@
         }
     },
     "properties": {
-        "hook_package_id": {
+        "hook_name": {
             "type": "string"
         },
         "hook_use_case": {

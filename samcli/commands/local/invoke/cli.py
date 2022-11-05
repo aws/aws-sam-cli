@@ -7,7 +7,7 @@ import click
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands._utils.experimental import experimental, is_experimental_enabled, ExperimentalFlag
-from samcli.commands._utils.options import hook_package_id_click_option
+from samcli.commands._utils.options import hook_name_click_option
 from samcli.commands.local.cli_common.options import invoke_common_options, local_common_options
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.telemetry.metric import track_command
@@ -37,7 +37,7 @@ STDIN_FILE_NAME = "-"
 
 @click.command("invoke", help=HELP_TEXT, short_help="Invokes a local Lambda function once.")
 @configuration_option(provider=TomlProvider(section="parameters"))
-@hook_package_id_click_option(
+@hook_name_click_option(
     force_prepare=False, invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"]
 )
 @click.option(
@@ -82,7 +82,7 @@ def cli(
     container_host,
     container_host_interface,
     invoke_image,
-    hook_package_id,
+    hook_name,
 ):
     """
     `sam local invoke` command entry point
@@ -111,7 +111,7 @@ def cli(
         container_host,
         container_host_interface,
         invoke_image,
-        hook_package_id,
+        hook_name,
     )  # pragma: no cover
 
 
@@ -137,7 +137,7 @@ def do_cli(  # pylint: disable=R0914
     container_host,
     container_host_interface,
     invoke_image,
-    hook_package_id,
+    hook_name,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -153,9 +153,9 @@ def do_cli(  # pylint: disable=R0914
     from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
 
     if (
-        hook_package_id
-        and ExperimentalFlag.IaCsSupport.get(hook_package_id) is not None
-        and not is_experimental_enabled(ExperimentalFlag.IaCsSupport.get(hook_package_id))
+        hook_name
+        and ExperimentalFlag.IaCsSupport.get(hook_name) is not None
+        and not is_experimental_enabled(ExperimentalFlag.IaCsSupport.get(hook_name))
     ):
         LOG.info("Terraform Support beta feature is not enabled.")
         return

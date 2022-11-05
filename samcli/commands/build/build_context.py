@@ -75,7 +75,7 @@ class BuildContext:
         stack_name: Optional[str] = None,
         print_success_message: bool = True,
         locate_layer_nested: bool = False,
-        hook_package_id: Optional[str] = None,
+        hook_name: Optional[str] = None,
     ) -> None:
         """
         Initialize the class
@@ -127,7 +127,7 @@ class BuildContext:
             Print successful message
         locate_layer_nested: bool
             Locate layer to its actual, worked with nested stack
-        hook_package_id: Optional[str]
+        hook_name: Optional[str]
             Name of the hook package
         """
 
@@ -166,7 +166,7 @@ class BuildContext:
         self._container_manager: Optional[ContainerManager] = None
         self._stacks: List[Stack] = []
         self._locate_layer_nested = locate_layer_nested
-        self._hook_package_id = hook_package_id
+        self._hook_name = hook_name
 
     def __enter__(self) -> "BuildContext":
         self.set_up()
@@ -373,15 +373,15 @@ class BuildContext:
         deploy_suggestion = "Deploy: sam deploy --guided"
         start_lambda_suggestion = "Emulate local Lambda functions: sam local start-lambda"
 
-        if not is_default_build_dir and not self._hook_package_id:
+        if not is_default_build_dir and not self._hook_name:
             invoke_suggestion += " -t {}".format(output_template_path)
             deploy_suggestion += " --template-file {}".format(output_template_path)
 
         commands = [validate_suggestion, invoke_suggestion, sync_suggestion, deploy_suggestion]
 
         # check if we have used a hook package before building
-        if self._hook_package_id:
-            hook_package_flag = f" --hook-package-id {self._hook_package_id}"
+        if self._hook_name:
+            hook_package_flag = f" --hook-name {self._hook_name}"
 
             start_lambda_suggestion += hook_package_flag
             invoke_suggestion += hook_package_flag

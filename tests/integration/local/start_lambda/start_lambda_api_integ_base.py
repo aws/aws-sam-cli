@@ -30,7 +30,7 @@ class StartLambdaIntegBaseClass(TestCase):
     binary_data_file: Optional[str] = None
     integration_dir = str(Path(__file__).resolve().parents[2])
     invoke_image: Optional[List] = None
-    hook_package_id: Optional[str] = None
+    hook_name: Optional[str] = None
     beta_features: Optional[bool] = None
     collect_start_lambda_process_output: bool = False
 
@@ -77,8 +77,8 @@ class StartLambdaIntegBaseClass(TestCase):
                 ["ParameterKey={},ParameterValue={}".format(key, value) for key, value in cls.build_overrides.items()]
             )
             command_list += ["--parameter-overrides", overrides_arg]
-        if cls.hook_package_id:
-            command_list += ["--hook-package-id", cls.hook_package_id]
+        if cls.hook_name:
+            command_list += ["--hook-name", cls.hook_name]
         run_command(command_list, cwd=cls.working_dir)
 
     @classmethod
@@ -105,7 +105,7 @@ class StartLambdaIntegBaseClass(TestCase):
         container_mode=None,
         parameter_overrides=None,
         invoke_image=None,
-        hook_package_id=None,
+        hook_name=None,
         beta_features=None,
     ):
         command_list = [cls.base_command(), "local", "start-lambda"]
@@ -129,8 +129,8 @@ class StartLambdaIntegBaseClass(TestCase):
             for image in invoke_image:
                 command_list += ["--invoke-image", image]
 
-        if hook_package_id:
-            command_list += ["--hook-package-id", hook_package_id]
+        if hook_name:
+            command_list += ["--hook-name", hook_name]
 
         if beta_features is not None:
             command_list += ["--beta-features" if beta_features else "--no-beta-features"]
@@ -146,7 +146,7 @@ class StartLambdaIntegBaseClass(TestCase):
             container_mode=cls.container_mode,
             parameter_overrides=cls.parameter_overrides,
             invoke_image=cls.invoke_image,
-            hook_package_id=cls.hook_package_id,
+            hook_name=cls.hook_name,
             beta_features=cls.beta_features,
         )
 

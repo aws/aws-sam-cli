@@ -72,7 +72,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
     @pytest.mark.flaky(reruns=3)
     def test_invoke_function(self, function_name):
         local_invoke_command_list = self.get_command_list(
-            function_to_invoke=function_name, hook_package_id="terraform", beta_features=True
+            function_to_invoke=function_name, hook_name="terraform", beta_features=True
         )
         stdout, _, return_code = self.run_command(local_invoke_command_list)
 
@@ -99,7 +99,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
         with open(samconfig_toml_path, "wb") as file:
             file.writelines(samconfig_lines)
 
-        local_invoke_command_list = self.get_command_list(function_to_invoke=function_name, hook_package_id="terraform")
+        local_invoke_command_list = self.get_command_list(function_to_invoke=function_name, hook_name="terraform")
         stdout, _, return_code = self.run_command(local_invoke_command_list)
 
         # Get the response without the sam-cli prompts that proceed it
@@ -124,7 +124,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
         environment_variables = os.environ.copy()
         environment_variables["SAM_CLI_BETA_TERRAFORM_SUPPORT"] = "1"
 
-        local_invoke_command_list = self.get_command_list(function_to_invoke=function_name, hook_package_id="terraform")
+        local_invoke_command_list = self.get_command_list(function_to_invoke=function_name, hook_name="terraform")
         stdout, _, return_code = self.run_command(local_invoke_command_list, env=environment_variables)
 
         # Get the response without the sam-cli prompts that proceed it
@@ -141,7 +141,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
     @pytest.mark.flaky(reruns=3)
     def test_invoke_function_get_experimental_prompted(self):
         local_invoke_command_list = self.get_command_list(
-            function_to_invoke="s3_lambda_function", hook_package_id="terraform"
+            function_to_invoke="s3_lambda_function", hook_name="terraform"
         )
         stdout, stderr, return_code = self.run_command(local_invoke_command_list, input=b"Y\n\n")
 
@@ -166,7 +166,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
     @pytest.mark.flaky(reruns=3)
     def test_invoke_function_with_beta_feature_expect_warning_message(self):
         local_invoke_command_list = self.get_command_list(
-            function_to_invoke="s3_lambda_function", hook_package_id="terraform", beta_features=True
+            function_to_invoke="s3_lambda_function", hook_name="terraform", beta_features=True
         )
         stdout, stderr, return_code = self.run_command(local_invoke_command_list)
 
@@ -191,7 +191,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
     @pytest.mark.flaky(reruns=3)
     def test_invoke_function_get_experimental_prompted_input_no(self):
         local_invoke_command_list = self.get_command_list(
-            function_to_invoke="s3_lambda_function", hook_package_id="terraform"
+            function_to_invoke="s3_lambda_function", hook_name="terraform"
         )
         stdout, stderr, return_code = self.run_command(local_invoke_command_list, input=b"N\n\n")
 
@@ -210,8 +210,8 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
 
         self.assertEqual(return_code, 0)
 
-    def test_invalid_hook_package_id(self):
-        local_invoke_command_list = self.get_command_list("func", hook_package_id="tf")
+    def test_invalid_hook_name(self):
+        local_invoke_command_list = self.get_command_list("func", hook_name="tf")
         _, stderr, return_code = self.run_command(local_invoke_command_list)
 
         process_stderr = stderr.strip()
@@ -223,7 +223,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
 
     def test_invoke_terraform_with_no_beta_feature_option(self):
         local_invoke_command_list = self.get_command_list(
-            function_to_invoke="func", hook_package_id="terraform", beta_features=False
+            function_to_invoke="func", hook_name="terraform", beta_features=False
         )
         _, stderr, return_code = self.run_command(local_invoke_command_list)
 
@@ -244,7 +244,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
         with open(samconfig_toml_path, "wb") as file:
             file.writelines(samconfig_lines)
 
-        local_invoke_command_list = self.get_command_list(function_to_invoke="func", hook_package_id="terraform")
+        local_invoke_command_list = self.get_command_list(function_to_invoke="func", hook_name="terraform")
         _, stderr, return_code = self.run_command(local_invoke_command_list)
 
         process_stderr = stderr.strip()
@@ -263,7 +263,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
         environment_variables = os.environ.copy()
         environment_variables["SAM_CLI_BETA_TERRAFORM_SUPPORT"] = "False"
 
-        local_invoke_command_list = self.get_command_list(function_to_invoke="func", hook_package_id="terraform")
+        local_invoke_command_list = self.get_command_list(function_to_invoke="func", hook_name="terraform")
         _, stderr, return_code = self.run_command(local_invoke_command_list, env=environment_variables)
 
         process_stderr = stderr.strip()
@@ -274,15 +274,13 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
         self.assertEqual(return_code, 0)
 
     def test_invalid_coexist_parameters(self):
-        local_invoke_command_list = self.get_command_list(
-            "func", hook_package_id="terraform", template_path="template.yaml"
-        )
+        local_invoke_command_list = self.get_command_list("func", hook_name="terraform", template_path="template.yaml")
         _, stderr, return_code = self.run_command(local_invoke_command_list)
 
         process_stderr = stderr.strip()
         self.assertRegex(
             process_stderr.decode("utf-8"),
-            "Error: Invalid value: Parameters hook-package-id, and t,template-file,template,parameter-overrides cannot "
+            "Error: Invalid value: Parameters hook-name, and t,template-file,template,parameter-overrides cannot "
             "be used together",
         )
         self.assertNotEqual(return_code, 0)
@@ -432,7 +430,7 @@ class TestInvokeTerraformApplicationWithLayersWithoutBuild(InvokeTerraformApplic
     @pytest.mark.flaky(reruns=3)
     def test_invoke_function(self, function_name, expected_output):
         local_invoke_command_list = self.get_command_list(
-            function_to_invoke=function_name, hook_package_id="terraform", beta_features=True
+            function_to_invoke=function_name, hook_name="terraform", beta_features=True
         )
         stdout, _, return_code = self.run_command(local_invoke_command_list, env=self._add_tf_project_variables())
 
@@ -464,7 +462,7 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(InvokeTerr
     def test_invoke_function(self):
         function_name = "aws_lambda_function.function"
         local_invoke_command_list = self.get_command_list(
-            function_to_invoke=function_name, hook_package_id="terraform", beta_features=True
+            function_to_invoke=function_name, hook_name="terraform", beta_features=True
         )
         _, stderr, return_code = self.run_command(local_invoke_command_list)
         process_stderr = stderr.strip()
@@ -522,7 +520,7 @@ class TestInvokeTerraformApplicationWithLocalImageUri(InvokeTerraformApplication
     def test_invoke_image_function(self, function_name):
         local_invoke_command_list = self.get_command_list(
             function_to_invoke=function_name,
-            hook_package_id="terraform",
+            hook_name="terraform",
             event_path=self.event_path,
             beta_features=True,
         )
