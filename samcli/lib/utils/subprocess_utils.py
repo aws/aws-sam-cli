@@ -4,6 +4,7 @@ Utils for invoking subprocess calls
 import os
 
 import logging
+from concurrent.futures.thread import ThreadPoolExecutor
 from time import sleep
 
 import sys
@@ -74,34 +75,37 @@ def invoke_subprocess_with_loading_pattern(
         command_args["stdout"] = PIPE
 
     try:
+        keep_printing = LOG.getEffectiveLevel() >= logging.INFO
+
+        def _print_loading_pattern():
+            while keep_printing:
+                loading_pattern(stream_writer)
+
         # Popen is async as opposed to run so we can print while we wait
         with Popen(**command_args) as process:
-            if LOG.getEffectiveLevel() >= logging.INFO:
-                # process.poll() returns None until the process exits
-                while process.poll() is None:
-                    loading_pattern(stream_writer)
-            elif process.stdout:
-                # Logging level is DEBUG, streaming logs instead
-                for line in process.stdout:
-                    decoded_line = _check_and_process_bytes(line)
-                    LOG.debug(decoded_line)
-                    process_output += decoded_line
+            with ThreadPoolExecutor() as executor:
+                executor.submit(_print_loading_pattern)
 
-            return_code = process.wait()
+                if process.stdout:
+                    # Logging level is DEBUG, streaming logs instead
+                    for line in process.stdout:
+                        decoded_line = _check_and_process_bytes(line)
+                        if LOG.getEffectiveLevel() < logging.INFO:
+                            LOG.debug(decoded_line)
+                        process_output += decoded_line
 
-            stream_writer.write(os.linesep)
-            stream_writer.flush()
+                return_code = process.wait()
+                keep_printing = False
 
-            if not process_output:
-                process_output = _check_and_convert_stream_to_string(process.stdout)
+                stream_writer.write(os.linesep)
+                stream_writer.flush()
+                process_stderr = _check_and_convert_stream_to_string(process.stderr)
 
-            process_stderr = _check_and_convert_stream_to_string(process.stderr)
-
-            if return_code:
-                raise LoadingPatternError(
-                    f"The process {command_args.get('args', [])} returned a "
-                    f"non-zero exit code {process.returncode}. {process_stderr}"
-                )
+                if return_code:
+                    raise LoadingPatternError(
+                        f"The process {command_args.get('args', [])} returned a "
+                        f"non-zero exit code {process.returncode}. {process_stderr}"
+                    )
 
     except (OSError, ValueError) as e:
         raise LoadingPatternError(f"Subprocess execution failed {command_args.get('args', [])}. {e}") from e

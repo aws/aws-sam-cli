@@ -21,37 +21,6 @@ from samcli.lib.utils.subprocess_utils import (
 
 
 class TestSubprocessUtils(TestCase):
-    @parameterized.expand([(0,), (1,), (2,), (3,), (5,), (10,)])
-    @patch("samcli.lib.utils.subprocess_utils._check_and_convert_stream_to_string")
-    @patch("samcli.lib.utils.subprocess_utils._check_and_process_bytes")
-    @patch("samcli.lib.utils.subprocess_utils.LOG")
-    @patch("samcli.lib.utils.subprocess_utils.Popen")
-    def test_loader_successfully_prints_pattern_n_times(
-        self,
-        pattern_count,
-        patched_Popen,
-        patched_log,
-        patched_check_and_process_byes,
-        patched_check_and_convert_stream_to_string,
-    ):
-        expected_output = "expected_output"
-        patched_log.getEffectiveLevel.return_value = logging.INFO
-        mock_stream_writer = Mock()
-        mock_process = Mock()
-        mock_process.wait.return_value = 0
-        mock_process.stdout.read.return_value = expected_output
-        mock_pattern = Mock()
-        mock_process.poll.side_effect = ([None] * pattern_count) + [0]
-        patched_Popen.return_value.__enter__.return_value = mock_process
-        patched_check_and_convert_stream_to_string.return_value = expected_output
-        actual_output = invoke_subprocess_with_loading_pattern({"args": ["ls"]}, mock_pattern, mock_stream_writer)
-        mock_stream_writer.write.assert_called_once_with(os.linesep)
-        mock_stream_writer.flush.assert_called_once_with()
-        patched_Popen.assert_called_once_with(args=["ls"], stdout=-1)
-        self.assertEqual(patched_check_and_convert_stream_to_string.call_count, 2)
-        self.assertEqual(mock_pattern.call_count, pattern_count)
-        self.assertEqual(actual_output, expected_output)
-
     @patch("samcli.lib.utils.subprocess_utils._check_and_convert_stream_to_string")
     @patch("samcli.lib.utils.subprocess_utils._check_and_process_bytes")
     @patch("samcli.lib.utils.subprocess_utils.LOG")
@@ -81,9 +50,11 @@ class TestSubprocessUtils(TestCase):
     def test_loader_stream_uses_passed_in_stdout(
         self, patched_Popen, patched_log, patched_check_and_process_byes, patched_check_and_convert_stream_to_string
     ):
+        expected_output = f"Line 1{os.linesep}Line 2"
         mock_pattern = Mock()
         mock_stream_writer = Mock()
         mock_process = Mock()
+        mock_process.stdout = StringIO(expected_output)
         mock_process.wait.return_value = 0
         patched_Popen.return_value.__enter__.return_value = mock_process
         patched_log.getEffectiveLevel.return_value = logging.INFO
@@ -96,9 +67,9 @@ class TestSubprocessUtils(TestCase):
         mock_stream_writer = Mock()
         mock_process = Mock()
         mock_process.returncode = 1
+        mock_process.stdout = None
         mock_process.stderr.read.return_value = standard_error
         mock_pattern = Mock()
-        mock_process.poll.return_value = 1
         patched_Popen.return_value.__enter__.return_value = mock_process
         with self.assertRaises(LoadingPatternError) as ex:
             invoke_subprocess_with_loading_pattern({"args": ["ls"]}, mock_pattern, mock_stream_writer)
@@ -112,9 +83,9 @@ class TestSubprocessUtils(TestCase):
         mock_stream_writer = Mock()
         mock_process = Mock()
         mock_process.returncode = 1
+        mock_process.stdout = None
         mock_process.stderr.read.return_value = standard_error
         mock_pattern = Mock()
-        mock_process.poll.return_value = 1
         patched_Popen.return_value.__enter__.side_effect = ValueError(standard_error)
         with self.assertRaises(LoadingPatternError) as ex:
             invoke_subprocess_with_loading_pattern({"args": ["ls"]}, mock_pattern, mock_stream_writer)

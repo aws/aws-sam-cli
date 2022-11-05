@@ -139,15 +139,17 @@ def prepare(params: dict) -> dict:
     if skip_prepare_infra and os.path.exists(metadata_file_path):
         LOG.info("Skipping preparation stage, the metadata file already exists at %s", metadata_file_path)
     else:
-        if skip_prepare_infra:
-            LOG.info(
+        log_msg = (
+            (
                 "The option to skip infrastructure preparation was provided, but we could not find "
-                "the metadata file. Preparing anyways."
+                f"the metadata file. Preparing anyways.{os.linesep}Initializing Terraform application"
             )
-
+            if skip_prepare_infra
+            else "Initializing Terraform application"
+        )
         try:
             # initialize terraform application
-            LOG.info("Initializing Terraform application")
+            LOG.info(log_msg)
             invoke_subprocess_with_loading_pattern(
                 command_args={
                     "args": ["terraform", "init", "-input=false"],
@@ -183,6 +185,8 @@ def prepare(params: dict) -> dict:
                 _update_resources_paths(cfn_dict.get("Resources"), terraform_application_dir)  # type: ignore
 
             # Add hook metadata
+            if not cfn_dict.get("Metadata"):
+                cfn_dict["Metadata"] = {}
             cfn_dict["Metadata"][HOOK_METADATA_KEY] = TERRAFORM_HOOK_METADATA
 
             # store in supplied output dir
