@@ -141,7 +141,7 @@ for:
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
-      - ps: "pytest -vv tests/integration/buildcmd"
+      - ps: "pytest -vv tests/integration/buildcmd --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
   #Integ testing deploy
   - matrix:
@@ -153,7 +153,7 @@ for:
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
-      - ps: "pytest -vv tests/integration/deploy"
+      - ps: "pytest -vv tests/integration/deploy --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
 
   # Integ testing package
   - matrix:
@@ -165,7 +165,7 @@ for:
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
-      - ps: "pytest -vv tests/integration/package"
+      - ps: "pytest -vv tests/integration/package --json-report --json-report-file=TEST_REPORT-integration-package.json"
 
   # Integ testing delete
   - matrix:
@@ -177,7 +177,7 @@ for:
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
-      - ps: "pytest -vv tests/integration/delete"
+      - ps: "pytest -vv tests/integration/delete --json-report --json-report-file=TEST_REPORT-integration-delete.json"
 
   # Integ testing sync
   - matrix:
@@ -189,7 +189,7 @@ for:
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
-      - ps: "pytest -vv tests/integration/sync"
+      - ps: "pytest -vv tests/integration/sync --json-report --json-report-file=TEST_REPORT-integration-sync.json"
 
   #Integ testing local
   - matrix:
@@ -201,7 +201,7 @@ for:
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
-      - ps: "pytest -vv tests/integration/local"
+      - ps: "pytest -vv tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-local.json"
 
   #Other testing
   - matrix:
@@ -213,11 +213,15 @@ for:
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
-      - ps: "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
+      - ps: "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit --json-report --json-report-file=TEST_REPORT-unit.json"
       - "mypy setup.py samcli tests"
-      - ps: "pytest -n 4 tests/functional"
-      - ps: "pytest -vv tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local"
-      - ps: "pytest -vv tests/regression"
+      - ps: "pytest -n 4 tests/functional --json-report --json-report-file=TEST_REPORT-functional.json"
+      - ps: "pytest -vv tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json"
+      - ps: "pytest -vv tests/regression --json-report --json-report-file=TEST_REPORT-regression.json"
 # Uncomment for RDP
 # on_finish:
 #   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+
+artifacts:
+  - path: './TEST_REPORT*.json'
+  

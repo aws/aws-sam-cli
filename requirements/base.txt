@@ -1,6 +1,8 @@
 chevron~=0.12
-click~=7.1
-Flask~=1.1.4
+click~=8.0
+#2.1.x and later versions of Werkzeug library has a bug for setting up <path:*> endpoints
+Flask<2.1
+Werkzeug<2.1
 #Need to add Schemas latest SDK.
 boto3>=1.19.5,==1.*
 jmespath~=0.10.0
@@ -16,11 +18,6 @@ aws_lambda_builders==1.21.0
 tomlkit==0.7.2
 watchdog==2.1.2
 pyopenssl==22.0.0
-
-# See https://github.com/pallets/markupsafe/issues/286 but breaking change in 
-# MarkupSafe causes jinja to break which caused flask to break (which we depend on)
-# This is a short term patch as we should be upgrading to new versions of Flask (and other dependencies)
-MarkupSafe==2.0.1
 
 # Needed for supporting Protocol in Python 3.7, Protocol class became public with python3.8
 typing_extensions==3.10.0.0

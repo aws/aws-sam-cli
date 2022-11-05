@@ -17,7 +17,8 @@ pytest-xdist==2.1.0
 pytest-forked==1.3.0
 pytest-timeout==1.4.2
 pytest-rerunfailures==9.1.1
+pytest-json-report==1.5.0
 
 # formatter
-black==21.10b0
+black==22.6.0
 psutil==5.9.0
