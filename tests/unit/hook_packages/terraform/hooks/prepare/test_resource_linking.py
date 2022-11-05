@@ -1115,8 +1115,8 @@ class TestResourceLinking(TestCase):
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._process_reference_layer_value")
     def test_process_resolved_layers_constant_only(
-            self,
-            process_reference_layer_value_mock,
+        self,
+        process_reference_layer_value_mock,
     ):
         tf_layers = Mock()
         resource = Mock()
@@ -1128,8 +1128,8 @@ class TestResourceLinking(TestCase):
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._process_reference_layer_value")
     def test_process_resolved_layers_references_only(
-            self,
-            process_reference_layer_value_mock,
+        self,
+        process_reference_layer_value_mock,
     ):
         tf_layers = Mock()
         resource = Mock()
@@ -1164,8 +1164,8 @@ class TestResourceLinking(TestCase):
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._process_reference_layer_value")
     def test_process_resolved_layers_mixed_data_sources_and_references(
-            self,
-            process_reference_layer_value_mock,
+        self,
+        process_reference_layer_value_mock,
     ):
         tf_layers = Mock()
         resource = Mock()
