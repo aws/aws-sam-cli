@@ -86,7 +86,6 @@ $ sam build MyFunction
     force_prepare=True,
     invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"],
 )
-@configuration_option(provider=TomlProvider(section="parameters"))
 @skip_prepare_infra_option
 @use_container_build_option
 @click.option(

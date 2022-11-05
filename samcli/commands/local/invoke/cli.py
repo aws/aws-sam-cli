@@ -40,7 +40,6 @@ STDIN_FILE_NAME = "-"
 @hook_package_id_click_option(
     force_prepare=False, invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"]
 )
-@configuration_option(provider=TomlProvider(section="parameters"))
 @skip_prepare_infra_option
 @click.option(
     "--event",
