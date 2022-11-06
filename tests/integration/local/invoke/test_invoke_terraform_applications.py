@@ -1,5 +1,6 @@
 import json
 import os
+import logging
 import shutil
 import time
 import uuid
@@ -21,6 +22,7 @@ from tests.integration.local.invoke.layer_utils import LayerUtils
 from tests.integration.local.start_lambda.start_lambda_api_integ_base import StartLambdaIntegBaseClass
 from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUNNING_ON_CI, RUN_BY_CANARY
 
+LOG = logging.getLogger(__name__)
 S3_SLEEP = 3
 
 
@@ -37,6 +39,8 @@ class InvokeTerraformApplicationIntegBase(InvokeIntegBase):
         process = Popen(command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE, env=env, cwd=cls.terraform_application_path)
         try:
             (stdout, stderr) = process.communicate(input=input, timeout=TIMEOUT)
+            LOG.info("sam stdout: %s", stdout.decode("utf-8"))
+            LOG.info("sam stderr: %s", stderr.decode("utf-8"))
             return stdout, stderr, process.returncode
         except TimeoutExpired:
             process.kill()
