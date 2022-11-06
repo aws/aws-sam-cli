@@ -18,8 +18,10 @@ rm -rf ${temp_path}/*
 
 cp -r $src_code/* ${temp_path}
 pip install -r ${temp_path}/requirements.txt -t ${temp_path}/.
-
-zip -r ${build_path}/tmp_building/${output_name}/$output_name ${build_path}/tmp_building/${output_name}
+current=$(pwd)
+cd ${build_path}/tmp_building/${output_name}
+zip -r ${output_name} .
+cd ${current}
 mv "${build_path}/tmp_building/${output_name}/${output_name}" "${build_path}/$output_name"
 rm -rf ${build_path}/tmp_building/${output_name}
 rm -rf ${build_path}/tmp_building
