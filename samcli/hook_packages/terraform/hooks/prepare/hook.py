@@ -1465,7 +1465,7 @@ def _format_makefile_recipe(rule_string: str) -> str:
     str
         The formatted target rule
     """
-    return f"\t{rule_string}{os.linesep if platform.system().lower() == 'windows' else ''}"
+    return f"\t{rule_string}{os.linesep if platform.system().lower() != 'windows' else ''}"
 
 
 def _translate_properties(
