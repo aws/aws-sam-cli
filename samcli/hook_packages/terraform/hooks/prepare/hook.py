@@ -1337,7 +1337,7 @@ def _build_makerule_python_command(
         Fully resolved Terraform show command
     """
     show_command_template = (
-        "{python_command_name} {terraform_built_artifacts_script_path} "
+        "{python_command_name} \"{terraform_built_artifacts_script_path}\" "
         '--expression "{jpath_string}" --directory "$(ARTIFACTS_DIR)" --target "{resource_address}"'
     )
     jpath_string = _build_jpath_string(sam_metadata_resource, resource_address)
@@ -1346,7 +1346,7 @@ def _build_makerule_python_command(
     )
     return show_command_template.format(
         python_command_name=python_command_name,
-        terraform_built_artifacts_script_path=terraform_built_artifacts_script_path,
+        terraform_built_artifacts_script_path=str(terraform_built_artifacts_script_path),
         jpath_string=jpath_string.replace('"', '\\"'),
         resource_address=resource_address.replace('"', '\\"'),
     )
