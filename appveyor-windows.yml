@@ -121,7 +121,7 @@ install:
 
   - ps: "
       If (Test-Path env:BY_CANARY){
-      $password = aws ecr-public get-login-password --region us-east-1; $password = $password.Trim(); echo Logging in Public ECR; $password | docker login --username AWS --password-stdin public.ecr.aws;
+      echo Logging in Public ECR; cmd.exe \c \"aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws\";
       }"
 
 # Final clean up no matter success or failure
