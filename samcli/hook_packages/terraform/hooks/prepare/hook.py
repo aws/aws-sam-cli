@@ -1152,7 +1152,7 @@ def _generate_backend_override_file(output_directory_path: str):
         the output directory path to write the generated makefile
     """
     statefile_filename = f"{uuid.uuid4()}.tfstate"
-    override_content = "terraform {\n" '  backend "local" {\n' f'    path = "./{statefile_filename}"\n' "  }\n" "}\n"
+    override_content = "terraform {" f"{os.linesep}" '  backend "local" {' f'{os.linesep}    path = "./{statefile_filename}"{os.linesep}' "  }" f"{os.linesep}" "}" f"{os.linesep}"
     override_file_path = os.path.join(output_directory_path, TF_BACKEND_OVERRIDE_FILENAME)
     with open(override_file_path, "w+") as f:
         f.write(override_content)
@@ -1455,7 +1455,7 @@ def _format_makefile_recipe(rule_string: str) -> str:
     str
         The formatted target rule
     """
-    return f"\t{rule_string}{os.linesep}"
+    return f"\t{rule_string}"
 
 
 def _translate_properties(
