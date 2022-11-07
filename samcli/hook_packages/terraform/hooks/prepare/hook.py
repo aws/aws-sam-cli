@@ -7,6 +7,7 @@ Terraform prepare hook implementation
 from dataclasses import dataclass
 import json
 import os
+import platform
 from json.decoder import JSONDecodeError
 from pathlib import Path
 import re
@@ -1464,7 +1465,7 @@ def _format_makefile_recipe(rule_string: str) -> str:
     str
         The formatted target rule
     """
-    return f"\t{rule_string}"
+    return f"\t{rule_string}{os.linesep if platform.system().lower() == 'windows' else ''}"
 
 
 def _translate_properties(
