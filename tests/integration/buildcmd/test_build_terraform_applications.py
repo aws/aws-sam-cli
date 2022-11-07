@@ -129,13 +129,13 @@ class BuildTerraformApplicationS3BackendIntegBase(BuildTerraformApplicationInteg
         self.backend_key = str(Path("terraform-backend") / str(uuid.uuid4()))
         self.backendconfig_path = str(Path(self.working_dir) / "backend.conf")
         with open(self.backendconfig_path, "w") as f:
-            f.write(f'bucket="{self.bucket_name}"\n')
-            f.write(f'key="{self.backend_key}"\n')
+            f.write(f'bucket="{self.bucket_name}"{os.linesep}')
+            f.write(f'key="{self.backend_key}"{os.linesep}')
             f.write(f'region="{self.region_name}"')
 
         # We have to init the terraform project with specifying the S3 backend first
         _, stderr, _ = self.run_command(
-            ["terraform", "init", f"-backend-config={self.backendconfig_path}", "-reconfigure", "-input=false"]
+            ["terraform", "init", "-backend-config", {self.backendconfig_path}, "-reconfigure", "-input=false"]
         )
         if stderr:
             LOG.error(stderr)
