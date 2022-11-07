@@ -135,7 +135,7 @@ class BuildTerraformApplicationS3BackendIntegBase(BuildTerraformApplicationInteg
 
         # We have to init the terraform project with specifying the S3 backend first
         _, stderr, _ = self.run_command(
-            ["terraform", "init", "-backend-config", {self.backendconfig_path}, "-reconfigure", "-input=false"]
+            ["terraform", "init", "-backend-config", self.backendconfig_path, "-reconfigure", "-input=false"]
         )
         if stderr:
             LOG.error(stderr)
