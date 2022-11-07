@@ -3221,7 +3221,7 @@ class TestPrepareHook(TestCase):
         script_path = Path(".aws-sam", "output", "copy_terraform_built_artifacts.py")
         escaped_resource = resource.replace('"', '\\"')
         expected_show_command = (
-            f"python {script_path} "
+            f'python "{script_path}" '
             '--expression "|values|root_module|resources|'
             f'[?address==\\"{escaped_resource}\\"]'
             '|values|triggers|built_output_path" --directory "$(ARTIFACTS_DIR)" '
