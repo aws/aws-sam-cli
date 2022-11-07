@@ -15,7 +15,6 @@ import docker
 
 from parameterized import parameterized, parameterized_class
 
-from samcli.commands._utils.experimental import EXPERIMENTAL_WARNING
 from samcli.lib.utils.colors import Colored
 from tests.integration.buildcmd.build_integ_base import BuildIntegBase
 from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUN_BY_CANARY
@@ -266,22 +265,10 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
         else Path("terraform/zip_based_lambda_functions_local_backend_windows")
     )
     functions = [
-        ("module.function7.aws_lambda_function.this[0]", "hello world 7 - override version", True),
-        ("function7", "hello world 7 - override version", True),
-        ("module.function7.aws_lambda_function.this[0]", "hello world 7", False),
-        ("function7", "hello world 7", False),
-        ("module.function8.aws_lambda_function.this[0]", "hello world 8 - override version", True),
-        ("function8", "hello world 8 - override version", True),
-        ("module.function8.aws_lambda_function.this[0]", "hello world 8", False),
-        ("function8", "hello world 8", False),
         ("module.function9.aws_lambda_function.this[0]", "hello world 9 - override version", True),
         ("function9", "hello world 9 - override version", True),
         ("module.function9.aws_lambda_function.this[0]", "hello world 9", False),
         ("function9", "hello world 9", False),
-        ("module.function10.aws_lambda_function.this[0]", "hello world 10 - override version", True),
-        ("function10", "hello world 10 - override version", True),
-        ("module.function10.aws_lambda_function.this[0]", "hello world 10", False),
-        ("function10", "hello world 10", False),
         ("aws_lambda_function.function6", "hello world 6 - override version", True),
         ("function6", "hello world 6 - override version", True),
         ("aws_lambda_function.function6", "hello world 6", False),
@@ -320,6 +307,21 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
     def setUpClass(cls):
         if cls.build_in_container:
             cls.terraform_application = "terraform/zip_based_lambda_functions_local_backend"
+        if not IS_WINDOWS:
+            cls.functions += [
+                ("module.function7.aws_lambda_function.this[0]", "hello world 7 - override version", True),
+                ("function7", "hello world 7 - override version", True),
+                ("module.function7.aws_lambda_function.this[0]", "hello world 7", False),
+                ("function7", "hello world 7", False),
+                ("module.function8.aws_lambda_function.this[0]", "hello world 8 - override version", True),
+                ("function8", "hello world 8 - override version", True),
+                ("module.function8.aws_lambda_function.this[0]", "hello world 8", False),
+                ("function8", "hello world 8", False),
+                ("module.function10.aws_lambda_function.this[0]", "hello world 10 - override version", True),
+                ("function10", "hello world 10 - override version", True),
+                ("module.function10.aws_lambda_function.this[0]", "hello world 10", False),
+                ("function10", "hello world 10", False),
+            ]
         super().setUpClass()
 
     @parameterized.expand(functions)
@@ -343,12 +345,17 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
             environment_variables["TF_VAR_hello_function_src_code"] = "./artifacts/HelloWorldFunction2"
         stdout, stderr, return_code = self.run_command(build_cmd_list, env=environment_variables)
         terraform_beta_feature_prompted_text = (
-            "Supporting Terraform applications is a beta feature.\n"
-            "Please confirm if you would like to proceed using AWS SAM CLI with terraform application.\n"
+            f"Supporting Terraform applications is a beta feature.{os.linesep}"
+            f"Please confirm if you would like to proceed using AWS SAM CLI with terraform application.{os.linesep}"
             "You can also enable this beta feature with 'sam build --beta-features'."
         )
+        experimental_warning = (
+            f"{os.linesep}Experimental features are enabled for this session.{os.linesep}"
+            f"Visit the docs page to learn more about the AWS Beta terms "
+            f"https://aws.amazon.com/service-terms/.{os.linesep}"
+        )
         self.assertNotRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
-        self.assertTrue(stderr.decode("utf-8").startswith(Colored().yellow(EXPERIMENTAL_WARNING)))
+        self.assertTrue(stderr.decode("utf-8").startswith(Colored().yellow(experimental_warning)))
         LOG.info("sam build stdout: %s", stdout.decode("utf-8"))
         LOG.info("sam build stderr: %s", stderr.decode("utf-8"))
         self.assertEqual(return_code, 0)
@@ -405,22 +412,10 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(Build
         else Path("terraform/zip_based_lambda_functions_s3_backend_windows")
     )
     functions = [
-        ("module.function7.aws_lambda_function.this[0]", "hello world 7 - override version", True),
-        ("function7", "hello world 7 - override version", True),
-        ("module.function7.aws_lambda_function.this[0]", "hello world 7", False),
-        ("function7", "hello world 7", False),
-        ("module.function8.aws_lambda_function.this[0]", "hello world 8 - override version", True),
-        ("function8", "hello world 8 - override version", True),
-        ("module.function8.aws_lambda_function.this[0]", "hello world 8", False),
-        ("function8", "hello world 8", False),
         ("module.function9.aws_lambda_function.this[0]", "hello world 9 - override version", True),
         ("function9", "hello world 9 - override version", True),
         ("module.function9.aws_lambda_function.this[0]", "hello world 9", False),
         ("function9", "hello world 9", False),
-        ("module.function10.aws_lambda_function.this[0]", "hello world 10 - override version", True),
-        ("function10", "hello world 10 - override version", True),
-        ("module.function10.aws_lambda_function.this[0]", "hello world 10", False),
-        ("function10", "hello world 10", False),
         ("aws_lambda_function.function5", "hello world 5 - override version", True),
         ("function5", "hello world 5 - override version", True),
         ("aws_lambda_function.function5", "hello world 5", False),
@@ -459,6 +454,21 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(Build
     def setUpClass(cls):
         if cls.build_in_container:
             cls.terraform_application = "terraform/zip_based_lambda_functions_s3_backend"
+        if not IS_WINDOWS:
+            cls.functions += [
+                ("module.function7.aws_lambda_function.this[0]", "hello world 7 - override version", True),
+                ("function7", "hello world 7 - override version", True),
+                ("module.function7.aws_lambda_function.this[0]", "hello world 7", False),
+                ("function7", "hello world 7", False),
+                ("module.function8.aws_lambda_function.this[0]", "hello world 8 - override version", True),
+                ("function8", "hello world 8 - override version", True),
+                ("module.function8.aws_lambda_function.this[0]", "hello world 8", False),
+                ("function8", "hello world 8", False),
+                ("module.function10.aws_lambda_function.this[0]", "hello world 10 - override version", True),
+                ("function10", "hello world 10 - override version", True),
+                ("module.function10.aws_lambda_function.this[0]", "hello world 10", False),
+                ("function10", "hello world 10", False),
+            ]
         super().setUpClass()
 
     @parameterized.expand(functions)
