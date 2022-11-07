@@ -7,7 +7,6 @@ Terraform prepare hook implementation
 from dataclasses import dataclass
 import json
 import os
-import platform
 from json.decoder import JSONDecodeError
 from pathlib import Path
 import re
@@ -1337,7 +1336,7 @@ def _build_makerule_python_command(
         Fully resolved Terraform show command
     """
     show_command_template = (
-        "{python_command_name} \"{terraform_built_artifacts_script_path}\" "
+        '{python_command_name} "{terraform_built_artifacts_script_path}" '
         '--expression "{jpath_string}" --directory "$(ARTIFACTS_DIR)" --target "{resource_address}"'
     )
     jpath_string = _build_jpath_string(sam_metadata_resource, resource_address)
@@ -1456,7 +1455,7 @@ def _format_makefile_recipe(rule_string: str) -> str:
     str
         The formatted target rule
     """
-    return f"\t{rule_string}{os.linesep if platform.system().lower() != 'windows' else ''}"
+    return f"\t{rule_string}{os.linesep}"
 
 
 def _translate_properties(
