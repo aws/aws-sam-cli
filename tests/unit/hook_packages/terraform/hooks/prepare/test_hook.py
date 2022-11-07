@@ -3287,7 +3287,7 @@ class TestPrepareHook(TestCase):
 
     def test__format_makefile_recipe(self):
         output_string = _format_makefile_recipe("terraform show -json | python3")
-        self.assertRegex(output_string, r"^\tterraform show -json \| python3(\n|\r\n)$")
+        self.assertRegex(output_string, r"^\tterraform show -json \| python3$")
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._link_lambda_function_to_layer")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._get_configuration_address")
