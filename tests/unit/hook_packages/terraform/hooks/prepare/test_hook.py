@@ -3218,7 +3218,7 @@ class TestPrepareHook(TestCase):
             sam_metadata_resource=sam_metadata_resource,
             terraform_application_dir="/some/dir/path",
         )
-        script_path = Path(".aws-sam", "output", "copy_terraform_built_artifacts.py")
+        script_path = str(Path(".aws-sam", "output", "copy_terraform_built_artifacts.py")).replace("\\", "/")
         escaped_resource = resource.replace('"', '\\"')
         expected_show_command = (
             f'python "{script_path}" '
