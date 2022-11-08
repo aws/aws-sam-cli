@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 src_code=$1
 build_path=$2
 output_name=$3

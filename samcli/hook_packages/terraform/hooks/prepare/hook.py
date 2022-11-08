@@ -1345,7 +1345,7 @@ def _build_makerule_python_command(
     )
     return show_command_template.format(
         python_command_name=python_command_name,
-        terraform_built_artifacts_script_path=str(terraform_built_artifacts_script_path),
+        terraform_built_artifacts_script_path=str(terraform_built_artifacts_script_path).replace("\\", "/"),
         jpath_string=jpath_string.replace('"', '\\"'),
         resource_address=resource_address.replace('"', '\\"'),
     )
@@ -1438,7 +1438,7 @@ def _get_makefile_build_target(logical_id: str) -> str:
     str
         The formatted Makefile rule build target
     """
-    return f"build-{logical_id}:{os.linesep}"
+    return f"build-{logical_id}:\n"
 
 
 def _format_makefile_recipe(rule_string: str) -> str:
@@ -1455,7 +1455,7 @@ def _format_makefile_recipe(rule_string: str) -> str:
     str
         The formatted target rule
     """
-    return f"\t{rule_string}{os.linesep}"
+    return f"\t{rule_string}\n"
 
 
 def _translate_properties(

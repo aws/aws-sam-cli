@@ -771,7 +771,7 @@ class ApplicationBuilder:
                 base_dir, metadata, source_code_path, scratch_dir
             )
             if working_directory:
-                options = {**options, "working_directory": working_directory}
+                options = {**options, "working_directory": working_directory.replace("\\", "/")}
         return options
 
     @staticmethod
