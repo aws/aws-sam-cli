@@ -640,10 +640,25 @@ def _process_resolved_layers(
         "Map the resolved layers %s to configuration function %s.", resolved_layers, function_tf_resource.full_address
     )
     layers = []
+    does_refer_to_constant_values = False
+    does_refer_to_data_sources = False
     for resolved_layer in resolved_layers:
         # Skip ConstantValue layers reference, as it will be already handled by terraform plan command.
-        if isinstance(resolved_layer, ResolvedReference):
-            layers += _process_reference_layer_value(function_tf_resource, resolved_layer, tf_layers)
+        if isinstance(resolved_layer, ConstantValue):
+            does_refer_to_constant_values = True
+        elif isinstance(resolved_layer, ResolvedReference):
+            processed_layers = _process_reference_layer_value(function_tf_resource, resolved_layer, tf_layers)
+            if not processed_layers:
+                does_refer_to_data_sources = True
+            layers += processed_layers
+
+    if (does_refer_to_constant_values or does_refer_to_data_sources) and len(layers) > 0:
+        LOG.debug(
+            "Lambda function %s to is referring to layers using an expression mixing between constant value or data "
+            "sources and other resources references. AWS SAM CLI could not determine this lambda functions layers.",
+            function_tf_resource.full_address,
+        )
+        raise OneLambdaLayerLinkingLimitationException(resolved_layers, function_tf_resource.full_address)
 
     return layers
 
