@@ -1149,8 +1149,20 @@ class TestResourceLinking(TestCase):
         resource = Mock()
         resource.full_address = "func_full_address"
         constant_value_resolved_layer = ConstantValue("layer1.arn")
+        resolved_layers = [constant_value_resolved_layer]
+        layers = _process_resolved_layers(resource, resolved_layers, tf_layers)
+        self.assertEqual(layers, [])
+        process_reference_layer_value_mock.assert_not_called()
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._process_reference_layer_value")
+    def test_process_resolved_layers_references_only(
+        self,
+        process_reference_layer_value_mock,
+    ):
+        tf_layers = Mock()
+        resource = Mock()
         reference_resolved_layer = ResolvedReference("aws_lambda_layer_version.layer1.arn", "module.layer1")
-        resolved_layers = [reference_resolved_layer, constant_value_resolved_layer]
+        resolved_layers = [reference_resolved_layer]
         process_reference_layer_value_mock.return_value = [{"Ref": "Layer1LogicalId"}]
         expected_exception = (
             "AWS SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more "
@@ -1166,6 +1178,31 @@ class TestResourceLinking(TestCase):
     def test_process_resolved_layers_mixed_data_sources_and_references(
             self,
             process_reference_layer_value_mock,
+    def test_process_resolved_layers_mixed_constant_and_references(
+        self,
+        process_reference_layer_value_mock,
+    ):
+        tf_layers = Mock()
+        resource = Mock()
+        resource.full_address = "func_full_address"
+        constant_value_resolved_layer = ConstantValue("layer1.arn")
+        reference_resolved_layer = ResolvedReference("aws_lambda_layer_version.layer1.arn", "module.layer1")
+        resolved_layers = [reference_resolved_layer, constant_value_resolved_layer]
+        process_reference_layer_value_mock.return_value = [{"Ref": "Layer1LogicalId"}]
+        expected_exception = (
+            "AWS SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more "
+            f"than one lambda layer. Layer(s) defined by {resolved_layers} could not be linked to lambda function "
+            f"func_full_address.{os.linesep}Related issue: {ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK}."
+        )
+        with self.assertRaises(OneLambdaLayerLinkingLimitationException) as exc:
+            _process_resolved_layers(resource, resolved_layers, tf_layers)
+        self.assertEqual(exc.exception.args[0], expected_exception)
+        process_reference_layer_value_mock.assert_called_with(resource, reference_resolved_layer, tf_layers)
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._process_reference_layer_value")
+    def test_process_resolved_layers_mixed_data_sources_and_references(
+        self,
+        process_reference_layer_value_mock,
     ):
         tf_layers = Mock()
         resource = Mock()
