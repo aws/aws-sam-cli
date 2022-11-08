@@ -9,7 +9,7 @@ class TestProgressBar(TestCase):
     def test_creating_progressbar(self, click_patch):
         progressbar_mock = Mock()
         click_patch.progressbar.return_value = progressbar_mock
-        stream=Mock()
+        stream = Mock()
 
         actual = progressbar(100, "this is a label", stream)
 
