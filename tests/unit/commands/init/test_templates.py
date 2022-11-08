@@ -1,10 +1,8 @@
 import json
-import subprocess
 from pathlib import Path
 from re import search
 from unittest import TestCase
-from unittest.mock import mock_open, patch, PropertyMock, MagicMock
-from samcli.commands.exceptions import AppTemplateUpdateException
+from unittest.mock import mock_open, patch, PropertyMock
 
 from samcli.commands.init.init_templates import InitTemplates
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -66,22 +64,3 @@ class TestTemplates(TestCase):
                     IMAGE, None, "ruby2.7-image", "bundler", "hello-world-lambda-image"
                 )
                 self.assertTrue(search("mock-ruby-image-template", location))
-
-    @patch("samcli.cli.global_config.GlobalConfig.config_dir")
-    @patch("samcli.lib.utils.git_repo.GitRepo.clone")
-    @patch("samcli.commands.init.init_templates.platform")
-    def test_clone_templates_repo_max_path_exception(self, patched_platform, patched_clone, patched_config):
-        patched_clone.side_effect = FileNotFoundError("File not found")
-        patched_platform.system = MagicMock(return_value="windows")
-
-        init_templates = InitTemplates()
-        with self.assertRaises(AppTemplateUpdateException) as ex:
-            init_templates.clone_templates_repo()
-
-        msg = (
-            "Failed modify a local file when cloning app templates. "
-            "MAX_PATH should be enabled in the Windows registry."
-            "\nFor more details on how to enable MAX_PATH for Windows, please visit: "
-            "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html"
-        )
-        self.assertEqual(str(ex.exception), msg)

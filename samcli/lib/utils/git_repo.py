@@ -177,11 +177,22 @@ class GitRepo:
         except (OSError, shutil.Error) as ex:
             # UNSTABLE STATE
             # it's difficult to see how this scenario could happen except weird permissions, user will need to debug
-            raise CloneRepoUnstableStateException(
+            msg = (
                 "Unstable state when updating repo. "
                 f"Check that you have permissions to create/delete files in {dest_dir} directory "
                 "or file an issue at https://github.com/aws/aws-sam-cli/issues"
-            ) from ex
+            )
+
+            if platform.system().lower() == "windows":
+                msg = (
+                    "Failed modify a local file when cloning app templates. "
+                    "MAX_PATH should be enabled in the Windows registry."
+                    "\nFor more details on how to enable MAX_PATH for Windows, please visit: "
+                    "https://docs.aws.amazon.com/serverless-application-model/latest/"
+                    "developerguide/install-sam-cli.html"
+                )
+
+            raise CloneRepoUnstableStateException(msg) from ex
 
     @staticmethod
     def _checkout_commit(repo_dir: str, commit: str):

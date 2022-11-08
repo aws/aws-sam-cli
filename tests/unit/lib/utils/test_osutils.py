@@ -128,12 +128,3 @@ class Test_create_symlink_or_copy(TestCase):
 
         pathced_os.symlink.assert_called_once()
         patched_copy_tree.assert_called_with(source_path, destination_path)
-
-
-class Test_rmtree_callback(TestCase):
-    @patch("samcli.lib.utils.osutils.os")
-    def test_rmtree_callback_raises_file_not_found_exception(self, patched_os):
-        patched_os.chmod.side_effect = FileNotFoundError("File not found")
-
-        with self.assertRaises(FileNotFoundError):
-            rmtree_callback(Mock(), Mock(), Mock())

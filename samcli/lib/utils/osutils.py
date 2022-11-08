@@ -66,8 +66,6 @@ def rmtree_callback(function, path, excinfo):
     try:
         os.chmod(path=path, mode=stat.S_IWRITE)
         os.remove(path)
-    except FileNotFoundError:
-        raise
     except OSError:
         LOG.debug("rmtree failed in %s for %s, details: %s", function, path, excinfo)
 

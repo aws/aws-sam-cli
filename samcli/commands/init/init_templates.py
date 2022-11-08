@@ -1,7 +1,6 @@
 """
 Manages the set of application templates.
 """
-import platform
 import re
 import itertools
 import json
@@ -84,19 +83,6 @@ class InitTemplates:
                 )
             except CloneRepoUnstableStateException as ex:
                 raise AppTemplateUpdateException(str(ex)) from ex
-            except FileNotFoundError as ex:
-                msg = str(ex)
-
-                if platform.system().lower() == "windows":
-                    msg = (
-                        "Failed modify a local file when cloning app templates. "
-                        "MAX_PATH should be enabled in the Windows registry."
-                        "\nFor more details on how to enable MAX_PATH for Windows, please visit: "
-                        "https://docs.aws.amazon.com/serverless-application-model/latest/"
-                        "developerguide/install-sam-cli.html"
-                    )
-
-                raise AppTemplateUpdateException(msg) from ex
             except (OSError, CloneRepoException):
                 LOG.debug("Clone error, attempting to use an old clone from a previous run")
                 expected_previous_clone_local_path: Path = shared_dir.joinpath(APP_TEMPLATES_REPO_NAME)
