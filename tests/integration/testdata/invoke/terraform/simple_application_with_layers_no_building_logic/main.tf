@@ -197,8 +197,8 @@ resource "aws_lambda_function" "function7" {
 
 # serverless.tf 3rd party module
 module "layer8" {
-  # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
-  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  source  = "terraform-aws-modules/lambda/aws"
+  version = "4.6.0"
   create_layer = true
   create_package = false
   layer_name = "lambda_layer8_${random_pet.this.id}"
@@ -214,8 +214,8 @@ resource "aws_s3_object" "layer9_code" {
 }
 
 module "layer9" {
-  # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
-  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  source  = "terraform-aws-modules/lambda/aws"
+  version = "4.6.0"
   create_layer = true
   create_package = false
   s3_existing_package = {
@@ -228,8 +228,8 @@ module "layer9" {
 }
 
 module "function8" {
-  # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
-  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  source  = "terraform-aws-modules/lambda/aws"
+  version = "4.6.0"
   create_package = false
   function_name = "function8_${random_pet.this.id}"
   handler       = "app.lambda_handler"
@@ -247,8 +247,8 @@ resource "aws_s3_object" "function9_code" {
 }
 
 module "function9" {
-  # this should be changed to `terraform-aws-modules/lambda/aws` when our change got merged and released`
-  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  source  = "terraform-aws-modules/lambda/aws"
+  version = "4.6.0"
   create_package = false
   s3_existing_package = {
     bucket = var.bucket_name

@@ -114,8 +114,8 @@ resource "null_resource" "sam_metadata_aws_lambda_function_l2_function" {
 
 ## Serverless TF
 module "docker_image" {
-  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git//modules/docker-build?ref=master_sam_cli_integration_null_resource_solution"
-
+  source  = "terraform-aws-modules/lambda/aws//modules/docker-build"
+  version = "4.6.0"
   create_ecr_repo = false
   ecr_repo        = "existing_test_repo"
   image_tag       = "latest"
@@ -123,7 +123,8 @@ module "docker_image" {
 }
 
 module "serverless_tf_image_function" {
-  source = "git::https://github.com/moelasmar/terraform-aws-lambda.git?ref=master_sam_cli_integration_null_resource_solution"
+  source  = "terraform-aws-modules/lambda/aws"
+  version = "4.6.0"
   timeout = 300
   function_name = "serverless_tf_image_function"
   create_package = false
