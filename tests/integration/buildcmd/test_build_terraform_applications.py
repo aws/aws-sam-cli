@@ -305,6 +305,8 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
 
     @classmethod
     def setUpClass(cls):
+        if IS_WINDOWS and cls.build_in_container:
+            cls.terraform_application = "terraform/zip_based_lambda_functions_local_backend_container_windows"
         if not IS_WINDOWS:
             cls.functions += [
                 ("module.function7.aws_lambda_function.this[0]", "hello world 7 - override version", True),
@@ -450,6 +452,8 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(Build
 
     @classmethod
     def setUpClass(cls):
+        if IS_WINDOWS and cls.build_in_container:
+            cls.terraform_application = "terraform/zip_based_lambda_functions_s3_backend"
         if not IS_WINDOWS:
             cls.functions += [
                 ("module.function7.aws_lambda_function.this[0]", "hello world 7 - override version", True),
