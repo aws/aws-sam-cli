@@ -337,12 +337,12 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
             if should_override_code:
                 command_list_parameters[
                     "container_env_var"
-                ] = "TF_VAR_hello_function_src_code=./artifacts/HelloWorldFunction2"
+                ] = "TF_VAR_HELLO_FUNCTION_SRC_CODE=./artifacts/HelloWorldFunction2"
         build_cmd_list = self.get_command_list(**command_list_parameters)
         LOG.info("command list: %s", build_cmd_list)
         environment_variables = os.environ.copy()
         if should_override_code:
-            environment_variables["TF_VAR_hello_function_src_code"] = "./artifacts/HelloWorldFunction2"
+            environment_variables["TF_VAR_HELLO_FUNCTION_SRC_CODE"] = "./artifacts/HelloWorldFunction2"
         stdout, stderr, return_code = self.run_command(build_cmd_list, env=environment_variables)
         terraform_beta_feature_prompted_text = (
             f"Supporting Terraform applications is a beta feature.{os.linesep}"
@@ -484,12 +484,12 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(Build
             if should_override_code:
                 command_list_parameters[
                     "container_env_var"
-                ] = "TF_VAR_hello_function_src_code=./artifacts/HelloWorldFunction2"
+                ] = "TF_VAR_HELLO_FUNCTION_SRC_CODE=./artifacts/HelloWorldFunction2"
         build_cmd_list = self.get_command_list(**command_list_parameters)
         LOG.info("command list: %s", build_cmd_list)
         environment_variables = os.environ.copy()
         if should_override_code:
-            environment_variables["TF_VAR_hello_function_src_code"] = "./artifacts/HelloWorldFunction2"
+            environment_variables["TF_VAR_HELLO_FUNCTION_SRC_CODE"] = "./artifacts/HelloWorldFunction2"
         _, stderr, return_code = self.run_command(build_cmd_list, env=environment_variables)
         LOG.info(stderr)
         self.assertEqual(return_code, 0)

@@ -5,7 +5,7 @@ ProgressBar operations
 import click
 
 
-def progressbar(length, label):
+def progressbar(length, label, stream=None):
     """
     Creates a progressbar
 
@@ -22,4 +22,4 @@ def progressbar(length, label):
         Progressbar
 
     """
-    return click.progressbar(length=length, label=label, show_pos=True)
+    return click.progressbar(length=length, label=label, show_pos=True, file=stream)

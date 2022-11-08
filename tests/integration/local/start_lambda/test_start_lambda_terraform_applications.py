@@ -154,7 +154,7 @@ class TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild(StartLambda
         )
         _2nd_layer_arn = cls.layerUtils.parameters_overrides[f"{cls.pre_create_lambda_layers[1]}-{cls.layer_postfix}"]
         lines = [
-            bytes('variable "input_layer" {' + os.linesep, "utf-8"),
+            bytes('variable "INPUT_LAYER" {' + os.linesep, "utf-8"),
             bytes("   type = string" + os.linesep, "utf-8"),
             bytes(f'   default="{_2nd_layer_arn}"' + os.linesep, "utf-8"),
             bytes("}", "utf-8"),
@@ -200,12 +200,12 @@ class TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild(StartLambda
     @classmethod
     def _add_tf_project_variables(cls):
         environment_variables = os.environ.copy()
-        environment_variables["TF_VAR_input_layer"] = cls.layerUtils.parameters_overrides[
+        environment_variables["TF_VAR_INPUT_LAYER"] = cls.layerUtils.parameters_overrides[
             f"{cls.pre_create_lambda_layers[0]}-{cls.layer_postfix}"
         ]
-        environment_variables["TF_VAR_layer_name"] = f"{cls.pre_create_lambda_layers[2]}-{cls.layer_postfix}"
-        environment_variables["TF_VAR_layer44_name"] = f"{cls.pre_create_lambda_layers[4]}-{cls.layer_postfix}"
-        environment_variables["TF_VAR_bucket_name"] = cls.bucket_name
+        environment_variables["TF_VAR_LAYER_NAME"] = f"{cls.pre_create_lambda_layers[2]}-{cls.layer_postfix}"
+        environment_variables["TF_VAR_LAYER44_NAME"] = f"{cls.pre_create_lambda_layers[4]}-{cls.layer_postfix}"
+        environment_variables["TF_VAR_BUCKET_NAME"] = cls.bucket_name
         return environment_variables
 
     @classmethod
