@@ -73,7 +73,6 @@ class ApplicationInsightsTemplateModifier(TemplateModifier):
         self.template[self.RESOURCES_KEY][
             self.APPLICATION_INSIGHTS_REF
         ] = ApplicationInsightsTemplateModifier.CommentedMap(appInsightsApplication)
-        LOG.info(self.template)
 
     def _print_sanity_check_error(self):
         link = "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch-application-insights.html"
