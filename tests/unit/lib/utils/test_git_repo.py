@@ -252,7 +252,8 @@ class TestGitRepo(TestCase):
 
     @patch("samcli.lib.utils.git_repo.Path.exists")
     @patch("samcli.lib.utils.git_repo.platform.system")
-    def test_clone_without_windows_longpath_exception_message(self, platform_mock, path_exist_mock):
+    @patch("samcli.lib.utils.git_repo.os.path.normpath")
+    def test_clone_without_windows_longpath_exception_message(self, normpath_mock, platform_mock, path_exist_mock):
         path_exist_mock.side_effect = OSError()
         platform_mock.return_value = "windows"
 
