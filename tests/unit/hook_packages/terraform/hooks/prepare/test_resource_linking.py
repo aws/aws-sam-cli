@@ -1203,7 +1203,7 @@ class TestResourceLinking(TestCase):
         tf_layers = Mock()
         expected_exception = (
             "AWS SAM CLI could not process a Terraform project that uses local variables to define the Lambda functions "
-            "layers. Layer(s) defined by local.layer_arn could be linked to lambda function func_full_address."
+            "layers. Layer(s) defined by local.layer_arn could not be linked to lambda function func_full_address."
             f"{os.linesep}Related issue: {LOCAL_VARIABLES_SUPPORT_ISSUE_LINK}."
         )
         with self.assertRaises(LocalVariablesLinkingLimitationException) as exc:
