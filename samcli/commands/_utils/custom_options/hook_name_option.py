@@ -1,5 +1,5 @@
 """
-Custom Click options for hook package id
+Custom Click options for hook name
 """
 
 import logging
@@ -22,8 +22,8 @@ LOG = logging.getLogger(__name__)
 
 class HookNameOption(click.Option):
     """
-    A custom option class that allows do custom validation for the SAM CLI commands options in case if hook package
-    id is passed. It also calls the correct IaC prepare hook, and update the SAM CLI commands options based on the
+    A custom option class that allows do custom validation for the SAM CLI commands options in case if hook name
+    is passed. It also calls the correct IaC prepare hook, and update the SAM CLI commands options based on the
     prepare hook output.
     """
 
@@ -47,7 +47,7 @@ class HookNameOption(click.Option):
             iac_hook_wrapper = IacHookWrapper(hook_name)
         except InvalidHookWrapperException as e:
             raise click.BadParameter(
-                f"{hook_name} is not a valid hook package id."
+                f"{hook_name} is not a valid hook name."
                 f"{os.linesep}valid package ids: {get_available_hook_packages_ids()}"
             ) from e
 
@@ -157,7 +157,7 @@ def _get_iac_support_experimental_prompt_message(hook_name: str, command: str) -
     Parameters
     ----------
     hook_name: str
-        the hook package id to determine what is the supported iac
+        the hook name to determine what is the supported iac
 
     command: str
         the current sam command

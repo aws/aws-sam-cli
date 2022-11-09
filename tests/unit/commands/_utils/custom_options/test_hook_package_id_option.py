@@ -44,7 +44,7 @@ class TestHookPackageIdOption(TestCase):
 
         self.assertEqual(
             e.exception.message,
-            f"{hook_name} is not a valid hook package id." f"{os.linesep}valid package ids: {available_hook_packages}",
+            f"{hook_name} is not a valid hook name." f"{os.linesep}valid package ids: {available_hook_packages}",
         )
 
     @patch("samcli.commands._utils.custom_options.hook_name_option.IacHookWrapper")
