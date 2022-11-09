@@ -81,7 +81,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
         stdout, _, return_code = self.run_command(local_invoke_command_list)
 
         # Get the response without the sam-cli prompts that proceed it
-        response = json.loads(stdout.decode("utf-8").split("\n")[0])
+        response = json.loads(stdout.decode("utf-8").split("\n")[-1])
         expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"hello world\\"}"}')
 
         self.assertEqual(return_code, 0)
@@ -107,7 +107,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
         stdout, _, return_code = self.run_command(local_invoke_command_list)
 
         # Get the response without the sam-cli prompts that proceed it
-        response = json.loads(stdout.decode("utf-8").split("\n")[0])
+        response = json.loads(stdout.decode("utf-8").split("\n")[-1])
         expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"hello world\\"}"}')
 
         self.assertEqual(return_code, 0)
@@ -132,7 +132,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
         stdout, _, return_code = self.run_command(local_invoke_command_list, env=environment_variables)
 
         # Get the response without the sam-cli prompts that proceed it
-        response = json.loads(stdout.decode("utf-8").split("\n")[0])
+        response = json.loads(stdout.decode("utf-8").split("\n")[-1])
         expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"hello world\\"}"}')
 
         self.assertEqual(return_code, 0)
@@ -182,7 +182,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
         self.assertNotRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
         self.assertTrue(stderr.decode("utf-8").startswith(Colored().yellow(EXPERIMENTAL_WARNING)))
 
-        response = json.loads(stdout.decode("utf-8").split("\n")[0])
+        response = json.loads(stdout.decode("utf-8").split("\n")[-1])
         expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"hello world\\"}"}')
 
         self.assertEqual(return_code, 0)
@@ -441,7 +441,7 @@ class TestInvokeTerraformApplicationWithLayersWithoutBuild(InvokeTerraformApplic
         stdout, _, return_code = self.run_command(local_invoke_command_list, env=self._add_tf_project_variables())
 
         # Get the response without the sam-cli prompts that proceed it
-        response = json.loads(stdout.decode("utf-8").split("\n")[0])
+        response = json.loads(stdout.decode("utf-8").split("\n")[-1])
 
         expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"' + expected_output + '\\"}"}')
 

@@ -88,6 +88,8 @@ def invoke_subprocess_with_loading_pattern(
 
                 if process.stdout:
                     # Logging level is DEBUG, streaming logs instead
+                    # we read from subprocess stdout to avoid the deadlock process.wait function
+                    # for more detail check this python bug https://bugs.python.org/issue1256
                     for line in process.stdout:
                         decoded_line = _check_and_process_bytes(line)
                         if LOG.getEffectiveLevel() < logging.INFO:
