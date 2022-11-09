@@ -227,7 +227,7 @@ class TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild(StartLambda
             shutil.rmtree(str(Path(cls.working_dir).joinpath(".aws-sam-iacs")))
             shutil.rmtree(str(Path(cls.working_dir).joinpath(".terraform")))
             os.remove(str(Path(cls.working_dir).joinpath(".terraform.lock.hcl")))
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
             pass
 
         # delete the function code bucket
@@ -312,7 +312,7 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(StartLambd
             shutil.rmtree(str(Path(self.working_dir).joinpath(".aws-sam-iacs")))
             shutil.rmtree(str(Path(self.working_dir).joinpath(".terraform")))
             os.remove(str(Path(self.working_dir).joinpath(".terraform.lock.hcl")))
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
             pass
 
     @pytest.mark.flaky(reruns=3)
@@ -487,7 +487,7 @@ class TestLocalStartLambdaInvalidUsecasesTerraform(StartLambdaTerraformApplicati
         # delete the samconfig file
         try:
             os.remove(samconfig_toml_path)
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
             pass
 
     def test_start_lambda_with_no_beta_feature_option_in_environment_variables(self):
