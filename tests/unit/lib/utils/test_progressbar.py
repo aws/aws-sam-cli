@@ -9,10 +9,9 @@ class TestProgressBar(TestCase):
     def test_creating_progressbar(self, click_patch):
         progressbar_mock = Mock()
         click_patch.progressbar.return_value = progressbar_mock
-        stream = Mock()
 
-        actual = progressbar(100, "this is a label", stream)
+        actual = progressbar(100, "this is a label")
 
         self.assertEqual(actual, progressbar_mock)
 
-        click_patch.progressbar.assert_called_with(length=100, label="this is a label", show_pos=True, file=stream)
+        click_patch.progressbar.assert_called_with(length=100, label="this is a label", show_pos=True)

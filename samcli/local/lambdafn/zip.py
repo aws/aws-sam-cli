@@ -9,7 +9,6 @@ import zipfile
 from pathlib import Path
 
 import requests
-from click._compat import get_text_stderr
 
 from samcli.lib.utils.progressbar import progressbar
 
@@ -170,7 +169,7 @@ def unzip_from_uri(uri, layer_zip_path, unzip_output_dir, progressbar_label):
         with open(layer_zip_path, "wb") as local_layer_file:
             file_length = int(get_request.headers["Content-length"])
 
-            with progressbar(file_length, progressbar_label, get_text_stderr()) as p_bar:
+            with progressbar(file_length, progressbar_label) as p_bar:
                 # Set the chunk size to None. Since we are streaming the request, None will allow the data to be
                 # read as it arrives in whatever size the chunks are received.
                 for data in get_request.iter_content(chunk_size=None):
