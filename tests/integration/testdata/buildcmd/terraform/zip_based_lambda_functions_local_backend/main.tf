@@ -1,5 +1,4 @@
 provider "aws" {
-    region = "us-west-1"
 }
 
 variable "HELLO_FUNCTION_SRC_CODE"{
