@@ -25,6 +25,7 @@ from samcli.lib.build.build_strategy import (
 )
 from samcli.lib.build.constants import DEPRECATED_RUNTIMES, BUILD_PROPERTIES
 from samcli.lib.build.utils import _make_env_vars
+from samcli.lib.utils.path_utils import convert_path_to_unix_path
 from samcli.lib.utils.resources import (
     AWS_CLOUDFORMATION_STACK,
     AWS_LAMBDA_FUNCTION,
@@ -771,7 +772,7 @@ class ApplicationBuilder:
                 base_dir, metadata, source_code_path, scratch_dir
             )
             if working_directory:
-                options = {**options, "working_directory": working_directory.replace("\\", "/")}
+                options = {**options, "working_directory": convert_path_to_unix_path(working_directory)}
         return options
 
     @staticmethod
