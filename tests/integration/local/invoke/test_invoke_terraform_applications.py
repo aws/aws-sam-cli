@@ -65,7 +65,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
             shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".aws-sam-iacs")))  # type: ignore
             shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".terraform")))  # type: ignore
             os.remove(str(Path(self.terraform_application_path).joinpath(".terraform.lock.hcl")))  # type: ignore
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
             pass
 
     @skipIf(
@@ -378,6 +378,8 @@ class TestInvokeTerraformApplicationWithLayersWithoutBuild(InvokeTerraformApplic
 
         # apply the terraform project
         if cls.should_apply_first:
+            init_command = ["terraform", "apply", "-auto-approve", "-input=false"]
+            stdout, _, return_code = cls.run_command(command_list=init_command, env=cls._add_tf_project_variables())
             apply_command = ["terraform", "apply", "-auto-approve", "-input=false"]
             stdout, _, return_code = cls.run_command(command_list=apply_command, env=cls._add_tf_project_variables())
 
@@ -427,7 +429,7 @@ class TestInvokeTerraformApplicationWithLayersWithoutBuild(InvokeTerraformApplic
             shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".aws-sam-iacs")))  # type: ignore
             shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".terraform")))  # type: ignore
             os.remove(str(Path(self.terraform_application_path).joinpath(".terraform.lock.hcl")))  # type: ignore
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
             pass
 
     @parameterized.expand(functions)
@@ -459,7 +461,7 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(InvokeTerr
             shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".aws-sam-iacs")))  # type: ignore
             shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".terraform")))  # type: ignore
             os.remove(str(Path(self.terraform_application_path).joinpath(".terraform.lock.hcl")))  # type: ignore
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
             pass
 
     @pytest.mark.flaky(reruns=3)
@@ -516,7 +518,7 @@ class TestInvokeTerraformApplicationWithLocalImageUri(InvokeTerraformApplication
             shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".aws-sam-iacs")))  # type: ignore
             shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".terraform")))  # type: ignore
             os.remove(str(Path(self.terraform_application_path).joinpath(".terraform.lock.hcl")))  # type: ignore
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
             pass
 
     @parameterized.expand(functions)
