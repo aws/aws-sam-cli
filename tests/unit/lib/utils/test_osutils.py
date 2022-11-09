@@ -8,7 +8,7 @@ import sys
 from unittest import TestCase
 from unittest.mock import patch, Mock
 from samcli.lib.utils import osutils
-from samcli.lib.utils.osutils import rmtree_if_exists, rmtree_callback
+from samcli.lib.utils.osutils import rmtree_if_exists
 
 
 class Test_mkdir_temp(TestCase):
