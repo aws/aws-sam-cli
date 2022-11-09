@@ -250,7 +250,7 @@ class TestGitRepo(TestCase):
         shutil_mock.copytree.assert_called_with(ANY, EXPECTED_DEFAULT_CLONE_PATH, ignore=ANY)
         shutil_mock.ignore_patterns.assert_called_with("*.git")
 
-    @patch("samcli.lib.utils.git_repo.Path.exists")
+    @patch("samcli.lib.utils.git_repo.Path")
     @patch("samcli.lib.utils.git_repo.platform.system")
     @patch("samcli.lib.utils.git_repo.os.path.normpath")
     def test_clone_without_windows_longpath_exception_message(self, normpath_mock, platform_mock, path_exist_mock):
