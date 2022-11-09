@@ -5,8 +5,8 @@ import os
 
 from samcli.commands.exceptions import UserException
 
-ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK = "<<TODO: create this issue before the release>>"
-LOCAL_VARIABLES_SUPPORT_ISSUE_LINK = "<<TODO: create this issue before the release>>"
+ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK = "https://github.com/aws/aws-sam-cli/issues/4395"
+LOCAL_VARIABLES_SUPPORT_ISSUE_LINK = "https://github.com/aws/aws-sam-cli/issues/4396"
 
 
 class InvalidResourceLinkingException(UserException):
@@ -37,7 +37,7 @@ class OneLambdaLayerLinkingLimitationException(UserException):
 class LocalVariablesLinkingLimitationException(UserException):
     fmt = (
         "AWS SAM CLI could not process a Terraform project that uses local variables to define the Lambda functions "
-        "layers. Layer(s) defined by {local_variable_reference} could be linked to lambda function {function_id}."
+        "layers. Layer(s) defined by {local_variable_reference} could not be linked to lambda function {function_id}."
         "{line_sep}Related issue: {issue_link}."
     )
 
