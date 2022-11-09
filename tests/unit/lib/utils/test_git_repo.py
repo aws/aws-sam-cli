@@ -260,7 +260,7 @@ class TestGitRepo(TestCase):
             GitRepo._persist_local_repo(MagicMock(), MagicMock(), MagicMock(), MagicMock())
 
         expected_msg = (
-            "Failed modify a local file when cloning app templates. "
+            "Failed to modify a local file when cloning app templates. "
             "MAX_PATH should be enabled in the Windows registry."
             "\nFor more details on how to enable MAX_PATH for Windows, please visit: "
             "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html"
