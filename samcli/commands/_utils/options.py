@@ -722,9 +722,8 @@ def skip_prepare_infra_click_option():
         is_flag=True,
         required=False,
         callback=skip_prepare_infra_callback,
-        help="This option should be used to skip the preparation stage if there "
-        "have not been any infrastructure changes. The --hook-name option should "
-        "also be specified when using this option.",
+        help="Use this option to skip the preparation stage if there have not been any infrastructure changes. "
+        "The --hook-name option should also be specified when skipping infrastructure preparation.",
     )
 
 
