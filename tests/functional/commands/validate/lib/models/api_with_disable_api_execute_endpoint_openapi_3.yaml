@@ -5,8 +5,9 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       StageName: prod
-      FailOnWarnings: true
-  ApiFunction: # Adds a GET api endpoint at "/" to the ApiGatewayApi via an Api event
+      OpenApiVersion: 3.0
+      DisableExecuteApiEndpoint: true
+  ApiFunction:
     Type: AWS::Serverless::Function
     Properties:
       Events:
@@ -19,6 +20,6 @@ Resources:
               Ref: ApiGatewayApi
       Runtime: python3.7
       Handler: index.handler
-      InlineCode: |
+      InlineCode: |-
         def handler(event, context):
             return {'body': 'Hello World!', 'statusCode': 200}
