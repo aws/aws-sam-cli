@@ -6,7 +6,7 @@ variable "function_name" {
   type = string
 }
 
-variable "layer_name" {
+variable "LAYER_NAME" {
   type = string
 }
 
@@ -44,5 +44,5 @@ resource "aws_lambda_function" "this" {
     timeout = 300
     function_name = var.function_name
     role = aws_iam_role.iam_for_lambda.arn
-    layers = ["arn:aws:lambda:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:layer:${var.layer_name}:1"]
+    layers = ["arn:aws:lambda:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:layer:${var.LAYER_NAME}:1"]
 }

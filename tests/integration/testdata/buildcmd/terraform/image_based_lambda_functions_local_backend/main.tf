@@ -1,6 +1,4 @@
 provider "aws" {
-    region = "us-west-1"
-    
     # Make it faster by skipping something
     skip_get_ec2_platforms      = true
     skip_metadata_api_check     = true

@@ -1,5 +1,6 @@
 import json
 import os
+import logging
 import shutil
 import time
 import uuid
@@ -19,8 +20,9 @@ from samcli.lib.utils.colors import Colored
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase, TIMEOUT
 from tests.integration.local.invoke.layer_utils import LayerUtils
 from tests.integration.local.start_lambda.start_lambda_api_integ_base import StartLambdaIntegBaseClass
-from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUNNING_ON_CI
+from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUNNING_ON_CI, RUN_BY_CANARY
 
+LOG = logging.getLogger(__name__)
 S3_SLEEP = 3
 
 
@@ -37,6 +39,8 @@ class InvokeTerraformApplicationIntegBase(InvokeIntegBase):
         process = Popen(command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE, env=env, cwd=cls.terraform_application_path)
         try:
             (stdout, stderr) = process.communicate(input=input, timeout=TIMEOUT)
+            LOG.info("sam stdout: %s", stdout.decode("utf-8"))
+            LOG.info("sam stderr: %s", stderr.decode("utf-8"))
             return stdout, stderr, process.returncode
         except TimeoutExpired:
             process.kill()
@@ -61,7 +65,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
             shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".aws-sam-iacs")))  # type: ignore
             shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".terraform")))  # type: ignore
             os.remove(str(Path(self.terraform_application_path).joinpath(".terraform.lock.hcl")))  # type: ignore
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
             pass
 
     @skipIf(
@@ -77,7 +81,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
         stdout, _, return_code = self.run_command(local_invoke_command_list)
 
         # Get the response without the sam-cli prompts that proceed it
-        response = json.loads(stdout.decode("utf-8").split("\n")[0])
+        response = json.loads(stdout.decode("utf-8").split("\n")[-1])
         expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"hello world\\"}"}')
 
         self.assertEqual(return_code, 0)
@@ -103,7 +107,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
         stdout, _, return_code = self.run_command(local_invoke_command_list)
 
         # Get the response without the sam-cli prompts that proceed it
-        response = json.loads(stdout.decode("utf-8").split("\n")[0])
+        response = json.loads(stdout.decode("utf-8").split("\n")[-1])
         expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"hello world\\"}"}')
 
         self.assertEqual(return_code, 0)
@@ -128,7 +132,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
         stdout, _, return_code = self.run_command(local_invoke_command_list, env=environment_variables)
 
         # Get the response without the sam-cli prompts that proceed it
-        response = json.loads(stdout.decode("utf-8").split("\n")[0])
+        response = json.loads(stdout.decode("utf-8").split("\n")[-1])
         expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"hello world\\"}"}')
 
         self.assertEqual(return_code, 0)
@@ -178,7 +182,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
         self.assertNotRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
         self.assertTrue(stderr.decode("utf-8").startswith(Colored().yellow(EXPERIMENTAL_WARNING)))
 
-        response = json.loads(stdout.decode("utf-8").split("\n")[0])
+        response = json.loads(stdout.decode("utf-8").split("\n")[-1])
         expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"hello world\\"}"}')
 
         self.assertEqual(return_code, 0)
@@ -217,7 +221,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
         process_stderr = stderr.strip()
         self.assertRegex(
             process_stderr.decode("utf-8"),
-            "Error: Invalid value: tf is not a valid hook package id.",
+            "Error: Invalid value: tf is not a valid hook name.",
         )
         self.assertNotEqual(return_code, 0)
 
@@ -287,7 +291,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
 
 
 @skipIf(
-    not CI_OVERRIDE,
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
 )
 @parameterized_class(
@@ -336,7 +340,7 @@ class TestInvokeTerraformApplicationWithLayersWithoutBuild(InvokeTerraformApplic
         )
         _2nd_layer_arn = cls.layerUtils.parameters_overrides[f"{cls.pre_create_lambda_layers[1]}-{cls.layer_postfix}"]
         lines = [
-            bytes('variable "input_layer" {' + os.linesep, "utf-8"),
+            bytes('variable "INPUT_LAYER" {' + os.linesep, "utf-8"),
             bytes("   type = string" + os.linesep, "utf-8"),
             bytes(f'   default="{_2nd_layer_arn}"' + os.linesep, "utf-8"),
             bytes("}", "utf-8"),
@@ -374,18 +378,20 @@ class TestInvokeTerraformApplicationWithLayersWithoutBuild(InvokeTerraformApplic
 
         # apply the terraform project
         if cls.should_apply_first:
+            init_command = ["terraform", "apply", "-auto-approve", "-input=false"]
+            stdout, _, return_code = cls.run_command(command_list=init_command, env=cls._add_tf_project_variables())
             apply_command = ["terraform", "apply", "-auto-approve", "-input=false"]
             stdout, _, return_code = cls.run_command(command_list=apply_command, env=cls._add_tf_project_variables())
 
     @classmethod
     def _add_tf_project_variables(cls):
         environment_variables = os.environ.copy()
-        environment_variables["TF_VAR_input_layer"] = cls.layerUtils.parameters_overrides[
+        environment_variables["TF_VAR_INPUT_LAYER"] = cls.layerUtils.parameters_overrides[
             f"{cls.pre_create_lambda_layers[0]}-{cls.layer_postfix}"
         ]
-        environment_variables["TF_VAR_layer_name"] = f"{cls.pre_create_lambda_layers[2]}-{cls.layer_postfix}"
-        environment_variables["TF_VAR_layer44_name"] = f"{cls.pre_create_lambda_layers[4]}-{cls.layer_postfix}"
-        environment_variables["TF_VAR_bucket_name"] = cls.bucket_name
+        environment_variables["TF_VAR_LAYER_NAME"] = f"{cls.pre_create_lambda_layers[2]}-{cls.layer_postfix}"
+        environment_variables["TF_VAR_LAYER44_NAME"] = f"{cls.pre_create_lambda_layers[4]}-{cls.layer_postfix}"
+        environment_variables["TF_VAR_BUCKET_NAME"] = cls.bucket_name
         return environment_variables
 
     @classmethod
@@ -423,7 +429,7 @@ class TestInvokeTerraformApplicationWithLayersWithoutBuild(InvokeTerraformApplic
             shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".aws-sam-iacs")))  # type: ignore
             shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".terraform")))  # type: ignore
             os.remove(str(Path(self.terraform_application_path).joinpath(".terraform.lock.hcl")))  # type: ignore
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
             pass
 
     @parameterized.expand(functions)
@@ -435,7 +441,7 @@ class TestInvokeTerraformApplicationWithLayersWithoutBuild(InvokeTerraformApplic
         stdout, _, return_code = self.run_command(local_invoke_command_list, env=self._add_tf_project_variables())
 
         # Get the response without the sam-cli prompts that proceed it
-        response = json.loads(stdout.decode("utf-8").split("\n")[0])
+        response = json.loads(stdout.decode("utf-8").split("\n")[-1])
 
         expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"' + expected_output + '\\"}"}')
 
@@ -444,7 +450,7 @@ class TestInvokeTerraformApplicationWithLayersWithoutBuild(InvokeTerraformApplic
 
 
 @skipIf(
-    not CI_OVERRIDE,
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
 )
 class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(InvokeTerraformApplicationIntegBase):
@@ -455,7 +461,7 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(InvokeTerr
             shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".aws-sam-iacs")))  # type: ignore
             shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".terraform")))  # type: ignore
             os.remove(str(Path(self.terraform_application_path).joinpath(".terraform.lock.hcl")))  # type: ignore
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
             pass
 
     @pytest.mark.flaky(reruns=3)
@@ -475,7 +481,7 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(InvokeTerr
 
 
 @skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    ((not RUN_BY_CANARY) or (IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip local invoke terraform application tests on windows when running in CI unless overridden",
 )
 class TestInvokeTerraformApplicationWithLocalImageUri(InvokeTerraformApplicationIntegBase):
@@ -512,7 +518,7 @@ class TestInvokeTerraformApplicationWithLocalImageUri(InvokeTerraformApplication
             shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".aws-sam-iacs")))  # type: ignore
             shutil.rmtree(str(Path(self.terraform_application_path).joinpath(".terraform")))  # type: ignore
             os.remove(str(Path(self.terraform_application_path).joinpath(".terraform.lock.hcl")))  # type: ignore
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
             pass
 
     @parameterized.expand(functions)

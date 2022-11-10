@@ -1,8 +1,7 @@
 provider "aws" {
-    region = "us-west-1"
 }
 
-variable "hello_function_src_code"{
+variable "HELLO_FUNCTION_SRC_CODE"{
     type = string
     default = "./artifacts/HelloWorldFunction"
 }
@@ -33,7 +32,7 @@ locals {
     lambda_code_filename = "list_books.zip"
     layer_src_path = "./my_layer_code"
     layer_code_filename = "my_layer.zip"
-    hello_world_function_src_path = var.hello_function_src_code
+    hello_world_function_src_path = var.HELLO_FUNCTION_SRC_CODE
     hello_world_artifact_file_name = "hello_world.zip"
     layer1_src_path = "./artifacts/layer1"
     layer1_artifact_file_name = "layer1.zip"
@@ -654,61 +653,6 @@ resource "aws_lambda_function" "function6" {
 }
 ## /* function6 connected to layer6
 
-# serverless.tf 3rd party module
-module "layer7" {
-  source  = "terraform-aws-modules/lambda/aws"
-  version = "4.6.0"
-  create_layer = true
-  layer_name = "lambda_layer7"
-  compatible_runtimes = ["python3.8"]
-  runtime = "python3.8"
-  source_path = {
-    path = local.layer7_src_path
-    prefix_in_zip = "python"
-    pip_requirements = true
-  }
-}
-
-module "function7" {
-  source  = "terraform-aws-modules/lambda/aws"
-  version = "4.6.0"
-  source_path = local.hello_world_function_src_path
-  timeout = 300
-  function_name = "function7"
-  handler       = "app.lambda_handler"
-  runtime       = "python3.8"
-  layers = [module.layer7.lambda_layer_arn]
-}
-
-module "layer8" {
-  source  = "terraform-aws-modules/lambda/aws"
-  version = "4.6.0"
-  create_layer = true
-  layer_name = "lambda_layer8"
-  compatible_runtimes = ["python3.8"]
-  runtime = "python3.8"
-  store_on_s3 = true
-  s3_bucket = "existing_s3_bucket"
-  source_path = {
-    path = local.layer8_src_path
-    prefix_in_zip = "python"
-    pip_requirements = true
-  }
-}
-
-module "function8" {
-  source  = "terraform-aws-modules/lambda/aws"
-  version = "4.6.0"
-  source_path = local.hello_world_function_src_path
-  function_name = "function8"
-  timeout = 300
-  handler       = "app.lambda_handler"
-  runtime       = "python3.8"
-  layers = [module.layer8.lambda_layer_arn]
-  store_on_s3 = true
-  s3_bucket = "existing_s3_bucket"
-}
-
 ## /* layer 9 - Serverless tf
 resource "null_resource" "build_layer9_version" {
     triggers = {
@@ -771,33 +715,3 @@ module "function9" {
   layers = [module.layer9.lambda_layer_arn]
 }
 ## /* function9 connected to layer9
-
-
-module "layer10" {
-  source  = "terraform-aws-modules/lambda/aws"
-  version = "4.6.0"
-  create_layer = true
-  layer_name = "lambda_layer10"
-  compatible_runtimes = ["python3.8"]
-  runtime = "python3.8"
-  store_on_s3 = true
-  s3_bucket = aws_s3_bucket.lambda_code_bucket.id
-  source_path = {
-    path = local.layer10_src_path
-    prefix_in_zip = "python"
-    pip_requirements = true
-  }
-}
-
-module "function10" {
-  source  = "terraform-aws-modules/lambda/aws"
-  version = "4.6.0"
-  source_path = local.hello_world_function_src_path
-  timeout = 300
-  function_name = "function10"
-  handler       = "app.lambda_handler"
-  runtime       = "python3.8"
-  layers = [module.layer10.lambda_layer_arn]
-  store_on_s3 = true
-  s3_bucket = aws_s3_bucket.lambda_code_bucket.id
-}

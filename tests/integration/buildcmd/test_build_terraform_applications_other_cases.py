@@ -4,14 +4,13 @@ import shutil
 from pathlib import Path
 from unittest import skipIf
 
-from parameterized import parameterized, parameterized_class
+from parameterized import parameterized
 
 from tests.integration.buildcmd.test_build_terraform_applications import (
     BuildTerraformApplicationIntegBase,
     BuildTerraformApplicationS3BackendIntegBase,
 )
-from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS
-
+from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUN_BY_CANARY
 
 LOG = logging.getLogger(__name__)
 S3_SLEEP = 3
@@ -39,7 +38,7 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
         process_stderr = stderr.strip()
         self.assertRegex(
             process_stderr.decode("utf-8"),
-            "Error: Invalid value: tf is not a valid hook package id.",
+            "Error: Invalid value: tf is not a valid hook name.",
         )
         self.assertNotEqual(return_code, 0)
 
@@ -113,7 +112,7 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
 
 
 @skipIf(
-    not CI_OVERRIDE,
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
 )
 class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(BuildTerraformApplicationIntegBase):
@@ -140,7 +139,7 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(BuildTerra
 
 
 @skipIf(
-    not CI_OVERRIDE,
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
 )
 class TestInvalidBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3BackendNoS3Config(
@@ -166,7 +165,7 @@ class TestInvalidBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backen
 
 
 @skipIf(
-    not CI_OVERRIDE,
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
 )
 class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndLocalBackend(BuildTerraformApplicationIntegBase):
@@ -206,7 +205,7 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndLocalBackend(
 
 
 @skipIf(
-    not CI_OVERRIDE,
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
 )
 class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndS3Backend(
@@ -248,7 +247,7 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndS3Backend(
 
 
 @skipIf(
-    not (CI_OVERRIDE),
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
 )
 class TestUnsupportedCases(BuildTerraformApplicationIntegBase):

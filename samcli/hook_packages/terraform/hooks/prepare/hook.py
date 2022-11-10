@@ -39,6 +39,7 @@ from samcli.lib.hook.exceptions import PrepareHookException
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import InvalidSamMetadataPropertiesException
 from samcli.lib.utils import osutils
 from samcli.lib.utils.packagetype import ZIP, IMAGE
+from samcli.lib.utils.path_utils import convert_path_to_unix_path
 from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_LAYERVERSION as CFN_AWS_LAMBDA_LAYER_VERSION,
@@ -139,15 +140,17 @@ def prepare(params: dict) -> dict:
     if skip_prepare_infra and os.path.exists(metadata_file_path):
         LOG.info("Skipping preparation stage, the metadata file already exists at %s", metadata_file_path)
     else:
-        if skip_prepare_infra:
-            LOG.info(
-                "The option to skip infrastructure preparation was provided, but we could not find "
-                "the metadata file. Preparing anyways."
+        log_msg = (
+            (
+                "The option to skip infrastructure preparation was provided, but AWS SAM CLI could not find "
+                f"the metadata file. Preparing anyways.{os.linesep}Initializing Terraform application"
             )
-
+            if skip_prepare_infra
+            else "Initializing Terraform application"
+        )
         try:
             # initialize terraform application
-            LOG.info("Initializing Terraform application")
+            LOG.info(log_msg)
             invoke_subprocess_with_loading_pattern(
                 command_args={
                     "args": ["terraform", "init", "-input=false"],
@@ -183,6 +186,8 @@ def prepare(params: dict) -> dict:
                 _update_resources_paths(cfn_dict.get("Resources"), terraform_application_dir)  # type: ignore
 
             # Add hook metadata
+            if not cfn_dict.get("Metadata"):
+                cfn_dict["Metadata"] = {}
             cfn_dict["Metadata"][HOOK_METADATA_KEY] = TERRAFORM_HOOK_METADATA
 
             # store in supplied output dir
@@ -1332,12 +1337,12 @@ def _build_makerule_python_command(
         Fully resolved Terraform show command
     """
     show_command_template = (
-        "{python_command_name} {terraform_built_artifacts_script_path} "
+        '{python_command_name} "{terraform_built_artifacts_script_path}" '
         '--expression "{jpath_string}" --directory "$(ARTIFACTS_DIR)" --target "{resource_address}"'
     )
     jpath_string = _build_jpath_string(sam_metadata_resource, resource_address)
-    terraform_built_artifacts_script_path = Path(output_dir, TERRAFORM_BUILD_SCRIPT).relative_to(
-        terraform_application_dir
+    terraform_built_artifacts_script_path = convert_path_to_unix_path(
+        str(Path(output_dir, TERRAFORM_BUILD_SCRIPT).relative_to(terraform_application_dir))
     )
     return show_command_template.format(
         python_command_name=python_command_name,
@@ -1434,7 +1439,7 @@ def _get_makefile_build_target(logical_id: str) -> str:
     str
         The formatted Makefile rule build target
     """
-    return f"build-{logical_id}:{os.linesep}"
+    return f"build-{logical_id}:\n"
 
 
 def _format_makefile_recipe(rule_string: str) -> str:
@@ -1451,7 +1456,7 @@ def _format_makefile_recipe(rule_string: str) -> str:
     str
         The formatted target rule
     """
-    return f"\t{rule_string}{os.linesep}"
+    return f"\t{rule_string}\n"
 
 
 def _translate_properties(

@@ -1,20 +1,19 @@
 provider "aws" {
-  region = "us-east-1"
 }
 
-variable "input_layer" {
+variable "INPUT_LAYER" {
     type = string
 }
 
-variable "layer_name" {
+variable "LAYER_NAME" {
     type = string
 }
 
-variable "layer44_name" {
+variable "LAYER44_NAME" {
     type = string
 }
 
-variable "bucket_name" {
+variable "BUCKET_NAME" {
     type = string
 }
 
@@ -49,7 +48,7 @@ EOF
 
 module const_layer1 {
     source = "./const_layer"
-    input_layer = var.input_layer
+    INPUT_LAYER = var.INPUT_LAYER
 }
 
 module const_layer2 {
@@ -58,7 +57,7 @@ module const_layer2 {
 
 module existing_data_layer {
   source = "./data_layer"
-  layer_name = var.layer_name
+  LAYER_NAME = var.LAYER_NAME
 }
 
 resource "aws_lambda_layer_version" "layer4" {
@@ -89,13 +88,13 @@ resource "aws_lambda_layer_version" "layer6" {
 }
 
 resource "aws_s3_object" "layer7_code" {
-  bucket = var.bucket_name
+  bucket = var.BUCKET_NAME
   key    = "layer7_code"
   source = "./artifacts/simple_layer7.zip"
 }
 
 resource "aws_lambda_layer_version" "layer7" {
-  s3_bucket = var.bucket_name
+  s3_bucket = var.BUCKET_NAME
   s3_key = "layer7_code"
   layer_name = "lambda_layer7_${random_pet.this.id}"
   compatible_runtimes = ["python3.8"]
@@ -177,13 +176,13 @@ resource "aws_lambda_function" "function6" {
 }
 
 resource "aws_s3_object" "function7_code" {
-  bucket = var.bucket_name
+  bucket = var.BUCKET_NAME
   key    = "function7_code"
   source = "./artifacts/HelloWorldFunction.zip"
 }
 
 resource "aws_lambda_function" "function7" {
-    s3_bucket = var.bucket_name
+    s3_bucket = var.BUCKET_NAME
     s3_key = "function7_code"
     handler = "app.lambda_handler"
     runtime = "python3.8"
@@ -208,7 +207,7 @@ module "layer8" {
 }
 
 resource "aws_s3_object" "layer9_code" {
-  bucket = var.bucket_name
+  bucket = var.BUCKET_NAME
   key    = "layer9_code"
   source = "./artifacts/simple_layer9.zip"
 }
@@ -219,7 +218,7 @@ module "layer9" {
   create_layer = true
   create_package = false
   s3_existing_package = {
-    bucket = var.bucket_name
+    bucket = var.BUCKET_NAME
     key = "layer9_code"
   }
   layer_name = "lambda_layer9_${random_pet.this.id}"
@@ -241,7 +240,7 @@ module "function8" {
 }
 
 resource "aws_s3_object" "function9_code" {
-  bucket = var.bucket_name
+  bucket = var.BUCKET_NAME
   key    = "function9_code"
   source = "./artifacts/HelloWorldFunction.zip"
 }
@@ -251,7 +250,7 @@ module "function9" {
   version = "4.6.0"
   create_package = false
   s3_existing_package = {
-    bucket = var.bucket_name
+    bucket = var.BUCKET_NAME
     key = "function9_code"
   }
   timeout = 300
@@ -271,5 +270,5 @@ module "function44" {
   source = "./lambda_function_with_const_layers_using_data_sources"
   source_code = "./artifacts/HelloWorldFunction.zip"
   function_name = "function44_${random_pet.this.id}"
-  layer_name = var.layer44_name
+  LAYER_NAME = var.LAYER44_NAME
 }

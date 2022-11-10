@@ -1,8 +1,7 @@
 provider "aws" {
-    region = "us-west-1"
 }
 
-variable "hello_function_src_code"{
+variable "HELLO_FUNCTION_SRC_CODE"{
     type = string
     default = "./artifacts/HelloWorldFunction"
 }
@@ -33,7 +32,7 @@ locals {
     lambda_code_filename = "list_books.zip"
     layer_src_path = "./my_layer_code"
     layer_code_filename = "my_layer.zip"
-    hello_world_function_src_path = var.hello_function_src_code
+    hello_world_function_src_path = var.HELLO_FUNCTION_SRC_CODE
     hello_world_artifact_file_name = "hello_world.zip"
     layer1_src_path = "./artifacts/layer1"
     layer1_artifact_file_name = "layer1.zip"

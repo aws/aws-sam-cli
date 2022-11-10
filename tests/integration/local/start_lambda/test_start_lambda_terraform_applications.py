@@ -23,7 +23,7 @@ from samcli.lib.utils.colors import Colored
 from tests.integration.local.common_utils import random_port
 from tests.integration.local.invoke.layer_utils import LayerUtils
 from tests.integration.local.start_lambda.start_lambda_api_integ_base import StartLambdaIntegBaseClass
-from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUNNING_ON_CI
+from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUNNING_ON_CI, RUN_BY_CANARY
 
 LOG = logging.getLogger(__name__)
 S3_SLEEP = 3
@@ -115,7 +115,7 @@ class TestLocalStartLambdaTerraformApplicationWithoutBuild(StartLambdaTerraformA
 
 
 @skipIf(
-    not CI_OVERRIDE,
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
 )
 @parameterized_class(
@@ -154,7 +154,7 @@ class TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild(StartLambda
         )
         _2nd_layer_arn = cls.layerUtils.parameters_overrides[f"{cls.pre_create_lambda_layers[1]}-{cls.layer_postfix}"]
         lines = [
-            bytes('variable "input_layer" {' + os.linesep, "utf-8"),
+            bytes('variable "INPUT_LAYER" {' + os.linesep, "utf-8"),
             bytes("   type = string" + os.linesep, "utf-8"),
             bytes(f'   default="{_2nd_layer_arn}"' + os.linesep, "utf-8"),
             bytes("}", "utf-8"),
@@ -200,12 +200,12 @@ class TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild(StartLambda
     @classmethod
     def _add_tf_project_variables(cls):
         environment_variables = os.environ.copy()
-        environment_variables["TF_VAR_input_layer"] = cls.layerUtils.parameters_overrides[
+        environment_variables["TF_VAR_INPUT_LAYER"] = cls.layerUtils.parameters_overrides[
             f"{cls.pre_create_lambda_layers[0]}-{cls.layer_postfix}"
         ]
-        environment_variables["TF_VAR_layer_name"] = f"{cls.pre_create_lambda_layers[2]}-{cls.layer_postfix}"
-        environment_variables["TF_VAR_layer44_name"] = f"{cls.pre_create_lambda_layers[4]}-{cls.layer_postfix}"
-        environment_variables["TF_VAR_bucket_name"] = cls.bucket_name
+        environment_variables["TF_VAR_LAYER_NAME"] = f"{cls.pre_create_lambda_layers[2]}-{cls.layer_postfix}"
+        environment_variables["TF_VAR_LAYER44_NAME"] = f"{cls.pre_create_lambda_layers[4]}-{cls.layer_postfix}"
+        environment_variables["TF_VAR_BUCKET_NAME"] = cls.bucket_name
         return environment_variables
 
     @classmethod
@@ -227,7 +227,7 @@ class TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild(StartLambda
             shutil.rmtree(str(Path(cls.working_dir).joinpath(".aws-sam-iacs")))
             shutil.rmtree(str(Path(cls.working_dir).joinpath(".terraform")))
             os.remove(str(Path(cls.working_dir).joinpath(".terraform.lock.hcl")))
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
             pass
 
         # delete the function code bucket
@@ -275,7 +275,7 @@ class TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild(StartLambda
 
 
 @skipIf(
-    not CI_OVERRIDE,
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
 )
 class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(StartLambdaTerraformApplicationIntegBase):
@@ -312,7 +312,7 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(StartLambd
             shutil.rmtree(str(Path(self.working_dir).joinpath(".aws-sam-iacs")))
             shutil.rmtree(str(Path(self.working_dir).joinpath(".terraform")))
             os.remove(str(Path(self.working_dir).joinpath(".terraform.lock.hcl")))
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
             pass
 
     @pytest.mark.flaky(reruns=3)
@@ -334,7 +334,7 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(StartLambd
 
 
 @skipIf(
-    not CI_OVERRIDE,
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
 )
 class TestLocalStartLambdaTerraformApplicationWithExperimentalPromptYes(StartLambdaTerraformApplicationIntegBase):
@@ -367,7 +367,7 @@ class TestLocalStartLambdaTerraformApplicationWithExperimentalPromptYes(StartLam
 
 
 @skipIf(
-    not CI_OVERRIDE,
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
 )
 class TestLocalStartLambdaTerraformApplicationWithBetaFeatures(StartLambdaTerraformApplicationIntegBase):
@@ -448,7 +448,7 @@ class TestLocalStartLambdaInvalidUsecasesTerraform(StartLambdaTerraformApplicati
         process_stderr = stderr.strip()
         self.assertRegex(
             process_stderr.decode("utf-8"),
-            "Error: Invalid value: tf is not a valid hook package id.",
+            "Error: Invalid value: tf is not a valid hook name.",
         )
         self.assertNotEqual(return_code, 0)
 
@@ -487,7 +487,7 @@ class TestLocalStartLambdaInvalidUsecasesTerraform(StartLambdaTerraformApplicati
         # delete the samconfig file
         try:
             os.remove(samconfig_toml_path)
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
             pass
 
     def test_start_lambda_with_no_beta_feature_option_in_environment_variables(self):
@@ -521,7 +521,7 @@ class TestLocalStartLambdaInvalidUsecasesTerraform(StartLambdaTerraformApplicati
 
 
 @skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    ((not RUN_BY_CANARY) or (IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip local start-lambda terraform applications tests on windows when running in CI unless overridden",
 )
 class TestLocalStartLambdaTerraformApplicationWithLocalImageUri(StartLambdaTerraformApplicationIntegBase):

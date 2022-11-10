@@ -38,7 +38,7 @@ class IacHookWrapper:
         Parameters
         ----------
         hook_name: str
-            Hook package ID
+            Hook name
         """
         self._hook_name = hook_name
         self._config = None
@@ -105,12 +105,12 @@ class IacHookWrapper:
         return cast(str, metadata_file_loc)
 
     def _load_hook_package(self, hook_name: str) -> None:
-        """Find and load hook package config with given hook package ID
+        """Find and load hook package config with given hook name
 
         Parameters
         ----------
         hook_name: str
-            Hook package ID
+            Hook name
         """
         # locate hook package from internal first
         LOG.debug("Looking for internal hook package")
@@ -185,12 +185,12 @@ def _execute_as_module(module: str, method: str, params: Optional[Dict] = None) 
 
 def get_available_hook_packages_ids() -> List[str]:
     """
-    return a list of available hook packages ids.
+    return a list of available hook names.
 
     Returns
     -------
     List
-        The available hook packages ids.
+        The available hook names.
     """
     LOG.debug("Return available internal hook packages")
     hook_packages_ids = []

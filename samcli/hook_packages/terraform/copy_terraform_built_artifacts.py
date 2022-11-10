@@ -235,9 +235,6 @@ def find_and_copy_assets(directory_path, expression, data_object):
         LOG.error(ex.message, exc_info=True)
         cli_exit()
 
-    if not isinstance(extracted_attribute_path, str):
-        LOG.error("Expected the extracted attribute to be a string")
-        cli_exit()
     extracted_attribute_path = str(extracted_attribute_path)
 
     # Construct an absolute path based on if extracted path is relative or absolute.

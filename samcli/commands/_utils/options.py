@@ -680,7 +680,7 @@ def hook_name_click_option(force_prepare=True, invalid_coexist_options=None):
             required=False,
             help=f"The id of the hook package to be used to extend the SAM CLI commands functionality. As an example, "
             f"you can use `terraform` to extend SAM CLI commands functionality to support terraform applications. "
-            f"Available Hook Packages Ids {get_available_hook_packages_ids()}",
+            f"Available Hook Names {get_available_hook_packages_ids()}",
         )(f)
 
     def hook_name_processer_wrapper(f):
