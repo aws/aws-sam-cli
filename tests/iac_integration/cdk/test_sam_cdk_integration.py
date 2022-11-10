@@ -111,6 +111,16 @@ class TestSamCdkIntegration(TestCase):
             ("/restapis/normal/functionGoRuntime", "Hello World from function construct with go runtime"),
             ("/restapis/normal/dockerImageFunction", "Hello World from docker image function construct"),
             ("/restapis/normal/functionImageAsset", "Hello World from function construct with image asset"),
+            (
+                "/restapis/normal/dockerImageFunctionWithSharedCode",
+                "Hello World from docker image function construct "
+                "with a Dockerfile that shares code with another Dockerfile",
+            ),
+            (
+                "/restapis/normal/functionImageAssetWithSharedCode",
+                "Hello World from function construct with image asset "
+                "with a Dockerfile that shares code with another Dockerfile",
+            ),
         ]
     )
     @pytest.mark.flaky(reruns=3)
