@@ -6,6 +6,11 @@ clone_folder: C:\source
 
 configuration:
   - BuildIntegTesting
+  - LocalZipTerraformBuildIntegTesting
+  - LocalZipTerraformBuildInContainerIntegTesting
+  - S3ZipTerraformBuildIntegTesting
+  - S3ZipTerraformBuildInContainerIntegTesting
+  - OtherTerraformBuildIntegTesting
   - DeployIntegTesting
   - PackageIntegTesting
   - DeleteIntegTesting
@@ -60,6 +65,10 @@ install:
   - "python --version"
   - "docker info"
 
+  # install Terraform CLI
+  - "choco install terraform"
+  - "terraform -version"
+
   # Upgrade setuptools, wheel and virtualenv
   - "python -m pip install --upgrade setuptools wheel virtualenv"
 
@@ -110,10 +119,7 @@ install:
   # Echo final Path
   - "echo %PATH%"
 
-  - ps: "
-      If (Test-Path env:BY_CANARY){
-      echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
-      }"
+  - "IF DEFINED BY_CANARY ECHO Logging in Public ECR && aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws"
 
 # Final clean up no matter success or failure
 on_finish:
@@ -137,7 +143,67 @@ for:
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
-      - ps: "pytest -vv tests/integration/buildcmd --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      - ps: "pytest -vv tests/integration/buildcmd --ignore tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+  # Local ZIP  Terraform Build integ testing
+  - matrix:
+      only:
+        - configuration: LocalZipTerraformBuildIntegTesting
+
+    test_script:
+      # Reactivate virtualenv before running tests
+      - "git --version"
+      - "venv\\Scripts\\activate"
+      - "docker system prune -a -f"
+      - ps: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend_0 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+  # Local ZIP  Terraform Build In Container  integ testing
+  - matrix:
+      only:
+        - configuration: LocalZipTerraformBuildInContainerIntegTesting
+
+    test_script:
+      # Reactivate virtualenv before running tests
+      - "git --version"
+      - "venv\\Scripts\\activate"
+      - "docker system prune -a -f"
+      - ps: "pytest -vv tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend_1 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+  # S3 ZIP  Terraform Build integ testing
+  - matrix:
+      only:
+        - configuration: S3ZipTerraformBuildIntegTesting
+
+    test_script:
+      # Reactivate virtualenv before running tests
+      - "git --version"
+      - "venv\\Scripts\\activate"
+      - "docker system prune -a -f"
+      - ps: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend_0 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+  # S3 ZIP  Terraform Build In Container integ testing
+  - matrix:
+      only:
+        - configuration: S3ZipTerraformBuildInContainerIntegTesting
+
+    test_script:
+      # Reactivate virtualenv before running tests
+      - "git --version"
+      - "venv\\Scripts\\activate"
+      - "docker system prune -a -f"
+      - ps: "pytest -vv tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend_1 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+  # Other Terraform Build integ testing
+  - matrix:
+      only:
+        - configuration: OtherTerraformBuildIntegTesting
+
+    test_script:
+      # Reactivate virtualenv before running tests
+      - "git --version"
+      - "venv\\Scripts\\activate"
+      - "docker system prune -a -f"
+      - ps: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
   #Integ testing deploy
   - matrix:

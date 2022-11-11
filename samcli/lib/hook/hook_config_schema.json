@@ -1,0 +1,79 @@
+{
+    "description": "JSON Schema for a Hook Config.json",
+    "type": "object",
+    "required": ["hook_name", "hook_use_case", "hook_specification", "version", "functionalities"],
+    "$defs": {
+        "functionality": {
+            "type": "object",
+            "required": ["entry_method"],
+            "properties": {
+                "entry_method": { "$ref": "#/$defs/entry_method" }
+            }
+        },
+        "entry_method": {
+            "type": "object",
+            "required": ["module", "method"],
+            "properties": {
+                "module": {
+                    "type": "string"
+                },
+                "method": {
+                    "type": "string"
+                }
+            }
+        },
+        "parameter": {
+            "type": "object",
+            "required": ["long_name", "short_name", "description", "mandatory", "type"],
+            "properties": {
+                "long_name": {
+                    "type": "string"
+                },
+                "short_name": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "mandatory": {
+                    "type": "boolean"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": ["array", "text"]
+                }
+            }
+        }
+    },
+    "properties": {
+        "hook_name": {
+            "type": "string"
+        },
+        "hook_use_case": {
+            "type": "string",
+            "enum": ["IaC"]
+        },
+        "hook_specification": {
+            "type": "string",
+            "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
+        },
+        "description": {
+            "type": "string"
+        },
+        "iac_framework": {
+            "type": "string",
+            "enum": ["Terraform"]
+        },
+        "version": {
+            "type": "string",
+            "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
+        },
+        "functionalities": {
+            "type": "object",
+            "required": ["prepare"],
+            "properties": {
+                "prepare": { "$ref": "#/$defs/functionality" }
+            }
+        }
+    }
+}
