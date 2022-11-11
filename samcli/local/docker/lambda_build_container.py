@@ -48,7 +48,7 @@ class LambdaBuildContainer(Container):
 
         source_dir = str(pathlib.Path(source_dir).resolve())
 
-        container_dirs = LambdaBuildContainer._get_container_dirs(source_dir, manifest_dir)
+        container_dirs = LambdaBuildContainer.get_container_dirs(source_dir, manifest_dir)
         env_vars = env_vars if env_vars else {}
 
         # `executable_search_paths` are provided as a list of paths on the host file system that needs to passed to
@@ -161,7 +161,7 @@ class LambdaBuildContainer(Container):
         return [LambdaBuildContainer._BUILDERS_EXECUTABLE, request_json]
 
     @staticmethod
-    def _get_container_dirs(source_dir, manifest_dir):
+    def get_container_dirs(source_dir, manifest_dir):
         """
         Provides paths to directories within the container that is required by the builder
 
