@@ -950,7 +950,6 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
     EXPECTED_FILES_PROJECT_MANIFEST = {
         "Amazon.Lambda.APIGatewayEvents.dll",
-        "HelloWorld.pdb",
         "Amazon.Lambda.Core.dll",
         "HelloWorld.runtimeconfig.json",
         "Amazon.Lambda.Serialization.Json.dll",
@@ -959,12 +958,17 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         "HelloWorld.dll",
     }
 
+    EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED = {
+        "bootstrap",
+    }
+
     @parameterized.expand(
         [
             ("dotnetcore3.1", "Dotnetcore3.1", None),
             ("dotnet6", "Dotnet6", None),
             ("dotnetcore3.1", "Dotnetcore3.1", "debug"),
             ("dotnet6", "Dotnet6", "debug"),
+            ("provided", "Dotnet7", None),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -975,6 +979,10 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
             "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler",
             "Architectures": architecture,
         }
+
+        if runtime == "provided":
+            self.template_path = self.template_path.replace("template.yaml", "template_build_method_dotnet_7.yaml")
+
         cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
@@ -987,7 +995,11 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         run_command(cmdlist, cwd=self.working_dir, env=newenv)
 
         self._verify_built_artifact(
-            self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
+            self.default_build_dir,
+            self.FUNCTION_LOGICAL_ID,
+            self.EXPECTED_FILES_PROJECT_MANIFEST
+            if runtime != "provided"
+            else self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED,
         )
 
         self._verify_resource_property(
