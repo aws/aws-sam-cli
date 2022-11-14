@@ -18,7 +18,7 @@ class TestLambdaBuildContainer_init(TestCase):
     @patch.object(LambdaBuildContainer, "_make_request")
     @patch.object(LambdaBuildContainer, "_get_image")
     @patch.object(LambdaBuildContainer, "_get_entrypoint")
-    @patch.object(LambdaBuildContainer, "_get_container_dirs")
+    @patch.object(LambdaBuildContainer, "get_container_dirs")
     def test_must_init_class(self, get_container_dirs_mock, get_entrypoint_mock, get_image_mock, make_request_mock):
 
         request = make_request_mock.return_value = "somerequest"
@@ -136,7 +136,7 @@ class TestLambdaBuildContainer_get_container_dirs(TestCase):
         source_dir = "source"
         manifest_dir = "manifest"
 
-        result = LambdaBuildContainer._get_container_dirs(source_dir, manifest_dir)
+        result = LambdaBuildContainer.get_container_dirs(source_dir, manifest_dir)
 
         self.assertEqual(
             result,
@@ -152,7 +152,7 @@ class TestLambdaBuildContainer_get_container_dirs(TestCase):
         source_dir = "/home/source"
         manifest_dir = "/home/source"
 
-        result = LambdaBuildContainer._get_container_dirs(source_dir, manifest_dir)
+        result = LambdaBuildContainer.get_container_dirs(source_dir, manifest_dir)
 
         self.assertEqual(
             result,

@@ -23,9 +23,11 @@ from samcli.commands._utils.options import (
     s3_prefix_option,
     kms_key_id_option,
     role_arn_option,
+)
+from samcli.commands._utils.constants import (
     DEFAULT_BUILD_DIR,
-    DEFAULT_CACHE_DIR,
     DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
+    DEFAULT_CACHE_DIR,
 )
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.commands._utils.click_mutex import ClickMutex
