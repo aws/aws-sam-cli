@@ -24,6 +24,7 @@ from tests.testing_utils import (
     SKIP_DOCKER_TESTS,
     SKIP_DOCKER_BUILD,
     SKIP_DOCKER_MESSAGE,
+    run_command_with_input,
 )
 from .build_integ_base import (
     BuildIntegBase,
@@ -1458,6 +1459,34 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture(BuildIntegP
     @pytest.mark.flaky(reruns=3)
     def test_building_Makefile(self, runtime, use_container, manifest, architecture):
         self._test_with_Makefile(runtime, use_container, manifest, architecture)
+
+
+@parameterized_class(
+    ("template", "code_uri", "is_nested_parent"),
+    [
+        ("custom_build_with_custom_root_project_path.yaml", "empty_src_code", False),
+        ("custom_build_with_custom_make_file_path.yaml", "provided_src_code_without_makefile", False),
+        ("custom_build_with_custom_working_dir.yaml", "custom_working_dir_src_code", False),
+        ("custom_build_with_custom_root_project_path_and_custom_makefile_path.yaml", "empty_src_code", False),
+        (
+            "custom_build_with_custom_root_project_path_custom_makefile_path_and_custom_working_dir.yaml",
+            "empty_src_code",
+            False,
+        ),
+    ],
+)
+class TestBuildCommand_ProvidedFunctionsWithCustomMetadata(BuildIntegProvidedBase):
+    # Test Suite for runtime: provided and where selection of the build workflow is implicitly makefile builder
+    # if the makefile is present.
+    @parameterized.expand(
+        [
+            ("provided", False, None),
+            ("provided.al2", False, None),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_building_Makefile(self, runtime, use_container, manifest):
+        self._test_with_Makefile(runtime, use_container, manifest)
 
 
 @skipIf(

@@ -1,7 +1,6 @@
 """
-Set of Deprecated Runtimes for AWS Lambda
+build constants
 """
-
 from typing import Set
 
 DEPRECATED_RUNTIMES: Set[str] = {
@@ -14,3 +13,4 @@ DEPRECATED_RUNTIMES: Set[str] = {
     "python2.7",
     "ruby2.5",
 }
+BUILD_PROPERTIES = "BuildProperties"
