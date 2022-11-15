@@ -999,7 +999,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
             self.default_build_dir,
             self.FUNCTION_LOGICAL_ID,
             self.EXPECTED_FILES_PROJECT_MANIFEST
-            if runtime != "provided"
+            if runtime != "provided.al2"
             else self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED,
         )
 
