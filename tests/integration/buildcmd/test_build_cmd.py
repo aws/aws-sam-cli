@@ -969,7 +969,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
             ("dotnet6", "Dotnet6", None),
             ("dotnetcore3.1", "Dotnetcore3.1", "debug"),
             ("dotnet6", "Dotnet6", "debug"),
-            ("provided", "Dotnet7", None),
+            ("provided.al2", "Dotnet7", None),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -981,7 +981,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
             "Architectures": architecture,
         }
 
-        if runtime == "provided":
+        if runtime == "provided.al2":
             self.template_path = self.template_path.replace("template.yaml", "template_build_method_dotnet_7.yaml")
 
         cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
