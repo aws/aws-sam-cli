@@ -51,7 +51,7 @@ class Test_get_workflow_config(TestCase):
         self.assertEqual(len(EventTracker.get_tracked_events()), 1)
         self.assertIn(Event("BuildWorkflowUsed", "provided-None"), EventTracker.get_tracked_events())
 
-    @parameterized.expand([("provided",)])
+    @parameterized.expand([("provided.al2",)])
     def test_must_work_for_provided_with_build_method_dotnet7(self, runtime):
         result = get_workflow_config(runtime, self.code_dir, self.project_dir, specified_workflow="dotnet7")
         self.assertEqual(result.language, "dotnet")
