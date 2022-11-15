@@ -11,7 +11,7 @@
   "profile":"",
   "region" : "",
   "configuration": "Release",
-  "function-runtime":"provided",
+  "function-runtime":"provided.al2",
   "function-memory-size" : 256,
   "function-timeout" : 30,
   "function-handler" : "HelloWorld::HelloWorld.Function::FunctionHandler"
