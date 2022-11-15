@@ -8,6 +8,8 @@ import samcli
 from unittest import TestCase
 from unittest.mock import patch, Mock, ANY, call
 
+import pytest
+
 from samcli.lib.hook.exceptions import InvalidHookPackageConfigException
 from samcli.lib.hook.hook_config import HookPackageConfig
 from samcli.lib.iac.plugins_interfaces import ProjectTypes
@@ -213,6 +215,7 @@ class TestTrackCommand(TestCase):
         assert metric.get_metric_name() == "commandRun"
         self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
 
+    @pytest.mark.flaky(reruns=3)
     @patch("samcli.lib.telemetry.metric.Context")
     def test_must_record_function_duration(self, ContextMock):
         ContextMock.get_current_context.return_value = self.context_mock
