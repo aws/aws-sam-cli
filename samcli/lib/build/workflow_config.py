@@ -140,7 +140,10 @@ def get_workflow_config(
         namedtuple that represents the Builder Workflow Config
     """
 
-    selectors_by_build_method = {"makefile": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG)}
+    selectors_by_build_method = {
+        "makefile": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG),
+        "dotnet7": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
+    }
 
     selectors_by_runtime = {
         "python3.6": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
