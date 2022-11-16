@@ -12,14 +12,14 @@ attrs==20.3.0 \
     --hash=sha256:31b2eced602aa8423c2aea9c76a724617ed67cf9513173fd3a4f03e3a929c7e6 \
     --hash=sha256:832aa3cde19744e49938b91fea06d69ecb9e649c93ba974535d08ad92164f700
     # via jsonschema
-aws-lambda-builders==1.20.0 \
-    --hash=sha256:71b8b2870e735a2e2ac0e59e84295aa967bc8bdb36515feec539b10df2314549 \
-    --hash=sha256:7c78b9f81a75fae4af3cb958dc0b3b268c12ebe16c3aa5cfd93dcd0c05cefd23
+aws-lambda-builders==1.22.0 \
+    --hash=sha256:0336c9f31a704c2ad87c5e6506c79146f9e1734cadf4432f484eafcf1ed4845f \
+    --hash=sha256:502516153009a53450b7621678f2f8efd1c4bdec2142c21738f3accb82db266e
     # via aws-sam-cli (setup.py)
-aws-sam-translator==1.53.0 \
-    --hash=sha256:392ed4f5fb08f72cb68a8800f0bc278d2a3b6609bd1ac66bfcdeaaa94cdc18e5 \
-    --hash=sha256:84d780ad82f1a176e2f5d4c397749d1e71214cc97ee7cccd50f823fd7c7e7cdf \
-    --hash=sha256:85252646cf123642d08442137b60445e69e30bfd2f8b663b1202b20ab3782b10
+aws-sam-translator==1.54.0 \
+    --hash=sha256:10d6771ebbe9107a0ddb756ccffd68ba81d885ef2eace80358a098566e6abaf1 \
+    --hash=sha256:1bb4abb197e6de3f935425e65f67d14f47eb620d984e9de963b666cc9deb66e4 \
+    --hash=sha256:a3ae79f1f2d430f5ade4d245165d5612414233f540b471d170f1aab95c3713a6
     # via aws-sam-cli (setup.py)
 backports-zoneinfo==0.2.1 \
     --hash=sha256:17746bd546106fa389c51dbea67c8b7c8f0d14b5526a579ca6ccf5ed72c526cf \
@@ -447,7 +447,9 @@ websocket-client==0.58.0 \
 werkzeug==2.0.3 \
     --hash=sha256:1421ebfc7648a39a5c58c601b154165d05cf47a3cd0ccb70857cbdacf6c8f2b8 \
     --hash=sha256:b863f8ff057c522164b6067c9e28b041161b4be5ba4d0daceeaa50a163822d3c
-    # via flask
+    # via
+    #   aws-sam-cli (setup.py)
+    #   flask
 wheel==0.36.2 \
     --hash=sha256:78b5b185f0e5763c26ca1e324373aadd49182ca90e825f7853f4b2509215dc0e \
     --hash=sha256:e11eefd162658ea59a60a0f6c7d493a7190ea4b9a85e335b33489d9f17e0245e

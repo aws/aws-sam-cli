@@ -24,6 +24,7 @@ from tests.testing_utils import (
     SKIP_DOCKER_TESTS,
     SKIP_DOCKER_BUILD,
     SKIP_DOCKER_MESSAGE,
+    run_command_with_input,
 )
 from .build_integ_base import (
     BuildIntegBase,
@@ -86,6 +87,34 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
             self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
         )
 
+    @parameterized.expand([("3.6", False), ("3.7", False), ("3.8", False), ("3.9", False)])
+    @pytest.mark.flaky(reruns=3)
+    def test_with_dockerfile_extension(self, runtime, use_container):
+        _tag = f"{random.randint(1,100)}"
+        overrides = {
+            "Runtime": runtime,
+            "Handler": "main.handler",
+            "DockerFile": "Dockerfile.production",
+            "Tag": _tag,
+        }
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+
+        LOG.info("Running Command: ")
+        LOG.info(cmdlist)
+        run_command(cmdlist, cwd=self.working_dir)
+
+        self._verify_image_build_artifact(
+            self.built_template,
+            self.FUNCTION_LOGICAL_ID_IMAGE,
+            "ImageUri",
+            f"{self.FUNCTION_LOGICAL_ID_IMAGE.lower()}:{_tag}",
+        )
+
+        expected = {"pi": "3.14"}
+        self._verify_invoke_built_function(
+            self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
+        )
+
     @pytest.mark.flaky(reruns=3)
     def test_intermediate_container_deleted(self):
         _tag = f"{random.randint(1, 100)}"
@@ -112,6 +141,90 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
         )
 
         expected = {"pi": "3.14"}
+        self._verify_invoke_built_function(
+            self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
+        )
+
+        self.assertEqual(
+            _num_of_containers_before_build, _num_of_containers_after_build, "Intermediate containers are not removed"
+        )
+
+
+@skipIf(
+    # Hits public ECR pull limitation, move it to canary tests
+    ((not RUN_BY_CANARY) or (IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
+    template = "template_images_with_shared_code.yaml"
+
+    EXPECTED_FILES_PROJECT_MANIFEST: Set[str] = set()
+
+    FUNCTION_LOGICAL_ID_IMAGE = "ImageFunction"
+
+    @parameterized.expand(
+        [
+            *[(runtime, "feature_phi/Dockerfile", {"phi": "1.62"}) for runtime in ["3.6", "3.7", "3.8", "3.9"]],
+            *[(runtime, "feature_pi/Dockerfile", {"pi": "3.14"}) for runtime in ["3.6", "3.7", "3.8", "3.9"]],
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_with_default_requirements(self, runtime, dockerfile, expected):
+        _tag = f"{random.randint(1, 100)}"
+        overrides = {
+            "Runtime": runtime,
+            "Handler": "main.handler",
+            "DockerFile": dockerfile,
+            "Tag": _tag,
+        }
+        cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
+
+        LOG.info("Running Command: ")
+        LOG.info(cmdlist)
+        run_command(cmdlist, cwd=self.working_dir)
+
+        self._verify_image_build_artifact(
+            self.built_template,
+            self.FUNCTION_LOGICAL_ID_IMAGE,
+            "ImageUri",
+            f"{self.FUNCTION_LOGICAL_ID_IMAGE.lower()}:{_tag}",
+        )
+
+        self._verify_invoke_built_function(
+            self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
+        )
+
+    @parameterized.expand(
+        [
+            ("feature_phi/Dockerfile", {"phi": "1.62"}),
+            ("feature_pi/Dockerfile", {"pi": "3.14"}),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_intermediate_container_deleted(self, dockerfile, expected):
+        _tag = f"{random.randint(1, 100)}"
+        overrides = {
+            "Runtime": "3.9",
+            "Handler": "main.handler",
+            "DockerFile": dockerfile,
+            "Tag": _tag,
+        }
+        cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
+
+        LOG.info("Running Command: ")
+        LOG.info(cmdlist)
+
+        _num_of_containers_before_build = self.get_number_of_created_containers()
+        run_command(cmdlist, cwd=self.working_dir)
+        _num_of_containers_after_build = self.get_number_of_created_containers()
+
+        self._verify_image_build_artifact(
+            self.built_template,
+            self.FUNCTION_LOGICAL_ID_IMAGE,
+            "ImageUri",
+            f"{self.FUNCTION_LOGICAL_ID_IMAGE.lower()}:{_tag}",
+        )
+
         self._verify_invoke_built_function(
             self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
         )
@@ -852,7 +965,6 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
     EXPECTED_FILES_PROJECT_MANIFEST = {
         "Amazon.Lambda.APIGatewayEvents.dll",
-        "HelloWorld.pdb",
         "Amazon.Lambda.Core.dll",
         "HelloWorld.runtimeconfig.json",
         "Amazon.Lambda.Serialization.Json.dll",
@@ -861,12 +973,17 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         "HelloWorld.dll",
     }
 
+    EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED = {
+        "bootstrap",
+    }
+
     @parameterized.expand(
         [
             ("dotnetcore3.1", "Dotnetcore3.1", None),
             ("dotnet6", "Dotnet6", None),
             ("dotnetcore3.1", "Dotnetcore3.1", "debug"),
             ("dotnet6", "Dotnet6", "debug"),
+            ("provided.al2", "Dotnet7", None),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -877,6 +994,10 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
             "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler",
             "Architectures": architecture,
         }
+
+        if runtime == "provided.al2":
+            self.template_path = self.template_path.replace("template.yaml", "template_build_method_dotnet_7.yaml")
+
         cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
@@ -889,7 +1010,11 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         run_command(cmdlist, cwd=self.working_dir, env=newenv)
 
         self._verify_built_artifact(
-            self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
+            self.default_build_dir,
+            self.FUNCTION_LOGICAL_ID,
+            self.EXPECTED_FILES_PROJECT_MANIFEST
+            if runtime != "provided.al2"
+            else self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED,
         )
 
         self._verify_resource_property(
@@ -1348,6 +1473,34 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture(BuildIntegP
     @pytest.mark.flaky(reruns=3)
     def test_building_Makefile(self, runtime, use_container, manifest, architecture):
         self._test_with_Makefile(runtime, use_container, manifest, architecture)
+
+
+@parameterized_class(
+    ("template", "code_uri", "is_nested_parent"),
+    [
+        ("custom_build_with_custom_root_project_path.yaml", "empty_src_code", False),
+        ("custom_build_with_custom_make_file_path.yaml", "provided_src_code_without_makefile", False),
+        ("custom_build_with_custom_working_dir.yaml", "custom_working_dir_src_code", False),
+        ("custom_build_with_custom_root_project_path_and_custom_makefile_path.yaml", "empty_src_code", False),
+        (
+            "custom_build_with_custom_root_project_path_custom_makefile_path_and_custom_working_dir.yaml",
+            "empty_src_code",
+            False,
+        ),
+    ],
+)
+class TestBuildCommand_ProvidedFunctionsWithCustomMetadata(BuildIntegProvidedBase):
+    # Test Suite for runtime: provided and where selection of the build workflow is implicitly makefile builder
+    # if the makefile is present.
+    @parameterized.expand(
+        [
+            ("provided", False, None),
+            ("provided.al2", False, None),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_building_Makefile(self, runtime, use_container, manifest):
+        self._test_with_Makefile(runtime, use_container, manifest)
 
 
 @skipIf(

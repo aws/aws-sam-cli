@@ -7,6 +7,7 @@ from datetime import datetime
 
 from unittest import TestCase
 from unittest.mock import patch, MagicMock
+from parameterized import parameterized
 
 import click
 import pytest
@@ -17,11 +18,12 @@ from samcli.commands._utils.options import (
     _TEMPLATE_OPTION_DEFAULT_VALUE,
     guided_deploy_stack_name,
     artifact_callback,
-    parameterized_option,
     resolve_s3_callback,
     image_repositories_callback,
     _space_separated_list_func_type,
+    skip_prepare_infra_callback,
 )
+from samcli.commands._utils.parameterized_option import parameterized_option
 from samcli.commands.package.exceptions import PackageResolveS3AndS3SetError, PackageResolveS3AndS3NotSetError
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from tests.unit.cli.test_cli_config_file import MockContext
@@ -494,3 +496,34 @@ class TestParameterizedOption(TestCase):
 
     def test_option_dec_without_value(self):
         self.assertEqual(TestParameterizedOption.some_function_without_value(), 4)
+
+
+class TestSkipPrepareInfraOption(TestCase):
+    @parameterized.expand(
+        [
+            ({}, {"hook_name": "test"}, True),
+            ({"hook_name": "test"}, {}, True),
+            ({"skip_prepare_infra": True}, {"hook_name": "test"}, False),
+            ({"skip_prepare_infra": True, "hook_name": "test"}, {}, False),
+        ]
+    )
+    def test_skip_with_hook_package(self, default_map, params, provided_value):
+        ctx_mock = Mock()
+        ctx_mock.default_map = default_map
+        ctx_mock.params = params
+
+        skip_prepare_infra_callback(ctx_mock, Mock(), provided_value)
+
+    def test_skip_without_hook_package(self):
+        ctx_mock = Mock()
+        ctx_mock.command = Mock()
+        ctx_mock.default_map = {}
+        ctx_mock.params = {}
+
+        param_mock = Mock()
+        param_mock.name = "test"
+
+        with self.assertRaises(click.BadOptionUsage) as ex:
+            skip_prepare_infra_callback(ctx_mock, param_mock, True)
+
+        self.assertEqual(str(ex.exception), "Missing option --hook-name")
