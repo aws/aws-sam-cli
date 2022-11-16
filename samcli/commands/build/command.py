@@ -44,7 +44,7 @@ Supported Resource Types
 Supported Runtimes
 ------------------
 1. Python 3.6, 3.7, 3.8 3.9 using PIP\n
-2. Nodejs 16.x, 14.x, 12.x using NPM\n
+2. Nodejs 18.x, 16.x, 14.x, 12.x using NPM\n
 3. Ruby 2.7 using Bundler\n
 4. Java 8, Java 11 using Gradle and Maven\n
 5. Dotnetcore3.1, Dotnet6 using Dotnet CLI (without --use-container flag)\n
@@ -115,9 +115,9 @@ $ sam build MyFunction
     required=False,
     help="Container image URIs for building functions/layers. "
     "You can specify for all functions/layers with just the image URI "
-    "(--build-image public.ecr.aws/sam/build-nodejs14.x:latest). "
+    "(--build-image public.ecr.aws/sam/build-nodejs18.x:latest). "
     "You can specify for each individual function with "
-    "(--build-image FunctionLogicalID=public.ecr.aws/sam/build-nodejs14.x:latest). "
+    "(--build-image FunctionLogicalID=public.ecr.aws/sam/build-nodejs18.x:latest). "
     "A combination of the two can be used. If a function does not have build image specified or "
     "an image URI for all functions, the default SAM CLI build images will be used.",
     cls=ContainerOptions,
