@@ -72,8 +72,8 @@ class LocalApiService:
         LOG.info(
             "You can now browse to the above endpoints to invoke your functions. "
             "You do not need to restart/reload SAM CLI while working on your functions, "
-            "changes will be reflected instantly/automatically (note: you will need to build "
-            "code every time source or dependencies change). You only need to restart "
+            "changes will be reflected instantly/automatically (note: you will still need to "
+            "build code every time source or dependencies change). You only need to restart "
             "SAM CLI if you update your AWS SAM template"
         )
 
