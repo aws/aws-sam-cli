@@ -573,9 +573,7 @@ class TestBuildCommand_EsbuildFunctionProperties(BuildIntegEsbuildBase):
         ]
     )
     @pytest.mark.flaky(reruns=3)
-    def test_environment_generates_sourcemap(
-        self, runtime, code_uri, handler, architecture
-    ):
+    def test_environment_generates_sourcemap(self, runtime, code_uri, handler, architecture):
         overrides = {
             "runtime": runtime,
             "code_uri": code_uri,
