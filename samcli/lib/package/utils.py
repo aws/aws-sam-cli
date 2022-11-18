@@ -242,24 +242,32 @@ def make_zip(file_name, source_root):
                 for filename in files:
                     full_path = os.path.join(root, filename)
                     relative_path = os.path.relpath(full_path, source_root)
-                    if platform.system().lower() == "windows":
-                        with open(full_path, "rb") as data:
-                            file_bytes = data.read()
-                            info = zipfile.ZipInfo(relative_path)
-                            # Clear external attr set for Windows
-                            info.external_attr = 0
-                            # Set external attr with Unix 0755 permission
-                            # Originally set to 0005 in the discussion below
-                            # https://github.com/aws/aws-sam-cli/pull/2193#discussion_r513110608
-                            # Changed to 0755 due to a regression in https://github.com/aws/aws-sam-cli/issues/2344
-                            # Mimicking Unix permission bits and recommanded permission bits
-                            # in the Lambda Trouble Shooting Docs
-                            info.external_attr = 0o100755 << 16
-                            # Set host OS to Unix
-                            info.create_system = 3
-                            zf.writestr(info, file_bytes, compress_type=compression_type)
-                    else:
-                        zf.write(full_path, relative_path)
+                    # NOTE(sriram-mv): Keeping windows check AS-IS and setting permissions to 755,
+                    # since changing it overall would mean a regression in the file permissions.
+                    # This should be done after DUE DELIBERATION. Ideally there should only
+                    # be ONE way to zip up contents regardless of the OS.
+                    with open(full_path, "rb") as data:
+                        file_bytes = data.read()
+                        info = zipfile.ZipInfo(relative_path)
+                        # Clear external attr set for Windows
+                        info.external_attr = 0
+                        # Context: Nov 2020
+                        # Set external attr with Unix 0755 permission
+                        # Originally set to 0005 in the discussion below
+                        # https://github.com/aws/aws-sam-cli/pull/2193#discussion_r513110608
+                        # Changed to 0755 due to a regression in https://github.com/aws/aws-sam-cli/issues/2344
+                        # Final PR: https://github.com/aws/aws-sam-cli/pull/2356/files
+                        # -----------------------------
+                        # Context: Nov 2022
+                        # NOTE(sriram-mv): Modify permissions regardless of the Operating system, since
+                        # AWS Lambda requires following permissions as referenced in docs:
+                        # https://aws.amazon.com/premiumsupport/knowledge-center/lambda-deployment-package-errors/
+                        # -----------------------------
+                        info.external_attr = 0o100755 << 16 if platform.system().lower() == "windows" \
+                            else 0o100755 << 16 if info.is_dir() else 0o100644 << 16
+                        # Set host OS to Unix
+                        info.create_system = 3
+                        zf.writestr(info, file_bytes, compress_type=compression_type)
 
     return zipfile_name
 
