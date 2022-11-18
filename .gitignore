@@ -409,6 +409,8 @@ tests/integration/testdata/buildcmd/Dotnetcore3.1/bin
 tests/integration/testdata/buildcmd/Dotnetcore3.1/obj
 tests/integration/testdata/buildcmd/Dotnet6/bin
 tests/integration/testdata/buildcmd/Dotnet6/obj
+tests/integration/testdata/buildcmd/Dotnet7/bin
+tests/integration/testdata/buildcmd/Dotnet7/obj
 tests/integration/testdata/invoke/credential_tests/inprocess/dotnet/STS/obj
 
 # End of https://www.gitignore.io/api/osx,node,macos,linux,python,windows,pycharm,intellij,sublimetext,visualstudiocode
