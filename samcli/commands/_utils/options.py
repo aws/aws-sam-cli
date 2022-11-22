@@ -5,11 +5,18 @@ Common CLI options shared by various commands
 import os
 import logging
 from functools import partial
-import types
 
 import click
 from click.types import FuncParamType
 
+from samcli.commands._utils.constants import (
+    DEFAULT_STACK_NAME,
+    DEFAULT_BUILD_DIR,
+    DEFAULT_CACHE_DIR,
+    DEFAULT_BUILT_TEMPLATE_PATH,
+)
+from samcli.commands._utils.custom_options.hook_name_option import HookNameOption
+from samcli.commands._utils.parameterized_option import parameterized_option
 from samcli.commands._utils.template import get_template_data, TemplateNotFoundException
 from samcli.cli.types import (
     CfnParameterOverridesType,
@@ -21,53 +28,13 @@ from samcli.cli.types import (
 )
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 from samcli.commands._utils.template import get_template_artifacts_format
+from samcli.lib.hook.hook_wrapper import get_available_hook_packages_ids
 from samcli.lib.observability.util import OutputOption
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml|json]"
-DEFAULT_STACK_NAME = "sam-app"
-DEFAULT_BUILD_DIR = os.path.join(".aws-sam", "build")
-DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER = os.path.join(".aws-sam", "auto-dependency-layer")
-DEFAULT_CACHE_DIR = os.path.join(".aws-sam", "cache")
 
 LOG = logging.getLogger(__name__)
-
-
-def parameterized_option(option):
-    """Meta decorator for option decorators.
-    This adds the ability to specify optional parameters for option decorators.
-
-    Usage:
-        @parameterized_option
-        def some_option(f, required=False)
-            ...
-
-        @some_option
-        def command(...)
-
-        or
-
-        @some_option(required=True)
-        def command(...)
-    """
-
-    def parameter_wrapper(*args, **kwargs):
-        if len(args) == 1 and isinstance(args[0], types.FunctionType):
-            # Case when option decorator does not have parameter
-            # @stack_name_option
-            # def command(...)
-            return option(args[0])
-
-        # Case when option decorator does have parameter
-        # @stack_name_option("a", "b")
-        # def command(...)
-
-        def option_wrapper(f):
-            return option(f, *args, **kwargs)
-
-        return option_wrapper
-
-    return parameter_wrapper
 
 
 def get_or_default_template_file_name(ctx, param, provided_value, include_build):
@@ -88,7 +55,7 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
     search_paths = ["template.yaml", "template.yml", "template.json"]
 
     if include_build:
-        search_paths.insert(0, os.path.join(".aws-sam", "build", "template.yaml"))
+        search_paths.insert(0, DEFAULT_BUILT_TEMPLATE_PATH)
 
     if provided_value == _TEMPLATE_OPTION_DEFAULT_VALUE:
         # "--template" is an alias of "--template-file", however, only the first option name "--template-file" in
@@ -231,6 +198,26 @@ def resolve_s3_callback(ctx, param, provided_value, artifact, exc_set, exc_not_s
         raise exc_not_set()
 
     return provided_value
+
+
+def skip_prepare_infra_callback(ctx, param, provided_value):
+    """
+    Callback for --skip-prepare-infra to check if --hook-name is also specified
+
+    Parameters
+    ----------
+    ctx: click.core.Context
+        Click context
+    param: click.Option
+        Parameter properties
+    provided_value: bool
+        True if option was provided
+    """
+    is_option_provided = provided_value or ctx.default_map.get("skip_prepare_infra")
+    is_hook_provided = ctx.params.get("hook_name") or ctx.default_map.get("hook_name")
+
+    if is_option_provided and not is_hook_provided:
+        raise click.BadOptionUsage(option_name=param.name, ctx=ctx, message="Missing option --hook-name")
 
 
 def template_common_option(f):
@@ -678,6 +665,70 @@ def resolve_s3_click_option(guided):
         "If you do not provide a --s3-bucket value, the managed bucket will be used. "
         "Do not use --guided with this option.",
     )
+
+
+def hook_name_click_option(force_prepare=True, invalid_coexist_options=None):
+    """
+    Click Option for hook-name option
+    """
+
+    def hook_name_setup(f):
+        return click.option(
+            "--hook-name",
+            default=None,
+            type=click.STRING,
+            required=False,
+            help=f"The id of the hook package to be used to extend the SAM CLI commands functionality. As an example, "
+            f"you can use `terraform` to extend SAM CLI commands functionality to support terraform applications. "
+            f"Available Hook Names {get_available_hook_packages_ids()}",
+        )(f)
+
+    def hook_name_processer_wrapper(f):
+        configuration_setup_params = ()
+        configuration_setup_attrs = {}
+        configuration_setup_attrs[
+            "help"
+        ] = "This is a hidden click option whose callback function to run the provided hook package."
+        configuration_setup_attrs["is_eager"] = True
+        configuration_setup_attrs["expose_value"] = False
+        configuration_setup_attrs["hidden"] = True
+        configuration_setup_attrs["type"] = click.STRING
+        configuration_setup_attrs["cls"] = HookNameOption
+        configuration_setup_attrs["force_prepare"] = force_prepare
+        configuration_setup_attrs["invalid_coexist_options"] = (
+            invalid_coexist_options if invalid_coexist_options else []
+        )
+        return click.option(*configuration_setup_params, **configuration_setup_attrs)(f)
+
+    def composed_decorator(decorators):
+        def decorator(f):
+            for deco in decorators:
+                f = deco(f)
+            return f
+
+        return decorator
+
+    # Compose decorators here to make sure the context parameters are updated before callback function
+    decorator_list = [hook_name_setup, hook_name_processer_wrapper]
+    return composed_decorator(decorator_list)
+
+
+def skip_prepare_infra_click_option():
+    """
+    Click option to skip the hook preparation stage
+    """
+    return click.option(
+        "--skip-prepare-infra",
+        is_flag=True,
+        required=False,
+        callback=skip_prepare_infra_callback,
+        help="Use this option to skip the preparation stage if there have not been any infrastructure changes. "
+        "The --hook-name option should also be specified when skipping infrastructure preparation.",
+    )
+
+
+def skip_prepare_infra_option(f):
+    return skip_prepare_infra_click_option()(f)
 
 
 @parameterized_option

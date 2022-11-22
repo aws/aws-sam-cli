@@ -210,6 +210,7 @@ class LayerVersion:
         self._arn = arn
         self._codeuri = codeuri
         self.is_defined_within_template = bool(codeuri)
+        self._metadata = metadata
         self._build_method = cast(Optional[str], metadata.get("BuildMethod", None))
         self._compatible_runtimes = compatible_runtimes
 
@@ -280,6 +281,10 @@ class LayerVersion:
         return LayerVersion.LAYER_NAME_DELIMETER.join(
             [layer_name, layer_version, hashlib.sha256(arn.encode("utf-8")).hexdigest()[0:10]]
         )
+
+    @property
+    def metadata(self) -> Dict:
+        return self._metadata
 
     @property
     def stack_path(self) -> str:
