@@ -54,6 +54,14 @@ Here is a Python example:
     self.lambda_client.invoke(FunctionName="HelloWorldFunction")
 """
 
+COMMAND_SUGGESTIONS = """
+Commands you can use next
+=========================
+[*]Validate SAM template: sam validate
+[*]Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
+[*]Deploy: sam deploy --guided
+"""
+
 
 @click.command(
     "start-lambda",
@@ -218,7 +226,7 @@ def do_cli(  # pylint: disable=R0914
 
             service = LocalLambdaService(lambda_invoke_context=invoke_context, port=port, host=host)
             service.start()
-
+            click.secho(COMMAND_SUGGESTIONS, fg="yellow")
     except (
         InvalidSamDocumentException,
         OverridesNotWellDefinedError,
