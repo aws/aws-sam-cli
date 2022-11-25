@@ -730,7 +730,7 @@ class TestInteractiveInit(TestCase):
 1
 1
 N
-12
+13
 1
 1
 N
