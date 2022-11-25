@@ -1,3 +1,3 @@
 # Executable binary builder requirements
 setuptools==47.3.2
-pyinstaller==4.2
+pyinstaller==5.3
