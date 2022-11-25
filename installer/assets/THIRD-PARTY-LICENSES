@@ -1,17 +1,18 @@
-** aws-sam-translator; version 1.54.0 -- https://pypi.org/project/aws-sam-translator/
-** aws-lambda-builders; version 1.20.0 -- https://pypi.org/project/aws-lambda-builders/
-** botocore; version 1.24.30 -- https://github.com/boto/botocore
-** backports-zoneinfo; version 0.2.1 -- https://pypi.org/project/backports.zoneinfo/
-** regex; version 2021.9.30 -- https://bitbucket.org/mrabarnett/mrab-regex/src/hg/
-** watchdog; version 2.1.2 -- https://pypi.org/project/watchdog/
-** Importlib-metadata; version 4.11.3 -- https://importlib-metadata.readthedocs.io/en/latest/
-** python-request; version 2.25.1 -- https://pypi.python.org/pypi/requests/2.25.1
-** s3transfer; version 0.3.6 -- https://github.com/boto/s3transfer
 ** arrow; version 0.15.5 -- https://pypi.org/project/arrow/
-** docker; version 4.2.0 -- https://pypi.org/project/docker/
-** serverlessrepo; version 0.1.10 -- https://pypi.org/project/serverlessrepo/
-** libcrypto; version 1.1 -- https://www.openssl.org/
+** aws-lambda-builders; version 1.20.0 -- https://pypi.org/project/aws-lambda-builders/
+** aws-sam-translator; version 1.54.0 -- https://pypi.org/project/aws-sam-translator/
+** backports-zoneinfo; version 0.2.1 -- https://pypi.org/project/backports.zoneinfo/
+** botocore; version 1.24.30 -- https://github.com/boto/botocore
+** boto3; version 1.21.30 -- https://pypi.org/project/boto3/
 ** cryptography; version 38.0.1 -- https://github.com/pyca/cryptography
+** docker; version 4.2.0 -- https://pypi.org/project/docker/
+** Importlib-metadata; version 4.11.3 -- https://importlib-metadata.readthedocs.io/en/latest/
+** libcrypto; version 1.1 -- https://www.openssl.org/
+** python-request; version 2.25.1 -- https://pypi.python.org/pypi/requests/2.25.1
+** regex; version 2021.9.30 -- https://bitbucket.org/mrabarnett/mrab-regex/src/hg/
+** serverlessrepo; version 0.1.10 -- https://pypi.org/project/serverlessrepo/
+** s3transfer; version 0.3.6 -- https://github.com/boto/s3transfer
+** watchdog; version 2.1.2 -- https://pypi.org/project/watchdog/
  
 Apache License
 Version 2.0, January 2004
@@ -196,9 +197,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-* For aws-sam-translator see also this required NOTICE:
-    serverless-application-model
-    Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 * For aws-lambda-builders see also this required NOTICE:
     AWS Lambda Builders
     Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -207,34 +205,11 @@ limitations under the License.
 https://github.com/python/cpython/blob/3.7/Lib/shutil.py
     SPDX-License-Identifier: Python-2.0
     Copyright 2019 by the Python Software Foundation
+* For aws-sam-translator see also this required NOTICE:
+    serverless-application-model
+    Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 * For backports-zoneinfo see also this required NOTICE:
     Copyright (c) 2020, Paul Ganssle (Google)
-* For regex see also this required NOTICE:
-    This work was derived from the 're' module of CPython 2.6 and CPython 3.1,
-    copyright (c) 1998-2001 by Secret Labs AB and licensed under CNRI's Python
-1.6
-    license.
-* For watchdog see also this required NOTICE:
-    Copyright 2011 Yesudeep Mangalapilly <yesudeep@gmail.com>
-    Copyright 2012 Google, Inc & contributors.
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
-* For Importlib-metadata see also this required NOTICE:
-    © Copyright 2017-2019, Jason R. Coombs, Barry Warsaw
-* For python-request see also this required NOTICE:
-    Copyright 2019 Kenneth Reitz
-* For s3transfer see also this required NOTICE:
-    Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 * For arrow see also this required NOTICE:
     Copyright 2013 Chris Smith
 * For docker see also this required NOTICE:
@@ -245,7 +220,7 @@ https://github.com/python/cpython/blob/3.7/Lib/shutil.py
     AWS Serverless Application Repository - Python
     Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 * For arrow see also this required NOTICE:
-    Copyright 2013 Chris Smith
+    Copyright 2013 Chris Smith    
 * For botocore see also this required NOTICE:
     Botocore
     Copyright 2012-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -346,12 +321,42 @@ USE OR OTHER
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
     02110-1301
+* For boto3 see also this required NOTICE:
+    boto3
+    Copyright 2013-2017 Amazon.com, Inc. or its affiliates. All Rights
+    Reserved.
+* For Importlib-metadata see also this required NOTICE:
+    © Copyright 2017-2019, Jason R. Coombs, Barry Warsaw
+* For python-request see also this required NOTICE:
+    Copyright 2019 Kenneth Reitz
+* For regex see also this required NOTICE:
+    This work was derived from the 're' module of CPython 2.6 and CPython 3.1,
+    copyright (c) 1998-2001 by Secret Labs AB and licensed under CNRI's Python
+1.6
+    license.
+* For s3transfer see also this required NOTICE:
+    Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+* For watchdog see also this required NOTICE:
+    Copyright 2011 Yesudeep Mangalapilly <yesudeep@gmail.com>
+    Copyright 2012 Google, Inc & contributors.
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
 
 ------
 
 ** text_unidecode; version 1.3 -- https://github.com/kmike/text-unidecode/
 Mikhail Korobov
- 
+
                          The "Artistic License"
 
                                 Preamble
@@ -508,18 +513,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ------
 
-** itsdangerous; version 2.1.2 -- https://pypi.org/project/itsdangerous/
-Copyright 2011 Pallets
-** MarkupSafe; version 2.1.1 -- https://pypi.org/project/MarkupSafe/
-Copyright 2010 Pallets
-** jinja2; version 3.1.2 -- https://github.com/pallets/jinja
-Copyright 2007 Pallets
-** Werkzeug; version 2.0.3 -- https://pypi.org/project/Werkzeug/
-Copyright 2007 Pallets
 ** click; version 8.1.3 -- https://click.palletsprojects.com/en/7.x/
 Copyright 2014 Pallets
 ** Flask; version 2.0.3 -- https://pypi.org/project/Flask/
 Copyright 2010 Pallets
+** itsdangerous; version 2.1.2 -- https://pypi.org/project/itsdangerous/
+Copyright 2011 Pallets
+** jinja2; version 3.1.2 -- https://github.com/pallets/jinja
+Copyright 2007 Pallets
+** MarkupSafe; version 2.1.1 -- https://pypi.org/project/MarkupSafe/
+Copyright 2010 Pallets
+** Werkzeug; version 2.0.3 -- https://pypi.org/project/Werkzeug/
+Copyright 2007 Pallets
  
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -1847,11 +1852,11 @@ client/archive/v0.57.0.tar.gz
 
 ------
 
+** attrs; version 20.3.0 -- https://pypi.org/project/attrs/
+Copyright (c) 2015 Hynek Schlawack
 ** wheel; version 0.36.2 -- https://github.com/pypa/wheel
 "wheel" copyright (c) 2012-2014 Daniel Holth <dholth@fastmail.fm> and
 contributors.
-** attrs; version 20.3.0 -- https://pypi.org/project/attrs/
-Copyright (c) 2015 Hynek Schlawack
  
 MIT License
 
@@ -1932,43 +1937,33 @@ documentation is licensed as follows:
 
 ------
 
+** chevron; version 0.14.0 -- https://pypi.org/project/chevron/
+Copyright (c) 2014 Noah Morrison
+** future; version 0.18.2 -- https://pypi.org/project/future
+Copyright (c) 2013-2019 Python Charmers Pty Ltd, Australia
+** jinja2-time; version 0.2.0 -- https://pypi.org/project/jinja2-time/
+Copyright (c) 2015 Raphael Pierzina
+** jsonschema; version 3.2.0 -- https://github.com/Julian/jsonschema
+Copyright (c) 2013 Julian Berman
+** pyrsistent; version 0.17.3 -- https://github.com/tobgu/pyrsistent
+Copyright (c) 2019 Tobias Gustafsson
+** python-urllib3; version 1.26.5 -- https://github.com/shazow/urllib3
+Copyright (c) 2008-2020 Andrey Petrov and contributors (see CONTRIBUTORS.txt)
+** python-six; version 1.15.0 -- https://github.com/JioCloud/python-six
+Copyright (c) 2010-2020 Benjamin Peterson
 ** pytz; version 2021.1 -- https://pypi.org/project/pytz/
 Copyright (c) 2003-2019 Stuart Bishop <stuart@stuartbishop.net>
 ** pyyaml; version 5.4.1 -- http://pyyaml.org/
 Copyright (c) 2017-2021 Ingy döt Net
 Copyright (c) 2006-2016 Kirill Simonov
-** chevron; version 0.13.1 -- https://pypi.org/project/chevron/
-Copyright (c) 2014 Noah Morrison
-** jinja2-time; version 0.2.0 -- https://pypi.org/project/jinja2-time/
-Copyright (c) 2015 Raphael Pierzina
-** future; version 0.18.2 -- https://pypi.org/project/future
-Copyright (c) 2013-2019 Python Charmers Pty Ltd, Australia
-** jsonschema; version 3.2.0 -- https://github.com/Julian/jsonschema
-Copyright (c) 2013 Julian Berman
-** pyrsistent; version 0.16.0 -- https://github.com/tobgu/pyrsistent
-Copyright (c) 2019 Tobias Gustafsson
-** tomlkit; version 0.5.8 -- https://pypi.org/project/tomlkit/
-Copyright (c) 2018 Sébastien Eustace
-** zipp; version 3.1.0 -- https://github.com/jaraco/zipp
-Copyright Jason R. Coombs
-** jinja2-time; version 0.2.0 -- https://pypi.org/project/jinja2-time/
-Copyright (c) 2015 Raphael Pierzina
-** python-urllib3; version 1.26.5 -- https://github.com/shazow/urllib3
-Copyright (c) 2008-2020 Andrey Petrov and contributors (see CONTRIBUTORS.txt)
-** chevron; version 0.14.0 -- https://pypi.org/project/chevron/
-Copyright (c) 2014 Noah Morrison
-** pyrsistent; version 0.17.3 -- https://github.com/tobgu/pyrsistent
-Copyright (c) 2019 Tobias Gustafsson
-** tzlocal; version 3.0 -- https://pypi.org/project/tzlocal/
-Copyright 2011-2017 Lennart Regebro
-** zipp; version 3.4.1 -- https://github.com/jaraco/zipp
-Copyright Jason R. Coombs
-** python-six; version 1.15.0 -- https://github.com/JioCloud/python-six
-Copyright (c) 2010-2020 Benjamin Peterson
 ** setuptools; version 54.2.0 -- https://github.com/pypa/setuptools/tree/v46.1.3
 Copyright (C) 2016 Jason R Coombs <jaraco@jaraco.com>
 ** tomlkit; version 0.7.2 -- https://pypi.org/project/tomlkit/
 Copyright (c) 2018 Sébastien Eustace
+** tzlocal; version 3.0 -- https://pypi.org/project/tzlocal/
+Copyright 2011-2017 Lennart Regebro
+** zipp; version 3.4.1 -- https://github.com/jaraco/zipp
+Copyright Jason R. Coombs
  
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the "Software"),
