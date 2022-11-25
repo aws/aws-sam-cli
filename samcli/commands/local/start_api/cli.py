@@ -41,7 +41,6 @@ Commands you can use next
 [*]Deploy: sam deploy --guided
 """
 
-
 @click.command(
     "start-api",
     help=HELP_TEXT,
