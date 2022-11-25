@@ -57,9 +57,9 @@ Here is a Python example:
 COMMAND_SUGGESTIONS = """
 Commands you can use next
 =========================
-[*]Validate SAM template: sam validate
-[*]Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
-[*]Deploy: sam deploy --guided
+[*] Validate SAM template: sam validate
+[*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
+[*] Deploy: sam deploy --guided
 """
 
 @click.command(
