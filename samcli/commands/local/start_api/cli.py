@@ -32,6 +32,7 @@ Allows you to run your Serverless application locally for quick development & te
  compiled languages or projects requiring complex packing support, we recommended you run your own building solution
 and point SAM to the directory or file containing build artifacts.
 """
+
 COMMAND_SUGGESTIONS = """
 Commands you can use next
 =========================
