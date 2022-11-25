@@ -69,7 +69,9 @@ if [ "$is_nightly" = "true" ]; then
 fi
 echo "samcli.spec content is:"
 cat installer/pyinstaller/samcli.spec
-../venv/bin/python -m PyInstaller -D --clean installer/pyinstaller/samcli.spec
+# --onedir/--onefile options not allowed when spec file provided for
+# updated pyinstaller version.
+../venv/bin/python -m PyInstaller --clean installer/pyinstaller/samcli.spec
 
 
 mkdir pyinstaller-output
