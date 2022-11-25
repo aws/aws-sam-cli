@@ -36,9 +36,9 @@ and point SAM to the directory or file containing build artifacts.
 COMMAND_SUGGESTIONS = """
 Commands you can use next
 =========================
-[*]Validate SAM template: sam validate
-[*]Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
-[*]Deploy: sam deploy --guided
+[*] Validate SAM template: sam validate
+[*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
+[*] Deploy: sam deploy --guided
 """
 
 @click.command(
@@ -199,7 +199,7 @@ def do_cli(  # pylint: disable=R0914
             service = LocalApiService(lambda_invoke_context=invoke_context, port=port, host=host, static_dir=static_dir)
             service.start()
             click.secho(COMMAND_SUGGESTIONS, fg="yellow")
-
+            
     except NoApisDefined as ex:
         raise UserException(
             "Template does not have any APIs connected to Lambda functions", wrapped_from=ex.__class__.__name__
