@@ -3,11 +3,11 @@ CLI Command for Validating a SAM Template
 """
 import os
 
+import logging
 import boto3
 from botocore.exceptions import NoCredentialsError
 import click
 import cfnlint.core
-import logging
 
 from samtranslator.translator.arn_generator import NoRegionFound
 
@@ -30,7 +30,8 @@ LOGGER = logging.getLogger("cfnlint")
     "--lint",
     is_flag=True,
     is_eager=True,
-    help="Run linting validation on template through cfn-lint. For more information, see: https://github.com/aws-cloudformation/cfn-lint",
+    help="Run linting validation on template through cfn-lint. "
+     "For more information, see: https://github.com/aws-cloudformation/cfn-lint",
     cls=ClickMutex,
     incompatible_params=["config-env", "config-file", "profile", "region"]
 )
@@ -88,7 +89,8 @@ def do_cli(ctx, template, lint):
                 "AWS Credentials are required. Please configure your credentials.", wrapped_from=e.__class__.__name__
             ) from e
 
-        click.secho("{} can be transformed to a Cloudformation template. Please run \"sam validate --lint -t template.yaml\" for additional validation".format(template), fg="green")
+        click.secho("{} can be transformed to a Cloudformation template. "
+         "Please run \"sam validate --lint -t template.yaml\" for additional validation".format(template), fg="green")
 
 
 def _read_sam_file(template):
