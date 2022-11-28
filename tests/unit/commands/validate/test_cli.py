@@ -50,7 +50,7 @@ class TestValidateCli(TestCase):
         template_valiadator.return_value = is_valid_mock
 
         with self.assertRaises(InvalidSamTemplateException):
-            do_cli(ctx=ctx_mock(profile="profile", region="region"), template=template_path)
+            do_cli(ctx=ctx_mock(profile="profile", region="region"), template=template_path, lint=False)
 
     @patch("samcli.commands.validate.lib.sam_template_validator.SamTemplateValidator")
     @patch("samcli.commands.validate.validate.click")
@@ -65,7 +65,7 @@ class TestValidateCli(TestCase):
         template_valiadator.return_value = is_valid_mock
 
         with self.assertRaises(UserException):
-            do_cli(ctx=ctx_mock(profile="profile", region="region"), template=template_path)
+            do_cli(ctx=ctx_mock(profile="profile", region="region"), template=template_path, lint=False)
 
     @patch("samcli.commands.validate.lib.sam_template_validator.SamTemplateValidator")
     @patch("samcli.commands.validate.validate.click")
@@ -79,4 +79,4 @@ class TestValidateCli(TestCase):
         is_valid_mock.is_valid.return_value = True
         template_valiadator.return_value = is_valid_mock
 
-        do_cli(ctx=ctx_mock(profile="profile", region="region"), template=template_path)
+        do_cli(ctx=ctx_mock(profile="profile", region="region"), template=template_path, lint=False)

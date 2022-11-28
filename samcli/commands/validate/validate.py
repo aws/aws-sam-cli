@@ -7,7 +7,7 @@ import logging
 import boto3
 from botocore.exceptions import NoCredentialsError
 import click
-import cfnlint.core
+import cfnlint.core # type: ignore
 
 from samtranslator.translator.arn_generator import NoRegionFound
 
@@ -20,6 +20,7 @@ from samcli.lib.utils.version_checker import check_newer_version
 from samcli.commands._utils.click_mutex import ClickMutex
 
 LOGGER = logging.getLogger("cfnlint")
+LOGGER.propagate = False
 
 @click.command("validate", short_help="Validate an AWS SAM template.")
 @configuration_option(provider=TomlProvider(section="parameters"))
@@ -128,7 +129,10 @@ def _lint(ctx, template):
     """
 
     try:
-        (args, filenames, formatter) = cfnlint.core.get_args_filenames([template, "--debug"]) if ctx.debug else cfnlint.core.get_args_filenames([template])
+        if ctx.debug:
+            (args, filenames, formatter) = cfnlint.core.get_args_filenames([template, "--debug"])
+        else:
+            (args, filenames, formatter) = cfnlint.core.get_args_filenames([template])
         LOGGER.setLevel(logging.WARNING)
         matches = list(cfnlint.core.get_matches(filenames, args))
         if not matches:
