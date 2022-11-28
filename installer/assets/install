@@ -15,7 +15,7 @@ set -eu
 
 usage() {
   cat 1>&2 <<EOF
-Installs the AWS SAM CLI Linux executable package
+Installs the AWS SAM CLI executable package
 USAGE:
     install [FLAGS] [OPTIONS]
 FLAGS:
