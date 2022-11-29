@@ -1,6 +1,8 @@
 from samcli.cli.command import _SAM_CLI_COMMAND_PACKAGES
 
 SAM_CLI_HIDDEN_IMPORTS = _SAM_CLI_COMMAND_PACKAGES + [
+    # terraform hook
+    "samcli.hook_packages.terraform",
     "cookiecutter.extensions",
     "jinja2_time",
     "text_unidecode",
