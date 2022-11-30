@@ -525,6 +525,7 @@ class Stack:
         self.template_dict = template_dict
         self.metadata = metadata
         self._resources: Optional[Dict] = None
+        self._raw_resources: Optional[Dict] = None
 
     @property
     def stack_id(self) -> str:
@@ -560,6 +561,16 @@ class Stack:
         processed_template_dict: Dict[str, Dict] = SamBaseProvider.get_template(self.template_dict, self.parameters)
         self._resources = cast(Dict, processed_template_dict.get("Resources", {}))
         return self._resources
+
+    @property
+    def raw_resources(self) -> Dict:
+        """
+        Return the resources dictionary without running SAM Transform
+        """
+        if self._raw_resources is not None:
+            return self._raw_resources
+        self._raw_resources = cast(Dict, self.template_dict.get("Resources", {}))
+        return self._raw_resources
 
     def get_output_template_path(self, build_root: str) -> str:
         """
