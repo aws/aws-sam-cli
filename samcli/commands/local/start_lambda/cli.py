@@ -20,6 +20,7 @@ from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.local.docker.exceptions import ContainerNotStartableException
 from samcli.commands._utils.option_value_processor import process_image_options
+from samcli.commands._utils.options import generate_next_command_recommendation
 
 LOG = logging.getLogger(__name__)
 
@@ -52,14 +53,6 @@ Here is a Python example:
                                                 read_timeout=0,
                                                 retries={'max_attempts': 0}))
     self.lambda_client.invoke(FunctionName="HelloWorldFunction")
-"""
-
-COMMAND_SUGGESTIONS = """
-Commands you can use next
-=========================
-[*] Validate SAM template: sam validate
-[*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
-[*] Deploy: sam deploy --guided
 """
 
 
@@ -226,7 +219,15 @@ def do_cli(  # pylint: disable=R0914
 
             service = LocalLambdaService(lambda_invoke_context=invoke_context, port=port, host=host)
             service.start()
-            click.secho(COMMAND_SUGGESTIONS, fg="yellow")
+            nextcommandsuggestions = generate_next_command_recommendation(
+                [
+                    ("Validate SAM template", "sam validate"),
+                    ("Test Function in the Cloud", "sam sync --stack-name {{stack-name}} --watch"),
+                    ("Deploy", "sam deploy --guided"),
+                ]
+            )
+            click.secho(nextcommandsuggestions, fg="yellow")
+
     except (
         InvalidSamDocumentException,
         OverridesNotWellDefinedError,

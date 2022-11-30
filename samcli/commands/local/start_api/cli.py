@@ -18,6 +18,7 @@ from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.local.docker.exceptions import ContainerNotStartableException
 from samcli.commands._utils.option_value_processor import process_image_options
+from samcli.commands._utils.options import generate_next_command_recommendation
 
 LOG = logging.getLogger(__name__)
 
@@ -31,14 +32,6 @@ Allows you to run your Serverless application locally for quick development & te
  a interpreted language, local changes will be available immediately in Docker container on every invoke. For more
  compiled languages or projects requiring complex packing support, we recommended you run your own building solution
 and point SAM to the directory or file containing build artifacts.
-"""
-
-COMMAND_SUGGESTIONS = """
-Commands you can use next
-=========================
-[*] Validate SAM template: sam validate
-[*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
-[*] Deploy: sam deploy --guided
 """
 
 
@@ -199,7 +192,15 @@ def do_cli(  # pylint: disable=R0914
 
             service = LocalApiService(lambda_invoke_context=invoke_context, port=port, host=host, static_dir=static_dir)
             service.start()
-            click.secho(COMMAND_SUGGESTIONS, fg="yellow")
+            nextcommandsuggestions = generate_next_command_recommendation(
+                [
+                    ("Validate SAM template", "sam validate"),
+                    ("Test Function in the Cloud", "sam sync --stack-name {{stack-name}} --watch"),
+                    ("Deploy", "sam deploy --guided"),
+                ]
+            )
+            click.secho(nextcommandsuggestions, fg="yellow")
+
     except NoApisDefined as ex:
         raise UserException(
             "Template does not have any APIs connected to Lambda functions", wrapped_from=ex.__class__.__name__

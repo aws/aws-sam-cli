@@ -788,3 +788,23 @@ def _space_separated_list_func_type(value):
 
 
 _space_separated_list_func_type.__name__ = "LIST"
+
+
+def generate_next_command_recommendation(command_tuples: list):
+    """
+    Generates a message containing some suggested commands to run next.
+
+    :type command_tuples: list
+    :param command_tuples: list of tuples containing the command with their respective description
+    """
+    template = """
+Commands you can use next:
+================================
+{}
+
+================================
+    """
+    command_list_txt = ""
+    for command, description in command_tuples:
+        command_list_txt += "\n[*] " + f"{os.linesep}[*] ".join([f"{command} : {description}"])
+    return template.format(command_list_txt)
