@@ -332,7 +332,7 @@ class SamApiProvider(CfnBaseApiProvider):
     @staticmethod
     def check_implicit_api_resource_ids(stacks: List[Stack]) -> None:
         for stack in stacks:
-            for logical_id in stack.resources:
+            for logical_id in stack.raw_resources:
                 if logical_id in (
                     SamApiProvider.IMPLICIT_API_RESOURCE_ID,
                     SamApiProvider.IMPLICIT_HTTP_API_RESOURCE_ID,
