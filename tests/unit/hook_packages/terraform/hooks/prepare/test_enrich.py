@@ -33,7 +33,9 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._generate_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_relevant_cfn_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._validate_referenced_resource_matches_sam_metadata_type")
+    @patch(
+        "samcli.hook_packages.terraform.hooks.prepare.enrich._validate_referenced_resource_matches_sam_metadata_type"
+    )
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_source_code_path")
     def test_enrich_resources_and_generate_makefile_zip_functions(
         self,
@@ -231,7 +233,9 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._generate_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_relevant_cfn_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._validate_referenced_resource_matches_sam_metadata_type")
+    @patch(
+        "samcli.hook_packages.terraform.hooks.prepare.enrich._validate_referenced_resource_matches_sam_metadata_type"
+    )
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_source_code_path")
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._enrich_image_lambda_function")
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._enrich_zip_lambda_function")
@@ -328,7 +332,9 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
         mock_generate_makefile.assert_called_once_with(makefile_rules, "/output/dir")
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_relevant_cfn_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._validate_referenced_resource_matches_sam_metadata_type")
+    @patch(
+        "samcli.hook_packages.terraform.hooks.prepare.enrich._validate_referenced_resource_matches_sam_metadata_type"
+    )
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_source_code_path")
     def test_enrich_mapped_resource_zip_function(
         self,
@@ -375,7 +381,9 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
         self.assertEqual(zip_function_1, expected_zip_function_1)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_relevant_cfn_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._validate_referenced_resource_matches_sam_metadata_type")
+    @patch(
+        "samcli.hook_packages.terraform.hooks.prepare.enrich._validate_referenced_resource_matches_sam_metadata_type"
+    )
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_source_code_path")
     def test_enrich_mapped_resource_zip_layer(
         self,
@@ -425,7 +433,9 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._generate_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_relevant_cfn_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._validate_referenced_resource_matches_sam_metadata_type")
+    @patch(
+        "samcli.hook_packages.terraform.hooks.prepare.enrich._validate_referenced_resource_matches_sam_metadata_type"
+    )
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_source_code_path")
     def test_enrich_resources_and_generate_makefile_image_functions(
         self,
@@ -517,7 +527,9 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
         mock_generate_makefile.assert_called_once_with(makefile_rules, "/output/dir")
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_relevant_cfn_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._validate_referenced_resource_matches_sam_metadata_type")
+    @patch(
+        "samcli.hook_packages.terraform.hooks.prepare.enrich._validate_referenced_resource_matches_sam_metadata_type"
+    )
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_source_code_path")
     def test_enrich_mapped_resource_image_function(
         self,
@@ -579,7 +591,9 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._generate_makefile")
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_relevant_cfn_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._validate_referenced_resource_matches_sam_metadata_type")
+    @patch(
+        "samcli.hook_packages.terraform.hooks.prepare.enrich._validate_referenced_resource_matches_sam_metadata_type"
+    )
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_source_code_path")
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._enrich_image_lambda_function")
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._enrich_zip_lambda_function")
@@ -664,7 +678,9 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
         ]
     )
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_relevant_cfn_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._validate_referenced_resource_matches_sam_metadata_type")
+    @patch(
+        "samcli.hook_packages.terraform.hooks.prepare.enrich._validate_referenced_resource_matches_sam_metadata_type"
+    )
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_source_code_path")
     def test_enrich_mapped_resource_image_function_invalid_docker_args(
         self,
