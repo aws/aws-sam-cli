@@ -22,7 +22,7 @@ from samcli.hook_packages.terraform.lib.utils import (
     _calculate_configuration_attribute_value_hash,
     CFN_CODE_PROPERTIES,
 )
-from samcli.hook_packages.terraform.hooks.prepare.property_builder_mappings import (
+from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     TF_AWS_LAMBDA_LAYER_VERSION,
     TF_AWS_LAMBDA_FUNCTION,
     RESOURCE_TRANSLATOR_MAPPING,

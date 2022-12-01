@@ -1,8 +1,8 @@
-"""Test Terraform property builder mappings"""
+"""Test Terraform property builder"""
 from unittest.mock import patch, Mock, call
 from parameterized import parameterized
 
-from samcli.hook_packages.terraform.hooks.prepare.property_builder_mappings import (
+from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     _build_code_property,
     REMOTE_DUMMY_VALUE,
     _get_property_extractor,
@@ -15,7 +15,7 @@ from samcli.lib.hook.exceptions import PrepareHookException
 from tests.unit.hook_packages.terraform.hooks.prepare.prepare_base import PrepareHookUnitBase
 
 
-class TestTerraformPropBuildMap(PrepareHookUnitBase):
+class TestTerraformPropBuilder(PrepareHookUnitBase):
     def setUp(self):
         super().setUp()
 
@@ -26,7 +26,7 @@ class TestTerraformPropBuildMap(PrepareHookUnitBase):
         resource_mock.assert_not_called()
         self.assertEqual(translated_cfn_property, expected_cfn_property)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.property_builder_mappings._resolve_resource_attribute")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.property_builder._resolve_resource_attribute")
     def test_build_lambda_function_code_property_s3_with_null_bucket_only_in_planned_values(
         self,
         mock_resolve_resource_attribute,
@@ -51,7 +51,7 @@ class TestTerraformPropBuildMap(PrepareHookUnitBase):
             [call(resource_mock, "s3_bucket"), call(resource_mock, "s3_key"), call(resource_mock, "s3_object_version")]
         )
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.property_builder_mappings._resolve_resource_attribute")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.property_builder._resolve_resource_attribute")
     def test_build_lambda_function_code_property_with_null_imageuri_only_in_planned_values(
         self,
         mock_resolve_resource_attribute,

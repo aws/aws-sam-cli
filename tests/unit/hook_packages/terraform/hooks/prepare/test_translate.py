@@ -3,7 +3,7 @@ import copy
 from unittest.mock import Mock, call, patch, MagicMock
 
 from tests.unit.hook_packages.terraform.hooks.prepare.prepare_base import PrepareHookUnitBase
-from samcli.hook_packages.terraform.hooks.prepare.property_builder_mappings import (
+from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING,
     REMOTE_DUMMY_VALUE,
 )
