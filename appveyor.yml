@@ -111,7 +111,7 @@ for:
       - "venv\\Scripts\\activate"
       - ps: "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
       - ps: "pylint --rcfile .pylintrc samcli"
-      - ps: "mypy setup.py samcli tests"
+      - ps: "mypy samcli"
       - ps: "pytest -n 4 tests/functional"
       - "deactivate"
 
