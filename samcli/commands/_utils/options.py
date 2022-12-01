@@ -795,7 +795,7 @@ def generate_next_command_recommendation(command_tuples: List[tuple]):
     """
     Generates a message containing some suggested commands to run next.
 
-    :type command_tuples: list
+    :type command_tuples: list[tuple]
     :param command_tuples: list of tuples containing the command with their respective description
     """
     template = """
