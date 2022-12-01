@@ -532,16 +532,17 @@ class TestSkipPrepareInfraOption(TestCase):
 
 class TestNextCommandSuggestions(TestCase):
     def test_generate_next_command_recommendation(self):
-        listOfTuples = [("description1", "command1"), ("description2", "command2"), ("description3", "command3")]
+        listOfTuples = [
+            ("Validate SAM template", "sam validate"),
+            ("Test Function in the Cloud", "sam sync --stack-name {{stack-name}} --watch"),
+            ("Deploy", "sam deploy --guided"),
+        ]
         output = generate_next_command_recommendation(listOfTuples)
         expectedOutput = """
 Commands you can use next:
 ================================
-
-[*] description1: command1
-[*] description2: command2
-[*] description3: command3
-
-================================
-    """
+[*] Validate SAM template: sam validate
+[*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
+[*] Deploy: sam deploy --guided
+"""
         self.assertEqual(output, expectedOutput)

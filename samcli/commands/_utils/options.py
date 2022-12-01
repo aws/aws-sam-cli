@@ -801,11 +801,9 @@ def generate_next_command_recommendation(command_tuples: List[tuple]):
     template = """
 Commands you can use next:
 ================================
-{}
-
-================================
-    """
+{}"""
     command_list_txt = ""
     for description, command in command_tuples:
-        command_list_txt += f"{os.linesep}[*] {description}: {command}"
+        command_list_txt += f"[*] {description}: {command}\n"
+    command_list_txt.rstrip()
     return template.format(command_list_txt)

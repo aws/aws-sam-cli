@@ -189,9 +189,9 @@ def do_cli(
             [
                 (
                     "Tail Logs from All Support Resources and X-Ray",
-                    f"sam logs --stack-name {stack_name} --tail --include-traces"
+                    f"sam logs --stack-name {stack_name} --tail --include-traces",
                 ),
-                ("Tail X-Ray Information", "sam traces --tail")
+                ("Tail X-Ray Information", "sam traces --tail"),
             ]
         )
         click.secho(nextcommandsuggestions, fg="yellow")
