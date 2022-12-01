@@ -22,6 +22,7 @@ from samcli.commands._utils.options import (
     image_repositories_callback,
     _space_separated_list_func_type,
     skip_prepare_infra_callback,
+    generate_next_command_recommendation,
 )
 from samcli.commands._utils.parameterized_option import parameterized_option
 from samcli.commands.package.exceptions import PackageResolveS3AndS3SetError, PackageResolveS3AndS3NotSetError
@@ -527,3 +528,20 @@ class TestSkipPrepareInfraOption(TestCase):
             skip_prepare_infra_callback(ctx_mock, param_mock, True)
 
         self.assertEqual(str(ex.exception), "Missing option --hook-name")
+
+
+class TestNextCommandSuggestions(TestCase):
+    def test_generate_next_command_recommendation(self):
+        listOfTuples = [("command1", "description1"), ("command2", "description2"), ("command3", "description3")]
+        output = generate_next_command_recommendation(listOfTuples)
+        expectedOutput = """
+Commands you can use next:
+================================
+
+[*] command1: description1
+[*] command2: description2
+[*] command3: description3
+
+================================
+    """
+        self.assertEqual(output, expectedOutput)
