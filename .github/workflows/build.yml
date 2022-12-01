@@ -17,7 +17,6 @@ jobs:
           - ubuntu-latest
           - windows-latest
           - macos-latest
-          # TODO: Test on windows-latest and macos-latest
         python:
           - "3.7"
           - "3.8"
