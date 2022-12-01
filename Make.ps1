@@ -92,7 +92,7 @@ function Test {
 
 function Lint {
     pylint --rcfile .pylintrc samcli
-    mypy setup.py samcli tests
+    mypy setup.py samcli
 }
 
 function Dev {

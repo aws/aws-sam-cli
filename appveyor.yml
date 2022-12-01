@@ -196,7 +196,7 @@ for:
       - "pip install -e \".[dev]\""
       - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
       - "pylint --rcfile .pylintrc samcli"
-      - "mypy setup.py samcli tests"
+      - "mypy setup.py samcli"
       - "pytest -n 4 tests/functional"
 
       # Runs only in Linux, logging Public ECR when running canary and cred is available
