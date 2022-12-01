@@ -539,8 +539,8 @@ class TestNextCommandSuggestions(TestCase):
         ]
         output = generate_next_command_recommendation(listOfTuples)
         expectedOutput = """
-Commands you can use next:
-================================
+Commands you can use next
+=========================
 [*] Validate SAM template: sam validate
 [*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
 [*] Deploy: sam deploy --guided

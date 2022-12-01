@@ -219,14 +219,14 @@ def do_cli(  # pylint: disable=R0914
 
             service = LocalLambdaService(lambda_invoke_context=invoke_context, port=port, host=host)
             service.start()
-            nextcommandsuggestions = generate_next_command_recommendation(
+            command_suggestions = generate_next_command_recommendation(
                 [
                     ("Validate SAM template", "sam validate"),
                     ("Test Function in the Cloud", "sam sync --stack-name {{stack-name}} --watch"),
                     ("Deploy", "sam deploy --guided"),
                 ]
             )
-            click.secho(nextcommandsuggestions, fg="yellow")
+            click.secho(command_suggestions, fg="yellow")
 
     except (
         InvalidSamDocumentException,

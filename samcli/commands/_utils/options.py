@@ -799,8 +799,8 @@ def generate_next_command_recommendation(command_tuples: List[tuple]):
     :param command_tuples: list of tuples containing the command with their respective description
     """
     template = """
-Commands you can use next:
-================================
+Commands you can use next
+=========================
 {}"""
     command_list_txt = ""
     for description, command in command_tuples:

@@ -185,7 +185,7 @@ def do_cli(
         puller.load_time_period(sanitized_start_time, sanitized_end_time, filter_pattern)
 
     if tailing:
-        nextcommandsuggestions = generate_next_command_recommendation(
+        command_suggestions = generate_next_command_recommendation(
             [
                 (
                     "Tail Logs from All Support Resources and X-Ray",
@@ -194,4 +194,4 @@ def do_cli(
                 ("Tail X-Ray Information", "sam traces --tail"),
             ]
         )
-        click.secho(nextcommandsuggestions, fg="yellow")
+        click.secho(command_suggestions, fg="yellow")
