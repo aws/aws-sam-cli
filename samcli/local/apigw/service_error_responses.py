@@ -13,7 +13,7 @@ class ServiceErrorResponses:
     HTTP_STATUS_CODE_403 = 403
 
     @staticmethod
-    def lambda_failure_response(*args):
+    def lambda_failure_response(*args):  # type: ignore[no-untyped-def]
         """
         Helper function to create a Lambda Failure Response
 
@@ -23,7 +23,7 @@ class ServiceErrorResponses:
         return make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_502)
 
     @staticmethod
-    def lambda_not_found_response(*args):
+    def lambda_not_found_response(*args):  # type: ignore[no-untyped-def]
         """
         Constructs a Flask Response for when a Lambda function is not found for an endpoint
 
@@ -33,7 +33,7 @@ class ServiceErrorResponses:
         return make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_502)
 
     @staticmethod
-    def route_not_found(*args):
+    def route_not_found(*args):  # type: ignore[no-untyped-def]
         """
         Constructs a Flask Response for when a API Route (path+method) is not found. This is usually
         HTTP 404 but with API Gateway this is a HTTP 403 (https://forums.aws.amazon.com/thread.jspa?threadID=2166840)

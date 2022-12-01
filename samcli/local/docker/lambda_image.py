@@ -9,7 +9,7 @@ from pathlib import Path
 
 import sys
 import platform
-import docker
+import docker  # type: ignore[import]
 
 from samcli.commands.local.cli_common.user_exceptions import ImageBuildException
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
@@ -46,7 +46,7 @@ class Runtime(Enum):
     providedal2 = "provided.al2"
 
     @classmethod
-    def has_value(cls, value):
+    def has_value(cls, value):  # type: ignore[no-untyped-def]
         """
         Checks if the enum has this value
 
@@ -62,7 +62,7 @@ class LambdaImage:
     _SAM_CLI_REPO_NAME = "samcli/lambda"
     _RAPID_SOURCE_PATH = Path(__file__).parent.joinpath("..", "rapid").resolve()
 
-    def __init__(self, layer_downloader, skip_pull_image, force_image_build, docker_client=None, invoke_images=None):
+    def __init__(self, layer_downloader, skip_pull_image, force_image_build, docker_client=None, invoke_images=None):  # type: ignore[no-untyped-def]
         """
 
         Parameters
@@ -82,7 +82,7 @@ class LambdaImage:
         self.docker_client = docker_client or docker.from_env()
         self.invoke_images = invoke_images
 
-    def build(self, runtime, packagetype, image, layers, architecture, stream=None, function_name=None):
+    def build(self, runtime, packagetype, image, layers, architecture, stream=None, function_name=None):  # type: ignore[no-untyped-def]
         """
         Build the image if one is not already on the system that matches the runtime and layers
 
@@ -136,7 +136,7 @@ class LambdaImage:
         if layers and packagetype == ZIP:
             downloaded_layers = self.layer_downloader.download_all(layers, self.force_image_build)
 
-            docker_image_version = self._generate_docker_image_version(downloaded_layers, runtime, architecture)
+            docker_image_version = self._generate_docker_image_version(downloaded_layers, runtime, architecture)  # type: ignore[no-untyped-call]
             image_tag = f"{self._SAM_CLI_REPO_NAME}:{docker_image_version}"
 
         image_not_found = False
@@ -158,17 +158,17 @@ class LambdaImage:
             or any(layer.is_defined_within_template for layer in downloaded_layers)
             or not runtime
         ):
-            stream_writer = stream or StreamWriter(sys.stderr)
+            stream_writer = stream or StreamWriter(sys.stderr)  # type: ignore[no-untyped-call]
             stream_writer.write("Building image...")
             stream_writer.flush()
-            self._build_image(
+            self._build_image(  # type: ignore[no-untyped-call]
                 image if image else image_name, image_tag, downloaded_layers, architecture, stream=stream_writer
             )
 
         return image_tag
 
-    def get_config(self, image_tag):
-        config = {}
+    def get_config(self, image_tag):  # type: ignore[no-untyped-def]
+        config = {}  # type: ignore[var-annotated]
         try:
             image = self.docker_client.images.get(image_tag)
             return image.attrs.get("Config")
@@ -176,7 +176,7 @@ class LambdaImage:
             return config
 
     @staticmethod
-    def _generate_docker_image_version(layers, runtime, architecture):
+    def _generate_docker_image_version(layers, runtime, architecture):  # type: ignore[no-untyped-def]
         """
         Generate the Docker TAG that will be used to create the image
 
@@ -211,7 +211,7 @@ class LambdaImage:
             + hashlib.sha256("-".join([layer.name for layer in layers]).encode("utf-8")).hexdigest()[0:25]
         )
 
-    def _build_image(self, base_image, docker_tag, layers, architecture, stream=None):
+    def _build_image(self, base_image, docker_tag, layers, architecture, stream=None):  # type: ignore[no-untyped-def]
         """
         Builds the image
 
@@ -229,12 +229,12 @@ class LambdaImage:
         samcli.commands.local.cli_common.user_exceptions.ImageBuildException
             When docker fails to build the image
         """
-        dockerfile_content = self._generate_dockerfile(base_image, layers, architecture)
+        dockerfile_content = self._generate_dockerfile(base_image, layers, architecture)  # type: ignore[no-untyped-call]
 
         # Create dockerfile in the same directory of the layer cache
         dockerfile_name = "dockerfile_" + str(uuid.uuid4())
         full_dockerfile_path = Path(self.layer_downloader.layer_cache, dockerfile_name)
-        stream_writer = stream or StreamWriter(sys.stderr)
+        stream_writer = stream or StreamWriter(sys.stderr)  # type: ignore[no-untyped-call]
 
         try:
             with open(str(full_dockerfile_path), "w") as dockerfile:
@@ -252,7 +252,7 @@ class LambdaImage:
             # Set permission for all the files in the tarball to 500(Read and Execute Only)
             # This is need for systems without unix like permission bits(Windows) while creating a unix image
             # Without setting this explicitly, tar will default the permission to 666 which gives no execute permission
-            def set_item_permission(tar_info):
+            def set_item_permission(tar_info):  # type: ignore[no-untyped-def]
                 tar_info.mode = 0o500
                 return tar_info
 
@@ -276,18 +276,18 @@ class LambdaImage:
                         if "error" in log:
                             stream_writer.write("\n")
                             LOG.exception("Failed to build Docker Image")
-                            raise ImageBuildException("Error building docker image: {}".format(log["error"]))
+                            raise ImageBuildException("Error building docker image: {}".format(log["error"]))  # type: ignore[no-untyped-call]
                     stream_writer.write("\n")
                 except (docker.errors.BuildError, docker.errors.APIError) as ex:
                     stream_writer.write("\n")
                     LOG.exception("Failed to build Docker Image")
-                    raise ImageBuildException("Building Image failed.") from ex
+                    raise ImageBuildException("Building Image failed.") from ex  # type: ignore[no-untyped-call]
         finally:
             if full_dockerfile_path.exists():
                 full_dockerfile_path.unlink()
 
     @staticmethod
-    def _generate_dockerfile(base_image, layers, architecture):
+    def _generate_dockerfile(base_image, layers, architecture):  # type: ignore[no-untyped-def]
         """
         FROM amazon/aws-sam-cli-emulation-image-python3.6:latest
 

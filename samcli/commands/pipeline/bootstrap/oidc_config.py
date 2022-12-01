@@ -11,7 +11,7 @@ class OidcConfig:
     oidc_client_id: Optional[str]
     oidc_provider: Optional[str]
 
-    def get_oidc_parameters(self) -> dict:
+    def get_oidc_parameters(self) -> dict:  # type: ignore[type-arg]
         return {
             "oidc-provider-url": self.oidc_provider_url,
             "oidc-client-id": self.oidc_client_id,
@@ -32,7 +32,7 @@ class GitHubOidcConfig:
     github_repo: Optional[str]
     deployment_branch: Optional[str]
 
-    def get_oidc_parameters(self) -> dict:
+    def get_oidc_parameters(self) -> dict:  # type: ignore[type-arg]
         return {
             "github-org": self.github_org,
             "github-repo": self.github_repo,
@@ -53,7 +53,7 @@ class GitLabOidcConfig:
     gitlab_project: Optional[str]
     deployment_branch: Optional[str]
 
-    def get_oidc_parameters(self) -> dict:
+    def get_oidc_parameters(self) -> dict:  # type: ignore[type-arg]
         return {
             "gitlab-group": self.gitlab_group,
             "gitlab-project": self.gitlab_project,
@@ -72,7 +72,7 @@ class GitLabOidcConfig:
 class BitbucketOidcConfig:
     bitbucket_repo_uuid: Optional[str]
 
-    def get_oidc_parameters(self) -> dict:
+    def get_oidc_parameters(self) -> dict:  # type: ignore[type-arg]
         return {
             "bitbucket-repo-uuid": self.bitbucket_repo_uuid,
         }

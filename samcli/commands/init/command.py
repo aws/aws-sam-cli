@@ -86,11 +86,11 @@ class PackageType:
 
     explicit = False
 
-    def __init__(self):
+    def __init__(self):  # type: ignore[no-untyped-def]
         pass
 
     @staticmethod
-    def pt_callback(ctx, param, provided_value):
+    def pt_callback(ctx, param, provided_value):  # type: ignore[no-untyped-def]
         """
         This function is the callback for the --package-type param. Here we check if --package-type was passed or not.
         If not, we use the default value of --package-type to be Zip.
@@ -101,7 +101,7 @@ class PackageType:
         return provided_value
 
 
-def non_interactive_validation(func):
+def non_interactive_validation(func):  # type: ignore[no-untyped-def]
     """
     Check requirement for --dependency-manager parameter for non interactive mode
 
@@ -109,7 +109,7 @@ def non_interactive_validation(func):
     or --base-image is one of the java ones
     """
 
-    def wrapped(*args, **kwargs):
+    def wrapped(*args, **kwargs):  # type: ignore[no-untyped-def]
         ctx = click.get_current_context()
         non_interactive = ctx.params.get("no_interactive")
 
@@ -140,7 +140,7 @@ def non_interactive_validation(func):
     short_help="Init an AWS SAM application.",
     context_settings=dict(help_option_names=["-h", "--help"]),
 )
-@configuration_option(provider=TomlProvider(section="parameters"))
+@configuration_option(provider=TomlProvider(section="parameters"))  # type: ignore[no-untyped-call, no-untyped-call]
 @click.option(
     "--no-interactive",
     is_flag=True,
@@ -173,7 +173,7 @@ def non_interactive_validation(func):
 @click.option(
     "-r",
     "--runtime",
-    type=click.Choice(get_sorted_runtimes(INIT_RUNTIMES)),
+    type=click.Choice(get_sorted_runtimes(INIT_RUNTIMES)),  # type: ignore[no-untyped-call]
     help="Lambda Runtime of your app",
     cls=ClickMutex,
     incompatible_params=["location", "base_image"],
@@ -246,7 +246,7 @@ def non_interactive_validation(func):
 @track_command
 @check_newer_version
 @print_cmdline_args
-def cli(
+def cli(  # type: ignore[no-untyped-def]
     ctx,
     no_interactive,
     location,
@@ -267,7 +267,7 @@ def cli(
     """
     `sam init` command entry point
     """
-    do_cli(
+    do_cli(  # type: ignore[no-untyped-call]
         ctx,
         no_interactive,
         location,
@@ -287,7 +287,7 @@ def cli(
 
 
 # pylint: disable=too-many-locals
-def do_cli(
+def do_cli(  # type: ignore[no-untyped-def]
     ctx,
     no_interactive,
     location,
@@ -313,36 +313,36 @@ def do_cli(
     from samcli.commands.init.init_templates import InitTemplates
     from samcli.commands.exceptions import LambdaImagesTemplateException
 
-    _deprecate_notification(runtime)
+    _deprecate_notification(runtime)  # type: ignore[no-untyped-call]
 
     # check for required parameters
     zip_bool = name and runtime and dependency_manager and app_template
     image_bool = name and pt_explicit and base_image
     if location or zip_bool or image_bool:
         # need to turn app_template into a location before we generate
-        templates = InitTemplates()
+        templates = InitTemplates()  # type: ignore[no-untyped-call]
         if package_type == IMAGE and image_bool:
-            runtime = _get_runtime_from_image(base_image)
-            options = templates.init_options(package_type, runtime, base_image, dependency_manager)
+            runtime = _get_runtime_from_image(base_image)  # type: ignore[no-untyped-call]
+            options = templates.init_options(package_type, runtime, base_image, dependency_manager)  # type: ignore[no-untyped-call]
             if not app_template:
                 if len(options) == 1:
                     app_template = options[0].get("appTemplate")
                 elif len(options) > 1:
-                    raise LambdaImagesTemplateException(
+                    raise LambdaImagesTemplateException(  # type: ignore[no-untyped-call]
                         "Multiple lambda image application templates found. "
                         "Please specify one using the --app-template parameter."
                     )
 
         if app_template and not location:
-            location = templates.location_from_app_template(
+            location = templates.location_from_app_template(  # type: ignore[no-untyped-call]
                 package_type, runtime, base_image, dependency_manager, app_template
             )
             no_input = True
-        extra_context = _get_cookiecutter_template_context(name, runtime, architecture, extra_context)
+        extra_context = _get_cookiecutter_template_context(name, runtime, architecture, extra_context)  # type: ignore[no-untyped-call]
 
         if not output_dir:
             output_dir = "."
-        do_generate(
+        do_generate(  # type: ignore[no-untyped-call]
             location,
             package_type,
             runtime,
@@ -358,7 +358,7 @@ def do_cli(
             click.secho(INIT_INTERACTIVE_OPTION_GUIDE, fg="yellow", bold=True)
 
         # proceed to interactive state machine, which will call do_generate
-        do_interactive(
+        do_interactive(  # type: ignore[no-untyped-call]
             location,
             pt_explicit,
             package_type,
@@ -374,7 +374,7 @@ def do_cli(
         )
 
 
-def _deprecate_notification(runtime):
+def _deprecate_notification(runtime):  # type: ignore[no-untyped-def]
     from samcli.lib.utils.colors import Colored
 
     if runtime in DEPRECATED_RUNTIMES:
@@ -383,10 +383,10 @@ def _deprecate_notification(runtime):
             "For more information please check AWS Lambda Runtime Support Policy: "
             "https://docs.aws.amazon.com/lambda/latest/dg/runtime-support-policy.html"
         )
-        LOG.warning(Colored().yellow(message))
+        LOG.warning(Colored().yellow(message))  # type: ignore[no-untyped-call, no-untyped-call]
 
 
-def _get_cookiecutter_template_context(name, runtime, architecture, extra_context):
+def _get_cookiecutter_template_context(name, runtime, architecture, extra_context):  # type: ignore[no-untyped-def]
     default_context = {}
     extra_context_dict = {}
 
@@ -396,7 +396,7 @@ def _get_cookiecutter_template_context(name, runtime, architecture, extra_contex
     if name is not None:
         default_context["project_name"] = name
 
-    default_context["architectures"] = {"value": get_architectures(architecture)}
+    default_context["architectures"] = {"value": get_architectures(architecture)}  # type: ignore[no-untyped-call]
     if extra_context is not None:
         try:
             extra_context_dict = json.loads(extra_context)

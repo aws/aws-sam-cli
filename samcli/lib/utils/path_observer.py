@@ -7,13 +7,13 @@ from pathlib import Path
 from typing import Callable, List, Optional
 from dataclasses import dataclass
 
-from watchdog.observers import Observer
-from watchdog.events import (
+from watchdog.observers import Observer  # type: ignore[import]
+from watchdog.events import (  # type: ignore[import]
     FileSystemEvent,
     FileSystemEventHandler,
     RegexMatchingEventHandler,
 )
-from watchdog.observers.api import DEFAULT_OBSERVER_TIMEOUT, ObservedWatch
+from watchdog.observers.api import DEFAULT_OBSERVER_TIMEOUT, ObservedWatch  # type: ignore[import]
 
 
 @dataclass
@@ -113,12 +113,12 @@ class StaticFolderWrapper:
         return PathHandler(path=parent_dir_path, event_handler=parent_folder_handler)
 
 
-class HandlerObserver(Observer):  # pylint: disable=too-many-ancestors
+class HandlerObserver(Observer):  # type: ignore[misc] # pylint: disable=too-many-ancestors
     """
     Extended WatchDog Observer that takes in a single PathHandler object.
     """
 
-    def __init__(self, timeout=DEFAULT_OBSERVER_TIMEOUT):
+    def __init__(self, timeout=DEFAULT_OBSERVER_TIMEOUT):  # type: ignore[no-untyped-def]
         super().__init__(timeout=timeout)
 
     def schedule_handlers(self, path_handlers: List[PathHandler]) -> List[ObservedWatch]:

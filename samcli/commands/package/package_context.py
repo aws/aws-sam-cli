@@ -21,7 +21,7 @@ from typing import Optional
 
 import boto3
 import click
-import docker
+import docker  # type: ignore[import]
 
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.commands.package.exceptions import PackageFailedError
@@ -53,7 +53,7 @@ class PackageContext:
 
     uploaders: Uploaders
 
-    def __init__(
+    def __init__(  # type: ignore[no-untyped-def]
         self,
         template_file,
         s3_bucket,
@@ -89,13 +89,13 @@ class PackageContext:
         self.signing_profiles = signing_profiles
         self._global_parameter_overrides = {IntrinsicsSymbolTable.AWS_REGION: region} if region else {}
 
-    def __enter__(self):
+    def __enter__(self):  # type: ignore[no-untyped-def]
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args):  # type: ignore[no-untyped-def]
         pass
 
-    def run(self):
+    def run(self):  # type: ignore[no-untyped-def]
         """
         Execute packaging based on the argument provided by customers and samconfig.toml.
         """
@@ -125,17 +125,17 @@ class PackageContext:
         )
         # attach the given metadata to the artifacts to be uploaded
         s3_uploader.artifact_metadata = self.metadata
-        ecr_uploader = ECRUploader(
+        ecr_uploader = ECRUploader(  # type: ignore[no-untyped-call]
             docker_client, ecr_client, self.image_repository, self.image_repositories, self.no_progressbar
         )
 
         self.uploaders = Uploaders(s3_uploader, ecr_uploader)
 
         code_signer_client = boto3.client("signer", config=get_boto_config_with_user_agent(region_name=region_name))
-        self.code_signer = CodeSigner(code_signer_client, self.signing_profiles)
+        self.code_signer = CodeSigner(code_signer_client, self.signing_profiles)  # type: ignore[no-untyped-call]
 
         try:
-            exported_str = self._export(self.template_file, self.use_json)
+            exported_str = self._export(self.template_file, self.use_json)  # type: ignore[no-untyped-call]
 
             self.write_output(self.output_template_file, exported_str)
 
@@ -146,14 +146,14 @@ class PackageContext:
                 )
                 click.echo(msg)
         except OSError as ex:
-            raise PackageFailedError(template_file=self.template_file, ex=str(ex)) from ex
+            raise PackageFailedError(template_file=self.template_file, ex=str(ex)) from ex  # type: ignore[no-untyped-call]
 
-    def _export(self, template_path, use_json):
+    def _export(self, template_path, use_json):  # type: ignore[no-untyped-def]
         template = Template(
             template_path,
             os.getcwd(),
             self.uploaders,
-            self.code_signer,
+            self.code_signer,  # type: ignore[arg-type]
             normalize_template=True,
             normalize_parameters=True,
         )
@@ -162,7 +162,7 @@ class PackageContext:
         if use_json:
             exported_str = json.dumps(exported_template, indent=4, ensure_ascii=False)
         else:
-            exported_str = yaml_dump(exported_template)
+            exported_str = yaml_dump(exported_template)  # type: ignore[no-untyped-call]
 
         return exported_str
 

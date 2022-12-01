@@ -48,7 +48,7 @@ class Route:
     HTTP = "HttpApi"
     ANY_HTTP_METHODS = ["GET", "DELETE", "PUT", "POST", "HEAD", "OPTIONS", "PATCH"]
 
-    def __init__(
+    def __init__(  # type: ignore[no-untyped-def]
         self,
         function_name: Optional[str],
         path: str,
@@ -71,7 +71,7 @@ class Route:
         :param string operation_name: Swagger operationId for the route
         :param str stack_path: path of the stack the route is located
         """
-        self.methods = self.normalize_method(methods)
+        self.methods = self.normalize_method(methods)  # type: ignore[no-untyped-call]
         self.function_name = function_name
         self.path = path
         self.event_type = event_type
@@ -80,7 +80,7 @@ class Route:
         self.operation_name = operation_name
         self.stack_path = stack_path
 
-    def __eq__(self, other):
+    def __eq__(self, other):  # type: ignore[no-untyped-def]
         return (
             isinstance(other, Route)
             and sorted(self.methods) == sorted(other.methods)
@@ -90,13 +90,13 @@ class Route:
             and self.stack_path == other.stack_path
         )
 
-    def __hash__(self):
+    def __hash__(self):  # type: ignore[no-untyped-def]
         route_hash = hash(f"{self.stack_path}-{self.function_name}-{self.path}")
         for method in sorted(self.methods):
             route_hash *= hash(method)
         return route_hash
 
-    def normalize_method(self, methods):
+    def normalize_method(self, methods):  # type: ignore[no-untyped-def]
         """
         Normalizes Http Methods. Api Gateway allows a Http Methods of ANY. This is a special verb to denote all
         supported Http Methods on Api Gateway.
@@ -113,10 +113,10 @@ class Route:
 class CatchAllPathConverter(BaseConverter):
     regex = ".+"
 
-    def to_python(self, value):
+    def to_python(self, value):  # type: ignore[no-untyped-def]
         return value
 
-    def to_url(self, value):
+    def to_url(self, value):  # type: ignore[no-untyped-def]
         return value
 
 
@@ -124,7 +124,7 @@ class LocalApigwService(BaseLocalService):
     _DEFAULT_PORT = 3000
     _DEFAULT_HOST = "127.0.0.1"
 
-    def __init__(self, api, lambda_runner, static_dir=None, port=None, host=None, stderr=None):
+    def __init__(self, api, lambda_runner, static_dir=None, port=None, host=None, stderr=None):  # type: ignore[no-untyped-def]
         """
         Creates an ApiGatewayService
 
@@ -145,14 +145,14 @@ class LocalApigwService(BaseLocalService):
         stderr : samcli.lib.utils.stream_writer.StreamWriter
             Optional stream writer where the stderr from Docker container should be written to
         """
-        super().__init__(lambda_runner.is_debugging(), port=port, host=host)
+        super().__init__(lambda_runner.is_debugging(), port=port, host=host)  # type: ignore[no-untyped-call]
         self.api = api
         self.lambda_runner = lambda_runner
         self.static_dir = static_dir
         self._dict_of_routes = {}
         self.stderr = stderr
 
-    def create(self):
+    def create(self):  # type: ignore[no-untyped-def]
         """
         Creates a Flask Application that can be started.
         """
@@ -179,8 +179,8 @@ class LocalApigwService(BaseLocalService):
             if api_gateway_route.path == "$default":
                 default_route = api_gateway_route
                 continue
-            path = PathConverter.convert_path_to_flask(api_gateway_route.path)
-            for route_key in self._generate_route_keys(api_gateway_route.methods, path):
+            path = PathConverter.convert_path_to_flask(api_gateway_route.path)  # type: ignore[no-untyped-call]
+            for route_key in self._generate_route_keys(api_gateway_route.methods, path):  # type: ignore[no-untyped-call]
                 self._dict_of_routes[route_key] = api_gateway_route
             self._app.add_url_rule(
                 path,
@@ -197,16 +197,16 @@ class LocalApigwService(BaseLocalService):
                 rules_iter = self._app.url_map.iter_rules("/")
                 while True:
                     rule = next(rules_iter)
-                    all_methods = [method for method in all_methods if method not in rule.methods]
+                    all_methods = [method for method in all_methods if method not in rule.methods]  # type: ignore[operator]
             except (KeyError, StopIteration):
                 pass
 
-            self._add_catch_all_path(all_methods, "/", default_route)
-            self._add_catch_all_path(Route.ANY_HTTP_METHODS, "/<path:any_path>", default_route)
+            self._add_catch_all_path(all_methods, "/", default_route)  # type: ignore[no-untyped-call]
+            self._add_catch_all_path(Route.ANY_HTTP_METHODS, "/<path:any_path>", default_route)  # type: ignore[no-untyped-call]
 
-        self._construct_error_handling()
+        self._construct_error_handling()  # type: ignore[no-untyped-call]
 
-    def _add_catch_all_path(self, methods, path, route):
+    def _add_catch_all_path(self, methods, path, route):  # type: ignore[no-untyped-def]
         """
         Add the catch all route to the _app and the dictionary of routes.
 
@@ -215,14 +215,14 @@ class LocalApigwService(BaseLocalService):
         :param Route route: contains the default route configurations
         """
 
-        self._app.add_url_rule(
+        self._app.add_url_rule(  # type: ignore[union-attr]
             path,
             endpoint=path,
             view_func=self._request_handler,
             methods=methods,
             provide_automatic_options=False,
         )
-        for route_key in self._generate_route_keys(methods, path):
+        for route_key in self._generate_route_keys(methods, path):  # type: ignore[no-untyped-call]
             self._dict_of_routes[route_key] = Route(
                 function_name=route.function_name,
                 path=path,
@@ -233,7 +233,7 @@ class LocalApigwService(BaseLocalService):
                 stack_path=route.stack_path,
             )
 
-    def _generate_route_keys(self, methods, path):
+    def _generate_route_keys(self, methods, path):  # type: ignore[no-untyped-def]
         """
         Generates the key to the _dict_of_routes based on the list of methods
         and path supplied
@@ -251,30 +251,30 @@ class LocalApigwService(BaseLocalService):
             the route key in the form of "Path:Method"
         """
         for method in methods:
-            yield self._route_key(method, path)
+            yield self._route_key(method, path)  # type: ignore[no-untyped-call]
 
     @staticmethod
-    def _v2_route_key(method, path, is_default_route):
+    def _v2_route_key(method, path, is_default_route):  # type: ignore[no-untyped-def]
         if is_default_route:
             return "$default"
         return "{} {}".format(method, path)
 
     @staticmethod
-    def _route_key(method, path):
+    def _route_key(method, path):  # type: ignore[no-untyped-def]
         return "{}:{}".format(path, method)
 
-    def _construct_error_handling(self):
+    def _construct_error_handling(self):  # type: ignore[no-untyped-def]
         """
         Updates the Flask app with Error Handlers for different Error Codes
         """
         # Both path and method not present
-        self._app.register_error_handler(404, ServiceErrorResponses.route_not_found)
+        self._app.register_error_handler(404, ServiceErrorResponses.route_not_found)  # type: ignore[union-attr]
         # Path is present, but method not allowed
-        self._app.register_error_handler(405, ServiceErrorResponses.route_not_found)
+        self._app.register_error_handler(405, ServiceErrorResponses.route_not_found)  # type: ignore[union-attr]
         # Something went wrong
-        self._app.register_error_handler(500, ServiceErrorResponses.lambda_failure_response)
+        self._app.register_error_handler(500, ServiceErrorResponses.lambda_failure_response)  # type: ignore[union-attr]
 
-    def _request_handler(self, **kwargs):
+    def _request_handler(self, **kwargs):  # type: ignore[no-untyped-def]
         """
         We handle all requests to the host:port. The general flow of handling a request is as follows
 
@@ -298,7 +298,7 @@ class LocalApigwService(BaseLocalService):
         Response object
         """
 
-        route = self._get_current_route(request)
+        route = self._get_current_route(request)  # type: ignore[no-untyped-call]
         cors_headers = Cors.cors_to_headers(self.api.cors)
 
         # payloadFormatVersion can only support 2 values: "1.0" and "2.0"
@@ -309,10 +309,10 @@ class LocalApigwService(BaseLocalService):
                 f'{route.payload_format_version} is not a valid value. PayloadFormatVersion must be "1.0" or "2.0"'
             )
 
-        method, endpoint = self.get_request_methods_endpoints(request)
+        method, endpoint = self.get_request_methods_endpoints(request)  # type: ignore[no-untyped-call]
         if method == "OPTIONS" and self.api.cors:
             headers = Headers(cors_headers)
-            return self.service_response("", headers, 200)
+            return self.service_response("", headers, 200)  # type: ignore[no-untyped-call]
 
         try:
             # TODO: Rewrite the logic below to use version 2.0 when an invalid value is provided
@@ -320,9 +320,9 @@ class LocalApigwService(BaseLocalService):
             # or none, as the default value to be used is 2.0
             # https://docs.aws.amazon.com/apigatewayv2/latest/api-reference/apis-apiid-integrations.html#apis-apiid-integrations-prop-createintegrationinput-payloadformatversion
             if route.event_type == Route.HTTP and route.payload_format_version in [None, "2.0"]:
-                apigw_endpoint = PathConverter.convert_path_to_api_gateway(endpoint)
-                route_key = self._v2_route_key(method, apigw_endpoint, route.is_default_route)
-                event = self._construct_v_2_0_event_http(
+                apigw_endpoint = PathConverter.convert_path_to_api_gateway(endpoint)  # type: ignore[no-untyped-call]
+                route_key = self._v2_route_key(method, apigw_endpoint, route.is_default_route)  # type: ignore[no-untyped-call]
+                event = self._construct_v_2_0_event_http(  # type: ignore[no-untyped-call]
                     request,
                     self.port,
                     self.api.binary_media_types,
@@ -332,7 +332,7 @@ class LocalApigwService(BaseLocalService):
                 )
             elif route.event_type == Route.API:
                 # The OperationName is only sent to the Lambda Function from API Gateway V1(Rest API).
-                event = self._construct_v_1_0_event(
+                event = self._construct_v_1_0_event(  # type: ignore[no-untyped-call]
                     request,
                     self.port,
                     self.api.binary_media_types,
@@ -342,7 +342,7 @@ class LocalApigwService(BaseLocalService):
                 )
             else:
                 # For Http Apis with payload version 1.0, API Gateway never sends the OperationName.
-                event = self._construct_v_1_0_event(
+                event = self._construct_v_1_0_event(  # type: ignore[no-untyped-call]
                     request,
                     self.port,
                     self.api.binary_media_types,
@@ -352,17 +352,17 @@ class LocalApigwService(BaseLocalService):
                 )
         except UnicodeDecodeError as error:
             LOG.error("UnicodeDecodeError while processing HTTP request: %s", error)
-            return ServiceErrorResponses.lambda_failure_response()
+            return ServiceErrorResponses.lambda_failure_response()  # type: ignore[no-untyped-call]
 
         stdout_stream = io.BytesIO()
-        stdout_stream_writer = StreamWriter(stdout_stream, auto_flush=True)
+        stdout_stream_writer = StreamWriter(stdout_stream, auto_flush=True)  # type: ignore[no-untyped-call]
 
         try:
             self.lambda_runner.invoke(route.function_name, event, stdout=stdout_stream_writer, stderr=self.stderr)
         except FunctionNotFound:
-            return ServiceErrorResponses.lambda_not_found_response()
+            return ServiceErrorResponses.lambda_not_found_response()  # type: ignore[no-untyped-call]
 
-        lambda_response, lambda_logs, _ = LambdaOutputParser.get_lambda_output(stdout_stream)
+        lambda_response, lambda_logs, _ = LambdaOutputParser.get_lambda_output(stdout_stream)  # type: ignore[no-untyped-call]
 
         if self.stderr and lambda_logs:
             # Write the logs to stderr if available.
@@ -381,20 +381,20 @@ class LocalApigwService(BaseLocalService):
                 )
         except LambdaResponseParseException as ex:
             LOG.error("Invalid lambda response received: %s", ex)
-            return ServiceErrorResponses.lambda_failure_response()
+            return ServiceErrorResponses.lambda_failure_response()  # type: ignore[no-untyped-call]
 
-        return self.service_response(body, headers, status_code)
+        return self.service_response(body, headers, status_code)  # type: ignore[no-untyped-call]
 
-    def _get_current_route(self, flask_request):
+    def _get_current_route(self, flask_request):  # type: ignore[no-untyped-def]
         """
         Get the route (Route) based on the current request
 
         :param request flask_request: Flask Request
         :return: Route matching the endpoint and method of the request
         """
-        method, endpoint = self.get_request_methods_endpoints(flask_request)
+        method, endpoint = self.get_request_methods_endpoints(flask_request)  # type: ignore[no-untyped-call]
 
-        route_key = self._route_key(method, endpoint)
+        route_key = self._route_key(method, endpoint)  # type: ignore[no-untyped-call]
         route = self._dict_of_routes.get(route_key, None)
 
         if not route:
@@ -411,7 +411,7 @@ class LocalApigwService(BaseLocalService):
         return route
 
     @staticmethod
-    def get_request_methods_endpoints(flask_request):
+    def get_request_methods_endpoints(flask_request):  # type: ignore[no-untyped-def]
         """
         Separated out for testing requests in request handler
         :param request flask_request: Flask Request
@@ -423,7 +423,7 @@ class LocalApigwService(BaseLocalService):
 
     # Consider moving this out to its own class. Logic is started to get dense and looks messy @jfuss
     @staticmethod
-    def _parse_v1_payload_format_lambda_output(lambda_output: str, binary_types, flask_request, event_type):
+    def _parse_v1_payload_format_lambda_output(lambda_output: str, binary_types, flask_request, event_type):  # type: ignore[no-untyped-def, no-untyped-def]
         """
         Parses the output from the Lambda Container
 
@@ -446,7 +446,7 @@ class LocalApigwService(BaseLocalService):
             raise LambdaResponseParseException(f"Invalid API Gateway Response Key: statusCode is not in {json_output}")
 
         status_code = json_output.get("statusCode") or 200
-        headers = LocalApigwService._merge_response_headers(
+        headers = LocalApigwService._merge_response_headers(  # type: ignore[no-untyped-call]
             json_output.get("headers") or {}, json_output.get("multiValueHeaders") or {}
         )
 
@@ -454,7 +454,7 @@ class LocalApigwService(BaseLocalService):
         if body is None:
             LOG.warning("Lambda returned empty body!")
 
-        is_base_64_encoded = LocalApigwService.get_base_64_encoded(event_type, json_output)
+        is_base_64_encoded = LocalApigwService.get_base_64_encoded(event_type, json_output)  # type: ignore[no-untyped-call]
 
         try:
             status_code = int(status_code)
@@ -471,7 +471,7 @@ class LocalApigwService(BaseLocalService):
                 f"Non null response bodies should be able to convert to string: {body}"
             ) from ex
 
-        invalid_keys = LocalApigwService._invalid_apig_response_keys(json_output, event_type)
+        invalid_keys = LocalApigwService._invalid_apig_response_keys(json_output, event_type)  # type: ignore[no-untyped-call]
         # HTTP API Gateway just skip the non allowed lambda response fields, but Rest API gateway fail on
         # the non allowed fields
         if event_type == Route.API and invalid_keys:
@@ -489,7 +489,7 @@ class LocalApigwService(BaseLocalService):
             # if it will decode the response or not
             if (event_type == Route.HTTP and is_base_64_encoded) or (
                 event_type == Route.API
-                and LocalApigwService._should_base64_decode_body(
+                and LocalApigwService._should_base64_decode_body(  # type: ignore[no-untyped-call]
                     binary_types, flask_request, headers, is_base_64_encoded
                 )
             ):
@@ -500,7 +500,7 @@ class LocalApigwService(BaseLocalService):
         return status_code, headers, body
 
     @staticmethod
-    def get_base_64_encoded(event_type, json_output):
+    def get_base_64_encoded(event_type, json_output):  # type: ignore[no-untyped-def]
         # The following behaviour is undocumented behaviour, and based on some trials
         # Http API gateway checks lambda response for isBase64Encoded field, and ignore base64Encoded
         # Rest API gateway checks first the field base64Encoded field, if not exist, it checks isBase64Encoded field
@@ -525,7 +525,7 @@ class LocalApigwService(BaseLocalService):
         return is_base_64_encoded
 
     @staticmethod
-    def _parse_v2_payload_format_lambda_output(lambda_output: str, binary_types, flask_request):
+    def _parse_v2_payload_format_lambda_output(lambda_output: str, binary_types, flask_request):  # type: ignore[no-untyped-def, no-untyped-def]
         """
         Parses the output from the Lambda Container. V2 Payload Format means that the event_type is only HTTP
 
@@ -603,7 +603,7 @@ class LocalApigwService(BaseLocalService):
         return status_code, headers, body
 
     @staticmethod
-    def _invalid_apig_response_keys(output, event_type):
+    def _invalid_apig_response_keys(output, event_type):  # type: ignore[no-untyped-def]
         allowable = {"statusCode", "body", "headers", "multiValueHeaders", "isBase64Encoded", "cookies"}
         if event_type == Route.API:
             allowable.add("base64Encoded")
@@ -611,7 +611,7 @@ class LocalApigwService(BaseLocalService):
         return invalid_keys
 
     @staticmethod
-    def _should_base64_decode_body(binary_types, flask_request, lamba_response_headers, is_base_64_encoded):
+    def _should_base64_decode_body(binary_types, flask_request, lamba_response_headers, is_base_64_encoded):  # type: ignore[no-untyped-def]
         """
         Whether or not the body should be decoded from Base64 to Binary
 
@@ -637,7 +637,7 @@ class LocalApigwService(BaseLocalService):
         return best_match_mimetype and is_best_match_in_binary_types and is_base_64_encoded
 
     @staticmethod
-    def _merge_response_headers(headers, multi_headers):
+    def _merge_response_headers(headers, multi_headers):  # type: ignore[no-untyped-def]
         """
         Merge multiValueHeaders headers with headers
 
@@ -670,7 +670,7 @@ class LocalApigwService(BaseLocalService):
         return processed_headers
 
     @staticmethod
-    def _construct_v_1_0_event(
+    def _construct_v_1_0_event(  # type: ignore[no-untyped-def]
         flask_request, port, binary_types, stage_name=None, stage_variables=None, operation_name=None
     ):
         """
@@ -685,9 +685,9 @@ class LocalApigwService(BaseLocalService):
         """
         # pylint: disable-msg=too-many-locals
 
-        identity = ContextIdentity(source_ip=flask_request.remote_addr)
+        identity = ContextIdentity(source_ip=flask_request.remote_addr)  # type: ignore[no-untyped-call]
 
-        endpoint = PathConverter.convert_path_to_api_gateway(flask_request.endpoint)
+        endpoint = PathConverter.convert_path_to_api_gateway(flask_request.endpoint)  # type: ignore[no-untyped-call]
         method = flask_request.method
         protocol = flask_request.environ.get("SERVER_PROTOCOL", "HTTP/1.1")
         host = flask_request.host
@@ -696,7 +696,7 @@ class LocalApigwService(BaseLocalService):
 
         request_mimetype = flask_request.mimetype
 
-        is_base_64 = LocalApigwService._should_base64_encode(binary_types, request_mimetype)
+        is_base_64 = LocalApigwService._should_base64_encode(binary_types, request_mimetype)  # type: ignore[no-untyped-call]
 
         if is_base_64:
             LOG.debug("Incoming Request seems to be binary. Base64 encoding the request data before sending to Lambda.")
@@ -708,9 +708,9 @@ class LocalApigwService(BaseLocalService):
             # We might want to consider to use a new variable here.
             request_data = request_data.decode("utf-8")
 
-        query_string_dict, multi_value_query_string_dict = LocalApigwService._query_string_params(flask_request)
+        query_string_dict, multi_value_query_string_dict = LocalApigwService._query_string_params(flask_request)  # type: ignore[no-untyped-call]
 
-        context = RequestContext(
+        context = RequestContext(  # type: ignore[no-untyped-call]
             resource_path=endpoint,
             http_method=method,
             stage=stage_name,
@@ -721,9 +721,9 @@ class LocalApigwService(BaseLocalService):
             operation_name=operation_name,
         )
 
-        headers_dict, multi_value_headers_dict = LocalApigwService._event_headers(flask_request, port)
+        headers_dict, multi_value_headers_dict = LocalApigwService._event_headers(flask_request, port)  # type: ignore[no-untyped-call]
 
-        event = ApiGatewayLambdaEvent(
+        event = ApiGatewayLambdaEvent(  # type: ignore[no-untyped-call]
             http_method=method,
             body=request_data,
             resource=endpoint,
@@ -738,12 +738,12 @@ class LocalApigwService(BaseLocalService):
             stage_variables=stage_variables,
         )
 
-        event_str = json.dumps(event.to_dict(), sort_keys=True)
+        event_str = json.dumps(event.to_dict(), sort_keys=True)  # type: ignore[no-untyped-call]
         LOG.debug("Constructed String representation of Event to invoke Lambda. Event: %s", event_str)
         return event_str
 
     @staticmethod
-    def _construct_v_2_0_event_http(
+    def _construct_v_2_0_event_http(  # type: ignore[no-untyped-def]
         flask_request,
         port,
         binary_types,
@@ -773,7 +773,7 @@ class LocalApigwService(BaseLocalService):
 
         request_mimetype = flask_request.mimetype
 
-        is_base_64 = LocalApigwService._should_base64_encode(binary_types, request_mimetype)
+        is_base_64 = LocalApigwService._should_base64_encode(binary_types, request_mimetype)  # type: ignore[no-untyped-call]
 
         if is_base_64:
             LOG.debug("Incoming Request seems to be binary. Base64 encoding the request data before sending to Lambda.")
@@ -783,12 +783,12 @@ class LocalApigwService(BaseLocalService):
             # Flask does not parse/decode the request data. We should do it ourselves
             request_data = request_data.decode("utf-8")
 
-        query_string_dict = LocalApigwService._query_string_params_v_2_0(flask_request)
+        query_string_dict = LocalApigwService._query_string_params_v_2_0(flask_request)  # type: ignore[no-untyped-call]
 
-        cookies = LocalApigwService._event_http_cookies(flask_request)
-        headers = LocalApigwService._event_http_headers(flask_request, port)
-        context_http = ContextHTTP(method=method, path=flask_request.path, source_ip=flask_request.remote_addr)
-        context = RequestContextV2(
+        cookies = LocalApigwService._event_http_cookies(flask_request)  # type: ignore[no-untyped-call]
+        headers = LocalApigwService._event_http_headers(flask_request, port)  # type: ignore[no-untyped-call]
+        context_http = ContextHTTP(method=method, path=flask_request.path, source_ip=flask_request.remote_addr)  # type: ignore[no-untyped-call]
+        context = RequestContextV2(  # type: ignore[no-untyped-call]
             http=context_http,
             route_key=route_key,
             stage=stage_name,
@@ -796,7 +796,7 @@ class LocalApigwService(BaseLocalService):
             request_time=request_time,
         )
 
-        event = ApiGatewayV2LambdaEvent(
+        event = ApiGatewayV2LambdaEvent(  # type: ignore[no-untyped-call]
             route_key=route_key,
             raw_path=flask_request.path,
             raw_query_string=flask_request.query_string.decode("utf-8"),
@@ -810,12 +810,12 @@ class LocalApigwService(BaseLocalService):
             stage_variables=stage_variables,
         )
 
-        event_str = json.dumps(event.to_dict())
+        event_str = json.dumps(event.to_dict())  # type: ignore[no-untyped-call]
         LOG.debug("Constructed String representation of Event Version 2.0 to invoke Lambda. Event: %s", event_str)
         return event_str
 
     @staticmethod
-    def _query_string_params(flask_request):
+    def _query_string_params(flask_request):  # type: ignore[no-untyped-def]
         """
         Constructs an APIGW equivalent query string dictionary
 
@@ -848,7 +848,7 @@ class LocalApigwService(BaseLocalService):
         return query_string_dict, multi_value_query_string_dict
 
     @staticmethod
-    def _query_string_params_v_2_0(flask_request):
+    def _query_string_params_v_2_0(flask_request):  # type: ignore[no-untyped-def]
         """
         Constructs an APIGW equivalent query string dictionary using the 2.0 format
         https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html#2.0
@@ -875,7 +875,7 @@ class LocalApigwService(BaseLocalService):
         return query_string_dict
 
     @staticmethod
-    def _event_headers(flask_request, port):
+    def _event_headers(flask_request, port):  # type: ignore[no-untyped-def]
         """
         Constructs an APIGW equivalent headers dictionary
 
@@ -910,7 +910,7 @@ class LocalApigwService(BaseLocalService):
         return headers_dict, multi_value_headers_dict
 
     @staticmethod
-    def _event_http_cookies(flask_request):
+    def _event_http_cookies(flask_request):  # type: ignore[no-untyped-def]
         """
         All cookie headers in the request are combined with commas.
 
@@ -932,7 +932,7 @@ class LocalApigwService(BaseLocalService):
         return cookies
 
     @staticmethod
-    def _event_http_headers(flask_request, port):
+    def _event_http_headers(flask_request, port):  # type: ignore[no-untyped-def]
         """
         Duplicate headers are combined with commas.
 
@@ -959,7 +959,7 @@ class LocalApigwService(BaseLocalService):
         return headers
 
     @staticmethod
-    def _should_base64_encode(binary_types, request_mimetype):
+    def _should_base64_encode(binary_types, request_mimetype):  # type: ignore[no-untyped-def]
         """
         Whether or not to encode the data from the request to Base64
 

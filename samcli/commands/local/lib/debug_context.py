@@ -4,7 +4,7 @@ Information and debug options for a specific runtime.
 
 
 class DebugContext:
-    def __init__(
+    def __init__(  # type: ignore[no-untyped-def]
         self, debug_ports=None, debugger_path=None, debug_args=None, debug_function=None, container_env_vars=None
     ):
         """
@@ -24,8 +24,8 @@ class DebugContext:
         self.debug_function = debug_function
         self.container_env_vars = container_env_vars
 
-    def __bool__(self):
+    def __bool__(self):  # type: ignore[no-untyped-def]
         return bool(self.debug_ports)
 
-    def __nonzero__(self):
-        return self.__bool__()
+    def __nonzero__(self):  # type: ignore[no-untyped-def]
+        return self.__bool__()  # type: ignore[no-untyped-call]

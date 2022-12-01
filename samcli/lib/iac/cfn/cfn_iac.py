@@ -7,7 +7,7 @@ import logging
 from typing import List, Optional
 from urllib.parse import unquote, urlparse
 
-import jmespath
+import jmespath  # type: ignore[import]
 
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.iac.constants import PARAMETER_OVERRIDES, GLOBAL_PARAMETER_OVERRIDES
@@ -92,7 +92,7 @@ class CfnIacImplementation(IaCPluginInterface):
 
         stack = Stack(is_nested=is_nested, name=name, assets=assets, origin_dir=os.path.dirname(path))
 
-        template_dict = get_template_data(path)
+        template_dict = get_template_data(path)  # type: ignore[no-untyped-call]
         options = self._context.command_options_map
         resolved_stack = SamBaseProvider.get_resolved_template_dict(
             template_dict,
@@ -156,7 +156,7 @@ class CfnIacImplementation(IaCPluginInterface):
         stack.extra_details[TEMPLATE_PATH_KEY] = path
         return stack
 
-    def _extract_nested_stack(
+    def _extract_nested_stack(  # type: ignore[no-untyped-def]
         self, parent_stack_template_path, resource_id, properties, resource_type
     ) -> Optional[Stack]:
         if not properties:

@@ -26,9 +26,9 @@ class SamLocalStackProvider(SamBaseProvider):
         self,
         template_file: str,
         stack_path: str,
-        template_dict: Dict,
-        parameter_overrides: Optional[Dict] = None,
-        global_parameter_overrides: Optional[Dict] = None,
+        template_dict: Dict,  # type: ignore[type-arg]
+        parameter_overrides: Optional[Dict] = None,  # type: ignore[type-arg]
+        global_parameter_overrides: Optional[Dict] = None,  # type: ignore[type-arg]
     ):
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
@@ -129,8 +129,8 @@ class SamLocalStackProvider(SamBaseProvider):
         template_file: str,
         stack_path: str,
         name: str,
-        resource_properties: Dict,
-        global_parameter_overrides: Optional[Dict] = None,
+        resource_properties: Dict,  # type: ignore[type-arg]
+        global_parameter_overrides: Optional[Dict] = None,  # type: ignore[type-arg]
     ) -> Optional[Stack]:
         location = resource_properties.get("Location")
 
@@ -152,7 +152,7 @@ class SamLocalStackProvider(SamBaseProvider):
             parameters=SamLocalStackProvider.merge_parameter_overrides(
                 resource_properties.get("Parameters", {}), global_parameter_overrides
             ),
-            template_dict=get_template_data(location),
+            template_dict=get_template_data(location),  # type: ignore[no-untyped-call]
             metadata=resource_properties.get("Metadata", {}),
         )
 
@@ -161,8 +161,8 @@ class SamLocalStackProvider(SamBaseProvider):
         template_file: str,
         stack_path: str,
         name: str,
-        resource_properties: Dict,
-        global_parameter_overrides: Optional[Dict] = None,
+        resource_properties: Dict,  # type: ignore[type-arg]
+        global_parameter_overrides: Optional[Dict] = None,  # type: ignore[type-arg]
     ) -> Optional[Stack]:
         template_url = resource_properties.get("TemplateURL")
 
@@ -186,7 +186,7 @@ class SamLocalStackProvider(SamBaseProvider):
             parameters=SamLocalStackProvider.merge_parameter_overrides(
                 resource_properties.get("Parameters", {}), global_parameter_overrides
             ),
-            template_dict=get_template_data(template_url),
+            template_dict=get_template_data(template_url),  # type: ignore[no-untyped-call]
             metadata=resource_properties.get("Metadata", {}),
         )
 
@@ -195,9 +195,9 @@ class SamLocalStackProvider(SamBaseProvider):
         template_file: str,
         stack_path: str = "",
         name: str = "",
-        parameter_overrides: Optional[Dict] = None,
-        global_parameter_overrides: Optional[Dict] = None,
-        metadata: Optional[Dict] = None,
+        parameter_overrides: Optional[Dict] = None,  # type: ignore[type-arg]
+        global_parameter_overrides: Optional[Dict] = None,  # type: ignore[type-arg]
+        metadata: Optional[Dict] = None,  # type: ignore[type-arg]
     ) -> Tuple[List[Stack], List[str]]:
         """
         Recursively extract stacks from a template file.
@@ -226,7 +226,7 @@ class SamLocalStackProvider(SamBaseProvider):
         remote_stack_full_paths : List[str]
             The list of full paths of detected remote stacks
         """
-        template_dict = get_template_data(template_file)
+        template_dict = get_template_data(template_file)  # type: ignore[no-untyped-call]
         stacks = [
             Stack(
                 stack_path,
@@ -272,8 +272,8 @@ class SamLocalStackProvider(SamBaseProvider):
 
     @staticmethod
     def merge_parameter_overrides(
-        parameter_overrides: Optional[Dict], global_parameter_overrides: Optional[Dict]
-    ) -> Dict:
+        parameter_overrides: Optional[Dict], global_parameter_overrides: Optional[Dict]  # type: ignore[type-arg]
+    ) -> Dict:  # type: ignore[type-arg]
         """
         Combine global parameters and stack-specific parameters.
         Right now the only global parameter override available is AWS::Region (via --region in "sam local"),
@@ -355,7 +355,7 @@ class SamLocalStackProvider(SamBaseProvider):
         return os.path.normpath(os.path.join(os.path.dirname(stack_file_path), path))
 
 
-def is_local_path(path: Union[Dict, str]) -> bool:
+def is_local_path(path: Union[Dict, str]) -> bool:  # type: ignore[type-arg]
     return bool(path) and not isinstance(path, dict) and not SamLocalStackProvider.is_remote_url(path)
 
 

@@ -9,14 +9,14 @@ import threading
 import socket
 import time
 
-import docker
-import requests
+import docker  # type: ignore[import]
+import requests  # type: ignore[import]
 
-from docker.errors import NotFound as DockerNetworkNotFound
+from docker.errors import NotFound as DockerNetworkNotFound  # type: ignore[import]
 from samcli.lib.utils.retry import retry
 from .exceptions import ContainerNotStartableException
 
-from .utils import to_posix_path, find_free_port, NoFreePortsError
+from .utils import to_posix_path, find_free_port, NoFreePortsError  # type: ignore[attr-defined]
 
 LOG = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ class Container:
     # Set connection timeout to 1 sec to support the large input.
     RAPID_CONNECTION_TIMEOUT = 1
 
-    def __init__(
+    def __init__(  # type: ignore[no-untyped-def]
         self,
         image,
         cmd,
@@ -116,11 +116,11 @@ class Container:
         self._container_host_interface = container_host_interface
 
         try:
-            self.rapid_port_host = find_free_port(start=self._start_port_range, end=self._end_port_range)
+            self.rapid_port_host = find_free_port(start=self._start_port_range, end=self._end_port_range)  # type: ignore[no-untyped-call]
         except NoFreePortsError as ex:
             raise ContainerNotStartableException(str(ex)) from ex
 
-    def create(self):
+    def create(self):  # type: ignore[no-untyped-def]
         """
         Calls Docker API to creates the Docker container instance. Creating the container does *not* run the container.
         Use ``start`` method to run the container
@@ -129,7 +129,7 @@ class Container:
         :raise RuntimeError: If this method is called after a container already has been created
         """
 
-        if self.is_created():
+        if self.is_created():  # type: ignore[no-untyped-call]
             raise RuntimeError("This container already exists. Cannot create again.")
 
         _volumes = {}
@@ -164,7 +164,7 @@ class Container:
             kwargs["volumes"].update(self._additional_volumes)
 
         # Make sure all mounts are of posix path style.
-        kwargs["volumes"] = {to_posix_path(host_dir): mount for host_dir, mount in kwargs["volumes"].items()}
+        kwargs["volumes"] = {to_posix_path(host_dir): mount for host_dir, mount in kwargs["volumes"].items()}  # type: ignore[no-untyped-call]
 
         if self._env_vars:
             kwargs["environment"] = self._env_vars
@@ -205,7 +205,7 @@ class Container:
 
         return self.id
 
-    def stop(self, timeout=3):
+    def stop(self, timeout=3):  # type: ignore[no-untyped-def]
         """
         Stop a container, with a given number of seconds between sending SIGTERM and SIGKILL.
 
@@ -215,7 +215,7 @@ class Container:
             Optional. Number of seconds between SIGTERM and SIGKILL. Effectively, the amount of time
             the container has to perform shutdown steps. Default: 3
         """
-        if not self.is_created():
+        if not self.is_created():  # type: ignore[no-untyped-call]
             LOG.debug("Container was not created, cannot run stop.")
             return
 
@@ -234,11 +234,11 @@ class Container:
                 raise ex
             LOG.debug("Container removal is in progress, skipping exception: %s", msg)
 
-    def delete(self):
+    def delete(self):  # type: ignore[no-untyped-def]
         """
         Removes a container that was created earlier.
         """
-        if not self.is_created():
+        if not self.is_created():  # type: ignore[no-untyped-call]
             LOG.debug("Container was not created. Skipping deletion")
             return
 
@@ -259,7 +259,7 @@ class Container:
 
         self.id = None
 
-    def start(self, input_data=None):
+    def start(self, input_data=None):  # type: ignore[no-untyped-def]
         """
         Calls Docker API to start the container. The container must be created at the first place to run.
         It waits for the container to complete, fetches both stdout and stderr logs and returns through the
@@ -274,7 +274,7 @@ class Container:
         if input_data:
             raise ValueError("Passing input through container's stdin is not supported")
 
-        if not self.is_created():
+        if not self.is_created():  # type: ignore[no-untyped-call]
             raise RuntimeError("Container does not exist. Cannot start this container")
 
         # Get the underlying container instance from Docker API
@@ -283,8 +283,8 @@ class Container:
         # Start the container
         real_container.start()
 
-    @retry(exc=requests.exceptions.RequestException, exc_raise=ContainerResponseException)
-    def wait_for_http_response(self, name, event, stdout):
+    @retry(exc=requests.exceptions.RequestException, exc_raise=ContainerResponseException)  # type: ignore[no-untyped-call]
+    def wait_for_http_response(self, name, event, stdout):  # type: ignore[no-untyped-def]
         # TODO(sriram-mv): `aws-lambda-rie` is in a mode where the function_name is always "function"
         # NOTE(sriram-mv): There is a connection timeout set on the http call to `aws-lambda-rie`, however there is not
         # a read time out for the response received from the server.
@@ -296,7 +296,7 @@ class Container:
         )
         stdout.write(resp.content)
 
-    def wait_for_result(self, full_path, event, stdout, stderr, start_timer=None):
+    def wait_for_result(self, full_path, event, stdout, stderr, start_timer=None):  # type: ignore[no-untyped-def]
         # NOTE(sriram-mv): Let logging happen in its own thread, so that a http request can be sent.
         # NOTE(sriram-mv): All logging is re-directed to stderr, so that only the lambda function return
         # will be written to stdout.
@@ -318,13 +318,13 @@ class Container:
         if timer:
             timer.cancel()
 
-    def wait_for_logs(self, stdout=None, stderr=None):
+    def wait_for_logs(self, stdout=None, stderr=None):  # type: ignore[no-untyped-def]
 
         # Return instantly if we don't have to fetch any logs
         if not stdout and not stderr:
             return
 
-        if not self.is_created():
+        if not self.is_created():  # type: ignore[no-untyped-call]
             raise RuntimeError("Container does not exist. Cannot get logs for this container")
 
         real_container = self.docker_client.containers.get(self.id)
@@ -332,7 +332,7 @@ class Container:
         # Fetch both stdout and stderr streams from Docker as a single iterator.
         logs_itr = real_container.attach(stream=True, logs=True, demux=True)
 
-        self._write_container_output(logs_itr, stdout=stdout, stderr=stderr)
+        self._write_container_output(logs_itr, stdout=stdout, stderr=stderr)  # type: ignore[no-untyped-call]
 
     def _wait_for_socket_connection(self) -> None:
         """
@@ -362,9 +362,9 @@ class Container:
         a_socket.close()
         return connection_succeeded
 
-    def copy(self, from_container_path, to_host_path):
+    def copy(self, from_container_path, to_host_path):  # type: ignore[no-untyped-def]
 
-        if not self.is_created():
+        if not self.is_created():  # type: ignore[no-untyped-call]
             raise RuntimeError("Container does not exist. Cannot get logs for this container")
 
         real_container = self.docker_client.containers.get(self.id)
@@ -382,7 +382,7 @@ class Container:
                 tar.extractall(path=to_host_path)
 
     @staticmethod
-    def _write_container_output(output_itr, stdout=None, stderr=None):
+    def _write_container_output(output_itr, stdout=None, stderr=None):  # type: ignore[no-untyped-def]
         """
         Based on the data returned from the Container output, via the iterator, write it to the appropriate streams
 
@@ -409,7 +409,7 @@ class Container:
             LOG.debug("Failed to get the logs from the container", exc_info=ex)
 
     @property
-    def network_id(self):
+    def network_id(self):  # type: ignore[no-untyped-def]
         """
         Gets the ID of the network this container connects to
         :return string: ID of the network
@@ -417,7 +417,7 @@ class Container:
         return self._network_id
 
     @network_id.setter
-    def network_id(self, value):
+    def network_id(self, value):  # type: ignore[no-untyped-def]
         """
         Set the ID of network that this container should connect to
 
@@ -426,7 +426,7 @@ class Container:
         self._network_id = value
 
     @property
-    def image(self):
+    def image(self):  # type: ignore[no-untyped-def]
         """
         Returns the image used by this container
 
@@ -434,7 +434,7 @@ class Container:
         """
         return self._image
 
-    def is_created(self):
+    def is_created(self):  # type: ignore[no-untyped-def]
         """
         Checks if the real container exists?
 
@@ -451,7 +451,7 @@ class Container:
                 return False
         return False
 
-    def is_running(self):
+    def is_running(self):  # type: ignore[no-untyped-def]
         """
         Checks if the real container status is running
 

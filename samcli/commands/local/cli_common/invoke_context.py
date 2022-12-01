@@ -85,7 +85,7 @@ class InvokeContext:
         debug_args: Optional[str] = None,
         debugger_path: Optional[str] = None,
         container_env_vars_file: Optional[str] = None,
-        parameter_overrides: Optional[Dict] = None,
+        parameter_overrides: Optional[Dict] = None,  # type: ignore[type-arg]
         layer_cache_basedir: Optional[str] = None,
         force_image_build: Optional[bool] = None,
         aws_region: Optional[str] = None,
@@ -163,7 +163,7 @@ class InvokeContext:
 
         self._parameter_overrides = parameter_overrides
         # Override certain CloudFormation pseudo-parameters based on values provided by customer
-        self._global_parameter_overrides: Optional[Dict] = None
+        self._global_parameter_overrides: Optional[Dict] = None  # type: ignore[type-arg]
         if aws_region:
             self._global_parameter_overrides = {"AWS::Region": aws_region}
 
@@ -192,9 +192,9 @@ class InvokeContext:
         # so we can assume they are not Optional here
         self._function_provider: SamFunctionProvider = None  # type: ignore
         self._stacks: List[Stack] = None  # type: ignore
-        self._env_vars_value: Optional[Dict] = None
-        self._container_env_vars_value: Optional[Dict] = None
-        self._log_file_handle: Optional[IO] = None
+        self._env_vars_value: Optional[Dict] = None  # type: ignore[type-arg]
+        self._container_env_vars_value: Optional[Dict] = None  # type: ignore[type-arg]
+        self._log_file_handle: Optional[IO] = None  # type: ignore[type-arg]
         self._debug_context: Optional[DebugContext] = None
         self._layers_downloader: Optional[LayerDownloader] = None
         self._container_manager: Optional[ContainerManager] = None
@@ -262,7 +262,7 @@ class InvokeContext:
         )
 
         if not self._container_manager.is_docker_reachable:
-            raise DockerIsNotReachableException(
+            raise DockerIsNotReachableException(  # type: ignore[no-untyped-call]
                 "Running AWS SAM projects locally requires Docker. Have you got it installed and running?"
             )
 
@@ -292,16 +292,16 @@ class InvokeContext:
 
         def initialize_function_container(function: Function) -> None:
             function_config = self.local_lambda_runner.get_invoke_config(function)
-            self.lambda_runtime.run(
+            self.lambda_runtime.run(  # type: ignore[no-untyped-call]
                 None, function_config, self._debug_context, self._container_host, self._container_host_interface
             )
 
         try:
-            async_context = AsyncContext()
+            async_context = AsyncContext()  # type: ignore[no-untyped-call]
             for function in self._function_provider.get_all():
-                async_context.add_async_task(initialize_function_container, function)
+                async_context.add_async_task(initialize_function_container, function)  # type: ignore[no-untyped-call]
 
-            async_context.run_async(default_executor=False)
+            async_context.run_async(default_executor=False)  # type: ignore[no-untyped-call]
             LOG.info("Containers Initialization is done.")
         except KeyboardInterrupt:
             LOG.debug("Ctrl+C was pressed. Aborting containers initialization")
@@ -310,14 +310,14 @@ class InvokeContext:
         except Exception as ex:
             LOG.error("Lambda functions containers initialization failed because of %s", ex)
             self._clean_running_containers_and_related_resources()
-            raise ContainersInitializationException("Lambda functions containers initialization failed") from ex
+            raise ContainersInitializationException("Lambda functions containers initialization failed") from ex  # type: ignore[no-untyped-call]
 
     def _clean_running_containers_and_related_resources(self) -> None:
         """
         Clean the running containers and any other related open resources,
         it is only used when self.lambda_runtime is a WarmLambdaRuntime
         """
-        cast(WarmLambdaRuntime, self.lambda_runtime).clean_running_containers_and_related_resources()
+        cast(WarmLambdaRuntime, self.lambda_runtime).clean_running_containers_and_related_resources()  # type: ignore[no-untyped-call]
         cast(RefreshableSamFunctionProvider, self._function_provider).stop_observer()
 
     @property
@@ -343,7 +343,7 @@ class InvokeContext:
         all_function_full_paths = [f.full_path for f in all_functions]
 
         # There are more functions in the template, and function identifier is not provided, hence raise.
-        raise NoFunctionIdentifierProvidedException(
+        raise NoFunctionIdentifierProvidedException(  # type: ignore[no-untyped-call]
             "You must provide a function logical ID when there are more than one functions in your template. "
             "Possible options in your template: {}".format(all_function_full_paths)
         )
@@ -352,12 +352,12 @@ class InvokeContext:
     def lambda_runtime(self) -> LambdaRuntime:
         if not self._lambda_runtimes:
             layer_downloader = LayerDownloader(self._layer_cache_basedir, self.get_cwd(), self._stacks)
-            image_builder = LambdaImage(
+            image_builder = LambdaImage(  # type: ignore[no-untyped-call]
                 layer_downloader, self._skip_pull_image, self._force_image_build, invoke_images=self._invoke_images
             )
             self._lambda_runtimes = {
-                ContainersMode.WARM: WarmLambdaRuntime(self._container_manager, image_builder),
-                ContainersMode.COLD: LambdaRuntime(self._container_manager, image_builder),
+                ContainersMode.WARM: WarmLambdaRuntime(self._container_manager, image_builder),  # type: ignore[no-untyped-call]
+                ContainersMode.COLD: LambdaRuntime(self._container_manager, image_builder),  # type: ignore[no-untyped-call]
             }
 
         return self._lambda_runtimes[self._containers_mode]
@@ -396,8 +396,8 @@ class InvokeContext:
         samcli.lib.utils.stream_writer.StreamWriter
             Stream writer for stdout
         """
-        stream = self._log_file_handle if self._log_file_handle else osutils.stdout()
-        return StreamWriter(stream, auto_flush=True)
+        stream = self._log_file_handle if self._log_file_handle else osutils.stdout()  # type: ignore[no-untyped-call]
+        return StreamWriter(stream, auto_flush=True)  # type: ignore[no-untyped-call]
 
     @property
     def stderr(self) -> StreamWriter:
@@ -409,8 +409,8 @@ class InvokeContext:
         samcli.lib.utils.stream_writer.StreamWriter
             Stream writer for stderr
         """
-        stream = self._log_file_handle if self._log_file_handle else osutils.stderr()
-        return StreamWriter(stream, auto_flush=True)
+        stream = self._log_file_handle if self._log_file_handle else osutils.stderr()  # type: ignore[no-untyped-call]
+        return StreamWriter(stream, auto_flush=True)  # type: ignore[no-untyped-call]
 
     @property
     def stacks(self) -> List[Stack]:
@@ -454,7 +454,7 @@ class InvokeContext:
             raise ex
 
     @staticmethod
-    def _get_env_vars_value(filename: Optional[str]) -> Optional[Dict]:
+    def _get_env_vars_value(filename: Optional[str]) -> Optional[Dict]:  # type: ignore[type-arg]
         """
         If the user provided a file containing values of environment variables, this method will read the file and
         return its value
@@ -470,15 +470,15 @@ class InvokeContext:
         try:
 
             with open(filename, "r") as fp:
-                return cast(Dict, json.load(fp))
+                return cast(Dict, json.load(fp))  # type: ignore[type-arg]
 
         except Exception as ex:
-            raise InvalidEnvironmentVariablesFileException(
+            raise InvalidEnvironmentVariablesFileException(  # type: ignore[no-untyped-call]
                 "Could not read environment variables overrides from file {}: {}".format(filename, str(ex))
             ) from ex
 
     @staticmethod
-    def _setup_log_file(log_file: Optional[str]) -> Optional[IO]:
+    def _setup_log_file(log_file: Optional[str]) -> Optional[IO]:  # type: ignore[type-arg]
         """
         Open a log file if necessary and return the file handle. This will create a file if it does not exist
 
@@ -530,15 +530,15 @@ class InvokeContext:
                 debugger = Path(debugger_path).resolve(strict=True)
             except OSError as error:
                 if error.errno == errno.ENOENT:
-                    raise DebugContextException("'{}' could not be found.".format(debugger_path)) from error
+                    raise DebugContextException("'{}' could not be found.".format(debugger_path)) from error  # type: ignore[no-untyped-call]
 
                 raise error
 
             if not debugger.is_dir():
-                raise DebugContextException("'{}' should be a directory with the debugger in it.".format(debugger_path))
+                raise DebugContextException("'{}' should be a directory with the debugger in it.".format(debugger_path))  # type: ignore[no-untyped-call]
             debugger_path = str(debugger)
 
-        return DebugContext(
+        return DebugContext(  # type: ignore[no-untyped-call]
             debug_ports=debug_ports,
             debug_args=debug_args,
             debugger_path=debugger_path,
@@ -568,6 +568,6 @@ class InvokeContext:
             Object representing Docker container manager
         """
 
-        return ContainerManager(
+        return ContainerManager(  # type: ignore[no-untyped-call]
             docker_network_id=docker_network, skip_pull_image=skip_pull_image, do_shutdown_event=shutdown
         )

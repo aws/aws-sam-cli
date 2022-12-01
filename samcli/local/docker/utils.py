@@ -11,8 +11,8 @@ import posixpath
 import pathlib
 import socket
 
-import docker
-import requests
+import docker  # type: ignore[import]
+import requests  # type: ignore[import]
 
 from samcli.lib.utils.architecture import ARM64, validate_architecture
 
@@ -21,7 +21,7 @@ from samcli.local.docker.exceptions import NoFreePortsError
 LOG = logging.getLogger(__name__)
 
 
-def to_posix_path(code_path):
+def to_posix_path(code_path):  # type: ignore[no-untyped-def]
     """
     Change the code_path to be of unix-style if running on windows when supplied with an absolute windows path.
 
@@ -52,7 +52,7 @@ def to_posix_path(code_path):
     )
 
 
-def find_free_port(start=5000, end=9000):
+def find_free_port(start=5000, end=9000):  # type: ignore[no-untyped-def]
     """
     Utility function which scans through a port range in a randomized manner
     and finds the first free port a socket can bind to.
@@ -71,7 +71,7 @@ def find_free_port(start=5000, end=9000):
     raise NoFreePortsError(f"No free ports on the host machine from {start} to {end}")
 
 
-def is_docker_reachable(docker_client):
+def is_docker_reachable(docker_client):  # type: ignore[no-untyped-def]
     """
     Checks if Docker daemon is running.
 
@@ -83,9 +83,9 @@ def is_docker_reachable(docker_client):
         requests.exceptions.ConnectionError,
     )
     if platform.system() == "Windows":
-        import pywintypes  # pylint: disable=import-error
+        import pywintypes  # type: ignore[import] # pylint: disable=import-error
 
-        errors += (pywintypes.error,)  # pylint: disable=no-member
+        errors += (pywintypes.error,)  # type: ignore[assignment] # pylint: disable=no-member
 
     try:
         docker_client.ping()

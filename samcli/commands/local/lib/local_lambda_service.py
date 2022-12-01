@@ -14,7 +14,7 @@ class LocalLambdaService:
     that are defined in a SAM file.
     """
 
-    def __init__(self, lambda_invoke_context, port, host):
+    def __init__(self, lambda_invoke_context, port, host):  # type: ignore[no-untyped-def]
         """
         Initialize the Local Lambda Invoke service.
 
@@ -29,7 +29,7 @@ class LocalLambdaService:
         self.lambda_runner = lambda_invoke_context.local_lambda_runner
         self.stderr_stream = lambda_invoke_context.stderr
 
-    def start(self):
+    def start(self):  # type: ignore[no-untyped-def]
         """
         Creates and starts the Local Lambda Invoke service. This method will block until the service is stopped
         manually using an interrupt. After the service is started, callers can make HTTP requests to the endpoint
@@ -42,15 +42,15 @@ class LocalLambdaService:
         # contains the response to the API which is sent out as HTTP response. Only stderr needs to be printed
         # to the console or a log file. stderr from Docker container contains runtime logs and output of print
         # statements from the Lambda function
-        service = LocalLambdaInvokeService(
+        service = LocalLambdaInvokeService(  # type: ignore[no-untyped-call]
             lambda_runner=self.lambda_runner, port=self.port, host=self.host, stderr=self.stderr_stream
         )
 
-        service.create()
+        service.create()  # type: ignore[no-untyped-call]
 
         LOG.info(
             "Starting the Local Lambda Service. You can now invoke your Lambda Functions defined in your template"
             " through the endpoint."
         )
 
-        service.run()
+        service.run()  # type: ignore[no-untyped-call]

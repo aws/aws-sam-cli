@@ -9,7 +9,7 @@ from samcli.commands._utils.options import template_click_option, docker_click_o
 from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
 
 
-def get_application_dir():
+def get_application_dir():  # type: ignore[no-untyped-def]
     """
 
     Returns
@@ -21,7 +21,7 @@ def get_application_dir():
     return Path(click.get_app_dir("AWS SAM", force_posix=True))
 
 
-def get_default_layer_cache_dir():
+def get_default_layer_cache_dir():  # type: ignore[no-untyped-def]
     """
     Default the layer cache directory
 
@@ -30,12 +30,12 @@ def get_default_layer_cache_dir():
     str
         String representing the layer cache directory
     """
-    layer_cache_dir = get_application_dir().joinpath("layers-pkg")
+    layer_cache_dir = get_application_dir().joinpath("layers-pkg")  # type: ignore[no-untyped-call]
 
     return str(layer_cache_dir)
 
 
-def local_common_options(f):
+def local_common_options(f):  # type: ignore[no-untyped-def]
     """
     Common CLI options shared by "local invoke", "local start-api", and "local start-lambda" commands
 
@@ -88,7 +88,7 @@ def local_common_options(f):
     return f
 
 
-def service_common_options(port):
+def service_common_options(port):  # type: ignore[no-untyped-def]
     """
     Construct common CLI Options that are shared for service related commands ('start-api' and 'start_lambda')
 
@@ -98,7 +98,7 @@ def service_common_options(port):
         The port number to listen to
     """
 
-    def construct_options(f):
+    def construct_options(f):  # type: ignore[no-untyped-def]
         """
         Common CLI Options that are shared for service related commands ('start-api' and 'start_lambda')
 
@@ -132,7 +132,7 @@ def service_common_options(port):
     return construct_options
 
 
-def invoke_common_options(f):
+def invoke_common_options(f):  # type: ignore[no-untyped-def]
     """
     Common CLI options shared by "local invoke" and "local start-api" commands
 
@@ -141,14 +141,14 @@ def invoke_common_options(f):
 
     invoke_options = (
         [
-            template_click_option(),
+            template_click_option(),  # type: ignore[no-untyped-call]
             click.option(
                 "--env-vars",
                 "-n",
                 type=click.Path(exists=True),
                 help="JSON file containing values for Lambda function's environment variables.",
             ),
-            parameter_override_click_option(),
+            parameter_override_click_option(),  # type: ignore[no-untyped-call]
             click.option(
                 "--debug-port",
                 "-d",
@@ -183,10 +183,10 @@ def invoke_common_options(f):
                 type=click.Path(exists=False, file_okay=False),
                 envvar="SAM_LAYER_CACHE_BASEDIR",
                 help="Specifies the location basedir where the Layers your template uses will be downloaded to.",
-                default=get_default_layer_cache_dir(),
+                default=get_default_layer_cache_dir(),  # type: ignore[no-untyped-call]
             ),
         ]
-        + docker_click_options()
+        + docker_click_options()  # type: ignore[no-untyped-call]
         + [
             click.option(
                 "--force-image-build",
@@ -205,7 +205,7 @@ def invoke_common_options(f):
     return f
 
 
-def warm_containers_common_options(f):
+def warm_containers_common_options(f):  # type: ignore[no-untyped-def]
     """
     Warm containers related CLI options shared by "local start-api" and "local start_lambda" commands
 
@@ -227,7 +227,7 @@ def warm_containers_common_options(f):
             function is first invoked. Those containers 
             persist for additional invocations.
             """,
-            type=click.Choice(ContainersInitializationMode.__members__, case_sensitive=False),
+            type=click.Choice(ContainersInitializationMode.__members__, case_sensitive=False),  # type: ignore[arg-type]
         ),
         click.option(
             "--debug-function",

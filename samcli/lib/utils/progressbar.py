@@ -5,7 +5,7 @@ ProgressBar operations
 import click
 
 
-def progressbar(length, label):
+def progressbar(length, label):  # type: ignore[no-untyped-def]
     """
     Creates a progressbar
 

@@ -91,7 +91,7 @@ class IacHookWrapper:
         output = self._execute("prepare", params)
 
         metadata_file_loc = None
-        iac_applications: Dict[str, Dict] = output.get("iac_applications", {})
+        iac_applications: Dict[str, Dict] = output.get("iac_applications", {})  # type: ignore[type-arg]
         if iac_applications and len(iac_applications) == 1:
             # NOTE: we assume there is only one application in the `iac_applications` dictionary,
             # which is the only case we support right now
@@ -99,7 +99,7 @@ class IacHookWrapper:
             metadata_file_loc = main_application.get("metadata_file")
 
         if not metadata_file_loc:
-            raise InvalidHookWrapperException("Metadata file path not found in the prepare hook output")
+            raise InvalidHookWrapperException("Metadata file path not found in the prepare hook output")  # type: ignore[no-untyped-call]
 
         LOG.debug("Metadata file location - %s", metadata_file_loc)
         return cast(str, metadata_file_loc)
@@ -120,9 +120,9 @@ class IacHookWrapper:
                 self._config = HookPackageConfig(child)
                 return
 
-        raise InvalidHookWrapperException(f'Cannot locate hook package with hook_name "{hook_name}"')
+        raise InvalidHookWrapperException(f'Cannot locate hook package with hook_name "{hook_name}"')  # type: ignore[no-untyped-call]
 
-    def _execute(self, functionality_key: str, params: Optional[Dict] = None) -> Dict:
+    def _execute(self, functionality_key: str, params: Optional[Dict] = None) -> Dict:  # type: ignore[type-arg]
         """
         Execute a functionality with given key
 
@@ -139,10 +139,10 @@ class IacHookWrapper:
             the output from the execution
         """
         if not self._config:
-            raise InvalidHookWrapperException("Config is missing. You must instantiate a hook with a valid config")
+            raise InvalidHookWrapperException("Config is missing. You must instantiate a hook with a valid config")  # type: ignore[no-untyped-call]
 
         if functionality_key not in self._config.functionalities:  # pylint: disable=unsupported-membership-test
-            raise HookPackageExecuteFunctionalityException(
+            raise HookPackageExecuteFunctionalityException(  # type: ignore[no-untyped-call]
                 f'Functionality "{functionality_key}" is not defined in the hook package'
             )
 
@@ -150,10 +150,10 @@ class IacHookWrapper:
         if functionality.entry_method:
             return _execute_as_module(functionality.module, functionality.method, params)
 
-        raise InvalidHookWrapperException(f'Functionality "{functionality_key}" is missing an "entry_method"')
+        raise InvalidHookWrapperException(f'Functionality "{functionality_key}" is missing an "entry_method"')  # type: ignore[no-untyped-call]
 
 
-def _execute_as_module(module: str, method: str, params: Optional[Dict] = None) -> Dict:
+def _execute_as_module(module: str, method: str, params: Optional[Dict] = None) -> Dict:  # type: ignore[type-arg]
     """
     Execute a module/method with given module and given method
 
@@ -174,13 +174,13 @@ def _execute_as_module(module: str, method: str, params: Optional[Dict] = None) 
     try:
         mod = importlib.import_module(module)
     except ImportError as e:
-        raise InvalidHookWrapperException(f'Import error - HookFunctionality module "{module}"') from e
+        raise InvalidHookWrapperException(f'Import error - HookFunctionality module "{module}"') from e  # type: ignore[no-untyped-call]
 
     if not hasattr(mod, method):
-        raise InvalidHookWrapperException(f'HookFunctionality module "{module}" has no method "{method}"')
+        raise InvalidHookWrapperException(f'HookFunctionality module "{module}" has no method "{method}"')  # type: ignore[no-untyped-call]
 
     result = getattr(mod, method)(params)
-    return cast(Dict, result)
+    return cast(Dict, result)  # type: ignore[type-arg]
 
 
 def get_available_hook_packages_ids() -> List[str]:

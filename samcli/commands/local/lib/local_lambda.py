@@ -186,7 +186,7 @@ class LocalLambdaRunner:
         env_vars = self._make_env_vars(function)
         code_abs_path = None
         if function.packagetype == ZIP:
-            code_abs_path = resolve_code_path(self.cwd, function.codeuri)
+            code_abs_path = resolve_code_path(self.cwd, function.codeuri)  # type: ignore[no-untyped-call]
             LOG.debug("Resolved absolute path to code is %s", code_abs_path)
 
         function_timeout = function.timeout
@@ -197,7 +197,7 @@ class LocalLambdaRunner:
         if self.is_debugging():
             function_timeout = self.MAX_DEBUG_TIMEOUT
 
-        return FunctionConfig(
+        return FunctionConfig(  # type: ignore[no-untyped-call]
             name=function.name,
             full_path=function.full_path,
             runtime=function.runtime,
@@ -284,7 +284,7 @@ class LocalLambdaRunner:
         shell_env = os.environ
         aws_creds = self.get_aws_creds()
 
-        return EnvironmentVariables(
+        return EnvironmentVariables(  # type: ignore[no-untyped-call]
             function.name,
             function.memory,
             function.timeout,

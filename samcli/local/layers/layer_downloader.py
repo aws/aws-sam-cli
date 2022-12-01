@@ -19,7 +19,7 @@ LOG = logging.getLogger(__name__)
 
 
 class LayerDownloader:
-    def __init__(self, layer_cache, cwd, stacks: List[Stack], lambda_client=None):
+    def __init__(self, layer_cache, cwd, stacks: List[Stack], lambda_client=None):  # type: ignore[no-untyped-def]
         """
 
         Parameters
@@ -39,12 +39,12 @@ class LayerDownloader:
         self._lambda_client = lambda_client
 
     @property
-    def lambda_client(self):
+    def lambda_client(self):  # type: ignore[no-untyped-def]
         self._lambda_client = self._lambda_client or boto3.client("lambda")
         return self._lambda_client
 
     @property
-    def layer_cache(self):
+    def layer_cache(self):  # type: ignore[no-untyped-def]
         """
         Layer Cache property. This will always return a cache that exists on the system.
 
@@ -53,10 +53,10 @@ class LayerDownloader:
         str
             Path to the Layer Cache
         """
-        self._create_cache(self._layer_cache)
+        self._create_cache(self._layer_cache)  # type: ignore[no-untyped-call]
         return self._layer_cache
 
-    def download_all(self, layers, force=False):
+    def download_all(self, layers, force=False):  # type: ignore[no-untyped-def]
         """
         Download a list of layers to the cache
 
@@ -78,7 +78,7 @@ class LayerDownloader:
 
         return layer_dirs
 
-    def download(self, layer: LayerVersion, force=False) -> LayerVersion:
+    def download(self, layer: LayerVersion, force=False) -> LayerVersion:  # type: ignore[no-untyped-def]
         """
         Download a given layer to the local cache.
 
@@ -96,7 +96,7 @@ class LayerDownloader:
         """
         if layer.is_defined_within_template:
             LOG.info("%s is a local Layer in the template", layer.name)
-            layer.codeuri = resolve_code_path(self.cwd, layer.codeuri)
+            layer.codeuri = resolve_code_path(self.cwd, layer.codeuri)  # type: ignore[no-untyped-call]
             return layer
 
         layer_path = Path(self.layer_cache).resolve().joinpath(layer.name)
@@ -108,8 +108,8 @@ class LayerDownloader:
             return layer
 
         layer_zip_path = layer.codeuri + ".zip"
-        layer_zip_uri = self._fetch_layer_uri(layer)
-        unzip_from_uri(
+        layer_zip_uri = self._fetch_layer_uri(layer)  # type: ignore[no-untyped-call]
+        unzip_from_uri(  # type: ignore[no-untyped-call]
             layer_zip_uri,
             layer_zip_path,
             unzip_output_dir=layer.codeuri,
@@ -118,7 +118,7 @@ class LayerDownloader:
 
         return layer
 
-    def _fetch_layer_uri(self, layer):
+    def _fetch_layer_uri(self, layer):  # type: ignore[no-untyped-def]
         """
         Fetch the Layer Uri based on the LayerVersion Arn
 
@@ -142,15 +142,15 @@ class LayerDownloader:
                 LayerName=layer.layer_arn, VersionNumber=layer.version
             )
         except NoCredentialsError as ex:
-            raise CredentialsRequired("Layers require credentials to download the layers locally.") from ex
+            raise CredentialsRequired("Layers require credentials to download the layers locally.") from ex  # type: ignore[no-untyped-call]
         except ClientError as e:
-            error_code = e.response.get("Error").get("Code")
+            error_code = e.response.get("Error").get("Code")  # type: ignore[union-attr]
             error_exc = {
-                "AccessDeniedException": CredentialsRequired(
+                "AccessDeniedException": CredentialsRequired(  # type: ignore[no-untyped-call]
                     "Credentials provided are missing lambda:Getlayerversion policy that is needed to download the "
                     "layer or you do not have permission to download the layer"
                 ),
-                "ResourceNotFoundException": ResourceNotFound("{} was not found.".format(layer.arn)),
+                "ResourceNotFoundException": ResourceNotFound("{} was not found.".format(layer.arn)),  # type: ignore[no-untyped-call]
             }
 
             if error_code in error_exc:
@@ -180,7 +180,7 @@ class LayerDownloader:
         return layer_path.exists()
 
     @staticmethod
-    def _create_cache(layer_cache):
+    def _create_cache(layer_cache):  # type: ignore[no-untyped-def]
         """
         Create the Cache directory if it does not exist.
 

@@ -9,7 +9,7 @@ CDK_METADATA_TYPE_VALUE = "AWS::CDK::Metadata"
 CDK_PATH_METADATA_KEY = "aws:cdk:path"
 
 
-def is_cdk_project(template: Dict) -> bool:
+def is_cdk_project(template: Dict) -> bool:  # type: ignore[type-arg]
     """
     Check if the CFN template was produced from a CDK project
 
@@ -30,7 +30,7 @@ def is_cdk_project(template: Dict) -> bool:
     return cdk_project_conditions
 
 
-def _resource_level_metadata_exists(resources: Dict) -> bool:
+def _resource_level_metadata_exists(resources: Dict) -> bool:  # type: ignore[type-arg]
     """
     Check if there is a AWS::CDK::Metadata resource is in the resources
 
@@ -46,7 +46,7 @@ def _resource_level_metadata_exists(resources: Dict) -> bool:
     return False
 
 
-def _cdk_path_metadata_exists(resources: Dict) -> bool:
+def _cdk_path_metadata_exists(resources: Dict) -> bool:  # type: ignore[type-arg]
     """
     Check if there is an aws:cdk:path property in the metadata of any of the resources
 

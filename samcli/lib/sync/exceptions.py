@@ -164,10 +164,10 @@ class InvalidRuntimeDefinitionForFunction(Exception):
 
     _function_logical_id: str
 
-    def __init__(self, function_logical_id):
+    def __init__(self, function_logical_id):  # type: ignore[no-untyped-def]
         super().__init__(f"Invalid Runtime definition for {function_logical_id}")
         self._function_logical_id = function_logical_id
 
     @property
-    def function_logical_id(self):
+    def function_logical_id(self):  # type: ignore[no-untyped-def]
         return self._function_logical_id

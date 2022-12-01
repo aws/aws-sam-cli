@@ -36,7 +36,7 @@ LOG = logging.getLogger(__name__)
 
 
 # pylint: disable=too-many-arguments
-def do_interactive(
+def do_interactive(  # type: ignore[no-untyped-def]
     location,
     pt_explicit,
     package_type,
@@ -61,7 +61,7 @@ def do_interactive(
         click.echo("\t1 - AWS Quick Start Templates\n\t2 - Custom Template Location")
         location_opt_choice = click.prompt("Choice", type=click.Choice(["1", "2"]), show_choices=False)
 
-    generate_application(
+    generate_application(  # type: ignore[no-untyped-call]
         location,
         pt_explicit,
         package_type,
@@ -78,7 +78,7 @@ def do_interactive(
     )
 
 
-def generate_application(
+def generate_application(  # type: ignore[no-untyped-def]
     location,
     pt_explicit,
     package_type,
@@ -141,13 +141,13 @@ def generate_application(
         )
 
     else:
-        _generate_from_location(
+        _generate_from_location(  # type: ignore[no-untyped-call]
             location, package_type, runtime, dependency_manager, output_dir, name, no_input, tracing
         )
 
 
 # pylint: disable=too-many-statements
-def _generate_from_location(location, package_type, runtime, dependency_manager, output_dir, name, no_input, tracing):
+def _generate_from_location(location, package_type, runtime, dependency_manager, output_dir, name, no_input, tracing):  # type: ignore[no-untyped-def]
     location = click.prompt("\nTemplate location (git, mercurial, http(s), zip, path)", type=str)
     summary_msg = """
 -----------------------
@@ -159,7 +159,7 @@ Output Directory: {output_dir}
         location=location, output_dir=output_dir
     )
     click.echo(summary_msg)
-    do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, None, tracing)
+    do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, None, tracing)  # type: ignore[no-untyped-call]
 
 
 # pylint: disable=too-many-statements
@@ -176,14 +176,14 @@ def _generate_from_use_case(
     architecture: Optional[str],
     tracing: Optional[bool],
 ) -> None:
-    templates = InitTemplates()
+    templates = InitTemplates()  # type: ignore[no-untyped-call]
     runtime_or_base_image = runtime if runtime else base_image
     package_type_filter_value = package_type if pt_explicit else None
     preprocessed_options = templates.get_preprocessed_manifest(
         runtime_or_base_image, app_template, package_type_filter_value, dependency_manager
     )
     question = "Choose an AWS Quick Start application template"
-    use_case = _get_choice_from_options(
+    use_case = _get_choice_from_options(  # type: ignore[no-untyped-call]
         None,
         preprocessed_options,
         question,
@@ -200,7 +200,7 @@ def _generate_from_use_case(
     runtime, base_image, package_type, dependency_manager, template_chosen = chosen_app_template_properties
 
     if tracing is None:
-        tracing = prompt_user_to_enable_tracing()
+        tracing = prompt_user_to_enable_tracing()  # type: ignore[no-untyped-call]
 
     app_template = template_chosen["appTemplate"]
     base_image = (
@@ -210,11 +210,11 @@ def _generate_from_use_case(
     if not name:
         name = click.prompt("\nProject name", type=str, default="sam-app")
 
-    location = templates.location_from_app_template(package_type, runtime, base_image, dependency_manager, app_template)
+    location = templates.location_from_app_template(package_type, runtime, base_image, dependency_manager, app_template)  # type: ignore[no-untyped-call]
 
-    final_architecture = get_architectures(architecture)
+    final_architecture = get_architectures(architecture)  # type: ignore[no-untyped-call]
     lambda_supported_runtime = (
-        get_provided_runtime_from_custom_runtime(runtime) if is_custom_runtime(runtime) else runtime
+        get_provided_runtime_from_custom_runtime(runtime) if is_custom_runtime(runtime) else runtime  # type: ignore[no-untyped-call, no-untyped-call]
     )
     extra_context = {
         "project_name": name,
@@ -223,17 +223,17 @@ def _generate_from_use_case(
     }
 
     # executing event_bridge logic if call is for Schema dynamic template
-    is_dynamic_schemas_template = templates.is_dynamic_schemas_template(
+    is_dynamic_schemas_template = templates.is_dynamic_schemas_template(  # type: ignore[no-untyped-call]
         package_type, app_template, runtime, base_image, dependency_manager
     )
     if is_dynamic_schemas_template:
-        schemas_api_caller = get_schemas_api_caller()
-        schema_template_details = _get_schema_template_details(schemas_api_caller)
-        schemas_template_parameter = get_schemas_template_parameter(schema_template_details)
+        schemas_api_caller = get_schemas_api_caller()  # type: ignore[no-untyped-call]
+        schema_template_details = _get_schema_template_details(schemas_api_caller)  # type: ignore[no-untyped-call]
+        schemas_template_parameter = get_schemas_template_parameter(schema_template_details)  # type: ignore[no-untyped-call]
         extra_context = {**schemas_template_parameter, **extra_context}
 
     no_input = True
-    summary_msg = generate_summary_message(
+    summary_msg = generate_summary_message(  # type: ignore[no-untyped-call]
         package_type, runtime, base_image, dependency_manager, output_dir, name, app_template, final_architecture
     )
 
@@ -246,7 +246,7 @@ def _generate_from_use_case(
     [*] Test Function in the Cloud: cd {name} && sam sync --stack-name {{stack-name}} --watch
     """
     click.secho(next_commands_msg, fg="yellow")
-    do_generate(
+    do_generate(  # type: ignore[no-untyped-call]
         location,
         package_type,
         lambda_supported_runtime,
@@ -259,7 +259,7 @@ def _generate_from_use_case(
     )
     # executing event_bridge logic if call is for Schema dynamic template
     if is_dynamic_schemas_template:
-        _package_schemas_code(
+        _package_schemas_code(  # type: ignore[no-untyped-call]
             lambda_supported_runtime, schemas_api_caller, schema_template_details, output_dir, name, location
         )
 
@@ -271,7 +271,7 @@ def _generate_default_hello_world_application(
     base_image: Optional[str],
     dependency_manager: Optional[str],
     pt_explicit: bool,
-) -> Tuple:
+) -> Tuple:  # type: ignore[type-arg]
     """
     Generate the default Hello World template if Hello World Example is selected
 
@@ -303,8 +303,8 @@ def _generate_default_hello_world_application(
 
 
 def _get_app_template_properties(
-    preprocessed_options: dict, use_case: str, base_image: Optional[str], template_properties: Tuple
-) -> Tuple:
+    preprocessed_options: dict, use_case: str, base_image: Optional[str], template_properties: Tuple  # type: ignore[type-arg, type-arg]
+) -> Tuple:  # type: ignore[type-arg]
     """
     This is the heart of the interactive flow, this method fetchs the templates options needed to generate a template
 
@@ -331,35 +331,35 @@ def _get_app_template_properties(
     """
     runtime, package_type, dependency_manager, pt_explicit = template_properties
     runtime_options = preprocessed_options[use_case]
-    runtime = None if is_custom_runtime(runtime) else runtime
+    runtime = None if is_custom_runtime(runtime) else runtime  # type: ignore[no-untyped-call]
     if not runtime and not base_image:
         question = "Which runtime would you like to use?"
-        runtime = _get_choice_from_options(runtime, runtime_options, question, "Runtime")
+        runtime = _get_choice_from_options(runtime, runtime_options, question, "Runtime")  # type: ignore[no-untyped-call]
 
     if base_image:
-        runtime = _get_runtime_from_image(base_image)
+        runtime = _get_runtime_from_image(base_image)  # type: ignore[no-untyped-call]
 
     package_types_options = runtime_options.get(runtime)
     if not package_types_options:
-        raise InvalidInitOptionException(f"Lambda Runtime {runtime} is not supported for {use_case} examples.")
+        raise InvalidInitOptionException(f"Lambda Runtime {runtime} is not supported for {use_case} examples.")  # type: ignore[no-untyped-call]
     if not pt_explicit:
         message = "What package type would you like to use?"
-        package_type = _get_choice_from_options(None, package_types_options, message, "Package type")
+        package_type = _get_choice_from_options(None, package_types_options, message, "Package type")  # type: ignore[no-untyped-call]
         if package_type == IMAGE:
-            base_image = _get_image_from_runtime(runtime)
+            base_image = _get_image_from_runtime(runtime)  # type: ignore[no-untyped-call]
 
     dependency_manager_options = package_types_options.get(package_type)
     if not dependency_manager_options:
-        raise InvalidInitOptionException(
+        raise InvalidInitOptionException(  # type: ignore[no-untyped-call]
             f"{package_type} package type is not supported for {use_case} examples and runtime {runtime} selected."
         )
 
-    dependency_manager = _get_dependency_manager(dependency_manager_options, dependency_manager, runtime)
-    template_chosen = _get_app_template_choice(dependency_manager_options, dependency_manager)
+    dependency_manager = _get_dependency_manager(dependency_manager_options, dependency_manager, runtime)  # type: ignore[no-untyped-call]
+    template_chosen = _get_app_template_choice(dependency_manager_options, dependency_manager)  # type: ignore[no-untyped-call]
     return (runtime, base_image, package_type, dependency_manager, template_chosen)
 
 
-def prompt_user_to_enable_tracing():
+def prompt_user_to_enable_tracing():  # type: ignore[no-untyped-def]
     """
     Prompt user to if X-Ray Tracing should activated for functions in the SAM template and vice versa
     """
@@ -370,7 +370,7 @@ def prompt_user_to_enable_tracing():
     return False
 
 
-def _get_choice_from_options(chosen, options, question, msg):
+def _get_choice_from_options(chosen, options, question, msg):  # type: ignore[no-untyped-def]
 
     if chosen:
         return chosen
@@ -378,10 +378,10 @@ def _get_choice_from_options(chosen, options, question, msg):
     click_choices = []
 
     options_list = options if isinstance(options, list) else list(options.keys())
-    options_list = get_sorted_runtimes(options_list) if msg == "Runtime" else options_list
+    options_list = get_sorted_runtimes(options_list) if msg == "Runtime" else options_list  # type: ignore[no-untyped-call]
 
     if not options_list:
-        raise InvalidInitOptionException(f"There are no {msg} options available to be selected.")
+        raise InvalidInitOptionException(f"There are no {msg} options available to be selected.")  # type: ignore[no-untyped-call]
 
     if len(options_list) == 1:
         click.echo(
@@ -399,8 +399,8 @@ def _get_choice_from_options(chosen, options, question, msg):
     return options_list[int(choice) - 1]
 
 
-def _get_app_template_choice(templates_options, dependency_manager):
-    templates = _get_templates_with_dependency_manager(templates_options, dependency_manager)
+def _get_app_template_choice(templates_options, dependency_manager):  # type: ignore[no-untyped-def]
+    templates = _get_templates_with_dependency_manager(templates_options, dependency_manager)  # type: ignore[no-untyped-call]
     chosen_template = templates[0]
     if len(templates) > 1:
         click.echo("\nSelect your starter template")
@@ -413,7 +413,7 @@ def _get_app_template_choice(templates_options, dependency_manager):
     return chosen_template
 
 
-def _get_dependency_manager(options, dependency_manager, runtime):
+def _get_dependency_manager(options, dependency_manager, runtime):  # type: ignore[no-untyped-def]
     valid_dep_managers = sorted(list(set(template["dependencyManager"] for template in options)))
     if not dependency_manager:
         if len(valid_dep_managers) == 1:
@@ -424,7 +424,7 @@ def _get_dependency_manager(options, dependency_manager, runtime):
             )
         else:
             question = "Which dependency manager would you like to use?"
-            dependency_manager = _get_choice_from_options(
+            dependency_manager = _get_choice_from_options(  # type: ignore[no-untyped-call]
                 dependency_manager, valid_dep_managers, question, "Dependency manager"
             )
     elif dependency_manager and dependency_manager not in valid_dep_managers:
@@ -432,34 +432,34 @@ def _get_dependency_manager(options, dependency_manager, runtime):
             f"Lambda Runtime {runtime} and dependency manager {dependency_manager} "
             + "do not have an available initialization template."
         )
-        raise InvalidInitTemplateError(msg)
+        raise InvalidInitTemplateError(msg)  # type: ignore[no-untyped-call]
     return dependency_manager
 
 
-def _get_schema_template_details(schemas_api_caller):
+def _get_schema_template_details(schemas_api_caller):  # type: ignore[no-untyped-def]
     try:
-        return get_schema_template_details(schemas_api_caller)
+        return get_schema_template_details(schemas_api_caller)  # type: ignore[no-untyped-call]
     except ClientError as e:
-        raise SchemasApiException(
+        raise SchemasApiException(  # type: ignore[no-untyped-call]
             "Exception occurs while getting Schemas template parameter. %s" % e.response["Error"]["Message"]
         ) from e
 
 
-def _package_schemas_code(runtime, schemas_api_caller, schema_template_details, output_dir, name, location):
+def _package_schemas_code(runtime, schemas_api_caller, schema_template_details, output_dir, name, location):  # type: ignore[no-untyped-def]
     try:
         click.echo("Trying to get package schema code")
         with tempfile.NamedTemporaryFile(delete=False) as download_location:
-            do_download_source_code_binding(runtime, schema_template_details, schemas_api_caller, download_location)
-            do_extract_and_merge_schemas_code(download_location, output_dir, name, location)
+            do_download_source_code_binding(runtime, schema_template_details, schemas_api_caller, download_location)  # type: ignore[no-untyped-call]
+            do_extract_and_merge_schemas_code(download_location, output_dir, name, location)  # type: ignore[no-untyped-call]
     except (ClientError, WaiterError) as e:
-        raise SchemasApiException(
-            "Exception occurs while packaging Schemas code. %s" % e.response["Error"]["Message"]
+        raise SchemasApiException(  # type: ignore[no-untyped-call]
+            "Exception occurs while packaging Schemas code. %s" % e.response["Error"]["Message"]  # type: ignore[union-attr]
         ) from e
     finally:
-        remove(download_location.name)
+        remove(download_location.name)  # type: ignore[no-untyped-call]
 
 
-def generate_summary_message(
+def generate_summary_message(  # type: ignore[no-untyped-def]
     package_type, runtime, base_image, dependency_manager, output_dir, name, app_template, architecture
 ):
     """

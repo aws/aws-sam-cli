@@ -30,7 +30,7 @@ from samcli.lib.build.exceptions import BuildInsideContainerError
 
 from samcli.commands.exceptions import UserException
 
-from samcli.lib.build.app_builder import (
+from samcli.lib.build.app_builder import (  # type: ignore[attr-defined, attr-defined, attr-defined]
     ApplicationBuilder,
     BuildError,
     UnsupportedBuilderLibraryVersionError,
@@ -63,12 +63,12 @@ class BuildContext:
         # pylint: disable=fixme
         # FIXME: parameter_overrides is never None, we should change this to "dict" from Optional[dict]
         # See samcli/commands/_utils/options.py:251 for its all possible values
-        parameter_overrides: Optional[dict] = None,
+        parameter_overrides: Optional[dict] = None,  # type: ignore[type-arg]
         docker_network: Optional[str] = None,
         skip_pull_image: bool = False,
-        container_env_var: Optional[dict] = None,
+        container_env_var: Optional[dict] = None,  # type: ignore[type-arg]
         container_env_var_file: Optional[str] = None,
-        build_images: Optional[dict] = None,
+        build_images: Optional[dict] = None,  # type: ignore[type-arg]
         excluded_resources: Optional[Tuple[str, ...]] = None,
         aws_region: Optional[str] = None,
         create_auto_dependency_layer: bool = False,
@@ -146,7 +146,7 @@ class BuildContext:
         self._use_container = use_container
         self._parameter_overrides = parameter_overrides
         # Override certain CloudFormation pseudo-parameters based on values provided by customer
-        self._global_parameter_overrides: Optional[Dict] = None
+        self._global_parameter_overrides: Optional[Dict] = None  # type: ignore[type-arg]
         if aws_region:
             self._global_parameter_overrides = {IntrinsicsSymbolTable.AWS_REGION: aws_region}
         self._docker_network = docker_network
@@ -210,19 +210,19 @@ class BuildContext:
             dependencies_path = pathlib.Path(DEFAULT_DEPENDENCIES_DIR)
             dependencies_path.mkdir(mode=BUILD_DIR_PERMISSIONS, parents=True, exist_ok=True)
         if self._use_container:
-            self._container_manager = ContainerManager(
+            self._container_manager = ContainerManager(  # type: ignore[no-untyped-call]
                 docker_network_id=self._docker_network, skip_pull_image=self._skip_pull_image
             )
 
-    def __exit__(self, *args):
+    def __exit__(self, *args):  # type: ignore[no-untyped-def]
         pass
 
-    def get_resources_to_build(self):
+    def get_resources_to_build(self):  # type: ignore[no-untyped-def]
         return self.resources_to_build
 
-    def run(self):
+    def run(self):  # type: ignore[no-untyped-def]
         """Runs the building process by creating an ApplicationBuilder."""
-        template_dict = get_template_data(self._template_file)
+        template_dict = get_template_data(self._template_file)  # type: ignore[no-untyped-call]
         template_transform = template_dict.get("Transform", "")
         is_sam_template = isinstance(template_transform, str) and template_transform.startswith("AWS::Serverless")
         if is_sam_template:
@@ -232,7 +232,7 @@ class BuildContext:
 
         try:
             builder = ApplicationBuilder(
-                self.get_resources_to_build(),
+                self.get_resources_to_build(),  # type: ignore[no-untyped-call]
                 self.build_dir,
                 self.base_dir,
                 self.cache_dir,
@@ -248,7 +248,7 @@ class BuildContext:
                 combine_dependencies=not self._create_auto_dependency_layer,
             )
         except FunctionNotFound as ex:
-            raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
+            raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex  # type: ignore[no-untyped-call]
 
         try:
             self._check_exclude_warning()
@@ -257,7 +257,7 @@ class BuildContext:
 
             self._handle_build_post_processing(builder, build_result)
 
-            for f in self.get_resources_to_build().functions:
+            for f in self.get_resources_to_build().functions:  # type: ignore[no-untyped-call]
                 EventTracker.track_event("BuildFunctionRuntime", f.runtime)
 
             click.secho("\nBuild Succeeded", fg="green")
@@ -298,7 +298,7 @@ class BuildContext:
             # from deeper than just one level down.
             deep_wrap = getattr(ex, "wrapped_from", None)
             wrapped_from = deep_wrap if deep_wrap else ex.__class__.__name__
-            raise UserException(str(ex), wrapped_from=wrapped_from) from ex
+            raise UserException(str(ex), wrapped_from=wrapped_from) from ex  # type: ignore[no-untyped-call]
 
     def _handle_build_pre_processing(self) -> List[Stack]:
         """
@@ -346,7 +346,7 @@ class BuildContext:
             if esbuild_manager.esbuild_configured():
                 modified_template = esbuild_manager.set_sourcemap_env_from_metadata()
 
-            move_template(stack.location, output_template_path, modified_template)
+            move_template(stack.location, output_template_path, modified_template)  # type: ignore[no-untyped-call]
 
     def _gen_success_msg(self, artifacts_dir: str, output_template_path: str, is_default_build_dir: bool) -> str:
         """
@@ -411,7 +411,7 @@ Commands you can use next
                 "This is no longer supported, please remove the '--build-dir' option from the command "
                 "to allow the build artifacts to be placed in the directory your template is in."
             )
-            raise InvalidBuildDirException(exception_message)
+            raise InvalidBuildDirException(exception_message)  # type: ignore[no-untyped-call]
 
         if build_path.exists() and os.listdir(build_dir) and clean:
             # build folder contains something inside. Clear everything.
@@ -608,12 +608,12 @@ Commands you can use next
             return
         if layer and layer.build_method is None:
             LOG.error("Layer %s is missing BuildMethod Metadata.", self._function_provider)
-            raise MissingBuildMethodException(f"Build method missing in layer {resource_identifier}.")
+            raise MissingBuildMethodException(f"Build method missing in layer {resource_identifier}.")  # type: ignore[no-untyped-call]
 
         resource_collector.add_layer(layer)
 
     @staticmethod
-    def _is_function_buildable(function: Function):
+    def _is_function_buildable(function: Function):  # type: ignore[no-untyped-def]
         # no need to build inline functions
         if function.inlinecode:
             LOG.debug("Skip building inline function: %s", function.full_path)
@@ -641,7 +641,7 @@ Commands you can use next
         return True
 
     @staticmethod
-    def _is_layer_buildable(layer: LayerVersion):
+    def _is_layer_buildable(layer: LayerVersion):  # type: ignore[no-untyped-def]
         # if build method is not specified, it is not buildable
         if not layer.build_method:
             LOG.debug("Skip building layer without a build method: %s", layer.full_path)

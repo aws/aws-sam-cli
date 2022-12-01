@@ -9,7 +9,7 @@ from functools import partial
 LOG = logging.getLogger(__name__)
 
 
-async def _run_given_tasks_async(tasks, event_loop=asyncio.get_event_loop(), executor=None):
+async def _run_given_tasks_async(tasks, event_loop=asyncio.get_event_loop(), executor=None):  # type: ignore[no-untyped-def]
     """
     Given list of Task objects, this method executes all tasks in the given event loop (or default one)
     and returns list of the results.
@@ -68,7 +68,7 @@ async def _run_given_tasks_async(tasks, event_loop=asyncio.get_event_loop(), exe
     return results
 
 
-def run_given_tasks_async(tasks, event_loop=asyncio.get_event_loop(), executor=None):
+def run_given_tasks_async(tasks, event_loop=asyncio.get_event_loop(), executor=None):  # type: ignore[no-untyped-def]
     """
     Runs the given list of tasks in the given (or default) event loop.
     This function will wait for execution to be completed
@@ -87,7 +87,7 @@ def run_given_tasks_async(tasks, event_loop=asyncio.get_event_loop(), executor=N
     -------
     List of results from the given Task list. Raises the exception if any of the underlying functions throw one
     """
-    return event_loop.run_until_complete(_run_given_tasks_async(tasks, event_loop, executor))
+    return event_loop.run_until_complete(_run_given_tasks_async(tasks, event_loop, executor))  # type: ignore[no-untyped-call]
 
 
 class AsyncContext:
@@ -95,11 +95,11 @@ class AsyncContext:
     A helper class to hold list of tasks, and manages their execution
     """
 
-    def __init__(self):
+    def __init__(self):  # type: ignore[no-untyped-def]
         self._async_tasks = []
         self.executor = None
 
-    def add_async_task(self, function, *args):
+    def add_async_task(self, function, *args):  # type: ignore[no-untyped-def]
         """
         Add a function definition and its args to the the async context, which will be executed later
 
@@ -111,7 +111,7 @@ class AsyncContext:
         """
         self._async_tasks.append(partial(function, *args))
 
-    def run_async(self, default_executor=True):
+    def run_async(self, default_executor=True):  # type: ignore[no-untyped-def]
         """
         Will run all collected functions in async context, and return their results in order
 
@@ -127,5 +127,5 @@ class AsyncContext:
         event_loop = asyncio.new_event_loop()
         if not default_executor:
             with ThreadPoolExecutor() as self.executor:
-                return run_given_tasks_async(self._async_tasks, event_loop, self.executor)
-        return run_given_tasks_async(self._async_tasks, event_loop)
+                return run_given_tasks_async(self._async_tasks, event_loop, self.executor)  # type: ignore[no-untyped-call]
+        return run_given_tasks_async(self._async_tasks, event_loop)  # type: ignore[no-untyped-call]

@@ -18,9 +18,9 @@ SAM_CLI_STACK_NAME = "aws-sam-cli-managed-default"
 LOG = logging.getLogger(__name__)
 
 
-def manage_stack(profile, region):
+def manage_stack(profile, region):  # type: ignore[no-untyped-def]
     outputs: StackOutput = manage_cloudformation_stack(
-        profile=None, region=region, stack_name=SAM_CLI_STACK_NAME, template_body=_get_stack_template()
+        profile=None, region=region, stack_name=SAM_CLI_STACK_NAME, template_body=_get_stack_template()  # type: ignore[no-untyped-call]
     )
 
     bucket_name = outputs.get("SourceBucket")
@@ -29,12 +29,12 @@ def manage_stack(profile, region):
             "Stack " + SAM_CLI_STACK_NAME + " exists, but is missing the managed source bucket key. "
             "Failing as this stack was likely not created by the AWS SAM CLI."
         )
-        raise UserException(msg)
+        raise UserException(msg)  # type: ignore[no-untyped-call]
     # This bucket name is what we would write to a config file
     return bucket_name
 
 
-def get_current_account_id(profile: Optional[str] = None):
+def get_current_account_id(profile: Optional[str] = None):  # type: ignore[no-untyped-def]
     """Returns account ID based on used AWS credentials."""
     session = boto3.Session(profile_name=profile)
     sts_client = session.client("sts")
@@ -42,15 +42,15 @@ def get_current_account_id(profile: Optional[str] = None):
         caller_identity = sts_client.get_caller_identity()
     except ClientError as ex:
         if ex.response["Error"]["Code"] == "InvalidClientTokenId":
-            raise CredentialsError("Cannot identify account due to invalid configured credentials.") from ex
-        raise CredentialsError("Cannot identify account based on configured credentials.") from ex
+            raise CredentialsError("Cannot identify account due to invalid configured credentials.") from ex  # type: ignore[no-untyped-call]
+        raise CredentialsError("Cannot identify account based on configured credentials.") from ex  # type: ignore[no-untyped-call]
     if "Account" not in caller_identity:
-        raise CredentialsError("Cannot identify account based on configured credentials.")
+        raise CredentialsError("Cannot identify account based on configured credentials.")  # type: ignore[no-untyped-call]
     return caller_identity["Account"]
 
 
-def _get_stack_template():
-    gc = GlobalConfig()
+def _get_stack_template():  # type: ignore[no-untyped-def]
+    gc = GlobalConfig()  # type: ignore[no-untyped-call]
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Transform": "AWS::Serverless-2016-10-31",

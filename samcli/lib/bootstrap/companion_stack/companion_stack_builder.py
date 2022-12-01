@@ -48,7 +48,7 @@ class CompanionStackBuilder(AbstractStackBuilder):
 
         return super().build()
 
-    def _build_repo_dict(self, repo: ECRRepo) -> Dict:
+    def _build_repo_dict(self, repo: ECRRepo) -> Dict:  # type: ignore[type-arg]
         """
         Build a single ECR repo resource dictionary
 

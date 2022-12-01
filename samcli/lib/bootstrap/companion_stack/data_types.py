@@ -141,6 +141,6 @@ class ECRRepo:
             return "amazonaws.com.cn"
         return "amazonaws.com"
 
-    def get_repo_uri(self, account_id, region) -> str:
+    def get_repo_uri(self, account_id, region) -> str:  # type: ignore[no-untyped-def]
         domain = ECRRepo.get_domain(region)
         return f"{account_id}.dkr.ecr.{region}.{domain}/{self.physical_id}"

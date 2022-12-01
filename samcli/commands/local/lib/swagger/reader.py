@@ -17,7 +17,7 @@ LOG = logging.getLogger(__name__)
 _FN_TRANSFORM = "Fn::Transform"
 
 
-def parse_aws_include_transform(data):
+def parse_aws_include_transform(data):  # type: ignore[no-untyped-def]
     """
     If the input data is an AWS::Include data, then parse and return the location of the included file.
 
@@ -65,7 +65,7 @@ class SwaggerReader:
     available in Serverless::Api SAM resource
     """
 
-    def __init__(self, definition_body=None, definition_uri=None, working_dir=None):
+    def __init__(self, definition_body=None, definition_uri=None, working_dir=None):  # type: ignore[no-untyped-def]
         """
         Initialize the class with swagger location
 
@@ -91,7 +91,7 @@ class SwaggerReader:
         if not self.definition_body and not self.definition_uri:
             raise ValueError("Require value for either DefinitionBody or DefinitionUri")
 
-    def read(self):
+    def read(self):  # type: ignore[no-untyped-def]
         """
         Gets the Swagger document from either of the given locations. If we fail to retrieve or parse the Swagger
         file, this method will return None.
@@ -106,15 +106,15 @@ class SwaggerReader:
 
         # First check if there is inline swagger
         if self.definition_body:
-            swagger = self._read_from_definition_body()
+            swagger = self._read_from_definition_body()  # type: ignore[no-untyped-call]
 
         if not swagger and self.definition_uri:
             # If not, then try to download it from the given URI
-            swagger = self._download_swagger(self.definition_uri)
+            swagger = self._download_swagger(self.definition_uri)  # type: ignore[no-untyped-call]
 
         return swagger
 
-    def _read_from_definition_body(self):
+    def _read_from_definition_body(self):  # type: ignore[no-untyped-def]
         """
         Read the Swagger document from DefinitionBody. It could either be an inline Swagger dictionary or an
         AWS::Include macro that contains location of the included Swagger. In the later case, we will download and
@@ -128,16 +128,16 @@ class SwaggerReader:
 
         # Let's try to parse it as AWS::Include Transform first. If not, then fall back to assuming the Swagger document
         # was inclined directly into the body
-        location = parse_aws_include_transform(self.definition_body)
+        location = parse_aws_include_transform(self.definition_body)  # type: ignore[no-untyped-call]
         if location:
             LOG.debug("Trying to download Swagger from %s", location)
-            return self._download_swagger(location)
+            return self._download_swagger(location)  # type: ignore[no-untyped-call]
 
         # Inline Swagger, just return the contents which should already be a dictionary
         LOG.debug("Detected Inline Swagger definition")
         return self.definition_body
 
-    def _download_swagger(self, location):
+    def _download_swagger(self, location):  # type: ignore[no-untyped-def]
         """
         Download the file from given local or remote location and return it
 
@@ -156,10 +156,10 @@ class SwaggerReader:
         if not location:
             return None
 
-        bucket, key, version = self._parse_s3_location(location)
+        bucket, key, version = self._parse_s3_location(location)  # type: ignore[no-untyped-call]
         if bucket and key:
             LOG.debug("Downloading Swagger document from Bucket=%s, Key=%s, Version=%s", bucket, key, version)
-            swagger_str = self._download_from_s3(bucket, key, version)
+            swagger_str = self._download_from_s3(bucket, key, version)  # type: ignore[no-untyped-call]
             return yaml_parse(swagger_str)
 
         if not isinstance(location, str):
@@ -182,7 +182,7 @@ class SwaggerReader:
             return yaml_parse(fp.read())
 
     @staticmethod
-    def _download_from_s3(bucket, key, version=None):
+    def _download_from_s3(bucket, key, version=None):  # type: ignore[no-untyped-def]
         """
         Download a file from given S3 location, if available.
 
@@ -230,7 +230,7 @@ class SwaggerReader:
                 raise
 
     @staticmethod
-    def _parse_s3_location(location):
+    def _parse_s3_location(location):  # type: ignore[no-untyped-def]
         """
         Parses the given location input as a S3 Location and returns the file's bucket, key and version as separate
         values. Input can be in two different formats:

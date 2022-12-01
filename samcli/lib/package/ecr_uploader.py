@@ -8,9 +8,9 @@ import io
 from typing import Dict
 import click
 import botocore
-import docker
+import docker  # type: ignore[import]
 
-from docker.errors import BuildError, APIError
+from docker.errors import BuildError, APIError  # type: ignore[import]
 
 from samcli.commands.package.exceptions import (
     DockerPushFailedError,
@@ -33,8 +33,8 @@ class ECRUploader:
     Class to upload Images to ECR.
     """
 
-    def __init__(
-        self, docker_client, ecr_client, ecr_repo, ecr_repo_multi, no_progressbar=False, tag="latest", stream=stderr()
+    def __init__(  # type: ignore[no-untyped-def]
+        self, docker_client, ecr_client, ecr_repo, ecr_repo_multi, no_progressbar=False, tag="latest", stream=stderr()  # type: ignore[no-untyped-call]
     ):
         self.docker_client = docker_client if docker_client else docker.from_env()
         self.ecr_client = ecr_client
@@ -43,18 +43,18 @@ class ECRUploader:
         self.tag = tag
         self.auth_config = {}
         self.no_progressbar = no_progressbar
-        self.stream = StreamWriter(stream=stream, auto_flush=True)
+        self.stream = StreamWriter(stream=stream, auto_flush=True)  # type: ignore[no-untyped-call]
         self.log_streamer = LogStreamer(stream=self.stream)
         self.login_session_active = False
 
-    def login(self):
+    def login(self):  # type: ignore[no-untyped-def]
         """
         Logs into the supplied ECR with credentials.
         """
         try:
             token = self.ecr_client.get_authorization_token()
         except botocore.exceptions.ClientError as ex:
-            raise ECRAuthorizationError(msg=ex.response["Error"]["Message"]) from ex
+            raise ECRAuthorizationError(msg=ex.response["Error"]["Message"]) from ex  # type: ignore[no-untyped-call]
 
         username, password = base64.b64decode(token["authorizationData"][0]["authorizationToken"]).decode().split(":")
         registry = token["authorizationData"][0]["proxyEndpoint"]
@@ -62,10 +62,10 @@ class ECRUploader:
         try:
             self.docker_client.login(username=ECR_USERNAME, password=password, registry=registry)
         except APIError as ex:
-            raise DockerLoginFailedError(msg=str(ex)) from ex
+            raise DockerLoginFailedError(msg=str(ex)) from ex  # type: ignore[no-untyped-call]
         self.auth_config = {"username": username, "password": password}
 
-    def upload(self, image, resource_name):
+    def upload(self, image, resource_name):  # type: ignore[no-untyped-def]
         """
         Uploads given local image to ECR.
         :param image: locally tagged docker image that would be uploaded to ECR.
@@ -73,12 +73,12 @@ class ECRUploader:
         :return: remote ECR image path that has been uploaded.
         """
         if not self.login_session_active:
-            self.login()
+            self.login()  # type: ignore[no-untyped-call]
             self.login_session_active = True
         try:
             docker_img = self.docker_client.images.get(image)
 
-            _tag = tag_translation(image, docker_image_id=docker_img.id, gen_tag=self.tag)
+            _tag = tag_translation(image, docker_image_id=docker_img.id, gen_tag=self.tag)  # type: ignore[no-untyped-call]
             repository = (
                 self.ecr_repo
                 if not self.ecr_repo_multi or not isinstance(self.ecr_repo_multi, dict)
@@ -94,15 +94,15 @@ class ECRUploader:
             else:
                 # we need to wait till the image got pushed to ecr, without this workaround sam sync for template
                 # contains image always fail, because the provided ecr uri is not exist.
-                _log_streamer = LogStreamer(stream=StreamWriter(stream=io.BytesIO(), auto_flush=True))
+                _log_streamer = LogStreamer(stream=StreamWriter(stream=io.BytesIO(), auto_flush=True))  # type: ignore[no-untyped-call]
                 _log_streamer.stream_progress(push_logs)
 
         except (BuildError, APIError, LogStreamError) as ex:
-            raise DockerPushFailedError(msg=str(ex)) from ex
+            raise DockerPushFailedError(msg=str(ex)) from ex  # type: ignore[no-untyped-call]
 
         return f"{repository}:{_tag}"
 
-    def delete_artifact(self, image_uri: str, resource_id: str, property_name: str):
+    def delete_artifact(self, image_uri: str, resource_id: str, property_name: str):  # type: ignore[no-untyped-def]
         """
         Delete the given ECR image by extracting the repository and image_tag from
         image_uri
@@ -147,10 +147,10 @@ class ECRUploader:
             # Handle Client errors such as RepositoryNotFoundException or InvalidParameterException
             if "RepositoryNotFoundException" not in str(ex):
                 LOG.debug("DeleteArtifactFailedError Exception : %s", str(ex))
-                raise DeleteArtifactFailedError(resource_id=resource_id, property_name=property_name, ex=ex) from ex
+                raise DeleteArtifactFailedError(resource_id=resource_id, property_name=property_name, ex=ex) from ex  # type: ignore[no-untyped-call]
             LOG.debug("RepositoryNotFoundException : %s", str(ex))
 
-    def delete_ecr_repository(self, physical_id: str):
+    def delete_ecr_repository(self, physical_id: str):  # type: ignore[no-untyped-def]
         """
         Delete ECR repository using the physical_id
 
@@ -165,7 +165,7 @@ class ECRUploader:
             LOG.debug("Could not find repository %s", physical_id)
 
     @staticmethod
-    def parse_image_url(image_uri: str) -> Dict:
+    def parse_image_url(image_uri: str) -> Dict:  # type: ignore[type-arg]
         result = {}
         registry_repo_tag = image_uri.split("/", 1)
         repo_colon_image_tag = None

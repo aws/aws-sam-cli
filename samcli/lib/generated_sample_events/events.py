@@ -15,7 +15,7 @@ with warnings.catch_warnings():
     # https://github.com/noahmorrison/chevron/blob/a0c11f66c6443ca6387c609b90d014653cd290bd/chevron/renderer.py#L75-L78
     # here we suppress the warning
     warnings.simplefilter("ignore")
-    from chevron import renderer
+    from chevron import renderer  # type: ignore[import]
 
 from samcli.lib.utils.hash import str_checksum
 
@@ -33,7 +33,7 @@ class Events:
         load in and substitute values into json file (if necessary)
     """
 
-    def __init__(self):
+    def __init__(self):  # type: ignore[no-untyped-def]
         """
         Constructor for event library
         """
@@ -43,7 +43,7 @@ class Events:
         with open(file_name) as f:
             self.event_mapping = json.load(f)
 
-    def transform(self, tags, values_to_sub):
+    def transform(self, tags, values_to_sub):  # type: ignore[no-untyped-def]
         """
         transform (if needed) values_to_sub with given tags
 
@@ -61,15 +61,15 @@ class Events:
         """
         for tag, properties in tags.items():
             val = values_to_sub.get(tag)
-            values_to_sub[tag] = self.transform_val(properties, val)
+            values_to_sub[tag] = self.transform_val(properties, val)  # type: ignore[no-untyped-call]
             if properties.get("children") is not None:
                 children = properties.get("children")
                 for child_tag, child_properties in children.items():
-                    child_val = self.transform_val(child_properties, val)
+                    child_val = self.transform_val(child_properties, val)  # type: ignore[no-untyped-call]
                     values_to_sub[child_tag] = child_val
         return values_to_sub
 
-    def transform_val(self, properties, val):
+    def transform_val(self, properties, val):  # type: ignore[no-untyped-def]
         """
         transform (if needed) given val with given properties
 
@@ -146,7 +146,7 @@ class Events:
         # raise exception if hashing_scheme is unsupported
         raise ValueError("Hashing_scheme {} is not supported.".format(hashing_scheme))
 
-    def generate_event(self, service_name: str, event_type: str, values_to_sub: Dict) -> str:
+    def generate_event(self, service_name: str, event_type: str, values_to_sub: Dict) -> str:  # type: ignore[type-arg]
         """
         opens the event json, substitutes the values in, and
         returns the customized event json
@@ -167,7 +167,7 @@ class Events:
 
         # set variables for easy calling
         tags = self.event_mapping[service_name][event_type]["tags"]
-        values_to_sub = self.transform(tags, values_to_sub)
+        values_to_sub = self.transform(tags, values_to_sub)  # type: ignore[no-untyped-call]
 
         # construct the path to the Events json file
         this_folder = os.path.dirname(os.path.abspath(__file__))

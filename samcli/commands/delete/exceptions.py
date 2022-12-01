@@ -5,7 +5,7 @@ from samcli.commands.exceptions import UserException
 
 
 class DeleteFailedError(UserException):
-    def __init__(self, stack_name, msg, stack_status=None):
+    def __init__(self, stack_name, msg, stack_status=None):  # type: ignore[no-untyped-def]
         self.stack_name = stack_name
         self.msg = msg
         self.stack_status = stack_status
@@ -14,11 +14,11 @@ class DeleteFailedError(UserException):
         if self.stack_status:
             message += f", status: {self.stack_status}"
 
-        super().__init__(message=message)
+        super().__init__(message=message)  # type: ignore[no-untyped-call]
 
 
 class CfDeleteFailedStatusError(UserException):
-    def __init__(self, stack_name, msg, stack_status=None):
+    def __init__(self, stack_name, msg, stack_status=None):  # type: ignore[no-untyped-def]
         self.stack_name = stack_name
         self.msg = msg
         self.stack_status = stack_status
@@ -27,14 +27,14 @@ class CfDeleteFailedStatusError(UserException):
         if self.stack_status:
             message += f", status: {self.stack_status}"
 
-        super().__init__(message=message)
+        super().__init__(message=message)  # type: ignore[no-untyped-call]
 
 
 class FetchTemplateFailedError(UserException):
-    def __init__(self, stack_name, msg):
+    def __init__(self, stack_name, msg):  # type: ignore[no-untyped-def]
         self.stack_name = stack_name
         self.msg = msg
 
         message = f"Failed to fetch the template for the stack: {stack_name}, {msg}"
 
-        super().__init__(message=message)
+        super().__init__(message=message)  # type: ignore[no-untyped-call]

@@ -5,8 +5,8 @@ values of the context and how to generate a project from the given template and 
 import logging
 from typing import Dict, List, Optional
 
-from cookiecutter.exceptions import RepositoryNotFound, UnknownRepoType
-from cookiecutter.main import cookiecutter
+from cookiecutter.exceptions import RepositoryNotFound, UnknownRepoType  # type: ignore[import]
+from cookiecutter.main import cookiecutter  # type: ignore[import]
 
 from samcli.commands.exceptions import UserException
 from samcli.lib.init.arbitrary_project import generate_non_cookiecutter_project
@@ -65,7 +65,7 @@ class Template:
         preprocessors: Optional[List[Processor]] = None,
         postprocessors: Optional[List[Processor]] = None,
         plugins: Optional[List[Plugin]] = None,
-        metadata: Optional[Dict] = None,
+        metadata: Optional[Dict] = None,  # type: ignore[type-arg]
     ):
         """
         Initialize the class
@@ -106,7 +106,7 @@ class Template:
                 self._postprocessors.append(plugin.postprocessor)
         self.metadata = metadata
 
-    def run_interactive_flows(self, context: Optional[Dict] = None) -> Dict:
+    def run_interactive_flows(self, context: Optional[Dict] = None) -> Dict:  # type: ignore[type-arg]
         """
         prompt the user a series of questions' flows and gather the answers to create the cookiecutter context.
         The questions are identified by keys. If multiple questions, whether within the same flow or across
@@ -126,9 +126,9 @@ class Template:
                 context = flow.run(context)
             return context
         except Exception as e:
-            raise UserException(str(e), wrapped_from=e.__class__.__name__) from e
+            raise UserException(str(e), wrapped_from=e.__class__.__name__) from e  # type: ignore[no-untyped-call]
 
-    def generate_project(self, context: Dict, output_dir: str) -> None:
+    def generate_project(self, context: Dict, output_dir: str) -> None:  # type: ignore[type-arg]
         """
         Generates a project based on this cookiecutter template and the given context. The context is first
         processed and manipulated by series of preprocessors(if any) then the project is generated and finally
@@ -157,7 +157,7 @@ class Template:
             for processor in self._preprocessors:
                 context = processor.run(context)
         except Exception as e:
-            raise PreprocessingError(template=self._location, provider_error=e) from e
+            raise PreprocessingError(template=self._location, provider_error=e) from e  # type: ignore[no-untyped-call]
 
         try:
             LOG.debug("Baking a new template with cookiecutter with all parameters")
@@ -175,15 +175,15 @@ class Template:
                 "Unable to find cookiecutter.json in the project. Downloading it directly without treating "
                 "it as a cookiecutter template"
             )
-            generate_non_cookiecutter_project(location=self._location, output_dir=".")
+            generate_non_cookiecutter_project(location=self._location, output_dir=".")  # type: ignore[no-untyped-call]
         except UnknownRepoType as e:
-            raise InvalidLocationError(template=self._location) from e
+            raise InvalidLocationError(template=self._location) from e  # type: ignore[no-untyped-call]
         except Exception as e:
-            raise GenerateProjectFailedError(template=self._location, provider_error=e) from e
+            raise GenerateProjectFailedError(template=self._location, provider_error=e) from e  # type: ignore[no-untyped-call]
 
         try:
             LOG.debug("postprocessing the cookiecutter context")
             for processor in self._postprocessors:
                 context = processor.run(context)
         except Exception as e:
-            raise PostprocessingError(template=self._location, provider_error=e) from e
+            raise PostprocessingError(template=self._location, provider_error=e) from e  # type: ignore[no-untyped-call]

@@ -4,7 +4,7 @@ Class that provides functions from a given SAM template
 import logging
 from typing import Dict, List, Optional, cast, Iterator, Any
 
-from samtranslator.policy_template_processor.exceptions import TemplateNotFoundException
+from samtranslator.policy_template_processor.exceptions import TemplateNotFoundException  # type: ignore[import]
 
 from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION,
@@ -68,7 +68,7 @@ class SamFunctionProvider(SamBaseProvider):
             self._stacks, use_raw_codeuri, ignore_code_extraction_warnings, locate_layer_nested
         )
 
-        self._colored = Colored()
+        self._colored = Colored()  # type: ignore[no-untyped-call]
 
     @property
     def stacks(self) -> List[Stack]:
@@ -140,10 +140,10 @@ class SamFunctionProvider(SamBaseProvider):
                     f"invoked! If it's not the function you are going to invoke, please choose one of them from"
                     f" below:"
                 )
-                LOG.warning(Colored().yellow(message))
+                LOG.warning(Colored().yellow(message))  # type: ignore[no-untyped-call, no-untyped-call]
 
                 for found_f in found_fs:
-                    LOG.warning(Colored().yellow(found_f.full_path))
+                    LOG.warning(Colored().yellow(found_f.full_path))  # type: ignore[no-untyped-call, no-untyped-call]
 
                 resolved_function = found_fs[0]
 
@@ -162,7 +162,7 @@ class SamFunctionProvider(SamBaseProvider):
                 "runtime. For more information please check AWS Lambda Runtime Support Policy: "
                 "https://docs.aws.amazon.com/lambda/latest/dg/runtime-support-policy.html"
             )
-            LOG.warning(self._colored.yellow(message))
+            LOG.warning(self._colored.yellow(message))  # type: ignore[no-untyped-call]
 
     def get_all(self) -> Iterator[Function]:
         """
@@ -273,7 +273,7 @@ class SamFunctionProvider(SamBaseProvider):
     def _convert_sam_function_resource(
         stack: Stack,
         name: str,
-        resource_properties: Dict,
+        resource_properties: Dict,  # type: ignore[type-arg]
         layers: List[LayerVersion],
         use_raw_codeuri: bool = False,
     ) -> Function:
@@ -315,7 +315,7 @@ class SamFunctionProvider(SamBaseProvider):
         )
 
     @staticmethod
-    def _get_function_id(resource_properties: Dict, logical_id: str) -> str:
+    def _get_function_id(resource_properties: Dict, logical_id: str) -> str:  # type: ignore[type-arg]
         """
         Get unique id for Function resource.
         For CFN/SAM project, this function id is the logical id.
@@ -344,7 +344,7 @@ class SamFunctionProvider(SamBaseProvider):
     def _convert_lambda_function_resource(
         stack: Stack,
         name: str,
-        resource_properties: Dict,
+        resource_properties: Dict,  # type: ignore[type-arg]
         layers: List[LayerVersion],
         use_raw_codeuri: bool = False,
     ) -> Function:
@@ -401,8 +401,8 @@ class SamFunctionProvider(SamBaseProvider):
         function_id: str,
         name: str,
         codeuri: Optional[str],
-        resource_properties: Dict,
-        layers: List,
+        resource_properties: Dict,  # type: ignore[type-arg]
+        layers: List,  # type: ignore[type-arg]
         inlinecode: Optional[str],
         imageuri: Optional[str],
         use_raw_codeuri: bool = False,
@@ -528,7 +528,7 @@ class SamFunctionProvider(SamBaseProvider):
                 continue
 
             if layer == "arn:aws:lambda:::awslayer:AmazonLinux1703":
-                raise InvalidLayerVersionArn(
+                raise InvalidLayerVersionArn(  # type: ignore[no-untyped-call]
                     "Building and invoking locally only supports AmazonLinux1803. See "
                     "https://aws.amazon.com/blogs/compute/upcoming-updates-to-the-aws-lambda-execution-environment/ "
                     "for more detials."
@@ -629,7 +629,7 @@ class SamFunctionProvider(SamBaseProvider):
         # if the layer is in the format {"Fn::GetAtt": ["LayerStackName", "Outputs.LayerName"]},
         # it is passed from another child stack inside the same parent stack
         elif isinstance(layer, dict) and layer.get("Fn::GetAtt"):
-            layer_attribute: List = layer.get("Fn::GetAtt", [])
+            layer_attribute: List = layer.get("Fn::GetAtt", [])  # type: ignore[type-arg]
             if not SamFunctionProvider._validate_layer_get_attr_format(layer):
                 return None
             layer_stack_reference = layer_attribute[0]
@@ -650,7 +650,7 @@ class SamFunctionProvider(SamBaseProvider):
             )
 
         # If the layer reference is not in the stack's parameters section, it must be a layer reference in current stack
-        parameters: Dict = stack.template_dict.get("Parameters", {})
+        parameters: Dict = stack.template_dict.get("Parameters", {})  # type: ignore[type-arg]
         if not parameters or (layer_reference and layer_reference not in parameters):
             LOG.debug("Resolved layer: %s in current stack %s", layer_reference, stack.stack_path)
             # layer reference should be in current stack
@@ -685,7 +685,7 @@ class SamFunctionProvider(SamBaseProvider):
         )
 
     @staticmethod
-    def _validate_layer_get_attr_format(layer: Dict) -> bool:
+    def _validate_layer_get_attr_format(layer: Dict) -> bool:  # type: ignore[type-arg]
         # validate if the layer is in the format {"Fn::GetAtt": ["LayerStackName", "Outputs.LayerName"]}
         warn_message = "Fn::GetAtt with unsupported format in accelerate nested stack"
         layer_attribute = layer.get("Fn::GetAtt", [])
@@ -704,7 +704,7 @@ class SamFunctionProvider(SamBaseProvider):
 
     @staticmethod
     def _locate_layer_from_ref(
-        stack: Stack, layer: Dict, use_raw_codeuri: bool = False, ignore_code_extraction_warnings: bool = False
+        stack: Stack, layer: Dict, use_raw_codeuri: bool = False, ignore_code_extraction_warnings: bool = False  # type: ignore[type-arg]
     ) -> Optional[LayerVersion]:
         layer_logical_id = cast(str, layer.get("Ref"))
         layer_resource = stack.resources.get(layer_logical_id)
@@ -740,7 +740,7 @@ class SamFunctionProvider(SamBaseProvider):
             stack_path=stack.stack_path,
         )
 
-    def get_resources_by_stack_path(self, stack_path: str) -> Dict:
+    def get_resources_by_stack_path(self, stack_path: str) -> Dict:  # type: ignore[type-arg]
         candidates = [stack.resources for stack in self._stacks if stack.stack_path == stack_path]
         if not candidates:
             raise RuntimeError(f"Cannot find resources with stack_path = {stack_path}")
@@ -775,8 +775,8 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
     def __init__(
         self,
         stacks: List[Stack],
-        parameter_overrides: Optional[Dict] = None,
-        global_parameter_overrides: Optional[Dict] = None,
+        parameter_overrides: Optional[Dict] = None,  # type: ignore[type-arg]
+        global_parameter_overrides: Optional[Dict] = None,  # type: ignore[type-arg]
         use_raw_codeuri: bool = False,
         ignore_code_extraction_warnings: bool = False,
     ) -> None:
@@ -811,7 +811,7 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
 
         self.is_changed = False
         self._observer = FileObserver(self._set_templates_changed)
-        self._observer.start()
+        self._observer.start()  # type: ignore[no-untyped-call]
         self._watch_stack_templates(stacks)
 
     @property
@@ -864,7 +864,7 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
 
         return super().get_all()
 
-    def get_resources_by_stack_path(self, stack_path: str) -> Dict:
+    def get_resources_by_stack_path(self, stack_path: str) -> Dict:  # type: ignore[type-arg]
         if self.is_changed:
             self._refresh_loaded_functions()
         return super().get_resources_by_stack_path(stack_path)
@@ -913,4 +913,4 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
         """
         Stop Observing.
         """
-        self._observer.stop()
+        self._observer.stop()  # type: ignore[no-untyped-call]

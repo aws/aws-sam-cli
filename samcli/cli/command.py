@@ -66,7 +66,7 @@ class BaseCommand(click.MultiCommand):
     will produce a command name "baz".
     """
 
-    def __init__(self, *args, cmd_packages=None, **kwargs):
+    def __init__(self, *args, cmd_packages=None, **kwargs):  # type: ignore[no-untyped-def]
         """
         Initializes the class, optionally with a list of available commands
 
@@ -82,10 +82,10 @@ class BaseCommand(click.MultiCommand):
             cmd_packages = _SAM_CLI_COMMAND_PACKAGES
 
         self._commands = {}
-        self._commands = BaseCommand._set_commands(cmd_packages)
+        self._commands = BaseCommand._set_commands(cmd_packages)  # type: ignore[no-untyped-call]
 
     @staticmethod
-    def _set_commands(package_names):
+    def _set_commands(package_names):  # type: ignore[no-untyped-def]
         """
         Extract the command name from package name. Last part of the module path is the command
         ie. if path is foo.bar.baz, then "baz" is the command name.
@@ -102,7 +102,7 @@ class BaseCommand(click.MultiCommand):
 
         return commands
 
-    def list_commands(self, ctx):
+    def list_commands(self, ctx):  # type: ignore[no-untyped-def]
         """
         Overrides a method from Click that returns a list of commands available in the CLI.
 
@@ -111,7 +111,7 @@ class BaseCommand(click.MultiCommand):
         """
         return list(self._commands.keys())
 
-    def get_command(self, ctx, cmd_name):
+    def get_command(self, ctx, cmd_name):  # type: ignore[no-untyped-def]
         """
         Overrides method from ``click.MultiCommand`` that returns Click CLI object for given command name, if found.
 
@@ -143,5 +143,5 @@ class BaseCommand(click.MultiCommand):
                 return None
 
         return (
-            mod.cli if mod else click.Command(name=cmd_name, short_help=_SAM_CLI_COMMAND_SHORT_HELP.get(cmd_name, ""))
+            mod.cli if mod else click.Command(name=cmd_name, short_help=_SAM_CLI_COMMAND_SHORT_HELP.get(cmd_name, ""))  # type: ignore
         )

@@ -116,7 +116,7 @@ class CfnApiProvider(CfnBaseApiProvider):
 
     @staticmethod
     def _extract_cloud_formation_stage(
-        resources: Dict[str, Dict], stage_resource: Dict, collector: ApiCollector
+        resources: Dict[str, Dict], stage_resource: Dict, collector: ApiCollector  # type: ignore[type-arg]
     ) -> None:
         """
          Extract the stage from AWS::ApiGateway::Stage resource by reading and adds it to the collector.
@@ -137,10 +137,10 @@ class CfnApiProvider(CfnBaseApiProvider):
 
         logical_id = properties.get("RestApiId")
         if not logical_id:
-            raise InvalidSamTemplateException("The AWS::ApiGateway::Stage must have a RestApiId property")
+            raise InvalidSamTemplateException("The AWS::ApiGateway::Stage must have a RestApiId property")  # type: ignore[no-untyped-call]
         rest_api_resource_type = resources.get(logical_id, {}).get("Type")
         if rest_api_resource_type != AWS_APIGATEWAY_RESTAPI:
-            raise InvalidSamTemplateException(
+            raise InvalidSamTemplateException(  # type: ignore[no-untyped-call]
                 "The AWS::ApiGateway::Stage must have a valid RestApiId that points to RestApi resource {}".format(
                     logical_id
                 )
@@ -152,9 +152,9 @@ class CfnApiProvider(CfnBaseApiProvider):
     def _extract_cloud_formation_method(
         self,
         stack_path: str,
-        resources: Dict[str, Dict],
+        resources: Dict[str, Dict],  # type: ignore[type-arg]
         logical_id: str,
-        method_resource: Dict,
+        method_resource: Dict,  # type: ignore[type-arg]
         collector: ApiCollector,
     ) -> None:
         """
@@ -227,7 +227,7 @@ class CfnApiProvider(CfnBaseApiProvider):
         self,
         stack_path: str,
         logical_id: str,
-        api_resource: Dict,
+        api_resource: Dict,  # type: ignore[type-arg]
         collector: ApiCollector,
         cwd: Optional[str] = None,
     ) -> None:
@@ -281,9 +281,9 @@ class CfnApiProvider(CfnBaseApiProvider):
     def _extract_cfn_gateway_v2_route(
         self,
         stack_path: str,
-        resources: Dict[str, Dict],
+        resources: Dict[str, Dict],  # type: ignore[type-arg]
         logical_id: str,
-        route_resource: Dict,
+        route_resource: Dict,  # type: ignore[type-arg]
         collector: ApiCollector,
     ) -> None:
         """
@@ -328,7 +328,7 @@ class CfnApiProvider(CfnBaseApiProvider):
 
         if not route_key or not method or not path:
             LOG.debug("The AWS::ApiGatewayV2::Route '%s' does not have a correct route key '%s'", logical_id, route_key)
-            raise InvalidSamTemplateException(
+            raise InvalidSamTemplateException(  # type: ignore[no-untyped-call]
                 "The AWS::ApiGatewayV2::Route {} does not have a correct route key {}".format(logical_id, route_key)
             )
 
@@ -345,8 +345,8 @@ class CfnApiProvider(CfnBaseApiProvider):
 
     def resolve_resource_path(
         self,
-        resources: Dict[str, Dict],
-        resource: Dict,
+        resources: Dict[str, Dict],  # type: ignore[type-arg]
+        resource: Dict,  # type: ignore[type-arg]
         current_path: str,
     ) -> str:
         """
@@ -377,8 +377,8 @@ class CfnApiProvider(CfnBaseApiProvider):
 
     @staticmethod
     def _extract_cfn_gateway_v2_stage(
-        resources: Dict[str, Dict],
-        stage_resource: Dict,
+        resources: Dict[str, Dict],  # type: ignore[type-arg]
+        stage_resource: Dict,  # type: ignore[type-arg]
         collector: ApiCollector,
     ) -> None:
         """
@@ -400,10 +400,10 @@ class CfnApiProvider(CfnBaseApiProvider):
 
         api_id = properties.get("ApiId")
         if not api_id:
-            raise InvalidSamTemplateException("The AWS::ApiGatewayV2::Stage must have a ApiId property")
+            raise InvalidSamTemplateException("The AWS::ApiGatewayV2::Stage must have a ApiId property")  # type: ignore[no-untyped-call]
         api_resource_type = resources.get(api_id, {}).get("Type")
         if api_resource_type != AWS_APIGATEWAY_V2_API:
-            raise InvalidSamTemplateException(
+            raise InvalidSamTemplateException(  # type: ignore[no-untyped-call]
                 "The AWS::ApiGatewayV2::Stag must have a valid ApiId that points to Api resource {}".format(api_id)
             )
 
@@ -411,7 +411,7 @@ class CfnApiProvider(CfnBaseApiProvider):
         collector.stage_variables = stage_variables
 
     @staticmethod
-    def _get_integration_function_name(integration: Dict) -> Optional[str]:
+    def _get_integration_function_name(integration: Dict) -> Optional[str]:  # type: ignore[type-arg]
         """
         Tries to parse the Lambda Function name from the Integration defined in the method configuration. Integration
         configuration. We care only about Lambda integrations, which are of type aws_proxy, and ignore the rest.
@@ -438,7 +438,7 @@ class CfnApiProvider(CfnBaseApiProvider):
 
     @staticmethod
     def _get_route_function_name(
-        resources: Dict[str, Dict], integration_target: str
+        resources: Dict[str, Dict], integration_target: str  # type: ignore[type-arg]
     ) -> Tuple[Optional[str], Optional[str]]:
         """
         Look for the APIGateway integration resource based on the input integration_target, then try to parse the

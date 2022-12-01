@@ -28,14 +28,14 @@ from samcli.lib.warnings.sam_cli_warning import CodeDeployWarning, CodeDeployCon
 SHORT_HELP = "Package an AWS SAM application."
 
 
-def resources_and_properties_help_string():
+def resources_and_properties_help_string():  # type: ignore[no-untyped-def]
     """
     Total list of resources and their property locations that are supported for `sam package`
     :return: str
     """
     return "".join(
         f"\nResource : {resource} | Location : {location}\n".format(resource=resource, location=location)
-        for resource, location in resources_generator()
+        for resource, location in resources_generator()  # type: ignore[no-untyped-call]
     )
 
 
@@ -48,13 +48,13 @@ with the AWS location where the command uploaded the artifacts.
 
 The following resources and their property locations are supported.
 """
-    + resources_and_properties_help_string()
+    + resources_and_properties_help_string()  # type: ignore[no-untyped-call]
 )
 
 
 @click.command("package", short_help=SHORT_HELP, help=HELP_TEXT, context_settings=dict(max_content_width=120))
-@configuration_option(provider=TomlProvider(section="parameters"))
-@template_click_option(include_build=True)
+@configuration_option(provider=TomlProvider(section="parameters"))  # type: ignore[no-untyped-call, no-untyped-call]
+@template_click_option(include_build=True)  # type: ignore[no-untyped-call]
 @click.option(
     "--output-template-file",
     required=False,
@@ -80,10 +80,10 @@ The following resources and their property locations are supported.
 @pass_context
 @track_command
 @check_newer_version
-@track_template_warnings([CodeDeployWarning.__name__, CodeDeployConditionWarning.__name__])
+@track_template_warnings([CodeDeployWarning.__name__, CodeDeployConditionWarning.__name__])  # type: ignore[no-untyped-call]
 @print_cmdline_args
-@unsupported_command_cdk(alternative_command="cdk deploy")
-def cli(
+@unsupported_command_cdk(alternative_command="cdk deploy")  # type: ignore[no-untyped-call]
+def cli(  # type: ignore[no-untyped-def]
     ctx,
     template_file,
     s3_bucket,
@@ -106,7 +106,7 @@ def cli(
     """
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(
+    do_cli(  # type: ignore[no-untyped-call]
         template_file,
         s3_bucket,
         image_repository,
@@ -125,7 +125,7 @@ def cli(
     )  # pragma: no cover
 
 
-def do_cli(
+def do_cli(  # type: ignore[no-untyped-def]
     template_file,
     s3_bucket,
     image_repository,
@@ -149,12 +149,12 @@ def do_cli(
     from samcli.commands.package.package_context import PackageContext
 
     if resolve_s3:
-        s3_bucket = manage_stack(profile=profile, region=region)
+        s3_bucket = manage_stack(profile=profile, region=region)  # type: ignore[no-untyped-call]
         click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
         click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")
         click.echo("\t\tOr by specifying --s3-bucket explicitly.")
 
-    with PackageContext(
+    with PackageContext(  # type: ignore[no-untyped-call]
         template_file=template_file,
         s3_bucket=s3_bucket,
         image_repository=image_repository,

@@ -3,7 +3,7 @@
 from collections import namedtuple
 from typing import List
 
-CONFIG = namedtuple(
+CONFIG = namedtuple(  # type: ignore[name-match]
     "Capability",
     ["language", "dependency_manager", "application_framework", "manifest_name", "executable_search_paths"],
 )

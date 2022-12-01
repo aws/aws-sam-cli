@@ -12,11 +12,11 @@ class TemplateWarning:
     Top level class which all warnings should extend from.
     """
 
-    def check(self, template_dict):  # pylint: disable=no-self-use
+    def check(self, template_dict):  # type: ignore[no-untyped-def] # pylint: disable=no-self-use
         raise Exception("NotImplementedException")
 
 
-def _get_deployment_preferences_status(function):
+def _get_deployment_preferences_status(function):  # type: ignore[no-untyped-def]
     """
     Takes a AWS::Serverless::Function resource and checks if resource have a deployment preferences applied
     to it. If DeploymentPreference found then it returns its status if it is enabled or not.
@@ -29,13 +29,13 @@ def _get_deployment_preferences_status(function):
 
 
 class TemplateWarningsChecker:
-    def __init__(self):
+    def __init__(self):  # type: ignore[no-untyped-def]
         self.all_warnings = {
             CodeDeployWarning.__name__: CodeDeployWarning(),
             CodeDeployConditionWarning.__name__: CodeDeployConditionWarning(),
         }
 
-    def check_template_for_warning(self, warning_name, template_dict):
+    def check_template_for_warning(self, warning_name, template_dict):  # type: ignore[no-untyped-def]
         """
         Checks provided template against the warning based on warning_name.
         Parameters
@@ -54,7 +54,7 @@ class TemplateWarningsChecker:
             LOG.error("UnknownWarning name found: %s", warning_name)
             return None
 
-        should_warn, warning_message = warning.check(template_dict)
+        should_warn, warning_message = warning.check(template_dict)  # type: ignore[no-untyped-call]
         if should_warn:
             return warning_message
         return None
@@ -70,7 +70,7 @@ and how to mitigate it, please read these docs[1]
 [1] https://github.com/aws/aws-sam-cli/wiki/08-2020-codeploy-servicerole
     """
 
-    def check(self, template_dict):
+    def check(self, template_dict):  # type: ignore[no-untyped-def]
         """
         Checking if template dictionary have CodeDeployWarning or not.
         """
@@ -80,10 +80,10 @@ and how to mitigate it, please read these docs[1]
             if resource.get("Type", "") == "AWS::Serverless::Function"
         ]
         deployment_features_enabled_count = sum(
-            1 for function in functions if _get_deployment_preferences_status(function)
+            1 for function in functions if _get_deployment_preferences_status(function)  # type: ignore[no-untyped-call, misc]
         )
         deployment_features_disabled_count = sum(
-            1 for function in functions if not _get_deployment_preferences_status(function)
+            1 for function in functions if not _get_deployment_preferences_status(function)  # type: ignore[no-untyped-call, misc]
         )
 
         send_warning = deployment_features_enabled_count > 0 and deployment_features_disabled_count > 0
@@ -101,7 +101,7 @@ please read these docs[1]
 [1] https://github.com/aws/aws-sam-cli/wiki/08-2020-codeploy-deploymentgroup-condition
     """
 
-    def check(self, template_dict):
+    def check(self, template_dict):  # type: ignore[no-untyped-def]
         """
         Checking if template dictionary have Function with Condition and DeploymentPreferences which
         will trigger this warning.
@@ -117,11 +117,11 @@ please read these docs[1]
         return (False, "")
 
     @staticmethod
-    def _have_condition(function: Dict) -> bool:
+    def _have_condition(function: Dict) -> bool:  # type: ignore[type-arg]
         condition = function.get("Condition", None)
         return condition is not None
 
     @staticmethod
-    def _have_deployment_preferences(function: Dict) -> bool:
+    def _have_deployment_preferences(function: Dict) -> bool:  # type: ignore[type-arg]
         deployment_preference = function.get("Properties", {}).get("DeploymentPreference", None)
         return deployment_preference is not None

@@ -12,7 +12,7 @@ from samcli.commands.exceptions import InvalidStackNameException
 from samcli.lib.utils.boto_utils import get_client_error_code
 
 
-def stack_name_cw_log_group_validation(func):
+def stack_name_cw_log_group_validation(func):  # type: ignore[no-untyped-def]
     """
     Wrapper Validation function that will run last after the all cli parmaters have been loaded
     to check for conditions surrounding `--stack-name` and `--cw-log-group`. The
@@ -24,7 +24,7 @@ def stack_name_cw_log_group_validation(func):
     """
 
     @wraps(func)
-    def wrapped(*args, **kwargs):
+    def wrapped(*args, **kwargs):  # type: ignore[no-untyped-def]
         ctx = click.get_current_context()
         stack_name = ctx.params.get("stack_name")
         cw_log_groups = ctx.params.get("cw_log_group")
@@ -60,9 +60,9 @@ def _handle_client_error(ex: ClientError) -> None:
     if client_error_code == "ValidationError" and operation_name == "ListStackResources":
         click_context: Context = click.get_current_context()
         stack_name_value = click_context.params.get("stack_name")
-        raise InvalidStackNameException(
+        raise InvalidStackNameException(  # type: ignore[no-untyped-call]
             f"Invalid --stack-name parameter. Stack with id '{stack_name_value}' does not exist"
         )
 
 
-SAM_LOGS_ADDITIONAL_EXCEPTION_HANDLERS: Dict[Any, Callable] = {ClientError: _handle_client_error}
+SAM_LOGS_ADDITIONAL_EXCEPTION_HANDLERS: Dict[Any, Callable] = {ClientError: _handle_client_error}  # type: ignore[type-arg]

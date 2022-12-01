@@ -87,7 +87,7 @@ NESTED_STACKS_RESOURCES = {
 }
 
 
-def get_packageable_resource_paths():
+def get_packageable_resource_paths():  # type: ignore[no-untyped-def]
     """
     Resource Types with respective Locations that are package-able.
 
@@ -96,7 +96,7 @@ def get_packageable_resource_paths():
     _resource_property_dict : Dict
         Resource Dictionary containing packageable resource types and their locations as a list.
     """
-    _resource_property_dict = defaultdict(list)
+    _resource_property_dict = defaultdict(list)  # type: ignore[var-annotated]
     for _dict in (METADATA_WITH_LOCAL_PATHS, RESOURCES_WITH_LOCAL_PATHS, RESOURCES_WITH_IMAGE_COMPONENT):
         for key, value in _dict.items():
             # Only add values to the list if they are different, same property name could be used with the resource
@@ -107,7 +107,7 @@ def get_packageable_resource_paths():
     return _resource_property_dict
 
 
-def resources_generator():
+def resources_generator():  # type: ignore[no-untyped-def]
     """
     Generator to yield set of resources and their locations that are supported for package operations
 
@@ -118,7 +118,7 @@ def resources_generator():
     location : str
         The location of the resource
     """
-    for resource, location_list in get_packageable_resource_paths().items():
+    for resource, location_list in get_packageable_resource_paths().items():  # type: ignore[no-untyped-call]
         for locations in location_list:
             for location in locations:
                 yield resource, location

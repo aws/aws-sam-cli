@@ -71,11 +71,11 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
 }
 
 
-def get_local_manifest_path():
+def get_local_manifest_path():  # type: ignore[no-untyped-def]
     return pathlib.Path(_init_path, "lib", "init", "local_manifest.json")
 
 
-def get_local_lambda_images_location(mapping, runtime):
+def get_local_lambda_images_location(mapping, runtime):  # type: ignore[no-untyped-def]
     dir_name = os.path.basename(mapping["init_location"])
     if dir_name.endswith("-lambda-image"):
         return os.path.join(_lambda_images_templates, runtime, dir_name)
@@ -142,7 +142,7 @@ LAMBDA_IMAGES_RUNTIMES_MAP = {
     "ruby2.7": "amazon/ruby2.7-base",
 }
 
-LAMBDA_IMAGES_RUNTIMES: List = list(set(LAMBDA_IMAGES_RUNTIMES_MAP.values()))
+LAMBDA_IMAGES_RUNTIMES: List = list(set(LAMBDA_IMAGES_RUNTIMES_MAP.values()))  # type: ignore[type-arg]
 
 # Schemas Code lang is a MINIMUM supported version
 # - this is why later Lambda runtimes can be mapped to earlier Schemas Code Languages
@@ -161,7 +161,7 @@ SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
 PROVIDED_RUNTIMES = ["provided.al2", "provided"]
 
 
-def is_custom_runtime(runtime):
+def is_custom_runtime(runtime):  # type: ignore[no-untyped-def]
     """
     validated if a runtime is custom or not
     Parameters
@@ -175,11 +175,11 @@ def is_custom_runtime(runtime):
     """
     if not runtime:
         return False
-    provided_runtime = get_provided_runtime_from_custom_runtime(runtime)
+    provided_runtime = get_provided_runtime_from_custom_runtime(runtime)  # type: ignore[no-untyped-call]
     return runtime in PROVIDED_RUNTIMES or bool(provided_runtime in PROVIDED_RUNTIMES)
 
 
-def get_provided_runtime_from_custom_runtime(runtime):
+def get_provided_runtime_from_custom_runtime(runtime):  # type: ignore[no-untyped-def]
     """
     Gets the base lambda runtime for which a custom runtime is based on
     Example:

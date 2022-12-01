@@ -8,14 +8,14 @@ import click
 from .context import Context
 
 
-def debug_option(f):
+def debug_option(f):  # type: ignore[no-untyped-def]
     """
     Configures --debug option for CLI
 
     :param f: Callback Function to be passed to Click
     """
 
-    def callback(ctx, param, value):
+    def callback(ctx, param, value):  # type: ignore[no-untyped-def]
         state = ctx.ensure_object(Context)
         state.debug = value
         return value
@@ -31,14 +31,14 @@ def debug_option(f):
     )(f)
 
 
-def region_option(f):
+def region_option(f):  # type: ignore[no-untyped-def]
     """
     Configures --region option for CLI
 
     :param f: Callback Function to be passed to Click
     """
 
-    def callback(ctx, param, value):
+    def callback(ctx, param, value):  # type: ignore[no-untyped-def]
         state = ctx.ensure_object(Context)
         state.region = value
         return value
@@ -48,14 +48,14 @@ def region_option(f):
     )(f)
 
 
-def profile_option(f):
+def profile_option(f):  # type: ignore[no-untyped-def]
     """
     Configures --profile option for CLI
 
     :param f: Callback Function to be passed to Click
     """
 
-    def callback(ctx, param, value):
+    def callback(ctx, param, value):  # type: ignore[no-untyped-def]
         state = ctx.ensure_object(Context)
         state.profile = value
         return value

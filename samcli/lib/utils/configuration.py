@@ -12,7 +12,7 @@ CONFIG_FILE = Path(Path(__file__).resolve().parents[2], "runtime_config.json")
 config = json.loads(CONFIG_FILE.read_text())
 
 
-def get_app_template_repo_commit():
+def get_app_template_repo_commit():  # type: ignore[no-untyped-def]
     """
     Returns
     -------

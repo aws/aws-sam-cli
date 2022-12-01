@@ -5,7 +5,7 @@ Parameterized Option Class
 import types
 
 
-def parameterized_option(option):
+def parameterized_option(option):  # type: ignore[no-untyped-def]
     """Meta decorator for option decorators.
     This adds the ability to specify optional parameters for option decorators.
 
@@ -23,7 +23,7 @@ def parameterized_option(option):
         def command(...)
     """
 
-    def parameter_wrapper(*args, **kwargs):
+    def parameter_wrapper(*args, **kwargs):  # type: ignore[no-untyped-def]
         if len(args) == 1 and isinstance(args[0], types.FunctionType):
             # Case when option decorator does not have parameter
             # @stack_name_option
@@ -34,7 +34,7 @@ def parameterized_option(option):
         # @stack_name_option("a", "b")
         # def command(...)
 
-        def option_wrapper(f):
+        def option_wrapper(f):  # type: ignore[no-untyped-def]
             return option(f, *args, **kwargs)
 
         return option_wrapper

@@ -46,7 +46,7 @@ class LambdaUri:
     _REGEX_SUB_FUNCTION_ARN = r"\$\{([A-Za-z0-9]+)\.(Arn|Alias)\}"
 
     @staticmethod
-    def get_function_name(integration_uri) -> Optional[str]:
+    def get_function_name(integration_uri) -> Optional[str]:  # type: ignore[no-untyped-def]
         """
         Gets the name of the function from the Integration URI ARN. This is a best effort service which returns None
         if function name could not be parsed. This can happen when the ARN is an intrinsic function which is too
@@ -64,14 +64,14 @@ class LambdaUri:
             If the function name could be parsed out of the Integration URI ARN. None, otherwise
         """
 
-        arn = LambdaUri._get_function_arn(integration_uri)
+        arn = LambdaUri._get_function_arn(integration_uri)  # type: ignore[no-untyped-call]
 
         LOG.debug("Extracted Function ARN: %s", arn)
 
         return LambdaUri._get_function_name_from_arn(arn)
 
     @staticmethod
-    def _get_function_arn(uri_data):
+    def _get_function_arn(uri_data):  # type: ignore[no-untyped-def]
         """
         Integration URI can be expressed in various shapes and forms. This method normalizes the Integration URI ARN
         and returns the Lambda Function ARN. Here are the different forms of Integration URI ARN:
@@ -115,8 +115,8 @@ class LambdaUri:
         if not uri_data:
             return None
 
-        if LambdaUri._is_sub_intrinsic(uri_data):
-            uri_data = LambdaUri._resolve_fn_sub(uri_data)
+        if LambdaUri._is_sub_intrinsic(uri_data):  # type: ignore[no-untyped-call]
+            uri_data = LambdaUri._resolve_fn_sub(uri_data)  # type: ignore[no-untyped-call]
             LOG.debug("Resolved Sub intrinsic function: %s", uri_data)
 
         # Even after processing intrinsics, this is not a string. Give up.
@@ -138,7 +138,7 @@ class LambdaUri:
         return None
 
     @staticmethod
-    def _get_function_name_from_arn(function_arn) -> Optional[str]:
+    def _get_function_name_from_arn(function_arn) -> Optional[str]:  # type: ignore[no-untyped-def]
         """
         Given the integration ARN, extract the Lambda function name from the ARN. If there
         are stage variables, or other unsupported formats, this function will return None.
@@ -180,7 +180,7 @@ class LambdaUri:
         return None
 
     @staticmethod
-    def _resolve_fn_sub(uri_data):
+    def _resolve_fn_sub(uri_data):  # type: ignore[no-untyped-def]
         """
         Tries to resolve an Integration URI which contains Fn::Sub intrinsic function. This method tries to resolve
         and produce a string output.
@@ -262,7 +262,7 @@ class LambdaUri:
         )
 
     @staticmethod
-    def _is_sub_intrinsic(data):
+    def _is_sub_intrinsic(data):  # type: ignore[no-untyped-def]
         """
         Is this input data a Fn::Sub intrinsic function
 

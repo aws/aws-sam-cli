@@ -12,9 +12,9 @@ LOCAL_VARIABLES_SUPPORT_ISSUE_LINK = "https://github.com/aws/aws-sam-cli/issues/
 class InvalidResourceLinkingException(UserException):
     fmt = "An error occurred when attempting to link two resources: {message}"
 
-    def __init__(self, message):
+    def __init__(self, message):  # type: ignore[no-untyped-def]
         msg = self.fmt.format(message=message)
-        UserException.__init__(self, msg)
+        UserException.__init__(self, msg)  # type: ignore[no-untyped-call]
 
 
 class OneLambdaLayerLinkingLimitationException(UserException):
@@ -24,14 +24,14 @@ class OneLambdaLayerLinkingLimitationException(UserException):
         "{line_sep}Related issue: {issue_link}."
     )
 
-    def __init__(self, layers_list, function_id):
+    def __init__(self, layers_list, function_id):  # type: ignore[no-untyped-def]
         msg = self.fmt.format(
             layers_list=layers_list,
             function_id=function_id,
             issue_link=ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK,
             line_sep=os.linesep,
         )
-        UserException.__init__(self, msg)
+        UserException.__init__(self, msg)  # type: ignore[no-untyped-call]
 
 
 class LocalVariablesLinkingLimitationException(UserException):
@@ -41,14 +41,14 @@ class LocalVariablesLinkingLimitationException(UserException):
         "{line_sep}Related issue: {issue_link}."
     )
 
-    def __init__(self, local_variable_reference, function_id):
+    def __init__(self, local_variable_reference, function_id):  # type: ignore[no-untyped-def]
         msg = self.fmt.format(
             local_variable_reference=local_variable_reference,
             function_id=function_id,
             issue_link=LOCAL_VARIABLES_SUPPORT_ISSUE_LINK,
             line_sep=os.linesep,
         )
-        UserException.__init__(self, msg)
+        UserException.__init__(self, msg)  # type: ignore[no-untyped-call]
 
 
 class InvalidSamMetadataPropertiesException(UserException):

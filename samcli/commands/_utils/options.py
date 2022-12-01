@@ -37,7 +37,7 @@ _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml|json]"
 LOG = logging.getLogger(__name__)
 
 
-def get_or_default_template_file_name(ctx, param, provided_value, include_build):
+def get_or_default_template_file_name(ctx, param, provided_value, include_build):  # type: ignore[no-untyped-def]
     """
     Default value for the template file name option is more complex than what Click can handle.
     This method either returns user provided file name or one of the two default options (template.yaml/template.yml)
@@ -80,7 +80,7 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
         setattr(ctx, "samconfig_dir", os.path.dirname(original_template_path))
         try:
             # FIX-ME: figure out a way to insert this directly to sam-cli context and not use click context.
-            template_data = get_template_data(result)
+            template_data = get_template_data(result)  # type: ignore[no-untyped-call]
             setattr(ctx, "template_dict", template_data)
         except TemplateNotFoundException:
             # Ignoring because there are certain cases where template file will not be available, eg: --help
@@ -90,7 +90,7 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
     return result
 
 
-def guided_deploy_stack_name(ctx, param, provided_value):
+def guided_deploy_stack_name(ctx, param, provided_value):  # type: ignore[no-untyped-def]
     """
     Provide a default value for stack name if invoked with a guided deploy.
     :param ctx: Click Context
@@ -112,7 +112,7 @@ def guided_deploy_stack_name(ctx, param, provided_value):
     return provided_value if provided_value else DEFAULT_STACK_NAME
 
 
-def image_repositories_callback(ctx, param, provided_value):
+def image_repositories_callback(ctx, param, provided_value):  # type: ignore[no-untyped-def]
     """
     Create an dictionary of function logical ids to ECR URIs.
     :param ctx: Click Context
@@ -128,7 +128,7 @@ def image_repositories_callback(ctx, param, provided_value):
     return image_repositories if image_repositories else None
 
 
-def artifact_callback(ctx, param, provided_value, artifact):
+def artifact_callback(ctx, param, provided_value, artifact):  # type: ignore[no-untyped-def]
     """
     Provide an error if there are zip/image artifact based resources,
     and an destination export destination is not specified.
@@ -150,7 +150,7 @@ def artifact_callback(ctx, param, provided_value, artifact):
     required = any(
         [
             _template_artifact == artifact
-            for _template_artifact in get_template_artifacts_format(template_file=template_file)
+            for _template_artifact in get_template_artifacts_format(template_file=template_file)  # type: ignore[no-untyped-call]
         ]
     )
     # NOTE(sriram-mv): Explicit check for param name being s3_bucket
@@ -164,7 +164,7 @@ def artifact_callback(ctx, param, provided_value, artifact):
     return provided_value
 
 
-def resolve_s3_callback(ctx, param, provided_value, artifact, exc_set, exc_not_set):
+def resolve_s3_callback(ctx, param, provided_value, artifact, exc_set, exc_not_set):  # type: ignore[no-untyped-def]
     """
     S3 Bucket is only required if there are artifacts that are all zip based.
     :param ctx: Click Context
@@ -184,7 +184,7 @@ def resolve_s3_callback(ctx, param, provided_value, artifact, exc_set, exc_not_s
     required = any(
         [
             _template_artifact == artifact
-            for _template_artifact in get_template_artifacts_format(template_file=template_file)
+            for _template_artifact in get_template_artifacts_format(template_file=template_file)  # type: ignore[no-untyped-call]
         ]
     )
     # NOTE(sriram-mv): Explicit check for s3_bucket being explicitly passed in along with `--resolve-s3`.
@@ -200,7 +200,7 @@ def resolve_s3_callback(ctx, param, provided_value, artifact, exc_set, exc_not_s
     return provided_value
 
 
-def skip_prepare_infra_callback(ctx, param, provided_value):
+def skip_prepare_infra_callback(ctx, param, provided_value):  # type: ignore[no-untyped-def]
     """
     Callback for --skip-prepare-infra to check if --hook-name is also specified
 
@@ -220,27 +220,27 @@ def skip_prepare_infra_callback(ctx, param, provided_value):
         raise click.BadOptionUsage(option_name=param.name, ctx=ctx, message="Missing option --hook-name")
 
 
-def template_common_option(f):
+def template_common_option(f):  # type: ignore[no-untyped-def]
     """
     Common ClI option for template
 
     :param f: Callback passed by Click
     :return: Callback
     """
-    return template_click_option()(f)
+    return template_click_option()(f)  # type: ignore[no-untyped-call]
 
 
-def template_option_without_build(f):
+def template_option_without_build(f):  # type: ignore[no-untyped-def]
     """
     Common ClI option for template
 
     :param f: Callback passed by Click
     :return: Callback
     """
-    return template_click_option(include_build=False)(f)
+    return template_click_option(include_build=False)(f)  # type: ignore[no-untyped-call]
 
 
-def template_click_option(include_build=True):
+def template_click_option(include_build=True):  # type: ignore[no-untyped-def]
     """
     Click Option for template option
     """
@@ -260,14 +260,14 @@ def template_click_option(include_build=True):
     )
 
 
-def docker_common_options(f):
-    for option in reversed(docker_click_options()):
+def docker_common_options(f):  # type: ignore[no-untyped-def]
+    for option in reversed(docker_click_options()):  # type: ignore[no-untyped-call]
         option(f)
 
     return f
 
 
-def docker_click_options():
+def docker_click_options():  # type: ignore[no-untyped-def]
     return [
         click.option(
             "--skip-pull-image",
@@ -286,7 +286,7 @@ def docker_click_options():
     ]
 
 
-def parameter_override_click_option():
+def parameter_override_click_option():  # type: ignore[no-untyped-def]
     return click.option(
         "--parameter-overrides",
         cls=OptionNargs,
@@ -298,11 +298,11 @@ def parameter_override_click_option():
     )
 
 
-def parameter_override_option(f):
-    return parameter_override_click_option()(f)
+def parameter_override_option(f):  # type: ignore[no-untyped-def]
+    return parameter_override_click_option()(f)  # type: ignore[no-untyped-call]
 
 
-def no_progressbar_click_option():
+def no_progressbar_click_option():  # type: ignore[no-untyped-def]
     return click.option(
         "--no-progressbar",
         default=False,
@@ -312,11 +312,11 @@ def no_progressbar_click_option():
     )
 
 
-def no_progressbar_option(f):
-    return no_progressbar_click_option()(f)
+def no_progressbar_option(f):  # type: ignore[no-untyped-def]
+    return no_progressbar_click_option()(f)  # type: ignore[no-untyped-call]
 
 
-def signing_profiles_click_option():
+def signing_profiles_click_option():  # type: ignore[no-untyped-def]
     return click.option(
         "--signing-profiles",
         cls=OptionNargs,
@@ -329,11 +329,11 @@ def signing_profiles_click_option():
     )
 
 
-def signing_profiles_option(f):
-    return signing_profiles_click_option()(f)
+def signing_profiles_option(f):  # type: ignore[no-untyped-def]
+    return signing_profiles_click_option()(f)  # type: ignore[no-untyped-call]
 
 
-def common_observability_click_options():
+def common_observability_click_options():  # type: ignore[no-untyped-def]
     return [
         click.option(
             "--start-time",
@@ -363,19 +363,19 @@ def common_observability_click_options():
             TEXT: Prints information as regular text with some formatting (default option)\n
             JSON: Prints each line as JSON without formatting
             """,
-            type=click.Choice(OutputOption.__members__, case_sensitive=False),
+            type=click.Choice(OutputOption.__members__, case_sensitive=False),  # type: ignore[arg-type]
         ),
     ]
 
 
-def common_observability_options(f):
-    for option in common_observability_click_options():
+def common_observability_options(f):  # type: ignore[no-untyped-def]
+    for option in common_observability_click_options():  # type: ignore[no-untyped-call]
         option(f)
 
     return f
 
 
-def metadata_click_option():
+def metadata_click_option():  # type: ignore[no-untyped-def]
     return click.option(
         "--metadata",
         type=CfnMetadataType(),
@@ -383,11 +383,11 @@ def metadata_click_option():
     )
 
 
-def metadata_option(f):
-    return metadata_click_option()(f)
+def metadata_option(f):  # type: ignore[no-untyped-def]
+    return metadata_click_option()(f)  # type: ignore[no-untyped-call]
 
 
-def capabilities_click_option(default):
+def capabilities_click_option(default):  # type: ignore[no-untyped-def]
     return click.option(
         "--capabilities",
         cls=OptionNargs,
@@ -408,15 +408,15 @@ def capabilities_click_option(default):
 
 
 @parameterized_option
-def capabilities_option(f, default=None):
-    return capabilities_click_option(default)(f)
+def capabilities_option(f, default=None):  # type: ignore[no-untyped-def]
+    return capabilities_click_option(default)(f)  # type: ignore[no-untyped-call]
 
 
-def tags_click_option():
+def tags_click_option():  # type: ignore[no-untyped-def]
     return click.option(
         "--tags",
         cls=OptionNargs,
-        type=CfnTags(),
+        type=CfnTags(),  # type: ignore[no-untyped-call]
         required=False,
         help="A list of tags to associate with the stack that is created or updated."
         "AWS CloudFormation also propagates these tags to resources "
@@ -424,11 +424,11 @@ def tags_click_option():
     )
 
 
-def tags_option(f):
-    return tags_click_option()(f)
+def tags_option(f):  # type: ignore[no-untyped-def]
+    return tags_click_option()(f)  # type: ignore[no-untyped-call]
 
 
-def notification_arns_click_option():
+def notification_arns_click_option():  # type: ignore[no-untyped-def]
     return click.option(
         "--notification-arns",
         cls=OptionNargs,
@@ -440,11 +440,11 @@ def notification_arns_click_option():
     )
 
 
-def notification_arns_option(f):
-    return notification_arns_click_option()(f)
+def notification_arns_option(f):  # type: ignore[no-untyped-def]
+    return notification_arns_click_option()(f)  # type: ignore[no-untyped-call]
 
 
-def stack_name_click_option(required, callback):
+def stack_name_click_option(required, callback):  # type: ignore[no-untyped-def]
     return click.option(
         "--stack-name",
         required=required,
@@ -456,11 +456,11 @@ def stack_name_click_option(required, callback):
 
 
 @parameterized_option
-def stack_name_option(f, required=False, callback=None):
-    return stack_name_click_option(required, callback)(f)
+def stack_name_option(f, required=False, callback=None):  # type: ignore[no-untyped-def]
+    return stack_name_click_option(required, callback)(f)  # type: ignore[no-untyped-call]
 
 
-def s3_bucket_click_option(disable_callback):
+def s3_bucket_click_option(disable_callback):  # type: ignore[no-untyped-def]
     callback = None if disable_callback else partial(artifact_callback, artifact=ZIP)
 
     return click.option(
@@ -472,11 +472,11 @@ def s3_bucket_click_option(disable_callback):
 
 
 @parameterized_option
-def s3_bucket_option(f, disable_callback=False):
-    return s3_bucket_click_option(disable_callback)(f)
+def s3_bucket_option(f, disable_callback=False):  # type: ignore[no-untyped-def]
+    return s3_bucket_click_option(disable_callback)(f)  # type: ignore[no-untyped-call]
 
 
-def build_dir_click_option():
+def build_dir_click_option():  # type: ignore[no-untyped-def]
     return click.option(
         "--build-dir",
         "-b",
@@ -487,11 +487,11 @@ def build_dir_click_option():
     )
 
 
-def build_dir_option(f):
-    return build_dir_click_option()(f)
+def build_dir_option(f):  # type: ignore[no-untyped-def]
+    return build_dir_click_option()(f)  # type: ignore[no-untyped-call]
 
 
-def cache_dir_click_option():
+def cache_dir_click_option():  # type: ignore[no-untyped-def]
     return click.option(
         "--cache-dir",
         "-cd",
@@ -502,11 +502,11 @@ def cache_dir_click_option():
     )
 
 
-def cache_dir_option(f):
-    return cache_dir_click_option()(f)
+def cache_dir_option(f):  # type: ignore[no-untyped-def]
+    return cache_dir_click_option()(f)  # type: ignore[no-untyped-call]
 
 
-def base_dir_click_option():
+def base_dir_click_option():  # type: ignore[no-untyped-def]
     return click.option(
         "--base-dir",
         "-s",
@@ -518,11 +518,11 @@ def base_dir_click_option():
     )
 
 
-def base_dir_option(f):
-    return base_dir_click_option()(f)
+def base_dir_option(f):  # type: ignore[no-untyped-def]
+    return base_dir_click_option()(f)  # type: ignore[no-untyped-call]
 
 
-def manifest_click_option():
+def manifest_click_option():  # type: ignore[no-untyped-def]
     return click.option(
         "--manifest",
         "-m",
@@ -532,11 +532,11 @@ def manifest_click_option():
     )
 
 
-def manifest_option(f):
-    return manifest_click_option()(f)
+def manifest_option(f):  # type: ignore[no-untyped-def]
+    return manifest_click_option()(f)  # type: ignore[no-untyped-call]
 
 
-def cached_click_option():
+def cached_click_option():  # type: ignore[no-untyped-def]
     return click.option(
         "--cached/--no-cached",
         "-c",
@@ -553,11 +553,11 @@ def cached_click_option():
     )
 
 
-def cached_option(f):
-    return cached_click_option()(f)
+def cached_option(f):  # type: ignore[no-untyped-def]
+    return cached_click_option()(f)  # type: ignore[no-untyped-call]
 
 
-def image_repository_click_option():
+def image_repository_click_option():  # type: ignore[no-untyped-def]
     return click.option(
         "--image-repository",
         callback=partial(artifact_callback, artifact=IMAGE),
@@ -567,11 +567,11 @@ def image_repository_click_option():
     )
 
 
-def image_repository_option(f):
-    return image_repository_click_option()(f)
+def image_repository_option(f):  # type: ignore[no-untyped-def]
+    return image_repository_click_option()(f)  # type: ignore[no-untyped-call]
 
 
-def image_repositories_click_option():
+def image_repositories_click_option():  # type: ignore[no-untyped-def]
     return click.option(
         "--image-repositories",
         multiple=True,
@@ -583,11 +583,11 @@ def image_repositories_click_option():
     )
 
 
-def image_repositories_option(f):
-    return image_repositories_click_option()(f)
+def image_repositories_option(f):  # type: ignore[no-untyped-def]
+    return image_repositories_click_option()(f)  # type: ignore[no-untyped-call]
 
 
-def s3_prefix_click_option():
+def s3_prefix_click_option():  # type: ignore[no-untyped-def]
     return click.option(
         "--s3-prefix",
         required=False,
@@ -597,11 +597,11 @@ def s3_prefix_click_option():
     )
 
 
-def s3_prefix_option(f):
-    return s3_prefix_click_option()(f)
+def s3_prefix_option(f):  # type: ignore[no-untyped-def]
+    return s3_prefix_click_option()(f)  # type: ignore[no-untyped-call]
 
 
-def kms_key_id_click_option():
+def kms_key_id_click_option():  # type: ignore[no-untyped-def]
     return click.option(
         "--kms-key-id",
         required=False,
@@ -609,11 +609,11 @@ def kms_key_id_click_option():
     )
 
 
-def kms_key_id_option(f):
-    return kms_key_id_click_option()(f)
+def kms_key_id_option(f):  # type: ignore[no-untyped-def]
+    return kms_key_id_click_option()(f)  # type: ignore[no-untyped-call]
 
 
-def use_json_click_option():
+def use_json_click_option():  # type: ignore[no-untyped-def]
     return click.option(
         "--use-json",
         required=False,
@@ -623,11 +623,11 @@ def use_json_click_option():
     )
 
 
-def use_json_option(f):
-    return use_json_click_option()(f)
+def use_json_option(f):  # type: ignore[no-untyped-def]
+    return use_json_click_option()(f)  # type: ignore[no-untyped-call]
 
 
-def force_upload_click_option():
+def force_upload_click_option():  # type: ignore[no-untyped-def]
     return click.option(
         "--force-upload",
         required=False,
@@ -638,11 +638,11 @@ def force_upload_click_option():
     )
 
 
-def force_upload_option(f):
-    return force_upload_click_option()(f)
+def force_upload_option(f):  # type: ignore[no-untyped-def]
+    return force_upload_click_option()(f)  # type: ignore[no-untyped-call]
 
 
-def resolve_s3_click_option(guided):
+def resolve_s3_click_option(guided):  # type: ignore[no-untyped-def]
     from samcli.commands.package.exceptions import PackageResolveS3AndS3SetError, PackageResolveS3AndS3NotSetError
 
     callback = (
@@ -667,12 +667,12 @@ def resolve_s3_click_option(guided):
     )
 
 
-def hook_name_click_option(force_prepare=True, invalid_coexist_options=None):
+def hook_name_click_option(force_prepare=True, invalid_coexist_options=None):  # type: ignore[no-untyped-def]
     """
     Click Option for hook-name option
     """
 
-    def hook_name_setup(f):
+    def hook_name_setup(f):  # type: ignore[no-untyped-def]
         return click.option(
             "--hook-name",
             default=None,
@@ -683,25 +683,25 @@ def hook_name_click_option(force_prepare=True, invalid_coexist_options=None):
             f"Available Hook Names {get_available_hook_packages_ids()}",
         )(f)
 
-    def hook_name_processer_wrapper(f):
+    def hook_name_processer_wrapper(f):  # type: ignore[no-untyped-def]
         configuration_setup_params = ()
         configuration_setup_attrs = {}
         configuration_setup_attrs[
             "help"
         ] = "This is a hidden click option whose callback function to run the provided hook package."
-        configuration_setup_attrs["is_eager"] = True
-        configuration_setup_attrs["expose_value"] = False
-        configuration_setup_attrs["hidden"] = True
-        configuration_setup_attrs["type"] = click.STRING
-        configuration_setup_attrs["cls"] = HookNameOption
+        configuration_setup_attrs["is_eager"] = True  # type: ignore[assignment]
+        configuration_setup_attrs["expose_value"] = False  # type: ignore[assignment]
+        configuration_setup_attrs["hidden"] = True  # type: ignore[assignment]
+        configuration_setup_attrs["type"] = click.STRING  # type: ignore[assignment]
+        configuration_setup_attrs["cls"] = HookNameOption  # type: ignore[assignment]
         configuration_setup_attrs["force_prepare"] = force_prepare
         configuration_setup_attrs["invalid_coexist_options"] = (
             invalid_coexist_options if invalid_coexist_options else []
         )
         return click.option(*configuration_setup_params, **configuration_setup_attrs)(f)
 
-    def composed_decorator(decorators):
-        def decorator(f):
+    def composed_decorator(decorators):  # type: ignore[no-untyped-def]
+        def decorator(f):  # type: ignore[no-untyped-def]
             for deco in decorators:
                 f = deco(f)
             return f
@@ -710,10 +710,10 @@ def hook_name_click_option(force_prepare=True, invalid_coexist_options=None):
 
     # Compose decorators here to make sure the context parameters are updated before callback function
     decorator_list = [hook_name_setup, hook_name_processer_wrapper]
-    return composed_decorator(decorator_list)
+    return composed_decorator(decorator_list)  # type: ignore[no-untyped-call]
 
 
-def skip_prepare_infra_click_option():
+def skip_prepare_infra_click_option():  # type: ignore[no-untyped-def]
     """
     Click option to skip the hook preparation stage
     """
@@ -727,16 +727,16 @@ def skip_prepare_infra_click_option():
     )
 
 
-def skip_prepare_infra_option(f):
-    return skip_prepare_infra_click_option()(f)
+def skip_prepare_infra_option(f):  # type: ignore[no-untyped-def]
+    return skip_prepare_infra_click_option()(f)  # type: ignore[no-untyped-call]
 
 
 @parameterized_option
-def resolve_s3_option(f, guided=False):
-    return resolve_s3_click_option(guided)(f)
+def resolve_s3_option(f, guided=False):  # type: ignore[no-untyped-def]
+    return resolve_s3_click_option(guided)(f)  # type: ignore[no-untyped-call]
 
 
-def role_arn_click_option():
+def role_arn_click_option():  # type: ignore[no-untyped-def]
     return click.option(
         "--role-arn",
         required=False,
@@ -746,11 +746,11 @@ def role_arn_click_option():
     )
 
 
-def role_arn_option(f):
-    return role_arn_click_option()(f)
+def role_arn_option(f):  # type: ignore[no-untyped-def]
+    return role_arn_click_option()(f)  # type: ignore[no-untyped-call]
 
 
-def resolve_image_repos_click_option():
+def resolve_image_repos_click_option():  # type: ignore[no-untyped-def]
     return click.option(
         "--resolve-image-repos",
         required=False,
@@ -761,11 +761,11 @@ def resolve_image_repos_click_option():
     )
 
 
-def resolve_image_repos_option(f):
-    return resolve_image_repos_click_option()(f)
+def resolve_image_repos_option(f):  # type: ignore[no-untyped-def]
+    return resolve_image_repos_click_option()(f)  # type: ignore[no-untyped-call]
 
 
-def use_container_build_click_option():
+def use_container_build_click_option():  # type: ignore[no-untyped-def]
     return click.option(
         "--use-container",
         "-u",
@@ -775,11 +775,11 @@ def use_container_build_click_option():
     )
 
 
-def use_container_build_option(f):
-    return use_container_build_click_option()(f)
+def use_container_build_option(f):  # type: ignore[no-untyped-def]
+    return use_container_build_click_option()(f)  # type: ignore[no-untyped-call]
 
 
-def _space_separated_list_func_type(value):
+def _space_separated_list_func_type(value):  # type: ignore[no-untyped-def]
     if isinstance(value, str):
         return value.split(" ")
     if isinstance(value, (list, tuple)):

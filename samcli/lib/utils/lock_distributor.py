@@ -33,7 +33,7 @@ class LockChain:
         self.acquire()
         return self
 
-    def __exit__(self, exception_type, exception_value, traceback) -> None:
+    def __exit__(self, exception_type, exception_value, traceback) -> None:  # type: ignore[no-untyped-def]
         self.release()
 
 

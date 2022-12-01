@@ -37,11 +37,11 @@ class DefaultEntry:
 
 
 class Singleton(type):
-    def __init__(cls, *args, **kwargs):
+    def __init__(cls, *args, **kwargs):  # type: ignore[no-untyped-def]
         super().__init__(*args, **kwargs)
         cls.__instance = None
 
-    def __call__(cls, *args, **kwargs):
+    def __call__(cls, *args, **kwargs):  # type: ignore[no-untyped-def]
         if cls.__instance is None:
             cls.__instance = super().__call__(*args, **kwargs)
         return cls.__instance
@@ -72,7 +72,7 @@ class GlobalConfig(metaclass=Singleton):
     # config_keys that should be flushed to file
     _persistent_fields: List[str]
 
-    def __init__(self):
+    def __init__(self):  # type: ignore[no-untyped-def]
         """__init__ should only be called once due to Singleton metaclass"""
         self._access_lock = threading.RLock()
         self._config_dir = None
@@ -163,7 +163,7 @@ class GlobalConfig(metaclass=Singleton):
         self,
         config_entry: ConfigEntry,
         default: Optional[T] = None,
-        value_type: Type[T] = T,
+        value_type: Type[T] = T,  # type: ignore[assignment]
         is_flag: bool = False,
         reload_config: bool = False,
     ) -> Optional[T]:
@@ -181,7 +181,7 @@ class GlobalConfig(metaclass=Singleton):
     ) -> Any:
         ...
 
-    def get_value(
+    def get_value(  # type: ignore[no-untyped-def]
         self,
         config_entry,
         default=None,
@@ -239,7 +239,7 @@ class GlobalConfig(metaclass=Singleton):
             if value is None and config_entry.config_key:
                 if reload_config or self._config_data is None:
                     self._load_config()
-                value = cast(dict, self._config_data).get(config_entry.config_key)
+                value = cast(dict, self._config_data).get(config_entry.config_key)  # type: ignore[type-arg]
 
             if value is None or not isinstance(value, value_type):
                 return default
@@ -285,7 +285,7 @@ class GlobalConfig(metaclass=Singleton):
         if config_entry.config_key:
             if self._config_data is None:
                 self._load_config()
-            cast(dict, self._config_data)[config_entry.config_key] = value
+            cast(dict, self._config_data)[config_entry.config_key] = value  # type: ignore[type-arg]
 
             if config_entry.persistent:
                 self._persistent_fields.append(config_entry.config_key)
@@ -334,7 +334,7 @@ class GlobalConfig(metaclass=Singleton):
             )
 
     @property
-    def installation_id(self):
+    def installation_id(self):  # type: ignore[no-untyped-def]
         """
         Returns the installation UUID for this AWS SAM CLI installation. If the
         installation id has not yet been set, it will be set before returning.
@@ -413,7 +413,7 @@ class GlobalConfig(metaclass=Singleton):
         return self.get_value(DefaultEntry.LAST_VERSION_CHECK, value_type=float)
 
     @last_version_check.setter
-    def last_version_check(self, value: float):
+    def last_version_check(self, value: float):  # type: ignore[no-untyped-def]
         self.set_value(DefaultEntry.LAST_VERSION_CHECK, value)
 
     def is_accelerate_opt_in_stack(self, template_file: str, stack_name: str) -> bool:

@@ -62,7 +62,7 @@ class CloudFormationStackResource(ResourceZip):
     RESOURCE_TYPE = AWS_CLOUDFORMATION_STACK
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
 
-    def do_export(self, resource_id, resource_dict, parent_dir):
+    def do_export(self, resource_id, resource_dict, parent_dir):  # type: ignore[no-untyped-def]
         """
         If the nested stack template is valid, this method will
         export on the nested template, upload the exported template to S3
@@ -75,9 +75,9 @@ class CloudFormationStackResource(ResourceZip):
             # Nothing to do
             return
 
-        abs_template_path = make_abs_path(parent_dir, template_path)
-        if not is_local_file(abs_template_path):
-            raise exceptions.InvalidTemplateUrlParameterError(
+        abs_template_path = make_abs_path(parent_dir, template_path)  # type: ignore[no-untyped-call]
+        if not is_local_file(abs_template_path):  # type: ignore[no-untyped-call]
+            raise exceptions.InvalidTemplateUrlParameterError(  # type: ignore[no-untyped-call]
                 property_name=self.PROPERTY_NAME, resource_id=resource_id, template_path=abs_template_path
             )
 
@@ -91,7 +91,7 @@ class CloudFormationStackResource(ResourceZip):
             parent_stack_id=resource_id,
         ).export()
 
-        exported_template_str = yaml_dump(exported_template_dict)
+        exported_template_str = yaml_dump(exported_template_dict)  # type: ignore[no-untyped-call]
 
         with mktempfile() as temporary_file:
             temporary_file.write(exported_template_str)
@@ -101,7 +101,7 @@ class CloudFormationStackResource(ResourceZip):
 
             # TemplateUrl property requires S3 URL to be in path-style format
             parts = S3Uploader.parse_s3_url(url, version_property="Version")
-            s3_path_url = self.uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))
+            s3_path_url = self.uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))  # type: ignore[union-attr]
             set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, s3_path_url)
 
 
@@ -124,7 +124,7 @@ class CloudFormationStackSetResource(ResourceZip):
     RESOURCE_TYPE = AWS_CLOUDFORMATION_STACKSET
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
 
-    def do_export(self, resource_id, resource_dict, parent_dir):
+    def do_export(self, resource_id, resource_dict, parent_dir):  # type: ignore[no-untyped-def]
         """
         If the stack template is valid, this method will
         upload the template to S3
@@ -137,9 +137,9 @@ class CloudFormationStackSetResource(ResourceZip):
             # Nothing to do
             return
 
-        abs_template_path = make_abs_path(parent_dir, template_path)
-        if not is_local_file(abs_template_path):
-            raise exceptions.InvalidTemplateUrlParameterError(
+        abs_template_path = make_abs_path(parent_dir, template_path)  # type: ignore[no-untyped-call]
+        if not is_local_file(abs_template_path):  # type: ignore[no-untyped-call]
+            raise exceptions.InvalidTemplateUrlParameterError(  # type: ignore[no-untyped-call]
                 property_name=self.PROPERTY_NAME, resource_id=resource_id, template_path=abs_template_path
             )
 
@@ -148,7 +148,7 @@ class CloudFormationStackSetResource(ResourceZip):
 
         # TemplateUrl property requires S3 URL to be in path-style format
         parts = S3Uploader.parse_s3_url(url, version_property="Version")
-        s3_path_url = self.uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))
+        s3_path_url = self.uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))  # type: ignore[union-attr]
         set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, s3_path_url)
 
 
@@ -157,14 +157,14 @@ class Template:
     Class to export a CloudFormation template
     """
 
-    template_dict: Dict
+    template_dict: Dict  # type: ignore[type-arg]
     template_dir: str
-    resources_to_export: frozenset
-    metadata_to_export: frozenset
+    resources_to_export: frozenset  # type: ignore[type-arg]
+    metadata_to_export: frozenset  # type: ignore[type-arg]
     uploaders: Uploaders
     code_signer: CodeSigner
 
-    def __init__(
+    def __init__(  # type: ignore[no-untyped-def]
         self,
         template_path: str,
         parent_dir: str,
@@ -184,10 +184,10 @@ class Template:
         Reads the template and makes it ready for export
         """
         if not template_str:
-            if not (is_local_folder(parent_dir) and os.path.isabs(parent_dir)):
+            if not (is_local_folder(parent_dir) and os.path.isabs(parent_dir)):  # type: ignore[no-untyped-call]
                 raise ValueError("parent_dir parameter must be an absolute path to a folder {0}".format(parent_dir))
 
-            abs_template_path = make_abs_path(parent_dir, template_path)
+            abs_template_path = make_abs_path(parent_dir, template_path)  # type: ignore[no-untyped-call]
             template_dir = os.path.dirname(abs_template_path)
 
             with open(abs_template_path, "r") as handle:
@@ -197,13 +197,13 @@ class Template:
             self.code_signer = code_signer
         self.template_dict = yaml_parse(template_str)
         if normalize_template:
-            ResourceMetadataNormalizer.normalize(self.template_dict, normalize_parameters)
+            ResourceMetadataNormalizer.normalize(self.template_dict, normalize_parameters)  # type: ignore[no-untyped-call]
         self.resources_to_export = resources_to_export
         self.metadata_to_export = metadata_to_export
         self.uploaders = uploaders
         self.parent_stack_id = parent_stack_id
 
-    def _export_global_artifacts(self, template_dict: Dict) -> Dict:
+    def _export_global_artifacts(self, template_dict: Dict) -> Dict:  # type: ignore[type-arg]
         """
         Template params such as AWS::Include transforms are not specific to
         any resource type but contain artifacts that should be exported,
@@ -212,7 +212,7 @@ class Template:
         """
         for key, val in template_dict.items():
             if key in GLOBAL_EXPORT_DICT:
-                template_dict[key] = GLOBAL_EXPORT_DICT[key](
+                template_dict[key] = GLOBAL_EXPORT_DICT[key](  # type: ignore[no-untyped-call]
                     val, self.uploaders.get(ResourceZip.EXPORT_DESTINATION), self.template_dir
                 )
             elif isinstance(val, dict):
@@ -223,7 +223,7 @@ class Template:
                         self._export_global_artifacts(item)
         return template_dict
 
-    def _export_metadata(self):
+    def _export_metadata(self):  # type: ignore[no-untyped-def]
         """
         Exports the local artifacts referenced by the metadata section in
         the given template to an export destination.
@@ -239,7 +239,7 @@ class Template:
                 exporter = exporter_class(self.uploaders, self.code_signer)
                 exporter.export(metadata_type, metadata_dict, self.template_dir)
 
-    def _apply_global_values(self):
+    def _apply_global_values(self):  # type: ignore[no-untyped-def]
         """
         Takes values from the "Global" parameters and applies them to resources where needed for packaging.
 
@@ -261,7 +261,7 @@ class Template:
                     if code_uri_global is not None and resource_dict is not None:
                         resource_dict["CodeUri"] = code_uri_global
 
-    def export(self) -> Dict:
+    def export(self) -> Dict:  # type: ignore[type-arg]
         """
         Exports the local artifacts referenced by the given template to an
         export destination.
@@ -269,18 +269,18 @@ class Template:
         :return: The template with references to artifacts that have been
         exported to an export destination.
         """
-        self._export_metadata()
+        self._export_metadata()  # type: ignore[no-untyped-call]
 
         if "Resources" not in self.template_dict:
             return self.template_dict
 
-        self._apply_global_values()
+        self._apply_global_values()  # type: ignore[no-untyped-call]
         self.template_dict = self._export_global_artifacts(self.template_dict)
 
         for resource_logical_id, resource in self.template_dict["Resources"].items():
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
-            resource_id = ResourceMetadataNormalizer.get_resource_id(resource, resource_logical_id)
+            resource_id = ResourceMetadataNormalizer.get_resource_id(resource, resource_logical_id)  # type: ignore[no-untyped-call]
             full_path = get_full_path(self.parent_stack_id, resource_id)
 
             for exporter_class in self.resources_to_export:
@@ -294,14 +294,14 @@ class Template:
 
         return self.template_dict
 
-    def delete(self, retain_resources: List):
+    def delete(self, retain_resources: List):  # type: ignore[no-untyped-def, type-arg]
         """
         Deletes all the artifacts referenced by the given Cloudformation template
         """
         if "Resources" not in self.template_dict:
             return
 
-        self._apply_global_values()
+        self._apply_global_values()  # type: ignore[no-untyped-call]
 
         for resource_id, resource in self.template_dict["Resources"].items():
 
@@ -320,15 +320,15 @@ class Template:
                     exporter = exporter_class(self.uploaders, None)
                     exporter.delete(resource_id, resource_dict)
 
-    def get_ecr_repos(self):
+    def get_ecr_repos(self):  # type: ignore[no-untyped-def]
         """
         Get all the ecr repos from the template
         """
-        ecr_repos = {}
+        ecr_repos = {}  # type: ignore[var-annotated]
         if "Resources" not in self.template_dict:
             return ecr_repos
 
-        self._apply_global_values()
+        self._apply_global_values()  # type: ignore[no-untyped-call]
         for resource_id, resource in self.template_dict["Resources"].items():
 
             resource_type = resource.get("Type", None)
@@ -338,11 +338,11 @@ class Template:
                 continue
 
             ecr_resource = ECRResource(self.uploaders, None)
-            ecr_repos[resource_id] = {"Repository": ecr_resource.get_property_value(resource_dict)}
+            ecr_repos[resource_id] = {"Repository": ecr_resource.get_property_value(resource_dict)}  # type: ignore[no-untyped-call]
 
         return ecr_repos
 
-    def get_s3_info(self):
+    def get_s3_info(self):  # type: ignore[no-untyped-def]
         """
         Iterates the template_dict resources with S3 EXPORT_DESTINATION to get the
         s3_bucket and s3_prefix information for the purpose of deletion.
@@ -354,7 +354,7 @@ class Template:
         if "Resources" not in self.template_dict:
             return result
 
-        self._apply_global_values()
+        self._apply_global_values()  # type: ignore[no-untyped-call]
 
         for _, resource in self.template_dict["Resources"].items():
 

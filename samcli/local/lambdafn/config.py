@@ -14,7 +14,7 @@ class FunctionConfig:
     _DEFAULT_TIMEOUT_SECONDS = 3
     _DEFAULT_MEMORY = 128
 
-    def __init__(
+    def __init__(  # type: ignore[no-untyped-def]
         self,
         name,
         full_path,
@@ -86,10 +86,10 @@ class FunctionConfig:
                 self.timeout = int(self.timeout)
 
             except (ValueError, TypeError) as ex:
-                raise InvalidSamTemplateException("Invalid Number for Timeout: {}".format(self.timeout)) from ex
+                raise InvalidSamTemplateException("Invalid Number for Timeout: {}".format(self.timeout)) from ex  # type: ignore[no-untyped-call]
 
         if not env_vars:
-            env_vars = EnvironmentVariables(self.memory, self.timeout, self.handler)
+            env_vars = EnvironmentVariables(self.memory, self.timeout, self.handler)  # type: ignore[no-untyped-call]
 
         self.env_vars = env_vars
         # Re-apply memory & timeout because those could have been set to default values
@@ -97,5 +97,5 @@ class FunctionConfig:
         self.env_vars.memory = self.memory
         self.env_vars.timeout = self.timeout
 
-    def __eq__(self, other):
+    def __eq__(self, other):  # type: ignore[no-untyped-def]
         return self.full_path == other.full_path

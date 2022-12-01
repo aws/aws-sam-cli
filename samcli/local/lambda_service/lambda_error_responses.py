@@ -36,7 +36,7 @@ class LambdaErrorResponses:
     CONTENT_TYPE_HEADER_KEY = "Content-Type"
 
     @staticmethod
-    def resource_not_found(function_name):
+    def resource_not_found(function_name):  # type: ignore[no-untyped-def]
         """
         Creates a Lambda Service ResourceNotFound Response
 
@@ -52,17 +52,17 @@ class LambdaErrorResponses:
         """
         exception_tuple = LambdaErrorResponses.ResourceNotFoundException
 
-        return BaseLocalService.service_response(
-            LambdaErrorResponses._construct_error_response_body(
+        return BaseLocalService.service_response(  # type: ignore[no-untyped-call]
+            LambdaErrorResponses._construct_error_response_body(  # type: ignore[no-untyped-call]
                 LambdaErrorResponses.USER_ERROR,
                 "Function not found: arn:aws:lambda:us-west-2:012345678901:function:{}".format(function_name),
             ),
-            LambdaErrorResponses._construct_headers(exception_tuple[0]),
+            LambdaErrorResponses._construct_headers(exception_tuple[0]),  # type: ignore[no-untyped-call]
             exception_tuple[1],
         )
 
     @staticmethod
-    def invalid_request_content(message):
+    def invalid_request_content(message):  # type: ignore[no-untyped-def]
         """
         Creates a Lambda Service InvalidRequestContent Response
 
@@ -78,14 +78,14 @@ class LambdaErrorResponses:
         """
         exception_tuple = LambdaErrorResponses.InvalidRequestContentException
 
-        return BaseLocalService.service_response(
-            LambdaErrorResponses._construct_error_response_body(LambdaErrorResponses.USER_ERROR, message),
-            LambdaErrorResponses._construct_headers(exception_tuple[0]),
+        return BaseLocalService.service_response(  # type: ignore[no-untyped-call]
+            LambdaErrorResponses._construct_error_response_body(LambdaErrorResponses.USER_ERROR, message),  # type: ignore[no-untyped-call]
+            LambdaErrorResponses._construct_headers(exception_tuple[0]),  # type: ignore[no-untyped-call]
             exception_tuple[1],
         )
 
     @staticmethod
-    def unsupported_media_type(content_type):
+    def unsupported_media_type(content_type):  # type: ignore[no-untyped-def]
         """
         Creates a Lambda Service UnsupportedMediaType Response
 
@@ -101,16 +101,16 @@ class LambdaErrorResponses:
         """
         exception_tuple = LambdaErrorResponses.UnsupportedMediaTypeException
 
-        return BaseLocalService.service_response(
-            LambdaErrorResponses._construct_error_response_body(
+        return BaseLocalService.service_response(  # type: ignore[no-untyped-call]
+            LambdaErrorResponses._construct_error_response_body(  # type: ignore[no-untyped-call]
                 LambdaErrorResponses.USER_ERROR, "Unsupported content type: {}".format(content_type)
             ),
-            LambdaErrorResponses._construct_headers(exception_tuple[0]),
+            LambdaErrorResponses._construct_headers(exception_tuple[0]),  # type: ignore[no-untyped-call]
             exception_tuple[1],
         )
 
     @staticmethod
-    def generic_service_exception(*args):
+    def generic_service_exception(*args):  # type: ignore[no-untyped-def]
         """
         Creates a Lambda Service Generic ServiceException Response
 
@@ -126,14 +126,14 @@ class LambdaErrorResponses:
         """
         exception_tuple = LambdaErrorResponses.ServiceException
 
-        return BaseLocalService.service_response(
-            LambdaErrorResponses._construct_error_response_body(LambdaErrorResponses.SERVICE_ERROR, "ServiceException"),
-            LambdaErrorResponses._construct_headers(exception_tuple[0]),
+        return BaseLocalService.service_response(  # type: ignore[no-untyped-call]
+            LambdaErrorResponses._construct_error_response_body(LambdaErrorResponses.SERVICE_ERROR, "ServiceException"),  # type: ignore[no-untyped-call]
+            LambdaErrorResponses._construct_headers(exception_tuple[0]),  # type: ignore[no-untyped-call]
             exception_tuple[1],
         )
 
     @staticmethod
-    def not_implemented_locally(message):
+    def not_implemented_locally(message):  # type: ignore[no-untyped-def]
         """
         Creates a Lambda Service NotImplementedLocally Response
 
@@ -149,14 +149,14 @@ class LambdaErrorResponses:
         """
         exception_tuple = LambdaErrorResponses.NotImplementedException
 
-        return BaseLocalService.service_response(
-            LambdaErrorResponses._construct_error_response_body(LambdaErrorResponses.LOCAL_SERVICE_ERROR, message),
-            LambdaErrorResponses._construct_headers(exception_tuple[0]),
+        return BaseLocalService.service_response(  # type: ignore[no-untyped-call]
+            LambdaErrorResponses._construct_error_response_body(LambdaErrorResponses.LOCAL_SERVICE_ERROR, message),  # type: ignore[no-untyped-call]
+            LambdaErrorResponses._construct_headers(exception_tuple[0]),  # type: ignore[no-untyped-call]
             exception_tuple[1],
         )
 
     @staticmethod
-    def generic_path_not_found(*args):
+    def generic_path_not_found(*args):  # type: ignore[no-untyped-def]
         """
         Creates a Lambda Service Generic PathNotFound Response
 
@@ -172,16 +172,16 @@ class LambdaErrorResponses:
         """
         exception_tuple = LambdaErrorResponses.PathNotFoundException
 
-        return BaseLocalService.service_response(
-            LambdaErrorResponses._construct_error_response_body(
+        return BaseLocalService.service_response(  # type: ignore[no-untyped-call]
+            LambdaErrorResponses._construct_error_response_body(  # type: ignore[no-untyped-call]
                 LambdaErrorResponses.LOCAL_SERVICE_ERROR, "PathNotFoundException"
             ),
-            LambdaErrorResponses._construct_headers(exception_tuple[0]),
+            LambdaErrorResponses._construct_headers(exception_tuple[0]),  # type: ignore[no-untyped-call]
             exception_tuple[1],
         )
 
     @staticmethod
-    def generic_method_not_allowed(*args):
+    def generic_method_not_allowed(*args):  # type: ignore[no-untyped-def]
         """
         Creates a Lambda Service Generic MethodNotAllowed Response
 
@@ -197,16 +197,16 @@ class LambdaErrorResponses:
         """
         exception_tuple = LambdaErrorResponses.MethodNotAllowedException
 
-        return BaseLocalService.service_response(
-            LambdaErrorResponses._construct_error_response_body(
+        return BaseLocalService.service_response(  # type: ignore[no-untyped-call]
+            LambdaErrorResponses._construct_error_response_body(  # type: ignore[no-untyped-call]
                 LambdaErrorResponses.LOCAL_SERVICE_ERROR, "MethodNotAllowedException"
             ),
-            LambdaErrorResponses._construct_headers(exception_tuple[0]),
+            LambdaErrorResponses._construct_headers(exception_tuple[0]),  # type: ignore[no-untyped-call]
             exception_tuple[1],
         )
 
     @staticmethod
-    def _construct_error_response_body(error_type, error_message):
+    def _construct_error_response_body(error_type, error_message):  # type: ignore[no-untyped-def]
         """
         Constructs a string to be used in the body of the Response that conforms
         to the structure of the Lambda Service Responses
@@ -227,7 +227,7 @@ class LambdaErrorResponses:
         return json.dumps(OrderedDict([("Type", error_type), ("Message", error_message)]))
 
     @staticmethod
-    def _construct_headers(error_type):
+    def _construct_headers(error_type):  # type: ignore[no-untyped-def]
         """
         Constructs Headers for the Local Lambda Error Response
 

@@ -7,13 +7,13 @@ from samcli.commands.exceptions import UserException
 
 
 class InvalidIaCPluginException(UserException):
-    def __init__(self, files: Optional[list] = None):
+    def __init__(self, files: Optional[list] = None):  # type: ignore[type-arg]
         if files is None:
             files = []
         msg = "Could not determine the plugin type from the provided files:\n\n{files}"
-        UserException.__init__(self, msg.format(files=", ".join(files)))
+        UserException.__init__(self, msg.format(files=", ".join(files)))  # type: ignore[no-untyped-call]
 
 
 class InvalidProjectTypeException(UserException):
-    def __init__(self, msg):
-        UserException.__init__(self, msg)
+    def __init__(self, msg):  # type: ignore[no-untyped-def]
+        UserException.__init__(self, msg)  # type: ignore[no-untyped-call]

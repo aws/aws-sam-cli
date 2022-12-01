@@ -19,7 +19,7 @@ BUILD_DIR_PERMISSIONS = 0o755
 
 
 @contextmanager
-def mkdir_temp(mode=0o755, ignore_errors=False):
+def mkdir_temp(mode=0o755, ignore_errors=False):  # type: ignore[no-untyped-def]
     """
     Context manager that makes a temporary directory and yields it name. Directory is deleted
     after the context exits
@@ -55,7 +55,7 @@ def mkdir_temp(mode=0o755, ignore_errors=False):
                 shutil.rmtree(temp_dir)
 
 
-def rmtree_callback(function, path, excinfo):
+def rmtree_callback(function, path, excinfo):  # type: ignore[no-untyped-def]
     """
     Callback function for shutil.rmtree to change permissions on the file path, so that
     it's delete-able incase the file path is read-only.
@@ -70,7 +70,7 @@ def rmtree_callback(function, path, excinfo):
         LOG.debug("rmtree failed in %s for %s, details: %s", function, path, excinfo)
 
 
-def rmtree_if_exists(path: Union[str, Path]):
+def rmtree_if_exists(path: Union[str, Path]):  # type: ignore[no-untyped-def]
     """Removes given path if the path exists"""
     path_obj = Path(str(path))
     if path_obj.exists():
@@ -78,7 +78,7 @@ def rmtree_if_exists(path: Union[str, Path]):
         shutil.rmtree(path_obj)
 
 
-def stdout():
+def stdout():  # type: ignore[no-untyped-def]
     """
     Returns the stdout as a byte stream in a Py2/PY3 compatible manner
 
@@ -90,7 +90,7 @@ def stdout():
     return sys.stdout.buffer
 
 
-def stderr():
+def stderr():  # type: ignore[no-untyped-def]
     """
     Returns the stderr as a byte stream in a Py2/PY3 compatible manner
 
@@ -102,7 +102,7 @@ def stderr():
     return sys.stderr.buffer
 
 
-def remove(path):
+def remove(path):  # type: ignore[no-untyped-def]
     if path:
         try:
             os.remove(path)
@@ -111,7 +111,7 @@ def remove(path):
 
 
 @contextmanager
-def tempfile_platform_independent():
+def tempfile_platform_independent():  # type: ignore[no-untyped-def]
     # NOTE(TheSriram): Setting delete=False is specific to windows.
     # https://docs.python.org/3/library/tempfile.html#tempfile.NamedTemporaryFile
     _tempfile = tempfile.NamedTemporaryFile(delete=False)
@@ -119,12 +119,12 @@ def tempfile_platform_independent():
         yield _tempfile
     finally:
         _tempfile.close()
-        remove(_tempfile.name)
+        remove(_tempfile.name)  # type: ignore[no-untyped-call]
 
 
 # NOTE: Py3.8 or higher has a ``dir_exist_ok=True`` parameter to provide this functionality.
 #       This method can be removed if we stop supporting Py37
-def copytree(source, destination, ignore=None):
+def copytree(source, destination, ignore=None):  # type: ignore[no-untyped-def]
     """
     Similar to shutil.copytree except that it removes the limitation that the destination directory should
     be present.
@@ -165,7 +165,7 @@ def copytree(source, destination, ignore=None):
         new_destination = os.path.join(destination, name)
 
         if os.path.isdir(new_source):
-            copytree(new_source, new_destination, ignore=ignore)
+            copytree(new_source, new_destination, ignore=ignore)  # type: ignore[no-untyped-call]
         else:
             shutil.copy2(new_source, new_destination)
 
@@ -198,4 +198,4 @@ def create_symlink_or_copy(source: str, destination: str) -> None:
             "Symlink operation is failed, falling back to copying files",
             exc_info=ex if LOG.isEnabledFor(logging.DEBUG) else None,
         )
-        copytree(source, destination)
+        copytree(source, destination)  # type: ignore[no-untyped-call]

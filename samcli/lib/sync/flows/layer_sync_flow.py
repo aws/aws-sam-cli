@@ -68,7 +68,7 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
         """
         Compare Sha256 of the deployed layer code vs the one just built, True if they are same, False otherwise
         """
-        self._old_layer_version = self._get_latest_layer_version()
+        self._old_layer_version = self._get_latest_layer_version()  # type: ignore[no-untyped-call]
         old_layer_info = self._lambda_client.get_layer_version(
             LayerName=self._layer_arn,
             VersionNumber=self._old_layer_version,
@@ -78,11 +78,11 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
 
         return self._local_sha == remote_sha
 
-    def _get_latest_layer_version(self):
+    def _get_latest_layer_version(self):  # type: ignore[no-untyped-def]
         """Fetches all layer versions from remote and returns the latest one"""
         layer_versions = self._lambda_client.list_layer_versions(LayerName=self._layer_arn).get("LayerVersions", [])
         if not layer_versions:
-            raise NoLayerVersionsFoundError(self._layer_arn)
+            raise NoLayerVersionsFoundError(self._layer_arn)  # type: ignore[arg-type]
         return layer_versions[0].get("Version")
 
     def sync(self) -> None:
@@ -235,11 +235,11 @@ class LayerSyncFlow(AbstractLayerSyncFlow):
             self._artifact_folder = builder.build().artifacts.get(self._layer_identifier)
 
         zip_file_path = os.path.join(tempfile.gettempdir(), f"data-{uuid.uuid4().hex}")
-        self._zip_file = make_zip(zip_file_path, self._artifact_folder)
+        self._zip_file = make_zip(zip_file_path, self._artifact_folder)  # type: ignore[no-untyped-call]
         LOG.debug("%sCreated artifact ZIP file: %s", self.log_prefix, self._zip_file)
         self._local_sha = file_checksum(cast(str, self._zip_file), hashlib.sha256())
 
-    def _get_compatible_runtimes(self):
+    def _get_compatible_runtimes(self):  # type: ignore[no-untyped-def]
         layer_resource = cast(Dict[str, Any], self._get_resource(self._layer_identifier))
         return layer_resource.get("Properties", {}).get("CompatibleRuntimes", [])
 
@@ -290,7 +290,7 @@ class FunctionLayerReferenceSync(SyncFlow):
         self._function_identifier = function_identifier
         self._layer_arn = layer_arn
         self._new_layer_version = new_layer_version
-        self._color = Colored()
+        self._color = Colored()  # type: ignore[no-untyped-call]
 
     def set_up(self) -> None:
         super().set_up()

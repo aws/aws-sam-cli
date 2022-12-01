@@ -55,7 +55,7 @@ class SamApiProvider(CfnBaseApiProvider):
         collector.routes = self.merge_routes(collector)
 
     def _extract_from_serverless_api(
-        self, stack_path: str, logical_id: str, api_resource: Dict, collector: ApiCollector, cwd: Optional[str] = None
+        self, stack_path: str, logical_id: str, api_resource: Dict, collector: ApiCollector, cwd: Optional[str] = None  # type: ignore[type-arg]
     ) -> None:
         """
         Extract APIs from AWS::Serverless::Api resource by reading and parsing Swagger documents. The result is added
@@ -99,7 +99,7 @@ class SamApiProvider(CfnBaseApiProvider):
         collector.cors = cors
 
     def _extract_from_serverless_http(
-        self, stack_path: str, logical_id: str, api_resource: Dict, collector: ApiCollector, cwd: Optional[str] = None
+        self, stack_path: str, logical_id: str, api_resource: Dict, collector: ApiCollector, cwd: Optional[str] = None  # type: ignore[type-arg]
     ) -> None:
         """
         Extract APIs from AWS::Serverless::HttpApi resource by reading and parsing Swagger documents.
@@ -144,7 +144,7 @@ class SamApiProvider(CfnBaseApiProvider):
         collector.cors = cors
 
     def _extract_routes_from_function(
-        self, stack_path: str, logical_id: str, function_resource: Dict, collector: ApiCollector
+        self, stack_path: str, logical_id: str, function_resource: Dict, collector: ApiCollector  # type: ignore[type-arg]
     ) -> None:
         """
         Fetches a list of routes configured for this SAM Function resource.
@@ -169,7 +169,7 @@ class SamApiProvider(CfnBaseApiProvider):
         self.extract_routes_from_events(stack_path, logical_id, serverless_function_events, collector)
 
     def extract_routes_from_events(
-        self, stack_path: str, function_logical_id: str, serverless_function_events: Dict, collector: ApiCollector
+        self, stack_path: str, function_logical_id: str, serverless_function_events: Dict, collector: ApiCollector  # type: ignore[type-arg]
     ) -> None:
         """
         Given an AWS::Serverless::Function Event Dictionary, extract out all 'route' events and store  within the
@@ -203,7 +203,7 @@ class SamApiProvider(CfnBaseApiProvider):
 
     @staticmethod
     def _convert_event_route(
-        stack_path: str, lambda_logical_id: str, event_properties: Dict, event_type: str
+        stack_path: str, lambda_logical_id: str, event_properties: Dict, event_type: str  # type: ignore[type-arg]
     ) -> Tuple[str, Route]:
         """
         Converts a AWS::Serverless::Function's Event Property to an Route configuration usable by the provider.
@@ -221,7 +221,7 @@ class SamApiProvider(CfnBaseApiProvider):
         # API. If omitted, the API is owned by Implicit API resource. This could either be a direct resource logical ID
         # or a "Ref" of the logicalID
 
-        api_resource_id: Union[str, Dict]
+        api_resource_id: Union[str, Dict]  # type: ignore[type-arg]
         payload_format_version: Optional[str] = None
 
         if event_type == SamApiProvider._EVENT_TYPE_API:
@@ -338,7 +338,7 @@ class SamApiProvider(CfnBaseApiProvider):
                     SamApiProvider.IMPLICIT_HTTP_API_RESOURCE_ID,
                 ):
                     LOG.warning(
-                        Colored().yellow(
+                        Colored().yellow(  # type: ignore[no-untyped-call, no-untyped-call]
                             'Your template contains a resource with logical ID "%s", '
                             "which is a reserved logical ID in AWS SAM. "
                             "It could result in unexpected behaviors and is not recommended."

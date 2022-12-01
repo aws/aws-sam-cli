@@ -66,7 +66,7 @@ class IntrinsicResolver:
 
     CONDITIONAL_FUNCTIONS = [FN_AND, FN_OR, FN_IF, FN_EQUALS, FN_NOT]
 
-    def __init__(self, template, symbol_resolver):
+    def __init__(self, template, symbol_resolver):  # type: ignore[no-untyped-def]
         """
         Initializes the Intrinsic Property class with the default intrinsic_key_function_map and
         conditional_key_function_map.
@@ -80,14 +80,14 @@ class IntrinsicResolver:
         self._parameters = None
         self._conditions = None
         self._outputs = None
-        self.init_template(template)
+        self.init_template(template)  # type: ignore[no-untyped-call]
 
         self._symbol_resolver = symbol_resolver
 
-        self.intrinsic_key_function_map = self.default_intrinsic_function_map()
-        self.conditional_key_function_map = self.default_conditional_key_map()
+        self.intrinsic_key_function_map = self.default_intrinsic_function_map()  # type: ignore[no-untyped-call]
+        self.conditional_key_function_map = self.default_conditional_key_map()  # type: ignore[no-untyped-call]
 
-    def init_template(self, template):
+    def init_template(self, template):  # type: ignore[no-untyped-def]
         self._template = copy.deepcopy(template or {})
         self._resources = self._template.get("Resources", {})
         self._mapping = self._template.get("Mappings", {})
@@ -95,7 +95,7 @@ class IntrinsicResolver:
         self._conditions = self._template.get("Conditions", {})
         self._outputs = self._template.get("Outputs", {})
 
-    def default_intrinsic_function_map(self):
+    def default_intrinsic_function_map(self):  # type: ignore[no-untyped-def]
         """
         Returns a dictionary containing the mapping from
             Intrinsic Function Key -> Intrinsic Resolver.
@@ -119,7 +119,7 @@ class IntrinsicResolver:
             IntrinsicResolver.FN_IMPORT_VALUE: self.handle_fn_import_value,
         }
 
-    def default_conditional_key_map(self):
+    def default_conditional_key_map(self):  # type: ignore[no-untyped-def]
         """
         Returns a dictionary containing the mapping from Conditional
             Conditional Intrinsic Function Key -> Conditional Intrinsic Resolver.
@@ -138,7 +138,7 @@ class IntrinsicResolver:
             IntrinsicResolver.FN_NOT: self.handle_fn_not,
         }
 
-    def set_intrinsic_key_function_map(self, function_map):
+    def set_intrinsic_key_function_map(self, function_map):  # type: ignore[no-untyped-def]
         """
         Sets the mapping from
             Conditional Intrinsic Function Key -> Conditional Intrinsic Resolver.
@@ -150,7 +150,7 @@ class IntrinsicResolver:
         """
         self.intrinsic_key_function_map = function_map
 
-    def set_conditional_function_map(self, function_map):
+    def set_conditional_function_map(self, function_map):  # type: ignore[no-untyped-def]
         """
         Sets the mapping from
             Conditional Intrinsic Function Key -> Conditional Intrinsic Resolver.
@@ -163,7 +163,7 @@ class IntrinsicResolver:
         """
         self.conditional_key_function_map = function_map
 
-    def intrinsic_property_resolver(self, intrinsic, ignore_errors, parent_function="template"):
+    def intrinsic_property_resolver(self, intrinsic, ignore_errors, parent_function="template"):  # type: ignore[no-untyped-def]
         """
         This resolves the intrinsic of the format
         {
@@ -194,7 +194,7 @@ class IntrinsicResolver:
         if intrinsic is None:
             raise InvalidIntrinsicException("Missing Intrinsic property in {}".format(parent_function))
         if isinstance(intrinsic, list):
-            return [self.intrinsic_property_resolver(item, ignore_errors) for item in intrinsic]
+            return [self.intrinsic_property_resolver(item, ignore_errors) for item in intrinsic]  # type: ignore[no-untyped-call]
         if not isinstance(intrinsic, dict) or intrinsic == {}:
             return intrinsic
 
@@ -216,9 +216,9 @@ class IntrinsicResolver:
         sanitized_dict = {}
         for key, val in intrinsic.items():
             try:
-                sanitized_key = self.intrinsic_property_resolver(key, ignore_errors, parent_function=parent_function)
-                sanitized_val = self.intrinsic_property_resolver(val, ignore_errors, parent_function=parent_function)
-                verify_intrinsic_type_str(
+                sanitized_key = self.intrinsic_property_resolver(key, ignore_errors, parent_function=parent_function)  # type: ignore[no-untyped-call]
+                sanitized_val = self.intrinsic_property_resolver(val, ignore_errors, parent_function=parent_function)  # type: ignore[no-untyped-call]
+                verify_intrinsic_type_str(  # type: ignore[no-untyped-call]
                     sanitized_key,
                     message="The keys of the dictionary {} in {} must all resolve to a string".format(
                         sanitized_key, parent_function
@@ -236,7 +236,7 @@ class IntrinsicResolver:
 
         return sanitized_dict
 
-    def resolve_template(self, ignore_errors=False):
+    def resolve_template(self, ignore_errors=False):  # type: ignore[no-untyped-def]
         """
         This resolves all the attributes of the CloudFormation dictionary Resources, Outputs, Mappings, Parameters,
         Conditions.
@@ -248,13 +248,13 @@ class IntrinsicResolver:
         processed_template = self._template
 
         if self._resources:
-            processed_template["Resources"] = self.resolve_attribute(self._resources, ignore_errors)
+            processed_template["Resources"] = self.resolve_attribute(self._resources, ignore_errors)  # type: ignore[no-untyped-call, index]
         if self._outputs:
-            processed_template["Outputs"] = self.resolve_attribute(self._outputs, ignore_errors)
+            processed_template["Outputs"] = self.resolve_attribute(self._outputs, ignore_errors)  # type: ignore[no-untyped-call, index]
 
         return processed_template
 
-    def resolve_attribute(self, cloud_formation_property, ignore_errors=False):
+    def resolve_attribute(self, cloud_formation_property, ignore_errors=False):  # type: ignore[no-untyped-def]
         """
         This will parse through every entry in a CloudFormation root key and resolve them based on the symbol_resolver.
         Customers can optionally ignore resource errors and default to whatever the resource provides.
@@ -273,7 +273,7 @@ class IntrinsicResolver:
         for key, val in cloud_formation_property.items():
             processed_key = self._symbol_resolver.get_translation(key) or key
             try:
-                processed_resource = self.intrinsic_property_resolver(val, ignore_errors, parent_function=processed_key)
+                processed_resource = self.intrinsic_property_resolver(val, ignore_errors, parent_function=processed_key)  # type: ignore[no-untyped-call]
                 processed_dict[processed_key] = processed_resource
             except (InvalidIntrinsicException, InvalidSymbolException) as e:
                 resource_type = val.get("Type", "")
@@ -286,7 +286,7 @@ class IntrinsicResolver:
                     ) from e
         return processed_dict
 
-    def handle_fn_join(self, intrinsic_value, ignore_errors):
+    def handle_fn_join(self, intrinsic_value, ignore_errors):  # type: ignore[no-untyped-def]
         """
         { "Fn::Join" : [ "delimiter", [ comma-delimited list of values ] ] }
         This function will join the items in the list together based on the string using the python join.
@@ -302,37 +302,37 @@ class IntrinsicResolver:
         -------
         A string with the resolved attributes
         """
-        arguments = self.intrinsic_property_resolver(
+        arguments = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             intrinsic_value, ignore_errors, parent_function=IntrinsicResolver.FN_JOIN
         )
 
-        verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_JOIN)
+        verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_JOIN)  # type: ignore[no-untyped-call]
 
         delimiter = arguments[0]
 
-        verify_intrinsic_type_str(delimiter, IntrinsicResolver.FN_JOIN, position_in_list="first")
+        verify_intrinsic_type_str(delimiter, IntrinsicResolver.FN_JOIN, position_in_list="first")  # type: ignore[no-untyped-call]
 
-        value_list = self.intrinsic_property_resolver(
+        value_list = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             arguments[1], ignore_errors, parent_function=IntrinsicResolver.FN_JOIN
         )
 
-        verify_intrinsic_type_list(
+        verify_intrinsic_type_list(  # type: ignore[no-untyped-call]
             value_list,
             IntrinsicResolver.FN_JOIN,
             message="The list of values in {} after the " "delimiter must be a list".format(IntrinsicResolver.FN_JOIN),
         )
 
         sanitized_value_list = [
-            self.intrinsic_property_resolver(item, ignore_errors, parent_function=IntrinsicResolver.FN_JOIN)
+            self.intrinsic_property_resolver(item, ignore_errors, parent_function=IntrinsicResolver.FN_JOIN)  # type: ignore[no-untyped-call]
             for item in value_list
         ]
-        verify_all_list_intrinsic_type(
+        verify_all_list_intrinsic_type(  # type: ignore[no-untyped-call]
             sanitized_value_list, verification_func=verify_intrinsic_type_str, property_type=IntrinsicResolver.FN_JOIN
         )
 
         return delimiter.join(sanitized_value_list)
 
-    def handle_fn_split(self, intrinsic_value, ignore_errors):
+    def handle_fn_split(self, intrinsic_value, ignore_errors):  # type: ignore[no-untyped-def]
         """
         { "Fn::Split" : [ "delimiter", "source string" ] }
         This function will then split the source_string based on the delimiter
@@ -347,25 +347,25 @@ class IntrinsicResolver:
         -------
         A string with the resolved attributes
         """
-        arguments = self.intrinsic_property_resolver(
+        arguments = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             intrinsic_value, ignore_errors, parent_function=IntrinsicResolver.FN_SPLIT
         )
 
-        verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_SPLIT)
+        verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_SPLIT)  # type: ignore[no-untyped-call]
 
         delimiter = arguments[0]
 
-        verify_intrinsic_type_str(delimiter, IntrinsicResolver.FN_SPLIT, position_in_list="first")
+        verify_intrinsic_type_str(delimiter, IntrinsicResolver.FN_SPLIT, position_in_list="first")  # type: ignore[no-untyped-call]
 
-        source_string = self.intrinsic_property_resolver(
+        source_string = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             arguments[1], ignore_errors, parent_function=IntrinsicResolver.FN_SPLIT
         )
 
-        verify_intrinsic_type_str(source_string, IntrinsicResolver.FN_SPLIT, position_in_list="second")
+        verify_intrinsic_type_str(source_string, IntrinsicResolver.FN_SPLIT, position_in_list="second")  # type: ignore[no-untyped-call]
 
         return source_string.split(delimiter)
 
-    def handle_fn_base64(self, intrinsic_value, ignore_errors):
+    def handle_fn_base64(self, intrinsic_value, ignore_errors):  # type: ignore[no-untyped-def]
         """
         { "Fn::Base64" : valueToEncode }
         This intrinsic function will then base64 encode the string using python's base64.
@@ -380,15 +380,15 @@ class IntrinsicResolver:
         -------
         A string with the resolved attributes
         """
-        data = self.intrinsic_property_resolver(
+        data = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             intrinsic_value, ignore_errors, parent_function=IntrinsicResolver.FN_BASE64
         )
 
-        verify_intrinsic_type_str(data, IntrinsicResolver.FN_BASE64)
+        verify_intrinsic_type_str(data, IntrinsicResolver.FN_BASE64)  # type: ignore[no-untyped-call]
         # Encoding then decoding is required to return a string of the data
         return base64.b64encode(data.encode()).decode()
 
-    def handle_fn_select(self, intrinsic_value, ignore_errors):
+    def handle_fn_select(self, intrinsic_value, ignore_errors):  # type: ignore[no-untyped-def]
         """
         { "Fn::Select" : [ index, listOfObjects ] }
         It will select the item in the listOfObjects using python's base64.
@@ -402,33 +402,33 @@ class IntrinsicResolver:
         -------
         A string with the resolved attributes
         """
-        arguments = self.intrinsic_property_resolver(
+        arguments = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             intrinsic_value, ignore_errors, parent_function=IntrinsicResolver.FN_SELECT
         )
 
-        verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_SELECT)
+        verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_SELECT)  # type: ignore[no-untyped-call]
 
-        index = self.intrinsic_property_resolver(
+        index = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             arguments[0], ignore_errors, parent_function=IntrinsicResolver.FN_SELECT
         )
 
-        verify_intrinsic_type_int(index, IntrinsicResolver.FN_SELECT)
+        verify_intrinsic_type_int(index, IntrinsicResolver.FN_SELECT)  # type: ignore[no-untyped-call]
 
-        list_of_objects = self.intrinsic_property_resolver(
+        list_of_objects = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             arguments[1], ignore_errors, parent_function=IntrinsicResolver.FN_SELECT
         )
-        verify_intrinsic_type_list(list_of_objects, IntrinsicResolver.FN_SELECT)
+        verify_intrinsic_type_list(list_of_objects, IntrinsicResolver.FN_SELECT)  # type: ignore[no-untyped-call]
 
         sanitized_objects = [
-            self.intrinsic_property_resolver(item, ignore_errors, parent_function=IntrinsicResolver.FN_SELECT)
+            self.intrinsic_property_resolver(item, ignore_errors, parent_function=IntrinsicResolver.FN_SELECT)  # type: ignore[no-untyped-call]
             for item in list_of_objects
         ]
 
-        verify_in_bounds(index=index, objects=sanitized_objects, property_type=IntrinsicResolver.FN_SELECT)
+        verify_in_bounds(index=index, objects=sanitized_objects, property_type=IntrinsicResolver.FN_SELECT)  # type: ignore[no-untyped-call]
 
         return sanitized_objects[index]
 
-    def handle_find_in_map(self, intrinsic_value, ignore_errors):
+    def handle_find_in_map(self, intrinsic_value, ignore_errors):  # type: ignore[no-untyped-def]
         """
         { "Fn::FindInMap" : [ "MapName", "TopLevelKey", "SecondLevelKey"] } This function will then lookup the
         specified dictionary in the Mappings dictionary as mappings[map_name][top_level_key][second_level_key].
@@ -453,30 +453,30 @@ class IntrinsicResolver:
         -------
         A string with the resolved attributes
         """
-        arguments = self.intrinsic_property_resolver(
+        arguments = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             intrinsic_value, ignore_errors, parent_function=IntrinsicResolver.FN_FIND_IN_MAP
         )
 
-        verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_FIND_IN_MAP)
+        verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_FIND_IN_MAP)  # type: ignore[no-untyped-call]
 
-        verify_number_arguments(arguments, num=3, property_type=IntrinsicResolver.FN_FIND_IN_MAP)
+        verify_number_arguments(arguments, num=3, property_type=IntrinsicResolver.FN_FIND_IN_MAP)  # type: ignore[no-untyped-call]
 
-        map_name = self.intrinsic_property_resolver(
+        map_name = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             arguments[0], ignore_errors, parent_function=IntrinsicResolver.FN_FIND_IN_MAP
         )
-        top_level_key = self.intrinsic_property_resolver(
+        top_level_key = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             arguments[1], ignore_errors, parent_function=IntrinsicResolver.FN_FIND_IN_MAP
         )
-        second_level_key = self.intrinsic_property_resolver(
+        second_level_key = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             arguments[2], ignore_errors, parent_function=IntrinsicResolver.FN_FIND_IN_MAP
         )
 
-        verify_intrinsic_type_str(map_name, IntrinsicResolver.FN_FIND_IN_MAP, position_in_list="first")
-        verify_intrinsic_type_str(top_level_key, IntrinsicResolver.FN_FIND_IN_MAP, position_in_list="second")
-        verify_intrinsic_type_str(second_level_key, IntrinsicResolver.FN_FIND_IN_MAP, position_in_list="third")
+        verify_intrinsic_type_str(map_name, IntrinsicResolver.FN_FIND_IN_MAP, position_in_list="first")  # type: ignore[no-untyped-call]
+        verify_intrinsic_type_str(top_level_key, IntrinsicResolver.FN_FIND_IN_MAP, position_in_list="second")  # type: ignore[no-untyped-call]
+        verify_intrinsic_type_str(second_level_key, IntrinsicResolver.FN_FIND_IN_MAP, position_in_list="third")  # type: ignore[no-untyped-call]
 
-        map_value = self._mapping.get(map_name)
-        verify_intrinsic_type_dict(
+        map_value = self._mapping.get(map_name)  # type: ignore[union-attr]
+        verify_intrinsic_type_dict(  # type: ignore[no-untyped-call]
             map_value,
             IntrinsicResolver.FN_FIND_IN_MAP,
             position_in_list="first",
@@ -484,7 +484,7 @@ class IntrinsicResolver:
         )
 
         top_level_value = map_value.get(top_level_key)
-        verify_intrinsic_type_dict(
+        verify_intrinsic_type_dict(  # type: ignore[no-untyped-call]
             top_level_value,
             IntrinsicResolver.FN_FIND_IN_MAP,
             message="The TopLevelKey is missing in the Mappings dictionary in Fn::FindInMap "
@@ -492,7 +492,7 @@ class IntrinsicResolver:
         )
 
         second_level_value = top_level_value.get(second_level_key)
-        verify_intrinsic_type_str(
+        verify_intrinsic_type_str(  # type: ignore[no-untyped-call]
             second_level_value,
             IntrinsicResolver.FN_FIND_IN_MAP,
             message="The SecondLevelKey is missing in the Mappings dictionary in Fn::FindInMap  "
@@ -501,7 +501,7 @@ class IntrinsicResolver:
 
         return second_level_value
 
-    def handle_fn_get_azs(self, intrinsic_value, ignore_errors):
+    def handle_fn_get_azs(self, intrinsic_value, ignore_errors):  # type: ignore[no-untyped-def]
         """
         { "Fn::GetAZs" : "" }
         { "Fn::GetAZs" : { "Ref" : "AWS::Region" } }
@@ -519,10 +519,10 @@ class IntrinsicResolver:
         -------
         A string with the resolved attributes
         """
-        intrinsic_value = self.intrinsic_property_resolver(
+        intrinsic_value = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             intrinsic_value, ignore_errors, parent_function=IntrinsicResolver.FN_GET_AZS
         )
-        verify_intrinsic_type_str(intrinsic_value, IntrinsicResolver.FN_GET_AZS)
+        verify_intrinsic_type_str(intrinsic_value, IntrinsicResolver.FN_GET_AZS)  # type: ignore[no-untyped-call]
 
         if not intrinsic_value:
             intrinsic_value = self._symbol_resolver.handle_pseudo_region()
@@ -534,7 +534,7 @@ class IntrinsicResolver:
 
         return self._symbol_resolver.REGIONS.get(intrinsic_value)
 
-    def handle_fn_transform(self, intrinsic_value, ignore_errors):
+    def handle_fn_transform(self, intrinsic_value, ignore_errors):  # type: ignore[no-untyped-def]
         """
         { "Fn::Transform" : { "Name" : macro name, "Parameters" : {key : value, ... } } }
         This intrinsic function will transform the data with the body provided
@@ -550,7 +550,7 @@ class IntrinsicResolver:
         A string with the resolved attributes
         """
         macro_name = intrinsic_value.get("Name")
-        name = self.intrinsic_property_resolver(
+        name = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             macro_name, ignore_errors, parent_function=IntrinsicResolver.FN_TRANSFORM
         )
 
@@ -560,17 +560,17 @@ class IntrinsicResolver:
             )
 
         parameters = intrinsic_value.get("Parameters")
-        verify_intrinsic_type_dict(
+        verify_intrinsic_type_dict(  # type: ignore[no-untyped-call]
             parameters, IntrinsicResolver.FN_TRANSFORM, message=" Fn::Transform requires parameters section"
         )
 
-        location = self.intrinsic_property_resolver(parameters.get("Location"), ignore_errors)
-        location_data = get_template_data(location)
+        location = self.intrinsic_property_resolver(parameters.get("Location"), ignore_errors)  # type: ignore[no-untyped-call]
+        location_data = get_template_data(location)  # type: ignore[no-untyped-call]
 
         return location_data
 
     @staticmethod
-    def handle_fn_import_value(intrinsic_value, ignore_errors):
+    def handle_fn_import_value(intrinsic_value, ignore_errors):  # type: ignore[no-untyped-def]
         """
         { "Fn::ImportValue" : sharedValueToImport }
         This intrinsic function requires handling multiple stacks, which is not currently supported by SAM-CLI.
@@ -582,7 +582,7 @@ class IntrinsicResolver:
         """
         raise InvalidIntrinsicException("Fn::ImportValue is currently not supported by IntrinsicResolver")
 
-    def handle_fn_getatt(self, intrinsic_value, ignore_errors):
+    def handle_fn_getatt(self, intrinsic_value, ignore_errors):  # type: ignore[no-untyped-def]
         """
         { "Fn::GetAtt" : [ "logicalNameOfResource", "attributeName" ] }
         This intrinsic function gets the attribute for logical_resource specified. Each attribute might have a different
@@ -599,25 +599,25 @@ class IntrinsicResolver:
         -------
         A string with the resolved attributes
         """
-        arguments = self.intrinsic_property_resolver(
+        arguments = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             intrinsic_value, ignore_errors, parent_function=IntrinsicResolver.FN_GET_ATT
         )
-        verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_GET_ATT)
-        verify_number_arguments(arguments, IntrinsicResolver.FN_GET_ATT, num=2)
+        verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_GET_ATT)  # type: ignore[no-untyped-call]
+        verify_number_arguments(arguments, IntrinsicResolver.FN_GET_ATT, num=2)  # type: ignore[no-untyped-call]
 
-        logical_id = self.intrinsic_property_resolver(
+        logical_id = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             arguments[0], ignore_errors, parent_function=IntrinsicResolver.FN_GET_ATT
         )
-        resource_type = self.intrinsic_property_resolver(
+        resource_type = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             arguments[1], ignore_errors, parent_function=IntrinsicResolver.FN_GET_ATT
         )
 
-        verify_intrinsic_type_str(logical_id, IntrinsicResolver.FN_GET_ATT)
-        verify_intrinsic_type_str(resource_type, IntrinsicResolver.FN_GET_ATT)
+        verify_intrinsic_type_str(logical_id, IntrinsicResolver.FN_GET_ATT)  # type: ignore[no-untyped-call]
+        verify_intrinsic_type_str(resource_type, IntrinsicResolver.FN_GET_ATT)  # type: ignore[no-untyped-call]
 
         return self._symbol_resolver.resolve_symbols(logical_id, resource_type)
 
-    def handle_fn_ref(self, intrinsic_value, ignore_errors):
+    def handle_fn_ref(self, intrinsic_value, ignore_errors):  # type: ignore[no-untyped-def]
         """
         {"Ref": "Logical ID"}
         This intrinsic function gets the reference to a certain attribute. Some Ref's have different functionality with
@@ -634,14 +634,14 @@ class IntrinsicResolver:
         -------
         A string with the resolved attributes
         """
-        arguments = self.intrinsic_property_resolver(
+        arguments = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             intrinsic_value, ignore_errors, parent_function=IntrinsicResolver.REF
         )
-        verify_intrinsic_type_str(arguments, IntrinsicResolver.REF)
+        verify_intrinsic_type_str(arguments, IntrinsicResolver.REF)  # type: ignore[no-untyped-call]
 
         return self._symbol_resolver.resolve_symbols(arguments, IntrinsicResolver.REF)
 
-    def handle_fn_sub(self, intrinsic_value, ignore_errors):
+    def handle_fn_sub(self, intrinsic_value, ignore_errors):  # type: ignore[no-untyped-def]
         """
         { "Fn::Sub" : [ String, { Var1Name: Var1Value, Var2Name: Var2Value } ] } or { "Fn::Sub" : String }
         This intrinsic function will substitute the variables specified in the list into the string provided. The string
@@ -658,7 +658,7 @@ class IntrinsicResolver:
         A string with the resolved attributes
         """
 
-        def resolve_sub_attribute(intrinsic_item, symbol_resolver):
+        def resolve_sub_attribute(intrinsic_item, symbol_resolver):  # type: ignore[no-untyped-def]
             if "." in intrinsic_item:
                 (logical_id, attribute_type) = intrinsic_item.rsplit(".", 1)
             else:
@@ -668,32 +668,32 @@ class IntrinsicResolver:
         if isinstance(intrinsic_value, str):
             intrinsic_value = [intrinsic_value, {}]
 
-        verify_intrinsic_type_list(
+        verify_intrinsic_type_list(  # type: ignore[no-untyped-call]
             intrinsic_value, IntrinsicResolver.FN_SUB, message="The arguments to a Fn::Sub must be a list or a string"
         )
 
-        verify_number_arguments(intrinsic_value, IntrinsicResolver.FN_SUB, num=2)
+        verify_number_arguments(intrinsic_value, IntrinsicResolver.FN_SUB, num=2)  # type: ignore[no-untyped-call]
 
-        sub_str = self.intrinsic_property_resolver(
+        sub_str = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             intrinsic_value[0], ignore_errors, parent_function=IntrinsicResolver.FN_SUB
         )
-        verify_intrinsic_type_str(sub_str, IntrinsicResolver.FN_SUB, position_in_list="first")
+        verify_intrinsic_type_str(sub_str, IntrinsicResolver.FN_SUB, position_in_list="first")  # type: ignore[no-untyped-call]
 
         variables = intrinsic_value[1]
-        verify_intrinsic_type_dict(variables, IntrinsicResolver.FN_SUB, position_in_list="second")
+        verify_intrinsic_type_dict(variables, IntrinsicResolver.FN_SUB, position_in_list="second")  # type: ignore[no-untyped-call]
 
-        sanitized_variables = self.intrinsic_property_resolver(
+        sanitized_variables = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             variables, ignore_errors, parent_function=IntrinsicResolver.FN_SUB
         )
 
         subable_props = re.findall(string=sub_str, pattern=IntrinsicResolver._REGEX_SUB_FUNCTION)
         for sub_item in subable_props:
             sanitized_item = sanitized_variables[sub_item] if sub_item in sanitized_variables else sub_item
-            result = resolve_sub_attribute(sanitized_item, self._symbol_resolver)
+            result = resolve_sub_attribute(sanitized_item, self._symbol_resolver)  # type: ignore[no-untyped-call]
             sub_str = re.sub(pattern=r"\$\{" + sub_item + r"\}", string=sub_str, repl=str(result))
         return sub_str
 
-    def handle_fn_if(self, intrinsic_value, ignore_errors):
+    def handle_fn_if(self, intrinsic_value, ignore_errors):  # type: ignore[no-untyped-def]
         """
         {"Fn::If": [condition_name, value_if_true, value_if_false]}
         This intrinsic function will evaluate the condition from the Conditions dictionary and then return value_if_true
@@ -716,35 +716,35 @@ class IntrinsicResolver:
         -------
         This will return value_if_true and value_if_false depending on how the condition is evaluated
         """
-        arguments = self.intrinsic_property_resolver(
+        arguments = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             intrinsic_value, ignore_errors, parent_function=IntrinsicResolver.FN_IF
         )
-        verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_IF)
-        verify_number_arguments(arguments, IntrinsicResolver.FN_IF, num=3)
+        verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_IF)  # type: ignore[no-untyped-call]
+        verify_number_arguments(arguments, IntrinsicResolver.FN_IF, num=3)  # type: ignore[no-untyped-call]
 
-        condition_name = self.intrinsic_property_resolver(
+        condition_name = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             arguments[0], ignore_errors, parent_function=IntrinsicResolver.FN_IF
         )
-        verify_intrinsic_type_str(condition_name, IntrinsicResolver.FN_IF)
+        verify_intrinsic_type_str(condition_name, IntrinsicResolver.FN_IF)  # type: ignore[no-untyped-call]
 
-        value_if_true = self.intrinsic_property_resolver(
+        value_if_true = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             arguments[1], ignore_errors, parent_function=IntrinsicResolver.FN_IF
         )
-        value_if_false = self.intrinsic_property_resolver(
+        value_if_false = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             arguments[2], ignore_errors, parent_function=IntrinsicResolver.FN_IF
         )
 
-        condition = self._conditions.get(condition_name)
-        verify_intrinsic_type_dict(
+        condition = self._conditions.get(condition_name)  # type: ignore[union-attr]
+        verify_intrinsic_type_dict(  # type: ignore[no-untyped-call]
             condition,
             IntrinsicResolver.FN_IF,
             message="The condition is missing in the Conditions dictionary for {}".format(IntrinsicResolver.FN_IF),
         )
 
-        condition_evaluated = self.intrinsic_property_resolver(
+        condition_evaluated = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             condition, ignore_errors, parent_function=IntrinsicResolver.FN_IF
         )
-        verify_intrinsic_type_bool(
+        verify_intrinsic_type_bool(  # type: ignore[no-untyped-call]
             condition_evaluated,
             IntrinsicResolver.FN_IF,
             message="The result of {} must evaluate to bool".format(IntrinsicResolver.FN_IF),
@@ -752,7 +752,7 @@ class IntrinsicResolver:
 
         return value_if_true if condition_evaluated else value_if_false
 
-    def handle_fn_equals(self, intrinsic_value, ignore_errors):
+    def handle_fn_equals(self, intrinsic_value, ignore_errors):  # type: ignore[no-untyped-def]
         """
         {"Fn::Equals" : ["value_1", "value_2"]}
         This intrinsic function will verify that both items in the intrinsic function are equal after resolving them.
@@ -767,21 +767,21 @@ class IntrinsicResolver:
         -------
         A boolean depending on if both arguments is equal
         """
-        arguments = self.intrinsic_property_resolver(
+        arguments = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             intrinsic_value, ignore_errors, parent_function=IntrinsicResolver.FN_EQUALS
         )
-        verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_EQUALS)
-        verify_number_arguments(arguments, IntrinsicResolver.FN_EQUALS, num=2)
+        verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_EQUALS)  # type: ignore[no-untyped-call]
+        verify_number_arguments(arguments, IntrinsicResolver.FN_EQUALS, num=2)  # type: ignore[no-untyped-call]
 
-        value_1 = self.intrinsic_property_resolver(
+        value_1 = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             arguments[0], ignore_errors, parent_function=IntrinsicResolver.FN_EQUALS
         )
-        value_2 = self.intrinsic_property_resolver(
+        value_2 = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             arguments[1], ignore_errors, parent_function=IntrinsicResolver.FN_EQUALS
         )
         return value_1 == value_2
 
-    def handle_fn_not(self, intrinsic_value, ignore_errors):
+    def handle_fn_not(self, intrinsic_value, ignore_errors):  # type: ignore[no-untyped-def]
         """
         {"Fn::Not": [{condition}]}
         This intrinsic function will negate the evaluation of the condition specified.
@@ -796,26 +796,26 @@ class IntrinsicResolver:
         -------
         A boolean that is the opposite of the condition evaluated
         """
-        arguments = self.intrinsic_property_resolver(
+        arguments = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             intrinsic_value, ignore_errors, parent_function=IntrinsicResolver.FN_NOT
         )
-        verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_NOT)
-        verify_number_arguments(arguments, IntrinsicResolver.FN_NOT, num=1)
-        argument_sanitised = self.intrinsic_property_resolver(
+        verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_NOT)  # type: ignore[no-untyped-call]
+        verify_number_arguments(arguments, IntrinsicResolver.FN_NOT, num=1)  # type: ignore[no-untyped-call]
+        argument_sanitised = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             arguments[0], ignore_errors, parent_function=IntrinsicResolver.FN_NOT
         )
         if isinstance(argument_sanitised, dict) and "Condition" in arguments[0]:
             condition_name = argument_sanitised.get("Condition")
-            verify_intrinsic_type_str(condition_name, IntrinsicResolver.FN_NOT)
+            verify_intrinsic_type_str(condition_name, IntrinsicResolver.FN_NOT)  # type: ignore[no-untyped-call]
 
-            condition = self._conditions.get(condition_name)
-            verify_non_null(condition, IntrinsicResolver.FN_NOT, position_in_list="first")
+            condition = self._conditions.get(condition_name)  # type: ignore[union-attr]
+            verify_non_null(condition, IntrinsicResolver.FN_NOT, position_in_list="first")  # type: ignore[no-untyped-call]
 
-            argument_sanitised = self.intrinsic_property_resolver(
+            argument_sanitised = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
                 condition, ignore_errors, parent_function=IntrinsicResolver.FN_NOT
             )
 
-        verify_intrinsic_type_bool(
+        verify_intrinsic_type_bool(  # type: ignore[no-untyped-call]
             argument_sanitised,
             IntrinsicResolver.FN_NOT,
             message="The result of {} must evaluate to bool".format(IntrinsicResolver.FN_NOT),
@@ -823,7 +823,7 @@ class IntrinsicResolver:
         return not argument_sanitised
 
     @staticmethod
-    def get_prefix_position_in_list(i):
+    def get_prefix_position_in_list(i):  # type: ignore[no-untyped-def]
         """
         Gets the prefix for the string "ith element of the list", handling first, second, and third.
         :param i:
@@ -838,7 +838,7 @@ class IntrinsicResolver:
             prefix = "third "
         return prefix
 
-    def handle_fn_and(self, intrinsic_value, ignore_errors):
+    def handle_fn_and(self, intrinsic_value, ignore_errors):  # type: ignore[no-untyped-def]
         """
         {"Fn::And": [{condition}, {...}]}
         This intrinsic checks that every item in the list evaluates to a boolean. The items in the list can either
@@ -862,40 +862,40 @@ class IntrinsicResolver:
         -------
         A boolean depending on if all of the properties in Fn::And evaluate to True
         """
-        arguments = self.intrinsic_property_resolver(
+        arguments = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             intrinsic_value, ignore_errors, parent_function=IntrinsicResolver.FN_AND
         )
-        verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_AND)
+        verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_AND)  # type: ignore[no-untyped-call]
 
         for i, argument in enumerate(arguments):
             if isinstance(argument, dict) and "Condition" in argument:
                 condition_name = argument.get("Condition")
-                verify_intrinsic_type_str(condition_name, IntrinsicResolver.FN_AND)
+                verify_intrinsic_type_str(condition_name, IntrinsicResolver.FN_AND)  # type: ignore[no-untyped-call]
 
-                condition = self._conditions.get(condition_name)
-                verify_non_null(
-                    condition, IntrinsicResolver.FN_AND, position_in_list=self.get_prefix_position_in_list(i)
+                condition = self._conditions.get(condition_name)  # type: ignore[union-attr]
+                verify_non_null(  # type: ignore[no-untyped-call]
+                    condition, IntrinsicResolver.FN_AND, position_in_list=self.get_prefix_position_in_list(i)  # type: ignore[no-untyped-call]
                 )
 
-                condition_evaluated = self.intrinsic_property_resolver(
+                condition_evaluated = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
                     condition, ignore_errors, parent_function=IntrinsicResolver.FN_AND
                 )
-                verify_intrinsic_type_bool(condition_evaluated, IntrinsicResolver.FN_AND)
+                verify_intrinsic_type_bool(condition_evaluated, IntrinsicResolver.FN_AND)  # type: ignore[no-untyped-call]
 
                 if not condition_evaluated:
                     return False
             else:
-                condition = self.intrinsic_property_resolver(
+                condition = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
                     argument, ignore_errors, parent_function=IntrinsicResolver.FN_AND
                 )
-                verify_intrinsic_type_bool(condition, IntrinsicResolver.FN_AND)
+                verify_intrinsic_type_bool(condition, IntrinsicResolver.FN_AND)  # type: ignore[no-untyped-call]
 
                 if not condition:
                     return False
 
         return True
 
-    def handle_fn_or(self, intrinsic_value, ignore_errors):
+    def handle_fn_or(self, intrinsic_value, ignore_errors):  # type: ignore[no-untyped-def]
         """
         {"Fn::Or": [{condition}, {...}]}
         This intrinsic checks that a single item in the list evaluates to a boolean. The items in the list can either
@@ -919,31 +919,31 @@ class IntrinsicResolver:
         -------
         A boolean depending on if any of the properties in Fn::And evaluate to True
         """
-        arguments = self.intrinsic_property_resolver(
+        arguments = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
             intrinsic_value, ignore_errors, parent_function=IntrinsicResolver.FN_OR
         )
-        verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_OR)
+        verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_OR)  # type: ignore[no-untyped-call]
         for i, argument in enumerate(arguments):
             if isinstance(argument, dict) and "Condition" in argument:
                 condition_name = argument.get("Condition")
-                verify_intrinsic_type_str(condition_name, IntrinsicResolver.FN_OR)
+                verify_intrinsic_type_str(condition_name, IntrinsicResolver.FN_OR)  # type: ignore[no-untyped-call]
 
-                condition = self._conditions.get(condition_name)
-                verify_non_null(
-                    condition, IntrinsicResolver.FN_OR, position_in_list=self.get_prefix_position_in_list(i)
+                condition = self._conditions.get(condition_name)  # type: ignore[union-attr]
+                verify_non_null(  # type: ignore[no-untyped-call]
+                    condition, IntrinsicResolver.FN_OR, position_in_list=self.get_prefix_position_in_list(i)  # type: ignore[no-untyped-call]
                 )
 
-                condition_evaluated = self.intrinsic_property_resolver(
+                condition_evaluated = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
                     condition, ignore_errors, parent_function=IntrinsicResolver.FN_OR
                 )
-                verify_intrinsic_type_bool(condition_evaluated, IntrinsicResolver.FN_OR)
+                verify_intrinsic_type_bool(condition_evaluated, IntrinsicResolver.FN_OR)  # type: ignore[no-untyped-call]
                 if condition_evaluated:
                     return True
             else:
-                condition = self.intrinsic_property_resolver(
+                condition = self.intrinsic_property_resolver(  # type: ignore[no-untyped-call]
                     argument, ignore_errors, parent_function=IntrinsicResolver.FN_OR
                 )
-                verify_intrinsic_type_bool(condition, IntrinsicResolver.FN_OR)
+                verify_intrinsic_type_bool(condition, IntrinsicResolver.FN_OR)  # type: ignore[no-untyped-call]
                 if condition:
                     return True
         return False

@@ -81,6 +81,6 @@ def _calculate_configuration_attribute_value_hash(
 
 
 def get_sam_metadata_planned_resource_value_attribute(
-    sam_metadata_resource_planned_values: Dict, attr_name: str
+    sam_metadata_resource_planned_values: Dict, attr_name: str  # type: ignore[type-arg]
 ) -> Any:
     return sam_metadata_resource_planned_values.get("values", {}).get("triggers", {}).get(attr_name)

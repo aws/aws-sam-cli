@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import yaml
+import yaml  # type: ignore[import]
 from samcli.yamlhelper import parse_yaml_file
 
 LOG = logging.getLogger(__name__)

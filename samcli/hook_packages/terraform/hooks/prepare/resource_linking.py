@@ -31,7 +31,7 @@ COMPILED_REGULAR_EXPRESSION = re.compile(r"\[[^\[\]]*\]")
 
 def _build_module(
     module_name: Optional[str],
-    module_configuration: Dict,
+    module_configuration: Dict,  # type: ignore[type-arg]
     input_variables: Dict[str, Expression],
     parent_module_address: Optional[str],
 ) -> TFModule:
@@ -60,7 +60,7 @@ def _build_module(
     LOG.debug("Parsing module:` %s", module.full_address or "root")
 
     if not module_configuration:
-        raise InvalidResourceLinkingException(f"No module configuration for module: {module.full_address or 'root'}")
+        raise InvalidResourceLinkingException(f"No module configuration for module: {module.full_address or 'root'}")  # type: ignore[no-untyped-call]
 
     LOG.debug("Parsing module variables")
     module.variables = _build_module_variables_from_configuration(module_configuration, input_variables)
@@ -106,7 +106,7 @@ def _build_module_full_address(module_name: Optional[str], parent_module_address
 
 
 def _build_module_variables_from_configuration(
-    module_configuration: Dict, input_variables: Dict[str, Expression]
+    module_configuration: Dict, input_variables: Dict[str, Expression]  # type: ignore[type-arg]
 ) -> Dict[str, Expression]:
     """
     Builds and returns module variables as Expressions using a module terraform configuration
@@ -133,7 +133,7 @@ def _build_module_variables_from_configuration(
     return module_variables
 
 
-def _build_module_resources_from_configuration(module_configuration: Dict, module: TFModule) -> Dict[str, TFResource]:
+def _build_module_resources_from_configuration(module_configuration: Dict, module: TFModule) -> Dict[str, TFResource]:  # type: ignore[type-arg]
     """
     Builds and returns module TFResources using a module terraform configuration
 
@@ -174,7 +174,7 @@ def _build_module_resources_from_configuration(module_configuration: Dict, modul
     return module_resources
 
 
-def _build_module_outputs_from_configuration(module_configuration: Dict) -> Dict[str, Expression]:
+def _build_module_outputs_from_configuration(module_configuration: Dict) -> Dict[str, Expression]:  # type: ignore[type-arg]
     """
     Builds and returns module outputs as Expressions using a module terraform configuration
 
@@ -200,7 +200,7 @@ def _build_module_outputs_from_configuration(module_configuration: Dict) -> Dict
     return module_outputs
 
 
-def _build_child_modules_from_configuration(module_configuration: Dict, module: TFModule) -> Dict[str, TFModule]:
+def _build_child_modules_from_configuration(module_configuration: Dict, module: TFModule) -> Dict[str, TFModule]:  # type: ignore[type-arg]
     """
     Builds and returns child TFModules using a module terraform configuration
 
@@ -239,7 +239,7 @@ def _build_child_modules_from_configuration(module_configuration: Dict, module: 
     return child_modules
 
 
-def _build_expression_from_configuration(expression_configuration: Dict) -> Optional[Expression]:
+def _build_expression_from_configuration(expression_configuration: Dict) -> Optional[Expression]:  # type: ignore[type-arg]
     """
     Parses an Expression from an expression terraform configuration.
 
@@ -337,7 +337,7 @@ def _resolve_module_output(module: TFModule, output_name: str) -> List[Union[Con
     output = module.outputs.get(output_name)
 
     if not output:
-        raise InvalidResourceLinkingException(f"Output {output_name} was not found in module {module.full_address}")
+        raise InvalidResourceLinkingException(f"Output {output_name} was not found in module {module.full_address}")  # type: ignore[no-untyped-call]
 
     output_value = output.value
 
@@ -378,7 +378,7 @@ def _resolve_module_output(module: TFModule, output_name: str) -> List[Union[Con
 
                 # validate that the reference is in the format: module.name.output
                 if re.fullmatch(r"module(?:\.[^\.]+){2}", reference) is None:
-                    raise InvalidResourceLinkingException(
+                    raise InvalidResourceLinkingException(  # type: ignore[no-untyped-call]
                         f"Module {module.full_address} contains an invalid reference {reference}"
                     )
 
@@ -390,14 +390,14 @@ def _resolve_module_output(module: TFModule, output_name: str) -> List[Union[Con
                 stripped_reference = _get_configuration_address(module_name)
 
                 if not module.child_modules:
-                    raise InvalidResourceLinkingException(
+                    raise InvalidResourceLinkingException(  # type: ignore[no-untyped-call]
                         f"Module {module.full_address} does not have child modules defined"
                     )
 
                 child_module = module.child_modules.get(stripped_reference)
 
                 if not child_module:
-                    raise InvalidResourceLinkingException(
+                    raise InvalidResourceLinkingException(  # type: ignore[no-untyped-call]
                         f"Module {module.full_address} does not have {stripped_reference} as a child module"
                     )
 
@@ -425,7 +425,7 @@ def _resolve_module_variable(module: TFModule, variable_name: str) -> List[Union
     var_value = module.variables.get(variable_name)
 
     if not var_value:
-        raise InvalidResourceLinkingException(
+        raise InvalidResourceLinkingException(  # type: ignore[no-untyped-call]
             message=f"The variable {variable_name} could not be found in module {module.module_name}."
         )
 
@@ -460,12 +460,12 @@ def _resolve_module_variable(module: TFModule, variable_name: str) -> List[Union
                     child_module = module.parent_module.child_modules[config_module_name]
                     results += _resolve_module_output(child_module, output_name)
                 else:
-                    raise InvalidResourceLinkingException(f"Couldn't find child module {config_module_name}.")
+                    raise InvalidResourceLinkingException(f"Couldn't find child module {config_module_name}.")  # type: ignore[no-untyped-call]
             # this means either a resource, data source, or local.variables.
             elif module.parent_module:
                 results.append(ResolvedReference(reference, module.parent_module.full_address))
             else:
-                raise InvalidResourceLinkingException("Resource linking entered an invalid state.")
+                raise InvalidResourceLinkingException("Resource linking entered an invalid state.")  # type: ignore[no-untyped-call]
 
     return results
 
@@ -537,7 +537,7 @@ def _resolve_resource_attribute(
             # validate that the reference is in the format: module.name.output
             if re.fullmatch(r"module(?:\.[^\.]+){2}", reference) is None:
                 LOG.debug("Could not traverse the module output reference: %s", reference)
-                raise InvalidResourceLinkingException(
+                raise InvalidResourceLinkingException(  # type: ignore[no-untyped-call]
                     f"The attribute {attribute_name} in Resource {resource.full_address} has an invalid reference "
                     f"{reference} value"
                 )
@@ -553,7 +553,7 @@ def _resolve_resource_attribute(
             )
 
             if not resource.module.child_modules or resource.module.child_modules.get(config_module_name) is None:
-                raise InvalidResourceLinkingException(
+                raise InvalidResourceLinkingException(  # type: ignore[no-untyped-call]
                     f"The input resource {resource.full_address} does not have a parent module, or we could not "
                     f"find the child module {config_module_name}."
                 )
@@ -567,7 +567,7 @@ def _resolve_resource_attribute(
 
 
 def _link_lambda_function_to_layer(
-    function_tf_resource: TFResource, cfn_functions: List[Dict], tf_layers: Dict[str, Dict]
+    function_tf_resource: TFResource, cfn_functions: List[Dict], tf_layers: Dict[str, Dict]  # type: ignore[type-arg]
 ) -> None:
     """
     Resolve the lambda layer for the input lambda function configuration resource, and then update the equivalent cfn
@@ -603,7 +603,7 @@ def _link_lambda_function_to_layer(
             "AWS SAM CLI does not support mapping the lambda function %s to more than one layer.",
             function_tf_resource.full_address,
         )
-        raise OneLambdaLayerLinkingLimitationException(layers, function_tf_resource.full_address)
+        raise OneLambdaLayerLinkingLimitationException(layers, function_tf_resource.full_address)  # type: ignore[no-untyped-call]
     if not layers:
         LOG.debug("There are no layers defined for lambda function %s", function_tf_resource.full_address)
     else:
@@ -613,7 +613,7 @@ def _link_lambda_function_to_layer(
 def _process_resolved_layers(
     function_tf_resource: TFResource,
     resolved_layers: List[Union[ConstantValue, ResolvedReference]],
-    tf_layers: Dict[str, Dict],
+    tf_layers: Dict[str, Dict],  # type: ignore[type-arg]
 ) -> List[Dict[str, str]]:
     """
     Process the resolved layers.
@@ -658,13 +658,13 @@ def _process_resolved_layers(
             "sources and other resources references. AWS SAM CLI could not determine this lambda functions layers.",
             function_tf_resource.full_address,
         )
-        raise OneLambdaLayerLinkingLimitationException(resolved_layers, function_tf_resource.full_address)
+        raise OneLambdaLayerLinkingLimitationException(resolved_layers, function_tf_resource.full_address)  # type: ignore[no-untyped-call]
 
     return layers
 
 
 def _process_reference_layer_value(
-    function_tf_resource: TFResource, resolved_layer: ResolvedReference, tf_layers: Dict[str, Dict]
+    function_tf_resource: TFResource, resolved_layer: ResolvedReference, tf_layers: Dict[str, Dict]  # type: ignore[type-arg]
 ) -> List[Dict[str, str]]:
     """
     Process the layer value of type ResolvedReference.
@@ -696,14 +696,14 @@ def _process_reference_layer_value(
     # resolved reference is a local variable
     if resolved_layer.value.startswith(TERRAFORM_LOCAL_VARIABLES_ADDRESS_PREFIX):
         LOG.debug("AWS SAM CLI could not process the Local variables %s", resolved_layer.value)
-        raise LocalVariablesLinkingLimitationException(resolved_layer.value, function_tf_resource.full_address)
+        raise LocalVariablesLinkingLimitationException(resolved_layer.value, function_tf_resource.full_address)  # type: ignore[no-untyped-call]
 
     # Valid Layer resource
     if resolved_layer.value.startswith(LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX):
         LOG.debug("Process the Layer version resource %s", resolved_layer.value)
         if not resolved_layer.value.endswith("arn"):
             LOG.debug("The used property in reference %s is not an ARN property", resolved_layer.value)
-            raise InvalidResourceLinkingException(
+            raise InvalidResourceLinkingException(  # type: ignore[no-untyped-call]
                 f"Could not use the value {resolved_layer.value} as a Layer for lambda function "
                 f"{function_tf_resource.full_address}. Lambda Function Layer value should refer to valid "
                 f"lambda layer ARN property"
@@ -728,7 +728,7 @@ def _process_reference_layer_value(
         return layers
     # it means the Lambda function is referring to a wrong layer resource type
     LOG.debug("The used reference %s is not a Layer Version resource.", resolved_layer.value)
-    raise InvalidResourceLinkingException(
+    raise InvalidResourceLinkingException(  # type: ignore[no-untyped-call]
         f"Could not use the value {resolved_layer.value} as a Layer for lambda function "
         f"{function_tf_resource.full_address}. Lambda Function Layer value should refer to valid lambda layer ARN "
         f"property"
@@ -736,9 +736,9 @@ def _process_reference_layer_value(
 
 
 def _update_mapped_lambda_function_with_resolved_layers(
-    cfn_functions: List[Dict],
+    cfn_functions: List[Dict],  # type: ignore[type-arg]
     layers: List[Dict[str, str]],
-    tf_layers: Dict[str, Dict],
+    tf_layers: Dict[str, Dict],  # type: ignore[type-arg]
 ) -> None:
     """
     Set The resolved layers list to the mapped lambda functions.

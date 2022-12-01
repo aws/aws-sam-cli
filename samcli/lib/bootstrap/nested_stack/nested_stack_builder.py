@@ -19,7 +19,7 @@ class NestedStackBuilder(AbstractStackBuilder):
     CFN/SAM Template creator for nested stack
     """
 
-    def __init__(self):
+    def __init__(self):  # type: ignore[no-untyped-def]
         super().__init__("AWS SAM CLI Nested Stack for Auto Dependency Layer Creation")
         self.add_metadata(CREATED_BY_METADATA_KEY, CREATED_BY_METADATA_VALUE)
 
@@ -59,7 +59,7 @@ class NestedStackBuilder(AbstractStackBuilder):
         )
 
     @staticmethod
-    def _get_layer_dict(function_logical_id: str, layer_name: str, layer_contents_folder: str, function_runtime: str):
+    def _get_layer_dict(function_logical_id: str, layer_name: str, layer_contents_folder: str, function_runtime: str):  # type: ignore[no-untyped-def]
         return {
             "Type": AWS_SERVERLESS_LAYERVERSION,
             "Properties": {
@@ -73,7 +73,7 @@ class NestedStackBuilder(AbstractStackBuilder):
         }
 
     @staticmethod
-    def get_nested_stack_reference_resource(nested_template_location):
+    def get_nested_stack_reference_resource(nested_template_location):  # type: ignore[no-untyped-def]
         return {
             "Type": AWS_CLOUDFORMATION_STACK,
             "DeletionPolicy": "Delete",
@@ -82,7 +82,7 @@ class NestedStackBuilder(AbstractStackBuilder):
         }
 
     @staticmethod
-    def _get_logical_id_compliant_str(function_logical_id: str):
+    def _get_logical_id_compliant_str(function_logical_id: str):  # type: ignore[no-untyped-def]
         """
         Removes all non-alphanumeric chars to make it usable for resource name definition
         https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/resources-section-structure.html

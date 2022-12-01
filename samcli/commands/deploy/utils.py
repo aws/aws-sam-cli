@@ -9,7 +9,7 @@ import copy
 import click
 
 
-def print_deploy_args(
+def print_deploy_args(  # type: ignore[no-untyped-def]
     stack_name,
     s3_bucket,
     image_repository,
@@ -84,7 +84,7 @@ def print_deploy_args(
     click.secho("\nInitiating deployment\n=====================", fg="yellow")
 
 
-def sanitize_parameter_overrides(parameter_overrides):
+def sanitize_parameter_overrides(parameter_overrides):  # type: ignore[no-untyped-def]
     """
     Get sanitized parameter override values based on if the workflow went via a guided deploy to set the
     parameter overrides for deployment. If a guided deploy was followed the parameter overrides consists
@@ -95,7 +95,7 @@ def sanitize_parameter_overrides(parameter_overrides):
     return {key: value.get("Value") if isinstance(value, dict) else value for key, value in parameter_overrides.items()}
 
 
-def hide_noecho_parameter_overrides(template_parameters, parameter_overrides):
+def hide_noecho_parameter_overrides(template_parameters, parameter_overrides):  # type: ignore[no-untyped-def]
     hidden_params = copy.deepcopy(parameter_overrides)
     params = template_parameters.get("Parameters", None)
     for key, value in hidden_params.items():

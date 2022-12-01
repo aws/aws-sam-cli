@@ -33,7 +33,7 @@ class Colored:
             Calls to methods like `red()` will simply return the input string.
     """
 
-    def __init__(self, colorize=True):
+    def __init__(self, colorize=True):  # type: ignore[no-untyped-def]
         """
         Initialize the object
 
@@ -44,35 +44,35 @@ class Colored:
         """
         self.colorize = colorize
 
-    def red(self, msg):
+    def red(self, msg):  # type: ignore[no-untyped-def]
         """Color the input red"""
-        return self._color(msg, "red")
+        return self._color(msg, "red")  # type: ignore[no-untyped-call]
 
-    def green(self, msg):
+    def green(self, msg):  # type: ignore[no-untyped-def]
         """Color the input green"""
-        return self._color(msg, "green")
+        return self._color(msg, "green")  # type: ignore[no-untyped-call]
 
-    def cyan(self, msg):
+    def cyan(self, msg):  # type: ignore[no-untyped-def]
         """Color the input cyan"""
-        return self._color(msg, "cyan")
+        return self._color(msg, "cyan")  # type: ignore[no-untyped-call]
 
-    def white(self, msg):
+    def white(self, msg):  # type: ignore[no-untyped-def]
         """Color the input white"""
-        return self._color(msg, "white")
+        return self._color(msg, "white")  # type: ignore[no-untyped-call]
 
-    def yellow(self, msg):
+    def yellow(self, msg):  # type: ignore[no-untyped-def]
         """Color the input yellow"""
-        return self._color(msg, "yellow")
+        return self._color(msg, "yellow")  # type: ignore[no-untyped-call]
 
-    def underline(self, msg):
+    def underline(self, msg):  # type: ignore[no-untyped-def]
         """Underline the input"""
         return click.style(msg, underline=True) if self.colorize else msg
 
-    def bold(self, msg):
+    def bold(self, msg):  # type: ignore[no-untyped-def]
         """Bold the input"""
         return click.style(msg, bold=True) if self.colorize else msg
 
-    def _color(self, msg, color):
+    def _color(self, msg, color):  # type: ignore[no-untyped-def]
         """Internal helper method to add colors to input"""
         kwargs = {"fg": color}
         return click.style(msg, **kwargs) if self.colorize else msg

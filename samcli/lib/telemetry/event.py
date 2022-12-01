@@ -84,10 +84,10 @@ class Event:
         self.event_value = event_value
         self.time_stamp = str(datetime.utcnow())[:-3]  # format microseconds from 6 -> 3 figures to allow SQL casting
 
-    def __eq__(self, other):
+    def __eq__(self, other):  # type: ignore[no-untyped-def]
         return self.event_name == other.event_name and self.event_value == other.event_value
 
-    def __repr__(self):
+    def __repr__(self):  # type: ignore[no-untyped-def]
         return (
             f"Event(event_name={self.event_name.value}, "
             f"event_value={self.event_value}, "
@@ -95,7 +95,7 @@ class Event:
             f"time_stamp={self.time_stamp})"
         )
 
-    def to_json(self):
+    def to_json(self):  # type: ignore[no-untyped-def]
         return {
             "event_name": self.event_name.value,
             "event_value": self.event_value,
@@ -127,7 +127,7 @@ class EventTracker:
     MAX_EVENTS: int = 50  # Maximum number of events to store before sending
 
     @staticmethod
-    def track_event(event_name: str, event_value: str):
+    def track_event(event_name: str, event_value: str):  # type: ignore[no-untyped-def]
         """Method to track an event where and when it occurs.
 
         Place this method in the codepath of the event that you would
@@ -180,7 +180,7 @@ class EventTracker:
             return EventTracker._events
 
     @staticmethod
-    def clear_trackers():
+    def clear_trackers():  # type: ignore[no-untyped-def]
         """Clear the current list of tracked Events before the next session."""
         with EventTracker._event_lock:
             EventTracker._events = []
@@ -193,7 +193,7 @@ class EventTracker:
         return send_thread
 
     @staticmethod
-    def _send_events_in_thread():
+    def _send_events_in_thread():  # type: ignore[no-untyped-def]
         """Send the current list of Events via Telemetry."""
         from samcli.lib.telemetry.metric import Metric  # pylint: disable=cyclic-import
 
@@ -203,17 +203,17 @@ class EventTracker:
             if not EventTracker._events:  # Don't do anything if there are no events to send
                 return
 
-            msa["events"] = [e.to_json() for e in EventTracker._events]
+            msa["events"] = [e.to_json() for e in EventTracker._events]  # type: ignore[no-untyped-call]
             EventTracker._events = []  # Manual clear_trackers() since we're within the lock
 
-        telemetry = Telemetry()
-        metric = Metric("events")
-        metric.add_data("sessionId", EventTracker._session_id)
-        metric.add_data("metricSpecificAttributes", msa)
-        telemetry.emit(metric)
+        telemetry = Telemetry()  # type: ignore[no-untyped-call]
+        metric = Metric("events")  # type: ignore[no-untyped-call]
+        metric.add_data("sessionId", EventTracker._session_id)  # type: ignore[no-untyped-call]
+        metric.add_data("metricSpecificAttributes", msa)  # type: ignore[no-untyped-call]
+        telemetry.emit(metric)  # type: ignore[no-untyped-call]
 
 
-def track_long_event(start_event_name: str, start_event_value: str, end_event_name: str, end_event_value: str):
+def track_long_event(start_event_name: str, start_event_value: str, end_event_name: str, end_event_value: str):  # type: ignore[no-untyped-def]
     """Decorator for tracking events that occur at start and end of a function.
 
     The decorator tracks two Events total, where the first Event occurs
@@ -266,10 +266,10 @@ def track_long_event(start_event_name: str, start_event_value: str, end_event_na
         LOG.debug("Error occurred while trying to track an event: %s\nDecorator not run.", e)
         should_track = False
 
-    def decorator_for_events(func):
+    def decorator_for_events(func):  # type: ignore[no-untyped-def]
         """The actual decorator"""
 
-        def wrapped(*args, **kwargs):
+        def wrapped(*args, **kwargs):  # type: ignore[no-untyped-def]
             # Track starting event
             if should_track:
                 EventTracker.track_event(start_event_name, start_event_value)

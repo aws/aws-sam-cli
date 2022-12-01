@@ -27,7 +27,7 @@ from samcli.commands.delete.exceptions import CfDeleteFailedStatusError
 from samcli.lib.package.artifact_exporter import Template
 from samcli.lib.package.ecr_uploader import ECRUploader
 from samcli.lib.package.uploaders import Uploaders
-from samcli.lib.bootstrap.companion_stack.companion_stack_builder import CompanionStack
+from samcli.lib.bootstrap.companion_stack.companion_stack_builder import CompanionStack  # type: ignore[attr-defined]
 
 CONFIG_COMMAND = "deploy"
 CONFIG_SECTION = "parameters"
@@ -66,8 +66,8 @@ class DeleteContext:
         self.delete_cf_template_file = None
         self.companion_stack_name = None
 
-    def __enter__(self):
-        self.parse_config_file()
+    def __enter__(self):  # type: ignore[no-untyped-def]
+        self.parse_config_file()  # type: ignore[no-untyped-call]
         if not self.stack_name:
             LOG.debug("No stack-name input found")
             if not self.no_prompts:
@@ -80,17 +80,17 @@ class DeleteContext:
                     message="Missing option '--stack-name', provide a stack name that needs to be deleted.",
                 )
 
-        self.init_clients()
+        self.init_clients()  # type: ignore[no-untyped-call]
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args):  # type: ignore[no-untyped-def]
         pass
 
-    def parse_config_file(self):
+    def parse_config_file(self):  # type: ignore[no-untyped-def]
         """
         Read the provided config file if it exists and assign the options values.
         """
-        toml_provider = TomlProvider(CONFIG_SECTION, [CONFIG_COMMAND])
+        toml_provider = TomlProvider(CONFIG_SECTION, [CONFIG_COMMAND])  # type: ignore[no-untyped-call]
         config_options = toml_provider(
             config_path=self.config_file, config_env=self.config_env, cmd_names=[CONFIG_COMMAND]
         )
@@ -112,7 +112,7 @@ class DeleteContext:
             if not self.s3_prefix:
                 self.s3_prefix = config_options.get("s3_prefix", None)
 
-    def init_clients(self):
+    def init_clients(self):  # type: ignore[no-untyped-def]
         """
         Initialize all the clients being used by sam delete.
         """
@@ -130,9 +130,9 @@ class DeleteContext:
                 )
 
         if self.profile:
-            Context.get_current_context().profile = self.profile
+            Context.get_current_context().profile = self.profile  # type: ignore[union-attr]
         if self.region:
-            Context.get_current_context().region = self.region
+            Context.get_current_context().region = self.region  # type: ignore[union-attr]
 
         boto_config = get_boto_config_with_user_agent()
 
@@ -144,14 +144,14 @@ class DeleteContext:
         s3_client = boto3.client("s3", region_name=self.region if self.region else None, config=boto_config)
         ecr_client = boto3.client("ecr", region_name=self.region if self.region else None, config=boto_config)
 
-        self.s3_uploader = S3Uploader(s3_client=s3_client, bucket_name=self.s3_bucket, prefix=self.s3_prefix)
+        self.s3_uploader = S3Uploader(s3_client=s3_client, bucket_name=self.s3_bucket, prefix=self.s3_prefix)  # type: ignore[arg-type, assignment]
 
-        self.ecr_uploader = ECRUploader(docker_client=None, ecr_client=ecr_client, ecr_repo=None, ecr_repo_multi=None)
+        self.ecr_uploader = ECRUploader(docker_client=None, ecr_client=ecr_client, ecr_repo=None, ecr_repo_multi=None)  # type: ignore[no-untyped-call, assignment]
 
-        self.uploaders = Uploaders(self.s3_uploader, self.ecr_uploader)
-        self.cf_utils = CfnUtils(cloudformation_client)
+        self.uploaders = Uploaders(self.s3_uploader, self.ecr_uploader)  # type: ignore[arg-type, arg-type, assignment]
+        self.cf_utils = CfnUtils(cloudformation_client)  # type: ignore[no-untyped-call, assignment]
 
-    def s3_prompts(self):
+    def s3_prompts(self):  # type: ignore[no-untyped-def]
         """
         Guided prompts asking user to delete s3 artifacts
         """
@@ -164,7 +164,7 @@ class DeleteContext:
 
         if not self.no_prompts and self.s3_bucket:
             if self.s3_prefix:
-                self.delete_artifacts_folder = confirm(
+                self.delete_artifacts_folder = confirm(  # type: ignore[assignment]
                     click.style(
                         "\tAre you sure you want to delete the folder"
                         f" {self.s3_prefix} in S3 which contains the artifacts?",
@@ -174,7 +174,7 @@ class DeleteContext:
                 )
             if not self.delete_artifacts_folder:
                 LOG.debug("S3 prefix not present or user does not want to delete the prefix folder")
-                self.delete_cf_template_file = confirm(
+                self.delete_cf_template_file = confirm(  # type: ignore[assignment]
                     click.style(
                         "\tDo you want to delete the template file" + f" {self.cf_template_file_name} in S3?", bold=True
                     ),
@@ -182,11 +182,11 @@ class DeleteContext:
                 )
         elif self.s3_bucket:
             if self.s3_prefix:
-                self.delete_artifacts_folder = True
+                self.delete_artifacts_folder = True  # type: ignore[assignment]
             else:
-                self.delete_cf_template_file = True
+                self.delete_cf_template_file = True  # type: ignore[assignment]
 
-    def ecr_companion_stack_prompts(self):
+    def ecr_companion_stack_prompts(self):  # type: ignore[no-untyped-def]
         """
         User prompt to delete the ECR companion stack.
         """
@@ -203,14 +203,14 @@ class DeleteContext:
             default=False,
         )
 
-    def ecr_repos_prompts(self, template: Template):
+    def ecr_repos_prompts(self, template: Template):  # type: ignore[no-untyped-def]
         """
         User prompts to delete the ECR repositories for the given template.
 
         :param template: Template to get the ECR repositories.
         """
         retain_repos = []
-        ecr_repos = template.get_ecr_repos()
+        ecr_repos = template.get_ecr_repos()  # type: ignore[no-untyped-call]
 
         if not self.no_prompts:
             for logical_id in ecr_repos:
@@ -230,22 +230,22 @@ class DeleteContext:
                     retain_repos.append(logical_id)
         return retain_repos
 
-    def delete_ecr_companion_stack(self):
+    def delete_ecr_companion_stack(self):  # type: ignore[no-untyped-def]
         """
         Delete the ECR companion stack and ECR repositories based
         on user input.
         """
-        delete_ecr_companion_stack_prompt = self.ecr_companion_stack_prompts()
+        delete_ecr_companion_stack_prompt = self.ecr_companion_stack_prompts()  # type: ignore[no-untyped-call]
         if delete_ecr_companion_stack_prompt or self.no_prompts:
-            cf_ecr_companion_stack = self.cf_utils.get_stack_template(self.companion_stack_name, TEMPLATE_STAGE)
+            cf_ecr_companion_stack = self.cf_utils.get_stack_template(self.companion_stack_name, TEMPLATE_STAGE)  # type: ignore[attr-defined]
             ecr_stack_template_str = cf_ecr_companion_stack.get("TemplateBody", None)
             ecr_stack_template_str = json.dumps(ecr_stack_template_str, indent=4, ensure_ascii=False)
 
             ecr_companion_stack_template = Template(
-                template_path=None,
-                parent_dir=None,
-                uploaders=self.uploaders,
-                code_signer=None,
+                template_path=None,  # type: ignore[arg-type]
+                parent_dir=None,  # type: ignore[arg-type]
+                uploaders=self.uploaders,  # type: ignore[arg-type]
+                code_signer=None,  # type: ignore[arg-type]
                 template_str=ecr_stack_template_str,
             )
 
@@ -257,59 +257,59 @@ class DeleteContext:
             try:
                 # If delete_stack fails and its status changes to DELETE_FAILED, retain
                 # the user input repositories and delete the stack.
-                self.cf_utils.delete_stack(stack_name=self.companion_stack_name)
-                self.cf_utils.wait_for_delete(stack_name=self.companion_stack_name)
+                self.cf_utils.delete_stack(stack_name=self.companion_stack_name)  # type: ignore[attr-defined]
+                self.cf_utils.wait_for_delete(stack_name=self.companion_stack_name)  # type: ignore[attr-defined]
                 LOG.debug("Deleted ECR Companion Stack: %s", self.companion_stack_name)
 
             except CfDeleteFailedStatusError:
                 LOG.debug("delete_stack resulted failed and so re-try with retain_resources")
-                self.cf_utils.delete_stack(stack_name=self.companion_stack_name, retain_resources=retain_repos)
-                self.cf_utils.wait_for_delete(stack_name=self.companion_stack_name)
+                self.cf_utils.delete_stack(stack_name=self.companion_stack_name, retain_resources=retain_repos)  # type: ignore[attr-defined]
+                self.cf_utils.wait_for_delete(stack_name=self.companion_stack_name)  # type: ignore[attr-defined]
 
-    def delete(self):
+    def delete(self):  # type: ignore[no-untyped-def]
         """
         Delete method calls for Cloudformation stacks and S3 and ECR artifacts
         """
         # Fetch the template using the stack-name
-        cf_template = self.cf_utils.get_stack_template(self.stack_name, TEMPLATE_STAGE)
+        cf_template = self.cf_utils.get_stack_template(self.stack_name, TEMPLATE_STAGE)  # type: ignore[attr-defined]
         template_str = cf_template.get("TemplateBody", None)
 
         if isinstance(template_str, dict):
             template_str = json.dumps(template_str, indent=4, ensure_ascii=False)
 
         # Get the cloudformation template name using template_str
-        self.cf_template_file_name = get_uploaded_s3_object_name(file_content=template_str, extension="template")
+        self.cf_template_file_name = get_uploaded_s3_object_name(file_content=template_str, extension="template")  # type: ignore[assignment]
 
         template = Template(
-            template_path=None,
-            parent_dir=None,
-            uploaders=self.uploaders,
-            code_signer=None,
+            template_path=None,  # type: ignore[arg-type]
+            parent_dir=None,  # type: ignore[arg-type]
+            uploaders=self.uploaders,  # type: ignore[arg-type]
+            code_signer=None,  # type: ignore[arg-type]
             template_str=template_str,
         )
 
         # If s3 info is not available, try to obtain it from CF
         # template resources.
         if not self.s3_bucket:
-            s3_info = template.get_s3_info()
+            s3_info = template.get_s3_info()  # type: ignore[no-untyped-call]
             self.s3_bucket = s3_info["s3_bucket"]
-            self.s3_uploader.bucket_name = self.s3_bucket
+            self.s3_uploader.bucket_name = self.s3_bucket  # type: ignore[attr-defined]
 
             self.s3_prefix = s3_info["s3_prefix"]
-            self.s3_uploader.prefix = self.s3_prefix
+            self.s3_uploader.prefix = self.s3_prefix  # type: ignore[attr-defined]
 
-        self.s3_prompts()
+        self.s3_prompts()  # type: ignore[no-untyped-call]
 
         retain_resources = self.ecr_repos_prompts(template)
 
         # ECR companion stack delete prompts, if it exists
         companion_stack = CompanionStack(self.stack_name)
 
-        ecr_companion_stack_exists = self.cf_utils.has_stack(stack_name=companion_stack.stack_name)
+        ecr_companion_stack_exists = self.cf_utils.has_stack(stack_name=companion_stack.stack_name)  # type: ignore[attr-defined]
         if ecr_companion_stack_exists:
             LOG.debug("ECR Companion stack found for the input stack")
             self.companion_stack_name = companion_stack.stack_name
-            self.delete_ecr_companion_stack()
+            self.delete_ecr_companion_stack()  # type: ignore[no-untyped-call]
 
         # Delete the artifacts and retain resources user selected not to delete
         template.delete(retain_resources=retain_resources)
@@ -325,14 +325,14 @@ class DeleteContext:
         # Delete the primary input stack
         try:
             click.echo(f"\t- Deleting Cloudformation stack {self.stack_name}")
-            self.cf_utils.delete_stack(stack_name=self.stack_name)
-            self.cf_utils.wait_for_delete(self.stack_name)
+            self.cf_utils.delete_stack(stack_name=self.stack_name)  # type: ignore[attr-defined]
+            self.cf_utils.wait_for_delete(self.stack_name)  # type: ignore[attr-defined]
             LOG.debug("Deleted Cloudformation stack: %s", self.stack_name)
 
         except CfDeleteFailedStatusError:
             LOG.debug("delete_stack resulted failed and so re-try with retain_resources")
-            self.cf_utils.delete_stack(stack_name=self.stack_name, retain_resources=retain_resources)
-            self.cf_utils.wait_for_delete(self.stack_name)
+            self.cf_utils.delete_stack(stack_name=self.stack_name, retain_resources=retain_resources)  # type: ignore[attr-defined]
+            self.cf_utils.wait_for_delete(self.stack_name)  # type: ignore[attr-defined]
 
         # Warn the user that s3 information is missing and to use --s3 options
         if not self.s3_bucket:
@@ -345,7 +345,7 @@ class DeleteContext:
                 fg="yellow",
             )
 
-    def run(self):
+    def run(self):  # type: ignore[no-untyped-def]
         """
         Delete the stack based on the argument provided by user and samconfig.toml.
         """
@@ -359,11 +359,11 @@ class DeleteContext:
             )
 
         if self.no_prompts or delete_stack:
-            is_deployed = self.cf_utils.has_stack(stack_name=self.stack_name)
+            is_deployed = self.cf_utils.has_stack(stack_name=self.stack_name)  # type: ignore[attr-defined]
             # Check if the provided stack-name exists
             if is_deployed:
                 LOG.debug("Input stack is deployed, continue deleting")
-                self.delete()
+                self.delete()  # type: ignore[no-untyped-call]
                 click.echo("\nDeleted successfully")
             else:
                 LOG.debug("Input stack does not exists on Cloudformation")

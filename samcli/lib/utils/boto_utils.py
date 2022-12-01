@@ -12,7 +12,7 @@ from samcli import __version__
 from samcli.cli.global_config import GlobalConfig
 
 
-def get_boto_config_with_user_agent(**kwargs) -> Config:
+def get_boto_config_with_user_agent(**kwargs) -> Config:  # type: ignore[no-untyped-def]
     """
     Automatically add user agent string to boto configs.
 
@@ -26,7 +26,7 @@ def get_boto_config_with_user_agent(**kwargs) -> Config:
     Config
         Returns config instance which contains given parameters in it
     """
-    gc = GlobalConfig()
+    gc = GlobalConfig()  # type: ignore[no-untyped-call]
     return Config(
         user_agent_extra=f"aws-sam-cli/{__version__}/{gc.installation_id}"
         if gc.telemetry_enabled
@@ -41,7 +41,7 @@ class BotoProviderType(Protocol):
         ...  # pragma: no cover
 
 
-def get_boto_client_provider_from_session_with_config(session: Session, **kwargs) -> BotoProviderType:
+def get_boto_client_provider_from_session_with_config(session: Session, **kwargs) -> BotoProviderType:  # type: ignore[no-untyped-def]
     """
     Returns a wrapper function for boto client with given configuration. It can be used like;
 
@@ -62,7 +62,7 @@ def get_boto_client_provider_from_session_with_config(session: Session, **kwargs
     return lambda client_name: session.client(client_name, config=get_boto_config_with_user_agent(**kwargs))
 
 
-def get_boto_client_provider_with_config(
+def get_boto_client_provider_with_config(  # type: ignore[no-untyped-def]
     region: Optional[str] = None, profile: Optional[str] = None, **kwargs
 ) -> BotoProviderType:
     """
@@ -89,7 +89,7 @@ def get_boto_client_provider_with_config(
     )
 
 
-def get_boto_resource_provider_from_session_with_config(session: Session, **kwargs) -> BotoProviderType:
+def get_boto_resource_provider_from_session_with_config(session: Session, **kwargs) -> BotoProviderType:  # type: ignore[no-untyped-def]
     """
     Returns a wrapper function for boto resource with given configuration. It can be used like;
 
@@ -110,7 +110,7 @@ def get_boto_resource_provider_from_session_with_config(session: Session, **kwar
     return lambda resource_name: session.resource(resource_name, config=get_boto_config_with_user_agent(**kwargs))
 
 
-def get_boto_resource_provider_with_config(
+def get_boto_resource_provider_with_config(  # type: ignore[no-untyped-def]
     region: Optional[str] = None, profile: Optional[str] = None, **kwargs
 ) -> BotoProviderType:
     """

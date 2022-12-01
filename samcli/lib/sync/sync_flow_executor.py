@@ -55,7 +55,7 @@ class SyncFlowFuture:
     """Data struct for SyncFlow futures"""
 
     sync_flow: SyncFlow
-    future: Future
+    future: Future  # type: ignore[type-arg]
 
 
 def default_exception_handler(sync_flow_exception: SyncFlowException) -> None:
@@ -112,7 +112,7 @@ class SyncFlowExecutor:
     Can be used with ThreadPoolExecutor or ProcessPoolExecutor with/without manager
     """
 
-    _flow_queue: Queue
+    _flow_queue: Queue  # type: ignore[type-arg]
     _flow_queue_lock: RLock
     _lock_distributor: LockDistributor
     _running_flag: bool
@@ -126,7 +126,7 @@ class SyncFlowExecutor:
         self._lock_distributor = LockDistributor(LockDistributorType.THREAD)
         self._running_flag = False
         self._flow_queue_lock = RLock()
-        self._color = Colored()
+        self._color = Colored()  # type: ignore[no-untyped-call]
         self._running_futures = set()
 
     def _add_sync_flow_task(self, task: SyncFlowTask) -> None:
@@ -234,7 +234,7 @@ class SyncFlowExecutor:
                 # Put it into deferred_tasks and add all of them at the end to avoid endless loop
                 if sync_flow_future:
                     self._running_futures.add(sync_flow_future)
-                    LOG.info(self._color.cyan(f"Syncing {sync_flow_future.sync_flow.log_name}..."))
+                    LOG.info(self._color.cyan(f"Syncing {sync_flow_future.sync_flow.log_name}..."))  # type: ignore[no-untyped-call]
                 else:
                     deferred_tasks.append(sync_flow_task)
 
@@ -310,7 +310,7 @@ class SyncFlowExecutor:
             sync_flow_result: SyncFlowResult = future.result()
             for dependent_sync_flow in sync_flow_result.dependent_sync_flows:
                 self.add_sync_flow(dependent_sync_flow)
-            LOG.info(self._color.green(f"Finished syncing {sync_flow_result.sync_flow.log_name}."))
+            LOG.info(self._color.green(f"Finished syncing {sync_flow_result.sync_flow.log_name}."))  # type: ignore[no-untyped-call]
         return True
 
     @staticmethod

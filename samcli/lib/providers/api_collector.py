@@ -22,7 +22,7 @@ class ApiCollector:
         self._routes: List[Route] = []
         self.binary_media_types_set: Set[str] = set()
         self.stage_name: Optional[str] = None
-        self.stage_variables: Optional[Dict] = None
+        self.stage_variables: Optional[Dict] = None  # type: ignore[type-arg]
         self.cors: Optional[Cors] = None
 
     def __iter__(self) -> Iterator[Tuple[str, List[Route]]]:
@@ -192,7 +192,7 @@ class ApiCollector:
                 LOG.debug("Unsupported data type of binary media type value of resource '%s'", logical_id)
 
     @staticmethod
-    def normalize_binary_media_type(value: Union[str, Dict]) -> Optional[str]:
+    def normalize_binary_media_type(value: Union[str, Dict]) -> Optional[str]:  # type: ignore[type-arg]
         """
         Converts binary media types values to the canonical format. Ex: image~1gif -> image/gif. If the value is not
         a string, then this method just returns None

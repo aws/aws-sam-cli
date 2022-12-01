@@ -3,8 +3,8 @@ from contextlib import ExitStack
 import logging
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
-import docker
-from docker.client import DockerClient
+import docker  # type: ignore[import]
+from docker.client import DockerClient  # type: ignore[import]
 
 from samcli.lib.providers.provider import Stack
 from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow, wait_for_function_update_complete
@@ -101,8 +101,8 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
             LOG.debug("%sGetting ECR Repo from Remote Function", self.log_prefix)
             function_result = self._lambda_client.get_function(FunctionName=function_physical_id)
             ecr_repo = function_result.get("Code", dict()).get("ImageUri", "").split(":")[0]
-        ecr_uploader = ECRUploader(self._docker_client, self._ecr_client, ecr_repo, None)
-        image_uri = ecr_uploader.upload(self._image_name, self._function_identifier)
+        ecr_uploader = ECRUploader(self._docker_client, self._ecr_client, ecr_repo, None)  # type: ignore[no-untyped-call]
+        image_uri = ecr_uploader.upload(self._image_name, self._function_identifier)  # type: ignore[no-untyped-call]
 
         with ExitStack() as exit_stack:
             if self.has_locks():

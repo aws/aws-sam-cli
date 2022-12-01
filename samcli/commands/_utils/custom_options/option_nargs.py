@@ -11,21 +11,21 @@ class OptionNargs(click.Option):
     for an option, when the number of arguments for an option are unknown.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):  # type: ignore[no-untyped-def]
         self.nargs = kwargs.pop("nargs", -1)
         super().__init__(*args, **kwargs)
         self._previous_parser_process = None
         self._nargs_parser = None
 
-    def add_to_parser(self, parser, ctx):
-        def parser_process(value, state):
+    def add_to_parser(self, parser, ctx):  # type: ignore[no-untyped-def]
+        def parser_process(value, state):  # type: ignore[no-untyped-def]
             # look ahead into arguments till we reach the next option.
             # the next option starts with a prefix which is either '-' or '--'
             next_option = False
             value = [value]
 
             while state.rargs and not next_option:
-                for prefix in self._nargs_parser.prefixes:
+                for prefix in self._nargs_parser.prefixes:  # type: ignore[union-attr]
                     if state.rargs[0].startswith(prefix):
                         next_option = True
                 if not next_option:
@@ -34,7 +34,7 @@ class OptionNargs(click.Option):
             value = tuple(value)
 
             # call the actual process
-            self._previous_parser_process(value, state)
+            self._previous_parser_process(value, state)  # type: ignore[misc]
 
         # Add current option to Parser by calling add_to_parser on the super class.
         super().add_to_parser(parser, ctx)

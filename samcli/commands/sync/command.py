@@ -96,8 +96,8 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 
 
 @click.command("sync", help=HELP_TEXT, short_help=SHORT_HELP)
-@configuration_option(provider=TomlProvider(section="parameters"))
-@template_option_without_build
+@configuration_option(provider=TomlProvider(section="parameters"))  # type: ignore[no-untyped-call, no-untyped-call, misc]
+@template_option_without_build  # type: ignore[misc]
 @click.option(
     "--code",
     is_flag=True,
@@ -129,30 +129,30 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
     help="This option separates the dependencies of individual function into another layer, for speeding up the sync."
     "process",
 )
-@stack_name_option(required=True)  # pylint: disable=E1120
-@base_dir_option
-@use_container_build_option
-@image_repository_option
-@image_repositories_option
-@s3_bucket_option(disable_callback=True)  # pylint: disable=E1120
-@s3_prefix_option
-@kms_key_id_option
-@role_arn_option
-@parameter_override_option
-@cli_framework_options
-@aws_creds_options
-@metadata_option
-@notification_arns_option
-@tags_option
-@capabilities_option(default=DEFAULT_CAPABILITIES)  # pylint: disable=E1120
+@stack_name_option(required=True)  # type: ignore[misc] # pylint: disable=E1120
+@base_dir_option  # type: ignore[misc]
+@use_container_build_option  # type: ignore[misc]
+@image_repository_option  # type: ignore[misc]
+@image_repositories_option  # type: ignore[misc]
+@s3_bucket_option(disable_callback=True)  # type: ignore[misc] # pylint: disable=E1120
+@s3_prefix_option  # type: ignore[misc]
+@kms_key_id_option  # type: ignore[misc]
+@role_arn_option  # type: ignore[misc]
+@parameter_override_option  # type: ignore[misc]
+@cli_framework_options  # type: ignore[misc]
+@aws_creds_options  # type: ignore[misc]
+@metadata_option  # type: ignore[misc]
+@notification_arns_option  # type: ignore[misc]
+@tags_option  # type: ignore[misc]
+@capabilities_option(default=DEFAULT_CAPABILITIES)  # type: ignore[misc] # pylint: disable=E1120
 @pass_context
-@track_command
-@track_long_event("SyncUsed", "Start", "SyncUsed", "End")
-@image_repository_validation
-@track_template_warnings([CodeDeployWarning.__name__, CodeDeployConditionWarning.__name__])
-@check_newer_version
-@print_cmdline_args
-@unsupported_command_cdk()
+@track_command  # type: ignore[misc]
+@track_long_event("SyncUsed", "Start", "SyncUsed", "End")  # type: ignore[misc]
+@image_repository_validation  # type: ignore[misc]
+@track_template_warnings([CodeDeployWarning.__name__, CodeDeployConditionWarning.__name__])  # type: ignore[no-untyped-call, misc]
+@check_newer_version  # type: ignore[misc]
+@print_cmdline_args  # type: ignore[misc]
+@unsupported_command_cdk()  # type: ignore[no-untyped-call, misc]
 def cli(
     ctx: Context,
     template_file: str,
@@ -163,7 +163,7 @@ def cli(
     dependency_layer: bool,
     stack_name: str,
     base_dir: Optional[str],
-    parameter_overrides: dict,
+    parameter_overrides: dict,  # type: ignore[type-arg]
     image_repository: str,
     image_repositories: Optional[Tuple[str]],
     s3_bucket: str,
@@ -172,8 +172,8 @@ def cli(
     capabilities: Optional[List[str]],
     role_arn: Optional[str],
     notification_arns: Optional[List[str]],
-    tags: dict,
-    metadata: dict,
+    tags: dict,  # type: ignore[type-arg]
+    metadata: dict,  # type: ignore[type-arg]
     use_container: bool,
     config_file: str,
     config_env: str,
@@ -224,7 +224,7 @@ def do_cli(
     region: str,
     profile: str,
     base_dir: Optional[str],
-    parameter_overrides: dict,
+    parameter_overrides: dict,  # type: ignore[type-arg]
     mode: Optional[str],
     image_repository: str,
     image_repositories: Optional[Tuple[str]],
@@ -234,8 +234,8 @@ def do_cli(
     capabilities: Optional[List[str]],
     role_arn: Optional[str],
     notification_arns: Optional[List[str]],
-    tags: dict,
-    metadata: dict,
+    tags: dict,  # type: ignore[type-arg]
+    metadata: dict,  # type: ignore[type-arg]
     use_container: bool,
     config_file: str,
     config_env: str,
@@ -249,15 +249,15 @@ def do_cli(
     from samcli.commands.package.package_context import PackageContext
     from samcli.commands.deploy.deploy_context import DeployContext
 
-    global_config = GlobalConfig()
+    global_config = GlobalConfig()  # type: ignore[no-untyped-call]
     if not global_config.is_accelerate_opt_in_stack(template_file, stack_name):
-        if not click.confirm(Colored().yellow(SYNC_INFO_TEXT + SYNC_CONFIRMATION_TEXT), default=True):
+        if not click.confirm(Colored().yellow(SYNC_INFO_TEXT + SYNC_CONFIRMATION_TEXT), default=True):  # type: ignore[no-untyped-call, no-untyped-call]
             return
         global_config.set_accelerate_opt_in_stack(template_file, stack_name)
     else:
-        LOG.info(Colored().yellow(SYNC_INFO_TEXT))
+        LOG.info(Colored().yellow(SYNC_INFO_TEXT))  # type: ignore[no-untyped-call, no-untyped-call]
 
-    s3_bucket_name = s3_bucket or manage_stack(profile=profile, region=region)
+    s3_bucket_name = s3_bucket or manage_stack(profile=profile, region=region)  # type: ignore[no-untyped-call]
 
     if dependency_layer is True:
         dependency_layer = check_enable_dependency_layer(template_file)
@@ -294,7 +294,7 @@ def do_cli(
         built_template = os.path.join(build_dir, DEFAULT_TEMPLATE_NAME)
 
         with osutils.tempfile_platform_independent() as output_template_file:
-            with PackageContext(
+            with PackageContext(  # type: ignore[no-untyped-call]
                 template_file=built_template,
                 s3_bucket=s3_bucket_name,
                 image_repository=image_repository,
@@ -319,7 +319,7 @@ def do_cli(
                 if poll_delay <= 0:
                     poll_delay = DEFAULT_POLL_DELAY
 
-                with DeployContext(
+                with DeployContext(  # type: ignore[no-untyped-call]
                     template_file=output_template_file.name,
                     stack_name=stack_name,
                     s3_bucket=s3_bucket_name,
@@ -375,11 +375,11 @@ def execute_infra_contexts(
         DeployContext
     """
     LOG.debug("Executing the build using build context.")
-    build_context.run()
+    build_context.run()  # type: ignore[no-untyped-call]
     LOG.debug("Executing the packaging using package context.")
-    package_context.run()
+    package_context.run()  # type: ignore[no-untyped-call]
     LOG.debug("Executing the deployment using deploy context.")
-    deploy_context.run()
+    deploy_context.run()  # type: ignore[no-untyped-call]
 
 
 def execute_code_sync(
@@ -427,7 +427,7 @@ def execute_code_sync(
     executor.execute()
 
 
-def execute_watch(
+def execute_watch(  # type: ignore[no-untyped-def]
     template: str,
     build_context: "BuildContext",
     package_context: "PackageContext",
@@ -454,7 +454,7 @@ def execute_watch(
     watch_manager.start()
 
 
-def check_enable_dependency_layer(template_file: str):
+def check_enable_dependency_layer(template_file: str):  # type: ignore[no-untyped-def]
     """
     Check if auto dependency layer should be enabled
     :param template_file: template file string

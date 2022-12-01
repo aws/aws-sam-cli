@@ -19,7 +19,7 @@ class XRayServiceGraphPuller(AbstractXRayPuller):
     """
 
     def __init__(
-        self, xray_client: Any, consumer: ObservabilityEventConsumer, max_retries: int = 1000, poll_interval: int = 1
+        self, xray_client: Any, consumer: ObservabilityEventConsumer, max_retries: int = 1000, poll_interval: int = 1  # type: ignore[type-arg]
     ):
         """
         Parameters
@@ -38,7 +38,7 @@ class XRayServiceGraphPuller(AbstractXRayPuller):
         self.consumer = consumer
         self._previous_xray_service_graphs: Set[str] = set()
 
-    def load_time_period(
+    def load_time_period(  # type: ignore[no-untyped-def]
         self,
         start_time: Optional[datetime] = None,
         end_time: Optional[datetime] = None,
@@ -57,16 +57,16 @@ class XRayServiceGraphPuller(AbstractXRayPuller):
                 # update latest fetched event
                 event_end_time = result.get("EndTime", None)
                 if event_end_time:
-                    utc_end_time = to_utc(event_end_time)
-                    latest_event_time = utc_to_timestamp(utc_end_time)
+                    utc_end_time = to_utc(event_end_time)  # type: ignore[no-untyped-call]
+                    latest_event_time = utc_to_timestamp(utc_end_time)  # type: ignore[no-untyped-call]
                     if latest_event_time > self.latest_event_time:
                         self.latest_event_time = latest_event_time + 1
 
                 self._had_data = True
                 xray_service_graph_event = XRayServiceGraphEvent(result)
-                if xray_service_graph_event.get_hash() not in self._previous_xray_service_graphs:
+                if xray_service_graph_event.get_hash() not in self._previous_xray_service_graphs:  # type: ignore[no-untyped-call]
                     self.consumer.consume(xray_service_graph_event)
-                self._previous_xray_service_graphs.add(xray_service_graph_event.get_hash())
+                self._previous_xray_service_graphs.add(xray_service_graph_event.get_hash())  # type: ignore[no-untyped-call]
 
-    def load_events(self, event_ids: Union[List[Any], Dict]):
+    def load_events(self, event_ids: Union[List[Any], Dict]):  # type: ignore[no-untyped-def, type-arg]
         LOG.debug("Loading specific service graph events are not supported via XRay Service Graph")

@@ -28,7 +28,7 @@ $ sam traces --tail
 
 
 @click.command("traces", help=HELP_TEXT, short_help="Fetch AWS X-Ray traces")
-@configuration_option(provider=TomlProvider(section="parameters"))
+@configuration_option(provider=TomlProvider(section="parameters"))  # type: ignore[no-untyped-call, no-untyped-call]
 @click.option(
     "--trace-id",
     "-ti",
@@ -43,7 +43,7 @@ $ sam traces --tail
 @check_newer_version
 @print_cmdline_args
 @command_exception_handler
-def cli(
+def cli(  # type: ignore[no-untyped-def]
     ctx,
     trace_id,
     start_time,
@@ -56,10 +56,10 @@ def cli(
     """
     `sam traces` command entry point
     """
-    do_cli(trace_id, start_time, end_time, tail, output, ctx.region)
+    do_cli(trace_id, start_time, end_time, tail, output, ctx.region)  # type: ignore[no-untyped-call]
 
 
-def do_cli(trace_ids, start_time, end_time, tailing, output, region):
+def do_cli(trace_ids, start_time, end_time, tailing, output, region):  # type: ignore[no-untyped-def]
     """
     Implementation of the ``cli`` method
     """

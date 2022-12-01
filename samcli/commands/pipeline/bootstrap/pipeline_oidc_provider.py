@@ -15,7 +15,7 @@ class PipelineOidcProvider:
     CLIENT_ID_PARAMETER = "oidc-client-id"
     OPENID_CONNECT = "OpenID Connect (OIDC)"
 
-    def __init__(self, oidc_parameters: dict, oidc_parameter_names: List[str], oidc_provider_name: str) -> None:
+    def __init__(self, oidc_parameters: dict, oidc_parameter_names: List[str], oidc_provider_name: str) -> None:  # type: ignore[type-arg]
         self.oidc_parameters = oidc_parameters
         self.oidc_parameter_names = [self.PROVIDER_URL_PARAMETER, self.CLIENT_ID_PARAMETER] + oidc_parameter_names
         self.oidc_provider_name = oidc_provider_name
@@ -38,14 +38,14 @@ class PipelineOidcProvider:
         Saves provided values into config file so they can be reused for future calls to bootstrap
         """
         for parameter_name in self.oidc_parameter_names:
-            samconfig.put(
+            samconfig.put(  # type: ignore[no-untyped-call]
                 cmd_names=cmd_names,
                 section=section,
                 key=parameter_name.replace("-", "_"),
                 value=self.oidc_parameters[parameter_name],
             )
-        samconfig.put(cmd_names=cmd_names, section=section, key="oidc_provider", value=self.oidc_provider_name)
-        samconfig.put(cmd_names=cmd_names, section=section, key="permissions_provider", value=self.OPENID_CONNECT)
+        samconfig.put(cmd_names=cmd_names, section=section, key="oidc_provider", value=self.oidc_provider_name)  # type: ignore[no-untyped-call]
+        samconfig.put(cmd_names=cmd_names, section=section, key="permissions_provider", value=self.OPENID_CONNECT)  # type: ignore[no-untyped-call]
 
     @abstractmethod
     def get_subject_claim(self) -> str:
@@ -67,7 +67,7 @@ class GitHubOidcProvider(PipelineOidcProvider):
     GITHUB_REPO_PARAMETER_NAME = "github-repo"
     DEPLOYMENT_BRANCH_PARAMETER_NAME = "deployment-branch"
 
-    def __init__(self, subject_claim_parameters: dict, oidc_parameters: dict) -> None:
+    def __init__(self, subject_claim_parameters: dict, oidc_parameters: dict) -> None:  # type: ignore[type-arg]
         all_oidc_parameters = {**oidc_parameters, **subject_claim_parameters}
         all_oidc_parameter_names = [
             self.GITHUB_ORG_PARAMETER_NAME,
@@ -106,7 +106,7 @@ class GitLabOidcProvider(PipelineOidcProvider):
     GITLAB_GROUP_PARAMETER_NAME = "gitlab-group"
     DEPLOYMENT_BRANCH_PARAMETER_NAME = "deployment-branch"
 
-    def __init__(self, subject_claim_parameters: dict, oidc_parameters: dict) -> None:
+    def __init__(self, subject_claim_parameters: dict, oidc_parameters: dict) -> None:  # type: ignore[type-arg]
         all_oidc_parameters = {**oidc_parameters, **subject_claim_parameters}
         all_oidc_parameter_names = [
             self.GITLAB_PROJECT_PARAMETER_NAME,
@@ -143,7 +143,7 @@ class BitbucketOidcProvider(PipelineOidcProvider):
 
     BITBUCKET_REPO_UUID_PARAMETER_NAME = "bitbucket-repo-uuid"
 
-    def __init__(self, subject_claim_parameters: dict, oidc_parameters: dict) -> None:
+    def __init__(self, subject_claim_parameters: dict, oidc_parameters: dict) -> None:  # type: ignore[type-arg]
         all_oidc_parameters = {**oidc_parameters, **subject_claim_parameters}
         all_oidc_parameter_names = [
             self.BITBUCKET_REPO_UUID_PARAMETER_NAME,

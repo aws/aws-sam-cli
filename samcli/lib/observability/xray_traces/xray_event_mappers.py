@@ -47,7 +47,7 @@ id ({event.id}) and duration ({event.duration:.3f}s)"
         """
         formatted_str = ""
         for segment in segments:
-            formatted_str += f"\n{'  ' * level} - {segment.get_duration():.3f}s - {segment.name}"
+            formatted_str += f"\n{'  ' * level} - {segment.get_duration():.3f}s - {segment.name}"  # type: ignore[no-untyped-call]
             if segment.http_status:
                 formatted_str += f" [HTTP: {segment.http_status}]"
             formatted_str += self.format_segments(segment.sub_segments, (level + 1))
@@ -111,7 +111,7 @@ class XRayServiceGraphConsoleMapper(ObservabilityEventMapper[XRayServiceGraphEve
         return str(edge_ids)
 
     @staticmethod
-    def format_summary_statistics(service: XRayGraphServiceInfo, level) -> str:
+    def format_summary_statistics(service: XRayGraphServiceInfo, level) -> str:  # type: ignore[no-untyped-def]
         """
         Prints given summary statistics information back to console.
 
@@ -140,29 +140,29 @@ class XRayServiceGraphJSONMapper(ObservabilityEventMapper[XRayServiceGraphEvent]
     def map(self, event: XRayServiceGraphEvent) -> XRayServiceGraphEvent:
         mapped_event = deepcopy(event.event)
 
-        self._convert_start_and_end_time_to_iso(mapped_event)
+        self._convert_start_and_end_time_to_iso(mapped_event)  # type: ignore[no-untyped-call]
         services = mapped_event.get("Services", [])
         for service in services:
-            self._convert_start_and_end_time_to_iso(service)
+            self._convert_start_and_end_time_to_iso(service)  # type: ignore[no-untyped-call]
             edges = service.get("Edges", [])
             for edge in edges:
-                self._convert_start_and_end_time_to_iso(edge)
+                self._convert_start_and_end_time_to_iso(edge)  # type: ignore[no-untyped-call]
 
         event.event = mapped_event
         event.message = json.dumps(mapped_event)
         return event
 
-    def _convert_start_and_end_time_to_iso(self, event):
-        self.convert_event_datetime_to_iso(event, "StartTime")
-        self.convert_event_datetime_to_iso(event, "EndTime")
+    def _convert_start_and_end_time_to_iso(self, event):  # type: ignore[no-untyped-def]
+        self.convert_event_datetime_to_iso(event, "StartTime")  # type: ignore[no-untyped-call]
+        self.convert_event_datetime_to_iso(event, "EndTime")  # type: ignore[no-untyped-call]
 
-    def convert_event_datetime_to_iso(self, event, datetime_key):
+    def convert_event_datetime_to_iso(self, event, datetime_key):  # type: ignore[no-untyped-def]
         event_datetime = event.get(datetime_key, None)
         if event_datetime:
-            event[datetime_key] = self.convert_local_datetime_to_iso(event_datetime)
+            event[datetime_key] = self.convert_local_datetime_to_iso(event_datetime)  # type: ignore[no-untyped-call]
 
     @staticmethod
-    def convert_local_datetime_to_iso(local_datetime):
-        utc_datetime = to_utc(local_datetime)
-        time_stamp = utc_to_timestamp(utc_datetime)
-        return timestamp_to_iso(time_stamp)
+    def convert_local_datetime_to_iso(local_datetime):  # type: ignore[no-untyped-def]
+        utc_datetime = to_utc(local_datetime)  # type: ignore[no-untyped-call]
+        time_stamp = utc_to_timestamp(utc_datetime)  # type: ignore[no-untyped-call]
+        return timestamp_to_iso(time_stamp)  # type: ignore[no-untyped-call]

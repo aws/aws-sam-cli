@@ -25,7 +25,7 @@ def get_git_remote_origin_url() -> Optional[str]:
         If telemetry is opted out of by the user, or the `.git` folder is not found
         (the directory is not a git repository), returns None
     """
-    if not bool(GlobalConfig().telemetry_enabled):
+    if not bool(GlobalConfig().telemetry_enabled):  # type: ignore[no-untyped-call]
         return None
 
     git_url = None
@@ -52,7 +52,7 @@ def get_project_name() -> Optional[str]:
         current working directory that the command is running in.
         If telemetry is opted out of by the user, returns None
     """
-    if not bool(GlobalConfig().telemetry_enabled):
+    if not bool(GlobalConfig().telemetry_enabled):  # type: ignore[no-untyped-call]
         return None
 
     project_name = None
@@ -84,7 +84,7 @@ def get_initial_commit_hash() -> Optional[str]:
         If telemetry is opted out of by the user, or the `.git` folder is not found
         (the directory is not a git repository), returns None.
     """
-    if not bool(GlobalConfig().telemetry_enabled):
+    if not bool(GlobalConfig().telemetry_enabled):  # type: ignore[no-untyped-call]
         return None
 
     metadata = None

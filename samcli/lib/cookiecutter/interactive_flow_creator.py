@@ -1,6 +1,6 @@
 """ This module parses a json/yaml file that defines a flow of questions to fulfill the cookiecutter context"""
 from typing import Dict, Optional, Tuple
-import yaml
+import yaml  # type: ignore[import]
 from samcli.commands.exceptions import UserException
 from samcli.yamlhelper import parse_yaml_file
 from .interactive_flow import InteractiveFlow
@@ -17,7 +17,7 @@ class QuestionsFailedParsingException(UserException):
 
 class InteractiveFlowCreator:
     @staticmethod
-    def create_flow(flow_definition_path: str, extra_context: Optional[Dict] = None) -> InteractiveFlow:
+    def create_flow(flow_definition_path: str, extra_context: Optional[Dict] = None) -> InteractiveFlow:  # type: ignore[type-arg]
         """
         This method parses the given json/yaml file to create an InteractiveFLow. It expects the file to define
         a list of questions. It parses the questions and add it to the flow in the same order they are defined
@@ -69,7 +69,7 @@ class InteractiveFlowCreator:
 
     @staticmethod
     def _load_questions(
-        flow_definition_path: str, extra_context: Optional[Dict] = None
+        flow_definition_path: str, extra_context: Optional[Dict] = None  # type: ignore[type-arg]
     ) -> Tuple[Dict[str, Question], str]:
         previous_question: Optional[Question] = None
         first_question_key: str = ""
@@ -87,10 +87,10 @@ class InteractiveFlowCreator:
                 previous_question = q
             return questions, first_question_key
         except (KeyError, ValueError, AttributeError, TypeError) as ex:
-            raise QuestionsFailedParsingException(f"Failed to parse questions: {str(ex)}") from ex
+            raise QuestionsFailedParsingException(f"Failed to parse questions: {str(ex)}") from ex  # type: ignore[no-untyped-call]
 
     @staticmethod
-    def _parse_questions_definition(file_path: str, extra_context: Optional[Dict] = None) -> Dict:
+    def _parse_questions_definition(file_path: str, extra_context: Optional[Dict] = None) -> Dict:  # type: ignore[type-arg]
         """
         Read the questions definition file, do variable substitution, parse it as JSON/YAML
 
@@ -114,6 +114,6 @@ class InteractiveFlowCreator:
         try:
             return parse_yaml_file(file_path=file_path, extra_context=extra_context)
         except FileNotFoundError as ex:
-            raise QuestionsNotFoundException(f"questions definition file not found at {file_path}") from ex
+            raise QuestionsNotFoundException(f"questions definition file not found at {file_path}") from ex  # type: ignore[no-untyped-call]
         except (KeyError, ValueError, yaml.YAMLError) as ex:
-            raise QuestionsFailedParsingException(f"Failed to parse questions: {str(ex)}") from ex
+            raise QuestionsFailedParsingException(f"Failed to parse questions: {str(ex)}") from ex  # type: ignore[no-untyped-call]

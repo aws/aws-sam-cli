@@ -8,7 +8,7 @@ import logging
 import zipfile
 from pathlib import Path
 
-import requests
+import requests  # type: ignore[import]
 
 from samcli.lib.utils.progressbar import progressbar
 
@@ -18,7 +18,7 @@ LOG = logging.getLogger(__name__)
 S_IFLNK = 0xA
 
 
-def _is_symlink(file_info):
+def _is_symlink(file_info):  # type: ignore[no-untyped-def]
     """
     Check the upper 4 bits of the external attribute for a symlink.
     See: https://unix.stackexchange.com/questions/14705/the-zip-formats-external-file-attribute
@@ -37,7 +37,7 @@ def _is_symlink(file_info):
     return (file_info.external_attr >> 28) == 0xA
 
 
-def _extract(file_info, output_dir, zip_ref):
+def _extract(file_info, output_dir, zip_ref):  # type: ignore[no-untyped-def]
     """
     Unzip the given file into the given directory while preserving file permissions in the process.
 
@@ -57,7 +57,7 @@ def _extract(file_info, output_dir, zip_ref):
     """
 
     # Handle any regular file/directory entries
-    if not _is_symlink(file_info):
+    if not _is_symlink(file_info):  # type: ignore[no-untyped-call]
         return zip_ref.extract(file_info, output_dir)
 
     source = zip_ref.read(file_info.filename).decode("utf8")
@@ -78,7 +78,7 @@ def _extract(file_info, output_dir, zip_ref):
     return link_name
 
 
-def unzip(zip_file_path, output_dir, permission=None):
+def unzip(zip_file_path, output_dir, permission=None):  # type: ignore[no-untyped-def]
     """
     Unzip the given file into the given directory while preserving file permissions in the process.
 
@@ -96,19 +96,19 @@ def unzip(zip_file_path, output_dir, permission=None):
 
         # For each item in the zip file, extract the file and set permissions if available
         for file_info in zip_ref.infolist():
-            extracted_path = _extract(file_info, output_dir, zip_ref)
+            extracted_path = _extract(file_info, output_dir, zip_ref)  # type: ignore[no-untyped-call]
 
             # If the extracted_path is a symlink, do not set the permissions. If the target of the symlink does not
             # exist, then os.chmod will fail with FileNotFoundError
             if not os.path.islink(extracted_path):
-                _set_permissions(file_info, extracted_path)
-                _override_permissions(extracted_path, permission)
+                _set_permissions(file_info, extracted_path)  # type: ignore[no-untyped-call]
+                _override_permissions(extracted_path, permission)  # type: ignore[no-untyped-call]
 
     if not os.path.islink(extracted_path):
-        _override_permissions(output_dir, permission)
+        _override_permissions(output_dir, permission)  # type: ignore[no-untyped-call]
 
 
-def _override_permissions(path, permission):
+def _override_permissions(path, permission):  # type: ignore[no-untyped-def]
     """
     Forcefully override the permissions on the path
 
@@ -124,7 +124,7 @@ def _override_permissions(path, permission):
         os.chmod(path, permission)
 
 
-def _set_permissions(zip_file_info, extracted_path):
+def _set_permissions(zip_file_info, extracted_path):  # type: ignore[no-untyped-def]
     """
     Sets permissions on the extracted file by reading the ``external_attr`` property of given file info.
 
@@ -148,7 +148,7 @@ def _set_permissions(zip_file_info, extracted_path):
     os.chmod(extracted_path, permission)
 
 
-def unzip_from_uri(uri, layer_zip_path, unzip_output_dir, progressbar_label):
+def unzip_from_uri(uri, layer_zip_path, unzip_output_dir, progressbar_label):  # type: ignore[no-untyped-def]
     """
     Download the LayerVersion Zip to the Layer Pkg Cache
 
@@ -169,7 +169,7 @@ def unzip_from_uri(uri, layer_zip_path, unzip_output_dir, progressbar_label):
         with open(layer_zip_path, "wb") as local_layer_file:
             file_length = int(get_request.headers["Content-length"])
 
-            with progressbar(file_length, progressbar_label) as p_bar:
+            with progressbar(file_length, progressbar_label) as p_bar:  # type: ignore[no-untyped-call]
                 # Set the chunk size to None. Since we are streaming the request, None will allow the data to be
                 # read as it arrives in whatever size the chunks are received.
                 for data in get_request.iter_content(chunk_size=None):
@@ -178,7 +178,7 @@ def unzip_from_uri(uri, layer_zip_path, unzip_output_dir, progressbar_label):
 
         # Forcefully set the permissions to 700 on files and directories. This is to ensure the owner
         # of the files is the only one that can read, write, or execute the files.
-        unzip(layer_zip_path, unzip_output_dir, permission=0o700)
+        unzip(layer_zip_path, unzip_output_dir, permission=0o700)  # type: ignore[no-untyped-call]
 
     finally:
         # Remove the downloaded zip file

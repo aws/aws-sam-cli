@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 
 import click
-from requests import get
+from requests import get  # type: ignore[import]
 from samcli import __version__ as installed_version
 from samcli.cli.global_config import GlobalConfig
 
@@ -20,7 +20,7 @@ PYPI_CALL_TIMEOUT_IN_SECONDS = 5
 DELTA_DAYS = 7
 
 
-def check_newer_version(func):
+def check_newer_version(func):  # type: ignore[no-untyped-def]
     """
     This function returns a wrapped function definition, which checks if there are newer version of SAM CLI available
 
@@ -36,7 +36,7 @@ def check_newer_version(func):
     """
 
     @wraps(func)
-    def wrapped(*args, **kwargs):
+    def wrapped(*args, **kwargs):  # type: ignore[no-untyped-def]
         # execute actual command first
         actual_result = func(*args, **kwargs)
         # check and inform newer version if it is available
@@ -47,7 +47,7 @@ def check_newer_version(func):
     return wrapped
 
 
-def _inform_newer_version(force_check=False) -> None:
+def _inform_newer_version(force_check=False) -> None:  # type: ignore[no-untyped-def]
     """
     Compares installed SAM CLI version with the up to date version from PyPi,
     and print information if up to date version is different then what is installed now
@@ -65,7 +65,7 @@ def _inform_newer_version(force_check=False) -> None:
     global_config = None
     need_to_update_last_check_time = True
     try:
-        global_config = GlobalConfig()
+        global_config = GlobalConfig()  # type: ignore[no-untyped-call]
         last_version_check = global_config.last_version_check
 
         if force_check or is_version_check_overdue(last_version_check):
@@ -99,13 +99,13 @@ def update_last_check_time() -> None:
     Update last_check_time in GlobalConfig
     """
     try:
-        gc = GlobalConfig()
+        gc = GlobalConfig()  # type: ignore[no-untyped-call]
         gc.last_version_check = datetime.utcnow().timestamp()
     except Exception as e:
         LOG.debug("Updating last version check time was failed", exc_info=e)
 
 
-def is_version_check_overdue(last_version_check) -> bool:
+def is_version_check_overdue(last_version_check) -> bool:  # type: ignore[no-untyped-def]
     """
     Check if last version check have been made longer then a week ago
 

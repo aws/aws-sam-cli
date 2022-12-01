@@ -5,7 +5,7 @@ from samcli.commands.exceptions import UserException
 
 
 class InvalidLocalPathError(UserException):
-    def __init__(self, resource_id, property_name, local_path):
+    def __init__(self, resource_id, property_name, local_path):  # type: ignore[no-untyped-def]
         self.resource_id = resource_id
         self.property_name = property_name
         self.local_path = local_path
@@ -13,7 +13,7 @@ class InvalidLocalPathError(UserException):
             "Parameter {property_name} of resource {resource_id} refers "
             "to a file or folder that does not exist {local_path}"
         )
-        super().__init__(
+        super().__init__(  # type: ignore[no-untyped-call]
             message=message_fmt.format(
                 resource_id=self.resource_id, property_name=self.property_name, local_path=self.local_path
             )
@@ -21,7 +21,7 @@ class InvalidLocalPathError(UserException):
 
 
 class InvalidTemplateUrlParameterError(UserException):
-    def __init__(self, resource_id, property_name, template_path):
+    def __init__(self, resource_id, property_name, template_path):  # type: ignore[no-untyped-def]
         self.resource_id = resource_id
         self.property_name = property_name
         self.template_path = template_path
@@ -31,7 +31,7 @@ class InvalidTemplateUrlParameterError(UserException):
             "It must be a S3 URL or path to CloudFormation "
             "template file. Actual: {template_path}"
         )
-        super().__init__(
+        super().__init__(  # type: ignore[no-untyped-call]
             message=message_fmt.format(
                 property_name=self.property_name, resource_id=self.resource_id, template_path=self.template_path
             )
@@ -39,7 +39,7 @@ class InvalidTemplateUrlParameterError(UserException):
 
 
 class ExportFailedError(UserException):
-    def __init__(self, resource_id, property_name, property_value, ex):
+    def __init__(self, resource_id, property_name, property_value, ex):  # type: ignore[no-untyped-def]
         self.resource_id = resource_id
         self.property_name = property_name
         self.property_value = property_value
@@ -52,7 +52,7 @@ class ExportFailedError(UserException):
             "{ex}"
         )
 
-        super().__init__(
+        super().__init__(  # type: ignore[no-untyped-call]
             message=message_fmt.format(
                 property_value=self.property_value,
                 property_name=self.property_name,
@@ -63,7 +63,7 @@ class ExportFailedError(UserException):
 
 
 class DeleteArtifactFailedError(UserException):
-    def __init__(self, resource_id, property_name, ex):
+    def __init__(self, resource_id, property_name, ex):  # type: ignore[no-untyped-def]
         self.resource_id = resource_id
         self.property_name = property_name
         self.ex = ex
@@ -75,7 +75,7 @@ class DeleteArtifactFailedError(UserException):
             "{ex}"
         )
 
-        super().__init__(
+        super().__init__(  # type: ignore[no-untyped-call]
             message=message_fmt.format(
                 property_name=self.property_name,
                 resource_id=self.resource_id,
@@ -85,11 +85,11 @@ class DeleteArtifactFailedError(UserException):
 
 
 class ImageNotFoundError(UserException):
-    def __init__(self, resource_id, property_name, message_fmt):
+    def __init__(self, resource_id, property_name, message_fmt):  # type: ignore[no-untyped-def]
         self.resource_id = resource_id
         self.property_name = property_name
 
-        super().__init__(
+        super().__init__(  # type: ignore[no-untyped-call]
             message=message_fmt.format(
                 property_name=self.property_name,
                 resource_id=self.resource_id,
@@ -98,67 +98,67 @@ class ImageNotFoundError(UserException):
 
 
 class ECRAuthorizationError(UserException):
-    def __init__(self, msg):
+    def __init__(self, msg):  # type: ignore[no-untyped-def]
         self.msg = msg
-        super().__init__(message=self.msg)
+        super().__init__(message=self.msg)  # type: ignore[no-untyped-call]
 
 
 class DockerLoginFailedError(UserException):
-    def __init__(self, msg):
+    def __init__(self, msg):  # type: ignore[no-untyped-def]
         self.msg = msg
-        super().__init__(message=self.msg)
+        super().__init__(message=self.msg)  # type: ignore[no-untyped-call]
 
 
 class DockerPushFailedError(UserException):
-    def __init__(self, msg):
+    def __init__(self, msg):  # type: ignore[no-untyped-def]
         self.msg = msg
-        super().__init__(message=self.msg)
+        super().__init__(message=self.msg)  # type: ignore[no-untyped-call]
 
 
 class DockerGetLocalImageFailedError(UserException):
-    def __init__(self, msg):
+    def __init__(self, msg):  # type: ignore[no-untyped-def]
         self.msg = msg
-        super().__init__(message=self.msg)
+        super().__init__(message=self.msg)  # type: ignore[no-untyped-call]
 
 
 class PackageFailedError(UserException):
-    def __init__(self, template_file, ex):
+    def __init__(self, template_file, ex):  # type: ignore[no-untyped-def]
         self.template_file = template_file
         self.ex = ex
 
         message_fmt = "Failed to package template: {template_file}. \n {ex}"
 
-        super().__init__(message=message_fmt.format(template_file=self.template_file, ex=self.ex))
+        super().__init__(message=message_fmt.format(template_file=self.template_file, ex=self.ex))  # type: ignore[no-untyped-call]
 
 
 class NoSuchBucketError(UserException):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs):  # type: ignore[no-untyped-def]
         self.kwargs = kwargs
 
         message_fmt = "\nS3 Bucket does not exist."
 
-        super().__init__(message=message_fmt.format(**self.kwargs))
+        super().__init__(message=message_fmt.format(**self.kwargs))  # type: ignore[no-untyped-call]
 
 
 class BucketNotSpecifiedError(UserException):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs):  # type: ignore[no-untyped-def]
         self.kwargs = kwargs
 
         message_fmt = "\nS3 Bucket not specified, use --s3-bucket to specify a bucket name, or use --resolve-s3 \
 to create a managed default bucket, or run sam deploy --guided"
 
-        super().__init__(message=message_fmt.format(**self.kwargs))
+        super().__init__(message=message_fmt.format(**self.kwargs))  # type: ignore[no-untyped-call]
 
 
 class PackageResolveS3AndS3SetError(UserException):
-    def __init__(self):
+    def __init__(self):  # type: ignore[no-untyped-def]
         message_fmt = "Cannot use both --resolve-s3 and --s3-bucket parameters. Please use only one."
 
-        super().__init__(message=message_fmt)
+        super().__init__(message=message_fmt)  # type: ignore[no-untyped-call]
 
 
 class PackageResolveS3AndS3NotSetError(UserException):
-    def __init__(self):
+    def __init__(self):  # type: ignore[no-untyped-def]
         message_fmt = "Cannot skip both --resolve-s3 and --s3-bucket parameters. Please provide one of these arguments."
 
-        super().__init__(message=message_fmt)
+        super().__init__(message=message_fmt)  # type: ignore[no-untyped-call]

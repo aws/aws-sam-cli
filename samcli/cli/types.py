@@ -13,7 +13,7 @@ from samcli.lib.package.ecr_utils import is_ecr_url
 PARAM_AND_METADATA_KEY_REGEX = """([A-Za-z0-9\\"\']+)"""
 
 
-def _generate_match_regex(match_pattern, delim):
+def _generate_match_regex(match_pattern, delim):  # type: ignore[no-untyped-def]
     """
     Creates a regex string based on a match pattern (also a regex) that is to be
     run on a string (which may contain escaped quotes) that is separated by delimiters.
@@ -37,7 +37,7 @@ def _generate_match_regex(match_pattern, delim):
     )
 
 
-def _unquote_wrapped_quotes(value):
+def _unquote_wrapped_quotes(value):  # type: ignore[no-untyped-def]
     r"""
     Removes wrapping single or double quotes and unescapes '\ ', '\"' and '\''.
 
@@ -74,7 +74,7 @@ class CfnParameterOverridesType(click.ParamType):
     # while adding parameter overrides, if they are, it
     # can result in unpredicatable behavior.
     # Use this regex when you have space as delimiter Ex: "KeyName1=string KeyName2=string"
-    VALUE_REGEX_SPACE_DELIM = _generate_match_regex(match_pattern=".", delim=" ")
+    VALUE_REGEX_SPACE_DELIM = _generate_match_regex(match_pattern=".", delim=" ")  # type: ignore[no-untyped-call]
     _pattern_1 = r"(?:ParameterKey={key},ParameterValue={value})".format(
         key=PARAM_AND_METADATA_KEY_REGEX, value=VALUE_REGEX_SPACE_DELIM
     )
@@ -85,8 +85,8 @@ class CfnParameterOverridesType(click.ParamType):
     # NOTE(TheSriram): name needs to be added to click.ParamType requires it.
     name = ""
 
-    def convert(self, value, param, ctx):
-        result = {}
+    def convert(self, value, param, ctx):  # type: ignore[no-untyped-def]
+        result = {}  # type: ignore[var-annotated]
 
         # Empty tuple
         if value == ("",):
@@ -121,7 +121,7 @@ class CfnParameterOverridesType(click.ParamType):
 
             # 'groups' variable is a list of tuples ex: [(key1, value1), (key2, value2)]
             for key, param_value in groups:
-                result[_unquote_wrapped_quotes(key)] = _unquote_wrapped_quotes(param_value)
+                result[_unquote_wrapped_quotes(key)] = _unquote_wrapped_quotes(param_value)  # type: ignore[no-untyped-call]
 
         return result
 
@@ -134,15 +134,15 @@ class CfnMetadataType(click.ParamType):
 
     _EXAMPLE = 'KeyName1=string,KeyName2=string or {"string":"string"}'
     # Use this regex when you have comma as delimiter Ex: "KeyName1=string,KeyName2=string"
-    VALUE_REGEX_COMMA_DELIM = _generate_match_regex(match_pattern=".", delim=",")
+    VALUE_REGEX_COMMA_DELIM = _generate_match_regex(match_pattern=".", delim=",")  # type: ignore[no-untyped-call]
 
     _pattern = r"(?:{key}={value})".format(key=PARAM_AND_METADATA_KEY_REGEX, value=VALUE_REGEX_COMMA_DELIM)
 
     # NOTE(TheSriram): name needs to be added to click.ParamType requires it.
     name = ""
 
-    def convert(self, value, param, ctx):
-        result = {}
+    def convert(self, value, param, ctx):  # type: ignore[no-untyped-def]
+        result = {}  # type: ignore[var-annotated]
         fail = False
         if not value:
             return result
@@ -185,20 +185,20 @@ class CfnTags(click.ParamType):
     E.g. Input: KeyName1=Value1 KeyName1=Value2 Output: {KeyName1 : [Value1, Value2]}
     """
 
-    def __init__(self, multiple_values_per_key=False):
+    def __init__(self, multiple_values_per_key=False):  # type: ignore[no-untyped-def]
         self.multiple_values_per_key = multiple_values_per_key
 
     _EXAMPLE = "KeyName1=string KeyName2=string"
     # Tags have additional constraints and they allow "+ - = . _ : / @" apart from alpha-numerics.
     TAG_REGEX = '[A-Za-z0-9\\"_:\\.\\/\\+-\\@=]'
 
-    _pattern = r"{tag}={tag}".format(tag=_generate_match_regex(match_pattern=TAG_REGEX, delim=" "))
+    _pattern = r"{tag}={tag}".format(tag=_generate_match_regex(match_pattern=TAG_REGEX, delim=" "))  # type: ignore[no-untyped-call]
 
     # NOTE(TheSriram): name needs to be added to click.ParamType requires it.
     name = ""
 
-    def convert(self, value, param, ctx):
-        result = {}
+    def convert(self, value, param, ctx):  # type: ignore[no-untyped-def]
+        result = {}  # type: ignore[var-annotated]
         fail = False
         # Empty tuple
         if value == ("",):
@@ -215,12 +215,12 @@ class CfnTags(click.ParamType):
         for val in value:
             # Using standard parser first.
             # We should implement other type parser like JSON and Key=key,Value=val type format.
-            parsed, tags = self._standard_key_value_parser(val)
+            parsed, tags = self._standard_key_value_parser(val)  # type: ignore[no-untyped-call]
             if not parsed:
-                parsed, tags = self._space_separated_key_value_parser(val)
+                parsed, tags = self._space_separated_key_value_parser(val)  # type: ignore[no-untyped-call]
             if parsed:
                 for k in tags:
-                    self._add_value(result, _unquote_wrapped_quotes(k), _unquote_wrapped_quotes(tags[k]))
+                    self._add_value(result, _unquote_wrapped_quotes(k), _unquote_wrapped_quotes(tags[k]))  # type: ignore[no-untyped-call]
             else:
                 groups = re.findall(self._pattern, val)
 
@@ -228,7 +228,7 @@ class CfnTags(click.ParamType):
                     fail = True
                 for group in groups:
                     key, v = group
-                    self._add_value(result, _unquote_wrapped_quotes(key), _unquote_wrapped_quotes(v))
+                    self._add_value(result, _unquote_wrapped_quotes(key), _unquote_wrapped_quotes(v))  # type: ignore[no-untyped-call]
 
             if fail:
                 return self.fail(
@@ -239,7 +239,7 @@ class CfnTags(click.ParamType):
 
         return result
 
-    def _add_value(self, result: dict, key: str, new_value: str):
+    def _add_value(self, result: dict, key: str, new_value: str):  # type: ignore[no-untyped-def, type-arg]
         """
         Add a given value to a given key in the result map.
         """
@@ -251,7 +251,7 @@ class CfnTags(click.ParamType):
         result[key] = new_value
 
     @staticmethod
-    def _standard_key_value_parser(tag_value):
+    def _standard_key_value_parser(tag_value):  # type: ignore[no-untyped-def]
         """
         Method to parse simple `Key=Value` type tags without using regex. This is similar to how aws-cli does this.
         https://github.com/aws/aws-cli/blob/eff79a263347e8e83c8a2cc07265ab366315a992/awscli/customizations/cloudformation/deploy.py#L361
@@ -271,16 +271,16 @@ class CfnTags(click.ParamType):
         return True, {splits[0]: splits[1]}
 
     @staticmethod
-    def _space_separated_key_value_parser(tag_value):
+    def _space_separated_key_value_parser(tag_value):  # type: ignore[no-untyped-def]
         """
         Method to parse space separated `Key1=Value1 Key2=Value2` type tags without using regex.
         Parameters
         ----------
         tag_value
         """
-        tags_dict = {}
+        tags_dict = {}  # type: ignore[var-annotated]
         for value in tag_value.split(" "):
-            parsed, parsed_tag = CfnTags._standard_key_value_parser(value)
+            parsed, parsed_tag = CfnTags._standard_key_value_parser(value)  # type: ignore[no-untyped-call]
             if not parsed:
                 return False, None
             tags_dict = {**tags_dict, **parsed_tag}
@@ -302,7 +302,7 @@ class SigningProfilesOptionType(click.ParamType):
     # Note: this is required, otherwise it is failing when running help
     name = ""
 
-    def convert(self, value, param, ctx):
+    def convert(self, value, param, ctx):  # type: ignore[no-untyped-def]
         """
         Converts given Signing Profile options to a dictionary where Function or Layer name would be key,
         and signing profile details would be the value.
@@ -312,7 +312,7 @@ class SigningProfilesOptionType(click.ParamType):
         If value is an array, then each value will correspond to a function or layer config, and here it is parsed
         and converted into a dictionary
         """
-        result = {}
+        result = {}  # type: ignore[var-annotated]
 
         # Empty tuple
         if value == ("",):
@@ -335,8 +335,8 @@ class SigningProfilesOptionType(click.ParamType):
                 )
 
             for function_name, param_value in signing_profiles:
-                (signer_profile_name, signer_profile_owner) = self._split_signer_profile_name_owner(
-                    _unquote_wrapped_quotes(param_value)
+                (signer_profile_name, signer_profile_owner) = self._split_signer_profile_name_owner(  # type: ignore[no-untyped-call]
+                    _unquote_wrapped_quotes(param_value)  # type: ignore[no-untyped-call]
                 )
 
                 # code signing requires profile name, if it is not present then fail
@@ -348,7 +348,7 @@ class SigningProfilesOptionType(click.ParamType):
                         ctx,
                     )
 
-                result[_unquote_wrapped_quotes(function_name)] = {
+                result[_unquote_wrapped_quotes(function_name)] = {  # type: ignore[no-untyped-call]
                     "profile_name": signer_profile_name,
                     "profile_owner": signer_profile_owner,
                 }
@@ -356,7 +356,7 @@ class SigningProfilesOptionType(click.ParamType):
         return result
 
     @staticmethod
-    def _split_signer_profile_name_owner(signing_profile):
+    def _split_signer_profile_name_owner(signing_profile):  # type: ignore[no-untyped-def]
         equals_count = signing_profile.count(":")
 
         if equals_count > 1:
@@ -378,7 +378,7 @@ class ImageRepositoryType(click.ParamType):
         conversion to a native click type.
         """
 
-        def __init__(self, converter, transformation):
+        def __init__(self, converter, transformation):  # type: ignore[no-untyped-def]
             """
 
             :param converter: native click Type
@@ -387,18 +387,18 @@ class ImageRepositoryType(click.ParamType):
             self.converter = converter
             self.transformer = transformation
 
-        def transform(self, *args, **kwargs):
+        def transform(self, *args, **kwargs):  # type: ignore[no-untyped-def]
             return self.transformer(self.converter.convert(*args, **kwargs))
 
     # Transformation callback function checks if the received option value is a valid ECR url.
-    transformer = Transformer(converter=click.STRING, transformation=is_ecr_url)
+    transformer = Transformer(converter=click.STRING, transformation=is_ecr_url)  # type: ignore[no-untyped-call]
     name = ""
 
-    def convert(self, value, param, ctx):
+    def convert(self, value, param, ctx):  # type: ignore[no-untyped-def]
         """
         Attempt a conversion given the stipulations of allowed transformations.
         """
-        result = self.transformer.transform(value, param, ctx)
+        result = self.transformer.transform(value, param, ctx)  # type: ignore[no-untyped-call]
         if not result:
             raise click.BadParameter(f"Invalid Image Repository ECR URI: {value}")
         return value
@@ -411,7 +411,7 @@ class ImageRepositoriesType(click.ParamType):
 
     name = ""
 
-    def convert(self, value, param, ctx):
+    def convert(self, value, param, ctx):  # type: ignore[no-untyped-def]
         key_value_pair = value.split("=")
         if len(key_value_pair) != 2:
             raise click.BadParameter(

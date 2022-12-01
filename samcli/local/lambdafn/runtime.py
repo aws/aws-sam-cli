@@ -30,7 +30,7 @@ class LambdaRuntime:
 
     SUPPORTED_ARCHIVE_EXTENSIONS = (".zip", ".jar", ".ZIP", ".JAR")
 
-    def __init__(self, container_manager, image_builder):
+    def __init__(self, container_manager, image_builder):  # type: ignore[no-untyped-def]
         """
         Initialize the Local Lambda runtime
 
@@ -45,7 +45,7 @@ class LambdaRuntime:
         self._image_builder = image_builder
         self._temp_uncompressed_paths_to_be_cleaned = []
 
-    def create(self, function_config, debug_context=None, container_host=None, container_host_interface=None):
+    def create(self, function_config, debug_context=None, container_host=None, container_host_interface=None):  # type: ignore[no-untyped-def]
         """
         Create a new Container for the passed function, then store it in a dictionary using the function name,
         so it can be retrieved later and used in the other functions. Make sure to use the debug_context only
@@ -70,7 +70,7 @@ class LambdaRuntime:
 
         code_dir = self._get_code_dir(function_config.code_abs_path)
         layers = [self._unarchived_layer(layer) for layer in function_config.layers]
-        container = LambdaContainer(
+        container = LambdaContainer(  # type: ignore[no-untyped-call]
             function_config.runtime,
             function_config.imageuri,
             function_config.handler,
@@ -96,7 +96,7 @@ class LambdaRuntime:
             LOG.debug("Ctrl+C was pressed. Aborting container creation")
             raise
 
-    def run(self, container, function_config, debug_context, container_host=None, container_host_interface=None):
+    def run(self, container, function_config, debug_context, container_host=None, container_host_interface=None):  # type: ignore[no-untyped-def]
         """
         Find the created container for the passed Lambda function, then using the
         ContainerManager run this container.
@@ -122,7 +122,7 @@ class LambdaRuntime:
         """
 
         if not container:
-            container = self.create(function_config, debug_context, container_host, container_host_interface)
+            container = self.create(function_config, debug_context, container_host, container_host_interface)  # type: ignore[no-untyped-call]
 
         if container.is_running():
             LOG.info("Lambda function '%s' is already running", function_config.full_path)
@@ -137,8 +137,8 @@ class LambdaRuntime:
             LOG.debug("Ctrl+C was pressed. Aborting container running")
             raise
 
-    @capture_parameter("runtimeMetric", "runtimes", 1, parameter_nested_identifier="runtime", as_list=True)
-    def invoke(
+    @capture_parameter("runtimeMetric", "runtimes", 1, parameter_nested_identifier="runtime", as_list=True)  # type: ignore[no-untyped-call, misc]
+    def invoke(  # type: ignore[no-untyped-def, no-untyped-def]
         self,
         function_config,
         event,
@@ -174,11 +174,11 @@ class LambdaRuntime:
         container = None
         try:
             # Start the container. This call returns immediately after the container starts
-            container = self.create(function_config, debug_context, container_host, container_host_interface)
-            container = self.run(container, function_config, debug_context)
+            container = self.create(function_config, debug_context, container_host, container_host_interface)  # type: ignore[no-untyped-call]
+            container = self.run(container, function_config, debug_context)  # type: ignore[no-untyped-call]
             # Setup appropriate interrupt - timeout or Ctrl+C - before function starts executing and
             # get callback function to start timeout timer
-            start_timer = self._configure_interrupt(
+            start_timer = self._configure_interrupt(  # type: ignore[no-untyped-call]
                 function_config.full_path, function_config.timeout, container, bool(debug_context)
             )
 
@@ -199,9 +199,9 @@ class LambdaRuntime:
         finally:
             # We will be done with execution, if either the execution completed or an interrupt was fired
             # Any case, cleanup the container.
-            self._on_invoke_done(container)
+            self._on_invoke_done(container)  # type: ignore[no-untyped-call]
 
-    def _on_invoke_done(self, container):
+    def _on_invoke_done(self, container):  # type: ignore[no-untyped-def]
         """
         Cleanup the created resources, just before the invoke function ends
 
@@ -212,9 +212,9 @@ class LambdaRuntime:
         """
         if container:
             self._container_manager.stop(container)
-        self._clean_decompressed_paths()
+        self._clean_decompressed_paths()  # type: ignore[no-untyped-call]
 
-    def _configure_interrupt(self, function_full_path, timeout, container, is_debugging):
+    def _configure_interrupt(self, function_full_path, timeout, container, is_debugging):  # type: ignore[no-untyped-def]
         """
         When a Lambda function is executing, we setup certain interrupt handlers to stop the execution.
         Usually, we setup a function timeout interrupt to kill the container after timeout expires. If debugging though,
@@ -227,19 +227,19 @@ class LambdaRuntime:
         :return func: function to start timer, if we set one up. None otherwise
         """
 
-        def start_timer():
+        def start_timer():  # type: ignore[no-untyped-def]
             # Start a timer, we'll use this to abort the function if it runs beyond the specified timeout
             LOG.debug("Starting a timer for %s seconds for function '%s'", timeout, function_full_path)
             timer = threading.Timer(timeout, timer_handler, ())
             timer.start()
             return timer
 
-        def timer_handler():
+        def timer_handler():  # type: ignore[no-untyped-def]
             # NOTE: This handler runs in a separate thread. So don't try to mutate any non-thread-safe data structures
             LOG.info("Function '%s' timed out after %d seconds", function_full_path, timeout)
             self._container_manager.stop(container)
 
-        def signal_handler(sig, frame):
+        def signal_handler(sig, frame):  # type: ignore[no-untyped-def]
             # NOTE: This handler runs in a separate thread. So don't try to mutate any non-thread-safe data structures
             LOG.info("Execution of function %s was interrupted", function_full_path)
             self._container_manager.stop(container)
@@ -275,14 +275,14 @@ class LambdaRuntime:
         """
 
         if code_path and os.path.isfile(code_path) and code_path.endswith(self.SUPPORTED_ARCHIVE_EXTENSIONS):
-            decompressed_dir: str = _unzip_file(code_path)
+            decompressed_dir: str = _unzip_file(code_path)  # type: ignore[no-untyped-call]
             self._temp_uncompressed_paths_to_be_cleaned += [decompressed_dir]
             return decompressed_dir
 
         LOG.debug("Code %s is not a zip/jar file", code_path)
         return code_path
 
-    def _unarchived_layer(self, layer: Union[str, Dict, LayerVersion]) -> Union[str, Dict, LayerVersion]:
+    def _unarchived_layer(self, layer: Union[str, Dict, LayerVersion]) -> Union[str, Dict, LayerVersion]:  # type: ignore[type-arg]
         """
         If the layer's content uri points to a supported local archive file, use self._get_code_dir() to
         un-archive it and so that it can be mounted directly inside the Docker container.
@@ -303,7 +303,7 @@ class LambdaRuntime:
 
         return layer
 
-    def _clean_decompressed_paths(self):
+    def _clean_decompressed_paths(self):  # type: ignore[no-untyped-def]
         """
         Clean the temporary decompressed code dirs
         """
@@ -319,7 +319,7 @@ class WarmLambdaRuntime(LambdaRuntime):
     warm containers life cycle.
     """
 
-    def __init__(self, container_manager, image_builder):
+    def __init__(self, container_manager, image_builder):  # type: ignore[no-untyped-def]
         """
         Initialize the Local Lambda runtime
 
@@ -337,9 +337,9 @@ class WarmLambdaRuntime(LambdaRuntime):
 
         self._observer = LambdaFunctionObserver(self._on_code_change)
 
-        super().__init__(container_manager, image_builder)
+        super().__init__(container_manager, image_builder)  # type: ignore[no-untyped-call]
 
-    def create(self, function_config, debug_context=None, container_host=None, container_host_interface=None):
+    def create(self, function_config, debug_context=None, container_host=None, container_host_interface=None):  # type: ignore[no-untyped-def]
         """
         Create a new Container for the passed function, then store it in a dictionary using the function name,
         so it can be retrieved later and used in the other functions. Make sure to use the debug_context only
@@ -365,7 +365,7 @@ class WarmLambdaRuntime(LambdaRuntime):
         # reuse the cached container if it is created, and if the function configuration is not changed
         exist_function_config = self._function_configs.get(function_config.full_path, None)
         container = self._containers.get(function_config.full_path, None)
-        if exist_function_config and _require_container_reloading(exist_function_config, function_config):
+        if exist_function_config and _require_container_reloading(exist_function_config, function_config):  # type: ignore[no-untyped-call]
             LOG.info(
                 "Lambda Function '%s' definition has been changed in the stack template, "
                 "terminate the created warm container.",
@@ -391,15 +391,15 @@ class WarmLambdaRuntime(LambdaRuntime):
             debug_context = None
 
         self._observer.watch(function_config)
-        self._observer.start()
+        self._observer.start()  # type: ignore[no-untyped-call]
 
-        container = super().create(function_config, debug_context, container_host, container_host_interface)
+        container = super().create(function_config, debug_context, container_host, container_host_interface)  # type: ignore[no-untyped-call]
         self._function_configs[function_config.full_path] = function_config
         self._containers[function_config.full_path] = container
 
         return container
 
-    def _on_invoke_done(self, container):
+    def _on_invoke_done(self, container):  # type: ignore[no-untyped-def]
         """
         Cleanup the created resources, just before the invoke function ends.
         In warm containers, the running containers will be closed just before the end of te command execution,
@@ -411,7 +411,7 @@ class WarmLambdaRuntime(LambdaRuntime):
            The current running container
         """
 
-    def _configure_interrupt(self, function_full_path, timeout, container, is_debugging):
+    def _configure_interrupt(self, function_full_path, timeout, container, is_debugging):  # type: ignore[no-untyped-def]
         """
         When a Lambda function is executing, we setup certain interrupt handlers to stop the execution.
         Usually, we setup a function timeout interrupt to kill the container after timeout expires. If debugging though,
@@ -434,18 +434,18 @@ class WarmLambdaRuntime(LambdaRuntime):
             Timer object, if we setup a timer. None otherwise
         """
 
-        def start_timer():
+        def start_timer():  # type: ignore[no-untyped-def]
             # Start a timer, we'll use this to abort the function if it runs beyond the specified timeout
             LOG.debug("Starting a timer for %s seconds for function '%s'", timeout, function_full_path)
             timer = threading.Timer(timeout, timer_handler, ())
             timer.start()
             return timer
 
-        def timer_handler():
+        def timer_handler():  # type: ignore[no-untyped-def]
             # NOTE: This handler runs in a separate thread. So don't try to mutate any non-thread-safe data structures
             LOG.info("Function '%s' timed out after %d seconds", function_full_path, timeout)
 
-        def signal_handler(sig, frame):
+        def signal_handler(sig, frame):  # type: ignore[no-untyped-def]
             # NOTE: This handler runs in a separate thread. So don't try to mutate any non-thread-safe data structures
             LOG.info("Execution of function %s was interrupted", function_full_path)
 
@@ -456,7 +456,7 @@ class WarmLambdaRuntime(LambdaRuntime):
 
         return start_timer
 
-    def clean_running_containers_and_related_resources(self):
+    def clean_running_containers_and_related_resources(self):  # type: ignore[no-untyped-def]
         """
         Clean the running containers, the decompressed code dirs, and stop the created observer
         """
@@ -464,10 +464,10 @@ class WarmLambdaRuntime(LambdaRuntime):
         for function_name, container in self._containers.items():
             LOG.debug("Terminate running warm container for Lambda Function '%s'", function_name)
             self._container_manager.stop(container)
-        self._clean_decompressed_paths()
-        self._observer.stop()
+        self._clean_decompressed_paths()  # type: ignore[no-untyped-call]
+        self._observer.stop()  # type: ignore[no-untyped-call]
 
-    def _on_code_change(self, functions):
+    def _on_code_change(self, functions):  # type: ignore[no-untyped-def]
         """
         Handles the lambda function code change event. it determines if there is a real change in the code
         by comparing the checksum of the code path before and after the event.
@@ -494,7 +494,7 @@ class WarmLambdaRuntime(LambdaRuntime):
                 self._containers.pop(function_full_path, None)
 
 
-def _unzip_file(filepath):
+def _unzip_file(filepath):  # type: ignore[no-untyped-def]
     """
     Helper method to unzip a file to a temporary directory
 
@@ -509,7 +509,7 @@ def _unzip_file(filepath):
 
     LOG.info("Decompressing %s", filepath)
 
-    unzip(filepath, temp_dir)
+    unzip(filepath, temp_dir)  # type: ignore[no-untyped-call]
 
     # The directory that Python returns might have symlinks. The Docker File sharing settings will not resolve
     # symlinks. Hence get the real path before passing to Docker.
@@ -518,7 +518,7 @@ def _unzip_file(filepath):
     return os.path.realpath(temp_dir)
 
 
-def _require_container_reloading(exist_function_config, function_config):
+def _require_container_reloading(exist_function_config, function_config):  # type: ignore[no-untyped-def]
     return (
         exist_function_config.runtime != function_config.runtime
         or exist_function_config.handler != function_config.handler
@@ -527,6 +527,6 @@ def _require_container_reloading(exist_function_config, function_config):
         or exist_function_config.imageconfig != function_config.imageconfig
         or exist_function_config.code_abs_path != function_config.code_abs_path
         or exist_function_config.env_vars != function_config.env_vars
-        or sorted(exist_function_config.layers, key=lambda x: x.full_path)
-        != sorted(function_config.layers, key=lambda x: x.full_path)
+        or sorted(exist_function_config.layers, key=lambda x: x.full_path)  # type: ignore[no-any-return]
+        != sorted(function_config.layers, key=lambda x: x.full_path)  # type: ignore[no-any-return]
     )

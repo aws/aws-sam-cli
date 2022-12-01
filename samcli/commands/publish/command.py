@@ -5,7 +5,7 @@ import logging
 
 import click
 import boto3
-from serverlessrepo.publish import CREATE_APPLICATION
+from serverlessrepo.publish import CREATE_APPLICATION  # type: ignore[import]
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands._utils.options import template_common_option
@@ -42,7 +42,7 @@ SEMANTIC_VERSION = "SemanticVersion"
 
 
 @click.command("publish", help=HELP_TEXT, short_help=SHORT_HELP)
-@configuration_option(provider=TomlProvider(section="parameters"))
+@configuration_option(provider=TomlProvider(section="parameters"))  # type: ignore[no-untyped-call, no-untyped-call]
 @template_common_option
 @click.option("--semantic-version", help=SEMANTIC_VERSION_HELP)
 @aws_creds_options
@@ -51,7 +51,7 @@ SEMANTIC_VERSION = "SemanticVersion"
 @track_command
 @check_newer_version
 @print_cmdline_args
-def cli(
+def cli(  # type: ignore[no-untyped-def]
     ctx,
     template_file,
     semantic_version,
@@ -60,20 +60,20 @@ def cli(
 ):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(ctx, template_file, semantic_version)  # pragma: no cover
+    do_cli(ctx, template_file, semantic_version)  # type: ignore[no-untyped-call] # pragma: no cover
 
 
-def do_cli(ctx, template, semantic_version):
+def do_cli(ctx, template, semantic_version):  # type: ignore[no-untyped-def]
     """Publish the application based on command line inputs."""
 
-    from serverlessrepo import publish_application
-    from serverlessrepo.parser import METADATA, SERVERLESS_REPO_APPLICATION
-    from serverlessrepo.exceptions import ServerlessRepoError, InvalidS3UriError
+    from serverlessrepo import publish_application  # type: ignore[import]
+    from serverlessrepo.parser import METADATA, SERVERLESS_REPO_APPLICATION  # type: ignore[import]
+    from serverlessrepo.exceptions import ServerlessRepoError, InvalidS3UriError  # type: ignore[import]
 
     from samcli.commands.exceptions import UserException
 
     try:
-        template_data = get_template_data(template)
+        template_data = get_template_data(template)  # type: ignore[no-untyped-call]
     except (TemplateFailedParsingException, TemplateNotFoundException) as ex:
         click.secho("Publish Failed", fg="red")
         raise ex
@@ -85,10 +85,10 @@ def do_cli(ctx, template, semantic_version):
     try:
         publish_output = publish_application(template_data)
         click.secho("Publish Succeeded", fg="green")
-        click.secho(_gen_success_message(publish_output))
+        click.secho(_gen_success_message(publish_output))  # type: ignore[no-untyped-call]
     except InvalidS3UriError as ex:
         click.secho("Publish Failed", fg="red")
-        raise UserException(
+        raise UserException(  # type: ignore[no-untyped-call]
             "Your SAM template contains invalid S3 URIs. Please make sure that you have uploaded application "
             "artifacts to S3 by packaging the template. See more details in {}".format(SAM_PACKAGE_DOC),
             wrapped_from=ex.__class__.__name__,
@@ -97,13 +97,13 @@ def do_cli(ctx, template, semantic_version):
         click.secho("Publish Failed", fg="red")
         LOG.debug("Failed to publish application to serverlessrepo", exc_info=True)
         error_msg = "{}\nPlease follow the instructions in {}".format(str(ex), SAM_PUBLISH_DOC)
-        raise UserException(error_msg, wrapped_from=ex.__class__.__name__) from ex
+        raise UserException(error_msg, wrapped_from=ex.__class__.__name__) from ex  # type: ignore[no-untyped-call]
 
     application_id = publish_output.get("application_id")
-    _print_console_link(ctx.region, application_id)
+    _print_console_link(ctx.region, application_id)  # type: ignore[no-untyped-call]
 
 
-def _gen_success_message(publish_output):
+def _gen_success_message(publish_output):  # type: ignore[no-untyped-def]
     """
     Generate detailed success message for published applications.
 
@@ -126,7 +126,7 @@ def _gen_success_message(publish_output):
     return 'The following metadata of application "{}" has been updated:\n{}'.format(application_id, details)
 
 
-def _print_console_link(region, application_id):
+def _print_console_link(region, application_id):  # type: ignore[no-untyped-def]
     """
     Print link for the application in AWS Serverless Application Repository console.
 

@@ -6,7 +6,7 @@ Custom Exceptions for Init module
 class InitErrorException(Exception):
     fmt = "An unspecified error occurred"
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs):  # type: ignore[no-untyped-def]
         msg = self.fmt.format(**kwargs)
         Exception.__init__(self, msg)
         self.kwargs = kwargs

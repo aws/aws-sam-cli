@@ -12,7 +12,7 @@ import click
 MIN_OFFSET = 20
 
 
-def pprint_column_names(
+def pprint_column_names(  # type: ignore[no-untyped-def]
     format_string, format_kwargs, margin=None, table_header=None, color="yellow", display_sleep=False
 ):
     """
@@ -29,7 +29,7 @@ def pprint_column_names(
     min_width = 100
     min_margin = 2
 
-    def pprint_wrap(func):
+    def pprint_wrap(func):  # type: ignore[no-untyped-def]
         # Calculate terminal width, number of columns in the table
         width, _ = shutil.get_terminal_size()
         # For UX purposes, set a minimum width for the table to be usable
@@ -60,7 +60,7 @@ def pprint_column_names(
         # format arguments are now ready for setting minimumwidth
 
         @wraps(func)
-        def wrap(*args, **kwargs):
+        def wrap(*args, **kwargs):  # type: ignore[no-untyped-def]
             # The table is setup with the column names, format_string contains the column names.
             if table_header:
                 click.secho("\n" + table_header.format(args[0].client_sleep) if display_sleep else table_header)
@@ -82,7 +82,7 @@ def pprint_column_names(
     return pprint_wrap
 
 
-def wrapped_text_generator(texts, width, margin, **textwrap_kwargs):
+def wrapped_text_generator(texts, width, margin, **textwrap_kwargs):  # type: ignore[no-untyped-def]
     """
 
     Return a generator where the contents are wrapped text to a specified width.
@@ -98,7 +98,7 @@ def wrapped_text_generator(texts, width, margin, **textwrap_kwargs):
         yield textwrap.wrap(text, width=width - margin, **textwrap_kwargs)
 
 
-def pprint_columns(columns, width, margin, format_string, format_args, columns_dict, color="yellow", **textwrap_kwargs):
+def pprint_columns(columns, width, margin, format_string, format_args, columns_dict, color="yellow", **textwrap_kwargs):  # type: ignore[no-untyped-def]
     """
 
     Print columns based on list of columnar text, associated formatting string and associated format arguments.
@@ -112,7 +112,7 @@ def pprint_columns(columns, width, margin, format_string, format_args, columns_d
     :param color: color supplied for rows within the table.
     :param textwrap_kwargs: keyword arguments that are passed to textwrap.wrap
     """
-    for columns_text in zip_longest(*wrapped_text_generator(columns, width, margin, **textwrap_kwargs), fillvalue=""):
+    for columns_text in zip_longest(*wrapped_text_generator(columns, width, margin, **textwrap_kwargs), fillvalue=""):  # type: ignore[no-untyped-call]
         counter = count()
         # Generate columnar data that correspond to the column names and update them.
         for k, _ in columns_dict.items():

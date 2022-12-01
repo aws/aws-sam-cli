@@ -24,5 +24,5 @@ class CWConsoleEventConsumer(ObservabilityEventConsumer[CWLogEvent]):
         """
         self._add_newline = add_newline
 
-    def consume(self, event: CWLogEvent):
+    def consume(self, event: CWLogEvent):  # type: ignore[no-untyped-def]
         click.echo(event.message, nl=self._add_newline)

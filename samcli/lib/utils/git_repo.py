@@ -195,7 +195,7 @@ class GitRepo:
             raise CloneRepoUnstableStateException(msg) from ex
 
     @staticmethod
-    def _checkout_commit(repo_dir: str, commit: str):
+    def _checkout_commit(repo_dir: str, commit: str):  # type: ignore[no-untyped-def]
         try:
             # if the checkout commit failed, it will use the latest commit instead
             git_executable = GitRepo._git_executable()

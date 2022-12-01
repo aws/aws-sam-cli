@@ -3,7 +3,7 @@ Class to publish metrics
 """
 
 import logging
-import requests
+import requests  # type: ignore[import]
 
 # Get the preconfigured endpoint URL
 from samcli.cli.global_config import GlobalConfig
@@ -13,7 +13,7 @@ LOG = logging.getLogger(__name__)
 
 
 class Telemetry:
-    def __init__(self, url=None):
+    def __init__(self, url=None):  # type: ignore[no-untyped-def]
         """
         Initialize the Telemetry object.
 
@@ -25,7 +25,7 @@ class Telemetry:
         self._url = url or DEFAULT_ENDPOINT_URL
         LOG.debug("Telemetry endpoint configured to be %s", self._url)
 
-    def emit(self, metric, force_emit=False):
+    def emit(self, metric, force_emit=False):  # type: ignore[no-untyped-def]
         """
         Emits the metric with given name and the attributes and send it immediately to the HTTP backend. This method
         will return immediately without waiting for response from the backend. Before sending, this method will
@@ -39,10 +39,10 @@ class Telemetry:
         force_emit : bool
             Defaults to False. Set to True to emit even when telemetry is turned off.
         """
-        if bool(GlobalConfig().telemetry_enabled) or force_emit:
-            self._send({metric.get_metric_name(): metric.get_data()})
+        if bool(GlobalConfig().telemetry_enabled) or force_emit:  # type: ignore[no-untyped-call]
+            self._send({metric.get_metric_name(): metric.get_data()})  # type: ignore[no-untyped-call]
 
-    def _send(self, metric, wait_for_response=False):
+    def _send(self, metric, wait_for_response=False):  # type: ignore[no-untyped-def]
         """
         Serializes the metric data to JSON and sends to the backend.
 

@@ -27,7 +27,7 @@ class ClickMutex(click.Option):
         String to be appended after default incompatible params prompt
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):  # type: ignore[no-untyped-def]
         self.required_param_lists: List[List[str]] = kwargs.pop("required_param_lists", [])
         self.required_params_hint: str = kwargs.pop("required_params_hint", "")
         self.incompatible_params: List[str] = kwargs.pop("incompatible_params", [])
@@ -89,5 +89,5 @@ class ClickMutex(click.Option):
         return super().handle_parse_result(ctx, opts, args)
 
     @staticmethod
-    def _to_param_name(param: str):
+    def _to_param_name(param: str):  # type: ignore[no-untyped-def]
         return f"--{param.replace('_', '-')}"

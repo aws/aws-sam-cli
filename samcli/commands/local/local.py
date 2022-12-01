@@ -12,7 +12,7 @@ from .start_lambda.cli import cli as start_lambda_cli
 
 
 @click.group()
-def cli():
+def cli():  # type: ignore[no-untyped-def]
     """
     Run your Serverless application locally for quick development & testing
     """

@@ -10,7 +10,7 @@ LOG = logging.getLogger(__name__)
 PRESENT_DIR = "."
 
 
-def resolve_code_path(cwd, codeuri):
+def resolve_code_path(cwd, codeuri):  # type: ignore[no-untyped-def]
     """
     Returns path to the function code resolved based on current working directory.
 

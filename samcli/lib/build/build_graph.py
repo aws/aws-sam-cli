@@ -51,7 +51,7 @@ SHARED_CODEURI_SUFFIX = "Shared"
 
 def _function_build_definition_to_toml_table(
     function_build_definition: "FunctionBuildDefinition",
-) -> tomlkit.api.Table:
+) -> tomlkit.api.Table:  # type: ignore[name-defined]
     """
     Converts given function_build_definition into toml table representation
 
@@ -65,7 +65,7 @@ def _function_build_definition_to_toml_table(
     tomlkit.api.Table
         toml table of FunctionBuildDefinition
     """
-    toml_table = tomlkit.table()
+    toml_table = tomlkit.table()  # type: ignore[attr-defined]
     if function_build_definition.packagetype == ZIP:
         toml_table[CODE_URI_FIELD] = function_build_definition.codeuri
         toml_table[RUNTIME_FIELD] = function_build_definition.runtime
@@ -85,7 +85,7 @@ def _function_build_definition_to_toml_table(
     return toml_table
 
 
-def _toml_table_to_function_build_definition(uuid: str, toml_table: tomlkit.api.Table) -> "FunctionBuildDefinition":
+def _toml_table_to_function_build_definition(uuid: str, toml_table: tomlkit.api.Table) -> "FunctionBuildDefinition":  # type: ignore[name-defined]
     """
     Converts given toml table into FunctionBuildDefinition instance
 
@@ -116,7 +116,7 @@ def _toml_table_to_function_build_definition(uuid: str, toml_table: tomlkit.api.
     return function_build_definition
 
 
-def _layer_build_definition_to_toml_table(layer_build_definition: "LayerBuildDefinition") -> tomlkit.api.Table:
+def _layer_build_definition_to_toml_table(layer_build_definition: "LayerBuildDefinition") -> tomlkit.api.Table:  # type: ignore[name-defined]
     """
     Converts given layer_build_definition into toml table representation
 
@@ -130,7 +130,7 @@ def _layer_build_definition_to_toml_table(layer_build_definition: "LayerBuildDef
     tomlkit.api.Table
         toml table of LayerBuildDefinition
     """
-    toml_table = tomlkit.table()
+    toml_table = tomlkit.table()  # type: ignore[attr-defined]
     toml_table[LAYER_NAME_FIELD] = layer_build_definition.full_path
     toml_table[CODE_URI_FIELD] = layer_build_definition.codeuri
     toml_table[BUILD_METHOD_FIELD] = layer_build_definition.build_method
@@ -146,7 +146,7 @@ def _layer_build_definition_to_toml_table(layer_build_definition: "LayerBuildDef
     return toml_table
 
 
-def _toml_table_to_layer_build_definition(uuid: str, toml_table: tomlkit.api.Table) -> "LayerBuildDefinition":
+def _toml_table_to_layer_build_definition(uuid: str, toml_table: tomlkit.api.Table) -> "LayerBuildDefinition":  # type: ignore[name-defined]
     """
     Converts given toml table into LayerBuildDefinition instance
 
@@ -379,7 +379,7 @@ class BuildGraph:
         # .loads() returns a TOMLDocument,
         # and it behaves like a standard dictionary according to https://github.com/sdispater/tomlkit.
         # in tomlkit 0.7.2, the types are broken (tomlkit#128, #130, #134) so here we convert it to Dict.
-        document = cast(Dict, tomlkit.loads(txt))
+        document = cast(Dict, tomlkit.loads(txt))  # type: ignore[type-arg, attr-defined]
 
         for function_uuid, hashing_info in function_content.items():
             if function_uuid in document.get(BuildGraph.FUNCTION_BUILD_DEFINITIONS, {}):
@@ -413,7 +413,7 @@ class BuildGraph:
             # .loads() returns a TOMLDocument,
             # and it behaves like a standard dictionary according to https://github.com/sdispater/tomlkit.
             # in tomlkit 0.7.2, the types are broken (tomlkit#128, #130, #134) so here we convert it to Dict.
-            document = cast(Dict, tomlkit.loads(txt))
+            document = cast(Dict, tomlkit.loads(txt))  # type: ignore[type-arg, attr-defined]
         except OSError:
             LOG.debug("No previous build graph found, generating new one")
         function_build_definitions_table = document.get(BuildGraph.FUNCTION_BUILD_DEFINITIONS, {})
@@ -447,19 +447,19 @@ class BuildGraph:
         layer details will only be preserved as layer names
         """
         # convert build definition list into toml table
-        function_build_definitions_table = tomlkit.table()
+        function_build_definitions_table = tomlkit.table()  # type: ignore[attr-defined]
         for function_build_definition in self._function_build_definitions:
             build_definition_as_table = _function_build_definition_to_toml_table(function_build_definition)
             function_build_definitions_table.add(function_build_definition.uuid, build_definition_as_table)
 
-        layer_build_definitions_table = tomlkit.table()
+        layer_build_definitions_table = tomlkit.table()  # type: ignore[attr-defined]
         for layer_build_definition in self._layer_build_definitions:
             build_definition_as_table = _layer_build_definition_to_toml_table(layer_build_definition)
             layer_build_definitions_table.add(layer_build_definition.uuid, build_definition_as_table)
 
         # create toml document and add build definitions
-        document = tomlkit.document()
-        document.add(tomlkit.comment("This file is auto generated by SAM CLI build command"))
+        document = tomlkit.document()  # type: ignore[attr-defined]
+        document.add(tomlkit.comment("This file is auto generated by SAM CLI build command"))  # type: ignore[attr-defined]
         # we need to cast `Table` to `Item` because of tomlkit#135.
         document.add(BuildGraph.FUNCTION_BUILD_DEFINITIONS, cast(tomlkit.items.Item, function_build_definitions_table))
         document.add(BuildGraph.LAYER_BUILD_DEFINITIONS, cast(tomlkit.items.Item, layer_build_definitions_table))
@@ -467,7 +467,7 @@ class BuildGraph:
         if not self._filepath.exists():
             open(self._filepath, "a+").close()  # pylint: disable=consider-using-with
 
-        self._filepath.write_text(tomlkit.dumps(document))
+        self._filepath.write_text(tomlkit.dumps(document))  # type: ignore[attr-defined]
 
     def _atomic_write(self) -> None:
         """
@@ -486,7 +486,7 @@ class AbstractBuildDefinition:
     """
 
     def __init__(
-        self, source_hash: str, manifest_hash: str, env_vars: Optional[Dict] = None, architecture: str = X86_64
+        self, source_hash: str, manifest_hash: str, env_vars: Optional[Dict] = None, architecture: str = X86_64  # type: ignore[type-arg]
     ) -> None:
         self.uuid = str(uuid4())
         self.source_hash = source_hash
@@ -501,7 +501,7 @@ class AbstractBuildDefinition:
         return str(os.path.join(DEFAULT_DEPENDENCIES_DIR, self.uuid))
 
     @property
-    def env_vars(self) -> Dict:
+    def env_vars(self) -> Dict:  # type: ignore[type-arg]
         return deepcopy(self._env_vars)
 
     @abstractmethod
@@ -523,7 +523,7 @@ class LayerBuildDefinition(AbstractBuildDefinition):
         architecture: str,
         source_hash: str = "",
         manifest_hash: str = "",
-        env_vars: Optional[Dict] = None,
+        env_vars: Optional[Dict] = None,  # type: ignore[type-arg]
     ):
         super().__init__(source_hash, manifest_hash, env_vars, architecture)
         self.full_path = full_path
@@ -584,11 +584,11 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         codeuri: Optional[str],
         packagetype: str,
         architecture: str,
-        metadata: Optional[Dict],
+        metadata: Optional[Dict],  # type: ignore[type-arg]
         handler: Optional[str],
         source_hash: str = "",
         manifest_hash: str = "",
-        env_vars: Optional[Dict] = None,
+        env_vars: Optional[Dict] = None,  # type: ignore[type-arg]
     ) -> None:
         super().__init__(source_hash, manifest_hash, env_vars, architecture)
         self.runtime = runtime

@@ -35,9 +35,9 @@ class AbstractXRayPuller(ObservabilityPuller):
         self._had_data = False
         self.latest_event_time = 0
 
-    def tail(self, start_time: Optional[datetime] = None, filter_pattern: Optional[str] = None):
+    def tail(self, start_time: Optional[datetime] = None, filter_pattern: Optional[str] = None):  # type: ignore[no-untyped-def]
         if start_time:
-            self.latest_event_time = to_timestamp(start_time)
+            self.latest_event_time = to_timestamp(start_time)  # type: ignore[no-untyped-call]
 
         counter = self._max_retries
         while counter > 0 and not self.cancelled:
@@ -45,7 +45,7 @@ class AbstractXRayPuller(ObservabilityPuller):
 
             counter -= 1
             try:
-                self.load_time_period(to_datetime(self.latest_event_time), datetime.utcnow())
+                self.load_time_period(to_datetime(self.latest_event_time), datetime.utcnow())  # type: ignore[no-untyped-call]
             except ClientError as err:
                 error_code = err.response.get("Error", {}).get("Code")
                 if error_code == "ThrottlingException":
@@ -78,7 +78,7 @@ class XRayTracePuller(AbstractXRayPuller):
     """
 
     def __init__(
-        self, xray_client: Any, consumer: ObservabilityEventConsumer, max_retries: int = 1000, poll_interval: int = 1
+        self, xray_client: Any, consumer: ObservabilityEventConsumer, max_retries: int = 1000, poll_interval: int = 1  # type: ignore[type-arg]
     ):
         """
         Parameters
@@ -96,9 +96,9 @@ class XRayTracePuller(AbstractXRayPuller):
         self.xray_client = xray_client
         self.consumer = consumer
         # Previous trace ID is a dictionary that contains the following information: {trace_id: trace_revision,}
-        self._previous_trace_ids: Dict = {}
+        self._previous_trace_ids: Dict = {}  # type: ignore[type-arg]
 
-    def load_time_period(
+    def load_time_period(  # type: ignore[no-untyped-def]
         self,
         start_time: Optional[datetime] = None,
         end_time: Optional[datetime] = None,
@@ -127,7 +127,7 @@ class XRayTracePuller(AbstractXRayPuller):
         # now load collected events
         self.load_events(trace_ids)
 
-    def load_events(self, event_ids: Union[List[Any], Dict]):
+    def load_events(self, event_ids: Union[List[Any], Dict]):  # type: ignore[no-untyped-def, type-arg]
         # event_ids have trace ID as key and revision number as value
         if not event_ids:
             LOG.debug("Nothing to fetch, empty event_id dict given (%s)", event_ids)
@@ -158,7 +158,7 @@ class XRayTracePuller(AbstractXRayPuller):
                         xray_trace_event = XRayTraceEvent(trace)
 
                     # update latest fetched event
-                    latest_event_time = xray_trace_event.get_latest_event_time()
+                    latest_event_time = xray_trace_event.get_latest_event_time()  # type: ignore[no-untyped-call]
                     if latest_event_time > self.latest_event_time:
                         self.latest_event_time = latest_event_time
 

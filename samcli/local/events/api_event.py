@@ -5,7 +5,7 @@ import uuid
 
 
 class ContextIdentity:
-    def __init__(
+    def __init__(  # type: ignore[no-untyped-def]
         self,
         api_key=None,
         user_arn=None,
@@ -43,7 +43,7 @@ class ContextIdentity:
         self.source_ip = source_ip
         self.account_id = account_id
 
-    def to_dict(self):
+    def to_dict(self):  # type: ignore[no-untyped-def]
         """
         Constructs an dictionary representation of the Identity Object to be used in serializing to JSON
 
@@ -66,7 +66,7 @@ class ContextIdentity:
 
 
 class RequestContext:
-    def __init__(
+    def __init__(  # type: ignore[no-untyped-def]
         self,
         resource_id="123456",
         api_id="1234567890",
@@ -120,7 +120,7 @@ class RequestContext:
         self.request_time = request_time
         self.operation_name = operation_name
 
-    def to_dict(self):
+    def to_dict(self):  # type: ignore[no-untyped-def]
         """
         Constructs an dictionary representation of the RequestContext Object to be used in serializing to JSON
 
@@ -154,7 +154,7 @@ class RequestContext:
 
 
 class ApiGatewayLambdaEvent:
-    def __init__(
+    def __init__(  # type: ignore[no-untyped-def]
         self,
         http_method=None,
         body=None,
@@ -218,7 +218,7 @@ class ApiGatewayLambdaEvent:
         self.path = path
         self.is_base_64_encoded = is_base_64_encoded
 
-    def to_dict(self):
+    def to_dict(self):  # type: ignore[no-untyped-def]
         """
         Constructs an dictionary representation of the ApiGatewayLambdaEvent Object to be used in serializing to JSON
 
@@ -250,7 +250,7 @@ class ApiGatewayLambdaEvent:
 
 
 class ContextHTTP:
-    def __init__(
+    def __init__(  # type: ignore[no-untyped-def]
         self, method=None, path=None, protocol="HTTP/1.1", source_ip="127.0.0.1", user_agent="Custom User Agent String"
     ):
         """
@@ -268,7 +268,7 @@ class ContextHTTP:
         self.source_ip = source_ip
         self.user_agent = user_agent
 
-    def to_dict(self):
+    def to_dict(self):  # type: ignore[no-untyped-def]
         """
         Constructs an dictionary representation of the HTTP Object to be used
         in serializing to JSON
@@ -287,7 +287,7 @@ class ContextHTTP:
 
 
 class RequestContextV2:
-    def __init__(
+    def __init__(  # type: ignore[no-untyped-def]
         self,
         account_id="123456789012",
         api_id="1234567890",
@@ -326,7 +326,7 @@ class RequestContextV2:
         self.domain_name = domain_name
         self.domain_prefix = domain_prefix
 
-    def to_dict(self):
+    def to_dict(self):  # type: ignore[no-untyped-def]
         """
         Constructs an dictionary representation of the RequestContext Version 2
         Object to be used in serializing to JSON
@@ -359,7 +359,7 @@ class RequestContextV2:
 
 
 class ApiGatewayV2LambdaEvent:
-    def __init__(
+    def __init__(  # type: ignore[no-untyped-def]
         self,
         route_key=None,
         raw_path=None,
@@ -427,7 +427,7 @@ class ApiGatewayV2LambdaEvent:
         self.is_base_64_encoded = is_base_64_encoded
         self.stage_variables = stage_variables
 
-    def to_dict(self):
+    def to_dict(self):  # type: ignore[no-untyped-def]
         """
         Constructs an dictionary representation of the ApiGatewayLambdaEvent
         Version 2 Object to be used in serializing to JSON

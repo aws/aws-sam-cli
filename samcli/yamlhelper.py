@@ -20,18 +20,18 @@ https://github.com/aws/aws-cli/blob/develop/awscli/customizations/cloudformation
 import json
 from typing import cast, Dict, Optional
 from botocore.compat import OrderedDict
-import yaml
+import yaml  # type: ignore[import]
 
 # ScalarNode and SequenceNode are not declared in __all__,
 # TODO: we need to double check whether they are public and stable
 from yaml.resolver import ScalarNode, SequenceNode  # type: ignore
 
-from samtranslator.utils.py27hash_fix import Py27Dict, Py27UniStr
+from samtranslator.utils.py27hash_fix import Py27Dict, Py27UniStr  # type: ignore[import]
 
 TAG_STR = "tag:yaml.org,2002:str"
 
 
-def string_representer(dumper, value):
+def string_representer(dumper, value):  # type: ignore[no-untyped-def]
     """
     Customer Yaml representer that will force the scalar to be quoted in a yaml.dump
     if it scalar starts with a 0. This is needed to keep account ids a string instead
@@ -53,7 +53,7 @@ def string_representer(dumper, value):
     return dumper.represent_scalar(TAG_STR, value)
 
 
-def intrinsics_multi_constructor(loader, tag_prefix, node):
+def intrinsics_multi_constructor(loader, tag_prefix, node):  # type: ignore[no-untyped-def]
     """
     YAML constructor to parse CloudFormation intrinsics.
     This will return a dictionary with key being the instrinsic name
@@ -90,11 +90,11 @@ def intrinsics_multi_constructor(loader, tag_prefix, node):
     return {cfntag: value}
 
 
-def _dict_representer(dumper, data):
+def _dict_representer(dumper, data):  # type: ignore[no-untyped-def]
     return dumper.represent_dict(data.items())
 
 
-def yaml_dump(dict_to_dump):
+def yaml_dump(dict_to_dump):  # type: ignore[no-untyped-def]
     """
     Dumps the dictionary as a YAML document
     :param dict_to_dump:
@@ -107,26 +107,26 @@ def yaml_dump(dict_to_dump):
     return yaml.dump(dict_to_dump, default_flow_style=False, Dumper=CfnDumper)
 
 
-def _dict_constructor(loader, node):
+def _dict_constructor(loader, node):  # type: ignore[no-untyped-def]
     # Necessary in order to make yaml merge tags work
     loader.flatten_mapping(node)
     return OrderedDict(loader.construct_pairs(node))
 
 
-def yaml_parse(yamlstr) -> Dict:
+def yaml_parse(yamlstr) -> Dict:  # type: ignore[no-untyped-def, type-arg]
     """Parse a yaml string"""
     try:
         # PyYAML doesn't support json as well as it should, so if the input
         # is actually just json it is better to parse it with the standard
         # json parser.
-        return cast(Dict, json.loads(yamlstr, object_pairs_hook=OrderedDict))
+        return cast(Dict, json.loads(yamlstr, object_pairs_hook=OrderedDict))  # type: ignore[type-arg]
     except ValueError:
         yaml.SafeLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _dict_constructor)
         yaml.SafeLoader.add_multi_constructor("!", intrinsics_multi_constructor)
-        return cast(Dict, yaml.safe_load(yamlstr))
+        return cast(Dict, yaml.safe_load(yamlstr))  # type: ignore[type-arg]
 
 
-def parse_yaml_file(file_path, extra_context: Optional[Dict] = None) -> Dict:
+def parse_yaml_file(file_path, extra_context: Optional[Dict] = None) -> Dict:  # type: ignore[no-untyped-def, type-arg]
     """
     Read the file, do variable substitution, parse it as JSON/YAML
 
@@ -150,6 +150,6 @@ def parse_yaml_file(file_path, extra_context: Optional[Dict] = None) -> Dict:
         return yaml_parse(content)
 
 
-class CfnDumper(yaml.SafeDumper):
-    def ignore_aliases(self, data):
+class CfnDumper(yaml.SafeDumper):  # type: ignore[misc]
+    def ignore_aliases(self, data):  # type: ignore[no-untyped-def]
         return True

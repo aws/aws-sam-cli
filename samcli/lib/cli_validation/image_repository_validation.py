@@ -15,7 +15,7 @@ from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.packagetype import IMAGE
 
 
-def image_repository_validation(func):
+def image_repository_validation(func):  # type: ignore[no-untyped-def]
     """
     Wrapper Validation function that will run last after the all cli parmaters have been loaded
     to check for conditions surrounding `--image-repository`, `--image-repositories`, and `--resolve-image-repos`. The
@@ -26,7 +26,7 @@ def image_repository_validation(func):
     :return: Click command function after validation
     """
 
-    def wrapped(*args, **kwargs):
+    def wrapped(*args, **kwargs):  # type: ignore[no-untyped-def]
         ctx = click.get_current_context()
         guided = ctx.params.get("guided", False) or ctx.params.get("g", False)
         image_repository = ctx.params.get("image_repository", False)
@@ -43,12 +43,12 @@ def image_repository_validation(func):
         required = any(
             [
                 _template_artifact == IMAGE
-                for _template_artifact in get_template_artifacts_format(template_file=template_file)
+                for _template_artifact in get_template_artifacts_format(template_file=template_file)  # type: ignore[no-untyped-call]
             ]
         )
 
         validators = [
-            Validator(
+            Validator(  # type: ignore[no-untyped-call]
                 validation_function=lambda: bool(image_repository)
                 + bool(image_repositories)
                 + bool(resolve_image_repos)
@@ -61,7 +61,7 @@ def image_repository_validation(func):
                     "Do you have multiple specified in the command or in a configuration file?",
                 ),
             ),
-            Validator(
+            Validator(  # type: ignore[no-untyped-call]
                 validation_function=lambda: not guided
                 and not (image_repository or image_repositories or resolve_image_repos)
                 and required,
@@ -71,12 +71,12 @@ def image_repository_validation(func):
                     message="Missing option '--image-repository', '--image-repositories', or '--resolve-image-repos'",
                 ),
             ),
-            Validator(
+            Validator(  # type: ignore[no-untyped-call]
                 validation_function=lambda: not guided
                 and (
                     image_repositories
                     and not resolve_image_repos
-                    and not _is_all_image_funcs_provided(template_file, image_repositories, parameters_overrides)
+                    and not _is_all_image_funcs_provided(template_file, image_repositories, parameters_overrides)  # type: ignore[no-untyped-call]
                 ),
                 exception=click.BadOptionUsage(
                     option_name="--image-repositories",
@@ -87,19 +87,19 @@ def image_repository_validation(func):
             ),
         ]
         for validator in validators:
-            validator.validate()
+            validator.validate()  # type: ignore[no-untyped-call]
         # Call Original function after validation.
         return func(*args, **kwargs)
 
     return wrapped
 
 
-def _is_all_image_funcs_provided(template_file, image_repositories, parameters_overrides):
+def _is_all_image_funcs_provided(template_file, image_repositories, parameters_overrides):  # type: ignore[no-untyped-def]
     """
     Validate that the customer provides ECR repository for every available Lambda function with image package type
     """
     image_repositories = image_repositories if image_repositories else {}
-    global_parameter_overrides = {}
+    global_parameter_overrides = {}  # type: ignore[var-annotated]
     stacks, _ = SamLocalStackProvider.get_stacks(
         template_file,
         parameter_overrides=parameters_overrides,

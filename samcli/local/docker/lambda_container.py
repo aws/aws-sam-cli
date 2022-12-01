@@ -32,7 +32,7 @@ class LambdaContainer(Container):
     # This is the dictionary that represents where the debugger_path arg is mounted in docker to as readonly.
     _DEBUGGER_VOLUME_MOUNT = {"bind": _DEBUGGER_VOLUME_MOUNT_PATH, "mode": "ro"}
 
-    def __init__(
+    def __init__(  # type: ignore[no-untyped-def]
         self,  # pylint: disable=R0914
         runtime,
         imageuri,
@@ -87,17 +87,17 @@ class LambdaContainer(Container):
         function_full_path str
             Optional. The function full path, unique in all stacks
         """
-        if not Runtime.has_value(runtime) and not packagetype == IMAGE:
+        if not Runtime.has_value(runtime) and not packagetype == IMAGE:  # type: ignore[no-untyped-call]
             raise ValueError("Unsupported Lambda runtime {}".format(runtime))
 
         image = LambdaContainer._get_image(
             lambda_image, runtime, packagetype, imageuri, layers, architecture, function_full_path
         )
-        ports = LambdaContainer._get_exposed_ports(debug_options)
-        config = LambdaContainer._get_config(lambda_image, image)
-        entry, container_env_vars = LambdaContainer._get_debug_settings(runtime, debug_options)
+        ports = LambdaContainer._get_exposed_ports(debug_options)  # type: ignore[no-untyped-call]
+        config = LambdaContainer._get_config(lambda_image, image)  # type: ignore[no-untyped-call]
+        entry, container_env_vars = LambdaContainer._get_debug_settings(runtime, debug_options)  # type: ignore[no-untyped-call]
         additional_options = LambdaContainer._get_additional_options(runtime, debug_options)
-        additional_volumes = LambdaContainer._get_additional_volumes(runtime, debug_options)
+        additional_volumes = LambdaContainer._get_additional_volumes(runtime, debug_options)  # type: ignore[no-untyped-call]
 
         _work_dir = self._WORKING_DIR
         _entrypoint = None
@@ -122,7 +122,7 @@ class LambdaContainer(Container):
             _work_dir = (image_config.get("WorkingDirectory") if image_config else None) or config.get("WorkingDir")
 
         env_vars = {**env_vars, **container_env_vars}
-        super().__init__(
+        super().__init__(  # type: ignore[no-untyped-call]
             image,
             _command if _command else [],
             _work_dir,
@@ -138,7 +138,7 @@ class LambdaContainer(Container):
         )
 
     @staticmethod
-    def _get_exposed_ports(debug_options):
+    def _get_exposed_ports(debug_options):  # type: ignore[no-untyped-def]
         """
         Return Docker container port binding information. If a debug port tuple is given, then we will ask Docker to
         bind every given port to same port both inside and outside the container ie.
@@ -162,7 +162,7 @@ class LambdaContainer(Container):
         return ports_map
 
     @staticmethod
-    def _get_additional_options(runtime: str, debug_options):
+    def _get_additional_options(runtime: str, debug_options):  # type: ignore[no-untyped-def, no-untyped-def]
         """
         Return additional Docker container options. Used by container debug mode to enable certain container
         security options.
@@ -184,7 +184,7 @@ class LambdaContainer(Container):
         return opts
 
     @staticmethod
-    def _get_additional_volumes(runtime, debug_options):
+    def _get_additional_volumes(runtime, debug_options):  # type: ignore[no-untyped-def]
         """
         Return additional volumes to be mounted in the Docker container. Used by container debug for mapping
         debugger executable into the container.
@@ -200,7 +200,7 @@ class LambdaContainer(Container):
         return volumes
 
     @staticmethod
-    def _get_image(
+    def _get_image(  # type: ignore[no-untyped-def]
         lambda_image: LambdaImage,
         runtime: str,
         packagetype: str,
@@ -233,14 +233,14 @@ class LambdaContainer(Container):
         str
             Name of Docker Image for the given runtime
         """
-        return lambda_image.build(runtime, packagetype, image, layers, architecture, function_name=function_name)
+        return lambda_image.build(runtime, packagetype, image, layers, architecture, function_name=function_name)  # type: ignore[no-untyped-call]
 
     @staticmethod
-    def _get_config(lambda_image, image):
+    def _get_config(lambda_image, image):  # type: ignore[no-untyped-def]
         return lambda_image.get_config(image)
 
     @staticmethod
-    def _get_debug_settings(runtime, debug_options=None):  # pylint: disable=too-many-branches
+    def _get_debug_settings(runtime, debug_options=None):  # type: ignore[no-untyped-def] # pylint: disable=too-many-branches
         """
         Returns the entry point for the container. The default value for the entry point is already configured in the
         Dockerfile. We override this default specifically when enabling debugging. The overridden entry point includes
@@ -268,7 +268,7 @@ class LambdaContainer(Container):
             debug_args_list = debug_options.debug_args.split(" ")
         # configs from: https://github.com/lambci/docker-lambda
         # to which we add the extra debug mode options
-        return LambdaDebugSettings.get_debug_settings(
+        return LambdaDebugSettings.get_debug_settings(  # type: ignore[no-untyped-call]
             debug_port=debug_port,
             debug_args_list=debug_args_list,
             _container_env_vars=container_env_vars,

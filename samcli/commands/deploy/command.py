@@ -65,7 +65,7 @@ LOG = logging.getLogger(__name__)
     context_settings={"ignore_unknown_options": False, "allow_interspersed_args": True, "allow_extra_args": True},
     help=HELP_TEXT,
 )
-@configuration_option(provider=TomlProvider(section=CONFIG_SECTION))
+@configuration_option(provider=TomlProvider(section=CONFIG_SECTION))  # type: ignore[no-untyped-call, no-untyped-call]
 @click.option(
     "--guided",
     "-g",
@@ -74,7 +74,7 @@ LOG = logging.getLogger(__name__)
     is_eager=True,
     help="Specify this flag to allow SAM CLI to guide you through the deployment using guided prompts.",
 )
-@template_click_option(include_build=True)
+@template_click_option(include_build=True)  # type: ignore[no-untyped-call]
 @click.option(
     "--no-execute-changeset",
     required=False,
@@ -154,8 +154,8 @@ LOG = logging.getLogger(__name__)
 @track_command
 @check_newer_version
 @print_cmdline_args
-@unsupported_command_cdk(alternative_command="cdk deploy")
-def cli(
+@unsupported_command_cdk(alternative_command="cdk deploy")  # type: ignore[no-untyped-call]
+def cli(  # type: ignore[no-untyped-def]
     ctx,
     template_file,
     stack_name,
@@ -189,7 +189,7 @@ def cli(
     `sam deploy` command entry point
     """
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
-    do_cli(
+    do_cli(  # type: ignore[no-untyped-call]
         template_file,
         stack_name,
         s3_bucket,
@@ -222,7 +222,7 @@ def cli(
     )  # pragma: no cover
 
 
-def do_cli(
+def do_cli(  # type: ignore[no-untyped-def]
     template_file,
     stack_name,
     s3_bucket,
@@ -263,7 +263,7 @@ def do_cli(
 
     if guided:
         # Allow for a guided deploy to prompt and save those details.
-        guided_context = GuidedContext(
+        guided_context = GuidedContext(  # type: ignore[no-untyped-call]
             template_file=template_file,
             stack_name=stack_name,
             s3_bucket=s3_bucket,
@@ -281,12 +281,12 @@ def do_cli(
             config_file=config_file,
             disable_rollback=disable_rollback,
         )
-        guided_context.run()
+        guided_context.run()  # type: ignore[no-untyped-call]
     else:
         if resolve_s3:
             if bool(s3_bucket):
-                raise DeployResolveS3AndS3SetError()
-            s3_bucket = manage_stack(profile=profile, region=region)
+                raise DeployResolveS3AndS3SetError()  # type: ignore[no-untyped-call]
+            s3_bucket = manage_stack(profile=profile, region=region)  # type: ignore[no-untyped-call]
             click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
             click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")
             click.echo("\t\tOr by specifying --s3-bucket explicitly.")
@@ -300,7 +300,7 @@ def do_cli(
 
     with osutils.tempfile_platform_independent() as output_template_file:
 
-        with PackageContext(
+        with PackageContext(  # type: ignore[no-untyped-call]
             template_file=template_file,
             s3_bucket=guided_context.guided_s3_bucket if guided else s3_bucket,
             s3_prefix=guided_context.guided_s3_prefix if guided else s3_prefix,
@@ -328,7 +328,7 @@ def do_cli(
         if poll_delay <= 0:
             poll_delay = DEFAULT_POLL_DELAY
 
-        with DeployContext(
+        with DeployContext(  # type: ignore[no-untyped-call]
             template_file=output_template_file.name,
             stack_name=guided_context.guided_stack_name if guided else stack_name,
             s3_bucket=guided_context.guided_s3_bucket if guided else s3_bucket,
@@ -338,7 +338,7 @@ def do_cli(
             no_progressbar=no_progressbar,
             s3_prefix=guided_context.guided_s3_prefix if guided else s3_prefix,
             kms_key_id=kms_key_id,
-            parameter_overrides=sanitize_parameter_overrides(guided_context.guided_parameter_overrides)
+            parameter_overrides=sanitize_parameter_overrides(guided_context.guided_parameter_overrides)  # type: ignore[no-untyped-call]
             if guided
             else parameter_overrides,
             capabilities=guided_context.guided_capabilities if guided else capabilities,

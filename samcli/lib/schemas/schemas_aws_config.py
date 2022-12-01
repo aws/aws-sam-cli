@@ -6,7 +6,7 @@ from boto3.session import Session
 from samcli.commands.local.cli_common.user_exceptions import ResourceNotFound
 
 
-def get_aws_configuration_choice():
+def get_aws_configuration_choice():  # type: ignore[no-untyped-def]
     """
     Allow user to select their AWS Connection configuration (profile/region)
     :return: AWS profile and region dictionary
@@ -23,21 +23,21 @@ def get_aws_configuration_choice():
 
     if needs_edit:
         available_profiles = session.available_profiles
-        profile = _get_aws_profile_choice(available_profiles)
+        profile = _get_aws_profile_choice(available_profiles)  # type: ignore[no-untyped-call]
         # Reinitialize the session with the new profile to get the new region
         session = Session(profile_name=profile)
-        region = _get_aws_region_choice(schemas_available_regions_name, session.region_name)
+        region = _get_aws_region_choice(schemas_available_regions_name, session.region_name)  # type: ignore[no-untyped-call]
     else:
         # session.profile_name will return 'default' if no profile is found,
         # but botocore itself will fail if you pass it in, when one is not configured
-        profile = None
+        profile = None  # type: ignore[assignment]
 
     return {"profile": profile, "region": region}
 
 
-def _get_aws_profile_choice(available_profiles):
+def _get_aws_profile_choice(available_profiles):  # type: ignore[no-untyped-def]
     if not available_profiles:
-        raise ResourceNotFound("No configured AWS profile found.")
+        raise ResourceNotFound("No configured AWS profile found.")  # type: ignore[no-untyped-call]
 
     # Convert list of available profiles (strings) into a list of click.Choice
     # index/string value tuples
@@ -55,9 +55,9 @@ def _get_aws_profile_choice(available_profiles):
     return available_profiles[int(profile_choice) - 1]
 
 
-def _get_aws_region_choice(available_regions_name, region):
+def _get_aws_region_choice(available_regions_name, region):  # type: ignore[no-untyped-def]
     if not available_regions_name:
-        raise ResourceNotFound(
+        raise ResourceNotFound(  # type: ignore[no-untyped-call]
             "No AWS region found for AWS schemas service. This should not be possible, please raise an issue."
         )
     cli_display_regions = dict()
@@ -67,7 +67,7 @@ def _get_aws_region_choice(available_regions_name, region):
         if region_prefix not in cli_display_regions:
             cli_display_regions[region_prefix] = available_region_name
         else:
-            cli_display_regions[region_prefix] = cli_display_regions.get(region_prefix) + "," + available_region_name
+            cli_display_regions[region_prefix] = cli_display_regions.get(region_prefix) + "," + available_region_name  # type: ignore[operator]
 
     click.echo("\nWhich region do you want to use for your schema registry?")
     click.echo("# Partial list of AWS regions")
@@ -80,7 +80,7 @@ def _get_aws_region_choice(available_regions_name, region):
     return region_choice
 
 
-def get_schemas_client(profile, region):
+def get_schemas_client(profile, region):  # type: ignore[no-untyped-def]
     if profile:
         session = Session(profile_name=profile)
     else:

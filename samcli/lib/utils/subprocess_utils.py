@@ -19,10 +19,10 @@ LOG = logging.getLogger(__name__)
 
 
 class LoadingPatternError(UserException):
-    def __init__(self, ex):
+    def __init__(self, ex):  # type: ignore[no-untyped-def]
         self.ex = ex
         message_fmt = f"Failed to execute the subprocess. {ex}"
-        super().__init__(message=message_fmt.format(ex=self.ex))
+        super().__init__(message=message_fmt.format(ex=self.ex))  # type: ignore[no-untyped-call]
 
 
 def default_loading_pattern(stream_writer: Optional[StreamWriter] = None, loading_pattern_rate: float = 0.5) -> None:
@@ -36,9 +36,9 @@ def default_loading_pattern(stream_writer: Optional[StreamWriter] = None, loadin
     loading_pattern_rate: int
         How frequently to generate the pattern
     """
-    stream_writer = stream_writer or StreamWriter(sys.stderr)
-    stream_writer.write(".")
-    stream_writer.flush()
+    stream_writer = stream_writer or StreamWriter(sys.stderr)  # type: ignore[no-untyped-call]
+    stream_writer.write(".")  # type: ignore[no-untyped-call]
+    stream_writer.flush()  # type: ignore[no-untyped-call]
     sleep(loading_pattern_rate)
 
 
@@ -66,7 +66,7 @@ def invoke_subprocess_with_loading_pattern(
     str
         A string containing the process output
     """
-    stream_writer = stream_writer or StreamWriter(sys.stderr)
+    stream_writer = stream_writer or StreamWriter(sys.stderr)  # type: ignore[no-untyped-call]
     process_output = ""
 
     if not command_args.get("stdout"):
@@ -77,9 +77,9 @@ def invoke_subprocess_with_loading_pattern(
     try:
         keep_printing = LOG.getEffectiveLevel() >= logging.INFO
 
-        def _print_loading_pattern():
+        def _print_loading_pattern():  # type: ignore[no-untyped-def]
             while keep_printing:
-                loading_pattern(stream_writer)
+                loading_pattern(stream_writer)  # type: ignore[arg-type]
 
         # Popen is async as opposed to run so we can print while we wait
         with Popen(**command_args) as process:
@@ -99,18 +99,18 @@ def invoke_subprocess_with_loading_pattern(
                 return_code = process.wait()
                 keep_printing = False
 
-                stream_writer.write(os.linesep)
-                stream_writer.flush()
+                stream_writer.write(os.linesep)  # type: ignore[no-untyped-call]
+                stream_writer.flush()  # type: ignore[no-untyped-call]
                 process_stderr = _check_and_convert_stream_to_string(process.stderr)
 
                 if return_code:
-                    raise LoadingPatternError(
+                    raise LoadingPatternError(  # type: ignore[no-untyped-call]
                         f"The process {command_args.get('args', [])} returned a "
                         f"non-zero exit code {process.returncode}. {process_stderr}"
                     )
 
     except (OSError, ValueError) as e:
-        raise LoadingPatternError(f"Subprocess execution failed {command_args.get('args', [])}. {e}") from e
+        raise LoadingPatternError(f"Subprocess execution failed {command_args.get('args', [])}. {e}") from e  # type: ignore[no-untyped-call]
 
     return process_output
 

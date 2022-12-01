@@ -21,14 +21,14 @@ from samcli.lib.schemas.schemas_constants import (
 )
 
 
-def get_schema_template_details(schemas_api_caller):
+def get_schema_template_details(schemas_api_caller):  # type: ignore[no-untyped-def]
     """
     Calls schemas APIs to fetch available selection and returns schema details based on user selection.
     :param schemas_api_caller:
     :return:
     """
-    registry_name = _get_registry_cli_choice(schemas_api_caller)
-    schema_full_name = _get_schema_cli_choice(schemas_api_caller, registry_name)
+    registry_name = _get_registry_cli_choice(schemas_api_caller)  # type: ignore[no-untyped-call]
+    schema_full_name = _get_schema_cli_choice(schemas_api_caller, registry_name)  # type: ignore[no-untyped-call]
     schema_latest_version = schemas_api_caller.get_latest_schema_version(registry_name, schema_full_name)
     get_schema_metadata_response = schemas_api_caller.get_schema_metadata(registry_name, schema_full_name)
     return {
@@ -42,9 +42,9 @@ def get_schema_template_details(schemas_api_caller):
     }
 
 
-def _get_registry_cli_choice(schemas_api_caller):
+def _get_registry_cli_choice(schemas_api_caller):  # type: ignore[no-untyped-def]
     """Returns registry choice if one registry is present otherwise prompt for selection"""
-    registries = _fetch_available_registries(schemas_api_caller, dict(), None)
+    registries = _fetch_available_registries(schemas_api_caller, dict(), None)  # type: ignore[no-untyped-call]
     registry_pages = registries["registry_pages"]
     # If only one registry don't prompt for choice
     if len(registry_pages) == 1 and len(registry_pages.get(0)) == 1:
@@ -54,19 +54,19 @@ def _get_registry_cli_choice(schemas_api_caller):
     click.echo("Which Schema Registry would you like to use?")
     next_token = registries.get("next_token")
     is_last_page = next_token is None
-    return _prompt_for_registry_choice(
+    return _prompt_for_registry_choice(  # type: ignore[no-untyped-call]
         schemas_api_caller, registry_pages, 0, next_token, is_last_page, last_page_number=None
     )
 
 
-def _prompt_for_registry_choice(
+def _prompt_for_registry_choice(  # type: ignore[no-untyped-def]
     schemas_api_caller, registry_pages, page_to_render, next_token, is_last_page, last_page_number
 ):
     # construct CLI message
-    cli_display_message = construct_cli_display_message_for_registries(page_to_render + 1, last_page_number)
+    cli_display_message = construct_cli_display_message_for_registries(page_to_render + 1, last_page_number)  # type: ignore[no-untyped-call]
 
     # get customer decision
-    cli_response = do_paginate_cli(registry_pages, page_to_render, PAGE_LIMIT, is_last_page, cli_display_message)
+    cli_response = do_paginate_cli(registry_pages, page_to_render, PAGE_LIMIT, is_last_page, cli_display_message)  # type: ignore[no-untyped-call]
 
     # user selected item
     if cli_response.get("choice") is not None:
@@ -75,20 +75,20 @@ def _prompt_for_registry_choice(
     # user decided to paginate
     page_to_render = cli_response.get("page_to_render")
     if registry_pages.get(page_to_render) is None:
-        registries = _fetch_available_registries(schemas_api_caller, registry_pages, next_token)
+        registries = _fetch_available_registries(schemas_api_caller, registry_pages, next_token)  # type: ignore[no-untyped-call]
         registry_pages = registries["registry_pages"]
         next_token = registries.get("next_token")
         is_last_page = next_token is None
     if is_last_page and last_page_number is None:
         last_page_number = page_to_render + 1
-    return _prompt_for_registry_choice(
+    return _prompt_for_registry_choice(  # type: ignore[no-untyped-call]
         schemas_api_caller, registry_pages, page_to_render, next_token, is_last_page, last_page_number
     )
 
 
-def _get_schema_cli_choice(schemas_api_caller, registry_name):
+def _get_schema_cli_choice(schemas_api_caller, registry_name):  # type: ignore[no-untyped-def]
     """Returns registry registry choice if one registry is present otherwise prompt for  selection"""
-    schemas = _fetch_available_schemas(schemas_api_caller, registry_name, dict(), None)
+    schemas = _fetch_available_schemas(schemas_api_caller, registry_name, dict(), None)  # type: ignore[no-untyped-call]
     schema_pages = schemas["schema_pages"]
     # If only one schema don't prompt for choice
     if len(schema_pages) == 1 and len(schema_pages.get(0)) == 1:
@@ -98,19 +98,19 @@ def _get_schema_cli_choice(schemas_api_caller, registry_name):
     click.echo("\nWhich Schema would you like to use?")
     next_token = schemas.get("next_token")
     is_last_page = next_token is None
-    return _prompt_for_schemas_choice(
+    return _prompt_for_schemas_choice(  # type: ignore[no-untyped-call]
         schemas_api_caller, registry_name, schema_pages, 0, next_token, is_last_page, last_page_number=None
     )
 
 
-def _prompt_for_schemas_choice(
+def _prompt_for_schemas_choice(  # type: ignore[no-untyped-def]
     schemas_api_caller, registry_name, schema_pages, page_to_render, next_token, is_last_page, last_page_number
 ):
     # construct CLI message
-    cli_display_message = construct_cli_display_message_for_schemas(page_to_render + 1, last_page_number)
+    cli_display_message = construct_cli_display_message_for_schemas(page_to_render + 1, last_page_number)  # type: ignore[no-untyped-call]
 
     # get customer decision
-    cli_response = do_paginate_cli(schema_pages, page_to_render, PAGE_LIMIT, is_last_page, cli_display_message)
+    cli_response = do_paginate_cli(schema_pages, page_to_render, PAGE_LIMIT, is_last_page, cli_display_message)  # type: ignore[no-untyped-call]
 
     # user selected item
     if cli_response.get("choice") is not None:
@@ -119,31 +119,31 @@ def _prompt_for_schemas_choice(
     # user decided to paginate
     page_to_render = cli_response.get("page_to_render")
     if schema_pages.get(page_to_render) is None:
-        schemas = _fetch_available_schemas(schemas_api_caller, registry_name, schema_pages, next_token)
+        schemas = _fetch_available_schemas(schemas_api_caller, registry_name, schema_pages, next_token)  # type: ignore[no-untyped-call]
         schema_pages = schemas["schema_pages"]
         next_token = schemas.get("next_token")
         is_last_page = next_token is None
     if is_last_page and last_page_number is None:
         last_page_number = page_to_render + 1
-    return _prompt_for_schemas_choice(
+    return _prompt_for_schemas_choice(  # type: ignore[no-untyped-call]
         schemas_api_caller, registry_name, schema_pages, page_to_render, next_token, is_last_page, last_page_number
     )
 
 
-def _fetch_available_schemas(schemas_api_caller, registry_name, schema_pages, next_token):
+def _fetch_available_schemas(schemas_api_caller, registry_name, schema_pages, next_token):  # type: ignore[no-untyped-def]
     """calls schemas api fetch schemas for given registry. Two CLI pages are fetched at a time."""
     list_schemas_response = schemas_api_caller.list_schemas(registry_name, next_token, PAGE_LIMIT)
     schemas = list_schemas_response["schemas"]
 
     # divided response into pages
-    pages = _construct_cli_page(schemas, PAGE_LIMIT)
+    pages = _construct_cli_page(schemas, PAGE_LIMIT)  # type: ignore[no-untyped-call]
     for page in range(0, len(pages)):
         schema_pages.update({len(schema_pages): pages.get(page)})
     next_token = list_schemas_response.get("next_token")
     return {"schema_pages": schema_pages, "next_token": next_token}
 
 
-def _fetch_available_registries(schemas_api_caller, registry_pages, next_token):
+def _fetch_available_registries(schemas_api_caller, registry_pages, next_token):  # type: ignore[no-untyped-def]
     """calls schemas api to fetch registries. Two CLI pages are fetched at a time."""
     list_registries_response = schemas_api_caller.list_registries(next_token, PAGE_LIMIT)
     registries = list_registries_response["registries"]
@@ -152,14 +152,14 @@ def _fetch_available_registries(schemas_api_caller, registry_pages, next_token):
     registries.sort()
 
     # divided response into pages
-    pages = _construct_cli_page(registries, PAGE_LIMIT)
+    pages = _construct_cli_page(registries, PAGE_LIMIT)  # type: ignore[no-untyped-call]
     for page in range(0, len(pages)):
         registry_pages.update({len(registry_pages): pages.get(page)})
     next_token = list_registries_response.get("next_token")
     return {"registry_pages": registry_pages, "next_token": next_token}
 
 
-def _construct_cli_page(items, item_per_page):
+def _construct_cli_page(items, item_per_page):  # type: ignore[no-untyped-def]
     """Responsible for splitting items into CLI pages.
     Currently CLI pages are list of dictionary [0:{0:s1, 1:s2: 3:s3}, 1: {4:s4, 5:s5: 6:s6}]
     We maintain the page detail and item index details."""
@@ -176,7 +176,7 @@ def _construct_cli_page(items, item_per_page):
     return schema_dict
 
 
-def get_schemas_template_parameter(schema_template_details):
+def get_schemas_template_parameter(schema_template_details):  # type: ignore[no-untyped-def]
     """Schemas cookiecutter template parameter mapping"""
     return {
         SCHEMAS_REGISTRY: schema_template_details["registry_name"],
@@ -187,7 +187,7 @@ def get_schemas_template_parameter(schema_template_details):
     }
 
 
-def get_schemas_api_caller():
-    aws_configuration = get_aws_configuration_choice()
-    schemas_client = get_schemas_client(aws_configuration["profile"], aws_configuration["region"])
-    return SchemasApiCaller(schemas_client)
+def get_schemas_api_caller():  # type: ignore[no-untyped-def]
+    aws_configuration = get_aws_configuration_choice()  # type: ignore[no-untyped-call]
+    schemas_client = get_schemas_client(aws_configuration["profile"], aws_configuration["region"])  # type: ignore[no-untyped-call]
+    return SchemasApiCaller(schemas_client)  # type: ignore[no-untyped-call]

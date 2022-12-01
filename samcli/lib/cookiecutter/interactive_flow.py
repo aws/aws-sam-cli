@@ -23,7 +23,7 @@ class InteractiveFlow:
         self._questions: Dict[str, Question] = questions
         self._first_question_key: str = first_question_key
         self._current_question: Optional[Question] = None
-        self._color = Colored()
+        self._color = Colored()  # type: ignore[no-untyped-call]
 
     def advance_to_next_question(self, current_answer: Optional[Any] = None) -> Optional[Question]:
         """
@@ -47,8 +47,8 @@ class InteractiveFlow:
 
     def run(
         self,
-        context: Dict,
-    ) -> Dict:
+        context: Dict,  # type: ignore[type-arg]
+    ) -> Dict:  # type: ignore[type-arg]
         """
         starts the flow, collects user's answers to the question and return a new copy of the passed context
         with the answers appended to the copy
@@ -75,7 +75,7 @@ class InteractiveFlow:
             question = self.advance_to_next_question(answer)
 
         # print summary
-        click.echo(self._color.bold("SUMMARY"))
+        click.echo(self._color.bold("SUMMARY"))  # type: ignore[no-untyped-call]
         click.echo("We will generate a pipeline config file based on the following information:")
 
         for question_key, answer in answers:
@@ -84,6 +84,6 @@ class InteractiveFlow:
                 continue
 
             question = self._questions[question_key]
-            click.echo(f"\t{question.text}: {self._color.underline(str(answer))}")
+            click.echo(f"\t{question.text}: {self._color.underline(str(answer))}")  # type: ignore[no-untyped-call]
 
         return context

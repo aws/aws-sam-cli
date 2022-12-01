@@ -80,7 +80,7 @@ class GuidedContext:
         self.gitlab_config = gitlab_config
         self.bitbucket_config = bitbucket_config
         self.enable_oidc_option = enable_oidc_option
-        self.color = Colored()
+        self.color = Colored()  # type: ignore[no-untyped-call]
 
     def _prompt_account_id(self) -> None:
         profiles = list_available_profiles()
@@ -116,10 +116,10 @@ class GuidedContext:
         try:
             account_id = get_current_account_id(self.profile)
             click.echo(
-                self.color.green(f"Associated account {account_id} with configuration {self.stage_configuration_name}.")
+                self.color.green(f"Associated account {account_id} with configuration {self.stage_configuration_name}.")  # type: ignore[no-untyped-call]
             )
         except CredentialsError as ex:
-            click.echo(f"{self.color.red(ex.message)}\n")
+            click.echo(f"{self.color.red(ex.message)}\n")  # type: ignore[no-untyped-call]
             self._prompt_account_id()
 
     def _prompt_stage_configuration_name(self) -> None:
@@ -364,14 +364,14 @@ class GuidedContext:
         for the pipeline to work. Users can provide all, none or some resources' ARNs and leave the remaining empty
         and it will be created by the bootstrap command
         """
-        click.secho(self.color.bold("[1] Stage definition"))
+        click.secho(self.color.bold("[1] Stage definition"))  # type: ignore[no-untyped-call]
         if self.stage_configuration_name:
             click.echo(f"Stage configuration name: {self.stage_configuration_name}")
         else:
             self._prompt_stage_configuration_name()
         click.echo()
 
-        click.secho(self.color.bold("[2] Account details"))
+        click.secho(self.color.bold("[2] Account details"))  # type: ignore[no-untyped-call]
         self._prompt_account_id()
         click.echo()
 
@@ -396,7 +396,7 @@ class GuidedContext:
             self._prompt_pipeline_user()
         click.echo()
 
-        click.secho(self.color.bold("[3] Reference application build resources"))
+        click.secho(self.color.bold("[3] Reference application build resources"))  # type: ignore[no-untyped-call]
 
         if self.pipeline_execution_role_arn:
             click.echo(f"Pipeline execution role ARN: {self.pipeline_execution_role_arn}")
@@ -420,7 +420,7 @@ class GuidedContext:
         click.echo()
 
         # Ask customers to confirm the inputs
-        click.secho(self.color.bold("[4] Summary"))
+        click.secho(self.color.bold("[4] Summary"))  # type: ignore[no-untyped-call]
         while True:
             inputs = self._get_user_inputs()
             click.secho("Below is the summary of the answers:")

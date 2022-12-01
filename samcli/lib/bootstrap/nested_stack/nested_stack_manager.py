@@ -39,7 +39,7 @@ class NestedStackManager:
     _stack_name: str
     _build_dir: str
     _stack_location: str
-    _current_template: Dict
+    _current_template: Dict  # type: ignore[type-arg]
     _app_build_result: ApplicationBuildResult
     _nested_stack_builder: NestedStackBuilder
 
@@ -48,9 +48,9 @@ class NestedStackManager:
         stack: Stack,
         stack_name: str,
         build_dir: str,
-        current_template: Dict,
+        current_template: Dict,  # type: ignore[type-arg]
         app_build_result: ApplicationBuildResult,
-        stack_metadata: Optional[Dict] = None,
+        stack_metadata: Optional[Dict] = None,  # type: ignore[type-arg]
     ):
         """
         Parameters
@@ -73,10 +73,10 @@ class NestedStackManager:
         self._build_dir = build_dir
         self._current_template = current_template
         self._app_build_result = app_build_result
-        self._nested_stack_builder = NestedStackBuilder()
+        self._nested_stack_builder = NestedStackBuilder()  # type: ignore[no-untyped-call]
         self._stack_metadata = stack_metadata if stack_metadata else {}
 
-    def generate_auto_dependency_layer_stack(self) -> Dict:
+    def generate_auto_dependency_layer_stack(self) -> Dict:  # type: ignore[type-arg]
         """
         Loops through all resources, and for the supported ones (SUPPORTED_RESOURCES and SUPPORTED_LANGUAGES)
         creates layer for its dependencies in a nested stack, and adds reference of the nested stack back to original
@@ -107,9 +107,9 @@ class NestedStackManager:
             return template
 
         nested_template_location = str(self._get_template_folder().joinpath("adl_nested_template.yaml"))
-        move_template(self._stack.location, nested_template_location, self._nested_stack_builder.build_as_dict())
+        move_template(self._stack.location, nested_template_location, self._nested_stack_builder.build_as_dict())  # type: ignore[no-untyped-call]
 
-        resources[NESTED_STACK_NAME] = self._nested_stack_builder.get_nested_stack_reference_resource(
+        resources[NESTED_STACK_NAME] = self._nested_stack_builder.get_nested_stack_reference_resource(  # type: ignore[no-untyped-call]
             nested_template_location
         )
         return template
@@ -117,7 +117,7 @@ class NestedStackManager:
     def _get_template_folder(self) -> Path:
         return Path(self._stack.get_output_template_path(self._build_dir)).parent
 
-    def _add_layer(self, dependencies_dir: str, function: Function, resources: Dict):
+    def _add_layer(self, dependencies_dir: str, function: Function, resources: Dict):  # type: ignore[no-untyped-def, type-arg]
         layer_logical_id = NestedStackBuilder.get_layer_logical_id(function.full_path)
         layer_location = self.update_layer_folder(
             str(self._get_template_folder()), dependencies_dir, layer_logical_id, function.full_path, function.runtime
@@ -126,13 +126,13 @@ class NestedStackManager:
         layer_output_key = self._nested_stack_builder.add_function(self._stack_name, layer_location, function)
 
         # add layer reference back to function
-        function_properties = cast(Dict, resources.get(function.name)).get("Properties", {})
+        function_properties = cast(Dict, resources.get(function.name)).get("Properties", {})  # type: ignore[type-arg]
         function_layers = function_properties.get("Layers", [])
         function_layers.append({"Fn::GetAtt": [NESTED_STACK_NAME, f"Outputs.{layer_output_key}"]})
         function_properties["Layers"] = function_layers
 
     @staticmethod
-    def _add_layer_readme_info(dependencies_dir: str, function_name: str):
+    def _add_layer_readme_info(dependencies_dir: str, function_name: str):  # type: ignore[no-untyped-def]
         # add a simple README file for discoverability
         with open(os.path.join(dependencies_dir, "AWS_SAM_CLI_README"), "w+") as f:
             f.write(
@@ -153,7 +153,7 @@ class NestedStackManager:
         by the runtime
         """
         if not function_runtime:
-            raise InvalidRuntimeDefinitionForFunction(function_logical_id)
+            raise InvalidRuntimeDefinitionForFunction(function_logical_id)  # type: ignore[no-untyped-call]
 
         layer_root_folder = Path(build_dir).joinpath(layer_logical_id)
         if layer_root_folder.exists():
@@ -165,11 +165,11 @@ class NestedStackManager:
                 osutils.create_symlink_or_copy(dependencies_dir, str(layer_contents_folder))
             else:
                 layer_contents_folder.mkdir(BUILD_DIR_PERMISSIONS, parents=True)
-                osutils.copytree(dependencies_dir, str(layer_contents_folder))
+                osutils.copytree(dependencies_dir, str(layer_contents_folder))  # type: ignore[no-untyped-call]
         NestedStackManager._add_layer_readme_info(str(layer_root_folder), function_logical_id)
         return str(layer_root_folder)
 
-    def _is_function_supported(self, function: Function):
+    def _is_function_supported(self, function: Function):  # type: ignore[no-untyped-def]
         """
         Checks if function is built with current session and its runtime is supported
         """

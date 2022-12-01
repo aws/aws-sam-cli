@@ -27,7 +27,7 @@ class TomlProvider:
     A parser for toml configuration files
     """
 
-    def __init__(self, section=None, cmd_names=None):
+    def __init__(self, section=None, cmd_names=None):  # type: ignore[no-untyped-def]
         """
         The constructor for TomlProvider class
         :param section: section defined in the configuration file nested within `cmd`
@@ -36,7 +36,7 @@ class TomlProvider:
         self.section = section
         self.cmd_names = cmd_names
 
-    def __call__(self, config_path, config_env, cmd_names):
+    def __call__(self, config_path, config_env, cmd_names):  # type: ignore[no-untyped-def]
         """
         Get resolved config based on the `file_path` for the configuration file,
         `config_env` targeted inside the config file and corresponding `cmd_name`
@@ -48,7 +48,7 @@ class TomlProvider:
         :returns dictionary containing the configuration parameters under specified config_env
         """
 
-        resolved_config = {}
+        resolved_config = {}  # type: ignore[var-annotated]
 
         # Use default sam config file name if config_path only contain the directory
         config_file_path = (
@@ -57,16 +57,16 @@ class TomlProvider:
         config_file_name = config_file_path.name
         config_file_dir = config_file_path.parents[0]
 
-        samconfig = SamConfig(config_file_dir, config_file_name)
+        samconfig = SamConfig(config_file_dir, config_file_name)  # type: ignore[no-untyped-call]
 
         # Enable debug level logging by environment variable "SAM_DEBUG"
         if os.environ.get("SAM_DEBUG", "").lower() == "true":
             LOG.setLevel(logging.DEBUG)
 
-        LOG.debug("Config file location: %s", samconfig.path())
+        LOG.debug("Config file location: %s", samconfig.path())  # type: ignore[no-untyped-call]
 
-        if not samconfig.exists():
-            LOG.debug("Config file '%s' does not exist", samconfig.path())
+        if not samconfig.exists():  # type: ignore[no-untyped-call]
+            LOG.debug("Config file '%s' does not exist", samconfig.path())  # type: ignore[no-untyped-call]
             return resolved_config
 
         if not self.cmd_names:
@@ -78,12 +78,12 @@ class TomlProvider:
                 config_env,
                 self.cmd_names,
                 self.section,
-                samconfig.path(),
+                samconfig.path(),  # type: ignore[no-untyped-call]
             )
 
             # NOTE(TheSriram): change from tomlkit table type to normal dictionary,
             # so that click defaults work out of the box.
-            resolved_config = dict(samconfig.get_all(self.cmd_names, self.section, env=config_env).items())
+            resolved_config = dict(samconfig.get_all(self.cmd_names, self.section, env=config_env).items())  # type: ignore[no-untyped-call]
             LOG.debug("Configuration values successfully loaded.")
             LOG.debug("Configuration values are: %s", resolved_config)
 
@@ -94,18 +94,18 @@ class TomlProvider:
                 config_env,
                 self.cmd_names,
                 self.section,
-                samconfig.path(),
+                samconfig.path(),  # type: ignore[no-untyped-call]
                 str(ex),
             )
 
         except Exception as ex:
-            LOG.debug("Error reading configuration file: %s %s", samconfig.path(), str(ex))
+            LOG.debug("Error reading configuration file: %s %s", samconfig.path(), str(ex))  # type: ignore[no-untyped-call]
             raise ConfigException(f"Error reading configuration: {ex}") from ex
 
         return resolved_config
 
 
-def configuration_callback(cmd_name, option_name, saved_callback, provider, ctx, param, value):
+def configuration_callback(cmd_name, option_name, saved_callback, provider, ctx, param, value):  # type: ignore[no-untyped-def]
     """
     Callback for reading the config file.
 
@@ -138,7 +138,7 @@ def configuration_callback(cmd_name, option_name, saved_callback, provider, ctx,
         LOG.debug(error_msg)
         raise ConfigException(error_msg)
 
-    config = get_ctx_defaults(
+    config = get_ctx_defaults(  # type: ignore[no-untyped-call]
         cmd_name,
         provider,
         ctx,
@@ -150,7 +150,7 @@ def configuration_callback(cmd_name, option_name, saved_callback, provider, ctx,
     return saved_callback(ctx, param, config_env_name) if saved_callback else config_env_name
 
 
-def get_ctx_defaults(cmd_name, provider, ctx, config_env_name, config_file=None):
+def get_ctx_defaults(cmd_name, provider, ctx, config_env_name, config_file=None):  # type: ignore[no-untyped-def]
     """
     Get the set of the parameters that are needed to be set into the click command.
     This function also figures out the command name by looking up current click context's parent
@@ -170,7 +170,7 @@ def get_ctx_defaults(cmd_name, provider, ctx, config_env_name, config_file=None)
     return provider(config_file, config_env_name, get_cmd_names(cmd_name, ctx))
 
 
-def configuration_option(*param_decls, **attrs):
+def configuration_option(*param_decls, **attrs):  # type: ignore[no-untyped-def]
     # pylint does not understand the docstring with the presence of **attrs
     # pylint: disable=missing-param-doc,differing-param-doc
     """
@@ -202,24 +202,24 @@ def configuration_option(*param_decls, **attrs):
         `provider(file_path, config_env, cmd_name)
     """
 
-    def decorator_configuration_setup(f):
+    def decorator_configuration_setup(f):  # type: ignore[no-untyped-def]
         configuration_setup_params = ()
         configuration_setup_attrs = {}
         configuration_setup_attrs[
             "help"
         ] = "This is a hidden click option whose callback function loads configuration parameters."
-        configuration_setup_attrs["is_eager"] = True
-        configuration_setup_attrs["expose_value"] = False
-        configuration_setup_attrs["hidden"] = True
-        configuration_setup_attrs["type"] = click.STRING
+        configuration_setup_attrs["is_eager"] = True  # type: ignore[assignment]
+        configuration_setup_attrs["expose_value"] = False  # type: ignore[assignment]
+        configuration_setup_attrs["hidden"] = True  # type: ignore[assignment]
+        configuration_setup_attrs["type"] = click.STRING  # type: ignore[assignment]
         provider = attrs.pop("provider")
         saved_callback = attrs.pop("callback", None)
         partial_callback = functools.partial(configuration_callback, None, None, saved_callback, provider)
-        configuration_setup_attrs["callback"] = partial_callback
+        configuration_setup_attrs["callback"] = partial_callback  # type: ignore[assignment]
         return click.option(*configuration_setup_params, **configuration_setup_attrs)(f)
 
-    def composed_decorator(decorators):
-        def decorator(f):
+    def composed_decorator(decorators):  # type: ignore[no-untyped-def]
+        def decorator(f):  # type: ignore[no-untyped-def]
             for deco in decorators:
                 f = deco(f)
             return f
@@ -233,10 +233,10 @@ def configuration_option(*param_decls, **attrs):
     )
     for decorator in pre_config_decorators:
         decorator_list.append(decorator)
-    return composed_decorator(decorator_list)
+    return composed_decorator(decorator_list)  # type: ignore[no-untyped-call]
 
 
-def decorator_customize_config_file(f):
+def decorator_customize_config_file(f):  # type: ignore[no-untyped-def]
     """
     CLI option to customize configuration file name. By default it is 'samconfig.toml' in project directory.
     Ex: --config-file samconfig.toml
@@ -252,13 +252,13 @@ def decorator_customize_config_file(f):
         "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html."
     )
     config_file_attrs["default"] = "samconfig.toml"
-    config_file_attrs["is_eager"] = True
-    config_file_attrs["required"] = False
-    config_file_attrs["type"] = click.STRING
+    config_file_attrs["is_eager"] = True  # type: ignore[assignment]
+    config_file_attrs["required"] = False  # type: ignore[assignment]
+    config_file_attrs["type"] = click.STRING  # type: ignore[assignment]
     return click.option(*config_file_param_decls, **config_file_attrs)(f)
 
 
-def decorator_customize_config_env(f):
+def decorator_customize_config_env(f):  # type: ignore[no-untyped-def]
     """
     CLI option to customize configuration environment name. By default it is 'default'.
     Ex: --config-env default
@@ -273,9 +273,9 @@ def decorator_customize_config_env(f):
         "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html."
     )
     config_env_attrs["default"] = "default"
-    config_env_attrs["is_eager"] = True
-    config_env_attrs["required"] = False
-    config_env_attrs["type"] = click.STRING
+    config_env_attrs["is_eager"] = True  # type: ignore[assignment]
+    config_env_attrs["required"] = False  # type: ignore[assignment]
+    config_env_attrs["type"] = click.STRING  # type: ignore[assignment]
     return click.option(*config_env_param_decls, **config_env_attrs)(f)
 
 

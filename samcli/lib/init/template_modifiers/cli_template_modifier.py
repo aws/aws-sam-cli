@@ -5,7 +5,7 @@ import logging
 from abc import abstractmethod
 from copy import deepcopy
 from typing import Any, List
-from yaml.parser import ParserError
+from yaml.parser import ParserError  # type: ignore[import]
 from samcli.yamlhelper import parse_yaml_file
 
 
@@ -13,24 +13,24 @@ LOG = logging.getLogger(__name__)
 
 
 class TemplateModifier:
-    def __init__(self, location):
+    def __init__(self, location):  # type: ignore[no-untyped-def]
         self.template_location = location
         self.template = self._get_template()
         self.copy_of_original_template = deepcopy(self.template)
 
-    def modify_template(self):
+    def modify_template(self):  # type: ignore[no-untyped-def]
         """
         This method modifies the template by first added the new field to the template
         and then run a sanity check on the template to know if the template matches the
         CFN yaml
         """
-        self._add_new_field_to_template()
+        self._add_new_field_to_template()  # type: ignore[no-untyped-call]
         self._write(self.template)
         if not self._sanity_check():
             self._write(self.copy_of_original_template)
 
     @abstractmethod
-    def _add_new_field_to_template(self):
+    def _add_new_field_to_template(self):  # type: ignore[no-untyped-def]
         pass
 
     def _section_position(self, section: str, position: int = 0) -> int:
@@ -118,14 +118,14 @@ class TemplateModifier:
             parse_template = parse_yaml_file(self.template_location)
             return bool(parse_template)
         except ParserError:
-            self._print_sanity_check_error()
+            self._print_sanity_check_error()  # type: ignore[no-untyped-call]
             return False
 
     @abstractmethod
-    def _print_sanity_check_error(self):
+    def _print_sanity_check_error(self):  # type: ignore[no-untyped-def]
         pass
 
-    def _write(self, template: list):
+    def _write(self, template: list):  # type: ignore[no-untyped-def, type-arg]
         """
         write generated template into SAM template
 

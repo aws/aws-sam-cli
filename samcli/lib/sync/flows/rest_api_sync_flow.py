@@ -75,7 +75,7 @@ class RestApiSyncFlow(GenericApiSyncFlow):
         """
         LOG.debug("%sTrying to update RestAPI through client", self.log_prefix)
         response_put = cast(
-            Dict,
+            Dict,  # type: ignore[type-arg]
             self._api_client.put_rest_api(restApiId=self._api_physical_id, mode="overwrite", body=self._swagger_body),
         )
         LOG.debug("%sPut RestApi Result: %s", self.log_prefix, response_put)
@@ -90,7 +90,7 @@ class RestApiSyncFlow(GenericApiSyncFlow):
         """
         LOG.debug("%sTrying to create a deployment through client", self.log_prefix)
         response_dep = cast(
-            Dict, self._api_client.create_deployment(restApiId=self._api_physical_id, description="Created by SAM Sync")
+            Dict, self._api_client.create_deployment(restApiId=self._api_physical_id, description="Created by SAM Sync")  # type: ignore[type-arg]
         )
         new_dep_id = response_dep.get("id")
         LOG.debug("%sCreate Deployment Result: %s", self.log_prefix, response_dep)
@@ -121,7 +121,7 @@ class RestApiSyncFlow(GenericApiSyncFlow):
 
                 # The stage called "Stage"
                 if stage_name != "Stage":
-                    response_sta = cast(Dict, self._api_client.get_stages(restApiId=self._api_physical_id))
+                    response_sta = cast(Dict, self._api_client.get_stages(restApiId=self._api_physical_id))  # type: ignore[type-arg]
                     for item in response_sta.get("item"):  # type: ignore
                         if item.get("stageName") == "Stage":
                             stages.add("Stage")
@@ -162,7 +162,7 @@ class RestApiSyncFlow(GenericApiSyncFlow):
         prev_dep_ids = set()
         for stage in stages:
             # Collects previous deployment IDs to clean up
-            response_get = cast(Dict, self._api_client.get_stage(restApiId=self._api_physical_id, stageName=stage))
+            response_get = cast(Dict, self._api_client.get_stage(restApiId=self._api_physical_id, stageName=stage))  # type: ignore[type-arg]
             prev_dep_id = response_get.get("deploymentId")
             if prev_dep_id:
                 prev_dep_ids.add(cast(str, prev_dep_id))
@@ -170,7 +170,7 @@ class RestApiSyncFlow(GenericApiSyncFlow):
             # Updates the stage with newest deployment
             LOG.debug("%sTrying to update the stage %s through client", self.log_prefix, stage)
             response_upd = cast(
-                Dict,
+                Dict,  # type: ignore[type-arg]
                 self._api_client.update_stage(
                     restApiId=self._api_physical_id,
                     stageName=stage,
@@ -197,12 +197,12 @@ class RestApiSyncFlow(GenericApiSyncFlow):
             try:
                 LOG.debug("%sTrying to delete the previous deployment %s through client", self.log_prefix, prev_dep_id)
                 response_del = cast(
-                    Dict, self._api_client.delete_deployment(restApiId=self._api_physical_id, deploymentId=prev_dep_id)
+                    Dict, self._api_client.delete_deployment(restApiId=self._api_physical_id, deploymentId=prev_dep_id)  # type: ignore[type-arg]
                 )
                 LOG.debug("%sDelete Deployment Result: %s", self.log_prefix, response_del)
             except ClientError:
                 LOG.warning(
-                    Colored().yellow(
+                    Colored().yellow(  # type: ignore[no-untyped-call, no-untyped-call]
                         "Delete deployment for %s failed, it may be due to the it being used by another stage. \
 please check the console to see if you have other stages that needs to be updated."
                     ),

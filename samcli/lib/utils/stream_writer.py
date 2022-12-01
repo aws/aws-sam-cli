@@ -4,7 +4,7 @@ This class acts like a wrapper around output streams to provide any flexibility 
 
 
 class StreamWriter:
-    def __init__(self, stream, auto_flush=False):
+    def __init__(self, stream, auto_flush=False):  # type: ignore[no-untyped-def]
         """
         Instatiates new StreamWriter to the specified stream
 
@@ -19,10 +19,10 @@ class StreamWriter:
         self._auto_flush = auto_flush
 
     @property
-    def stream(self):
+    def stream(self):  # type: ignore[no-untyped-def]
         return self._stream
 
-    def write(self, output, encode=False):
+    def write(self, output, encode=False):  # type: ignore[no-untyped-def]
         """
         Writes specified text to the underlying stream
 
@@ -36,5 +36,5 @@ class StreamWriter:
         if self._auto_flush:
             self._stream.flush()
 
-    def flush(self):
+    def flush(self):  # type: ignore[no-untyped-def]
         self._stream.flush()

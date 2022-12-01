@@ -104,7 +104,7 @@ def generate_puller(
     for cw_log_group in additional_cw_log_groups:
         consumer = generate_consumer(filter_pattern, output)
         logs_client = boto_client_provider("logs")
-        _validate_cw_log_group_name(cw_log_group, logs_client)
+        _validate_cw_log_group_name(cw_log_group, logs_client)  # type: ignore[no-untyped-call]
         pullers.append(
             CWLogPuller(
                 logs_client,
@@ -120,13 +120,13 @@ def generate_puller(
 
     # if no puller have been collected, raise an exception since there is nothing to pull
     if not pullers:
-        raise NoPullerGeneratedException("No valid resources find to pull information")
+        raise NoPullerGeneratedException("No valid resources find to pull information")  # type: ignore[no-untyped-call]
 
     # return the combined puller instance, which will pull from all pullers collected
     return ObservabilityCombinedPuller(pullers)
 
 
-def _validate_cw_log_group_name(cw_log_group, logs_client):
+def _validate_cw_log_group_name(cw_log_group, logs_client):  # type: ignore[no-untyped-def]
     try:
         _ = logs_client.describe_log_streams(logGroupName=cw_log_group, limit=1)
     except ClientError as ex:
@@ -134,7 +134,7 @@ def _validate_cw_log_group_name(cw_log_group, logs_client):
             LOG.warning("CloudWatch log group name (%s) does not exist.", cw_log_group)
 
 
-def generate_consumer(
+def generate_consumer(  # type: ignore[no-untyped-def]
     filter_pattern: Optional[str] = None, output: OutputOption = OutputOption.text, resource_name: Optional[str] = None
 ):
     """
@@ -148,7 +148,7 @@ def generate_consumer(
     return generate_text_consumer(filter_pattern)
 
 
-def generate_json_consumer() -> ObservabilityEventConsumer:
+def generate_json_consumer() -> ObservabilityEventConsumer:  # type: ignore[type-arg]
     """
     Creates event consumer, which prints CW Log Events as JSON into terminal
 
@@ -164,7 +164,7 @@ def generate_json_consumer() -> ObservabilityEventConsumer:
     )
 
 
-def generate_text_consumer(filter_pattern: Optional[str]) -> ObservabilityEventConsumer:
+def generate_text_consumer(filter_pattern: Optional[str]) -> ObservabilityEventConsumer:  # type: ignore[type-arg]
     """
     Creates a console event consumer, which is used to display events in the user's console
 
@@ -178,7 +178,7 @@ def generate_text_consumer(filter_pattern: Optional[str]) -> ObservabilityEventC
     -------
         A consumer which will display events into console
     """
-    colored = Colored()
+    colored = Colored()  # type: ignore[no-untyped-call]
     return ObservabilityEventConsumerDecorator(
         [
             CWColorizeErrorsFormatter(colored),

@@ -24,7 +24,7 @@ class CICDPlatform(Enum):
     Other = auto()
 
 
-def _is_codeship(environ: Mapping) -> bool:
+def _is_codeship(environ: Mapping) -> bool:  # type: ignore[type-arg]
     """
     Use environ to determine whether it is running in CodeShip.
     According to the doc,
@@ -46,7 +46,7 @@ def _is_codeship(environ: Mapping) -> bool:
     return ci_name == "codeship"
 
 
-def _is_jenkins(environ: Mapping) -> bool:
+def _is_jenkins(environ: Mapping) -> bool:  # type: ignore[type-arg]
     """
     Use environ to determine whether it is running in Jenkins.
     According to the doc,
@@ -63,7 +63,7 @@ def _is_jenkins(environ: Mapping) -> bool:
     return "JENKINS_URL" in environ or environ.get("BUILD_TAG", "").startswith("jenkins-")
 
 
-_ENV_VAR_OR_CALLABLE_BY_PLATFORM: Dict[CICDPlatform, Union[str, Callable[[Mapping], bool]]] = {
+_ENV_VAR_OR_CALLABLE_BY_PLATFORM: Dict[CICDPlatform, Union[str, Callable[[Mapping], bool]]] = {  # type: ignore[type-arg]
     CICDPlatform.Jenkins: _is_jenkins,
     # https://docs.gitlab.com/ee/ci/variables/predefined_variables.html
     CICDPlatform.GitLab: "GITLAB_CI",
@@ -90,7 +90,7 @@ _ENV_VAR_OR_CALLABLE_BY_PLATFORM: Dict[CICDPlatform, Union[str, Callable[[Mappin
 }
 
 
-def _is_cicd_platform(cicd_platform: CICDPlatform, environ: Mapping) -> bool:
+def _is_cicd_platform(cicd_platform: CICDPlatform, environ: Mapping) -> bool:  # type: ignore[type-arg]
     """
     Check whether sam-cli run in a particular CI/CD platform based on certain environment variables.
 
@@ -117,7 +117,7 @@ def _is_cicd_platform(cicd_platform: CICDPlatform, environ: Mapping) -> bool:
 class CICDDetector:
     _cicd_platform: Optional[CICDPlatform]
 
-    def __init__(self):
+    def __init__(self):  # type: ignore[no-untyped-def]
         try:
             self._cicd_platform: Optional[CICDPlatform] = next(
                 cicd_platform for cicd_platform in CICDPlatform if _is_cicd_platform(cicd_platform, os.environ)

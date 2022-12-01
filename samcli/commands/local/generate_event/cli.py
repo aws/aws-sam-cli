@@ -28,7 +28,7 @@ $ sam local generate-event s3 [put/delete] --bucket <bucket> --key <key> | sam l
 
 @click.command(name="generate-event", cls=GenerateEventCommand, help=HELP_TEXT)
 @pass_context
-def cli(self):
+def cli(self):  # type: ignore[no-untyped-def]
     """
     Generate an event for one of the services listed below:
     """

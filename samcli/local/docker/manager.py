@@ -7,7 +7,7 @@ import logging
 import sys
 import threading
 
-import docker
+import docker  # type: ignore[import]
 
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker import utils
@@ -24,7 +24,7 @@ class ContainerManager:
     serve requests faster. It is also thread-safe.
     """
 
-    def __init__(self, docker_network_id=None, docker_client=None, skip_pull_image=False, do_shutdown_event=False):
+    def __init__(self, docker_network_id=None, docker_client=None, skip_pull_image=False, do_shutdown_event=False):  # type: ignore[no-untyped-def]
         """
         Instantiate the container manager
 
@@ -43,7 +43,7 @@ class ContainerManager:
         self._lock_per_image = {}
 
     @property
-    def is_docker_reachable(self):
+    def is_docker_reachable(self):  # type: ignore[no-untyped-def]
         """
         Checks if Docker daemon is running. This is required for us to invoke the function locally
 
@@ -52,9 +52,9 @@ class ContainerManager:
         bool
             True, if Docker is available, False otherwise
         """
-        return utils.is_docker_reachable(self.docker_client)
+        return utils.is_docker_reachable(self.docker_client)  # type: ignore[no-untyped-call]
 
-    def create(self, container):
+    def create(self, container):  # type: ignore[no-untyped-def]
         """
         Create a container based on the given configuration.
 
@@ -70,7 +70,7 @@ class ContainerManager:
         """
         image_name = container.image
 
-        is_image_local = self.has_image(image_name)
+        is_image_local = self.has_image(image_name)  # type: ignore[no-untyped-call]
 
         # Skip Pulling a new image if:
         # a) Image is available AND we are asked to skip pulling the image
@@ -82,7 +82,7 @@ class ContainerManager:
             LOG.info("Skip pulling image and use local one: %s.\n", image_name)
         else:
             try:
-                self.pull_image(image_name)
+                self.pull_image(image_name)  # type: ignore[no-untyped-call]
             except DockerImagePullFailedException as ex:
                 if not is_image_local:
                     raise DockerImagePullFailedException(
@@ -94,7 +94,7 @@ class ContainerManager:
         container.network_id = self.docker_network_id
         container.create()
 
-    def run(self, container, input_data=None):
+    def run(self, container, input_data=None):  # type: ignore[no-untyped-def]
         """
         Run a Docker container based on the given configuration.
         If the container is not created, it will call Create method to create.
@@ -112,7 +112,7 @@ class ContainerManager:
             If the Docker image was not available in the server
         """
         if not container.is_created():
-            self.create(container)
+            self.create(container)  # type: ignore[no-untyped-call]
 
         container.start(input_data=input_data)
 
@@ -123,10 +123,10 @@ class ContainerManager:
         :param samcli.local.docker.container.Container container: Container to stop
         """
         if self.do_shutdown_event:
-            container.stop()
-        container.delete()
+            container.stop()  # type: ignore[no-untyped-call]
+        container.delete()  # type: ignore[no-untyped-call]
 
-    def pull_image(self, image_name, tag=None, stream=None):
+    def pull_image(self, image_name, tag=None, stream=None):  # type: ignore[no-untyped-def]
         """
         Ask Docker to pull the container image with given name.
 
@@ -154,7 +154,7 @@ class ContainerManager:
         # with specific image lock, pull this image only once
         # since there are different locks for each image, different images can be pulled in parallel
         with image_lock:
-            stream_writer = stream or StreamWriter(sys.stderr)
+            stream_writer = stream or StreamWriter(sys.stderr)  # type: ignore[no-untyped-call]
 
             try:
                 result_itr = self.docker_client.api.pull(image_name, tag=tag, stream=True, decode=True)
@@ -174,7 +174,7 @@ class ContainerManager:
             # We are done. Go to the next line
             stream_writer.write("\n")
 
-    def has_image(self, image_name):
+    def has_image(self, image_name):  # type: ignore[no-untyped-def]
         """
         Is the container image with given name available?
 

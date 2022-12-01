@@ -18,7 +18,7 @@ class LocalApiService:
     Lambda function.
     """
 
-    def __init__(self, lambda_invoke_context, port, host, static_dir):
+    def __init__(self, lambda_invoke_context, port, host, static_dir):  # type: ignore[no-untyped-def]
         """
         Initialize the local API service.
 
@@ -38,7 +38,7 @@ class LocalApiService:
         self.lambda_runner = lambda_invoke_context.local_lambda_runner
         self.stderr_stream = lambda_invoke_context.stderr
 
-    def start(self):
+    def start(self):  # type: ignore[no-untyped-def]
         """
         Creates and starts the local API Gateway service. This method will block until the service is stopped
         manually using an interrupt. After the service is started, callers can make HTTP requests to the endpoint
@@ -50,13 +50,13 @@ class LocalApiService:
         if not self.api_provider.api.routes:
             raise NoApisDefined("No APIs available in template")
 
-        static_dir_path = self._make_static_dir_path(self.cwd, self.static_dir)
+        static_dir_path = self._make_static_dir_path(self.cwd, self.static_dir)  # type: ignore[no-untyped-call]
 
         # We care about passing only stderr to the Service and not stdout because stdout from Docker container
         # contains the response to the API which is sent out as HTTP response. Only stderr needs to be printed
         # to the console or a log file. stderr from Docker container contains runtime logs and output of print
         # statements from the Lambda function
-        service = LocalApigwService(
+        service = LocalApigwService(  # type: ignore[no-untyped-call]
             api=self.api_provider.api,
             lambda_runner=self.lambda_runner,
             static_dir=static_dir_path,
@@ -65,10 +65,10 @@ class LocalApiService:
             stderr=self.stderr_stream,
         )
 
-        service.create()
+        service.create()  # type: ignore[no-untyped-call]
 
         # Print out the list of routes that will be mounted
-        self._print_routes(self.api_provider.api.routes, self.host, self.port)
+        self._print_routes(self.api_provider.api.routes, self.host, self.port)  # type: ignore[no-untyped-call]
         LOG.info(
             "You can now browse to the above endpoints to invoke your functions. "
             "You do not need to restart/reload SAM CLI while working on your functions, "
@@ -77,10 +77,10 @@ class LocalApiService:
             "to be picked up. You only need to restart SAM CLI if you update your AWS SAM template"
         )
 
-        service.run()
+        service.run()  # type: ignore[no-untyped-call]
 
     @staticmethod
-    def _print_routes(routes, host, port):
+    def _print_routes(routes, host, port):  # type: ignore[no-untyped-def]
         """
         Helper method to print the APIs that will be mounted. This method is purely for printing purposes.
         This method takes in a list of Route Configurations and prints out the Routes grouped by path.
@@ -111,7 +111,7 @@ class LocalApiService:
         return print_lines
 
     @staticmethod
-    def _make_static_dir_path(cwd, static_dir):
+    def _make_static_dir_path(cwd, static_dir):  # type: ignore[no-untyped-def]
         """
         This method returns the path to the directory where static files are to be served from. If static_dir is a
         relative path, then it is resolved to be relative to the current working directory. If no static directory is

@@ -37,7 +37,7 @@ class ObservabilityEvent(Generic[InternalEventType]):
 
 
 # Generic type for identifying different ObservabilityEvent
-ObservabilityEventType = TypeVar("ObservabilityEventType", bound=ObservabilityEvent)
+ObservabilityEventType = TypeVar("ObservabilityEventType", bound=ObservabilityEvent)  # type: ignore[type-arg]
 
 
 class ObservabilityPuller(ABC):
@@ -49,7 +49,7 @@ class ObservabilityPuller(ABC):
     cancelled: bool = False
 
     @abstractmethod
-    def tail(self, start_time: Optional[datetime] = None, filter_pattern: Optional[str] = None):
+    def tail(self, start_time: Optional[datetime] = None, filter_pattern: Optional[str] = None):  # type: ignore[no-untyped-def]
         """
         Parameters
         ----------
@@ -60,7 +60,7 @@ class ObservabilityPuller(ABC):
         """
 
     @abstractmethod
-    def load_time_period(
+    def load_time_period(  # type: ignore[no-untyped-def]
         self,
         start_time: Optional[datetime] = None,
         end_time: Optional[datetime] = None,
@@ -78,7 +78,7 @@ class ObservabilityPuller(ABC):
         """
 
     @abstractmethod
-    def load_events(self, event_ids: Union[List[Any], Dict]):
+    def load_events(self, event_ids: Union[List[Any], Dict]):  # type: ignore[no-untyped-def, type-arg]
         """
         This method will load specific events which is given by the event_ids parameter
 
@@ -88,7 +88,7 @@ class ObservabilityPuller(ABC):
             List of event ids that will be pulled
         """
 
-    def stop_tailing(self):
+    def stop_tailing(self):  # type: ignore[no-untyped-def]
         self.cancelled = True
 
 
@@ -122,7 +122,7 @@ class ObservabilityEventConsumer(Generic[ObservabilityEventType]):
     """
 
     @abstractmethod
-    def consume(self, event: ObservabilityEventType):
+    def consume(self, event: ObservabilityEventType):  # type: ignore[no-untyped-def]
         """
         Parameters
         ----------
@@ -131,14 +131,14 @@ class ObservabilityEventConsumer(Generic[ObservabilityEventType]):
         """
 
 
-class ObservabilityEventConsumerDecorator(ObservabilityEventConsumer):
+class ObservabilityEventConsumerDecorator(ObservabilityEventConsumer):  # type: ignore[type-arg]
     """
     A decorator implementation for consumer, which can have mappers and decorated consumer within.
     Rather than the normal implementation, this will process the events through mappers which is been
     provided, and then pass them to actual consumer
     """
 
-    def __init__(self, mappers: List[ObservabilityEventMapper], consumer: ObservabilityEventConsumer):
+    def __init__(self, mappers: List[ObservabilityEventMapper], consumer: ObservabilityEventConsumer):  # type: ignore[type-arg, type-arg]
         """
         Parameters
         ----------
@@ -151,7 +151,7 @@ class ObservabilityEventConsumerDecorator(ObservabilityEventConsumer):
         self._mappers = mappers
         self._consumer = consumer
 
-    def consume(self, event: ObservabilityEvent):
+    def consume(self, event: ObservabilityEvent):  # type: ignore[no-untyped-def, type-arg]
         """
         See Also ObservabilityEventConsumerDecorator and ObservabilityEventConsumer
         """
@@ -176,23 +176,23 @@ class ObservabilityCombinedPuller(ObservabilityPuller):
         """
         self._pullers = pullers
 
-    def tail(self, start_time: Optional[datetime] = None, filter_pattern: Optional[str] = None):
+    def tail(self, start_time: Optional[datetime] = None, filter_pattern: Optional[str] = None):  # type: ignore[no-untyped-def]
         """
         Implementation of ObservabilityPuller.tail method with AsyncContext.
         It will create tasks by calling tail methods of all given pullers, and execute them in async
         """
-        async_context = AsyncContext()
+        async_context = AsyncContext()  # type: ignore[no-untyped-call]
         for puller in self._pullers:
             LOG.debug("Adding task 'tail' for puller (%s)", puller)
-            async_context.add_async_task(puller.tail, start_time, filter_pattern)
+            async_context.add_async_task(puller.tail, start_time, filter_pattern)  # type: ignore[no-untyped-call]
         LOG.debug("Running all 'tail' tasks in parallel")
         try:
-            async_context.run_async()
+            async_context.run_async()  # type: ignore[no-untyped-call]
         except KeyboardInterrupt:
             LOG.info(" CTRL+C received, cancelling...")
-            self.stop_tailing()
+            self.stop_tailing()  # type: ignore[no-untyped-call]
 
-    def load_time_period(
+    def load_time_period(  # type: ignore[no-untyped-def]
         self,
         start_time: Optional[datetime] = None,
         end_time: Optional[datetime] = None,
@@ -202,27 +202,27 @@ class ObservabilityCombinedPuller(ObservabilityPuller):
         Implementation of ObservabilityPuller.load_time_period method with AsyncContext.
         It will create tasks by calling load_time_period methods of all given pullers, and execute them in async
         """
-        async_context = AsyncContext()
+        async_context = AsyncContext()  # type: ignore[no-untyped-call]
         for puller in self._pullers:
             LOG.debug("Adding task 'load_time_period' for puller (%s)", puller)
-            async_context.add_async_task(puller.load_time_period, start_time, end_time, filter_pattern)
+            async_context.add_async_task(puller.load_time_period, start_time, end_time, filter_pattern)  # type: ignore[no-untyped-call]
         LOG.debug("Running all 'load_time_period' tasks in parallel")
-        async_context.run_async()
+        async_context.run_async()  # type: ignore[no-untyped-call]
 
-    def load_events(self, event_ids: Union[List[Any], Dict]):
+    def load_events(self, event_ids: Union[List[Any], Dict]):  # type: ignore[no-untyped-def, type-arg]
         """
         Implementation of ObservabilityPuller.load_events method with AsyncContext.
         It will create tasks by calling load_events methods of all given pullers, and execute them in async
         """
-        async_context = AsyncContext()
+        async_context = AsyncContext()  # type: ignore[no-untyped-call]
         for puller in self._pullers:
             LOG.debug("Adding task 'load_events' for puller (%s)", puller)
-            async_context.add_async_task(puller.load_events, event_ids)
+            async_context.add_async_task(puller.load_events, event_ids)  # type: ignore[no-untyped-call]
         LOG.debug("Running all 'load_time_period' tasks in parallel")
-        async_context.run_async()
+        async_context.run_async()  # type: ignore[no-untyped-call]
 
-    def stop_tailing(self):
+    def stop_tailing(self):  # type: ignore[no-untyped-def]
         # if ObservabilityCombinedPuller A is a child puller in other ObservabilityCombinedPuller B, make sure A's child
         # pullers stop as well when B stops.
         for puller in self._pullers:
-            puller.stop_tailing()
+            puller.stop_tailing()  # type: ignore[no-untyped-call]

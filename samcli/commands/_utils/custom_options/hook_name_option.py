@@ -27,13 +27,13 @@ class HookNameOption(click.Option):
     prepare hook output.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):  # type: ignore[no-untyped-def]
         self.hook_name_option_name = "hook_name"
         self._force_prepare = kwargs.pop("force_prepare", True)
         self._invalid_coexist_options = kwargs.pop("invalid_coexist_options", [])
         super().__init__(*args, **kwargs)
 
-    def handle_parse_result(self, ctx, opts, args):
+    def handle_parse_result(self, ctx, opts, args):  # type: ignore[no-untyped-def]
         opt_name = self.hook_name_option_name.replace("_", "-")
         if self.hook_name_option_name not in opts and self.hook_name_option_name not in ctx.default_map:
             return super().handle_parse_result(ctx, opts, args)
@@ -51,17 +51,17 @@ class HookNameOption(click.Option):
                 f"{os.linesep}valid package ids: {get_available_hook_packages_ids()}"
             ) from e
 
-        self._validate_coexist_options(opt_name, opts)
+        self._validate_coexist_options(opt_name, opts)  # type: ignore[no-untyped-call]
 
-        _validate_build_command_parameters(command_name, opts)
+        _validate_build_command_parameters(command_name, opts)  # type: ignore[no-untyped-call]
 
-        if not _check_experimental_flag(hook_name, command_name, opts, ctx.default_map):
+        if not _check_experimental_flag(hook_name, command_name, opts, ctx.default_map):  # type: ignore[no-untyped-call]
             return super().handle_parse_result(ctx, opts, args)
 
-        self._call_prepare_hook(iac_hook_wrapper, opts)
+        self._call_prepare_hook(iac_hook_wrapper, opts)  # type: ignore[no-untyped-call]
         return super().handle_parse_result(ctx, opts, args)
 
-    def _call_prepare_hook(self, iac_hook_wrapper, opts):
+    def _call_prepare_hook(self, iac_hook_wrapper, opts):  # type: ignore[no-untyped-def]
         # call prepare hook
         built_template_path = DEFAULT_BUILT_TEMPLATE_PATH
         if not self._force_prepare and os.path.exists(built_template_path):
@@ -86,7 +86,7 @@ class HookNameOption(click.Option):
             LOG.info("Prepare hook completed and metadata file generated at: %s", metadata_file)
             opts["template_file"] = metadata_file
 
-    def _validate_coexist_options(self, opt_name, opts):
+    def _validate_coexist_options(self, opt_name, opts):  # type: ignore[no-untyped-def]
         # validate coexist options
         for invalid_opt in self._invalid_coexist_options:
             invalid_opt_name = invalid_opt.replace("-", "_")
@@ -96,17 +96,17 @@ class HookNameOption(click.Option):
                 )
 
 
-def _validate_build_command_parameters(command_name, opts):
+def _validate_build_command_parameters(command_name, opts):  # type: ignore[no-untyped-def]
     # validate build-image is provided in case of build using container
     # add this validation here to avoid running hook prepare and there is issue
     if command_name == "build" and opts.get("use_container") and not opts.get("build_image"):
         raise click.UsageError("Missing required parameter --build-image.")
 
 
-def _check_experimental_flag(hook_name, command_name, opts, default_map):
+def _check_experimental_flag(hook_name, command_name, opts, default_map):  # type: ignore[no-untyped-def]
     # check beta-feature
     experimental_entry = ExperimentalFlag.IaCsSupport.get(hook_name)
-    beta_features = _get_customer_input_beta_features_option(default_map, experimental_entry, opts)
+    beta_features = _get_customer_input_beta_features_option(default_map, experimental_entry, opts)  # type: ignore[no-untyped-call]
 
     # check if beta feature flag is required for a specific hook package
     # The IaCs support experimental flag map will contain only the beta IaCs. In case we support the external
@@ -122,12 +122,12 @@ def _check_experimental_flag(hook_name, command_name, opts, default_map):
         return False
     elif beta_features:
         LOG.debug("--beta-features flag is enabled, enabling experimental flag.")
-        set_experimental(experimental_entry, True)
-        update_experimental_context()
+        set_experimental(experimental_entry, True)  # type: ignore[arg-type]
+        update_experimental_context()  # type: ignore[no-untyped-call]
     return True
 
 
-def _get_customer_input_beta_features_option(default_map, experimental_entry, opts):
+def _get_customer_input_beta_features_option(default_map, experimental_entry, opts):  # type: ignore[no-untyped-def]
 
     # Get the beta-features flag value from the command parameters if provided.
     beta_features = opts.get("beta_features")
@@ -141,7 +141,7 @@ def _get_customer_input_beta_features_option(default_map, experimental_entry, op
 
     # Get the beta-features flag value from the environment variables.
     if experimental_entry:
-        gc = GlobalConfig()
+        gc = GlobalConfig()  # type: ignore[no-untyped-call]
         beta_features = gc.get_value(experimental_entry, default=None, value_type=bool, is_flag=True)
         if beta_features is not None:
             return beta_features

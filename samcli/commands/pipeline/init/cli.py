@@ -22,16 +22,16 @@ file generation process, or refer to resources you have previously created with 
 
 
 @click.command("init", help=HELP_TEXT, short_help=SHORT_HELP)
-@configuration_option(provider=TomlProvider(section="parameters"))
+@configuration_option(provider=TomlProvider(section="parameters"))  # type: ignore[no-untyped-call, no-untyped-call, misc]
 @click.option(
     "--bootstrap",
     is_flag=True,
     default=False,
     help="Enable interactive mode that walks the user through creating necessary AWS infrastructure resources.",
 )
-@cli_framework_options
+@cli_framework_options  # type: ignore[misc]
 @pass_context
-@track_command  # pylint: disable=R0914
+@track_command  # type: ignore[misc] # pylint: disable=R0914
 def cli(ctx: Any, config_env: Optional[str], config_file: Optional[str], bootstrap: bool) -> None:
     """
     `sam pipeline init` command entry point

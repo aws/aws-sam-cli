@@ -13,7 +13,7 @@ LAMBDA_BULDERS_LOGGER_NAME = "aws_lambda_builders"
 
 class SamCliLogger:
     @staticmethod
-    def configure_logger(logger, formatter, level):
+    def configure_logger(logger, formatter, level):  # type: ignore[no-untyped-def]
         """
         Configure a Logger with the level provided and also the first handler's formatter.
         If there is no handler in the logger, a new StreamHandler will be added.
@@ -39,7 +39,7 @@ class SamCliLogger:
         logger.propagate = False
 
     @staticmethod
-    def configure_null_logger(logger):
+    def configure_null_logger(logger):  # type: ignore[no-untyped-def]
         """
         Configure a Logger with a NullHandler
 

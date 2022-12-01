@@ -6,14 +6,14 @@ import os
 import shutil
 from typing import Optional, Union, Dict
 
-import jmespath
+import jmespath  # type: ignore[import]
 from botocore.utils import set_value_from_jmespath
 
 from samcli.commands.package import exceptions
 from samcli.lib.package.ecr_uploader import ECRUploader
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Destination, Uploaders
-from samcli.lib.package.utils import (
+from samcli.lib.package.utils import (  # type: ignore[attr-defined]
     resource_not_packageable,
     is_local_file,
     is_zip_file,
@@ -65,7 +65,7 @@ class Resource:
     EXPORT_DESTINATION: Destination
     ARTIFACT_TYPE: Optional[str] = None
 
-    def __init__(self, uploaders: Uploaders, code_signer):
+    def __init__(self, uploaders: Uploaders, code_signer):  # type: ignore[no-untyped-def]
         self.uploaders = uploaders
         self.code_signer = code_signer
 
@@ -76,13 +76,13 @@ class Resource:
         """
         return self.uploaders.get(self.EXPORT_DESTINATION)
 
-    def export(self, resource_id, resource_dict, parent_dir):
-        self.do_export(resource_id, resource_dict, parent_dir)
+    def export(self, resource_id, resource_dict, parent_dir):  # type: ignore[no-untyped-def]
+        self.do_export(resource_id, resource_dict, parent_dir)  # type: ignore[no-untyped-call]
 
-    def do_export(self, resource_id, resource_dict, parent_dir):
+    def do_export(self, resource_id, resource_dict, parent_dir):  # type: ignore[no-untyped-def]
         pass
 
-    def delete(self, resource_id, resource_dict):
+    def delete(self, resource_id, resource_dict):  # type: ignore[no-untyped-def]
         pass
 
 
@@ -100,11 +100,11 @@ class ResourceZip(Resource):
     ARTIFACT_TYPE = ZIP
     EXPORT_DESTINATION = Destination.S3
 
-    def export(self, resource_id: str, resource_dict: Optional[Dict], parent_dir: str):
+    def export(self, resource_id: str, resource_dict: Optional[Dict], parent_dir: str):  # type: ignore[no-untyped-def, no-untyped-def, type-arg]
         if resource_dict is None:
             return
 
-        if resource_not_packageable(resource_dict):
+        if resource_not_packageable(resource_dict):  # type: ignore[no-untyped-call, no-untyped-call]
             return
 
         property_value = jmespath.search(self.PROPERTY_NAME, resource_dict)
@@ -119,23 +119,23 @@ class ResourceZip(Resource):
         # If property is a file but not a zip file, place file in temp
         # folder and send the temp folder to be zipped
         temp_dir = None
-        if is_local_file(property_value) and not is_zip_file(property_value) and self.FORCE_ZIP:
-            temp_dir = copy_to_temp_dir(property_value)
+        if is_local_file(property_value) and not is_zip_file(property_value) and self.FORCE_ZIP:  # type: ignore[no-untyped-call, no-untyped-call, no-untyped-call, no-untyped-call]
+            temp_dir = copy_to_temp_dir(property_value)  # type: ignore[no-untyped-call, no-untyped-call]
             set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, temp_dir)
 
         try:
-            self.do_export(resource_id, resource_dict, parent_dir)
+            self.do_export(resource_id, resource_dict, parent_dir)  # type: ignore[no-untyped-call, no-untyped-call]
 
         except Exception as ex:
             LOG.debug("Unable to export", exc_info=ex)
-            raise exceptions.ExportFailedError(
+            raise exceptions.ExportFailedError(  # type: ignore[no-untyped-call, no-untyped-call]
                 resource_id=resource_id, property_name=self.PROPERTY_NAME, property_value=property_value, ex=ex
             )
         finally:
             if temp_dir:
                 shutil.rmtree(temp_dir)
 
-    def do_export(self, resource_id, resource_dict, parent_dir):
+    def do_export(self, resource_id, resource_dict, parent_dir):  # type: ignore[no-untyped-def]
         """
         Default export action is to upload artifacts and set the property to
         S3 URL of the uploaded object
@@ -151,27 +151,27 @@ class ResourceZip(Resource):
             resource_dict,
             self.PROPERTY_NAME,
             parent_dir,
-            self.uploader,
+            self.uploader,  # type: ignore[arg-type]
             artifact_extension,
         )
         if should_sign_package:
             uploaded_url = self.code_signer.sign_package(
-                resource_id, uploaded_url, self.uploader.get_version_of_artifact(uploaded_url)
+                resource_id, uploaded_url, self.uploader.get_version_of_artifact(uploaded_url)  # type: ignore[union-attr]
             )
         set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, uploaded_url)
 
-    def delete(self, resource_id, resource_dict):
+    def delete(self, resource_id, resource_dict):  # type: ignore[no-untyped-def]
         """
         Delete the S3 artifact using S3 url referenced by PROPERTY_NAME
         """
         if resource_dict is None:
             return
 
-        s3_info = self.get_property_value(resource_dict)
+        s3_info = self.get_property_value(resource_dict)  # type: ignore[no-untyped-call]
         if s3_info["Key"]:
-            self.uploader.delete_artifact(s3_info["Key"], True)
+            self.uploader.delete_artifact(s3_info["Key"], True)  # type: ignore[arg-type, call-arg]
 
-    def get_property_value(self, resource_dict):
+    def get_property_value(self, resource_dict):  # type: ignore[no-untyped-def]
         """
         Get the s3 property value for this resource
         """
@@ -184,7 +184,7 @@ class ResourceZip(Resource):
         # artifact, as deletion of intrinsic ref function artifacts is not supported yet.
         # TODO: Allow deletion of S3 artifacts with intrinsic ref functions.
         if resource_path and isinstance(resource_path, str):
-            return self.uploader.parse_s3_url(resource_path)
+            return self.uploader.parse_s3_url(resource_path)  # type: ignore[union-attr]
         return {"Bucket": None, "Key": None}
 
 
@@ -200,7 +200,7 @@ class ResourceImageDict(Resource):
     EXPORT_DESTINATION = Destination.ECR
     EXPORT_PROPERTY_CODE_KEY = "ImageUri"
 
-    def export(self, resource_id, resource_dict, parent_dir):
+    def export(self, resource_id, resource_dict, parent_dir):  # type: ignore[no-untyped-def]
         if resource_dict is None:
             return
 
@@ -211,26 +211,26 @@ class ResourceImageDict(Resource):
             return
 
         try:
-            self.do_export(resource_id, resource_dict, parent_dir)
+            self.do_export(resource_id, resource_dict, parent_dir)  # type: ignore[no-untyped-call]
 
         except Exception as ex:
             LOG.debug("Unable to export", exc_info=ex)
-            raise exceptions.ExportFailedError(
+            raise exceptions.ExportFailedError(  # type: ignore[no-untyped-call]
                 resource_id=resource_id, property_name=self.PROPERTY_NAME, property_value=property_value, ex=ex
             )
 
-    def do_export(self, resource_id, resource_dict, parent_dir):
+    def do_export(self, resource_id, resource_dict, parent_dir):  # type: ignore[no-untyped-def]
         """
         Default export action is to upload artifacts and set the property to
         dictionary where the key is EXPORT_PROPERTY_CODE_KEY and value is set to an
         uploaded URL.
         """
-        uploaded_url = upload_local_image_artifacts(
+        uploaded_url = upload_local_image_artifacts(  # type: ignore[no-untyped-call]
             resource_id, resource_dict, self.PROPERTY_NAME, parent_dir, self.uploader
         )
-        set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, {self.EXPORT_PROPERTY_CODE_KEY: uploaded_url})
+        set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, {self.EXPORT_PROPERTY_CODE_KEY: uploaded_url})  # type: ignore[arg-type]
 
-    def delete(self, resource_id, resource_dict):
+    def delete(self, resource_id, resource_dict):  # type: ignore[no-untyped-def]
         """
         Delete the ECR artifact using ECR url in PROPERTY_NAME referenced by EXPORT_PROPERTY_CODE_KEY
         """
@@ -243,8 +243,8 @@ class ResourceImageDict(Resource):
         # artifact, as deletion of intrinsic ref function artifacts is not supported yet.
         # TODO: Allow deletion of ECR artifacts with intrinsic ref functions.
         if isinstance(remote_path, str) and is_ecr_url(remote_path):
-            self.uploader.delete_artifact(
-                image_uri=remote_path, resource_id=resource_id, property_name=self.PROPERTY_NAME
+            self.uploader.delete_artifact(  # type: ignore[call-arg, call-arg, call-arg]
+                image_uri=remote_path, resource_id=resource_id, property_name=self.PROPERTY_NAME  # type: ignore[arg-type]
             )
 
 
@@ -259,7 +259,7 @@ class ResourceImage(Resource):
     ARTIFACT_TYPE: Optional[str] = IMAGE
     EXPORT_DESTINATION = Destination.ECR
 
-    def export(self, resource_id, resource_dict, parent_dir):
+    def export(self, resource_id, resource_dict, parent_dir):  # type: ignore[no-untyped-def]
         if resource_dict is None:
             return
 
@@ -270,25 +270,25 @@ class ResourceImage(Resource):
             return
 
         try:
-            self.do_export(resource_id, resource_dict, parent_dir)
+            self.do_export(resource_id, resource_dict, parent_dir)  # type: ignore[no-untyped-call]
 
         except Exception as ex:
             LOG.debug("Unable to export", exc_info=ex)
-            raise exceptions.ExportFailedError(
+            raise exceptions.ExportFailedError(  # type: ignore[no-untyped-call]
                 resource_id=resource_id, property_name=self.PROPERTY_NAME, property_value=property_value, ex=ex
             )
 
-    def do_export(self, resource_id, resource_dict, parent_dir):
+    def do_export(self, resource_id, resource_dict, parent_dir):  # type: ignore[no-untyped-def]
         """
         Default export action is to upload artifacts and set the property to
         URL of the uploaded object
         """
-        uploaded_url = upload_local_image_artifacts(
+        uploaded_url = upload_local_image_artifacts(  # type: ignore[no-untyped-call]
             resource_id, resource_dict, self.PROPERTY_NAME, parent_dir, self.uploader
         )
-        set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, uploaded_url)
+        set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, uploaded_url)  # type: ignore[arg-type]
 
-    def delete(self, resource_id, resource_dict):
+    def delete(self, resource_id, resource_dict):  # type: ignore[no-untyped-def]
         """
         Delete the ECR artifact using ECR url referenced by property_name
         """
@@ -301,8 +301,8 @@ class ResourceImage(Resource):
         # artifact, as deletion of intrinsic ref function artifacts is not supported yet.
         # TODO: Allow deletion of ECR artifacts with intrinsic ref functions.
         if isinstance(remote_path, str) and is_ecr_url(remote_path):
-            self.uploader.delete_artifact(
-                image_uri=remote_path, resource_id=resource_id, property_name=self.PROPERTY_NAME
+            self.uploader.delete_artifact(  # type: ignore[call-arg, call-arg, call-arg]
+                image_uri=remote_path, resource_id=resource_id, property_name=self.PROPERTY_NAME  # type: ignore[arg-type]
             )
 
 
@@ -318,25 +318,25 @@ class ResourceWithS3UrlDict(ResourceZip):
     ARTIFACT_TYPE = ZIP
     EXPORT_DESTINATION = Destination.S3
 
-    def do_export(self, resource_id, resource_dict, parent_dir):
+    def do_export(self, resource_id, resource_dict, parent_dir):  # type: ignore[no-untyped-def]
         """
         Upload to S3 and set property to an dict representing the S3 url
         of the uploaded object
         """
 
         artifact_s3_url = upload_local_artifacts(
-            resource_id, resource_dict, self.PROPERTY_NAME, parent_dir, self.uploader
+            resource_id, resource_dict, self.PROPERTY_NAME, parent_dir, self.uploader  # type: ignore[arg-type]
         )
 
         parsed_url = S3Uploader.parse_s3_url(
             artifact_s3_url,
-            bucket_name_property=self.BUCKET_NAME_PROPERTY,
-            object_key_property=self.OBJECT_KEY_PROPERTY,
+            bucket_name_property=self.BUCKET_NAME_PROPERTY,  # type: ignore[arg-type]
+            object_key_property=self.OBJECT_KEY_PROPERTY,  # type: ignore[arg-type]
             version_property=self.VERSION_PROPERTY,
         )
         set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, parsed_url)
 
-    def delete(self, resource_id, resource_dict):
+    def delete(self, resource_id, resource_dict):  # type: ignore[no-untyped-def]
         """
         Delete the S3 artifact using S3 url in the dict PROPERTY_NAME
         using the bucket at BUCKET_NAME_PROPERTY and key at OBJECT_KEY_PROPERTY
@@ -344,11 +344,11 @@ class ResourceWithS3UrlDict(ResourceZip):
         if resource_dict is None:
             return
 
-        s3_info = self.get_property_value(resource_dict)
+        s3_info = self.get_property_value(resource_dict)  # type: ignore[no-untyped-call]
         if s3_info["Key"]:
-            self.uploader.delete_artifact(remote_path=s3_info["Key"], is_key=True)
+            self.uploader.delete_artifact(remote_path=s3_info["Key"], is_key=True)  # type: ignore[call-arg, call-arg]
 
-    def get_property_value(self, resource_dict):
+    def get_property_value(self, resource_dict):  # type: ignore[no-untyped-def]
         """
         Get the s3 property value for this resource
         """
@@ -554,16 +554,16 @@ class ECRResource(Resource):
     ARTIFACT_TYPE = ZIP
     EXPORT_DESTINATION = Destination.ECR
 
-    def delete(self, resource_id, resource_dict):
+    def delete(self, resource_id, resource_dict):  # type: ignore[no-untyped-def]
         if resource_dict is None:
             return
 
-        repository_name = self.get_property_value(resource_dict)
+        repository_name = self.get_property_value(resource_dict)  # type: ignore[no-untyped-call]
         # TODO: Allow deletion of ECR Repositories with intrinsic ref functions.
         if repository_name and isinstance(repository_name, str):
-            self.uploader.delete_ecr_repository(physical_id=repository_name)
+            self.uploader.delete_ecr_repository(physical_id=repository_name)  # type: ignore[union-attr]
 
-    def get_property_value(self, resource_dict):
+    def get_property_value(self, resource_dict):  # type: ignore[no-untyped-def]
         if resource_dict is None:
             return None
 
@@ -598,21 +598,21 @@ RESOURCES_EXPORT_LIST = [
 METADATA_EXPORT_LIST = [ServerlessRepoApplicationReadme, ServerlessRepoApplicationLicense]
 
 
-def include_transform_export_handler(template_dict, uploader, parent_dir):
+def include_transform_export_handler(template_dict, uploader, parent_dir):  # type: ignore[no-untyped-def]
     if template_dict.get("Name", None) != "AWS::Include":
         return template_dict
 
     include_location = template_dict.get("Parameters", {}).get("Location", None)
-    if not include_location or not is_path_value_valid(include_location) or is_s3_protocol_url(include_location):
+    if not include_location or not is_path_value_valid(include_location) or is_s3_protocol_url(include_location):  # type: ignore[no-untyped-call, no-untyped-call]
         # `include_location` is either empty, or not a string, or an S3 URI
         return template_dict
 
     # We are confident at this point that `include_location` is a string containing the local path
     abs_include_location = os.path.join(parent_dir, include_location)
-    if is_local_file(abs_include_location):
+    if is_local_file(abs_include_location):  # type: ignore[no-untyped-call]
         template_dict["Parameters"]["Location"] = uploader.upload_with_dedup(abs_include_location)
     else:
-        raise exceptions.InvalidLocalPathError(
+        raise exceptions.InvalidLocalPathError(  # type: ignore[no-untyped-call]
             resource_id="AWS::Include", property_name="Location", local_path=abs_include_location
         )
 

@@ -19,7 +19,7 @@ class CWKeywordHighlighterFormatter(ObservabilityEventMapper[CWLogEvent]):
     Mapper implementation which will highlight given keywords in CloudWatch logs
     """
 
-    def __init__(self, colored: Colored, keyword=None):
+    def __init__(self, colored: Colored, keyword=None):  # type: ignore[no-untyped-def]
         """
         Parameters
         ----------
@@ -33,7 +33,7 @@ class CWKeywordHighlighterFormatter(ObservabilityEventMapper[CWLogEvent]):
 
     def map(self, event: CWLogEvent) -> CWLogEvent:
         if self._keyword:
-            highlight = self._colored.underline(self._keyword)
+            highlight = self._colored.underline(self._keyword)  # type: ignore[no-untyped-call]
             event.message = event.message.replace(self._keyword, highlight)
 
         return event
@@ -56,7 +56,7 @@ class CWColorizeErrorsFormatter(ObservabilityEventMapper[CWLogEvent]):
             CWColorizeErrorsFormatter.NODEJS_CRASH_MESSAGE in event.message
             or CWColorizeErrorsFormatter.TIMEOUT_MSG in event.message
         ):
-            event.message = self._colored.red(event.message)
+            event.message = self._colored.red(event.message)  # type: ignore[no-untyped-call]
         return event
 
 
@@ -89,13 +89,13 @@ class CWPrettyPrintFormatter(ObservabilityEventMapper[CWLogEvent]):
         self._colored = colored
 
     def map(self, event: CWLogEvent) -> CWLogEvent:
-        timestamp = self._colored.yellow(timestamp_to_iso(int(event.timestamp)))
-        log_stream_name = self._colored.cyan(event.log_stream_name)
+        timestamp = self._colored.yellow(timestamp_to_iso(int(event.timestamp)))  # type: ignore[no-untyped-call, no-untyped-call]
+        log_stream_name = self._colored.cyan(event.log_stream_name)  # type: ignore[no-untyped-call]
         event.message = f"{log_stream_name} {timestamp} {event.message}"
         return event
 
 
-class CWAddNewLineIfItDoesntExist(ObservabilityEventMapper):
+class CWAddNewLineIfItDoesntExist(ObservabilityEventMapper):  # type: ignore[type-arg]
     """
     Mapper implementation which will add new lines at the end of events if it is not already there
     """

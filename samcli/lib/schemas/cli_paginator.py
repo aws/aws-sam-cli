@@ -5,7 +5,7 @@ Construct one CLI page based on the input provided and returns customer choice
 import click
 
 
-def do_paginate_cli(pages, page_to_be_rendered, items_per_page, is_last_page, cli_display_message):
+def do_paginate_cli(pages, page_to_be_rendered, items_per_page, is_last_page, cli_display_message):  # type: ignore[no-untyped-def]
     """
     Responsible for displaying a generic CLI page with available user choices for pagination/seletion
     :param pages:

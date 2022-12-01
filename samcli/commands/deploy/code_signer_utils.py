@@ -13,11 +13,11 @@ from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 LOG = logging.getLogger(__name__)
 
 
-def prompt_profile_name(profile_name, start_bold, end_bold):
+def prompt_profile_name(profile_name, start_bold, end_bold):  # type: ignore[no-untyped-def]
     return prompt(f"\t{start_bold}Signing Profile Name{end_bold}", type=STRING, default=profile_name)
 
 
-def prompt_profile_owner(profile_owner, start_bold, end_bold):
+def prompt_profile_owner(profile_owner, start_bold, end_bold):  # type: ignore[no-untyped-def]
     # click requires to have non None value for passing
     if not profile_owner:
         profile_owner = ""
@@ -32,7 +32,7 @@ def prompt_profile_owner(profile_owner, start_bold, end_bold):
     return profile_owner
 
 
-def extract_profile_name_and_owner_from_existing(function_or_layer_name, signing_profiles):
+def extract_profile_name_and_owner_from_existing(function_or_layer_name, signing_profiles):  # type: ignore[no-untyped-def]
     profile_name = None
     profile_owner = None
     # extract any code sign config that is passed via command line
@@ -43,7 +43,7 @@ def extract_profile_name_and_owner_from_existing(function_or_layer_name, signing
     return profile_name, profile_owner
 
 
-def signer_config_per_function(stacks: List[Stack]):
+def signer_config_per_function(stacks: List[Stack]):  # type: ignore[no-untyped-def]
     functions_with_code_sign = set()
     layers_with_code_sign: Dict[str, Set[str]] = {}
 

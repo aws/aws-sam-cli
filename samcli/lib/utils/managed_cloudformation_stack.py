@@ -16,17 +16,17 @@ LOG = logging.getLogger(__name__)
 
 
 class ManagedStackError(UserException):
-    def __init__(self, ex):
+    def __init__(self, ex):  # type: ignore[no-untyped-def]
         self.ex = ex
         message_fmt = f"Failed to create managed resources: {ex}"
-        super().__init__(message=message_fmt.format(ex=self.ex))
+        super().__init__(message=message_fmt.format(ex=self.ex))  # type: ignore[no-untyped-call]
 
 
 class StackOutput:
     def __init__(self, stack_output: List[Dict[str, str]]):
         self._stack_output: List[Dict[str, str]] = stack_output
 
-    def get(self, key) -> Optional[str]:
+    def get(self, key) -> Optional[str]:  # type: ignore[no-untyped-def]
         try:
             return next(o for o in self._stack_output if o.get("OutputKey") == key).get("OutputValue")
         except StopIteration:
@@ -70,19 +70,19 @@ def update_stack(
                 "cloudformation", config=Config(region_name=region if region else None)
             )
     except ProfileNotFound as ex:
-        raise CredentialsError(
+        raise CredentialsError(  # type: ignore[no-untyped-call]
             f"Error Setting Up Managed Stack Client: the provided AWS name profile '{profile}' is not found. "
             "please check the documentation for setting up a named profile: "
             "https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html"
         ) from ex
     except NoCredentialsError as ex:
-        raise CredentialsError(
+        raise CredentialsError(  # type: ignore[no-untyped-call]
             "Error Setting Up Managed Stack Client: Unable to resolve credentials for the AWS SDK for Python client. "
             "Please see their documentation for options to pass in credentials: "
             "https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html"
         ) from ex
     except NoRegionError as ex:
-        raise RegionError(
+        raise RegionError(  # type: ignore[no-untyped-call]
             "Error Setting Up Managed Stack Client: Unable to resolve a region. "
             "Please provide a region via the --region parameter or by the AWS_REGION environment variable."
         ) from ex
@@ -126,19 +126,19 @@ def manage_stack(
                 "cloudformation", config=Config(region_name=region if region else None)
             )
     except ProfileNotFound as ex:
-        raise CredentialsError(
+        raise CredentialsError(  # type: ignore[no-untyped-call]
             f"Error Setting Up Managed Stack Client: the provided AWS name profile '{profile}' is not found. "
             "please check the documentation for setting up a named profile: "
             "https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html"
         ) from ex
     except NoCredentialsError as ex:
-        raise CredentialsError(
+        raise CredentialsError(  # type: ignore[no-untyped-call]
             "Error Setting Up Managed Stack Client: Unable to resolve credentials for the AWS SDK for Python client. "
             "Please see their documentation for options to pass in credentials: "
             "https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html"
         ) from ex
     except NoRegionError as ex:
-        raise RegionError(
+        raise RegionError(  # type: ignore[no-untyped-call]
             "Error Setting Up Managed Stack Client: Unable to resolve a region. "
             "Please provide a region via the --region parameter or by the AWS_REGION environment variable."
         ) from ex
@@ -146,7 +146,7 @@ def manage_stack(
 
 
 # Todo Add _update_stack to handle the case when the values of the stack parameter got changed
-def _create_or_get_stack(
+def _create_or_get_stack(  # type: ignore[no-untyped-def]
     cloudformation_client,
     stack_name: str,
     template_body: str,
@@ -156,7 +156,7 @@ def _create_or_get_stack(
         ds_resp = cloudformation_client.describe_stacks(StackName=stack_name)
         stacks = ds_resp["Stacks"]
         stack = stacks[0]
-        _check_sanity_of_stack(stack)
+        _check_sanity_of_stack(stack)  # type: ignore[no-untyped-call]
         stack_outputs = cast(List[Dict[str, str]], stack["Outputs"])
         return StackOutput(stack_outputs)
     except ClientError:
@@ -166,15 +166,15 @@ def _create_or_get_stack(
         stack = _create_stack(
             cloudformation_client, stack_name, template_body, parameter_overrides
         )  # exceptions are not captured from subcommands
-        _check_sanity_of_stack(stack)
+        _check_sanity_of_stack(stack)  # type: ignore[no-untyped-call]
         stack_outputs = cast(List[Dict[str, str]], stack["Outputs"])
         return StackOutput(stack_outputs)
     except (ClientError, BotoCoreError) as ex:
         LOG.debug("Failed to create managed resources", exc_info=ex)
-        raise ManagedStackError(str(ex)) from ex
+        raise ManagedStackError(str(ex)) from ex  # type: ignore[no-untyped-call]
 
 
-def _create_or_update_stack(
+def _create_or_update_stack(  # type: ignore[no-untyped-def]
     cloudformation_client,
     stack_name: str,
     template_body: str,
@@ -183,7 +183,7 @@ def _create_or_update_stack(
     try:
         cloudformation_client.describe_stacks(StackName=stack_name)
         stack = _update_stack(cloudformation_client, stack_name, template_body, parameter_overrides)
-        _check_sanity_of_stack(stack)
+        _check_sanity_of_stack(stack)  # type: ignore[no-untyped-call]
         stack_outputs = cast(List[Dict[str, str]], stack["Outputs"])
         return StackOutput(stack_outputs)
     except ClientError:
@@ -193,15 +193,15 @@ def _create_or_update_stack(
         stack = _create_stack(
             cloudformation_client, stack_name, template_body, parameter_overrides
         )  # exceptions are not captured from subcommands
-        _check_sanity_of_stack(stack)
+        _check_sanity_of_stack(stack)  # type: ignore[no-untyped-call]
         stack_outputs = cast(List[Dict[str, str]], stack["Outputs"])
         return StackOutput(stack_outputs)
     except (ClientError, BotoCoreError) as ex:
         LOG.debug("Failed to create managed resources", exc_info=ex)
-        raise ManagedStackError(str(ex)) from ex
+        raise ManagedStackError(str(ex)) from ex  # type: ignore[no-untyped-call]
 
 
-def _check_sanity_of_stack(stack):
+def _check_sanity_of_stack(stack):  # type: ignore[no-untyped-def]
     stack_name = stack.get("StackName")
     tags = stack.get("Tags", None)
     outputs = stack.get("Outputs", None)
@@ -215,7 +215,7 @@ def _check_sanity_of_stack(stack):
             f"healthy state (Current state:{stack_state}). Failing as the stack was likely not created "
             f"by the AWS SAM CLI"
         )
-        raise UserException(msg)
+        raise UserException(msg)  # type: ignore[no-untyped-call]
 
     # Sanity check for non-none stack? Sanity check for tag?
     try:
@@ -229,16 +229,16 @@ def _check_sanity_of_stack(stack):
                 + " which does not match the AWS SAM CLI generated tag value of AwsSamCli. "
                 "Failing as the stack was likely not created by the AWS SAM CLI."
             )
-            raise UserException(msg)
+            raise UserException(msg)  # type: ignore[no-untyped-call]
     except StopIteration as ex:
         msg = (
             "Stack  " + stack_name + " exists, but the ManagedStackSource tag is missing. "
             "Failing as the stack was likely not created by the AWS SAM CLI."
         )
-        raise UserException(msg) from ex
+        raise UserException(msg) from ex  # type: ignore[no-untyped-call]
 
 
-def _create_stack(
+def _create_stack(  # type: ignore[no-untyped-def, no-untyped-def]
     cloudformation_client,
     stack_name: str,
     template_body: str,
@@ -270,7 +270,7 @@ def _create_stack(
     return stacks[0]
 
 
-def _update_stack(
+def _update_stack(  # type: ignore[no-untyped-def, no-untyped-def]
     cloudformation_client,
     stack_name: str,
     template_body: str,

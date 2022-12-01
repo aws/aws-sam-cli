@@ -3,10 +3,10 @@ Date & Time related utilities
 """
 
 import datetime
-import dateparser
+import dateparser  # type: ignore[import]
 
 
-def timestamp_to_iso(timestamp):
+def timestamp_to_iso(timestamp):  # type: ignore[no-untyped-def]
     """
     Convert Unix Epoch Timestamp to ISO formatted time string:
         Ex: 1234567890 -> 2018-07-05T03:09:43.842000
@@ -22,10 +22,10 @@ def timestamp_to_iso(timestamp):
         ISO formatted time string
     """
 
-    return to_datetime(timestamp).isoformat()
+    return to_datetime(timestamp).isoformat()  # type: ignore[no-untyped-call]
 
 
-def to_datetime(timestamp):
+def to_datetime(timestamp):  # type: ignore[no-untyped-def]
     """
     Convert Unix Epoch Timestamp to Python's ``datetime.datetime`` object
 
@@ -44,7 +44,7 @@ def to_datetime(timestamp):
     return datetime.datetime.utcfromtimestamp(timestamp_secs)
 
 
-def to_timestamp(some_time):
+def to_timestamp(some_time):  # type: ignore[no-untyped-def]
     """
     Converts the given datetime value to Unix timestamp
 
@@ -63,17 +63,17 @@ def to_timestamp(some_time):
     return int((some_time - datetime.datetime(1970, 1, 1)).total_seconds() * 1000.0)
 
 
-def utc_to_timestamp(utc):
+def utc_to_timestamp(utc):  # type: ignore[no-untyped-def]
     """
     Converts utc timestamp with tz_info set to utc to Unix timestamp
     :param utc: datetime.datetime
     :return: UNIX timestamp
     """
 
-    return to_timestamp(utc.replace(tzinfo=None))
+    return to_timestamp(utc.replace(tzinfo=None))  # type: ignore[no-untyped-call]
 
 
-def to_utc(some_time):
+def to_utc(some_time):  # type: ignore[no-untyped-def]
     """
     Convert the given date to UTC, if the date contains a timezone.
 
@@ -96,7 +96,7 @@ def to_utc(some_time):
     return some_time.replace(tzinfo=None)
 
 
-def parse_date(date_string):
+def parse_date(date_string):  # type: ignore[no-untyped-def]
     """
     Parse the given string as datetime object. This parser supports in almost any string formats.
 

@@ -11,7 +11,7 @@ from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 LOG = logging.getLogger(__name__)
 
 
-def auth_per_resource(stacks: List[Stack]):
+def auth_per_resource(stacks: List[Stack]):  # type: ignore[no-untyped-def]
     """
     Check if authentication has been set for the function resources defined in the template that have `Api` Event type
     or the function property FunctionUrlConfig.
@@ -46,7 +46,7 @@ def auth_per_resource(stacks: List[Stack]):
     return _auth_per_resource
 
 
-def _auth_resource_event(sam_function_provider: SamFunctionProvider, sam_function, auth_resource_list):
+def _auth_resource_event(sam_function_provider: SamFunctionProvider, sam_function, auth_resource_list):  # type: ignore[no-untyped-def, no-untyped-def]
     """
 
     Parameters
@@ -70,7 +70,7 @@ def _auth_resource_event(sam_function_provider: SamFunctionProvider, sam_functio
                 if event.get("Properties", {}).get("Auth", False):
                     auth_resource_list.append((sam_function.name, True))
                 # Is there any auth defined on the referred http api or serverless api through the `id` construct?
-                elif _auth_id(
+                elif _auth_id(  # type: ignore[no-untyped-call]
                     # use the resources containing the sam_function
                     sam_function_provider.get_resources_by_stack_path(sam_function.stack_path),
                     event.get("Properties", {}),
@@ -81,7 +81,7 @@ def _auth_resource_event(sam_function_provider: SamFunctionProvider, sam_functio
                     auth_resource_list.append((sam_function.name, False))
 
 
-def _auth_id(resources_dict, event_properties, identifier):
+def _auth_id(resources_dict, event_properties, identifier):  # type: ignore[no-untyped-def]
     """
 
     Parameters
@@ -104,7 +104,7 @@ def _auth_id(resources_dict, event_properties, identifier):
     return any(
         [
             api_resource.get("Properties", {}).get("Auth", False),
-            _auth_definition_body_and_uri(
+            _auth_definition_body_and_uri(  # type: ignore[no-untyped-call]
                 definition_body=api_resource.get("Properties", {}).get("DefinitionBody", {}),
                 definition_uri=api_resource.get("Properties", {}).get("DefinitionUri", None),
             ),
@@ -112,7 +112,7 @@ def _auth_id(resources_dict, event_properties, identifier):
     )
 
 
-def _auth_definition_body_and_uri(definition_body, definition_uri):
+def _auth_definition_body_and_uri(definition_body, definition_uri):  # type: ignore[no-untyped-def]
     """
 
     Parameters
@@ -130,8 +130,8 @@ def _auth_definition_body_and_uri(definition_body, definition_uri):
 
     """
 
-    reader = SwaggerReader(definition_body=definition_body, definition_uri=definition_uri)
-    swagger = reader.read()
+    reader = SwaggerReader(definition_body=definition_body, definition_uri=definition_uri)  # type: ignore[no-untyped-call]
+    swagger = reader.read()  # type: ignore[no-untyped-call]
     _auths = []
     if not swagger:
         swagger = {}

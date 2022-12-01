@@ -8,10 +8,10 @@ class Validator:
     When a given validation function returns True, given exception is raised.
     """
 
-    def __init__(self, validation_function, exception):
+    def __init__(self, validation_function, exception):  # type: ignore[no-untyped-def]
         self.validation_function = validation_function
         self.exception = exception
 
-    def validate(self, *args, **kwargs):
+    def validate(self, *args, **kwargs):  # type: ignore[no-untyped-def]
         if self.validation_function(*args, **kwargs):
             raise self.exception

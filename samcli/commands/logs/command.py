@@ -50,7 +50,7 @@ $ sam logs --stack-name mystack -n MyNestedStack/HelloWorldFunction
 
 
 @click.command("logs", help=HELP_TEXT, short_help="Fetch logs for a function")
-@configuration_option(provider=TomlProvider(section="parameters"))
+@configuration_option(provider=TomlProvider(section="parameters"))  # type: ignore[no-untyped-call, no-untyped-call]
 @click.option(
     "--name",
     "-n",
@@ -94,7 +94,7 @@ $ sam logs --stack-name mystack -n MyNestedStack/HelloWorldFunction
 @print_cmdline_args
 @command_exception_handler(SAM_LOGS_ADDITIONAL_EXCEPTION_HANDLERS)
 @stack_name_cw_log_group_validation
-def cli(
+def cli(  # type: ignore[no-untyped-def]
     ctx,
     name,
     stack_name,
@@ -113,7 +113,7 @@ def cli(
     """
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(
+    do_cli(  # type: ignore[no-untyped-call]
         name,
         stack_name,
         filter,
@@ -128,7 +128,7 @@ def cli(
     )  # pragma: no cover
 
 
-def do_cli(
+def do_cli(  # type: ignore[no-untyped-def]
     names,
     stack_name,
     filter_pattern,

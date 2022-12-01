@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
 from typing_extensions import Protocol
-from watchdog.events import FileSystemEvent, RegexMatchingEventHandler
+from watchdog.events import FileSystemEvent, RegexMatchingEventHandler  # type: ignore[import]
 
 from samcli.lib.providers.exceptions import MissingCodeUri, MissingLocalDefinition, InvalidTemplateFile
 from samcli.lib.providers.provider import Function, LayerVersion, ResourceIdentifier, Stack, get_resource_by_id
@@ -124,7 +124,7 @@ class TemplateTrigger(ResourceTrigger):
         self._on_template_change = on_template_change
         self._validator = DefinitionValidator(Path(self._template_file))
 
-    def validate_template(self):
+    def validate_template(self):  # type: ignore[no-untyped-def]
         if not self._validator.validate_file():
             raise InvalidTemplateFile(self._template_file, self._stack_name)
 
@@ -369,7 +369,7 @@ class DefinitionCodeTrigger(CodeResourceTrigger):
             raise MissingLocalDefinition(self._resource_identifier, property_name)
         return definition_file
 
-    def _validator_wrapper(self, event: Optional[FileSystemEvent] = None):
+    def _validator_wrapper(self, event: Optional[FileSystemEvent] = None):  # type: ignore[no-untyped-def]
         """Wrapper for callback that only executes if the definition is valid and non-trivial changes are detected.
 
         Parameters

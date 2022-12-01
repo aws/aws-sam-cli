@@ -102,7 +102,7 @@ class StepFunctionsSyncFlow(SyncFlow):
     def _get_resource_api_calls(self) -> List[ResourceAPICall]:
         return []
 
-    def _equality_keys(self):
+    def _equality_keys(self):  # type: ignore[no-untyped-def]
         return self._state_machine_identifier
 
     def sync(self) -> None:

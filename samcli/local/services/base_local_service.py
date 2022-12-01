@@ -9,7 +9,7 @@ LOG = logging.getLogger(__name__)
 
 
 class BaseLocalService:
-    def __init__(self, is_debugging, port, host):
+    def __init__(self, is_debugging, port, host):  # type: ignore[no-untyped-def]
         """
         Creates a BaseLocalService class
 
@@ -27,13 +27,13 @@ class BaseLocalService:
         self.host = host
         self._app = None
 
-    def create(self):
+    def create(self):  # type: ignore[no-untyped-def]
         """
         Creates a Flask Application that can be started.
         """
         raise NotImplementedError("Required method to implement")
 
-    def run(self):
+    def run(self):  # type: ignore[no-untyped-def]
         """
         This starts up the (threaded) Local Server.
         Note: This is a **blocking call**
@@ -64,7 +64,7 @@ class BaseLocalService:
         self._app.run(threaded=multi_threaded, host=self.host, port=self.port)
 
     @staticmethod
-    def service_response(body, headers, status_code):
+    def service_response(body, headers, status_code):  # type: ignore[no-untyped-def]
         """
         Constructs a Flask Response from the body, headers, and status_code.
 
@@ -81,7 +81,7 @@ class BaseLocalService:
 
 class LambdaOutputParser:
     @staticmethod
-    def get_lambda_output(stdout_stream):
+    def get_lambda_output(stdout_stream):  # type: ignore[no-untyped-def]
         """
         This method will extract read the given stream and return the response from Lambda function separated out
         from any log statements it might have outputted. Logs end up in the stdout stream if the Lambda function
@@ -126,12 +126,12 @@ class LambdaOutputParser:
         # our perspective, the container returned some value, which is not always true. Since the output is the only
         # information we have, we need to inspect this to understand if the container returned a some data or raised an
         # error
-        is_lambda_user_error_response = LambdaOutputParser.is_lambda_error_response(lambda_response)
+        is_lambda_user_error_response = LambdaOutputParser.is_lambda_error_response(lambda_response)  # type: ignore[no-untyped-call]
 
         return lambda_response, lambda_logs, is_lambda_user_error_response
 
     @staticmethod
-    def is_lambda_error_response(lambda_response):
+    def is_lambda_error_response(lambda_response):  # type: ignore[no-untyped-def]
         """
         Check to see if the output from the container is in the form of an Error/Exception from the Lambda invoke
 

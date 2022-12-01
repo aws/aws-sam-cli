@@ -42,7 +42,7 @@ LOG = logging.getLogger(__name__)
 
 class GuidedContext:
     # pylint: disable=too-many-statements
-    def __init__(
+    def __init__(  # type: ignore[no-untyped-def]
         self,
         template_file,
         stack_name,
@@ -89,20 +89,20 @@ class GuidedContext:
         self._parameter_overrides = None
         self.start_bold = "\033[1m"
         self.end_bold = "\033[0m"
-        self.color = Colored()
+        self.color = Colored()  # type: ignore[no-untyped-call]
         self.function_provider = None
         self.disable_rollback = disable_rollback
 
     @property
-    def guided_capabilities(self):
+    def guided_capabilities(self):  # type: ignore[no-untyped-def]
         return self._capabilities
 
     @property
-    def guided_parameter_overrides(self):
+    def guided_parameter_overrides(self):  # type: ignore[no-untyped-def]
         return self._parameter_overrides
 
     # pylint: disable=too-many-statements
-    def guided_prompts(self, parameter_override_keys):
+    def guided_prompts(self, parameter_override_keys):  # type: ignore[no-untyped-def]
         """
         Start an interactive cli prompt to collection information for deployment
 
@@ -121,7 +121,7 @@ class GuidedContext:
         config_file = None
 
         click.echo(
-            self.color.yellow(
+            self.color.yellow(  # type: ignore[no-untyped-call]
                 "\n\tSetting default arguments for 'sam deploy'\n\t========================================="
             )
         )
@@ -131,12 +131,12 @@ class GuidedContext:
         )
         region = prompt(f"\t{self.start_bold}AWS Region{self.end_bold}", default=default_region, type=click.STRING)
         global_parameter_overrides = {IntrinsicsSymbolTable.AWS_REGION: region}
-        input_parameter_overrides = self.prompt_parameters(
+        input_parameter_overrides = self.prompt_parameters(  # type: ignore[no-untyped-call]
             parameter_override_keys, self.parameter_overrides_from_cmdline, self.start_bold, self.end_bold
         )
         stacks, _ = SamLocalStackProvider.get_stacks(
             self.template_file,
-            parameter_overrides=sanitize_parameter_overrides(input_parameter_overrides),
+            parameter_overrides=sanitize_parameter_overrides(input_parameter_overrides),  # type: ignore[no-untyped-call]
             global_parameter_overrides=global_parameter_overrides,
         )
 
@@ -178,7 +178,7 @@ class GuidedContext:
             )
 
         click.echo("\n\tLooking for resources needed for deployment:")
-        s3_bucket = manage_stack(profile=self.profile, region=region)
+        s3_bucket = manage_stack(profile=self.profile, region=region)  # type: ignore[no-untyped-call]
         click.echo(f"\t Managed S3 bucket: {s3_bucket}")
         click.echo("\t A different default S3 bucket can be set in samconfig.toml")
 
@@ -202,7 +202,7 @@ class GuidedContext:
         self.confirm_changeset = confirm_changeset
         self.disable_rollback = disable_rollback
 
-    def prompt_authorization(self, stacks: List[Stack]):
+    def prompt_authorization(self, stacks: List[Stack]):  # type: ignore[no-untyped-def]
         auth_required_per_resource = auth_per_resource(stacks)
 
         for resource, authorization_required in auth_required_per_resource:
@@ -212,9 +212,9 @@ class GuidedContext:
                     default=False,
                 )
                 if not auth_confirm:
-                    raise GuidedDeployFailedError(msg="Security Constraints Not Satisfied!")
+                    raise GuidedDeployFailedError(msg="Security Constraints Not Satisfied!")  # type: ignore[no-untyped-call]
 
-    def prompt_code_signing_settings(self, stacks: List[Stack]):
+    def prompt_code_signing_settings(self, stacks: List[Stack]):  # type: ignore[no-untyped-def]
         """
         Prompt code signing settings to ask whether customers want to code sign their code and
         display signing details.
@@ -248,32 +248,32 @@ class GuidedContext:
         click.echo("\t#Please provide signing profile details for the following functions & layers")
 
         for function_name in functions_with_code_sign:
-            (profile_name, profile_owner) = extract_profile_name_and_owner_from_existing(
+            (profile_name, profile_owner) = extract_profile_name_and_owner_from_existing(  # type: ignore[no-untyped-call]
                 function_name, self.signing_profiles
             )
 
             click.echo(f"\t#Signing profile details for function '{function_name}'")
-            profile_name = prompt_profile_name(profile_name, self.start_bold, self.end_bold)
-            profile_owner = prompt_profile_owner(profile_owner, self.start_bold, self.end_bold)
+            profile_name = prompt_profile_name(profile_name, self.start_bold, self.end_bold)  # type: ignore[no-untyped-call]
+            profile_owner = prompt_profile_owner(profile_owner, self.start_bold, self.end_bold)  # type: ignore[no-untyped-call]
             self.signing_profiles[function_name] = {"profile_name": profile_name, "profile_owner": profile_owner}
             self.signing_profiles[function_name]["profile_owner"] = "" if not profile_owner else profile_owner
 
         for layer_name, functions_use_this_layer in layers_with_code_sign.items():
-            (profile_name, profile_owner) = extract_profile_name_and_owner_from_existing(
+            (profile_name, profile_owner) = extract_profile_name_and_owner_from_existing(  # type: ignore[no-untyped-call]
                 layer_name, self.signing_profiles
             )
             click.echo(
                 f"\t#Signing profile details for layer '{layer_name}', "
                 f"which is used by functions {functions_use_this_layer}"
             )
-            profile_name = prompt_profile_name(profile_name, self.start_bold, self.end_bold)
-            profile_owner = prompt_profile_owner(profile_owner, self.start_bold, self.end_bold)
+            profile_name = prompt_profile_name(profile_name, self.start_bold, self.end_bold)  # type: ignore[no-untyped-call]
+            profile_owner = prompt_profile_owner(profile_owner, self.start_bold, self.end_bold)  # type: ignore[no-untyped-call]
             self.signing_profiles[layer_name] = {"profile_name": profile_name, "profile_owner": profile_owner}
             self.signing_profiles[layer_name]["profile_owner"] = "" if not profile_owner else profile_owner
 
         LOG.debug("Signing profile names and owners %s", self.signing_profiles)
 
-    def prompt_parameters(
+    def prompt_parameters(  # type: ignore[no-untyped-def]
         self, parameter_override_from_template, parameter_override_from_cmdline, start_bold, end_bold
     ):
         _prompted_param_overrides = {}
@@ -299,7 +299,7 @@ class GuidedContext:
                     _prompted_param_overrides[parameter_key] = {"Value": parameter, "Hidden": False}
         return _prompted_param_overrides
 
-    def prompt_image_repository(
+    def prompt_image_repository(  # type: ignore[no-untyped-def]
         self,
         stack_name,
         stacks: List[Stack],
@@ -344,7 +344,7 @@ class GuidedContext:
             if repo_full_path:
                 updated_repositories[repo_full_path] = image_repo_uri
         self.function_provider = SamFunctionProvider(stacks, ignore_code_extraction_warnings=True)
-        manager = CompanionStackManager(stack_name, region, s3_bucket, s3_prefix)
+        manager = CompanionStackManager(stack_name, region, s3_bucket, s3_prefix)  # type: ignore[no-untyped-call]
 
         function_logical_ids = [
             function.full_path for function in self.function_provider.get_all() if function.packagetype == IMAGE
@@ -403,7 +403,7 @@ class GuidedContext:
                 type=click.STRING,
             )
             if not is_ecr_url(image_uri):
-                raise GuidedDeployFailedError(f"Invalid Image Repository ECR URI: {image_uri}")
+                raise GuidedDeployFailedError(f"Invalid Image Repository ECR URI: {image_uri}")  # type: ignore[no-untyped-call]
 
             updated_repositories[function_logical_id] = image_uri
 
@@ -514,7 +514,7 @@ class GuidedContext:
                 "\t #You may remove repositories from the SAMCLI "
                 "managed stack to retain them and resolve this unreferenced check."
             )
-            raise GuidedDeployFailedError("Unreferenced Auto Created ECR Repos Must Be Deleted.")
+            raise GuidedDeployFailedError("Unreferenced Auto Created ECR Repos Must Be Deleted.")  # type: ignore[no-untyped-call]
 
         for function_logical_id, repo_uri in image_repositories.items():
             if repo_uri in unreferenced_repo_uris:
@@ -537,29 +537,29 @@ class GuidedContext:
                 continue
             image = function_prop.imageuri
             try:
-                tag_translation(image)
+                tag_translation(image)  # type: ignore[no-untyped-call]
             except NonLocalImageException:
                 LOG.debug("Image URI is not pointing to local. Skipping verification.")
             except NoImageFoundException as ex:
-                raise GuidedDeployFailedError("No images found to deploy, try running sam build") from ex
+                raise GuidedDeployFailedError("No images found to deploy, try running sam build") from ex  # type: ignore[no-untyped-call]
 
-    def run(self):
+    def run(self):  # type: ignore[no-untyped-def]
 
         try:
-            _parameter_override_keys = get_template_parameters(template_file=self.template_file)
+            _parameter_override_keys = get_template_parameters(template_file=self.template_file)  # type: ignore[no-untyped-call]
         except ValueError as ex:
             LOG.debug("Failed to parse SAM template", exc_info=ex)
-            raise GuidedDeployFailedError(str(ex)) from ex
+            raise GuidedDeployFailedError(str(ex)) from ex  # type: ignore[no-untyped-call]
 
-        guided_config = GuidedConfig(template_file=self.template_file, section=self.config_section)
-        guided_config.read_config_showcase(
+        guided_config = GuidedConfig(template_file=self.template_file, section=self.config_section)  # type: ignore[no-untyped-call]
+        guided_config.read_config_showcase(  # type: ignore[no-untyped-call]
             self.config_file or DEFAULT_CONFIG_FILE_NAME,
         )
 
-        self.guided_prompts(_parameter_override_keys)
+        self.guided_prompts(_parameter_override_keys)  # type: ignore[no-untyped-call]
 
         if self.save_to_config:
-            guided_config.save_config(
+            guided_config.save_config(  # type: ignore[no-untyped-call]
                 self._parameter_overrides,
                 self.config_env or DEFAULT_ENV,
                 self.config_file or DEFAULT_CONFIG_FILE_NAME,
@@ -577,7 +577,7 @@ class GuidedContext:
 
     @staticmethod
     def _get_parameter_value(
-        parameter_key: str, parameter_properties: Dict, parameter_override_from_cmdline: Dict
+        parameter_key: str, parameter_properties: Dict, parameter_override_from_cmdline: Dict  # type: ignore[type-arg]
     ) -> Any:
         """
         This function provide the value of a parameter. If the command line/config file have "override_parameter"

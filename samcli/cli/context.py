@@ -32,7 +32,7 @@ class Context:
 
     _session_id: str
 
-    def __init__(self):
+    def __init__(self):  # type: ignore[no-untyped-def]
         """
         Initialize the context with default values
         """
@@ -43,11 +43,11 @@ class Context:
         self._experimental = False
 
     @property
-    def debug(self):
+    def debug(self):  # type: ignore[no-untyped-def]
         return self._debug
 
     @debug.setter
-    def debug(self, value):
+    def debug(self, value):  # type: ignore[no-untyped-def]
         """
         Turn on debug logging if necessary.
 
@@ -59,32 +59,32 @@ class Context:
             # Turn on debug logging and display timestamps
             sam_cli_logger = logging.getLogger(SAM_CLI_LOGGER_NAME)
             lambda_builders_logger = logging.getLogger(LAMBDA_BULDERS_LOGGER_NAME)
-            SamCliLogger.configure_logger(sam_cli_logger, SAM_CLI_FORMATTER_WITH_TIMESTAMP, logging.DEBUG)
-            SamCliLogger.configure_logger(lambda_builders_logger, SAM_CLI_FORMATTER_WITH_TIMESTAMP, logging.DEBUG)
+            SamCliLogger.configure_logger(sam_cli_logger, SAM_CLI_FORMATTER_WITH_TIMESTAMP, logging.DEBUG)  # type: ignore[no-untyped-call]
+            SamCliLogger.configure_logger(lambda_builders_logger, SAM_CLI_FORMATTER_WITH_TIMESTAMP, logging.DEBUG)  # type: ignore[no-untyped-call]
 
     @property
-    def region(self):
+    def region(self):  # type: ignore[no-untyped-def]
         return self._aws_region
 
     @region.setter
-    def region(self, value):
+    def region(self, value):  # type: ignore[no-untyped-def]
         """
         Set AWS region
         """
         self._aws_region = value
-        self._refresh_session()
+        self._refresh_session()  # type: ignore[no-untyped-call]
 
     @property
-    def profile(self):
+    def profile(self):  # type: ignore[no-untyped-def]
         return self._aws_profile
 
     @profile.setter
-    def profile(self, value):
+    def profile(self, value):  # type: ignore[no-untyped-def]
         """
         Set AWS profile for credential resolution
         """
         self._aws_profile = value
-        self._refresh_session()
+        self._refresh_session()  # type: ignore[no-untyped-call]
 
     @property
     def session_id(self) -> str:
@@ -95,15 +95,15 @@ class Context:
         return self._session_id
 
     @property
-    def experimental(self):
+    def experimental(self):  # type: ignore[no-untyped-def]
         return self._experimental
 
     @experimental.setter
-    def experimental(self, value):
+    def experimental(self, value):  # type: ignore[no-untyped-def]
         self._experimental = value
 
     @property
-    def command_path(self):
+    def command_path(self):  # type: ignore[no-untyped-def]
         """
         Returns the full path of the command as invoked ex: "sam local generate-event s3 put". Wrapper to
         https://click.palletsprojects.com/en/7.x/api/#click.Context.command_path
@@ -123,7 +123,7 @@ class Context:
         return None
 
     @property
-    def template_dict(self):
+    def template_dict(self):  # type: ignore[no-untyped-def]
         """
         Returns the template_dictionary from click context.
         Returns
@@ -134,7 +134,7 @@ class Context:
         """
         click_core_ctx = click.get_current_context()
         if click_core_ctx:
-            return click_core_ctx.template_dict
+            return click_core_ctx.template_dict  # type: ignore[attr-defined]
 
         return None
 
@@ -171,7 +171,7 @@ class Context:
 
         return None
 
-    def _refresh_session(self):
+    def _refresh_session(self):  # type: ignore[no-untyped-def]
         """
         Update boto3's default session by creating a new session based on values set in the context. Some properties of
         the Boto3's session object are read-only. Therefore when Click parses new AWS session related properties (like
@@ -183,7 +183,7 @@ class Context:
         try:
             botocore_session = session.get_session()
             boto3.setup_default_session(
-                botocore_session=botocore_session, region_name=self._aws_region, profile_name=self._aws_profile
+                botocore_session=botocore_session, region_name=self._aws_region, profile_name=self._aws_profile  # type: ignore[arg-type]
             )
             # get botocore session and setup caching for MFA based credentials
             botocore_session.get_component("credential_provider").get_provider(
@@ -191,10 +191,10 @@ class Context:
             ).cache = credentials.JSONFileCache()
 
         except exceptions.ProfileNotFound as ex:
-            raise CredentialsError(str(ex)) from ex
+            raise CredentialsError(str(ex)) from ex  # type: ignore[no-untyped-call]
 
 
-def get_cmd_names(cmd_name, ctx) -> List[str]:
+def get_cmd_names(cmd_name, ctx) -> List[str]:  # type: ignore[no-untyped-def]
     """
     Given the click core context, return a list representing all the subcommands passed to the CLI
 

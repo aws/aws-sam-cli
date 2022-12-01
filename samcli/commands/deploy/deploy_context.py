@@ -49,7 +49,7 @@ class DeployContext:
     MSG_CONFIRM_CHANGESET = "Deploy this changeset?"
     MSG_CONFIRM_CHANGESET_HEADER = "\nPreviewing CloudFormation changeset before deployment"
 
-    def __init__(
+    def __init__(  # type: ignore[no-untyped-def]
         self,
         template_file,
         stack_name,
@@ -87,7 +87,7 @@ class DeployContext:
         self.kms_key_id = kms_key_id
         self.parameter_overrides = parameter_overrides
         # Override certain CloudFormation pseudo-parameters based on values provided by customer
-        self.global_parameter_overrides: Optional[Dict] = None
+        self.global_parameter_overrides: Optional[Dict] = None  # type: ignore[type-arg]
         if region:
             self.global_parameter_overrides = {IntrinsicsSymbolTable.AWS_REGION: region}
         self.capabilities = capabilities
@@ -107,13 +107,13 @@ class DeployContext:
         self.poll_delay = poll_delay
         self.on_failure = FailureMode(on_failure) if on_failure else FailureMode.ROLLBACK
 
-    def __enter__(self):
+    def __enter__(self):  # type: ignore[no-untyped-def]
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args):  # type: ignore[no-untyped-def]
         pass
 
-    def run(self):
+    def run(self):  # type: ignore[no-untyped-def]
         """
         Execute deployment based on the argument provided by customers and samconfig.toml.
         """
@@ -133,7 +133,7 @@ class DeployContext:
 
         template_size = os.path.getsize(self.template_file)
         if template_size > 51200 and not self.s3_bucket:
-            raise deploy_exceptions.DeployBucketRequiredError()
+            raise deploy_exceptions.DeployBucketRequiredError()  # type: ignore[no-untyped-call]
         boto_config = get_boto_config_with_user_agent()
         cloudformation_client = boto3.client(
             "cloudformation", region_name=self.region if self.region else None, config=boto_config
@@ -147,11 +147,11 @@ class DeployContext:
                 s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload, self.no_progressbar
             )
 
-        self.deployer = Deployer(cloudformation_client, client_sleep=self.poll_delay)
+        self.deployer = Deployer(cloudformation_client, client_sleep=self.poll_delay)  # type: ignore[no-untyped-call]
 
-        region = s3_client._client_config.region_name if s3_client else self.region  # pylint: disable=W0212
-        display_parameter_overrides = hide_noecho_parameter_overrides(template_dict, self.parameter_overrides)
-        print_deploy_args(
+        region = s3_client._client_config.region_name if s3_client else self.region  # type: ignore[attr-defined] # pylint: disable=W0212
+        display_parameter_overrides = hide_noecho_parameter_overrides(template_dict, self.parameter_overrides)  # type: ignore[no-untyped-call]
+        print_deploy_args(  # type: ignore[no-untyped-call]
             self.stack_name,
             self.s3_bucket,
             self.image_repositories if isinstance(self.image_repositories, dict) else self.image_repository,
@@ -171,8 +171,8 @@ class DeployContext:
             self.no_execute_changeset,
             self.role_arn,
             self.notification_arns,
-            self.s3_uploader,
-            [{"Key": key, "Value": value} for key, value in self.tags.items()] if self.tags else [],
+            self.s3_uploader,  # type: ignore[arg-type]
+            [{"Key": key, "Value": value} for key, value in self.tags.items()] if self.tags else [],  # type: ignore[misc]
             region,
             self.fail_on_empty_changeset,
             self.confirm_changeset,
@@ -180,11 +180,11 @@ class DeployContext:
             self.disable_rollback,
         )
 
-    def deploy(
+    def deploy(  # type: ignore[no-untyped-def]
         self,
         stack_name: str,
         template_str: str,
-        parameters: List[dict],
+        parameters: List[dict],  # type: ignore[type-arg]
         capabilities: List[str],
         no_execute_changeset: bool,
         role_arn: str,
@@ -235,7 +235,7 @@ class DeployContext:
         """
         stacks, _ = SamLocalStackProvider.get_stacks(
             self.template_file,
-            parameter_overrides=sanitize_parameter_overrides(self.parameter_overrides),
+            parameter_overrides=sanitize_parameter_overrides(self.parameter_overrides),  # type: ignore[no-untyped-call]
             global_parameter_overrides=self.global_parameter_overrides,
         )
         auth_required_per_resource = auth_per_resource(stacks)
@@ -246,7 +246,7 @@ class DeployContext:
 
         if use_changeset:
             try:
-                result, changeset_type = self.deployer.create_and_wait_for_changeset(
+                result, changeset_type = self.deployer.create_and_wait_for_changeset(  # type: ignore[union-attr]
                     stack_name=stack_name,
                     cfn_template=template_str,
                     parameter_values=parameters,
@@ -273,8 +273,8 @@ class DeployContext:
                     self.on_failure in [FailureMode.DO_NOTHING, FailureMode.DELETE] or disable_rollback
                 )
 
-                self.deployer.execute_changeset(result["Id"], stack_name, do_disable_rollback)
-                self.deployer.wait_for_execute(stack_name, changeset_type, do_disable_rollback, self.on_failure)
+                self.deployer.execute_changeset(result["Id"], stack_name, do_disable_rollback)  # type: ignore[union-attr]
+                self.deployer.wait_for_execute(stack_name, changeset_type, do_disable_rollback, self.on_failure)  # type: ignore[union-attr]
                 click.echo(self.MSG_EXECUTE_SUCCESS.format(stack_name=stack_name, region=region))
 
             except deploy_exceptions.ChangeEmptyError as ex:
@@ -286,11 +286,11 @@ class DeployContext:
                 if self.on_failure != FailureMode.DELETE:
                     raise
 
-                self.deployer.rollback_delete_stack(stack_name)
+                self.deployer.rollback_delete_stack(stack_name)  # type: ignore[union-attr]
 
         else:
             try:
-                result = self.deployer.sync(
+                result = self.deployer.sync(  # type: ignore[union-attr]
                     stack_name=stack_name,
                     cfn_template=template_str,
                     parameter_values=parameters,
@@ -308,7 +308,7 @@ class DeployContext:
                 raise
 
     @staticmethod
-    def merge_parameters(template_dict: Dict, parameter_overrides: Dict) -> List[Dict]:
+    def merge_parameters(template_dict: Dict, parameter_overrides: Dict) -> List[Dict]:  # type: ignore[type-arg]
         """
         CloudFormation CreateChangeset requires a value for every parameter
         from the template, either specifying a new value or use previous value.
@@ -320,7 +320,7 @@ class DeployContext:
         :param parameter_overrides:
         :return:
         """
-        parameter_values: List[Dict] = []
+        parameter_values: List[Dict] = []  # type: ignore[type-arg]
 
         if not isinstance(template_dict.get("Parameters", None), dict):
             return parameter_values

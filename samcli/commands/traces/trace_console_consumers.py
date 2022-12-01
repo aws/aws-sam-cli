@@ -14,5 +14,5 @@ class XRayTraceConsoleConsumer(ObservabilityEventConsumer[XRayTraceEvent]):
     """
 
     # pylint: disable=R0201
-    def consume(self, event: XRayTraceEvent):
+    def consume(self, event: XRayTraceEvent):  # type: ignore[no-untyped-def]
         click.echo(event.message)

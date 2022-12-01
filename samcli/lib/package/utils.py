@@ -12,7 +12,7 @@ import contextlib
 from contextlib import contextmanager
 from typing import Dict, Optional, cast
 
-import jmespath
+import jmespath  # type: ignore[import]
 
 from samcli.commands.package.exceptions import ImageNotFoundError, InvalidLocalPathError
 from samcli.lib.package.ecr_utils import is_ecr_url
@@ -45,17 +45,17 @@ _S3_URL_REGEXS = [
 ]
 
 
-def is_path_value_valid(path):
+def is_path_value_valid(path):  # type: ignore[no-untyped-def]
     return isinstance(path, str)
 
 
-def make_abs_path(directory, path):
-    if is_path_value_valid(path) and not os.path.isabs(path):
+def make_abs_path(directory, path):  # type: ignore[no-untyped-def]
+    if is_path_value_valid(path) and not os.path.isabs(path):  # type: ignore[no-untyped-call]
         return os.path.normpath(os.path.join(directory, path))
     return path
 
 
-def is_s3_protocol_url(url):
+def is_s3_protocol_url(url):  # type: ignore[no-untyped-def]
     """
     Check whether url is a valid path in the form of "s3://..."
     """
@@ -74,19 +74,19 @@ def is_s3_url(url: str) -> bool:
     return any(regex.match(url) for regex in _S3_URL_REGEXS)
 
 
-def is_local_folder(path):
-    return is_path_value_valid(path) and os.path.isdir(path)
+def is_local_folder(path):  # type: ignore[no-untyped-def]
+    return is_path_value_valid(path) and os.path.isdir(path)  # type: ignore[no-untyped-call]
 
 
-def is_local_file(path):
-    return is_path_value_valid(path) and os.path.isfile(path)
+def is_local_file(path):  # type: ignore[no-untyped-def]
+    return is_path_value_valid(path) and os.path.isfile(path)  # type: ignore[no-untyped-call]
 
 
-def is_zip_file(path):
-    return is_path_value_valid(path) and zipfile.is_zipfile(path)
+def is_zip_file(path):  # type: ignore[no-untyped-def]
+    return is_path_value_valid(path) and zipfile.is_zipfile(path)  # type: ignore[no-untyped-call]
 
 
-def upload_local_image_artifacts(resource_id, resource_dict, property_name, parent_dir, uploader):
+def upload_local_image_artifacts(resource_id, resource_dict, property_name, parent_dir, uploader):  # type: ignore[no-untyped-def]
     """
     Upload local artifacts referenced by the property at given resource and
     return ECR URL of the uploaded object. It is the responsibility of callers
@@ -109,7 +109,7 @@ def upload_local_image_artifacts(resource_id, resource_dict, property_name, pare
 
     if not image_path:
         message_fmt = "Image not found for {property_name} parameter of {resource_id} resource. \n"
-        raise ImageNotFoundError(property_name=property_name, resource_id=resource_id, message_fmt=message_fmt)
+        raise ImageNotFoundError(property_name=property_name, resource_id=resource_id, message_fmt=message_fmt)  # type: ignore[no-untyped-call]
 
     if is_ecr_url(image_path):
         LOG.debug("Property %s of %s is already an ECR URL", property_name, resource_id)
@@ -120,7 +120,7 @@ def upload_local_image_artifacts(resource_id, resource_dict, property_name, pare
 
 def upload_local_artifacts(
     resource_id: str,
-    resource_dict: Dict,
+    resource_dict: Dict,  # type: ignore[type-arg]
     property_name: str,
     parent_dir: str,
     uploader: S3Uploader,
@@ -156,7 +156,7 @@ def upload_local_artifacts(
         # Build the root directory and upload to S3
         local_path = parent_dir
 
-    if is_s3_protocol_url(local_path):
+    if is_s3_protocol_url(local_path):  # type: ignore[no-untyped-call]
         # A valid CloudFormation template will specify artifacts as S3 URLs.
         # This check is supporting the case where your resource does not
         # refer to local artifacts
@@ -164,20 +164,20 @@ def upload_local_artifacts(
         LOG.debug("Property %s of %s is already a S3 URL", property_name, resource_id)
         return cast(str, local_path)
 
-    local_path = make_abs_path(parent_dir, local_path)
+    local_path = make_abs_path(parent_dir, local_path)  # type: ignore[no-untyped-call]
 
     # Or, pointing to a folder. Zip the folder and upload
-    if is_local_folder(local_path):
+    if is_local_folder(local_path):  # type: ignore[no-untyped-call]
         return zip_and_upload(local_path, uploader, extension)
 
     # Path could be pointing to a file. Upload the file
-    if is_local_file(local_path):
+    if is_local_file(local_path):  # type: ignore[no-untyped-call]
         return uploader.upload_with_dedup(local_path)
 
-    raise InvalidLocalPathError(resource_id=resource_id, property_name=property_name, local_path=local_path)
+    raise InvalidLocalPathError(resource_id=resource_id, property_name=property_name, local_path=local_path)  # type: ignore[no-untyped-call]
 
 
-def resource_not_packageable(resource_dict):
+def resource_not_packageable(resource_dict):  # type: ignore[no-untyped-def]
     inline_code = jmespath.search("InlineCode", resource_dict)
     if inline_code is not None:
         return True
@@ -190,7 +190,7 @@ def zip_and_upload(local_path: str, uploader: S3Uploader, extension: Optional[st
 
 
 @contextmanager
-def zip_folder(folder_path):
+def zip_folder(folder_path):  # type: ignore[no-untyped-def]
     """
     Zip the entire folder and return a file to the zip. Use this inside
     a "with" statement to cleanup the zipfile after it is used.
@@ -210,7 +210,7 @@ def zip_folder(folder_path):
     md5hash = dir_checksum(folder_path, followlinks=True)
     filename = os.path.join(tempfile.gettempdir(), "data-" + md5hash)
 
-    zipfile_name = make_zip(filename, folder_path)
+    zipfile_name = make_zip(filename, folder_path)  # type: ignore[no-untyped-call]
     try:
         yield zipfile_name, md5hash
     finally:
@@ -218,7 +218,7 @@ def zip_folder(folder_path):
             os.remove(zipfile_name)
 
 
-def make_zip(file_name, source_root):
+def make_zip(file_name, source_root):  # type: ignore[no-untyped-def]
     """
     Create a zip file from the source directory
 
@@ -264,7 +264,7 @@ def make_zip(file_name, source_root):
     return zipfile_name
 
 
-def copy_to_temp_dir(filepath):
+def copy_to_temp_dir(filepath):  # type: ignore[no-untyped-def]
     tmp_dir = tempfile.mkdtemp()
     dst = os.path.join(tmp_dir, os.path.basename(filepath))
     shutil.copyfile(filepath, dst)

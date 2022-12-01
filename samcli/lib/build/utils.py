@@ -11,8 +11,8 @@ LOG = logging.getLogger(__name__)
 
 
 def _make_env_vars(
-    resource: Union[Function, LayerVersion], file_env_vars: Dict, inline_env_vars: Optional[Dict]
-) -> Dict:
+    resource: Union[Function, LayerVersion], file_env_vars: Dict, inline_env_vars: Optional[Dict]  # type: ignore[type-arg]
+) -> Dict:  # type: ignore[type-arg]
     """Returns the environment variables configuration for this function
 
     Priority order (high to low):

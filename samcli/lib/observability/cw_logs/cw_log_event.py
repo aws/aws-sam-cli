@@ -6,12 +6,12 @@ from typing import Optional
 from samcli.lib.observability.observability_info_puller import ObservabilityEvent
 
 
-class CWLogEvent(ObservabilityEvent[dict]):
+class CWLogEvent(ObservabilityEvent[dict]):  # type: ignore[type-arg]
     """
     An event class which represents a Cloud Watch log
     """
 
-    def __init__(self, cw_log_group: str, event: dict, resource_name: Optional[str] = None):
+    def __init__(self, cw_log_group: str, event: dict, resource_name: Optional[str] = None):  # type: ignore[type-arg]
         """
         Parameters
         ----------
@@ -28,7 +28,7 @@ class CWLogEvent(ObservabilityEvent[dict]):
         timestamp: int = event.get("timestamp", 0)
         super().__init__(event, timestamp, resource_name)
 
-    def __eq__(self, other):
+    def __eq__(self, other):  # type: ignore[no-untyped-def]
         if not isinstance(other, CWLogEvent):
             return False
 

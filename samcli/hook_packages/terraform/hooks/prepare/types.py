@@ -43,7 +43,7 @@ class TFModule:
         return all_resources
 
     @property
-    def module_name(self):
+    def module_name(self):  # type: ignore[no-untyped-def]
         return self.full_address if self.full_address else "root module"
 
 

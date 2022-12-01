@@ -21,10 +21,10 @@ class CursorFormatter:
     Base class for defining how cursor is to be manipulated.
     """
 
-    def __init__(self):
+    def __init__(self):  # type: ignore[no-untyped-def]
         pass
 
-    def cursor_format(self, count):
+    def cursor_format(self, count):  # type: ignore[no-untyped-def]
         pass
 
 
@@ -33,7 +33,7 @@ class CursorUpFormatter(CursorFormatter):
     Class for formatting and outputting moving the cursor up within the stream of bytes.
     """
 
-    def cursor_format(self, count=0):
+    def cursor_format(self, count=0):  # type: ignore[no-untyped-def]
         return ESC + str(count) + "A"
 
 
@@ -42,7 +42,7 @@ class CursorDownFormatter(CursorFormatter):
     Class for formatting and outputting moving the cursor down within the stream of bytes.
     """
 
-    def cursor_format(self, count=0):
+    def cursor_format(self, count=0):  # type: ignore[no-untyped-def]
         return ESC + str(count) + "B"
 
 
@@ -51,7 +51,7 @@ class ClearLineFormatter(CursorFormatter):
     Class for formatting and outputting clearing the cursor within the stream of bytes.
     """
 
-    def cursor_format(self, count=0):
+    def cursor_format(self, count=0):  # type: ignore[no-untyped-def]
         return ESC + str(count) + "K"
 
 
@@ -60,5 +60,5 @@ class CursorLeftFormatter(CursorFormatter):
     Class for formatting and outputting moving the cursor left within the stream of bytes.
     """
 
-    def cursor_format(self, count=0):
+    def cursor_format(self, count=0):  # type: ignore[no-untyped-def]
         return ESC + str(count) + "G"

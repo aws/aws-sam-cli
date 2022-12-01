@@ -26,26 +26,26 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s", datefm
 pass_context = click.make_pass_decorator(Context)
 
 
-def common_options(f):
+def common_options(f):  # type: ignore[no-untyped-def]
     """
     Common CLI options used by all commands. Ex: --debug
     :param f: Callback function passed by Click
     :return: Callback function
     """
-    f = debug_option(f)
+    f = debug_option(f)  # type: ignore[no-untyped-call]
     return f
 
 
-def aws_creds_options(f):
+def aws_creds_options(f):  # type: ignore[no-untyped-def]
     """
     Common CLI options necessary to interact with AWS services
     """
-    f = region_option(f)
-    f = profile_option(f)
+    f = region_option(f)  # type: ignore[no-untyped-call]
+    f = profile_option(f)  # type: ignore[no-untyped-call]
     return f
 
 
-def print_info(ctx, param, value):
+def print_info(ctx, param, value):  # type: ignore[no-untyped-def]
     if not value or ctx.resilient_parsing:
         return
 
@@ -54,7 +54,7 @@ def print_info(ctx, param, value):
     ctx.exit()
 
 
-def print_cmdline_args(func):
+def print_cmdline_args(func):  # type: ignore[no-untyped-def]
     """
     This function format and print out the command line arguments for debugging.
 
@@ -69,7 +69,7 @@ def print_cmdline_args(func):
         A wrapped function reference which executes original function and checks newer version of SAM CLI
     """
 
-    def wrapper(*args, **kwargs):
+    def wrapper(*args, **kwargs):  # type: ignore[no-untyped-def]
         if kwargs.get("config_file") and kwargs.get("config_env"):
             config_file = kwargs["config_file"]
             config_env = kwargs["config_env"]
@@ -105,7 +105,7 @@ TELEMETRY_PROMPT = """
 @click.version_option(version=__version__, prog_name="SAM CLI")
 @click.option("--info", is_flag=True, is_eager=True, callback=print_info, expose_value=False)
 @pass_context
-def cli(ctx):
+def cli(ctx):  # type: ignore[no-untyped-def]
     """
     AWS Serverless Application Model (SAM) CLI
 
@@ -117,7 +117,7 @@ def cli(ctx):
     import atexit
     from samcli.lib.telemetry.metric import send_installed_metric, emit_all_metrics
 
-    gc = GlobalConfig()
+    gc = GlobalConfig()  # type: ignore[no-untyped-call]
     if gc.telemetry_enabled is None:
         enabled = True
 
@@ -129,7 +129,7 @@ def cli(ctx):
 
                 # When the Telemetry prompt is printed, we can safely assume that this is the first time someone
                 # is installing SAM CLI on this computer. So go ahead and send the `installed` metric
-                send_installed_metric()
+                send_installed_metric()  # type: ignore[no-untyped-call]
 
         except (IOError, ValueError) as ex:
             LOG.debug("Unable to write telemetry flag", exc_info=ex)
@@ -140,6 +140,6 @@ def cli(ctx):
 
     atexit.register(emit_all_metrics)
 
-    SamCliLogger.configure_logger(sam_cli_logger, SAM_CLI_FORMATTER, logging.INFO)
-    SamCliLogger.configure_logger(lambda_builders_logger, SAM_CLI_FORMATTER, logging.INFO)
-    SamCliLogger.configure_null_logger(botocore_logger)
+    SamCliLogger.configure_logger(sam_cli_logger, SAM_CLI_FORMATTER, logging.INFO)  # type: ignore[no-untyped-call]
+    SamCliLogger.configure_logger(lambda_builders_logger, SAM_CLI_FORMATTER, logging.INFO)  # type: ignore[no-untyped-call]
+    SamCliLogger.configure_null_logger(botocore_logger)  # type: ignore[no-untyped-call]

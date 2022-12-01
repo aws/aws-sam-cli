@@ -47,7 +47,7 @@ def generate_trace_puller(
     return ObservabilityCombinedPuller(pullers)
 
 
-def generate_json_xray_event_consumer() -> ObservabilityEventConsumer:
+def generate_json_xray_event_consumer() -> ObservabilityEventConsumer:  # type: ignore[type-arg]
     """
     Generates unformatted consumer, which will print XRay events unformatted JSON into terminal
 
@@ -58,7 +58,7 @@ def generate_json_xray_event_consumer() -> ObservabilityEventConsumer:
     return ObservabilityEventConsumerDecorator([XRayTraceJSONMapper()], XRayTraceConsoleConsumer())
 
 
-def generate_xray_event_console_consumer() -> ObservabilityEventConsumer:
+def generate_xray_event_console_consumer() -> ObservabilityEventConsumer:  # type: ignore[type-arg]
     """
     Generates an instance of event consumer which will print events into console
 
@@ -69,7 +69,7 @@ def generate_xray_event_console_consumer() -> ObservabilityEventConsumer:
     return ObservabilityEventConsumerDecorator([XRayTraceConsoleMapper()], XRayTraceConsoleConsumer())
 
 
-def generate_xray_event_consumer(output: OutputOption = OutputOption.text) -> ObservabilityEventConsumer:
+def generate_xray_event_consumer(output: OutputOption = OutputOption.text) -> ObservabilityEventConsumer:  # type: ignore[type-arg]
     """
     Generates consumer instance with the given variables.
     If output is JSON, then it will return consumer with formatters for just JSON.
@@ -80,7 +80,7 @@ def generate_xray_event_consumer(output: OutputOption = OutputOption.text) -> Ob
     return generate_xray_event_console_consumer()
 
 
-def generate_json_xray_service_graph_consumer() -> ObservabilityEventConsumer:
+def generate_json_xray_service_graph_consumer() -> ObservabilityEventConsumer:  # type: ignore[type-arg]
     """
     Generates unformatted consumer, which will print XRay events unformatted JSON into terminal
 
@@ -91,7 +91,7 @@ def generate_json_xray_service_graph_consumer() -> ObservabilityEventConsumer:
     return ObservabilityEventConsumerDecorator([XRayServiceGraphJSONMapper()], XRayTraceConsoleConsumer())
 
 
-def generate_xray_service_graph_console_consumer() -> ObservabilityEventConsumer:
+def generate_xray_service_graph_console_consumer() -> ObservabilityEventConsumer:  # type: ignore[type-arg]
     """
     Generates an instance of event consumer which will print events into console
 
@@ -102,7 +102,7 @@ def generate_xray_service_graph_console_consumer() -> ObservabilityEventConsumer
     return ObservabilityEventConsumerDecorator([XRayServiceGraphConsoleMapper()], XRayTraceConsoleConsumer())
 
 
-def generate_xray_service_graph_consumer(output: OutputOption = OutputOption.text) -> ObservabilityEventConsumer:
+def generate_xray_service_graph_consumer(output: OutputOption = OutputOption.text) -> ObservabilityEventConsumer:  # type: ignore[type-arg]
     """
     Generates consumer instance with the given variables.
     If output is JSON, then it will return consumer with formatters for just JSON.

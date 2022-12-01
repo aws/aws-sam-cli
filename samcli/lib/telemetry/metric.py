@@ -51,17 +51,17 @@ class ProjectDetails:
     hook_package_version: Optional[str]
 
 
-def send_installed_metric():
+def send_installed_metric():  # type: ignore[no-untyped-def]
     LOG.debug("Sending Installed Metric")
 
-    telemetry = Telemetry()
-    metric = Metric("installed")
-    metric.add_data("osPlatform", platform.system())
-    metric.add_data("telemetryEnabled", bool(GlobalConfig().telemetry_enabled))
-    telemetry.emit(metric, force_emit=True)
+    telemetry = Telemetry()  # type: ignore[no-untyped-call]
+    metric = Metric("installed")  # type: ignore[no-untyped-call]
+    metric.add_data("osPlatform", platform.system())  # type: ignore[no-untyped-call]
+    metric.add_data("telemetryEnabled", bool(GlobalConfig().telemetry_enabled))  # type: ignore[no-untyped-call, no-untyped-call]
+    telemetry.emit(metric, force_emit=True)  # type: ignore[no-untyped-call]
 
 
-def track_template_warnings(warning_names):
+def track_template_warnings(warning_names):  # type: ignore[no-untyped-def]
     """
     Decorator to track when a warning is emitted. This method accepts name of warning and executes the function,
     gathers all relevant metrics, reports the metrics and returns.
@@ -73,30 +73,30 @@ def track_template_warnings(warning_names):
             return True, 'Warning applicable'
     """
 
-    def decorator(func):
+    def decorator(func):  # type: ignore[no-untyped-def]
         """
         Actual decorator method with warning names
         """
 
-        def wrapped(*args, **kwargs):
-            telemetry = Telemetry()
-            template_warning_checker = TemplateWarningsChecker()
+        def wrapped(*args, **kwargs):  # type: ignore[no-untyped-def]
+            telemetry = Telemetry()  # type: ignore[no-untyped-call]
+            template_warning_checker = TemplateWarningsChecker()  # type: ignore[no-untyped-call]
             ctx = Context.get_current_context()
 
             try:
-                ctx.template_dict
+                ctx.template_dict  # type: ignore[union-attr]
             except AttributeError:
                 LOG.debug("Ignoring warning check as template is not provided in context.")
                 return func(*args, **kwargs)
             for warning_name in warning_names:
-                warning_message = template_warning_checker.check_template_for_warning(warning_name, ctx.template_dict)
-                metric = Metric("templateWarning")
-                metric.add_data("awsProfileProvided", bool(ctx.profile))
-                metric.add_data("debugFlagProvided", bool(ctx.debug))
-                metric.add_data("region", ctx.region or "")
-                metric.add_data("warningName", warning_name)
-                metric.add_data("warningCount", 1 if warning_message else 0)  # 1-True or 0-False
-                telemetry.emit(metric)
+                warning_message = template_warning_checker.check_template_for_warning(warning_name, ctx.template_dict)  # type: ignore[no-untyped-call, union-attr]
+                metric = Metric("templateWarning")  # type: ignore[no-untyped-call]
+                metric.add_data("awsProfileProvided", bool(ctx.profile))  # type: ignore[no-untyped-call, union-attr]
+                metric.add_data("debugFlagProvided", bool(ctx.debug))  # type: ignore[no-untyped-call, union-attr]
+                metric.add_data("region", ctx.region or "")  # type: ignore[no-untyped-call, union-attr]
+                metric.add_data("warningName", warning_name)  # type: ignore[no-untyped-call]
+                metric.add_data("warningCount", 1 if warning_message else 0)  # type: ignore[no-untyped-call] # 1-True or 0-False
+                telemetry.emit(metric)  # type: ignore[no-untyped-call]
 
                 if warning_message:
                     click.secho(WARNING_ANNOUNCEMENT.format(warning_message), fg="yellow")
@@ -108,7 +108,7 @@ def track_template_warnings(warning_names):
     return decorator
 
 
-def track_command(func):
+def track_command(func):  # type: ignore[no-untyped-def]
     """
     Decorator to track execution of a command. This method executes the function, gathers all relevant metrics,
     reports the metrics and returns.
@@ -124,15 +124,15 @@ def track_command(func):
 
     """
 
-    def wrapped(*args, **kwargs):
-        telemetry = Telemetry()
+    def wrapped(*args, **kwargs):  # type: ignore[no-untyped-def]
+        telemetry = Telemetry()  # type: ignore[no-untyped-call]
 
         exception = None
         return_value = None
         exit_reason = "success"
         exit_code = 0
 
-        duration_fn = _timer()
+        duration_fn = _timer()  # type: ignore[no-untyped-call]
         try:
 
             # Execute the function and capture return value. This is returned back by the wrapper
@@ -149,45 +149,45 @@ def track_command(func):
                 exit_reason = ex.wrapped_from
 
         except Exception as ex:
-            exception = ex
+            exception = ex  # type: ignore[assignment]
             # Standard Unix practice to return exit code 255 on fatal/unhandled exit.
             exit_code = 255
             exit_reason = type(ex).__name__
 
         try:
             ctx = Context.get_current_context()
-            metric_specific_attributes = get_all_experimental_statues() if ctx.experimental else {}
+            metric_specific_attributes = get_all_experimental_statues() if ctx.experimental else {}  # type: ignore[union-attr]
             try:
-                template_dict = ctx.template_dict
+                template_dict = ctx.template_dict  # type: ignore[union-attr]
                 project_details = _get_project_details(kwargs.get("hook_name", ""), template_dict)
                 if project_details.project_type == ProjectTypes.CDK.value:
                     EventTracker.track_event("UsedFeature", "CDK")
-                metric_specific_attributes["projectType"] = project_details.project_type
+                metric_specific_attributes["projectType"] = project_details.project_type  # type: ignore[assignment]
                 if project_details.hook_name:
-                    metric_specific_attributes["hookPackageId"] = project_details.hook_name
+                    metric_specific_attributes["hookPackageId"] = project_details.hook_name  # type: ignore[assignment]
                 if project_details.hook_package_version:
-                    metric_specific_attributes["hookPackageVersion"] = project_details.hook_package_version
+                    metric_specific_attributes["hookPackageVersion"] = project_details.hook_package_version  # type: ignore[assignment]
             except AttributeError:
                 LOG.debug("Template is not provided in context, skip adding project type metric")
-            metric_name = "commandRunExperimental" if ctx.experimental else "commandRun"
-            metric = Metric(metric_name)
-            metric.add_data("awsProfileProvided", bool(ctx.profile))
-            metric.add_data("debugFlagProvided", bool(ctx.debug))
-            metric.add_data("region", ctx.region or "")
-            metric.add_data("commandName", ctx.command_path)  # Full command path. ex: sam local start-api
-            if not ctx.command_path.endswith("init") or ctx.command_path.endswith("pipeline init"):
+            metric_name = "commandRunExperimental" if ctx.experimental else "commandRun"  # type: ignore[union-attr]
+            metric = Metric(metric_name)  # type: ignore[no-untyped-call]
+            metric.add_data("awsProfileProvided", bool(ctx.profile))  # type: ignore[no-untyped-call, union-attr]
+            metric.add_data("debugFlagProvided", bool(ctx.debug))  # type: ignore[no-untyped-call, union-attr]
+            metric.add_data("region", ctx.region or "")  # type: ignore[no-untyped-call, union-attr]
+            metric.add_data("commandName", ctx.command_path)  # type: ignore[no-untyped-call, union-attr] # Full command path. ex: sam local start-api
+            if not ctx.command_path.endswith("init") or ctx.command_path.endswith("pipeline init"):  # type: ignore[union-attr]
                 # Project metadata
                 # We don't capture below usage attributes for sam init as the command is not run inside a project
-                metric_specific_attributes["gitOrigin"] = get_git_remote_origin_url()
-                metric_specific_attributes["projectName"] = get_project_name()
-                metric_specific_attributes["initialCommit"] = get_initial_commit_hash()
-            metric.add_data("metricSpecificAttributes", metric_specific_attributes)
+                metric_specific_attributes["gitOrigin"] = get_git_remote_origin_url()  # type: ignore[assignment]
+                metric_specific_attributes["projectName"] = get_project_name()  # type: ignore[assignment]
+                metric_specific_attributes["initialCommit"] = get_initial_commit_hash()  # type: ignore[assignment]
+            metric.add_data("metricSpecificAttributes", metric_specific_attributes)  # type: ignore[no-untyped-call]
             # Metric about command's execution characteristics
-            metric.add_data("duration", duration_fn())
-            metric.add_data("exitReason", exit_reason)
-            metric.add_data("exitCode", exit_code)
+            metric.add_data("duration", duration_fn())  # type: ignore[no-untyped-call]
+            metric.add_data("exitReason", exit_reason)  # type: ignore[no-untyped-call]
+            metric.add_data("exitCode", exit_code)  # type: ignore[no-untyped-call]
             EventTracker.send_events()  # Sends Event metrics to Telemetry before commandRun metrics
-            telemetry.emit(metric)
+            telemetry.emit(metric)  # type: ignore[no-untyped-call]
         except RuntimeError:
             LOG.debug("Unable to find Click Context for getting session_id.")
         if exception:
@@ -198,7 +198,7 @@ def track_command(func):
     return wrapped
 
 
-def _get_project_details(hook_name: str, template_dict: Dict) -> ProjectDetails:
+def _get_project_details(hook_name: str, template_dict: Dict) -> ProjectDetails:  # type: ignore[type-arg]
     if not hook_name:
         hook_metadata = get_hook_metadata(template_dict)
         if not hook_metadata:
@@ -217,7 +217,7 @@ def _get_project_details(hook_name: str, template_dict: Dict) -> ProjectDetails:
     )
 
 
-def _timer():
+def _timer():  # type: ignore[no-untyped-def]
     """
     Timer to measure the elapsed time between two calls in milliseconds. When you first call this method,
     we will automatically start the timer. The return value is another method that, when called, will end the timer
@@ -239,14 +239,14 @@ def _timer():
     """
     start = default_timer()
 
-    def end():
+    def end():  # type: ignore[no-untyped-def]
         # time might go backwards in rare scenarios, hence the 'max'
         return int(max(default_timer() - start, 0) * 1000)  # milliseconds
 
     return end
 
 
-def _parse_attr(obj, name):
+def _parse_attr(obj, name):  # type: ignore[no-untyped-def]
     """
     Get attribute from an object.
     @param obj Object
@@ -257,7 +257,7 @@ def _parse_attr(obj, name):
     return reduce(getattr, name.split("."), obj)
 
 
-def capture_parameter(metric_name, key, parameter_identifier, parameter_nested_identifier=None, as_list=False):
+def capture_parameter(metric_name, key, parameter_identifier, parameter_nested_identifier=None, as_list=False):  # type: ignore[no-untyped-def]
     """
     Decorator for capturing one parameter of the function.
 
@@ -271,9 +271,9 @@ def capture_parameter(metric_name, key, parameter_identifier, parameter_nested_i
         a list instead of overriding the previous one.
     """
 
-    def wrap(func):
+    def wrap(func):  # type: ignore[no-untyped-def]
         @wraps(func)
-        def wrapped_func(*args, **kwargs):
+        def wrapped_func(*args, **kwargs):  # type: ignore[no-untyped-def]
             return_value = func(*args, **kwargs)
             if isinstance(parameter_identifier, int):
                 parameter = args[parameter_identifier]
@@ -283,12 +283,12 @@ def capture_parameter(metric_name, key, parameter_identifier, parameter_nested_i
                 return return_value
 
             if parameter_nested_identifier:
-                parameter = _parse_attr(parameter, parameter_nested_identifier)
+                parameter = _parse_attr(parameter, parameter_nested_identifier)  # type: ignore[no-untyped-call]
 
             if as_list:
-                add_metric_list_data(metric_name, key, parameter)
+                add_metric_list_data(metric_name, key, parameter)  # type: ignore[no-untyped-call]
             else:
-                add_metric_data(metric_name, key, parameter)
+                add_metric_data(metric_name, key, parameter)  # type: ignore[no-untyped-call]
             return return_value
 
         return wrapped_func
@@ -296,7 +296,7 @@ def capture_parameter(metric_name, key, parameter_identifier, parameter_nested_i
     return wrap
 
 
-def capture_return_value(metric_name, key, as_list=False):
+def capture_return_value(metric_name, key, as_list=False):  # type: ignore[no-untyped-def]
     """
     Decorator for capturing the return value of the function.
 
@@ -306,14 +306,14 @@ def capture_return_value(metric_name, key, as_list=False):
         a list instead of overriding the previous one.
     """
 
-    def wrap(func):
+    def wrap(func):  # type: ignore[no-untyped-def]
         @wraps(func)
-        def wrapped_func(*args, **kwargs):
+        def wrapped_func(*args, **kwargs):  # type: ignore[no-untyped-def]
             return_value = func(*args, **kwargs)
             if as_list:
-                add_metric_list_data(metric_name, key, return_value)
+                add_metric_list_data(metric_name, key, return_value)  # type: ignore[no-untyped-call]
             else:
-                add_metric_data(metric_name, key, return_value)
+                add_metric_data(metric_name, key, return_value)  # type: ignore[no-untyped-call]
             return return_value
 
         return wrapped_func
@@ -321,31 +321,31 @@ def capture_return_value(metric_name, key, as_list=False):
     return wrap
 
 
-def add_metric_data(metric_name, key, value):
-    _get_metric(metric_name).add_data(key, value)
+def add_metric_data(metric_name, key, value):  # type: ignore[no-untyped-def]
+    _get_metric(metric_name).add_data(key, value)  # type: ignore[no-untyped-call]
 
 
-def add_metric_list_data(metric_name, key, value):
-    _get_metric(metric_name).add_list_data(key, value)
+def add_metric_list_data(metric_name, key, value):  # type: ignore[no-untyped-def]
+    _get_metric(metric_name).add_list_data(key, value)  # type: ignore[no-untyped-call]
 
 
-def _get_metric(metric_name):
+def _get_metric(metric_name):  # type: ignore[no-untyped-def]
     if metric_name not in _METRICS:
-        _METRICS[metric_name] = Metric(metric_name)
+        _METRICS[metric_name] = Metric(metric_name)  # type: ignore[no-untyped-call]
     return _METRICS[metric_name]
 
 
-def emit_metric(metric_name):
+def emit_metric(metric_name):  # type: ignore[no-untyped-def]
     if metric_name not in _METRICS:
         return
-    telemetry = Telemetry()
-    telemetry.emit(_get_metric(metric_name))
+    telemetry = Telemetry()  # type: ignore[no-untyped-call]
+    telemetry.emit(_get_metric(metric_name))  # type: ignore[no-untyped-call, no-untyped-call]
     _METRICS.pop(metric_name)
 
 
-def emit_all_metrics():
+def emit_all_metrics():  # type: ignore[no-untyped-def]
     for key in list(_METRICS):
-        emit_metric(key)
+        emit_metric(key)  # type: ignore[no-untyped-call]
 
 
 class Metric:
@@ -353,18 +353,18 @@ class Metric:
     Metric class to store metric data and adding common attributes
     """
 
-    def __init__(self, metric_name, should_add_common_attributes=True):
+    def __init__(self, metric_name, should_add_common_attributes=True):  # type: ignore[no-untyped-def]
         self._data = dict()
         self._metric_name = metric_name
-        self._gc = GlobalConfig()
+        self._gc = GlobalConfig()  # type: ignore[no-untyped-call]
         self._session_id = self._default_session_id()
-        self._cicd_detector = CICDDetector()
+        self._cicd_detector = CICDDetector()  # type: ignore[no-untyped-call]
         if not self._session_id:
             self._session_id = ""
         if should_add_common_attributes:
-            self._add_common_metric_attributes()
+            self._add_common_metric_attributes()  # type: ignore[no-untyped-call]
 
-    def add_list_data(self, key, value):
+    def add_list_data(self, key, value):  # type: ignore[no-untyped-def]
         if key not in self._data:
             self._data[key] = list()
 
@@ -374,16 +374,16 @@ class Metric:
 
         self._data[key].append(value)
 
-    def add_data(self, key, value):
+    def add_data(self, key, value):  # type: ignore[no-untyped-def]
         self._data[key] = value
 
-    def get_data(self):
+    def get_data(self):  # type: ignore[no-untyped-def]
         return self._data
 
-    def get_metric_name(self):
+    def get_metric_name(self):  # type: ignore[no-untyped-def]
         return self._metric_name
 
-    def _add_common_metric_attributes(self):
+    def _add_common_metric_attributes(self):  # type: ignore[no-untyped-def]
         self._data["requestId"] = str(uuid.uuid4())
         self._data["installationId"] = self._gc.installation_id
         self._data["sessionId"] = self._session_id

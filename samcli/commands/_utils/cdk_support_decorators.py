@@ -8,7 +8,7 @@ from samcli.lib.iac.cdk.utils import is_cdk_project
 LOG = logging.getLogger(__name__)
 
 
-def unsupported_command_cdk(alternative_command=None):
+def unsupported_command_cdk(alternative_command=None):  # type: ignore[no-untyped-def]
     """
     Log a warning message to the user if they attempt
     to use a CDK template with an unsupported sam command
@@ -20,12 +20,12 @@ def unsupported_command_cdk(alternative_command=None):
 
     """
 
-    def decorator(func):
-        def wrapped(*args, **kwargs):
+    def decorator(func):  # type: ignore[no-untyped-def]
+        def wrapped(*args, **kwargs):  # type: ignore[no-untyped-def]
             ctx = Context.get_current_context()
 
             try:
-                template_dict = ctx.template_dict
+                template_dict = ctx.template_dict  # type: ignore[union-attr]
             except AttributeError:
                 LOG.debug("Ignoring CDK project check as template is not provided in context.")
                 return func(*args, **kwargs)

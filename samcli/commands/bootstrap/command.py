@@ -23,10 +23,10 @@ Currently this creates, if one does not exist, a managed S3 bucket for your acco
 @pass_context
 @track_command
 @check_newer_version
-def cli(ctx):
-    do_cli(ctx.region, ctx.profile)  # pragma: no cover
+def cli(ctx):  # type: ignore[no-untyped-def]
+    do_cli(ctx.region, ctx.profile)  # type: ignore[no-untyped-call] # pragma: no cover
 
 
-def do_cli(region, profile):  # pragma: no cover
-    bucket_name = bootstrap.manage_stack(profile=profile, region=region)
+def do_cli(region, profile):  # type: ignore[no-untyped-def] # pragma: no cover
+    bucket_name = bootstrap.manage_stack(profile=profile, region=region)  # type: ignore[no-untyped-call]
     click.echo("Source Bucket: " + bucket_name)

@@ -11,22 +11,22 @@ from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV, DEFAULT_CONFIG_F
 
 
 class GuidedConfig:
-    def __init__(self, template_file, section):
+    def __init__(self, template_file, section):  # type: ignore[no-untyped-def]
         self.template_file = template_file
         self.section = section
 
-    def get_config_ctx(self, config_file=None):
+    def get_config_ctx(self, config_file=None):  # type: ignore[no-untyped-def]
         ctx = click.get_current_context()
 
         samconfig_dir = getattr(ctx, "samconfig_dir", None)
-        samconfig = SamConfig(
-            config_dir=samconfig_dir if samconfig_dir else SamConfig.config_dir(template_file_path=self.template_file),
+        samconfig = SamConfig(  # type: ignore[no-untyped-call]
+            config_dir=samconfig_dir if samconfig_dir else SamConfig.config_dir(template_file_path=self.template_file),  # type: ignore[no-untyped-call]
             filename=config_file or DEFAULT_CONFIG_FILE_NAME,
         )
         return ctx, samconfig
 
-    def read_config_showcase(self, config_file=None):
-        _, samconfig = self.get_config_ctx(config_file)
+    def read_config_showcase(self, config_file=None):  # type: ignore[no-untyped-def]
+        _, samconfig = self.get_config_ctx(config_file)  # type: ignore[no-untyped-call]
 
         status = "Found" if samconfig.exists() else "Not found"
         msg = (
@@ -40,9 +40,9 @@ class GuidedConfig:
             click.echo("\tReading default arguments  :  {}".format("Success" if config_sanity else "Failure"))
 
         if not config_sanity and samconfig.exists():
-            raise GuidedDeployFailedError(msg)
+            raise GuidedDeployFailedError(msg)  # type: ignore[no-untyped-call]
 
-    def save_config(
+    def save_config(  # type: ignore[no-untyped-def]
         self,
         parameter_overrides,
         config_env=DEFAULT_ENV,
@@ -52,7 +52,7 @@ class GuidedConfig:
         **kwargs,
     ):
 
-        ctx, samconfig = self.get_config_ctx(config_file)
+        ctx, samconfig = self.get_config_ctx(config_file)  # type: ignore[no-untyped-call]
 
         cmd_names = get_cmd_names(ctx.info_name, ctx)
 
@@ -62,9 +62,9 @@ class GuidedConfig:
             if value:
                 samconfig.put(cmd_names, self.section, key, value, env=config_env)
 
-        self._save_parameter_overrides(cmd_names, config_env, parameter_overrides, samconfig)
-        self._save_image_repositories(cmd_names, config_env, samconfig, image_repositories)
-        self._save_signing_profiles(cmd_names, config_env, samconfig, signing_profiles)
+        self._save_parameter_overrides(cmd_names, config_env, parameter_overrides, samconfig)  # type: ignore[no-untyped-call]
+        self._save_image_repositories(cmd_names, config_env, samconfig, image_repositories)  # type: ignore[no-untyped-call]
+        self._save_signing_profiles(cmd_names, config_env, samconfig, signing_profiles)  # type: ignore[no-untyped-call]
 
         samconfig.flush()
 
@@ -77,7 +77,7 @@ class GuidedConfig:
             "developerguide/serverless-sam-cli-config.html\n"
         )
 
-    def _save_signing_profiles(self, cmd_names, config_env, samconfig, signing_profiles):
+    def _save_signing_profiles(self, cmd_names, config_env, samconfig, signing_profiles):  # type: ignore[no-untyped-def]
         if signing_profiles:
             _params = []
             for key, value in signing_profiles.items():
@@ -89,7 +89,7 @@ class GuidedConfig:
             if _params:
                 samconfig.put(cmd_names, self.section, "signing_profiles", " ".join(_params), env=config_env)
 
-    def _save_parameter_overrides(self, cmd_names, config_env, parameter_overrides, samconfig):
+    def _save_parameter_overrides(self, cmd_names, config_env, parameter_overrides, samconfig):  # type: ignore[no-untyped-def]
         if parameter_overrides:
             _params = []
             for key, value in parameter_overrides.items():
@@ -101,7 +101,7 @@ class GuidedConfig:
             if _params:
                 samconfig.put(cmd_names, self.section, "parameter_overrides", " ".join(_params), env=config_env)
 
-    def _save_image_repositories(self, cmd_names, config_env, samconfig, image_repositories):
+    def _save_image_repositories(self, cmd_names, config_env, samconfig, image_repositories):  # type: ignore[no-untyped-def]
         # Check for None only as empty dict should be saved to config
         # This can happen in an edge case where all companion stack repos are deleted and
         # the config needs to be updated.

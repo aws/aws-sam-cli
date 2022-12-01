@@ -14,7 +14,7 @@ LOG = logging.getLogger(__name__)
 
 
 class CfnUtils:
-    def __init__(self, cloudformation_client):
+    def __init__(self, cloudformation_client):  # type: ignore[no-untyped-def]
         self._client = cloudformation_client
 
     def has_stack(self, stack_name: str) -> bool:
@@ -32,7 +32,7 @@ class CfnUtils:
             stack = resp["Stacks"][0]
             if stack["EnableTerminationProtection"]:
                 message = "Stack cannot be deleted while TerminationProtection is enabled."
-                raise DeleteFailedError(stack_name=stack_name, msg=message)
+                raise DeleteFailedError(stack_name=stack_name, msg=message)  # type: ignore[no-untyped-call]
 
             # Note: Stacks with REVIEW_IN_PROGRESS can be deleted
             # using delete_stack but get_template does not return
@@ -49,15 +49,15 @@ class CfnUtils:
                 LOG.debug("Stack with id %s does not exist", stack_name)
                 return False
             LOG.error("ClientError Exception : %s", str(e))
-            raise DeleteFailedError(stack_name=stack_name, msg=str(e)) from e
+            raise DeleteFailedError(stack_name=stack_name, msg=str(e)) from e  # type: ignore[no-untyped-call]
         except BotoCoreError as e:
             # If there are credentials, environment errors,
             # catch that and throw a delete failed error.
 
             LOG.error("Botocore Exception : %s", str(e))
-            raise DeleteFailedError(stack_name=stack_name, msg=str(e)) from e
+            raise DeleteFailedError(stack_name=stack_name, msg=str(e)) from e  # type: ignore[no-untyped-call]
 
-    def get_stack_template(self, stack_name: str, stage: str) -> Dict:
+    def get_stack_template(self, stack_name: str, stage: str) -> Dict:  # type: ignore[type-arg]
         """
         Return the Cloudformation template of the given stack_name
 
@@ -76,14 +76,14 @@ class CfnUtils:
             # catch that and throw a delete failed error.
 
             LOG.error("Failed to fetch template for the stack : %s", str(e))
-            raise FetchTemplateFailedError(stack_name=stack_name, msg=str(e)) from e
+            raise FetchTemplateFailedError(stack_name=stack_name, msg=str(e)) from e  # type: ignore[no-untyped-call]
 
         except Exception as e:
             # We don't know anything about this exception. Don't handle
             LOG.error("Unable to get stack details.", exc_info=e)
             raise e
 
-    def delete_stack(self, stack_name: str, retain_resources: Optional[List] = None):
+    def delete_stack(self, stack_name: str, retain_resources: Optional[List] = None):  # type: ignore[no-untyped-def, type-arg]
         """
         Delete the Cloudformation stack with the given stack_name
 
@@ -100,14 +100,14 @@ class CfnUtils:
             # catch that and throw a delete failed error.
 
             LOG.error("Failed to delete stack : %s", str(e))
-            raise DeleteFailedError(stack_name=stack_name, msg=str(e)) from e
+            raise DeleteFailedError(stack_name=stack_name, msg=str(e)) from e  # type: ignore[no-untyped-call]
 
         except Exception as e:
             # We don't know anything about this exception. Don't handle
             LOG.error("Failed to delete stack. ", exc_info=e)
             raise e
 
-    def wait_for_delete(self, stack_name):
+    def wait_for_delete(self, stack_name):  # type: ignore[no-untyped-def]
         """
         Waits until the delete stack completes
 
@@ -122,11 +122,11 @@ class CfnUtils:
         try:
             waiter.wait(StackName=stack_name, WaiterConfig=waiter_config)
         except WaiterError as ex:
-            stack_status = ex.last_response.get("Stacks", [{}])[0].get("StackStatusReason", "")
+            stack_status = ex.last_response.get("Stacks", [{}])[0].get("StackStatusReason", "")  # type: ignore[index]
 
             if "DELETE_FAILED" in str(ex):
-                raise CfDeleteFailedStatusError(
+                raise CfDeleteFailedStatusError(  # type: ignore[no-untyped-call]
                     stack_name=stack_name, stack_status=stack_status, msg="ex: {0}".format(ex)
                 ) from ex
 
-            raise DeleteFailedError(stack_name=stack_name, stack_status=stack_status, msg="ex: {0}".format(ex)) from ex
+            raise DeleteFailedError(stack_name=stack_name, stack_status=stack_status, msg="ex: {0}".format(ex)) from ex  # type: ignore[no-untyped-call]

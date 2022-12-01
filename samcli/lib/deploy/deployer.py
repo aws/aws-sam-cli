@@ -78,7 +78,7 @@ DEFAULT_CLIENT_SLEEP = 0.5
 
 
 class Deployer:
-    def __init__(self, cloudformation_client, changeset_prefix="samcli-deploy", client_sleep=DEFAULT_CLIENT_SLEEP):
+    def __init__(self, cloudformation_client, changeset_prefix="samcli-deploy", client_sleep=DEFAULT_CLIENT_SLEEP):  # type: ignore[no-untyped-def]
         self._client = cloudformation_client
         self.changeset_prefix = changeset_prefix
         try:
@@ -91,11 +91,11 @@ class Deployer:
         self.backoff = 2
         # Maximum number of attempts before raising exception back up the chain.
         self.max_attempts = 3
-        self.deploy_color = DeployColor()
-        self._colored = Colored()
+        self.deploy_color = DeployColor()  # type: ignore[no-untyped-call]
+        self._colored = Colored()  # type: ignore[no-untyped-call]
 
     # pylint: disable=inconsistent-return-statements
-    def has_stack(self, stack_name):
+    def has_stack(self, stack_name):  # type: ignore[no-untyped-def]
         """
         Checks if a CloudFormation stack with given name exists
 
@@ -130,14 +130,14 @@ class Deployer:
             # catch that and throw a deploy failed error.
 
             LOG.debug("Botocore Exception : %s", str(e))
-            raise DeployFailedError(stack_name=stack_name, msg=str(e)) from e
+            raise DeployFailedError(stack_name=stack_name, msg=str(e)) from e  # type: ignore[no-untyped-call]
 
         except Exception as e:
             # We don't know anything about this exception. Don't handle
             LOG.debug("Unable to get stack details.", exc_info=e)
             raise e
 
-    def create_changeset(
+    def create_changeset(  # type: ignore[no-untyped-def]
         self, stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
     ):
         """
@@ -153,7 +153,7 @@ class Deployer:
         :param tags: Array of tags passed to CloudFormation
         :return:
         """
-        if not self.has_stack(stack_name):
+        if not self.has_stack(stack_name):  # type: ignore[no-untyped-call]
             changeset_type = "CREATE"
             # When creating a new stack, UsePreviousValue=True is invalid.
             # For such parameters, users should either override with new value,
@@ -183,16 +183,16 @@ class Deployer:
         }
 
         kwargs = self._process_kwargs(kwargs, s3_uploader, capabilities, role_arn, notification_arns)
-        return self._create_change_set(stack_name=stack_name, changeset_type=changeset_type, **kwargs)
+        return self._create_change_set(stack_name=stack_name, changeset_type=changeset_type, **kwargs)  # type: ignore[no-untyped-call]
 
     @staticmethod
     def _process_kwargs(
-        kwargs: dict,
+        kwargs: dict,  # type: ignore[type-arg]
         s3_uploader: Optional[S3Uploader],
         capabilities: Optional[List[str]],
         role_arn: Optional[str],
         notification_arns: Optional[List[str]],
-    ) -> dict:
+    ) -> dict:  # type: ignore[type-arg]
         # If an S3 uploader is available, use TemplateURL to deploy rather than
         # TemplateBody. This is required for large templates.
         if s3_uploader:
@@ -215,25 +215,25 @@ class Deployer:
             kwargs["NotificationARNs"] = notification_arns
         return kwargs
 
-    def _create_change_set(self, stack_name, changeset_type, **kwargs):
+    def _create_change_set(self, stack_name, changeset_type, **kwargs):  # type: ignore[no-untyped-def]
         try:
             resp = self._client.create_change_set(**kwargs)
             return resp, changeset_type
         except botocore.exceptions.ClientError as ex:
             if "The bucket you are attempting to access must be addressed using the specified endpoint" in str(ex):
-                raise DeployBucketInDifferentRegionError(f"Failed to create/update stack {stack_name}") from ex
-            raise ChangeSetError(stack_name=stack_name, msg=str(ex)) from ex
+                raise DeployBucketInDifferentRegionError(f"Failed to create/update stack {stack_name}") from ex  # type: ignore[no-untyped-call]
+            raise ChangeSetError(stack_name=stack_name, msg=str(ex)) from ex  # type: ignore[no-untyped-call]
 
         except Exception as ex:
             LOG.debug("Unable to create changeset", exc_info=ex)
-            raise ChangeSetError(stack_name=stack_name, msg=str(ex)) from ex
+            raise ChangeSetError(stack_name=stack_name, msg=str(ex)) from ex  # type: ignore[no-untyped-call]
 
-    @pprint_column_names(
+    @pprint_column_names(  # type: ignore[no-untyped-call]
         format_string=DESCRIBE_CHANGESET_FORMAT_STRING,
         format_kwargs=DESCRIBE_CHANGESET_DEFAULT_ARGS,
         table_header=DESCRIBE_CHANGESET_TABLE_HEADER_NAME,
     )
-    def describe_changeset(self, change_set_id, stack_name, **kwargs):
+    def describe_changeset(self, change_set_id, stack_name, **kwargs):  # type: ignore[no-untyped-def]
         """
         Call Cloudformation to describe a changeset
 
@@ -244,7 +244,7 @@ class Deployer:
         """
         paginator = self._client.get_paginator("describe_change_set")
         response_iterator = paginator.paginate(ChangeSetName=change_set_id, StackName=stack_name)
-        changes = {"Add": [], "Modify": [], "Remove": []}
+        changes = {"Add": [], "Modify": [], "Remove": []}  # type: ignore[var-annotated]
         changes_showcase = {"Add": "+ Add", "Modify": "* Modify", "Remove": "- Delete"}
         changeset = False
         for item in response_iterator:
@@ -265,8 +265,8 @@ class Deployer:
 
         for k, v in changes.items():
             for value in v:
-                row_color = self.deploy_color.get_changeset_action_color(action=k)
-                pprint_columns(
+                row_color = self.deploy_color.get_changeset_action_color(action=k)  # type: ignore[no-untyped-call]
+                pprint_columns(  # type: ignore[no-untyped-call]
                     columns=[
                         changes_showcase.get(k, k),
                         value["LogicalResourceId"],
@@ -284,7 +284,7 @@ class Deployer:
         if not changeset:
             # There can be cases where there are no changes,
             # but could be an an addition of a SNS notification topic.
-            pprint_columns(
+            pprint_columns(  # type: ignore[no-untyped-call]
                 columns=["-", "-", "-", "-"],
                 width=kwargs["width"],
                 margin=kwargs["margin"],
@@ -295,7 +295,7 @@ class Deployer:
 
         return changes
 
-    def wait_for_changeset(self, changeset_id, stack_name):
+    def wait_for_changeset(self, changeset_id, stack_name):  # type: ignore[no-untyped-def]
         """
         Waits until the changeset creation completes
 
@@ -322,13 +322,13 @@ class Deployer:
                 and "The submitted information didn't contain changes." in reason
                 or "No updates are to be performed" in reason
             ):
-                raise deploy_exceptions.ChangeEmptyError(stack_name=stack_name)
+                raise deploy_exceptions.ChangeEmptyError(stack_name=stack_name)  # type: ignore[no-untyped-call]
 
-            raise ChangeSetError(
+            raise ChangeSetError(  # type: ignore[no-untyped-call]
                 stack_name=stack_name, msg="ex: {0} Status: {1}. Reason: {2}".format(ex, status, reason)
             ) from ex
 
-    def execute_changeset(self, changeset_id, stack_name, disable_rollback):
+    def execute_changeset(self, changeset_id, stack_name, disable_rollback):  # type: ignore[no-untyped-def]
         """
         Calls CloudFormation to execute changeset
 
@@ -341,28 +341,28 @@ class Deployer:
                 ChangeSetName=changeset_id, StackName=stack_name, DisableRollback=disable_rollback
             )
         except botocore.exceptions.ClientError as ex:
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex  # type: ignore[no-untyped-call]
 
-    def get_last_event_time(self, stack_name):
+    def get_last_event_time(self, stack_name):  # type: ignore[no-untyped-def]
         """
         Finds the last event time stamp thats present for the stack, if not get the current time
         :param stack_name: Name or ID of the stack
         :return: unix epoch
         """
         try:
-            return utc_to_timestamp(
+            return utc_to_timestamp(  # type: ignore[no-untyped-call]
                 self._client.describe_stack_events(StackName=stack_name)["StackEvents"][0]["Timestamp"]
             )
         except KeyError:
             return time.time()
 
-    @pprint_column_names(
+    @pprint_column_names(  # type: ignore[no-untyped-call, misc]
         format_string=DESCRIBE_STACK_EVENTS_FORMAT_STRING,
         format_kwargs=DESCRIBE_STACK_EVENTS_DEFAULT_ARGS,
         table_header=DESCRIBE_STACK_EVENTS_TABLE_HEADER_NAME,
         display_sleep=True,
     )
-    def describe_stack_events(
+    def describe_stack_events(  # type: ignore[no-untyped-def, no-untyped-def]
         self, stack_name: str, time_stamp_marker: float, on_failure: FailureMode = FailureMode.ROLLBACK, **kwargs
     ):
         """
@@ -385,12 +385,12 @@ class Deployer:
                 response_iterator = paginator.paginate(StackName=stack_name)
 
                 # Event buffer
-                new_events = deque()  # type: deque
+                new_events = deque()  # type: ignore
 
                 for event_items in response_iterator:
                     for event in event_items["StackEvents"]:
                         # Skip already shown old event entries or former deployments
-                        if utc_to_timestamp(event["Timestamp"]) <= time_stamp_marker:
+                        if utc_to_timestamp(event["Timestamp"]) <= time_stamp_marker:  # type: ignore[no-untyped-call]
                             break
                         if event["EventId"] not in events:
                             events.add(event["EventId"])
@@ -403,11 +403,11 @@ class Deployer:
 
                 # Override timestamp marker with latest event (last in deque)
                 if len(new_events) > 0:
-                    time_stamp_marker = utc_to_timestamp(new_events[-1]["Timestamp"])
+                    time_stamp_marker = utc_to_timestamp(new_events[-1]["Timestamp"])  # type: ignore[no-untyped-call]
 
                 for new_event in new_events:
-                    row_color = self.deploy_color.get_stack_events_status_color(status=new_event["ResourceStatus"])
-                    pprint_columns(
+                    row_color = self.deploy_color.get_stack_events_status_color(status=new_event["ResourceStatus"])  # type: ignore[no-untyped-call]
+                    pprint_columns(  # type: ignore[no-untyped-call]
                         columns=[
                             new_event["ResourceStatus"],
                             new_event["ResourceType"],
@@ -445,7 +445,7 @@ class Deployer:
                 time.sleep(math.pow(self.backoff, retry_attempts))
 
     @staticmethod
-    def _is_root_stack_event(event: Dict) -> bool:
+    def _is_root_stack_event(event: Dict) -> bool:  # type: ignore[type-arg]
         return bool(
             event["ResourceType"] == "AWS::CloudFormation::Stack"
             and event["StackName"] == event["LogicalResourceId"]
@@ -504,13 +504,13 @@ class Deployer:
             LOG.debug("Execute stack waiter exception", exc_info=ex)
             if disable_rollback and on_failure is not FailureMode.DELETE:
                 # This will only display the message if disable rollback is set or if DO_NOTHING is specified
-                msg = self._gen_deploy_failed_with_rollback_disabled_msg(stack_name)
-                LOG.info(self._colored.red(msg))
+                msg = self._gen_deploy_failed_with_rollback_disabled_msg(stack_name)  # type: ignore[no-untyped-call]
+                LOG.info(self._colored.red(msg))  # type: ignore[no-untyped-call]
 
-            raise deploy_exceptions.DeployFailedError(stack_name=stack_name, msg=str(ex))
+            raise deploy_exceptions.DeployFailedError(stack_name=stack_name, msg=str(ex))  # type: ignore[no-untyped-call]
 
         try:
-            outputs = self.get_stack_outputs(stack_name=stack_name, echo=False)
+            outputs = self.get_stack_outputs(stack_name=stack_name, echo=False)  # type: ignore[no-untyped-call]
             if outputs:
                 self._display_stack_outputs(outputs)
         except DeployStackOutPutFailedError as ex:
@@ -518,57 +518,57 @@ class Deployer:
             if on_failure != FailureMode.DELETE:
                 raise ex
 
-    def create_and_wait_for_changeset(
+    def create_and_wait_for_changeset(  # type: ignore[no-untyped-def]
         self, stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
     ):
         try:
-            result, changeset_type = self.create_changeset(
+            result, changeset_type = self.create_changeset(  # type: ignore[no-untyped-call]
                 stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
             )
-            self.wait_for_changeset(result["Id"], stack_name)
+            self.wait_for_changeset(result["Id"], stack_name)  # type: ignore[no-untyped-call]
             self.describe_changeset(result["Id"], stack_name)
             return result, changeset_type
         except botocore.exceptions.ClientError as ex:
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex  # type: ignore[no-untyped-call]
 
-    def create_stack(self, **kwargs):
+    def create_stack(self, **kwargs):  # type: ignore[no-untyped-def]
         stack_name = kwargs.get("StackName")
         try:
             resp = self._client.create_stack(**kwargs)
             return resp
         except botocore.exceptions.ClientError as ex:
             if "The bucket you are attempting to access must be addressed using the specified endpoint" in str(ex):
-                raise DeployBucketInDifferentRegionError(f"Failed to create/update stack {stack_name}") from ex
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+                raise DeployBucketInDifferentRegionError(f"Failed to create/update stack {stack_name}") from ex  # type: ignore[no-untyped-call]
+            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex  # type: ignore[no-untyped-call]
 
         except Exception as ex:
             LOG.debug("Unable to create stack", exc_info=ex)
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex  # type: ignore[no-untyped-call]
 
-    def update_stack(self, **kwargs):
+    def update_stack(self, **kwargs):  # type: ignore[no-untyped-def]
         stack_name = kwargs.get("StackName")
         try:
             resp = self._client.update_stack(**kwargs)
             return resp
         except botocore.exceptions.ClientError as ex:
             if "The bucket you are attempting to access must be addressed using the specified endpoint" in str(ex):
-                raise DeployBucketInDifferentRegionError(f"Failed to create/update stack {stack_name}") from ex
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+                raise DeployBucketInDifferentRegionError(f"Failed to create/update stack {stack_name}") from ex  # type: ignore[no-untyped-call]
+            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex  # type: ignore[no-untyped-call]
 
         except Exception as ex:
             LOG.debug("Unable to update stack", exc_info=ex)
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex  # type: ignore[no-untyped-call]
 
-    def sync(
+    def sync(  # type: ignore[no-untyped-def]
         self,
         stack_name: str,
         cfn_template: str,
-        parameter_values: List[Dict],
+        parameter_values: List[Dict],  # type: ignore[type-arg]
         capabilities: Optional[List[str]],
         role_arn: Optional[str],
         notification_arns: Optional[List[str]],
         s3_uploader: Optional[S3Uploader],
-        tags: Optional[Dict],
+        tags: Optional[Dict],  # type: ignore[type-arg]
         on_failure: FailureMode,
     ):
         """
@@ -587,7 +587,7 @@ class Deployer:
         :param on_failure: FailureMode enum indicating the action to take on stack creation failure
         :return:
         """
-        exists = self.has_stack(stack_name)
+        exists = self.has_stack(stack_name)  # type: ignore[no-untyped-call]
 
         if not exists:
             # When creating a new stack, UsePreviousValue=True is invalid.
@@ -621,35 +621,35 @@ class Deployer:
             if exists:
                 kwargs["DisableRollback"] = disable_rollback
 
-                result = self.update_stack(**kwargs)
+                result = self.update_stack(**kwargs)  # type: ignore[no-untyped-call]
                 self.wait_for_execute(stack_name, "UPDATE", disable_rollback, on_failure=on_failure)
                 msg = "\nStack update succeeded. Sync infra completed.\n"
             else:
                 # Pass string representation of enum
                 kwargs["OnFailure"] = str(on_failure)
 
-                result = self.create_stack(**kwargs)
+                result = self.create_stack(**kwargs)  # type: ignore[no-untyped-call]
                 self.wait_for_execute(stack_name, "CREATE", disable_rollback, on_failure=on_failure)
                 msg = "\nStack creation succeeded. Sync infra completed.\n"
 
-            LOG.info(self._colored.green(msg))
+            LOG.info(self._colored.green(msg))  # type: ignore[no-untyped-call]
 
             return result
         except botocore.exceptions.ClientError as ex:
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex  # type: ignore[no-untyped-call]
 
     @staticmethod
-    @pprint_column_names(
+    @pprint_column_names(  # type: ignore[no-untyped-call, misc]
         format_string=OUTPUTS_FORMAT_STRING, format_kwargs=OUTPUTS_DEFAULTS_ARGS, table_header=OUTPUTS_TABLE_HEADER_NAME
     )
-    def _display_stack_outputs(stack_outputs: List[Dict], **kwargs) -> None:
+    def _display_stack_outputs(stack_outputs: List[Dict], **kwargs) -> None:  # type: ignore[no-untyped-def, type-arg]
         for counter, output in enumerate(stack_outputs):
             for k, v in [
                 ("Key", output.get("OutputKey")),
                 ("Description", output.get("Description", "-")),
                 ("Value", output.get("OutputValue")),
             ]:
-                pprint_columns(
+                pprint_columns(  # type: ignore[no-untyped-call]
                     columns=["{k:<{0}}{v:<{0}}".format(MIN_OFFSET, k=k, v=v)],
                     width=kwargs["width"],
                     margin=kwargs["margin"],
@@ -663,7 +663,7 @@ class Deployer:
                 )
             newline_per_item(stack_outputs, counter)
 
-    def get_stack_outputs(self, stack_name, echo=True):
+    def get_stack_outputs(self, stack_name, echo=True):  # type: ignore[no-untyped-def]
         try:
             stacks_description = self._client.describe_stacks(StackName=stack_name)
             try:
@@ -677,9 +677,9 @@ class Deployer:
                 return None
 
         except botocore.exceptions.ClientError as ex:
-            raise DeployStackOutPutFailedError(stack_name=stack_name, msg=str(ex)) from ex
+            raise DeployStackOutPutFailedError(stack_name=stack_name, msg=str(ex)) from ex  # type: ignore[no-untyped-call]
 
-    def rollback_delete_stack(self, stack_name: str):
+    def rollback_delete_stack(self, stack_name: str):  # type: ignore[no-untyped-def]
         """
         Try to rollback the stack to a sucessful state, if there is no good state then delete the stack
 
@@ -724,7 +724,7 @@ class Deployer:
             else:
                 LOG.info("Stack %s has rolled back successfully", stack_name)
         except botocore.exceptions.ClientError as ex:
-            raise DeployStackStatusMissingError(stack_name) from ex
+            raise DeployStackStatusMissingError(stack_name) from ex  # type: ignore[no-untyped-call]
         except botocore.exceptions.WaiterError:
             LOG.error(
                 "\nStack %s failed to delete properly! Please manually clean up any persistent resources.",
@@ -752,7 +752,7 @@ class Deployer:
 
         return stack_status
 
-    def _rollback_wait(self, stack_name: str, wait_time: int = 30, max_retries: int = 120):
+    def _rollback_wait(self, stack_name: str, wait_time: int = 30, max_retries: int = 120):  # type: ignore[no-untyped-def]
         """
         Manual waiter for rollback status, waits until we get *_ROLLBACK_COMPLETE or ROLLBACK_FAILED
 
@@ -784,7 +784,7 @@ class Deployer:
         )
 
     @staticmethod
-    def _gen_deploy_failed_with_rollback_disabled_msg(stack_name):
+    def _gen_deploy_failed_with_rollback_disabled_msg(stack_name):  # type: ignore[no-untyped-def]
         return """\nFailed to deploy. Automatic rollback disabled for this deployment.\n
 Actions you can take next
 =========================

@@ -34,7 +34,7 @@ from ..bootstrap.cli import (
 )
 
 LOG = logging.getLogger(__name__)
-shared_path: Path = GlobalConfig().config_dir
+shared_path: Path = GlobalConfig().config_dir  # type: ignore[no-untyped-call]
 APP_PIPELINE_TEMPLATES_REPO_URL = "https://github.com/aws/aws-sam-cli-pipeline-init-templates.git"
 APP_PIPELINE_TEMPLATES_REPO_LOCAL_NAME = "aws-sam-cli-app-pipeline-templates"
 CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME = "custom-pipeline-template"
@@ -45,7 +45,7 @@ CUSTOM_PIPELINE_TEMPLATE_SOURCE = "Custom Pipeline Template Location"
 class InteractiveInitFlow:
     def __init__(self, allow_bootstrap: bool):
         self.allow_bootstrap = allow_bootstrap
-        self.color = Colored()
+        self.color = Colored()  # type: ignore[no-untyped-call]
 
     def do_interactive(self) -> None:
         """
@@ -78,9 +78,9 @@ class InteractiveInitFlow:
             generated_files = self._generate_from_custom_location()
         else:
             generated_files = self._generate_from_app_pipeline_templates()
-        click.secho(Colored().green("Successfully created the pipeline configuration file(s):"))
+        click.secho(Colored().green("Successfully created the pipeline configuration file(s):"))  # type: ignore[no-untyped-call, no-untyped-call]
         for file in generated_files:
-            click.secho(Colored().green(f"\t- {file}"))
+            click.secho(Colored().green(f"\t- {file}"))  # type: ignore[no-untyped-call, no-untyped-call]
 
     def _generate_from_app_pipeline_templates(
         self,
@@ -157,7 +157,7 @@ class InteractiveInitFlow:
             click.echo("[!] None detected in this account.")
         else:
             click.echo(
-                Colored().yellow(
+                Colored().yellow(  # type: ignore[no-untyped-call, no-untyped-call]
                     f"Only {len(stage_configuration_names)} stage(s) were detected, "
                     f"fewer than what the template requires: {number_of_stages}. If "
                     f"these are incorrect, delete .aws-sam/pipeline/pipelineconfig.toml and rerun"
@@ -186,7 +186,7 @@ class InteractiveInitFlow:
                     )
                 )
 
-                click.echo(Colored().bold(f"\nStage {len(stage_configuration_names) + 1} Setup\n"))
+                click.echo(Colored().bold(f"\nStage {len(stage_configuration_names) + 1} Setup\n"))  # type: ignore[no-untyped-call, no-untyped-call]
                 do_bootstrap(
                     region=None,
                     profile=None,
@@ -254,13 +254,13 @@ class InteractiveInitFlow:
                 # refresh the pipeline bootstrap resources and see whether bootstrap is still needed
                 continue
             click.echo(
-                Colored().yellow(
+                Colored().yellow(  # type: ignore[no-untyped-call, no-untyped-call]
                     "2 stage(s) were detected, matching the template requirements. "
                     "If these are incorrect, delete .aws-sam/pipeline/pipelineconfig.toml and rerun"
                 )
             )
             break
-        context: Dict = pipeline_template.run_interactive_flows(bootstrap_context)
+        context: Dict = pipeline_template.run_interactive_flows(bootstrap_context)  # type: ignore[type-arg]
         with osutils.mkdir_temp() as generate_dir:
             LOG.debug("Generating pipeline files into %s", generate_dir)
             context["outputDir"] = "."  # prevent cookiecutter from generating a sub-folder
@@ -270,10 +270,10 @@ class InteractiveInitFlow:
 
 def _load_pipeline_bootstrap_resources() -> Tuple[List[str], Dict[str, str]]:
     section = "parameters"
-    context: Dict = {}
+    context: Dict = {}  # type: ignore[type-arg]
 
-    config = SamConfig(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)
-    if not config.exists():
+    config = SamConfig(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)  # type: ignore[no-untyped-call]
+    if not config.exists():  # type: ignore[no-untyped-call]
         context[str(["stage_names_message"])] = ""
         return [], context
 
@@ -282,16 +282,16 @@ def _load_pipeline_bootstrap_resources() -> Tuple[List[str], Dict[str, str]]:
     # we don't want to include "default" here.
     stage_configuration_names = [
         stage_configuration_name
-        for stage_configuration_name in config.get_stage_configuration_names()
+        for stage_configuration_name in config.get_stage_configuration_names()  # type: ignore[no-untyped-call]
         if stage_configuration_name != "default"
     ]
     for index, stage in enumerate(stage_configuration_names):
-        for key, value in config.get_all(_get_bootstrap_command_names(), section, stage).items():
+        for key, value in config.get_all(_get_bootstrap_command_names(), section, stage).items():  # type: ignore[no-untyped-call]
             context[str([stage, key])] = value
             # create an index alias for each stage name
             # so that if customers type "1," it is equivalent to the first stage name
             context[str([str(index + 1), key])] = value
-    for key, value in config.get_all(_get_bootstrap_command_names(), section, "default").items():
+    for key, value in config.get_all(_get_bootstrap_command_names(), section, "default").items():  # type: ignore[no-untyped-call]
         context[str(["default", key])] = value
 
     # pre-load the list of stage names detected from pipelineconfig.toml
@@ -333,11 +333,11 @@ def _copy_dir_contents_to_cwd(source_dir: str) -> List[str]:
             click.echo(f"\t- {existing_file_path}")
         if not click.confirm("Do you want to override them?"):
             target_dir = str(Path(PIPELINE_CONFIG_DIR, "generated-files"))
-            osutils.copytree(source_dir, target_dir)
+            osutils.copytree(source_dir, target_dir)  # type: ignore[no-untyped-call]
             click.echo(f"All files are saved to {target_dir}.")
             return [str(Path(target_dir, path)) for path in file_paths]
     LOG.debug("Copy contents of %s to cwd", source_dir)
-    osutils.copytree(source_dir, ".")
+    osutils.copytree(source_dir, ".")  # type: ignore[no-untyped-call]
     return file_paths
 
 
@@ -381,7 +381,7 @@ def _clone_pipeline_templates(repo_url: str, clone_dir: Path, clone_name: str) -
         clone_path: Path = repo.clone(clone_dir, clone_name, replace_existing=True)
         return clone_path
     except (OSError, CloneRepoException) as ex:
-        raise PipelineTemplateCloneException(str(ex)) from ex
+        raise PipelineTemplateCloneException(str(ex)) from ex  # type: ignore[no-untyped-call]
 
 
 def _read_app_pipeline_templates_manifest(pipeline_templates_dir: Path) -> PipelineTemplatesManifest:
@@ -487,22 +487,22 @@ def _initialize_pipeline_template(pipeline_template_dir: Path) -> Template:
     return Template(location=str(pipeline_template_dir), interactive_flows=[interactive_flow], metadata=metadata)
 
 
-def _get_pipeline_template_metadata(pipeline_template_dir: Path) -> Dict:
+def _get_pipeline_template_metadata(pipeline_template_dir: Path) -> Dict:  # type: ignore[type-arg]
     """
     Load the metadata from the file metadata.json located in the template directory,
     raise an exception if anything wrong.
     """
     metadata_path = Path(pipeline_template_dir, "metadata.json")
     if not metadata_path.exists():
-        raise AppPipelineTemplateMetadataException(f"Cannot find metadata file {metadata_path}")
+        raise AppPipelineTemplateMetadataException(f"Cannot find metadata file {metadata_path}")  # type: ignore[no-untyped-call]
     try:
         with open(metadata_path, "r", encoding="utf-8") as file:
             metadata = json.load(file)
             if isinstance(metadata, dict):
                 return metadata
-            raise AppPipelineTemplateMetadataException(f"Invalid content found in {metadata_path}")
+            raise AppPipelineTemplateMetadataException(f"Invalid content found in {metadata_path}")  # type: ignore[no-untyped-call]
     except JSONDecodeError as ex:
-        raise AppPipelineTemplateMetadataException(f"Invalid JSON found in {metadata_path}") from ex
+        raise AppPipelineTemplateMetadataException(f"Invalid JSON found in {metadata_path}") from ex  # type: ignore[no-untyped-call]
 
 
 def _get_pipeline_template_interactive_flow(pipeline_template_dir: Path) -> InteractiveFlow:

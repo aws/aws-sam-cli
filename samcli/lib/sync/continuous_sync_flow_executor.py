@@ -36,7 +36,7 @@ class ContinuousSyncFlowExecutor(SyncFlowExecutor):
         super().__init__()
         self._stop_flag = False
 
-    def stop(self, should_stop=True) -> None:
+    def stop(self, should_stop=True) -> None:  # type: ignore[no-untyped-def]
         """Stop executor after all current SyncFlows are finished."""
         with self._flow_queue_lock:
             self._stop_flag = should_stop
@@ -52,7 +52,7 @@ class ContinuousSyncFlowExecutor(SyncFlowExecutor):
         """
         return self._stop_flag
 
-    def _can_exit(self):
+    def _can_exit(self):  # type: ignore[no-untyped-def]
         return self.should_stop() and super()._can_exit()
 
     def _submit_sync_flow_task(

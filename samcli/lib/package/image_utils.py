@@ -1,11 +1,11 @@
 """
 Image artifacts based utilities
 """
-import docker
-from docker.errors import APIError, NullResource
+import docker  # type: ignore[import]
+from docker.errors import APIError, NullResource  # type: ignore[import]
 
 from samcli.commands.package.exceptions import DockerGetLocalImageFailedError
-from samcli.lib.package.utils import is_ecr_url
+from samcli.lib.package.utils import is_ecr_url  # type: ignore[attr-defined]
 
 SHA_CHECKSUM_TRUNCATION_LENGTH = 12
 
@@ -18,7 +18,7 @@ class NoImageFoundException(Exception):
     pass
 
 
-def tag_translation(image, docker_image_id=None, gen_tag="latest"):
+def tag_translation(image, docker_image_id=None, gen_tag="latest"):  # type: ignore[no-untyped-def]
     """
     Translates a given local image structure such as `helloworld:v1` into
     just a tag structure such as `helloworld-v1` , this tag will then be applied
@@ -38,7 +38,7 @@ def tag_translation(image, docker_image_id=None, gen_tag="latest"):
             docker_client = docker.from_env()
             docker_image_id = docker_client.images.get(image).id
         except APIError as ex:
-            raise DockerGetLocalImageFailedError(str(ex)) from ex
+            raise DockerGetLocalImageFailedError(str(ex)) from ex  # type: ignore[no-untyped-call]
         except NullResource as ex:
             raise NoImageFoundException(str(ex)) from ex
 

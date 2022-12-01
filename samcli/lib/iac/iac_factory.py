@@ -31,7 +31,7 @@ class IaCFactory:
             raise ValueError("Project type not found in sam-cli command options")
         project_type = self._sam_cli_context.command_options_map.get(project_type_string)
         if project_type not in IAC_IMPLEMENTATIONS:
-            raise InvalidProjectTypeException(
+            raise InvalidProjectTypeException(  # type: ignore[no-untyped-call]
                 msg=f"{project_type} is an invalid project type option value, the value should be one "
                 f"of the following {[ptype.value for ptype in ProjectTypes]} ",
             )

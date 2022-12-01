@@ -31,7 +31,7 @@ class TimeParseError(UserException):
     """
 
 
-def parse_time(time_str: str, property_name: str):
+def parse_time(time_str: str, property_name: str):  # type: ignore[no-untyped-def]
     """
     Parse the time from the given string, convert to UTC, and return the datetime object
 
@@ -57,16 +57,16 @@ def parse_time(time_str: str, property_name: str):
         if not time_str:
             return None
 
-        parsed = parse_date(time_str)
+        parsed = parse_date(time_str)  # type: ignore[no-untyped-call]
         if not parsed:
-            raise InvalidTimestampError(f"Unable to parse the time provided by '{property_name}'")
+            raise InvalidTimestampError(f"Unable to parse the time provided by '{property_name}'")  # type: ignore[no-untyped-call]
 
-        return to_utc(parsed)
+        return to_utc(parsed)  # type: ignore[no-untyped-call]
     except InvalidTimestampError as ex:
         raise ex
     except Exception as ex:
         LOG.error("Failed to parse given time information %s", time_str, exc_info=ex)
-        raise TimeParseError(f"Unable to parse the time information '{property_name}': '{time_str}'") from ex
+        raise TimeParseError(f"Unable to parse the time information '{property_name}': '{time_str}'") from ex  # type: ignore[no-untyped-call]
 
 
 class ResourcePhysicalIdResolver:

@@ -12,13 +12,13 @@ from samcli.lib.utils.hash import str_checksum
 start_time_getter = operator.attrgetter("start_time")
 
 
-class XRayTraceEvent(ObservabilityEvent[dict]):
+class XRayTraceEvent(ObservabilityEvent[dict]):  # type: ignore[type-arg]
     """
     Represents a result of each XRay trace event, which is returned by boto3 client by calling 'batch_get_traces'
     See XRayTracePuller
     """
 
-    def __init__(self, event: dict, revision: Optional[int] = None):
+    def __init__(self, event: dict, revision: Optional[int] = None):  # type: ignore[type-arg]
         super().__init__(event, 0)
         self.id = event.get("Id", "")
         # A revision number will be passed to link with the event
@@ -28,11 +28,11 @@ class XRayTraceEvent(ObservabilityEvent[dict]):
         self.message = json.dumps(event)
         self.segments: List[XRayTraceSegment] = []
 
-        self._construct_segments(event)
+        self._construct_segments(event)  # type: ignore[no-untyped-call]
         if self.segments:
             self.timestamp = self.segments[0].start_time
 
-    def _construct_segments(self, event_dict):
+    def _construct_segments(self, event_dict):  # type: ignore[no-untyped-def]
         """
         Each event is represented by segment, and it is like a Tree model (each segment also have subsegments).
         """
@@ -42,13 +42,13 @@ class XRayTraceEvent(ObservabilityEvent[dict]):
             self.segments.append(XRayTraceSegment(json.loads(segment_document)))
         self.segments.sort(key=start_time_getter)
 
-    def get_latest_event_time(self):
+    def get_latest_event_time(self):  # type: ignore[no-untyped-def]
         """
         Returns the latest event time for this specific XRayTraceEvent by calling get_latest_event_time for each segment
         """
         latest_event_time = 0
         for segment in self.segments:
-            segment_latest_event_time = segment.get_latest_event_time()
+            segment_latest_event_time = segment.get_latest_event_time()  # type: ignore[no-untyped-call]
             if segment_latest_event_time > latest_event_time:
                 latest_event_time = segment_latest_event_time
 
@@ -60,7 +60,7 @@ class XRayTraceSegment:
     Represents each segment information for a XRayTraceEvent
     """
 
-    def __init__(self, document: dict):
+    def __init__(self, document: dict):  # type: ignore[type-arg]
         self.id = document.get("Id", "")
         self.document = document
         self.name = document.get("name", "")
@@ -74,42 +74,42 @@ class XRayTraceSegment:
             self.sub_segments.append(XRayTraceSegment(sub_segment))
         self.sub_segments.sort(key=start_time_getter)
 
-    def get_duration(self):
+    def get_duration(self):  # type: ignore[no-untyped-def]
         return self.end_time - self.start_time
 
-    def get_latest_event_time(self):
+    def get_latest_event_time(self):  # type: ignore[no-untyped-def]
         """
         Gets the latest event time by comparing all timestamps (end_time) from current segment and all sub-segments
         """
         latest_event_time = self.end_time
         for sub_segment in self.sub_segments:
-            sub_segment_latest_time = sub_segment.get_latest_event_time()
+            sub_segment_latest_time = sub_segment.get_latest_event_time()  # type: ignore[no-untyped-call]
             if sub_segment_latest_time > latest_event_time:
                 latest_event_time = sub_segment_latest_time
 
         return latest_event_time
 
 
-class XRayServiceGraphEvent(ObservabilityEvent[dict]):
+class XRayServiceGraphEvent(ObservabilityEvent[dict]):  # type: ignore[type-arg]
     """
     Represents a result of each XRay service graph event, which is returned by boto3 client by calling
     'get_service_graph' See XRayServiceGraphPuller
     """
 
-    def __init__(self, event: dict):
+    def __init__(self, event: dict):  # type: ignore[type-arg]
         self.services: List[XRayGraphServiceInfo] = []
         self.message = str(event)
-        self._construct_service(event)
+        self._construct_service(event)  # type: ignore[no-untyped-call]
         self.start_time = event.get("StartTime", None)
         self.end_time = event.get("EndTime", None)
         super().__init__(event, 0)
 
-    def _construct_service(self, event_dict):
+    def _construct_service(self, event_dict):  # type: ignore[no-untyped-def]
         services = event_dict.get("Services", [])
         for service in services:
             self.services.append(XRayGraphServiceInfo(service))
 
-    def get_hash(self):
+    def get_hash(self):  # type: ignore[no-untyped-def]
         """
         get the hash of the containing services
         """
@@ -122,7 +122,7 @@ class XRayGraphServiceInfo:
     Represents each services information for a XRayServiceGraphEvent
     """
 
-    def __init__(self, service: dict):
+    def __init__(self, service: dict):  # type: ignore[type-arg]
         self.id = service.get("ReferenceId", "")
         self.document = service
         self.name = service.get("Name", "")
@@ -134,10 +134,10 @@ class XRayGraphServiceInfo:
         self.fault_count = 0
         self.total_count = 0
         self.response_time = 0
-        self._construct_edge_ids(service.get("Edges", []))
-        self._set_summary_statistics(service.get("SummaryStatistics", None))
+        self._construct_edge_ids(service.get("Edges", []))  # type: ignore[no-untyped-call]
+        self._set_summary_statistics(service.get("SummaryStatistics", None))  # type: ignore[no-untyped-call]
 
-    def _construct_edge_ids(self, edges):
+    def _construct_edge_ids(self, edges):  # type: ignore[no-untyped-def]
         """
         covert the edges information to a list of edge reference ids
         """
@@ -146,7 +146,7 @@ class XRayGraphServiceInfo:
             edge_ids.append(edge.get("ReferenceId", -1))
         self.edge_ids = edge_ids
 
-    def _set_summary_statistics(self, summary_statistics):
+    def _set_summary_statistics(self, summary_statistics):  # type: ignore[no-untyped-def]
         """
         get some useful information from summary statistics
         """

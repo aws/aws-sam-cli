@@ -23,7 +23,7 @@ class CWLogPuller(ObservabilityPuller):
     def __init__(
         self,
         logs_client: Any,
-        consumer: ObservabilityEventConsumer,
+        consumer: ObservabilityEventConsumer,  # type: ignore[type-arg]
         cw_log_group: str,
         resource_name: Optional[str] = None,
         max_retries: int = 1000,
@@ -55,9 +55,9 @@ class CWLogPuller(ObservabilityPuller):
         self.had_data = False
         self._invalid_log_group = False
 
-    def tail(self, start_time: Optional[datetime] = None, filter_pattern: Optional[str] = None):
+    def tail(self, start_time: Optional[datetime] = None, filter_pattern: Optional[str] = None):  # type: ignore[no-untyped-def]
         if start_time:
-            self.latest_event_time = to_timestamp(start_time)
+            self.latest_event_time = to_timestamp(start_time)  # type: ignore[no-untyped-call]
 
         counter = self._max_retries
         while counter > 0 and not self.cancelled:
@@ -65,7 +65,7 @@ class CWLogPuller(ObservabilityPuller):
 
             counter -= 1
             try:
-                self.load_time_period(to_datetime(self.latest_event_time), filter_pattern=filter_pattern)
+                self.load_time_period(to_datetime(self.latest_event_time), filter_pattern=filter_pattern)  # type: ignore[no-untyped-call]
             except ClientError as err:
                 error_code = err.response.get("Error", {}).get("Code")
                 if error_code == "ThrottlingException":
@@ -95,7 +95,7 @@ class CWLogPuller(ObservabilityPuller):
             # This also helps us scoot under the TPS limit for CloudWatch API call.
             time.sleep(self._poll_interval)
 
-    def load_time_period(
+    def load_time_period(  # type: ignore[no-untyped-def]
         self,
         start_time: Optional[datetime] = None,
         end_time: Optional[datetime] = None,
@@ -104,10 +104,10 @@ class CWLogPuller(ObservabilityPuller):
         kwargs = {"logGroupName": self.cw_log_group, "interleaved": True}
 
         if start_time:
-            kwargs["startTime"] = to_timestamp(start_time)
+            kwargs["startTime"] = to_timestamp(start_time)  # type: ignore[no-untyped-call]
 
         if end_time:
-            kwargs["endTime"] = to_timestamp(end_time)
+            kwargs["endTime"] = to_timestamp(end_time)  # type: ignore[no-untyped-call]
 
         if filter_pattern:
             kwargs["filterPattern"] = filter_pattern
@@ -143,5 +143,5 @@ class CWLogPuller(ObservabilityPuller):
             if not next_token:
                 break
 
-    def load_events(self, event_ids: Union[List[Any], Dict]):
+    def load_events(self, event_ids: Union[List[Any], Dict]):  # type: ignore[no-untyped-def, type-arg]
         LOG.debug("Loading specific events are not supported via CloudWatch Log Group")

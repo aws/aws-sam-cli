@@ -14,7 +14,7 @@ class SwaggerParser:
     _BINARY_MEDIA_TYPES_EXTENSION_KEY = "x-amazon-apigateway-binary-media-types"  # pylint: disable=C0103
     _ANY_METHOD = "ANY"
 
-    def __init__(self, stack_path: str, swagger):
+    def __init__(self, stack_path: str, swagger):  # type: ignore[no-untyped-def]
         """
         Constructs an Swagger Parser object
 
@@ -24,7 +24,7 @@ class SwaggerParser:
         self.swagger = swagger or {}
         self.stack_path = stack_path
 
-    def get_binary_media_types(self):
+    def get_binary_media_types(self):  # type: ignore[no-untyped-def]
         """
         Get the list of Binary Media Types from Swagger
 
@@ -36,7 +36,7 @@ class SwaggerParser:
         """
         return self.swagger.get(self._BINARY_MEDIA_TYPES_EXTENSION_KEY) or []
 
-    def get_routes(self, event_type=Route.API):
+    def get_routes(self, event_type=Route.API):  # type: ignore[no-untyped-def]
         """
         Parses a swagger document and returns a list of APIs configured in the document.
 
@@ -74,7 +74,7 @@ class SwaggerParser:
         for full_path, path_config in paths_dict.items():
             for method, method_config in path_config.items():
 
-                function_name = self._get_integration_function_name(method_config)
+                function_name = self._get_integration_function_name(method_config)  # type: ignore[no-untyped-call]
                 if not function_name:
                     LOG.debug(
                         "Lambda function integration not found in Swagger document at path='%s' method='%s'",
@@ -86,7 +86,7 @@ class SwaggerParser:
                 if method.lower() == self._ANY_METHOD_EXTENSION_KEY:
                     # Convert to a more commonly used method notation
                     method = self._ANY_METHOD
-                payload_format_version = self._get_payload_format_version(method_config)
+                payload_format_version = self._get_payload_format_version(method_config)  # type: ignore[no-untyped-call]
                 route = Route(
                     function_name,
                     full_path,
@@ -99,7 +99,7 @@ class SwaggerParser:
                 result.append(route)
         return result
 
-    def _get_integration(self, method_config):
+    def _get_integration(self, method_config):  # type: ignore[no-untyped-def]
         """
         Get Integration defined in the method configuration.
         Integration configuration is defined under the special "x-amazon-apigateway-integration" key. We care only
@@ -123,14 +123,14 @@ class SwaggerParser:
         if (
             integration
             and isinstance(integration, dict)
-            and integration.get("type").lower() == IntegrationType.aws_proxy.value
+            and integration.get("type").lower() == IntegrationType.aws_proxy.value  # type: ignore[union-attr]
         ):
             # Integration must be "aws_proxy" otherwise we don't care about it
             return integration
 
         return None
 
-    def _get_integration_function_name(self, method_config):
+    def _get_integration_function_name(self, method_config):  # type: ignore[no-untyped-def]
         """
         Tries to parse the Lambda Function name from the Integration defined in the method configuration.
         Integration configuration is defined under the special "x-amazon-apigateway-integration" key. We care only
@@ -148,13 +148,13 @@ class SwaggerParser:
         string or None
             Lambda function name, if possible. None, if not.
         """
-        integration = self._get_integration(method_config)
+        integration = self._get_integration(method_config)  # type: ignore[no-untyped-call]
         if integration is None:
             return None
 
         return LambdaUri.get_function_name(integration.get("uri"))
 
-    def _get_payload_format_version(self, method_config):
+    def _get_payload_format_version(self, method_config):  # type: ignore[no-untyped-def]
         """
         Get the "payloadFormatVersion" from the Integration defined in the method configuration.
 
@@ -168,7 +168,7 @@ class SwaggerParser:
         string or None
             Payload format version, if exists. None, if not.
         """
-        integration = self._get_integration(method_config)
+        integration = self._get_integration(method_config)  # type: ignore[no-untyped-call]
         if integration is None:
             return None
 

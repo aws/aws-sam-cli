@@ -5,8 +5,8 @@ import itertools
 import os
 import pathlib
 
-import jmespath
-import yaml
+import jmespath  # type: ignore[import]
+import yaml  # type: ignore[import]
 from botocore.utils import set_value_from_jmespath
 
 from samcli.commands.exceptions import UserException
@@ -30,7 +30,7 @@ class TemplateFailedParsingException(UserException):
     pass
 
 
-def get_template_data(template_file):
+def get_template_data(template_file):  # type: ignore[no-untyped-def]
     """
     Read the template file, parse it as JSON/YAML and return the template as a dictionary.
 
@@ -45,16 +45,16 @@ def get_template_data(template_file):
     """
 
     if not pathlib.Path(template_file).exists():
-        raise TemplateNotFoundException("Template file not found at {}".format(template_file))
+        raise TemplateNotFoundException("Template file not found at {}".format(template_file))  # type: ignore[no-untyped-call]
 
     with open(template_file, "r", encoding="utf-8") as fp:
         try:
             return yaml_parse(fp.read())
         except (ValueError, yaml.YAMLError) as ex:
-            raise TemplateFailedParsingException("Failed to parse template: {}".format(str(ex))) from ex
+            raise TemplateFailedParsingException("Failed to parse template: {}".format(str(ex))) from ex  # type: ignore[no-untyped-call]
 
 
-def move_template(src_template_path, dest_template_path, template_dict):
+def move_template(src_template_path, dest_template_path, template_dict):  # type: ignore[no-untyped-def]
     """
     Move the SAM/CloudFormation template from ``src_template_path`` to ``dest_template_path``. For convenience, this
     method accepts a dictionary of template data ``template_dict`` that will be written to the destination instead of
@@ -87,16 +87,16 @@ def move_template(src_template_path, dest_template_path, template_dict):
 
     # Next up, we will be writing the template to a different location. Before doing so, we should
     # update any relative paths in the template to be relative to the new location.
-    modified_template = _update_relative_paths(template_dict, original_root, new_root)
+    modified_template = _update_relative_paths(template_dict, original_root, new_root)  # type: ignore[no-untyped-call]
 
     # if a stack only has image functions, the directory for that directory won't be created.
     # here we make sure the directory the destination template file to write to exists.
     os.makedirs(os.path.dirname(dest_template_path), exist_ok=True)
     with open(dest_template_path, "w") as fp:
-        fp.write(yaml_dump(modified_template))
+        fp.write(yaml_dump(modified_template))  # type: ignore[no-untyped-call]
 
 
-def _update_relative_paths(template_dict, original_root, new_root):
+def _update_relative_paths(template_dict, original_root, new_root):  # type: ignore[no-untyped-def]
     """
     SAM/CloudFormation template can contain certain properties whose value is a relative path to a local file/folder.
     This path is usually relative to the template's location. If the template is being moved from original location
@@ -139,7 +139,7 @@ def _update_relative_paths(template_dict, original_root, new_root):
         for path_prop_name in METADATA_WITH_LOCAL_PATHS[resource_type]:
             path = properties.get(path_prop_name)
 
-            updated_path = _resolve_relative_to(path, original_root, new_root)
+            updated_path = _resolve_relative_to(path, original_root, new_root)  # type: ignore[no-untyped-call]
             if not updated_path:
                 # This path does not need to get updated
                 continue
@@ -163,7 +163,7 @@ def _update_relative_paths(template_dict, original_root, new_root):
                 continue
 
             path = jmespath.search(path_prop_name, properties)
-            updated_path = _resolve_relative_to(path, original_root, new_root)
+            updated_path = _resolve_relative_to(path, original_root, new_root)  # type: ignore[no-untyped-call]
 
             if not updated_path:
                 # This path does not need to get updated
@@ -174,7 +174,7 @@ def _update_relative_paths(template_dict, original_root, new_root):
         metadata = resource.get("Metadata", {})
         if ASSET_PATH_METADATA_KEY in metadata:
             path = metadata.get(ASSET_PATH_METADATA_KEY, "")
-            updated_path = _resolve_relative_to(path, original_root, new_root)
+            updated_path = _resolve_relative_to(path, original_root, new_root)  # type: ignore[no-untyped-call]
             if not updated_path:
                 # This path does not need to get updated
                 continue
@@ -182,12 +182,12 @@ def _update_relative_paths(template_dict, original_root, new_root):
 
     # AWS::Includes can be anywhere within the template dictionary. Hence we need to recurse through the
     # dictionary in a separate method to find and update relative paths in there
-    template_dict = _update_aws_include_relative_path(template_dict, original_root, new_root)
+    template_dict = _update_aws_include_relative_path(template_dict, original_root, new_root)  # type: ignore[no-untyped-call]
 
     return template_dict
 
 
-def _update_aws_include_relative_path(template_dict, original_root, new_root):
+def _update_aws_include_relative_path(template_dict, original_root, new_root):  # type: ignore[no-untyped-def]
     """
     Update relative paths in "AWS::Include" directive. This directive can be present at any part of the template,
     and not just within resources.
@@ -197,7 +197,7 @@ def _update_aws_include_relative_path(template_dict, original_root, new_root):
         if key == "Fn::Transform":
             if isinstance(val, dict) and val.get("Name") == "AWS::Include":
                 path = val.get("Parameters", {}).get("Location", {})
-                updated_path = _resolve_relative_to(path, original_root, new_root)
+                updated_path = _resolve_relative_to(path, original_root, new_root)  # type: ignore[no-untyped-call]
                 if not updated_path:
                     # This path does not need to get updated
                     continue
@@ -206,16 +206,16 @@ def _update_aws_include_relative_path(template_dict, original_root, new_root):
 
         # Recurse through all dictionary values
         elif isinstance(val, dict):
-            _update_aws_include_relative_path(val, original_root, new_root)
+            _update_aws_include_relative_path(val, original_root, new_root)  # type: ignore[no-untyped-call]
         elif isinstance(val, list):
             for item in val:
                 if isinstance(item, dict):
-                    _update_aws_include_relative_path(item, original_root, new_root)
+                    _update_aws_include_relative_path(item, original_root, new_root)  # type: ignore[no-untyped-call]
 
     return template_dict
 
 
-def _resolve_relative_to(path, original_root, new_root):
+def _resolve_relative_to(path, original_root, new_root):  # type: ignore[no-untyped-def]
     """
     If the given ``path`` is a relative path, then assume it is relative to ``original_root``. This method will
     update the path to be resolve it relative to ``new_root`` and return.
@@ -253,7 +253,7 @@ def _resolve_relative_to(path, original_root, new_root):
     )  # Resolve the original path with respect to ``new_root``
 
 
-def get_template_parameters(template_file):
+def get_template_parameters(template_file):  # type: ignore[no-untyped-def]
     """
     Get Parameters from a template file.
 
@@ -266,12 +266,12 @@ def get_template_parameters(template_file):
     -------
     Template Parameters as a dictionary
     """
-    template_dict = get_template_data(template_file=template_file)
-    ResourceMetadataNormalizer.normalize(template_dict, True)
+    template_dict = get_template_data(template_file=template_file)  # type: ignore[no-untyped-call]
+    ResourceMetadataNormalizer.normalize(template_dict, True)  # type: ignore[no-untyped-call]
     return template_dict.get("Parameters", dict())
 
 
-def get_template_artifacts_format(template_file):
+def get_template_artifacts_format(template_file):  # type: ignore[no-untyped-def]
     """
     Get a list of template artifact formats based on PackageType wherever the underlying resource
     have the actual need to be packaged.
@@ -279,10 +279,10 @@ def get_template_artifacts_format(template_file):
     :return: list of artifact formats
     """
 
-    template_dict = get_template_data(template_file=template_file)
+    template_dict = get_template_data(template_file=template_file)  # type: ignore[no-untyped-call]
 
     # Get a list of Resources where the artifacts format matter for packaging.
-    packageable_resources = get_packageable_resource_paths()
+    packageable_resources = get_packageable_resource_paths()  # type: ignore[no-untyped-call]
 
     artifacts = []
     for _, resource in template_dict.get("Resources", {}).items():
@@ -299,7 +299,7 @@ def get_template_artifacts_format(template_file):
     return artifacts
 
 
-def get_template_function_resource_ids(template_file, artifact):
+def get_template_function_resource_ids(template_file, artifact):  # type: ignore[no-untyped-def]
     """
     Get a list of function logical ids from template file.
     Function resource types include
@@ -310,7 +310,7 @@ def get_template_function_resource_ids(template_file, artifact):
     :return: list of artifact formats
     """
 
-    template_dict = get_template_data(template_file=template_file)
+    template_dict = get_template_data(template_file=template_file)  # type: ignore[no-untyped-call]
     _function_resource_ids = []
     for resource_id, resource in template_dict.get("Resources", {}).items():
         if resource.get("Properties", {}).get("PackageType", ZIP) == artifact and resource.get("Type") in [

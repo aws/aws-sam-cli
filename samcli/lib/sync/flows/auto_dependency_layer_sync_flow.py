@@ -85,7 +85,7 @@ class AutoDependencyLayerSyncFlow(AbstractLayerSyncFlow):
             self._get_compatible_runtimes()[0],
         )
         zip_file_path = os.path.join(tempfile.gettempdir(), "data-" + uuid.uuid4().hex)
-        self._zip_file = make_zip(zip_file_path, self._artifact_folder)
+        self._zip_file = make_zip(zip_file_path, self._artifact_folder)  # type: ignore[no-untyped-call]
         self._local_sha = file_checksum(cast(str, self._zip_file), hashlib.sha256())
 
     def _get_dependent_functions(self) -> List[Function]:
@@ -95,7 +95,7 @@ class AutoDependencyLayerSyncFlow(AbstractLayerSyncFlow):
     def _get_compatible_runtimes(self) -> List[str]:
         function = SamFunctionProvider(cast(List[Stack], self._stacks)).get(self._function_identifier)
         if not function or not function.runtime:
-            raise InvalidRuntimeDefinitionForFunction(self._function_identifier)
+            raise InvalidRuntimeDefinitionForFunction(self._function_identifier)  # type: ignore[no-untyped-call]
         return [function.runtime]
 
 

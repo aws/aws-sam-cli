@@ -54,12 +54,12 @@ def validate_architecture_runtime(function: "Function") -> None:
     runtime_architectures = SUPPORTED_RUNTIMES.get(cast(str, function.runtime), [])
 
     if function.architectures and function.architectures[0] not in runtime_architectures:
-        raise UnsupportedRuntimeArchitectureError(
+        raise UnsupportedRuntimeArchitectureError(  # type: ignore[no-untyped-call]
             f"Runtime {function.runtime} is not supported on '{function.architectures[0]}' architecture"
         )
 
 
-def has_runtime_multi_arch_image(runtime: str):
+def has_runtime_multi_arch_image(runtime: str):  # type: ignore[no-untyped-def]
     return len(SUPPORTED_RUNTIMES.get(runtime, [])) > 1
 
 
@@ -84,4 +84,4 @@ def validate_architecture(architecture: str) -> None:
         If the architecture is unknown
     """
     if architecture not in [ARM64, X86_64]:
-        raise InvalidArchitecture(f"Architecture '{architecture}' is invalid. Valid values are {ARM64} or {X86_64}")
+        raise InvalidArchitecture(f"Architecture '{architecture}' is invalid. Valid values are {ARM64} or {X86_64}")  # type: ignore[no-untyped-call]

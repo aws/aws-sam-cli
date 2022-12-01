@@ -111,7 +111,7 @@ class SamLayerProvider(SamBaseProvider):
         layer_logical_id: str,
         codeuri: str,
         compatible_runtimes: Optional[List[str]],
-        metadata: Optional[Dict],
+        metadata: Optional[Dict],  # type: ignore[type-arg]
         compatible_architectures: Optional[List[str]],
     ) -> LayerVersion:
         """

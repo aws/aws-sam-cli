@@ -21,7 +21,7 @@ LOG = logging.getLogger(__name__)
 
 class LambdaDebugSettings:
     @staticmethod
-    def get_debug_settings(debug_port, debug_args_list, _container_env_vars, runtime, options):
+    def get_debug_settings(debug_port, debug_args_list, _container_env_vars, runtime, options):  # type: ignore[no-untyped-def]
         """
         Get Debug settings based on the Runtime
 
@@ -175,7 +175,7 @@ class LambdaDebugSettings:
             ),
         }
         try:
-            return entrypoint_mapping[runtime]()
+            return entrypoint_mapping[runtime]()  # type: ignore[no-untyped-call]
         except KeyError as ex:
             if not runtime:
                 LOG.debug("Passing entrypoint as specified in template")

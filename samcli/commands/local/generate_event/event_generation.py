@@ -25,7 +25,7 @@ class ServiceCommand(click.MultiCommand):
         List all of the subcommands
     """
 
-    def __init__(self, events_lib: events.Events, *args, **kwargs):
+    def __init__(self, events_lib: events.Events, *args, **kwargs):  # type: ignore[no-untyped-def]
         """
         Constructor for the ServiceCommand class
 
@@ -46,7 +46,7 @@ class ServiceCommand(click.MultiCommand):
         self.events_lib = events_lib
         self.all_cmds = self.events_lib.event_mapping
 
-    def get_command(self, ctx, cmd_name):
+    def get_command(self, ctx, cmd_name):  # type: ignore[no-untyped-def]
         """
         gets the subcommands under the service name
 
@@ -66,7 +66,7 @@ class ServiceCommand(click.MultiCommand):
             return None
         return EventTypeSubCommand(self.events_lib, cmd_name, self.all_cmds[cmd_name])
 
-    def list_commands(self, ctx):
+    def list_commands(self, ctx):  # type: ignore[no-untyped-def]
         """
         lists the service commands available
 
@@ -97,7 +97,7 @@ class EventTypeSubCommand(click.MultiCommand):
 
     TAGS = "tags"
 
-    def __init__(self, events_lib: events.Events, top_level_cmd_name, subcmd_definition, *args, **kwargs):
+    def __init__(self, events_lib: events.Events, top_level_cmd_name, subcmd_definition, *args, **kwargs):  # type: ignore[no-untyped-def]
         """
         constructor for the EventTypeSubCommand class
 
@@ -120,7 +120,7 @@ class EventTypeSubCommand(click.MultiCommand):
         self.subcmd_definition = subcmd_definition
         self.events_lib = events_lib
 
-    def get_command(self, ctx, cmd_name):
+    def get_command(self, ctx, cmd_name):  # type: ignore[no-untyped-def]
 
         """
         gets the Click Commands underneath a service name
@@ -157,14 +157,14 @@ class EventTypeSubCommand(click.MultiCommand):
         cmd = click.Command(
             name=cmd_name,
             short_help=self.subcmd_definition[cmd_name]["help"],
-            params=parameters,
+            params=parameters,  # type: ignore[arg-type]
             callback=command_callback,
         )
 
-        cmd = configuration_option(provider=TomlProvider(section="parameters"))(debug_option(cmd))
+        cmd = configuration_option(provider=TomlProvider(section="parameters"))(debug_option(cmd))  # type: ignore[no-untyped-call, no-untyped-call, no-untyped-call]
         return cmd
 
-    def list_commands(self, ctx):
+    def list_commands(self, ctx):  # type: ignore[no-untyped-def]
         """
         lists the commands underneath a particular event
 
@@ -179,9 +179,9 @@ class EventTypeSubCommand(click.MultiCommand):
         return sorted(self.subcmd_definition.keys())
 
     @staticmethod
-    @track_command
-    @check_newer_version
-    def cmd_implementation(
+    @track_command  # type: ignore[misc]
+    @check_newer_version  # type: ignore[misc]
+    def cmd_implementation(  # type: ignore[no-untyped-def]
         events_lib: events.Events, top_level_cmd_name: str, subcmd_name: str, *args, **kwargs
     ) -> str:
         """
@@ -215,7 +215,7 @@ class GenerateEventCommand(ServiceCommand):
     Class that brings ServiceCommand and EventTypeSubCommand into one for easy execution
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):  # type: ignore[no-untyped-def]
         """
         Constructor for GenerateEventCommand class that brings together
         ServiceCommand and EventTypeSubCommand into one class
@@ -227,4 +227,4 @@ class GenerateEventCommand(ServiceCommand):
         kwargs: dict
             commands, subcommands, and parameters for generate-event
         """
-        super().__init__(events.Events(), *args, **kwargs)
+        super().__init__(events.Events(), *args, **kwargs)  # type: ignore[no-untyped-call]

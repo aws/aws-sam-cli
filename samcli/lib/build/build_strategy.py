@@ -125,8 +125,8 @@ class DefaultBuildStrategy(BuildStrategy):
         self,
         build_graph: BuildGraph,
         build_dir: str,
-        build_function: Callable[[str, str, str, str, str, Optional[str], str, dict, dict, Optional[str], bool], str],
-        build_layer: Callable[[str, str, str, List[str], str, str, dict, Optional[str], bool, Optional[Dict]], str],
+        build_function: Callable[[str, str, str, str, str, Optional[str], str, dict, dict, Optional[str], bool], str],  # type: ignore[type-arg]
+        build_layer: Callable[[str, str, str, List[str], str, str, dict, Optional[str], bool, Optional[Dict]], str],  # type: ignore[type-arg, type-arg]
         cached: bool = False,
     ) -> None:
         super().__init__(build_graph)
@@ -191,7 +191,7 @@ class DefaultBuildStrategy(BuildStrategy):
                         # artifacts directory will be created by the builder
                         artifacts_dir = function.get_build_dir(self._build_dir)
                         LOG.debug("Copying artifacts from %s to %s", single_build_dir, artifacts_dir)
-                        osutils.copytree(single_build_dir, artifacts_dir)
+                        osutils.copytree(single_build_dir, artifacts_dir)  # type: ignore[no-untyped-call]
                         function_build_results[function.full_path] = artifacts_dir
         elif build_definition.packagetype == IMAGE:
             for function in build_definition.functions:
@@ -287,7 +287,7 @@ class CachedBuildStrategy(BuildStrategy):
             build_definition.source_hash = source_hash
             # Since all the build contents are same for a build definition, just copy any one of them into the cache
             for _, value in build_result.items():
-                osutils.copytree(value, str(cache_function_dir))
+                osutils.copytree(value, str(cache_function_dir))  # type: ignore[no-untyped-call]
                 break
         else:
             LOG.info(
@@ -316,7 +316,7 @@ class CachedBuildStrategy(BuildStrategy):
                     # artifacts directory will be created by the builder
                     artifacts_dir = function.get_build_dir(self._build_dir)
                     LOG.debug("Copying artifacts from %s to %s", cache_function_dir, artifacts_dir)
-                    osutils.copytree(str(cache_function_dir), artifacts_dir)
+                    osutils.copytree(str(cache_function_dir), artifacts_dir)  # type: ignore[no-untyped-call]
                     function_build_results[function.full_path] = artifacts_dir
 
         return function_build_results
@@ -344,7 +344,7 @@ class CachedBuildStrategy(BuildStrategy):
             layer_definition.source_hash = source_hash
             # Since all the build contents are same for a build definition, just copy any one of them into the cache
             for _, value in build_result.items():
-                osutils.copytree(value, str(cache_function_dir))
+                osutils.copytree(value, str(cache_function_dir))  # type: ignore[no-untyped-call]
                 break
         else:
             LOG.info(
@@ -359,7 +359,7 @@ class CachedBuildStrategy(BuildStrategy):
                 osutils.create_symlink_or_copy(str(cache_function_dir), artifacts_dir)
             else:
                 LOG.debug("Copying artifacts from %s to %s", cache_function_dir, artifacts_dir)
-                osutils.copytree(str(cache_function_dir), artifacts_dir)
+                osutils.copytree(str(cache_function_dir), artifacts_dir)  # type: ignore[no-untyped-call]
             layer_build_result[layer_definition.layer.full_path] = artifacts_dir
 
         return layer_build_result
@@ -409,10 +409,10 @@ class ParallelBuildStrategy(BuildStrategy):
         if not build_definitions:
             return dict()
 
-        async_context = AsyncContext()
+        async_context = AsyncContext()  # type: ignore[no-untyped-call]
         for build_definition in build_definitions:
-            async_context.add_async_task(build_method, build_definition)
-        async_results = async_context.run_async()
+            async_context.add_async_task(build_method, build_definition)  # type: ignore[no-untyped-call]
+        async_results = async_context.run_async()  # type: ignore[no-untyped-call]
 
         build_result: Dict[str, str] = dict()
         for async_result in async_results:

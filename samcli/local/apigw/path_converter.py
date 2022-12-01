@@ -33,7 +33,7 @@ FLASK_TO_APIGW_REGEX = re.compile(FLASK_CAPTURE_ALL_PATH_REGEX)
 
 class PathConverter:
     @staticmethod
-    def convert_path_to_flask(path):
+    def convert_path_to_flask(path):  # type: ignore[no-untyped-def]
         """
         Converts a Path from an Api Gateway defined path to one that is accepted by Flask
 
@@ -51,7 +51,7 @@ class PathConverter:
         return proxy_sub_path.replace(LEFT_BRACKET, LEFT_ANGLE_BRACKET).replace(RIGHT_BRACKET, RIGHT_ANGLE_BRACKET)
 
     @staticmethod
-    def convert_path_to_api_gateway(path):
+    def convert_path_to_api_gateway(path):  # type: ignore[no-untyped-def]
         """
         Converts a Path from a Flask defined path to one that is accepted by Api Gateway
 

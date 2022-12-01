@@ -8,7 +8,7 @@ from contextlib import contextmanager
 
 
 @contextmanager
-def create_tarball(tar_paths, tar_filter=None, mode="w"):
+def create_tarball(tar_paths, tar_filter=None, mode="w"):  # type: ignore[no-untyped-def]
     """
     Context Manger that creates the tarball of the Docker Context to use for building the image
 

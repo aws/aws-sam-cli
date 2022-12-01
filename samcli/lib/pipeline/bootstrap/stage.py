@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 import boto3
 from botocore.exceptions import ClientError
 import click
-import requests
+import requests  # type: ignore[import]
 
 from OpenSSL import SSL, crypto  # type: ignore
 from samcli.commands.pipeline.bootstrap.guided_context import OPEN_ID_CONNECT, GITHUB_ACTIONS, GITLAB, BITBUCKET
@@ -139,7 +139,7 @@ class Stage:
         self.image_repository: ECRImageRepository = ECRImageRepository(
             arn=image_repository_arn, comment="ECR image repository"
         )
-        self.color = Colored()
+        self.color = Colored()  # type: ignore[no-untyped-call]
 
         self.oidc_provider: OidcProvider = OidcProvider(
             client_id=oidc_client_id,
@@ -265,7 +265,7 @@ class Stage:
 
         if self.did_user_provide_all_required_resources():
             click.secho(
-                self.color.yellow(
+                self.color.yellow(  # type: ignore[no-untyped-call]
                     f"\nAll required resources for the {self.name} configuration exist, skipping creation."
                 )
             )
@@ -279,7 +279,7 @@ class Stage:
         if confirm_changeset:
             confirmed: bool = click.confirm("Should we proceed with the creation?")
             if not confirmed:
-                click.secho(self.color.red("Canceling pipeline bootstrap creation."))
+                click.secho(self.color.red("Canceling pipeline bootstrap creation."))  # type: ignore[no-untyped-call]
                 return False
 
         stack_name = self._get_stack_name()
@@ -382,11 +382,11 @@ class Stage:
         ValueError: if the artifacts_bucket or ImageRepository ARNs are invalid
         """
 
-        samconfig: SamConfig = SamConfig(config_dir=config_dir, filename=filename)
+        samconfig: SamConfig = SamConfig(config_dir=config_dir, filename=filename)  # type: ignore[no-untyped-call]
 
         if self.pipeline_user.arn:
-            samconfig.put(cmd_names=cmd_names, section="parameters", key=PIPELINE_USER, value=self.pipeline_user.arn)
-            samconfig.put(cmd_names=cmd_names, section="parameters", key=PERMISSIONS_PROVIDER, value="AWS IAM")
+            samconfig.put(cmd_names=cmd_names, section="parameters", key=PIPELINE_USER, value=self.pipeline_user.arn)  # type: ignore[no-untyped-call]
+            samconfig.put(cmd_names=cmd_names, section="parameters", key=PERMISSIONS_PROVIDER, value="AWS IAM")  # type: ignore[no-untyped-call]
         if self.use_oidc_provider and self.pipeline_oidc_provider:
             self.pipeline_oidc_provider.save_values(cmd_names=cmd_names, section="parameters", samconfig=samconfig)
 
@@ -413,7 +413,7 @@ class Stage:
 
         for key, value in environment_specific_configs.items():
             if value is not None:
-                samconfig.put(
+                samconfig.put(  # type: ignore[no-untyped-call]
                     cmd_names=cmd_names,
                     section="parameters",
                     key=key,
@@ -421,7 +421,7 @@ class Stage:
                     env=self.name,
                 )
 
-        samconfig.flush()
+        samconfig.flush()  # type: ignore[no-untyped-call]
 
     def save_config_safe(self, config_dir: str, filename: str, cmd_names: List[str]) -> None:
         """
@@ -458,14 +458,14 @@ class Stage:
                 created_resources.append(resource)
 
         if created_resources:
-            click.secho(self.color.green("The following resources were created in your account:"))
+            click.secho(self.color.green("The following resources were created in your account:"))  # type: ignore[no-untyped-call]
             for resource in created_resources:
-                click.secho(self.color.green(f"\t- {resource.comment}"))
+                click.secho(self.color.green(f"\t- {resource.comment}"))  # type: ignore[no-untyped-call]
 
         if not self.pipeline_user.is_user_provided and not self.use_oidc_provider:
-            click.secho(self.color.green("Pipeline IAM user credential:"))
-            click.secho(self.color.green(f"\tAWS_ACCESS_KEY_ID: {self.pipeline_user.access_key_id}"))
-            click.secho(self.color.green(f"\tAWS_SECRET_ACCESS_KEY: {self.pipeline_user.secret_access_key}"))
+            click.secho(self.color.green("Pipeline IAM user credential:"))  # type: ignore[no-untyped-call]
+            click.secho(self.color.green(f"\tAWS_ACCESS_KEY_ID: {self.pipeline_user.access_key_id}"))  # type: ignore[no-untyped-call]
+            click.secho(self.color.green(f"\tAWS_SECRET_ACCESS_KEY: {self.pipeline_user.secret_access_key}"))  # type: ignore[no-untyped-call]
 
     def _get_stack_name(self) -> str:
         sanitized_stage_configuration_name: str = re.sub("[^0-9a-zA-Z]+", "-", self.name)

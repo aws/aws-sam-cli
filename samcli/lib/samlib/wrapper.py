@@ -11,27 +11,27 @@ import copy
 import functools
 from typing import Dict
 
-from samtranslator.model import ResourceTypeResolver, sam_resources
+from samtranslator.model import ResourceTypeResolver, sam_resources  # type: ignore[import]
 
 # SAM Translator Library Internal module imports #
-from samtranslator.model.exceptions import (
+from samtranslator.model.exceptions import (  # type: ignore[import]
     InvalidDocumentException,
     InvalidTemplateException,
     InvalidResourceException,
     InvalidEventException,
 )
-from samtranslator.model.types import is_str
-from samtranslator.plugins import LifeCycleEvents
-from samtranslator.sdk.resource import SamResource, SamResourceType
-from samtranslator.translator.translator import prepare_plugins
-from samtranslator.validator.validator import SamTemplateValidator
+from samtranslator.model.types import is_str  # type: ignore[import]
+from samtranslator.plugins import LifeCycleEvents  # type: ignore[import]
+from samtranslator.sdk.resource import SamResource, SamResourceType  # type: ignore[import]
+from samtranslator.translator.translator import prepare_plugins  # type: ignore[import]
+from samtranslator.validator.validator import SamTemplateValidator  # type: ignore[import]
 
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from .local_uri_plugin import SupportLocalUriPlugin
 
 
 class SamTranslatorWrapper:
-    def __init__(self, sam_template, parameter_values=None, offline_fallback=True):
+    def __init__(self, sam_template, parameter_values=None, offline_fallback=True):  # type: ignore[no-untyped-def]
         """
 
         Parameters
@@ -43,7 +43,7 @@ class SamTranslatorWrapper:
         offline_fallback bool:
             Set it to True to make the translator work entirely offline, if internet is not available
         """
-        self.local_uri_plugin = SupportLocalUriPlugin()
+        self.local_uri_plugin = SupportLocalUriPlugin()  # type: ignore[no-untyped-call]
         self.parameter_values = parameter_values
         self.extra_plugins = [
             # Extra plugin specific to the SAM CLI that will support local paths for CodeUri & DefinitionUri
@@ -53,7 +53,7 @@ class SamTranslatorWrapper:
         self._sam_template = sam_template
         self._offline_fallback = offline_fallback
 
-    def run_plugins(self, convert_local_uris=True):
+    def run_plugins(self, convert_local_uris=True):  # type: ignore[no-untyped-def]
         template_copy = self.template
 
         additional_plugins = []
@@ -70,7 +70,7 @@ class SamTranslatorWrapper:
         self._patch_language_extensions()
 
         try:
-            parser.parse(template_copy, all_plugins)  # parse() will run all configured plugins
+            parser.parse(template_copy, all_plugins)  # type: ignore[no-untyped-call] # parse() will run all configured plugins
         except InvalidDocumentException as e:
             raise InvalidSamDocumentException(
                 functools.reduce(lambda message, error: message + " " + str(error), e.causes, str(e))
@@ -79,7 +79,7 @@ class SamTranslatorWrapper:
         return template_copy
 
     @property
-    def template(self):
+    def template(self):  # type: ignore[no-untyped-def]
         return copy.deepcopy(self._sam_template)
 
     def _patch_language_extensions(self) -> None:
@@ -90,7 +90,7 @@ class SamTranslatorWrapper:
         template_copy = self.template
         if self._check_using_language_extension(template_copy):
 
-            def patched_func(self):
+            def patched_func(self):  # type: ignore[no-untyped-def]
                 if self.condition:
                     if not is_str()(self.condition, should_raise=False):
                         raise InvalidDocumentException(
@@ -101,7 +101,7 @@ class SamTranslatorWrapper:
             SamResource.valid = patched_func
 
     @staticmethod
-    def _check_using_language_extension(template: Dict) -> bool:
+    def _check_using_language_extension(template: Dict) -> bool:  # type: ignore[type-arg]
         """
         Check if language extensions are set in the template's Transform
         :param template: template to check
@@ -125,7 +125,7 @@ class _SamParserReimplemented:
     Re-implementation (almost copy) of Parser class from SAM Translator
     """
 
-    def parse(self, sam_template, sam_plugins):
+    def parse(self, sam_template, sam_plugins):  # type: ignore[no-untyped-def]
         self._validate(sam_template)
         sam_plugins.act(LifeCycleEvents.before_transform_template, sam_template)
         macro_resolver = ResourceTypeResolver(sam_resources)
@@ -144,7 +144,7 @@ class _SamParserReimplemented:
             raise InvalidDocumentException(document_errors)
 
     @staticmethod
-    def _validate(sam_template: Dict) -> None:
+    def _validate(sam_template: Dict) -> None:  # type: ignore[type-arg]
         """Validates the template and parameter values and raises exceptions if there's an issue
 
         :param dict sam_template: SAM template

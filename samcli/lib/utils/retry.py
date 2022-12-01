@@ -6,7 +6,7 @@ import time
 from functools import wraps
 
 
-def retry(exc, attempts=3, delay=0.05, exc_raise=Exception, exc_raise_msg=""):
+def retry(exc, attempts=3, delay=0.05, exc_raise=Exception, exc_raise_msg=""):  # type: ignore[no-untyped-def]
     """
     Retry decorator which defaults to 3 attempts based on exponential backoff
     and a delay of 50ms.
@@ -20,9 +20,9 @@ def retry(exc, attempts=3, delay=0.05, exc_raise=Exception, exc_raise_msg=""):
     :return:
     """
 
-    def retry_wrapper(func):
+    def retry_wrapper(func):  # type: ignore[no-untyped-def]
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args, **kwargs):  # type: ignore[no-untyped-def]
             remaining_attempts = attempts
             retry_attempt = 1
             while remaining_attempts >= 1:

@@ -27,31 +27,31 @@ class AbstractStackBuilder(ABC):
     and generating SAM template
     """
 
-    _template_dict: Dict
+    _template_dict: Dict  # type: ignore[type-arg]
 
     def __init__(self, description: str):
         self._template_dict = deepcopy(DEFAULT_TEMPLATE_BEGINNER)
         self._template_dict["Description"] = description
 
-    def add_metadata(self, key: str, value: Union[str, Dict]) -> None:
+    def add_metadata(self, key: str, value: Union[str, Dict]) -> None:  # type: ignore[type-arg]
         if METADATA_FIELD not in self._template_dict:
             self._template_dict[METADATA_FIELD] = {}
-        metadata = cast(Dict, self._template_dict.get(METADATA_FIELD))
+        metadata = cast(Dict, self._template_dict.get(METADATA_FIELD))  # type: ignore[type-arg]
         metadata["key"] = value
 
-    def add_resource(self, resource_name: str, resource_dict: Dict) -> None:
+    def add_resource(self, resource_name: str, resource_dict: Dict) -> None:  # type: ignore[type-arg]
         if RESOURCES_FIELD not in self._template_dict:
             self._template_dict[RESOURCES_FIELD] = {}
-        resources = cast(Dict, self._template_dict.get(RESOURCES_FIELD))
+        resources = cast(Dict, self._template_dict.get(RESOURCES_FIELD))  # type: ignore[type-arg]
         resources[resource_name] = resource_dict
 
-    def add_output(self, output_name: str, output_value: Union[Dict, str]) -> None:
+    def add_output(self, output_name: str, output_value: Union[Dict, str]) -> None:  # type: ignore[type-arg]
         if OUTPUTS_FIELD not in self._template_dict:
             self._template_dict[OUTPUTS_FIELD] = {}
-        outputs = cast(Dict, self._template_dict.get(OUTPUTS_FIELD))
+        outputs = cast(Dict, self._template_dict.get(OUTPUTS_FIELD))  # type: ignore[type-arg]
         outputs[output_name] = {"Value": output_value}
 
-    def build_as_dict(self) -> Dict:
+    def build_as_dict(self) -> Dict:  # type: ignore[type-arg]
         return deepcopy(self._template_dict)
 
     def build(self) -> str:

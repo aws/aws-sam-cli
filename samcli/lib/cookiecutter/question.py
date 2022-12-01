@@ -63,7 +63,7 @@ class Question(Promptable):
         self,
         key: str,
         text: str,
-        default: Optional[Union[str, Dict]] = None,
+        default: Optional[Union[str, Dict]] = None,  # type: ignore[type-arg]
         is_required: Optional[bool] = None,
         allow_autofill: Optional[bool] = None,
         next_question_map: Optional[Dict[str, str]] = None,
@@ -104,7 +104,7 @@ class Question(Promptable):
     def default_next_question_key(self) -> Optional[str]:
         return self._default_next_question_key
 
-    def ask(self, context: Optional[Dict] = None) -> Any:
+    def ask(self, context: Optional[Dict] = None) -> Any:  # type: ignore[type-arg]
         """
         prompt the user this question
 
@@ -142,7 +142,7 @@ class Question(Promptable):
     def set_default_next_question_key(self, next_question_key: str) -> None:
         self._default_next_question_key = next_question_key
 
-    def _resolve_key_path(self, key_path: List, context: Dict) -> List[str]:
+    def _resolve_key_path(self, key_path: List, context: Dict) -> List[str]:  # type: ignore[type-arg, type-arg]
         """
         key_path element is a list of str and Dict.
         When the element is a dict, in the form of { "valueOf": question_key },
@@ -177,7 +177,7 @@ class Question(Promptable):
                 raise ValueError(f'Invalid value "{unresolved_key}" in key path')
         return resolved_key_path
 
-    def _resolve_value_from_expression(self, expression: Any, context: Optional[Dict] = None) -> Optional[Any]:
+    def _resolve_value_from_expression(self, expression: Any, context: Optional[Dict] = None) -> Optional[Any]:  # type: ignore[type-arg]
         """
         a question may have a value provided directly as string or number value
         or indirectly from cookiecutter context using a key path
@@ -212,13 +212,13 @@ class Question(Promptable):
             return context.get(str(self._resolve_key_path(unresolved_key_path, context)))
         return expression
 
-    def _resolve_text(self, context: Optional[Dict] = None) -> str:
+    def _resolve_text(self, context: Optional[Dict] = None) -> str:  # type: ignore[type-arg]
         resolved_text = self._resolve_value_from_expression(self._text, context)
         if resolved_text is None:
             raise ValueError(f"Cannot resolve value from expression: {self._text}")
         return str(resolved_text)
 
-    def _resolve_default_answer(self, context: Optional[Dict] = None) -> Optional[Any]:
+    def _resolve_default_answer(self, context: Optional[Dict] = None) -> Optional[Any]:  # type: ignore[type-arg]
         return self._resolve_value_from_expression(self._default_answer, context)
 
 
@@ -277,7 +277,7 @@ class QuestionFactory:
     }
 
     @staticmethod
-    def create_question_from_json(question_json: Dict) -> Question:
+    def create_question_from_json(question_json: Dict) -> Question:  # type: ignore[type-arg]
         key = question_json["key"]
         text = question_json["question"]
         options = question_json.get("options")

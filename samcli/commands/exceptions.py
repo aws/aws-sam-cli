@@ -19,7 +19,7 @@ class UserException(click.ClickException):
 
     exit_code = 1
 
-    def __init__(self, message, wrapped_from=None):
+    def __init__(self, message, wrapped_from=None):  # type: ignore[no-untyped-def]
         self.wrapped_from = wrapped_from
 
         click.ClickException.__init__(self, message)

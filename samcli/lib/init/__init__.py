@@ -7,8 +7,8 @@ import platform
 
 from pathlib import Path
 
-from cookiecutter.exceptions import CookiecutterException, RepositoryNotFound, UnknownRepoType
-from cookiecutter.main import cookiecutter
+from cookiecutter.exceptions import CookiecutterException, RepositoryNotFound, UnknownRepoType  # type: ignore[import]
+from cookiecutter.main import cookiecutter  # type: ignore[import]
 
 from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING, is_custom_runtime
 from samcli.lib.init.template_modifiers.xray_tracing_template_modifier import XRayTracingTemplateModifier
@@ -20,7 +20,7 @@ from .arbitrary_project import generate_non_cookiecutter_project
 LOG = logging.getLogger(__name__)
 
 
-def generate_project(
+def generate_project(  # type: ignore[no-untyped-def]
     location=None,
     package_type=None,
     runtime=None,
@@ -68,16 +68,16 @@ def generate_project(
     """
     template = None
 
-    if runtime and not is_custom_runtime(runtime) and package_type == ZIP:
+    if runtime and not is_custom_runtime(runtime) and package_type == ZIP:  # type: ignore[no-untyped-call]
         for mapping in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values()))):
-            if runtime in mapping["runtimes"] or any([r.startswith(runtime) for r in mapping["runtimes"]]):
+            if runtime in mapping["runtimes"] or any([r.startswith(runtime) for r in mapping["runtimes"]]):  # type: ignore[attr-defined, operator]
                 if not dependency_manager or dependency_manager == mapping["dependency_manager"]:
                     template = mapping["init_location"]
                     break
 
         if not template:
             msg = "Lambda Runtime {} does not support dependency manager: {}".format(runtime, dependency_manager)
-            raise GenerateProjectFailedError(project=name, provider_error=msg)
+            raise GenerateProjectFailedError(project=name, provider_error=msg)  # type: ignore[no-untyped-call]
 
     params = {"template": location if location else template, "output_dir": output_dir, "no_input": no_input}
 
@@ -109,12 +109,12 @@ def generate_project(
             "it as a cookiecutter template"
         )
         project_output_dir = str(Path(output_dir, name)) if name else output_dir
-        generate_non_cookiecutter_project(location=params["template"], output_dir=project_output_dir)
+        generate_non_cookiecutter_project(location=params["template"], output_dir=project_output_dir)  # type: ignore[no-untyped-call]
 
     except UnknownRepoType as e:
-        raise InvalidLocationError(template=params["template"]) from e
+        raise InvalidLocationError(template=params["template"]) from e  # type: ignore[no-untyped-call]
     except CookiecutterException as e:
-        raise GenerateProjectFailedError(project=name, provider_error=e) from e
+        raise GenerateProjectFailedError(project=name, provider_error=e) from e  # type: ignore[no-untyped-call]
 
     except TypeError as ex:
         LOG.debug("Error from cookiecutter: %s", ex)
@@ -125,5 +125,5 @@ def generate_project(
 def _apply_tracing(tracing: bool, output_dir: str, name: str) -> None:
     if tracing:
         template_file_path = f"{output_dir}/{name}/template.yaml"
-        template_modifier = XRayTracingTemplateModifier(template_file_path)
-        template_modifier.modify_template()
+        template_modifier = XRayTracingTemplateModifier(template_file_path)  # type: ignore[no-untyped-call]
+        template_modifier.modify_template()  # type: ignore[no-untyped-call]

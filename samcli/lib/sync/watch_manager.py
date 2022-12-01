@@ -82,11 +82,11 @@ class WatchManager:
         self._sync_flow_executor = ContinuousSyncFlowExecutor()
         self._executor_thread = None
 
-        self._observer = HandlerObserver()
+        self._observer = HandlerObserver()  # type: ignore[no-untyped-call]
         self._trigger_factory = None
 
         self._waiting_infra_sync = False
-        self._color = Colored()
+        self._color = Colored()  # type: ignore[no-untyped-call]
 
     def queue_infra_sync(self) -> None:
         """Queue up an infra structure sync.
@@ -94,7 +94,7 @@ class WatchManager:
         """
         if self._skip_infra_syncs:
             LOG.info(
-                self._color.yellow(
+                self._color.yellow(  # type: ignore[no-untyped-call]
                     "You have enabled the --code flag, which limits sam sync updates to code changes only. To do a "
                     "complete infrastructure and code sync, remove the --code flag."
                 )
@@ -125,7 +125,7 @@ class WatchManager:
                 trigger = self._trigger_factory.create_trigger(resource_id, self._on_code_change_wrapper(resource_id))
             except (MissingCodeUri, MissingLocalDefinition):
                 LOG.warning(
-                    self._color.yellow("CodeTrigger not created as CodeUri or DefinitionUri is missing for %s."),
+                    self._color.yellow("CodeTrigger not created as CodeUri or DefinitionUri is missing for %s."),  # type: ignore[no-untyped-call]
                     str(resource_id),
                 )
                 continue
@@ -141,18 +141,18 @@ class WatchManager:
             template = stack.location
             template_trigger = TemplateTrigger(template, stack.name, lambda _=None: self.queue_infra_sync())
             try:
-                template_trigger.validate_template()
+                template_trigger.validate_template()  # type: ignore[no-untyped-call]
             except InvalidTemplateFile:
-                LOG.warning(self._color.yellow("Template validation failed for %s in %s"), template, stack.name)
+                LOG.warning(self._color.yellow("Template validation failed for %s in %s"), template, stack.name)  # type: ignore[no-untyped-call]
 
             self._observer.schedule_handlers(template_trigger.get_path_handlers())
 
     def _execute_infra_context(self) -> None:
         """Execute infrastructure sync"""
         self._build_context.set_up()
-        self._build_context.run()
-        self._package_context.run()
-        self._deploy_context.run()
+        self._build_context.run()  # type: ignore[no-untyped-call]
+        self._package_context.run()  # type: ignore[no-untyped-call]
+        self._deploy_context.run()  # type: ignore[no-untyped-call]
 
     def _start_code_sync(self) -> None:
         """Start SyncFlowExecutor in a separate thread."""
@@ -178,14 +178,14 @@ class WatchManager:
         try:
             self.queue_infra_sync()
             if self._skip_infra_syncs:
-                self._start_sync()
-                LOG.info(self._color.green("Sync watch started."))
+                self._start_sync()  # type: ignore[no-untyped-call]
+                LOG.info(self._color.green("Sync watch started."))  # type: ignore[no-untyped-call]
             self._start()
         except KeyboardInterrupt:
-            LOG.info(self._color.cyan("Shutting down sync watch..."))
+            LOG.info(self._color.cyan("Shutting down sync watch..."))  # type: ignore[no-untyped-call]
             self._observer.stop()
             self._stop_code_sync()
-            LOG.info(self._color.green("Sync watch stopped."))
+            LOG.info(self._color.green("Sync watch stopped."))  # type: ignore[no-untyped-call]
 
     def _start(self) -> None:
         """Start WatchManager and watch for changes to the template and its code resources."""
@@ -195,7 +195,7 @@ class WatchManager:
                 self._execute_infra_sync()
             time.sleep(1)
 
-    def _start_sync(self):
+    def _start_sync(self):  # type: ignore[no-untyped-def]
         """
         Update stacks and populate all triggers
         """
@@ -206,16 +206,16 @@ class WatchManager:
         self._start_code_sync()
 
     def _execute_infra_sync(self) -> None:
-        LOG.info(self._color.cyan("Queued infra sync. Waiting for in progress code syncs to complete..."))
+        LOG.info(self._color.cyan("Queued infra sync. Waiting for in progress code syncs to complete..."))  # type: ignore[no-untyped-call]
         self._waiting_infra_sync = False
         self._stop_code_sync()
         try:
-            LOG.info(self._color.cyan("Starting infra sync."))
+            LOG.info(self._color.cyan("Starting infra sync."))  # type: ignore[no-untyped-call]
             self._execute_infra_context()
-            LOG.info(self._color.green("Infra sync completed."))
+            LOG.info(self._color.green("Infra sync completed."))  # type: ignore[no-untyped-call]
         except Exception as e:
             LOG.error(
-                self._color.red("Failed to sync infra. Code sync is paused until template/stack is fixed."),
+                self._color.red("Failed to sync infra. Code sync is paused until template/stack is fixed."),  # type: ignore[no-untyped-call]
                 exc_info=e,
             )
             # Unschedule all triggers and only add back the template one as infra sync is incorrect.
@@ -224,7 +224,7 @@ class WatchManager:
         else:
             # Trigger are not removed until infra sync is finished as there
             # can be code changes during infra sync.
-            self._start_sync()
+            self._start_sync()  # type: ignore[no-untyped-call]
 
     def _on_code_change_wrapper(self, resource_id: ResourceIdentifier) -> OnChangeCallback:
         """Wrapper method that generates a callback for code changes.
@@ -240,8 +240,8 @@ class WatchManager:
             Callback function
         """
 
-        def on_code_change(_=None):
-            sync_flow = self._sync_flow_factory.create_sync_flow(resource_id)
+        def on_code_change(_=None):  # type: ignore[no-untyped-def]
+            sync_flow = self._sync_flow_factory.create_sync_flow(resource_id)  # type: ignore[union-attr]
             if sync_flow and not self._waiting_infra_sync:
                 self._sync_flow_executor.add_delayed_sync_flow(sync_flow, dedup=True, wait_time=DEFAULT_WAIT_TIME)
 
@@ -258,15 +258,15 @@ class WatchManager:
         """
         exception = sync_flow_exception.exception
         if isinstance(exception, MissingPhysicalResourceError):
-            LOG.warning(self._color.yellow("Missing physical resource. Infra sync will be started."))
+            LOG.warning(self._color.yellow("Missing physical resource. Infra sync will be started."))  # type: ignore[no-untyped-call]
             self.queue_infra_sync()
         elif isinstance(exception, InfraSyncRequiredError):
             LOG.warning(
-                self._color.yellow(
+                self._color.yellow(  # type: ignore[no-untyped-call]
                     f"Infra sync is required for {exception.resource_identifier} due to: "
                     + f"{exception.reason}. Infra sync will be started."
                 )
             )
             self.queue_infra_sync()
         else:
-            LOG.error(self._color.red("Code sync encountered an error."), exc_info=exception)
+            LOG.error(self._color.red("Code sync encountered an error."), exc_info=exception)  # type: ignore[no-untyped-call]

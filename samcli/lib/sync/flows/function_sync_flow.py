@@ -103,7 +103,7 @@ class FunctionSyncFlow(SyncFlow):
 
         return sync_flows
 
-    def _equality_keys(self):
+    def _equality_keys(self):  # type: ignore[no-untyped-def]
         return self._function_identifier
 
 

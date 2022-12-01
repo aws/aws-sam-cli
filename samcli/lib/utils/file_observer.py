@@ -10,13 +10,13 @@ from pathlib import Path
 from threading import Thread, Lock
 from typing import Callable, List, Dict, Optional
 
-import docker
+import docker  # type: ignore[import]
 from docker import DockerClient
-from docker.errors import ImageNotFound
-from docker.types import CancellableStream
-from watchdog.observers import Observer
-from watchdog.events import PatternMatchingEventHandler, FileSystemEvent, FileSystemEventHandler
-from watchdog.observers.api import ObservedWatch, BaseObserver
+from docker.errors import ImageNotFound  # type: ignore[import]
+from docker.types import CancellableStream  # type: ignore[import]
+from watchdog.observers import Observer  # type: ignore[import]
+from watchdog.events import PatternMatchingEventHandler, FileSystemEvent, FileSystemEventHandler  # type: ignore[import]
+from watchdog.observers.api import ObservedWatch, BaseObserver  # type: ignore[import]
 
 from samcli.cli.global_config import Singleton
 from samcli.lib.utils.hash import dir_checksum, file_checksum
@@ -55,13 +55,13 @@ class ResourceObserver(ABC):
         """
 
     @abstractmethod
-    def start(self):
+    def start(self):  # type: ignore[no-untyped-def]
         """
         Start Observing.
         """
 
     @abstractmethod
-    def stop(self):
+    def stop(self):  # type: ignore[no-untyped-def]
         """
         Stop Observing.
         """
@@ -78,7 +78,7 @@ class LambdaFunctionObserver:
     A class that will observe Lambda Function sources regardless if the source is code or image
     """
 
-    def __init__(self, on_change: Callable) -> None:
+    def __init__(self, on_change: Callable) -> None:  # type: ignore[type-arg]
         """
         Initialize the Image observer
         Parameters
@@ -132,12 +132,12 @@ class LambdaFunctionObserver:
             """
             return [function_config.imageuri]
 
-        self.get_resources: Dict[str, Callable] = {
+        self.get_resources: Dict[str, Callable] = {  # type: ignore[type-arg]
             ZIP: _get_zip_lambda_function_paths,
             IMAGE: _get_image_lambda_function_image_names,
         }
 
-        self._input_on_change: Callable = on_change
+        self._input_on_change: Callable = on_change  # type: ignore[type-arg]
         self._watch_lock: Lock = threading.Lock()
 
     def _on_zip_change(self, paths: List[str]) -> None:
@@ -222,19 +222,19 @@ class LambdaFunctionObserver:
                     self._observed_functions[function_config.packagetype].pop(resource, None)
                     self._observers[function_config.packagetype].unwatch(resource)
 
-    def start(self):
+    def start(self):  # type: ignore[no-untyped-def]
         """
         Start Observing.
         """
         for _, observer in self._observers.items():
-            observer.start()
+            observer.start()  # type: ignore[no-untyped-call]
 
-    def stop(self):
+    def stop(self):  # type: ignore[no-untyped-def]
         """
         Stop Observing.
         """
         for _, observer in self._observers.items():
-            observer.stop()
+            observer.stop()  # type: ignore[no-untyped-call]
 
 
 class ImageObserverException(ObserverException):
@@ -248,7 +248,7 @@ class ImageObserver(ResourceObserver):
     A class that will observe some docker images for any change.
     """
 
-    def __init__(self, on_change: Callable) -> None:
+    def __init__(self, on_change: Callable) -> None:  # type: ignore[type-arg]
         """
         Initialize the Image observer
         Parameters
@@ -257,13 +257,13 @@ class ImageObserver(ResourceObserver):
             Reference to the function that will be called if there is a change in aby of the observed image
         """
         self._observed_images: Dict[str, str] = {}
-        self._input_on_change: Callable = on_change
+        self._input_on_change: Callable = on_change  # type: ignore[type-arg]
         self.docker_client: DockerClient = docker.from_env()
         self.events: CancellableStream = self.docker_client.events(filters={"type": "image"}, decode=True)
         self._images_observer_thread: Optional[Thread] = None
         self._lock: Lock = threading.Lock()
 
-    def _watch_images_events(self):
+    def _watch_images_events(self):  # type: ignore[no-untyped-def]
         for event in self.events:
             if event.get("Action", None) != "tag":
                 continue
@@ -305,7 +305,7 @@ class ImageObserver(ResourceObserver):
         """
         self._observed_images.pop(resource, None)
 
-    def start(self):
+    def start(self):  # type: ignore[no-untyped-def]
         """
         Start Observing.
         """
@@ -314,7 +314,7 @@ class ImageObserver(ResourceObserver):
                 self._images_observer_thread = threading.Thread(target=self._watch_images_events, daemon=True)
                 self._images_observer_thread.start()
 
-    def stop(self):
+    def stop(self):  # type: ignore[no-untyped-def]
         """
         Stop Observing.
         """
@@ -336,7 +336,7 @@ class FileObserver(ResourceObserver):
     A class that will Wrap the Singleton File Observer.
     """
 
-    def __init__(self, on_change: Callable) -> None:
+    def __init__(self, on_change: Callable) -> None:  # type: ignore[type-arg]
         """
         Initialize the file observer
         Parameters
@@ -354,11 +354,11 @@ class FileObserver(ResourceObserver):
     def unwatch(self, resource: str) -> None:
         self._single_file_observer.unwatch(resource, self._group)
 
-    def start(self):
-        self._single_file_observer.start()
+    def start(self):  # type: ignore[no-untyped-def]
+        self._single_file_observer.start()  # type: ignore[no-untyped-call]
 
-    def stop(self):
-        self._single_file_observer.stop()
+    def stop(self):  # type: ignore[no-untyped-def]
+        self._single_file_observer.stop()  # type: ignore[no-untyped-call]
 
 
 class SingletonFileObserver(metaclass=Singleton):
@@ -371,7 +371,7 @@ class SingletonFileObserver(metaclass=Singleton):
         Initialize the file observer
         """
         self._observed_paths_per_group: Dict[str, Dict[str, str]] = {}
-        self._observed_groups_handlers: Dict[str, Callable] = {}
+        self._observed_groups_handlers: Dict[str, Callable] = {}  # type: ignore[type-arg]
         self._observed_watches: Dict[str, ObservedWatch] = {}
         self._watch_dog_observed_paths: Dict[str, List[str]] = {}
         self._observer: BaseObserver = Observer()
@@ -434,7 +434,7 @@ class SingletonFileObserver(metaclass=Singleton):
                 if changed_paths:
                     self._observed_groups_handlers[group](changed_paths)
 
-    def add_group(self, group: str, on_change: Callable) -> None:
+    def add_group(self, group: str, on_change: Callable) -> None:  # type: ignore[type-arg]
         """
         Add new group to file observer. This enable FileObserver to watch the same path for
         multiple purposes.
@@ -583,7 +583,7 @@ class SingletonFileObserver(metaclass=Singleton):
                 self._observer.unschedule(self._observed_watches[watch_dog_path])
                 self._observed_watches.pop(watch_dog_path, None)
 
-    def start(self):
+    def start(self):  # type: ignore[no-untyped-def]
         """
         Start Observing.
         """
@@ -591,7 +591,7 @@ class SingletonFileObserver(metaclass=Singleton):
             if not self._observer.is_alive():
                 self._observer.start()
 
-    def stop(self):
+    def stop(self):  # type: ignore[no-untyped-def]
         """
         Stop Observing.
         """

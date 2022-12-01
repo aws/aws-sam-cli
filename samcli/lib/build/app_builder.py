@@ -8,13 +8,13 @@ import logging
 import pathlib
 from typing import List, Optional, Dict, cast, NamedTuple
 
-import docker
-import docker.errors
-from aws_lambda_builders import (
+import docker  # type: ignore[import]
+import docker.errors  # type: ignore[import]
+from aws_lambda_builders import (  # type: ignore[import]
     RPC_PROTOCOL_VERSION as lambda_builders_protocol_version,
 )
-from aws_lambda_builders.builder import LambdaBuilder
-from aws_lambda_builders.exceptions import LambdaBuilderError
+from aws_lambda_builders.builder import LambdaBuilder  # type: ignore[import]
+from aws_lambda_builders.exceptions import LambdaBuilderError  # type: ignore[import]
 
 from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition, BuildGraph
 from samcli.lib.build.build_strategy import (
@@ -55,7 +55,7 @@ from samcli.lib.build.exceptions import (
     UnsupportedBuilderLibraryVersionError,
 )
 
-from samcli.lib.build.workflow_config import (
+from samcli.lib.build.workflow_config import (  # type: ignore[attr-defined]
     get_workflow_config,
     get_layer_subfolder,
     supports_build_in_container,
@@ -96,9 +96,9 @@ class ApplicationBuilder:
         mode: Optional[str] = None,
         stream_writer: Optional[StreamWriter] = None,
         docker_client: Optional[docker.DockerClient] = None,
-        container_env_var: Optional[Dict] = None,
+        container_env_var: Optional[Dict] = None,  # type: ignore[type-arg]
         container_env_var_file: Optional[str] = None,
-        build_images: Optional[Dict] = None,
+        build_images: Optional[Dict] = None,  # type: ignore[type-arg]
         combine_dependencies: bool = True,
     ) -> None:
         """
@@ -153,11 +153,11 @@ class ApplicationBuilder:
         self._container_manager = container_manager
         self._parallel = parallel
         self._mode = mode
-        self._stream_writer = stream_writer if stream_writer else StreamWriter(stream=osutils.stderr(), auto_flush=True)
+        self._stream_writer = stream_writer if stream_writer else StreamWriter(stream=osutils.stderr(), auto_flush=True)  # type: ignore[no-untyped-call, no-untyped-call]
         self._docker_client = docker_client if docker_client else docker.from_env()
 
         self._deprecated_runtimes = DEPRECATED_RUNTIMES
-        self._colored = Colored()
+        self._colored = Colored()  # type: ignore[no-untyped-call]
         self._container_env_var = container_env_var
         self._container_env_var_file = container_env_var_file
         self._build_images = build_images or {}
@@ -210,7 +210,7 @@ class ApplicationBuilder:
         return ApplicationBuildResult(build_graph, build_strategy.build())
 
     def _get_build_graph(
-        self, inline_env_vars: Optional[Dict] = None, env_vars_file: Optional[str] = None
+        self, inline_env_vars: Optional[Dict] = None, env_vars_file: Optional[str] = None  # type: ignore[type-arg]
     ) -> BuildGraph:
         """
         Converts list of functions and layers into a build graph, where we can iterate on each unique build and trigger
@@ -264,7 +264,7 @@ class ApplicationBuilder:
         stack: Stack,
         built_artifacts: Dict[str, str],
         stack_output_template_path_by_stack_path: Dict[str, str],
-    ) -> Dict:
+    ) -> Dict:  # type: ignore[type-arg]
         """
         Given the path to built artifacts, update the template to point appropriate resource CodeUris to the artifacts
         folder
@@ -289,7 +289,7 @@ class ApplicationBuilder:
         template_dict = stack.template_dict
         normalized_resources = stack.resources
         for logical_id, resource in template_dict.get("Resources", {}).items():
-            resource_iac_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)
+            resource_iac_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)  # type: ignore[no-untyped-call]
             full_path = get_full_path(stack.stack_path, resource_iac_id)
             has_build_artifact = full_path in built_artifacts
             is_stack = full_path in stack_output_template_path_by_stack_path
@@ -337,7 +337,7 @@ class ApplicationBuilder:
         return template_dict
 
     @staticmethod
-    def _update_built_resource(path: str, resource_properties: Dict, resource_type: str, absolute_path: str) -> None:
+    def _update_built_resource(path: str, resource_properties: Dict, resource_type: str, absolute_path: str) -> None:  # type: ignore[type-arg]
         if resource_type == AWS_SERVERLESS_FUNCTION and resource_properties.get("PackageType", ZIP) == ZIP:
             resource_properties["CodeUri"] = absolute_path
         if resource_type == AWS_LAMBDA_FUNCTION and resource_properties.get("PackageType", ZIP) == ZIP:
@@ -351,7 +351,7 @@ class ApplicationBuilder:
         if resource_type == AWS_SERVERLESS_FUNCTION and resource_properties.get("PackageType", ZIP) == IMAGE:
             resource_properties["ImageUri"] = path
 
-    def _build_lambda_image(self, function_name: str, metadata: Dict, architecture: str) -> str:
+    def _build_lambda_image(self, function_name: str, metadata: Dict, architecture: str) -> str:  # type: ignore[type-arg]
         """
         Build an Lambda image
 
@@ -387,7 +387,7 @@ class ApplicationBuilder:
             raise DockerBuildFailed("DockerBuildArgs needs to be a dictionary!")
 
         docker_context_dir = pathlib.Path(self._base_dir, docker_context).resolve()
-        if not is_docker_reachable(self._docker_client):
+        if not is_docker_reachable(self._docker_client):  # type: ignore[no-untyped-call]
             raise DockerConnectionError(msg=f"Building image for {function_name} requires Docker. is Docker running?")
 
         if os.environ.get("SAM_BUILD_MODE") and isinstance(docker_build_args, dict):
@@ -449,10 +449,10 @@ class ApplicationBuilder:
         compatible_runtimes: List[str],
         architecture: str,
         artifact_dir: str,
-        container_env_vars: Optional[Dict] = None,
+        container_env_vars: Optional[Dict] = None,  # type: ignore[type-arg]
         dependencies_dir: Optional[str] = None,
         download_dependencies: bool = True,
-        layer_metadata: Optional[Dict] = None,
+        layer_metadata: Optional[Dict] = None,  # type: ignore[type-arg]
     ) -> str:
         """
         Given the layer information, this method will build the Lambda layer. Depending on the configuration
@@ -515,7 +515,7 @@ class ApplicationBuilder:
 
             # By default prefer to build in-process for speed
             scratch_dir_path = (
-                LambdaBuildContainer.get_container_dirs(code_dir, manifest_path)["scratch_dir"]
+                LambdaBuildContainer.get_container_dirs(code_dir, manifest_path)["scratch_dir"]  # type: ignore[no-untyped-call]
                 if self._container_manager
                 else scratch_dir
             )
@@ -580,8 +580,8 @@ class ApplicationBuilder:
         architecture: str,
         handler: Optional[str],
         artifact_dir: str,
-        metadata: Optional[Dict] = None,
-        container_env_vars: Optional[Dict] = None,
+        metadata: Optional[Dict] = None,  # type: ignore[type-arg]
+        container_env_vars: Optional[Dict] = None,  # type: ignore[type-arg]
         dependencies_dir: Optional[str] = None,
         download_dependencies: bool = True,
     ) -> str:
@@ -634,7 +634,7 @@ class ApplicationBuilder:
                     f"update to a newer supported runtime. For more information please check AWS Lambda Runtime "
                     f"Support Policy: https://docs.aws.amazon.com/lambda/latest/dg/runtime-support-policy.html"
                 )
-                LOG.warning(self._colored.yellow(message))
+                LOG.warning(self._colored.yellow(message))  # type: ignore[no-untyped-call]
                 raise UnsupportedRuntimeException(f"Building functions with {runtime} is no longer supported")
 
             # Create the arguments to pass to the builder
@@ -659,7 +659,7 @@ class ApplicationBuilder:
                     manifest_context_path, config.manifest_name
                 )
                 scratch_dir_path = (
-                    LambdaBuildContainer.get_container_dirs(code_dir, manifest_path)["scratch_dir"]
+                    LambdaBuildContainer.get_container_dirs(code_dir, manifest_path)["scratch_dir"]  # type: ignore[no-untyped-call]
                     if self._container_manager
                     else scratch_dir
                 )
@@ -716,10 +716,10 @@ class ApplicationBuilder:
         base_dir: str,
         handler: Optional[str],
         dependency_manager: Optional[str] = None,
-        metadata: Optional[dict] = None,
+        metadata: Optional[dict] = None,  # type: ignore[type-arg]
         source_code_path: Optional[str] = None,
         scratch_dir: Optional[str] = None,
-    ) -> Optional[Dict]:
+    ) -> Optional[Dict]:  # type: ignore[type-arg]
         """
         Parameters
         ----------
@@ -757,7 +757,7 @@ class ApplicationBuilder:
                 normalized_build_props["entry_points"] = entry_points
             return normalized_build_props
 
-        _build_options: Dict[str, Dict] = {
+        _build_options: Dict[str, Dict] = {  # type: ignore[type-arg]
             "go": {
                 "artifact_executable_name": handler,
                 "trim_go_path": build_props.get("TrimGoPath", False),
@@ -777,7 +777,7 @@ class ApplicationBuilder:
 
     @staticmethod
     def _get_working_directory_path(
-        base_dir: str, metadata: Optional[Dict], source_code_path: Optional[str], scratch_dir: Optional[str]
+        base_dir: str, metadata: Optional[Dict], source_code_path: Optional[str], scratch_dir: Optional[str]  # type: ignore[type-arg]
     ) -> Optional[str]:
         """
         Get the working directory from the lambda resource metadata information, and  check if it is not None, and it
@@ -826,7 +826,7 @@ class ApplicationBuilder:
         manifest_path: str,
         runtime: str,
         architecture: str,
-        options: Optional[Dict],
+        options: Optional[Dict],  # type: ignore[type-arg]
         dependencies_dir: Optional[str],
         download_dependencies: bool,
         combine_dependencies: bool,
@@ -871,8 +871,8 @@ class ApplicationBuilder:
         manifest_path: str,
         runtime: str,
         architecture: str,
-        options: Optional[Dict],
-        container_env_vars: Optional[Dict] = None,
+        options: Optional[Dict],  # type: ignore[type-arg]
+        container_env_vars: Optional[Dict] = None,  # type: ignore[type-arg]
         build_image: Optional[str] = None,
         is_building_layer: bool = False,
     ) -> str:
@@ -894,7 +894,7 @@ class ApplicationBuilder:
 
         container_env_vars = container_env_vars or {}
 
-        container = LambdaBuildContainer(
+        container = LambdaBuildContainer(  # type: ignore[no-untyped-call]
             lambda_builders_protocol_version,
             config.language,
             config.dependency_manager,
@@ -915,7 +915,7 @@ class ApplicationBuilder:
 
         try:
             try:
-                self._container_manager.run(container)
+                self._container_manager.run(container)  # type: ignore[no-untyped-call]
             except docker.errors.APIError as ex:
                 if "executable file not found in $PATH" in str(ex):
                     raise UnsupportedBuilderLibraryVersionError(
@@ -926,8 +926,8 @@ class ApplicationBuilder:
             # stdout contains the result of JSON-RPC call
             stdout_stream = io.BytesIO()
             # stderr contains logs printed by the builder. Stream it directly to terminal
-            stderr_stream = osutils.stderr()
-            container.wait_for_logs(stdout=stdout_stream, stderr=stderr_stream)
+            stderr_stream = osutils.stderr()  # type: ignore[no-untyped-call]
+            container.wait_for_logs(stdout=stdout_stream, stderr=stderr_stream)  # type: ignore[no-untyped-call]
 
             stdout_data = stdout_stream.getvalue().decode("utf-8")
             LOG.debug("Build inside container returned response %s", stdout_data)
@@ -939,7 +939,7 @@ class ApplicationBuilder:
 
             # "/." is a Docker thing that instructions the copy command to download contents of the folder only
             result_dir_in_container = response["result"]["artifacts_dir"] + "/."
-            container.copy(result_dir_in_container, artifacts_dir)
+            container.copy(result_dir_in_container, artifacts_dir)  # type: ignore[no-untyped-call]
         finally:
             self._container_manager.stop(container)
 
@@ -947,7 +947,7 @@ class ApplicationBuilder:
         return artifacts_dir
 
     @staticmethod
-    def _parse_builder_response(stdout_data: str, image_name: str) -> Dict:
+    def _parse_builder_response(stdout_data: str, image_name: str) -> Dict:  # type: ignore[type-arg]
 
         try:
             response = json.loads(stdout_data)
@@ -984,4 +984,4 @@ class ApplicationBuilder:
             LOG.debug("Builder crashed")
             raise ValueError(msg)
 
-        return cast(Dict, response)
+        return cast(Dict, response)  # type: ignore[type-arg]

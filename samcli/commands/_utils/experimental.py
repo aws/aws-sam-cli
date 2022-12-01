@@ -67,7 +67,7 @@ def is_experimental_enabled(config_entry: ExperimentalEntry) -> bool:
     bool
         Whether the experimental flag is enabled or not.
     """
-    gc = GlobalConfig()
+    gc = GlobalConfig()  # type: ignore[no-untyped-call]
     enabled = gc.get_value(config_entry, default=False, value_type=bool, is_flag=True)
     if not enabled:
         enabled = gc.get_value(ExperimentalFlag.All, default=False, value_type=bool, is_flag=True)
@@ -84,7 +84,7 @@ def set_experimental(config_entry: ExperimentalEntry = ExperimentalFlag.All, ena
     enabled : bool, optional
         Enabled or disabled, by default True
     """
-    gc = GlobalConfig()
+    gc = GlobalConfig()  # type: ignore[no-untyped-call]
     gc.set_value(config_entry, enabled, is_flag=True, flush=False)
 
 
@@ -134,13 +134,13 @@ def get_enabled_experimental_flags() -> List[str]:
     return enabled_experimentals
 
 
-def disable_all_experimental():
+def disable_all_experimental():  # type: ignore[no-untyped-def]
     """Turn off all experimental flags in the ExperimentalFlag class."""
     for entry in get_all_experimental():
         set_experimental(entry, False)
 
 
-def update_experimental_context(show_warning=True):
+def update_experimental_context(show_warning=True):  # type: ignore[no-untyped-def]
     """Set experimental for the current click context.
 
     Parameters
@@ -148,13 +148,13 @@ def update_experimental_context(show_warning=True):
     show_warning : bool, optional
         Should warning be shown, by default True
     """
-    if not Context.get_current_context().experimental:
-        Context.get_current_context().experimental = True
+    if not Context.get_current_context().experimental:  # type: ignore[union-attr]
+        Context.get_current_context().experimental = True  # type: ignore[union-attr]
         if show_warning:
-            LOG.warning(Colored().yellow(EXPERIMENTAL_WARNING))
+            LOG.warning(Colored().yellow(EXPERIMENTAL_WARNING))  # type: ignore[no-untyped-call, no-untyped-call]
 
 
-def _experimental_option_callback(ctx, param, enabled: Optional[bool]):
+def _experimental_option_callback(ctx, param, enabled: Optional[bool]):  # type: ignore[no-untyped-def, no-untyped-def]
     """Click parameter callback for --beta-features or --no-beta-features.
     If neither is specified, enabled will be None.
     If --beta-features is set, enabled will be True,
@@ -167,12 +167,12 @@ def _experimental_option_callback(ctx, param, enabled: Optional[bool]):
 
     if enabled:
         set_experimental(ExperimentalFlag.All, True)
-        update_experimental_context()
+        update_experimental_context()  # type: ignore[no-untyped-call]
     else:
-        disable_all_experimental()
+        disable_all_experimental()  # type: ignore[no-untyped-call]
 
 
-def experimental_click_option(default: Optional[bool]):
+def experimental_click_option(default: Optional[bool]):  # type: ignore[no-untyped-def]
     return click.option(
         "--beta-features/--no-beta-features",
         default=default,
@@ -184,14 +184,14 @@ def experimental_click_option(default: Optional[bool]):
     )
 
 
-@parameterized_option
-def experimental(f, default: Optional[bool] = None):
+@parameterized_option  # type: ignore[misc]
+def experimental(f, default: Optional[bool] = None):  # type: ignore[no-untyped-def, no-untyped-def]
     """Decorator for adding --beta-features and --no-beta-features click options to a command."""
     return experimental_click_option(default)(f)
 
 
-@parameterized_option
-def force_experimental(
+@parameterized_option  # type: ignore[misc]
+def force_experimental(  # type: ignore[no-untyped-def, no-untyped-def]
     f, config_entry: ExperimentalEntry = ExperimentalFlag.All, prompt=EXPERIMENTAL_PROMPT, default=None
 ):
     """Decorator for adding --beta-features and --no-beta-features click options to a command.
@@ -200,29 +200,29 @@ def force_experimental(
     The program will exit if confirmation is denied.
     """
 
-    def wrap(func):
+    def wrap(func):  # type: ignore[no-untyped-def]
         @wraps(func)
-        def wrapped_func(*args, **kwargs):
+        def wrapped_func(*args, **kwargs):  # type: ignore[no-untyped-def]
             if not prompt_experimental(config_entry=config_entry, prompt=prompt):
                 sys.exit(1)
             return func(*args, **kwargs)
 
         return wrapped_func
 
-    return experimental_click_option(default)(wrap(f))
+    return experimental_click_option(default)(wrap(f))  # type: ignore[no-untyped-call]
 
 
-@parameterized_option
-def force_experimental_option(
+@parameterized_option  # type: ignore[misc]
+def force_experimental_option(  # type: ignore[no-untyped-def, no-untyped-def]
     f, option: str, config_entry: ExperimentalEntry = ExperimentalFlag.All, prompt=EXPERIMENTAL_PROMPT
 ):
     """Decorator for making a specific option to be experimental.
     A prompt will be shown if experimental is not enabled and the option is specified.
     """
 
-    def wrap(func):
+    def wrap(func):  # type: ignore[no-untyped-def]
         @wraps(func)
-        def wrapped_func(*args, **kwargs):
+        def wrapped_func(*args, **kwargs):  # type: ignore[no-untyped-def]
             if kwargs[option]:
                 if not prompt_experimental(config_entry=config_entry, prompt=prompt):
                     sys.exit(1)
@@ -230,7 +230,7 @@ def force_experimental_option(
 
         return wrapped_func
 
-    return wrap(f)
+    return wrap(f)  # type: ignore[no-untyped-call]
 
 
 def prompt_experimental(
@@ -253,10 +253,10 @@ def prompt_experimental(
         Whether user have accepted the experimental feature.
     """
     if is_experimental_enabled(config_entry):
-        update_experimental_context()
+        update_experimental_context()  # type: ignore[no-untyped-call]
         return True
-    confirmed = click.confirm(Colored().yellow(prompt), default=False)
+    confirmed = click.confirm(Colored().yellow(prompt), default=False)  # type: ignore[no-untyped-call, no-untyped-call]
     if confirmed:
         set_experimental(config_entry=config_entry, enabled=True)
-        update_experimental_context()
+        update_experimental_context()  # type: ignore[no-untyped-call]
     return confirmed

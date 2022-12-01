@@ -41,14 +41,14 @@ class S3Uploader:
     """
 
     @property
-    def artifact_metadata(self):
+    def artifact_metadata(self):  # type: ignore[no-untyped-def]
         """
         Metadata to attach to the object(s) uploaded by the uploader.
         """
         return self._artifact_metadata
 
     @artifact_metadata.setter
-    def artifact_metadata(self, val):
+    def artifact_metadata(self, val):  # type: ignore[no-untyped-def]
         if val is not None and not isinstance(val, abc.Mapping):
             raise TypeError("Artifact metadata should be in dict type")
         self._artifact_metadata = val
@@ -102,10 +102,10 @@ class S3Uploader:
                 additional_args["Metadata"] = self.artifact_metadata
 
             if not self.bucket_name:
-                raise BucketNotSpecifiedError()
+                raise BucketNotSpecifiedError()  # type: ignore[no-untyped-call]
 
             if not self.no_progressbar:
-                print_progress_callback = ProgressPercentage(file_name, remote_path)
+                print_progress_callback = ProgressPercentage(file_name, remote_path)  # type: ignore[no-untyped-call]
                 future = self.transfer_manager.upload(
                     file_name, self.bucket_name, remote_path, additional_args, [print_progress_callback]
                 )
@@ -118,7 +118,7 @@ class S3Uploader:
         except botocore.exceptions.ClientError as ex:
             error_code = ex.response["Error"]["Code"]
             if error_code == "NoSuchBucket":
-                raise NoSuchBucketError(bucket_name=self.bucket_name) from ex
+                raise NoSuchBucketError(bucket_name=self.bucket_name) from ex  # type: ignore[no-untyped-call]
             raise ex
 
     def upload_with_dedup(
@@ -153,7 +153,7 @@ class S3Uploader:
         try:
             if not self.bucket_name:
                 LOG.error("Bucket not specified")
-                raise BucketNotSpecifiedError()
+                raise BucketNotSpecifiedError()  # type: ignore[no-untyped-call]
 
             key = remote_path
             if self.prefix and not is_key:
@@ -175,16 +175,16 @@ class S3Uploader:
             error_code = ex.response["Error"]["Code"]
             if error_code == "NoSuchBucket":
                 LOG.error("Provided bucket %s does not exist ", self.bucket_name)
-                raise NoSuchBucketError(bucket_name=self.bucket_name) from ex
+                raise NoSuchBucketError(bucket_name=self.bucket_name) from ex  # type: ignore[no-untyped-call]
             raise ex
 
-    def delete_prefix_artifacts(self):
+    def delete_prefix_artifacts(self):  # type: ignore[no-untyped-def]
         """
         Deletes all the files from the prefix in S3
         """
         if not self.bucket_name:
             LOG.error("Bucket not specified")
-            raise BucketNotSpecifiedError()
+            raise BucketNotSpecifiedError()  # type: ignore[no-untyped-call]
         if self.prefix:
             # Note: list_objects_v2 api uses prefix to fetch the keys that begin with the prefix
             # To restrict fetching files with exact prefix self.prefix, "/" is used below.
@@ -204,7 +204,7 @@ class S3Uploader:
         try:
             # Find the object that matches this ETag
             if not self.bucket_name:
-                raise BucketNotSpecifiedError()
+                raise BucketNotSpecifiedError()  # type: ignore[no-untyped-call]
             self.s3.head_object(Bucket=self.bucket_name, Key=remote_path)
             return True
         except botocore.exceptions.ClientError:
@@ -214,7 +214,7 @@ class S3Uploader:
 
     def make_url(self, obj_path: str) -> str:
         if not self.bucket_name:
-            raise BucketNotSpecifiedError()
+            raise BucketNotSpecifiedError()  # type: ignore[no-untyped-call]
         return "s3://{0}/{1}".format(self.bucket_name, obj_path)
 
     def to_path_style_s3_url(self, key: str, version: Optional[str] = None) -> str:
@@ -247,7 +247,7 @@ class S3Uploader:
         bucket_name_property: str = "Bucket",
         object_key_property: str = "Key",
         version_property: Optional[str] = None,
-    ) -> Dict:
+    ) -> Dict:  # type: ignore[type-arg]
         if isinstance(url, str) and url.startswith("s3://"):
 
             return S3Uploader._parse_s3_format_url(
@@ -270,7 +270,7 @@ class S3Uploader:
         bucket_name_property: str = "Bucket",
         object_key_property: str = "Key",
         version_property: Optional[str] = None,
-    ) -> Dict:
+    ) -> Dict:  # type: ignore[type-arg]
         """
         Method for parsing s3 urls that begin with s3://
         e.g. s3://bucket/key
@@ -296,7 +296,7 @@ class S3Uploader:
         url: Any,
         bucket_name_property: str = "Bucket",
         object_key_property: str = "Key",
-    ) -> Dict:
+    ) -> Dict:  # type: ignore[type-arg]
         """
         Static method for parsing path style s3 urls.
         e.g. https://s3.us-east-1.amazonaws.com/bucket/key
@@ -317,14 +317,14 @@ class S3Uploader:
 class ProgressPercentage:
     # This class was copied directly from S3Transfer docs
 
-    def __init__(self, filename, remote_path):
+    def __init__(self, filename, remote_path):  # type: ignore[no-untyped-def]
         self._filename = filename
         self._remote_path = remote_path
         self._size = os.path.getsize(filename)
         self._seen_so_far = 0
         self._lock = threading.Lock()
 
-    def on_progress(self, bytes_transferred, **kwargs):
+    def on_progress(self, bytes_transferred, **kwargs):  # type: ignore[no-untyped-def]
 
         # To simplify we'll assume this is hooked up
         # to a single filename.

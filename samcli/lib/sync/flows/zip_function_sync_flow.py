@@ -68,7 +68,7 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
         self._zip_file = None
         self._local_sha = None
         self._build_graph = None
-        self._color = Colored()
+        self._color = Colored()  # type: ignore[no-untyped-call]
 
     def set_up(self) -> None:
         super().set_up()
@@ -99,7 +99,7 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
             self._artifact_folder = build_result.artifacts.get(self._function_identifier)
 
         zip_file_path = os.path.join(tempfile.gettempdir(), "data-" + uuid.uuid4().hex)
-        self._zip_file = make_zip(zip_file_path, self._artifact_folder)
+        self._zip_file = make_zip(zip_file_path, self._artifact_folder)  # type: ignore[no-untyped-call]
         LOG.debug("%sCreated artifact ZIP file: %s", self.log_prefix, self._zip_file)
         self._local_sha = file_checksum(cast(str, self._zip_file), hashlib.sha256())
 

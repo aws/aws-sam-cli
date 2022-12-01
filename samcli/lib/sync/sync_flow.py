@@ -84,7 +84,7 @@ class SyncFlow(ABC):
         """Clients and other expensives setups should be handled here instead of constructor"""
         self._session = Session(profile_name=self._deploy_context.profile, region_name=self._deploy_context.region)
 
-    def _boto_client(self, client_name: str):
+    def _boto_client(self, client_name: str):  # type: ignore[no-untyped-def]
         return get_boto_client_provider_from_session_with_config(cast(Session, self._session))(client_name)
 
     @abstractmethod
@@ -164,7 +164,7 @@ class SyncFlow(ABC):
                 lock_keys.add(SyncFlow._get_lock_key(resource_api_calls.shared_resource, api_call))
         return lock_keys
 
-    def set_locks_with_distributor(self, distributor: LockDistributor):
+    def set_locks_with_distributor(self, distributor: LockDistributor):  # type: ignore[no-untyped-def]
         """Set locks to be used with a LockDistributor. Keys should be generated using get_lock_keys().
 
         Parameters
@@ -174,7 +174,7 @@ class SyncFlow(ABC):
         """
         self.set_locks_with_dict(distributor.get_locks(self.get_lock_keys()))
 
-    def set_locks_with_dict(self, locks: Dict[str, Lock]):
+    def set_locks_with_dict(self, locks: Dict[str, Lock]):  # type: ignore[no-untyped-def]
         """Set locks to be used. Keys should be generated using get_lock_keys().
 
         Parameters
@@ -319,7 +319,7 @@ class SyncFlow(ABC):
 
 
 def get_definition_path(
-    resource: Dict, identifier: str, use_base_dir: bool, base_dir: str, stacks: List[Stack]
+    resource: Dict, identifier: str, use_base_dir: bool, base_dir: str, stacks: List[Stack]  # type: ignore[type-arg]
 ) -> Optional[Path]:
     """
     A helper method used by non-function sync flows to resolve definition file path

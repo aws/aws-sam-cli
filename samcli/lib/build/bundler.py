@@ -14,7 +14,7 @@ ESBUILD_PROPERTY = "esbuild"
 
 
 class EsbuildBundlerManager:
-    def __init__(self, stack: Stack, template: Optional[Dict] = None):
+    def __init__(self, stack: Stack, template: Optional[Dict] = None):  # type: ignore[type-arg]
         self._stack = stack
         self._previous_template = template or dict()
 
@@ -73,7 +73,7 @@ class EsbuildBundlerManager:
 
         return modified_stack
 
-    def set_sourcemap_env_from_metadata(self) -> Dict:
+    def set_sourcemap_env_from_metadata(self) -> Dict:  # type: ignore[type-arg]
         """
         Appends ``NODE_OPTIONS: --enable-source-maps``, if Sourcemap is set to true
         and sets Sourcemap to true if ``NODE_OPTIONS: --enable-source-maps`` is provided.
@@ -135,7 +135,7 @@ class EsbuildBundlerManager:
         return template
 
     @staticmethod
-    def _esbuild_in_metadata(metadata: Dict) -> bool:
+    def _esbuild_in_metadata(metadata: Dict) -> bool:  # type: ignore[type-arg]
         """
         Checks if esbuild is configured in the function's metadata
         :param metadata: dict of metadata properties of a function
@@ -144,7 +144,7 @@ class EsbuildBundlerManager:
         return bool(metadata.get("BuildMethod", "") == ESBUILD_PROPERTY)
 
     @staticmethod
-    def _is_node_option_set(resource: Dict) -> bool:
+    def _is_node_option_set(resource: Dict) -> bool:  # type: ignore[type-arg]
         """
         Checks if the template has NODE_OPTIONS --enable-source-maps set
 

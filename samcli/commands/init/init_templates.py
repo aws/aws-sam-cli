@@ -8,7 +8,7 @@ import logging
 import os
 from pathlib import Path
 from typing import Dict, Optional
-import requests
+import requests  # type: ignore[import]
 
 from samcli.cli.global_config import GlobalConfig
 from samcli.commands.exceptions import UserException, AppTemplateUpdateException
@@ -29,7 +29,7 @@ from samcli.local.common.runtime_template import (
 )
 
 LOG = logging.getLogger(__name__)
-APP_TEMPLATES_REPO_COMMIT = configuration.get_app_template_repo_commit()
+APP_TEMPLATES_REPO_COMMIT = configuration.get_app_template_repo_commit()  # type: ignore[no-untyped-call]
 MANIFEST_URL = (
     f"https://raw.githubusercontent.com/aws/aws-sam-cli-app-templates/{APP_TEMPLATES_REPO_COMMIT}/manifest-v2.json"
 )
@@ -42,38 +42,38 @@ class InvalidInitTemplateError(UserException):
 
 
 class InitTemplates:
-    def __init__(self):
+    def __init__(self):  # type: ignore[no-untyped-def]
         self._git_repo: GitRepo = GitRepo(url=APP_TEMPLATES_REPO_URL)
         self.manifest_file_name = "manifest-v2.json"
 
-    def location_from_app_template(self, package_type, runtime, base_image, dependency_manager, app_template):
-        options = self.init_options(package_type, runtime, base_image, dependency_manager)
+    def location_from_app_template(self, package_type, runtime, base_image, dependency_manager, app_template):  # type: ignore[no-untyped-def]
+        options = self.init_options(package_type, runtime, base_image, dependency_manager)  # type: ignore[no-untyped-call]
         try:
             template = next(item for item in options if self._check_app_template(item, app_template))
             if template.get("init_location") is not None:
                 return template["init_location"]
             if template.get("directory") is not None:
-                return os.path.normpath(os.path.join(self._git_repo.local_path, template["directory"]))
-            raise InvalidInitTemplateError("Invalid template. This should not be possible, please raise an issue.")
+                return os.path.normpath(os.path.join(self._git_repo.local_path, template["directory"]))  # type: ignore[arg-type]
+            raise InvalidInitTemplateError("Invalid template. This should not be possible, please raise an issue.")  # type: ignore[no-untyped-call]
         except StopIteration as ex:
             msg = "Can't find application template " + app_template + " - check valid values in interactive init."
-            raise InvalidInitTemplateError(msg) from ex
+            raise InvalidInitTemplateError(msg) from ex  # type: ignore[no-untyped-call]
 
     @staticmethod
-    def _check_app_template(entry: Dict, app_template: str) -> bool:
+    def _check_app_template(entry: Dict, app_template: str) -> bool:  # type: ignore[type-arg]
         # we need to cast it to bool because entry["appTemplate"] can be Any, and Any's __eq__ can return Any
         # detail: https://github.com/python/mypy/issues/5697
         return bool(entry["appTemplate"] == app_template)
 
-    def init_options(self, package_type, runtime, base_image, dependency_manager):
-        self.clone_templates_repo()
+    def init_options(self, package_type, runtime, base_image, dependency_manager):  # type: ignore[no-untyped-def]
+        self.clone_templates_repo()  # type: ignore[no-untyped-call]
         if self._git_repo.local_path is None:
-            return self._init_options_from_bundle(package_type, runtime, dependency_manager)
-        return self._init_options_from_manifest(package_type, runtime, base_image, dependency_manager)
+            return self._init_options_from_bundle(package_type, runtime, dependency_manager)  # type: ignore[no-untyped-call]
+        return self._init_options_from_manifest(package_type, runtime, base_image, dependency_manager)  # type: ignore[no-untyped-call]
 
-    def clone_templates_repo(self):
+    def clone_templates_repo(self):  # type: ignore[no-untyped-def]
         if not self._git_repo.clone_attempted:
-            shared_dir: Path = GlobalConfig().config_dir
+            shared_dir: Path = GlobalConfig().config_dir  # type: ignore[no-untyped-call]
             try:
                 self._git_repo.clone(
                     clone_dir=shared_dir,
@@ -82,15 +82,15 @@ class InitTemplates:
                     commit=APP_TEMPLATES_REPO_COMMIT,
                 )
             except CloneRepoUnstableStateException as ex:
-                raise AppTemplateUpdateException(str(ex)) from ex
+                raise AppTemplateUpdateException(str(ex)) from ex  # type: ignore[no-untyped-call]
             except (OSError, CloneRepoException):
                 LOG.debug("Clone error, attempting to use an old clone from a previous run")
                 expected_previous_clone_local_path: Path = shared_dir.joinpath(APP_TEMPLATES_REPO_NAME)
                 if expected_previous_clone_local_path.exists():
                     self._git_repo.local_path = expected_previous_clone_local_path
 
-    def _init_options_from_manifest(self, package_type, runtime, base_image, dependency_manager):
-        manifest_path = self.get_manifest_path()
+    def _init_options_from_manifest(self, package_type, runtime, base_image, dependency_manager):  # type: ignore[no-untyped-def]
+        manifest_path = self.get_manifest_path()  # type: ignore[no-untyped-call]
         with open(str(manifest_path)) as fp:
             body = fp.read()
             manifest_body = json.loads(body)
@@ -102,7 +102,7 @@ class InitTemplates:
 
             if templates is None:
                 # Fallback to bundled templates
-                return self._init_options_from_bundle(package_type, runtime, dependency_manager)
+                return self._init_options_from_bundle(package_type, runtime, dependency_manager)  # type: ignore[no-untyped-call]
 
             if dependency_manager is not None:
                 templates_by_dep = filter(lambda x: x["dependencyManager"] == dependency_manager, list(templates))
@@ -110,22 +110,22 @@ class InitTemplates:
             return list(templates)
 
     @staticmethod
-    def _init_options_from_bundle(package_type, runtime, dependency_manager):
+    def _init_options_from_bundle(package_type, runtime, dependency_manager):  # type: ignore[no-untyped-def]
         for mapping in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values()))):
-            if runtime in mapping["runtimes"] or any([r.startswith(runtime) for r in mapping["runtimes"]]):
+            if runtime in mapping["runtimes"] or any([r.startswith(runtime) for r in mapping["runtimes"]]):  # type: ignore[attr-defined, operator]
                 if not dependency_manager or dependency_manager == mapping["dependency_manager"]:
                     if package_type == IMAGE:
                         mapping["appTemplate"] = "hello-world-lambda-image"
-                        mapping["init_location"] = get_local_lambda_images_location(mapping, runtime)
+                        mapping["init_location"] = get_local_lambda_images_location(mapping, runtime)  # type: ignore[no-untyped-call]
                     else:
                         mapping["appTemplate"] = "hello-world"  # when bundled, use this default template name
                     return [mapping]
         msg = "Lambda Runtime {} and dependency manager {} does not have an available initialization template.".format(
             runtime, dependency_manager
         )
-        raise InvalidInitTemplateError(msg)
+        raise InvalidInitTemplateError(msg)  # type: ignore[no-untyped-call]
 
-    def is_dynamic_schemas_template(self, package_type, app_template, runtime, base_image, dependency_manager):
+    def is_dynamic_schemas_template(self, package_type, app_template, runtime, base_image, dependency_manager):  # type: ignore[no-untyped-def]
         """
         Check if provided template is dynamic template e.g: AWS Schemas template.
         Currently dynamic templates require different handling e.g: for schema download & merge schema code in sam-app.
@@ -136,19 +136,19 @@ class InitTemplates:
         :param dependency_manager:
         :return:
         """
-        options = self.init_options(package_type, runtime, base_image, dependency_manager)
+        options = self.init_options(package_type, runtime, base_image, dependency_manager)  # type: ignore[no-untyped-call]
         for option in options:
             if option.get("appTemplate") == app_template:
                 return option.get("isDynamicTemplate", False)
         return False
 
-    def get_app_template_location(self, template_directory):
-        return os.path.normpath(os.path.join(self._git_repo.local_path, template_directory))
+    def get_app_template_location(self, template_directory):  # type: ignore[no-untyped-def]
+        return os.path.normpath(os.path.join(self._git_repo.local_path, template_directory))  # type: ignore[arg-type]
 
-    def get_manifest_path(self):
+    def get_manifest_path(self):  # type: ignore[no-untyped-def]
         if self._git_repo.local_path and Path(self._git_repo.local_path, self.manifest_file_name).exists():
             return Path(self._git_repo.local_path, self.manifest_file_name)
-        return get_local_manifest_path()
+        return get_local_manifest_path()  # type: ignore[no-untyped-call]
 
     def get_preprocessed_manifest(
         self,
@@ -156,7 +156,7 @@ class InitTemplates:
         app_template: Optional[str] = None,
         package_type: Optional[str] = None,
         dependency_manager: Optional[str] = None,
-    ) -> dict:
+    ) -> dict:  # type: ignore[type-arg]
         """
         This method get the manifest cloned from the git repo and preprocessed it.
         Below is the link to manifest:
@@ -189,13 +189,13 @@ class InitTemplates:
         [dict]
             This is preprocessed manifest with the use_case as key
         """
-        manifest_body = self._get_manifest()
+        manifest_body = self._get_manifest()  # type: ignore[no-untyped-call]
 
         # This would ensure the Use-Case Hello World Example appears
         # at the top of list template example displayed to the Customer.
-        preprocessed_manifest = {"Hello World Example": {}}  # type: dict
+        preprocessed_manifest = {"Hello World Example": {}}  # type: ignore
         for template_runtime in manifest_body:
-            if not filter_value_matches_template_runtime(filter_value, template_runtime):
+            if not filter_value_matches_template_runtime(filter_value, template_runtime):  # type: ignore[no-untyped-call]
                 LOG.debug("Template runtime %s does not match filter value %s", template_runtime, filter_value)
                 continue
             template_list = manifest_body[template_runtime]
@@ -207,19 +207,19 @@ class InitTemplates:
                 ):
                     continue
                 runtime = get_runtime(template_package_type, template_runtime)
-                use_case = preprocessed_manifest.get(use_case_name, {})
+                use_case = preprocessed_manifest.get(use_case_name, {})  # type: ignore
                 use_case[runtime] = use_case.get(runtime, {})
                 use_case[runtime][template_package_type] = use_case[runtime].get(template_package_type, [])
                 use_case[runtime][template_package_type].append(template)
 
-                preprocessed_manifest[use_case_name] = use_case
+                preprocessed_manifest[use_case_name] = use_case  # type: ignore
 
         if not bool(preprocessed_manifest["Hello World Example"]):
             del preprocessed_manifest["Hello World Example"]
 
         return preprocessed_manifest
 
-    def _get_manifest(self):
+    def _get_manifest(self):  # type: ignore[no-untyped-def]
         """
         In an attempt to reduce initial wait time to achieve an interactive
         flow <= 10sec, This method first attempts to spools just the manifest file and
@@ -240,15 +240,15 @@ class InitTemplates:
 
         except (requests.Timeout, requests.ConnectionError, ManifestNotFoundException):
             LOG.debug("Request to get Manifest failed, attempting to clone the repository")
-            self.clone_templates_repo()
-            manifest_path = self.get_manifest_path()
+            self.clone_templates_repo()  # type: ignore[no-untyped-call]
+            manifest_path = self.get_manifest_path()  # type: ignore[no-untyped-call]
             with open(str(manifest_path)) as fp:
                 body = fp.read()
         manifest_body = json.loads(body)
         return manifest_body
 
 
-def get_template_value(value: str, template: dict) -> Optional[str]:
+def get_template_value(value: str, template: dict) -> Optional[str]:  # type: ignore[type-arg]
     if value not in template:
         LOG.debug(
             f"Template is missing the value for {value} in manifest file. Please raise a github issue."
@@ -264,7 +264,7 @@ def get_runtime(package_type: Optional[str], template_runtime: str) -> str:
 
 
 def template_does_not_meet_filter_criteria(
-    app_template: Optional[str], package_type: Optional[str], dependency_manager: Optional[str], template: dict
+    app_template: Optional[str], package_type: Optional[str], dependency_manager: Optional[str], template: dict  # type: ignore[type-arg]
 ) -> bool:
     """
     Parameters
@@ -290,7 +290,7 @@ def template_does_not_meet_filter_criteria(
     )
 
 
-def filter_value_matches_template_runtime(filter_value, template_runtime):
+def filter_value_matches_template_runtime(filter_value, template_runtime):  # type: ignore[no-untyped-def]
     """
     Validate if the filter value matches template runtimes from the manifest file
 
@@ -308,8 +308,8 @@ def filter_value_matches_template_runtime(filter_value, template_runtime):
     """
     if not filter_value:
         return True
-    if is_custom_runtime(filter_value) and filter_value != get_provided_runtime_from_custom_runtime(template_runtime):
+    if is_custom_runtime(filter_value) and filter_value != get_provided_runtime_from_custom_runtime(template_runtime):  # type: ignore[no-untyped-call, no-untyped-call]
         return False
-    if not is_custom_runtime(filter_value) and filter_value != template_runtime:
+    if not is_custom_runtime(filter_value) and filter_value != template_runtime:  # type: ignore[no-untyped-call]
         return False
     return True

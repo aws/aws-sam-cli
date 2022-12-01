@@ -64,16 +64,16 @@ class Function(NamedTuple):
     codeuri: Optional[str]
     # Environment variables. This is a dictionary with one key called Variables inside it.
     # This contains the definition of environment variables
-    environment: Optional[Dict]
+    environment: Optional[Dict]  # type: ignore[type-arg]
     # Lambda Execution IAM Role ARN. In the future, this can be used by Local Lambda runtime to assume the IAM role
     # to get credentials to run the container with. This gives a much higher fidelity simulation of cloud Lambda.
     rolearn: Optional[str]
     # List of Layers
     layers: List["LayerVersion"]
     # Event
-    events: Optional[List]
+    events: Optional[List]  # type: ignore[type-arg]
     # Metadata
-    metadata: Optional[dict]
+    metadata: Optional[dict]  # type: ignore[type-arg]
     # InlineCode
     inlinecode: Optional[str]
     # Code Signing config ARN
@@ -81,7 +81,7 @@ class Function(NamedTuple):
     # Architecture Type
     architectures: Optional[List[str]]
     # The function url configuration
-    function_url_config: Optional[Dict]
+    function_url_config: Optional[Dict]  # type: ignore[type-arg]
     # The path of the stack relative to the root stack, it is empty for functions in root stack
     stack_path: str = ""
 
@@ -129,9 +129,9 @@ class Function(NamedTuple):
         if not self.architectures:
             return X86_64
 
-        arch_list = cast(list, self.architectures)
+        arch_list = cast(list, self.architectures)  # type: ignore[type-arg]
         if len(arch_list) != 1:
-            raise InvalidFunctionPropertyType(
+            raise InvalidFunctionPropertyType(  # type: ignore[no-untyped-call]
                 f"Function {self.name} property Architectures should be a list of length 1"
             )
         return str(arch_list[0])
@@ -185,7 +185,7 @@ class LayerVersion:
         arn: str,
         codeuri: Optional[str],
         compatible_runtimes: Optional[List[str]] = None,
-        metadata: Optional[Dict] = None,
+        metadata: Optional[Dict] = None,  # type: ignore[type-arg]
         compatible_architectures: Optional[List[str]] = None,
         stack_path: str = "",
     ) -> None:
@@ -245,7 +245,7 @@ class LayerVersion:
             _, layer_version = arn.rsplit(":", 1)
             return int(layer_version)
         except ValueError as ex:
-            raise InvalidLayerVersionArn(arn + " is an Invalid Layer Arn.") from ex
+            raise InvalidLayerVersionArn(arn + " is an Invalid Layer Arn.") from ex  # type: ignore[no-untyped-call]
 
     @staticmethod
     def _compute_layer_name(is_defined_within_template: bool, arn: str) -> str:
@@ -276,14 +276,14 @@ class LayerVersion:
         try:
             _, layer_name, layer_version = arn.rsplit(":", 2)
         except ValueError as ex:
-            raise InvalidLayerVersionArn(arn + " is an Invalid Layer Arn.") from ex
+            raise InvalidLayerVersionArn(arn + " is an Invalid Layer Arn.") from ex  # type: ignore[no-untyped-call]
 
         return LayerVersion.LAYER_NAME_DELIMETER.join(
             [layer_name, layer_version, hashlib.sha256(arn.encode("utf-8")).hexdigest()[0:10]]
         )
 
     @property
-    def metadata(self) -> Dict:
+    def metadata(self) -> Dict:  # type: ignore[type-arg]
         return self._metadata
 
     @property
@@ -425,7 +425,7 @@ class Api:
         self.binary_media_types_set: Set[str] = set()
 
         self.stage_name: Optional[str] = None
-        self.stage_variables: Optional[Dict] = None
+        self.stage_variables: Optional[Dict] = None  # type: ignore[type-arg]
 
     def __hash__(self) -> int:
         # Other properties are not a part of the hash
@@ -436,7 +436,7 @@ class Api:
         return list(self.binary_media_types_set)
 
 
-_CorsTuple = namedtuple("Cors", ["allow_origin", "allow_methods", "allow_headers", "allow_credentials", "max_age"])
+_CorsTuple = namedtuple("Cors", ["allow_origin", "allow_methods", "allow_headers", "allow_credentials", "max_age"])  # type: ignore[name-match]
 
 _CorsTuple.__new__.__defaults__ = (  # type: ignore
     None,  # Allow Origin defaults to None
@@ -503,20 +503,20 @@ class Stack:
     location: str
     # The parameter overrides for the stack, if there is global_parameter_overrides,
     # it is also merged into this variable.
-    parameters: Optional[Dict]
+    parameters: Optional[Dict]  # type: ignore[type-arg]
     # the raw template dict
-    template_dict: Dict
+    template_dict: Dict  # type: ignore[type-arg]
     # metadata
-    metadata: Optional[Dict] = None
+    metadata: Optional[Dict] = None  # type: ignore[type-arg]
 
     def __init__(
         self,
         parent_stack_path: str,
         name: str,
         location: str,
-        parameters: Optional[Dict],
-        template_dict: Dict,
-        metadata: Optional[Dict] = None,
+        parameters: Optional[Dict],  # type: ignore[type-arg]
+        template_dict: Dict,  # type: ignore[type-arg]
+        metadata: Optional[Dict] = None,  # type: ignore[type-arg]
     ):
         self.parent_stack_path = parent_stack_path
         self.name = name
@@ -524,8 +524,8 @@ class Stack:
         self.parameters = parameters
         self.template_dict = template_dict
         self.metadata = metadata
-        self._resources: Optional[Dict] = None
-        self._raw_resources: Optional[Dict] = None
+        self._resources: Optional[Dict] = None  # type: ignore[type-arg]
+        self._raw_resources: Optional[Dict] = None  # type: ignore[type-arg]
 
     @property
     def stack_id(self) -> str:
@@ -551,25 +551,25 @@ class Stack:
         return not self.stack_path
 
     @property
-    def resources(self) -> Dict:
+    def resources(self) -> Dict:  # type: ignore[type-arg]
         """
         Return the resources dictionary where SAM plugins have been run
         and parameter values have been substituted.
         """
         if self._resources is not None:
             return self._resources
-        processed_template_dict: Dict[str, Dict] = SamBaseProvider.get_template(self.template_dict, self.parameters)
-        self._resources = cast(Dict, processed_template_dict.get("Resources", {}))
+        processed_template_dict: Dict[str, Dict] = SamBaseProvider.get_template(self.template_dict, self.parameters)  # type: ignore[type-arg]
+        self._resources = cast(Dict, processed_template_dict.get("Resources", {}))  # type: ignore[type-arg]
         return self._resources
 
     @property
-    def raw_resources(self) -> Dict:
+    def raw_resources(self) -> Dict:  # type: ignore[type-arg]
         """
         Return the resources dictionary without running SAM Transform
         """
         if self._raw_resources is not None:
             return self._raw_resources
-        self._raw_resources = cast(Dict, self.template_dict.get("Resources", {}))
+        self._raw_resources = cast(Dict, self.template_dict.get("Resources", {}))  # type: ignore[type-arg]
         return self._raw_resources
 
     def get_output_template_path(self, build_root: str) -> str:
@@ -752,7 +752,7 @@ def get_resource_by_id(
         if stack.stack_path == identifier.stack_path or search_all_stacks:
             found_resource = None
             for logical_id, resource in stack.resources.items():
-                resource_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)
+                resource_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)  # type: ignore[no-untyped-call]
                 if resource_id == identifier.resource_iac_id or (
                     not identifier.stack_path and logical_id == identifier.resource_iac_id
                 ):
@@ -783,7 +783,7 @@ def get_resource_full_path_by_id(stacks: List[Stack], identifier: ResourceIdenti
         if identifier.stack_path and identifier.stack_path != stack.stack_path:
             continue
         for logical_id, resource in stack.resources.items():
-            resource_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)
+            resource_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)  # type: ignore[no-untyped-call]
             if resource_id == identifier.resource_iac_id or (
                 not identifier.stack_path and logical_id == identifier.resource_iac_id
             ):
@@ -809,7 +809,7 @@ def get_resource_ids_by_type(stacks: List[Stack], resource_type: str) -> List[Re
     resource_ids: List[ResourceIdentifier] = list()
     for stack in stacks:
         for logical_id, resource in stack.resources.items():
-            resource_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)
+            resource_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)  # type: ignore[no-untyped-call]
             if resource.get("Type", "") == resource_type:
                 resource_ids.append(ResourceIdentifier(get_full_path(stack.stack_path, resource_id)))
     return resource_ids
@@ -831,7 +831,7 @@ def get_all_resource_ids(stacks: List[Stack]) -> List[ResourceIdentifier]:
     resource_ids: List[ResourceIdentifier] = list()
     for stack in stacks:
         for logical_id, resource in stack.resources.items():
-            resource_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)
+            resource_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)  # type: ignore[no-untyped-call]
             resource_ids.append(ResourceIdentifier(get_full_path(stack.stack_path, resource_id)))
     return resource_ids
 

@@ -7,7 +7,7 @@ from samcli.lib.init import generate_project
 from samcli.lib.init.exceptions import InitErrorException
 
 
-def do_generate(
+def do_generate(  # type: ignore[no-untyped-def]
     location,
     package_type,
     runtime,
@@ -19,7 +19,7 @@ def do_generate(
     tracing,
 ):
     try:
-        generate_project(
+        generate_project(  # type: ignore[no-untyped-call]
             location,
             package_type,
             runtime,
@@ -31,4 +31,4 @@ def do_generate(
             tracing,
         )
     except InitErrorException as e:
-        raise UserException(str(e), wrapped_from=e.__class__.__name__) from e
+        raise UserException(str(e), wrapped_from=e.__class__.__name__) from e  # type: ignore[no-untyped-call]

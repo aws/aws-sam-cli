@@ -6,7 +6,7 @@ import functools
 import shutil
 import logging
 
-from cookiecutter import repository
+from cookiecutter import repository  # type: ignore[import]
 from cookiecutter import exceptions
 from cookiecutter import config
 
@@ -27,7 +27,7 @@ BAD_LOCATION_ERROR_MSG = (
 )
 
 
-def generate_non_cookiecutter_project(location, output_dir):
+def generate_non_cookiecutter_project(location, output_dir):  # type: ignore[no-untyped-def]
     """
     Uses Cookiecutter APIs to download a project at given ``location`` to the ``output_dir``.
     This does *not* run cookiecutter on the downloaded project.
@@ -75,16 +75,16 @@ def generate_non_cookiecutter_project(location, output_dir):
         download_fn = functools.partial(repository.clone, repo_url=location, no_input=no_input)
 
     else:
-        raise ArbitraryProjectDownloadFailed(msg=BAD_LOCATION_ERROR_MSG)
+        raise ArbitraryProjectDownloadFailed(msg=BAD_LOCATION_ERROR_MSG)  # type: ignore[no-untyped-call]
 
     try:
-        return _download_and_copy(download_fn, output_dir)
+        return _download_and_copy(download_fn, output_dir)  # type: ignore[no-untyped-call]
     except exceptions.RepositoryNotFound as ex:
         # Download failed because the zip or the repository was not found
-        raise ArbitraryProjectDownloadFailed(msg=BAD_LOCATION_ERROR_MSG) from ex
+        raise ArbitraryProjectDownloadFailed(msg=BAD_LOCATION_ERROR_MSG) from ex  # type: ignore[no-untyped-call]
 
 
-def _download_and_copy(download_fn, output_dir):
+def _download_and_copy(download_fn, output_dir):  # type: ignore[no-untyped-def]
     """
     Runs the download function to download files into a temporary directory and then copy the files over to
     the ``output_dir``
@@ -105,6 +105,6 @@ def _download_and_copy(download_fn, output_dir):
 
     with osutils.mkdir_temp(ignore_errors=True) as tempdir:
         downloaded_dir = download_fn(clone_to_dir=tempdir)
-        osutils.copytree(downloaded_dir, output_dir, ignore=shutil.ignore_patterns("*.git"))
+        osutils.copytree(downloaded_dir, output_dir, ignore=shutil.ignore_patterns("*.git"))  # type: ignore[no-untyped-call]
 
     return output_dir

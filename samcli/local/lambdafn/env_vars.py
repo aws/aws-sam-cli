@@ -33,7 +33,7 @@ class EnvironmentVariables:
     _BLANK_VALUE = ""
     _DEFAULT_AWS_CREDS = {"region": "us-east-1", "key": "defaultkey", "secret": "defaultsecret"}
 
-    def __init__(
+    def __init__(  # type: ignore[no-untyped-def]
         self,
         function_name=None,
         function_memory=None,
@@ -75,7 +75,7 @@ class EnvironmentVariables:
         self.override_values = override_values or {}
         self.aws_creds = aws_creds or {}
 
-    def resolve(self):
+    def resolve(self):  # type: ignore[no-untyped-def]
         """
         Resolves the values from different sources and returns a dict of environment variables to use when running
         the function locally.
@@ -85,7 +85,7 @@ class EnvironmentVariables:
         """
 
         # AWS_* variables must always be passed to the function, but user has the choice to override them
-        result = self._get_aws_variables()
+        result = self._get_aws_variables()  # type: ignore[no-untyped-call]
 
         # Default value for the variable gets lowest priority
         for name, value in self.variables.items():
@@ -100,49 +100,49 @@ class EnvironmentVariables:
 
             # Any value must be a string when passed to Lambda runtime.
             # Runtime expects a Map<String, String> for environment variables
-            result[name] = self._stringify_value(value)
+            result[name] = self._stringify_value(value)  # type: ignore[no-untyped-call]
 
         return result
 
-    def add_lambda_event_body(self, value):
+    def add_lambda_event_body(self, value):  # type: ignore[no-untyped-def]
         """
         Adds the value of AWS_LAMBDA_EVENT_BODY environment variable.
         """
         self.variables["AWS_LAMBDA_EVENT_BODY"] = value
 
     @property
-    def timeout(self):
+    def timeout(self):  # type: ignore[no-untyped-def]
         return self._function["timeout"]
 
     @timeout.setter
-    def timeout(self, value):
+    def timeout(self, value):  # type: ignore[no-untyped-def]
         self._function["timeout"] = value
 
     @property
-    def memory(self):
+    def memory(self):  # type: ignore[no-untyped-def]
         return self._function["memory"]
 
     @memory.setter
-    def memory(self, value):
+    def memory(self, value):  # type: ignore[no-untyped-def]
         self._function["memory"] = value
 
     @property
-    def handler(self):
+    def handler(self):  # type: ignore[no-untyped-def]
         return self._function["handler"]
 
     @handler.setter
-    def handler(self, value):
+    def handler(self, value):  # type: ignore[no-untyped-def]
         self._function["handler"] = value
 
     @property
-    def name(self):
+    def name(self):  # type: ignore[no-untyped-def]
         return self._function["name"]
 
     @name.setter
-    def name(self, value):
+    def name(self, value):  # type: ignore[no-untyped-def]
         self._function["name"] = value
 
-    def _get_aws_variables(self):
+    def _get_aws_variables(self):  # type: ignore[no-untyped-def]
         """
         Returns the AWS specific environment variables that should be available in the Lambda runtime.
         They are prefixed it "AWS_*".
@@ -175,7 +175,7 @@ class EnvironmentVariables:
 
         return result
 
-    def _stringify_value(self, value):
+    def _stringify_value(self, value):  # type: ignore[no-untyped-def]
         """
         This method stringifies values of environment variables. If the value of the method is a list or dictionary,
         then this method will replace it with empty string. Values of environment variables in Lambda must be a string.
@@ -199,14 +199,14 @@ class EnvironmentVariables:
         # do not stringify unicode in Py2, Py3 str supports unicode
         elif sys.version_info.major > 2:
             result = str(value)
-        elif not isinstance(value, unicode):  # noqa: F821 pylint: disable=undefined-variable
+        elif not isinstance(value, unicode):  # type: ignore[name-defined] # noqa: F821 pylint: disable=undefined-variable
             result = str(value)
         else:
             result = value
 
         return result
 
-    def __eq__(self, other):
+    def __eq__(self, other):  # type: ignore[no-untyped-def]
         if not isinstance(other, EnvironmentVariables):
             return False
-        return self.resolve() == other.resolve()
+        return self.resolve() == other.resolve()  # type: ignore[no-untyped-call]

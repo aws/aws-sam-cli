@@ -22,7 +22,7 @@ class XRayTracingTemplateModifier(TemplateModifier):
         "https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst\n"
     )
 
-    def _add_new_field_to_template(self):
+    def _add_new_field_to_template(self):  # type: ignore[no-untyped-def]
         """
         Add new field to SAM template
         """
@@ -34,9 +34,9 @@ class XRayTracingTemplateModifier(TemplateModifier):
             )
             self._add_tracing_section(global_section_position, self.API, self.FIELD_NAME_API_TRACING, self.TRACING_API)
         else:
-            self._add_tracing_with_globals()
+            self._add_tracing_with_globals()  # type: ignore[no-untyped-call]
 
-    def _add_tracing_with_globals(self):
+    def _add_tracing_with_globals(self):  # type: ignore[no-untyped-def]
         """Adds Globals and tracing fields"""
         resource_section_position = self._section_position(self.RESOURCE)
         globals_section_data = [
@@ -52,7 +52,7 @@ class XRayTracingTemplateModifier(TemplateModifier):
             self.template[:resource_section_position] + globals_section_data + self.template[resource_section_position:]
         )
 
-    def _add_tracing_section(
+    def _add_tracing_section(  # type: ignore[no-untyped-def]
         self,
         global_section_position: int,
         parent_section: str,
@@ -84,7 +84,7 @@ class XRayTracingTemplateModifier(TemplateModifier):
         else:
             self.template = self._add_fields_to_section(global_section_position, [parent_section, tracing_field])
 
-    def _print_sanity_check_error(self):
+    def _print_sanity_check_error(self):  # type: ignore[no-untyped-def]
         link = (
             "https://docs.aws.amazon.com/serverless-application-model/latest"
             "/developerguide/sam-resource-function.html#sam-function-tracing"

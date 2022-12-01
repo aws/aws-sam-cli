@@ -11,7 +11,7 @@ from samcli.local.common.runtime_template import INIT_RUNTIMES, is_custom_runtim
 LOG = logging.getLogger(__name__)
 
 
-def get_sorted_runtimes(runtime_option_list):
+def get_sorted_runtimes(runtime_option_list):  # type: ignore[no-untyped-def]
     """
     Return a list of sorted runtimes in ascending order of runtime names and
     descending order of runtime version.
@@ -26,11 +26,11 @@ def get_sorted_runtimes(runtime_option_list):
     list
         sorted list of possible runtime to be selected
     """
-    supported_runtime_list = get_supported_runtime(runtime_option_list)
+    supported_runtime_list = get_supported_runtime(runtime_option_list)  # type: ignore[no-untyped-call]
     return sorted(supported_runtime_list, key=functools.cmp_to_key(compare_runtimes))
 
 
-def get_supported_runtime(runtime_list):
+def get_supported_runtime(runtime_list):  # type: ignore[no-untyped-def]
     """
     Returns a list of only runtimes supported by the current version of SAMCLI.
     This is the list that is presented to the customer to select from.
@@ -48,7 +48,7 @@ def get_supported_runtime(runtime_list):
     supported_runtime_list = []
     error_message = ""
     for runtime in runtime_list:
-        if runtime not in INIT_RUNTIMES and not is_custom_runtime(runtime):
+        if runtime not in INIT_RUNTIMES and not is_custom_runtime(runtime):  # type: ignore[no-untyped-call]
             if not error_message:
                 error_message = "Additional runtimes may be available in the latest SAM CLI version. \
                     Upgrade your SAM CLI to see the full list."
@@ -59,7 +59,7 @@ def get_supported_runtime(runtime_list):
     return supported_runtime_list
 
 
-def compare_runtimes(first_runtime, second_runtime):
+def compare_runtimes(first_runtime, second_runtime):  # type: ignore[no-untyped-def]
     """
     Logic to compare supported runtime for sorting.
 
@@ -76,8 +76,8 @@ def compare_runtimes(first_runtime, second_runtime):
         comparison result
     """
 
-    first_runtime_name, first_version_number = _split_runtime(first_runtime)
-    second_runtime_name, second_version_number = _split_runtime(second_runtime)
+    first_runtime_name, first_version_number = _split_runtime(first_runtime)  # type: ignore[no-untyped-call]
+    second_runtime_name, second_version_number = _split_runtime(second_runtime)  # type: ignore[no-untyped-call]
 
     if first_runtime_name == second_runtime_name:
         if first_version_number == second_version_number:
@@ -88,7 +88,7 @@ def compare_runtimes(first_runtime, second_runtime):
     return 1 if first_runtime_name > second_runtime_name else -1
 
 
-def _split_runtime(runtime):
+def _split_runtime(runtime):  # type: ignore[no-untyped-def]
     """
     Split a runtime into its name and version number.
 
@@ -102,10 +102,10 @@ def _split_runtime(runtime):
     (str, float)
         Tuple of runtime name and runtime version
     """
-    return (_get_runtime_name(runtime), _get_version_number(runtime))
+    return (_get_runtime_name(runtime), _get_version_number(runtime))  # type: ignore[no-untyped-call, no-untyped-call]
 
 
-def _get_runtime_name(runtime):
+def _get_runtime_name(runtime):  # type: ignore[no-untyped-def]
     """
     Return the runtime name without the version
 
@@ -122,7 +122,7 @@ def _get_runtime_name(runtime):
     return re.split(r"\d", runtime)[0]
 
 
-def _get_version_number(runtime):
+def _get_version_number(runtime):  # type: ignore[no-untyped-def]
     """
     Return the runtime version number
 
@@ -137,16 +137,16 @@ def _get_version_number(runtime):
         Runtime version number
     """
 
-    if is_custom_runtime(runtime):
+    if is_custom_runtime(runtime):  # type: ignore[no-untyped-call]
         return 1.0
-    return float(re.search(r"\d+(\.\d+)?", runtime).group())
+    return float(re.search(r"\d+(\.\d+)?", runtime).group())  # type: ignore[union-attr]
 
 
-def _get_templates_with_dependency_manager(templates_options, dependency_manager):
+def _get_templates_with_dependency_manager(templates_options, dependency_manager):  # type: ignore[no-untyped-def]
     return [t for t in templates_options if t.get("dependencyManager") == dependency_manager]
 
 
-def _get_runtime_from_image(image):
+def _get_runtime_from_image(image):  # type: ignore[no-untyped-def]
     """
     Get corresponding runtime from the base-image parameter
     """
@@ -154,14 +154,14 @@ def _get_runtime_from_image(image):
     return runtime
 
 
-def _get_image_from_runtime(runtime):
+def _get_image_from_runtime(runtime):  # type: ignore[no-untyped-def]
     """
     Get corresponding base-image from the runtime parameter
     """
     return LAMBDA_IMAGES_RUNTIMES_MAP[runtime]
 
 
-def get_architectures(architecture):
+def get_architectures(architecture):  # type: ignore[no-untyped-def]
     """
     Returns list of architecture value based on the init input value
     """

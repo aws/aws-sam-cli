@@ -15,10 +15,10 @@ class CodeSigningInitiationException(UserException):
     Raised when code signing job initiation fails
     """
 
-    def __init__(self, msg):
+    def __init__(self, msg):  # type: ignore[no-untyped-def]
         self.msg = msg
         message_fmt = f"Failed to initiate signing job: {msg}"
-        super().__init__(message=message_fmt)
+        super().__init__(message=message_fmt)  # type: ignore[no-untyped-call]
 
 
 class CodeSigningJobFailureException(UserException):
@@ -26,10 +26,10 @@ class CodeSigningJobFailureException(UserException):
     Raised when code signing job is not completed successfully
     """
 
-    def __init__(self, msg):
+    def __init__(self, msg):  # type: ignore[no-untyped-def]
         self.msg = msg
         message_fmt = f"Failed to sign package: {msg}"
-        super().__init__(message=message_fmt)
+        super().__init__(message=message_fmt)  # type: ignore[no-untyped-call]
 
 
 class CodeSigner:
@@ -37,11 +37,11 @@ class CodeSigner:
     Class to sign functions/layers with their signing config
     """
 
-    def __init__(self, signer_client, signing_profiles):
+    def __init__(self, signer_client, signing_profiles):  # type: ignore[no-untyped-def]
         self.signer_client = signer_client
         self.signing_profiles = signing_profiles
 
-    def should_sign_package(self, resource_id):
+    def should_sign_package(self, resource_id):  # type: ignore[no-untyped-def]
         """
         Checks whether given resource has code sign config,
         True: if resource has code sign config
@@ -49,7 +49,7 @@ class CodeSigner:
         """
         return bool(self.signing_profiles and resource_id in self.signing_profiles)
 
-    def sign_package(self, resource_id, s3_url, s3_version):
+    def sign_package(self, resource_id, s3_url, s3_version):  # type: ignore[no-untyped-def]
         """
         Signs artifact which is named with resource_id, its location is s3_url
         and its s3 object version is s3_version
@@ -76,16 +76,16 @@ class CodeSigner:
         )
 
         # initiate and wait for signing job to finish
-        code_sign_job_id = self._initiate_code_signing(
+        code_sign_job_id = self._initiate_code_signing(  # type: ignore[no-untyped-call]
             profile_name, profile_owner, s3_bucket, s3_key, s3_target_prefix, s3_version
         )
-        self._wait_for_signing_job_to_complete(code_sign_job_id)
+        self._wait_for_signing_job_to_complete(code_sign_job_id)  # type: ignore[no-untyped-call]
 
         try:
             code_sign_job_result = self.signer_client.describe_signing_job(jobId=code_sign_job_id)
         except Exception as e:
             LOG.error("Checking the result of the code signing job failed %s", code_sign_job_id, exc_info=e)
-            raise CodeSigningJobFailureException(f"Signing job has failed status {code_sign_job_id}") from e
+            raise CodeSigningJobFailureException(f"Signing job has failed status {code_sign_job_id}") from e  # type: ignore[no-untyped-call]
 
         # check if code sign job result status is Succeeded, fail otherwise
         if code_sign_job_result and code_sign_job_result.get("status") == "Succeeded":
@@ -99,9 +99,9 @@ class CodeSigner:
             return f"s3://{s3_bucket}/{signed_package_location}"
 
         LOG.error("Failed to sign the package, result: %s", code_sign_job_result)
-        raise CodeSigningJobFailureException(f"Signing job not succeeded {code_sign_job_id}")
+        raise CodeSigningJobFailureException(f"Signing job not succeeded {code_sign_job_id}")  # type: ignore[no-untyped-call]
 
-    def _wait_for_signing_job_to_complete(self, code_sign_job_id):
+    def _wait_for_signing_job_to_complete(self, code_sign_job_id):  # type: ignore[no-untyped-def]
         """
         Creates a waiter object to wait signing job to complete
         Checks job status for every 5 second
@@ -111,9 +111,9 @@ class CodeSigner:
             waiter.wait(jobId=code_sign_job_id, WaiterConfig={"Delay": 5})
         except Exception as e:
             LOG.error("Checking status of code signing job failed %s", code_sign_job_id, exc_info=e)
-            raise CodeSigningJobFailureException(f"Signing job failed {code_sign_job_id}") from e
+            raise CodeSigningJobFailureException(f"Signing job failed {code_sign_job_id}") from e  # type: ignore[no-untyped-call]
 
-    def _initiate_code_signing(self, profile_name, profile_owner, s3_bucket, s3_key, s3_target_prefix, s3_version):
+    def _initiate_code_signing(self, profile_name, profile_owner, s3_bucket, s3_key, s3_target_prefix, s3_version):  # type: ignore[no-untyped-def]
         """
         Initiates code signing job and returns the initiated jobId
         Raises exception if initiation fails
@@ -142,5 +142,5 @@ class CodeSigner:
             code_sign_job_id = signing_job_id
         except Exception as e:
             LOG.error("Initiating job signing job has failed", exc_info=e)
-            raise CodeSigningInitiationException("Initiating job signing job has failed") from e
+            raise CodeSigningInitiationException("Initiating job signing job has failed") from e  # type: ignore[no-untyped-call]
         return code_sign_job_id

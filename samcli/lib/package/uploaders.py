@@ -34,9 +34,9 @@ class Uploaders:
         raise ValueError(f"destination has invalid value: {destination}")
 
     @property
-    def s3(self):
+    def s3(self):  # type: ignore[no-untyped-def]
         return self._s3_uploader
 
     @property
-    def ecr(self):
+    def ecr(self):  # type: ignore[no-untyped-def]
         return self._ecr_uploader

@@ -7,8 +7,8 @@ from samcli.lib.utils.colors import Colored
 
 
 class DeployColor:
-    def __init__(self):
-        self._color = Colored()
+    def __init__(self):  # type: ignore[no-untyped-def]
+        self._color = Colored()  # type: ignore[no-untyped-call]
         self.changeset_color_map = {"Add": "green", "Modify": "yellow", "Remove": "red"}
         self.status_color_map = {
             "CREATE_COMPLETE": "green",
@@ -28,10 +28,10 @@ class DeployColor:
             "UPDATE_ROLLBACK_IN_PROGRESS": "red",
         }
 
-    def get_stack_events_status_color(self, status):
+    def get_stack_events_status_color(self, status):  # type: ignore[no-untyped-def]
         return self.status_color_map.get(status, "yellow")
 
-    def get_changeset_action_color(self, action):
+    def get_changeset_action_color(self, action):  # type: ignore[no-untyped-def]
         return self.changeset_color_map.get(action, "yellow")
 
 
@@ -40,5 +40,5 @@ class FailureMode(Enum):
     DELETE = "DELETE"
     DO_NOTHING = "DO_NOTHING"
 
-    def __str__(self):
+    def __str__(self):  # type: ignore[no-untyped-def]
         return self.value

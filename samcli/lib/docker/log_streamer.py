@@ -4,7 +4,7 @@ Log streaming utilities when streaming logs from Docker
 import os
 from typing import Dict
 
-import docker
+import docker  # type: ignore[import]
 
 from samcli.lib.package.stream_cursor_utils import (
     CursorUpFormatter,
@@ -23,12 +23,12 @@ class LogStreamError(Exception):
 class LogStreamer:
     def __init__(self, stream: StreamWriter):
         self._stream = stream
-        self._cursor_up_formatter = CursorUpFormatter()
-        self._cursor_down_formatter = CursorDownFormatter()
-        self._cursor_left_formatter = CursorLeftFormatter()
-        self._cursor_clear_formatter = ClearLineFormatter()
+        self._cursor_up_formatter = CursorUpFormatter()  # type: ignore[no-untyped-call]
+        self._cursor_down_formatter = CursorDownFormatter()  # type: ignore[no-untyped-call]
+        self._cursor_left_formatter = CursorLeftFormatter()  # type: ignore[no-untyped-call]
+        self._cursor_clear_formatter = ClearLineFormatter()  # type: ignore[no-untyped-call]
 
-    def stream_progress(self, logs: docker.APIClient.logs):
+    def stream_progress(self, logs: docker.APIClient.logs):  # type: ignore[no-untyped-def]
         """
         Stream progress from docker push logs and move the cursor based on the log id.
         :param logs: generator from docker_clent.APIClient.logs
@@ -47,23 +47,23 @@ class LogStreamer:
                 else:
                     curr_log_line_id = ids[_id]
                     change_cursor_count = len(ids) - curr_log_line_id
-                    self._stream.write(
-                        self._cursor_up_formatter.cursor_format(change_cursor_count)
-                        + self._cursor_left_formatter.cursor_format(),
+                    self._stream.write(  # type: ignore[no-untyped-call]
+                        self._cursor_up_formatter.cursor_format(change_cursor_count)  # type: ignore[no-untyped-call]
+                        + self._cursor_left_formatter.cursor_format(),  # type: ignore[no-untyped-call]
                         encode=True,
                     )
 
             self._stream_write(_id, status, stream, progress, error)
 
             if _id:
-                self._stream.write(
-                    self._cursor_down_formatter.cursor_format(change_cursor_count)
-                    + self._cursor_left_formatter.cursor_format(),
+                self._stream.write(  # type: ignore[no-untyped-call]
+                    self._cursor_down_formatter.cursor_format(change_cursor_count)  # type: ignore[no-untyped-call]
+                    + self._cursor_left_formatter.cursor_format(),  # type: ignore[no-untyped-call]
                     encode=True,
                 )
-        self._stream.write(os.linesep, encode=True)
+        self._stream.write(os.linesep, encode=True)  # type: ignore[no-untyped-call]
 
-    def _stream_write(self, _id: str, status: str, stream: bytes, progress: str, error: str):
+    def _stream_write(self, _id: str, status: str, stream: bytes, progress: str, error: str):  # type: ignore[no-untyped-def]
         """
         Write stream information to stderr, if the stream information contains a log id,
         use the carriage return character to rewrite that particular line.
@@ -80,14 +80,14 @@ class LogStreamer:
 
         # NOTE(sriram-mv): Required for the purposes of when the cursor overflows existing terminal buffer.
         if not stream:
-            self._stream.write(os.linesep, encode=True)
-            self._stream.write(
-                self._cursor_up_formatter.cursor_format() + self._cursor_left_formatter.cursor_format(), encode=True
+            self._stream.write(os.linesep, encode=True)  # type: ignore[no-untyped-call]
+            self._stream.write(  # type: ignore[no-untyped-call]
+                self._cursor_up_formatter.cursor_format() + self._cursor_left_formatter.cursor_format(), encode=True  # type: ignore[no-untyped-call]
             )
-            self._stream.write(self._cursor_clear_formatter.cursor_format(), encode=True)
+            self._stream.write(self._cursor_clear_formatter.cursor_format(), encode=True)  # type: ignore[no-untyped-call, no-untyped-call]
 
         if not _id:
-            self._stream.write(stream, encode=True)
-            self._stream.write(status, encode=True)
+            self._stream.write(stream, encode=True)  # type: ignore[no-untyped-call]
+            self._stream.write(status, encode=True)  # type: ignore[no-untyped-call]
         else:
-            self._stream.write(f"\r{_id}: {status} {progress}", encode=True)
+            self._stream.write(f"\r{_id}: {status} {progress}", encode=True)  # type: ignore[no-untyped-call]

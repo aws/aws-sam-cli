@@ -327,7 +327,7 @@ class SimpleSectionItem(SectionItem):
 
 
 # pylint: disable=R0901
-class DictSectionItem(SectionItem, MutableMapping):
+class DictSectionItem(SectionItem, MutableMapping):  # type: ignore[type-arg]
     def __init__(
         self,
         key: Optional[str] = None,
@@ -393,7 +393,7 @@ class DictSectionItem(SectionItem, MutableMapping):
     def __len__(self) -> int:
         return len(self._body)
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator:  # type: ignore[type-arg]
         return iter(self._body)
 
     def __bool__(self) -> bool:
@@ -427,7 +427,7 @@ class SimpleSection(Section):
 
 
 # pylint: disable=R0901
-class DictSection(Section, MutableMapping):
+class DictSection(Section, MutableMapping):  # type: ignore[type-arg]
     def __init__(self, section_name: Optional[str] = None, items: Optional[List[SectionItem]] = None):
         self._items_dict = OrderedDict()
         if items:
@@ -469,7 +469,7 @@ class DictSection(Section, MutableMapping):
     def __len__(self) -> int:
         return len(self._items_dict)
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator:  # type: ignore[type-arg]
         return iter(self._items_dict)
 
     def __bool__(self) -> bool:
@@ -535,7 +535,7 @@ class Parameter(DictSectionItem):
 
 
 # pylint: disable=R0901
-class Stack(MutableMapping):
+class Stack(MutableMapping):  # type: ignore[type-arg]
     """
     Represents IaC Stack
     """
@@ -639,13 +639,13 @@ class Stack(MutableMapping):
         }
         return any(isinstance(asset, package_type_to_asset_cls_map[package_type]) for asset in self.assets)
 
-    def get_overrideable_parameters(self) -> Dict:
+    def get_overrideable_parameters(self) -> Dict:  # type: ignore[type-arg]
         """
         Return a dict of parameters that are override-able, i.e. not added by iac
         """
         return {key: val for key, val in self.get("Parameters", {}).items() if not val.added_by_iac}
 
-    def as_dict(self) -> Union[MutableMapping, Mapping]:
+    def as_dict(self) -> Union[MutableMapping, Mapping]:  # type: ignore[type-arg, type-arg]
         """
         return the stack as a dict for JSON serialization
         """
@@ -674,7 +674,7 @@ class Stack(MutableMapping):
     def __len__(self) -> int:
         return len(self._sections)
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator:  # type: ignore[type-arg]
         return iter(self._sections)
 
     def __bool__(self) -> bool:
@@ -841,7 +841,7 @@ class IaCPluginInterface(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
 
-def _make_dict(obj: Union[MutableMapping, Mapping]) -> Union[MutableMapping, Mapping]:
+def _make_dict(obj: Union[MutableMapping, Mapping]) -> Union[MutableMapping, Mapping]:  # type: ignore[type-arg, type-arg]
     if not isinstance(obj, MutableMapping):
         return obj
     to_return = dict()

@@ -11,7 +11,7 @@ from samcli.lib.utils.hash import file_checksum
 
 
 @contextmanager
-def mktempfile():
+def mktempfile():  # type: ignore[no-untyped-def]
     directory = tempfile.gettempdir()
     filename = os.path.join(directory, uuid.uuid4().hex)
 

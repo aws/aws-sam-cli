@@ -50,7 +50,7 @@ class SamBaseProvider:
         """
         raise NotImplementedError("not implemented")
 
-    def get_all(self) -> Iterable:
+    def get_all(self) -> Iterable:  # type: ignore[type-arg]
         """
         Yields all the Lambda functions available in the provider.
 
@@ -59,7 +59,7 @@ class SamBaseProvider:
         raise NotImplementedError("not implemented")
 
     @staticmethod
-    def _extract_codeuri(resource_properties: Dict, code_property_key: str) -> str:
+    def _extract_codeuri(resource_properties: Dict, code_property_key: str) -> str:  # type: ignore[type-arg]
         """
         Extracts the Function/Layer code path from the Resource Properties
 
@@ -83,7 +83,7 @@ class SamBaseProvider:
         return cast(str, codeuri)
 
     @staticmethod
-    def _is_s3_location(location: Optional[Union[str, Dict]]) -> bool:
+    def _is_s3_location(location: Optional[Union[str, Dict]]) -> bool:  # type: ignore[type-arg]
         """
         the input could be:
         - CodeUri of Serverless::Function
@@ -96,7 +96,7 @@ class SamBaseProvider:
         )
 
     @staticmethod
-    def _is_ecr_uri(location: Optional[Union[str, Dict]]) -> bool:
+    def _is_ecr_uri(location: Optional[Union[str, Dict]]) -> bool:  # type: ignore[type-arg]
         """
         the input could be:
         - ImageUri of Serverless::Function
@@ -127,7 +127,7 @@ class SamBaseProvider:
         )
 
     @staticmethod
-    def _extract_lambda_function_imageuri(resource_properties: Dict, code_property_key: str) -> Optional[str]:
+    def _extract_lambda_function_imageuri(resource_properties: Dict, code_property_key: str) -> Optional[str]:  # type: ignore[type-arg]
         """
         Extracts the Lambda Function ImageUri from the Resource Properties
 
@@ -146,7 +146,7 @@ class SamBaseProvider:
         return cast(Optional[str], resource_properties.get(code_property_key, dict()).get("ImageUri", None))
 
     @staticmethod
-    def _extract_sam_function_imageuri(resource_properties: Dict, code_property_key: str) -> Optional[str]:
+    def _extract_sam_function_imageuri(resource_properties: Dict, code_property_key: str) -> Optional[str]:  # type: ignore[type-arg]
         """
         Extracts the Serverless Function ImageUri from the Resource Properties
 
@@ -165,7 +165,7 @@ class SamBaseProvider:
         return resource_properties.get(code_property_key, None)
 
     @staticmethod
-    def get_template(template_dict: Dict, parameter_overrides: Optional[Dict[str, str]] = None) -> Dict:
+    def get_template(template_dict: Dict, parameter_overrides: Optional[Dict[str, str]] = None) -> Dict:  # type: ignore[type-arg]
         """
         Given a SAM template dictionary, return a cleaned copy of the template where SAM plugins have been run
         and parameter values have been substituted.
@@ -186,14 +186,14 @@ class SamBaseProvider:
         template_dict = template_dict or {}
         parameters_values = SamBaseProvider._get_parameter_values(template_dict, parameter_overrides)
         if template_dict:
-            template_dict = SamTranslatorWrapper(template_dict, parameter_values=parameters_values).run_plugins()
-        ResourceMetadataNormalizer.normalize(template_dict)
+            template_dict = SamTranslatorWrapper(template_dict, parameter_values=parameters_values).run_plugins()  # type: ignore[no-untyped-call, no-untyped-call]
+        ResourceMetadataNormalizer.normalize(template_dict)  # type: ignore[no-untyped-call]
 
-        resolver = IntrinsicResolver(
+        resolver = IntrinsicResolver(  # type: ignore[no-untyped-call]
             template=template_dict,
-            symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=parameters_values, template=template_dict),
+            symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=parameters_values, template=template_dict),  # type: ignore[no-untyped-call]
         )
-        template_dict = resolver.resolve_template(ignore_errors=True)
+        template_dict = resolver.resolve_template(ignore_errors=True)  # type: ignore[no-untyped-call]
         return template_dict
 
     @staticmethod
@@ -225,19 +225,19 @@ class SamBaseProvider:
         template_dict = template_dict or Stack()
         parameters_values = SamBaseProvider._get_parameter_values(template_dict, parameter_overrides)
         if template_dict:
-            template_dict = SamTranslatorWrapper(template_dict, parameter_values=parameters_values).run_plugins()
+            template_dict = SamTranslatorWrapper(template_dict, parameter_values=parameters_values).run_plugins()  # type: ignore[no-untyped-call, no-untyped-call]
         if normalize_resource_metadata:
-            ResourceMetadataNormalizer.normalize(template_dict)
+            ResourceMetadataNormalizer.normalize(template_dict)  # type: ignore[no-untyped-call]
 
-        resolver = IntrinsicResolver(
+        resolver = IntrinsicResolver(  # type: ignore[no-untyped-call]
             template=template_dict,
-            symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=parameters_values, template=template_dict),
+            symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=parameters_values, template=template_dict),  # type: ignore[no-untyped-call]
         )
-        template_dict = resolver.resolve_template(ignore_errors=True)
+        template_dict = resolver.resolve_template(ignore_errors=True)  # type: ignore[no-untyped-call]
         return template_dict
 
     @staticmethod
-    def _get_parameter_values(template_dict: Any, parameter_overrides: Optional[Dict]) -> Dict:
+    def _get_parameter_values(template_dict: Any, parameter_overrides: Optional[Dict]) -> Dict:  # type: ignore[type-arg]
         """
         Construct a final list of values for CloudFormation template parameters based on user-supplied values,
         default values provided in template, and sane defaults for pseudo-parameters.
@@ -268,7 +268,7 @@ class SamBaseProvider:
         return parameter_values
 
     @staticmethod
-    def _get_default_parameter_values(sam_template: Dict) -> Dict:
+    def _get_default_parameter_values(sam_template: Dict) -> Dict:  # type: ignore[type-arg]
         """
         Method to read default values for template parameters and return it
         Example:
@@ -290,7 +290,7 @@ class SamBaseProvider:
         :return dict: Default values for parameters
         """
 
-        default_values: Dict = {}
+        default_values: Dict = {}  # type: ignore[type-arg]
 
         parameter_definition = sam_template.get("Parameters", None)
         if not parameter_definition or not isinstance(parameter_definition, dict):

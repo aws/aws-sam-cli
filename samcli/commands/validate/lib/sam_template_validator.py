@@ -6,9 +6,9 @@ import functools
 
 from boto3.session import Session
 
-from samtranslator.public.exceptions import InvalidDocumentException
-from samtranslator.parser import parser
-from samtranslator.translator.translator import Translator
+from samtranslator.public.exceptions import InvalidDocumentException  # type: ignore[import]
+from samtranslator.parser import parser  # type: ignore[import]
+from samtranslator.translator.translator import Translator  # type: ignore[import]
 
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION
@@ -19,7 +19,7 @@ LOG = logging.getLogger(__name__)
 
 
 class SamTemplateValidator:
-    def __init__(self, sam_template, managed_policy_loader, profile=None, region=None):
+    def __init__(self, sam_template, managed_policy_loader, profile=None, region=None):  # type: ignore[no-untyped-def]
         """
         Construct a SamTemplateValidator
 
@@ -45,7 +45,7 @@ class SamTemplateValidator:
         self.sam_parser = parser.Parser()
         self.boto3_session = Session(profile_name=profile, region_name=region)
 
-    def is_valid(self):
+    def is_valid(self):  # type: ignore[no-untyped-def]
         """
         Runs the SAM Translator to determine if the template provided is valid. This is similar to running a
         ChangeSet in CloudFormation for a SAM Template
@@ -64,18 +64,18 @@ class SamTemplateValidator:
             boto_session=self.boto3_session,
         )
 
-        self._replace_local_codeuri()
-        self._replace_local_image()
+        self._replace_local_codeuri()  # type: ignore[no-untyped-call]
+        self._replace_local_image()  # type: ignore[no-untyped-call]
 
         try:
             template = sam_translator.translate(sam_template=self.sam_template, parameter_values={})
-            LOG.debug("Translated template is:\n%s", yaml_dump(template))
+            LOG.debug("Translated template is:\n%s", yaml_dump(template))  # type: ignore[no-untyped-call]
         except InvalidDocumentException as e:
             raise InvalidSamDocumentException(
                 functools.reduce(lambda message, error: message + " " + str(error), e.causes, str(e))
             ) from e
 
-    def _replace_local_codeuri(self):
+    def _replace_local_codeuri(self):  # type: ignore[no-untyped-def]
         """
         Replaces the CodeUri in AWS::Serverless::Function and DefinitionUri in AWS::Serverless::Api and
         AWS::Serverless::HttpApi to a fake S3 Uri. This is to support running the SAM Translator with
@@ -96,7 +96,7 @@ class SamTemplateValidator:
                     ]
                     + [_properties.get("PackageType", ZIP) == ZIP for _, _properties in global_settings.items()]
                 ):
-                    SamTemplateValidator._update_to_s3_uri("CodeUri", properties)
+                    SamTemplateValidator._update_to_s3_uri("CodeUri", properties)  # type: ignore[no-untyped-call]
 
         for _, resource in all_resources.items():
 
@@ -105,25 +105,25 @@ class SamTemplateValidator:
 
             if resource_type == "AWS::Serverless::Function" and resource_dict.get("PackageType", ZIP) == ZIP:
 
-                SamTemplateValidator._update_to_s3_uri("CodeUri", resource_dict)
+                SamTemplateValidator._update_to_s3_uri("CodeUri", resource_dict)  # type: ignore[no-untyped-call]
 
             if resource_type == "AWS::Serverless::LayerVersion":
 
-                SamTemplateValidator._update_to_s3_uri("ContentUri", resource_dict)
+                SamTemplateValidator._update_to_s3_uri("ContentUri", resource_dict)  # type: ignore[no-untyped-call]
 
             if resource_type == "AWS::Serverless::Api":
                 if "DefinitionUri" in resource_dict:
-                    SamTemplateValidator._update_to_s3_uri("DefinitionUri", resource_dict)
+                    SamTemplateValidator._update_to_s3_uri("DefinitionUri", resource_dict)  # type: ignore[no-untyped-call]
 
             if resource_type == "AWS::Serverless::HttpApi":
                 if "DefinitionUri" in resource_dict:
-                    SamTemplateValidator._update_to_s3_uri("DefinitionUri", resource_dict)
+                    SamTemplateValidator._update_to_s3_uri("DefinitionUri", resource_dict)  # type: ignore[no-untyped-call]
 
             if resource_type == "AWS::Serverless::StateMachine":
                 if "DefinitionUri" in resource_dict:
-                    SamTemplateValidator._update_to_s3_uri("DefinitionUri", resource_dict)
+                    SamTemplateValidator._update_to_s3_uri("DefinitionUri", resource_dict)  # type: ignore[no-untyped-call]
 
-    def _replace_local_image(self):
+    def _replace_local_image(self):  # type: ignore[no-untyped-def]
         """
         Adds fake ImageUri to AWS::Serverless::Functions that reference a local image using Metadata.
         This ensures sam validate works without having to package the app or use ImageUri.
@@ -141,7 +141,7 @@ class SamTemplateValidator:
                     properties["ImageUri"] = "111111111111.dkr.ecr.region.amazonaws.com/repository"
 
     @staticmethod
-    def is_s3_uri(uri):
+    def is_s3_uri(uri):  # type: ignore[no-untyped-def]
         """
         Checks the uri and determines if it is a valid S3 Uri
 
@@ -159,7 +159,7 @@ class SamTemplateValidator:
         return isinstance(uri, str) and uri.startswith("s3://")
 
     @staticmethod
-    def _update_to_s3_uri(property_key, resource_property_dict, s3_uri_value="s3://bucket/value"):
+    def _update_to_s3_uri(property_key, resource_property_dict, s3_uri_value="s3://bucket/value"):  # type: ignore[no-untyped-def]
         """
         Updates the 'property_key' in the 'resource_property_dict' to the value of 's3_uri_value'
 
@@ -177,7 +177,7 @@ class SamTemplateValidator:
         uri_property = resource_property_dict.get(property_key, ".")
 
         # ignore if dict or already an S3 Uri
-        if isinstance(uri_property, dict) or SamTemplateValidator.is_s3_uri(uri_property):
+        if isinstance(uri_property, dict) or SamTemplateValidator.is_s3_uri(uri_property):  # type: ignore[no-untyped-call]
             return
 
         resource_property_dict[property_key] = s3_uri_value

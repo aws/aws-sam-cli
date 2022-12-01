@@ -9,7 +9,7 @@ from samcli.commands.exceptions import InvalidImageException
 LOG = logging.getLogger(__name__)
 
 
-def process_env_var(container_env_var: Optional[Tuple[str]]) -> Dict:
+def process_env_var(container_env_var: Optional[Tuple[str]]) -> Dict:  # type: ignore[type-arg]
     """
     Parameters
     ----------
@@ -23,7 +23,7 @@ def process_env_var(container_env_var: Optional[Tuple[str]]) -> Dict:
     dictionary
         Processed command line environment variables
     """
-    processed_env_vars: Dict = {}
+    processed_env_vars: Dict = {}  # type: ignore[type-arg]
 
     if container_env_var:
         for env_var in container_env_var:
@@ -48,7 +48,7 @@ def process_env_var(container_env_var: Optional[Tuple[str]]) -> Dict:
     return processed_env_vars
 
 
-def process_image_options(image_args: Optional[Tuple[str]]) -> Dict:
+def process_image_options(image_args: Optional[Tuple[str]]) -> Dict:  # type: ignore[type-arg]
     """
     Parameters
     ----------
@@ -68,7 +68,7 @@ def process_image_options(image_args: Optional[Tuple[str]]) -> Dict:
         for image_string in image_args:
             function_name, image_uri = _parse_key_value_pair(image_string)
             if not image_uri:
-                raise InvalidImageException(f"Invalid command line image input {image_string}.")
+                raise InvalidImageException(f"Invalid command line image input {image_string}.")  # type: ignore[no-untyped-call]
             images[function_name] = image_uri
 
     return images

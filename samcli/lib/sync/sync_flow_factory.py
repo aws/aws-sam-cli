@@ -126,7 +126,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
         except ClientError as ex:
             error_code = get_client_error_code(ex)
             if error_code == "ValidationError":
-                raise InvalidStackNameException(
+                raise InvalidStackNameException(  # type: ignore[no-untyped-call]
                     f"Invalid --stack-name parameter. Stack with id '{self._deploy_context.stack_name}' does not exist"
                 ) from ex
             raise ex

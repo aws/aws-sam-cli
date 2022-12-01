@@ -18,15 +18,15 @@ LOG = logging.getLogger(__name__)
 class FunctionNamePathConverter(BaseConverter):
     regex = ".+"
 
-    def to_python(self, value):
+    def to_python(self, value):  # type: ignore[no-untyped-def]
         return value
 
-    def to_url(self, value):
+    def to_url(self, value):  # type: ignore[no-untyped-def]
         return value
 
 
 class LocalLambdaInvokeService(BaseLocalService):
-    def __init__(self, lambda_runner, port, host, stderr=None):
+    def __init__(self, lambda_runner, port, host, stderr=None):  # type: ignore[no-untyped-def]
         """
         Creates a Local Lambda Service that will only response to invoking a function
 
@@ -41,11 +41,11 @@ class LocalLambdaInvokeService(BaseLocalService):
         stderr io.BaseIO
             Optional stream where the stderr from Docker container should be written to
         """
-        super().__init__(lambda_runner.is_debugging(), port=port, host=host)
+        super().__init__(lambda_runner.is_debugging(), port=port, host=host)  # type: ignore[no-untyped-call]
         self.lambda_runner = lambda_runner
         self.stderr = stderr
 
-    def create(self):
+    def create(self):  # type: ignore[no-untyped-def]
         """
         Creates a Flask Application that can be started.
         """
@@ -66,10 +66,10 @@ class LocalLambdaInvokeService(BaseLocalService):
         # setup request validation before Flask calls the view_func
         self._app.before_request(LocalLambdaInvokeService.validate_request)
 
-        self._construct_error_handling()
+        self._construct_error_handling()  # type: ignore[no-untyped-call]
 
     @staticmethod
-    def validate_request():
+    def validate_request():  # type: ignore[no-untyped-def]
         """
         Validates the incoming request
 
@@ -94,48 +94,48 @@ class LocalLambdaInvokeService(BaseLocalService):
         if not request_data:
             request_data = b"{}"
 
-        request_data = request_data.decode("utf-8")
+        request_data = request_data.decode("utf-8")  # type: ignore[assignment]
 
         try:
             json.loads(request_data)
         except ValueError as json_error:
             LOG.debug("Request body was not json. Exception: %s", str(json_error))
-            return LambdaErrorResponses.invalid_request_content(
+            return LambdaErrorResponses.invalid_request_content(  # type: ignore[no-untyped-call]
                 "Could not parse request body into json: No JSON object could be decoded"
             )
 
         if flask_request.args:
             LOG.debug("Query parameters are in the request but not supported")
-            return LambdaErrorResponses.invalid_request_content("Query Parameters are not supported")
+            return LambdaErrorResponses.invalid_request_content("Query Parameters are not supported")  # type: ignore[no-untyped-call]
 
         request_headers = flask_request.headers
 
         log_type = request_headers.get("X-Amz-Log-Type", "None")
         if log_type != "None":
             LOG.debug("log-type: %s is not supported. None is only supported.", log_type)
-            return LambdaErrorResponses.not_implemented_locally(
+            return LambdaErrorResponses.not_implemented_locally(  # type: ignore[no-untyped-call]
                 "log-type: {} is not supported. None is only supported.".format(log_type)
             )
 
         invocation_type = request_headers.get("X-Amz-Invocation-Type", "RequestResponse")
         if invocation_type != "RequestResponse":
             LOG.warning("invocation-type: %s is not supported. RequestResponse is only supported.", invocation_type)
-            return LambdaErrorResponses.not_implemented_locally(
+            return LambdaErrorResponses.not_implemented_locally(  # type: ignore[no-untyped-call]
                 "invocation-type: {} is not supported. RequestResponse is only supported.".format(invocation_type)
             )
 
         return None
 
-    def _construct_error_handling(self):
+    def _construct_error_handling(self):  # type: ignore[no-untyped-def]
         """
         Updates the Flask app with Error Handlers for different Error Codes
 
         """
-        self._app.register_error_handler(500, LambdaErrorResponses.generic_service_exception)
-        self._app.register_error_handler(404, LambdaErrorResponses.generic_path_not_found)
-        self._app.register_error_handler(405, LambdaErrorResponses.generic_method_not_allowed)
+        self._app.register_error_handler(500, LambdaErrorResponses.generic_service_exception)  # type: ignore[union-attr]
+        self._app.register_error_handler(404, LambdaErrorResponses.generic_path_not_found)  # type: ignore[union-attr]
+        self._app.register_error_handler(405, LambdaErrorResponses.generic_method_not_allowed)  # type: ignore[union-attr]
 
-    def _invoke_request_handler(self, function_name):
+    def _invoke_request_handler(self, function_name):  # type: ignore[no-untyped-def]
         """
         Request Handler for the Local Lambda Invoke path. This method is responsible for understanding the incoming
         request and invoking the Local Lambda Function
@@ -156,18 +156,18 @@ class LocalLambdaInvokeService(BaseLocalService):
         if not request_data:
             request_data = b"{}"
 
-        request_data = request_data.decode("utf-8")
+        request_data = request_data.decode("utf-8")  # type: ignore[assignment]
 
         stdout_stream = io.BytesIO()
-        stdout_stream_writer = StreamWriter(stdout_stream, auto_flush=True)
+        stdout_stream_writer = StreamWriter(stdout_stream, auto_flush=True)  # type: ignore[no-untyped-call]
 
         try:
             self.lambda_runner.invoke(function_name, request_data, stdout=stdout_stream_writer, stderr=self.stderr)
         except FunctionNotFound:
             LOG.debug("%s was not found to invoke.", function_name)
-            return LambdaErrorResponses.resource_not_found(function_name)
+            return LambdaErrorResponses.resource_not_found(function_name)  # type: ignore[no-untyped-call]
 
-        lambda_response, lambda_logs, is_lambda_user_error_response = LambdaOutputParser.get_lambda_output(
+        lambda_response, lambda_logs, is_lambda_user_error_response = LambdaOutputParser.get_lambda_output(  # type: ignore[no-untyped-call]
             stdout_stream
         )
 
@@ -176,8 +176,8 @@ class LocalLambdaInvokeService(BaseLocalService):
             self.stderr.write(lambda_logs)
 
         if is_lambda_user_error_response:
-            return self.service_response(
+            return self.service_response(  # type: ignore[no-untyped-call]
                 lambda_response, {"Content-Type": "application/json", "x-amz-function-error": "Unhandled"}, 200
             )
 
-        return self.service_response(lambda_response, {"Content-Type": "application/json"}, 200)
+        return self.service_response(lambda_response, {"Content-Type": "application/json"}, 200)  # type: ignore[no-untyped-call]

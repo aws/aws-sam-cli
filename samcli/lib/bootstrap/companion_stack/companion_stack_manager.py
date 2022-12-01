@@ -12,7 +12,7 @@ from botocore.exceptions import ClientError, NoRegionError, NoCredentialsError
 from samcli.commands.exceptions import CredentialsError, RegionError
 from samcli.lib.bootstrap.companion_stack.companion_stack_builder import CompanionStackBuilder
 from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack, ECRRepo
-from samcli.lib.package.artifact_exporter import mktempfile
+from samcli.lib.package.artifact_exporter import mktempfile  # type: ignore[attr-defined]
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.packagetype import IMAGE
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
@@ -43,7 +43,7 @@ class CompanionStackManager:
     _cfn_client: "CloudFormationClient"
     _s3_client: "S3Client"
 
-    def __init__(self, stack_name, region, s3_bucket, s3_prefix):
+    def __init__(self, stack_name, region, s3_bucket, s3_prefix):  # type: ignore[no-untyped-def]
         self._companion_stack = CompanionStack(stack_name)
         self._builder = CompanionStackBuilder(self._companion_stack)
         self._boto_config = Config(region_name=region if region else None)
@@ -58,14 +58,14 @@ class CompanionStackManager:
             self._account_id = boto3.client("sts").get_caller_identity().get("Account")
             self._region_name = self._cfn_client.meta.region_name
         except NoCredentialsError as ex:
-            raise CredentialsError(
+            raise CredentialsError(  # type: ignore[no-untyped-call]
                 "Error Setting Up Managed Stack Client: Unable to resolve "
                 "credentials for the AWS SDK for Python client. "
                 "Please see their documentation for options to pass in credentials: "
                 "https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html"
             ) from ex
         except NoRegionError as ex:
-            raise RegionError(
+            raise RegionError(  # type: ignore[no-untyped-call]
                 "Error Setting Up Managed Stack Client: Unable to resolve a region. "
                 "Please provide a region via the --region parameter or by the AWS_REGION environment variable."
             ) from ex
@@ -195,7 +195,7 @@ class CompanionStackManager:
         repos = self.get_unreferenced_repos()
         for repo in repos:
             try:
-                self._ecr_client.delete_repository(repositoryName=repo.physical_id, force=True)
+                self._ecr_client.delete_repository(repositoryName=repo.physical_id, force=True)  # type: ignore[arg-type]
             except self._ecr_client.exceptions.RepositoryNotFoundException:
                 LOG.debug("Image repo [%s] not found in companion stack. Skipping deletion.", repo.physical_id)
 
@@ -307,7 +307,7 @@ def sync_ecr_stack(
         for Functions without a repo specified.
     """
     image_repositories = image_repositories.copy() if image_repositories else {}
-    manager = CompanionStackManager(stack_name, region, s3_bucket, s3_prefix)
+    manager = CompanionStackManager(stack_name, region, s3_bucket, s3_prefix)  # type: ignore[no-untyped-call]
 
     stacks = SamLocalStackProvider.get_stacks(template_file)[0]
     function_provider = SamFunctionProvider(stacks, ignore_code_extraction_warnings=True)

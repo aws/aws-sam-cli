@@ -15,7 +15,7 @@ class ResourceTypeBasedFactory(ABC, Generic[T]):
         self._stacks = stacks
 
     @abstractmethod
-    def _get_generator_mapping(self) -> Dict[str, Callable]:
+    def _get_generator_mapping(self) -> Dict[str, Callable]:  # type: ignore[type-arg]
         """
         Returns
         -------
@@ -47,7 +47,7 @@ class ResourceTypeBasedFactory(ABC, Generic[T]):
             return None
         return resource_type
 
-    def _get_generator_function(self, resource_identifier: ResourceIdentifier) -> Optional[Callable]:
+    def _get_generator_function(self, resource_identifier: ResourceIdentifier) -> Optional[Callable]:  # type: ignore[type-arg]
         """Create an appropriate T object based on stack resource type
 
         Parameters

@@ -78,12 +78,12 @@ LOG = logging.getLogger(__name__)
     default=None,
     required=False,
 )
-@aws_creds_options
-@common_options
+@aws_creds_options  # type: ignore[misc]
+@common_options  # type: ignore[misc]
 @pass_context
-@check_newer_version
-@print_cmdline_args
-def cli(ctx, stack_name: str, config_file: str, config_env: str, no_prompts: bool, s3_bucket: str, s3_prefix: str):
+@check_newer_version  # type: ignore[misc]
+@print_cmdline_args  # type: ignore[misc]
+def cli(ctx, stack_name: str, config_file: str, config_env: str, no_prompts: bool, s3_bucket: str, s3_prefix: str):  # type: ignore[no-untyped-def, no-untyped-def]
     """
     `sam delete` command entry point
     """
@@ -101,7 +101,7 @@ def cli(ctx, stack_name: str, config_file: str, config_env: str, no_prompts: boo
     )  # pragma: no cover
 
 
-def do_cli(
+def do_cli(  # type: ignore[no-untyped-def]
     stack_name: str,
     region: str,
     config_file: str,

@@ -10,7 +10,7 @@ from samcli.local.lambdafn.zip import unzip
 from samcli.local.common.runtime_template import SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING
 
 
-def do_download_source_code_binding(runtime, schema_template_details, schemas_api_caller, download_location):
+def do_download_source_code_binding(runtime, schema_template_details, schemas_api_caller, download_location):  # type: ignore[no-untyped-def]
     """
     Downloads source code binding for given registry and schema version,
     generating the code bindings if they haven't been generated first
@@ -46,7 +46,7 @@ def do_download_source_code_binding(runtime, schema_template_details, schemas_ap
         raise e
 
 
-def do_extract_and_merge_schemas_code(download_location, output_dir, project_name, template_location):
+def do_extract_and_merge_schemas_code(download_location, output_dir, project_name, template_location):  # type: ignore[no-untyped-def]
     """
     Unzips schemas generated code and merge it with cookiecutter genertaed source.
     :param download_location:
@@ -59,6 +59,6 @@ def do_extract_and_merge_schemas_code(download_location, output_dir, project_nam
     with open(cookiecutter_json_path, "r") as cookiecutter_json:
         cookiecutter_json_data = cookiecutter_json.read()
         cookiecutter_json = json.loads(cookiecutter_json_data)
-        function_name = cookiecutter_json["function_name"]
+        function_name = cookiecutter_json["function_name"]  # type: ignore[index]
         copy_location = os.path.join(output_dir, project_name, function_name)
-        unzip(download_location, copy_location)
+        unzip(download_location, copy_location)  # type: ignore[no-untyped-call]

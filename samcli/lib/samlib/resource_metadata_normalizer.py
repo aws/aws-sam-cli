@@ -47,7 +47,7 @@ LOG = logging.getLogger(__name__)
 
 class ResourceMetadataNormalizer:
     @staticmethod
-    def normalize(template_dict, normalize_parameters=False):
+    def normalize(template_dict, normalize_parameters=False):  # type: ignore[no-untyped-def]
         """
         Normalize all Resources in the template with the Metadata Key on the resource.
 
@@ -71,22 +71,22 @@ class ResourceMetadataNormalizer:
             if not is_normalized:
                 asset_property = resource_metadata.get(ASSET_PROPERTY_METADATA_KEY)
                 if asset_property == IMAGE_ASSET_PROPERTY:
-                    asset_metadata = ResourceMetadataNormalizer._extract_image_asset_metadata(resource_metadata)
-                    ResourceMetadataNormalizer._update_resource_metadata(resource_metadata, asset_metadata)
+                    asset_metadata = ResourceMetadataNormalizer._extract_image_asset_metadata(resource_metadata)  # type: ignore[no-untyped-call]
+                    ResourceMetadataNormalizer._update_resource_metadata(resource_metadata, asset_metadata)  # type: ignore[no-untyped-call]
                     # For image-type functions, the asset path is expected to be the name of the Docker image.
                     # When building, we set the name of the image to be the logical id of the function.
                     asset_path = logical_id.lower()
                 else:
                     asset_path = resource_metadata.get(ASSET_PATH_METADATA_KEY)
 
-                ResourceMetadataNormalizer._replace_property(asset_property, asset_path, resource, logical_id)
+                ResourceMetadataNormalizer._replace_property(asset_property, asset_path, resource, logical_id)  # type: ignore[no-untyped-call]
                 if asset_path and asset_property:
                     resource_metadata[SAM_IS_NORMALIZED] = True
 
             # Set SkipBuild metadata iff is-bundled metadata exists, and value is True
             skip_build = resource_metadata.get(ASSET_BUNDLED_METADATA_KEY, False)
             if skip_build:
-                ResourceMetadataNormalizer._update_resource_metadata(
+                ResourceMetadataNormalizer._update_resource_metadata(  # type: ignore[no-untyped-call]
                     resource_metadata,
                     {
                         SAM_METADATA_SKIP_BUILD_KEY: True,
@@ -94,9 +94,9 @@ class ResourceMetadataNormalizer:
                 )
 
             # Set Resource Id
-            ResourceMetadataNormalizer._update_resource_metadata(
+            ResourceMetadataNormalizer._update_resource_metadata(  # type: ignore[no-untyped-call]
                 resource_metadata,
-                {SAM_RESOURCE_ID_KEY: ResourceMetadataNormalizer.get_resource_id(resource, logical_id)},
+                {SAM_RESOURCE_ID_KEY: ResourceMetadataNormalizer.get_resource_id(resource, logical_id)},  # type: ignore[no-untyped-call]
             )
 
         # This is a work around to allow the customer to use sam deploy or package commands without the need to provide
@@ -135,7 +135,7 @@ class ResourceMetadataNormalizer:
                     parameter_value["Default"] = default_value
 
     @staticmethod
-    def _replace_property(property_key, property_value, resource, logical_id):
+    def _replace_property(property_key, property_value, resource, logical_id):  # type: ignore[no-untyped-def]
         """
         Replace a property with an asset on a given resource
 
@@ -169,7 +169,7 @@ class ResourceMetadataNormalizer:
             )
 
     @staticmethod
-    def _extract_image_asset_metadata(metadata):
+    def _extract_image_asset_metadata(metadata):  # type: ignore[no-untyped-def]
         """
         Extract/create relevant metadata properties for image assets
 
@@ -193,7 +193,7 @@ class ResourceMetadataNormalizer:
         }
 
     @staticmethod
-    def _update_resource_metadata(metadata, updated_values):
+    def _update_resource_metadata(metadata, updated_values):  # type: ignore[no-untyped-def]
         """
         Update the metadata values for image-type lambda functions
 
@@ -211,7 +211,7 @@ class ResourceMetadataNormalizer:
             metadata[key] = val
 
     @staticmethod
-    def get_resource_id(resource_properties, logical_id):
+    def get_resource_id(resource_properties, logical_id):  # type: ignore[no-untyped-def]
         """
         Get unique id for a resource.
         for any resource, the resource id can be the customer defined id if exist, if not exist it can be the
@@ -281,7 +281,7 @@ class ResourceMetadataNormalizer:
         return cdk_resource_id
 
     @staticmethod
-    def normalize_build_properties(build_props) -> Dict:
+    def normalize_build_properties(build_props) -> Dict:  # type: ignore[no-untyped-def, type-arg]
         """
         Convert PascalCase properties in the template to snake case to be consistent with
         what Lambda Builders expects from its properties

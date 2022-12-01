@@ -81,7 +81,7 @@ class IntrinsicsSymbolTable:
     CFN_RESOURCE_PROPERTIES = "Properties"
     CFN_LAMBDA_FUNCTION_NAME = "FunctionName"
 
-    def __init__(
+    def __init__(  # type: ignore[no-untyped-def]
         self, template=None, logical_id_translator=None, default_type_resolver=None, common_attribute_resolver=None
     ):
         """
@@ -139,11 +139,11 @@ class IntrinsicsSymbolTable:
         self._parameters = self._template.get("Parameters", {})
         self._resources = self._template.get("Resources", {})
 
-        self.default_type_resolver = default_type_resolver or self.get_default_type_resolver()
-        self.common_attribute_resolver = common_attribute_resolver or self.get_default_attribute_resolver()
-        self.default_pseudo_resolver = self.get_default_pseudo_resolver()
+        self.default_type_resolver = default_type_resolver or self.get_default_type_resolver()  # type: ignore[no-untyped-call]
+        self.common_attribute_resolver = common_attribute_resolver or self.get_default_attribute_resolver()  # type: ignore[no-untyped-call]
+        self.default_pseudo_resolver = self.get_default_pseudo_resolver()  # type: ignore[no-untyped-call]
 
-    def get_default_pseudo_resolver(self):
+    def get_default_pseudo_resolver(self):  # type: ignore[no-untyped-def]
         return {
             IntrinsicsSymbolTable.AWS_ACCOUNT_ID: self.handle_pseudo_account_id,
             IntrinsicsSymbolTable.AWS_PARTITION: self.handle_pseudo_partition,
@@ -154,11 +154,11 @@ class IntrinsicsSymbolTable:
             IntrinsicsSymbolTable.AWS_URL_PREFIX: self.handle_pseudo_url_prefix,
         }
 
-    def get_default_attribute_resolver(self):
+    def get_default_attribute_resolver(self):  # type: ignore[no-untyped-def]
         return {"Ref": lambda logical_id: logical_id, "Arn": self.arn_resolver}
 
     @staticmethod
-    def get_default_type_resolver():
+    def get_default_type_resolver():  # type: ignore[no-untyped-def]
         return {
             "AWS::ApiGateway::RestApi": {
                 "RootResourceId": "/"  # It usually used as a reference to the parent id of the RestApi,
@@ -171,7 +171,7 @@ class IntrinsicsSymbolTable:
             },
         }
 
-    def resolve_symbols(self, logical_id, resource_attribute, ignore_errors=False):
+    def resolve_symbols(self, logical_id, resource_attribute, ignore_errors=False):  # type: ignore[no-untyped-def]
         """
         This function resolves all the symbols given a logical id and a resource_attribute for Fn::GetAtt and Ref.
         This boils Ref into a type of Fn:GetAtt to simplify the implementation.
@@ -199,7 +199,7 @@ class IntrinsicsSymbolTable:
         This resolves the attribute
         """
         # pylint: disable-msg=too-many-return-statements
-        translated = self.get_translation(logical_id, resource_attribute)
+        translated = self.get_translation(logical_id, resource_attribute)  # type: ignore[no-untyped-call]
         if translated:
             return translated
 
@@ -235,7 +235,7 @@ class IntrinsicsSymbolTable:
             " It is also not a supported pseudo function".format(logical_id + "." + resource_attribute)
         )
 
-    def arn_resolver(self, logical_id, service_name="lambda"):
+    def arn_resolver(self, logical_id, service_name="lambda"):  # type: ignore[no-untyped-def]
         """
         This function resolves Arn in the format
             arn:{partition_name}:{service_name}:{aws_region}:{account_id}:{function_name}
@@ -251,13 +251,13 @@ class IntrinsicsSymbolTable:
         -------
         The resolved Arn
         """
-        aws_region = self.handle_pseudo_region()
+        aws_region = self.handle_pseudo_region()  # type: ignore[no-untyped-call]
         account_id = (
-            self.logical_id_translator.get(IntrinsicsSymbolTable.AWS_ACCOUNT_ID) or self.handle_pseudo_account_id()
+            self.logical_id_translator.get(IntrinsicsSymbolTable.AWS_ACCOUNT_ID) or self.handle_pseudo_account_id()  # type: ignore[no-untyped-call]
         )
-        partition_name = self.handle_pseudo_partition()
+        partition_name = self.handle_pseudo_partition()  # type: ignore[no-untyped-call]
         if service_name == "lambda":
-            resource_name = self._get_function_name(logical_id)
+            resource_name = self._get_function_name(logical_id)  # type: ignore[no-untyped-call]
             resource_name = self.logical_id_translator.get(resource_name) or resource_name
 
             str_format = "arn:{partition_name}:{service_name}:{aws_region}:{account_id}:function:{resource_name}"
@@ -275,7 +275,7 @@ class IntrinsicsSymbolTable:
             resource_name=resource_name,
         )
 
-    def _get_function_name(self, logical_id):
+    def _get_function_name(self, logical_id):  # type: ignore[no-untyped-def]
         """
         This function returns the function name associated with the logical ID.
         If the template doesn't define a FunctionName, it will just return the
@@ -303,7 +303,7 @@ class IntrinsicsSymbolTable:
         resource_name = resource_properties.get(IntrinsicsSymbolTable.CFN_LAMBDA_FUNCTION_NAME)
         return resource_name or logical_id
 
-    def get_translation(self, logical_id, resource_attributes=IntrinsicResolver.REF):
+    def get_translation(self, logical_id, resource_attributes=IntrinsicResolver.REF):  # type: ignore[no-untyped-def]
         """
         This gets the logical_id_translation of the logical id and resource_attributes.
 
@@ -328,7 +328,7 @@ class IntrinsicsSymbolTable:
         return logical_id_item.get(resource_attributes)
 
     @staticmethod
-    def get_availability_zone(region):
+    def get_availability_zone(region):  # type: ignore[no-untyped-def]
         """
         This gets the availability zone from the the specified region
 
@@ -344,7 +344,7 @@ class IntrinsicsSymbolTable:
         return IntrinsicsSymbolTable.REGIONS.get(region)
 
     @staticmethod
-    def handle_pseudo_account_id():
+    def handle_pseudo_account_id():  # type: ignore[no-untyped-def]
         """
         This gets a default account id from SamBaseProvider.
         Return
@@ -353,7 +353,7 @@ class IntrinsicsSymbolTable:
         """
         return IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES.get(IntrinsicsSymbolTable.AWS_ACCOUNT_ID)
 
-    def handle_pseudo_region(self):
+    def handle_pseudo_region(self):  # type: ignore[no-untyped-def]
         """
         Gets the region from the environment and defaults to a the default region from the global variables.
 
@@ -369,7 +369,7 @@ class IntrinsicsSymbolTable:
             or IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES.get(IntrinsicsSymbolTable.AWS_REGION)
         )
 
-    def handle_pseudo_url_prefix(self):
+    def handle_pseudo_url_prefix(self):  # type: ignore[no-untyped-def]
         """
         This gets the AWS::UrlSuffix for the intrinsic with the china and regular prefix.
 
@@ -378,12 +378,12 @@ class IntrinsicsSymbolTable:
         -------
         The url prefix of amazonaws.com or amazonaws.com.cn
         """
-        aws_region = self.handle_pseudo_region()
+        aws_region = self.handle_pseudo_region()  # type: ignore[no-untyped-call]
         if self.CHINA_PREFIX in aws_region:
             return self.CHINA_URL_PREFIX
         return self.DEFAULT_URL_PREFIX
 
-    def handle_pseudo_partition(self):
+    def handle_pseudo_partition(self):  # type: ignore[no-untyped-def]
         """
         This resolves AWS::Partition so that the correct partition is returned depending on the region.
 
@@ -393,7 +393,7 @@ class IntrinsicsSymbolTable:
         -------
         A pseudo partition like aws-cn or aws or aws-gov
         """
-        aws_region = self.handle_pseudo_region()
+        aws_region = self.handle_pseudo_region()  # type: ignore[no-untyped-call]
         if self.CHINA_PREFIX in aws_region:
             return self.CHINA_PARTITION
         if self.GOV_PREFIX in aws_region:
@@ -401,7 +401,7 @@ class IntrinsicsSymbolTable:
         return self.DEFAULT_PARTITION
 
     @staticmethod
-    def handle_pseudo_stack_id():
+    def handle_pseudo_stack_id():  # type: ignore[no-untyped-def]
         """
         This resolves AWS::StackId by using the SamBaseProvider as the default value.
 
@@ -414,7 +414,7 @@ class IntrinsicsSymbolTable:
         return IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES.get(IntrinsicsSymbolTable.AWS_STACK_ID)
 
     @staticmethod
-    def handle_pseudo_stack_name():
+    def handle_pseudo_stack_name():  # type: ignore[no-untyped-def]
         """
         This resolves AWS::StackName by using the SamBaseProvider as the default value.
 
@@ -427,7 +427,7 @@ class IntrinsicsSymbolTable:
         return IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES.get(IntrinsicsSymbolTable.AWS_STACK_NAME)
 
     @staticmethod
-    def handle_pseudo_no_value():
+    def handle_pseudo_no_value():  # type: ignore[no-untyped-def]
         """
         This resolves AWS::NoValue so that it returns the python None
         """

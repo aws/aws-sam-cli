@@ -29,7 +29,7 @@ class HookPackageConfig:
     """
 
     _package_dir: Path
-    _config: Dict
+    _config: Dict  # type: ignore[type-arg]
 
     CONFIG_FILENAME = "Config.json"
     JSON_SCHEMA_PATH = Path(__file__).parent / "hook_config_schema.json"
@@ -44,7 +44,7 @@ class HookPackageConfig:
         self._package_dir = package_dir
         config_loc = package_dir / self.CONFIG_FILENAME
         if not config_loc.is_file():
-            raise InvalidHookPackageConfigException(f"{config_loc} is not a file or does not exist")
+            raise InvalidHookPackageConfigException(f"{config_loc} is not a file or does not exist")  # type: ignore[no-untyped-call]
 
         with config_loc.open("r", encoding="utf-8") as f:
             config_dict = json.load(f)
@@ -52,17 +52,17 @@ class HookPackageConfig:
         try:
             jsonschema.validate(config_dict, self.jsonschema)
         except jsonschema.ValidationError as e:
-            raise InvalidHookPackageConfigException(f"Invalid Config.json - {e}") from e
+            raise InvalidHookPackageConfigException(f"Invalid Config.json - {e}") from e  # type: ignore[no-untyped-call]
 
         for func, func_dict in config_dict["functionalities"].items():
             config_dict["functionalities"][func] = HookFunctionality(func_dict["entry_method"])
         self._config = config_dict
 
     @property
-    def jsonschema(self) -> Dict:
+    def jsonschema(self) -> Dict:  # type: ignore[type-arg]
         with HookPackageConfig.JSON_SCHEMA_PATH.open("r", encoding="utf-8") as f:
             jsonschema_dict = json.load(f)
-        return cast(Dict, jsonschema_dict)
+        return cast(Dict, jsonschema_dict)  # type: ignore[type-arg]
 
     @property
     def name(self) -> str:
