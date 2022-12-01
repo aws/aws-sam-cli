@@ -532,15 +532,15 @@ class TestSkipPrepareInfraOption(TestCase):
 
 class TestNextCommandSuggestions(TestCase):
     def test_generate_next_command_recommendation(self):
-        listOfTuples = [("command1", "description1"), ("command2", "description2"), ("command3", "description3")]
+        listOfTuples = [("description1", "command1"), ("description2", "command2"), ("description3", "command3")]
         output = generate_next_command_recommendation(listOfTuples)
         expectedOutput = """
 Commands you can use next:
 ================================
 
-[*] command1: description1
-[*] command2: description2
-[*] command3: description3
+[*] description1: command1
+[*] description2: command2
+[*] description3: command3
 
 ================================
     """

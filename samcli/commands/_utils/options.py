@@ -806,6 +806,6 @@ Commands you can use next:
 ================================
     """
     command_list_txt = ""
-    for command, description in command_tuples:
-        command_list_txt += f"{os.linesep}[*] {command}: {description}"
+    for description, command in command_tuples:
+        command_list_txt += f"{os.linesep}[*] {description}: {command}"
     return template.format(command_list_txt)
