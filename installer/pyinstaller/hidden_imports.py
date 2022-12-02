@@ -1,7 +1,11 @@
 import os
 import importlib
+import logging
 from pathlib import Path
 from typing import List
+
+
+LOG = logging.getLogger(__name__)
 
 
 def _can_import(module: str) -> bool:
@@ -10,6 +14,7 @@ def _can_import(module: str) -> bool:
         importlib.import_module(module)
         return True
     except ImportError:
+        LOG.debug("Failed to import %s. Skipping.", module)
         return False
 
 
