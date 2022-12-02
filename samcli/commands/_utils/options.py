@@ -5,7 +5,7 @@ Common CLI options shared by various commands
 import os
 import logging
 from functools import partial
-from typing import List
+from typing import List, Tuple
 
 import click
 from click.types import FuncParamType
@@ -791,7 +791,7 @@ def _space_separated_list_func_type(value):
 _space_separated_list_func_type.__name__ = "LIST"
 
 
-def generate_next_command_recommendation(command_tuples: List[tuple]):
+def generate_next_command_recommendation(command_tuples: List[Tuple[str, str]]) -> str:
     """
     Generates a message containing some suggested commands to run next.
 
