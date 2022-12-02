@@ -1,14 +1,9 @@
 import importlib
 import pkgutil
 import logging
-from pathlib import Path
 from types import ModuleType
 
 import samcli
-
-
-LOG = logging.getLogger(__name__)
-samcli_root = Path(__file__).parent.parent.parent
 
 
 def walk_modules(module: ModuleType, visited: set) -> None:
