@@ -1,43 +1,30 @@
-import os
 import importlib
+import pkgutil
 import logging
 from pathlib import Path
-from typing import List
+from types import ModuleType
+
+import samcli
 
 
 LOG = logging.getLogger(__name__)
+samcli_root = Path(__file__).parent.parent.parent
 
 
-def _can_import(module: str) -> bool:
-    """Checks if a given module str is import-able"""
-    try:
-        importlib.import_module(module)
-        return True
-    except ImportError:
-        LOG.debug("Failed to import %s. Skipping.", module)
-        return False
+def walk_modules(module: ModuleType, visited: set) -> None:
+    """Recursively find all modules from a parent module"""
+    for pkg in pkgutil.walk_packages(module.__path__, module.__name__ + "."):
+        if pkg.name in visited:
+            continue
+        visited.add(pkg.name)
+        if pkg.ispkg:
+            submodule = importlib.import_module(pkg.name)
+            walk_modules(submodule, visited)
 
+samcli_modules = set(["samcli"])
+walk_modules(samcli, samcli_modules)
 
-def get_samcli_modules() -> List[str]:
-    """
-    Walks a directory and returns a list of modules
-    """
-    samcli_root = Path(__file__).parent.parent.parent
-    samcli_dir = samcli_root / "samcli"
-    modules = []
-
-    for path, _, files in os.walk(samcli_dir):
-        module = os.path.relpath(path, samcli_root).replace("/", ".")
-        for f in files:
-            if f == "__init__.py" and _can_import(module):
-                modules.append(module)
-            elif f.endswith(".py") and _can_import(module + "." + f[:-3]):
-                modules.append(module + "." + f[:-3])
-
-    return modules
-
-
-SAM_CLI_HIDDEN_IMPORTS = get_samcli_modules() + [
+SAM_CLI_HIDDEN_IMPORTS = list(samcli_modules) + [
     "cookiecutter.extensions",
     "jinja2_time",
     "text_unidecode",
