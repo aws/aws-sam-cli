@@ -801,6 +801,7 @@ def generate_next_command_recommendation(command_tuples: List[Tuple[str, str]]) 
     template = """
 Commands you can use next
 =========================
-{}"""
+{}
+"""
     command_list_txt = "\n".join(f"[*] {description}: {command}" for description, command in command_tuples)
     return template.format(command_list_txt)
