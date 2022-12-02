@@ -31,6 +31,7 @@ from samcli.commands.init.init_generator import do_generate
 from samcli.commands.init.init_templates import InitTemplates, InvalidInitTemplateError
 from samcli.lib.utils.osutils import remove
 from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.commands._utils.options import generate_next_command_recommendation
 
 LOG = logging.getLogger(__name__)
 
@@ -238,14 +239,15 @@ def _generate_from_use_case(
     )
 
     click.echo(summary_msg)
-    next_commands_msg = f"""
-    Commands you can use next
-    =========================
-    [*] Create pipeline: cd {name} && sam pipeline init --bootstrap
-    [*] Validate SAM template: cd {name} && sam validate
-    [*] Test Function in the Cloud: cd {name} && sam sync --stack-name {{stack-name}} --watch
-    """
-    click.secho(next_commands_msg, fg="yellow")
+    command_suggestions = generate_next_command_recommendation(
+        [
+            ("Create pipeline", f"cd {name} && sam pipeline init --bootstrap"),
+            ("Validate SAM template", f"cd {name} && sam validate"),
+            ("Test Function in the Cloud", f"cd {name} && sam sync --stack-name {{stack-name}} --watch"),
+        ]
+    )
+    click.secho(command_suggestions, fg="yellow")
+
     do_generate(
         location,
         package_type,
