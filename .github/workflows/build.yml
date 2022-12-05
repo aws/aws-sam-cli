@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - develop
+
 jobs:
   build:
     name: ${{ matrix.os }} / ${{ matrix.python }}
