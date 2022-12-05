@@ -19,7 +19,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 7: Infrastructure event management - Use case
-        # 2: Java Runtime (java11)
+        # 3: Java Runtime (java11)
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -32,7 +32,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
         user_input = """
 1
 7
-2
+3
 2
 2
 N
@@ -60,7 +60,7 @@ Y
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 7: Infrastructure event management - Use case
-        # 2: Java Runtime
+        # 3: Java Runtime
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -72,7 +72,7 @@ Y
         user_input = """
 1
 7
-2
+3
 2
 2
 N
@@ -110,7 +110,7 @@ Y
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 7: Infrastructure event management - Use case
-        # 2: Java Runtime
+        # 3: Java Runtime
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -124,7 +124,7 @@ Y
         user_input = """
 1
 7
-2
+3
 2
 2
 N
@@ -153,7 +153,7 @@ P
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 7: Infrastructure event management - Use case
-        # 2: Java Runtime
+        # 3: Java Runtime
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -165,7 +165,7 @@ P
         user_input = """
 1
 7
-2
+3
 2
 2
 N

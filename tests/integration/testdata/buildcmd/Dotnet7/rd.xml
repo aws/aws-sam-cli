@@ -1,0 +1,6 @@
+<Directives xmlns="http://schemas.microsoft.com/netfx/2013/01/metadata">
+	<Application>
+		<Assembly Name="bootstrap" Dynamic="Required All">
+		</Assembly>
+	</Application>
+</Directives>

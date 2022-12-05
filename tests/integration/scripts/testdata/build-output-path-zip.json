@@ -1,0 +1,17 @@
+{
+	"values": {
+		"root_module": {
+			"child_modules": [{
+				"address": "module_address",
+				"resources": [{
+					"address": "sam_metadata_address",
+					"values": {
+						"triggers": {
+							"built_output_path": "testdata/artifact_dir/test_artifact.zip"
+						}
+					}
+				}]
+			}]
+		}
+	}
+}

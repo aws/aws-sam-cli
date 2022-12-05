@@ -249,3 +249,21 @@ class TestGitRepo(TestCase):
         shutil_mock.rmtree.assert_not_called()
         shutil_mock.copytree.assert_called_with(ANY, EXPECTED_DEFAULT_CLONE_PATH, ignore=ANY)
         shutil_mock.ignore_patterns.assert_called_with("*.git")
+
+    @patch("samcli.lib.utils.git_repo.Path")
+    @patch("samcli.lib.utils.git_repo.platform.system")
+    @patch("samcli.lib.utils.git_repo.os.path.normpath")
+    def test_clone_without_windows_longpath_exception_message(self, normpath_mock, platform_mock, path_exist_mock):
+        path_exist_mock.side_effect = OSError()
+        platform_mock.return_value = "windows"
+
+        with self.assertRaises(CloneRepoUnstableStateException) as ex:
+            GitRepo._persist_local_repo(MagicMock(), MagicMock(), MagicMock(), MagicMock())
+
+        expected_msg = (
+            "Failed to modify a local file when cloning app templates. "
+            "MAX_PATH should be enabled in the Windows registry."
+            "\nFor more details on how to enable MAX_PATH for Windows, please visit: "
+            "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html"
+        )
+        self.assertEqual(str(ex.exception), expected_msg)

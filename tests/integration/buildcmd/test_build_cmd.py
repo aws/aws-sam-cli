@@ -24,6 +24,7 @@ from tests.testing_utils import (
     SKIP_DOCKER_TESTS,
     SKIP_DOCKER_BUILD,
     SKIP_DOCKER_MESSAGE,
+    run_command_with_input,
 )
 from .build_integ_base import (
     BuildIntegBase,
@@ -497,9 +498,11 @@ class TestBuildCommand_NodeFunctions(BuildIntegNodeBase):
             ("nodejs12.x", False),
             ("nodejs14.x", False),
             ("nodejs16.x", False),
+            ("nodejs18.x", False),
             ("nodejs12.x", "use_container"),
             ("nodejs14.x", "use_container"),
             ("nodejs16.x", "use_container"),
+            ("nodejs18.x", "use_container"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -563,13 +566,19 @@ class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
     ],
 )
 class TestBuildCommand_EsbuildFunctionProperties(BuildIntegEsbuildBase):
+    @parameterized.expand(
+        [
+            ("nodejs16.x", "../Esbuild/TypeScript", "app.lambdaHandler", "x86_64"),
+            ("nodejs18.x", "../Esbuild/TypeScript", "app.lambdaHandler", "x86_64"),
+        ]
+    )
     @pytest.mark.flaky(reruns=3)
-    def test_environment_generates_sourcemap(self):
+    def test_environment_generates_sourcemap(self, runtime, code_uri, handler, architecture):
         overrides = {
-            "runtime": "nodejs16.x",
-            "code_uri": "../Esbuild/TypeScript",
-            "handler": "app.lambdaHandler",
-            "architecture": "x86_64",
+            "runtime": runtime,
+            "code_uri": code_uri,
+            "handler": handler,
+            "architecture": architecture,
         }
         self._test_with_various_properties(overrides)
 
@@ -582,15 +591,19 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
             ("nodejs12.x", False, "x86_64"),
             ("nodejs14.x", False, "x86_64"),
             ("nodejs16.x", False, "x86_64"),
+            ("nodejs18.x", False, "x86_64"),
             ("nodejs12.x", "use_container", "x86_64"),
             ("nodejs14.x", "use_container", "x86_64"),
             ("nodejs16.x", "use_container", "x86_64"),
+            ("nodejs18.x", "use_container", "x86_64"),
             ("nodejs12.x", False, "arm64"),
             ("nodejs14.x", False, "arm64"),
             ("nodejs16.x", False, "arm64"),
+            ("nodejs18.x", False, "arm64"),
             ("nodejs12.x", "use_container", "arm64"),
             ("nodejs14.x", "use_container", "arm64"),
             ("nodejs16.x", "use_container", "arm64"),
+            ("nodejs18.x", "use_container", "arm64"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -950,7 +963,6 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
     EXPECTED_FILES_PROJECT_MANIFEST = {
         "Amazon.Lambda.APIGatewayEvents.dll",
-        "HelloWorld.pdb",
         "Amazon.Lambda.Core.dll",
         "HelloWorld.runtimeconfig.json",
         "Amazon.Lambda.Serialization.Json.dll",
@@ -959,12 +971,17 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         "HelloWorld.dll",
     }
 
+    EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED = {
+        "bootstrap",
+    }
+
     @parameterized.expand(
         [
             ("dotnetcore3.1", "Dotnetcore3.1", None),
             ("dotnet6", "Dotnet6", None),
             ("dotnetcore3.1", "Dotnetcore3.1", "debug"),
             ("dotnet6", "Dotnet6", "debug"),
+            ("provided.al2", "Dotnet7", None),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -975,6 +992,10 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
             "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler",
             "Architectures": architecture,
         }
+
+        if runtime == "provided.al2":
+            self.template_path = self.template_path.replace("template.yaml", "template_build_method_dotnet_7.yaml")
+
         cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
@@ -987,7 +1008,11 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         run_command(cmdlist, cwd=self.working_dir, env=newenv)
 
         self._verify_built_artifact(
-            self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
+            self.default_build_dir,
+            self.FUNCTION_LOGICAL_ID,
+            self.EXPECTED_FILES_PROJECT_MANIFEST
+            if runtime != "provided.al2"
+            else self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED,
         )
 
         self._verify_resource_property(
@@ -1446,6 +1471,34 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture(BuildIntegP
     @pytest.mark.flaky(reruns=3)
     def test_building_Makefile(self, runtime, use_container, manifest, architecture):
         self._test_with_Makefile(runtime, use_container, manifest, architecture)
+
+
+@parameterized_class(
+    ("template", "code_uri", "is_nested_parent"),
+    [
+        ("custom_build_with_custom_root_project_path.yaml", "empty_src_code", False),
+        ("custom_build_with_custom_make_file_path.yaml", "provided_src_code_without_makefile", False),
+        ("custom_build_with_custom_working_dir.yaml", "custom_working_dir_src_code", False),
+        ("custom_build_with_custom_root_project_path_and_custom_makefile_path.yaml", "empty_src_code", False),
+        (
+            "custom_build_with_custom_root_project_path_custom_makefile_path_and_custom_working_dir.yaml",
+            "empty_src_code",
+            False,
+        ),
+    ],
+)
+class TestBuildCommand_ProvidedFunctionsWithCustomMetadata(BuildIntegProvidedBase):
+    # Test Suite for runtime: provided and where selection of the build workflow is implicitly makefile builder
+    # if the makefile is present.
+    @parameterized.expand(
+        [
+            ("provided", False, None),
+            ("provided.al2", False, None),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_building_Makefile(self, runtime, use_container, manifest):
+        self._test_with_Makefile(runtime, use_container, manifest)
 
 
 @skipIf(

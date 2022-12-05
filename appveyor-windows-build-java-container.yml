@@ -50,8 +50,6 @@ install:
 
   # setup Java, Maven and Gradle
   - "refreshenv"
-  - "choco install jdk8 -y --force"
-  - "refreshenv"
   - "choco install maven -y --force"
   - "refreshenv"
   - "choco install gradle -y --force"

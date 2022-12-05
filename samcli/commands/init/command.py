@@ -14,7 +14,7 @@ from samcli.local.common.runtime_template import INIT_RUNTIMES, SUPPORTED_DEP_MA
 from samcli.lib.telemetry.metric import track_command
 from samcli.commands.init.init_flow_helpers import _get_runtime_from_image, get_architectures, get_sorted_runtimes
 from samcli.commands._utils.click_mutex import ClickMutex
-from samcli.lib.build.deprecated_runtimes import DEPRECATED_RUNTIMES
+from samcli.lib.build.constants import DEPRECATED_RUNTIMES
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.architecture import X86_64, ARM64
 

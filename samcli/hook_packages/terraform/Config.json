@@ -1,0 +1,16 @@
+{
+    "hook_name": "terraform",
+    "description": "Terraform IaC hooks package",
+    "hook_use_case": "IaC",
+    "iac_framework": "Terraform",
+    "version": "1.0.0",
+    "hook_specification": "1.0.0",
+    "functionalities": {
+         "prepare": {
+              "entry_method": {
+                    "module": "samcli.hook_packages.terraform.main",
+                    "method": "prepare"
+              }
+         }
+    }
+}
