@@ -22,6 +22,7 @@ from samcli.commands._utils.options import (
     image_repositories_callback,
     _space_separated_list_func_type,
     skip_prepare_infra_callback,
+    generate_next_command_recommendation,
 )
 from samcli.commands._utils.parameterized_option import parameterized_option
 from samcli.commands.package.exceptions import PackageResolveS3AndS3SetError, PackageResolveS3AndS3NotSetError
@@ -527,3 +528,21 @@ class TestSkipPrepareInfraOption(TestCase):
             skip_prepare_infra_callback(ctx_mock, param_mock, True)
 
         self.assertEqual(str(ex.exception), "Missing option --hook-name")
+
+
+class TestNextCommandSuggestions(TestCase):
+    def test_generate_next_command_recommendation(self):
+        listOfTuples = [
+            ("Validate SAM template", "sam validate"),
+            ("Test Function in the Cloud", "sam sync --stack-name {{stack-name}} --watch"),
+            ("Deploy", "sam deploy --guided"),
+        ]
+        output = generate_next_command_recommendation(listOfTuples)
+        expectedOutput = """
+Commands you can use next
+=========================
+[*] Validate SAM template: sam validate
+[*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
+[*] Deploy: sam deploy --guided
+"""
+        self.assertEqual(output, expectedOutput)
