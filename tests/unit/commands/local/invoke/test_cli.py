@@ -44,23 +44,15 @@ class TestCli(TestCase):
         self.container_host = "localhost"
         self.container_host_interface = "127.0.0.1"
         self.invoke_image = ("amazon/aws-sam-cli-emulation-image-python3.6",)
+        self.hook_name = None
 
-    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
-    @patch("samcli.commands.local.invoke.cli._get_event")
-    def test_cli_must_setup_context_and_invoke(self, get_event_mock, InvokeContextMock):
-        event_data = "data"
-        get_event_mock.return_value = event_data
+        self.ctx_mock = Mock()
+        self.ctx_mock.region = self.region_name
+        self.ctx_mock.profile = self.profile
 
-        ctx_mock = Mock()
-        ctx_mock.region = self.region_name
-        ctx_mock.profile = self.profile
-
-        # Mock the __enter__ method to return a object inside a context manager
-        context_mock = Mock()
-        InvokeContextMock.return_value.__enter__.return_value = context_mock
-
+    def call_cli(self):
         invoke_cli(
-            ctx=ctx_mock,
+            ctx=self.ctx_mock,
             function_identifier=self.function_id,
             template=self.template,
             event=self.eventfile,
@@ -81,7 +73,20 @@ class TestCli(TestCase):
             container_host=self.container_host,
             container_host_interface=self.container_host_interface,
             invoke_image=self.invoke_image,
+            hook_name=self.hook_name,
         )
+
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
+    @patch("samcli.commands.local.invoke.cli._get_event")
+    def test_cli_must_setup_context_and_invoke(self, get_event_mock, InvokeContextMock):
+        event_data = "data"
+        get_event_mock.return_value = event_data
+
+        # Mock the __enter__ method to return a object inside a context manager
+        context_mock = Mock()
+        InvokeContextMock.return_value.__enter__.return_value = context_mock
+
+        self.call_cli()
 
         InvokeContextMock.assert_called_with(
             template_file=self.template,
@@ -114,38 +119,13 @@ class TestCli(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
     def test_cli_must_invoke_with_no_event(self, get_event_mock, InvokeContextMock):
-        self.event = None
-
-        ctx_mock = Mock()
-        ctx_mock.region = self.region_name
-        ctx_mock.profile = self.profile
+        self.eventfile = None
 
         # Mock the __enter__ method to return a object inside a context manager
         context_mock = Mock()
         InvokeContextMock.return_value.__enter__.return_value = context_mock
-        invoke_cli(
-            ctx=ctx_mock,
-            function_identifier=self.function_id,
-            template=self.template,
-            event=self.event,
-            no_event=self.no_event,
-            env_vars=self.env_vars,
-            debug_port=self.debug_ports,
-            debug_args=self.debug_args,
-            debugger_path=self.debugger_path,
-            container_env_vars=self.container_env_vars,
-            docker_volume_basedir=self.docker_volume_basedir,
-            docker_network=self.docker_network,
-            log_file=self.log_file,
-            skip_pull_image=self.skip_pull_image,
-            parameter_overrides=self.parameter_overrides,
-            layer_cache_basedir=self.layer_cache_basedir,
-            force_image_build=self.force_image_build,
-            shutdown=self.shutdown,
-            container_host=self.container_host,
-            container_host_interface=self.container_host_interface,
-            invoke_image=self.invoke_image,
-        )
+
+        self.call_cli()
 
         InvokeContextMock.assert_called_with(
             template_file=self.template,
@@ -189,10 +169,6 @@ class TestCli(TestCase):
         event_data = "data"
         get_event_mock.return_value = event_data
 
-        ctx_mock = Mock()
-        ctx_mock.region = self.region_name
-        ctx_mock.profile = self.profile
-
         # Mock the __enter__ method to return a object inside a context manager
         context_mock = Mock()
         InvokeContextMock.return_value.__enter__.return_value = context_mock
@@ -200,30 +176,7 @@ class TestCli(TestCase):
         context_mock.local_lambda_runner.invoke.side_effect = side_effect_exception
 
         with self.assertRaises(UserException) as ex_ctx:
-
-            invoke_cli(
-                ctx=ctx_mock,
-                function_identifier=self.function_id,
-                template=self.template,
-                event=self.eventfile,
-                no_event=self.no_event,
-                env_vars=self.env_vars,
-                debug_port=self.debug_ports,
-                debug_args=self.debug_args,
-                debugger_path=self.debugger_path,
-                container_env_vars=self.container_env_vars,
-                docker_volume_basedir=self.docker_volume_basedir,
-                docker_network=self.docker_network,
-                log_file=self.log_file,
-                skip_pull_image=self.skip_pull_image,
-                parameter_overrides=self.parameter_overrides,
-                layer_cache_basedir=self.layer_cache_basedir,
-                force_image_build=self.force_image_build,
-                shutdown=self.shutdown,
-                container_host=self.container_host,
-                container_host_interface=self.container_host_interface,
-                invoke_image=self.invoke_image,
-            )
+            self.call_cli()
 
         msg = str(ex_ctx.exception)
         self.assertEqual(msg, expected_exectpion_message)
@@ -244,10 +197,6 @@ class TestCli(TestCase):
         event_data = "data"
         get_event_mock.return_value = event_data
 
-        ctx_mock = Mock()
-        ctx_mock.region = self.region_name
-        ctx_mock.profile = self.profile
-
         # Mock the __enter__ method to return a object inside a context manager
         context_mock = Mock()
         InvokeContextMock.return_value.__enter__.return_value = context_mock
@@ -255,30 +204,7 @@ class TestCli(TestCase):
         context_mock.local_lambda_runner.invoke.side_effect = side_effect_exception
 
         with self.assertRaises(UserException) as ex_ctx:
-
-            invoke_cli(
-                ctx=ctx_mock,
-                function_identifier=self.function_id,
-                template=self.template,
-                event=self.eventfile,
-                no_event=self.no_event,
-                env_vars=self.env_vars,
-                debug_port=self.debug_ports,
-                debug_args=self.debug_args,
-                debugger_path=self.debugger_path,
-                container_env_vars=self.container_env_vars,
-                docker_volume_basedir=self.docker_volume_basedir,
-                docker_network=self.docker_network,
-                log_file=self.log_file,
-                skip_pull_image=self.skip_pull_image,
-                parameter_overrides=self.parameter_overrides,
-                layer_cache_basedir=self.layer_cache_basedir,
-                force_image_build=self.force_image_build,
-                shutdown=self.shutdown,
-                container_host=self.container_host,
-                container_host_interface=self.container_host_interface,
-                invoke_image=self.invoke_image,
-            )
+            self.call_cli()
 
         msg = str(ex_ctx.exception)
         self.assertEqual(msg, expected_exectpion_message)
@@ -301,37 +227,10 @@ class TestCli(TestCase):
         event_data = "data"
         get_event_mock.return_value = event_data
 
-        ctx_mock = Mock()
-        ctx_mock.region = self.region_name
-        ctx_mock.profile = self.profile
-
         InvokeContextMock.side_effect = exeception_to_raise
 
         with self.assertRaises(UserException) as ex_ctx:
-
-            invoke_cli(
-                ctx=ctx_mock,
-                function_identifier=self.function_id,
-                template=self.template,
-                event=self.eventfile,
-                no_event=self.no_event,
-                env_vars=self.env_vars,
-                debug_port=self.debug_ports,
-                debug_args=self.debug_args,
-                debugger_path=self.debugger_path,
-                container_env_vars=self.container_env_vars,
-                docker_volume_basedir=self.docker_volume_basedir,
-                docker_network=self.docker_network,
-                log_file=self.log_file,
-                skip_pull_image=self.skip_pull_image,
-                parameter_overrides=self.parameter_overrides,
-                layer_cache_basedir=self.layer_cache_basedir,
-                force_image_build=self.force_image_build,
-                shutdown=self.shutdown,
-                container_host=self.container_host,
-                container_host_interface=self.container_host_interface,
-                invoke_image=self.invoke_image,
-            )
+            self.call_cli()
 
         msg = str(ex_ctx.exception)
         self.assertEqual(msg, execption_message)
@@ -342,37 +241,10 @@ class TestCli(TestCase):
         event_data = "data"
         get_event_mock.return_value = event_data
 
-        ctx_mock = Mock()
-        ctx_mock.region = self.region_name
-        ctx_mock.profile = self.profile
-
         InvokeContextMock.side_effect = OverridesNotWellDefinedError("bad env vars")
 
         with self.assertRaises(UserException) as ex_ctx:
-
-            invoke_cli(
-                ctx=ctx_mock,
-                function_identifier=self.function_id,
-                template=self.template,
-                event=self.eventfile,
-                no_event=self.no_event,
-                env_vars=self.env_vars,
-                debug_port=self.debug_ports,
-                debug_args=self.debug_args,
-                debugger_path=self.debugger_path,
-                container_env_vars=self.container_env_vars,
-                docker_volume_basedir=self.docker_volume_basedir,
-                docker_network=self.docker_network,
-                log_file=self.log_file,
-                skip_pull_image=self.skip_pull_image,
-                parameter_overrides=self.parameter_overrides,
-                layer_cache_basedir=self.layer_cache_basedir,
-                force_image_build=self.force_image_build,
-                shutdown=self.shutdown,
-                container_host=self.container_host,
-                container_host_interface=self.container_host_interface,
-                invoke_image=self.invoke_image,
-            )
+            self.call_cli()
 
         msg = str(ex_ctx.exception)
         self.assertEqual(msg, "bad env vars")
@@ -393,10 +265,6 @@ class TestCli(TestCase):
         event_data = "data"
         get_event_mock.return_value = event_data
 
-        ctx_mock = Mock()
-        ctx_mock.region = self.region_name
-        ctx_mock.profile = self.profile
-
         # Mock the __enter__ method to return a object inside a context manager
         context_mock = Mock()
         InvokeContextMock.return_value.__enter__.return_value = context_mock
@@ -404,30 +272,7 @@ class TestCli(TestCase):
         context_mock.local_lambda_runner.invoke.side_effect = side_effect_exception
 
         with self.assertRaises(UserException) as ex_ctx:
-
-            invoke_cli(
-                ctx=ctx_mock,
-                function_identifier=self.function_id,
-                template=self.template,
-                event=self.eventfile,
-                no_event=self.no_event,
-                env_vars=self.env_vars,
-                debug_port=self.debug_ports,
-                debug_args=self.debug_args,
-                debugger_path=self.debugger_path,
-                container_env_vars=self.container_env_vars,
-                docker_volume_basedir=self.docker_volume_basedir,
-                docker_network=self.docker_network,
-                log_file=self.log_file,
-                skip_pull_image=self.skip_pull_image,
-                parameter_overrides=self.parameter_overrides,
-                layer_cache_basedir=self.layer_cache_basedir,
-                force_image_build=self.force_image_build,
-                shutdown=self.shutdown,
-                container_host=self.container_host,
-                container_host_interface=self.container_host_interface,
-                invoke_image=self.invoke_image,
-            )
+            self.call_cli()
 
         msg = str(ex_ctx.exception)
         self.assertEqual(msg, expected_exectpion_message)

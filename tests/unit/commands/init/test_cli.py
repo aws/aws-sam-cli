@@ -145,7 +145,7 @@ class TestCli(TestCase):
             location=self.location,
             pt_explicit=self.pt_explicit,
             package_type=self.package_type,
-            runtime="nodejs16.x",
+            runtime="nodejs18.x",
             architecture=X86_64,
             base_image=self.base_image,
             dependency_manager="npm",
@@ -162,12 +162,12 @@ class TestCli(TestCase):
             # need to change the location validation check
             ANY,
             ZIP,
-            "nodejs16.x",
+            "nodejs18.x",
             "npm",
             self.output_dir,
             self.name,
             True,
-            {"runtime": "nodejs16.x", "project_name": "testing project", "architectures": {"value": ["x86_64"]}},
+            {"runtime": "nodejs18.x", "project_name": "testing project", "architectures": {"value": ["x86_64"]}},
             False,
         )
 
