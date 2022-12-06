@@ -4,6 +4,10 @@ Class used to parse and update template when application-insights is enabled
 import logging
 from typing import Any
 from samcli.lib.init.template_modifiers.cli_template_modifier import TemplateModifier
+from samcli.lib.utils.resources import (
+    AWS_APPLICATION_INSIGHTS,
+    AWS_RESOURCE_GROUP
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -21,9 +25,7 @@ class ApplicationInsightsTemplateModifier(TemplateModifier):
     RESOURCE_GROUP_NAME_KEY = "ResourceGroupName"
     AUTO_CONFIG_ENABLED_KEY = "AutoConfigurationEnabled"
     DEPENDS_ON_KEY = "DependsOn"
-    RESOURCE_GROUP_TYPE = "AWS::ResourceGroups::Group"
     CFN_STACK_TYPE = "CLOUDFORMATION_STACK_1_0"
-    APPLICATION_INSIGHTS_TYPE = "AWS::ApplicationInsights::Application"
     RESOURCE_GROUP_REF = "ApplicationResourceGroup"
     APPLICATION_INSIGHTS_REF = "ApplicationInsightsMonitoring"
     AUTO_CONFIG_VALUE = "true"
@@ -51,7 +53,7 @@ class ApplicationInsightsTemplateModifier(TemplateModifier):
 
     def _add_app_insights_monitoring_section(self):
         resourceGroup = {
-            self.TYPE_KEY: self.RESOURCE_GROUP_TYPE,
+            self.TYPE_KEY: AWS_RESOURCE_GROUP,
             self.PROPERTIES_KEY: {
                 self.NAME_KEY: self.RESOURCE_GROUP_NAME,
                 self.RESOURCE_QUERY_KEY: {self.TYPE_KEY: self.CFN_STACK_TYPE},
@@ -59,7 +61,7 @@ class ApplicationInsightsTemplateModifier(TemplateModifier):
         }
 
         appInsightsApplication = {
-            self.TYPE_KEY: self.APPLICATION_INSIGHTS_TYPE,
+            self.TYPE_KEY: AWS_APPLICATION_INSIGHTS,
             self.PROPERTIES_KEY: {
                 self.RESOURCE_GROUP_NAME_KEY: self.RESOURCE_GROUP_NAME,
                 self.AUTO_CONFIG_ENABLED_KEY: self.AUTO_CONFIG_VALUE,
