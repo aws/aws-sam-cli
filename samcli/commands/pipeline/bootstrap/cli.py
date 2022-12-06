@@ -9,6 +9,7 @@ import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, aws_creds_options, print_cmdline_args
+from samcli.commands._utils.click_mutex import ClickMutex
 
 from samcli.commands.pipeline.bootstrap.pipeline_oidc_provider import PipelineOidcProvider
 from samcli.lib.config.samconfig import SamConfig
@@ -114,12 +115,16 @@ OPENID_CONNECT = "OpenID Connect (OIDC)"
     "If there is no organization enter the Username of the repository owner instead "
     "Only used if using GitHub Actions OIDC for user permissions",
     required=False,
+    cls=ClickMutex,
+    incompatible_params=["bitbucket_repo_uuid", "gitlab_group", "gitlab_project"],
 )
 @click.option(
     "--github-repo",
     help="The name of the GitHub Repository that deployments will occur from. "
     "Only used if using GitHub Actions OIDC for permissions",
     required=False,
+    cls=ClickMutex,
+    incompatible_params=["bitbucket_repo_uuid", "gitlab_group", "gitlab_project"],
 )
 @click.option(
     "--deployment-branch",
@@ -130,25 +135,37 @@ OPENID_CONNECT = "OpenID Connect (OIDC)"
 @click.option(
     "--oidc-provider",
     help="The name of the CI/CD system that will be used for OIDC permissions "
-    "we currently only support GitLab, GitHub, and Bitbucket",
+    "Currently supported CI/CD systems are : GitLab, GitHub and Bitbucket",
     type=click.Choice([GITHUB_ACTIONS, GITLAB, BITBUCKET]),
     required=False,
+    cls=ClickMutex,
+    required_param_lists=[
+        ["gitlab_group", "gitlab_project"],
+        ["github_org", "github_repo"],
+        ["bitbucket_repo_uuid"],
+    ],
 )
 @click.option(
     "--gitlab-group",
     help="The GitLab group that the repository belongs to. Only used if using GitLab OIDC for permissions",
     required=False,
+    cls=ClickMutex,
+    incompatible_params=["bitbucket_repo_uuid", "github_org", "github_repo"],
 )
 @click.option(
     "--gitlab-project",
     help="The GitLab project name. Only used if using GitLab OIDC for permissions",
     required=False,
+    cls=ClickMutex,
+    incompatible_params=["bitbucket_repo_uuid", "github_org", "github_repo"],
 )
 @click.option(
     "--bitbucket-repo-uuid",
     help="The UUID of the Bitbucket repository. Only used if using Bitbucket OIDC for permissions. "
     "Found at https://bitbucket.org/<WORKSPACE>/<REPOSITORY>/admin/addon/admin/pipelines/openid-connect",
     required=False,
+    cls=ClickMutex,
+    incompatible_params=["gitlab_group", "gitlab_project", "github_org", "github_repo"],
 )
 @click.option(
     "--cicd-provider",
@@ -265,15 +282,15 @@ def do_cli(
         Stage,
     )
 
+    config_parameters = _load_config_values()
     if not pipeline_user_arn and not permissions_provider == OPEN_ID_CONNECT:
-        pipeline_user_arn = _load_saved_pipeline_user_arn()
+        pipeline_user_arn = config_parameters.get("pipeline_user")
 
     enable_oidc_option = False
     if not cicd_provider or cicd_provider in OIDC_SUPPORTED_PROVIDER:
         enable_oidc_option = True
         oidc_provider = cicd_provider
 
-    config_parameters = _load_config_values()
     oidc_config = OidcConfig(
         oidc_client_id=oidc_client_id, oidc_provider=oidc_provider, oidc_provider_url=oidc_provider_url
     )
@@ -446,14 +463,6 @@ def _get_pipeline_oidc_provider(
         }
         return BitbucketOidcProvider(bitbucket_oidc_params, oidc_config.get_oidc_parameters())
     raise click.UsageError("Missing required parameter '--oidc-provider'")
-
-
-def _load_saved_pipeline_user_arn() -> Optional[str]:
-    samconfig: SamConfig = SamConfig(config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME)
-    if not samconfig.exists():
-        return None
-    config: Dict[str, str] = samconfig.get_all(cmd_names=_get_bootstrap_command_names(), section="parameters")
-    return config.get("pipeline_user")
 
 
 def _load_config_values() -> Dict[str, str]:
