@@ -28,6 +28,12 @@ class TestValidate(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.patterns = {
+            TemplateFileTypes.JSON: re.compile(r"template\.json can be transformed to a Cloudformation template."
+            " Please run \"sam validate --lint -t template.yaml\" for additional validation(\r\n)?$"),
+            TemplateFileTypes.YAML: re.compile(r"template\.yaml can be transformed to a Cloudformation template."
+            " Please run \"sam validate --lint -t template.yaml\" for additional validation(\r\n)?$"),
+        }
+        cls.lint_patterns = {
             TemplateFileTypes.JSON: re.compile(r"template\.json is a valid SAM Template(\r\n)?$"),
             TemplateFileTypes.YAML: re.compile(r"template\.yaml is a valid SAM Template(\r\n)?$"),
         }
@@ -42,6 +48,7 @@ class TestValidate(TestCase):
         profile: Optional[str] = None,
         region: Optional[str] = None,
         config_file: Optional[Path] = None,
+        lint: Optional[bool] = None,
     ) -> List[str]:
         command_list = [self.base_command(), "validate"]
         if template_file:
@@ -52,6 +59,8 @@ class TestValidate(TestCase):
             command_list += ["--region", region]
         if config_file:
             command_list += ["--config_file", str(config_file)]
+        if lint:
+            command_list += ["--lint"]
         return command_list
 
     @parameterized.expand(
@@ -87,3 +96,23 @@ class TestValidate(TestCase):
         )
 
         self.assertIn(warning_message, output)
+
+    @parameterized.expand(
+        [
+            ("default_yaml", TemplateFileTypes.YAML),  # project with template.yaml
+            ("default_json", TemplateFileTypes.JSON),  # project with template.json
+            ("multiple_files", TemplateFileTypes.YAML),  # project with both template.yaml and template.json
+            (
+                "with_build",
+                TemplateFileTypes.JSON,
+            ),  # project with template.json and standard build directory .aws-sam/build/template.yaml
+        ]
+    )
+    def test_lint_template(self, relative_folder: str, expected_file: TemplateFileTypes):
+        test_data_path = Path(__file__).resolve().parents[2] / "integration" / "testdata" / "validate"
+        process_dir = test_data_path / relative_folder
+        command_result = run_command(self.command_list(lint=True), cwd=str(process_dir))
+        pattern = self.lint_patterns[expected_file] # type: ignore
+        output = command_result.stdout.decode("utf-8")
+        self.assertEqual(command_result.process.returncode, 0)
+        self.assertRegex(output, pattern)
