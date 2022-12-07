@@ -59,7 +59,7 @@ RESOURCES_WITH_LOCAL_PATHS = {
     AWS_SERVERLESS_STATEMACHINE: ["DefinitionUri"],
     AWS_APPSYNC_GRAPHQLSCHEMA: ["DefinitionS3Location"],
     AWS_APPSYNC_RESOLVER: ["RequestMappingTemplateS3Location", "ResponseMappingTemplateS3Location"],
-    AWS_APPSYNC_FUNCTIONCONFIGURATION: ["RequestMappingTemplateS3Location", "ResponseMappingTemplateS3Location"],
+    AWS_APPSYNC_FUNCTIONCONFIGURATION: ["RequestMappingTemplateS3Location", "ResponseMappingTemplateS3Location","CodeS3Location"],
     AWS_LAMBDA_FUNCTION: ["Code"],
     AWS_APIGATEWAY_RESTAPI: ["BodyS3Location"],
     AWS_APIGATEWAY_V2_API: ["BodyS3Location"],

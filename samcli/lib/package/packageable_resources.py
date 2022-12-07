@@ -445,6 +445,14 @@ class AppSyncFunctionConfigurationResponseTemplateResource(ResourceZip):
     PACKAGE_NULL_PROPERTY = False
 
 
+class AppSyncFunctionConfigurationCodeResource(ResourceZip):
+    RESOURCE_TYPE = AWS_APPSYNC_FUNCTIONCONFIGURATION
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][2]
+    # Don't package the directory if ResponseMappingTemplateS3Location is omitted.
+    # Necessary to support ResponseMappingTemplate
+    PACKAGE_NULL_PROPERTY = False
+
+
 class LambdaFunctionResource(ResourceWithS3UrlDict):
     RESOURCE_TYPE = AWS_LAMBDA_FUNCTION
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
@@ -581,6 +589,7 @@ RESOURCES_EXPORT_LIST = [
     AppSyncResolverResponseTemplateResource,
     AppSyncFunctionConfigurationRequestTemplateResource,
     AppSyncFunctionConfigurationResponseTemplateResource,
+    AppSyncFunctionConfigurationCodeResource,
     ApiGatewayRestApiResource,
     ApiGatewayV2Resource,
     StepFunctionsStateMachineResource,
