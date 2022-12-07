@@ -1,7 +1,6 @@
 """
 Exporting resources defined in the cloudformation template to the cloud.
 """
-# pylint: disable=no-member
 
 # Copyright 2012-2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
