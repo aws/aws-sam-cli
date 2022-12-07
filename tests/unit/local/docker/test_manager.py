@@ -321,7 +321,7 @@ class TestContainerManager_is_docker_reachable(TestCase):
             importlib.reload(manager_module)
             importlib.reload(docker_utils)
             manager = manager_module.ContainerManager(docker_client=self.docker_client_mock)
-            import pywintypes  # pylint: disable=import-error
+            import pywintypes
 
             self.ping_mock.side_effect = pywintypes.error("pywintypes.error")
             is_reachable = manager.is_docker_reachable
