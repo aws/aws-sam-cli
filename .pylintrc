@@ -314,7 +314,8 @@ ignored-classes=SQLObject
 # List of members which are set dynamically and missed by pylint inference
 # system, and so shouldn't trigger E0201 when accessed. Python regular
 # expressions are accepted.
-generated-members=REQUEST,acl_users,aq_parent,objects,DoesNotExist,md5,sha1,sha224,sha256,sha384,sha512
+# Stub files are also missed by pylint: https://github.com/PyCQA/pylint/issues/4987
+generated-members=REQUEST,acl_users,aq_parent,objects,DoesNotExist,md5,sha1,sha224,sha256,sha384,sha512,pywintypes
 
 
 [VARIABLES]
