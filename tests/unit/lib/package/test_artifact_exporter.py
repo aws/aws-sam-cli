@@ -46,6 +46,7 @@ from samcli.lib.package.packageable_resources import (
     ServerlessRepoApplicationReadme,
     AppSyncResolverRequestTemplateResource,
     AppSyncResolverResponseTemplateResource,
+    AppSyncFunctionConfigurationCodeResource,
     AppSyncFunctionConfigurationRequestTemplateResource,
     AppSyncFunctionConfigurationResponseTemplateResource,
     GlueJobCommandScriptLocationResource,
@@ -84,6 +85,7 @@ class TestArtifactExporter(unittest.TestCase):
             {"class": AppSyncResolverResponseTemplateResource, "expected_result": uploaded_s3_url},
             {"class": AppSyncFunctionConfigurationRequestTemplateResource, "expected_result": uploaded_s3_url},
             {"class": AppSyncFunctionConfigurationResponseTemplateResource, "expected_result": uploaded_s3_url},
+            {"class": AppSyncFunctionConfigurationCodeResource, "expected_result": uploaded_s3_url},
             {"class": ApiGatewayRestApiResource, "expected_result": {"Bucket": "foo", "Key": "bar", "Version": "baz"}},
             {
                 "class": LambdaFunctionResource,
