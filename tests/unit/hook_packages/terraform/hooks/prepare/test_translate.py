@@ -11,16 +11,17 @@ from samcli.hook_packages.terraform.hooks.prepare.types import (
     SamMetadataResource,
 )
 from samcli.hook_packages.terraform.hooks.prepare.translate import (
-    _translate_to_cfn,
+    translate_to_cfn,
     _add_child_modules_to_queue,
     _add_metadata_resource_to_metadata_list,
     _translate_properties,
     _link_lambda_functions_to_layers,
     _map_s3_sources_to_functions,
     _check_dummy_remote_values,
+    _get_s3_object_hash,
 )
-from samcli.hook_packages.terraform.lib.utils import AWS_PROVIDER_NAME
-from samcli.hook_packages.terraform.hooks.prepare.types import TFModule, TFResource
+from samcli.hook_packages.terraform.hooks.prepare.translate import AWS_PROVIDER_NAME
+from samcli.hook_packages.terraform.hooks.prepare.types import TFModule, TFResource, ConstantValue, ResolvedReference
 from samcli.lib.hook.exceptions import PrepareHookException
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION
 
@@ -32,7 +33,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_lambda_functions_to_layers")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._enrich_resources_and_generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     def test_translate_to_cfn_empty(
         self,
         mock_enrich_resources_and_generate_makefile,
@@ -55,7 +56,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         ]
 
         for tf_json in tf_jsons:
-            translated_cfn_dict = _translate_to_cfn(tf_json, self.output_dir, self.project_root)
+            translated_cfn_dict = translate_to_cfn(tf_json, self.output_dir, self.project_root)
             self.assertEqual(translated_cfn_dict, expected_empty_cfn_dict)
             mock_enrich_resources_and_generate_makefile.assert_not_called()
 
@@ -63,7 +64,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_lambda_functions_to_layers")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._enrich_resources_and_generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_root_module_only(
         self,
@@ -88,7 +89,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         resources_mock.__contains__.return_value = True
         mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
-        translated_cfn_dict = _translate_to_cfn(self.tf_json_with_root_module_only, self.output_dir, self.project_root)
+        translated_cfn_dict = translate_to_cfn(self.tf_json_with_root_module_only, self.output_dir, self.project_root)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_root_module_only)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
         lambda_functions = dict(
@@ -110,7 +111,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_lambda_functions_to_layers")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._enrich_resources_and_generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_s3_object_which_linked_to_uncreated_bucket(
         self,
@@ -153,14 +154,14 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             }
         }
 
-        _translate_to_cfn(tf_json_with_root_module_contains_s3_object, self.output_dir, self.project_root)
+        translate_to_cfn(tf_json_with_root_module_contains_s3_object, self.output_dir, self.project_root)
         mock_resolve_resource_attribute.assert_has_calls([call(resource_mock, "bucket"), call(resource_mock, "key")])
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_dummy_remote_values")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_lambda_functions_to_layers")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._enrich_resources_and_generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_child_modules(
         self,
@@ -185,7 +186,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         resources_mock.__contains__.return_value = True
         mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
-        translated_cfn_dict = _translate_to_cfn(self.tf_json_with_child_modules, self.output_dir, self.project_root)
+        translated_cfn_dict = translate_to_cfn(self.tf_json_with_child_modules, self.output_dir, self.project_root)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_child_modules)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
         lambda_functions = dict(
@@ -209,7 +210,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_lambda_functions_to_layers")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._enrich_resources_and_generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_root_module_with_sam_metadata_resource(
         self,
@@ -237,7 +238,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
         mock_build_cfn_logical_id.side_effect = ["logical_id1", "logical_id2", "logical_id3"]
-        translated_cfn_dict = _translate_to_cfn(
+        translated_cfn_dict = translate_to_cfn(
             self.tf_json_with_root_module_with_sam_metadata_resources, self.output_dir, self.project_root
         )
 
@@ -303,7 +304,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_lambda_functions_to_layers")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._enrich_resources_and_generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_child_modules_with_sam_metadata_resource(
         self,
@@ -329,7 +330,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         resources_mock.__contains__.return_value = True
         mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
-        translated_cfn_dict = _translate_to_cfn(
+        translated_cfn_dict = translate_to_cfn(
             self.tf_json_with_child_modules_with_sam_metadata_resource, self.output_dir, self.project_root
         )
 
@@ -377,7 +378,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_lambda_functions_to_layers")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._enrich_resources_and_generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_unsupported_provider(
         self,
@@ -401,7 +402,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         resources_mock.__contains__.return_value = True
         mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
-        translated_cfn_dict = _translate_to_cfn(
+        translated_cfn_dict = translate_to_cfn(
             self.tf_json_with_unsupported_provider, self.output_dir, self.project_root
         )
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_unsupported_provider)
@@ -411,7 +412,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_lambda_functions_to_layers")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._enrich_resources_and_generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_unsupported_resource_type(
         self,
@@ -435,7 +436,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         resources_mock.__contains__.return_value = True
         mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
-        translated_cfn_dict = _translate_to_cfn(
+        translated_cfn_dict = translate_to_cfn(
             self.tf_json_with_unsupported_resource_type, self.output_dir, self.project_root
         )
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_unsupported_resource_type)
@@ -446,7 +447,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_lambda_functions_to_layers")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._enrich_resources_and_generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_mapping_s3_source_to_function(
         self,
@@ -471,7 +472,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         resources_mock.__contains__.return_value = True
         mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
-        translated_cfn_dict = _translate_to_cfn(
+        translated_cfn_dict = translate_to_cfn(
             self.tf_json_with_child_modules_and_s3_source_mapping, self.output_dir, self.project_root
         )
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_child_modules_and_s3_source_mapping)
@@ -970,3 +971,67 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
                     },
                 }
             )
+
+    def test_get_s3_object_hash(self):
+        self.assertEqual(
+            _get_s3_object_hash(self.s3_bucket, self.s3_key), _get_s3_object_hash(self.s3_bucket, self.s3_key)
+        )
+        self.assertEqual(
+            _get_s3_object_hash(
+                [ConstantValue("A"), ResolvedReference("aws_lambda_function.arn", "module.m1")], self.s3_key
+            ),
+            _get_s3_object_hash(
+                [ResolvedReference("aws_lambda_function.arn", "module.m1"), ConstantValue("A")], self.s3_key
+            ),
+        )
+        self.assertEqual(
+            _get_s3_object_hash(
+                self.s3_bucket, [ConstantValue("A"), ResolvedReference("aws_lambda_function.arn", "module.m1")]
+            ),
+            _get_s3_object_hash(
+                self.s3_bucket, [ResolvedReference("aws_lambda_function.arn", "module.m1"), ConstantValue("A")]
+            ),
+        )
+        self.assertEqual(
+            _get_s3_object_hash(
+                [ConstantValue("B"), ResolvedReference("aws_s3_bucket.id", "module.m2")],
+                [ConstantValue("A"), ResolvedReference("aws_lambda_function.arn", "module.m1")],
+            ),
+            _get_s3_object_hash(
+                [ResolvedReference("aws_s3_bucket.id", "module.m2"), ConstantValue("B")],
+                [ResolvedReference("aws_lambda_function.arn", "module.m1"), ConstantValue("A")],
+            ),
+        )
+        self.assertNotEqual(
+            _get_s3_object_hash(
+                [ConstantValue("B"), ConstantValue("C"), ResolvedReference("aws_s3_bucket.id", "module.m2")],
+                [ConstantValue("A"), ResolvedReference("aws_lambda_function.arn", "module.m1")],
+            ),
+            _get_s3_object_hash(
+                [ResolvedReference("aws_s3_bucket.id", "module.m2"), ConstantValue("B")],
+                [ResolvedReference("aws_lambda_function.arn", "module.m1"), ConstantValue("A")],
+            ),
+        )
+        self.assertNotEqual(
+            _get_s3_object_hash([ConstantValue("B"), ResolvedReference("aws_s3_bucket.id", "module.m2")], self.s3_key),
+            _get_s3_object_hash(
+                [ResolvedReference("aws_s3_bucket.id", "module.m2"), ConstantValue("B")], self.s3_key_2
+            ),
+        )
+        self.assertNotEqual(
+            _get_s3_object_hash(
+                self.s3_bucket, [ConstantValue("A"), ResolvedReference("aws_lambda_function.arn", "module.m1")]
+            ),
+            _get_s3_object_hash(
+                self.s3_bucket_2, [ResolvedReference("aws_lambda_function.arn", "module.m1"), ConstantValue("A")]
+            ),
+        )
+        self.assertNotEqual(
+            _get_s3_object_hash(self.s3_bucket, self.s3_key), _get_s3_object_hash(self.s3_bucket_2, self.s3_key_2)
+        )
+        self.assertNotEqual(
+            _get_s3_object_hash(self.s3_bucket, self.s3_key), _get_s3_object_hash(self.s3_bucket_2, self.s3_key)
+        )
+        self.assertNotEqual(
+            _get_s3_object_hash(self.s3_bucket, self.s3_key), _get_s3_object_hash(self.s3_bucket, self.s3_key_2)
+        )

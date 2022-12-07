@@ -1,27 +1,28 @@
 """
 Terraform resource enrichment
+
+This module populates the values required for each of the Lambda resources
 """
 import logging
 import json
 import os
+import re
 from typing import Dict, List, Tuple
 from json.decoder import JSONDecodeError
+from subprocess import run, CalledProcessError
 from samcli.hook_packages.terraform.lib.utils import (
-    CFN_CODE_PROPERTIES,
-    SAM_METADATA_RESOURCE_TYPE_ATTRIBUTE,
-    SAM_METADATA_DOCKER_TAG_ATTRIBUTE,
-    SAM_METADATA_DOCKER_FILE_ATTRIBUTE,
-    SAM_METADATA_DOCKER_BUILD_ARGS_ATTRIBUTE,
-    SAM_METADATA_RESOURCE_NAME_ATTRIBUTE,
-    _get_python_command_name,
     get_sam_metadata_planned_resource_value_attribute,
     _calculate_configuration_attribute_value_hash,
     build_cfn_logical_id,
 )
 from samcli.hook_packages.terraform.hooks.prepare.types import SamMetadataResource
-from samcli.hook_packages.terraform.hooks.prepare.makefile import (
-    _generate_makefile_rule_for_lambda_resource,
-    _generate_makefile,
+from samcli.hook_packages.terraform.hooks.prepare.makefile_generator import (
+    generate_makefile_rule_for_lambda_resource,
+    generate_makefile,
+)
+from samcli.hook_packages.terraform.hooks.prepare.constants import (
+    CFN_CODE_PROPERTIES,
+    SAM_METADATA_RESOURCE_NAME_ATTRIBUTE,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import _resolve_resource_attribute
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import InvalidSamMetadataPropertiesException
@@ -32,11 +33,19 @@ from samcli.lib.utils.resources import (
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.hook.exceptions import PrepareHookException
 
+SAM_METADATA_DOCKER_TAG_ATTRIBUTE = "docker_tag"
+SAM_METADATA_DOCKER_BUILD_ARGS_ATTRIBUTE = "docker_build_args"
+SAM_METADATA_DOCKER_FILE_ATTRIBUTE = "docker_file"
+SAM_METADATA_RESOURCE_TYPE_ATTRIBUTE = "resource_type"
+
+# check for python 3, 3.7 or above
+# regex: search for 'Python', whitespace, '3.', digits 7-9 or 2+ digits, any digit or '.' 0+ times
+PYTHON_VERSION_REGEX = re.compile(r"Python\s*3.([7-9]|\d{2,})[\d.]*")
 
 LOG = logging.getLogger(__name__)
 
 
-def _enrich_resources_and_generate_makefile(
+def enrich_resources_and_generate_makefile(
     sam_metadata_resources: List[SamMetadataResource],
     cfn_resources: Dict[str, Dict],
     output_directory_path: str,
@@ -97,14 +106,14 @@ def _enrich_resources_and_generate_makefile(
             )
 
             # get makefile rule for resource
-            makefile_rule = _generate_makefile_rule_for_lambda_resource(
+            makefile_rule = generate_makefile_rule_for_lambda_resource(
                 sam_metadata_resource, logical_id, terraform_application_dir, python_command_name, output_directory_path
             )
             makefile_rules.append(makefile_rule)
 
     # generate makefile
     LOG.debug("Generate Makefile in %s", output_directory_path)
-    _generate_makefile(makefile_rules, output_directory_path)
+    generate_makefile(makefile_rules, output_directory_path)
 
 
 def _enrich_zip_lambda_function(
@@ -644,3 +653,28 @@ def _validate_referenced_resource_matches_sam_metadata_type(
             f"The sam metadata resource {sam_metadata_resource_address} is referring to a resource that does not "
             f"match the resource type {resource_type}."
         )
+
+
+def _get_python_command_name() -> str:
+    """
+    Verify that python is installed and return the name of the python command
+
+    Returns
+    -------
+    str
+        The name of the python command installed
+    """
+    command_names_to_try = ["python3", "py3", "python", "py"]
+    for command_name in command_names_to_try:
+        try:
+            run_result = run([command_name, "--version"], check=True, capture_output=True, text=True)
+        except CalledProcessError:
+            pass
+        except OSError:
+            pass
+        else:
+            # check python version
+            if not PYTHON_VERSION_REGEX.match(run_result.stdout):
+                continue
+            return command_name
+    raise PrepareHookException("Python not found. Please ensure that python 3.7 or above is installed.")

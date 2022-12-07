@@ -1,13 +1,14 @@
 """Test Terraform prepare enrichment"""
 from unittest.mock import Mock, call, patch
 from parameterized import parameterized
+from subprocess import CalledProcessError
 
 from tests.unit.hook_packages.terraform.hooks.prepare.prepare_base import PrepareHookUnitBase
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     SamMetadataResource,
 )
 from samcli.hook_packages.terraform.hooks.prepare.enrich import (
-    _enrich_resources_and_generate_makefile,
+    enrich_resources_and_generate_makefile,
     _enrich_zip_lambda_function,
     _enrich_image_lambda_function,
     _enrich_lambda_layer,
@@ -15,14 +16,16 @@ from samcli.hook_packages.terraform.hooks.prepare.enrich import (
     _get_source_code_path,
     _get_relevant_cfn_resource,
     _validate_referenced_resource_matches_sam_metadata_type,
+    _get_python_command_name,
 )
 from samcli.hook_packages.terraform.hooks.prepare.types import TFResource
+from samcli.lib.hook.exceptions import PrepareHookException
 from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_LAYERVERSION,
 )
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import InvalidSamMetadataPropertiesException
-from samcli.hook_packages.terraform.lib.utils import NULL_RESOURCE_PROVIDER_NAME
+from samcli.hook_packages.terraform.hooks.prepare.translate import NULL_RESOURCE_PROVIDER_NAME
 
 
 class TestPrepareHookMakefile(PrepareHookUnitBase):
@@ -30,8 +33,8 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
         super().setUp()
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_python_command_name")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._generate_makefile")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._generate_makefile_rule_for_lambda_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich.generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich.generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_relevant_cfn_resource")
     @patch(
         "samcli.hook_packages.terraform.hooks.prepare.enrich._validate_referenced_resource_matches_sam_metadata_type"
@@ -125,7 +128,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
         makefile_rules = [Mock() for _ in sam_metadata_resources]
         mock_generate_makefile_rule_for_lambda_resource.side_effect = makefile_rules
 
-        _enrich_resources_and_generate_makefile(
+        enrich_resources_and_generate_makefile(
             sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root", {}
         )
         self.assertEqual(cfn_resources, expected_cfn_resources)
@@ -146,8 +149,8 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
         mock_generate_makefile.assert_called_once_with(makefile_rules, "/output/dir")
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_python_command_name")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._generate_makefile")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._generate_makefile_rule_for_lambda_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich.generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich.generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_relevant_cfn_resource")
     @patch(
         "samcli.hook_packages.terraform.hooks.prepare.enrich._validate_referenced_resource_layer_matches_metadata_type"
@@ -209,7 +212,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
         makefile_rules = [Mock() for _ in sam_metadata_resources]
         mock_generate_makefile_rule_for_lambda_resource.side_effect = makefile_rules
 
-        _enrich_resources_and_generate_makefile(
+        enrich_resources_and_generate_makefile(
             sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root", {}
         )
         self.assertEqual(cfn_resources, expected_cfn_resources)
@@ -230,8 +233,8 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
         mock_generate_makefile.assert_called_once_with(makefile_rules, "/output/dir")
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_python_command_name")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._generate_makefile")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._generate_makefile_rule_for_lambda_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich.generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich.generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_relevant_cfn_resource")
     @patch(
         "samcli.hook_packages.terraform.hooks.prepare.enrich._validate_referenced_resource_matches_sam_metadata_type"
@@ -293,7 +296,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
         makefile_rules = [Mock() for _ in sam_metadata_resources]
         mock_generate_makefile_rule_for_lambda_resource.side_effect = makefile_rules
 
-        _enrich_resources_and_generate_makefile(
+        enrich_resources_and_generate_makefile(
             sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root", {}
         )
         mock_enrich_zip_lambda_function.assert_has_calls(
@@ -430,8 +433,8 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
         self.assertEqual(lambda_layer_1, expected_lambda_layer_1)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_python_command_name")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._generate_makefile")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._generate_makefile_rule_for_lambda_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich.generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich.generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_relevant_cfn_resource")
     @patch(
         "samcli.hook_packages.terraform.hooks.prepare.enrich._validate_referenced_resource_matches_sam_metadata_type"
@@ -506,7 +509,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
         makefile_rules = [Mock() for _ in sam_metadata_resources]
         mock_generate_makefile_rule_for_lambda_resource.side_effect = makefile_rules
 
-        _enrich_resources_and_generate_makefile(
+        enrich_resources_and_generate_makefile(
             sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root", {}
         )
         self.assertEqual(cfn_resources, expected_cfn_resources)
@@ -588,8 +591,8 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
         self.assertEqual(image_function_1, expected_image_function_1)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_python_command_name")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._generate_makefile")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._generate_makefile_rule_for_lambda_resource")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich.generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich.generate_makefile_rule_for_lambda_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_relevant_cfn_resource")
     @patch(
         "samcli.hook_packages.terraform.hooks.prepare.enrich._validate_referenced_resource_matches_sam_metadata_type"
@@ -644,7 +647,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
         makefile_rules = [Mock() for _ in sam_metadata_resources]
         mock_generate_makefile_rule_for_lambda_resource.side_effect = makefile_rules
 
-        _enrich_resources_and_generate_makefile(
+        enrich_resources_and_generate_makefile(
             sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root", {}
         )
         mock_enrich_image_lambda_function.assert_called_once_with(
@@ -785,7 +788,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
             "null_resource.sam_metadata_func1 is not a correct resource type. The resource type should be one of "
             "these values [ZIP_LAMBDA_FUNCTION, IMAGE_LAMBDA_FUNCTION]",
         ):
-            _enrich_resources_and_generate_makefile(
+            enrich_resources_and_generate_makefile(
                 sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root", {}
             )
 
@@ -1156,3 +1159,81 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
             _validate_referenced_resource_matches_sam_metadata_type(
                 cfn_resource, sam_metadata_attributes, "resource_address", expected_package_type
             )
+
+    @parameterized.expand(
+        [
+            ([CalledProcessError(-2, "python3 --version"), Mock(stdout="Python 3.8.10")], "py3"),
+            ([Mock(stdout="Python 3.7.12"), CalledProcessError(-2, "py3 --version")], "python3"),
+            ([Mock(stdout="Python 3.7")], "python3"),
+            ([Mock(stdout="Python 3.7.0")], "python3"),
+            ([Mock(stdout="Python 3.7.12")], "python3"),
+            ([Mock(stdout="Python 3.8")], "python3"),
+            ([Mock(stdout="Python 3.8.0")], "python3"),
+            ([Mock(stdout="Python 3.8.12")], "python3"),
+            ([Mock(stdout="Python 3.9")], "python3"),
+            ([Mock(stdout="Python 3.9.0")], "python3"),
+            ([Mock(stdout="Python 3.9.12")], "python3"),
+            ([Mock(stdout="Python 3.10")], "python3"),
+            ([Mock(stdout="Python 3.10.0")], "python3"),
+            ([Mock(stdout="Python 3.10.12")], "python3"),
+            (
+                [
+                    Mock(stdout="Python 3.6.10"),
+                    Mock(stdout="Python 3.0.10"),
+                    Mock(stdout="Python 2.7.10"),
+                    Mock(stdout="Python 3.7.12"),
+                ],
+                "py",
+            ),
+        ]
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich.run")
+    def test_get_python_command_name(self, mock_run_side_effect, expected_python_command, mock_subprocess_run):
+        mock_subprocess_run.side_effect = mock_run_side_effect
+
+        python_command = _get_python_command_name()
+        self.assertEqual(python_command, expected_python_command)
+
+    @parameterized.expand(
+        [
+            (
+                [
+                    CalledProcessError(-2, "python3 --version"),
+                    CalledProcessError(-2, "py3 --version"),
+                    CalledProcessError(-2, "python --version"),
+                    CalledProcessError(-2, "py --version"),
+                ],
+            ),
+            (
+                [
+                    Mock(stdout="Python 3"),
+                    Mock(stdout="Python 3.0"),
+                    Mock(stdout="Python 3.0.10"),
+                    Mock(stdout="Python 3.6"),
+                ],
+            ),
+            (
+                [
+                    Mock(stdout="Python 3.6.10"),
+                    Mock(stdout="Python 2"),
+                    Mock(stdout="Python 2.7"),
+                    Mock(stdout="Python 2.7.10"),
+                ],
+            ),
+            (
+                [
+                    Mock(stdout="Python 4"),
+                    Mock(stdout="Python 4.7"),
+                    Mock(stdout="Python 4.7.10"),
+                    Mock(stdout="Python 4.7.10"),
+                ],
+            ),
+        ]
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich.run")
+    def test_get_python_command_name_python_not_found(self, mock_run_side_effect, mock_subprocess_run):
+        mock_subprocess_run.side_effect = mock_run_side_effect
+
+        expected_error_msg = "Python not found. Please ensure that python 3.7 or above is installed."
+        with self.assertRaises(PrepareHookException, msg=expected_error_msg):
+            _get_python_command_name()

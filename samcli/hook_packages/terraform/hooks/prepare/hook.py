@@ -1,5 +1,7 @@
 """
 Terraform prepare hook implementation
+
+This module contains the main prepare method
 """
 import json
 import os
@@ -9,17 +11,18 @@ from typing import Any, Dict
 import logging
 
 from samcli.lib.hook.exceptions import PrepareHookException
-from samcli.hook_packages.terraform.lib.utils import (
-    TERRAFORM_METADATA_FILE,
-    HOOK_METADATA_KEY,
-    TERRAFORM_HOOK_METADATA,
-    CFN_CODE_PROPERTIES,
-)
-from samcli.hook_packages.terraform.hooks.prepare.translate import _translate_to_cfn
+from samcli.hook_packages.terraform.hooks.prepare.translate import translate_to_cfn
+from samcli.hook_packages.terraform.hooks.prepare.constants import CFN_CODE_PROPERTIES
 from samcli.lib.utils import osutils
 from samcli.lib.utils.subprocess_utils import invoke_subprocess_with_loading_pattern, LoadingPatternError
 
 LOG = logging.getLogger(__name__)
+
+TERRAFORM_METADATA_FILE = "template.json"
+HOOK_METADATA_KEY = "AWS::SAM::Hook"
+TERRAFORM_HOOK_METADATA = {
+    "HookName": "terraform",
+}
 
 
 def prepare(params: dict) -> dict:
@@ -98,7 +101,7 @@ def prepare(params: dict) -> dict:
 
             # convert terraform to cloudformation
             LOG.info("Generating metadata file")
-            cfn_dict = _translate_to_cfn(tf_json, output_dir_path, terraform_application_dir)
+            cfn_dict = translate_to_cfn(tf_json, output_dir_path, terraform_application_dir)
 
             if cfn_dict.get("Resources"):
                 _update_resources_paths(cfn_dict.get("Resources"), terraform_application_dir)  # type: ignore

@@ -6,14 +6,14 @@ from tests.unit.hook_packages.terraform.hooks.prepare.prepare_base import Prepar
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     SamMetadataResource,
 )
-from samcli.hook_packages.terraform.hooks.prepare.makefile import (
-    _generate_makefile_rule_for_lambda_resource,
+from samcli.hook_packages.terraform.hooks.prepare.makefile_generator import (
+    generate_makefile_rule_for_lambda_resource,
+    generate_makefile,
     _get_makefile_build_target,
     _get_parent_modules,
     _build_jpath_string,
     _format_makefile_recipe,
     _build_makerule_python_command,
-    _generate_makefile,
 )
 from samcli.hook_packages.terraform.hooks.prepare.types import TFResource
 
@@ -22,8 +22,8 @@ class TestPrepareMakefile(PrepareHookUnitBase):
     def setUp(self):
         super().setUp()
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.makefile._get_makefile_build_target")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.makefile._format_makefile_recipe")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.makefile_generator._get_makefile_build_target")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.makefile_generator._format_makefile_recipe")
     def test_generate_makefile_rule_for_lambda_resource(self, format_recipe_mock, get_build_target_mock):
         format_recipe_mock.side_effect = [
             "\tpython3 .aws-sam/iacs_metadata/copy_terraform_built_artifacts.py --expression "
@@ -37,7 +37,7 @@ class TestPrepareMakefile(PrepareHookUnitBase):
             resource={"address": "null_resource.sam_metadata_aws_lambda_function"},
             config_resource=TFResource("", "", None, {}),
         )
-        makefile_rule = _generate_makefile_rule_for_lambda_resource(
+        makefile_rule = generate_makefile_rule_for_lambda_resource(
             python_command_name="python",
             output_dir="/some/dir/path/.aws-sam/output",
             sam_metadata_resource=sam_metadata_resource,
@@ -60,7 +60,7 @@ class TestPrepareMakefile(PrepareHookUnitBase):
             'null_resource.sam_metadata_aws_lambda_layer_version_layers["layer3"]',
         ]
     )
-    @patch("samcli.hook_packages.terraform.hooks.prepare.makefile._build_jpath_string")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.makefile_generator._build_jpath_string")
     def test_build_makerule_python_command(self, resource, jpath_string_mock):
         jpath_string_mock.return_value = (
             "|values|root_module|resources|" f'[?address=="{resource}"]' "|values|triggers|built_output_path"
@@ -148,8 +148,8 @@ class TestPrepareMakefile(PrepareHookUnitBase):
 
     @parameterized.expand([(True,), (False,)])
     @patch("builtins.open")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.makefile.shutil")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.makefile.os")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.makefile_generator.shutil")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.makefile_generator.os")
     def test_generate_makefile(
         self,
         output_dir_exists,
@@ -175,7 +175,7 @@ class TestPrepareMakefile(PrepareHookUnitBase):
         mock_makefile_rules = Mock()
         mock_output_directory_path = Mock()
 
-        _generate_makefile(mock_makefile_rules, mock_output_directory_path)
+        generate_makefile(mock_makefile_rules, mock_output_directory_path)
 
         if output_dir_exists:
             mock_os.makedirs.assert_not_called()

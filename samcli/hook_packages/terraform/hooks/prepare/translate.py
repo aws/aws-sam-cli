@@ -1,7 +1,10 @@
 """
 Terraform translate to CFN implementation
+
+This method contains the logic required to translate the `terraform show` JSON output into a Cloudformation template
 """
 import logging
+import hashlib
 from typing import Dict, List, Tuple, Union, Any
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     ConstantValue,
@@ -11,16 +14,9 @@ from samcli.hook_packages.terraform.hooks.prepare.types import (
     TFModule,
 )
 from samcli.hook_packages.terraform.lib.utils import (
-    NULL_RESOURCE_PROVIDER_NAME,
-    SAM_METADATA_RESOURCE_TYPE,
-    SAM_METADATA_NAME_PREFIX,
-    AWS_PROVIDER_NAME,
-    SAM_METADATA_RESOURCE_NAME_ATTRIBUTE,
-    _get_s3_object_hash,
     build_cfn_logical_id,
     get_sam_metadata_planned_resource_value_attribute,
     _calculate_configuration_attribute_value_hash,
-    CFN_CODE_PROPERTIES,
 )
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     TF_AWS_LAMBDA_LAYER_VERSION,
@@ -33,8 +29,12 @@ from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
 )
 from samcli.lib.utils.packagetype import ZIP, IMAGE
-from samcli.hook_packages.terraform.hooks.prepare.enrich import _enrich_resources_and_generate_makefile
+from samcli.hook_packages.terraform.hooks.prepare.enrich import enrich_resources_and_generate_makefile
 from samcli.hook_packages.terraform.hooks.prepare.types import SamMetadataResource
+from samcli.hook_packages.terraform.hooks.prepare.constants import (
+    SAM_METADATA_RESOURCE_NAME_ATTRIBUTE,
+    CFN_CODE_PROPERTIES,
+)
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _resolve_resource_attribute,
     _build_module,
@@ -43,11 +43,16 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
 )
 from samcli.lib.hook.exceptions import PrepareHookException
 
+SAM_METADATA_RESOURCE_TYPE = "null_resource"
+SAM_METADATA_NAME_PREFIX = "sam_metadata_"
+
+AWS_PROVIDER_NAME = "registry.terraform.io/hashicorp/aws"
+NULL_RESOURCE_PROVIDER_NAME = "registry.terraform.io/hashicorp/null"
 
 LOG = logging.getLogger(__name__)
 
 
-def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_application_dir: str) -> dict:
+def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_application_dir: str) -> dict:
     """
     Translates the json output of a terraform show into CloudFormation
 
@@ -233,7 +238,7 @@ def _translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_appli
 
     if sam_metadata_resources:
         LOG.debug("Enrich the mapped resources with the sam metadata information and generate Makefile")
-        _enrich_resources_and_generate_makefile(
+        enrich_resources_and_generate_makefile(
             sam_metadata_resources,
             cfn_dict.get("Resources", {}),
             output_directory_path,
@@ -509,3 +514,29 @@ def _check_dummy_remote_values(cfn_resources: Dict[str, Any]) -> None:
                     "that is not created yet, and there is no sam metadata resource set for it to build its image "
                     "locally."
                 )
+
+
+def _get_s3_object_hash(
+    bucket: Union[str, List[Union[ConstantValue, ResolvedReference]]],
+    key: Union[str, List[Union[ConstantValue, ResolvedReference]]],
+) -> str:
+    """
+    Creates a hash for an AWS S3 object out of the bucket and key
+
+    Parameters
+    ----------
+    bucket: Union[str, List[Union[ConstantValue, ResolvedReference]]]
+        bucket for the S3 object
+    key: Union[str, List[Union[ConstantValue, ResolvedReference]]]
+        key for the S3 object
+
+    Returns
+    -------
+    str
+        hash for the given bucket and key
+    """
+    md5 = hashlib.md5()
+    md5.update(_calculate_configuration_attribute_value_hash(bucket).encode())
+    md5.update(_calculate_configuration_attribute_value_hash(key).encode())
+    # TODO: Hash version if it exists in addition to key and bucket
+    return md5.hexdigest()

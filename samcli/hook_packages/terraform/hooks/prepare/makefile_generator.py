@@ -1,5 +1,7 @@
 """
 Terraform Makefile and make rule generation
+
+This module generates the Makefile for the project and the rules for each of the Lambda functions found
 """
 import os
 from pathlib import Path
@@ -8,10 +10,6 @@ import logging
 import shutil
 import uuid
 
-from samcli.hook_packages.terraform.lib.utils import (
-    TERRAFORM_BUILD_SCRIPT,
-    TF_BACKEND_OVERRIDE_FILENAME,
-)
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     SamMetadataResource,
 )
@@ -19,8 +17,11 @@ from samcli.lib.utils.path_utils import convert_path_to_unix_path
 
 LOG = logging.getLogger(__name__)
 
+TERRAFORM_BUILD_SCRIPT = "copy_terraform_built_artifacts.py"
+TF_BACKEND_OVERRIDE_FILENAME = "z_samcli_backend_override"
 
-def _generate_makefile_rule_for_lambda_resource(
+
+def generate_makefile_rule_for_lambda_resource(
     sam_metadata_resource: SamMetadataResource,
     logical_id: str,
     terraform_application_dir: str,
@@ -59,15 +60,16 @@ def _generate_makefile_rule_for_lambda_resource(
     return f"{target}{python_command_recipe}"
 
 
-def _generate_makefile(
+def generate_makefile(
     makefile_rules: List[str],
     output_directory_path: str,
 ) -> None:
     """
     Generates a makefile with the given rules in the given directory
+
     Parameters
     ----------
-    makefile_rules: List[str],
+    makefile_rules: List[str]
         the list of rules to write in the Makefile
     output_directory_path: str
         the output directory path to write the generated makefile

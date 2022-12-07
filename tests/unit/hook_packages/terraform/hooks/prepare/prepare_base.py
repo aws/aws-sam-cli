@@ -3,7 +3,7 @@ Unit test base class for Terraform prepare hook
 """
 from unittest import TestCase
 
-from samcli.hook_packages.terraform.lib.utils import AWS_PROVIDER_NAME, NULL_RESOURCE_PROVIDER_NAME
+from samcli.hook_packages.terraform.hooks.prepare.translate import AWS_PROVIDER_NAME, NULL_RESOURCE_PROVIDER_NAME
 from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_LAYERVERSION,

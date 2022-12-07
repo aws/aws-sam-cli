@@ -1,7 +1,6 @@
 """Test Terraform prepare hook"""
 from subprocess import CalledProcessError
 from unittest.mock import Mock, call, patch, MagicMock
-import copy
 from parameterized import parameterized
 
 from tests.unit.hook_packages.terraform.hooks.prepare.prepare_base import PrepareHookUnitBase
@@ -24,7 +23,7 @@ class TestPrepareHook(PrepareHookUnitBase):
     )
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.invoke_subprocess_with_loading_pattern")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._update_resources_paths")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._translate_to_cfn")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.translate_to_cfn")
     @patch("builtins.open")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.osutils.tempfile_platform_independent")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.os")
@@ -104,7 +103,7 @@ class TestPrepareHook(PrepareHookUnitBase):
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.invoke_subprocess_with_loading_pattern")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook._update_resources_paths")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._translate_to_cfn")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.translate_to_cfn")
     @patch("builtins.open")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.osutils.tempfile_platform_independent")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.os")
@@ -210,7 +209,7 @@ class TestPrepareHook(PrepareHookUnitBase):
             prepare(self.prepare_params)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.invoke_subprocess_with_loading_pattern")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._translate_to_cfn")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.translate_to_cfn")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.osutils.tempfile_platform_independent")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.os")
     @patch("samcli.hook_packages.terraform.hooks.prepare.hook.json")
