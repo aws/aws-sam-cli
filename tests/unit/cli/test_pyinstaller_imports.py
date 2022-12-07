@@ -1,7 +1,5 @@
-import click
-
 from unittest import TestCase
-from installer.pyinstaller import hidden_imports
+from samcli.cli import hidden_imports
 from samcli.cli.command import BaseCommand
 
 
