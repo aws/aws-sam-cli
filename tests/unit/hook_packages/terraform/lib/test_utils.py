@@ -13,10 +13,6 @@ from samcli.hook_packages.terraform.lib.utils import (
 class TestTerraformUtils(TestCase):
     def setUp(self) -> None:
         self.mock_logical_id_hash = "12AB34CD"
-        self.s3_bucket = "bucket"
-        self.s3_bucket_2 = "not a bucket"
-        self.s3_key = "key"
-        self.s3_key_2 = "not a key"
 
     @parameterized.expand(
         [
