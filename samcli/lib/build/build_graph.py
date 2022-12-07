@@ -7,12 +7,13 @@ import logging
 import os
 import threading
 from abc import abstractmethod
+from copy import deepcopy
 from pathlib import Path
 from typing import Sequence, Tuple, List, Any, Optional, Dict, cast, NamedTuple
-from copy import deepcopy
 from uuid import uuid4
 
 import tomlkit
+from tomlkit.toml_document import TOMLDocument
 
 from samcli.commands._utils.experimental import is_experimental_enabled, ExperimentalFlag
 from samcli.lib.build.exceptions import InvalidBuildGraphException
@@ -371,7 +372,6 @@ class BuildGraph:
         """
         Helper to write source_hash values to build.toml file
         """
-        document = {}
         if not self._filepath.exists():
             open(self._filepath, "a+").close()  # pylint: disable=consider-using-with
 
@@ -379,7 +379,7 @@ class BuildGraph:
         # .loads() returns a TOMLDocument,
         # and it behaves like a standard dictionary according to https://github.com/sdispater/tomlkit.
         # in tomlkit 0.7.2, the types are broken (tomlkit#128, #130, #134) so here we convert it to Dict.
-        document = cast(Dict, tomlkit.loads(txt))
+        document = cast(Dict[str, Dict[str, Any]], tomlkit.loads(txt))
 
         for function_uuid, hashing_info in function_content.items():
             if function_uuid in document.get(BuildGraph.FUNCTION_BUILD_DEFINITIONS, {}):
@@ -397,7 +397,7 @@ class BuildGraph:
                 layer_build_definition[MANIFEST_HASH_FIELD] = hashing_info.manifest_hash
                 LOG.info("Updated source_hash and manifest_hash field in build.toml for layer with UUID %s", layer_uuid)
 
-        self._filepath.write_text(tomlkit.dumps(document))  # type: ignore
+        self._filepath.write_text(tomlkit.dumps(cast(TOMLDocument, document)))
 
     def _read(self) -> None:
         """
