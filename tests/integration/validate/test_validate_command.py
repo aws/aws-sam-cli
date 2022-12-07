@@ -28,10 +28,14 @@ class TestValidate(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.patterns = {
-            TemplateFileTypes.JSON: re.compile(r"template\.json can be transformed to a Cloudformation template."
-            " Please run \"sam validate --lint -t template.yaml\" for additional validation(\r\n)?$"),
-            TemplateFileTypes.YAML: re.compile(r"template\.yaml can be transformed to a Cloudformation template."
-            " Please run \"sam validate --lint -t template.yaml\" for additional validation(\r\n)?$"),
+            TemplateFileTypes.JSON: re.compile(
+                r"template\.json can be transformed to a Cloudformation template."
+                ' Please run "sam validate --lint -t template.yaml" for additional validation(\r\n)?$'
+            ),
+            TemplateFileTypes.YAML: re.compile(
+                r"template\.yaml can be transformed to a Cloudformation template."
+                ' Please run "sam validate --lint -t template.yaml" for additional validation(\r\n)?$'
+            ),
         }
         cls.lint_patterns = {
             TemplateFileTypes.JSON: re.compile(r"template\.json is a valid SAM Template(\r\n)?$"),
@@ -112,7 +116,7 @@ class TestValidate(TestCase):
         test_data_path = Path(__file__).resolve().parents[2] / "integration" / "testdata" / "validate"
         process_dir = test_data_path / relative_folder
         command_result = run_command(self.command_list(lint=True), cwd=str(process_dir))
-        pattern = self.lint_patterns[expected_file] # type: ignore
+        pattern = self.lint_patterns[expected_file]  # type: ignore
         output = command_result.stdout.decode("utf-8")
         self.assertEqual(command_result.process.returncode, 0)
         self.assertRegex(output, pattern)

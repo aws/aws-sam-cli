@@ -4,13 +4,13 @@ from collections import namedtuple
 
 from botocore.exceptions import NoCredentialsError, InvalidRegionError
 
-from cfnlint.core import CfnLintExitException, InvalidRegionException # type: ignore
+from cfnlint.core import CfnLintExitException, InvalidRegionException  # type: ignore
 
 from samcli.commands.exceptions import UserException
 from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException, InvalidSamTemplateException
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.validate.validate import do_cli, _read_sam_file, _lint
- 
+
 ctx_mock = namedtuple("ctx", ["profile", "region"])
 ctx_lint_mock = namedtuple("ctx", ["debug", "region"])
 

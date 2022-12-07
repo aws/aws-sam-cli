@@ -28,6 +28,7 @@ from samcli.commands._utils.click_mutex import ClickMutex
     "--lint",
     is_flag=True,
     help="Run linting validation on template through cfn-lint. "
+    "A profile does not need to be configured. "
     "For more information, see: https://github.com/aws-cloudformation/cfn-lint",
     cls=ClickMutex,
     incompatible_params=["profile"],
@@ -109,7 +110,7 @@ def _read_sam_file(template):
     return sam_template
 
 
-def _lint(ctx: Context, template: str):
+def _lint(ctx: Context, template: str) -> None:
     """
     Parses provided SAM template and maps errors from CloudFormation template back to SAM template.
 
@@ -157,7 +158,7 @@ def _lint(ctx: Context, template: str):
         if matches_output:
             click.secho(matches_output)
 
-    except cfnlint.core.InvalidRegionException as e:
+    except (cfnlint.core.InvalidRegionException, InvalidRegionError) as e:
         raise UserException(
             "AWS Region was not found. Please configure your region through the --region option",
             wrapped_from=e.__class__.__name__,
@@ -167,8 +168,3 @@ def _lint(ctx: Context, template: str):
             lint_error,
             wrapped_from=lint_error.__class__.__name__,
         ) from lint_error
-    except InvalidRegionError as no_region_found_e:
-        raise UserException(
-            "AWS Region was not found. Please configure your region through the --region option",
-            wrapped_from=no_region_found_e.__class__.__name__,
-        ) from no_region_found_e
