@@ -1,7 +1,7 @@
 """ Contains the data types used in the TF prepare hook"""
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, List, Union, Optional, Dict
+from typing import Any, List, Union, Optional, Dict, Callable
 
 
 @dataclass
@@ -60,3 +60,20 @@ class TFResource:
         if self.module and self.module.full_address:
             return f"{self.module.full_address}.{self.address}"
         return self.address
+
+
+PropertyBuilder = Callable[[dict, TFResource], Any]
+PropertyBuilderMapping = Dict[str, PropertyBuilder]
+
+
+@dataclass
+class ResourceTranslator:
+    cfn_name: str
+    property_builder_mapping: PropertyBuilderMapping
+
+
+@dataclass
+class SamMetadataResource:
+    current_module_address: Optional[str]
+    resource: Dict
+    config_resource: TFResource
