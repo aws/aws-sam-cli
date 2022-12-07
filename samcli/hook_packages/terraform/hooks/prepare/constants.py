@@ -1,0 +1,14 @@
+"""
+Constants related to the Terraform prepare hook.
+"""
+from samcli.lib.utils.resources import (
+    AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
+    AWS_LAMBDA_LAYERVERSION as CFN_AWS_LAMBDA_LAYER_VERSION,
+)
+
+SAM_METADATA_RESOURCE_NAME_ATTRIBUTE = "resource_name"
+
+CFN_CODE_PROPERTIES = {
+    CFN_AWS_LAMBDA_FUNCTION: "Code",
+    CFN_AWS_LAMBDA_LAYER_VERSION: "Content",
+}
