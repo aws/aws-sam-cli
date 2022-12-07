@@ -1,3 +1,6 @@
+"""
+Keeps list of hidden/dynamic imports that is being used in SAM CLI, so that pyinstaller can include these packages
+"""
 from samcli.cli.command import _SAM_CLI_COMMAND_PACKAGES
 
 SAM_CLI_HIDDEN_IMPORTS = _SAM_CLI_COMMAND_PACKAGES + [
