@@ -2,8 +2,11 @@
 import hashlib
 from typing import List, Union, Dict, Any
 
-from samcli.hook_packages.terraform.hooks.prepare.types import ConstantValue, ResolvedReference
 from samcli.lib.utils.hash import str_checksum
+from samcli.hook_packages.terraform.hooks.prepare.types import (
+    ConstantValue,
+    ResolvedReference,
+)
 
 # max logical id len is 255
 LOGICAL_ID_HASH_LEN = 8
