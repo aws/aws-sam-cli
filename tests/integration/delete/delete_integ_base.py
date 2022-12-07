@@ -16,9 +16,9 @@ class DeleteIntegBase(TestCase):
         super().tearDown()
 
     def base_command(self):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
+        command = "samdev"
+        #         if os.getenv("SAM_CLI_DEV"):
+        #             command = "samdev"
 
         return command
 
