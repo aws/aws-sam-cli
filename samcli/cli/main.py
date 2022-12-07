@@ -121,6 +121,7 @@ def cli(ctx):
     # to catch missing configuration for dynamic/hidden imports
     if ctx and ctx.command_path == "samdev":
         from samcli.cli.import_module_proxy import attach_module_import_proxy
+
         LOG.info("Attaching module import proxy for analyzing dynamic imports")
         attach_module_import_proxy()
 

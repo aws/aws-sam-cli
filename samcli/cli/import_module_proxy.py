@@ -20,12 +20,12 @@ def _dynamic_import(name, package=None):
             "Importing a package which was already defined in hidden imports name: %s, package: %s", name, package
         )
         return _original_import(name, package)
-    if not name.startswith('samcli.'):
+    if not name.startswith("samcli."):
         LOG.debug("Importing a package from 'samcli.' module name: %s, package: %s", name, package)
         return _original_import(name, package)
 
     LOG.info("Dynamic import name: %s package: %s, which is not defined in hidden imports", name, package)
-    raise ValueError(f'Dynamic import not allowed for {name} {package}')
+    raise ValueError(f"Dynamic import not allowed for {name} {package}")
 
 
 def attach_module_import_proxy():
