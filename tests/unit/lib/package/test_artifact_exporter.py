@@ -1595,13 +1595,16 @@ class TestArtifactExporter(unittest.TestCase):
 
                 Template(template_path, os.path.relpath(dirname), self.uploaders_mock, self.code_signer_mock)
 
-    def test_make_zip(self):
+    def test_make_zip_keep_permissions_as_is(self):
         test_file_creator = FileCreator()
         test_file_creator.append_file(
             "index.js", "exports handler = (event, context, callback) => {callback(null, event);}"
         )
 
         dirname = test_file_creator.rootdir
+
+        file_permissions = os.stat(test_file_creator.full_path("index.js")).st_mode
+        dir_permissions = os.stat(test_file_creator.rootdir).st_mode
 
         expected_files = {"index.js"}
 
@@ -1615,8 +1618,15 @@ class TestArtifactExporter(unittest.TestCase):
             test_zip_file = zipfile.ZipFile(zipfile_name, "r")
             with closing(test_zip_file) as zf:
                 files_in_zip = set()
+                external_attr_mask = 65535 << 16
                 for info in zf.infolist():
                     files_in_zip.add(info.filename)
+                    permission_bits = (info.external_attr & external_attr_mask) >> 16
+                    if platform.system().lower() != "windows":
+                        if info.is_dir():
+                            self.assertEqual(permission_bits, dir_permissions)
+                        else:
+                            self.assertEqual(permission_bits, file_permissions)
 
                 self.assertEqual(files_in_zip, expected_files)
 
