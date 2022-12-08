@@ -1,4 +1,5 @@
 import json
+import platform
 import tempfile
 import os
 import string
@@ -1685,10 +1686,13 @@ class TestArtifactExporter(unittest.TestCase):
                 for info in zf.infolist():
                     files_in_zip.add(info.filename)
                     permission_bits = (info.external_attr & external_attr_mask) >> 16
-                    if info.is_dir():
-                        self.assertEqual(permission_bits, 0o100755)
+                    if not platform.system().lower() == "windows":
+                        if info.is_dir():
+                            self.assertEqual(permission_bits, 0o100755)
+                        else:
+                            self.assertEqual(permission_bits, 0o100644)
                     else:
-                        self.assertEqual(permission_bits, 0o100644)
+                        self.assertEqual(permission_bits, 0o100755)
 
                 self.assertEqual(files_in_zip, expected_files)
 
