@@ -6,6 +6,8 @@ on:
 jobs:
   auto_comment:
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     steps:
       - uses: aws-actions/closed-issue-message@v1
         with:
