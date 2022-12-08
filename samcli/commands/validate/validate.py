@@ -16,7 +16,6 @@ from samcli.commands._utils.options import template_option_without_build
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
-from samcli.commands._utils.click_mutex import ClickMutex
 
 
 @click.command("validate", short_help="Validate an AWS SAM template.")
@@ -28,10 +27,7 @@ from samcli.commands._utils.click_mutex import ClickMutex
     "--lint",
     is_flag=True,
     help="Run linting validation on template through cfn-lint. "
-    "A profile does not need to be configured. "
     "For more information, see: https://github.com/aws-cloudformation/cfn-lint",
-    cls=ClickMutex,
-    incompatible_params=["profile"],
 )
 @pass_context
 @track_command
@@ -134,8 +130,8 @@ def _lint(ctx: Context, template: str) -> None:
     from botocore.utils import validate_region_name
     from botocore.exceptions import InvalidRegionError
 
-    LOGGER = logging.getLogger("cfnlint")
-    LOGGER.propagate = False
+    cfn_lint_logger = logging.getLogger("cfnlint")
+    cfn_lint_logger.propagate = False
 
     try:
         validate_region_name(ctx.region)
@@ -148,7 +144,7 @@ def _lint(ctx: Context, template: str) -> None:
             lint_args.append(ctx.region)
 
         (args, filenames, formatter) = cfnlint.core.get_args_filenames(lint_args)
-        LOGGER.setLevel(logging.WARNING)
+        cfn_lint_logger.setLevel(logging.WARNING)
         matches = list(cfnlint.core.get_matches(filenames, args))
         if not matches:
             click.secho("{} is a valid SAM Template".format(template), fg="green")

@@ -120,3 +120,41 @@ class TestValidate(TestCase):
         output = command_result.stdout.decode("utf-8")
         self.assertEqual(command_result.process.returncode, 0)
         self.assertRegex(output, pattern)
+
+    def test_lint_error_no_region(self):
+        test_data_path = Path(__file__).resolve().parents[2] / "integration" / "testdata" / "validate" / "default_json"
+        template_file = "template.json"
+        template_path = test_data_path.joinpath(template_file)
+        command_result = run_command(self.command_list(lint=True, region="--debug", template_file=template_path))
+        output = command_result.stderr.decode("utf-8")
+
+        error_message = f"Error: AWS Region was not found. Please configure your region through the --region option"
+
+        self.assertIn(error_message, output)
+
+    def test_lint_error_invalid_region(self):
+        test_data_path = Path(__file__).resolve().parents[2] / "integration" / "testdata" / "validate" / "default_json"
+        template_file = "template.json"
+        template_path = test_data_path.joinpath(template_file)
+        command_result = run_command(self.command_list(lint=True, region="us-north-5", template_file=template_path))
+        output = command_result.stderr.decode("utf-8")
+
+        error_message = f"Error: AWS Region was not found. Please configure your region through the --region option"
+
+        self.assertIn(error_message, output)
+
+    def test_lint_invalid_template(self):
+        test_data_path = Path(__file__).resolve().parents[2] / "integration" / "testdata" / "validate" / "default_yaml"
+        template_file = "templateError.yaml"
+        template_path = test_data_path.joinpath(template_file)
+        command_result = run_command(self.command_list(lint=True, template_file=template_path))
+        output = command_result.stdout.decode("utf-8")
+
+        warning_message = (
+            f'E0000 Duplicate found "HelloWorldFunction" (line 5)\n'
+            "/workplace/cdavidxu/aws-sam-cli-devFork/aws-sam-cli/tests/integration/testdata/validate/default_yaml/templateError.yaml:5:3\n\n"
+            'E0000 Duplicate found "HelloWorldFunction" (line 12)\n'
+            "/workplace/cdavidxu/aws-sam-cli-devFork/aws-sam-cli/tests/integration/testdata/validate/default_yaml/templateError.yaml:12:3\n\n"
+        )
+
+        self.assertIn(warning_message, output)
