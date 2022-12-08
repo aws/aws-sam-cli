@@ -258,30 +258,32 @@ def make_zip_with_permissions(file_name, source_root, file_permissions, dir_perm
                     with open(full_path, "rb") as data:
                         file_bytes = data.read()
                         info = zipfile.ZipInfo(relative_path)
-                        if platform.system().lower() == "windows":
-                            # Clear external attr set for Windows
-                            info.external_attr = 0
-                            # Set host OS to Unix
-                            info.create_system = 3
                         # Context: Nov 2020
                         # Set external attr with Unix 0755 permission
                         # Originally set to 0005 in the discussion below
                         # https://github.com/aws/aws-sam-cli/pull/2193#discussion_r513110608
                         # Changed to 0755 due to a regression in https://github.com/aws/aws-sam-cli/issues/2344
                         # Final PR: https://github.com/aws/aws-sam-cli/pull/2356/files
-                        info.external_attr = (
-                            file_permissions << 16
-                            if platform.system().lower() == "windows"
-                            else dir_permissions << 16
-                            if info.is_dir()
-                            else file_permissions << 16
-                        )
-                        zf.writestr(info, file_bytes, compress_type=compression_type)
+                        if (file_permissions and dir_permissions) or platform.system().lower() == "windows":
+                            # Clear external attr set for Windows
+                            info.external_attr = 0
+                            # Set host OS to Unix
+                            info.create_system = 3
+                            info.external_attr = (
+                                0o100755 << 16
+                                if platform.system().lower() == "windows"
+                                else dir_permissions << 16
+                                if info.is_dir()
+                                else file_permissions << 16
+                            )
+                            zf.writestr(info, file_bytes, compress_type=compression_type)
+                        else:
+                            zf.write(full_path, relative_path)
 
     return zipfile_name
 
 
-make_zip = functools.partial(make_zip_with_permissions, file_permissions=0o100755, dir_permissions=0o100755)
+make_zip = functools.partial(make_zip_with_permissions, file_permissions=None, dir_permissions=None)
 # Context: Nov 2022
 # NOTE(sriram-mv): Modify permissions regardless of the Operating system, since
 # AWS Lambda requires following permissions as referenced in docs:
