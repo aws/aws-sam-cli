@@ -5,7 +5,9 @@ from parameterized import parameterized
 
 from samcli.cli import hidden_imports
 from samcli.cli.import_module_proxy import (
-    detach_import_module_proxy, attach_import_module_proxy, MissingDynamicImportError
+    detach_import_module_proxy,
+    attach_import_module_proxy,
+    MissingDynamicImportError,
 )
 
 
