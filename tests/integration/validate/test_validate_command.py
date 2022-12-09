@@ -152,9 +152,9 @@ class TestValidate(TestCase):
 
         warning_message = (
             f'E0000 Duplicate found "HelloWorldFunction" (line 5)\n'
-            "/workplace/cdavidxu/aws-sam-cli-devFork/aws-sam-cli/tests/integration/testdata/validate/default_yaml/templateError.yaml:5:3\n\n"
+            "{}/templateError.yaml:5:3\n\n"
             'E0000 Duplicate found "HelloWorldFunction" (line 12)\n'
-            "/workplace/cdavidxu/aws-sam-cli-devFork/aws-sam-cli/tests/integration/testdata/validate/default_yaml/templateError.yaml:12:3\n\n"
+            "{}/templateError.yaml:12:3\n\n".format(test_data_path, test_data_path)
         )
 
         self.assertIn(warning_message, output)
