@@ -16,7 +16,7 @@ from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Destination
 from samcli.lib.package.utils import zip_folder, make_zip, make_zip_with_lambda_permissions
 from samcli.lib.utils.packagetype import ZIP, IMAGE
-from samcli.lib.utils.resources import LAMBDA_LOCAL_RESOURCES
+from samcli.lib.utils.resources import LAMBDA_LOCAL_RESOURCES, RESOURCES_WITH_LOCAL_PATHS
 from tests.testing_utils import FileCreator
 from samcli.commands.package import exceptions
 from samcli.lib.package.artifact_exporter import (
@@ -354,10 +354,46 @@ class TestArtifactExporter(unittest.TestCase):
                 self.assertEqual(result, expected_s3_url)
 
                 absolute_artifact_path = make_abs_path(parent_dir, artifact_path)
+                # zip_method will NOT be the generalized zip_method `make_zip`
 
+                with self.assertRaises(AssertionError):
+                    zip_and_upload_mock.assert_called_once_with(
+                        absolute_artifact_path, mock.ANY, None, zip_method=make_zip
+                    )
+
+                # zip_method will be lambda specific.
                 zip_and_upload_mock.assert_called_once_with(
                     absolute_artifact_path, mock.ANY, None, zip_method=make_zip_with_lambda_permissions
                 )
+                zip_and_upload_mock.reset_mock()
+
+    @patch("samcli.lib.package.utils.zip_and_upload")
+    def test_upload_local_artifacts_local_folder_non_lambda_resources(self, zip_and_upload_mock):
+        non_lambda_resources = RESOURCES_WITH_LOCAL_PATHS.keys() - LAMBDA_LOCAL_RESOURCES
+        for resource_id in non_lambda_resources:
+            property_name = "property"
+            expected_s3_url = "s3://foo/bar?versionId=baz"
+
+            zip_and_upload_mock.return_value = expected_s3_url
+            #  Artifact path is a Directory
+            with self.make_temp_dir() as artifact_path:
+                # Artifact is a file in the temporary directory
+                parent_dir = tempfile.gettempdir()
+                resource_dict = {property_name: artifact_path}
+
+                result = upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir, Mock())
+                self.assertEqual(result, expected_s3_url)
+
+                absolute_artifact_path = make_abs_path(parent_dir, artifact_path)
+
+                # zip_method will NOT be the specialized zip_method `make_zip_with_lambda_permissions`
+                with self.assertRaises(AssertionError):
+                    zip_and_upload_mock.assert_called_once_with(
+                        absolute_artifact_path, mock.ANY, None, zip_method=make_zip_with_lambda_permissions
+                    )
+
+                # zip_method will be the generalized zip_method `make_zip`
+                zip_and_upload_mock.assert_called_once_with(absolute_artifact_path, mock.ANY, None, zip_method=make_zip)
                 zip_and_upload_mock.reset_mock()
 
     @patch("samcli.lib.package.utils.zip_and_upload")
