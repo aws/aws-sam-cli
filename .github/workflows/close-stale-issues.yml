@@ -2,9 +2,10 @@ name: Close stale issues
 
 # Controls when the action will run.
 on:
-  schedule:
-  # Uses UTC so it runs at 10PM PDT
-  - cron: "0 6 * * *"
+  workflow_dispatch:
+  # schedule:
+  # # Uses UTC so it runs at 10PM PDT
+  # - cron: "0 6 * * *"
 
 jobs:
   cleanup:
