@@ -14,10 +14,6 @@ LOG = logging.getLogger(__name__)
 _original_import = importlib.import_module
 
 
-# This constant keeps all hidden imports + the 'tests' packages which is dynamically imported during unit tests
-SAFE_IMPORTS = ["tests", *hidden_imports.SAM_CLI_HIDDEN_IMPORTS]
-
-
 class MissingDynamicImportError(ImportError):
     """
     Thrown when a dynamic import is used without adding it into hidden imports constant
@@ -29,7 +25,7 @@ def _dynamic_import(name, package=None):
     Replaces original import_module function and then analyzes all the imports going through this call.
     If the package is not defined in hidden imports, then it will raise an error
     """
-    for hidden_import in SAFE_IMPORTS:
+    for hidden_import in hidden_imports.SAM_CLI_HIDDEN_IMPORTS:
         # An import should either match the exact hidden import string or should start with it following a "." (dot)
         # For instance if there is a hidden import definition like 'samtranslator', importing 'samtranslator' or
         # 'samtranslator.sub_module' should succeed. But if there is an import like 'samtranslator_side_module' it
@@ -55,3 +51,10 @@ def attach_import_module_proxy():
     hidden imports configuration
     """
     importlib.import_module = _dynamic_import
+
+
+def detach_import_module_proxy():
+    """
+    Detaches import_module proxy with original one so that behaviour can continue that it used to be before
+    """
+    importlib.import_module = _original_import
