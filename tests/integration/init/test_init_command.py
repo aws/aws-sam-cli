@@ -418,7 +418,7 @@ class TestInitForParametersCompatibility(TestCase):
 
             self.assertEqual(process.returncode, 2)
 
-            self.assertEqual(MISSING_REQUIRED_PARAM_MESSAGE.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertIn(MISSING_REQUIRED_PARAM_MESSAGE.strip(), "\n".join(stderr.strip().splitlines()))
 
     def test_init_command_no_interactive_apptemplate_location(self):
         stderr = None
@@ -447,7 +447,7 @@ class TestInitForParametersCompatibility(TestCase):
 
             self.assertEqual(process.returncode, 2)
 
-            self.assertEqual(
+            self.assertIn(
                 INCOMPATIBLE_PARAM_MESSAGE.strip().format("app-template", "location"),
                 "\n".join(stderr.strip().splitlines()),
             )
@@ -479,7 +479,7 @@ class TestInitForParametersCompatibility(TestCase):
 
             self.assertEqual(process.returncode, 2)
 
-            self.assertEqual(
+            self.assertIn(
                 INCOMPATIBLE_PARAM_MESSAGE.strip().format("runtime", "location"), "\n".join(stderr.strip().splitlines())
             )
 
@@ -510,7 +510,7 @@ class TestInitForParametersCompatibility(TestCase):
 
             self.assertEqual(process.returncode, 2)
 
-            self.assertEqual(
+            self.assertIn(
                 INCOMPATIBLE_PARAM_MESSAGE.strip().format("base-image", "location"),
                 "\n".join(stderr.strip().splitlines()),
             )
@@ -542,7 +542,7 @@ class TestInitForParametersCompatibility(TestCase):
 
             self.assertEqual(process.returncode, 2)
 
-            self.assertEqual(MISSING_REQUIRED_PARAM_MESSAGE.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertIn(MISSING_REQUIRED_PARAM_MESSAGE.strip(), "\n".join(stderr.strip().splitlines()))
 
     def test_init_command_no_interactive_packagetype_location(self):
         stderr = None
@@ -571,7 +571,7 @@ class TestInitForParametersCompatibility(TestCase):
 
             self.assertEqual(process.returncode, 2)
 
-            self.assertEqual(
+            self.assertIn(
                 INCOMPATIBLE_PARAM_MESSAGE.strip().format("package-type", "location"),
                 "\n".join(stderr.strip().splitlines()),
             )
@@ -601,7 +601,7 @@ class TestInitForParametersCompatibility(TestCase):
 
             self.assertEqual(process.returncode, 2)
 
-            self.assertEqual(MISSING_REQUIRED_PARAM_MESSAGE.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertIn(MISSING_REQUIRED_PARAM_MESSAGE.strip(), "\n".join(stderr.strip().splitlines()))
 
     def test_init_command_wrong_packagetype(self):
         stderr = None
@@ -635,7 +635,7 @@ Error: Invalid value for '-p' / '--package-type': 'WrongPT' is not one of 'Zip',
                 get_sam_command()
             )
 
-            self.assertEqual(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertIn(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
 
 
 class TestInitWithArbitraryProject(TestCase):
