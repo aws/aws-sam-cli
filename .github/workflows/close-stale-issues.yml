@@ -30,10 +30,10 @@ jobs:
           If you want to keep this issue open, please leave a comment below and auto-close will be canceled.
 
         # These labels are required
-        stale-issue-label: blocked/close-if-inactive
-        exempt-issue-labels: no-autoclose, stage/needs-attention, type/feature, stage/needs-triage, type/bug, stage/needs-investigation 
+        stale-issue-label: type/stale
+        exempt-issue-labels: no-autoclose, stage/needs-attention, type/feature, stage/needs-triage, type/bug, stage/needs-investigation, maintainer/need-followup, maintainer/need-response
         stale-pr-label: blocked/close-if-inactive
-        exempt-pr-labels: no-autoclose, stage/needs-triage, blocked/pending-security-review 
+        exempt-pr-labels: no-autoclose, stage/needs-triage, blocked/pending-security-review
         response-requested-label: blocked/more-info-needed
 
         # Don't set this to not apply a label when closing issues
