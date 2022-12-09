@@ -1,3 +1,4 @@
+import functools
 import json
 import platform
 import tempfile
@@ -14,7 +15,7 @@ from unittest.mock import patch, Mock, MagicMock
 from samcli.commands.package.exceptions import ExportFailedError
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Destination
-from samcli.lib.package.utils import zip_folder, make_zip, make_zip_with_lambda_permissions
+from samcli.lib.package.utils import zip_folder, make_zip, make_zip_with_lambda_permissions, make_zip_with_permissions
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.resources import LAMBDA_LOCAL_RESOURCES, RESOURCES_WITH_LOCAL_PATHS
 from tests.testing_utils import FileCreator
@@ -1674,6 +1675,12 @@ class TestArtifactExporter(unittest.TestCase):
     @patch("platform.system")
     def test_make_zip_windows(self, mock_system):
         mock_system.return_value = "Windows"
+        # Redefining `make_zip` as is in local scope so that arguments passed to functools partial are re-loaded.
+        windows_make_zip = functools.partial(
+            make_zip_with_permissions,
+            file_permissions=0o100755 if platform.system().lower() == "windows" else None,
+            dir_permissions=0o100755 if platform.system().lower() == "windows" else None,
+        )
 
         test_file_creator = FileCreator()
         test_file_creator.append_file(
@@ -1689,7 +1696,7 @@ class TestArtifactExporter(unittest.TestCase):
 
         zipfile_name = None
         try:
-            zipfile_name = make_zip(outfile, dirname)
+            zipfile_name = windows_make_zip(outfile, dirname)
 
             test_zip_file = zipfile.ZipFile(zipfile_name, "r")
             with closing(test_zip_file) as zf:

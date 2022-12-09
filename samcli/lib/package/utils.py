@@ -237,9 +237,9 @@ def make_zip_with_permissions(file_name, source_root, file_permissions, dir_perm
         The basename of the zip file, without .zip
     source_root : str
         The path to the source directory
-    file_permissions : str
+    file_permissions : int
         The permissions set for files within the source_root
-    dir_permissions : str
+    dir_permissions : int
         The permissions set for directories within the source_root
     Returns
     -------
@@ -264,18 +264,12 @@ def make_zip_with_permissions(file_name, source_root, file_permissions, dir_perm
                         # https://github.com/aws/aws-sam-cli/pull/2193#discussion_r513110608
                         # Changed to 0755 due to a regression in https://github.com/aws/aws-sam-cli/issues/2344
                         # Final PR: https://github.com/aws/aws-sam-cli/pull/2356/files
-                        if (file_permissions and dir_permissions) or platform.system().lower() == "windows":
-                            # Clear external attr set for Windows
+                        if file_permissions and dir_permissions:
+                            # Clear external attr
                             info.external_attr = 0
                             # Set host OS to Unix
                             info.create_system = 3
-                            info.external_attr = (
-                                0o100755 << 16
-                                if platform.system().lower() == "windows"
-                                else dir_permissions << 16
-                                if info.is_dir()
-                                else file_permissions << 16
-                            )
+                            info.external_attr = dir_permissions << 16 if info.is_dir() else file_permissions << 16
                             zf.writestr(info, file_bytes, compress_type=compression_type)
                         else:
                             zf.write(full_path, relative_path)
@@ -283,7 +277,11 @@ def make_zip_with_permissions(file_name, source_root, file_permissions, dir_perm
     return zipfile_name
 
 
-make_zip = functools.partial(make_zip_with_permissions, file_permissions=None, dir_permissions=None)
+make_zip = functools.partial(
+    make_zip_with_permissions,
+    file_permissions=0o100755 if platform.system().lower() == "windows" else None,
+    dir_permissions=0o100755 if platform.system().lower() == "windows" else None,
+)
 # Context: Nov 2022
 # NOTE(sriram-mv): Modify permissions regardless of the Operating system, since
 # AWS Lambda requires following permissions as referenced in docs:
