@@ -16,6 +16,7 @@ from samcli.commands.logs.validation_and_exception_handlers import (
 from samcli.lib.telemetry.metric import track_command
 from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.lib.utils.version_checker import check_newer_version
+from samcli.commands._utils.options import generate_next_command_recommendation
 
 LOG = logging.getLogger(__name__)
 
@@ -184,10 +185,13 @@ def do_cli(
         puller.load_time_period(sanitized_start_time, sanitized_end_time, filter_pattern)
 
     if tailing:
-        next_commands_msg = f"""
-            Commands you can use next
-            =========================
-            [*] Tail Logs from All Support Resources and X-Ray: sam logs --stack-name {stack_name} --tail --include-traces
-            [*] Tail X-Ray Information: sam traces --tail
-            """
-        click.secho(next_commands_msg, fg="yellow")
+        command_suggestions = generate_next_command_recommendation(
+            [
+                (
+                    "Tail Logs from All Support Resources and X-Ray",
+                    f"sam logs --stack-name {stack_name} --tail --include-traces",
+                ),
+                ("Tail X-Ray Information", "sam traces --tail"),
+            ]
+        )
+        click.secho(command_suggestions, fg="yellow")

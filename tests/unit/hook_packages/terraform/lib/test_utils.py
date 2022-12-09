@@ -4,10 +4,13 @@ from unittest.mock import patch, Mock, call
 from parameterized import parameterized
 
 from samcli.hook_packages.terraform.hooks.prepare.types import ConstantValue, ResolvedReference
-from samcli.hook_packages.terraform.lib.utils import build_cfn_logical_id, _calculate_configuration_attribute_value_hash
+from samcli.hook_packages.terraform.lib.utils import (
+    build_cfn_logical_id,
+    _calculate_configuration_attribute_value_hash,
+)
 
 
-class TestPrepareHook(TestCase):
+class TestTerraformUtils(TestCase):
     def setUp(self) -> None:
         self.mock_logical_id_hash = "12AB34CD"
 
