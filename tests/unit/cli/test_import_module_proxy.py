@@ -4,7 +4,9 @@ from unittest import TestCase
 from parameterized import parameterized
 
 from samcli.cli import hidden_imports
-from samcli.cli.import_module_proxy import attach_import_module_proxy, MissingDynamicImportError
+from samcli.cli.import_module_proxy import (
+    detach_import_module_proxy, attach_import_module_proxy, MissingDynamicImportError
+)
 
 
 class TestImportModuleProxy(TestCase):
@@ -12,8 +14,9 @@ class TestImportModuleProxy(TestCase):
     def setUpClass(cls) -> None:
         attach_import_module_proxy()
 
-    def test_import_should_succeed_for_a_package_not_under_samcli(self):
-        importlib.import_module("aws_lambda_builders.workflows.custom_make.workflow")
+    @classmethod
+    def tearDownClass(cls) -> None:
+        detach_import_module_proxy()
 
     @parameterized.expand(hidden_imports.SAM_CLI_HIDDEN_IMPORTS)
     def test_import_should_succeed_for_a_defined_hidden_package(self, package):
