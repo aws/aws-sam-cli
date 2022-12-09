@@ -12,6 +12,11 @@ from samcli.cli.import_module_proxy import (
 
 
 class TestImportModuleProxy(TestCase):
+    """
+    There is a chance that setUpClass method of this test class might cause flakiness with other tests if we run them
+    in parallel.
+    """
+
     @classmethod
     def setUpClass(cls) -> None:
         attach_import_module_proxy()
