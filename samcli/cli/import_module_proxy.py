@@ -37,7 +37,7 @@ def _dynamic_import(name, package=None):
             return _original_import(name, package)
 
     LOG.error(
-        "Dynamic import name: %s package: %s, which is not defined in hidden imports: %s",
+        "Dynamic import (name: %s package: %s) which is not defined in hidden imports: %s",
         name,
         package,
         hidden_imports.SAM_CLI_HIDDEN_IMPORTS,
