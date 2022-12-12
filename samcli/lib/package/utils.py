@@ -1,6 +1,7 @@
 """
 Utilities involved in Packaging.
 """
+import functools
 import logging
 import os
 import platform
@@ -10,7 +11,7 @@ import tempfile
 import zipfile
 import contextlib
 from contextlib import contextmanager
-from typing import Dict, Optional, cast
+from typing import Dict, Optional, Callable, cast
 
 import jmespath
 
@@ -18,6 +19,7 @@ from samcli.commands.package.exceptions import ImageNotFoundError, InvalidLocalP
 from samcli.lib.package.ecr_utils import is_ecr_url
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.hash import dir_checksum
+from samcli.lib.utils.resources import LAMBDA_LOCAL_RESOURCES
 
 LOG = logging.getLogger(__name__)
 
@@ -166,9 +168,14 @@ def upload_local_artifacts(
 
     local_path = make_abs_path(parent_dir, local_path)
 
-    # Or, pointing to a folder. Zip the folder and upload
+    # Or, pointing to a folder. Zip the folder and upload (zip_method is changed based on resource type)
     if is_local_folder(local_path):
-        return zip_and_upload(local_path, uploader, extension)
+        return zip_and_upload(
+            local_path,
+            uploader,
+            extension,
+            zip_method=make_zip_with_lambda_permissions if resource_id in LAMBDA_LOCAL_RESOURCES else make_zip,
+        )
 
     # Path could be pointing to a file. Upload the file
     if is_local_file(local_path):
@@ -184,13 +191,13 @@ def resource_not_packageable(resource_dict):
     return False
 
 
-def zip_and_upload(local_path: str, uploader: S3Uploader, extension: Optional[str]) -> str:
-    with zip_folder(local_path) as (zip_file, md5_hash):
+def zip_and_upload(local_path: str, uploader: S3Uploader, extension: Optional[str], zip_method: Callable) -> str:
+    with zip_folder(local_path, zip_method=zip_method) as (zip_file, md5_hash):
         return uploader.upload_with_dedup(zip_file, precomputed_md5=md5_hash, extension=extension)
 
 
 @contextmanager
-def zip_folder(folder_path):
+def zip_folder(folder_path, zip_method):
     """
     Zip the entire folder and return a file to the zip. Use this inside
     a "with" statement to cleanup the zipfile after it is used.
@@ -199,6 +206,8 @@ def zip_folder(folder_path):
     ----------
     folder_path : str
         The path of the folder to zip
+    zip_method : Callable
+        Callable function that takes in a file name and source_path and zips accordingly.
 
     Yields
     ------
@@ -210,7 +219,7 @@ def zip_folder(folder_path):
     md5hash = dir_checksum(folder_path, followlinks=True)
     filename = os.path.join(tempfile.gettempdir(), "data-" + md5hash)
 
-    zipfile_name = make_zip(filename, folder_path)
+    zipfile_name = zip_method(filename, folder_path)
     try:
         yield zipfile_name, md5hash
     finally:
@@ -218,7 +227,7 @@ def zip_folder(folder_path):
             os.remove(zipfile_name)
 
 
-def make_zip(file_name, source_root):
+def make_zip_with_permissions(file_name, source_root, file_permissions, dir_permissions):
     """
     Create a zip file from the source directory
 
@@ -228,6 +237,10 @@ def make_zip(file_name, source_root):
         The basename of the zip file, without .zip
     source_root : str
         The path to the source directory
+    file_permissions : int
+        The permissions set for files within the source_root
+    dir_permissions : int
+        The permissions set for directories within the source_root
     Returns
     -------
     str
@@ -242,26 +255,43 @@ def make_zip(file_name, source_root):
                 for filename in files:
                     full_path = os.path.join(root, filename)
                     relative_path = os.path.relpath(full_path, source_root)
-                    if platform.system().lower() == "windows":
-                        with open(full_path, "rb") as data:
-                            file_bytes = data.read()
-                            info = zipfile.ZipInfo(relative_path)
-                            # Clear external attr set for Windows
+                    with open(full_path, "rb") as data:
+                        file_bytes = data.read()
+                        info = zipfile.ZipInfo(relative_path)
+                        # Context: Nov 2020
+                        # Set external attr with Unix 0755 permission
+                        # Originally set to 0005 in the discussion below
+                        # https://github.com/aws/aws-sam-cli/pull/2193#discussion_r513110608
+                        # Changed to 0755 due to a regression in https://github.com/aws/aws-sam-cli/issues/2344
+                        # Final PR: https://github.com/aws/aws-sam-cli/pull/2356/files
+                        if file_permissions and dir_permissions:
+                            # Clear external attr
                             info.external_attr = 0
-                            # Set external attr with Unix 0755 permission
-                            # Originally set to 0005 in the discussion below
-                            # https://github.com/aws/aws-sam-cli/pull/2193#discussion_r513110608
-                            # Changed to 0755 due to a regression in https://github.com/aws/aws-sam-cli/issues/2344
-                            # Mimicking Unix permission bits and recommanded permission bits
-                            # in the Lambda Trouble Shooting Docs
-                            info.external_attr = 0o100755 << 16
                             # Set host OS to Unix
                             info.create_system = 3
+                            info.external_attr = dir_permissions << 16 if info.is_dir() else file_permissions << 16
                             zf.writestr(info, file_bytes, compress_type=compression_type)
-                    else:
-                        zf.write(full_path, relative_path)
+                        else:
+                            zf.write(full_path, relative_path)
 
     return zipfile_name
+
+
+make_zip = functools.partial(
+    make_zip_with_permissions,
+    file_permissions=0o100755 if platform.system().lower() == "windows" else None,
+    dir_permissions=0o100755 if platform.system().lower() == "windows" else None,
+)
+# Context: Nov 2022
+# NOTE(sriram-mv): Modify permissions regardless of the Operating system, since
+# AWS Lambda requires following permissions as referenced in docs:
+# https://aws.amazon.com/premiumsupport/knowledge-center/lambda-deployment-package-errors/
+# For backward compatibility with windows, setting the permissions to be 755.
+make_zip_with_lambda_permissions = functools.partial(
+    make_zip_with_permissions,
+    file_permissions=0o100755 if platform.system().lower() == "windows" else 0o100644,
+    dir_permissions=0o100755,
+)
 
 
 def copy_to_temp_dir(filepath):
