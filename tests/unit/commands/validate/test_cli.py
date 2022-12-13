@@ -106,16 +106,6 @@ class TestValidateCli(TestCase):
         with self.assertRaises(UserException):
             _lint(ctx=ctx_lint_mock(debug=False, region="region"), template=template_path)
 
-    @patch("botocore.utils.validate_region_name")
-    @patch("samcli.commands.validate.validate.click")
-    def test_lint_no_region_argument_fails(self, click_patch, region_name_patch):
-        template_path = "path_to_template"
-
-        region_name_patch.side_effect = InvalidRegionError(region_name="")
-
-        with self.assertRaises(UserException):
-            _lint(ctx=ctx_lint_mock(debug=False, region=""), template=template_path)
-
     @patch("cfnlint.core.get_args_filenames")
     @patch("cfnlint.core.get_matches")
     @patch("samcli.commands.validate.validate.click")

@@ -4,6 +4,7 @@
 ** backports-zoneinfo; version 0.2.1 -- https://pypi.org/project/backports.zoneinfo/
 ** boto3; version 1.21.30 -- https://pypi.org/project/boto3/
 ** botocore; version 1.24.30 -- https://github.com/boto/botocore
+** cfn-lint; version 0.72.2 -- https://pypi.org/project/cfn-lint/
 ** cryptography; version 38.0.1 -- https://github.com/pyca/cryptography
 ** docker; version 4.2.0 -- https://pypi.org/project/docker/
 ** Importlib-metadata; version 4.11.3 -- https://importlib-metadata.readthedocs.io/en/latest/

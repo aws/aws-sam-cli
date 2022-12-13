@@ -127,15 +127,11 @@ def _lint(ctx: Context, template: str) -> None:
     import cfnlint.core  # type: ignore
     import logging
     from samcli.commands.exceptions import UserException
-    from botocore.utils import validate_region_name
-    from botocore.exceptions import InvalidRegionError
 
     cfn_lint_logger = logging.getLogger("cfnlint")
     cfn_lint_logger.propagate = False
 
     try:
-        validate_region_name(ctx.region)
-
         lint_args = [template]
         if ctx.debug:
             lint_args.append("--debug")
@@ -154,7 +150,7 @@ def _lint(ctx: Context, template: str) -> None:
         if matches_output:
             click.secho(matches_output)
 
-    except (cfnlint.core.InvalidRegionException, InvalidRegionError) as e:
+    except cfnlint.core.InvalidRegionException as e:
         raise UserException(
             "AWS Region was not found. Please configure your region through the --region option",
             wrapped_from=e.__class__.__name__,

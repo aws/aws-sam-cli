@@ -128,7 +128,7 @@ class TestValidate(TestCase):
         command_result = run_command(self.command_list(lint=True, region="--debug", template_file=template_path))
         output = command_result.stderr.decode("utf-8")
 
-        error_message = f"Error: AWS Region was not found. Please configure your region through the --region option"
+        error_message = f"Error: Provided region: --debug doesn't match a supported format"
 
         self.assertIn(error_message, output)
 
