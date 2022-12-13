@@ -11,7 +11,7 @@ from typing import Any, TYPE_CHECKING, cast, Dict, List, Optional
 from contextlib import ExitStack
 
 from samcli.lib.build.app_builder import ApplicationBuilder
-from samcli.lib.package.utils import make_zip
+from samcli.lib.package.utils import make_zip_with_lambda_permissions
 from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_by_id, Function, LayerVersion
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.sync.exceptions import MissingPhysicalResourceError, NoLayerVersionsFoundError
@@ -235,7 +235,7 @@ class LayerSyncFlow(AbstractLayerSyncFlow):
             self._artifact_folder = builder.build().artifacts.get(self._layer_identifier)
 
         zip_file_path = os.path.join(tempfile.gettempdir(), f"data-{uuid.uuid4().hex}")
-        self._zip_file = make_zip(zip_file_path, self._artifact_folder)
+        self._zip_file = make_zip_with_lambda_permissions(zip_file_path, self._artifact_folder)
         LOG.debug("%sCreated artifact ZIP file: %s", self.log_prefix, self._zip_file)
         self._local_sha = file_checksum(cast(str, self._zip_file), hashlib.sha256())
 
