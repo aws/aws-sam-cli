@@ -154,7 +154,7 @@ class TestTrackCommand(TestCase):
 
         track_command(real_fn)()
 
-        run_metrics_mock.assert_called_with(self.context_mock, 0, "success", 0)
+        run_metrics_mock.assert_called_with(self.context_mock, ANY, "success", 0)
 
     @pytest.mark.flaky(reruns=3)
     @patch("samcli.lib.telemetry.metric.Context")
@@ -202,7 +202,7 @@ class TestTrackCommand(TestCase):
                 "Must re-raise the original exception object " "without modification",
             )
 
-        run_metrics_mock.assert_called_with(self.context_mock, 0, expected_exception, expected_code)
+        run_metrics_mock.assert_called_with(self.context_mock, ANY, expected_exception, expected_code)
 
     @patch("samcli.lib.telemetry.metric.Context")
     @patch("samcli.lib.telemetry.metric._send_command_run_metrics")
@@ -271,7 +271,7 @@ class TestTrackCommand(TestCase):
             track_command(mocked_func)()
 
         mocked_func.assert_not_called()
-        run_metrics_mock.assert_called_with(self.context_mock, 0, expected_exception.__name__, expected_code)
+        run_metrics_mock.assert_called_with(self.context_mock, ANY, expected_exception.__name__, expected_code)
 
 
 class TestSendCommandMetrics(TestCase):
