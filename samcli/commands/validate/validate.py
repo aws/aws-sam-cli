@@ -79,7 +79,7 @@ def do_cli(ctx, template, lint):
 
         click.secho(
             "{} is a valid SAM Template. This is according to basic SAM Validation, "
-            'for additional validation, please run \"sam validate --lint\"'.format(template),
+            'for additional validation, please run "sam validate --lint"'.format(template),
             fg="green",
         )
 
