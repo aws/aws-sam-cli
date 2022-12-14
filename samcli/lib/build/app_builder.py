@@ -551,6 +551,7 @@ class ApplicationBuilder:
                     container_env_vars,
                     image,
                     is_building_layer=True,
+                    build_method=specified_build_workflow,
                 )
             else:
                 self._build_function_in_process(
@@ -689,6 +690,7 @@ class ApplicationBuilder:
                         options,
                         container_env_vars,
                         image,
+                        build_method=specified_build_workflow,
                     )
 
                 return self._build_function_in_process(
@@ -875,6 +877,7 @@ class ApplicationBuilder:
         container_env_vars: Optional[Dict] = None,
         build_image: Optional[str] = None,
         is_building_layer: bool = False,
+        build_method: Optional[str] = None,
     ) -> str:
         # _build_function_on_container() is only called when self._container_manager if not None
         if not self._container_manager:
@@ -903,6 +906,7 @@ class ApplicationBuilder:
             manifest_path,
             runtime,
             architecture,
+            build_method=build_method,
             log_level=log_level,
             optimizations=None,
             options=options,

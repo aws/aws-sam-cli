@@ -245,10 +245,7 @@ def supports_build_in_container(config: CONFIG) -> Tuple[bool, Optional[str]]:
     # A "workflow config" is like a primary key to identify the workflow. So we use the config as a key in the
     # map to identify which workflows can support building within a container.
 
-    unsupported = {
-        _key(DOTNET_CLIPACKAGE_CONFIG): "We do not support building .NET Core Lambda functions within a container. "
-        "Try building without the container. Most .NET Core functions will build "
-        "successfully.",
+    unsupported = { 
     }
 
     thiskey = _key(config)

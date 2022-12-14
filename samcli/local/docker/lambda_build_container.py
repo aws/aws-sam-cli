@@ -5,6 +5,7 @@ Represents Lambda Build Containers.
 import json
 import logging
 import pathlib
+from typing import Optional
 
 from samcli.commands._utils.experimental import get_enabled_experimental_flags
 from samcli.local.docker.container import Container
@@ -33,6 +34,7 @@ class LambdaBuildContainer(Container):
         manifest_path,
         runtime,
         architecture,
+        build_method=None,
         optimizations=None,
         options=None,
         executable_search_paths=None,
@@ -81,14 +83,14 @@ class LambdaBuildContainer(Container):
         )
 
         if image is None:
-            image = LambdaBuildContainer._get_image(runtime, architecture)
+            image = LambdaBuildContainer._get_image(runtime, architecture, build_method=build_method)
         entry = LambdaBuildContainer._get_entrypoint(request_json)
         cmd = []
 
         additional_volumes = {
             # Manifest is mounted separately in order to support the case where manifest
             # is outside of source directory
-            manifest_dir: {"bind": container_dirs["manifest_dir"], "mode": "ro"}
+            manifest_dir: {"bind": container_dirs["manifest_dir"], "mode": "rw"}
         }
 
         if log_level:
@@ -245,7 +247,7 @@ class LambdaBuildContainer(Container):
         return result
 
     @staticmethod
-    def _get_image(runtime, architecture):
+    def _get_image(runtime, architecture, build_method: Optional[str] = None):
         """
         Parameters
         ----------
@@ -253,12 +255,16 @@ class LambdaBuildContainer(Container):
             Name of the Lambda runtime
         architecture : str
             Architecture type either 'x86_64' or 'arm64
+        build_method : str
+            The build method specified in metadata
 
         Returns
         -------
         str
             valid image name
         """
+        if build_method == "dotnet7":
+            return f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{build_method}:" + LambdaBuildContainer.get_image_tag(architecture)
         return f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{runtime}:" + LambdaBuildContainer.get_image_tag(architecture)
 
     @staticmethod
