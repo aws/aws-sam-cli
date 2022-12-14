@@ -10,8 +10,7 @@ from unittest.mock import patch, Mock, ANY, call
 
 import pytest
 
-from samcli.lib.hook.exceptions import InvalidHookPackageConfigException
-from samcli.lib.hook.hook_config import HookPackageConfig
+from samcli.lib.hook.exceptions import InvalidHookPackageConfigException, InvalidHookWrapperException
 from samcli.lib.iac.plugins_interfaces import ProjectTypes
 from samcli.lib.telemetry.event import EventTracker
 
@@ -27,6 +26,7 @@ from samcli.lib.telemetry.metric import (
     Metric,
     _get_project_details,
     ProjectDetails,
+    _send_command_run_metrics,
 )
 from samcli.commands.exceptions import UserException
 
@@ -135,6 +135,140 @@ class TestTrackWarning(TestCase):
 
 class TestTrackCommand(TestCase):
     def setUp(self):
+        self.context_mock = Mock()
+        self.context_mock.profile = False
+        self.context_mock.debug = False
+        self.context_mock.region = "myregion"
+        self.context_mock.command_path = "fakesam local invoke"
+        self.context_mock.experimental = False
+        self.context_mock.template_dict = {}
+        self.context_mock.exception = None
+
+    @patch("samcli.lib.telemetry.metric.Context")
+    @patch("samcli.lib.telemetry.metric._send_command_run_metrics")
+    def test_must_emit_one_metric(self, run_metrics_mock, context_mock):
+        context_mock.get_current_context.return_value = self.context_mock
+
+        def real_fn():
+            pass
+
+        track_command(real_fn)()
+
+        run_metrics_mock.assert_called_with(self.context_mock, 0, "success", 0)
+
+    @pytest.mark.flaky(reruns=3)
+    @patch("samcli.lib.telemetry.metric.Context")
+    @patch("samcli.lib.telemetry.metric._send_command_run_metrics")
+    def test_must_record_function_duration(self, run_metrics_mock, context_mock):
+        context_mock.get_current_context.return_value = self.context_mock
+
+        sleep_duration = 0.001  # 1 ms
+        expected_duration_milliseconds = sleep_duration * 1000
+
+        def real_fn():
+            time.sleep(sleep_duration)
+
+        track_command(real_fn)()
+
+        run_metrics_mock.assert_called_with(self.context_mock, expected_duration_milliseconds, "success", 0)
+
+    @parameterized.expand(
+        [
+            (KeyError("IO Error test"), "KeyError", 255),
+            (UserException("Something went wrong", wrapped_from="CustomException"), "CustomException", 1),
+            (UserException("Something went wrong"), "UserException", 1),
+        ]
+    )
+    @patch("samcli.lib.telemetry.metric.Context")
+    @patch("samcli.lib.telemetry.metric._send_command_run_metrics")
+    def test_records_exceptions(self, exception, expected_exception, expected_code, run_metrics_mock, context_mock):
+        context_mock.get_current_context.return_value = self.context_mock
+
+        def real_fn():
+            raise exception
+
+        with self.assertRaises(exception.__class__) as context:
+            track_command(real_fn)()
+            self.assertEqual(
+                context.exception,
+                exception,
+                "Must re-raise the original exception object " "without modification",
+            )
+
+        run_metrics_mock.assert_called_with(self.context_mock, 0, expected_exception, expected_code)
+
+    @patch("samcli.lib.telemetry.metric.Context")
+    @patch("samcli.lib.telemetry.metric._send_command_run_metrics")
+    def test_must_return_value_from_decorated_function(self, run_metrics_mock, context_mock):
+        context_mock.get_current_context.return_value = self.context_mock
+        expected_value = "some return value"
+
+        def real_fn():
+            return expected_value
+
+        actual = track_command(real_fn)()
+        self.assertEqual(actual, "some return value")
+
+    @patch("samcli.lib.telemetry.metric._send_command_run_metrics")
+    def test_must_pass_all_arguments_to_wrapped_function(self, run_metrics_mock):
+        def real_fn(*args, **kwargs):
+            # simply return the arguments to be able to examine & assert
+            return args, kwargs
+
+        actual_args, actual_kwargs = track_command(real_fn)(1, 2, 3, a=1, b=2, c=3)
+        self.assertEqual(actual_args, (1, 2, 3))
+        self.assertEqual(actual_kwargs, {"a": 1, "b": 2, "c": 3})
+
+    @patch("samcli.lib.telemetry.metric.Context")
+    @patch("samcli.lib.telemetry.metric._send_command_run_metrics")
+    def test_must_decorate_functions(self, run_metrics_mock, context_mock):
+        context_mock.get_current_context.return_value = self.context_mock
+
+        @track_command
+        def real_fn(a, b=None):
+            return "{} {}".format(a, b)
+
+        actual = real_fn("hello", b="world")
+        self.assertEqual(actual, "hello world")
+
+        run_metrics_mock.assert_called()
+
+    @patch("samcli.lib.telemetry.metric.Context")
+    @patch("samcli.lib.telemetry.metric._send_command_run_metrics")
+    def test_missing_context_no_metrics(self, run_metrics_mock, context_mock):
+        context_mock.get_current_context.return_value = None
+
+        def func(**kwargs):
+            pass
+
+        track_command(func)()
+        run_metrics_mock.assert_not_called()
+
+    @parameterized.expand(
+        [
+            (Exception, 255),
+            (KeyError, 255),
+            (UserException, 1),
+            (InvalidHookWrapperException, 1),
+        ]
+    )
+    @patch("samcli.lib.telemetry.metric.Context")
+    @patch("samcli.lib.telemetry.metric._send_command_run_metrics")
+    def test_context_contains_exception(self, expected_exception, expected_code, run_metrics_mock, context_mock):
+        self.context_mock.exception = expected_exception("some exception")
+        context_mock.get_current_context.return_value = self.context_mock
+
+        mocked_func = Mock()
+
+        with self.assertRaises(expected_exception):
+            track_command(mocked_func)()
+
+        mocked_func.assert_not_called()
+        run_metrics_mock.assert_called_with(self.context_mock, 0, expected_exception.__name__, expected_code)
+
+
+class TestSendCommandMetrics(TestCase):
+    def setUp(self):
         TelemetryClassMock = Mock()
         GlobalConfigClassMock = Mock()
         self.telemetry_instance = TelemetryClassMock.return_value = Mock()
@@ -153,6 +287,7 @@ class TestTrackCommand(TestCase):
         self.context_mock.command_path = "fakesam local invoke"
         self.context_mock.experimental = False
         self.context_mock.template_dict = {}
+        self.context_mock.exception = None
 
         # Enable telemetry so we can actually run the tests
         self.gc_instance_mock.telemetry_enabled = True
@@ -161,29 +296,8 @@ class TestTrackCommand(TestCase):
         self.telemetry_class_patcher.stop()
         self.gc_patcher.stop()
 
-    @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_emit_one_metric(self, ContextMock):
-        ContextMock.get_current_context.return_value = self.context_mock
-
-        def real_fn():
-            pass
-
-        track_command(real_fn)()
-
-        args, _ = self.telemetry_instance.emit.call_args_list[0]
-        metric = args[0]
-        assert metric.get_metric_name() == "commandRun"
-        self.assertEqual(self.telemetry_instance.emit.mock_calls, [call(ANY)], "The one command metric must be sent")
-
-    @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_emit_command_run_metric(self, ContextMock):
-        ContextMock.get_current_context.return_value = self.context_mock
-
-        def real_fn():
-            pass
-
-        track_command(real_fn)()
-
+    @patch("samcli.lib.telemetry.event.EventTracker.send_events", return_value=None)
+    def test_must_emit_command_run_metric(self, send_mock):
         expected_attrs = {
             "awsProfileProvided": False,
             "debugFlagProvided": False,
@@ -194,20 +308,21 @@ class TestTrackCommand(TestCase):
             "exitReason": "success",
             "exitCode": 0,
         }
+
+        _send_command_run_metrics(self.context_mock, 0, "success", 0)
+
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric = args[0]
         assert metric.get_metric_name() == "commandRun"
         self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
 
-    @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_emit_command_run_metric_with_sanitized_profile_value(self, ContextMock):
-        ContextMock.get_current_context.return_value = self.context_mock
+        send_mock.assert_called()
+
+    @patch("samcli.lib.telemetry.event.EventTracker.send_events", return_value=None)
+    def test_must_emit_command_run_metric_with_sanitized_profile_value(self, send_mock):
         self.context_mock.profile = "myprofilename"
 
-        def real_fn():
-            pass
-
-        track_command(real_fn)()
+        _send_command_run_metrics(self.context_mock, 0, "success", 0)
 
         expected_attrs = _ignore_common_attributes({"awsProfileProvided": True})
         args, _ = self.telemetry_instance.emit.call_args_list[0]
@@ -215,165 +330,17 @@ class TestTrackCommand(TestCase):
         assert metric.get_metric_name() == "commandRun"
         self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
 
-    @pytest.mark.flaky(reruns=3)
-    @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_record_function_duration(self, ContextMock):
-        ContextMock.get_current_context.return_value = self.context_mock
-        sleep_duration = 0.001  # 1 ms
-
-        def real_fn():
-            time.sleep(sleep_duration)
-
-        track_command(real_fn)()
-
-        # commandRun metric should be the only call to emit.
-        # And grab the second argument passed to this call, which are the attributes
-        args, _ = self.telemetry_instance.emit.call_args_list[0]
-        metric = args[0]
-        assert metric.get_metric_name() == "commandRun"
-        self.assertGreaterEqual(
-            metric.get_data()["duration"],
-            sleep_duration,
-            "Measured duration must be in milliseconds and greater than equal to the sleep duration",
-        )
-
-    @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_record_user_exception(self, ContextMock):
-        ContextMock.get_current_context.return_value = self.context_mock
-        expected_exception = UserException("Something went wrong")
-        expected_exception.exit_code = 1235
-
-        def real_fn():
-            raise expected_exception
-
-        with self.assertRaises(UserException) as context:
-            track_command(real_fn)()
-            self.assertEqual(
-                context.exception,
-                expected_exception,
-                "Must re-raise the original exception object " "without modification",
-            )
-
-        expected_attrs = _ignore_common_attributes({"exitReason": "UserException", "exitCode": 1235})
-        args, _ = self.telemetry_instance.emit.call_args_list[0]
-        metric = args[0]
-        assert metric.get_metric_name() == "commandRun"
-        self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
-
-    @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_record_wrapped_user_exception(self, ContextMock):
-        ContextMock.get_current_context.return_value = self.context_mock
-        expected_exception = UserException("Something went wrong", wrapped_from="CustomException")
-        expected_exception.exit_code = 1235
-
-        def real_fn():
-            raise expected_exception
-
-        with self.assertRaises(UserException) as context:
-            track_command(real_fn)()
-            self.assertEqual(
-                context.exception,
-                expected_exception,
-                "Must re-raise the original exception object " "without modification",
-            )
-
-        expected_attrs = _ignore_common_attributes({"exitReason": "CustomException", "exitCode": 1235})
-        args, _ = self.telemetry_instance.emit.call_args_list[0]
-        metric = args[0]
-        assert metric.get_metric_name() == "commandRun"
-        self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
-
-    @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_record_any_exceptions(self, ContextMock):
-        ContextMock.get_current_context.return_value = self.context_mock
-        expected_exception = KeyError("IO Error test")
-
-        def real_fn():
-            raise expected_exception
-
-        with self.assertRaises(KeyError) as context:
-            track_command(real_fn)()
-            self.assertEqual(
-                context.exception,
-                expected_exception,
-                "Must re-raise the original exception object " "without modification",
-            )
-
-        expected_attrs = _ignore_common_attributes(
-            {"exitReason": "KeyError", "exitCode": 255}  # Unhandled exceptions always use exit code 255
-        )
-        args, _ = self.telemetry_instance.emit.call_args_list[0]
-        metric = args[0]
-        assert metric.get_metric_name() == "commandRun"
-        self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
-
-    @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_return_value_from_decorated_function(self, ContextMock):
-        ContextMock.get_current_context.return_value = self.context_mock
-        expected_value = "some return value"
-
-        def real_fn():
-            return expected_value
-
-        actual = track_command(real_fn)()
-        self.assertEqual(actual, "some return value")
-
-    @patch("samcli.lib.telemetry.metric.get_hook_metadata", return_value=None)
-    @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_pass_all_arguments_to_wrapped_function(self, ContextMock, get_hook_metadata_mock):
-        def real_fn(*args, **kwargs):
-            # simply return the arguments to be able to examine & assert
-            return args, kwargs
-
-        actual_args, actual_kwargs = track_command(real_fn)(1, 2, 3, a=1, b=2, c=3)
-        self.assertEqual(actual_args, (1, 2, 3))
-        self.assertEqual(actual_kwargs, {"a": 1, "b": 2, "c": 3})
-
-    @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_decorate_functions(self, ContextMock):
-        ContextMock.get_current_context.return_value = self.context_mock
-
-        @track_command
-        def real_fn(a, b=None):
-            return "{} {}".format(a, b)
-
-        actual = real_fn("hello", b="world")
-        self.assertEqual(actual, "hello world")
-
-        args, _ = self.telemetry_instance.emit.call_args_list[0]
-        metric = args[0]
-        assert metric.get_metric_name() == "commandRun"
-        self.assertEqual(
-            self.telemetry_instance.emit.mock_calls,
-            [call(ANY)],
-            "The command metrics be emitted when used as a decorator",
-        )
-
-    @patch("samcli.lib.telemetry.event.EventTracker.send_events", return_value=None)
-    @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_send_events(self, ContextMock, send_mock):
-        ContextMock.get_current_context.return_value = self.context_mock
-
-        def real_fn():
-            pass
-
-        track_command(real_fn)()
-
         send_mock.assert_called()
 
     @patch("samcli.lib.telemetry.metric._get_project_details")
     @patch("samcli.lib.telemetry.event.EventTracker.send_events", return_value=None)
-    @patch("samcli.lib.telemetry.metric.Context")
-    def test_collects_project_details(self, ContextMock, send_mock, project_details_mock):
-        ContextMock.get_current_context.return_value = self.context_mock
+    def test_collects_project_details(self, send_mock, project_details_mock):
         project_details_mock.return_value = ProjectDetails(
             project_type="Terraform", hook_package_version="1.0.0", hook_name="terraform"
         )
 
-        def real_fn(**kwargs):
-            pass
+        _send_command_run_metrics(self.context_mock, 0, "success", 0, hook_name="terraform")
 
-        track_command(real_fn)(hook_name="terraform")
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric_data = args[0]._data
         send_mock.assert_called()
@@ -383,6 +350,30 @@ class TestTrackCommand(TestCase):
         self.assertEqual(metric_specific_attributes.get("hookPackageId"), "terraform")
         self.assertEqual(metric_specific_attributes.get("hookPackageVersion"), "1.0.0")
         project_details_mock.assert_called_once_with("terraform", {})
+
+    @parameterized.expand(
+        [
+            (Exception, 255),
+            (KeyError, 255),
+            (UserException, 1),
+            (InvalidHookWrapperException, 1),
+        ]
+    )
+    @patch("samcli.lib.telemetry.event.EventTracker.send_events", return_value=None)
+    def test_context_contains_exception(self, expected_exception, expected_code, send_events_mock):
+        self.context_mock.exception = expected_exception("some exception")
+
+        _send_command_run_metrics(self.context_mock, 0, expected_exception.__name__, expected_code)
+
+        metrics, _ = self.telemetry_instance.emit.call_args_list[0]
+        metrics = metrics[0]._data
+
+        self.assertIn("exitReason", metrics)
+        self.assertIn("exitCode", metrics)
+        self.assertEqual(metrics.get("exitReason"), expected_exception.__name__)
+        self.assertEqual(metrics.get("exitCode"), expected_code)
+
+        send_events_mock.assert_called()
 
 
 class TestParameterCapture(TestCase):
