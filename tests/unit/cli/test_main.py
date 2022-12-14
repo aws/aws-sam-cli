@@ -27,7 +27,7 @@ class TestCliBase(TestCase):
             result = runner.invoke(cli, ["local", "generate-event", "s3"])
             self.assertEqual(result.exit_code, 0)
 
-    def test_cli_with_no_region_argument(self):
+    def test_cli_with_non_standard_format_region(self):
         mock_cfg = Mock()
         with patch("samcli.cli.main.GlobalConfig", mock_cfg):
             runner = CliRunner()
@@ -38,6 +38,15 @@ class TestCliBase(TestCase):
                     "Error: Provided region: --non-standard-format doesn't match a supported format", result.output
                 )
                 self.assertRaises(RegionError)
+
+    def test_cli_with_empty_region(self):
+        mock_cfg = Mock()
+        with patch("samcli.cli.main.GlobalConfig", mock_cfg):
+            runner = CliRunner()
+            for command in ["validate", "deploy"]:
+                result = runner.invoke(cli, [command, "--region"])
+                self.assertEqual(result.exit_code, 2)
+                self.assertIn("Error: Option '--region' requires an argument", result.output)
 
     @patch("samcli.commands.validate.validate.do_cli")
     def test_cli_with_valid_region(self, mock_do_cli):
