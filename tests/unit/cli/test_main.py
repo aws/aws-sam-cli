@@ -3,6 +3,7 @@ from unittest.mock import patch, Mock, PropertyMock, call
 from unittest import TestCase
 from click.testing import CliRunner
 from samcli.cli.main import cli
+from samcli.commands.exceptions import RegionError
 
 
 class TestCliBase(TestCase):
@@ -25,6 +26,20 @@ class TestCliBase(TestCase):
             runner = CliRunner()
             result = runner.invoke(cli, ["local", "generate-event", "s3"])
             self.assertEqual(result.exit_code, 0)
+
+    def test_cli_with_no_region_arg_validate(self):
+        mock_cfg = Mock()
+        with patch("samcli.cli.main.GlobalConfig", mock_cfg):
+            runner = CliRunner()
+            runner.invoke(cli, ["validate", "--region", "--debug"])
+            self.assertRaises(RegionError)
+
+    def test_cli_with_no_region_arg_deploy(self):
+        mock_cfg = Mock()
+        with patch("samcli.cli.main.GlobalConfig", mock_cfg):
+            runner = CliRunner()
+            runner.invoke(cli, ["deploy", "use-container" "False", "--region", "--debug"])
+            self.assertRaises(RegionError)
 
     def test_cli_with_debug(self):
         mock_cfg = Mock()
