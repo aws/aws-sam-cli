@@ -78,8 +78,8 @@ def do_cli(ctx, template, lint):
             ) from e
 
         click.secho(
-            "{} can be transformed to a Cloudformation template. "
-            'Please run "sam validate --lint -t template.yaml" for additional validation'.format(template),
+            "{} is a valid SAM Template. This is according to basic SAM Validation, "
+            'for additional validation, please run \"sam validate --lint\"'.format(template),
             fg="green",
         )
 
