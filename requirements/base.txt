@@ -26,3 +26,6 @@ typing_extensions==3.10.0.0
 regex==2021.9.30
 # NOTE: tzlocal is not a direct dependency of SAM CLI, but pin to 3.0 as 4.0 break appveyor jobs
 tzlocal==3.0
+
+#Adding cfn-lint dependency for SAM validate
+cfn-lint==0.72.2
