@@ -6,7 +6,7 @@ Werkzeug<2.1
 #Need to add Schemas latest SDK.
 boto3>=1.19.5,==1.*
 jmespath~=0.10.0
-PyYAML~=5.3
+PyYAML>=5.4.1,==5.*
 cookiecutter~=2.1.1
 aws-sam-translator==1.55.0
 #docker minor version updates can include breaking changes. Auto update micro version only.
