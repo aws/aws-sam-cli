@@ -263,9 +263,11 @@ class LambdaBuildContainer(Container):
         str
             valid image name
         """
+        image_tag = LambdaBuildContainer.get_image_tag(architecture)
+
         if build_method == "dotnet7":
-            return f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{build_method}:" + LambdaBuildContainer.get_image_tag(architecture)
-        return f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{runtime}:" + LambdaBuildContainer.get_image_tag(architecture)
+            return f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{build_method}:" + image_tag
+        return f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{runtime}:" + image_tag
 
     @staticmethod
     def get_image_tag(architecture):

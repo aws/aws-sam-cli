@@ -551,7 +551,7 @@ class ApplicationBuilder:
                     container_env_vars,
                     image,
                     is_building_layer=True,
-                    build_method=specified_build_workflow,
+                    build_method=specified_workflow,
                 )
             else:
                 self._build_function_in_process(
