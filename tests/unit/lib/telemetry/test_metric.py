@@ -170,11 +170,11 @@ class TestTrackCommand(TestCase):
 
         track_command(real_fn)()
 
-        time_arg = run_metrics_mock.call_args.args[1]
+        arguments, _ = run_metrics_mock.call_args_list[0]
 
         # check if the value passed into runtime arg is at least the expected value
         self.assertGreaterEqual(
-            time_arg,
+            arguments[1],
             expected_duration_milliseconds,
             "Measured duration must be in milliseconds and greater than equal to the sleep duration",
         )
