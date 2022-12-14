@@ -29,12 +29,12 @@ class TestValidate(TestCase):
     def setUpClass(cls):
         cls.patterns = {
             TemplateFileTypes.JSON: re.compile(
-                r"template\.json can be transformed to a Cloudformation template."
-                ' Please run "sam validate --lint -t template.yaml" for additional validation(\r\n)?$'
+                r"template\.json is a valid SAM Template. This is according to basic SAM Validation, "
+                'for additional validation, please run "sam validate --lint"(\r\n)?$'
             ),
             TemplateFileTypes.YAML: re.compile(
-                r"template\.yaml can be transformed to a Cloudformation template."
-                ' Please run "sam validate --lint -t template.yaml" for additional validation(\r\n)?$'
+                r"template\.yaml is a valid SAM Template. This is according to basic SAM Validation, "
+                'for additional validation, please run "sam validate --lint"(\r\n)?$'
             ),
         }
         cls.lint_patterns = {
