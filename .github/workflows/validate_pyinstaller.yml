@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-for-linux:
-    name: build-pyinstaller
+    name: build-pyinstaller-linux
     runs-on: ubuntu-latest
     if: github.repository_owner == 'aws'
     strategy:
@@ -28,11 +28,11 @@ jobs:
           sam-dev --version
       - uses: actions/upload-artifact@v3
         with:
-          name: pyinstaller-zip
+          name: pyinstaller-linux-zip
           path: .build/output/aws-sam-cli-linux-x86_64.zip
 
   build-for-mac:
-    name: build-pyinstaller
+    name: build-pyinstaller-macos
     runs-on: macos-latest
     if: github.repository_owner == 'aws'
     strategy:
@@ -53,5 +53,5 @@ jobs:
           sam-dev --version
       - uses: actions/upload-artifact@v3
         with:
-          name: pyinstaller-zip
+          name: pyinstaller-macos-zip
           path: .build/output/aws-sam-cli-macos-x86_64.zip
