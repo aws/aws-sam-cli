@@ -11,8 +11,8 @@ class Test_EventGeneration_Integ(TestCase):
 
     @staticmethod
     def _get_command():
-        command = "samdev"
-        #         if os.getenv("SAM_CLI_DEV"):
-        #             command = "samdev"
+        command = "sam"
+        if os.getenv("SAM_CLI_DEV"):
+            command = "samdev"
 
         return command
