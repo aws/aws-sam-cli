@@ -36,6 +36,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
 2
 2
 N
+N
 eb-app-maven
 Y
 1
@@ -74,6 +75,7 @@ Y
 3
 2
 2
+N
 N
 eb-app-maven
 Y
@@ -126,6 +128,7 @@ Y
 2
 2
 N
+N
 eb-app-maven
 Y
 4
@@ -165,6 +168,7 @@ P
 3
 2
 2
+N
 N
 eb-app-maven
 Y
@@ -213,6 +217,7 @@ Y
 6
 2
 N
+N
 eb-app-python38
 Y
 1
@@ -246,6 +251,7 @@ Y
 7
 1
 2
+N
 N
 eb-app-go
 Y
@@ -282,6 +288,7 @@ Y
 7
 6
 2
+N
 N
 eb-app-python38
 3
@@ -321,6 +328,7 @@ us-east-1
 7
 6
 2
+N
 N
 eb-app-python38
 Y
