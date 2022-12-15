@@ -56,9 +56,8 @@ class BuildIntegBase(TestCase):
     @classmethod
     def base_command(cls):
         command = "sam"
-                 if os.getenv("SAM_CLI_DEV"):
-                     command = "samdev"
-
+        if os.getenv("SAM_CLI_DEV"):
+            command = "samdev"
         return command
 
     def get_command_list(
