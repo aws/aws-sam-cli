@@ -126,7 +126,7 @@ def read_until_string(process: Popen, expected_output: str, timeout: int = 5) ->
     """
 
     def _compare_output(output, _: List[str]) -> bool:
-        return bool(output == expected_output)
+        return bool(expected_output in output)
 
     try:
         read_until(process, _compare_output, timeout)
