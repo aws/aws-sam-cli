@@ -1,0 +1,32 @@
+name: Validate Pyinstaller Build
+
+on:
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  build:
+    name: build-pyinstaller
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'aws'
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.7"
+      - name: Build PyInstaller
+        run: |
+          chmod +x ./installer/pyinstaller/build-linux.sh
+          CI_OVERRIDE=1 ./installer/pyinstaller/build-linux.sh aws-sam-cli-linux-x86_64.zip
+      - name: Basic tests for PyInstaller
+        run: |
+          unzip .build/output/aws-sam-cli-linux-x86_64.zip -d sam-installation
+          sudo ./sam-installation/install
+          sam-dev --version
+      - uses: actions/upload-artifact@v3
+        with:
+          name: pyinstaller-zip
+          path: .build/output/aws-sam-cli-linux-x86_64.zip

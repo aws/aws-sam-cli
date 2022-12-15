@@ -21,9 +21,16 @@ else
     is_nightly="false"
 fi
 
+if [ "$CI_OVERRIDE" = "1" ]; then
+  build_folder="aws-sam-cli-dev"
+  build_binary_name="sam-dev"
+fi
+
 set -eu
 
-yum install -y zlib-devel openssl-devel libffi-devel
+if ! [ "$CI_OVERRIDE" = "1" ]; then
+  yum install -y zlib-devel openssl-devel libffi-devel
+fi
 
 echo "Making Folders"
 mkdir -p .build/src
@@ -39,15 +46,17 @@ cp -r ./src/* ./output/aws-sam-cli-src
 echo "Removing CI Scripts"
 rm -vf ./output/aws-sam-cli-src/appveyor*.yml
 
-echo "Installing Python"
-curl "https://www.python.org/ftp/python/${python_version}/Python-${python_version}.tgz" --output python.tgz
-tar -xzf python.tgz
-cd Python-$python_version
-./configure --enable-shared
-make -j8
-make install
-ldconfig
-cd ..
+if ! [ "$CI_OVERRIDE" = "1" ]; then
+  echo "Installing Python"
+  curl "https://www.python.org/ftp/python/${python_version}/Python-${python_version}.tgz" --output python.tgz
+  tar -xzf python.tgz
+  cd Python-$python_version
+  ./configure --enable-shared
+  make -j8
+  make install
+  ldconfig
+  cd ..
+fi
 
 echo "Installing Python Libraries"
 python3 -m venv venv
@@ -62,7 +71,12 @@ echo "Installing PyInstaller"
 
 echo "Building Binary"
 cd src
-if [ "$is_nightly" = "true" ]; then
+if [ "$CI_OVERRIDE" = "1" ]; then
+    echo "Updating samcli.spec with CI build"
+    sed -i.bak "s/'sam'/'$build_binary_name'/g" installer/pyinstaller/samcli.spec
+    sed -i.bak "s/('\/usr\/local\/lib\/libcrypt.so.2', '.')//g" installer/pyinstaller/samcli.spec
+    rm installer/pyinstaller/samcli.spec.bak
+elif [ "$is_nightly" = "true" ]; then
     echo "Updating samcli.spec with nightly/beta build"
     sed -i.bak "s/'sam'/'$build_binary_name'/g" installer/pyinstaller/samcli.spec
     rm installer/pyinstaller/samcli.spec.bak
@@ -76,7 +90,10 @@ cat installer/pyinstaller/samcli.spec
 
 mkdir pyinstaller-output
 dist_folder="sam"
-if [ "$is_nightly" = "true" ]; then
+if [ "$CI_OVERRIDE" = "1" ]; then
+    echo "using dist_folder with CI build"
+    dist_folder=$build_binary_name
+elif [ "$is_nightly" = "true" ]; then
     echo "using dist_folder with nightly/beta build"
     dist_folder=$build_binary_name
 fi
@@ -84,7 +101,13 @@ echo "dist_folder=$dist_folder"
 mv "dist/$dist_folder" pyinstaller-output/dist
 cp installer/assets/* pyinstaller-output
 chmod 755 pyinstaller-output/install
-if [ "$is_nightly" = "true" ]; then
+
+if [ "$CI_OVERRIDE" = "1" ]; then
+    echo "Updating install script with CI build"
+    sed -i.bak "s/\/usr\/local\/aws-sam-cli/\/usr\/local\/$build_folder/g" pyinstaller-output/install
+    sed -i.bak 's/EXE_NAME=\"sam\"/EXE_NAME=\"'$build_binary_name'\"/g' pyinstaller-output/install
+    rm pyinstaller-output/install.bak
+elif [ "$is_nightly" = "true" ]; then
     echo "Updating install script with nightly/beta build"
     sed -i.bak "s/\/usr\/local\/aws-sam-cli/\/usr\/local\/$build_folder/g" pyinstaller-output/install
     sed -i.bak 's/EXE_NAME=\"sam\"/EXE_NAME=\"'$build_binary_name'\"/g' pyinstaller-output/install
@@ -97,7 +120,11 @@ cd ..
 cp -r src/pyinstaller-output/* output/pyinstaller-output
 
 echo "Packaging Binary"
-yum install -y zip
+
+if ! [ "$CI_OVERRIDE" = "1" ]; then
+  yum install -y zip
+fi
+
 cd output
 cd pyinstaller-output
 cd dist
