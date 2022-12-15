@@ -1984,6 +1984,10 @@ client/archive/v0.57.0.tar.gz
 
 ** attrs; version 20.3.0 -- https://pypi.org/project/attrs/
 Copyright (c) 2015 Hynek Schlawack
+** ruamel-yaml; version 0.17.21 -- https://pypi.org/project/ruamel.yaml/
+Copyright (c) 2014-2022 Anthon van der Neut, Ruamel bvba
+** ruamel-yaml-clib; version 0.2.7 -- https://pypi.org/project/ruamel.yaml.clib/
+Copyright (c) 2019-2021 Anthon van der Neut, Ruamel bvba
 ** cfn-lint; version 0.72.2 -- https://pypi.org/project/cfn-lint/
 ** jschema-to-python; version 1.2.3 -- https://pypi.org/project/jschema-to-python/
 ** junit-xml; version 1.9 -- https://pypi.org/project/junit-xml/
