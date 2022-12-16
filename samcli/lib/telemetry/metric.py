@@ -135,12 +135,14 @@ def track_command(func):
 
         ctx = None
         try:
+            # we have get_current_context in it's own try/except to catch the RuntimeError for this and not func()
             ctx = Context.get_current_context()
         except RuntimeError:
             LOG.debug("Unable to find Click Context for getting session_id.")
 
         try:
             if ctx and ctx.exception:
+                # re-raise here to handle exception captured in context and not run func()
                 raise ctx.exception
 
             # Execute the function and capture return value. This is returned back by the wrapper
@@ -162,7 +164,12 @@ def track_command(func):
 
         if ctx:
             time = duration_fn()
-            _send_command_run_metrics(ctx, time, exit_reason, exit_code, **kwargs)
+
+            try:
+                # metrics also contain a call to Context.get_current_context, catch RuntimeError
+                _send_command_run_metrics(ctx, time, exit_reason, exit_code, **kwargs)
+            except RuntimeError:
+                LOG.debug("Unable to find Click context when sending metrics to telemetry")
 
         if exception:
             raise exception  # pylint: disable=raising-bad-type
