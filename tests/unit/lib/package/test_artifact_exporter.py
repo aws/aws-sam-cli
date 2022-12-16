@@ -164,11 +164,22 @@ class TestArtifactExporter(unittest.TestCase):
             LambdaLayerVersionResource,
         ):
             upload_local_artifacts_mock.assert_called_once_with(
-                resource_id, resource_dict, test_class.PROPERTY_NAME, parent_dir, s3_uploader_mock
+                test_class.RESOURCE_TYPE,
+                resource_id,
+                resource_dict,
+                test_class.PROPERTY_NAME,
+                parent_dir,
+                s3_uploader_mock,
             )
         else:
             upload_local_artifacts_mock.assert_called_once_with(
-                resource_id, resource_dict, test_class.PROPERTY_NAME, parent_dir, s3_uploader_mock, None
+                test_class.RESOURCE_TYPE,
+                resource_id,
+                resource_dict,
+                test_class.PROPERTY_NAME,
+                parent_dir,
+                s3_uploader_mock,
+                None,
             )
         code_signer_mock.sign_package.assert_not_called()
         if "." in test_class.PROPERTY_NAME:
@@ -272,6 +283,7 @@ class TestArtifactExporter(unittest.TestCase):
         # Verifies that we package local artifacts appropriately
         property_name = "property"
         resource_id = "resource_id"
+        resource_type = "resource_type"
         expected_s3_url = "s3://foo/bar?versionId=baz"
 
         self.s3_uploader_mock.upload_with_dedup.return_value = expected_s3_url
@@ -283,7 +295,7 @@ class TestArtifactExporter(unittest.TestCase):
 
             resource_dict = {property_name: artifact_path}
             result = upload_local_artifacts(
-                resource_id, resource_dict, property_name, parent_dir, self.s3_uploader_mock
+                resource_type, resource_id, resource_dict, property_name, parent_dir, self.s3_uploader_mock
             )
             self.assertEqual(result, expected_s3_url)
 
@@ -300,6 +312,7 @@ class TestArtifactExporter(unittest.TestCase):
         # Verifies that we package local artifacts appropriately
         property_name = "property"
         resource_id = "resource_id"
+        resource_type = "resource_type"
         expected_s3_url = "s3://foo/bar?versionId=baz"
 
         self.s3_uploader_mock.upload_with_dedup.return_value = expected_s3_url
@@ -310,7 +323,7 @@ class TestArtifactExporter(unittest.TestCase):
 
             resource_dict = {property_name: artifact_path}
             result = upload_local_artifacts(
-                resource_id, resource_dict, property_name, parent_dir, self.s3_uploader_mock
+                resource_type, resource_id, resource_dict, property_name, parent_dir, self.s3_uploader_mock
             )
             self.assertEqual(result, expected_s3_url)
 
@@ -321,6 +334,7 @@ class TestArtifactExporter(unittest.TestCase):
     def test_upload_local_artifacts_local_folder(self, zip_and_upload_mock):
         property_name = "property"
         resource_id = "resource_id"
+        resource_type = "resource_type"
         expected_s3_url = "s3://foo/bar?versionId=baz"
 
         zip_and_upload_mock.return_value = expected_s3_url
@@ -331,7 +345,9 @@ class TestArtifactExporter(unittest.TestCase):
             parent_dir = tempfile.gettempdir()
             resource_dict = {property_name: artifact_path}
 
-            result = upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir, Mock())
+            result = upload_local_artifacts(
+                resource_type, resource_id, resource_dict, property_name, parent_dir, Mock()
+            )
             self.assertEqual(result, expected_s3_url)
 
             absolute_artifact_path = make_abs_path(parent_dir, artifact_path)
@@ -340,8 +356,9 @@ class TestArtifactExporter(unittest.TestCase):
 
     @patch("samcli.lib.package.utils.zip_and_upload")
     def test_upload_local_artifacts_local_folder_lambda_resources(self, zip_and_upload_mock):
-        for resource_id in LAMBDA_LOCAL_RESOURCES:
+        for resource_type in LAMBDA_LOCAL_RESOURCES:
             property_name = "property"
+            resource_id = "resource_id"
             expected_s3_url = "s3://foo/bar?versionId=baz"
 
             zip_and_upload_mock.return_value = expected_s3_url
@@ -351,7 +368,9 @@ class TestArtifactExporter(unittest.TestCase):
                 parent_dir = tempfile.gettempdir()
                 resource_dict = {property_name: artifact_path}
 
-                result = upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir, Mock())
+                result = upload_local_artifacts(
+                    resource_type, resource_id, resource_dict, property_name, parent_dir, Mock()
+                )
                 self.assertEqual(result, expected_s3_url)
 
                 absolute_artifact_path = make_abs_path(parent_dir, artifact_path)
@@ -371,8 +390,9 @@ class TestArtifactExporter(unittest.TestCase):
     @patch("samcli.lib.package.utils.zip_and_upload")
     def test_upload_local_artifacts_local_folder_non_lambda_resources(self, zip_and_upload_mock):
         non_lambda_resources = RESOURCES_WITH_LOCAL_PATHS.keys() - LAMBDA_LOCAL_RESOURCES
-        for resource_id in non_lambda_resources:
+        for resource_type in non_lambda_resources:
             property_name = "property"
+            resource_id = "resource_id"
             expected_s3_url = "s3://foo/bar?versionId=baz"
 
             zip_and_upload_mock.return_value = expected_s3_url
@@ -382,7 +402,9 @@ class TestArtifactExporter(unittest.TestCase):
                 parent_dir = tempfile.gettempdir()
                 resource_dict = {property_name: artifact_path}
 
-                result = upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir, Mock())
+                result = upload_local_artifacts(
+                    resource_type, resource_id, resource_dict, property_name, parent_dir, Mock()
+                )
                 self.assertEqual(result, expected_s3_url)
 
                 absolute_artifact_path = make_abs_path(parent_dir, artifact_path)
@@ -401,6 +423,7 @@ class TestArtifactExporter(unittest.TestCase):
     def test_upload_local_artifacts_no_path(self, zip_and_upload_mock):
         property_name = "property"
         resource_id = "resource_id"
+        resource_type = "resource_type"
         expected_s3_url = "s3://foo/bar?versionId=baz"
 
         zip_and_upload_mock.return_value = expected_s3_url
@@ -409,7 +432,9 @@ class TestArtifactExporter(unittest.TestCase):
         resource_dict = {}
         parent_dir = tempfile.gettempdir()
 
-        result = upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir, self.s3_uploader_mock)
+        result = upload_local_artifacts(
+            resource_type, resource_id, resource_dict, property_name, parent_dir, self.s3_uploader_mock
+        )
         self.assertEqual(result, expected_s3_url)
 
         zip_and_upload_mock.assert_called_once_with(parent_dir, mock.ANY, None, zip_method=make_zip)
@@ -419,13 +444,16 @@ class TestArtifactExporter(unittest.TestCase):
     def test_upload_local_artifacts_s3_url(self, zip_and_upload_mock):
         property_name = "property"
         resource_id = "resource_id"
+        resource_type = "resource_type"
         object_s3_url = "s3://foo/bar?versionId=baz"
 
         # If URL is already S3 URL, this will be returned without zip/upload
         resource_dict = {property_name: object_s3_url}
         parent_dir = tempfile.gettempdir()
 
-        result = upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir, self.s3_uploader_mock)
+        result = upload_local_artifacts(
+            resource_type, resource_id, resource_dict, property_name, parent_dir, self.s3_uploader_mock
+        )
         self.assertEqual(result, object_s3_url)
 
         zip_and_upload_mock.assert_not_called()
@@ -435,17 +463,22 @@ class TestArtifactExporter(unittest.TestCase):
     def test_upload_local_artifacts_invalid_value(self, zip_and_upload_mock):
         property_name = "property"
         resource_id = "resource_id"
+        resource_type = "resource_type"
         parent_dir = tempfile.gettempdir()
 
         with self.assertRaises(exceptions.InvalidLocalPathError):
             non_existent_file = "some_random_filename"
             resource_dict = {property_name: non_existent_file}
-            upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir, self.s3_uploader_mock)
+            upload_local_artifacts(
+                resource_type, resource_id, resource_dict, property_name, parent_dir, self.s3_uploader_mock
+            )
 
         with self.assertRaises(exceptions.InvalidLocalPathError):
             non_existent_file = ["invalid datatype"]
             resource_dict = {property_name: non_existent_file}
-            upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir, self.s3_uploader_mock)
+            upload_local_artifacts(
+                resource_type, resource_id, resource_dict, property_name, parent_dir, self.s3_uploader_mock
+            )
 
         zip_and_upload_mock.assert_not_called()
         self.s3_uploader_mock.upload_with_dedup.assert_not_called()
@@ -481,7 +514,13 @@ class TestArtifactExporter(unittest.TestCase):
         resource.export(resource_id, resource_dict, parent_dir)
 
         upload_local_artifacts_mock.assert_called_once_with(
-            resource_id, resource_dict, resource.PROPERTY_NAME, parent_dir, self.s3_uploader_mock, None
+            resource.RESOURCE_TYPE,
+            resource_id,
+            resource_dict,
+            resource.PROPERTY_NAME,
+            parent_dir,
+            self.s3_uploader_mock,
+            None,
         )
 
         self.assertEqual(resource_dict[resource.PROPERTY_NAME], s3_url)
@@ -756,7 +795,13 @@ class TestArtifactExporter(unittest.TestCase):
         resource_dict = {}
         resource.export(resource_id, resource_dict, parent_dir)
         upload_local_artifacts_mock.assert_called_once_with(
-            resource_id, resource_dict, resource.PROPERTY_NAME, parent_dir, self.s3_uploader_mock, None
+            resource.RESOURCE_TYPE,
+            resource_id,
+            resource_dict,
+            resource.PROPERTY_NAME,
+            parent_dir,
+            self.s3_uploader_mock,
+            None,
         )
         self.code_signer_mock.should_sign_package.assert_called_once_with(resource_id)
         self.code_signer_mock.sign_package.assert_not_called()
@@ -851,7 +896,12 @@ class TestArtifactExporter(unittest.TestCase):
         resource.export(resource_id, resource_dict, parent_dir)
 
         upload_local_artifacts_mock.assert_called_once_with(
-            resource_id, resource_dict, resource.PROPERTY_NAME, parent_dir, self.s3_uploader_mock
+            resource.RESOURCE_TYPE,
+            resource_id,
+            resource_dict,
+            resource.PROPERTY_NAME,
+            parent_dir,
+            self.s3_uploader_mock,
         )
 
         self.assertEqual(

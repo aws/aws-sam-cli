@@ -9,6 +9,7 @@ import click
 
 from samtranslator.translator.arn_generator import NoRegionFound
 
+from samcli.cli.context import Context
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands._utils.cdk_support_decorators import unsupported_command_cdk
 from samcli.commands._utils.options import template_option_without_build
@@ -22,24 +23,25 @@ from samcli.lib.utils.version_checker import check_newer_version
 @template_option_without_build
 @aws_creds_options
 @cli_framework_options
+@click.option(
+    "--lint",
+    is_flag=True,
+    help="Run linting validation on template through cfn-lint. "
+    "For more information, see: https://github.com/aws-cloudformation/cfn-lint",
+)
 @pass_context
 @track_command
 @check_newer_version
 @print_cmdline_args
 @unsupported_command_cdk(alternative_command="cdk doctor")
-def cli(
-    ctx,
-    template_file,
-    config_file,
-    config_env,
-):
+def cli(ctx, template_file, config_file, config_env, lint):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(ctx, template_file)  # pragma: no cover
+    do_cli(ctx, template_file, lint)  # pragma: no cover
 
 
-def do_cli(ctx, template):
+def do_cli(ctx, template, lint):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
@@ -50,29 +52,36 @@ def do_cli(ctx, template):
     from .lib.exceptions import InvalidSamDocumentException
     from .lib.sam_template_validator import SamTemplateValidator
 
-    sam_template = _read_sam_file(template)
+    if lint:
+        _lint(ctx, template)
+    else:
+        sam_template = _read_sam_file(template)
 
-    iam_client = boto3.client("iam")
-    validator = SamTemplateValidator(
-        sam_template, ManagedPolicyLoader(iam_client), profile=ctx.profile, region=ctx.region
-    )
+        iam_client = boto3.client("iam")
+        validator = SamTemplateValidator(
+            sam_template, ManagedPolicyLoader(iam_client), profile=ctx.profile, region=ctx.region
+        )
 
-    try:
-        validator.is_valid()
-    except InvalidSamDocumentException as e:
-        click.secho("Template provided at '{}' was invalid SAM Template.".format(template), bg="red")
-        raise InvalidSamTemplateException(str(e)) from e
-    except NoRegionFound as no_region_found_e:
-        raise UserException(
-            "AWS Region was not found. Please configure your region through a profile or --region option",
-            wrapped_from=no_region_found_e.__class__.__name__,
-        ) from no_region_found_e
-    except NoCredentialsError as e:
-        raise UserException(
-            "AWS Credentials are required. Please configure your credentials.", wrapped_from=e.__class__.__name__
-        ) from e
+        try:
+            validator.is_valid()
+        except InvalidSamDocumentException as e:
+            click.secho("Template provided at '{}' was invalid SAM Template.".format(template), bg="red")
+            raise InvalidSamTemplateException(str(e)) from e
+        except NoRegionFound as no_region_found_e:
+            raise UserException(
+                "AWS Region was not found. Please configure your region through a profile or --region option",
+                wrapped_from=no_region_found_e.__class__.__name__,
+            ) from no_region_found_e
+        except NoCredentialsError as e:
+            raise UserException(
+                "AWS Credentials are required. Please configure your credentials.", wrapped_from=e.__class__.__name__
+            ) from e
 
-    click.secho("{} is a valid SAM Template".format(template), fg="green")
+        click.secho(
+            "{} is a valid SAM Template. This is according to basic SAM Validation, "
+            'for additional validation, please run "sam validate --lint"'.format(template),
+            fg="green",
+        )
 
 
 def _read_sam_file(template):
@@ -95,3 +104,59 @@ def _read_sam_file(template):
         sam_template = yaml_parse(sam_template.read())
 
     return sam_template
+
+
+def _lint(ctx: Context, template: str) -> None:
+    """
+    Parses provided SAM template and maps errors from CloudFormation template back to SAM template.
+
+    Cfn-lint loggers are added to the SAM cli logging hierarchy which at the root logger
+    configures with INFO level logging and a different formatting. This exposes and duplicates
+    some cfn-lint logs that are not typically shown to customers. Explicitly setting the level to
+    WARNING and propagate to be False remediates these issues.
+
+    Parameters
+    -----------
+    ctx
+        Click context object
+    template
+        Path to the template file
+
+    """
+
+    import cfnlint.core  # type: ignore
+    import logging
+    from samcli.commands.exceptions import UserException
+
+    cfn_lint_logger = logging.getLogger("cfnlint")
+    cfn_lint_logger.propagate = False
+
+    try:
+        lint_args = [template]
+        if ctx.debug:
+            lint_args.append("--debug")
+        if ctx.region:
+            lint_args.append("--region")
+            lint_args.append(ctx.region)
+
+        (args, filenames, formatter) = cfnlint.core.get_args_filenames(lint_args)
+        cfn_lint_logger.setLevel(logging.WARNING)
+        matches = list(cfnlint.core.get_matches(filenames, args))
+        if not matches:
+            click.secho("{} is a valid SAM Template".format(template), fg="green")
+        rules = cfnlint.core.get_used_rules()
+        matches_output = formatter.print_matches(matches, rules, filenames)
+
+        if matches_output:
+            click.secho(matches_output)
+
+    except cfnlint.core.InvalidRegionException as e:
+        raise UserException(
+            "AWS Region was not found. Please configure your region through the --region option",
+            wrapped_from=e.__class__.__name__,
+        ) from e
+    except cfnlint.core.CfnLintExitException as lint_error:
+        raise UserException(
+            lint_error,
+            wrapped_from=lint_error.__class__.__name__,
+        ) from lint_error
