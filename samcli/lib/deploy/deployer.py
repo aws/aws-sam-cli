@@ -56,12 +56,12 @@ DESCRIBE_STACK_EVENTS_DEFAULT_ARGS = OrderedDict(
 
 DESCRIBE_STACK_EVENTS_TABLE_HEADER_NAME = "CloudFormation events from stack operations (refresh every {} seconds)"
 
-DESCRIBE_CHANGESET_FORMAT_STRING = "{Operation:<{0}} {LogicalResourceId:<{1}} {ResourceType:<{2}} {Replacement:<{3}}"
+DESCRIBE_CHANGESET_FORMAT_STRING = "{Operation:<{0}} {ResourceType:<{1}} {LogicalResourceId:<{2}} {Replacement:<{3}}"
 DESCRIBE_CHANGESET_DEFAULT_ARGS = OrderedDict(
     {
         "Operation": "Operation",
+        "ResourceType": "ResourceType",        
         "LogicalResourceId": "LogicalResourceId",
-        "ResourceType": "ResourceType",
         "Replacement": "Replacement",
     }
 )
