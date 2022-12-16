@@ -49,6 +49,8 @@ AWS_KINESIS_STREAM = "AWS::Kinesis::Stream"
 AWS_SERVERLESS_STATEMACHINE = "AWS::Serverless::StateMachine"
 AWS_STEPFUNCTIONS_STATEMACHINE = "AWS::StepFunctions::StateMachine"
 AWS_ECR_REPOSITORY = "AWS::ECR::Repository"
+AWS_APPLICATION_INSIGHTS = "AWS::ApplicationInsights::Application"
+AWS_RESOURCE_GROUP = "AWS::ResourceGroups::Group"
 
 METADATA_WITH_LOCAL_PATHS = {AWS_SERVERLESSREPO_APPLICATION: ["LicenseUrl", "ReadmeUrl"]}
 
