@@ -5,7 +5,6 @@ from parameterized import parameterized
 
 from samcli.cli import hidden_imports
 from samcli.cli.import_module_proxy import (
-    detach_import_module_proxy,
     attach_import_module_proxy,
     MissingDynamicImportError,
 )
@@ -19,11 +18,12 @@ class TestImportModuleProxy(TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
+        cls.original_import_module = importlib.import_module
         attach_import_module_proxy()
 
     @classmethod
     def tearDownClass(cls) -> None:
-        detach_import_module_proxy()
+        importlib.import_module = cls.original_import_module
 
     @parameterized.expand(hidden_imports.SAM_CLI_HIDDEN_IMPORTS)
     def test_import_should_succeed_for_a_defined_hidden_package(self, package):
