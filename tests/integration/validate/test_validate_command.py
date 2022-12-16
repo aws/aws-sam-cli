@@ -151,10 +151,10 @@ class TestValidate(TestCase):
         output = command_result.stdout.decode("utf-8")
 
         warning_message = (
-            'E0000 Duplicate found "HelloWorldFunction" (line 5)\n'
-            f'{os.path.join(test_data_path, "templateError.yaml")}:5:3\n\n'
+            f'E0000 Duplicate found "HelloWorldFunction" (line 5)\n'
+            "{}/templateError.yaml:5:3\n\n"
             'E0000 Duplicate found "HelloWorldFunction" (line 12)\n'
-            f'{os.path.join(test_data_path, "templateError.yaml")}:12:3\n\n'
+            "{}/templateError.yaml:12:3\n\n".format(test_data_path, test_data_path)
         )
 
         self.assertIn(warning_message, output)
