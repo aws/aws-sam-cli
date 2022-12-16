@@ -13,17 +13,17 @@ if [ "$python_version" = "" ]; then
     python_version="3.7.9";
 fi
 
+if [ "$CI_OVERRIDE" = "1" ]; then
+  build_folder="aws-sam-cli-beta"
+  build_binary_name="sam-beta"
+fi
+
 if ! [ "$build_binary_name" = "" ]; then
     echo "Building native installer with nightly/beta build"
     is_nightly="true"
 else
     echo "Building native installer with normal build"
     is_nightly="false"
-fi
-
-if [ "$CI_OVERRIDE" = "1" ]; then
-  build_folder="aws-sam-cli-beta"
-  build_binary_name="sam-beta"
 fi
 
 set -eu
@@ -73,7 +73,6 @@ echo "Building Binary"
 cd src
 if [ "$CI_OVERRIDE" = "1" ]; then
     echo "Updating samcli.spec with CI build"
-    sed -i.bak "s/'sam'/'$build_binary_name'/g" installer/pyinstaller/samcli.spec
     sed -i.bak "s/('\/usr\/local\/lib\/libcrypt.so.2', '.')//g" installer/pyinstaller/samcli.spec
     rm installer/pyinstaller/samcli.spec.bak
 elif [ "$is_nightly" = "true" ]; then
@@ -90,10 +89,7 @@ cat installer/pyinstaller/samcli.spec
 
 mkdir pyinstaller-output
 dist_folder="sam"
-if [ "$CI_OVERRIDE" = "1" ]; then
-    echo "using dist_folder with CI build"
-    dist_folder=$build_binary_name
-elif [ "$is_nightly" = "true" ]; then
+if [ "$is_nightly" = "true" ]; then
     echo "using dist_folder with nightly/beta build"
     dist_folder=$build_binary_name
 fi
@@ -102,12 +98,7 @@ mv "dist/$dist_folder" pyinstaller-output/dist
 cp installer/assets/* pyinstaller-output
 chmod 755 pyinstaller-output/install
 
-if [ "$CI_OVERRIDE" = "1" ]; then
-    echo "Updating install script with CI build"
-    sed -i.bak "s/\/usr\/local\/aws-sam-cli/\/usr\/local\/$build_folder/g" pyinstaller-output/install
-    sed -i.bak 's/EXE_NAME=\"sam\"/EXE_NAME=\"'$build_binary_name'\"/g' pyinstaller-output/install
-    rm pyinstaller-output/install.bak
-elif [ "$is_nightly" = "true" ]; then
+if [ "$is_nightly" = "true" ]; then
     echo "Updating install script with nightly/beta build"
     sed -i.bak "s/\/usr\/local\/aws-sam-cli/\/usr\/local\/$build_folder/g" pyinstaller-output/install
     sed -i.bak 's/EXE_NAME=\"sam\"/EXE_NAME=\"'$build_binary_name'\"/g' pyinstaller-output/install
