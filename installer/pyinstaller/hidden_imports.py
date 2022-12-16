@@ -12,5 +12,5 @@ SAM_CLI_HIDDEN_IMPORTS = _SAM_CLI_COMMAND_PACKAGES + [
     "pkg_resources.py2_warn",
     "aws_lambda_builders.workflows",
     "configparser",
-    "cfnlint.rules"
+    "cfnlint"
 ]
