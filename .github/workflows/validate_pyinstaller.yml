@@ -25,7 +25,7 @@ jobs:
         run: |
           unzip .build/output/aws-sam-cli-linux-x86_64.zip -d sam-installation
           sudo ./sam-installation/install
-          sam-dev --version
+          sam-beta --version
       - uses: actions/upload-artifact@v3
         with:
           name: pyinstaller-linux-zip
@@ -50,7 +50,7 @@ jobs:
         run: |
           unzip .build/output/aws-sam-cli-macos-x86_64.zip -d sam-installation
           sudo ./sam-installation/install
-          sam-dev --version
+          sam-beta --version
       - uses: actions/upload-artifact@v3
         with:
           name: pyinstaller-macos-zip

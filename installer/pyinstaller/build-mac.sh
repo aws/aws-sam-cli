@@ -22,8 +22,8 @@ else
 fi
 
 if [ "$CI_OVERRIDE" = "1" ]; then
-  build_folder="aws-sam-cli-dev"
-  build_binary_name="sam-dev"
+  build_folder="aws-sam-cli-beta"
+  build_binary_name="sam-beta"
 fi
 
 if [ "$python_library_zip_filename" = "" ]; then
