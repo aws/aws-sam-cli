@@ -30,11 +30,11 @@ class TestValidate(TestCase):
         cls.patterns = {
             TemplateFileTypes.JSON: re.compile(
                 r"template\.json is a valid SAM Template. This is according to basic SAM Validation, "
-                'for additional validation, please run with "--lint" option(\r\n)?$'
+                'for additional validation, please run "sam validate --lint"(\r\n)?$'
             ),
             TemplateFileTypes.YAML: re.compile(
                 r"template\.yaml is a valid SAM Template. This is according to basic SAM Validation, "
-                'for additional validation, please run with "--lint" option(\r\n)?$'
+                'for additional validation, please run "sam validate --lint"(\r\n)?$'
             ),
         }
         cls.lint_patterns = {
