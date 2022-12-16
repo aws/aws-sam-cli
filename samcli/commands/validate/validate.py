@@ -27,6 +27,7 @@ from samcli.lib.utils.version_checker import check_newer_version
     "--lint",
     is_flag=True,
     help="Run linting validation on template through cfn-lint. "
+    "Create a cfnlintrc config file to specify additional parameters. "
     "For more information, see: https://github.com/aws-cloudformation/cfn-lint",
 )
 @pass_context
@@ -79,7 +80,7 @@ def do_cli(ctx, template, lint):
 
         click.secho(
             "{} is a valid SAM Template. This is according to basic SAM Validation, "
-            'for additional validation, please run "sam validate --lint"'.format(template),
+            'for additional validation, please run with "--lint" option'.format(template),
             fg="green",
         )
 
