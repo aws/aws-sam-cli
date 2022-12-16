@@ -51,10 +51,3 @@ def attach_import_module_proxy():
     hidden imports configuration
     """
     importlib.import_module = _dynamic_import
-
-
-def detach_import_module_proxy():
-    """
-    Detaches import_module proxy with original one so that behaviour can continue that it used to be before
-    """
-    importlib.import_module = _original_import

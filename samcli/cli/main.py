@@ -119,6 +119,8 @@ def cli(ctx):
 
     # if development version of SAM CLI is used, attach module proxy
     # to catch missing configuration for dynamic/hidden imports
+    # TODO: in general, we need better mechanisms to set which execution environment is SAM CLI operating
+    # rather than checking the executable name
     if ctx and getattr(ctx, "command_path", None) == "samdev":
         from samcli.cli.import_module_proxy import attach_import_module_proxy
 
