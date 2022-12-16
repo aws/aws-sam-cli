@@ -60,7 +60,7 @@ DESCRIBE_CHANGESET_FORMAT_STRING = "{Operation:<{0}} {ResourceType:<{1}} {Logica
 DESCRIBE_CHANGESET_DEFAULT_ARGS = OrderedDict(
     {
         "Operation": "Operation",
-        "ResourceType": "ResourceType",        
+        "ResourceType": "ResourceType",
         "LogicalResourceId": "LogicalResourceId",
         "Replacement": "Replacement",
     }
