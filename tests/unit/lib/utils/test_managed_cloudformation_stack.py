@@ -3,25 +3,51 @@ from unittest.mock import patch, Mock
 
 import botocore.session
 
-from botocore.exceptions import ClientError, NoCredentialsError, NoRegionError, ProfileNotFound
+from botocore.exceptions import NoCredentialsError, NoRegionError, ProfileNotFound
 from botocore.stub import Stubber
 from parameterized import parameterized
 
 from samcli.commands.exceptions import UserException, CredentialsError, RegionError
 from samcli.lib.bootstrap.bootstrap import _get_stack_template, SAM_CLI_STACK_NAME
-from samcli.lib.utils.managed_cloudformation_stack import manage_stack, _create_or_get_stack, ManagedStackError
+from samcli.lib.utils.managed_cloudformation_stack import (
+    manage_stack,
+    update_stack,
+    _create_or_get_stack,
+    _create_or_update_stack,
+    ManagedStackError,
+)
+
+CLOUDFORMATION_CLIENT = botocore.session.get_session().create_client("cloudformation", region_name="us-west-2")
 
 
 class TestManagedCloudFormationStack(TestCase):
+    cf = None
+    stubber = None
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.cf = CLOUDFORMATION_CLIENT
+        cls.stubber = Stubber(cls.cf)
+
     def _stubbed_cf_client(self):
-        cf = botocore.session.get_session().create_client("cloudformation", region_name="us-west-2")
-        return [cf, Stubber(cf)]
+        return [self.cf, self.stubber]
 
     @patch("boto3.Session")
     def test_session_missing_profile(self, boto_mock):
         boto_mock.side_effect = ProfileNotFound(profile="test-profile")
         with self.assertRaises(CredentialsError):
             manage_stack(
+                profile="test-profile",
+                region="fake-region",
+                stack_name=SAM_CLI_STACK_NAME,
+                template_body=_get_stack_template(),
+            )
+
+    @patch("boto3.Session")
+    def test_session_missing_profile_update(self, boto_mock):
+        boto_mock.side_effect = ProfileNotFound(profile="test-profile")
+        with self.assertRaises(CredentialsError):
+            update_stack(
                 profile="test-profile",
                 region="fake-region",
                 stack_name=SAM_CLI_STACK_NAME,
@@ -37,6 +63,14 @@ class TestManagedCloudFormationStack(TestCase):
             )
 
     @patch("boto3.client")
+    def test_client_missing_credentials_update(self, boto_mock):
+        boto_mock.side_effect = NoCredentialsError()
+        with self.assertRaises(CredentialsError):
+            update_stack(
+                profile=None, region="fake-region", stack_name=SAM_CLI_STACK_NAME, template_body=_get_stack_template()
+            )
+
+    @patch("boto3.client")
     def test_client_missing_region(self, boto_mock):
         boto_mock.side_effect = NoRegionError()
         with self.assertRaises(RegionError):
@@ -44,7 +78,16 @@ class TestManagedCloudFormationStack(TestCase):
                 profile=None, region="fake-region", stack_name=SAM_CLI_STACK_NAME, template_body=_get_stack_template()
             )
 
-    def test_new_stack(self):
+    @patch("boto3.client")
+    def test_client_missing_region_update(self, boto_mock):
+        boto_mock.side_effect = NoRegionError()
+        with self.assertRaises(RegionError):
+            update_stack(
+                profile=None, region="fake-region", stack_name=SAM_CLI_STACK_NAME, template_body=_get_stack_template()
+            )
+
+    @patch("boto3.client")
+    def test_new_stack(self, boto_mock):
         stub_cf, stubber = self._stubbed_cf_client()
         # first describe_stacks call will fail
         ds_params = {"StackName": SAM_CLI_STACK_NAME}
@@ -88,7 +131,8 @@ class TestManagedCloudFormationStack(TestCase):
         stubber.assert_no_pending_responses()
         stubber.deactivate()
 
-    def test_stack_exists(self):
+    @patch("boto3.client")
+    def test_stack_exists(self, patched_boto):
         stub_cf, stubber = self._stubbed_cf_client()
         ds_resp = {
             "Stacks": [
@@ -108,7 +152,8 @@ class TestManagedCloudFormationStack(TestCase):
         stubber.assert_no_pending_responses()
         stubber.deactivate()
 
-    def test_stack_missing_tag(self):
+    @patch("boto3.client")
+    def test_stack_missing_tag(self, patched_boto):
         stub_cf, stubber = self._stubbed_cf_client()
         ds_resp = {
             "Stacks": [
@@ -129,7 +174,8 @@ class TestManagedCloudFormationStack(TestCase):
         stubber.assert_no_pending_responses()
         stubber.deactivate()
 
-    def test_stack_wrong_tag(self):
+    @patch("boto3.client")
+    def test_stack_wrong_tag(self, patched_boto):
         stub_cf, stubber = self._stubbed_cf_client()
         ds_resp = {
             "Stacks": [
@@ -150,7 +196,9 @@ class TestManagedCloudFormationStack(TestCase):
         stubber.assert_no_pending_responses()
         stubber.deactivate()
 
-    def test_change_set_creation_fails(self):
+    @patch("boto3.client")
+    @patch("boto3.Session")
+    def test_change_set_creation_fails(self, patched_boto, patched_session):
         stub_cf, stubber = self._stubbed_cf_client()
         # first describe_stacks call will fail
         ds_params = {"StackName": SAM_CLI_STACK_NAME}
@@ -172,7 +220,8 @@ class TestManagedCloudFormationStack(TestCase):
         stubber.assert_no_pending_responses()
         stubber.deactivate()
 
-    def test_change_set_execution_fails(self):
+    @patch("boto3.client")
+    def test_change_set_execution_fails(self, patched_boto):
         stub_cf, stubber = self._stubbed_cf_client()
         # first describe_stacks call will fail
         ds_params = {"StackName": SAM_CLI_STACK_NAME}
@@ -212,23 +261,26 @@ class TestManagedCloudFormationStack(TestCase):
         ]
     )
     def test_stack_is_invalid_state(self, tags, outputs):
-        stub_cf, stubber = self._stubbed_cf_client()
-        ds_resp = {
-            "Stacks": [{"StackName": SAM_CLI_STACK_NAME, "CreationTime": "2019-11-13", "StackStatus": "CREATE_FAILED"}]
-        }
+        with patch("boto3.client"):
+            stub_cf, stubber = self._stubbed_cf_client()
+            ds_resp = {
+                "Stacks": [
+                    {"StackName": SAM_CLI_STACK_NAME, "CreationTime": "2019-11-13", "StackStatus": "CREATE_FAILED"}
+                ]
+            }
 
-        # add Tags or Outputs information if it exists
-        # Boto client is missing this information if stack is in invalid state
-        if tags:
-            ds_resp["Stacks"][0]["Tags"] = tags
+            # add Tags or Outputs information if it exists
+            # Boto client is missing this information if stack is in invalid state
+            if tags:
+                ds_resp["Stacks"][0]["Tags"] = tags
 
-        if outputs:
-            ds_resp["Stacks"][0]["Outputs"] = outputs
+            if outputs:
+                ds_resp["Stacks"][0]["Outputs"] = outputs
 
-        ds_params = {"StackName": SAM_CLI_STACK_NAME}
-        stubber.add_response("describe_stacks", ds_resp, ds_params)
-        stubber.activate()
-        with self.assertRaises(UserException):
-            _create_or_get_stack(stub_cf, SAM_CLI_STACK_NAME, _get_stack_template())
-        stubber.assert_no_pending_responses()
-        stubber.deactivate()
+            ds_params = {"StackName": SAM_CLI_STACK_NAME}
+            stubber.add_response("describe_stacks", ds_resp, ds_params)
+            stubber.activate()
+            with self.assertRaises(UserException):
+                _create_or_get_stack(stub_cf, SAM_CLI_STACK_NAME, _get_stack_template())
+            stubber.assert_no_pending_responses()
+            stubber.deactivate()

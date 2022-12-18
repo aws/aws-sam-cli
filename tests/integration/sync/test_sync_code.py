@@ -13,7 +13,6 @@ from unittest import skipIf
 import pytest
 import boto3
 from parameterized import parameterized_class
-from samcli.commands._utils.experimental import ExperimentalFlag, set_experimental
 
 from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_RESTAPI,
@@ -46,8 +45,6 @@ class TestSyncCodeBase(SyncIntegBase):
 
     @pytest.fixture(scope="class")
     def execute_infra_sync(self):
-        set_experimental(ExperimentalFlag.Esbuild)
-
         with tempfile.TemporaryDirectory() as temp:
             TestSyncCodeBase.temp_dir = Path(temp).joinpath(self.folder)
             shutil.copytree(self.test_data_path.joinpath(self.folder).joinpath("before"), TestSyncCodeBase.temp_dir)
@@ -91,7 +88,14 @@ class TestSyncCodeBase(SyncIntegBase):
 
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
-@parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
+@parameterized_class(
+    [
+        {"dependency_layer": True, "use_container": True},
+        {"dependency_layer": True, "use_container": False},
+        {"dependency_layer": False, "use_container": False},
+        {"dependency_layer": False, "use_container": True},
+    ]
+)
 class TestSyncCode(TestSyncCodeBase):
     template = "template-python.yaml"
     folder = "code"
@@ -104,7 +108,7 @@ class TestSyncCode(TestSyncCodeBase):
         )
 
         self.stack_resources = self._get_stacks(TestSyncCodeBase.stack_name)
-        if self.dependency_layer:
+        if self.dependency_layer and not self.use_container:
             # Test update manifest
             layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "python", 1)
             self.assertNotIn("requests", layer_contents)
@@ -122,6 +126,7 @@ class TestSyncCode(TestSyncCodeBase):
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
+            use_container=self.use_container,
         )
         sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
         self.assertEqual(sync_process_execute.process.returncode, 0)
@@ -136,7 +141,7 @@ class TestSyncCode(TestSyncCodeBase):
                 self.assertIn("extra_message", lambda_response)
                 self.assertEqual(lambda_response.get("message"), "8")
 
-        if self.dependency_layer:
+        if self.dependency_layer and not self.use_container:
             layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "python", 2)
             self.assertIn("requests", layer_contents)
 
@@ -159,6 +164,7 @@ class TestSyncCode(TestSyncCodeBase):
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
+            use_container=self.use_container,
         )
         sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
         self.assertEqual(sync_process_execute.process.returncode, 0)
@@ -173,6 +179,7 @@ class TestSyncCode(TestSyncCodeBase):
                 self.assertIn("extra_message", lambda_response)
                 self.assertEqual(lambda_response.get("message"), "9")
 
+    @pytest.mark.flaky(reruns=3)
     def test_sync_function_layer_race_condition(self):
         shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("function"), ignore_errors=True)
         shutil.copytree(
@@ -285,7 +292,7 @@ class TestSyncCode(TestSyncCodeBase):
         sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
         self.assertEqual(sync_process_execute.process.returncode, 2)
         self.assertIn(
-            "Invalid value for '--resource': invalid choice: AWS::Serverless::InvalidResource",
+            "Error: Invalid value for '--resource': 'AWS::Serverless::InvalidResource' is not one of",
             str(sync_process_execute.stderr),
         )
 
@@ -461,6 +468,7 @@ class TestSyncCodeNested(TestSyncCodeBase):
                 self.assertIn("extra_message", lambda_response)
                 self.assertEqual(lambda_response.get("message"), "12")
 
+    @pytest.mark.flaky(reruns=3)
     def test_sync_nested_function_layer_race_condition(self):
         shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("child_stack").joinpath("child_functions"), ignore_errors=True)
         shutil.copytree(

@@ -7,6 +7,7 @@ import tempfile
 import time
 import logging
 import json
+from typing import Optional
 from unittest import TestCase
 
 import docker
@@ -23,14 +24,14 @@ LOG = logging.getLogger(__name__)
 
 
 class BuildIntegBase(TestCase):
-    template = "template.yaml"
+    template: Optional[str] = "template.yaml"
 
     @classmethod
     def setUpClass(cls):
         cls.cmd = cls.base_command()
         integration_dir = Path(__file__).resolve().parents[1]
         cls.test_data_path = str(Path(integration_dir, "testdata", "buildcmd"))
-        cls.template_path = str(Path(cls.test_data_path, cls.template))
+        cls.template_path = str(Path(cls.test_data_path, cls.template)) if cls.template else None
 
     def setUp(self):
         # To invoke a function created by the build command, we need the built artifacts to be in a
@@ -57,7 +58,6 @@ class BuildIntegBase(TestCase):
         command = "sam"
         if os.getenv("SAM_CLI_DEV"):
             command = "samdev"
-
         return command
 
     def get_command_list(
@@ -78,7 +78,8 @@ class BuildIntegBase(TestCase):
         build_image=None,
         exclude=None,
         region=None,
-        beta_features=False,
+        hook_name=None,
+        beta_features=None,
     ):
 
         command_list = [self.cmd, "build"]
@@ -86,7 +87,7 @@ class BuildIntegBase(TestCase):
         if function_identifier:
             command_list += [function_identifier]
 
-        command_list += ["-t", self.template_path]
+        command_list += ["-t", self.template_path] if self.template_path else []
 
         if parameter_overrides:
             command_list += ["--parameter-overrides", self._make_parameter_override_arg(parameter_overrides)]
@@ -131,8 +132,11 @@ class BuildIntegBase(TestCase):
         if region:
             command_list += ["--region", region]
 
-        if beta_features:
-            command_list += ["--beta-features"]
+        if beta_features is not None:
+            command_list += ["--beta-features"] if beta_features else ["--no-beta-features"]
+
+        if hook_name:
+            command_list += ["--hook-name", hook_name]
 
         return command_list
 
@@ -314,14 +318,14 @@ class BuildIntegRubyBase(BuildIntegBase):
 
 class BuildIntegEsbuildBase(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
+    # Everything should be minifed to one line and a second line for the sourcemap mapping
+    MAX_MINIFIED_LINE_COUNT = 2
 
     def _test_with_default_package_json(
         self, runtime, use_container, code_uri, expected_files, handler, architecture=None
     ):
         overrides = self.get_override(runtime, code_uri, architecture, handler)
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
-
-        cmdlist.append("--beta-features")
 
         LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
@@ -339,9 +343,42 @@ class BuildIntegEsbuildBase(BuildIntegBase):
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
             )
 
+        self._verify_esbuild_properties(self.default_build_dir, self.FUNCTION_LOGICAL_ID, handler)
+
         if use_container:
             self.verify_docker_container_cleanedup(runtime)
             self.verify_pulled_image(runtime, architecture)
+
+    def _test_with_various_properties(self, overrides):
+        overrides = self.get_override(**overrides)
+        cmdlist = self.get_command_list(parameter_overrides=overrides)
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        run_command(cmdlist, cwd=self.working_dir)
+
+        expected = {"body": '{"message":"hello world!"}', "statusCode": 200}
+        if not SKIP_DOCKER_TESTS and overrides["Architectures"] == X86_64:
+            # ARM64 is not supported yet for invoking
+            self._verify_invoke_built_function(
+                self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+            )
+
+        self._verify_esbuild_properties(self.default_build_dir, self.FUNCTION_LOGICAL_ID, overrides["Handler"])
+
+    def _verify_esbuild_properties(self, build_dir, function_logical_id, handler):
+        filename = handler.split(".")[0]
+        resource_artifact_dir = build_dir.joinpath(function_logical_id)
+        self._verify_sourcemap_created(filename, resource_artifact_dir)
+        self._verify_function_minified(filename, resource_artifact_dir)
+
+    def _verify_function_minified(self, filename, resource_artifact_dir):
+        with open(Path(resource_artifact_dir, f"{filename}.js"), "r") as handler_file:
+            x = len(handler_file.readlines())
+        self.assertLessEqual(x, self.MAX_MINIFIED_LINE_COUNT)
+
+    def _verify_sourcemap_created(self, filename, resource_artifact_dir):
+        all_artifacts = set(os.listdir(str(resource_artifact_dir)))
+        self.assertIn(f"{filename}.js.map", all_artifacts)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -493,7 +530,6 @@ class BuildIntegGoBase(BuildIntegBase):
 
 
 class BuildIntegJavaBase(BuildIntegBase):
-
     FUNCTION_LOGICAL_ID = "Function"
 
     def _test_with_building_java(
@@ -677,12 +713,13 @@ class BuildIntegProvidedBase(BuildIntegBase):
     EXPECTED_FILES_PROJECT_MANIFEST = {"__init__.py", "main.py", "requests", "requirements.txt"}
 
     FUNCTION_LOGICAL_ID = "Function"
+    code_uri = "Provided"
 
     def _test_with_Makefile(self, runtime, use_container, manifest, architecture=None):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
-        overrides = self.get_override(runtime, "Provided", architecture, "main.handler")
+        overrides = self.get_override(runtime, self.code_uri, architecture, "main.handler")
         manifest_path = None
         if manifest:
             manifest_path = os.path.join(self.test_data_path, "Provided", manifest)

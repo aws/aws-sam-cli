@@ -133,7 +133,7 @@ class TestSyncAdlWithWatchStartWithNoDependencies(TestSyncWatchBase):
         )
         read_until_string(
             self.watch_process,
-            "\x1b[32mFinished syncing Function Layer Reference Sync HelloWorldFunction.\x1b[0m\n",
+            "\x1b[32mFinished syncing Layer HelloWorldFunction",
             timeout=60,
         )
         lambda_response = json.loads(self._get_lambda_response(lambda_functions[0]))
@@ -147,7 +147,7 @@ class TestSyncAdlWithWatchStartWithNoDependencies(TestSyncWatchBase):
         )
         read_until_string(
             self.watch_process,
-            "\x1b[32mFinished syncing Function Layer Reference Sync HelloWorldFunction.\x1b[0m\n",
+            "\x1b[32mFinished syncing Layer HelloWorldFunction",
             timeout=60,
         )
         self._confirm_lambda_error(lambda_functions[0])
@@ -176,8 +176,6 @@ class TestDisableAdlForEsbuildFunctions(SyncIntegBase):
     dependency_layer = True
 
     def test_sync_esbuild(self):
-        set_experimental(ExperimentalFlag.Esbuild)
-
         template_path = str(self.test_data_path.joinpath(self.template_file))
         stack_name = self._method_to_stack_name(self.id())
         self.stacks.append({"name": stack_name})

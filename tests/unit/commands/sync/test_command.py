@@ -1,3 +1,4 @@
+import itertools
 import os
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, Mock, patch
@@ -5,10 +6,10 @@ from parameterized import parameterized
 
 from samcli.commands.sync.command import do_cli, execute_code_sync, execute_watch, check_enable_dependency_layer
 from samcli.lib.providers.provider import ResourceIdentifier
-from samcli.commands._utils.options import (
+from samcli.commands._utils.constants import (
     DEFAULT_BUILD_DIR,
-    DEFAULT_CACHE_DIR,
     DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
+    DEFAULT_CACHE_DIR,
 )
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from tests.unit.commands.buildcmd.test_build_context import DummyStack
@@ -50,7 +51,14 @@ class TestDoCli(TestCase):
         self.config_file = "mock-default-filename"
         MOCK_SAM_CONFIG.reset_mock()
 
-    @parameterized.expand([(False, False, True), (False, False, False)])
+    @parameterized.expand(
+        [
+            (False, False, True, False),
+            (False, False, False, False),
+            (False, False, True, True),
+            (False, False, False, True),
+        ]
+    )
     @patch("os.environ", {**os.environ, "SAM_CLI_POLL_DELAY": 10})
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.execute_code_sync")
@@ -69,6 +77,7 @@ class TestDoCli(TestCase):
         code,
         watch,
         auto_dependency_layer,
+        use_container,
         check_enable_adl_mock,
         SyncContextMock,
         manage_stack_mock,
@@ -117,9 +126,13 @@ class TestDoCli(TestCase):
             self.notification_arns,
             self.tags,
             self.metadata,
+            use_container,
             self.config_file,
             self.config_env,
         )
+
+        if use_container and auto_dependency_layer:
+            auto_dependency_layer = False
 
         build_dir = DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER if auto_dependency_layer else DEFAULT_BUILD_DIR
         BuildContextMock.assert_called_with(
@@ -129,7 +142,7 @@ class TestDoCli(TestCase):
             build_dir=build_dir,
             cache_dir=DEFAULT_CACHE_DIR,
             clean=True,
-            use_container=False,
+            use_container=use_container,
             parallel=True,
             parameter_overrides=self.parameter_overrides,
             mode=self.mode,
@@ -187,7 +200,7 @@ class TestDoCli(TestCase):
         deploy_context_mock.run.assert_called_once_with()
         execute_code_sync_mock.assert_not_called()
 
-    @parameterized.expand([(False, True, False)])
+    @parameterized.expand([(False, True, False, False), (False, True, False, True)])
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.execute_watch")
     @patch("samcli.commands.build.command.click")
@@ -204,6 +217,7 @@ class TestDoCli(TestCase):
         code,
         watch,
         auto_dependency_layer,
+        use_container,
         SyncContextMock,
         manage_stack_mock,
         os_mock,
@@ -216,7 +230,7 @@ class TestDoCli(TestCase):
         execute_watch_mock,
         click_mock,
     ):
-
+        skip_infra_syncs = watch and code
         build_context_mock = Mock()
         BuildContextMock.return_value.__enter__.return_value = build_context_mock
         package_context_mock = Mock()
@@ -249,6 +263,7 @@ class TestDoCli(TestCase):
             self.notification_arns,
             self.tags,
             self.metadata,
+            use_container,
             self.config_file,
             self.config_env,
         )
@@ -260,7 +275,7 @@ class TestDoCli(TestCase):
             build_dir=DEFAULT_BUILD_DIR,
             cache_dir=DEFAULT_CACHE_DIR,
             clean=True,
-            use_container=False,
+            use_container=use_container,
             parallel=True,
             parameter_overrides=self.parameter_overrides,
             mode=self.mode,
@@ -314,10 +329,15 @@ class TestDoCli(TestCase):
             on_failure=None,
         )
         execute_watch_mock.assert_called_once_with(
-            self.template_file, build_context_mock, package_context_mock, deploy_context_mock, auto_dependency_layer
+            self.template_file,
+            build_context_mock,
+            package_context_mock,
+            deploy_context_mock,
+            auto_dependency_layer,
+            skip_infra_syncs,
         )
 
-    @parameterized.expand([(True, False, True)])
+    @parameterized.expand([(True, False, True, False), (True, False, False, True)])
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.execute_code_sync")
     @patch("samcli.commands.build.command.click")
@@ -335,6 +355,7 @@ class TestDoCli(TestCase):
         code,
         watch,
         auto_dependency_layer,
+        use_container,
         check_enable_adl_mock,
         SyncContextMock,
         manage_stack_mock,
@@ -383,6 +404,7 @@ class TestDoCli(TestCase):
             self.notification_arns,
             self.tags,
             self.metadata,
+            use_container,
             self.config_file,
             self.config_env,
         )
@@ -634,21 +656,33 @@ class TestWatch(TestCase):
         self.package_context = MagicMock()
         self.deploy_context = MagicMock()
 
-    @parameterized.expand([(True,), (False,)])
+    @parameterized.expand(itertools.product([True, False], [True, False]))
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.WatchManager")
     def test_execute_watch(
         self,
+        code,
         auto_dependency_layer,
         watch_manager_mock,
         click_mock,
     ):
+        skip_infra_syncs = code
         execute_watch(
-            self.template_file, self.build_context, self.package_context, self.deploy_context, auto_dependency_layer
+            self.template_file,
+            self.build_context,
+            self.package_context,
+            self.deploy_context,
+            auto_dependency_layer,
+            skip_infra_syncs,
         )
 
         watch_manager_mock.assert_called_once_with(
-            self.template_file, self.build_context, self.package_context, self.deploy_context, auto_dependency_layer
+            self.template_file,
+            self.build_context,
+            self.package_context,
+            self.deploy_context,
+            auto_dependency_layer,
+            skip_infra_syncs,
         )
         watch_manager_mock.return_value.start.assert_called_once_with()
 

@@ -18,6 +18,7 @@ RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT = [
     Runtime.nodejs12x.value,
     Runtime.nodejs14x.value,
     Runtime.nodejs16x.value,
+    Runtime.nodejs18x.value,
     Runtime.python37.value,
     Runtime.python38.value,
     Runtime.python36.value,

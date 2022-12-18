@@ -8,7 +8,6 @@ import shutil
 import tempfile
 from pathlib import Path
 from contextlib import contextmanager
-from samcli.commands._utils.experimental import ExperimentalFlag, set_experimental
 from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV
 
 from click.testing import CliRunner
@@ -38,7 +37,7 @@ class TestSamConfigForAllCommands(TestCase):
         shutil.rmtree(self.scratch_dir)
         self.scratch_dir = None
 
-    @patch("samcli.commands.init.do_cli")
+    @patch("samcli.commands.init.command.do_cli")
     def test_init(self, do_cli_mock):
         config_values = {
             "no_interactive": True,
@@ -81,6 +80,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 '{"key": "value", "key2": "value2"}',
                 None,
+                ANY,
             )
 
     @patch("samcli.commands.validate.validate.do_cli")
@@ -117,10 +117,10 @@ class TestSamConfigForAllCommands(TestCase):
             "docker_network": "mynetwork",
             "skip_pull_image": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
-            "container_env_var": (""),
+            "container_env_var": [("")],
             "container_env_var_file": "file",
-            "build_image": (""),
-            "exclude": (""),
+            "build_image": [("")],
+            "exclude": [("")],
         }
 
         with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
@@ -153,10 +153,11 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 {"Key": "Value", "Key2": "Value2"},
                 None,
-                (),
+                ("",),
                 "file",
-                (),
-                (),
+                ("",),
+                ("",),
+                None,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -174,10 +175,10 @@ class TestSamConfigForAllCommands(TestCase):
             "docker_network": "mynetwork",
             "skip_pull_image": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
-            "container_env_var": (""),
+            "container_env_var": [("")],
             "container_env_var_file": "file",
-            "build_image": (""),
-            "exclude": (""),
+            "build_image": [("")],
+            "exclude": [("")],
         }
 
         with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
@@ -209,10 +210,11 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 {"Key": "Value", "Key2": "Value2"},
                 None,
-                (),
+                ("",),
                 "file",
-                (),
-                (),
+                ("",),
+                ("",),
+                None,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -229,7 +231,7 @@ class TestSamConfigForAllCommands(TestCase):
             "docker_network": "mynetwork",
             "skip_pull_image": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
-            "container_env_var": (""),
+            "container_env_var": [("")],
             "container_env_var_file": "env_vars_file",
         }
 
@@ -263,10 +265,11 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 {"Key": "Value", "Key2": "Value2"},
                 None,
-                (),
+                ("",),
                 "env_vars_file",
                 (),
                 (),
+                None,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -320,6 +323,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 ("Function1=image_1", "image_2"),
                 (),
+                None,
             )
 
     @patch("samcli.commands.local.invoke.cli.do_cli")
@@ -382,6 +386,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "localhost",
                 "127.0.0.1",
                 ("image",),
+                None,
             )
 
     @patch("samcli.commands.local.start_api.cli.do_cli")
@@ -510,6 +515,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "localhost",
                 "127.0.0.1",
                 ("image",),
+                None,
             )
 
     @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
@@ -949,6 +955,7 @@ class TestSamConfigForAllCommands(TestCase):
             "stack_name": "mystack",
             "image_repository": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
             "base_dir": "path",
+            "use_container": True,
             "s3_bucket": "mybucket",
             "s3_prefix": "myprefix",
             "kms_key_id": "mykms",
@@ -1001,6 +1008,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ["notify1", "notify2"],
                 {"a": "tag1", "b": "tag with spaces"},
                 {"m1": "value1", "m2": "value2"},
+                True,
                 "samconfig.toml",
                 "default",
             )
@@ -1123,6 +1131,7 @@ class TestSamConfigWithOverrides(TestCase):
                 "localhost",
                 "127.0.0.1",
                 ("image",),
+                None,
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
@@ -1218,6 +1227,7 @@ class TestSamConfigWithOverrides(TestCase):
                 "localhost",
                 "127.0.0.1",
                 ("image",),
+                None,
             )
 
     @patch("samcli.commands.validate.validate.do_cli")

@@ -152,8 +152,7 @@ class LocalLambdaRunner:
             # trying to connect to the socket for Docker it would throw ContainerResponseException but now it's this.
             LOG.info(str(e))
         except OSError as os_error:
-            # pylint: disable=no-member
-            if hasattr(os_error, "winerror") and os_error.winerror == 1314:  # type: ignore
+            if getattr(os_error, "winerror", None) == 1314:
                 raise NoPrivilegeException(
                     "Administrator, Windows Developer Mode, "
                     "or SeCreateSymbolicLinkPrivilege is required to create symbolic link for files: {}, {}".format(

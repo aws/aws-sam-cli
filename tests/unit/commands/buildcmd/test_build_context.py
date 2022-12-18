@@ -4,7 +4,6 @@ from unittest.mock import MagicMock, patch, Mock, ANY, call
 
 from parameterized import parameterized
 
-from samcli.commands._utils.experimental import ExperimentalFlag
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 from samcli.lib.build.bundler import EsbuildBundlerManager
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
@@ -713,10 +712,9 @@ class TestBuildContext__enter__(TestCase):
             create_auto_dependency_layer=auto_dependency_layer,
             print_success_message=False,
         ) as build_context:
-            with patch("samcli.commands.build.build_context.BuildContext.gen_success_msg") as mock_message:
-                with patch("samcli.commands.build.build_context.BuildContext._check_esbuild_warning"):
-                    build_context.run()
-                    mock_message.assert_not_called()
+            with patch("samcli.commands.build.build_context.BuildContext._gen_success_msg") as mock_message:
+                build_context.run()
+                mock_message.assert_not_called()
 
 
 class TestBuildContext_setup_build_dir(TestCase):
@@ -964,6 +962,8 @@ class TestBuildContext_run(TestCase):
         esbuild_manager = EsbuildBundlerManager(Mock())
         esbuild_manager.set_sourcemap_env_from_metadata = Mock()
         esbuild_manager.set_sourcemap_env_from_metadata.side_effect = [modified_template_root, modified_template_child]
+        esbuild_manager.esbuild_configured = Mock()
+        esbuild_manager.esbuild_configured.return_value = False
         esbuild_bundler_manager_mock.return_value = esbuild_manager
 
         with BuildContext(
@@ -1224,37 +1224,6 @@ class TestBuildContext_run(TestCase):
         self.assertEqual(str(ctx.exception), "Function Not Found")
 
 
-class TestBuildContext_esbuild_warning(TestCase):
-    @parameterized.expand(
-        [
-            ([], False),
-            ([DummyFunction("Esbuild", metadata={"BuildMethod": "esbuild"})], True),
-            ([DummyFunction("NotEsbuild", metadata={"BuildMethod": "Makefile"})], False),
-        ]
-    )
-    @patch("samcli.commands.build.build_context.prompt_experimental")
-    def test_check_esbuild_warning(self, functions, should_print, mocked_click):
-        build_context = BuildContext(
-            resource_identifier="function_identifier",
-            template_file="template_file",
-            base_dir="base_dir",
-            build_dir="build_dir",
-            cache_dir="cache_dir",
-            cached=False,
-            clean=False,
-            parallel=False,
-            mode="mode",
-        )
-        with patch.object(build_context, "get_resources_to_build") as mocked_resources_to_build:
-            mocked_resources_to_build.return_value = Mock(functions=functions)
-            build_context._check_esbuild_warning()
-
-        if should_print:
-            mocked_click.assert_called_with(ExperimentalFlag.Esbuild, BuildContext._ESBUILD_WARNING_MESSAGE)
-        else:
-            mocked_click.assert_not_called()
-
-
 class TestBuildContext_exclude_warning(TestCase):
     @parameterized.expand(
         [
@@ -1283,3 +1252,52 @@ class TestBuildContext_exclude_warning(TestCase):
             log_mock.warning.assert_called_once_with(BuildContext._EXCLUDE_WARNING_MESSAGE)
         else:
             log_mock.warning.assert_not_called()
+
+
+class TestBuildContext_gen_success_msg(TestCase):
+    def setUp(self):
+        self.build_dir = "build_dir"
+        self.template_file = "template_file"
+
+        self.build_context = BuildContext(
+            resource_identifier="function_identifier",
+            template_file=self.template_file,
+            base_dir="base_dir",
+            build_dir=self.build_dir,
+            cache_dir="cache_dir",
+            parallel=False,
+            mode="mode",
+            cached=False,
+        )
+
+    def test_gen_message_with_non_default_build_without_hook_package(self):
+        self.build_context._hook_name = False
+
+        msg = self.build_context._gen_success_msg(self.build_dir, self.template_file, False)
+        expected_msg = (
+            f"""\nBuilt Artifacts  : build_dir
+Built Template   : template_file\n
+Commands you can use next
+=========================
+[*] Validate SAM template: sam validate{os.linesep}[*] Invoke Function: sam local invoke -t template_file"""
+            f"""{os.linesep}[*] Test Function in the Cloud: sam sync --stack-name {"{{stack-name}}"} --watch"""
+            f"""{os.linesep}[*] Deploy: sam deploy --guided --template-file template_file"""
+        )
+
+        self.assertEqual(msg, expected_msg)
+
+    def test_gen_message_with_non_default_build_with_hook_package(self):
+        self.build_context._hook_name = "iac"
+
+        msg = self.build_context._gen_success_msg(self.build_dir, self.template_file, False)
+        expected_msg = (
+            f"""\nBuilt Artifacts  : build_dir
+Built Template   : template_file
+
+Commands you can use next
+=========================
+[*] Invoke Function: sam local invoke --hook-name iac{os.linesep}[*] Emulate local Lambda functions: sam """
+            """local start-lambda --hook-name iac"""
+        )
+
+        self.assertEqual(msg, expected_msg)

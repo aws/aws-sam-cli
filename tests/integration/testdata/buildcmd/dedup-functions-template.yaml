@@ -6,7 +6,7 @@ Globals:
     Timeout: 20
     MemorySize: 512
 
-Parameteres:
+Parameters:
   FunctionCodeUri:
     Type: String
   Function1Handler:

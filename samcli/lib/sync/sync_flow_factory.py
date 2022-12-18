@@ -2,6 +2,9 @@
 import logging
 from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, cast
 
+from botocore.exceptions import ClientError
+
+from samcli.commands.exceptions import InvalidStackNameException
 from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NestedStackManager
 from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIdentifier
 from samcli.lib.sync.flows.auto_dependency_layer_sync_flow import AutoDependencyLayerParentSyncFlow
@@ -16,7 +19,11 @@ from samcli.lib.sync.flows.image_function_sync_flow import ImageFunctionSyncFlow
 from samcli.lib.sync.flows.rest_api_sync_flow import RestApiSyncFlow
 from samcli.lib.sync.flows.http_api_sync_flow import HttpApiSyncFlow
 from samcli.lib.sync.flows.stepfunctions_sync_flow import StepFunctionsSyncFlow
-from samcli.lib.utils.boto_utils import get_boto_resource_provider_with_config, get_boto_client_provider_with_config
+from samcli.lib.utils.boto_utils import (
+    get_boto_resource_provider_with_config,
+    get_boto_client_provider_with_config,
+    get_client_error_code,
+)
 from samcli.lib.utils.cloudformation import get_resource_summaries
 from samcli.lib.utils.resources import (
     AWS_SERVERLESS_FUNCTION,
@@ -110,11 +117,19 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
             region=self._deploy_context.region, profile=self._deploy_context.profile
         )
 
-        resource_mapping = get_resource_summaries(
-            boto_resource_provider=resource_provider,
-            boto_client_provider=client_provider,
-            stack_name=self._deploy_context.stack_name,
-        )
+        try:
+            resource_mapping = get_resource_summaries(
+                boto_resource_provider=resource_provider,
+                boto_client_provider=client_provider,
+                stack_name=self._deploy_context.stack_name,
+            )
+        except ClientError as ex:
+            error_code = get_client_error_code(ex)
+            if error_code == "ValidationError":
+                raise InvalidStackNameException(
+                    f"Invalid --stack-name parameter. Stack with id '{self._deploy_context.stack_name}' does not exist"
+                ) from ex
+            raise ex
 
         # get the resource_id -> physical_id mapping
         self._physical_id_mapping = {

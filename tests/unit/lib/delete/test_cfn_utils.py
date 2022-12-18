@@ -24,6 +24,7 @@ class TestCfUtils(TestCase):
         self.cloudformation_client = self.session.client("cloudformation")
         self.s3_client = self.session.client("s3")
         self.cf_utils = CfnUtils(self.cloudformation_client)
+        self.waiter_config = {"Delay": 30}
 
     def test_cf_utils_init(self):
         self.assertEqual(self.cf_utils._client, self.cloudformation_client)
@@ -104,6 +105,62 @@ class TestCfUtils(TestCase):
         self.cf_utils._client.delete_stack = MagicMock(side_effect=Exception())
         with self.assertRaises(Exception):
             self.cf_utils.delete_stack("test", ["retain_logical_id"])
+
+    def test_cf_utils_wait_for_delete_check_waiter_config(self):
+        exception = WaiterError(
+            name="wait_for_delete",
+            reason="unit-test",
+            last_response={"Stacks": [{"Status": "Failed", "StackStatusReason": "It's a unit test stack failure"}]},
+        )
+        # Patch MockDeleteWaiter's wait to be Mock to get access to call_args for assertion
+        with patch.object(MockDeleteWaiter, "wait", side_effect=exception):
+            self.cf_utils._client.get_waiter = MagicMock(return_value=MockDeleteWaiter())
+            with self.assertRaises(DeleteFailedError):
+                self.cf_utils.wait_for_delete("test")
+            # Assert waiter config.
+            self.cf_utils._client.get_waiter.return_value.wait.assert_called_with(
+                StackName="test", WaiterConfig=self.waiter_config
+            )
+
+    def test_cf_utils_wait_for_delete_exception_stack_status(self):
+        self.cf_utils._client.get_waiter = MagicMock(
+            return_value=MockDeleteWaiter(
+                ex=WaiterError(
+                    name="wait_for_delete",
+                    reason="unit-test",
+                    last_response={
+                        "Stacks": [{"Status": "Failed", "StackStatusReason": "It's a unit test stack failure"}]
+                    },
+                )
+            )
+        )
+        with self.assertRaises(DeleteFailedError) as ex:
+            self.cf_utils.wait_for_delete("test")
+
+        self.assertEqual(
+            ex.exception.message,
+            "Failed to delete the stack: test, "
+            "msg: ex: Waiter wait_for_delete failed: unit-test, "
+            "status: It's a unit test stack failure",
+        )
+
+    def test_cf_utils_wait_for_delete_exception_empty_last_response(self):
+        self.cf_utils._client.get_waiter = MagicMock(
+            return_value=MockDeleteWaiter(
+                ex=WaiterError(
+                    name="wait_for_delete",
+                    reason="unit-test",
+                    last_response={},
+                )
+            )
+        )
+        with self.assertRaises(DeleteFailedError) as ex:
+            self.cf_utils.wait_for_delete("test")
+
+        self.assertEqual(
+            ex.exception.message,
+            "Failed to delete the stack: test, msg: ex: Waiter wait_for_delete failed: unit-test",
+        )
 
     def test_cf_utils_wait_for_delete_exception(self):
         self.cf_utils._client.get_waiter = MagicMock(

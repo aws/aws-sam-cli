@@ -165,3 +165,9 @@ class EsbuildBundler_esbuild_configured(TestCase):
         stack.location = "/location"
         esbuild_manager = EsbuildBundlerManager(stack)
         self.assertEqual(esbuild_manager.esbuild_configured(), expected)
+
+    @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider.__init__", return_value=None)
+    @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider.get_all", return_value={})
+    def test_use_raw_codeuri_passed(self, get_all_mock, provider_mock):
+        EsbuildBundlerManager([]).esbuild_configured()
+        provider_mock.assert_called_with([[]], use_raw_codeuri=True, ignore_code_extraction_warnings=True)

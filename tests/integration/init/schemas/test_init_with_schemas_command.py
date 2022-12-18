@@ -19,7 +19,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 7: Infrastructure event management - Use case
-        # 2: Java Runtime (java11)
+        # 3: Java Runtime (java11)
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -32,9 +32,10 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
         user_input = """
 1
 7
+3
 2
 2
-2
+N
 N
 eb-app-maven
 Y
@@ -59,7 +60,7 @@ Y
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 7: Infrastructure event management - Use case
-        # 2: Java Runtime
+        # 3: Java Runtime
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -71,9 +72,10 @@ Y
         user_input = """
 1
 7
+3
 2
 2
-2
+N
 N
 eb-app-maven
 Y
@@ -108,7 +110,7 @@ Y
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 7: Infrastructure event management - Use case
-        # 2: Java Runtime
+        # 3: Java Runtime
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -122,9 +124,10 @@ Y
         user_input = """
 1
 7
+3
 2
 2
-2
+N
 N
 eb-app-maven
 Y
@@ -150,7 +153,7 @@ P
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 7: Infrastructure event management - Use case
-        # 2: Java Runtime
+        # 3: Java Runtime
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -162,9 +165,10 @@ P
         user_input = """
 1
 7
+3
 2
 2
-2
+N
 N
 eb-app-maven
 Y
@@ -213,6 +217,7 @@ Y
 6
 2
 N
+N
 eb-app-python38
 Y
 1
@@ -246,6 +251,7 @@ Y
 7
 1
 2
+N
 N
 eb-app-go
 Y
@@ -282,6 +288,7 @@ Y
 7
 6
 2
+N
 N
 eb-app-python38
 3
@@ -321,6 +328,7 @@ us-east-1
 7
 6
 2
+N
 N
 eb-app-python38
 Y

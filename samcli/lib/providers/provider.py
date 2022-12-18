@@ -222,6 +222,7 @@ class LayerVersion:
         self._arn = arn
         self._codeuri = codeuri
         self.is_defined_within_template = bool(codeuri)
+        self._metadata = metadata
         self._build_method = cast(Optional[str], metadata.get("BuildMethod", None))
         self._compatible_runtimes = compatible_runtimes
 
@@ -294,6 +295,10 @@ class LayerVersion:
         return LayerVersion.LAYER_NAME_DELIMETER.join(
             [layer_name, layer_version, hashlib.sha256(arn.encode("utf-8")).hexdigest()[0:10]]
         )
+
+    @property
+    def metadata(self) -> Dict:
+        return self._metadata
 
     @property
     def stack_path(self) -> str:
@@ -544,6 +549,7 @@ class Stack:
         self.template_dict = template_dict
         self.metadata = metadata
         self._resources: Optional[Dict] = None
+        self._raw_resources: Optional[Dict] = None
 
     @property
     def stack_id(self) -> str:
@@ -579,6 +585,16 @@ class Stack:
         processed_template_dict: Dict[str, Dict] = SamBaseProvider.get_template(self.template_dict, self.parameters)
         self._resources = cast(Dict, processed_template_dict.get("Resources", {}))
         return self._resources
+
+    @property
+    def raw_resources(self) -> Dict:
+        """
+        Return the resources dictionary without running SAM Transform
+        """
+        if self._raw_resources is not None:
+            return self._raw_resources
+        self._raw_resources = cast(Dict, self.template_dict.get("Resources", {}))
+        return self._raw_resources
 
     def get_output_template_path(self, build_root: str) -> str:
         """
