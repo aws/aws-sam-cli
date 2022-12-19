@@ -57,7 +57,7 @@ class TestLayerSyncFlow(TestCase):
 
     @patch("samcli.lib.sync.flows.layer_sync_flow.ApplicationBuilder")
     @patch("samcli.lib.sync.flows.layer_sync_flow.tempfile")
-    @patch("samcli.lib.sync.flows.layer_sync_flow.make_zip")
+    @patch("samcli.lib.sync.flows.layer_sync_flow.make_zip_with_lambda_permissions")
     @patch("samcli.lib.sync.flows.layer_sync_flow.file_checksum")
     @patch("samcli.lib.sync.flows.layer_sync_flow.os")
     @patch("samcli.lib.sync.flows.layer_sync_flow.rmtree_if_exists")
