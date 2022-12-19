@@ -363,6 +363,7 @@ class Container:
         return connection_succeeded
 
     def copy(self, from_container_path, to_host_path):
+        """Copies a path from container into host path"""
 
         if not self.is_created():
             raise RuntimeError("Container does not exist. Cannot get logs for this container")
@@ -379,25 +380,25 @@ class Container:
             fp.seek(0)
 
             with tarfile.open(fileobj=fp, mode="r") as tar:
+
                 def is_within_directory(directory, target):
-                    
+
                     abs_directory = os.path.abspath(directory)
                     abs_target = os.path.abspath(target)
-                
+
                     prefix = os.path.commonprefix([abs_directory, abs_target])
-                    
+
                     return prefix == abs_directory
-                
+
                 def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
-                
+
                     for member in tar.getmembers():
                         member_path = os.path.join(path, member.name)
                         if not is_within_directory(path, member_path):
                             raise Exception("Attempted Path Traversal in Tar File")
-                
-                    tar.extractall(path, members, numeric_owner=numeric_owner) 
-                    
-                
+
+                    tar.extractall(path, members, numeric_owner=numeric_owner)
+
                 safe_extract(tar, path=to_host_path)
 
     @staticmethod
