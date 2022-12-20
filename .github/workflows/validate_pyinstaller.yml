@@ -9,6 +9,7 @@ jobs:
   build-for-linux:
     name: build-pyinstaller-linux
     runs-on: ubuntu-latest
+    container: manylinux:latest
     if: github.repository_owner == 'aws'
     strategy:
       fail-fast: false
