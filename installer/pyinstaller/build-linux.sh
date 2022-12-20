@@ -28,9 +28,7 @@ fi
 
 set -eu
 
-if ! [ "$CI_OVERRIDE" = "1" ]; then
-  yum install -y zlib-devel openssl-devel libffi-devel
-fi
+yum install -y zlib-devel openssl-devel libffi-devel
 
 echo "Making Folders"
 mkdir -p .build/src
@@ -46,17 +44,15 @@ cp -r ./src/* ./output/aws-sam-cli-src
 echo "Removing CI Scripts"
 rm -vf ./output/aws-sam-cli-src/appveyor*.yml
 
-if ! [ "$CI_OVERRIDE" = "1" ]; then
-  echo "Installing Python"
-  curl "https://www.python.org/ftp/python/${python_version}/Python-${python_version}.tgz" --output python.tgz
-  tar -xzf python.tgz
-  cd Python-$python_version
-  ./configure --enable-shared
-  make -j8
-  make install
-  ldconfig
-  cd ..
-fi
+echo "Installing Python"
+curl "https://www.python.org/ftp/python/${python_version}/Python-${python_version}.tgz" --output python.tgz
+tar -xzf python.tgz
+cd Python-$python_version
+./configure --enable-shared
+make -j8
+make install
+ldconfig
+cd ..
 
 echo "Installing Python Libraries"
 python3 -m venv venv
@@ -114,9 +110,7 @@ cp -r src/pyinstaller-output/* output/pyinstaller-output
 
 echo "Packaging Binary"
 
-if ! [ "$CI_OVERRIDE" = "1" ]; then
-  yum install -y zip
-fi
+yum install -y zip
 
 cd output
 cd pyinstaller-output
