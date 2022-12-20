@@ -15,12 +15,8 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.7"
       - name: Build PyInstaller
         run: |
-          python3.7 --version
           chmod +x ./installer/pyinstaller/build-linux.sh
           CI_OVERRIDE=1 ./installer/pyinstaller/build-linux.sh aws-sam-cli-linux-x86_64.zip
       - name: Basic tests for PyInstaller
