@@ -1851,6 +1851,10 @@ client/archive/v0.57.0.tar.gz
 
 ** attrs; version 20.3.0 -- https://pypi.org/project/attrs/
 Copyright (c) 2015 Hynek Schlawack
+** ruamel-yaml; version 0.17.21 -- https://pypi.org/project/ruamel.yaml/
+Copyright (c) 2014-2022 Anthon van der Neut, Ruamel bvba
+** ruamel-yaml-clib; version 0.2.7 -- https://pypi.org/project/ruamel.yaml.clib/
+Copyright (c) 2019-2021 Anthon van der Neut, Ruamel bvba
 ** wheel; version 0.36.2 -- https://github.com/pypa/wheel
 "wheel" copyright (c) 2012-2014 Daniel Holth <dholth@fastmail.fm> and
 contributors.
@@ -1982,7 +1986,7 @@ DEALINGS IN THE SOFTWARE.
 
 ------
 
-** certifi; version 2020.12.05 -- https://github.com/certifi/python-certifi/
+** certifi; version 2022.12.7 -- https://github.com/certifi/python-certifi/
 (c) 1999 VeriSign, Inc.
 (c) 2007 GeoTrust Inc.
 (c) 2006 VeriSign, Inc.

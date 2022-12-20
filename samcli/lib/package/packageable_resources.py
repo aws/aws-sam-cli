@@ -147,6 +147,7 @@ class ResourceZip(Resource):
         should_sign_package = self.code_signer.should_sign_package(resource_id)
         artifact_extension = "zip" if should_sign_package else None
         uploaded_url = upload_local_artifacts(
+            self.RESOURCE_TYPE,
             resource_id,
             resource_dict,
             self.PROPERTY_NAME,
@@ -325,7 +326,7 @@ class ResourceWithS3UrlDict(ResourceZip):
         """
 
         artifact_s3_url = upload_local_artifacts(
-            resource_id, resource_dict, self.PROPERTY_NAME, parent_dir, self.uploader
+            self.RESOURCE_TYPE, resource_id, resource_dict, self.PROPERTY_NAME, parent_dir, self.uploader
         )
 
         parsed_url = S3Uploader.parse_s3_url(
