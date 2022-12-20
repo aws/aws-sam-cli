@@ -67,13 +67,7 @@ echo "Installing PyInstaller"
 
 echo "Building Binary"
 cd src
-if [ "$CI_OVERRIDE" = "1" ]; then
-    # this first if block can be removed once we remove and validate libcrypt.so.2 requirement in the linux spec
-    echo "Updating samcli.spec with CI build"
-    sed -i.bak "s/'sam'/'$build_binary_name'/g" installer/pyinstaller/samcli.spec
-    sed -i.bak "s/('\/usr\/local\/lib\/libcrypt.so.2', '.')//g" installer/pyinstaller/samcli.spec
-    rm installer/pyinstaller/samcli.spec.bak
-elif [ "$is_nightly" = "true" ]; then
+if [ "$is_nightly" = "true" ]; then
     echo "Updating samcli.spec with nightly/beta build"
     sed -i.bak "s/'sam'/'$build_binary_name'/g" installer/pyinstaller/samcli.spec
     rm installer/pyinstaller/samcli.spec.bak
