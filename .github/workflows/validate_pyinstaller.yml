@@ -20,6 +20,7 @@ jobs:
           python-version: "3.7"
       - name: Build PyInstaller
         run: |
+          python3.7 --version
           chmod +x ./installer/pyinstaller/build-linux.sh
           CI_OVERRIDE=1 ./installer/pyinstaller/build-linux.sh aws-sam-cli-linux-x86_64.zip
       - name: Basic tests for PyInstaller

@@ -52,9 +52,6 @@ cd Python-$python_version
 make -j8
 make install
 ldconfig
-if [ "$CI_OVERRIDE" = "1" ]; then
-    ldconfig /usr/local/lib 
-fi
 cd ..
 
 echo "Installing Python Libraries"
