@@ -22,7 +22,7 @@ jobs:
       - name: Basic tests for PyInstaller
         run: |
           unzip .build/output/aws-sam-cli-linux-x86_64.zip -d sam-installation
-          sudo ./sam-installation/install
+          ./sam-installation/install
           sam-beta --version
       - uses: actions/upload-artifact@v3
         with:
