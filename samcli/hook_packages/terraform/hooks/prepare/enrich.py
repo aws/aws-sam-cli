@@ -445,6 +445,8 @@ def _get_source_code_path(
             )
     elif isinstance(source_code, list):
         # SAM CLI does not process multiple paths, so we will handle only the first value in this list
+        # The first value can either be a string or dict so call _get_source_code_path again
+        # but change the value specificed by the key src_code_property_name to be the first value in the list
         LOG.debug(
             "Process the extracted %s as list, and get the first value as SAM CLI does not support multiple paths",
             src_code_attribute_name,
@@ -455,7 +457,16 @@ def _get_source_code_path(
                 f"should contain the lambda function/lambda layer "
                 f"{src_code_attribute_name} in property {src_code_property_name}, and it should not be an empty list"
             )
-        cfn_source_code_path = source_code[0]
+        modified_sam_metadata_resource = sam_metadata_resource
+        modified_sam_metadata_resource["values"]["triggers"][src_code_property_name] = source_code[0]
+        cfn_source_code_path = _get_source_code_path(
+            modified_sam_metadata_resource,
+            sam_metadata_resource_address,
+            project_root_dir,
+            src_code_property_name,
+            property_path_property_name,
+            src_code_attribute_name,
+        )
         if not cfn_source_code_path:
             raise InvalidSamMetadataPropertiesException(
                 f"The sam metadata resource {sam_metadata_resource_address} "
