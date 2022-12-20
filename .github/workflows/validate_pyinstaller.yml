@@ -9,7 +9,7 @@ jobs:
   build-for-linux:
     name: build-pyinstaller-linux
     runs-on: ubuntu-latest
-    container: quay.io/pypa/manylinux2014_x86_64:2021-01-24-91ce2b8
+    container: quay.io/pypa/manylinux2014_x86_64:latest
     if: github.repository_owner == 'aws'
     strategy:
       fail-fast: false
