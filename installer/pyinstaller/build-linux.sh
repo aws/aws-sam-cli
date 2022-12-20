@@ -52,6 +52,9 @@ cd Python-$python_version
 make -j8
 make install
 ldconfig
+if [ "$CI_OVERRIDE" = "1" ]; then
+    ldconfig /usr/local/lib 
+fi
 cd ..
 
 echo "Installing Python Libraries"
@@ -89,7 +92,6 @@ echo "dist_folder=$dist_folder"
 mv "dist/$dist_folder" pyinstaller-output/dist
 cp installer/assets/* pyinstaller-output
 chmod 755 pyinstaller-output/install
-
 if [ "$is_nightly" = "true" ]; then
     echo "Updating install script with nightly/beta build"
     sed -i.bak "s/\/usr\/local\/aws-sam-cli/\/usr\/local\/$build_folder/g" pyinstaller-output/install
@@ -103,9 +105,7 @@ cd ..
 cp -r src/pyinstaller-output/* output/pyinstaller-output
 
 echo "Packaging Binary"
-
 yum install -y zip
-
 cd output
 cd pyinstaller-output
 cd dist
