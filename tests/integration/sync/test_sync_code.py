@@ -179,6 +179,7 @@ class TestSyncCode(TestSyncCodeBase):
                 self.assertIn("extra_message", lambda_response)
                 self.assertEqual(lambda_response.get("message"), "9")
 
+    @pytest.mark.flaky(reruns=3)
     def test_sync_function_layer_race_condition(self):
         shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("function"), ignore_errors=True)
         shutil.copytree(
@@ -467,6 +468,7 @@ class TestSyncCodeNested(TestSyncCodeBase):
                 self.assertIn("extra_message", lambda_response)
                 self.assertEqual(lambda_response.get("message"), "12")
 
+    @pytest.mark.flaky(reruns=3)
     def test_sync_nested_function_layer_race_condition(self):
         shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("child_stack").joinpath("child_functions"), ignore_errors=True)
         shutil.copytree(

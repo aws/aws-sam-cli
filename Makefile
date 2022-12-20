@@ -8,11 +8,11 @@ init:
 test:
 	# Run unit tests
 	# Fail if coverage falls below 95%
-	pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit
+	pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit
 
 test-cov-report:
 	# Run unit tests with html coverage report
-	pytest --cov samcli --cov-report html --cov-fail-under 95 tests/unit
+	pytest --cov samcli --cov-report html --cov-fail-under 94 tests/unit
 
 integ-test:
 	# Integration tests don't need code coverage

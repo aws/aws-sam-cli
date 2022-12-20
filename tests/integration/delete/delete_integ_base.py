@@ -19,7 +19,6 @@ class DeleteIntegBase(TestCase):
         command = "sam"
         if os.getenv("SAM_CLI_DEV"):
             command = "samdev"
-
         return command
 
     def get_delete_command_list(

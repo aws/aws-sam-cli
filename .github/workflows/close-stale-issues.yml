@@ -2,14 +2,17 @@ name: Close stale issues
 
 # Controls when the action will run.
 on:
-  schedule:
-  # Uses UTC so it runs at 10PM PDT
-  - cron: "0 6 * * *"
+  workflow_dispatch:
+  # schedule:
+  # # Uses UTC so it runs at 10PM PDT
+  # - cron: "0 6 * * *"
 
 jobs:
   cleanup:
     runs-on: ubuntu-latest
     name: Stale issue job
+    permissions:
+      issues: write
     steps:
     - uses: aws-actions/stale-issue-cleanup@v3
       with:
@@ -28,10 +31,10 @@ jobs:
           If you want to keep this issue open, please leave a comment below and auto-close will be canceled.
 
         # These labels are required
-        stale-issue-label: blocked/close-if-inactive
-        exempt-issue-labels: no-autoclose, stage/needs-attention
+        stale-issue-label: type/stale
+        exempt-issue-labels: no-autoclose, stage/needs-attention, type/feature, stage/needs-triage, type/bug, stage/needs-investigation, maintainer/need-followup, maintainer/need-response
         stale-pr-label: blocked/close-if-inactive
-        exempt-pr-labels: no-autoclose, type/feature
+        exempt-pr-labels: no-autoclose, stage/needs-triage, blocked/pending-security-review
         response-requested-label: blocked/more-info-needed
 
         # Don't set this to not apply a label when closing issues
@@ -46,8 +49,10 @@ jobs:
         # threshold of "upvotes", you can set this here. An "upvote" is
         # the total number of +1, heart, hooray, and rocket reactions
         # on an issue.
-        minimum-upvotes-to-exempt: 10
+        minimum-upvotes-to-exempt: 1
 
         # need a repo scope token here to make this action can trigger other github actions
-        repo-token: ${{ secrets.STALE_BOT_PERSONAL_TOKEN }}
-
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        loglevel: DEBUG
+        # Set dry-run to true to not perform label or close actions.
+        dry-run: true
