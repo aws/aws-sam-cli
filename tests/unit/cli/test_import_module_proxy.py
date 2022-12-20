@@ -15,6 +15,7 @@ class TestImportModuleProxy(TestCase):
     There is a chance that setUpClass method of this test class might cause flakiness with other tests if we run them
     in parallel.
     """
+    original_import_module = None
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -23,7 +24,8 @@ class TestImportModuleProxy(TestCase):
 
     @classmethod
     def tearDownClass(cls) -> None:
-        importlib.import_module = cls.original_import_module
+        if cls.original_import_module:
+            importlib.import_module = cls.original_import_module
 
     @parameterized.expand(hidden_imports.SAM_CLI_HIDDEN_IMPORTS)
     def test_import_should_succeed_for_a_defined_hidden_package(self, package):
