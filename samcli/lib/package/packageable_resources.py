@@ -430,6 +430,14 @@ class AppSyncResolverResponseTemplateResource(ResourceZip):
     PACKAGE_NULL_PROPERTY = False
 
 
+class AppSyncResolverCodeResource(ResourceZip):
+    RESOURCE_TYPE = AWS_APPSYNC_RESOLVER
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][2]
+    # Don't package the directory if CodeS3Location is omitted.
+    # Necessary to support CodeS3Location
+    PACKAGE_NULL_PROPERTY = False
+
+
 class AppSyncFunctionConfigurationRequestTemplateResource(ResourceZip):
     RESOURCE_TYPE = AWS_APPSYNC_FUNCTIONCONFIGURATION
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
@@ -443,6 +451,14 @@ class AppSyncFunctionConfigurationResponseTemplateResource(ResourceZip):
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][1]
     # Don't package the directory if ResponseMappingTemplateS3Location is omitted.
     # Necessary to support ResponseMappingTemplate
+    PACKAGE_NULL_PROPERTY = False
+
+
+class AppSyncFunctionConfigurationCodeResource(ResourceZip):
+    RESOURCE_TYPE = AWS_APPSYNC_FUNCTIONCONFIGURATION
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][2]
+    # Don't package the directory if CodeS3Location is omitted.
+    # Necessary to support CodeS3Location
     PACKAGE_NULL_PROPERTY = False
 
 
@@ -580,8 +596,10 @@ RESOURCES_EXPORT_LIST = [
     GraphQLSchemaResource,
     AppSyncResolverRequestTemplateResource,
     AppSyncResolverResponseTemplateResource,
+    AppSyncResolverCodeResource,
     AppSyncFunctionConfigurationRequestTemplateResource,
     AppSyncFunctionConfigurationResponseTemplateResource,
+    AppSyncFunctionConfigurationCodeResource,
     ApiGatewayRestApiResource,
     ApiGatewayV2Resource,
     StepFunctionsStateMachineResource,
