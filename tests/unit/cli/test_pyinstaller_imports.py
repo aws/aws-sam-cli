@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 from unittest import TestCase
 
-from installer.pyinstaller import hidden_imports
+from samcli.cli import hidden_imports
 from samcli.cli.command import BaseCommand
 from samcli.lib.hook.hook_wrapper import get_available_hook_packages_ids
 
