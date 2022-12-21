@@ -22,6 +22,7 @@ def walk_modules(module: HasPathAndName, visited: set) -> None:
             submodule = cast(HasPathAndName, submodule)
             walk_modules(submodule, visited)
 
+
 samcli_modules = set(["samcli"])
 samcli = __import__("samcli")
 samcli = cast(HasPathAndName, samcli)
