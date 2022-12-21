@@ -1,8 +1,31 @@
-from samcli.cli.command import _SAM_CLI_COMMAND_PACKAGES
+import importlib
+import pkgutil
+from typing import cast
+from typing_extensions import Protocol
 
-SAM_CLI_HIDDEN_IMPORTS = _SAM_CLI_COMMAND_PACKAGES + [
-    # terraform hook
-    "samcli.hook_packages.terraform",
+
+class HasPathAndName(Protocol):
+    __path__: str
+    __name__: str
+
+
+def walk_modules(module: HasPathAndName, visited: set) -> None:
+    """Recursively find all modules from a parent module"""
+    for pkg in pkgutil.walk_packages(module.__path__, module.__name__ + "."):
+        if pkg.name in visited:
+            continue
+        visited.add(pkg.name)
+        if pkg.ispkg:
+            submodule = __import__(pkg.name)
+            submodule = cast(HasPathAndName, submodule)
+            walk_modules(submodule, visited)
+
+samcli_modules = set(["samcli"])
+samcli = __import__("samcli")
+samcli = cast(HasPathAndName, samcli)
+walk_modules(samcli, samcli_modules)
+
+SAM_CLI_HIDDEN_IMPORTS = list(samcli_modules) + [
     "cookiecutter.extensions",
     "jinja2_time",
     "text_unidecode",
