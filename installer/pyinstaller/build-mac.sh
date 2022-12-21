@@ -1,5 +1,4 @@
 #!/bin/sh
-set -eu
 
 binary_zip_filename=${1:-}
 python_library_zip_filename=${2:-}
@@ -45,6 +44,8 @@ else
     echo "Building native installer with normal build"
     is_nightly="false"
 fi
+
+set -eu
 
 echo "Making Folders"
 mkdir -p .build/src
