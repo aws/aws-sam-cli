@@ -40,4 +40,4 @@ class TestImportModuleProxy(TestCase):
 
     def test_import_should_fail_for_undefined_hidden_package(self):
         with self.assertRaises(MissingDynamicImportError):
-            importlib.import_module("samcli.yamlhelper")
+            importlib.import_module("some.other.module")
