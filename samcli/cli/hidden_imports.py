@@ -38,4 +38,5 @@ SAM_CLI_HIDDEN_IMPORTS = list(samcli_modules) + [
     "pkg_resources.py2_warn",
     "aws_lambda_builders.workflows",
     "configparser",
+    "dateparser",
 ]

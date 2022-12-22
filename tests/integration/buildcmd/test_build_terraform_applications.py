@@ -267,7 +267,7 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
             f"https://aws.amazon.com/service-terms/.{os.linesep}"
         )
         self.assertNotRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
-        self.assertTrue(stderr.decode("utf-8").startswith(Colored().yellow(experimental_warning)))
+        self.assertIn(Colored().yellow(experimental_warning), stderr.decode("utf-8"))
         LOG.info("sam build stdout: %s", stdout.decode("utf-8"))
         LOG.info("sam build stderr: %s", stderr.decode("utf-8"))
         self.assertEqual(return_code, 0)
