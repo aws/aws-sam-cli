@@ -954,7 +954,7 @@ class ApplicationBuilder:
         except Exception:
             # Invalid JSON is produced as an output only when the builder process crashed for some reason.
             # Report this as a crash
-            LOG.error("Builder crashed: {}", stdout_data)
+            LOG.error("Builder crashed: %s", stdout_data)
             raise
 
         if "error" in response:
