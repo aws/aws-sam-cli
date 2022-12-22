@@ -390,7 +390,7 @@ class TestLocalStartLambdaTerraformApplicationWithBetaFeatures(StartLambdaTerraf
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_function_and_warning_message_is_printed(self):
-        self.assertTrue(self.start_lambda_process_error.startswith(Colored().yellow(EXPERIMENTAL_WARNING)))
+        self.assertIn(Colored().yellow(EXPERIMENTAL_WARNING), self.start_lambda_process_error)
 
 
 class TestLocalStartLambdaTerraformApplicationWithExperimentalPromptNo(StartLambdaTerraformApplicationIntegBase):
