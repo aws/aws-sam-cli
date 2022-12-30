@@ -132,7 +132,7 @@ def _gather_cdk_info():
     try:
         process = subprocess.run(["cdk", "--version"], capture_output=True, text=True, check=True)
         return process.stdout.strip()
-    except (FileNotFoundError, subprocess.CalledProcessError):
+    except Exception:
         return "Not available"
 
 
@@ -155,7 +155,7 @@ def _gather_terraform_info():
         process = subprocess.run(["terraform", "version", "-json"], capture_output=True, text=True, check=True)
         info_dict = json.loads(process.stdout)
         return info_dict.get("terraform_version", "Not available")
-    except (FileNotFoundError, subprocess.CalledProcessError):
+    except Exception:
         return "Not available"
 
 
