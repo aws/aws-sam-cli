@@ -227,7 +227,7 @@ for:
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
-      - ps: "pytest -vv tests/integration/package --json-report --json-report-file=TEST_REPORT-integration-package.json"
+      - ps: "pytest -vv tests/integration/package -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package.json"
 
   # Integ testing delete
   - matrix:
@@ -239,7 +239,7 @@ for:
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
-      - ps: "pytest -vv tests/integration/delete --json-report --json-report-file=TEST_REPORT-integration-delete.json"
+      - ps: "pytest -vv tests/integration/delete -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-delete.json"
 
   # Integ testing sync
   - matrix:

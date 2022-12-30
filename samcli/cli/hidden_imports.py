@@ -1,4 +1,6 @@
-import importlib
+"""
+Keeps list of hidden/dynamic imports that is being used in SAM CLI, so that pyinstaller can include these packages
+"""
 import pkgutil
 from typing import cast
 from typing_extensions import Protocol
@@ -20,6 +22,7 @@ def walk_modules(module: HasPathAndName, visited: set) -> None:
             submodule = cast(HasPathAndName, submodule)
             walk_modules(submodule, visited)
 
+
 samcli_modules = set(["samcli"])
 samcli = __import__("samcli")
 samcli = cast(HasPathAndName, samcli)
@@ -35,4 +38,5 @@ SAM_CLI_HIDDEN_IMPORTS = list(samcli_modules) + [
     "pkg_resources.py2_warn",
     "aws_lambda_builders.workflows",
     "configparser",
+    "dateparser",
 ]
