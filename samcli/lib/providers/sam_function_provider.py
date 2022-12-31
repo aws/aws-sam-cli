@@ -129,7 +129,7 @@ class SamFunctionProvider(SamBaseProvider):
             found_fs = []
 
             for f in self.get_all():
-                if name in (f.function_id, f.name, f.functionname, f.full_name):
+                if name in (f.name, f.functionname, f.full_path, f.logical_id, f.full_logical_id, f.custom_id,  f.full_custom_id):
                     found_fs.append(f)
 
             # If multiple functions are found, only return one of them
@@ -240,7 +240,7 @@ class SamFunctionProvider(SamBaseProvider):
                         ignore_code_extraction_warnings=ignore_code_extraction_warnings,
                         locate_layer_nested=locate_layer_nested,
                         stacks=stacks if locate_layer_nested else None,
-                        function_id=resource_metadata.get("SamResourceId", "") if locate_layer_nested else None,
+                        logical_id=name,
                     )
                     function = SamFunctionProvider._convert_sam_function_resource(
                         stack,
@@ -259,7 +259,7 @@ class SamFunctionProvider(SamBaseProvider):
                         ignore_code_extraction_warnings=ignore_code_extraction_warnings,
                         locate_layer_nested=locate_layer_nested,
                         stacks=stacks if locate_layer_nested else None,
-                        function_id=resource_metadata.get("SamResourceId", "") if locate_layer_nested else None,
+                        logical_id=name,
                     )
                     function = SamFunctionProvider._convert_lambda_function_resource(
                         stack, name, resource_properties, layers, use_raw_codeuri
@@ -298,7 +298,7 @@ class SamFunctionProvider(SamBaseProvider):
         codeuri: Optional[str] = SamFunctionProvider.DEFAULT_CODEURI
         inlinecode = resource_properties.get("InlineCode")
         imageuri = None
-        function_id = SamFunctionProvider._get_function_id(resource_properties, name)
+        custom_id = ResourceMetadataNormalizer.get_custom_id(resource_properties, name)
         packagetype = resource_properties.get("PackageType", ZIP)
         if packagetype == ZIP:
             if inlinecode:
@@ -312,34 +312,8 @@ class SamFunctionProvider(SamBaseProvider):
             LOG.debug("Found Serverless function with name='%s' and ImageUri='%s'", name, imageuri)
 
         return SamFunctionProvider._build_function_configuration(
-            stack, function_id, name, codeuri, resource_properties, layers, inlinecode, imageuri, use_raw_codeuri
+            stack, custom_id, name, codeuri, resource_properties, layers, inlinecode, imageuri, use_raw_codeuri
         )
-
-    @staticmethod
-    def _get_function_id(resource_properties: Dict, logical_id: str) -> str:
-        """
-        Get unique id for Function resource.
-        For CFN/SAM project, this function id is the logical id.
-        For CDK project, this function id is the user-defined resource id, or the logical id if the resource id is not
-        found.
-
-        Parameters
-        ----------
-        resource_properties str
-            Properties of this resource
-        logical_id str
-            LogicalID of the resource
-
-        Returns
-        -------
-        str
-            The unique function id
-        """
-        function_id = resource_properties.get("Metadata", {}).get("SamResourceId")
-        if isinstance(function_id, str) and function_id:
-            return function_id
-
-        return logical_id
 
     @staticmethod
     def _convert_lambda_function_resource(
@@ -374,7 +348,7 @@ class SamFunctionProvider(SamBaseProvider):
         codeuri: Optional[str] = SamFunctionProvider.DEFAULT_CODEURI
         inlinecode = None
         imageuri = None
-        function_id = SamFunctionProvider._get_function_id(resource_properties, name)
+        custom_id = ResourceMetadataNormalizer.get_custom_id(resource_properties, name)
         packagetype = resource_properties.get("PackageType", ZIP)
         if packagetype == ZIP:
             if (
@@ -392,17 +366,14 @@ class SamFunctionProvider(SamBaseProvider):
             imageuri = SamFunctionProvider._extract_lambda_function_imageuri(resource_properties, "Code")
             LOG.debug("Found Lambda function with name='%s' and Imageuri='%s'", name, imageuri)
 
-        # If the function from CDK, name will be CDK resource id.
-        name = ResourceMetadataNormalizer.get_resource_name(resource_properties, name)
-
         return SamFunctionProvider._build_function_configuration(
-            stack, function_id, name, codeuri, resource_properties, layers, inlinecode, imageuri, use_raw_codeuri
+            stack, custom_id, name, codeuri, resource_properties, layers, inlinecode, imageuri, use_raw_codeuri
         )
 
     @staticmethod
     def _build_function_configuration(
         stack: Stack,
-        function_id: str,
+        custom_id: Optional[str],
         name: str,
         codeuri: Optional[str],
         resource_properties: Dict,
@@ -418,8 +389,8 @@ class SamFunctionProvider(SamBaseProvider):
         ----------
         name str
             LogicalID of the resource NOTE: This is *not* the function name because not all functions declare a name
-        function_id str
-            Unique function id
+        custom_id str
+            Custom id
         codeuri str
             Representing the local code path
         resource_properties dict
@@ -450,8 +421,8 @@ class SamFunctionProvider(SamBaseProvider):
             codeuri = SamLocalStackProvider.normalize_resource_path(stack.location, codeuri)
 
         return Function(
-            stack_path=stack.stack_path,
-            function_id=function_id,
+            stack=stack,
+            custom_id=custom_id,
             name=name,
             functionname=resource_properties.get("FunctionName", name),
             packagetype=resource_properties.get("PackageType", ZIP),
@@ -481,7 +452,7 @@ class SamFunctionProvider(SamBaseProvider):
         ignore_code_extraction_warnings: bool = False,
         locate_layer_nested: bool = False,
         stacks: Optional[List[Stack]] = None,
-        function_id: Optional[str] = None,
+        logical_id: Optional[str] = None,
     ) -> List[LayerVersion]:
         """
         Creates a list of Layer objects that are represented by the resources and the list of layers
@@ -501,7 +472,7 @@ class SamFunctionProvider(SamBaseProvider):
             Resolved nested layer reference to their actual location in the nested stack
         stacks: List[Stack]
             List of stacks generates from templates
-        function_id: str
+        logical_id: str
             Logical id for the function resources
 
         Returns
@@ -514,10 +485,10 @@ class SamFunctionProvider(SamBaseProvider):
         """
         layers = []
 
-        if locate_layer_nested and stacks and function_id:
+        if locate_layer_nested and stacks and logical_id:
             # The layer can be a parameter pass from parent stack, we need to locate to where the
             # layer is actually defined
-            func_template = stack.template_dict.get("Resources", {}).get(function_id, {})
+            func_template = stack.template_dict.get("Resources", {}).get(logical_id, {})
             a_list_of_layers = func_template.get("Properties", {}).get("Layers", [])
             for layer in a_list_of_layers:
                 found_layer = SamFunctionProvider._locate_layer_from_nested(
@@ -547,9 +518,8 @@ class SamFunctionProvider(SamBaseProvider):
 
                 layers.append(
                     LayerVersion(
-                        layer,
-                        None,
-                        stack_path=stack.stack_path,
+                        arn=layer,
+                        stack=stack,
                     )
                 )
                 continue
@@ -722,6 +692,7 @@ class SamFunctionProvider(SamBaseProvider):
         resource_type = layer_resource.get("Type")
         compatible_runtimes = layer_properties.get("CompatibleRuntimes")
         codeuri: Optional[str] = None
+        custom_id = ResourceMetadataNormalizer.get_custom_id(layer_properties, layer_logical_id)
 
         if resource_type in [AWS_LAMBDA_LAYERVERSION, AWS_SERVERLESS_LAYERVERSION]:
             code_property_key = SamBaseProvider.CODE_PROPERTY_KEYS[resource_type]
@@ -737,11 +708,12 @@ class SamFunctionProvider(SamBaseProvider):
             codeuri = SamLocalStackProvider.normalize_resource_path(stack.location, codeuri)
 
         return LayerVersion(
-            layer_logical_id,
-            codeuri,
-            compatible_runtimes,
-            layer_resource.get("Metadata", None),
-            stack_path=stack.stack_path,
+            arn=layer_logical_id,
+            stack=stack,
+            codeuri=codeuri,
+            compatible_runtimes=compatible_runtimes,
+            metadata=layer_resource.get("Metadata", None),
+            custom_id=custom_id,
         )
 
     def get_resources_by_stack_path(self, stack_path: str) -> Dict:

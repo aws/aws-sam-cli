@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 import json
 import re
-from typing import Dict
+from typing import Dict, Optional
 
 from samcli.lib.iac.cdk.utils import is_cdk_project
 
@@ -94,9 +94,10 @@ class ResourceMetadataNormalizer:
                 )
 
             # Set Resource Id
+            custom_id = ResourceMetadataNormalizer.get_custom_id(resource, logical_id)
             ResourceMetadataNormalizer._update_resource_metadata(
                 resource_metadata,
-                {SAM_RESOURCE_ID_KEY: ResourceMetadataNormalizer.get_resource_id(resource, logical_id)},
+                {SAM_RESOURCE_ID_KEY: custom_id if custom_id is not None else logical_id},
             )
 
         # This is a work around to allow the customer to use sam deploy or package commands without the need to provide
@@ -229,23 +230,12 @@ class ResourceMetadataNormalizer:
         str
             The unique function id
         """
-        resource_metadata = resource_properties.get("Metadata", {})
-        customer_defined_id = resource_metadata.get(SAM_RESOURCE_ID_KEY)
-
-        if isinstance(customer_defined_id, str) and customer_defined_id:
-            LOG.debug(
-                "Sam customer defined id is more priority than other IDs. Customer defined id for resource %s is %s",
-                logical_id,
-                customer_defined_id,
-            )
-            return customer_defined_id
-
         return logical_id
 
     @staticmethod
-    def get_resource_name(resource_properties, logical_id):
+    def get_custom_id(resource_properties: Dict, logical_id: str) -> Optional[str]:
         """
-        Gets the name of the resource.
+        Gets the custom id of the resource.
         If aws:cdk:path is defined, the resource ID is obtained from aws:cdk:path.
         otherwise, the logical ID is obtained.
 
@@ -262,15 +252,19 @@ class ResourceMetadataNormalizer:
             The resource name not a phisical name
         """
         resource_metadata = resource_properties.get("Metadata", {})
-        resource_cdk_path = resource_metadata.get(RESOURCE_CDK_PATH_METADATA_KEY)
 
-        if not isinstance(resource_cdk_path, str) or not resource_cdk_path:
+        customer_defined_id = resource_metadata.get(SAM_RESOURCE_ID_KEY)
+        if isinstance(customer_defined_id, str) and customer_defined_id:
             LOG.debug(
-                "There is no cdk path defined for resource %s, so we will use the resource "
-                "logical id as the resource name",
+                "Sam customer defined id is more priority than other IDs. Customer defined id for resource %s is %s",
                 logical_id,
+                customer_defined_id,
             )
-            return logical_id
+            return customer_defined_id
+
+        resource_cdk_path = resource_metadata.get(RESOURCE_CDK_PATH_METADATA_KEY)
+        if not isinstance(resource_cdk_path, str) or not resource_cdk_path:
+            return None
 
         # aws:cdk:path metadata format of functions:
         # {stack_id}/{function_id}/Resource or {stack_id}/{construct_id}/{function_id}/Resource

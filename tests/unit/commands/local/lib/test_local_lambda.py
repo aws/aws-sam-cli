@@ -204,14 +204,12 @@ class TestLocalLambda_make_env_vars(TestCase):
 
     @parameterized.expand(
         [
-            # Override for the function_id exists
-            ({"function_id": {"a": "b"}}, {"a": "b"}),
             # Override for the logical_id exists
             ({"logical_id": {"a": "c"}}, {"a": "c"}),
             # Override for the functionname exists
             ({"function_name": {"a": "d"}}, {"a": "d"}),
             # Override for the full_path exists
-            ({posixpath.join("somepath", "function_id"): {"a": "d"}}, {"a": "d"}),
+            ({posixpath.join("somepath", "logical_id"): {"a": "d"}}, {"a": "d"}),
             # Override for the function does *not* exist
             ({"otherfunction": {"c": "d"}}, {}),
             # Using a CloudFormation parameter file format
@@ -230,8 +228,7 @@ class TestLocalLambda_make_env_vars(TestCase):
         os_mock.environ = os_environ
 
         function = Function(
-            stack_path="somepath",
-            function_id="function_id",
+            stack=Mock(stack_path="somepath"),
             name="logical_id",
             functionname="function_name",
             runtime="runtime",
@@ -282,8 +279,7 @@ class TestLocalLambda_make_env_vars(TestCase):
         os_mock.environ = os_environ
 
         function = Function(
-            stack_path="",
-            function_id="function_name",
+            stack=Mock(stack_path=""),
             name="function_name",
             functionname="function_name",
             runtime="runtime",
@@ -324,8 +320,7 @@ class TestLocalLambda_make_env_vars(TestCase):
         os_mock.environ = os_environ
 
         function = Function(
-            stack_path="",
-            function_id="function_name",
+            stack=Mock(stack_path=""),
             name="function_name",
             functionname="function_name",
             runtime="runtime",
@@ -402,8 +397,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
         layers = ["layer1", "layer2"]
 
         function = Function(
-            stack_path="",
-            function_id="function_name",
+            stack=Mock(stack_path=""),
             name="function_name",
             functionname="function_name",
             runtime="runtime",
@@ -468,8 +462,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
         resolve_code_path_patch.return_value = codepath
 
         function = Function(
-            stack_path="stackA/stackB",
-            function_id="function_name",
+            stack=Mock(stack_path="stackA/stackB"),
             name="function_name",
             functionname="function_name",
             runtime="runtime",

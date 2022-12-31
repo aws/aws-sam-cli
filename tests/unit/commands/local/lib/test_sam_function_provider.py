@@ -206,6 +206,11 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             "ChildStack": {
                 "Type": "AWS::Serverless::Application",
                 "Properties": {"Location": "./child.yaml"},
+                "Metadata": {
+                    "aws:cdk:path": "Stack/ChildStack-x.NestedStack/.NestedStackResource",
+                    "aws:asset:path": "/usr/foo/bar",
+                    "aws:asset:property": "Code",
+                },
             },
         }
     }
@@ -253,25 +258,27 @@ class TestSamFunctionProviderEndToEnd(TestCase):
         }
     }
 
+    parameter_overrides = {}
+    ROOT_STACK = Stack("", "", "template.yaml", parameter_overrides, TEMPLATE)
+    CHILD_STACK = Stack("", "ChildStack", "./child/template.yaml", None, CHILD_TEMPLATE, None, ROOT_STACK, "ChildStack-x")
+
     def setUp(self):
-        self.parameter_overrides = {}
-        root_stack = Stack("", "", "template.yaml", self.parameter_overrides, self.TEMPLATE)
-        child_stack = Stack("", "ChildStack", "./child/template.yaml", None, self.CHILD_TEMPLATE)
         with patch("samcli.lib.providers.sam_stack_provider.get_template_data") as get_template_data_mock:
             get_template_data_mock.side_effect = lambda t: {
                 "template.yaml": self.TEMPLATE,
                 "./child/template.yaml": self.CHILD_TEMPLATE,
             }
-            self.provider = SamFunctionProvider([root_stack, child_stack])
+            self.provider = SamFunctionProvider([self.ROOT_STACK, self.CHILD_STACK])
 
     @parameterized.expand(
         [
             (
                 "SamFunc1",
                 Function(
-                    function_id="SamFunctions",
                     name="SamFunctions",
+                    stack=ROOT_STACK,
                     functionname="SamFunc1",
+                    custom_id="SamFunctions",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri="/usr/foo/bar",
@@ -289,15 +296,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     codesign_config_arn=None,
                     architectures=None,
                     function_url_config=None,
-                    stack_path="",
                 ),
             ),
             (
                 "SamFuncWithInlineCode",
                 Function(
-                    function_id="SamFuncWithInlineCode",
                     name="SamFuncWithInlineCode",
+                    stack=ROOT_STACK,
                     functionname="SamFuncWithInlineCode",
+                    custom_id="SamFuncWithInlineCode",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri=None,
@@ -315,15 +322,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     codesign_config_arn=None,
                     architectures=None,
                     function_url_config=None,
-                    stack_path="",
                 ),
             ),
             (
                 "SamFunctions",
                 Function(
-                    function_id="SamFunctions",
                     name="SamFunctions",
+                    stack=ROOT_STACK,
                     functionname="SamFunc1",
+                    custom_id="SamFunctions",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri="/usr/foo/bar",
@@ -341,7 +348,6 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     codesign_config_arn=None,
                     architectures=None,
                     function_url_config=None,
-                    stack_path="",
                 ),
             ),
             ("SamFunc2", None),  # codeuri is a s3 location, ignored
@@ -349,9 +355,10 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "SamFuncWithImage1",
                 Function(
-                    function_id="SamFuncWithImage1",
                     name="SamFuncWithImage1",
+                    stack=ROOT_STACK,
                     functionname="SamFuncWithImage1",
+                    custom_id="SamFuncWithImage1",
                     runtime=None,
                     handler=None,
                     codeuri=".",
@@ -374,15 +381,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     codesign_config_arn=None,
                     architectures=None,
                     function_url_config=None,
-                    stack_path="",
                 ),
             ),
             (
                 "SamFuncWithImage2",
                 Function(
-                    function_id="SamFuncWithImage2",
                     name="SamFuncWithImage2",
+                    stack=ROOT_STACK,
                     functionname="SamFuncWithImage2",
+                    custom_id="SamFuncWithImage2",
                     runtime=None,
                     handler=None,
                     codeuri=".",
@@ -405,16 +412,16 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     codesign_config_arn=None,
                     architectures=None,
                     function_url_config=None,
-                    stack_path="",
                 ),
             ),
             ("SamFuncWithImage3", None),  # imageuri is ecr location, ignored
             (
                 "SamFuncWithImage4",  # despite imageuri is ecr location, the necessary metadata is still provided, build
                 Function(
-                    function_id="SamFuncWithImage4",
                     name="SamFuncWithImage4",
+                    stack=ROOT_STACK,
                     functionname="SamFuncWithImage4",
+                    custom_id="SamFuncWithImage4",
                     runtime=None,
                     handler=None,
                     codeuri=".",
@@ -437,15 +444,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     codesign_config_arn=None,
                     architectures=None,
                     function_url_config=None,
-                    stack_path="",
                 ),
             ),
             (
                 "SamFuncWithFunctionNameOverride-x",
                 Function(
-                    function_id="SamFuncWithFunctionNameOverride",
                     name="SamFuncWithFunctionNameOverride",
+                    stack=ROOT_STACK,
                     functionname="SamFuncWithFunctionNameOverride-x",
+                    custom_id="SamFuncWithFunctionNameOverride",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri="/usr/foo/bar",
@@ -463,16 +470,16 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     codesign_config_arn=None,
                     architectures=None,
                     function_url_config=None,
-                    stack_path="",
                 ),
             ),
             ("LambdaFunc1", None),  # codeuri is a s3 location, ignored
             (
                 "LambdaFuncWithImage1",
                 Function(
-                    function_id="LambdaFuncWithImage1",
                     name="LambdaFuncWithImage1",
+                    stack=ROOT_STACK,
                     functionname="LambdaFuncWithImage1",
+                    custom_id="LambdaFuncWithImage1",
                     runtime=None,
                     handler=None,
                     codeuri=".",
@@ -495,15 +502,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     codesign_config_arn=None,
                     architectures=None,
                     function_url_config=None,
-                    stack_path="",
                 ),
             ),
             (
                 "LambdaFuncWithImage2",
                 Function(
-                    function_id="LambdaFuncWithImage2",
                     name="LambdaFuncWithImage2",
+                    stack=ROOT_STACK,
                     functionname="LambdaFuncWithImage2",
+                    custom_id="LambdaFuncWithImage2",
                     runtime=None,
                     handler=None,
                     codeuri=".",
@@ -526,16 +533,16 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     codesign_config_arn=None,
                     architectures=None,
                     function_url_config=None,
-                    stack_path="",
                 ),
             ),
             ("LambdaFuncWithImage3", None),  # imageuri is a ecr location, ignored
             (
                 "LambdaFuncWithImage4",  # despite imageuri is ecr location, the necessary metadata is still provided, build
                 Function(
-                    function_id="LambdaFuncWithImage4",
                     name="LambdaFuncWithImage4",
+                    stack=ROOT_STACK,
                     functionname="LambdaFuncWithImage4",
+                    custom_id="LambdaFuncWithImage4",
                     runtime=None,
                     handler=None,
                     codeuri=".",
@@ -558,15 +565,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     codesign_config_arn=None,
                     architectures=None,
                     function_url_config=None,
-                    stack_path="",
                 ),
             ),
             (
                 "LambdaFuncWithInlineCode",
                 Function(
-                    function_id="LambdaFuncWithInlineCode",
                     name="LambdaFuncWithInlineCode",
+                    stack=ROOT_STACK,
                     functionname="LambdaFuncWithInlineCode",
+                    custom_id="LambdaFuncWithInlineCode",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri=None,
@@ -584,15 +591,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=ZIP,
                     architectures=None,
                     function_url_config=None,
-                    stack_path="",
                 ),
             ),
             (
                 "LambdaFuncWithLocalPath",
                 Function(
-                    function_id="LambdaFuncWithLocalPath",
                     name="LambdaFuncWithLocalPath",
+                    stack=ROOT_STACK,
                     functionname="LambdaFuncWithLocalPath",
+                    custom_id="LambdaFuncWithLocalPath",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri=os.path.join("some", "path", "to", "code"),
@@ -610,15 +617,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     packagetype=ZIP,
                     architectures=None,
                     function_url_config=None,
-                    stack_path="",
                 ),
             ),
             (
                 "LambdaFuncWithFunctionNameOverride-x",
                 Function(
-                    function_id="LambdaFuncWithFunctionNameOverride",
                     name="LambdaFuncWithFunctionNameOverride",
+                    stack=ROOT_STACK,
                     functionname="LambdaFuncWithFunctionNameOverride-x",
+                    custom_id="LambdaFuncWithFunctionNameOverride",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri=os.path.join("some", "path", "to", "code"),
@@ -636,15 +643,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     codesign_config_arn=None,
                     architectures=None,
                     function_url_config=None,
-                    stack_path="",
                 ),
             ),
             (
                 "LambdaFuncWithCodeSignConfig",
                 Function(
-                    function_id="LambdaFuncWithCodeSignConfig",
                     name="LambdaFuncWithCodeSignConfig",
+                    stack=ROOT_STACK,
                     functionname="LambdaFuncWithCodeSignConfig",
+                    custom_id="LambdaFuncWithCodeSignConfig",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri=os.path.join("some", "path", "to", "code"),
@@ -662,15 +669,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     codesign_config_arn="codeSignConfigArn",
                     architectures=None,
                     function_url_config=None,
-                    stack_path="",
                 ),
             ),
             (
                 posixpath.join("ChildStack", "SamFunctionsInChild"),
                 Function(
-                    function_id="SamFunctionsInChild",
                     name="SamFunctionsInChild",
+                    stack=CHILD_STACK,
                     functionname="SamFunctionsInChildName",
+                    custom_id="SamFunctionsInChild",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri=os.path.join("child", "foo", "bar"),
@@ -688,15 +695,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     codesign_config_arn=None,
                     architectures=None,
                     function_url_config=None,
-                    stack_path="ChildStack",
                 ),
             ),
             (
                 posixpath.join("ChildStack", "SamFunctionsInChildAbsPath"),
                 Function(
-                    function_id="SamFunctionsInChildAbsPath",
                     name="SamFunctionsInChildAbsPath",
+                    stack=CHILD_STACK,
                     functionname="SamFunctionsInChildAbsPathName",
+                    custom_id="SamFunctionsInChildAbsPath",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri="/foo/bar",
@@ -714,15 +721,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     codesign_config_arn=None,
                     architectures=None,
                     function_url_config=None,
-                    stack_path="ChildStack",
                 ),
             ),
             (
                 posixpath.join("ChildStack", "SamImageFunctionsInChild"),
                 Function(
-                    function_id="SamImageFunctionsInChild",
                     name="SamImageFunctionsInChild",
+                    stack=CHILD_STACK,
                     functionname="SamImageFunctionsInChild",
+                    custom_id="SamImageFunctionsInChild",
                     runtime=None,
                     handler=None,
                     codeuri="child",
@@ -745,15 +752,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     codesign_config_arn=None,
                     architectures=None,
                     function_url_config=None,
-                    stack_path="ChildStack",
                 ),
             ),
             (
                 "LambdaFunctionCustomId-x",
                 Function(
-                    function_id="LambdaFunctionCustomId-x",
                     name="LambdaFuncWithCustomId",
+                    stack=ROOT_STACK,
                     functionname="LambdaFuncWithCustomId",
+                    custom_id="LambdaFunctionCustomId-x",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri="/usr/foo/bar",
@@ -771,15 +778,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     codesign_config_arn=None,
                     architectures=None,
                     function_url_config=None,
-                    stack_path="",
                 ),
             ),
             (
                 "LambdaFuncWithCustomId",
                 Function(
-                    function_id="LambdaFunctionCustomId-x",
                     name="LambdaFuncWithCustomId",
+                    stack=ROOT_STACK,
                     functionname="LambdaFuncWithCustomId",
+                    custom_id="LambdaFunctionCustomId-x",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri="/usr/foo/bar",
@@ -797,15 +804,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     codesign_config_arn=None,
                     architectures=None,
                     function_url_config=None,
-                    stack_path="",
                 ),
             ),
             (
                 "LambdaCDKFunction-x",
                 Function(
-                    function_id="LambdaCDKFunc",
-                    name="LambdaCDKFunction-x",
-                    functionname="LambdaCDKFunction-x",
+                    name="LambdaCDKFunc",
+                    stack=ROOT_STACK,
+                    functionname="LambdaCDKFunc",
+                    custom_id="LambdaCDKFunction-x",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri="/usr/foo/bar",
@@ -820,7 +827,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                         "aws:asset:path": "/usr/foo/bar",
                         "aws:asset:property": "Code",
                         "SamNormalized": True,
-                        "SamResourceId": "LambdaCDKFunc",
+                        "SamResourceId": "LambdaCDKFunction-x",
                     },
                     inlinecode=None,
                     imageuri=None,
@@ -829,15 +836,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     codesign_config_arn=None,
                     architectures=None,
                     function_url_config=None,
-                    stack_path="",
                 ),
             ),
             (
                 "LambdaCDKFunc",
                 Function(
-                    function_id="LambdaCDKFunc",
-                    name="LambdaCDKFunction-x",
-                    functionname="LambdaCDKFunction-x",
+                    name="LambdaCDKFunc",
+                    stack=ROOT_STACK,
+                    functionname="LambdaCDKFunc",
+                    custom_id="LambdaCDKFunction-x",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri="/usr/foo/bar",
@@ -852,7 +859,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                         "aws:asset:path": "/usr/foo/bar",
                         "aws:asset:property": "Code",
                         "SamNormalized": True,
-                        "SamResourceId": "LambdaCDKFunc",
+                        "SamResourceId": "LambdaCDKFunction-x",
                     },
                     inlinecode=None,
                     imageuri=None,
@@ -861,15 +868,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     codesign_config_arn=None,
                     architectures=None,
                     function_url_config=None,
-                    stack_path="",
                 ),
             ),
             (
                 "LambdaCDKFuncInChild-x",
                 Function(
-                    function_id="LambdaCDKFuncInChild",
-                    name="LambdaCDKFuncInChild-x",
-                    functionname="LambdaCDKFuncInChild-x",
+                    name="LambdaCDKFuncInChild",
+                    stack=CHILD_STACK,
+                    functionname="LambdaCDKFuncInChild",
+                    custom_id="LambdaCDKFuncInChild-x",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri="/usr/foo/bar",
@@ -884,7 +891,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                         "aws:asset:path": "/usr/foo/bar",
                         "aws:asset:property": "Code",
                         "SamNormalized": True,
-                        "SamResourceId": "LambdaCDKFuncInChild",
+                        "SamResourceId": "LambdaCDKFuncInChild-x",
                     },
                     inlinecode=None,
                     imageuri=None,
@@ -893,15 +900,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     codesign_config_arn=None,
                     architectures=None,
                     function_url_config=None,
-                    stack_path="ChildStack",
                 ),
             ),
             (
                 "LambdaCDKFuncInChild",
                 Function(
-                    function_id="LambdaCDKFuncInChild",
-                    name="LambdaCDKFuncInChild-x",
-                    functionname="LambdaCDKFuncInChild-x",
+                    name="LambdaCDKFuncInChild",
+                    stack=CHILD_STACK,
+                    functionname="LambdaCDKFuncInChild",
+                    custom_id="LambdaCDKFuncInChild-x",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri="/usr/foo/bar",
@@ -916,7 +923,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                         "aws:asset:path": "/usr/foo/bar",
                         "aws:asset:property": "Code",
                         "SamNormalized": True,
-                        "SamResourceId": "LambdaCDKFuncInChild",
+                        "SamResourceId": "LambdaCDKFuncInChild-x",
                     },
                     inlinecode=None,
                     imageuri=None,
@@ -925,15 +932,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     codesign_config_arn=None,
                     architectures=None,
                     function_url_config=None,
-                    stack_path="ChildStack",
                 ),
             ),
             (
-                posixpath.join("ChildStack", "LambdaCDKFuncInChild-x"),
+                posixpath.join("ChildStack-x", "LambdaCDKFuncInChild-x"),
                 Function(
-                    function_id="LambdaCDKFuncInChild",
-                    name="LambdaCDKFuncInChild-x",
-                    functionname="LambdaCDKFuncInChild-x",
+                    name="LambdaCDKFuncInChild",
+                    stack=CHILD_STACK,
+                    functionname="LambdaCDKFuncInChild",
+                    custom_id="LambdaCDKFuncInChild-x",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri="/usr/foo/bar",
@@ -948,7 +955,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                         "aws:asset:path": "/usr/foo/bar",
                         "aws:asset:property": "Code",
                         "SamNormalized": True,
-                        "SamResourceId": "LambdaCDKFuncInChild",
+                        "SamResourceId": "LambdaCDKFuncInChild-x",
                     },
                     inlinecode=None,
                     imageuri=None,
@@ -957,15 +964,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     codesign_config_arn=None,
                     architectures=None,
                     function_url_config=None,
-                    stack_path="ChildStack",
                 ),
             ),
             (
                 posixpath.join("ChildStack", "LambdaCDKFuncInChild"),
                 Function(
-                    function_id="LambdaCDKFuncInChild",
-                    name="LambdaCDKFuncInChild-x",
-                    functionname="LambdaCDKFuncInChild-x",
+                    name="LambdaCDKFuncInChild",
+                    stack=CHILD_STACK,
+                    functionname="LambdaCDKFuncInChild",
+                    custom_id="LambdaCDKFuncInChild-x",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri="/usr/foo/bar",
@@ -980,7 +987,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                         "aws:asset:path": "/usr/foo/bar",
                         "aws:asset:property": "Code",
                         "SamNormalized": True,
-                        "SamResourceId": "LambdaCDKFuncInChild",
+                        "SamResourceId": "LambdaCDKFuncInChild-x",
                     },
                     inlinecode=None,
                     imageuri=None,
@@ -989,7 +996,6 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     codesign_config_arn=None,
                     architectures=None,
                     function_url_config=None,
-                    stack_path="ChildStack",
                 ),
             ),
         ]
@@ -1015,7 +1021,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             "LambdaFuncWithLocalPath",
             "LambdaFuncWithFunctionNameOverride",
             "LambdaFuncWithCodeSignConfig",
-            "LambdaFunctionCustomId-x",
+            "LambdaFuncWithCustomId",
             "LambdaCDKFunc",
             posixpath.join("ChildStack", "SamFunctionsInChild"),
             posixpath.join("ChildStack", "SamFunctionsInChildAbsPath"),
@@ -1232,7 +1238,7 @@ class TestSamFunctionProvider_extract_functions(TestCase):
             ignore_code_extraction_warnings=False,
             locate_layer_nested=True,
             stacks=[stack],
-            function_id="id",
+            logical_id="Func1",
         )
 
     @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
@@ -1265,7 +1271,7 @@ class TestSamFunctionProvider_extract_functions(TestCase):
             ignore_code_extraction_warnings=False,
             locate_layer_nested=True,
             stacks=[stack],
-            function_id="id",
+            logical_id="Func1",
         )
 
     @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
@@ -1294,7 +1300,7 @@ class TestSamFunctionProvider_extract_functions(TestCase):
             ignore_code_extraction_warnings=False,
             locate_layer_nested=False,
             stacks=None,
-            function_id=None,
+            logical_id="Func1",
         )
 
     @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
@@ -1327,78 +1333,8 @@ class TestSamFunctionProvider_extract_functions(TestCase):
             ignore_code_extraction_warnings=False,
             locate_layer_nested=False,
             stacks=None,
-            function_id=None,
+            logical_id="Func1",
         )
-
-
-class TestSamFunctionProvider_get_function_id(TestCase):
-    def test_get_default_logical_id_no_property(self):
-        resource_properties = {
-            "CodeUri": "/usr/local",
-            "Runtime": "myruntime",
-            "MemorySize": "mymemorysize",
-            "Timeout": "30",
-            "Handler": "myhandler",
-            "Environment": "myenvironment",
-            "Role": "myrole",
-            "Layers": ["Layer1", "Layer2"],
-            "Architectures": [X86_64],
-            "Metadata": {"aws:asset:path": "new path", "aws:asset:property": "Code"},
-        }
-        logical_id = "DefaultLogicalId"
-
-        result = SamFunctionProvider._get_function_id(resource_properties=resource_properties, logical_id=logical_id)
-        expected = logical_id
-        self.assertEqual(expected, result)
-
-    def test_get_default_logical_id_property_empty_str(self):
-        resource_properties = {
-            "CodeUri": "/usr/local",
-            "Runtime": "myruntime",
-            "MemorySize": "mymemorysize",
-            "Timeout": "30",
-            "Handler": "myhandler",
-            "Environment": "myenvironment",
-            "Role": "myrole",
-            "Layers": ["Layer1", "Layer2"],
-            "Architectures": [X86_64],
-            "Metadata": {
-                "aws:asset:path": "new path",
-                "aws:asset:property": "Code",
-                "aws:cdk:path": "",
-                "SamResourceId": "",
-            },
-        }
-        logical_id = "DefaultLogicalId"
-
-        result = SamFunctionProvider._get_function_id(resource_properties=resource_properties, logical_id=logical_id)
-        expected = logical_id
-        self.assertEqual(expected, result)
-
-    def test_get_function_id(self):
-        resource_properties = {
-            "CodeUri": "/usr/local",
-            "Runtime": "myruntime",
-            "MemorySize": "mymemorysize",
-            "Timeout": "30",
-            "Handler": "myhandler",
-            "Environment": "myenvironment",
-            "Role": "myrole",
-            "Layers": ["Layer1", "Layer2"],
-            "Architectures": [X86_64],
-            "Metadata": {
-                "aws:asset:path": "new path",
-                "aws:asset:property": "Code",
-                "aws:cdk:path": "stack/functionId/Resource",
-                "SamResourceId": "functionId",
-            },
-        }
-        logical_id = "DefaultLogicalId"
-
-        result = SamFunctionProvider._get_function_id(resource_properties=resource_properties, logical_id=logical_id)
-        expected = "functionId"
-        self.assertEqual(expected, result)
-
 
 class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
     def test_must_convert_zip(self):
@@ -1417,8 +1353,8 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         }
 
         expected = Function(
-            function_id="myname",
             name="myname",
+            stack=STACK,
             functionname="myname",
             runtime="myruntime",
             memory="mymemorysize",
@@ -1437,7 +1373,6 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             codesign_config_arn=None,
             architectures=[X86_64],
             function_url_config=None,
-            stack_path=STACK_PATH,
         )
 
         result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, ["Layer1", "Layer2"])
@@ -1460,8 +1395,8 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         }
 
         expected = Function(
-            function_id="myname",
             name="myname",
+            stack=STACK,
             functionname="myname",
             runtime="myruntime",
             memory="mymemorysize",
@@ -1480,7 +1415,6 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             codesign_config_arn=None,
             architectures=None,
             function_url_config=None,
-            stack_path=STACK_PATH,
         )
 
         result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
@@ -1493,8 +1427,8 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         properties = {"CodeUri": "/usr/local"}
 
         expected = Function(
-            function_id="myname",
             name="myname",
+            stack=STACK,
             functionname="myname",
             runtime=None,
             memory=None,
@@ -1513,7 +1447,6 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             codesign_config_arn=None,
             architectures=None,
             function_url_config=None,
-            stack_path=STACK_PATH,
         )
 
         result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
@@ -1541,8 +1474,8 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         }
 
         expected = Function(
-            function_id="myname",
             name="myname",
+            stack=STACK,
             functionname="myname",
             runtime="myruntime",
             memory="mymemorysize",
@@ -1561,7 +1494,6 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             codesign_config_arn=None,
             architectures=[X86_64],
             function_url_config=None,
-            stack_path=STACK_PATH,
         )
 
         result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
@@ -1582,8 +1514,8 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         }
 
         expected = Function(
-            function_id="myname",
             name="myname",
+            stack=STACK,
             functionname="myname",
             runtime="myruntime",
             memory="mymemorysize",
@@ -1602,7 +1534,6 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             codesign_config_arn=None,
             architectures=[ARM64],
             function_url_config=None,
-            stack_path=STACK_PATH,
         )
 
         result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
@@ -1639,8 +1570,8 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
         }
 
         expected = Function(
-            function_id="myname",
             name="myname",
+            stack=STACK,
             functionname="myname",
             runtime="myruntime",
             memory="mymemorysize",
@@ -1659,7 +1590,6 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             codesign_config_arn=None,
             architectures=None,
             function_url_config=None,
-            stack_path=STACK_PATH,
         )
 
         result = SamFunctionProvider._convert_lambda_function_resource(STACK, name, properties, ["Layer1", "Layer2"])
@@ -1680,8 +1610,8 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
         }
 
         expected = Function(
-            function_id="myname",
             name="myname",
+            stack=STACK,
             functionname="myname",
             runtime="myruntime",
             memory="mymemorysize",
@@ -1700,7 +1630,6 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             codesign_config_arn=None,
             architectures=[ARM64],
             function_url_config=None,
-            stack_path=STACK_PATH,
         )
 
         result = SamFunctionProvider._convert_lambda_function_resource(STACK, name, properties, [])
@@ -1713,8 +1642,8 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
         properties = {"Code": {"Bucket": "bucket"}}
 
         expected = Function(
-            function_id="myname",
             name="myname",
+            stack=STACK,
             functionname="myname",
             runtime=None,
             memory=None,
@@ -1733,7 +1662,6 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             codesign_config_arn=None,
             architectures=None,
             function_url_config=None,
-            stack_path=STACK_PATH,
         )
 
         result = SamFunctionProvider._convert_lambda_function_resource(STACK, name, properties, [])
@@ -1771,12 +1699,11 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
             "arn:aws:lambda:region:account-id:layer:layer-name:1",
             "arn:aws:lambda:::awslayer:AmazonLinux1803",
         ]
-        actual = SamFunctionProvider._parse_layer_info(
-            Mock(stack_path=STACK_PATH, location="template.yaml", resources=resources), list_of_layers
-        )
+        stack = Mock(stack_path=STACK_PATH, location="template.yaml", resources=resources)
+        actual = SamFunctionProvider._parse_layer_info(stack, list_of_layers)
 
         for (actual_layer, expected_layer) in zip(
-            actual, [LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None, stack_path=STACK_PATH)]
+            actual, [LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", stack, None)]
         ):
             self.assertEqual(actual_layer, expected_layer)
 
@@ -1792,16 +1719,15 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
             "arn:aws:lambda:region:account-id:layer:layer-name:1",
             {"NonRef": "Something"},
         ]
-        actual = SamFunctionProvider._parse_layer_info(
-            Mock(stack_path=STACK_PATH, location="template.yaml", resources=resources), list_of_layers
-        )
+        stack = Mock(stack_path=STACK_PATH, location="template.yaml", resources=resources)
+        actual = SamFunctionProvider._parse_layer_info(stack, list_of_layers)
 
         for (actual_layer, expected_layer) in zip(
             actual,
             [
-                LayerVersion("Layer", "/somepath", stack_path=STACK_PATH),
-                LayerVersion("ServerlessLayer", "/somepath", stack_path=STACK_PATH),
-                LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None, stack_path=STACK_PATH),
+                LayerVersion("Layer", stack, "/somepath"),
+                LayerVersion("ServerlessLayer", stack, "/somepath"),
+                LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", stack, None),
             ],
         ):
             self.assertEqual(actual_layer, expected_layer)
@@ -1823,23 +1749,24 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
         resources = {"Layer": {"Type": "AWS::Lambda::LayerVersion", "Properties": {"Content": "/somepath"}}}
 
         list_of_layers = [{"Ref": "Layer"}]
-
-        locate_layer_mock.return_value = LayerVersion("Layer", "/somepath", stack_path=STACK_PATH)
-
-        mock_stack = Mock(
+        stack = Mock(
             stack_path=STACK_PATH,
             location="template.yaml",
             resources=resources,
             template_dict={"Resources": {"function_id": func_temp}},
         )
-
+        locate_layer_mock.return_value = LayerVersion("Layer", stack, "/somepath")
         expected_layer = [locate_layer_mock.return_value]
 
         actual = SamFunctionProvider._parse_layer_info(
-            mock_stack, list_of_layers, stacks=[mock_stack], function_id="function_id", locate_layer_nested=True
+            stack,
+            list_of_layers,
+            stacks=[stack],
+            locate_layer_nested=True,
+            logical_id="function_id",
         )
 
-        locate_layer_mock.assert_called_with(mock_stack, [mock_stack], layer, False, False)
+        locate_layer_mock.assert_called_with(stack, [stack], layer, False, False)
 
         self.assertEqual(actual, expected_layer)
 
@@ -1855,8 +1782,8 @@ class TestSamFunctionProvider_get(TestCase):
         provider = SamFunctionProvider([])
         # Cheat a bit here by setting the value of this property directly
         function = Function(
-            function_id="not-value",
             name="not-value",
+            stack=Mock(stack_path=STACK_PATH),
             functionname="value",
             runtime=None,
             handler=None,
@@ -1875,7 +1802,6 @@ class TestSamFunctionProvider_get(TestCase):
             codesign_config_arn=None,
             architectures=None,
             function_url_config=None,
-            stack_path=STACK_PATH,
         )
         provider.functions = {"func1": function}
 
@@ -1885,8 +1811,8 @@ class TestSamFunctionProvider_get(TestCase):
         provider = SamFunctionProvider([])
         # Cheat a bit here by setting the value of this property directly
         function1 = Function(
-            function_id="not-value",
             name="not-value",
+            stack=Mock(stack_path=posixpath.join("this_is", "stack_path_C")),
             functionname="not-value",
             runtime=None,
             handler=None,
@@ -1905,12 +1831,12 @@ class TestSamFunctionProvider_get(TestCase):
             codesign_config_arn=None,
             architectures=None,
             function_url_config=None,
-            stack_path=posixpath.join("this_is", "stack_path_C"),
         )
 
         function2 = Function(
-            function_id="expected_function_id",
             name="not-value",
+            stack=Mock(stack_path=posixpath.join("this_is", "stack_path_B")),
+            custom_id="expected_custom_id",
             functionname="not-value",
             runtime=None,
             handler=None,
@@ -1929,12 +1855,11 @@ class TestSamFunctionProvider_get(TestCase):
             codesign_config_arn=None,
             architectures=None,
             function_url_config=None,
-            stack_path=posixpath.join("this_is", "stack_path_B"),
         )
 
         function3 = Function(
-            function_id="not-value",
             name="expected_logical_id",
+            stack=Mock(stack_path=posixpath.join("this_is", "stack_path_A")),
             functionname="not-value",
             runtime=None,
             handler=None,
@@ -1953,12 +1878,11 @@ class TestSamFunctionProvider_get(TestCase):
             codesign_config_arn=None,
             architectures=None,
             function_url_config=None,
-            stack_path=posixpath.join("this_is", "stack_path_A"),
         )
 
         function4 = Function(
-            function_id="not-value",
             name="not-value",
+            stack=Mock(stack_path=posixpath.join("this_is", "stack_path_D")),
             functionname="expected_function_name",
             runtime=None,
             handler=None,
@@ -1977,13 +1901,12 @@ class TestSamFunctionProvider_get(TestCase):
             codesign_config_arn=None,
             architectures=None,
             function_url_config=None,
-            stack_path=posixpath.join("this_is", "stack_path_D"),
         )
         provider.functions = {"func1": function1, "func2": function2, "func3": function3, "func4": function4}
 
         self.assertIsNone(provider.get("value"))
         self.assertEqual(function1, provider.get("func1"))
-        self.assertEqual(function2, provider.get("expected_function_id"))
+        self.assertEqual(function2, provider.get("expected_custom_id"))
         self.assertEqual(function3, provider.get("expected_logical_id"))
         self.assertEqual(function4, provider.get("expected_function_name"))
         # The returned function is the full_path sorted one if multiple ones are matched
@@ -2028,7 +1951,7 @@ class TestRefreshableSamFunctionProvider(TestCase):
         template2 = {"Resources": {"a": "b"}}
         get_template_mock.return_value = template
         stack = make_root_stack(template, self.parameter_overrides)
-        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2, parent_stack=stack)
         provider = RefreshableSamFunctionProvider(
             [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
         )
@@ -2084,7 +2007,7 @@ class TestRefreshableSamFunctionProvider(TestCase):
         template2 = {"Resources": {"a": "b"}}
         get_template_mock.return_value = template
         stack = make_root_stack(template, self.parameter_overrides)
-        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2, parent_stack=stack)
         provider = RefreshableSamFunctionProvider(
             [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
         )
@@ -2216,7 +2139,7 @@ class TestRefreshableSamFunctionProvider(TestCase):
         template2 = {"Resources": {"a": "b"}}
         get_template_mock.return_value = template
         stack = make_root_stack(template, self.parameter_overrides)
-        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2, parent_stack=stack)
         provider = RefreshableSamFunctionProvider(
             [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
         )
@@ -2227,10 +2150,10 @@ class TestRefreshableSamFunctionProvider(TestCase):
         get_template_mock.return_value = updated_template
         stack = make_root_stack(updated_template, self.parameter_overrides)
         get_template_mock.return_value = updated_template2
-        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, updated_template2)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, updated_template2, parent_stack=stack)
         get_template_mock.return_value = updated_template3
         stack3 = Stack(
-            "childStack", "childStack2", "child/child/template.yaml", self.parameter_overrides, updated_template3
+            "childStack", "childStack2", "child/child/template.yaml", self.parameter_overrides, updated_template3, parent_stack=stack2
         )
         get_stacks_mock.return_value = [stack, stack2, stack3], None
 
@@ -2456,8 +2379,8 @@ class TestSamFunctionProvider_search_layer(TestCase):
     @patch.object(SamFunctionProvider, "_locate_layer_from_ref")
     def test_search_layer_fn_get(self, locate_layer_ref_mock):
         root_stack = Stack("", "root", "template.yaml", None, self.root_stack_template)
-        child_layer_stack = Stack("root", "LayerStack", "template.yaml", None, self.layer_stack_template)
-        child_function_stack = Stack("root", "FunctionStack", "template.yaml", None, self.function_stack_template)
+        child_layer_stack = Stack("root", "LayerStack", "template.yaml", None, self.layer_stack_template, parent_stack=root_stack)
+        child_function_stack = Stack("root", "FunctionStack", "template.yaml", None, self.function_stack_template, parent_stack=root_stack)
         SamFunctionProvider._locate_layer_from_nested(
             child_function_stack, [root_stack, child_layer_stack, child_function_stack], {"Ref": "Layer"}
         )

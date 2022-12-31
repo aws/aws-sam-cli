@@ -5,7 +5,7 @@ import re
 from typing import cast
 
 from samcli.lib.bootstrap.stack_builder import AbstractStackBuilder
-from samcli.lib.providers.provider import Function
+from samcli.lib.providers.provider import Function, Stack
 from samcli.lib.utils.hash import str_checksum
 from samcli.lib.utils.resources import AWS_SERVERLESS_LAYERVERSION, AWS_CLOUDFORMATION_STACK
 
@@ -28,12 +28,12 @@ class NestedStackBuilder(AbstractStackBuilder):
 
     def add_function(
         self,
-        stack_name: str,
+        stack: Stack,
         layer_contents_folder: str,
         function: Function,
     ) -> str:
         layer_logical_id = self.get_layer_logical_id(function.full_path)
-        layer_name = self.get_layer_name(stack_name, function.full_path)
+        layer_name = self.get_layer_name(stack.name, function.full_path)
 
         self.add_resource(
             layer_logical_id,

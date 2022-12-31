@@ -56,14 +56,14 @@ class TestProvider(TestCase):
 
     @parameterized.expand(
         [
-            ("", "", os.path.join("builddir", "template.yaml")),  # root stack
-            ("", "A", os.path.join("builddir", "A", "template.yaml")),
-            ("A", "B", os.path.join("builddir", "A", "B", "template.yaml")),
-            ("A/B", "C", os.path.join("builddir", "A", "B", "C", "template.yaml")),
+            (None, "", os.path.join("builddir", "template.yaml")),  # root stack
+            (None, "A", os.path.join("builddir", "A", "template.yaml")),
+            (Mock(stack_path="A"), "B", os.path.join("builddir", "A", "B", "template.yaml")),
+            (Mock(stack_path="A/B", parent_stack=Mock(stack_path="A")), "C", os.path.join("builddir", "A", "B", "C", "template.yaml")),
         ]
     )
-    def test_stack_get_output_template_path(self, parent_stack_path, name, output_template_path):
-        root_stack = Stack(parent_stack_path, name, None, None, None, None)
+    def test_stack_get_output_template_path(self, parent_stack, name, output_template_path):
+        root_stack = Stack(parent_stack.stack_path if parent_stack else "", name, None, None, None, None, parent_stack=parent_stack)
         self.assertEqual(root_stack.get_output_template_path("builddir"), output_template_path)
 
 
@@ -96,25 +96,25 @@ class TestProvider(TestCase):
         ),
         (
             # empty metadata
-            Stack("stack", "stackLogicalId", "/stack", None, {}, {}),
+            Stack("stack", "stackLogicalId", "/stack", None, {}, {}, parent_stack=Mock(stack_path="stack")),
             "stackLogicalId",
             posixpath.join("stack", "stackLogicalId"),
         ),
         (
             # None metadata
-            Stack("stack", "stackLogicalId", "/stack", None, {}, None),
+            Stack("stack", "stackLogicalId", "/stack", None, {}, None, parent_stack=Mock(stack_path="stack")),
             "stackLogicalId",
             posixpath.join("stack", "stackLogicalId"),
         ),
         (
             # metadata without sam resource id
-            Stack("stack", "stackLogicalId", "/stack", None, {}, {"id": "id"}),
+            Stack("stack", "stackLogicalId", "/stack", None, {}, {"id": "id"}, parent_stack=Mock(stack_path="stack")),
             "stackLogicalId",
             posixpath.join("stack", "stackLogicalId"),
         ),
         (
             # metadata with sam resource id
-            Stack("stack", "stackLogicalId", "/stack", None, {}, {"SamResourceId": "stackCustomId"}),
+            Stack("stack", "stackLogicalId", "/stack", None, {}, {"SamResourceId": "stackCustomId"}, parent_stack=Mock(stack_path="stack")),
             "stackCustomId",
             posixpath.join("stack", "stackCustomId"),
         ),
@@ -357,20 +357,21 @@ class TestLayerVersion(TestCase):
 
         self.assertEqual(layer_version.version, 1)
 
-    def test_layer_version_id_is_layer_name_if_no_custom_resource_id(self):
+    def test_layer_version_id_is_layer_name(self):
         layer_version = LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None)
 
         self.assertEqual(layer_version.layer_id, layer_version.name)
 
-    def test_layer_version_id_is_custom_id_if_custom_resource_id_exist(self):
+    def test_custom_id_is_exist_if_custom_resource_id_exist(self):
         layer_version = LayerVersion(
             "arn:aws:lambda:region:account-id:layer:layer-name:1",
+            None,
             None,
             [],
             {"BuildMethod": "dummy_build_method", "SamResourceId": "CustomLayerId"},
         )
-        self.assertNotEqual(layer_version.layer_id, layer_version.name)
-        self.assertEqual(layer_version.layer_id, "CustomLayerId")
+        self.assertEqual(layer_version.layer_id, layer_version.name)
+        self.assertEqual(layer_version.custom_id, "CustomLayerId")
 
     def test_layer_arn_returned(self):
         layer_version = LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None)
@@ -379,7 +380,7 @@ class TestLayerVersion(TestCase):
 
     def test_layer_build_method_returned(self):
         layer_version = LayerVersion(
-            "arn:aws:lambda:region:account-id:layer:layer-name:1", None, [], {"BuildMethod": "dummy_build_method"}
+            "arn:aws:lambda:region:account-id:layer:layer-name:1", None, None, [], {"BuildMethod": "dummy_build_method"}
         )
 
         self.assertEqual(layer_version.build_method, "dummy_build_method")
@@ -396,7 +397,7 @@ class TestLayerVersion(TestCase):
         self.assertEqual(layer_version.name, "layer-name-1-8cebcd0539")
 
     def test_layer_version_is_defined_in_template(self):
-        layer_version = LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", ".")
+        layer_version = LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None, ".")
 
         self.assertTrue(layer_version.is_defined_within_template)
 
@@ -412,6 +413,7 @@ class TestLayerVersion(TestCase):
         layer_version = LayerVersion(
             "arn:aws:lambda:region:account-id:layer:layer-name:1",
             None,
+            None,
             [],
             {"BuildMethod": "dummy_build_method"},
             [ARM64],
@@ -423,6 +425,7 @@ class TestLayerVersion(TestCase):
         layer_version = LayerVersion(
             "arn:aws:lambda:region:account-id:layer:layer-name:1",
             None,
+            None,
             [],
             {"BuildMethod": "dummy_build_method", "BuildArchitecture": ARM64},
             [ARM64],
@@ -432,6 +435,7 @@ class TestLayerVersion(TestCase):
     def test_no_layer_build_architecture_returned(self):
         layer_version = LayerVersion(
             "arn:aws:lambda:region:account-id:layer:layer-name:1",
+            None,
             None,
             [],
             {"BuildMethod": "dummy_build_method"},
@@ -650,7 +654,7 @@ class TestGetResourceIDsByType(TestCase):
         self,
     ):
         result = get_resource_ids_by_type([self.root_stack, self.nested_stack, self.nested_nested_stack], "TypeC")
-        self.assertEqual(result, [ResourceIdentifier("NestedStack1/NestedNestedStack1/CDKFunction2-x")])
+        self.assertEqual(result, [ResourceIdentifier("NestedStack1/NestedNestedStack1/CDKFunction2")])
 
     def test_get_resource_ids_by_type_multiple_nested(
         self,
@@ -660,9 +664,9 @@ class TestGetResourceIDsByType(TestCase):
             result,
             [
                 ResourceIdentifier("Function1"),
-                ResourceIdentifier("CDKFunction1-x"),
+                ResourceIdentifier("CDKFunction1"),
                 ResourceIdentifier("NestedStack1/Function1"),
-                ResourceIdentifier("NestedStack1/CDKFunction1-x"),
+                ResourceIdentifier("NestedStack1/CDKFunction1"),
             ],
         )
 
@@ -699,11 +703,11 @@ class TestGetAllResourceIDs(TestCase):
             result,
             [
                 ResourceIdentifier("Function1"),
-                ResourceIdentifier("CDKFunction1-x"),
+                ResourceIdentifier("CDKFunction1"),
                 ResourceIdentifier("NestedStack1/Function1"),
-                ResourceIdentifier("NestedStack1/CDKFunction1-x"),
+                ResourceIdentifier("NestedStack1/CDKFunction1"),
                 ResourceIdentifier("NestedStack1/NestedNestedStack1/Function2"),
-                ResourceIdentifier("NestedStack1/NestedNestedStack1/CDKFunction2-x"),
+                ResourceIdentifier("NestedStack1/NestedNestedStack1/CDKFunction2"),
             ],
         )
 
@@ -811,8 +815,8 @@ class TestGetResourceFullPathByID(TestCase):
 
 class TestGetStack(TestCase):
     root_stack = Stack("", "Root", "template.yaml", None, {})
-    child_stack = Stack("Root", "Child", "root_stack/template.yaml", None, {})
-    child_child_stack = Stack("Root/Child", "ChildChild", "root_stack/child_stack/template.yaml", None, {})
+    child_stack = Stack("Root", "Child", "root_stack/template.yaml", None, {}, parent_stack=root_stack)
+    child_child_stack = Stack("Root/Child", "ChildChild", "root_stack/child_stack/template.yaml", None, {}, parent_stack=child_stack)
 
     def test_get_parent_stack(self):
         stack = Stack.get_parent_stack(self.child_stack, [self.root_stack, self.child_stack, self.child_child_stack])

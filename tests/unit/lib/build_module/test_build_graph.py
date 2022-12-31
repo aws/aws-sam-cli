@@ -34,14 +34,14 @@ from samcli.lib.build.build_graph import (
     BuildHashingInformation,
     HANDLER_FIELD,
 )
-from samcli.lib.providers.provider import Function, LayerVersion
+from samcli.lib.providers.provider import Function, LayerVersion, Stack
 from samcli.lib.utils import osutils
 from samcli.lib.utils.packagetype import ZIP
 
 
 def generate_function(
-    function_id="name",
     name="name",
+    stack=Stack("", "stack_name", "template.yaml", None, {}),
     function_name="function_name",
     runtime="runtime",
     memory="memory",
@@ -65,8 +65,8 @@ def generate_function(
         metadata = {}
 
     return Function(
-        function_id,
         name,
+        stack,
         function_name,
         runtime,
         memory,

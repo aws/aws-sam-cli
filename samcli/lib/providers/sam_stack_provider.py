@@ -10,6 +10,7 @@ from samcli.commands._utils.template import get_template_data
 from samcli.lib.providers.exceptions import RemoteStackLocationNotSupported
 from samcli.lib.providers.provider import Stack, get_full_path
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
+from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 from samcli.lib.utils.resources import AWS_CLOUDFORMATION_STACK, AWS_SERVERLESS_APPLICATION
 
 LOG = logging.getLogger(__name__)
@@ -144,6 +145,7 @@ class SamLocalStackProvider(SamBaseProvider):
             location = unquote(urlparse(location).path)
         else:
             location = SamLocalStackProvider.normalize_resource_path(template_file, location)
+        custom_id = ResourceMetadataNormalizer.get_custom_id(resource_properties, name)
 
         return Stack(
             parent_stack_path=stack_path,
@@ -154,6 +156,7 @@ class SamLocalStackProvider(SamBaseProvider):
             ),
             template_dict=get_template_data(location),
             metadata=resource_properties.get("Metadata", {}),
+            custom_id=custom_id,
         )
 
     @staticmethod
@@ -178,6 +181,7 @@ class SamLocalStackProvider(SamBaseProvider):
             template_url = unquote(urlparse(template_url).path)
         else:
             template_url = SamLocalStackProvider.normalize_resource_path(template_file, template_url)
+        custom_id = ResourceMetadataNormalizer.get_custom_id(resource_properties, name)
 
         return Stack(
             parent_stack_path=stack_path,
@@ -188,6 +192,7 @@ class SamLocalStackProvider(SamBaseProvider):
             ),
             template_dict=get_template_data(template_url),
             metadata=resource_properties.get("Metadata", {}),
+            custom_id=custom_id,
         )
 
     @staticmethod

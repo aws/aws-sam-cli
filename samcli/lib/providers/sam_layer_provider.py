@@ -61,7 +61,8 @@ class SamLayerProvider(SamBaseProvider):
             raise ValueError("Layer name is required")
 
         for layer in self._layers:
-            if name in (layer.full_path, layer.layer_id, layer.name, layer.full_name):
+            if name in (layer.full_path, layer.layer_id, layer.name, layer.logical_id,
+                layer.full_logical_id, layer.custom_id,  layer.full_custom_id):
                 return layer
         return None
 
@@ -149,29 +150,11 @@ class SamLayerProvider(SamBaseProvider):
             LOG.debug("--base-dir is not presented, adjusting uri %s relative to %s", codeuri, stack.location)
             codeuri = SamLocalStackProvider.normalize_resource_path(stack.location, codeuri)
 
-        # LayerVersion extracts the name and layer ID from arn,
-        # but for CDK resources, must specify the CDK resource name in name
-        # and the logical ID in layer ID to support the ability to find layers by CDK resource name.
-        # Specify name and layer ID at initialization to avoid extraction from arn.
-        name = ResourceMetadataNormalizer.get_resource_name(resource_properties, layer_logical_id)
-        is_cdk_resource = name != layer_logical_id
-        if is_cdk_resource:
-            return LayerVersion(
-                arn=layer_logical_id,
-                codeuri=codeuri,
-                compatible_runtimes=compatible_runtimes,
-                metadata=metadata,
-                compatible_architectures=compatible_architectures,
-                stack_path=stack.stack_path,
-                layer_id=layer_logical_id,
-                name=name,
-            )
-
         return LayerVersion(
             arn=layer_logical_id,
             codeuri=codeuri,
             compatible_runtimes=compatible_runtimes,
             metadata=metadata,
             compatible_architectures=compatible_architectures,
-            stack_path=stack.stack_path,
+            stack=stack,
         )

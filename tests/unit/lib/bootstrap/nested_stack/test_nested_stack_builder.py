@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from samcli.lib.bootstrap.nested_stack.nested_stack_builder import NestedStackBuilder
-from samcli.lib.providers.provider import Function
+from samcli.lib.providers.provider import Function, Stack
 from samcli.lib.utils.resources import AWS_SERVERLESS_LAYERVERSION
 from tests.unit.lib.build_module.test_build_graph import generate_function
 
@@ -15,12 +15,12 @@ class TestNestedStackBuilder(TestCase):
 
     def test_with_function_added(self):
         function_runtime = "runtime"
-        stack_name = "stack_name"
+        stack = Stack("", "stack_name", "template.yaml", None, {})
         function_logical_id = "FunctionLogicalId"
         layer_contents_folder = "layer/contents/folder"
 
-        function = generate_function(function_id=function_logical_id, runtime=function_runtime)
-        self.nested_stack_builder.add_function(stack_name, layer_contents_folder, function)
+        function = generate_function(name=function_logical_id, runtime=function_runtime)
+        self.nested_stack_builder.add_function(stack, layer_contents_folder, function)
 
         self.assertTrue(self.nested_stack_builder.is_any_function_added())
 
@@ -40,7 +40,7 @@ class TestNestedStackBuilder(TestCase):
 
         layer_properties = layer_resource.get("Properties", {})
         layer_name = layer_properties.get("LayerName")
-        self.assertTrue(layer_name.startswith(stack_name))
+        self.assertTrue(layer_name.startswith(stack.name))
         self.assertIn(function_logical_id, layer_name)
         self.assertTrue(layer_name.endswith("DepLayer"))
 

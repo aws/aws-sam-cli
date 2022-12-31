@@ -40,10 +40,9 @@ class Function(NamedTuple):
     Named Tuple to representing the properties of a Lambda Function
     """
 
-    # Function id, can be Logical ID or any function identifier to define a function in specific IaC
-    function_id: str
     # Function's logical ID (used as Function name below if Property `FunctionName` is not defined)
     name: str
+    stack: "Stack"
     # Function name (used in place of logical ID)
     functionname: str
     # Runtime/language
@@ -82,29 +81,48 @@ class Function(NamedTuple):
     architectures: Optional[List[str]]
     # The function url configuration
     function_url_config: Optional[Dict]
-    # The path of the stack relative to the root stack, it is empty for functions in root stack
-    stack_path: str = ""
+    custom_id: Optional[str] = None
 
     @property
     def full_path(self) -> str:
         """
-        Return the path-like identifier of this Function. If it is in root stack, full_path = function_id.
+        Return the path-like identifier of this Function. If it is in root stack, full_path = name.
         This path is guaranteed to be unique in a multi-stack situation.
         Example:
             "HelloWorldFunction"
             "ChildStackA/GrandChildStackB/AFunctionInNestedStack"
         """
-        return get_full_path(self.stack_path, self.function_id)
+        return get_full_path(self.stack.stack_path, self.name)
 
     @property
-    def full_name(self) -> str:
+    def logical_id(self) -> str:
         """
         Return the path-like name of this Function. If it is in root stack, full_name = name.
         Example:
             "HelloWorldFunction"
             "ChildStackA/GrandChildStackB/AFunctionInNestedStack"
         """
-        return get_full_name(self.stack_path, self.name)
+        return self.name
+
+    @property
+    def full_logical_id(self) -> str:
+        """
+        Return the path-like name of this Function. If it is in root stack, full_name = name.
+        Example:
+            "HelloWorldFunction"
+            "ChildStackA/GrandChildStackB/AFunctionInNestedStack"
+        """
+        return get_full_logical_id(self.stack, self.logical_id)
+
+    @property
+    def full_custom_id(self) -> Optional[str]:
+        """
+        Return the path-like name of this Function. If it is in root stack, full_name = name.
+        Example:
+            "HelloWorldFunction"
+            "ChildStackA/GrandChildStackB/AFunctionInNestedStack"
+        """
+        return get_full_custom_id(self.stack, self.custom_id)
 
     @property
     def skip_build(self) -> bool:
@@ -193,13 +211,12 @@ class LayerVersion:
     def __init__(
         self,
         arn: str,
-        codeuri: Optional[str],
+        stack: "Stack",
+        codeuri: Optional[str] = None,
         compatible_runtimes: Optional[List[str]] = None,
         metadata: Optional[Dict] = None,
         compatible_architectures: Optional[List[str]] = None,
-        stack_path: str = "",
-        layer_id: Optional[str] = None,
-        name: Optional[str] = None,
+        # custom_id: Optional[str] = None,
     ) -> None:
         """
         Parameters
@@ -218,7 +235,6 @@ class LayerVersion:
         if not isinstance(arn, str):
             raise UnsupportedIntrinsic("{} is an Unsupported Intrinsic".format(arn))
 
-        self._stack_path = stack_path
         self._arn = arn
         self._codeuri = codeuri
         self.is_defined_within_template = bool(codeuri)
@@ -229,9 +245,8 @@ class LayerVersion:
         self._build_architecture = cast(str, metadata.get("BuildArchitecture", X86_64))
         self._compatible_architectures = compatible_architectures
         self._skip_build = bool(metadata.get(SAM_METADATA_SKIP_BUILD_KEY, False))
-        self._custom_layer_id = metadata.get(SAM_RESOURCE_ID_KEY)
-        self._name = name
-        self._layer_id = layer_id
+        self._stack = stack
+        self._custom_id = cast(str, metadata.get(SAM_RESOURCE_ID_KEY, X86_64))
 
     @staticmethod
     def _compute_layer_version(is_defined_within_template: bool, arn: str) -> Optional[int]:
@@ -302,7 +317,7 @@ class LayerVersion:
 
     @property
     def stack_path(self) -> str:
-        return self._stack_path
+        return self._stack.stack_path
 
     @property
     def skip_build(self) -> bool:
@@ -323,7 +338,7 @@ class LayerVersion:
         # here we delay the validation process (in _compute_layer_name) rather than in __init__() to ensure
         # customers still have a smooth build experience.
         if not self._layer_id:
-            self._layer_id = cast(str, self._custom_layer_id if self._custom_layer_id else self.name)
+            self._layer_id = cast(str, self.name)
         return self._layer_id
 
     @property
@@ -388,14 +403,32 @@ class LayerVersion:
         return get_full_path(self.stack_path, self.layer_id)
 
     @property
-    def full_name(self) -> str:
+    def logical_id(self) -> str:
+        return self.name
+
+    @property
+    def full_logical_id(self) -> str:
         """
-        Return the path-like name of this Layer. If it is in root stack, full_name = name.
+        Return the path-like name of this Function. If it is in root stack, full_name = name.
         Example:
-            "HelloWorldLayer"
-            "ChildStackA/GrandChildStackB/ALayerInNestedStack"
+            "HelloWorldFunction"
+            "ChildStackA/GrandChildStackB/AFunctionInNestedStack"
         """
-        return get_full_name(self.stack_path, self.name)
+        return get_full_logical_id(self._stack, self.logical_id)
+
+    @property
+    def custom_id(self) -> Optional[str]:
+        return self._custom_id
+
+    @property
+    def full_custom_id(self) -> Optional[str]:
+        """
+        Return the path-like name of this Function. If it is in root stack, full_name = name.
+        Example:
+            "HelloWorldFunction"
+            "ChildStackA/GrandChildStackB/AFunctionInNestedStack"
+        """
+        return get_full_custom_id(self._stack, self.custom_id)
 
     @property
     def build_architecture(self) -> str:
@@ -532,6 +565,8 @@ class Stack:
     template_dict: Dict
     # metadata
     metadata: Optional[Dict] = None
+    parent_stack: Optional["Stack"]
+    custom_id: Optional[str]
 
     def __init__(
         self,
@@ -541,6 +576,8 @@ class Stack:
         parameters: Optional[Dict],
         template_dict: Dict,
         metadata: Optional[Dict] = None,
+        parent_stack: Optional["Stack"] = None,
+        custom_id: Optional[str] = None,
     ):
         self.parent_stack_path = parent_stack_path
         self.name = name
@@ -550,6 +587,9 @@ class Stack:
         self.metadata = metadata
         self._resources: Optional[Dict] = None
         self._raw_resources: Optional[Dict] = None
+        self.parent_stack = parent_stack
+        self.custom_id = custom_id if custom_id is not None else name
+        self.logical_id = name
 
     @property
     def stack_id(self) -> str:
@@ -565,14 +605,14 @@ class Stack:
             root stack's child stack StackX: "StackX"
             StackX's child stack StackY: "StackX/StackY"
         """
-        return posixpath.join(self.parent_stack_path, self.stack_id)
+        return posixpath.join(self.parent_stack.stack_path, self.stack_id) if self.parent_stack else self.stack_id
 
     @property
     def is_root_stack(self) -> bool:
         """
         Return True if the stack is the root stack.
         """
-        return not self.stack_path
+        return not self.parent_stack
 
     @property
     def resources(self) -> Dict:
@@ -595,6 +635,26 @@ class Stack:
             return self._raw_resources
         self._raw_resources = cast(Dict, self.template_dict.get("Resources", {}))
         return self._raw_resources
+
+    @property
+    def full_logical_id(self) -> str:
+        """
+        Return the path-like name of this Function. If it is in root stack, full_name = name.
+        Example:
+            "HelloWorldFunction"
+            "ChildStackA/GrandChildStackB/AFunctionInNestedStack"
+        """
+        return get_full_logical_id(self, self.logical_id)
+
+    @property
+    def full_custom_id(self) -> Optional[str]:
+        """
+        Return the path-like name of this Function. If it is in root stack, full_name = name.
+        Example:
+            "HelloWorldFunction"
+            "ChildStackA/GrandChildStackB/AFunctionInNestedStack"
+        """
+        return get_full_custom_id(self, self.custom_id)
 
     def get_output_template_path(self, build_root: str) -> str:
         """
@@ -749,16 +809,27 @@ def get_full_path(stack_path: str, resource_id: str) -> str:
         return resource_id
     return posixpath.join(stack_path, resource_id)
 
-
-def get_full_name(stack_path: str, resource_name: str) -> str:
+def get_full_logical_id(stack: Stack, logical_id: str) -> str:
     """
-    Return the posix path-like name
-    while will used for name a resource from resources in a multi-stack situation
+    Return the path-like logical_id of this Function. If it is in root stack, full_custom_id = logical_id.
+    Example:
+        "HelloWorldFunction"
+        "ChildStackA/GrandChildStackB/AFunctionInNestedStack"
     """
-    if not stack_path:
-        return resource_name
-    return posixpath.join(stack_path, resource_name)
+    if not isinstance(stack.parent_stack, Stack) or stack.logical_id == logical_id:
+        return logical_id
+    return posixpath.join(stack.full_logical_id, logical_id)
 
+def get_full_custom_id(stack: Stack, custom_id: Optional[str]) -> Optional[str]:
+    """
+    Return the path-like custom_id of this Function. If it is in root stack, full_custom_id = custom_id.
+    Example:
+        "HelloWorldFunction"
+        "ChildStackA/GrandChildStackB/AFunctionInNestedStack"
+    """
+    if not isinstance(stack.parent_stack, Stack) or stack.custom_id == custom_id:
+        return custom_id
+    return posixpath.join(stack.full_custom_id, custom_id)
 
 def get_resource_by_id(
     stacks: List[Stack], identifier: ResourceIdentifier, explicit_nested: bool = False
@@ -786,8 +857,8 @@ def get_resource_by_id(
         if stack.stack_path == identifier.stack_path or search_all_stacks:
             found_resource = None
             for logical_id, resource in stack.resources.items():
-                resource_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)
-                if resource_id == identifier.resource_iac_id or (
+                custom_id = ResourceMetadataNormalizer.get_custom_id(resource, logical_id)
+                if logical_id == identifier.resource_iac_id or custom_id == identifier.resource_iac_id or (
                     not identifier.stack_path and logical_id == identifier.resource_iac_id
                 ):
                     found_resource = resource
@@ -818,8 +889,8 @@ def get_resource_full_path_by_id(stacks: List[Stack], identifier: ResourceIdenti
             continue
         for logical_id, resource in stack.resources.items():
             resource_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)
-            resource_name = ResourceMetadataNormalizer.get_resource_name(resource, logical_id)
-            if identifier.resource_iac_id in [resource_id, resource_name] or (
+            custom_id = ResourceMetadataNormalizer.get_custom_id(resource, logical_id)
+            if identifier.resource_iac_id in [resource_id, custom_id] or (
                 not identifier.stack_path and logical_id == identifier.resource_iac_id
             ):
                 return get_full_path(stack.stack_path, resource_id)

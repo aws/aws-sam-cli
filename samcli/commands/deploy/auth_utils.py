@@ -5,7 +5,7 @@ import logging
 from typing import List, Tuple
 
 from samcli.commands.local.lib.swagger.reader import SwaggerReader
-from samcli.lib.providers.provider import Stack
+from samcli.lib.providers.provider import Function, Stack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 
 LOG = logging.getLogger(__name__)
@@ -46,7 +46,7 @@ def auth_per_resource(stacks: List[Stack]):
     return _auth_per_resource
 
 
-def _auth_resource_event(sam_function_provider: SamFunctionProvider, sam_function, auth_resource_list):
+def _auth_resource_event(sam_function_provider: SamFunctionProvider, sam_function: Function, auth_resource_list):
     """
 
     Parameters
@@ -72,7 +72,7 @@ def _auth_resource_event(sam_function_provider: SamFunctionProvider, sam_functio
                 # Is there any auth defined on the referred http api or serverless api through the `id` construct?
                 elif _auth_id(
                     # use the resources containing the sam_function
-                    sam_function_provider.get_resources_by_stack_path(sam_function.stack_path),
+                    sam_function_provider.get_resources_by_stack_path(sam_function.stack.stack_path),
                     event.get("Properties", {}),
                     identifier,
                 ):
