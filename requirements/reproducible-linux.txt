@@ -507,9 +507,9 @@ serverlessrepo==0.1.10 \
     --hash=sha256:671f48038123f121437b717ed51f253a55775590f00fbab6fbc6a01f8d05c017 \
     --hash=sha256:b99c69be8ce87ccc48103fbe371ba7b148c3374c57862e59118c402522e5ed52
     # via aws-sam-cli (setup.py)
-setuptools==54.2.0 \
-    --hash=sha256:aa9c24fb83a9116b8d425e53bec24c7bfdbffc313c2159f9ed036d4a6dd32d7d \
-    --hash=sha256:b726461910b9ba30f077880c228bea22121aec50b172edf39eb7ff026c054a11
+setuptools==65.5.1 \
+    --hash=sha256:d0b9a8433464d5800cbe05094acf5c6d52a91bfac9b52bcfc4d41382be5d5d31 \
+    --hash=sha256:e197a19aa8ec9722928f2206f8de752def0e4c9fc6953527360d1c36d94ddb2f
     # via
     #   aws-lambda-builders
     #   jsonschema
