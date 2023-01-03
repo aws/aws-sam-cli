@@ -922,7 +922,7 @@
       "help": "Generates an Amazon S3 Batch Operations Invocation Event",
       "tags": {
         "bucket-arn": {
-          "default": "arn:aws:s3:us-east-1:0123456788:examplebucket"
+          "default": "arn:aws:s3:::examplebucket"
         },
         "key": {
           "default": "test/key",
