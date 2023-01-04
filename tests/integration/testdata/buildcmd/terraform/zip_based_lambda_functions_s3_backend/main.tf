@@ -55,6 +55,7 @@ locals {
   layer10_src_path               = "./artifacts/layer10"
   layer9_src_path                = "./artifacts/layer9"
   layer9_artifact_file_name      = "layer9.zip"
+  layer11_src_path               = "./artifacts/layer11"
 }
 
 resource "random_uuid" "s3_bucket" {
@@ -803,4 +804,31 @@ module "function10" {
   layers        = [module.layer10.lambda_layer_arn]
   store_on_s3   = true
   s3_bucket     = aws_s3_bucket.lambda_code_bucket.id
+}
+
+module "layer11" {
+  source              = "terraform-aws-modules/lambda/aws"
+  version             = "4.6.0"
+  create_layer        = true
+  layer_name          = "lambda_layer11"
+  compatible_runtimes = ["python3.8"]
+  runtime             = "python3.8"
+  source_path = [{
+    path             = local.layer11_src_path
+    prefix_in_zip    = "python"
+    pip_requirements = true
+  }]
+}
+
+module "function11" {
+  source  = "terraform-aws-modules/lambda/aws"
+  version = "4.6.0"
+  timeout = 300
+  source_path = [{
+    path = local.hello_world_function_src_path
+  }]
+  function_name = "function11"
+  handler       = "app.lambda_handler"
+  runtime       = "python3.8"
+  layers        = [module.layer11.lambda_layer_arn]
 }
