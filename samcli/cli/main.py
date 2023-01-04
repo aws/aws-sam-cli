@@ -4,7 +4,6 @@ Entry point for the CLI
 
 import logging
 import json
-from typing import Dict, cast
 
 import click
 
