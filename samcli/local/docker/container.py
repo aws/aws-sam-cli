@@ -3,7 +3,6 @@ Representation of a generic Docker container
 """
 import os
 import logging
-import tarfile
 import tempfile
 import threading
 import socket
@@ -14,6 +13,7 @@ import requests
 
 from docker.errors import NotFound as DockerNetworkNotFound
 from samcli.lib.utils.retry import retry
+from samcli.lib.utils.tar import extract_tarfile
 from .exceptions import ContainerNotStartableException
 
 from .utils import to_posix_path, find_free_port, NoFreePortsError
@@ -379,27 +379,7 @@ class Container:
             # Seek the handle back to start of file for tarfile to use
             fp.seek(0)
 
-            with tarfile.open(fileobj=fp, mode="r") as tar:
-
-                def is_within_directory(directory, target):
-
-                    abs_directory = os.path.abspath(directory)
-                    abs_target = os.path.abspath(target)
-
-                    prefix = os.path.commonprefix([abs_directory, abs_target])
-
-                    return prefix == abs_directory
-
-                def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
-
-                    for member in tar.getmembers():
-                        member_path = os.path.join(path, member.name)
-                        if not is_within_directory(path, member_path):
-                            raise Exception("Attempted Path Traversal in Tar File")
-
-                    tar.extractall(path, members, numeric_owner=numeric_owner)
-
-                safe_extract(tar, path=to_host_path)
+            extract_tarfile(tarfile_path=fp, unpack_dir=to_host_path)
 
     @staticmethod
     def _write_container_output(output_itr, stdout=None, stderr=None):
