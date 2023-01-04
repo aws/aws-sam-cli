@@ -6,6 +6,7 @@ import logging
 import os
 import click
 
+from samcli.cli.context import Context
 from samcli.cli.global_config import GlobalConfig
 from samcli.commands._utils.constants import DEFAULT_BUILT_TEMPLATE_PATH
 from samcli.commands._utils.experimental import (
@@ -58,7 +59,13 @@ class HookNameOption(click.Option):
         if not _check_experimental_flag(hook_name, command_name, opts, ctx.default_map):
             return super().handle_parse_result(ctx, opts, args)
 
-        self._call_prepare_hook(iac_hook_wrapper, opts)
+        try:
+            self._call_prepare_hook(iac_hook_wrapper, opts)
+        except Exception as ex:
+            # capture exceptions from prepare hook to emit in track_command
+            c = Context.get_current_context()
+            c.exception = ex
+
         return super().handle_parse_result(ctx, opts, args)
 
     def _call_prepare_hook(self, iac_hook_wrapper, opts):

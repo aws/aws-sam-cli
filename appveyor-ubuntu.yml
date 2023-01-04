@@ -285,7 +285,7 @@ for:
 
     test_script:
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/package --json-report --json-report-file=TEST_REPORT-integration-package.json"
+      - sh: "pytest -vv tests/integration/package -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package.json"
 
   # Integ testing delete
   -
@@ -296,7 +296,7 @@ for:
 
     test_script:
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/delete --json-report --json-report-file=TEST_REPORT-integration-delete.json"
+      - sh: "pytest -vv tests/integration/delete -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-delete.json"
 
   # Integ testing sync
   -
