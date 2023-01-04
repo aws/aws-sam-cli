@@ -2,9 +2,7 @@
 Tarball Archive utility
 """
 
-import os
 import tarfile
-from typing import Union
 from tempfile import TemporaryFile
 from contextlib import contextmanager
 
@@ -41,26 +39,3 @@ def create_tarball(tar_paths, tar_filter=None, mode="w"):
         yield tarballfile
     finally:
         tarballfile.close()
-
-
-def _is_within_directory(directory: Union[str, os.PathLike], target: Union[str, os.PathLike]) -> bool:
-    """Checks if target is located under directory"""
-    abs_directory = os.path.abspath(directory)
-    abs_target = os.path.abspath(target)
-
-    prefix = os.path.commonprefix([abs_directory, abs_target])
-
-    return bool(prefix == abs_directory)
-
-
-def extract_tarfile(tarfile_path: Union[str, os.PathLike], unpack_dir: Union[str, os.PathLike]) -> None:
-    """Extracts a tarfile"""
-    with tarfile.open(tarfile_path, "r:*") as tar:
-        # Makes sure the tar file is sanitized and is free of directory traversal vulnerability
-        # See: https://github.com/advisories/GHSA-gw9q-c7gh-j9vm
-        for member in tar.getmembers():
-            member_path = os.path.join(unpack_dir, member.name)
-            if not _is_within_directory(unpack_dir, member_path):
-                raise tarfile.ExtractError("Attempted Path Traversal in Tar File")
-
-        tar.extractall(unpack_dir)
