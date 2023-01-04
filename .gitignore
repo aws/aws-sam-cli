@@ -163,6 +163,11 @@ typings/
 # Output of 'npm pack'
 *.tgz
 
+# Except test file
+!tests/functional/testdata/lib/utils/test.tgz
+!tests/functional/testdata/lib/utils/path_reversal_uxix.tgz
+!tests/functional/testdata/lib/utils/path_reversal_win.tgz
+
 # Yarn Integrity file
 .yarn-integrity
 
