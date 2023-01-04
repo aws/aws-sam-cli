@@ -80,6 +80,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 '{"key": "value", "key2": "value2"}',
                 None,
+                ANY,
             )
 
     @patch("samcli.commands.validate.validate.do_cli")
@@ -100,7 +101,7 @@ class TestSamConfigForAllCommands(TestCase):
                 LOG.exception("Command failed", exc_info=result.exc_info)
             self.assertIsNone(result.exception)
 
-            do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")), False)
+            do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")))
 
     @patch("samcli.commands.build.command.do_cli")
     def test_build(self, do_cli_mock):
@@ -1248,7 +1249,7 @@ class TestSamConfigWithOverrides(TestCase):
                 LOG.exception("Command failed", exc_info=result.exc_info)
             self.assertIsNone(result.exception)
 
-            do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")), False)
+            do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")))
 
 
 @contextmanager

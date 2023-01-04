@@ -2,6 +2,7 @@
 Class used to parse and update template when tracing is enabled
 """
 import logging
+from typing import List
 from samcli.lib.init.template_modifiers.cli_template_modifier import TemplateModifier
 
 LOG = logging.getLogger(__name__)
@@ -22,7 +23,19 @@ class XRayTracingTemplateModifier(TemplateModifier):
         "https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst\n"
     )
 
-    def _add_new_field_to_template(self):
+    def _get_template(self) -> List[str]:
+        """
+        Gets data the SAM templates and returns it in a array
+
+        Returns
+        -------
+        list
+            array with updated template data
+        """
+        with open(self.template_location, "r") as file:
+            return file.readlines()
+
+    def _update_template_fields(self):
         """
         Add new field to SAM template
         """
@@ -91,3 +104,16 @@ class XRayTracingTemplateModifier(TemplateModifier):
         )
         message = f"Warning: Unable to add Tracing to the project. To learn more about Tracing visit {link}"
         LOG.warning(message)
+
+    def _write(self, template: list):
+        """
+        write generated template into SAM template
+
+        Parameters
+        ----------
+        template : list
+            array with updated template data
+        """
+        with open(self.template_location, "w") as file:
+            for line in template:
+                file.write(line)

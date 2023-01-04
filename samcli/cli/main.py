@@ -14,10 +14,10 @@ from samcli.lib.utils.sam_logging import (
     SAM_CLI_FORMATTER,
     SAM_CLI_LOGGER_NAME,
 )
-from .options import debug_option, region_option, profile_option
-from .context import Context
-from .command import BaseCommand
-from .global_config import GlobalConfig
+from samcli.cli.options import debug_option, region_option, profile_option
+from samcli.cli.context import Context
+from samcli.cli.command import BaseCommand
+from samcli.cli.global_config import GlobalConfig
 
 LOG = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
@@ -116,6 +116,16 @@ def cli(ctx):
     """
     import atexit
     from samcli.lib.telemetry.metric import send_installed_metric, emit_all_metrics
+
+    # if development version of SAM CLI is used, attach module proxy
+    # to catch missing configuration for dynamic/hidden imports
+    # TODO: in general, we need better mechanisms to set which execution environment is SAM CLI operating
+    # rather than checking the executable name
+    if ctx and getattr(ctx, "command_path", None) == "samdev":
+        from samcli.cli.import_module_proxy import attach_import_module_proxy
+
+        LOG.info("Attaching import module proxy for analyzing dynamic imports")
+        attach_import_module_proxy()
 
     gc = GlobalConfig()
     if gc.telemetry_enabled is None:
