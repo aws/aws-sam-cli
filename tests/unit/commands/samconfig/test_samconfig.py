@@ -910,8 +910,8 @@ class TestSamConfigForAllCommands(TestCase):
 
             do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")), "0.1.1")
 
-    @patch("samcli.cli.main._gather_system_info")
-    @patch("samcli.cli.main._gather_additional_dependencies_info")
+    @patch("samcli.cli.main.gather_system_info")
+    @patch("samcli.cli.main.gather_additional_dependencies_info")
     def test_info_must_not_read_from_config(self, deps_info_mock, system_info_mock):
         config_values = {"a": "b"}
         system_info_mock.return_value = {"Python": "1.2.3"}
