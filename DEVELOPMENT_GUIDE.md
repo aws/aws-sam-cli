@@ -330,13 +330,13 @@ conventions are best practices that we have learnt over time.
     
 ### Dependency Updates
 
-Please update all the required files if the changes involve a version update on a dependency or to include a new dependency. The requirements files are located inside the `requirements folder`.
+Please update all the required files if the changes involve a version update on a dependency or to include a new dependency. The requirements files are located inside the `requirements` folder.
 
 #### base.txt for SAM CLI code dependencies
 For dependencies used in SAM CLI code, update `base.txt` in `requirements` folder. To update `base.txt` file, simply follow the current convention and input the dependency name plus version, together with any necessary comment. For more information on the operators to be used for restricting compatible versions, read on [python's enhancement proposals](https://peps.python.org/pep-0440/#compatible-release).
 
 #### reproducible-linux.txt for SAM CLI code dependencies
-For dependencies used in SAM CLI code, also remember to update`reproducible-linux.txt` in `requirements` folder and `THIRD-PART-LICENSES` in `installer/assets` folder. To update the `reproducible-linux.txt`, run the following script to replace the file:
+For dependencies used in SAM CLI code, also remember to update`reproducible-linux.txt` in `requirements` folder and `THIRD-PARTY-LICENSES` in `installer/assets` folder. To update the `reproducible-linux.txt`, run the following script to replace the file:
 ```
 make update-reproducible-reqs
 ```
