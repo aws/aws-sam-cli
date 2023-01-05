@@ -379,7 +379,7 @@ class Container:
             # Seek the handle back to start of file for tarfile to use
             fp.seek(0)
 
-            extract_tarfile(tarfile_path=fp, unpack_dir=to_host_path)
+            extract_tarfile(tarfile_path=fp.name, unpack_dir=to_host_path)
 
     @staticmethod
     def _write_container_output(output_itr, stdout=None, stderr=None):
