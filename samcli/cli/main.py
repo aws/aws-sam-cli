@@ -14,6 +14,7 @@ from samcli.lib.utils.sam_logging import (
     SAM_CLI_FORMATTER,
     SAM_CLI_LOGGER_NAME,
 )
+from samcli.lib.utils.system_info import gather_system_info, gather_additional_dependencies_info
 from samcli.cli.options import debug_option, region_option, profile_option
 from samcli.cli.context import Context
 from samcli.cli.command import BaseCommand
@@ -49,7 +50,12 @@ def print_info(ctx, param, value):
     if not value or ctx.resilient_parsing:
         return
 
-    click.echo(json.dumps({"version": __version__}, indent=2))
+    info = {
+        "version": __version__,
+        "system": gather_system_info(),
+        "additional_dependencies": gather_additional_dependencies_info(),
+    }
+    click.echo(json.dumps(info, indent=2))
 
     ctx.exit()
 

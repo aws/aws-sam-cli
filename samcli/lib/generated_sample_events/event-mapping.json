@@ -917,6 +917,19 @@
     }
   },
   "s3": {
+    "batch-invocation": {
+      "filename": "S3BatchInvocation",
+      "help": "Generates an Amazon S3 Batch Operations Invocation Event",
+      "tags": {
+        "bucket-arn": {
+          "default": "arn:aws:s3:::examplebucket"
+        },
+        "key": {
+          "default": "test/key",
+          "encoding": "url"
+        }
+      }
+    },
     "delete": {
       "filename": "S3Delete",
       "help": "Generates an Amazon S3 Delete Event",

@@ -1,8 +1,10 @@
+import json
 from unittest.mock import patch, Mock, PropertyMock, call
 
 from unittest import TestCase
 from click.testing import CliRunner
 from samcli.cli.main import cli
+from samcli import __version__
 
 
 class TestCliBase(TestCase):
@@ -54,3 +56,28 @@ class TestCliBase(TestCase):
 
             # If prompt is skipped, this should be NOT called
             send_installed_metric_mock.assert_not_called()
+
+
+class TestPrintSamCliInfo(TestCase):
+    @patch("samcli.cli.main.gather_system_info")
+    @patch("samcli.cli.main.gather_additional_dependencies_info")
+    def test_print_info(self, deps_info_mock, system_info_mock):
+        system_info_mock.return_value = {"Python": "1.2.3"}
+        deps_info_mock.return_value = {"dep1": "1.2.3", "dep2": "1.2.3"}
+        expected = {
+            "version": __version__,
+            "system": {
+                "Python": "1.2.3",
+            },
+            "additional_dependencies": {
+                "dep1": "1.2.3",
+                "dep2": "1.2.3",
+            },
+        }
+
+        mock_cfg = Mock()
+        with patch("samcli.cli.main.GlobalConfig", mock_cfg):
+            runner = CliRunner()
+            result = runner.invoke(cli, ["--info"])
+            self.assertEqual(result.exit_code, 0)
+            self.assertEqual(json.loads(result.output), expected)
