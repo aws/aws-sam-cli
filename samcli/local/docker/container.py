@@ -362,7 +362,7 @@ class Container:
         a_socket.close()
         return connection_succeeded
 
-    def copy(self, from_container_path, to_host_path):
+    def copy(self, from_container_path, to_host_path) -> None:
         """Copies a path from container into host path"""
 
         if not self.is_created():
