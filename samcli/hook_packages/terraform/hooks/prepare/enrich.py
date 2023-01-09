@@ -438,7 +438,6 @@ def _get_source_code_path(
                 f"{src_code_attribute_name} in property {src_code_property_name}"
             )
     if isinstance(source_code, dict):
-        print(f"Source code dict: {source_code}")
         LOG.debug(
             "Process the extracted %s as JSON object using the property %s",
             src_code_attribute_name,
