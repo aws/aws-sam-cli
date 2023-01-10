@@ -40,5 +40,5 @@ SAM_CLI_HIDDEN_IMPORTS = list(samcli_modules) + [
     "configparser",
     "dateparser",
     "jsonschema",
-    "cfnlint"
+    "cfnlint",
 ]
