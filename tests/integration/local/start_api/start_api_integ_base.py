@@ -12,7 +12,7 @@ import docker
 from docker.errors import APIError
 
 from tests.integration.local.common_utils import InvalidAddressException, random_port, wait_for_local_process
-from tests.testing_utils import kill_process
+from tests.testing_utils import kill_process, get_sam_command
 from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS, run_command
 
 LOG = logging.getLogger(__name__)
@@ -53,9 +53,7 @@ class StartApiIntegBaseClass(TestCase):
 
     @classmethod
     def build(cls):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
+        command = get_sam_command()
         command_list = [command, "build"]
         if cls.build_overrides:
             overrides_arg = " ".join(
@@ -82,9 +80,7 @@ class StartApiIntegBaseClass(TestCase):
 
     @classmethod
     def start_api(cls):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
+        command = get_sam_command()
 
         command_list = [command, "local", "start-api", "-t", cls.template, "-p", cls.port]
 
