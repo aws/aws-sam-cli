@@ -28,7 +28,7 @@ fi
 
 set -eu
 
-yum install -y zlib-devel openssl-devel libffi-devel
+yum install -y zlib-devel openssl-devel libffi-devel bzip2-devel
 
 echo "Making Folders"
 mkdir -p .build/src

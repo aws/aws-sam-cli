@@ -40,6 +40,15 @@ def region_option(f):
 
     def callback(ctx, param, value):
         state = ctx.ensure_object(Context)
+        from botocore import exceptions, utils
+        from samcli.commands.exceptions import RegionError
+
+        try:
+            utils.validate_region_name(value)
+        except exceptions.InvalidRegionError as ex:
+            raise RegionError(
+                message=f"Provided region: {value} doesn't match a supported format", wrapped_from=ex.__class__.__name__
+            ) from ex
         state.region = value
         return value
 
