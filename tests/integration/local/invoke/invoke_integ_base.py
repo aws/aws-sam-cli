@@ -4,7 +4,7 @@ from unittest import TestCase, skipIf
 from pathlib import Path
 from subprocess import Popen, PIPE, TimeoutExpired
 
-from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS
+from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS, get_sam_command
 
 TIMEOUT = 300
 
@@ -15,7 +15,7 @@ class InvokeIntegBase(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.cmd = cls.base_command()
+        cls.cmd = get_sam_command()
         cls.test_data_path = cls.get_integ_dir().joinpath("testdata")
         if cls.template:
             cls.template_path = str(cls.test_data_path.joinpath("invoke", cls.template))
@@ -26,14 +26,6 @@ class InvokeIntegBase(TestCase):
     @staticmethod
     def get_integ_dir():
         return Path(__file__).resolve().parents[2]
-
-    @classmethod
-    def base_command(cls):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
-
-        return command
 
     def get_command_list(
         self,

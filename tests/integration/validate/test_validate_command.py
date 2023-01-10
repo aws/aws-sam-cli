@@ -11,7 +11,13 @@ from unittest import TestCase
 from unittest.case import skipIf
 
 from parameterized import parameterized
-from tests.testing_utils import RUN_BY_CANARY, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, run_command
+from tests.testing_utils import (
+    RUN_BY_CANARY,
+    RUNNING_ON_CI,
+    RUNNING_TEST_FOR_MASTER_ON_CI,
+    run_command,
+    get_sam_command,
+)
 
 # Validate tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
@@ -32,10 +38,6 @@ class TestValidate(TestCase):
             TemplateFileTypes.YAML: re.compile(r"template\.yaml is a valid SAM Template(\r\n)?$"),
         }
 
-    @staticmethod
-    def base_command() -> str:
-        return "samdev" if os.getenv("SAM_CLI_DEV") else "sam"
-
     def command_list(
         self,
         template_file: Optional[Path] = None,
@@ -43,7 +45,7 @@ class TestValidate(TestCase):
         region: Optional[str] = None,
         config_file: Optional[Path] = None,
     ) -> List[str]:
-        command_list = [self.base_command(), "validate"]
+        command_list = [get_sam_command(), "validate"]
         if template_file:
             command_list += ["--template-file", str(template_file)]
         if profile:
