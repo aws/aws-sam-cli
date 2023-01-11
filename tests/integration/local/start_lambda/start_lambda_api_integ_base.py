@@ -17,6 +17,7 @@ from tests.testing_utils import (
     SKIP_DOCKER_MESSAGE,
     run_command,
     kill_process,
+    get_sam_command,
 )
 
 LOG = logging.getLogger(__name__)
@@ -61,15 +62,8 @@ class StartLambdaIntegBaseClass(TestCase):
         cls.start_lambda_with_retry()
 
     @classmethod
-    def base_command(cls):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
-        return command
-
-    @classmethod
     def build(cls):
-        command = cls.base_command()
+        command = get_sam_command()
 
         command_list = [command, "build"]
         if cls.build_overrides:
@@ -108,7 +102,7 @@ class StartLambdaIntegBaseClass(TestCase):
         hook_name=None,
         beta_features=None,
     ):
-        command_list = [cls.base_command(), "local", "start-lambda"]
+        command_list = [get_sam_command(), "local", "start-lambda"]
 
         if port:
             command_list += ["-p", port]

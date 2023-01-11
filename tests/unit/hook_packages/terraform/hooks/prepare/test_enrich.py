@@ -846,6 +846,10 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
             ('["src/code/path", "src/code/path2"]', "None", "src/code/path", False),
             (["/src/code/path", "/src/code/path2"], "None", "/src/code/path", True),
             (["src/code/path", "/src/code/path2"], "None", "src/code/path", False),
+            ('[{"path":"/src/code/path"}]', "path", "/src/code/path", True),
+            ('[{"path":"src/code/path"}]', "path", "src/code/path", False),
+            ([{"path": "/src/code/path"}], "path", "/src/code/path", True),
+            ([{"path": "src/code/path"}], "path", "src/code/path", False),
         ]
     )
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich.os")

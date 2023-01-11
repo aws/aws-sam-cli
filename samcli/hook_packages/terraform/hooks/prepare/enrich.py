@@ -415,7 +415,28 @@ def _get_source_code_path(
             LOG.debug("The decoded value of the %s value is %s", src_code_attribute_name, source_code)
         except JSONDecodeError:
             LOG.debug("Source code value could not be parsed as a JSON object. Handle it as normal string value")
+            cfn_source_code_path = source_code
 
+    if isinstance(source_code, list):
+        # SAM CLI does not process multiple paths, so we will handle only the first value in this list
+        # The first value can either be a string or dict so update source_code to be the first element of the list
+        LOG.debug(
+            "Process the extracted %s as list, and get the first value as SAM CLI does not support multiple paths",
+            src_code_attribute_name,
+        )
+        if len(source_code) < 1:
+            raise InvalidSamMetadataPropertiesException(
+                f"The sam metadata resource {sam_metadata_resource_address} "
+                f"should contain the lambda function/lambda layer "
+                f"{src_code_attribute_name} in property {src_code_property_name}, and it should not be an empty list"
+            )
+        source_code = source_code[0]
+        if not source_code:
+            raise InvalidSamMetadataPropertiesException(
+                f"The sam metadata resource {sam_metadata_resource_address} "
+                f"should contain a valid lambda/lambda layer function "
+                f"{src_code_attribute_name} in property {src_code_property_name}"
+            )
     if isinstance(source_code, dict):
         LOG.debug(
             "Process the extracted %s as JSON object using the property %s",
@@ -442,25 +463,6 @@ def _get_source_code_path(
                 f"should contain a valid lambda function/lambda layer "
                 f"{src_code_attribute_name} property in property {property_path_property_name} as the "
                 f"{src_code_property_name} value is an object"
-            )
-    elif isinstance(source_code, list):
-        # SAM CLI does not process multiple paths, so we will handle only the first value in this list
-        LOG.debug(
-            "Process the extracted %s as list, and get the first value as SAM CLI does not support multiple paths",
-            src_code_attribute_name,
-        )
-        if len(source_code) < 1:
-            raise InvalidSamMetadataPropertiesException(
-                f"The sam metadata resource {sam_metadata_resource_address} "
-                f"should contain the lambda function/lambda layer "
-                f"{src_code_attribute_name} in property {src_code_property_name}, and it should not be an empty list"
-            )
-        cfn_source_code_path = source_code[0]
-        if not cfn_source_code_path:
-            raise InvalidSamMetadataPropertiesException(
-                f"The sam metadata resource {sam_metadata_resource_address} "
-                f"should contain a valid lambda/lambda layer function "
-                f"{src_code_attribute_name} in property {src_code_property_name}"
             )
     else:
         cfn_source_code_path = source_code

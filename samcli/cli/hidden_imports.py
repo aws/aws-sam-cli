@@ -39,4 +39,6 @@ SAM_CLI_HIDDEN_IMPORTS = list(samcli_modules) + [
     "aws_lambda_builders.workflows",
     "configparser",
     "dateparser",
+    "jsonschema",
+    "cfnlint",
 ]

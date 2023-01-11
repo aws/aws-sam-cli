@@ -233,6 +233,10 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
                 ("function10", "hello world 10 - override version", True),
                 ("module.function10.aws_lambda_function.this[0]", "hello world 10", False),
                 ("function10", "hello world 10", False),
+                ("module.function11.aws_lambda_function.this[0]", "hello world 11 - override version", True),
+                ("function11", "hello world 11 - override version", True),
+                ("module.function11.aws_lambda_function.this[0]", "hello world 11", False),
+                ("function11", "hello world 11", False),
             ]
         super().setUpClass()
 
@@ -360,6 +364,10 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(Build
                 ("function10", "hello world 10 - override version", True),
                 ("module.function10.aws_lambda_function.this[0]", "hello world 10", False),
                 ("function10", "hello world 10", False),
+                ("module.function11.aws_lambda_function.this[0]", "hello world 11 - override version", True),
+                ("function11", "hello world 11 - override version", True),
+                ("module.function11.aws_lambda_function.this[0]", "hello world 11", False),
+                ("function11", "hello world 11", False),
             ]
         super().setUpClass()
 
