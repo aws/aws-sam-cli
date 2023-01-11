@@ -507,9 +507,9 @@ serverlessrepo==0.1.10 \
     --hash=sha256:671f48038123f121437b717ed51f253a55775590f00fbab6fbc6a01f8d05c017 \
     --hash=sha256:b99c69be8ce87ccc48103fbe371ba7b148c3374c57862e59118c402522e5ed52
     # via aws-sam-cli (setup.py)
-setuptools==54.2.0 \
-    --hash=sha256:aa9c24fb83a9116b8d425e53bec24c7bfdbffc313c2159f9ed036d4a6dd32d7d \
-    --hash=sha256:b726461910b9ba30f077880c228bea22121aec50b172edf39eb7ff026c054a11
+setuptools==65.5.1 \
+    --hash=sha256:d0b9a8433464d5800cbe05094acf5c6d52a91bfac9b52bcfc4d41382be5d5d31 \
+    --hash=sha256:e197a19aa8ec9722928f2206f8de752def0e4c9fc6953527360d1c36d94ddb2f
     # via
     #   aws-lambda-builders
     #   jsonschema
@@ -581,9 +581,9 @@ werkzeug==2.0.3 \
     # via
     #   aws-sam-cli (setup.py)
     #   flask
-wheel==0.36.2 \
-    --hash=sha256:78b5b185f0e5763c26ca1e324373aadd49182ca90e825f7853f4b2509215dc0e \
-    --hash=sha256:e11eefd162658ea59a60a0f6c7d493a7190ea4b9a85e335b33489d9f17e0245e
+wheel==0.38.1 \
+    --hash=sha256:7a95f9a8dc0924ef318bd55b616112c70903192f524d120acc614f59547a9e1f \
+    --hash=sha256:ea041edf63f4ccba53ad6e035427997b3bb10ee88a4cd014ae82aeb9eea77bb9
     # via aws-lambda-builders
 zipp==3.10.0 \
     --hash=sha256:4fcb6f278987a6605757302a6e40e896257570d11c51628968ccb2a47e80c6c1 \
