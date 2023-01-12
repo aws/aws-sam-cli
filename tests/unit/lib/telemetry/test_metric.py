@@ -8,7 +8,6 @@ import pytest
 import click
 from parameterized import parameterized
 
-import samcli
 from samcli.lib.hook.exceptions import InvalidHookPackageConfigException, InvalidHookWrapperException
 from samcli.lib.iac.plugins_interfaces import ProjectTypes
 from samcli.lib.telemetry.event import EventTracker
