@@ -47,7 +47,7 @@ class UnhandledException(click.ClickException):
     def show(self, file: t.Optional[t.IO] = None) -> None:
         """Overriding show to customize printing stack trace and message"""
         if file is None:
-            file = click._compat.get_text_stderr() # pylint: disable=protected-access
+            file = click._compat.get_text_stderr()  # pylint: disable=protected-access
 
         tb = "".join(traceback.format_tb(self.__traceback__))
         click.echo(f"\nTraceback:\n{tb}", file=file, err=True)
