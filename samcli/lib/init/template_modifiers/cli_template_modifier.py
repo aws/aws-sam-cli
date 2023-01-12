@@ -24,13 +24,13 @@ class TemplateModifier:
         and then run a sanity check on the template to know if the template matches the
         CFN yaml
         """
-        self._add_new_field_to_template()
+        self._update_template_fields()
         self._write(self.template)
         if not self._sanity_check():
             self._write(self.copy_of_original_template)
 
     @abstractmethod
-    def _add_new_field_to_template(self):
+    def _update_template_fields(self):
         pass
 
     def _section_position(self, section: str, position: int = 0) -> int:
@@ -125,27 +125,10 @@ class TemplateModifier:
     def _print_sanity_check_error(self):
         pass
 
+    @abstractmethod
     def _write(self, template: list):
-        """
-        write generated template into SAM template
+        pass
 
-        Parameters
-        ----------
-        template : list
-            array with updated template data
-        """
-        with open(self.template_location, "w") as file:
-            for line in template:
-                file.write(line)
-
-    def _get_template(self) -> List[str]:
-        """
-        Gets data the SAM templates and returns it in a array
-
-        Returns
-        -------
-        list
-            array with updated template data
-        """
-        with open(self.template_location, "r") as file:
-            return file.readlines()
+    @abstractmethod
+    def _get_template(self):
+        pass

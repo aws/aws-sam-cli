@@ -2,7 +2,7 @@ name: Update aws/aws-sam-cli with latest commit hash from aws/aws-sam-cli-app-te
 
 on:
   schedule:
-    - cron: "0 * * * *" # run at the top of every hour
+    - cron: "0 0/4 * * *" # run at the top of every 4 hour
   workflow_dispatch: {}
 
 jobs:

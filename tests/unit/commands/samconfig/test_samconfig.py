@@ -80,6 +80,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 '{"key": "value", "key2": "value2"}',
                 None,
+                ANY,
             )
 
     @patch("samcli.commands.validate.validate.do_cli")
@@ -100,7 +101,7 @@ class TestSamConfigForAllCommands(TestCase):
                 LOG.exception("Command failed", exc_info=result.exc_info)
             self.assertIsNone(result.exception)
 
-            do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")))
+            do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")), False)
 
     @patch("samcli.commands.build.command.do_cli")
     def test_build(self, do_cli_mock):
@@ -913,8 +914,12 @@ class TestSamConfigForAllCommands(TestCase):
 
             do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")), "0.1.1")
 
-    def test_info_must_not_read_from_config(self):
+    @patch("samcli.cli.main.gather_system_info")
+    @patch("samcli.cli.main.gather_additional_dependencies_info")
+    def test_info_must_not_read_from_config(self, deps_info_mock, system_info_mock):
         config_values = {"a": "b"}
+        system_info_mock.return_value = {"Python": "1.2.3"}
+        deps_info_mock.return_value = {"dep1": "1.2.3", "dep2": "1.2.3"}
 
         with samconfig_parameters([], self.scratch_dir, **config_values) as config_path:
             from samcli.cli.main import cli
@@ -923,11 +928,10 @@ class TestSamConfigForAllCommands(TestCase):
             runner = CliRunner()
             result = runner.invoke(cli, ["--info"])
 
-            LOG.info(result.exception)
+            LOG.info("exception: %s", result.exception)
             if result.exception:
                 LOG.exception("Command failed", exc_info=result.exc_info)
             self.assertIsNone(result.exception)
-
             info_result = json.loads(result.output)
             self.assertTrue("version" in info_result)
 
@@ -1253,7 +1257,7 @@ class TestSamConfigWithOverrides(TestCase):
                 LOG.exception("Command failed", exc_info=result.exc_info)
             self.assertIsNone(result.exception)
 
-            do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")))
+            do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")), False)
 
 
 @contextmanager

@@ -12,7 +12,7 @@ from samcli.commands.pipeline.init.interactive_init_flow import APP_PIPELINE_TEM
 from samcli.cli.global_config import GlobalConfig
 from tests.integration.pipeline.base import InitIntegBase, BootstrapIntegBase
 from tests.integration.pipeline.test_bootstrap_command import SKIP_BOOTSTRAP_TESTS, CREDENTIAL_PROFILE
-from tests.testing_utils import run_command_with_inputs
+from tests.testing_utils import run_command_with_inputs, get_sam_command
 
 QUICK_START_JENKINS_INPUTS_WITHOUT_AUTO_FILL = [
     "1",  # quick start
@@ -208,7 +208,7 @@ class TestInitWithBootstrap(BootstrapIntegBase):
 
     def setUp(self):
         super().setUp()
-        self.command_list = [self.base_command(), "pipeline", "init", "--bootstrap"]
+        self.command_list = [get_sam_command(), "pipeline", "init", "--bootstrap"]
         generated_jenkinsfile_path = Path("Jenkinsfile")
         self.generated_files.append(generated_jenkinsfile_path)
 

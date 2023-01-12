@@ -49,6 +49,8 @@ AWS_KINESIS_STREAM = "AWS::Kinesis::Stream"
 AWS_SERVERLESS_STATEMACHINE = "AWS::Serverless::StateMachine"
 AWS_STEPFUNCTIONS_STATEMACHINE = "AWS::StepFunctions::StateMachine"
 AWS_ECR_REPOSITORY = "AWS::ECR::Repository"
+AWS_APPLICATION_INSIGHTS = "AWS::ApplicationInsights::Application"
+AWS_RESOURCE_GROUP = "AWS::ResourceGroups::Group"
 
 METADATA_WITH_LOCAL_PATHS = {AWS_SERVERLESSREPO_APPLICATION: ["LicenseUrl", "ReadmeUrl"]}
 
@@ -58,8 +60,12 @@ RESOURCES_WITH_LOCAL_PATHS = {
     AWS_SERVERLESS_HTTPAPI: ["DefinitionUri"],
     AWS_SERVERLESS_STATEMACHINE: ["DefinitionUri"],
     AWS_APPSYNC_GRAPHQLSCHEMA: ["DefinitionS3Location"],
-    AWS_APPSYNC_RESOLVER: ["RequestMappingTemplateS3Location", "ResponseMappingTemplateS3Location"],
-    AWS_APPSYNC_FUNCTIONCONFIGURATION: ["RequestMappingTemplateS3Location", "ResponseMappingTemplateS3Location"],
+    AWS_APPSYNC_RESOLVER: ["RequestMappingTemplateS3Location", "ResponseMappingTemplateS3Location", "CodeS3Location"],
+    AWS_APPSYNC_FUNCTIONCONFIGURATION: [
+        "RequestMappingTemplateS3Location",
+        "ResponseMappingTemplateS3Location",
+        "CodeS3Location",
+    ],
     AWS_LAMBDA_FUNCTION: ["Code"],
     AWS_APIGATEWAY_RESTAPI: ["BodyS3Location"],
     AWS_APIGATEWAY_V2_API: ["BodyS3Location"],
@@ -85,6 +91,13 @@ NESTED_STACKS_RESOURCES = {
     AWS_SERVERLESS_APPLICATION: "Location",
     AWS_CLOUDFORMATION_STACK: "TemplateURL",
 }
+
+LAMBDA_LOCAL_RESOURCES = [
+    AWS_LAMBDA_FUNCTION,
+    AWS_LAMBDA_LAYERVERSION,
+    AWS_SERVERLESS_FUNCTION,
+    AWS_SERVERLESS_LAYERVERSION,
+]
 
 
 def get_packageable_resource_paths():
