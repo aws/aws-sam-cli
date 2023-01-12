@@ -152,7 +152,7 @@ class TestValidate(TestCase):
         command_result = run_command(self.command_list(lint=True, template_file=template_path))
         output = command_result.stdout.decode("utf-8")
         # Remove Windows Line Endings for comparison.
-        output.replace("\r", "")
+        output = output.replace("\r", "")
 
         warning_message = (
             'E0000 Duplicate found "HelloWorldFunction" (line 5)\n'
