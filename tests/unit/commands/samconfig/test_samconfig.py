@@ -157,6 +157,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ("",),
                 ("",),
                 None,
+                None,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -214,6 +215,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ("",),
                 ("",),
                 None,
+                None,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -269,6 +271,7 @@ class TestSamConfigForAllCommands(TestCase):
                 (),
                 (),
                 None,
+                None,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -322,6 +325,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 ("Function1=image_1", "image_2"),
                 (),
+                None,
                 None,
             )
 
@@ -1010,6 +1014,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 "samconfig.toml",
                 "default",
+                None,
             )
 
 
