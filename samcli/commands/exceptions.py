@@ -1,6 +1,9 @@
 """
 Class containing error conditions that are exposed to the user.
 """
+import urllib.parse
+import typing as t
+import traceback
 
 import click
 
@@ -23,6 +26,39 @@ class UserException(click.ClickException):
         self.wrapped_from = wrapped_from
 
         click.ClickException.__init__(self, message)
+
+
+class UnhandledException(click.ClickException):
+    """
+    Exception class to re-wrap any exception that is not a UserException. Typically this means there is a bug in SAM CLI.
+    """
+
+    GH_BUG_REPORT_URL = "https://github.com/aws/aws-sam-cli/issues/new?template=Bug_report.md&title={title}"
+    exit_code = 255
+
+    def __init__(self, command: str, exception: Exception) -> None:
+        self._command = command
+        self._exception = exception
+        self.__traceback__ = self._exception.__traceback__
+
+        click.ClickException.__init__(self, type(exception).__name__)
+
+    def show(self, file: t.Optional[t.IO] = None) -> None:
+        if file is None:
+            file = click._compat.get_text_stderr()
+
+        tb = "".join(traceback.format_tb(self.__traceback__))
+        click.echo(f"\nTraceback:\n{tb}", file=file, err=True)
+
+        url = self.GH_BUG_REPORT_URL.format(
+            title=urllib.parse.quote(f"{self._command} - {type(self._exception).__name__}")
+        )
+        msg = (
+            f'While trying to execute "{self._command}", we encountered an unexpected error.\n'
+            "To create a bug report, follow the Github issue template below:\n"
+            f"{url}"
+        )
+        click.secho(msg, file=file, err=True, fg="yellow")
 
 
 class CredentialsError(UserException):

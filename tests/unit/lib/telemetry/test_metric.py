@@ -1,15 +1,13 @@
 import platform
 import time
 
-from parameterized import parameterized
-
-import samcli
-
 from unittest import TestCase
 from unittest.mock import patch, Mock, ANY, call
 
 import pytest
+from parameterized import parameterized
 
+import samcli
 from samcli.lib.hook.exceptions import InvalidHookPackageConfigException, InvalidHookWrapperException
 from samcli.lib.iac.plugins_interfaces import ProjectTypes
 from samcli.lib.telemetry.event import EventTracker
@@ -28,7 +26,7 @@ from samcli.lib.telemetry.metric import (
     ProjectDetails,
     _send_command_run_metrics,
 )
-from samcli.commands.exceptions import UserException
+from samcli.commands.exceptions import UserException, UnhandledException
 
 
 class TestSendInstalledMetric(TestCase):
@@ -194,7 +192,8 @@ class TestTrackCommand(TestCase):
         def real_fn():
             raise exception
 
-        with self.assertRaises(exception.__class__) as context:
+        expected_exception_class = exception.__class__ if isinstance(exception, UserException) else UnhandledException
+        with self.assertRaises(expected_exception_class) as context:
             track_command(real_fn)()
             self.assertEqual(
                 context.exception,
@@ -261,17 +260,18 @@ class TestTrackCommand(TestCase):
     )
     @patch("samcli.lib.telemetry.metric.Context")
     @patch("samcli.lib.telemetry.metric._send_command_run_metrics")
-    def test_context_contains_exception(self, expected_exception, expected_code, run_metrics_mock, context_mock):
-        self.context_mock.exception = expected_exception("some exception")
+    def test_context_contains_exception(self, exception, exitcode, run_metrics_mock, context_mock):
+        self.context_mock.exception = exception("some exception")
         context_mock.get_current_context.return_value = self.context_mock
 
         mocked_func = Mock()
 
+        expected_exception = exception if exitcode == 1 else UnhandledException
         with self.assertRaises(expected_exception):
             track_command(mocked_func)()
 
         mocked_func.assert_not_called()
-        run_metrics_mock.assert_called_with(self.context_mock, ANY, expected_exception.__name__, expected_code)
+        run_metrics_mock.assert_called_with(self.context_mock, ANY, exception.__name__, exitcode)
 
 
 class TestSendCommandMetrics(TestCase):
