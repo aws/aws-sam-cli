@@ -56,7 +56,7 @@ class UnhandledException(click.ClickException):
             title=urllib.parse.quote(f"{self._command} - {type(self._exception).__name__}")
         )
         msg = (
-            f'While trying to execute "{self._command}", we encountered an unexpected error.\n'
+            f'An unexpected error was encountered while executing "{self._command}".\n'
             "To create a bug report, follow the Github issue template below:\n"
             f"{url}"
         )
