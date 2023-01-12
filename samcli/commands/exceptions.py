@@ -35,7 +35,8 @@ class UnhandledException(click.ClickException):
     """
 
     GH_BUG_REPORT_URL = "https://github.com/aws/aws-sam-cli/issues/new?template=Bug_report.md&title={title}"
-    exit_code = 255
+    # NOTE (hawflau): actual exitcode is 1 to not break existing behavior. Only report 255 to telemetry
+    exit_code = 1
 
     def __init__(self, command: str, exception: Exception) -> None:
         self._command = command
