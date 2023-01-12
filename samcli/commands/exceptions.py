@@ -30,7 +30,8 @@ class UserException(click.ClickException):
 
 class UnhandledException(click.ClickException):
     """
-    Exception class to re-wrap any exception that is not a UserException. Typically this means there is a bug in SAM CLI.
+    Exception class to re-wrap any exception that is not a UserException.
+    Typically this means there is a bug in SAM CLI.
     """
 
     GH_BUG_REPORT_URL = "https://github.com/aws/aws-sam-cli/issues/new?template=Bug_report.md&title={title}"
@@ -44,8 +45,9 @@ class UnhandledException(click.ClickException):
         click.ClickException.__init__(self, type(exception).__name__)
 
     def show(self, file: t.Optional[t.IO] = None) -> None:
+        """Overriding show to customize printing stack trace and message"""
         if file is None:
-            file = click._compat.get_text_stderr()
+            file = click._compat.get_text_stderr() # pylint: disable=protected-access
 
         tb = "".join(traceback.format_tb(self.__traceback__))
         click.echo(f"\nTraceback:\n{tb}", file=file, err=True)
