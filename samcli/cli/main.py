@@ -60,6 +60,23 @@ def print_info(ctx, param, value):
     ctx.exit()
 
 
+def validate_installation(ctx, param, value):
+    """
+    Validate if the SAM CLI is proper, i.e. contains all hidden imports
+    """
+    if not value or ctx.resilient_parsing:
+        return
+
+    click.echo("Validate installation")
+    from .validate_install import validate_imports
+    if validate_imports():
+        click.echo("Success")
+        ctx.exit()
+    else:
+        click.echo("Failed")
+        ctx.exit(1)
+
+
 def print_cmdline_args(func):
     """
     This function format and print out the command line arguments for debugging.
@@ -110,6 +127,7 @@ TELEMETRY_PROMPT = """
 @common_options
 @click.version_option(version=__version__, prog_name="SAM CLI")
 @click.option("--info", is_flag=True, is_eager=True, callback=print_info, expose_value=False)
+@click.option("--validate-installation", is_flag=True, hidden=True, callback=validate_installation, expose_value=False)
 @pass_context
 def cli(ctx):
     """
