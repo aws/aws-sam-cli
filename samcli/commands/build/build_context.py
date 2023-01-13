@@ -76,6 +76,7 @@ class BuildContext:
         print_success_message: bool = True,
         locate_layer_nested: bool = False,
         hook_name: Optional[str] = None,
+        build_in_source: Optional[bool] = None,
     ) -> None:
         """
         Initialize the class
@@ -129,6 +130,8 @@ class BuildContext:
             Locate layer to its actual, worked with nested stack
         hook_name: Optional[str]
             Name of the hook package
+        build_in_source: Optional[bool]
+            Set to True to build in the source directory.
         """
 
         self._resource_identifier = resource_identifier
@@ -167,6 +170,7 @@ class BuildContext:
         self._stacks: List[Stack] = []
         self._locate_layer_nested = locate_layer_nested
         self._hook_name = hook_name
+        self._build_in_source = build_in_source
 
     def __enter__(self) -> "BuildContext":
         self.set_up()
@@ -246,6 +250,7 @@ class BuildContext:
                 container_env_var_file=self._container_env_var_file,
                 build_images=self._build_images,
                 combine_dependencies=not self._create_auto_dependency_layer,
+                build_in_source=self._build_in_source,
             )
         except FunctionNotFound as ex:
             raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
