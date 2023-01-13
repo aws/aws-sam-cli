@@ -261,16 +261,18 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
             "WriteToStderrFunction", template_path=self.template_path, event_path=self.event_path
         )
 
-        process = Popen(command_list, stderr=PIPE)
+        process = Popen(command_list, stderr=PIPE, stdout=PIPE)
         try:
-            _, stderr = process.communicate(timeout=TIMEOUT)
+            stdout, stderr = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
             process.kill()
             raise
 
         process_stderr = stderr.strip()
+        process_stdout = stdout.strip()
 
         self.assertIn("Docker Lambda is writing to stderr", process_stderr.decode("utf-8"))
+        self.assertIn("wrote to stderr", process_stdout.decode("utf-8"))
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returns_expected_result_when_no_event_given(self):

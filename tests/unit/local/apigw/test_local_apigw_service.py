@@ -258,10 +258,9 @@ class TestApiGatewayService(TestCase):
         parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
         self.api_service._parse_v1_payload_format_lambda_output = parse_output_mock
 
-        lambda_logs = "logs"
         lambda_response = "response"
         is_customer_error = False
-        lambda_output_parser_mock.get_lambda_output.return_value = lambda_response, lambda_logs, is_customer_error
+        lambda_output_parser_mock.get_lambda_output.return_value = lambda_response, is_customer_error
         service_response_mock = Mock()
         service_response_mock.return_value = make_response_mock
         self.api_service.service_response = service_response_mock
@@ -273,8 +272,6 @@ class TestApiGatewayService(TestCase):
 
         # Make sure the parse method is called only on the returned response and not on the raw data from stdout
         parse_output_mock.assert_called_with(lambda_response, ANY, ANY, Route.API)
-        # Make sure the logs are written to stderr
-        self.stderr.write.assert_called_with(lambda_logs)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_request_handler_returns_make_response(self, request_mock):

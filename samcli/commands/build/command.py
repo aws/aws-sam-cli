@@ -204,6 +204,7 @@ def cli(
         build_image,
         exclude,
         hook_name,
+        None,  # TODO: replace with build_in_source once it's added as a click option
     )  # pragma: no cover
 
 
@@ -228,6 +229,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     build_image: Optional[Tuple[str]],
     exclude: Optional[Tuple[str, ...]],
     hook_name: Optional[str],
+    build_in_source: Optional[bool],
 ) -> None:
     """
     Implementation of the ``cli`` method
@@ -272,6 +274,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         excluded_resources=exclude,
         aws_region=click_ctx.region,
         hook_name=hook_name,
+        build_in_source=build_in_source,
     ) as ctx:
         ctx.run()
 
