@@ -67,13 +67,16 @@ def validate_installation(ctx, param, value):
     if not value or ctx.resilient_parsing:
         return
 
-    click.echo("Validate installation")
-    from .validate_install import validate_imports
-    if validate_imports():
-        click.echo("Success")
+    from pathlib import Path
+    from .validate_install import validate_requirements, validate_samcli
+    click.echo("Validating AWS SAM CLI installation")
+    samcli_modules_file = Path(__file__).parent.parent / "samcli_modules.txt"
+    requirements_file = Path(__file__).parent.parent / "reproducible-linux.txt"
+    if validate_samcli(samcli_modules_file) and validate_requirements(requirements_file):
+        click.echo("Validation Succeeded!")
         ctx.exit()
     else:
-        click.echo("Failed")
+        click.echo("Validation Failed!")
         ctx.exit(1)
 
 
