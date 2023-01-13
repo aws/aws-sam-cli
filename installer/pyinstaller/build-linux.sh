@@ -65,8 +65,13 @@ cp -r ./venv/lib/python*/site-packages/* ./output/python-libraries
 echo "Installing PyInstaller"
 ./venv/bin/pip install -r src/requirements/pyinstaller-build.txt
 
-echo "Building Binary"
 cd src
+echo "$(pwd)"
+
+echo "Generate samcli submodules list"
+../venv/bin/python -c "from samcli.cli.hidden_imports import samcli_modules;print('\n'.join(sorted(list(samcli_modules))))" > "samcli_modules.txt"
+
+echo "Building Binary"
 if [ "$is_nightly" = "true" ]; then
     echo "Updating samcli.spec with nightly/beta build"
     sed -i.bak "s/'sam'/'$build_binary_name'/g" installer/pyinstaller/samcli.spec
