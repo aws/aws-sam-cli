@@ -167,13 +167,7 @@ class LocalLambdaInvokeService(BaseLocalService):
             LOG.debug("%s was not found to invoke.", function_name)
             return LambdaErrorResponses.resource_not_found(function_name)
 
-        lambda_response, lambda_logs, is_lambda_user_error_response = LambdaOutputParser.get_lambda_output(
-            stdout_stream
-        )
-
-        if self.stderr and lambda_logs:
-            # Write the logs to stderr if available.
-            self.stderr.write(lambda_logs)
+        lambda_response, is_lambda_user_error_response = LambdaOutputParser.get_lambda_output(stdout_stream)
 
         if is_lambda_user_error_response:
             return self.service_response(
