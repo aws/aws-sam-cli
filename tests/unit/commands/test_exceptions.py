@@ -25,7 +25,9 @@ class TestUnhandledException(TestCase):
         self.assertIn('raise Exception("my_exception")', output)
         self.assertIn(
             'An unexpected error was encountered while executing "test_command".\n'
-            "To create a bug report, follow the Github issue template below:\n"
-            "https://github.com/aws/aws-sam-cli/issues/new?template=Bug_report.md&title=test_command%20-%20Exception",
+            "Search if there is any existing issue:\n"
+            "https://github.com/aws/aws-sam-cli/issues?q=is%3Aissue+is%3Aopen+Bug%3A%20test_command%20-%20Exception\n"
+            "Or create a bug report:\n"
+            "https://github.com/aws/aws-sam-cli/issues/new?template=Bug_report.md&title=Bug%3A%20test_command%20-%20Exception",
             output,
         )
