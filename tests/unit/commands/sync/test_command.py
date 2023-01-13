@@ -129,6 +129,7 @@ class TestDoCli(TestCase):
             use_container,
             self.config_file,
             self.config_env,
+            build_in_source=False,
         )
 
         if use_container and auto_dependency_layer:
@@ -151,6 +152,7 @@ class TestDoCli(TestCase):
             stack_name=self.stack_name,
             print_success_message=False,
             locate_layer_nested=True,
+            build_in_source=False,
         )
 
         PackageContextMock.assert_called_with(
@@ -266,6 +268,7 @@ class TestDoCli(TestCase):
             use_container,
             self.config_file,
             self.config_env,
+            build_in_source=False,
         )
 
         BuildContextMock.assert_called_with(
@@ -284,6 +287,7 @@ class TestDoCli(TestCase):
             stack_name=self.stack_name,
             print_success_message=False,
             locate_layer_nested=True,
+            build_in_source=False,
         )
 
         PackageContextMock.assert_called_with(
@@ -407,6 +411,7 @@ class TestDoCli(TestCase):
             use_container,
             self.config_file,
             self.config_env,
+            build_in_source=None,
         )
         execute_code_sync_mock.assert_called_once_with(
             self.template_file,

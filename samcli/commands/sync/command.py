@@ -210,6 +210,7 @@ def cli(
         use_container,
         config_file,
         config_env,
+        None,  # TODO: replace with build_in_source once it's added as a click option
     )  # pragma: no cover
 
 
@@ -239,6 +240,7 @@ def do_cli(
     use_container: bool,
     config_file: str,
     config_env: str,
+    build_in_source: Optional[bool],
 ) -> None:
     """
     Implementation of the ``cli`` method
@@ -290,6 +292,7 @@ def do_cli(
         stack_name=stack_name,
         print_success_message=False,
         locate_layer_nested=True,
+        build_in_source=build_in_source,
     ) as build_context:
         built_template = os.path.join(build_dir, DEFAULT_TEMPLATE_NAME)
 
