@@ -148,7 +148,13 @@ def track_command(func):
             # Execute the function and capture return value. This is returned back by the wrapper
             # First argument of all commands should be the Context
             return_value = func(*args, **kwargs)
-        except (UserException, click.BadOptionUsage, click.BadArgumentUsage, click.BadParameter) as ex:
+        except (
+            UserException,
+            click.BadOptionUsage,
+            click.BadArgumentUsage,
+            click.BadParameter,
+            click.UsageError,
+        ) as ex:
             # Capture exception information and re-raise it later so we can first send metrics.
             exception = ex
             # TODO (hawflau): review exitcode meaning. We now understand exitcode 1 as errors fixable by users.

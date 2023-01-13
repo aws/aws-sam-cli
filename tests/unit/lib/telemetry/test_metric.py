@@ -185,6 +185,7 @@ class TestTrackCommand(TestCase):
             (click.BadOptionUsage("--my-opt", "Wrong option usage"), "BadOptionUsage", 1),
             (click.BadArgumentUsage("Wrong argument usage"), "BadArgumentUsage", 1),
             (click.BadParameter("Bad param"), "BadParameter", 1),
+            (click.UsageError("UsageError"), "UsageError", 1),
         ]
     )
     @patch("samcli.lib.telemetry.metric.Context")
@@ -262,6 +263,7 @@ class TestTrackCommand(TestCase):
             (click.BadOptionUsage, 1),
             (click.BadArgumentUsage, 1),
             (click.BadParameter, 1),
+            (click.UsageError, 1),
         ]
     )
     @patch("samcli.lib.telemetry.metric.Context")

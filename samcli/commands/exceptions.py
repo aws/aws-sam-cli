@@ -1,9 +1,9 @@
 """
 Class containing error conditions that are exposed to the user.
 """
-import urllib.parse
-import typing as t
 import traceback
+from urllib.parse import quote
+from typing import Optional, IO
 
 import click
 
@@ -45,7 +45,7 @@ class UnhandledException(click.ClickException):
 
         click.ClickException.__init__(self, type(exception).__name__)
 
-    def show(self, file: t.Optional[t.IO] = None) -> None:
+    def show(self, file: Optional[IO] = None) -> None:
         """Overriding show to customize printing stack trace and message"""
         if file is None:
             file = click._compat.get_text_stderr()  # pylint: disable=protected-access
@@ -53,9 +53,7 @@ class UnhandledException(click.ClickException):
         tb = "".join(traceback.format_tb(self.__traceback__))
         click.echo(f"\nTraceback:\n{tb}", file=file, err=True)
 
-        url = self.GH_BUG_REPORT_URL.format(
-            title=urllib.parse.quote(f"{self._command} - {type(self._exception).__name__}")
-        )
+        url = self.GH_BUG_REPORT_URL.format(title=quote(f"{self._command} - {type(self._exception).__name__}"))
         msg = (
             f'An unexpected error was encountered while executing "{self._command}".\n'
             "To create a bug report, follow the Github issue template below:\n"
