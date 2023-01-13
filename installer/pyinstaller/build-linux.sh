@@ -69,7 +69,7 @@ cd src
 echo "$(pwd)"
 
 echo "Generate samcli submodules list"
-../venv/bin/python -c "from samcli.cli.hidden_imports import samcli_modules;print('\n'.join(sorted(list(samcli_modules))))" > "samcli_modules.txt"
+../venv/bin/python -c "from samcli.cli.hidden_imports import samcli_modules;print('\n'.join(sorted(list(samcli_modules))))" > "samcli/samcli_modules.txt"
 
 echo "Building Binary"
 if [ "$is_nightly" = "true" ]; then
