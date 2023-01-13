@@ -69,6 +69,7 @@ def validate_installation(ctx, param, value):
 
     from pathlib import Path
     from .validate_install import validate_requirements, validate_samcli
+
     click.echo("Validating AWS SAM CLI installation")
     samcli_modules_file = Path(__file__).parent.parent / "samcli_modules.txt"
     requirements_file = Path(__file__).parent.parent / "reproducible-linux.txt"
