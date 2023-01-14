@@ -32,8 +32,10 @@ If you do find an existing Issue, re-open or add a comment to that Issue instead
 
 ### Additional environment details (Ex: Windows, Mac, Amazon Linux etc)
 
-1. OS:
-2. `sam --version`:
-3. AWS region:
+1. AWS region:
+2. `sam --info`:
+```
+# Paste the output of `sam --info` here
+```
 
 `Add --debug flag to command you are running`
