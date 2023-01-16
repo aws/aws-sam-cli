@@ -592,6 +592,8 @@ class TestSSLContext(TestCase):
         SSLContext_mock.return_value = context_mock
         ctx = _get_secure_ssl_context()
         SSLContext_mock.assert_called_with(OpenSSL.SSL.TLS_METHOD)
+
+        # NOTE (hawflau): do not remove any of below as they are insecure versions
         context_mock.set_options.assert_any_call(OpenSSL.SSL.OP_NO_TLSv1)
         context_mock.set_options.assert_any_call(OpenSSL.SSL.OP_NO_TLSv1_1)
         context_mock.set_options.assert_any_call(OpenSSL.SSL.OP_NO_SSLv2)
