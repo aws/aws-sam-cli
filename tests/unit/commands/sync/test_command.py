@@ -6,10 +6,10 @@ from parameterized import parameterized
 
 from samcli.commands.sync.command import do_cli, execute_code_sync, execute_watch, check_enable_dependency_layer
 from samcli.lib.providers.provider import ResourceIdentifier
-from samcli.commands._utils.options import (
+from samcli.commands._utils.constants import (
     DEFAULT_BUILD_DIR,
-    DEFAULT_CACHE_DIR,
     DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
+    DEFAULT_CACHE_DIR,
 )
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from tests.unit.commands.buildcmd.test_build_context import DummyStack
@@ -129,6 +129,7 @@ class TestDoCli(TestCase):
             use_container,
             self.config_file,
             self.config_env,
+            build_in_source=False,
         )
 
         if use_container and auto_dependency_layer:
@@ -151,6 +152,7 @@ class TestDoCli(TestCase):
             stack_name=self.stack_name,
             print_success_message=False,
             locate_layer_nested=True,
+            build_in_source=False,
         )
 
         PackageContextMock.assert_called_with(
@@ -266,6 +268,7 @@ class TestDoCli(TestCase):
             use_container,
             self.config_file,
             self.config_env,
+            build_in_source=False,
         )
 
         BuildContextMock.assert_called_with(
@@ -284,6 +287,7 @@ class TestDoCli(TestCase):
             stack_name=self.stack_name,
             print_success_message=False,
             locate_layer_nested=True,
+            build_in_source=False,
         )
 
         PackageContextMock.assert_called_with(
@@ -407,6 +411,7 @@ class TestDoCli(TestCase):
             use_container,
             self.config_file,
             self.config_env,
+            build_in_source=None,
         )
         execute_code_sync_mock.assert_called_once_with(
             self.template_file,

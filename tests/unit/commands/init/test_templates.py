@@ -1,9 +1,8 @@
 import json
-import subprocess
 from pathlib import Path
 from re import search
 from unittest import TestCase
-from unittest.mock import mock_open, patch, PropertyMock, MagicMock
+from unittest.mock import mock_open, patch, PropertyMock
 
 from samcli.commands.init.init_templates import InitTemplates
 from samcli.lib.utils.packagetype import IMAGE, ZIP

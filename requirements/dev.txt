@@ -9,6 +9,11 @@ pytest-cov==2.10.1
 # here we fix its version and upgrade it manually in the future
 mypy==0.790
 boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray]==1.21.21
+types-pywin32==304.0.0.1
+types-PyYAML==6.0.12
+types-chevron==0.14.2
+types-psutil==5.9.5.1
+types-setuptools==65.4.0.0
 
 # Test requirements
 pytest==6.1.1

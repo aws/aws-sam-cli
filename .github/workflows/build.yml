@@ -1,0 +1,29 @@
+name: Unit Tests
+
+on:
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  build:
+    name: ${{ matrix.os }} / ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          # TODO: Add macos-latest; fails currently, see e.g. https://github.com/aws/aws-sam-cli/actions/runs/3596883449/jobs/6058055981
+          - ubuntu-latest
+          - windows-latest
+        python:
+          - "3.7"
+          - "3.8"
+          - "3.9"
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python }}
+    - run: make init
+    - run: make pr

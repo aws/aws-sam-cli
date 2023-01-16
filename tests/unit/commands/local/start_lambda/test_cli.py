@@ -43,6 +43,7 @@ class TestCli(TestCase):
         self.container_host = "localhost"
         self.container_host_interface = "127.0.0.1"
         self.invoke_image = ()
+        self.hook_name = None
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.lib.local_lambda_service.LocalLambdaService")
@@ -167,4 +168,5 @@ class TestCli(TestCase):
             container_host=self.container_host,
             container_host_interface=self.container_host_interface,
             invoke_image=self.invoke_image,
+            hook_name=self.hook_name,
         )

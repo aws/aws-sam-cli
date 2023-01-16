@@ -23,9 +23,11 @@ from samcli.commands._utils.options import (
     s3_prefix_option,
     kms_key_id_option,
     role_arn_option,
+)
+from samcli.commands._utils.constants import (
     DEFAULT_BUILD_DIR,
-    DEFAULT_CACHE_DIR,
     DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
+    DEFAULT_CACHE_DIR,
 )
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.commands._utils.click_mutex import ClickMutex
@@ -208,6 +210,7 @@ def cli(
         use_container,
         config_file,
         config_env,
+        None,  # TODO: replace with build_in_source once it's added as a click option
     )  # pragma: no cover
 
 
@@ -237,6 +240,7 @@ def do_cli(
     use_container: bool,
     config_file: str,
     config_env: str,
+    build_in_source: Optional[bool],
 ) -> None:
     """
     Implementation of the ``cli`` method
@@ -288,6 +292,7 @@ def do_cli(
         stack_name=stack_name,
         print_success_message=False,
         locate_layer_nested=True,
+        build_in_source=build_in_source,
     ) as build_context:
         built_template = os.path.join(build_dir, DEFAULT_TEMPLATE_NAME)
 

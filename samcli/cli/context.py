@@ -41,6 +41,23 @@ class Context:
         self._aws_profile = None
         self._session_id = str(uuid.uuid4())
         self._experimental = False
+        self._exception = None
+
+    @property
+    def exception(self):
+        return self._exception
+
+    @exception.setter
+    def exception(self, value: Exception):
+        """
+        Save the exception to handler in the future
+
+        Parameter
+        ---------
+        value: Exception
+            The exception to save for future handling
+        """
+        self._exception = value
 
     @property
     def debug(self):

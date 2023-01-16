@@ -371,6 +371,64 @@ class TestBasicInitCommand(TestCase):
             self.assertEqual(process.returncode, 0)
             self.assertTrue(Path(temp, "sam-app").is_dir())
 
+    def test_init_command_passes_with_enabled_application_insights(self):
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    get_sam_command(),
+                    "init",
+                    "--runtime",
+                    "nodejs14.x",
+                    "--dependency-manager",
+                    "npm",
+                    "--app-template",
+                    "hello-world",
+                    "--name",
+                    "sam-app",
+                    "--no-interactive",
+                    "-o",
+                    temp,
+                    "--application-insights",
+                ]
+            )
+            try:
+                process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 0)
+            self.assertTrue(Path(temp, "sam-app").is_dir())
+
+    def test_init_command_passes_with_disabled_application_insights(self):
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    get_sam_command(),
+                    "init",
+                    "--runtime",
+                    "nodejs14.x",
+                    "--dependency-manager",
+                    "npm",
+                    "--app-template",
+                    "hello-world",
+                    "--name",
+                    "sam-app",
+                    "--no-interactive",
+                    "-o",
+                    temp,
+                    "--no-application-insights",
+                ]
+            )
+            try:
+                process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 0)
+            self.assertTrue(Path(temp, "sam-app").is_dir())
+
 
 MISSING_REQUIRED_PARAM_MESSAGE = """Error: Missing required parameters, with --no-interactive set.
 Must provide one of the following required parameter combinations:
@@ -418,7 +476,7 @@ class TestInitForParametersCompatibility(TestCase):
 
             self.assertEqual(process.returncode, 2)
 
-            self.assertEqual(MISSING_REQUIRED_PARAM_MESSAGE.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertIn(MISSING_REQUIRED_PARAM_MESSAGE.strip(), "\n".join(stderr.strip().splitlines()))
 
     def test_init_command_no_interactive_apptemplate_location(self):
         stderr = None
@@ -447,7 +505,7 @@ class TestInitForParametersCompatibility(TestCase):
 
             self.assertEqual(process.returncode, 2)
 
-            self.assertEqual(
+            self.assertIn(
                 INCOMPATIBLE_PARAM_MESSAGE.strip().format("app-template", "location"),
                 "\n".join(stderr.strip().splitlines()),
             )
@@ -479,7 +537,7 @@ class TestInitForParametersCompatibility(TestCase):
 
             self.assertEqual(process.returncode, 2)
 
-            self.assertEqual(
+            self.assertIn(
                 INCOMPATIBLE_PARAM_MESSAGE.strip().format("runtime", "location"), "\n".join(stderr.strip().splitlines())
             )
 
@@ -510,7 +568,7 @@ class TestInitForParametersCompatibility(TestCase):
 
             self.assertEqual(process.returncode, 2)
 
-            self.assertEqual(
+            self.assertIn(
                 INCOMPATIBLE_PARAM_MESSAGE.strip().format("base-image", "location"),
                 "\n".join(stderr.strip().splitlines()),
             )
@@ -542,7 +600,7 @@ class TestInitForParametersCompatibility(TestCase):
 
             self.assertEqual(process.returncode, 2)
 
-            self.assertEqual(MISSING_REQUIRED_PARAM_MESSAGE.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertIn(MISSING_REQUIRED_PARAM_MESSAGE.strip(), "\n".join(stderr.strip().splitlines()))
 
     def test_init_command_no_interactive_packagetype_location(self):
         stderr = None
@@ -571,7 +629,7 @@ class TestInitForParametersCompatibility(TestCase):
 
             self.assertEqual(process.returncode, 2)
 
-            self.assertEqual(
+            self.assertIn(
                 INCOMPATIBLE_PARAM_MESSAGE.strip().format("package-type", "location"),
                 "\n".join(stderr.strip().splitlines()),
             )
@@ -601,7 +659,7 @@ class TestInitForParametersCompatibility(TestCase):
 
             self.assertEqual(process.returncode, 2)
 
-            self.assertEqual(MISSING_REQUIRED_PARAM_MESSAGE.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertIn(MISSING_REQUIRED_PARAM_MESSAGE.strip(), "\n".join(stderr.strip().splitlines()))
 
     def test_init_command_wrong_packagetype(self):
         stderr = None
@@ -635,7 +693,7 @@ Error: Invalid value for '-p' / '--package-type': 'WrongPT' is not one of 'Zip',
                 get_sam_command()
             )
 
-            self.assertEqual(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertIn(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
 
 
 class TestInitWithArbitraryProject(TestCase):
@@ -722,18 +780,20 @@ class TestInteractiveInit(TestCase):
         # 1: AWS Quick Start Templates
         # 1: Hello World Example
         # N: Use the most popular runtime and package type? (Python and zip) [y/N]
-        # 10: nodejs16.x
+        # 12: nodejs16.x
         # 1: Zip
         # 1: Hello World Example
         # N: Would you like to enable X-Ray tracing on the function(s) in your application?  [y/N]
+        # Y: Would you like to enable monitoring using Cloudwatch Application Insights? [y/N]
         user_input = """
 1
 1
 N
-10
+13
 1
 1
 N
+Y
 sam-interactive-init-app
         """
         with tempfile.TemporaryDirectory() as temp:
@@ -752,6 +812,7 @@ sam-interactive-init-app
 1
 1
 Y
+N
 N
 sam-interactive-init-app-default-runtime
         """

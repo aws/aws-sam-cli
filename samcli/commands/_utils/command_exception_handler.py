@@ -7,7 +7,7 @@ from typing import Callable, Dict, Any, Optional
 
 from botocore.exceptions import NoRegionError, ClientError
 
-from samcli.commands._utils.options import parameterized_option
+from samcli.commands._utils.parameterized_option import parameterized_option
 from samcli.commands.exceptions import CredentialsError, RegionError
 from samcli.lib.utils.boto_utils import get_client_error_code
 

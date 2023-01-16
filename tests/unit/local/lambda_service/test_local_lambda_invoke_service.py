@@ -50,7 +50,7 @@ class TestLocalLambdaService(TestCase):
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LocalLambdaInvokeService.service_response")
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LambdaOutputParser")
     def test_invoke_request_handler(self, lambda_output_parser_mock, service_response_mock):
-        lambda_output_parser_mock.get_lambda_output.return_value = "hello world", None, False
+        lambda_output_parser_mock.get_lambda_output.return_value = "hello world", False
         service_response_mock.return_value = "request response"
 
         request_mock = Mock()
@@ -98,10 +98,9 @@ class TestLocalLambdaService(TestCase):
         request_mock.get_data.return_value = b"{}"
         local_lambda_invoke_service.request = request_mock
 
-        lambda_logs = "logs"
         lambda_response = "response"
         is_customer_error = False
-        lambda_output_parser_mock.get_lambda_output.return_value = lambda_response, lambda_logs, is_customer_error
+        lambda_output_parser_mock.get_lambda_output.return_value = lambda_response, is_customer_error
 
         service_response_mock.return_value = "request response"
 
@@ -115,9 +114,6 @@ class TestLocalLambdaService(TestCase):
 
         self.assertEqual(result, "request response")
         lambda_output_parser_mock.get_lambda_output.assert_called_with(ANY)
-
-        # Make sure the logs are written to stderr
-        stderr_mock.write.assert_called_with(lambda_logs)
 
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LambdaErrorResponses")
     def test_construct_error_handling(self, lambda_error_response_mock):
@@ -138,7 +134,7 @@ class TestLocalLambdaService(TestCase):
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LocalLambdaInvokeService.service_response")
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LambdaOutputParser")
     def test_invoke_request_handler_with_lambda_that_errors(self, lambda_output_parser_mock, service_response_mock):
-        lambda_output_parser_mock.get_lambda_output.return_value = "hello world", None, True
+        lambda_output_parser_mock.get_lambda_output.return_value = "hello world", True
         service_response_mock.return_value = "request response"
         request_mock = Mock()
         request_mock.get_data.return_value = b"{}"
@@ -159,7 +155,7 @@ class TestLocalLambdaService(TestCase):
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LocalLambdaInvokeService.service_response")
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LambdaOutputParser")
     def test_invoke_request_handler_with_no_data(self, lambda_output_parser_mock, service_response_mock):
-        lambda_output_parser_mock.get_lambda_output.return_value = "hello world", None, False
+        lambda_output_parser_mock.get_lambda_output.return_value = "hello world", False
         service_response_mock.return_value = "request response"
 
         request_mock = Mock()

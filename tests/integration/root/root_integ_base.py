@@ -1,6 +1,8 @@
 import os
 from unittest import TestCase
 
+from tests.testing_utils import get_sam_command
+
 
 class RootIntegBase(TestCase):
     def setUp(self):
@@ -9,14 +11,6 @@ class RootIntegBase(TestCase):
     def tearDown(self):
         super().tearDown()
 
-    @staticmethod
-    def base_command():
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
-
-        return command
-
     def root_command_list(
         self,
         info=False,
@@ -24,7 +18,7 @@ class RootIntegBase(TestCase):
         version=False,
         _help=False,
     ):
-        command_list = [RootIntegBase.base_command()]
+        command_list = [get_sam_command()]
 
         if info:
             command_list += ["--info"]
