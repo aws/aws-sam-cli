@@ -101,7 +101,7 @@ class TestSamConfigForAllCommands(TestCase):
                 LOG.exception("Command failed", exc_info=result.exc_info)
             self.assertIsNone(result.exception)
 
-            do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")))
+            do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")), False)
 
     @patch("samcli.commands.build.command.do_cli")
     def test_build(self, do_cli_mock):
@@ -157,6 +157,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "file",
                 ("",),
                 ("",),
+                None,
                 None,
             )
 
@@ -215,6 +216,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ("",),
                 ("",),
                 None,
+                None,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -270,6 +272,7 @@ class TestSamConfigForAllCommands(TestCase):
                 (),
                 (),
                 None,
+                None,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -323,6 +326,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 ("Function1=image_1", "image_2"),
                 (),
+                None,
                 None,
             )
 
@@ -1014,6 +1018,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 "samconfig.toml",
                 "default",
+                None,
             )
 
 
@@ -1252,7 +1257,7 @@ class TestSamConfigWithOverrides(TestCase):
                 LOG.exception("Command failed", exc_info=result.exc_info)
             self.assertIsNone(result.exception)
 
-            do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")))
+            do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")), False)
 
 
 @contextmanager
