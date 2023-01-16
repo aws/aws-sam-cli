@@ -270,10 +270,12 @@ def _generate_from_use_case(
     )
 
     click.echo(summary_msg)
+    app_composer_link = "https://console.aws.amazon.com/composer/home"
     command_suggestions = generate_next_command_recommendation(
         [
+            ("Visually build with AWS Application Composer", f"{app_composer_link}"), 
             ("Create pipeline", f"cd {name} && sam pipeline init --bootstrap"),
-            ("Validate SAM template", f"cd {name} && sam validate"),
+            ("Validate SAM template", f"cd {name} && sam validate --lint"),
             ("Test Function in the Cloud", f"cd {name} && sam sync --stack-name {{stack-name}} --watch"),
         ]
     )
