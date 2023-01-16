@@ -46,6 +46,18 @@ OIDC_SUPPORTED_PROVIDER = [GITHUB_ACTIONS, GITLAB, BITBUCKET]
 REGION = "region"
 
 
+def _get_secure_ssl_context() -> SSL.Context:
+    """
+    Returns a SSL Context with secure settings
+    """
+    ctx = SSL.Context(SSL.TLS_METHOD)
+    ctx.set_options(SSL.OP_NO_TLSv1)
+    ctx.set_options(SSL.OP_NO_TLSv1_1)
+    ctx.set_options(SSL.OP_NO_SSLv2)
+    ctx.set_options(SSL.OP_NO_SSLv3)
+    return ctx
+
+
 class Stage:
     """
     Represents an application stage: Beta, Gamma, Prod ...etc
@@ -200,7 +212,7 @@ class Stage:
         # Create connection to retrieve certificate
         # Create an IPV4 socket and use TLS for the SSL connection
         address = (url_for_certificate, 443)
-        ctx = SSL.Context(SSL.TLS_METHOD)
+        ctx = _get_secure_ssl_context()
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect(address)
         c = SSL.Connection(ctx, s)
