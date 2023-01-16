@@ -585,7 +585,7 @@ class TestSSLContext(TestCase):
     def test_return_ctx(self):
         ctx = _get_secure_ssl_context()
         self.assertIsInstance(ctx, OpenSSL.SSL.Context)
-        
+
     @patch("samcli.lib.pipeline.bootstrap.stage.SSL.Context")
     def test_options_set(self, SSLContext_mock):
         context_mock = Mock()
@@ -596,4 +596,3 @@ class TestSSLContext(TestCase):
         context_mock.set_options.assert_any_call(OpenSSL.SSL.OP_NO_TLSv1_1)
         context_mock.set_options.assert_any_call(OpenSSL.SSL.OP_NO_SSLv2)
         context_mock.set_options.assert_any_call(OpenSSL.SSL.OP_NO_SSLv3)
-        

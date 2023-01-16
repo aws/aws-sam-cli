@@ -46,7 +46,6 @@ OIDC_SUPPORTED_PROVIDER = [GITHUB_ACTIONS, GITLAB, BITBUCKET]
 REGION = "region"
 
 
-
 def _get_secure_ssl_context() -> SSL.Context:
     """
     Returns a SSL Context with secure settings
