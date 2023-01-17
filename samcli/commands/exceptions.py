@@ -59,7 +59,7 @@ class UnhandledException(click.ClickException):
         create_issue_url = self.GH_BUG_REPORT_URL.format(title=encoded_title)
         msg = (
             f'An unexpected error was encountered while executing "{self._command}".\n'
-            "Search if there is any existing issue:\n"
+            "Search for an existing issue:\n"
             f"{lookup_url}\n"
             "Or create a bug report:\n"
             f"{create_issue_url}"
