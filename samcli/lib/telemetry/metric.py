@@ -18,7 +18,7 @@ from samcli import __version__ as samcli_version
 from samcli.cli.context import Context
 from samcli.cli.global_config import GlobalConfig
 from samcli.commands._utils.experimental import get_all_experimental_statues
-from samcli.commands.exceptions import UserException
+from samcli.commands.exceptions import UserException, UnhandledException
 from samcli.lib.hook.hook_config import HookPackageConfig
 from samcli.lib.hook.hook_wrapper import INTERNAL_PACKAGES_ROOT
 from samcli.lib.hook.exceptions import InvalidHookPackageConfigException
@@ -148,16 +148,24 @@ def track_command(func):
             # Execute the function and capture return value. This is returned back by the wrapper
             # First argument of all commands should be the Context
             return_value = func(*args, **kwargs)
-        except UserException as ex:
+        except (
+            UserException,
+            click.BadOptionUsage,
+            click.BadArgumentUsage,
+            click.BadParameter,
+            click.UsageError,
+        ) as ex:
             # Capture exception information and re-raise it later so we can first send metrics.
             exception = ex
-            exit_code = ex.exit_code
-            if ex.wrapped_from is None:
-                exit_reason = type(ex).__name__
-            else:
+            # TODO (hawflau): review exitcode meaning. We now understand exitcode 1 as errors fixable by users.
+            exit_code = 1
+            if hasattr(ex, "wrapped_from") and ex.wrapped_from:
                 exit_reason = ex.wrapped_from
+            else:
+                exit_reason = type(ex).__name__
         except Exception as ex:
-            exception = ex
+            command = ctx.command_path if ctx else ""
+            exception = UnhandledException(command, ex)
             # Standard Unix practice to return exit code 255 on fatal/unhandled exit.
             exit_code = 255
             exit_reason = type(ex).__name__
