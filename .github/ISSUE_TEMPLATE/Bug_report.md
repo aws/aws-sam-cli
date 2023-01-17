@@ -32,8 +32,12 @@ If you do find an existing Issue, re-open or add a comment to that Issue instead
 
 ### Additional environment details (Ex: Windows, Mac, Amazon Linux etc)
 
-1. AWS region:
-2. `sam --info`:
+<!-- Either provide the following info (for AWS SAM CLI v1.68.0 or before) or paste the output of `sam --info` (AWS SAM CLI v1.69.0 or after). -->
+
+1. OS:
+2. `sam --version`:
+3. AWS region:
+
 ```
 # Paste the output of `sam --info` here
 ```
