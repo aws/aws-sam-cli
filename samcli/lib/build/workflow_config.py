@@ -4,95 +4,24 @@ Contains Builder Workflow Configs for different Runtimes
 
 import os
 import logging
-from collections import namedtuple
 from typing import Dict, List, Optional, Tuple, Union, cast
 
+from samcli.lib.build.workflows import (
+    CONFIG,
+    PYTHON_PIP_CONFIG,
+    NODEJS_NPM_CONFIG,
+    RUBY_BUNDLER_CONFIG,
+    JAVA_GRADLE_CONFIG,
+    JAVA_KOTLIN_GRADLE_CONFIG,
+    JAVA_MAVEN_CONFIG,
+    DOTNET_CLIPACKAGE_CONFIG,
+    GO_MOD_CONFIG,
+    PROVIDED_MAKE_CONFIG,
+    NODEJS_NPM_ESBUILD_CONFIG,
+)
+from samcli.lib.telemetry.event import EventTracker
+
 LOG = logging.getLogger(__name__)
-
-CONFIG = namedtuple(
-    "Capability",
-    ["language", "dependency_manager", "application_framework", "manifest_name", "executable_search_paths"],
-)
-
-PYTHON_PIP_CONFIG = CONFIG(
-    language="python",
-    dependency_manager="pip",
-    application_framework=None,
-    manifest_name="requirements.txt",
-    executable_search_paths=None,
-)
-
-NODEJS_NPM_CONFIG = CONFIG(
-    language="nodejs",
-    dependency_manager="npm",
-    application_framework=None,
-    manifest_name="package.json",
-    executable_search_paths=None,
-)
-
-RUBY_BUNDLER_CONFIG = CONFIG(
-    language="ruby",
-    dependency_manager="bundler",
-    application_framework=None,
-    manifest_name="Gemfile",
-    executable_search_paths=None,
-)
-
-JAVA_GRADLE_CONFIG = CONFIG(
-    language="java",
-    dependency_manager="gradle",
-    application_framework=None,
-    manifest_name="build.gradle",
-    executable_search_paths=None,
-)
-
-JAVA_KOTLIN_GRADLE_CONFIG = CONFIG(
-    language="java",
-    dependency_manager="gradle",
-    application_framework=None,
-    manifest_name="build.gradle.kts",
-    executable_search_paths=None,
-)
-
-JAVA_MAVEN_CONFIG = CONFIG(
-    language="java",
-    dependency_manager="maven",
-    application_framework=None,
-    manifest_name="pom.xml",
-    executable_search_paths=None,
-)
-
-DOTNET_CLIPACKAGE_CONFIG = CONFIG(
-    language="dotnet",
-    dependency_manager="cli-package",
-    application_framework=None,
-    manifest_name=".csproj",
-    executable_search_paths=None,
-)
-
-GO_MOD_CONFIG = CONFIG(
-    language="go",
-    dependency_manager="modules",
-    application_framework=None,
-    manifest_name="go.mod",
-    executable_search_paths=None,
-)
-
-PROVIDED_MAKE_CONFIG = CONFIG(
-    language="provided",
-    dependency_manager=None,
-    application_framework=None,
-    manifest_name="Makefile",
-    executable_search_paths=None,
-)
-
-NODEJS_NPM_ESBUILD_CONFIG = CONFIG(
-    language="nodejs",
-    dependency_manager="npm-esbuild",
-    application_framework=None,
-    manifest_name="package.json",
-    executable_search_paths=None,
-)
 
 
 class UnsupportedRuntimeException(Exception):
@@ -165,6 +94,7 @@ def get_layer_subfolder(build_workflow: str) -> str:
         "nodejs12.x": "nodejs",
         "nodejs14.x": "nodejs",
         "nodejs16.x": "nodejs",
+        "nodejs18.x": "nodejs",
         "ruby2.7": "ruby/lib",
         "java8": "java",
         "java11": "java",
@@ -211,7 +141,10 @@ def get_workflow_config(
         namedtuple that represents the Builder Workflow Config
     """
 
-    selectors_by_build_method = {"makefile": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG)}
+    selectors_by_build_method = {
+        "makefile": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG),
+        "dotnet7": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
+    }
 
     selectors_by_runtime = {
         "python3.6": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
@@ -221,6 +154,7 @@ def get_workflow_config(
         "nodejs12.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs14.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs16.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
+        "nodejs18.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "ruby2.7": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "dotnetcore3.1": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "dotnet6": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
@@ -278,6 +212,9 @@ def get_workflow_config(
 
         # Identify workflow configuration from the workflow selector.
         config = cast(WorkFlowSelector, selector).get_config(code_dir, project_dir)
+
+        EventTracker.track_event("BuildWorkflowUsed", f"{config.language}-{config.dependency_manager}")
+
         return config
     except ValueError as ex:
         raise UnsupportedRuntimeException(

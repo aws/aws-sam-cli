@@ -1,5 +1,3 @@
-from logging import captureWarnings
-from operator import inv
 from typing import Container, Iterable, Union
 import uuid
 import time
@@ -15,8 +13,10 @@ from samcli.commands.deploy.exceptions import (
     ChangeSetError,
     DeployStackOutPutFailedError,
     DeployBucketInDifferentRegionError,
+    DeployStackStatusMissingError,
 )
 from samcli.lib.deploy.deployer import Deployer
+from samcli.lib.deploy.utils import FailureMode
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.time import utc_to_timestamp, to_datetime
 
@@ -355,13 +355,11 @@ class TestDeployer(CustomTestCase):
         with self.assertRaises(ChangeSetError):
             self.deployer.wait_for_changeset("test-id", "test-stack")
 
-    @patch("time.time", MagicMock(return_value=1656278830.0544872))
     def test_execute_changeset(self):
-        execution_time = self.deployer.execute_changeset("id", "test", True)
+        self.deployer.execute_changeset("id", "test", True)
         self.deployer._client.execute_change_set.assert_called_with(
             ChangeSetName="id", StackName="test", DisableRollback=True
         )
-        self.assertEquals(execution_time, 1656278830.0544872)
 
     def test_execute_changeset_exception(self):
         self.deployer._client.execute_change_set = MagicMock(
@@ -1009,10 +1007,10 @@ class TestDeployer(CustomTestCase):
     def test_wait_for_execute(self, patched_time):
         self.deployer.describe_stack_events = MagicMock()
         self.deployer._client.get_waiter = MagicMock(return_value=MockCreateUpdateWaiter())
-        self.deployer.wait_for_execute("test", "CREATE", False, time.time())
-        self.deployer.wait_for_execute("test", "UPDATE", True, time.time())
+        self.deployer.wait_for_execute("test", "CREATE", False)
+        self.deployer.wait_for_execute("test", "UPDATE", True)
         with self.assertRaises(RuntimeError):
-            self.deployer.wait_for_execute("test", "DESTRUCT", False, time.time())
+            self.deployer.wait_for_execute("test", "DESTRUCT", False)
 
         self.deployer._client.get_waiter = MagicMock(
             return_value=MockCreateUpdateWaiter(
@@ -1024,7 +1022,15 @@ class TestDeployer(CustomTestCase):
             )
         )
         with self.assertRaises(DeployFailedError):
-            self.deployer.wait_for_execute("test", "CREATE", False, time.time())
+            self.deployer.wait_for_execute("test", "CREATE", False)
+
+        self.deployer._client.get_waiter = MagicMock()
+        self.deployer.get_stack_outputs = MagicMock(
+            side_effect=DeployStackOutPutFailedError("test", "message"), return_value=None
+        )
+        self.deployer._display_stack_outputs = MagicMock()
+        with self.assertRaises(DeployStackOutPutFailedError):
+            self.deployer.wait_for_execute("test", "CREATE", False)
 
     def test_create_and_wait_for_changeset(self):
         self.deployer.create_changeset = MagicMock(return_value=({"Id": "test"}, "create"))
@@ -1125,7 +1131,7 @@ class TestDeployer(CustomTestCase):
         self.deployer._client.get_waiter = MagicMock(return_value=MockCreateUpdateWaiter())
         self.deployer._display_stack_outputs = MagicMock()
         self.deployer.get_stack_outputs = MagicMock(return_value=None)
-        self.deployer.wait_for_execute("test", "CREATE", False, time.time())
+        self.deployer.wait_for_execute("test", "CREATE", False)
         self.assertEqual(self.deployer._display_stack_outputs.call_count, 0)
 
     @patch("time.sleep")
@@ -1144,7 +1150,7 @@ class TestDeployer(CustomTestCase):
         self.deployer._client.get_waiter = MagicMock(return_value=MockCreateUpdateWaiter())
         self.deployer._display_stack_outputs = MagicMock()
         self.deployer.get_stack_outputs = MagicMock(return_value=outputs["Stacks"][0]["Outputs"])
-        self.deployer.wait_for_execute("test", "CREATE", False, time.time())
+        self.deployer.wait_for_execute("test", "CREATE", False)
         self.assertEqual(self.deployer._display_stack_outputs.call_count, 1)
 
     def test_sync_update_stack(self):
@@ -1161,6 +1167,7 @@ class TestDeployer(CustomTestCase):
             notification_arns=[],
             s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
             tags={"unit": "true"},
+            on_failure=None,
         )
 
         self.assertEqual(self.deployer._client.update_stack.call_count, 1)
@@ -1172,6 +1179,7 @@ class TestDeployer(CustomTestCase):
             StackName="test",
             Tags={"unit": "true"},
             TemplateURL=ANY,
+            DisableRollback=False,
         )
 
     def test_sync_update_stack_exception(self):
@@ -1190,6 +1198,7 @@ class TestDeployer(CustomTestCase):
                 notification_arns=[],
                 s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
                 tags={"unit": "true"},
+                on_failure=None,
             )
 
     def test_sync_create_stack(self):
@@ -1206,6 +1215,7 @@ class TestDeployer(CustomTestCase):
             notification_arns=[],
             s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
             tags={"unit": "true"},
+            on_failure=FailureMode.ROLLBACK,
         )
 
         self.assertEqual(self.deployer._client.create_stack.call_count, 1)
@@ -1217,6 +1227,7 @@ class TestDeployer(CustomTestCase):
             StackName="test",
             Tags={"unit": "true"},
             TemplateURL=ANY,
+            OnFailure=str(FailureMode.ROLLBACK),
         )
 
     def test_sync_create_stack_exception(self):
@@ -1235,6 +1246,7 @@ class TestDeployer(CustomTestCase):
                 notification_arns=[],
                 s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
                 tags={"unit": "true"},
+                on_failure=None,
             )
 
     def test_process_kwargs(self):
@@ -1250,3 +1262,116 @@ class TestDeployer(CustomTestCase):
         }
         result = self.deployer._process_kwargs(kwargs, None, capabilities, role_arn, notification_arns)
         self.assertEqual(expected, result)
+
+    def test_sync_disable_rollback_using_on_failure(self):
+        self.deployer.has_stack = MagicMock(return_value=True)
+        self.deployer.wait_for_execute = MagicMock()
+        self.deployer.sync(
+            stack_name="test",
+            cfn_template=" ",
+            parameter_values=[
+                {"ParameterKey": "a", "ParameterValue": "b"},
+            ],
+            capabilities=["CAPABILITY_IAM"],
+            role_arn="role-arn",
+            notification_arns=[],
+            s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
+            tags={"unit": "true"},
+            on_failure=FailureMode.DO_NOTHING,
+        )
+
+        self.assertEqual(self.deployer._client.update_stack.call_count, 1)
+        self.deployer._client.update_stack.assert_called_with(
+            Capabilities=["CAPABILITY_IAM"],
+            NotificationARNs=[],
+            Parameters=[{"ParameterKey": "a", "ParameterValue": "b"}],
+            RoleARN="role-arn",
+            StackName="test",
+            Tags={"unit": "true"},
+            TemplateURL=ANY,
+            DisableRollback=True,
+        )
+
+    def test_sync_create_stack_on_failure_delete(self):
+        self.deployer.has_stack = MagicMock(return_value=False)
+        self.deployer.wait_for_execute = MagicMock()
+        self.deployer.sync(
+            stack_name="test",
+            cfn_template=" ",
+            parameter_values=[
+                {"ParameterKey": "a", "ParameterValue": "b"},
+            ],
+            capabilities=["CAPABILITY_IAM"],
+            role_arn="role-arn",
+            notification_arns=[],
+            s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
+            tags={"unit": "true"},
+            on_failure=str(FailureMode.DELETE),
+        )
+
+        self.assertEqual(self.deployer._client.create_stack.call_count, 1)
+        self.deployer._client.create_stack.assert_called_with(
+            Capabilities=["CAPABILITY_IAM"],
+            NotificationARNs=[],
+            Parameters=[{"ParameterKey": "a", "ParameterValue": "b"}],
+            RoleARN="role-arn",
+            StackName="test",
+            Tags={"unit": "true"},
+            TemplateURL=ANY,
+            OnFailure=str(FailureMode.DELETE),
+        )
+
+    def test_rollback_stack_new_stack_failed(self):
+        self.deployer._client.describe_stacks = MagicMock(return_value={"Stacks": [{"StackStatus": "CREATE_FAILED"}]})
+        self.deployer.wait_for_execute = MagicMock()
+        self.deployer.describe_stack_events = MagicMock()
+
+        self.deployer.rollback_delete_stack("test")
+
+        self.assertEqual(self.deployer._client.rollback_stack.call_count, 0)
+        self.assertEqual(self.deployer._client.delete_stack.call_count, 1)
+
+    def test_rollback_stack_update_stack_delete(self):
+        self.deployer._get_stack_status = MagicMock(side_effect=["UPDATE_FAILED", "ROLLBACK_COMPLETE"])
+        self.deployer._rollback_wait = MagicMock()
+        self.deployer.wait_for_execute = MagicMock()
+        self.deployer.describe_stack_events = MagicMock()
+
+        self.deployer.rollback_delete_stack("test")
+
+        self.assertEqual(self.deployer._client.rollback_stack.call_count, 1)
+        self.assertEqual(self.deployer._client.delete_stack.call_count, 1)
+        self.assertEqual(self.deployer._client.describe_stack_events.call_count, 0)
+
+    def test_rollback_invalid_stack_name(self):
+        self.deployer._client.describe_stacks = MagicMock(
+            side_effect=ClientError(error_response={"Error": {"Message": "Error"}}, operation_name="describe_stacks")
+        )
+
+        with self.assertRaises(ClientError):
+            self.deployer.rollback_delete_stack("test")
+
+    def test_get_stack_status(self):
+        self.deployer._client.describe_stacks = MagicMock(return_value={"Stacks": [{"StackStatus": "CREATE_FAILED"}]})
+
+        result = self.deployer._get_stack_status("test")
+
+        self.assertEqual(result, "CREATE_FAILED")
+
+    @patch("samcli.lib.deploy.deployer.LOG.error")
+    @patch("samcli.lib.deploy.deployer.time.sleep")
+    def test_rollback_wait(self, time_mock, log_mock):
+        self.deployer._get_stack_status = MagicMock(return_value="UPDATE_ROLLBACK_COMPLETE")
+
+        self.deployer._rollback_wait("test")
+
+        self.assertEqual(log_mock.call_count, 0)
+
+    @patch("samcli.lib.deploy.deployer.LOG.error")
+    @patch("samcli.lib.deploy.deployer.time.sleep")
+    def test_rollback_wait_timeout(self, time_mock, log_mock):
+        self.deployer._get_stack_status = MagicMock(return_value="CREATE_FAILED")
+
+        self.deployer._rollback_wait("test")
+
+        self.assertEqual(log_mock.call_count, 1)

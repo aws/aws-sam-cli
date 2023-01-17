@@ -9,8 +9,9 @@ from typing import Dict, Optional, List, Tuple, cast
 
 import click
 
-from samcli.commands._utils.experimental import ExperimentalFlag, prompt_experimental
+from samcli.lib.build.bundler import EsbuildBundlerManager
 from samcli.lib.providers.sam_api_provider import SamApiProvider
+from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.utils.packagetype import IMAGE
 
 from samcli.commands._utils.template import get_template_data
@@ -34,8 +35,9 @@ from samcli.lib.build.app_builder import (
     BuildError,
     UnsupportedBuilderLibraryVersionError,
     ContainerBuildNotSupported,
+    ApplicationBuildResult,
 )
-from samcli.commands._utils.options import DEFAULT_BUILD_DIR
+from samcli.commands._utils.constants import DEFAULT_BUILD_DIR
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands._utils.template import move_template
@@ -73,6 +75,8 @@ class BuildContext:
         stack_name: Optional[str] = None,
         print_success_message: bool = True,
         locate_layer_nested: bool = False,
+        hook_name: Optional[str] = None,
+        build_in_source: Optional[bool] = None,
     ) -> None:
         """
         Initialize the class
@@ -124,6 +128,10 @@ class BuildContext:
             Print successful message
         locate_layer_nested: bool
             Locate layer to its actual, worked with nested stack
+        hook_name: Optional[str]
+            Name of the hook package
+        build_in_source: Optional[bool]
+            Set to True to build in the source directory.
         """
 
         self._resource_identifier = resource_identifier
@@ -161,6 +169,8 @@ class BuildContext:
         self._container_manager: Optional[ContainerManager] = None
         self._stacks: List[Stack] = []
         self._locate_layer_nested = locate_layer_nested
+        self._hook_name = hook_name
+        self._build_in_source = build_in_source
 
     def __enter__(self) -> "BuildContext":
         self.set_up()
@@ -222,6 +232,8 @@ class BuildContext:
         if is_sam_template:
             SamApiProvider.check_implicit_api_resource_ids(self.stacks)
 
+        self._stacks = self._handle_build_pre_processing()
+
         try:
             builder = ApplicationBuilder(
                 self.get_resources_to_build(),
@@ -238,34 +250,20 @@ class BuildContext:
                 container_env_var_file=self._container_env_var_file,
                 build_images=self._build_images,
                 combine_dependencies=not self._create_auto_dependency_layer,
+                build_in_source=self._build_in_source,
             )
         except FunctionNotFound as ex:
             raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
 
         try:
-            self._check_esbuild_warning()
             self._check_exclude_warning()
+
             build_result = builder.build()
-            artifacts = build_result.artifacts
 
-            stack_output_template_path_by_stack_path = {
-                stack.stack_path: stack.get_output_template_path(self.build_dir) for stack in self.stacks
-            }
-            for stack in self.stacks:
-                modified_template = builder.update_template(
-                    stack,
-                    artifacts,
-                    stack_output_template_path_by_stack_path,
-                )
-                output_template_path = stack.get_output_template_path(self.build_dir)
+            self._handle_build_post_processing(builder, build_result)
 
-                if self._create_auto_dependency_layer:
-                    LOG.debug("Auto creating dependency layer for each function resource into a nested stack")
-                    nested_stack_manager = NestedStackManager(
-                        stack, self._stack_name, self.build_dir, modified_template, build_result
-                    )
-                    modified_template = nested_stack_manager.generate_auto_dependency_layer_stack()
-                move_template(stack.location, output_template_path, modified_template)
+            for f in self.get_resources_to_build().functions:
+                EventTracker.track_event("BuildFunctionRuntime", f.runtime)
 
             click.secho("\nBuild Succeeded", fg="green")
 
@@ -283,7 +281,7 @@ class BuildContext:
                 output_template_path_in_success_message = out_template_path
 
             if self._print_success_message:
-                msg = self.gen_success_msg(
+                msg = self._gen_success_msg(
                     build_dir_in_success_message,
                     output_template_path_in_success_message,
                     os.path.abspath(self.build_dir) == os.path.abspath(DEFAULT_BUILD_DIR),
@@ -307,29 +305,103 @@ class BuildContext:
             wrapped_from = deep_wrap if deep_wrap else ex.__class__.__name__
             raise UserException(str(ex), wrapped_from=wrapped_from) from ex
 
-    @staticmethod
-    def gen_success_msg(artifacts_dir: str, output_template_path: str, is_default_build_dir: bool) -> str:
+    def _handle_build_pre_processing(self) -> List[Stack]:
+        """
+        Pre-modify the stacks as required before invoking the build
+        :return: List of modified stacks
+        """
+        stacks = []
+        if any(EsbuildBundlerManager(stack).esbuild_configured() for stack in self.stacks):
+            # esbuild is configured in one of the stacks, will check and update stack metadata accordingly
+            for stack in self.stacks:
+                stacks.append(EsbuildBundlerManager(stack).set_sourcemap_metadata_from_env())
+            self.function_provider.update(stacks, self._use_raw_codeuri, locate_layer_nested=self._locate_layer_nested)
+        return stacks if stacks else self.stacks
 
-        invoke_cmd = "sam local invoke"
-        if not is_default_build_dir:
-            invoke_cmd += " -t {}".format(output_template_path)
+    def _handle_build_post_processing(self, builder: ApplicationBuilder, build_result: ApplicationBuildResult) -> None:
+        """
+        Add any template modifications necessary before moving the template to build directory
+        :param stack: Stack resources
+        :param template: Current template file
+        :param build_result: Result of the application build
+        :return: Modified template dict
+        """
+        artifacts = build_result.artifacts
 
-        deploy_cmd = "sam deploy --guided"
-        if not is_default_build_dir:
-            deploy_cmd += " --template-file {}".format(output_template_path)
+        stack_output_template_path_by_stack_path = {
+            stack.stack_path: stack.get_output_template_path(self.build_dir) for stack in self.stacks
+        }
+        for stack in self.stacks:
+            modified_template = builder.update_template(
+                stack,
+                artifacts,
+                stack_output_template_path_by_stack_path,
+            )
+            output_template_path = stack.get_output_template_path(self.build_dir)
 
-        msg = """\nBuilt Artifacts  : {artifacts_dir}
-Built Template   : {template}
+            stack_name = self._stack_name if self._stack_name else ""
+            if self._create_auto_dependency_layer:
+                LOG.debug("Auto creating dependency layer for each function resource into a nested stack")
+                nested_stack_manager = NestedStackManager(
+                    stack, stack_name, self.build_dir, modified_template, build_result
+                )
+                modified_template = nested_stack_manager.generate_auto_dependency_layer_stack()
+
+            esbuild_manager = EsbuildBundlerManager(stack=stack, template=modified_template)
+            if esbuild_manager.esbuild_configured():
+                modified_template = esbuild_manager.set_sourcemap_env_from_metadata()
+
+            move_template(stack.location, output_template_path, modified_template)
+
+    def _gen_success_msg(self, artifacts_dir: str, output_template_path: str, is_default_build_dir: bool) -> str:
+        """
+        Generates a success message containing some suggested commands to run
+
+        Parameters
+        ----------
+        artifacts_dir: str
+            A string path representing the folder of built artifacts
+        output_template_path: str
+            A string path representing the final template file
+        is_default_build_dir: bool
+            True if the build folder is the folder defined by SAM CLI
+
+        Returns
+        -------
+        str
+            A formatted success message string
+        """
+
+        validate_suggestion = "Validate SAM template: sam validate"
+        invoke_suggestion = "Invoke Function: sam local invoke"
+        sync_suggestion = "Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch"
+        deploy_suggestion = "Deploy: sam deploy --guided"
+        start_lambda_suggestion = "Emulate local Lambda functions: sam local start-lambda"
+
+        if not is_default_build_dir and not self._hook_name:
+            invoke_suggestion += " -t {}".format(output_template_path)
+            deploy_suggestion += " --template-file {}".format(output_template_path)
+
+        commands = [validate_suggestion, invoke_suggestion, sync_suggestion, deploy_suggestion]
+
+        # check if we have used a hook package before building
+        if self._hook_name:
+            hook_package_flag = f" --hook-name {self._hook_name}"
+
+            start_lambda_suggestion += hook_package_flag
+            invoke_suggestion += hook_package_flag
+
+            commands = [invoke_suggestion, start_lambda_suggestion]
+
+        msg = f"""\nBuilt Artifacts  : {artifacts_dir}
+Built Template   : {output_template_path}
 
 Commands you can use next
 =========================
-[*] Validate SAM template: sam validate
-[*] Invoke Function: {invokecmd}
-[*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
-[*] Deploy: {deploycmd}
-        """.format(
-            invokecmd=invoke_cmd, deploycmd=deploy_cmd, artifacts_dir=artifacts_dir, template=output_template_path
-        )
+"""
+
+        # add bullet point then join all the commands with new line
+        msg += "[*] " + f"{os.linesep}[*] ".join(commands)
 
         return msg
 
@@ -589,27 +661,7 @@ Commands you can use next
             return False
         return True
 
-    _ESBUILD_WARNING_MESSAGE = (
-        "Using esbuild for bundling Node.js and TypeScript is a beta feature.\n"
-        "Please confirm if you would like to proceed with using esbuild to build your function.\n"
-        "You can also enable this beta feature with 'sam build --beta-features'."
-    )
-
     _EXCLUDE_WARNING_MESSAGE = "Resource expected to be built, but marked as excluded.\nBuilding anyways..."
-
-    def _check_esbuild_warning(self) -> None:
-        """
-        Prints warning message and confirms that the user wants to enable beta features
-        """
-        resources_to_build = self.get_resources_to_build()
-        is_building_esbuild = False
-        for function in resources_to_build.functions:
-            if function.metadata and function.metadata.get("BuildMethod", "") == "esbuild":
-                is_building_esbuild = True
-                break
-
-        if is_building_esbuild:
-            prompt_experimental(ExperimentalFlag.Esbuild, self._ESBUILD_WARNING_MESSAGE)
 
     def _check_exclude_warning(self) -> None:
         """

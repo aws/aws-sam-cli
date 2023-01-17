@@ -11,6 +11,7 @@ from datetime import datetime
 from flask import Flask, request
 from werkzeug.datastructures import Headers
 from werkzeug.routing import BaseConverter
+from werkzeug.serving import WSGIRequestHandler
 
 from samcli.lib.providers.provider import Cors
 from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
@@ -155,6 +156,8 @@ class LocalApigwService(BaseLocalService):
         """
         Creates a Flask Application that can be started.
         """
+        # Setting sam local start-api to respond using HTTP/1.1 instead of the default HTTP/1.0
+        WSGIRequestHandler.protocol_version = "HTTP/1.1"
 
         self._app = Flask(
             __name__,
@@ -359,11 +362,7 @@ class LocalApigwService(BaseLocalService):
         except FunctionNotFound:
             return ServiceErrorResponses.lambda_not_found_response()
 
-        lambda_response, lambda_logs, _ = LambdaOutputParser.get_lambda_output(stdout_stream)
-
-        if self.stderr and lambda_logs:
-            # Write the logs to stderr if available.
-            self.stderr.write(lambda_logs)
+        lambda_response, _ = LambdaOutputParser.get_lambda_output(stdout_stream)
 
         try:
             if route.event_type == Route.HTTP and (

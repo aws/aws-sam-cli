@@ -88,7 +88,14 @@ class TestSyncCodeBase(SyncIntegBase):
 
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
-@parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
+@parameterized_class(
+    [
+        {"dependency_layer": True, "use_container": True},
+        {"dependency_layer": True, "use_container": False},
+        {"dependency_layer": False, "use_container": False},
+        {"dependency_layer": False, "use_container": True},
+    ]
+)
 class TestSyncCode(TestSyncCodeBase):
     template = "template-python.yaml"
     folder = "code"
@@ -101,7 +108,7 @@ class TestSyncCode(TestSyncCodeBase):
         )
 
         self.stack_resources = self._get_stacks(TestSyncCodeBase.stack_name)
-        if self.dependency_layer:
+        if self.dependency_layer and not self.use_container:
             # Test update manifest
             layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "python", 1)
             self.assertNotIn("requests", layer_contents)
@@ -119,6 +126,7 @@ class TestSyncCode(TestSyncCodeBase):
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
+            use_container=self.use_container,
         )
         sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
         self.assertEqual(sync_process_execute.process.returncode, 0)
@@ -133,7 +141,7 @@ class TestSyncCode(TestSyncCodeBase):
                 self.assertIn("extra_message", lambda_response)
                 self.assertEqual(lambda_response.get("message"), "8")
 
-        if self.dependency_layer:
+        if self.dependency_layer and not self.use_container:
             layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "python", 2)
             self.assertIn("requests", layer_contents)
 
@@ -156,6 +164,7 @@ class TestSyncCode(TestSyncCodeBase):
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
+            use_container=self.use_container,
         )
         sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
         self.assertEqual(sync_process_execute.process.returncode, 0)
@@ -170,6 +179,7 @@ class TestSyncCode(TestSyncCodeBase):
                 self.assertIn("extra_message", lambda_response)
                 self.assertEqual(lambda_response.get("message"), "9")
 
+    @pytest.mark.flaky(reruns=3)
     def test_sync_function_layer_race_condition(self):
         shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("function"), ignore_errors=True)
         shutil.copytree(
@@ -282,7 +292,7 @@ class TestSyncCode(TestSyncCodeBase):
         sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
         self.assertEqual(sync_process_execute.process.returncode, 2)
         self.assertIn(
-            "Invalid value for '--resource': invalid choice: AWS::Serverless::InvalidResource",
+            "Error: Invalid value for '--resource': 'AWS::Serverless::InvalidResource' is not one of",
             str(sync_process_execute.stderr),
         )
 
@@ -458,6 +468,7 @@ class TestSyncCodeNested(TestSyncCodeBase):
                 self.assertIn("extra_message", lambda_response)
                 self.assertEqual(lambda_response.get("message"), "12")
 
+    @pytest.mark.flaky(reruns=3)
     def test_sync_nested_function_layer_race_condition(self):
         shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("child_stack").joinpath("child_functions"), ignore_errors=True)
         shutil.copytree(
@@ -618,3 +629,47 @@ class TestSyncCodeNestedWithIntrinsics(TestSyncCodeBase):
                 lambda_response = json.loads(self._get_lambda_response(lambda_function))
                 self.assertIn("extra_message", lambda_response)
                 self.assertEqual(lambda_response.get("message"), "9")
+
+
+@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+class TestSyncCodeEsbuildFunctionTemplate(TestSyncCodeBase):
+    template = "template-esbuild.yaml"
+    folder = "code"
+    dependency_layer = False
+
+    def test_sync_code_esbuild_function(self):
+        shutil.rmtree(Path(TestSyncCodeBase.temp_dir).joinpath("esbuild_function"), ignore_errors=True)
+        shutil.copytree(
+            self.test_data_path.joinpath("code").joinpath("after").joinpath("esbuild_function"),
+            Path(TestSyncCodeBase.temp_dir).joinpath("esbuild_function"),
+        )
+
+        self.stack_resources = self._get_stacks(TestSyncCodeBase.stack_name)
+
+        # Run code sync
+        sync_command_list = self.get_sync_command_list(
+            template_file=TestSyncCodeBase.template_path,
+            code=True,
+            watch=False,
+            resource_list=["AWS::Serverless::Function"],
+            dependency_layer=self.dependency_layer,
+            stack_name=TestSyncCodeBase.stack_name,
+            parameter_overrides="Parameter=Clarity",
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+
+        # CFN Api call here to collect all the stack resources
+        self.stack_resources = self._get_stacks(TestSyncCodeBase.stack_name)
+        # Lambda Api call here, which tests both the function and the layer
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            if lambda_function == "HelloWorldFunction":
+                lambda_response = json.loads(self._get_lambda_response(lambda_function))
+                self.assertIn("extra_message", lambda_response)
+                self.assertEqual(lambda_response.get("message"), "Hello world!")

@@ -4,21 +4,21 @@ Entry point for the CLI
 
 import logging
 import json
-import atexit
+
 import click
 
 from samcli import __version__
-from samcli.lib.telemetry.metric import send_installed_metric, emit_all_metrics
 from samcli.lib.utils.sam_logging import (
     LAMBDA_BULDERS_LOGGER_NAME,
     SamCliLogger,
     SAM_CLI_FORMATTER,
     SAM_CLI_LOGGER_NAME,
 )
-from .options import debug_option, region_option, profile_option
-from .context import Context
-from .command import BaseCommand
-from .global_config import GlobalConfig
+from samcli.lib.utils.system_info import gather_system_info, gather_additional_dependencies_info
+from samcli.cli.options import debug_option, region_option, profile_option
+from samcli.cli.context import Context
+from samcli.cli.command import BaseCommand
+from samcli.cli.global_config import GlobalConfig
 
 LOG = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
@@ -50,7 +50,12 @@ def print_info(ctx, param, value):
     if not value or ctx.resilient_parsing:
         return
 
-    click.echo(json.dumps({"version": __version__}, indent=2))
+    info = {
+        "version": __version__,
+        "system": gather_system_info(),
+        "additional_dependencies": gather_additional_dependencies_info(),
+    }
+    click.echo(json.dumps(info, indent=2))
 
     ctx.exit()
 
@@ -115,6 +120,19 @@ def cli(ctx):
     You can find more in-depth guide about the SAM specification here:
     https://github.com/awslabs/serverless-application-model.
     """
+    import atexit
+    from samcli.lib.telemetry.metric import send_installed_metric, emit_all_metrics
+
+    # if development version of SAM CLI is used, attach module proxy
+    # to catch missing configuration for dynamic/hidden imports
+    # TODO: in general, we need better mechanisms to set which execution environment is SAM CLI operating
+    # rather than checking the executable name
+    if ctx and getattr(ctx, "command_path", None) == "samdev":
+        from samcli.cli.import_module_proxy import attach_import_module_proxy
+
+        LOG.info("Attaching import module proxy for analyzing dynamic imports")
+        attach_import_module_proxy()
+
     gc = GlobalConfig()
     if gc.telemetry_enabled is None:
         enabled = True

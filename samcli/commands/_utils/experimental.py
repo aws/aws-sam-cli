@@ -11,7 +11,7 @@ import click
 from samcli.cli.context import Context
 
 from samcli.cli.global_config import ConfigEntry, GlobalConfig
-from samcli.commands._utils.options import parameterized_option
+from samcli.commands._utils.parameterized_option import parameterized_option
 from samcli.lib.utils.colors import Colored
 
 LOG = logging.getLogger(__name__)
@@ -43,7 +43,14 @@ class ExperimentalFlag:
     """Class for storing all experimental related ConfigEntries"""
 
     All = ExperimentalEntry("experimentalAll", EXPERIMENTAL_ENV_VAR_PREFIX + "FEATURES")
-    Esbuild = ExperimentalEntry("experimentalEsbuild", EXPERIMENTAL_ENV_VAR_PREFIX + "ESBUILD")
+    BuildPerformance = ExperimentalEntry(
+        "experimentalBuildPerformance", EXPERIMENTAL_ENV_VAR_PREFIX + "BUILD_PERFORMANCE"
+    )
+    IaCsSupport = {
+        "terraform": ExperimentalEntry(
+            "experimentalTerraformSupport", EXPERIMENTAL_ENV_VAR_PREFIX + "TERRAFORM_SUPPORT"
+        )
+    }
 
 
 def is_experimental_enabled(config_entry: ExperimentalEntry) -> bool:
@@ -88,7 +95,16 @@ def get_all_experimental() -> List[ExperimentalEntry]:
     List[ExperimentalEntry]
         List all experimental flags in the ExperimentalFlag class.
     """
-    return [getattr(ExperimentalFlag, name) for name in dir(ExperimentalFlag) if not name.startswith("__")]
+    all_experimental_flags = []
+    for name in dir(ExperimentalFlag):
+        if name.startswith("__"):
+            continue
+        value = getattr(ExperimentalFlag, name)
+        if isinstance(value, ExperimentalEntry):
+            all_experimental_flags.append(value)
+        elif isinstance(value, dict):
+            all_experimental_flags += value.values()
+    return all_experimental_flags
 
 
 def get_all_experimental_statues() -> Dict[str, bool]:

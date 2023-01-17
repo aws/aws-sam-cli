@@ -6,7 +6,7 @@ import re
 import itertools
 import os
 import pathlib
-from typing import Set
+from typing import List
 
 _init_path = str(pathlib.Path(os.path.dirname(__file__)).parent.parent)
 _templates = os.path.join(_init_path, "lib", "init", "templates")
@@ -32,7 +32,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "nodejs": [
         {
-            "runtimes": ["nodejs16.x", "nodejs14.x", "nodejs12.x"],
+            "runtimes": ["nodejs18.x", "nodejs16.x", "nodejs14.x", "nodejs12.x"],
             "dependency_manager": "npm",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-nodejs"),
             "build": True,
@@ -83,11 +83,15 @@ def get_local_lambda_images_location(mapping, runtime):
     return os.path.join(_lambda_images_templates, runtime, dir_name + "-lambda-image")
 
 
-SUPPORTED_DEP_MANAGERS: Set[str] = {
-    c["dependency_manager"]  # type: ignore
-    for c in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))
-    if c["dependency_manager"]
-}
+SUPPORTED_DEP_MANAGERS: List[str] = list(
+    set(
+        {
+            c.get("dependency_manager")  # type: ignore
+            for c in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))
+            if c.get("dependency_manager")
+        }
+    )
+)
 
 # When adding new Lambda runtimes, please update SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING
 # Runtimes are ordered in alphabetical fashion with reverse version order (latest versions first)
@@ -102,6 +106,7 @@ INIT_RUNTIMES = [
     "java8.al2",
     "java8",
     # nodejs runtimes in descending order
+    "nodejs18.x",
     "nodejs16.x",
     "nodejs14.x",
     "nodejs12.x",
@@ -126,6 +131,7 @@ LAMBDA_IMAGES_RUNTIMES_MAP = {
     "java11": "amazon/java11-base",
     "java8.al2": "amazon/java8.al2-base",
     "java8": "amazon/java8-base",
+    "nodejs18.x": "amazon/nodejs18.x-base",
     "nodejs16.x": "amazon/nodejs16.x-base",
     "nodejs14.x": "amazon/nodejs14.x-base",
     "nodejs12.x": "amazon/nodejs12.x-base",
@@ -136,7 +142,7 @@ LAMBDA_IMAGES_RUNTIMES_MAP = {
     "ruby2.7": "amazon/ruby2.7-base",
 }
 
-LAMBDA_IMAGES_RUNTIMES = LAMBDA_IMAGES_RUNTIMES_MAP.values()
+LAMBDA_IMAGES_RUNTIMES: List = list(set(LAMBDA_IMAGES_RUNTIMES_MAP.values()))
 
 # Schemas Code lang is a MINIMUM supported version
 # - this is why later Lambda runtimes can be mapped to earlier Schemas Code Languages

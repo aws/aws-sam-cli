@@ -8,7 +8,6 @@ import shutil
 import tempfile
 from pathlib import Path
 from contextlib import contextmanager
-from samcli.commands._utils.experimental import ExperimentalFlag, set_experimental
 from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV
 
 from click.testing import CliRunner
@@ -38,7 +37,7 @@ class TestSamConfigForAllCommands(TestCase):
         shutil.rmtree(self.scratch_dir)
         self.scratch_dir = None
 
-    @patch("samcli.commands.init.do_cli")
+    @patch("samcli.commands.init.command.do_cli")
     def test_init(self, do_cli_mock):
         config_values = {
             "no_interactive": True,
@@ -81,6 +80,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 '{"key": "value", "key2": "value2"}',
                 None,
+                ANY,
             )
 
     @patch("samcli.commands.validate.validate.do_cli")
@@ -101,7 +101,7 @@ class TestSamConfigForAllCommands(TestCase):
                 LOG.exception("Command failed", exc_info=result.exc_info)
             self.assertIsNone(result.exception)
 
-            do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")))
+            do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")), False)
 
     @patch("samcli.commands.build.command.do_cli")
     def test_build(self, do_cli_mock):
@@ -117,10 +117,10 @@ class TestSamConfigForAllCommands(TestCase):
             "docker_network": "mynetwork",
             "skip_pull_image": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
-            "container_env_var": (""),
+            "container_env_var": [("")],
             "container_env_var_file": "file",
-            "build_image": (""),
-            "exclude": (""),
+            "build_image": [("")],
+            "exclude": [("")],
         }
 
         with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
@@ -153,10 +153,12 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 {"Key": "Value", "Key2": "Value2"},
                 None,
-                (),
+                ("",),
                 "file",
-                (),
-                (),
+                ("",),
+                ("",),
+                None,
+                None,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -174,10 +176,10 @@ class TestSamConfigForAllCommands(TestCase):
             "docker_network": "mynetwork",
             "skip_pull_image": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
-            "container_env_var": (""),
+            "container_env_var": [("")],
             "container_env_var_file": "file",
-            "build_image": (""),
-            "exclude": (""),
+            "build_image": [("")],
+            "exclude": [("")],
         }
 
         with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
@@ -209,10 +211,12 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 {"Key": "Value", "Key2": "Value2"},
                 None,
-                (),
+                ("",),
                 "file",
-                (),
-                (),
+                ("",),
+                ("",),
+                None,
+                None,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -229,7 +233,7 @@ class TestSamConfigForAllCommands(TestCase):
             "docker_network": "mynetwork",
             "skip_pull_image": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
-            "container_env_var": (""),
+            "container_env_var": [("")],
             "container_env_var_file": "env_vars_file",
         }
 
@@ -263,10 +267,12 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 {"Key": "Value", "Key2": "Value2"},
                 None,
-                (),
+                ("",),
                 "env_vars_file",
                 (),
                 (),
+                None,
+                None,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -320,6 +326,8 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 ("Function1=image_1", "image_2"),
                 (),
+                None,
+                None,
             )
 
     @patch("samcli.commands.local.invoke.cli.do_cli")
@@ -382,6 +390,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "localhost",
                 "127.0.0.1",
                 ("image",),
+                None,
             )
 
     @patch("samcli.commands.local.start_api.cli.do_cli")
@@ -510,6 +519,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "localhost",
                 "127.0.0.1",
                 ("image",),
+                None,
             )
 
     @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
@@ -680,6 +690,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "default",
                 False,
                 True,
+                "ROLLBACK",
             )
 
     @patch("samcli.commands.deploy.command.do_cli")
@@ -797,6 +808,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "default",
                 False,
                 True,
+                "ROLLBACK",
             )
 
     @patch("samcli.commands._utils.experimental.is_experimental_enabled")
@@ -902,8 +914,12 @@ class TestSamConfigForAllCommands(TestCase):
 
             do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")), "0.1.1")
 
-    def test_info_must_not_read_from_config(self):
+    @patch("samcli.cli.main.gather_system_info")
+    @patch("samcli.cli.main.gather_additional_dependencies_info")
+    def test_info_must_not_read_from_config(self, deps_info_mock, system_info_mock):
         config_values = {"a": "b"}
+        system_info_mock.return_value = {"Python": "1.2.3"}
+        deps_info_mock.return_value = {"dep1": "1.2.3", "dep2": "1.2.3"}
 
         with samconfig_parameters([], self.scratch_dir, **config_values) as config_path:
             from samcli.cli.main import cli
@@ -912,11 +928,10 @@ class TestSamConfigForAllCommands(TestCase):
             runner = CliRunner()
             result = runner.invoke(cli, ["--info"])
 
-            LOG.info(result.exception)
+            LOG.info("exception: %s", result.exception)
             if result.exception:
                 LOG.exception("Command failed", exc_info=result.exc_info)
             self.assertIsNone(result.exception)
-
             info_result = json.loads(result.output)
             self.assertTrue("version" in info_result)
 
@@ -947,6 +962,7 @@ class TestSamConfigForAllCommands(TestCase):
             "stack_name": "mystack",
             "image_repository": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
             "base_dir": "path",
+            "use_container": True,
             "s3_bucket": "mybucket",
             "s3_prefix": "myprefix",
             "kms_key_id": "mykms",
@@ -999,8 +1015,10 @@ class TestSamConfigForAllCommands(TestCase):
                 ["notify1", "notify2"],
                 {"a": "tag1", "b": "tag with spaces"},
                 {"m1": "value1", "m2": "value2"},
+                True,
                 "samconfig.toml",
                 "default",
+                None,
             )
 
 
@@ -1121,6 +1139,7 @@ class TestSamConfigWithOverrides(TestCase):
                 "localhost",
                 "127.0.0.1",
                 ("image",),
+                None,
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
@@ -1216,6 +1235,7 @@ class TestSamConfigWithOverrides(TestCase):
                 "localhost",
                 "127.0.0.1",
                 ("image",),
+                None,
             )
 
     @patch("samcli.commands.validate.validate.do_cli")
@@ -1237,7 +1257,7 @@ class TestSamConfigWithOverrides(TestCase):
                 LOG.exception("Command failed", exc_info=result.exc_info)
             self.assertIsNone(result.exception)
 
-            do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")))
+            do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")), False)
 
 
 @contextmanager

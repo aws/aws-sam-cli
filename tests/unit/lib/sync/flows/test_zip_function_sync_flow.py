@@ -33,7 +33,7 @@ class TestZipFunctionSyncFlow(TestCase):
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.hashlib.sha256")
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.uuid.uuid4")
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.file_checksum")
-    @patch("samcli.lib.sync.flows.zip_function_sync_flow.make_zip")
+    @patch("samcli.lib.sync.flows.zip_function_sync_flow.make_zip_with_lambda_permissions")
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.tempfile.gettempdir")
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.ApplicationBuilder")
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.rmtree_if_exists")
@@ -213,7 +213,8 @@ class TestZipFunctionSyncFlow(TestCase):
         sync_flow = self.create_function_sync_flow()
         self.assertTrue(sync_flow._combine_dependencies())
 
-    def test_verify_function_status_recursion(self):
+    @patch("time.sleep", return_value=None)
+    def test_verify_function_status_recursion(self, patched_time):
         given_lambda_client = MagicMock()
         given_physical_id = "function"
 

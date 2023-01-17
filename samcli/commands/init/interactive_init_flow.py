@@ -1,8 +1,6 @@
 """
 Isolates interactive init prompt flow. Expected to call generator logic at end of flow.
 """
-import functools
-import re
 import tempfile
 import logging
 from typing import Optional, Tuple
@@ -10,6 +8,13 @@ import click
 
 from botocore.exceptions import ClientError, WaiterError
 
+from samcli.commands.init.init_flow_helpers import (
+    get_architectures,
+    _get_runtime_from_image,
+    get_sorted_runtimes,
+    _get_templates_with_dependency_manager,
+    _get_image_from_runtime,
+)
 from samcli.commands.init.interactive_event_bridge_flow import (
     get_schema_template_details,
     get_schemas_api_caller,
@@ -18,7 +23,6 @@ from samcli.commands.init.interactive_event_bridge_flow import (
 from samcli.commands.exceptions import SchemasApiException, InvalidInitOptionException
 from samcli.lib.schemas.schemas_code_manager import do_download_source_code_binding, do_extract_and_merge_schemas_code
 from samcli.local.common.runtime_template import (
-    INIT_RUNTIMES,
     LAMBDA_IMAGES_RUNTIMES_MAP,
     get_provided_runtime_from_custom_runtime,
     is_custom_runtime,
@@ -27,7 +31,7 @@ from samcli.commands.init.init_generator import do_generate
 from samcli.commands.init.init_templates import InitTemplates, InvalidInitTemplateError
 from samcli.lib.utils.osutils import remove
 from samcli.lib.utils.packagetype import IMAGE, ZIP
-from samcli.lib.utils.architecture import X86_64
+from samcli.commands._utils.options import generate_next_command_recommendation
 
 LOG = logging.getLogger(__name__)
 
@@ -46,6 +50,7 @@ def do_interactive(
     app_template,
     no_input,
     tracing,
+    application_insights,
 ):
     """
     Implementation of the ``cli`` method when --interactive is provided.
@@ -72,6 +77,7 @@ def do_interactive(
         no_input,
         location_opt_choice,
         tracing,
+        application_insights,
     )
 
 
@@ -89,6 +95,7 @@ def generate_application(
     no_input,
     location_opt_choice,
     tracing,
+    application_insights,
 ):  # pylint: disable=too-many-arguments
     """
     The method holds the decision logic for generating an application
@@ -121,6 +128,8 @@ def generate_application(
         User input for selecting how to get customer a vended serverless application
     tracing : bool
         boolen value to determine if X-Ray tracing show be activated or not
+    application_insights : bool
+        boolean value to determine if AppInsights monitoring should be enabled or not
     """
     if location_opt_choice == "1":
         _generate_from_use_case(
@@ -135,16 +144,27 @@ def generate_application(
             app_template,
             architecture,
             tracing,
+            application_insights,
         )
 
     else:
         _generate_from_location(
-            location, package_type, runtime, dependency_manager, output_dir, name, no_input, tracing
+            location,
+            package_type,
+            runtime,
+            dependency_manager,
+            output_dir,
+            name,
+            no_input,
+            tracing,
+            application_insights,
         )
 
 
 # pylint: disable=too-many-statements
-def _generate_from_location(location, package_type, runtime, dependency_manager, output_dir, name, no_input, tracing):
+def _generate_from_location(
+    location, package_type, runtime, dependency_manager, output_dir, name, no_input, tracing, application_insights
+):
     location = click.prompt("\nTemplate location (git, mercurial, http(s), zip, path)", type=str)
     summary_msg = """
 -----------------------
@@ -156,7 +176,18 @@ Output Directory: {output_dir}
         location=location, output_dir=output_dir
     )
     click.echo(summary_msg)
-    do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, None, tracing)
+    do_generate(
+        location,
+        package_type,
+        runtime,
+        dependency_manager,
+        output_dir,
+        name,
+        no_input,
+        None,
+        tracing,
+        application_insights,
+    )
 
 
 # pylint: disable=too-many-statements
@@ -172,6 +203,7 @@ def _generate_from_use_case(
     app_template: Optional[str],
     architecture: Optional[str],
     tracing: Optional[bool],
+    application_insights: Optional[bool],
 ) -> None:
     templates = InitTemplates()
     runtime_or_base_image = runtime if runtime else base_image
@@ -198,6 +230,9 @@ def _generate_from_use_case(
 
     if tracing is None:
         tracing = prompt_user_to_enable_tracing()
+
+    if application_insights is None:
+        application_insights = prompt_user_to_enable_application_insights()
 
     app_template = template_chosen["appTemplate"]
     base_image = (
@@ -235,14 +270,15 @@ def _generate_from_use_case(
     )
 
     click.echo(summary_msg)
-    next_commands_msg = f"""
-    Commands you can use next
-    =========================
-    [*] Create pipeline: cd {name} && sam pipeline init --bootstrap
-    [*] Validate SAM template: sam validate
-    [*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
-    """
-    click.secho(next_commands_msg, fg="yellow")
+    command_suggestions = generate_next_command_recommendation(
+        [
+            ("Create pipeline", f"cd {name} && sam pipeline init --bootstrap"),
+            ("Validate SAM template", f"cd {name} && sam validate"),
+            ("Test Function in the Cloud", f"cd {name} && sam sync --stack-name {{stack-name}} --watch"),
+        ]
+    )
+    click.secho(command_suggestions, fg="yellow")
+
     do_generate(
         location,
         package_type,
@@ -253,6 +289,7 @@ def _generate_from_use_case(
         no_input,
         extra_context,
         tracing,
+        application_insights,
     )
     # executing event_bridge logic if call is for Schema dynamic template
     if is_dynamic_schemas_template:
@@ -367,6 +404,24 @@ def prompt_user_to_enable_tracing():
     return False
 
 
+def prompt_user_to_enable_application_insights():
+    """
+    Prompt user to choose if AppInsights monitoring should be enabled for their application and vice versa
+    """
+    doc_link = "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch-application-insights.html"
+    if click.confirm(
+        f"\nWould you like to enable monitoring using CloudWatch Application Insights?"
+        f"\nFor more info, please view {doc_link}"
+    ):
+        pricing_link = (
+            "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring"
+            "/appinsights-what-is.html#appinsights-pricing"
+        )
+        click.echo(f"AppInsights monitoring may incur additional cost. View {pricing_link} for more details")
+        return True
+    return False
+
+
 def _get_choice_from_options(chosen, options, question, msg):
 
     if chosen:
@@ -396,137 +451,6 @@ def _get_choice_from_options(chosen, options, question, msg):
     return options_list[int(choice) - 1]
 
 
-def get_sorted_runtimes(runtime_option_list):
-    """
-    Return a list of sorted runtimes in ascending order of runtime names and
-    descending order of runtime version.
-
-    Parameters
-    ----------
-    runtime_option_list : list
-        list of possible runtime to be selected
-
-    Returns
-    -------
-    list
-        sorted list of possible runtime to be selected
-    """
-    supported_runtime_list = get_supported_runtime(runtime_option_list)
-    return sorted(supported_runtime_list, key=functools.cmp_to_key(compare_runtimes))
-
-
-def get_supported_runtime(runtime_list):
-    """
-    Returns a list of only runtimes supported by the current version of SAMCLI.
-    This is the list that is presented to the customer to select from.
-
-    Parameters
-    ----------
-    runtime_list : list
-        List of runtime
-
-    Returns
-    -------
-    list
-        List of supported runtime
-    """
-    supported_runtime_list = []
-    error_message = ""
-    for runtime in runtime_list:
-        if runtime not in INIT_RUNTIMES and not is_custom_runtime(runtime):
-            if not error_message:
-                error_message = "Additional runtimes may be available in the latest SAM CLI version. \
-                    Upgrade your SAM CLI to see the full list."
-                LOG.debug(error_message)
-            continue
-        supported_runtime_list.append(runtime)
-
-    return supported_runtime_list
-
-
-def compare_runtimes(first_runtime, second_runtime):
-    """
-    Logic to compare supported runtime for sorting.
-
-    Parameters
-    ----------
-    first_runtime : str
-        runtime to be compared
-    second_runtime : str
-        runtime to be compared
-
-    Returns
-    -------
-    int
-        comparison result
-    """
-
-    first_runtime_name, first_version_number = _split_runtime(first_runtime)
-    second_runtime_name, second_version_number = _split_runtime(second_runtime)
-
-    if first_runtime_name == second_runtime_name:
-        if first_version_number == second_version_number:
-            # If it's the same runtime and version return al2 first
-            return -1 if first_runtime.endswith(".al2") else 1
-        return second_version_number - first_version_number
-
-    return 1 if first_runtime_name > second_runtime_name else -1
-
-
-def _split_runtime(runtime):
-    """
-    Split a runtime into its name and version number.
-
-    Parameters
-    ----------
-    runtime : str
-        Runtime in the format supported by Lambda
-
-    Returns
-    -------
-    (str, float)
-        Tuple of runtime name and runtime version
-    """
-    return (_get_runtime_name(runtime), _get_version_number(runtime))
-
-
-def _get_runtime_name(runtime):
-    """
-    Return the runtime name without the version
-
-    Parameters
-    ----------
-    runtime : str
-        Runtime in the format supported by Lambda.
-
-    Returns
-    -------
-    str
-        Runtime name, which is obtained as everything before the first number
-    """
-    return re.split(r"\d", runtime)[0]
-
-
-def _get_version_number(runtime):
-    """
-    Return the runtime version number
-
-    Parameters
-    ----------
-    runtime_version : str
-        version of a runtime
-
-    Returns
-    -------
-    float
-        Runtime version number
-    """
-
-    if is_custom_runtime(runtime):
-        return 1.0
-    return float(re.search(r"\d+(\.\d+)?", runtime).group())
-
-
 def _get_app_template_choice(templates_options, dependency_manager):
     templates = _get_templates_with_dependency_manager(templates_options, dependency_manager)
     chosen_template = templates[0]
@@ -539,25 +463,6 @@ def _get_app_template_choice(templates_options, dependency_manager):
         template_choice = click.prompt("Template", type=click.Choice(click_template_choices), show_choices=False)
         chosen_template = templates[int(template_choice) - 1]
     return chosen_template
-
-
-def _get_templates_with_dependency_manager(templates_options, dependency_manager):
-    return [t for t in templates_options if t.get("dependencyManager") == dependency_manager]
-
-
-def _get_runtime_from_image(image):
-    """
-    Get corresponding runtime from the base-image parameter
-    """
-    runtime = image[image.find("/") + 1 : image.find("-")]
-    return runtime
-
-
-def _get_image_from_runtime(runtime):
-    """
-    Get corresponding base-image from the runtime parameter
-    """
-    return LAMBDA_IMAGES_RUNTIMES_MAP[runtime]
 
 
 def _get_dependency_manager(options, dependency_manager, runtime):
@@ -604,13 +509,6 @@ def _package_schemas_code(runtime, schemas_api_caller, schema_template_details, 
         ) from e
     finally:
         remove(download_location.name)
-
-
-def get_architectures(architecture):
-    """
-    Returns list of architecture value based on the init input value
-    """
-    return [X86_64] if architecture is None else [architecture]
 
 
 def generate_summary_message(

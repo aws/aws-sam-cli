@@ -9,7 +9,7 @@ import boto3
 from botocore.exceptions import ClientError
 
 from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack
-from tests.testing_utils import method_to_stack_name
+from tests.testing_utils import method_to_stack_name, get_sam_command
 
 SLEEP = 3
 
@@ -83,13 +83,6 @@ class PackageIntegBase(TestCase):
     def tearDown(self):
         super().tearDown()
 
-    def base_command(self):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
-
-        return command
-
     def get_command_list(
         self,
         s3_bucket=None,
@@ -106,7 +99,7 @@ class PackageIntegBase(TestCase):
         image_repositories=None,
         resolve_s3=False,
     ):
-        command_list = [self.base_command(), "package"]
+        command_list = [get_sam_command(), "package"]
 
         if s3_bucket:
             command_list = command_list + ["--s3-bucket", str(s3_bucket)]

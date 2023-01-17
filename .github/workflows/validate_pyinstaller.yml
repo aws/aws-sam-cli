@@ -1,0 +1,57 @@
+name: Validate Pyinstaller Build
+
+on:
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  build-for-linux:
+    name: build-pyinstaller-linux
+    runs-on: ubuntu-latest
+    container: quay.io/pypa/manylinux2014_x86_64:latest
+    if: github.repository_owner == 'aws'
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build PyInstaller
+        run: |
+          chmod +x ./installer/pyinstaller/build-linux.sh
+          CI_OVERRIDE=1 ./installer/pyinstaller/build-linux.sh aws-sam-cli-linux-x86_64.zip
+      - name: Basic tests for PyInstaller
+        run: |
+          unzip .build/output/aws-sam-cli-linux-x86_64.zip -d sam-installation
+          ./sam-installation/install
+          sam-beta --version
+      - uses: actions/upload-artifact@v3
+        with:
+          name: pyinstaller-linux-zip
+          path: .build/output/aws-sam-cli-linux-x86_64.zip
+          retention-days: 15
+
+  build-for-mac:
+    name: build-pyinstaller-macos
+    runs-on: macos-latest
+    if: github.repository_owner == 'aws'
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.7"
+      - name: Build PyInstaller
+        run: |
+          chmod +x ./installer/pyinstaller/build-mac.sh
+          CI_OVERRIDE=1 ./installer/pyinstaller/build-mac.sh aws-sam-cli-macos-x86_64.zip
+      - name: Basic tests for PyInstaller
+        run: |
+          unzip .build/output/aws-sam-cli-macos-x86_64.zip -d sam-installation
+          sudo ./sam-installation/install
+          sam-beta --version
+      - uses: actions/upload-artifact@v3
+        with:
+          name: pyinstaller-macos-zip
+          path: .build/output/aws-sam-cli-macos-x86_64.zip
+          retention-days: 15

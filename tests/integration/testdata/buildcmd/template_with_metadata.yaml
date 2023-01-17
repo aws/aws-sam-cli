@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
-Parameteres:
+Parameters:
   Runtime:
     Type: String
   CodeUri:
@@ -25,6 +25,6 @@ Resources:
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
-        Minify: false
+        Minify: true
         Target: "es2020"
         Sourcemap: true

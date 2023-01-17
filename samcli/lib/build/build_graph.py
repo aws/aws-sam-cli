@@ -7,13 +7,15 @@ import logging
 import os
 import threading
 from abc import abstractmethod
+from copy import deepcopy
 from pathlib import Path
 from typing import Sequence, Tuple, List, Any, Optional, Dict, cast, NamedTuple
-from copy import deepcopy
 from uuid import uuid4
 
 import tomlkit
+from tomlkit.toml_document import TOMLDocument
 
+from samcli.commands._utils.experimental import is_experimental_enabled, ExperimentalFlag
 from samcli.lib.build.exceptions import InvalidBuildGraphException
 from samcli.lib.providers.provider import Function, LayerVersion
 from samcli.lib.samlib.resource_metadata_normalizer import (
@@ -45,6 +47,7 @@ COMPATIBLE_RUNTIMES_FIELD = "compatible_runtimes"
 LAYER_FIELD = "layer"
 ARCHITECTURE_FIELD = "architecture"
 HANDLER_FIELD = "handler"
+SHARED_CODEURI_SUFFIX = "Shared"
 
 
 def _function_build_definition_to_toml_table(
@@ -369,7 +372,6 @@ class BuildGraph:
         """
         Helper to write source_hash values to build.toml file
         """
-        document = {}
         if not self._filepath.exists():
             open(self._filepath, "a+").close()  # pylint: disable=consider-using-with
 
@@ -377,7 +379,7 @@ class BuildGraph:
         # .loads() returns a TOMLDocument,
         # and it behaves like a standard dictionary according to https://github.com/sdispater/tomlkit.
         # in tomlkit 0.7.2, the types are broken (tomlkit#128, #130, #134) so here we convert it to Dict.
-        document = cast(Dict, tomlkit.loads(txt))
+        document = cast(Dict[str, Dict[str, Any]], tomlkit.loads(txt))
 
         for function_uuid, hashing_info in function_content.items():
             if function_uuid in document.get(BuildGraph.FUNCTION_BUILD_DEFINITIONS, {}):
@@ -395,7 +397,7 @@ class BuildGraph:
                 layer_build_definition[MANIFEST_HASH_FIELD] = hashing_info.manifest_hash
                 LOG.info("Updated source_hash and manifest_hash field in build.toml for layer with UUID %s", layer_uuid)
 
-        self._filepath.write_text(tomlkit.dumps(document))  # type: ignore
+        self._filepath.write_text(tomlkit.dumps(cast(TOMLDocument, document)))
 
     def _read(self) -> None:
         """
@@ -625,7 +627,12 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         Return the directory path relative to root build directory
         """
         self._validate_functions()
-        return self.functions[0].get_build_dir(artifact_root_dir)
+        build_dir = self.functions[0].get_build_dir(artifact_root_dir)
+        if is_experimental_enabled(ExperimentalFlag.BuildPerformance) and len(self.functions) > 1:
+            # If there are multiple functions with the same build definition,
+            # just put them into one single shared artifacts directory.
+            build_dir = f"{build_dir}-{SHARED_CODEURI_SUFFIX}"
+        return build_dir
 
     def get_resource_full_paths(self) -> str:
         """Returns list of functions' full path information as a list of str"""

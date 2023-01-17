@@ -1,0 +1,12 @@
+providers:
+  - displayName: Food
+    id: food
+  - displayName: Weather
+    id: weather
+templates:
+  - displayName: Food pipeline
+    provider: food
+    location: food/
+  - displayName: Weather pipeline
+    provider: weather
+    location: weather/
