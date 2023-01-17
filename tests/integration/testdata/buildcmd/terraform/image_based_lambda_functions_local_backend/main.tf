@@ -7,10 +7,6 @@ terraform {
   }
 }
 
-provider "docker" {
-  host = "unix:///var/run/docker.sock"
-}
-
 provider "aws" {
     # Make it faster by skipping something
     skip_get_ec2_platforms      = true
