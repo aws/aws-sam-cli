@@ -48,9 +48,14 @@ install:
 
 test_script:
   # Reactivate virtualenv before running tests
-  - ps: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java8_in_process"
+  - ps: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java8_in_process --json-report --json-report-file=TEST_REPORT-integration_build_java8_in_process.json --html=TEST_REPORT-integration_build_java8_in_process.html --self-contained-html"
   - "SET JAVA_HOME=C:\\Program Files\\Java\\jdk11"
-  - ps: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process"
+  - ps: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process --json-report --json-report-file=TEST_REPORT-integration_build_java11_in_process.json --html=TEST_REPORT-integration_build_java11_in_process.html --self-contained-html"
 
   # Run Ruby in-process builds
-  - ps: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_ruby_in_process"
+  - ps: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_ruby_in_process --json-report --json-report-file=TEST_REPORT-integration_build_ruby_in_process.json --html=TEST_REPORT-integration_build_ruby_in_process.html --self-contained-html"
+
+on_finish:
+  # Push test reports to AppVeyor as artifacts
+  - ps: Get-ChildItem .\TEST*.json | % { Push-AppveyorArtifact $_.FullName -FileName $_.Name }
+  - ps: Get-ChildItem .\TEST*.html | % { Push-AppveyorArtifact $_.FullName -FileName $_.Name }

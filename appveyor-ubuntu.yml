@@ -170,6 +170,10 @@ build_script:
 
 # Final clean up no matter success or failure
 on_finish:
+  # Push test reports to AppVeyor as artifacts
+  - sh: find "$APPVEYOR_BUILD_FOLDER" -type f -name 'TEST*.json' -print0 | xargs -0 -I '{}' appveyor PushArtifact '{}'
+  - sh: find "$APPVEYOR_BUILD_FOLDER" -type f -name 'TEST*.html' -print0 | xargs -0 -I '{}' appveyor PushArtifact '{}'
+
   - sh: 'export AWS_ACCESS_KEY_ID=$CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID'
   - sh: 'export AWS_SECRET_ACCESS_KEY=$CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY'
   - sh: 'export AWS_SESSION_TOKEN=$CI_ACCESS_ROLE_AWS_SESSION_TOKEN'
@@ -189,11 +193,11 @@ for:
       - "pip install -e \".[pre-dev]\""
 
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/buildcmd --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      - sh: "pytest -vv tests/integration/buildcmd --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json --html=TEST_REPORT-integration-buildcmd.html --self-contained-html"
 
       # Set JAVA_HOME to java11
       - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
-      - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java11"
+      - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java11.json --html=TEST_REPORT-integration-buildcmd-java11.html --self-contained-html"
 
   # Local ZIP  Terraform Build integ testing
   -
@@ -207,7 +211,7 @@ for:
       - "pip install -e \".[pre-dev]\""
 
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend_0 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend_0 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json --html=TEST_REPORT-integration-buildcmd.html --self-contained-html"
 
   # Local ZIP  Terraform Build In Container  integ testing
   -
@@ -221,7 +225,7 @@ for:
       - "pip install -e \".[pre-dev]\""
 
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend_1 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend_1 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json --html=TEST_REPORT-integration-buildcmd.html --self-contained-html"
 
   # S3 ZIP  Terraform Build integ testing
   -
@@ -235,7 +239,7 @@ for:
       - "pip install -e \".[pre-dev]\""
 
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend_0 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend_0 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json --html=TEST_REPORT-integration-buildcmd.html --self-contained-html"
 
   # S3 ZIP  Terraform Build In Container integ testing
   -
@@ -249,7 +253,7 @@ for:
       - "pip install -e \".[pre-dev]\""
 
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend_1 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend_1 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json --html=TEST_REPORT-integration-buildcmd.html --self-contained-html"
 
   # Other Terraform Build In Container integ testing
   -
@@ -263,7 +267,7 @@ for:
       - "pip install -e \".[pre-dev]\""
 
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json --html=TEST_REPORT-integration-buildcmd.html --self-contained-html"
 
   # Integ testing deploy
   -
@@ -274,7 +278,7 @@ for:
 
     test_script:
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/deploy --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
+      - sh: "pytest -vv tests/integration/deploy --json-report --json-report-file=TEST_REPORT-integration-deploy.json --html=TEST_REPORT-integration-deploy.html --self-contained-html"
 
   # Integ testing package
   -
@@ -285,7 +289,7 @@ for:
 
     test_script:
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/package -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package.json"
+      - sh: "pytest -vv tests/integration/package -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package.json --html=TEST_REPORT-integration-package.html --self-contained-html"
 
   # Integ testing delete
   -
@@ -296,7 +300,7 @@ for:
 
     test_script:
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/delete -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-delete.json"
+      - sh: "pytest -vv tests/integration/delete -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-delete.json --html=TEST_REPORT-integration-delete.html --self-contained-html"
 
   # Integ testing sync
   -
@@ -307,7 +311,7 @@ for:
 
     test_script:
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/sync --json-report --json-report-file=TEST_REPORT-integration-sync.json"
+      - sh: "pytest -vv tests/integration/sync --json-report --json-report-file=TEST_REPORT-integration-sync.json --html=TEST_REPORT-integration-sync.html --self-contained-html"
 
   # Integ testing local
   -
@@ -322,7 +326,7 @@ for:
       - "pylint --rcfile .pylintrc samcli"
 
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-local.json"
+      - sh: "pytest -vv tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-local.json --html=TEST_REPORT-integration-local.html --self-contained-html"
 
   # Other testing
   -
@@ -338,18 +342,15 @@ for:
 
       # Dev Tests
       - "pip install -e \".[dev]\""
-      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit --json-report --json-report-file=TEST_REPORT-unit.json"
+      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit --json-report --json-report-file=TEST_REPORT-unit.json --html=TEST_REPORT-unit.html --self-contained-html"
       - "pylint --rcfile .pylintrc samcli"
       - "mypy setup.py samcli tests"
-      - "pytest -n 4 tests/functional --json-report --json-report-file=TEST_REPORT-functional.json"
+      - "pytest -n 4 tests/functional --json-report --json-report-file=TEST_REPORT-functional.json --html=TEST_REPORT-functional.html --self-contained-html"
       
-      - sh: "pytest tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json"
-      - sh: "pytest -vv tests/regression --json-report --json-report-file=TEST_REPORT-regression.json"
+      - sh: "pytest tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json --html=TEST_REPORT-integration-others.html --self-contained-html"
+      - sh: "pytest -vv tests/regression --json-report --json-report-file=TEST_REPORT-regression.json --html=TEST_REPORT-regression.html --self-contained-html"
       - sh: "black --check setup.py tests samcli"
 
       # Smoke tests run in parallel - it runs on both Linux & Windows
       # Presence of the RUN_SMOKE envvar will run the smoke tests
-      - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke --json-report --json-report-file=TEST_REPORT-smoke.json}"
-
-artifacts:
-  - path: './TEST_REPORT*.json'
+      - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke --json-report --json-report-file=TEST_REPORT-smoke.json --html=TEST_REPORT-smoke.html --self-contained-html}"
