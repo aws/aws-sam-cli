@@ -6,15 +6,17 @@ from unittest import skipIf
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.integration.list.resources.resources_integ_base import ResourcesIntegBase
 from samcli.commands.list.resources.cli import HELP_TEXT
-from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
+from tests.testing_utils import CI_OVERRIDE, RUN_BY_CANARY
 from tests.testing_utils import run_command, run_command_with_input, method_to_stack_name
 
-SKIP_RESOURCES_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 CFN_SLEEP = 3
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
 
 
-@skipIf(SKIP_RESOURCES_TESTS, "Skip resources tests in CI/CD only")
+@skipIf(
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
+    "Skip Terraform test cases unless running in CI",
+)
 class TestResources(DeployIntegBase, ResourcesIntegBase):
     @classmethod
     def setUpClass(cls):
@@ -74,17 +76,15 @@ class TestResources(DeployIntegBase, ResourcesIntegBase):
     def test_success_with_stack_name(self):
         template_path = self.list_test_data_path.joinpath("test_stack_creation_template.yaml")
         stack_name = method_to_stack_name(self.id())
-        config_file_name = stack_name + ".toml"
         region = boto3.Session().region_name
         deploy_command_list = self.get_deploy_command_list(
             template_file=template_path,
             guided=True,
-            config_file=config_file_name,
             region=region,
             confirm_changeset=True,
             disable_rollback=True,
         )
-        deploy_process_execute = run_command_with_input(
+        run_command_with_input(
             deploy_command_list, "{}\n{}\nY\nY\nY\nY\nY\n\n\nY\n".format(stack_name, region).encode()
         )
         cmdlist = self.get_resources_command_list(
@@ -110,7 +110,6 @@ class TestResources(DeployIntegBase, ResourcesIntegBase):
     def test_stack_does_not_exist(self):
         template_path = self.list_test_data_path.joinpath("test_stack_creation_template.yaml")
         stack_name = method_to_stack_name(self.id())
-        config_file_name = stack_name + ".toml"
         region = boto3.Session().region_name
         cmdlist = self.get_resources_command_list(
             stack_name=stack_name, region=region, output="json", template_file=template_path

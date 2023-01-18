@@ -24,6 +24,12 @@ class ListIntegBase(TestCase):
         super().tearDown()
         self.working_dir and shutil.rmtree(self.working_dir, ignore_errors=True)
         self.scratch_dir and shutil.rmtree(self.scratch_dir, ignore_errors=True)
+        self.cleanup_config()
+
+    def cleanup_config(self):
+        config_path = Path(self.list_test_data_path, "samconfig.toml")
+        if os.path.exists(config_path):
+            os.remove(config_path)
 
     @classmethod
     def base_command(cls):
