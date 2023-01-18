@@ -123,6 +123,9 @@ install:
 
 # Final clean up no matter success or failure
 on_finish:
+  # Upload test reports as artifacts
+  - ps: Get-ChildItem .\TEST*.json | % { Push-AppveyorArtifact $_.FullName -FileName $_.Name }
+
   - ps: "
   If (Test-Path env:BY_CANARY){
     $env:AWS_ACCESS_KEY_ID = $env:CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID;
@@ -283,7 +286,4 @@ for:
 # Uncomment for RDP
 # on_finish:
 #   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-
-artifacts:
-  - path: './TEST_REPORT*.json'
   
