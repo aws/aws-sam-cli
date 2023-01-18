@@ -170,6 +170,8 @@ build_script:
 
 # Final clean up no matter success or failure
 on_finish:
+  # Upload test reports as artifacts
+  - sh: find "$APPVEYOR_BUILD_FOLDER" -type f -name 'TEST*.json' -print0 | xargs -0 -I '{}' appveyor PushArtifact '{}'
   - sh: 'export AWS_ACCESS_KEY_ID=$CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID'
   - sh: 'export AWS_SECRET_ACCESS_KEY=$CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY'
   - sh: 'export AWS_SESSION_TOKEN=$CI_ACCESS_ROLE_AWS_SESSION_TOKEN'
