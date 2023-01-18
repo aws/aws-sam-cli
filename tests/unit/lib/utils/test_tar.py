@@ -1,3 +1,4 @@
+import io
 from unittest import TestCase
 import tarfile
 from unittest.mock import Mock, patch, call
@@ -92,7 +93,7 @@ class TestTar(TestCase):
 
     @patch("samcli.lib.utils.tar.tarfile.open")
     @patch("samcli.lib.utils.tar._is_within_directory")
-    def test_extract_tarfile(self, is_within_directory_patch, tarfile_open_patch):
+    def test_extract_tarfile_file_name(self, is_within_directory_patch, tarfile_open_patch):
         tarfile_path = "/test_tarfile_path/"
         unpack_dir = "/test_unpack_dir/"
         is_within_directory_patch.return_value = True
@@ -104,6 +105,25 @@ class TestTar(TestCase):
         tarfile_open_patch.return_value.__enter__.return_value = tarfile_file_mock
 
         extract_tarfile(tarfile_path=tarfile_path, unpack_dir=unpack_dir)
+
+        is_within_directory_patch.assert_called_once()
+        tarfile_file_mock.getmembers.assert_called_once()
+        tarfile_file_mock.extractall.assert_called_once_with(unpack_dir)
+
+    @patch("samcli.lib.utils.tar.tarfile.open")
+    @patch("samcli.lib.utils.tar._is_within_directory")
+    def test_extract_tarfile_fileobj(self, is_within_directory_patch, tarfile_open_patch):
+        stream_str = io.BytesIO(b"Hello World!")
+        unpack_dir = "/test_unpack_dir/"
+        is_within_directory_patch.return_value = True
+
+        tarfile_file_mock = Mock()  # Mock tarfile
+        tar_file_obj_mock = Mock()  # Mock member inside tarfile
+        tar_file_obj_mock.name = "obj_name"
+        tarfile_file_mock.getmembers.return_value = [tar_file_obj_mock]
+        tarfile_open_patch.return_value.__enter__.return_value = tarfile_file_mock
+
+        extract_tarfile(file_obj=stream_str, unpack_dir=unpack_dir)
 
         is_within_directory_patch.assert_called_once()
         tarfile_file_mock.getmembers.assert_called_once()

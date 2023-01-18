@@ -850,13 +850,12 @@ class TestContainer_copy(TestCase):
 
         tempfile_ctxmgr = tempfile_mock.NamedTemporaryFile.return_value = Mock()
         fp_mock = Mock()
-        fp_mock.name = "/test_tarfile_path/"
         tempfile_ctxmgr.__enter__ = Mock(return_value=fp_mock)
         tempfile_ctxmgr.__exit__ = Mock()
 
         self.container.copy(source, dest)
 
-        extract_tarfile_mock.assert_called_with(tarfile_path=fp_mock.name, unpack_dir=dest)
+        extract_tarfile_mock.assert_called_with(file_obj=fp_mock, unpack_dir=dest)
 
         # Make sure archive data is written to the file
         fp_mock.write.assert_has_calls([call(x) for x in tar_stream], any_order=False)

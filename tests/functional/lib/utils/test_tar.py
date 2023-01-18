@@ -3,6 +3,7 @@ import tempfile
 import shutil
 import platform
 from pathlib import Path
+import tarfile
 from tarfile import ExtractError
 
 from unittest import TestCase
@@ -14,10 +15,9 @@ class TestExtractTarFile(TestCase):
     def test_extract_tarfile_unpacks_a_tar(self):
         test_tar = Path(__file__).resolve().parents[3].joinpath("functional", "testdata", "lib", "utils", "test.tgz")
         test_dir = tempfile.mkdtemp()
-        extract_tarfile(test_tar, test_dir)
+        extract_tarfile(tarfile_path=test_tar, unpack_dir=test_dir)
         output_files = set(os.listdir(test_dir))
         shutil.rmtree(test_dir)
-        print(output_files)
         self.assertEqual({"test_utils.py"}, output_files)
 
     def test_raise_exception_for_unsafe_tarfile(self):
@@ -25,5 +25,10 @@ class TestExtractTarFile(TestCase):
         test_tar = Path(__file__).resolve().parents[3].joinpath("functional", "testdata", "lib", "utils", tar_filename)
         test_dir = tempfile.mkdtemp()
         self.assertRaisesRegex(
-            ExtractError, "Attempted Path Traversal in Tar File", extract_tarfile, test_tar, test_dir
+            ExtractError,
+            "Attempted Path Traversal in Tar File",
+            extract_tarfile,
+            tarfile_path=test_tar,
+            unpack_dir=test_dir,
         )
+        shutil.rmtree(test_dir)
