@@ -52,7 +52,8 @@ class UnhandledException(click.ClickException):
             file = click._compat.get_text_stderr()  # pylint: disable=protected-access
 
         tb = "".join(traceback.format_tb(self.__traceback__))
-        click.echo(f"\nTraceback:\n{tb}", file=file, err=True)
+        click.echo(f"\nError: {repr(self._exception)}", file=file, err=True)
+        click.echo(f"Traceback:\n{tb}", file=file, err=True)
 
         encoded_title = quote(f"Bug: {self._command} - {type(self._exception).__name__}")
         lookup_url = self.GH_ISSUE_SEARCH_URL.format(title=encoded_title)

@@ -21,6 +21,7 @@ class TestUnhandledException(TestCase):
 
         output = f.getvalue()
 
+        self.assertIn("Error:", output)
         self.assertIn("Traceback:", output)
         self.assertIn('raise Exception("my_exception")', output)
         self.assertIn(
