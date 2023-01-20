@@ -1,8 +1,6 @@
 """
 Common context class to inherit from for sam list sub-commands
 """
-import boto3
-from samcli.commands.exceptions import RegionError
 from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config
 
 
@@ -17,8 +15,10 @@ class ListContext:
         """
         Initialize the clients being used by sam list.
         """
+        from boto3 import Session
+
         if not self.region:
-            session = boto3.Session()
+            session = Session()
             self.region = session.region_name
 
         client_provider = get_boto_client_provider_with_config(region=self.region, profile=self.profile)

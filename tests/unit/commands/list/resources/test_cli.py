@@ -11,7 +11,7 @@ class TestCli(TestCase):
         self.profile = None
         self.template_file = None
 
-    @patch("samcli.commands.list.resources.cli.click")
+    @patch("samcli.commands.list.resources.command.click")
     @patch("samcli.commands.list.resources.resources_context.ResourcesContext")
     def test_cli_base_command(self, mock_resources_context, mock_resources_click):
         context_mock = Mock()

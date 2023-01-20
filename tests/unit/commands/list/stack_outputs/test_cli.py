@@ -10,7 +10,7 @@ class TestCli(TestCase):
         self.region = None
         self.profile = None
 
-    @patch("samcli.commands.list.stack_outputs.cli.click")
+    @patch("samcli.commands.list.stack_outputs.command.click")
     @patch("samcli.commands.list.stack_outputs.stack_outputs_context.StackOutputsContext")
     def test_cli_base_command(self, mock_stack_outputs_context, mock_stack_outputs_click):
         context_mock = Mock()

@@ -43,6 +43,7 @@ _SAM_CLI_COMMAND_SHORT_HELP = {
     "traces": "Fetch AWS X-Ray traces",
     "sync": "Sync a project to AWS",
     "pipeline": "Manage the continuous delivery of the application",
+    "list": "Fetch the state of your serverless application",
 }
 
 

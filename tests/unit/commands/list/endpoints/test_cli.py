@@ -11,7 +11,7 @@ class TestCli(TestCase):
         self.profile = None
         self.template_file = None
 
-    @patch("samcli.commands.list.endpoints.cli.click")
+    @patch("samcli.commands.list.endpoints.command.click")
     @patch("samcli.commands.list.endpoints.endpoints_context.EndpointsContext")
     def test_cli_base_command(self, mock_endpoints_context, mock_endpoints_click):
         context_mock = Mock()

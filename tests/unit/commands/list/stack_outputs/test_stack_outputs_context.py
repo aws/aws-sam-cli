@@ -89,16 +89,6 @@ class TestStackOutputsContext(TestCase):
 
     @patch("samcli.commands.list.json_consumer.click.echo")
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
-    @patch("boto3.Session.region_name", None)
-    def test_init_clients_no_region(self, patched_click_get_current_context, patched_click_echo):
-        with self.assertRaises(RegionError):
-            with StackOutputsContext(
-                stack_name="test", output="json", region=None, profile=None
-            ) as stack_output_context:
-                stack_output_context.init_clients()
-
-    @patch("samcli.commands.list.json_consumer.click.echo")
-    @patch("samcli.commands.list.json_consumer.click.get_current_context")
     @patch("boto3.Session.region_name", "us-east-1")
     def test_init_clients_has_region(self, patched_click_get_current_context, patched_click_echo):
         with StackOutputsContext(

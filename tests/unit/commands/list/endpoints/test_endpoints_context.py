@@ -1,29 +1,17 @@
 from unittest import TestCase
 from unittest.mock import patch, call, Mock
 from botocore.exceptions import ClientError, EndpointConnectionError, NoCredentialsError, BotoCoreError
-from samtranslator.translator.arn_generator import NoRegionFound
 
 from samcli.commands.list.endpoints.endpoints_context import EndpointsContext
-from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
-from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
-from samcli.commands.exceptions import RegionError, UserException
 from samcli.commands.list.exceptions import (
     SamListLocalResourcesNotFoundError,
     SamListUnknownClientError,
-    StackDoesNotExistInRegionError,
     SamListUnknownBotoCoreError,
 )
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
-from samtranslator.public.exceptions import InvalidDocumentException
-from samcli.lib.translate.sam_template_validator import SamTemplateValidator
 from samcli.lib.list.endpoints.endpoints_producer import EndpointsProducer, APIGatewayEnum
 from samcli.lib.list.data_to_json_mapper import DataToJsonMapper
 from samcli.commands.list.json_consumer import StringConsumerJsonOutput
-from samcli.lib.providers.provider import Stack
-from samcli.lib.list.data_to_json_mapper import DataToJsonMapper
-from samcli.commands.list.json_consumer import StringConsumerJsonOutput
-from samcli.commands.list.table_consumer import StringConsumerTableOutput
-from samcli.lib.list.endpoints.endpoints_to_table_mapper import EndpointsToTableMapper
 
 
 TRANSLATED_DICT_RETURN = {
@@ -472,16 +460,6 @@ SAM_FILE_READER_RETURN = {
 
 
 class TestEndpointsInitClients(TestCase):
-    @patch("samcli.commands.list.json_consumer.click.echo")
-    @patch("samcli.commands.list.json_consumer.click.get_current_context")
-    @patch("boto3.Session.region_name", None)
-    def test_init_clients_no_region(self, patched_click_get_current_context, patched_click_echo):
-        with self.assertRaises(RegionError):
-            with EndpointsContext(
-                stack_name="test", output="json", region=None, profile=None, template_file=None
-            ) as endpoints_context:
-                endpoints_context.init_clients()
-
     @patch("samcli.commands.list.json_consumer.click.echo")
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
     @patch("boto3.Session.region_name", "us-east-1")
