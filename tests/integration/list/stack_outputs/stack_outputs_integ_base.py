@@ -20,3 +20,23 @@ class StackOutputsIntegBase(ListIntegBase):
             command_list += ["--help"]
 
         return command_list
+
+    def check_stack_output(self, output, key=None, value=None, description=None):
+        if key:
+            self._check_key(output, key)
+        if value:
+            self._check_value(output, value)
+        if description:
+            self._check_description(output, description)
+
+    def _check_key(self, output, key):
+        output_key = output.get("OutputKey")
+        self.assertEqual(output_key, key)
+
+    def _check_value(self, output, value):
+        output_value = output.get("OutputValue")
+        self.assertRegex(output_value, value)
+
+    def _check_description(self, output, description):
+        output_description = output.get("Description")
+        self.assertEqual(output_description, description)

@@ -19,14 +19,7 @@ class ListContext:
         """
         if not self.region:
             session = boto3.Session()
-            region = session.region_name
-            if region:
-                self.region = region
-            else:
-                raise RegionError(
-                    message="No region was specified/found. "
-                    "Please provide a region via the --region parameter or by the AWS_REGION environment variable."
-                )
+            self.region = session.region_name
 
         client_provider = get_boto_client_provider_with_config(region=self.region, profile=self.profile)
         self.client_provider = client_provider

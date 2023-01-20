@@ -4,6 +4,7 @@ Sets up the cli for resources
 
 import click
 
+from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.commands.list.cli_common.options import stack_name_option, output_option
 from samcli.cli.main import pass_context, common_options, aws_creds_options, print_cmdline_args
 from samcli.lib.utils.version_checker import check_newer_version
@@ -13,13 +14,14 @@ from samcli.cli.cli_config_file import configuration_option, TomlProvider
 
 
 HELP_TEXT = """
-Get a list of resources that will be deployed to CloudFormation.\n
-If a stack name is provided, the corresponding physical IDs of each
-resource will be mapped to the logical ID of each resource.
+Get a summary of the cloud endpoints in the stack.\n
+This command will show both the cloud and local endpoints that can
+be used with sam local and sam sync. Currently the endpoint resources
+are lambda functions and API Gateway API resources.
 """
 
 
-@click.command(name="resources", help=HELP_TEXT)
+@click.command(name="endpoints", help=HELP_TEXT)
 @configuration_option(provider=TomlProvider(section="parameters"))
 @stack_name_option
 @output_option
@@ -30,11 +32,11 @@ resource will be mapped to the logical ID of each resource.
 @track_command
 @check_newer_version
 @print_cmdline_args
+@command_exception_handler
 def cli(self, stack_name, output, template_file, config_file, config_env):
     """
-    `sam list resources` command entry point
+    `sam list endpoints` command entry point
     """
-
     do_cli(stack_name=stack_name, output=output, region=self.region, profile=self.profile, template_file=template_file)
 
 
@@ -42,9 +44,9 @@ def do_cli(stack_name, output, region, profile, template_file):
     """
     Implementation of the ``cli`` method
     """
-    from samcli.commands.list.resources.resources_context import ResourcesContext
+    from samcli.commands.list.endpoints.endpoints_context import EndpointsContext
 
-    with ResourcesContext(
+    with EndpointsContext(
         stack_name=stack_name, output=output, region=region, profile=profile, template_file=template_file
-    ) as resources_context:
-        resources_context.run()
+    ) as endpoints_context:
+        endpoints_context.run()

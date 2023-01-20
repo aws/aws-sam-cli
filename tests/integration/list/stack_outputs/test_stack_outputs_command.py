@@ -1,12 +1,12 @@
 import os
 import time
 import boto3
-import re
+import json
 from unittest import skipIf
 
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.integration.list.stack_outputs.stack_outputs_integ_base import StackOutputsIntegBase
-from samcli.commands.list.stack_outputs.cli import HELP_TEXT
+from samcli.commands.list.stack_outputs.command import HELP_TEXT
 from tests.testing_utils import CI_OVERRIDE, RUN_BY_CANARY
 from tests.testing_utils import run_command, run_command_with_input, method_to_stack_name
 
@@ -52,35 +52,25 @@ class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
         )
         cmdlist = self.get_stack_outputs_command_list(stack_name=stack_name, region=region, output="json")
         command_result = run_command(cmdlist, cwd=self.working_dir)
-        self.assertTrue(
-            re.search(
-                """{
-    "OutputKey": "HelloWorldFunctionIamRole",
-    "OutputValue": "arn:aws:iam::.*:role/.*-HelloWorldFunctionRole\\-.*",
-    "Description": "Implicit IAM Role created for Hello World function"
-  }""",
-                command_result.stdout.decode(),
-            )
+        outputs = json.loads(command_result.stdout.decode())
+        self.assertEqual(len(outputs), 3)
+        self.check_stack_output(
+            outputs[0],
+            "HelloWorldFunctionIamRole",
+            "arn:aws:iam::.*:role/.*-HelloWorldFunctionRole\\-.*",
+            "Implicit IAM Role created for Hello World function",
         )
-        self.assertTrue(
-            re.search(
-                """  {
-    "OutputKey": "HelloWorldApi",
-    "OutputValue": "https://.*execute.*.amazonaws.com/Prod/hello/",
-    "Description": "API Gateway endpoint URL for Prod stage for Hello World function"
-  }""",
-                command_result.stdout.decode(),
-            )
+        self.check_stack_output(
+            outputs[1],
+            "HelloWorldApi",
+            "https://.*execute.*.amazonaws.com/Prod/hello/",
+            "API Gateway endpoint URL for Prod stage for Hello World function",
         )
-        self.assertTrue(
-            re.search(
-                """  {
-    "OutputKey": "HelloWorldFunction",
-    "OutputValue": "arn:aws:lambda:.*:.*:function:.*-HelloWorldFunction\-.*",
-    "Description": "Hello World Lambda Function ARN"
-  }""",
-                command_result.stdout.decode(),
-            )
+        self.check_stack_output(
+            outputs[2],
+            "HelloWorldFunction",
+            "arn:aws:lambda:.*:.*:function:.*-HelloWorldFunction\\-.*",
+            "Hello World Lambda Function ARN",
         )
 
     def test_stack_no_outputs_exist(self):

@@ -5,7 +5,7 @@ import re
 from unittest import skipIf
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.integration.list.endpoints.endpoints_integ_base import EndpointsIntegBase
-from samcli.commands.list.endpoints.cli import HELP_TEXT
+from samcli.commands.list.endpoints.command import HELP_TEXT
 from tests.testing_utils import CI_OVERRIDE, RUN_BY_CANARY
 from tests.testing_utils import run_command, run_command_with_input, method_to_stack_name
 

@@ -4,6 +4,7 @@ Sets up the cli for stack-outputs
 
 import click
 
+from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.commands.list.cli_common.options import output_option
 from samcli.cli.main import pass_context, common_options, aws_creds_options, print_cmdline_args
 from samcli.lib.utils.version_checker import check_newer_version
@@ -29,6 +30,7 @@ Get the stack outputs as defined in the SAM/CloudFormation template.
 @track_command
 @check_newer_version
 @print_cmdline_args
+@command_exception_handler
 def cli(self, stack_name, output):
     """
     `sam list stack-outputs` command entry point

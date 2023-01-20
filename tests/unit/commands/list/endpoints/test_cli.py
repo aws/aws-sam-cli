@@ -1,6 +1,6 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch
-from samcli.commands.list.endpoints.cli import do_cli
+from samcli.commands.list.endpoints.command import do_cli
 
 
 class TestCli(TestCase):
