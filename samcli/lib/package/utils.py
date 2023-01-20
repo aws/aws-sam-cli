@@ -119,7 +119,6 @@ def upload_local_image_artifacts(resource_id, resource_dict, property_name, pare
 
 
 def upload_local_artifacts(
-    resource_type: str,
     resource_id: str,
     resource_dict: Dict,
     property_name: str,
@@ -139,7 +138,6 @@ def upload_local_artifacts(
 
     If path is already a path to S3 object, this method does nothing.
 
-    :param resource_type:   Type of the CloudFormation resource
     :param resource_id:     Id of the CloudFormation resource
     :param resource_dict:   Dictionary containing resource definition
     :param property_name:   Property name of CloudFormation resource where this
