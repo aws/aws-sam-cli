@@ -170,6 +170,9 @@ build_script:
 
 # Final clean up no matter success or failure
 on_finish:
+  # Upload test reports as artifacts
+  - sh: find "$APPVEYOR_BUILD_FOLDER" -type f -name 'TEST*.json' -print0 | xargs -0 -I '{}' appveyor PushArtifact '{}'
+
   - sh: 'export AWS_ACCESS_KEY_ID=$CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID'
   - sh: 'export AWS_SECRET_ACCESS_KEY=$CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY'
   - sh: 'export AWS_SESSION_TOKEN=$CI_ACCESS_ROLE_AWS_SESSION_TOKEN'
@@ -193,7 +196,7 @@ for:
 
       # Set JAVA_HOME to java11
       - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
-      - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java11"
+      - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java11.json"
 
   # Local ZIP  Terraform Build integ testing
   -
@@ -350,6 +353,3 @@ for:
       # Smoke tests run in parallel - it runs on both Linux & Windows
       # Presence of the RUN_SMOKE envvar will run the smoke tests
       - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke --json-report --json-report-file=TEST_REPORT-smoke.json}"
-
-artifacts:
-  - path: './TEST_REPORT*.json'
