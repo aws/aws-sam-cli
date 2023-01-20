@@ -20,11 +20,15 @@ AWS_APIGATEWAY_STAGE = "AWS::ApiGateway::Stage"
 AWS_APIGATEWAY_RESOURCE = "AWS::ApiGateway::Resource"
 AWS_APIGATEWAY_METHOD = "AWS::ApiGateway::Method"
 AWS_APIGATEWAY_DEPLOYMENT = "AWS::ApiGateway::Deployment"
+AWS_APIGATEWAY_BASE_PATH_MAPPING = "AWS::ApiGateway::BasePathMapping"
+AWS_APIGATWAY_DOMAIN_NAME = "AWS::ApiGateway::DomainName"
 
 AWS_APIGATEWAY_V2_API = "AWS::ApiGatewayV2::Api"
 AWS_APIGATEWAY_V2_INTEGRATION = "AWS::ApiGatewayV2::Integration"
 AWS_APIGATEWAY_V2_ROUTE = "AWS::ApiGatewayV2::Route"
 AWS_APIGATEWAY_V2_STAGE = "AWS::ApiGatewayV2::Stage"
+AWS_APIGATEWAY_v2_BASE_PATH_MAPPING = "AWS::ApiGatewayV2::ApiMapping"
+AWS_APIGATEWAY_V2_DOMAIN_NAME = "AWS::ApiGatewayV2::DomainName"
 
 # SFN
 AWS_SERVERLESS_STATEMACHINE = "AWS::Serverless::StateMachine"
@@ -98,6 +102,8 @@ LAMBDA_LOCAL_RESOURCES = [
     AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_LAYERVERSION,
 ]
+
+AWS_LAMBDA_FUNCTION_URL = "AWS::Lambda::Url"
 
 
 def get_packageable_resource_paths():

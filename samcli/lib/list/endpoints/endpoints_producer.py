@@ -19,9 +19,18 @@ from samcli.commands._utils.template import get_template_data
 from samcli.lib.list.endpoints.endpoints_def import EndpointsDef
 from samcli.lib.list.resources.resource_mapping_producer import ResourceMappingProducer
 from samcli.lib.utils.boto_utils import get_client_error_code
+from samcli.lib.utils.resources import (
+    AWS_LAMBDA_FUNCTION,
+    AWS_APIGATEWAY_RESTAPI,
+    AWS_APIGATEWAY_V2_API,
+    AWS_LAMBDA_FUNCTION_URL,
+    AWS_APIGATEWAY_BASE_PATH_MAPPING,
+    AWS_APIGATEWAY_v2_BASE_PATH_MAPPING,
+    AWS_APIGATEWAY_V2_DOMAIN_NAME,
+    AWS_APIGATWAY_DOMAIN_NAME,
+)
 
-LOG = logging.getLogger(__name__)
-ENDPOINT_RESOURCE_TYPES = {"AWS::Lambda::Function", "AWS::ApiGateway::RestApi", "AWS::ApiGatewayV2::Api"}
+ENDPOINT_RESOURCE_TYPES = {AWS_LAMBDA_FUNCTION, AWS_APIGATEWAY_RESTAPI, AWS_APIGATEWAY_V2_API}
 RESOURCE_DESCRIPTION = "ResourceDescription"
 PROPERTIES = "Properties"
 FUNCTION_URL = "FunctionUrl"
@@ -34,6 +43,8 @@ API_ID = "ApiId"
 DOMAIN_NAME = "DomainName"
 BODY = "Body"
 PATHS = "paths"
+
+LOG = logging.getLogger(__name__)
 
 
 class APIGatewayEnum(Enum):
@@ -112,7 +123,7 @@ class EndpointsProducer(ResourceMappingProducer, Producer):
             The function url in the form of a string
         """
         try:
-            response = self.cloudcontrol_client.get_resource(TypeName="AWS::Lambda::Url", Identifier=identifier)
+            response = self.cloudcontrol_client.get_resource(TypeName=AWS_LAMBDA_FUNCTION_URL, Identifier=identifier)
             if not response.get(RESOURCE_DESCRIPTION, {}).get(PROPERTIES, {}):
                 return "-"
             response_dict = json.loads(response.get(RESOURCE_DESCRIPTION, {}).get(PROPERTIES, {}))
@@ -248,10 +259,10 @@ class EndpointsProducer(ResourceMappingProducer, Producer):
                 paths_and_methods: Any
                 endpoint_function_url = "-"
                 paths_and_methods = "-"
-                if deployed_resource.get(RESOURCE_TYPE, "") == "AWS::Lambda::Function":
+                if deployed_resource.get(RESOURCE_TYPE, "") == AWS_LAMBDA_FUNCTION:
                     endpoint_function_url = self.get_function_url(deployed_resource.get(PHYSICAL_RESOURCE_ID, ""))
 
-                elif deployed_resource.get(RESOURCE_TYPE, "") in ("AWS::ApiGateway::RestApi", "AWS::ApiGatewayV2::Api"):
+                elif deployed_resource.get(RESOURCE_TYPE, "") in (AWS_APIGATEWAY_RESTAPI, AWS_APIGATEWAY_V2_API):
                     endpoint_function_url = self.get_api_gateway_endpoint(
                         deployed_resource, custom_domain_substitute_dict
                     )
@@ -271,7 +282,7 @@ class EndpointsProducer(ResourceMappingProducer, Producer):
             local_resource_type = local_stack_resources.get(local_resource, {}).get("Type", "")
             paths_and_methods = "-"
             if local_resource_type in ENDPOINT_RESOURCE_TYPES and local_resource not in seen_endpoints:
-                if local_resource_type in ("AWS::ApiGateway::RestApi", "AWS::ApiGatewayV2::Api"):
+                if local_resource_type in (AWS_APIGATEWAY_RESTAPI, AWS_APIGATEWAY_V2_API):
                     paths_and_methods = get_methods_and_paths(local_resource, local_stack)
                 endpoint_data = EndpointsDef(
                     LogicalResourceId=local_resource,
@@ -339,7 +350,7 @@ def get_local_endpoints(stacks: list) -> list:
         local_resource_type = local_stack_resources.get(local_resource, {}).get("Type", "")
         if local_resource_type in ENDPOINT_RESOURCE_TYPES:
             paths_and_methods = "-"
-            if local_resource_type in ("AWS::ApiGateway::RestApi", "AWS::ApiGatewayV2::Api"):
+            if local_resource_type in (AWS_APIGATEWAY_RESTAPI, AWS_APIGATEWAY_V2_API):
                 paths_and_methods = get_methods_and_paths(local_resource, local_stack)
             # Set the PhysicalID to "-" if there is no corresponding PhysicalID
             endpoint_data = EndpointsDef(
@@ -365,7 +376,7 @@ def get_api_type_enum(resource_type: str) -> APIGatewayEnum:
     -------
     The APIGatewayEnum associated with the input resource type
     """
-    if resource_type == "AWS::ApiGatewayV2::Api":
+    if resource_type == AWS_APIGATEWAY_V2_API:
         return APIGatewayEnum.API_GATEWAY_V2
     return APIGatewayEnum.API_GATEWAY
 
@@ -393,7 +404,7 @@ def get_custom_domain_substitute_list(
     local_stack = stacks[0]
     local_stack_resources = local_stack.resources
     for resource in response.get(STACK_RESOURCES, {}):
-        if resource.get(RESOURCE_TYPE, "") == "AWS::ApiGateway::BasePathMapping":
+        if resource.get(RESOURCE_TYPE, "") == AWS_APIGATEWAY_BASE_PATH_MAPPING:
             local_mapping = local_stack_resources.get(resource.get(LOGICAL_RESOURCE_ID, ""), {}).get(PROPERTIES, {})
             rest_api_id = local_mapping.get(REST_API_ID, "")
             domain_id = local_mapping.get(DOMAIN_NAME, "")
@@ -402,7 +413,7 @@ def get_custom_domain_substitute_list(
                     custom_domain_substitute_dict[rest_api_id] = [response_domain_dict.get(domain_id, None)]
                 else:
                     custom_domain_substitute_dict[rest_api_id].append(response_domain_dict.get(domain_id, None))
-        elif resource.get(RESOURCE_TYPE, "") == "AWS::ApiGatewayV2::ApiMapping":
+        elif resource.get(RESOURCE_TYPE, "") == AWS_APIGATEWAY_v2_BASE_PATH_MAPPING:
             local_mapping = local_stack_resources.get(resource.get(LOGICAL_RESOURCE_ID, ""), {}).get(PROPERTIES, {})
             rest_api_id = local_mapping.get(API_ID, "")
             domain_id = local_mapping.get(DOMAIN_NAME, "")
@@ -431,8 +442,8 @@ def get_response_domain_dict(response: Dict[Any, Any]) -> Dict[str, str]:
     response_domain_dict = {}
     for resource in response.get(STACK_RESOURCES, {}):
         if (
-            resource.get(RESOURCE_TYPE, "") == "AWS::ApiGateway::DomainName"
-            or resource.get(RESOURCE_TYPE, "") == "AWS::ApiGatewayV2::DomainName"
+            resource.get(RESOURCE_TYPE, "") == AWS_APIGATWAY_DOMAIN_NAME
+            or resource.get(RESOURCE_TYPE, "") == AWS_APIGATEWAY_V2_DOMAIN_NAME
         ):
             response_domain_dict[
                 resource.get(LOGICAL_RESOURCE_ID, "")
