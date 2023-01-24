@@ -13,6 +13,7 @@ from samcli.cli.context import Context
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands._utils.cdk_support_decorators import unsupported_command_cdk
 from samcli.commands._utils.options import template_option_without_build
+from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
@@ -131,6 +132,7 @@ def _lint(ctx: Context, template: str) -> None:
 
     cfn_lint_logger = logging.getLogger("cfnlint")
     cfn_lint_logger.propagate = False
+    EventTracker.track_event("UsedFeature", "CFNLint")
 
     try:
         lint_args = [template]
