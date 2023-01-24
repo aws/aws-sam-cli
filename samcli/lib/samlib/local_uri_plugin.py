@@ -9,6 +9,12 @@ from samtranslator.public.plugins import BasePlugin
 class SupportLocalUriPlugin(BasePlugin):
 
     _SERVERLESS_FUNCTION = "AWS::Serverless::Function"
+    
+    def __init__(self):
+        """
+        Initialize the plugin
+        """
+        super().__init__(SupportLocalUriPlugin.__name__)
 
     def on_before_transform_resource(self, logical_id, resource_type, resource_properties):
 
