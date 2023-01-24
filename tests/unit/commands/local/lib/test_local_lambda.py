@@ -18,7 +18,6 @@ from samcli.commands.local.lib.exceptions import (
     OverridesNotWellDefinedError,
     NoPrivilegeException,
     InvalidIntermediateImageError,
-    UnsupportedRuntimeArchitectureError,
 )
 
 
@@ -251,6 +250,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             architectures=[X86_64],
             codesign_config_arn=None,
             function_url_config=None,
+            runtime_management_config=None,
         )
 
         self.local_lambda.env_vars_values = env_vars_values
@@ -303,6 +303,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             architectures=[X86_64],
             codesign_config_arn=None,
             function_url_config=None,
+            runtime_management_config=None,
         )
 
         self.local_lambda.env_vars_values = env_vars_values
@@ -345,6 +346,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             architectures=[X86_64],
             codesign_config_arn=None,
             function_url_config=None,
+            runtime_management_config=None,
         )
 
         self.local_lambda.env_vars_values = {}
@@ -423,6 +425,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             architectures=[ARM64],
             codesign_config_arn=None,
             function_url_config=None,
+            runtime_management_config=None,
         )
 
         config = "someconfig"
@@ -444,6 +447,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             env_vars=env_vars,
             architecture=ARM64,
             full_path=function.full_path,
+            runtime_management_config=function.runtime_management_config,
         )
 
         resolve_code_path_patch.assert_called_with(self.cwd, function.codeuri)
@@ -489,6 +493,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             architectures=[X86_64],
             function_url_config=None,
             codesign_config_arn=None,
+            runtime_management_config=None,
         )
 
         config = "someconfig"
@@ -510,6 +515,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             env_vars=env_vars,
             architecture=X86_64,
             full_path=function.full_path,
+            runtime_management_config=function.runtime_management_config,
         )
 
         resolve_code_path_patch.assert_called_with(self.cwd, "codeuri")

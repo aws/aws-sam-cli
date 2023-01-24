@@ -27,6 +27,7 @@ class TestFunctionConfig(TestCase):
         self.env_vars_mock = Mock()
         self.layers = ["layer1"]
         self.architecture = "arm64"
+        self.runtime_management_config = {"key": "value"}
 
     def test_init_with_env_vars(self):
         config = FunctionConfig(
@@ -43,6 +44,7 @@ class TestFunctionConfig(TestCase):
             memory=self.memory,
             timeout=self.timeout,
             env_vars=self.env_vars_mock,
+            runtime_management_config=self.runtime_management_config,
         )
 
         self.assertEqual(config.name, self.name)
@@ -61,6 +63,8 @@ class TestFunctionConfig(TestCase):
         self.assertEqual(self.env_vars_mock.handler, self.handler)
         self.assertEqual(self.env_vars_mock.memory, self.memory)
         self.assertEqual(self.env_vars_mock.timeout, self.timeout)
+
+        self.assertEqual(config.runtime_management_config, self.runtime_management_config)
 
     def test_init_without_optional_values(self):
         config = FunctionConfig(
@@ -92,6 +96,7 @@ class TestFunctionConfig(TestCase):
         self.assertEqual(config.env_vars.handler, self.handler)
         self.assertEqual(config.env_vars.memory, self.DEFAULT_MEMORY)
         self.assertEqual(config.env_vars.timeout, self.DEFAULT_TIMEOUT)
+        self.assertEqual(config.runtime_management_config, None)
 
     def test_init_with_timeout_of_int_string(self):
         config = FunctionConfig(
