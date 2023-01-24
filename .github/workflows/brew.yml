@@ -1,0 +1,19 @@
+name: brew
+
+on:
+  release:
+    types: published
+
+jobs:
+  homebrew:
+    name: Bump homebrew-core formula
+    runs-on: ubuntu-latest
+    steps:
+      - uses: mislav/bump-homebrew-formula-action@v2
+        with:
+          formula-name: aws-sam-cli
+          commit-message: |
+            {{formulaName}} {{version}}
+            Created by https://github.com/mislav/bump-homebrew-formula-action
+        env:
+          COMMITTER_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
