@@ -294,6 +294,7 @@ class TestFunction(TestCase):
             [ARM64],
             None,
             "stackpath",
+            None,
         )
 
     @parameterized.expand(

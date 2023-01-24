@@ -467,6 +467,7 @@ class SamFunctionProvider(SamBaseProvider):
             codesign_config_arn=resource_properties.get("CodeSigningConfigArn", None),
             architectures=resource_properties.get("Architectures", None),
             function_url_config=resource_properties.get("FunctionUrlConfig"),
+            runtime_management_config=resource_properties.get("RuntimeManagementConfig"),
         )
 
     @staticmethod
