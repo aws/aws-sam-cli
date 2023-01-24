@@ -1,4 +1,6 @@
 from unittest import TestCase
+
+from samtranslator.model.exceptions import ExceptionWithMessage
 from unittest.mock import patch, call, Mock
 from botocore.exceptions import ClientError, EndpointConnectionError, NoCredentialsError, BotoCoreError
 from samtranslator.translator.arn_generator import NoRegionFound
@@ -201,7 +203,7 @@ class TestResourceMappingProducerProduce(TestCase):
         boto_session_patch.return_value = boto_session_mock
 
         translate_mock = Mock()
-        translate_mock.translate.side_effect = InvalidDocumentException([Exception("message")])
+        translate_mock.translate.side_effect = InvalidDocumentException([ExceptionWithMessage("message")])
         sam_translator.return_value = translate_mock
 
         validator = SamTemplateValidator(template, managed_policy_mock)
