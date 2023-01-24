@@ -6,7 +6,7 @@ import OpenSSL.SSL  # type: ignore
 import requests
 
 from samcli.commands.pipeline.bootstrap.guided_context import GITHUB_ACTIONS
-from samcli.lib.pipeline.bootstrap.stage import Stage
+from samcli.lib.pipeline.bootstrap.stage import Stage, _get_secure_ssl_context
 
 ANY_STAGE_CONFIGURATION_NAME = "ANY_STAGE_CONFIGURATION_NAME"
 ANY_PIPELINE_USER_ARN = "ANY_PIPELINE_USER_ARN"
@@ -579,3 +579,22 @@ class TestStage(TestCase):
             if msg in message:
                 return True
         return False
+
+
+class TestSSLContext(TestCase):
+    def test_return_ctx(self):
+        ctx = _get_secure_ssl_context()
+        self.assertIsInstance(ctx, OpenSSL.SSL.Context)
+
+    @patch("samcli.lib.pipeline.bootstrap.stage.SSL.Context")
+    def test_options_set(self, SSLContext_mock):
+        context_mock = Mock()
+        SSLContext_mock.return_value = context_mock
+        ctx = _get_secure_ssl_context()
+        SSLContext_mock.assert_called_with(OpenSSL.SSL.TLS_METHOD)
+
+        # NOTE (hawflau): do not remove any of below as they are insecure versions
+        context_mock.set_options.assert_any_call(OpenSSL.SSL.OP_NO_TLSv1)
+        context_mock.set_options.assert_any_call(OpenSSL.SSL.OP_NO_TLSv1_1)
+        context_mock.set_options.assert_any_call(OpenSSL.SSL.OP_NO_SSLv2)
+        context_mock.set_options.assert_any_call(OpenSSL.SSL.OP_NO_SSLv3)

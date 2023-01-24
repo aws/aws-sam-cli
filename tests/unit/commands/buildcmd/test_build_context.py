@@ -985,6 +985,7 @@ class TestBuildContext_run(TestCase):
             container_env_var_file=None,
             build_images={},
             create_auto_dependency_layer=auto_dependency_layer,
+            build_in_source=False,
         ) as build_context:
             build_context.run()
 
@@ -1003,6 +1004,7 @@ class TestBuildContext_run(TestCase):
                 container_env_var_file=build_context._container_env_var_file,
                 build_images=build_context._build_images,
                 combine_dependencies=not auto_dependency_layer,
+                build_in_source=build_context._build_in_source,
             )
             builder_mock.build.assert_called_once()
             builder_mock.update_template.assert_has_calls(
