@@ -210,6 +210,7 @@ class LocalLambdaRunner:
             memory=function.memory,
             timeout=function_timeout,
             env_vars=env_vars,
+            runtime_management_config=function.runtime_management_config,
         )
 
     def _make_env_vars(self, function: Function) -> EnvironmentVariables:

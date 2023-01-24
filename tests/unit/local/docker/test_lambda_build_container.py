@@ -98,6 +98,7 @@ class TestLambdaBuildContainer_make_request(TestCase):
             "mode",
             "architecture",
             is_building_layer,
+            build_in_source=False,
         )
 
         self.maxDiff = None  # Print whole json diff
@@ -126,6 +127,7 @@ class TestLambdaBuildContainer_make_request(TestCase):
                     "architecture": "architecture",
                     "is_building_layer": is_building_layer,
                     "experimental_flags": experimental_flags,
+                    "build_in_source": False,
                 },
             },
         )

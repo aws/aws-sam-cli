@@ -147,7 +147,6 @@ class ResourceZip(Resource):
         should_sign_package = self.code_signer.should_sign_package(resource_id)
         artifact_extension = "zip" if should_sign_package else None
         uploaded_url = upload_local_artifacts(
-            self.RESOURCE_TYPE,
             resource_id,
             resource_dict,
             self.PROPERTY_NAME,
@@ -326,7 +325,7 @@ class ResourceWithS3UrlDict(ResourceZip):
         """
 
         artifact_s3_url = upload_local_artifacts(
-            self.RESOURCE_TYPE, resource_id, resource_dict, self.PROPERTY_NAME, parent_dir, self.uploader
+            resource_id, resource_dict, self.PROPERTY_NAME, parent_dir, self.uploader
         )
 
         parsed_url = S3Uploader.parse_s3_url(
@@ -430,6 +429,14 @@ class AppSyncResolverResponseTemplateResource(ResourceZip):
     PACKAGE_NULL_PROPERTY = False
 
 
+class AppSyncResolverCodeResource(ResourceZip):
+    RESOURCE_TYPE = AWS_APPSYNC_RESOLVER
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][2]
+    # Don't package the directory if CodeS3Location is omitted.
+    # Necessary to support CodeS3Location
+    PACKAGE_NULL_PROPERTY = False
+
+
 class AppSyncFunctionConfigurationRequestTemplateResource(ResourceZip):
     RESOURCE_TYPE = AWS_APPSYNC_FUNCTIONCONFIGURATION
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
@@ -443,6 +450,14 @@ class AppSyncFunctionConfigurationResponseTemplateResource(ResourceZip):
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][1]
     # Don't package the directory if ResponseMappingTemplateS3Location is omitted.
     # Necessary to support ResponseMappingTemplate
+    PACKAGE_NULL_PROPERTY = False
+
+
+class AppSyncFunctionConfigurationCodeResource(ResourceZip):
+    RESOURCE_TYPE = AWS_APPSYNC_FUNCTIONCONFIGURATION
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][2]
+    # Don't package the directory if CodeS3Location is omitted.
+    # Necessary to support CodeS3Location
     PACKAGE_NULL_PROPERTY = False
 
 
@@ -580,8 +595,10 @@ RESOURCES_EXPORT_LIST = [
     GraphQLSchemaResource,
     AppSyncResolverRequestTemplateResource,
     AppSyncResolverResponseTemplateResource,
+    AppSyncResolverCodeResource,
     AppSyncFunctionConfigurationRequestTemplateResource,
     AppSyncFunctionConfigurationResponseTemplateResource,
+    AppSyncFunctionConfigurationCodeResource,
     ApiGatewayRestApiResource,
     ApiGatewayV2Resource,
     StepFunctionsStateMachineResource,

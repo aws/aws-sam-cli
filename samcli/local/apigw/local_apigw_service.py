@@ -362,11 +362,7 @@ class LocalApigwService(BaseLocalService):
         except FunctionNotFound:
             return ServiceErrorResponses.lambda_not_found_response()
 
-        lambda_response, lambda_logs, _ = LambdaOutputParser.get_lambda_output(stdout_stream)
-
-        if self.stderr and lambda_logs:
-            # Write the logs to stderr if available.
-            self.stderr.write(lambda_logs)
+        lambda_response, _ = LambdaOutputParser.get_lambda_output(stdout_stream)
 
         try:
             if route.event_type == Route.HTTP and (

@@ -15,7 +15,7 @@ from werkzeug.serving import make_server
 
 from samcli.cli.global_config import GlobalConfig
 from samcli.cli.main import TELEMETRY_PROMPT
-
+from tests.testing_utils import get_sam_command
 
 LOG = logging.getLogger(__name__)
 TELEMETRY_ENDPOINT_PORT = "18298"
@@ -29,7 +29,7 @@ EXPECTED_TELEMETRY_PROMPT = re.sub(r"\n", os.linesep, TELEMETRY_PROMPT)
 class IntegBase(TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.cmd = cls.base_command()
+        cls.cmd = get_sam_command()
 
     def setUp(self):
         self.maxDiff = None  # Show full JSON Diff
@@ -40,14 +40,6 @@ class IntegBase(TestCase):
 
     def tearDown(self):
         self.config_dir and shutil.rmtree(self.config_dir)
-
-    @classmethod
-    def base_command(cls):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
-
-        return command
 
     def run_cmd(self, cmd_list=None, stdin_data="", optout_envvar_value=None):
         # Any command will work for this test suite
