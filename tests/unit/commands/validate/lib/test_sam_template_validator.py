@@ -1,6 +1,8 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
+from samtranslator.model.exceptions import InvalidEventException
+
 from samcli.lib.utils.packagetype import IMAGE
 from samtranslator.public.exceptions import InvalidDocumentException
 
@@ -54,7 +56,7 @@ class TestSamTemplateValidator(TestCase):
         boto_session_patch.return_value = boto_session_mock
 
         translate_mock = Mock()
-        translate_mock.translate.side_effect = InvalidDocumentException([Exception("message")])
+        translate_mock.translate.side_effect = InvalidDocumentException([InvalidEventException(None, "message")])
         sam_translator.return_value = translate_mock
 
         validator = SamTemplateValidator(template, managed_policy_mock)
