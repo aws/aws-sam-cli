@@ -43,6 +43,7 @@ class LambdaBuildContainer(Container):
         env_vars=None,
         image=None,
         is_building_layer=False,
+        build_in_source=None,
     ):
         abs_manifest_path = pathlib.Path(manifest_path).resolve()
         manifest_file_name = abs_manifest_path.name
@@ -80,6 +81,7 @@ class LambdaBuildContainer(Container):
             mode,
             architecture,
             is_building_layer,
+            build_in_source,
         )
 
         if image is None:
@@ -125,6 +127,7 @@ class LambdaBuildContainer(Container):
         mode,
         architecture,
         is_building_layer,
+        build_in_source,
     ):
 
         runtime = runtime.replace(".al2", "")
@@ -154,6 +157,7 @@ class LambdaBuildContainer(Container):
                     "architecture": architecture,
                     "is_building_layer": is_building_layer,
                     "experimental_flags": get_enabled_experimental_flags(),
+                    "build_in_source": build_in_source,
                 },
             }
         )

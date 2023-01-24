@@ -2365,7 +2365,13 @@ class TestApplicationBuilder_build_function(TestCase):
 class TestApplicationBuilder_build_function_in_process(TestCase):
     def setUp(self):
         self.builder = ApplicationBuilder(
-            Mock(), "/build/dir", "/base/dir", "/cache/dir", mode="mode", stream_writer=StreamWriter(sys.stderr)
+            Mock(),
+            "/build/dir",
+            "/base/dir",
+            "/cache/dir",
+            mode="mode",
+            stream_writer=StreamWriter(sys.stderr),
+            build_in_source=False,
         )
 
     def tearDown(self):
@@ -2420,6 +2426,7 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
             combine_dependencies=True,
             is_building_layer=False,
             experimental_flags=experimental_flags,
+            build_in_source=False,
         )
 
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
@@ -2484,6 +2491,7 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
                     combine_dependencies=True,
                     is_building_layer=True,
                     experimental_flags=["A", "B", "C"],
+                    build_in_source=False,
                 )
             ]
         )
@@ -2500,6 +2508,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
             container_manager=self.container_manager,
             mode="mode",
             stream_writer=StreamWriter(sys.stderr),
+            build_in_source=False,
         )
         self.builder._parse_builder_response = Mock()
 
@@ -2550,6 +2559,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
             mode="mode",
             env_vars={},
             is_building_layer=False,
+            build_in_source=False,
         )
 
         self.container_manager.run.assert_called_with(container_mock)

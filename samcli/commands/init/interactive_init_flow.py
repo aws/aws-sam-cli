@@ -50,6 +50,7 @@ def do_interactive(
     app_template,
     no_input,
     tracing,
+    application_insights,
 ):
     """
     Implementation of the ``cli`` method when --interactive is provided.
@@ -76,6 +77,7 @@ def do_interactive(
         no_input,
         location_opt_choice,
         tracing,
+        application_insights,
     )
 
 
@@ -93,6 +95,7 @@ def generate_application(
     no_input,
     location_opt_choice,
     tracing,
+    application_insights,
 ):  # pylint: disable=too-many-arguments
     """
     The method holds the decision logic for generating an application
@@ -125,6 +128,8 @@ def generate_application(
         User input for selecting how to get customer a vended serverless application
     tracing : bool
         boolen value to determine if X-Ray tracing show be activated or not
+    application_insights : bool
+        boolean value to determine if AppInsights monitoring should be enabled or not
     """
     if location_opt_choice == "1":
         _generate_from_use_case(
@@ -139,16 +144,27 @@ def generate_application(
             app_template,
             architecture,
             tracing,
+            application_insights,
         )
 
     else:
         _generate_from_location(
-            location, package_type, runtime, dependency_manager, output_dir, name, no_input, tracing
+            location,
+            package_type,
+            runtime,
+            dependency_manager,
+            output_dir,
+            name,
+            no_input,
+            tracing,
+            application_insights,
         )
 
 
 # pylint: disable=too-many-statements
-def _generate_from_location(location, package_type, runtime, dependency_manager, output_dir, name, no_input, tracing):
+def _generate_from_location(
+    location, package_type, runtime, dependency_manager, output_dir, name, no_input, tracing, application_insights
+):
     location = click.prompt("\nTemplate location (git, mercurial, http(s), zip, path)", type=str)
     summary_msg = """
 -----------------------
@@ -160,7 +176,18 @@ Output Directory: {output_dir}
         location=location, output_dir=output_dir
     )
     click.echo(summary_msg)
-    do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, None, tracing)
+    do_generate(
+        location,
+        package_type,
+        runtime,
+        dependency_manager,
+        output_dir,
+        name,
+        no_input,
+        None,
+        tracing,
+        application_insights,
+    )
 
 
 # pylint: disable=too-many-statements
@@ -176,6 +203,7 @@ def _generate_from_use_case(
     app_template: Optional[str],
     architecture: Optional[str],
     tracing: Optional[bool],
+    application_insights: Optional[bool],
 ) -> None:
     templates = InitTemplates()
     runtime_or_base_image = runtime if runtime else base_image
@@ -202,6 +230,9 @@ def _generate_from_use_case(
 
     if tracing is None:
         tracing = prompt_user_to_enable_tracing()
+
+    if application_insights is None:
+        application_insights = prompt_user_to_enable_application_insights()
 
     app_template = template_chosen["appTemplate"]
     base_image = (
@@ -258,6 +289,7 @@ def _generate_from_use_case(
         no_input,
         extra_context,
         tracing,
+        application_insights,
     )
     # executing event_bridge logic if call is for Schema dynamic template
     if is_dynamic_schemas_template:
@@ -368,6 +400,24 @@ def prompt_user_to_enable_tracing():
     if click.confirm("\nWould you like to enable X-Ray tracing on the function(s) in your application? "):
         doc_link = "https://aws.amazon.com/xray/pricing/"
         click.echo(f"X-Ray will incur an additional cost. View {doc_link} for more details")
+        return True
+    return False
+
+
+def prompt_user_to_enable_application_insights():
+    """
+    Prompt user to choose if AppInsights monitoring should be enabled for their application and vice versa
+    """
+    doc_link = "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch-application-insights.html"
+    if click.confirm(
+        f"\nWould you like to enable monitoring using CloudWatch Application Insights?"
+        f"\nFor more info, please view {doc_link}"
+    ):
+        pricing_link = (
+            "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring"
+            "/appinsights-what-is.html#appinsights-pricing"
+        )
+        click.echo(f"AppInsights monitoring may incur additional cost. View {pricing_link} for more details")
         return True
     return False
 

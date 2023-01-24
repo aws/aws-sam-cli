@@ -18,7 +18,14 @@ from samcli.lib.utils import osutils
 from samcli.lib.utils.architecture import X86_64, has_runtime_multi_arch_image
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from samcli.yamlhelper import yaml_parse
-from tests.testing_utils import IS_WINDOWS, run_command, SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE, SKIP_DOCKER_BUILD
+from tests.testing_utils import (
+    IS_WINDOWS,
+    run_command,
+    SKIP_DOCKER_TESTS,
+    SKIP_DOCKER_MESSAGE,
+    SKIP_DOCKER_BUILD,
+    get_sam_command,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -28,7 +35,7 @@ class BuildIntegBase(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.cmd = cls.base_command()
+        cls.cmd = get_sam_command()
         integration_dir = Path(__file__).resolve().parents[1]
         cls.test_data_path = str(Path(integration_dir, "testdata", "buildcmd"))
         cls.template_path = str(Path(cls.test_data_path, cls.template)) if cls.template else None
@@ -52,14 +59,6 @@ class BuildIntegBase(TestCase):
         self.custom_build_dir and shutil.rmtree(self.custom_build_dir, ignore_errors=True)
         self.working_dir and shutil.rmtree(self.working_dir, ignore_errors=True)
         self.scratch_dir and shutil.rmtree(self.scratch_dir, ignore_errors=True)
-
-    @classmethod
-    def base_command(cls):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
-
-        return command
 
     def get_command_list(
         self,

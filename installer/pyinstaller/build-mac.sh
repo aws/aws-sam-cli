@@ -1,5 +1,4 @@
 #!/bin/sh
-set -eu
 
 binary_zip_filename=${1:-}
 python_library_zip_filename=${2:-}
@@ -21,6 +20,11 @@ else
     exit 1
 fi
 
+if [ "$CI_OVERRIDE" = "1" ]; then
+  build_folder="aws-sam-cli-beta"
+  build_binary_name="sam-beta"
+fi
+
 if [ "$python_library_zip_filename" = "" ]; then
     python_library_zip_filename="python-libraries.zip";
 fi
@@ -40,6 +44,8 @@ else
     echo "Building native installer with normal build"
     is_nightly="false"
 fi
+
+set -eu
 
 echo "Making Folders"
 mkdir -p .build/src

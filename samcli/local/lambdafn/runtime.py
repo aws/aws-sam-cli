@@ -70,6 +70,17 @@ class LambdaRuntime:
 
         code_dir = self._get_code_dir(function_config.code_abs_path)
         layers = [self._unarchived_layer(layer) for layer in function_config.layers]
+        if function_config.runtime_management_config and function_config.runtime_management_config.get(
+            "RuntimeVersionArn"
+        ):
+            sam_accelerate_link = "https://s12d.com/accelerate"
+            LOG.info(
+                "This function will be invoked using the latest available runtime, which may differ from your "
+                "Runtime Management Configuration. To test this function with a pinned runtime, test on AWS with "
+                "`sam sync -–help`. Learn more here: %s",
+                sam_accelerate_link,
+            )
+
         container = LambdaContainer(
             function_config.runtime,
             function_config.imageuri,

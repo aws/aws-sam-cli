@@ -1,6 +1,4 @@
-import functools
 import json
-import platform
 import tempfile
 import os
 import string
@@ -15,9 +13,8 @@ from unittest.mock import patch, Mock, MagicMock
 from samcli.commands.package.exceptions import ExportFailedError
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Destination
-from samcli.lib.package.utils import zip_folder, make_zip, make_zip_with_lambda_permissions, make_zip_with_permissions
+from samcli.lib.package.utils import zip_folder, make_zip
 from samcli.lib.utils.packagetype import ZIP, IMAGE
-from samcli.lib.utils.resources import LAMBDA_LOCAL_RESOURCES, RESOURCES_WITH_LOCAL_PATHS
 from tests.testing_utils import FileCreator
 from samcli.commands.package import exceptions
 from samcli.lib.package.artifact_exporter import (
@@ -47,8 +44,10 @@ from samcli.lib.package.packageable_resources import (
     ServerlessLayerVersionResource,
     ServerlessRepoApplicationLicense,
     ServerlessRepoApplicationReadme,
+    AppSyncResolverCodeResource,
     AppSyncResolverRequestTemplateResource,
     AppSyncResolverResponseTemplateResource,
+    AppSyncFunctionConfigurationCodeResource,
     AppSyncFunctionConfigurationRequestTemplateResource,
     AppSyncFunctionConfigurationResponseTemplateResource,
     GlueJobCommandScriptLocationResource,
@@ -83,10 +82,12 @@ class TestArtifactExporter(unittest.TestCase):
             {"class": ServerlessFunctionResource, "expected_result": uploaded_s3_url},
             {"class": ServerlessApiResource, "expected_result": uploaded_s3_url},
             {"class": GraphQLSchemaResource, "expected_result": uploaded_s3_url},
+            {"class": AppSyncResolverCodeResource, "expected_result": uploaded_s3_url},
             {"class": AppSyncResolverRequestTemplateResource, "expected_result": uploaded_s3_url},
             {"class": AppSyncResolverResponseTemplateResource, "expected_result": uploaded_s3_url},
             {"class": AppSyncFunctionConfigurationRequestTemplateResource, "expected_result": uploaded_s3_url},
             {"class": AppSyncFunctionConfigurationResponseTemplateResource, "expected_result": uploaded_s3_url},
+            {"class": AppSyncFunctionConfigurationCodeResource, "expected_result": uploaded_s3_url},
             {"class": ApiGatewayRestApiResource, "expected_result": {"Bucket": "foo", "Key": "bar", "Version": "baz"}},
             {
                 "class": LambdaFunctionResource,
@@ -336,66 +337,7 @@ class TestArtifactExporter(unittest.TestCase):
 
             absolute_artifact_path = make_abs_path(parent_dir, artifact_path)
 
-            zip_and_upload_mock.assert_called_once_with(absolute_artifact_path, mock.ANY, None, zip_method=make_zip)
-
-    @patch("samcli.lib.package.utils.zip_and_upload")
-    def test_upload_local_artifacts_local_folder_lambda_resources(self, zip_and_upload_mock):
-        for resource_id in LAMBDA_LOCAL_RESOURCES:
-            property_name = "property"
-            expected_s3_url = "s3://foo/bar?versionId=baz"
-
-            zip_and_upload_mock.return_value = expected_s3_url
-            #  Artifact path is a Directory
-            with self.make_temp_dir() as artifact_path:
-                # Artifact is a file in the temporary directory
-                parent_dir = tempfile.gettempdir()
-                resource_dict = {property_name: artifact_path}
-
-                result = upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir, Mock())
-                self.assertEqual(result, expected_s3_url)
-
-                absolute_artifact_path = make_abs_path(parent_dir, artifact_path)
-                # zip_method will NOT be the generalized zip_method `make_zip`
-
-                with self.assertRaises(AssertionError):
-                    zip_and_upload_mock.assert_called_once_with(
-                        absolute_artifact_path, mock.ANY, None, zip_method=make_zip
-                    )
-
-                # zip_method will be lambda specific.
-                zip_and_upload_mock.assert_called_once_with(
-                    absolute_artifact_path, mock.ANY, None, zip_method=make_zip_with_lambda_permissions
-                )
-                zip_and_upload_mock.reset_mock()
-
-    @patch("samcli.lib.package.utils.zip_and_upload")
-    def test_upload_local_artifacts_local_folder_non_lambda_resources(self, zip_and_upload_mock):
-        non_lambda_resources = RESOURCES_WITH_LOCAL_PATHS.keys() - LAMBDA_LOCAL_RESOURCES
-        for resource_id in non_lambda_resources:
-            property_name = "property"
-            expected_s3_url = "s3://foo/bar?versionId=baz"
-
-            zip_and_upload_mock.return_value = expected_s3_url
-            #  Artifact path is a Directory
-            with self.make_temp_dir() as artifact_path:
-                # Artifact is a file in the temporary directory
-                parent_dir = tempfile.gettempdir()
-                resource_dict = {property_name: artifact_path}
-
-                result = upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir, Mock())
-                self.assertEqual(result, expected_s3_url)
-
-                absolute_artifact_path = make_abs_path(parent_dir, artifact_path)
-
-                # zip_method will NOT be the specialized zip_method `make_zip_with_lambda_permissions`
-                with self.assertRaises(AssertionError):
-                    zip_and_upload_mock.assert_called_once_with(
-                        absolute_artifact_path, mock.ANY, None, zip_method=make_zip_with_lambda_permissions
-                    )
-
-                # zip_method will be the generalized zip_method `make_zip`
-                zip_and_upload_mock.assert_called_once_with(absolute_artifact_path, mock.ANY, None, zip_method=make_zip)
-                zip_and_upload_mock.reset_mock()
+            zip_and_upload_mock.assert_called_once_with(absolute_artifact_path, mock.ANY, None)
 
     @patch("samcli.lib.package.utils.zip_and_upload")
     def test_upload_local_artifacts_no_path(self, zip_and_upload_mock):
@@ -412,7 +354,7 @@ class TestArtifactExporter(unittest.TestCase):
         result = upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir, self.s3_uploader_mock)
         self.assertEqual(result, expected_s3_url)
 
-        zip_and_upload_mock.assert_called_once_with(parent_dir, mock.ANY, None, zip_method=make_zip)
+        zip_and_upload_mock.assert_called_once_with(parent_dir, mock.ANY, None)
         self.s3_uploader_mock.upload_with_dedup.assert_not_called()
 
     @patch("samcli.lib.package.utils.zip_and_upload")
@@ -456,7 +398,7 @@ class TestArtifactExporter(unittest.TestCase):
         make_zip_mock.return_value = zip_file_name
 
         with self.make_temp_dir() as dirname:
-            with zip_folder(dirname, zip_method=make_zip_mock) as actual_zip_file_name:
+            with zip_folder(dirname) as actual_zip_file_name:
                 self.assertEqual(actual_zip_file_name, (zip_file_name, mock.ANY))
 
         make_zip_mock.assert_called_once_with(mock.ANY, dirname)
@@ -638,7 +580,7 @@ class TestArtifactExporter(unittest.TestCase):
 
             resource.export(resource_id, resource_dict, parent_dir)
 
-            zip_and_upload_mock.assert_called_once_with(tmp_dir, mock.ANY, None, zip_method=make_zip)
+            zip_and_upload_mock.assert_called_once_with(tmp_dir, mock.ANY, None)
             rmtree_mock.assert_called_once_with(tmp_dir)
             is_zipfile_mock.assert_called_once_with(original_path)
             self.code_signer_mock.should_sign_package.assert_called_once_with(resource_id)
@@ -1632,7 +1574,7 @@ class TestArtifactExporter(unittest.TestCase):
 
                 Template(template_path, os.path.relpath(dirname), self.uploaders_mock, self.code_signer_mock)
 
-    def test_make_zip_keep_permissions_as_is(self):
+    def test_make_zip(self):
         test_file_creator = FileCreator()
         test_file_creator.append_file(
             "index.js", "exports handler = (event, context, callback) => {callback(null, event);}"
@@ -1640,8 +1582,38 @@ class TestArtifactExporter(unittest.TestCase):
 
         dirname = test_file_creator.rootdir
 
-        file_permissions = os.stat(test_file_creator.full_path("index.js")).st_mode
-        dir_permissions = os.stat(test_file_creator.rootdir).st_mode
+        expected_files = {"index.js"}
+
+        random_name = "".join(random.choice(string.ascii_letters) for _ in range(10))
+        outfile = os.path.join(tempfile.gettempdir(), random_name)
+
+        zipfile_name = None
+        try:
+            zipfile_name = make_zip(outfile, dirname)
+
+            test_zip_file = zipfile.ZipFile(zipfile_name, "r")
+            with closing(test_zip_file) as zf:
+                files_in_zip = set()
+                for info in zf.infolist():
+                    files_in_zip.add(info.filename)
+
+                self.assertEqual(files_in_zip, expected_files)
+
+        finally:
+            if zipfile_name:
+                os.remove(zipfile_name)
+            test_file_creator.remove_all()
+
+    @patch("platform.system")
+    def test_make_zip_windows(self, mock_system):
+        mock_system.return_value = "Windows"
+
+        test_file_creator = FileCreator()
+        test_file_creator.append_file(
+            "index.js", "exports handler = (event, context, callback) => {callback(null, event);}"
+        )
+
+        dirname = test_file_creator.rootdir
 
         expected_files = {"index.js"}
 
@@ -1659,93 +1631,7 @@ class TestArtifactExporter(unittest.TestCase):
                 for info in zf.infolist():
                     files_in_zip.add(info.filename)
                     permission_bits = (info.external_attr & external_attr_mask) >> 16
-                    if platform.system().lower() != "windows":
-                        if info.is_dir():
-                            self.assertEqual(permission_bits, dir_permissions)
-                        else:
-                            self.assertEqual(permission_bits, file_permissions)
-
-                self.assertEqual(files_in_zip, expected_files)
-
-        finally:
-            if zipfile_name:
-                os.remove(zipfile_name)
-            test_file_creator.remove_all()
-
-    @patch("platform.system")
-    def test_make_zip_windows(self, mock_system):
-        mock_system.return_value = "Windows"
-        # Redefining `make_zip` as is in local scope so that arguments passed to functools partial are re-loaded.
-        windows_make_zip = functools.partial(
-            make_zip_with_permissions,
-            file_permissions=0o100755 if platform.system().lower() == "windows" else None,
-            dir_permissions=0o100755 if platform.system().lower() == "windows" else None,
-        )
-
-        test_file_creator = FileCreator()
-        test_file_creator.append_file(
-            "index.js", "exports handler = (event, context, callback) => {callback(null, event);}"
-        )
-
-        dirname = test_file_creator.rootdir
-
-        expected_files = {"index.js"}
-
-        random_name = "".join(random.choice(string.ascii_letters) for _ in range(10))
-        outfile = os.path.join(tempfile.gettempdir(), random_name)
-
-        zipfile_name = None
-        try:
-            zipfile_name = windows_make_zip(outfile, dirname)
-
-            test_zip_file = zipfile.ZipFile(zipfile_name, "r")
-            with closing(test_zip_file) as zf:
-                files_in_zip = set()
-                external_attr_mask = 65535 << 16
-                for info in zf.infolist():
-                    files_in_zip.add(info.filename)
-                    permission_bits = (info.external_attr & external_attr_mask) >> 16
                     self.assertEqual(permission_bits, 0o100755)
-
-                self.assertEqual(files_in_zip, expected_files)
-
-        finally:
-            if zipfile_name:
-                os.remove(zipfile_name)
-            test_file_creator.remove_all()
-
-    def test_make_zip_lambda_resources(self):
-
-        test_file_creator = FileCreator()
-        test_file_creator.append_file(
-            "index.js", "exports handler = (event, context, callback) => {callback(null, event);}"
-        )
-
-        dirname = test_file_creator.rootdir
-
-        expected_files = {"index.js"}
-
-        random_name = "".join(random.choice(string.ascii_letters) for _ in range(10))
-        outfile = os.path.join(tempfile.gettempdir(), random_name)
-
-        zipfile_name = None
-        try:
-            zipfile_name = make_zip_with_lambda_permissions(outfile, dirname)
-
-            test_zip_file = zipfile.ZipFile(zipfile_name, "r")
-            with closing(test_zip_file) as zf:
-                files_in_zip = set()
-                external_attr_mask = 65535 << 16
-                for info in zf.infolist():
-                    files_in_zip.add(info.filename)
-                    permission_bits = (info.external_attr & external_attr_mask) >> 16
-                    if not platform.system().lower() == "windows":
-                        if info.is_dir():
-                            self.assertEqual(permission_bits, 0o100755)
-                        else:
-                            self.assertEqual(permission_bits, 0o100644)
-                    else:
-                        self.assertEqual(permission_bits, 0o100755)
 
                 self.assertEqual(files_in_zip, expected_files)
 

@@ -233,6 +233,10 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
                 ("function10", "hello world 10 - override version", True),
                 ("module.function10.aws_lambda_function.this[0]", "hello world 10", False),
                 ("function10", "hello world 10", False),
+                ("module.function11.aws_lambda_function.this[0]", "hello world 11 - override version", True),
+                ("function11", "hello world 11 - override version", True),
+                ("module.function11.aws_lambda_function.this[0]", "hello world 11", False),
+                ("function11", "hello world 11", False),
             ]
         super().setUpClass()
 
@@ -267,7 +271,7 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
             f"https://aws.amazon.com/service-terms/.{os.linesep}"
         )
         self.assertNotRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
-        self.assertTrue(stderr.decode("utf-8").startswith(Colored().yellow(experimental_warning)))
+        self.assertIn(Colored().yellow(experimental_warning), stderr.decode("utf-8"))
         LOG.info("sam build stdout: %s", stdout.decode("utf-8"))
         LOG.info("sam build stderr: %s", stderr.decode("utf-8"))
         self.assertEqual(return_code, 0)
@@ -360,6 +364,10 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(Build
                 ("function10", "hello world 10 - override version", True),
                 ("module.function10.aws_lambda_function.this[0]", "hello world 10", False),
                 ("function10", "hello world 10", False),
+                ("module.function11.aws_lambda_function.this[0]", "hello world 11 - override version", True),
+                ("function11", "hello world 11 - override version", True),
+                ("module.function11.aws_lambda_function.this[0]", "hello world 11", False),
+                ("function11", "hello world 11", False),
             ]
         super().setUpClass()
 

@@ -123,6 +123,9 @@ install:
 
 # Final clean up no matter success or failure
 on_finish:
+  # Upload test reports as artifacts
+  - ps: Get-ChildItem .\TEST*.json | % { Push-AppveyorArtifact $_.FullName -FileName $_.Name }
+
   - ps: "
   If (Test-Path env:BY_CANARY){
     $env:AWS_ACCESS_KEY_ID = $env:CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID;
@@ -227,7 +230,7 @@ for:
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
-      - ps: "pytest -vv tests/integration/package --json-report --json-report-file=TEST_REPORT-integration-package.json"
+      - ps: "pytest -vv tests/integration/package -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package.json"
 
   # Integ testing delete
   - matrix:
@@ -239,7 +242,7 @@ for:
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
-      - ps: "pytest -vv tests/integration/delete --json-report --json-report-file=TEST_REPORT-integration-delete.json"
+      - ps: "pytest -vv tests/integration/delete -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-delete.json"
 
   # Integ testing sync
   - matrix:
@@ -283,7 +286,4 @@ for:
 # Uncomment for RDP
 # on_finish:
 #   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-
-artifacts:
-  - path: './TEST_REPORT*.json'
   
