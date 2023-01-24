@@ -84,6 +84,8 @@ class Function(NamedTuple):
     function_url_config: Optional[Dict]
     # The path of the stack relative to the root stack, it is empty for functions in root stack
     stack_path: str = ""
+    # Configuration for runtime management. Includes the fields `UpdateRuntimeOn` and `RuntimeVersionArn` (optional).
+    runtime_management_config: Optional[Dict] = None
 
     @property
     def full_path(self) -> str:
