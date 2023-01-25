@@ -253,15 +253,19 @@ class EndpointsProducer(ResourceMappingProducer, Producer):
         response_domain_dict = get_response_domain_dict(response)
         custom_domain_substitute_dict = get_custom_domain_substitute_list(response, stacks, response_domain_dict)
 
+        # Iterate over the deployed resources, collect relevant endpoint data for functions and APIGW resources
         for deployed_resource in response.get(STACK_RESOURCES, {}):
             if deployed_resource.get(RESOURCE_TYPE, "") in ENDPOINT_RESOURCE_TYPES:
                 endpoint_function_url: Any
                 paths_and_methods: Any
                 endpoint_function_url = "-"
                 paths_and_methods = "-"
+
+                # Collect function URLs
                 if deployed_resource.get(RESOURCE_TYPE, "") == AWS_LAMBDA_FUNCTION:
                     endpoint_function_url = self.get_function_url(deployed_resource.get(PHYSICAL_RESOURCE_ID, ""))
 
+                # Collect APIGW endpoints and methods
                 elif deployed_resource.get(RESOURCE_TYPE, "") in (AWS_APIGATEWAY_RESTAPI, AWS_APIGATEWAY_V2_API):
                     endpoint_function_url = self.get_api_gateway_endpoint(
                         deployed_resource, custom_domain_substitute_dict
@@ -278,10 +282,14 @@ class EndpointsProducer(ResourceMappingProducer, Producer):
                 )
                 endpoints_list.append(dataclasses.asdict(endpoint_data))
                 seen_endpoints.add(deployed_resource.get(LOGICAL_RESOURCE_ID, ""))
+
+        # Loop over resources all stack resources and collect data for resources not yet deployed
         for local_resource in local_stack_resources:
             local_resource_type = local_stack_resources.get(local_resource, {}).get("Type", "")
             paths_and_methods = "-"
+            # Check if a resources has already been added to the endpoints list, if not, add it
             if local_resource_type in ENDPOINT_RESOURCE_TYPES and local_resource not in seen_endpoints:
+                # We don't support function URLs locally, so this can only be APIGW endpoint data
                 if local_resource_type in (AWS_APIGATEWAY_RESTAPI, AWS_APIGATEWAY_V2_API):
                     paths_and_methods = get_methods_and_paths(local_resource, local_stack)
                 endpoint_data = EndpointsDef(
@@ -404,6 +412,7 @@ def get_custom_domain_substitute_list(
     local_stack = stacks[0]
     local_stack_resources = local_stack.resources
     for resource in response.get(STACK_RESOURCES, {}):
+        # Collect custom domain data for APIGW V1 resources
         if resource.get(RESOURCE_TYPE, "") == AWS_APIGATEWAY_BASE_PATH_MAPPING:
             local_mapping = local_stack_resources.get(resource.get(LOGICAL_RESOURCE_ID, ""), {}).get(PROPERTIES, {})
             rest_api_id = local_mapping.get(REST_API_ID, "")
@@ -413,6 +422,8 @@ def get_custom_domain_substitute_list(
                     custom_domain_substitute_dict[rest_api_id] = [response_domain_dict.get(domain_id, None)]
                 else:
                     custom_domain_substitute_dict[rest_api_id].append(response_domain_dict.get(domain_id, None))
+
+        # Collect custom domain data for APIGW V2 resources
         elif resource.get(RESOURCE_TYPE, "") == AWS_APIGATEWAY_v2_BASE_PATH_MAPPING:
             local_mapping = local_stack_resources.get(resource.get(LOGICAL_RESOURCE_ID, ""), {}).get(PROPERTIES, {})
             rest_api_id = local_mapping.get(API_ID, "")
