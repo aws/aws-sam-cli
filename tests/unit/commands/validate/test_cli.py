@@ -2,7 +2,7 @@ from unittest import TestCase
 from unittest.mock import Mock, patch
 from collections import namedtuple
 
-from botocore.exceptions import NoCredentialsError, InvalidRegionError
+from botocore.exceptions import NoCredentialsError
 
 from cfnlint.core import CfnLintExitException, InvalidRegionException  # type: ignore
 
@@ -118,3 +118,11 @@ class TestValidateCli(TestCase):
 
         with self.assertRaises(UserException):
             _lint(ctx=ctx_lint_mock(debug=False, region="region"), template=template_path)
+
+    @patch("samcli.commands.validate.validate.click")
+    def test_lint_event_recorded(self, click_patch):
+        template_path = "path_to_template"
+
+        with patch("samcli.lib.telemetry.event.EventTracker.track_event") as track_patch:
+            _lint(ctx=ctx_lint_mock(debug=False, region="region"), template=template_path)
+            track_patch.assert_called_with("UsedFeature", "CFNLint")
