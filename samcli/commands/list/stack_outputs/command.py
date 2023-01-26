@@ -33,7 +33,7 @@ Get the stack outputs as defined in the SAM/CloudFormation template.
 @check_newer_version
 @print_cmdline_args
 @command_exception_handler
-def cli(self, stack_name, output):
+def cli(self, stack_name, output, config_file, config_env):
     """
     `sam list stack-outputs` command entry point
     """

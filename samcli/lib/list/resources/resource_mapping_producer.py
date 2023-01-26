@@ -30,6 +30,8 @@ from samcli.lib.utils.boto_utils import get_client_error_code
 
 LOG = logging.getLogger(__name__)
 
+ROOT_STACK = 0
+
 
 class ResourceMappingProducer(Producer):
     def __init__(
@@ -123,7 +125,7 @@ class ResourceMappingProducer(Producer):
         translated_dict = self.get_translated_dict(template_file_dict=sam_template)
 
         stacks, _ = SamLocalStackProvider.get_stacks(template_file="", template_dictionary=translated_dict)
-        if not stacks or not stacks[0].resources:
+        if not stacks or not stacks[ROOT_STACK].resources:
             raise SamListLocalResourcesNotFoundError(msg="No local resources found.")
         seen_resources = set()
         resources_list = []
@@ -136,12 +138,12 @@ class ResourceMappingProducer(Producer):
                 )
                 resources_list.append(dataclasses.asdict(resource_data))
                 seen_resources.add(deployed_resource["LogicalResourceId"])
-            for local_resource in stacks[0].resources:
+            for local_resource in stacks[ROOT_STACK].resources:
                 if local_resource not in seen_resources:
                     resource_data = ResourcesDef(LogicalResourceId=local_resource, PhysicalResourceId="-")
                     resources_list.append(dataclasses.asdict(resource_data))
         else:
-            for local_resource in stacks[0].resources:
+            for local_resource in stacks[ROOT_STACK].resources:
                 # Set the PhysicalID to "-" if there is no corresponding PhysicalID
                 resource_data = ResourcesDef(LogicalResourceId=local_resource, PhysicalResourceId="-")
                 resources_list.append(dataclasses.asdict(resource_data))

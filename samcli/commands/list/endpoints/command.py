@@ -17,7 +17,7 @@ HELP_TEXT = """
 Get a summary of the cloud endpoints in the stack.\n
 This command will show both the cloud and local endpoints that can
 be used with sam local and sam sync. Currently the endpoint resources
-are lambda functions and API Gateway API resources.
+are Lambda functions and API Gateway API resources.
 """
 
 
