@@ -40,7 +40,7 @@ class TestValidateCli(TestCase):
 
         self.assertEqual(actual_template, {"a": "b"})
 
-    @patch("samcli.commands.validate.lib.sam_template_validator.SamTemplateValidator")
+    @patch("samcli.lib.translate.sam_template_validator.SamTemplateValidator")
     @patch("samcli.commands.validate.validate.click")
     @patch("samcli.commands.validate.validate._read_sam_file")
     @patch("boto3.client")
@@ -48,14 +48,14 @@ class TestValidateCli(TestCase):
         template_path = "path_to_template"
         read_sam_file_patch.return_value = {"a": "b"}
 
-        is_valid_mock = Mock()
-        is_valid_mock.is_valid.side_effect = InvalidSamDocumentException
-        template_valiadator.return_value = is_valid_mock
+        get_translated_template_if_valid_mock = Mock()
+        get_translated_template_if_valid_mock.get_translated_template_if_valid.side_effect = InvalidSamDocumentException
+        template_valiadator.return_value = get_translated_template_if_valid_mock
 
         with self.assertRaises(InvalidSamTemplateException):
             do_cli(ctx=ctx_mock(profile="profile", region="region"), template=template_path, lint=False)
 
-    @patch("samcli.commands.validate.lib.sam_template_validator.SamTemplateValidator")
+    @patch("samcli.lib.translate.sam_template_validator.SamTemplateValidator")
     @patch("samcli.commands.validate.validate.click")
     @patch("samcli.commands.validate.validate._read_sam_file")
     @patch("boto3.client")
@@ -63,14 +63,14 @@ class TestValidateCli(TestCase):
         template_path = "path_to_template"
         read_sam_file_patch.return_value = {"a": "b"}
 
-        is_valid_mock = Mock()
-        is_valid_mock.is_valid.side_effect = NoCredentialsError
-        template_valiadator.return_value = is_valid_mock
+        get_translated_template_if_valid_mock = Mock()
+        get_translated_template_if_valid_mock.get_translated_template_if_valid.side_effect = NoCredentialsError
+        template_valiadator.return_value = get_translated_template_if_valid_mock
 
         with self.assertRaises(UserException):
             do_cli(ctx=ctx_mock(profile="profile", region="region"), template=template_path, lint=False)
 
-    @patch("samcli.commands.validate.lib.sam_template_validator.SamTemplateValidator")
+    @patch("samcli.lib.translate.sam_template_validator.SamTemplateValidator")
     @patch("samcli.commands.validate.validate.click")
     @patch("samcli.commands.validate.validate._read_sam_file")
     @patch("boto3.client")
@@ -78,9 +78,9 @@ class TestValidateCli(TestCase):
         template_path = "path_to_template"
         read_sam_file_patch.return_value = {"a": "b"}
 
-        is_valid_mock = Mock()
-        is_valid_mock.is_valid.return_value = True
-        template_valiadator.return_value = is_valid_mock
+        get_translated_template_if_valid_mock = Mock()
+        get_translated_template_if_valid_mock.get_translated_template_if_valid.return_value = True
+        template_valiadator.return_value = get_translated_template_if_valid_mock
 
         do_cli(ctx=ctx_mock(profile="profile", region="region"), template=template_path, lint=False)
 
