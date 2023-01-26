@@ -1,7 +1,7 @@
 import os
 import time
 import boto3
-import re
+import json
 from unittest import skipIf
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.integration.list.endpoints.endpoints_integ_base import EndpointsIntegBase
@@ -42,31 +42,19 @@ class TestEndpoints(DeployIntegBase, EndpointsIntegBase):
             stack_name=None, output="json", region=region, template_file=template_path
         )
         command_result = run_command(cmdlist, cwd=self.working_dir)
-        expected_output = [
-            """{
-    "LogicalResourceId": "HelloWorldFunction",
-    "PhysicalResourceId": "-",
-    "CloudEndpoint": "-",
-    "Methods": "-"
-  }""",
-            """{
-    "LogicalResourceId": "TestAPI",
-    "PhysicalResourceId": "-",
-    "CloudEndpoint": "-",
-    "Methods": []
-  }""",
-            """{
-    "LogicalResourceId": "ServerlessRestApi",
-    "PhysicalResourceId": "-",
-    "CloudEndpoint": "-",
-    "Methods": [
-      "/hello2['get']",
-      "/hello['get']"
-    ]
-  }""",
-        ]
-        for expression in expected_output:
-            self.assertIn(expression, command_result.stdout.decode())
+        command_output = json.loads(command_result.stdout.decode())
+        self.assertEqual(len(command_output), 3)
+        self.assert_endpoints(
+            command_output, "HelloWorldFunction", "-", "-", "-"
+        )
+        self.assert_endpoints(
+            command_output,
+            "ServerlessRestApi",
+            "-",
+            [],
+            ["/hello2['get']", "/hello['get']"],
+        )
+        self.assert_endpoints(command_output, "TestAPI", "-", "-", [])
 
     def test_has_stack_name(self):
         template_path = self.list_test_data_path.joinpath("test_endpoints_template.yaml")
@@ -86,36 +74,19 @@ class TestEndpoints(DeployIntegBase, EndpointsIntegBase):
             stack_name=stack_name, output="json", region=region, template_file=template_path
         )
         command_result = run_command(cmdlist, cwd=self.working_dir)
-        expected_output = [
-            """{
-    "LogicalResourceId": "HelloWorldFunction",
-    "PhysicalResourceId": "test-has-stack-name.*",
-    "CloudEndpoint": "https://.*.lambda-url..*.on.aws/",
-    "Methods": "-"
-  }""",
-            """  {
-    "LogicalResourceId": "ServerlessRestApi",
-    "PhysicalResourceId": ".*",
-    "CloudEndpoint": .*
-      "https://.*.execute-api..*.amazonaws.com/Prod",
-      "https://.*.execute-api..*.amazonaws.com/Stage"
-    .*,
-    "Methods": .*
-      "/hello2.'get'.",
-      "/hello.'get'."
-    .
-  }""",
-            """  {
-    "LogicalResourceId": "TestAPI",
-    "PhysicalResourceId": ".*",
-    "CloudEndpoint": .
-      "https://.*.execute-api..*.amazonaws.com/Test2"
-    .,
-    "Methods": ..
-  }""",
-        ]
-        for expression in expected_output:
-            self.assertTrue(re.search(expression, command_result.stdout.decode()))
+        command_output = json.loads(command_result.stdout.decode())
+        self.assertEqual(len(command_output), 3)
+        self.assert_endpoints(
+            command_output, "HelloWorldFunction", "test-has-stack-name.*", "https://.*.lambda-url..*.on.aws/", "-"
+        )
+        self.assert_endpoints(
+            command_output,
+            "ServerlessRestApi",
+            ".*",
+            ["https://.*.execute-api..*.amazonaws.com/Prod", "https://.*.execute-api..*.amazonaws.com/Stage"],
+            ["/hello2['get']", "/hello['get']"],
+        )
+        self.assert_endpoints(command_output, "TestAPI", ".*", ["https://.*.execute-api..*.amazonaws.com/Test2"], [])
 
     def test_stack_does_not_exist(self):
         template_path = self.list_test_data_path.joinpath("test_endpoints_template.yaml")
