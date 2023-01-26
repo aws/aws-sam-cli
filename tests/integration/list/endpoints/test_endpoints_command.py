@@ -44,9 +44,7 @@ class TestEndpoints(DeployIntegBase, EndpointsIntegBase):
         command_result = run_command(cmdlist, cwd=self.working_dir)
         command_output = json.loads(command_result.stdout.decode())
         self.assertEqual(len(command_output), 3)
-        self.assert_endpoints(
-            command_output, "HelloWorldFunction", "-", "-", "-"
-        )
+        self.assert_endpoints(command_output, "HelloWorldFunction", "-", "-", "-")
         self.assert_endpoints(
             command_output,
             "ServerlessRestApi",
