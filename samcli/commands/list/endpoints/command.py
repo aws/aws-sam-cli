@@ -5,7 +5,7 @@ Sets up the cli for resources
 import click
 
 from samcli.commands._utils.command_exception_handler import command_exception_handler
-from samcli.commands.list.cli_common.options import stack_name_option, output_option
+from samcli.commands.list.cli_common.options import stack_name_option, output_option, stack_name_not_provided_message
 from samcli.cli.main import pass_context, common_options, aws_creds_options, print_cmdline_args
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.lib.telemetry.metric import track_command
@@ -49,4 +49,6 @@ def do_cli(stack_name, output, region, profile, template_file):
     with EndpointsContext(
         stack_name=stack_name, output=output, region=region, profile=profile, template_file=template_file
     ) as endpoints_context:
+        if not stack_name:
+            stack_name_not_provided_message()
         endpoints_context.run()
