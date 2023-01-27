@@ -2,7 +2,6 @@
 CLI Command for Validating a SAM Template
 """
 import os
-
 import boto3
 from botocore.exceptions import NoCredentialsError
 import click
@@ -50,8 +49,8 @@ def do_cli(ctx, template, lint):
 
     from samcli.commands.exceptions import UserException
     from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
-    from .lib.exceptions import InvalidSamDocumentException
-    from .lib.sam_template_validator import SamTemplateValidator
+    from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+    from samcli.lib.translate.sam_template_validator import SamTemplateValidator
 
     if lint:
         _lint(ctx, template)
@@ -64,7 +63,7 @@ def do_cli(ctx, template, lint):
         )
 
         try:
-            validator.is_valid()
+            validator.get_translated_template_if_valid()
         except InvalidSamDocumentException as e:
             click.secho("Template provided at '{}' was invalid SAM Template.".format(template), bg="red")
             raise InvalidSamTemplateException(str(e)) from e
