@@ -32,3 +32,11 @@ def output_click_option():
 
 def output_option(f):
     return output_click_option()(f)
+
+
+def stack_name_not_provided_message():
+    click.secho(
+        fg="yellow",
+        message="The --stack-name options was not provided, displaying only local template data. "
+        "To see data about deployed resources, provide the corresponding stack name.",
+    )
