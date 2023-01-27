@@ -25,3 +25,9 @@ class ResourcesIntegBase(ListIntegBase):
             command_list += ["--help"]
 
         return command_list
+
+    def assert_resource(self, resources, logical_id, physical_id):
+        resource = self._find_resource(resources, logical_id)
+        if not resource:
+            raise AssertionError(f"Couldn't find resource with corresponding logical id {logical_id}")
+        self.assertRegex(resource.get("PhysicalResourceId", ""), physical_id)
