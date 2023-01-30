@@ -4,7 +4,6 @@ The producer for the 'sam list resources' command
 from typing import Any, Dict
 import dataclasses
 import logging
-import yaml
 
 from botocore.exceptions import ClientError, NoCredentialsError, BotoCoreError
 from samtranslator.translator.managed_policy_translator import ManagedPolicyLoader
@@ -26,6 +25,7 @@ from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateE
 from samcli.commands.exceptions import UserException
 from samcli.commands._utils.template import get_template_data
 from samcli.lib.utils.boto_utils import get_client_error_code
+from samcli.yamlhelper import yaml_parse
 
 
 LOG = logging.getLogger(__name__)
@@ -98,8 +98,7 @@ class ResourceMappingProducer(Producer):
             validator = SamTemplateValidator(
                 template_file_dict, ManagedPolicyLoader(self.iam_client), profile=self.profile, region=self.region
             )
-            translated_dict: dict
-            translated_dict = yaml.load(validator.get_translated_template_if_valid(), Loader=yaml.FullLoader)
+            translated_dict = yaml_parse(validator.get_translated_template_if_valid())
             return translated_dict
         except InvalidSamDocumentException as e:
             raise InvalidSamTemplateException(str(e)) from e

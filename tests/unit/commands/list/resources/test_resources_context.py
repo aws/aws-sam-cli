@@ -415,6 +415,35 @@ class TestGetTranslatedDict(TestCase):
             )
             resource_producer.get_translated_dict(mock_sam_file_reader.return_value)
 
+    @patch("samcli.commands.list.json_consumer.click.echo")
+    @patch("samcli.commands.list.json_consumer.click.get_current_context")
+    @patch("samcli.lib.list.resources.resource_mapping_producer.SamTemplateValidator.get_translated_template_if_valid")
+    @patch("samcli.lib.list.resources.resource_mapping_producer.yaml_parse")
+    @patch("samcli.lib.list.resources.resource_mapping_producer.get_template_data")
+    def test_get_translated_dict_calls_safe_yaml_parse(
+        self,
+        mock_sam_file_reader,
+        mock_yaml_parse,
+        mock_validate_template,
+        patched_click_get_current_context,
+        patched_click_echo,
+    ):
+
+        mock_sam_file_reader.return_value = SAM_FILE_READER_RETURN
+        resource_producer = ResourceMappingProducer(
+            stack_name=None,
+            region=None,
+            profile=None,
+            template_file=None,
+            cloudformation_client=None,
+            iam_client=None,
+            mapper=DataToJsonMapper(),
+            consumer=StringConsumerJsonOutput(),
+        )
+        resource_producer.get_translated_dict(mock_sam_file_reader.return_value)
+
+        mock_yaml_parse.assert_called_once()
+
 
 class TestResourcesInitClients(TestCase):
     @patch("samcli.commands.list.json_consumer.click.echo")
