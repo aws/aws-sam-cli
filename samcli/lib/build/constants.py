@@ -11,6 +11,7 @@ DEPRECATED_RUNTIMES: Set[str] = {
     "dotnetcore2.0",
     "dotnetcore2.1",
     "python2.7",
+    "python3.6",
     "ruby2.5",
 }
 BUILD_PROPERTIES = "BuildProperties"

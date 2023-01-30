@@ -46,7 +46,7 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 9450c011-fc71-4807-8588-bc27c5406795
-      Runtime: python3.6
+      Runtime: python3.9
       Events:
         BucketEvent1:
           Type: S3

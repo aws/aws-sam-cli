@@ -68,7 +68,7 @@ class TestSyncWatchBase(SyncIntegBase):
         self.template_before = "" if not self.template_before else self.template_before
         self.stack_name = self._method_to_stack_name(self.id())
         # Remove temp dir so that shutil.copytree will not throw an error
-        # Needed for python 3.6 and 3.7 as these versions don't have dirs_exist_ok
+        # Needed for python 3.7 as these versions don't have dirs_exist_ok
         shutil.rmtree(self.test_dir)
         shutil.copytree(self.test_data_path, self.test_dir)
         super().setUp()

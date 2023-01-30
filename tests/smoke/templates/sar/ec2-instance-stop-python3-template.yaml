@@ -24,7 +24,7 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: bfd66b08-8291-4311-a3f3-405c856ae2d6
-      Runtime: python3.6
+      Runtime: python3.9
       Events:
         CheckInstanceScheduledEvent:
           Type: Schedule

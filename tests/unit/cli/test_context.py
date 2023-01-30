@@ -1,6 +1,5 @@
 import re
 
-import boto3
 import logging
 
 from unittest import TestCase
@@ -63,6 +62,8 @@ class TestContext(TestCase):
         self.assertEqual(ctx.debug, False, "debug must be set to False")
 
     def test_must_set_aws_region_in_boto_session(self):
+        import boto3
+
         region = "myregion"
         ctx = Context()
 

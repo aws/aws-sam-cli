@@ -8,7 +8,10 @@ init:
 test:
 	# Run unit tests
 	# Fail if coverage falls below 95%
-	pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit
+	PYTHONHASHSEED=0 pytest -n auto --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit
+
+test-profile:
+	pytest tests/unit --profile-svg
 
 test-cov-report:
 	# Run unit tests with html coverage report
