@@ -25,3 +25,19 @@ class EndpointsIntegBase(ListIntegBase):
             command_list += ["--help"]
 
         return command_list
+
+    def assert_endpoints(self, endpoints, logical_id, physical_id, cloud_endpoints, methods):
+        resource = self._find_resource(endpoints, logical_id)
+        if not resource:
+            raise AssertionError(f"Couldn't find endpoint with corresponding logical id {logical_id}")
+        self.assertRegex(resource.get("PhysicalResourceId", ""), physical_id)
+        self.assertEqual(resource.get("Methods", []), methods)
+        self._assert_cloud_endpoints(resource, cloud_endpoints)
+
+    def _assert_cloud_endpoints(self, resource, cloud_endpoints):
+        deployed_endpoint = resource.get("CloudEndpoint")
+        if isinstance(cloud_endpoints, str):
+            self.assertRegex(deployed_endpoint, cloud_endpoints)
+            return
+        for deployed, expected in zip(deployed_endpoint, cloud_endpoints):
+            self.assertRegex(deployed, expected)

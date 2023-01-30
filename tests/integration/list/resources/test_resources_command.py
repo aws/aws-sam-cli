@@ -1,7 +1,7 @@
 import os
 import time
 import boto3
-import re
+import json
 from unittest import skipIf
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.integration.list.resources.resources_integ_base import ResourcesIntegBase
@@ -42,24 +42,14 @@ class TestResources(DeployIntegBase, ResourcesIntegBase):
             stack_name=None, region=region, output="json", template_file=template_path
         )
         command_result = run_command(cmdlist, cwd=self.working_dir)
-        expression_list = [
-            """{\n    "LogicalResourceId": "HelloWorldFunction",\n    "PhysicalResourceId": "-"\n  }""",
-            """{\n    "LogicalResourceId": "HelloWorldFunctionRole",\n    "PhysicalResourceId": "-"\n  }""",
-            """{\n    "LogicalResourceId": "HelloWorldFunctionHelloWorldPermissionProd",\n    "PhysicalResourceId": "-"\n  }""",
-            """{\n    "LogicalResourceId": "ServerlessRestApi",\n    "PhysicalResourceId": "-"\n  }""",
-            """{\n    "LogicalResourceId": "ServerlessRestApiProdStage",\n    "PhysicalResourceId": "-"\n  }""",
-        ]
-        for expression in expression_list:
-            self.assertIn(
-                expression,
-                command_result.stdout.decode(),
-            )
-        self.assertTrue(
-            re.search(
-                """{\n    "LogicalResourceId": "ServerlessRestApiDeployment.*",\n    "PhysicalResourceId": "-"\n  }""",
-                command_result.stdout.decode(),
-            )
-        )
+        command_output = json.loads(command_result.stdout.decode())
+        self.assertEqual(len(command_output), 6)
+        self.assert_resource(command_output, "HelloWorldFunction", "-")
+        self.assert_resource(command_output, "HelloWorldFunctionRole", "-")
+        self.assert_resource(command_output, "HelloWorldFunctionHelloWorldPermissionProd", "-")
+        self.assert_resource(command_output, "ServerlessRestApi", "-")
+        self.assert_resource(command_output, "ServerlessRestApiProdStage", "-")
+        self.assert_resource(command_output, "ServerlessRestApiDeployment.*", "-")
 
     def test_invalid_template_file(self):
         template_path = self.list_test_data_path.joinpath("test_resources_invalid_sam_template.yaml")
@@ -91,21 +81,18 @@ class TestResources(DeployIntegBase, ResourcesIntegBase):
             stack_name=stack_name, region=region, output="json", template_file=template_path
         )
         command_result = run_command(cmdlist, cwd=self.working_dir)
-        expression_list = [
-            """{\n    "LogicalResourceId": "HelloWorldFunction",\n    "PhysicalResourceId": ".*HelloWorldFunction.*"\n  }""",
-            """{\n    "LogicalResourceId": "HelloWorldFunctionRole",\n    "PhysicalResourceId": ".*HelloWorldFunctionRole.*"\n  }""",
-            """{\n    "LogicalResourceId": "HelloWorldFunctionHelloWorldPermissionProd",\n    "PhysicalResourceId": ".*HelloWorldFunctionHelloWorldPermissionProd.*"\n  }""",
-            """{\n    "LogicalResourceId": "ServerlessRestApi",\n    "PhysicalResourceId": ".*"\n  }""",
-            """{\n    "LogicalResourceId": "ServerlessRestApiProdStage",\n    "PhysicalResourceId": ".*"\n  }""",
-            """{\n    "LogicalResourceId": "ServerlessRestApiDeployment.*",\n    "PhysicalResourceId": ".*"\n  }""",
-        ]
-        for expression in expression_list:
-            self.assertTrue(
-                re.search(
-                    expression,
-                    command_result.stdout.decode(),
-                )
-            )
+        command_output = json.loads(command_result.stdout.decode())
+        self.assertEqual(len(command_output), 7)
+        self.assert_resource(command_output, "HelloWorldFunction", ".*HelloWorldFunction.*")
+        self.assert_resource(command_output, "HelloWorldFunctionRole", ".*HelloWorldFunctionRole.*")
+        self.assert_resource(
+            command_output,
+            "HelloWorldFunctionHelloWorldPermissionProd",
+            ".*HelloWorldFunctionHelloWorldPermissionProd.*",
+        )
+        self.assert_resource(command_output, "ServerlessRestApi", ".*")
+        self.assert_resource(command_output, "ServerlessRestApiProdStage", ".*")
+        self.assert_resource(command_output, "ServerlessRestApiDeployment.*", ".*")
 
     def test_stack_does_not_exist(self):
         template_path = self.list_test_data_path.joinpath("test_stack_creation_template.yaml")

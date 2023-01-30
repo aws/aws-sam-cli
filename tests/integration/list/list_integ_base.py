@@ -1,3 +1,5 @@
+import re
+
 import os
 from unittest import TestCase
 from pathlib import Path
@@ -34,3 +36,11 @@ class ListIntegBase(TestCase):
     @classmethod
     def base_command(cls):
         return get_sam_command()
+
+    @staticmethod
+    def _find_resource(resources, logical_id):
+        for resource in resources:
+            resource_logical_id = resource.get("LogicalResourceId", "")
+            if resource_logical_id == logical_id or re.match(logical_id, resource_logical_id):
+                return resource
+        return None
