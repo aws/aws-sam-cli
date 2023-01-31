@@ -50,7 +50,13 @@ import sys
 import subprocess
 import zipfile
 import logging
-import zip
+
+try:
+    # this case will work only while executing the copy terraform command from the makefile
+    from zip import unzip  # type: ignore
+except ImportError:
+    # this way to fix the hidden import unit testing
+    from .zip import unzip
 
 
 LOG = logging.getLogger(__name__)
@@ -254,7 +260,7 @@ def find_and_copy_assets(directory_path, expression, data_object):
 
     try:
         if zipfile.is_zipfile(abs_attribute_path):
-            zip.unzip(abs_attribute_path, directory_path)
+            unzip(abs_attribute_path, directory_path)
         else:
             copytree(abs_attribute_path, directory_path)
     except OSError as ex:
