@@ -9,7 +9,7 @@
 
 # Add files or directories to the ignore list. They should be base names, not
 # paths.
-ignore=compat.py, __main__.py
+ignore=compat.py, __main__.py, zip.py
 
 # Pickle collected data for later comparisons.
 persistent=yes
