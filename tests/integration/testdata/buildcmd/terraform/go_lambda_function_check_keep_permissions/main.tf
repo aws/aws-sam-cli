@@ -42,7 +42,7 @@ resource "aws_iam_role" "this" {
 }
 
 resource "aws_lambda_function" "this" {
-  function_name = "example-function"
+  function_name = "hello-world-function"
   role          = aws_iam_role.this.arn
 
   runtime  = "go1.x"
