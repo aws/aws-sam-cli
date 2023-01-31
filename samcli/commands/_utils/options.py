@@ -317,6 +317,20 @@ def no_progressbar_option(f):
     return no_progressbar_click_option()(f)
 
 
+def no_compression_click_option():
+    return click.option(
+        "--no-compression",
+        default=False,
+        required=False,
+        is_flag=True,
+        help="Do not compress the zip when uploading artifacts to s3 ",
+    )
+
+
+def no_compression_option(f):
+    return no_compression_click_option()(f)
+
+
 def signing_profiles_click_option():
     return click.option(
         "--signing-profiles",

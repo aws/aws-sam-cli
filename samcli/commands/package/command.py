@@ -17,8 +17,13 @@ from samcli.commands._utils.options import (
     use_json_option,
     force_upload_option,
     resolve_s3_option,
+    no_compression_option,
 )
-from samcli.commands._utils.options import metadata_option, template_click_option, no_progressbar_option
+from samcli.commands._utils.options import (
+    metadata_option,
+    template_click_option,
+    no_progressbar_option,
+)
 from samcli.lib.utils.resources import resources_generator
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.telemetry.metric import track_command, track_template_warnings
@@ -74,6 +79,7 @@ The following resources and their property locations are supported.
 @metadata_option
 @signing_profiles_option
 @no_progressbar_option
+@no_compression_option
 @common_options
 @aws_creds_options
 @image_repository_validation
@@ -97,6 +103,7 @@ def cli(
     no_progressbar,
     metadata,
     signing_profiles,
+    no_compression,
     resolve_s3,
     config_file,
     config_env,
@@ -119,6 +126,7 @@ def cli(
         no_progressbar,
         metadata,
         signing_profiles,
+        no_compression,
         ctx.region,
         ctx.profile,
         resolve_s3,
@@ -138,6 +146,7 @@ def do_cli(
     no_progressbar,
     metadata,
     signing_profiles,
+    no_compression,
     region,
     profile,
     resolve_s3,
@@ -169,5 +178,6 @@ def do_cli(
         region=region,
         profile=profile,
         signing_profiles=signing_profiles,
+        no_compression=no_compression,
     ) as package_context:
         package_context.run()

@@ -85,6 +85,7 @@ class CloudFormationStackResource(ResourceZip):
             parent_dir,
             self.uploaders,
             self.code_signer,
+            self.no_compression,
             normalize_template=True,
             normalize_parameters=True,
             parent_stack_id=resource_id,
@@ -162,6 +163,7 @@ class Template:
     metadata_to_export: frozenset
     uploaders: Uploaders
     code_signer: CodeSigner
+    no_compression: bool
 
     def __init__(
         self,
@@ -169,6 +171,7 @@ class Template:
         parent_dir: str,
         uploaders: Uploaders,
         code_signer: CodeSigner,
+        no_compression: bool,
         resources_to_export=frozenset(
             RESOURCES_EXPORT_LIST
             + [CloudFormationStackResource, CloudFormationStackSetResource, ServerlessApplicationResource]
@@ -194,6 +197,7 @@ class Template:
 
             self.template_dir = template_dir
             self.code_signer = code_signer
+            self.no_compression = no_compression
         self.template_dict = yaml_parse(template_str)
         if normalize_template:
             ResourceMetadataNormalizer.normalize(self.template_dict, normalize_parameters)
@@ -288,7 +292,7 @@ class Template:
                 if resource_dict.get("PackageType", ZIP) != exporter_class.ARTIFACT_TYPE:
                     continue
                 # Export code resources
-                exporter = exporter_class(self.uploaders, self.code_signer)
+                exporter = exporter_class(self.uploaders, self.code_signer, self.no_compression)
                 exporter.export(full_path, resource_dict, self.template_dir)
 
         return self.template_dict

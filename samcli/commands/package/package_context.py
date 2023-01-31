@@ -68,6 +68,7 @@ class PackageContext:
         metadata,
         region,
         profile,
+        no_compression,
         on_deploy=False,
         signing_profiles=None,
     ):
@@ -87,6 +88,7 @@ class PackageContext:
         self.on_deploy = on_deploy
         self.code_signer = None
         self.signing_profiles = signing_profiles
+        self.no_compression = (no_compression,)
         self._global_parameter_overrides = {IntrinsicsSymbolTable.AWS_REGION: region} if region else {}
 
     def __enter__(self):
@@ -154,6 +156,7 @@ class PackageContext:
             os.getcwd(),
             self.uploaders,
             self.code_signer,
+            self.no_compression,
             normalize_template=True,
             normalize_parameters=True,
         )
