@@ -1,4 +1,5 @@
 """API Gateway Local Service"""
+from dataclasses import dataclass
 import io
 import json
 import logging
@@ -25,22 +26,38 @@ from samcli.local.events.api_event import (
     ApiGatewayLambdaEvent,
     ApiGatewayV2LambdaEvent,
 )
+from samcli.local.apigw.exceptions import LambdaResponseParseException, PayloadFormatVersionValidateException
 from .service_error_responses import ServiceErrorResponses
 from .path_converter import PathConverter
 
 LOG = logging.getLogger(__name__)
 
 
-class LambdaResponseParseException(Exception):
-    """
-    An exception raised when we fail to parse the response for Lambda
-    """
+@dataclass
+class Authorizer:
+    payload_version: str
+    authorizer_name: str
+    type: str
 
 
-class PayloadFormatVersionValidateException(Exception):
-    """
-    An exception raised when validation of payload format version fails
-    """
+@dataclass
+class LambdaAuthorizer(Authorizer):
+    lambda_name: str
+    identity_sources: List[str]
+    validation_string: Optional[str] = None
+    use_simple_response: bool = False
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, LambdaAuthorizer)
+            and self.lambda_name == other.lambda_name
+            and sorted(self.identity_sources) == sorted(other.identity_sources)
+            and self.validation_string == other.validation_string
+            and self.use_simple_response == other.use_simple_response
+            and self.payload_version == other.payload_version
+            and self.authorizer_name == other.authorizer_name
+            and self.type == other.type
+        )
 
 
 class Route:
@@ -58,6 +75,8 @@ class Route:
         is_default_route: bool = False,
         operation_name=None,
         stack_path: str = "",
+        authorizer_name: Optional[str] = None,
+        authorizer_object: Optional[Authorizer] = None,
     ):
         """
         Creates an ApiGatewayRoute
@@ -70,6 +89,8 @@ class Route:
         :param bool is_default_route: determines if the default route or not
         :param string operation_name: Swagger operationId for the route
         :param str stack_path: path of the stack the route is located
+        :param str authorizer_name: the authorizer this route is using, if any
+        :param Authorizer authorizer_object: the authorizer object this route is using, if any
         """
         self.methods = self.normalize_method(methods)
         self.function_name = function_name
@@ -79,6 +100,8 @@ class Route:
         self.is_default_route = is_default_route
         self.operation_name = operation_name
         self.stack_path = stack_path
+        self.authorizer_name = authorizer_name
+        self.authorizer_object = authorizer_object
 
     def __eq__(self, other):
         return (
@@ -88,6 +111,8 @@ class Route:
             and self.path == other.path
             and self.operation_name == other.operation_name
             and self.stack_path == other.stack_path
+            and self.authorizer_name == other.authorizer_name
+            and self.authorizer_object == other.authorizer_object
         )
 
     def __hash__(self):

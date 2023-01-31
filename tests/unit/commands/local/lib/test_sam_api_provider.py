@@ -745,6 +745,7 @@ class TestSamStageValues(TestCase):
                     "Properties": {
                         "StageName": "dev",
                         "DefinitionBody": {
+                            "swagger": "2.0",
                             "paths": {
                                 "/path": {
                                     "get": {
@@ -759,7 +760,7 @@ class TestSamStageValues(TestCase):
                                         }
                                     }
                                 }
-                            }
+                            },
                         },
                     },
                 }
@@ -781,6 +782,7 @@ class TestSamStageValues(TestCase):
                         "StageName": "dev",
                         "Variables": {"vis": "data", "random": "test", "foo": "bar"},
                         "DefinitionBody": {
+                            "swagger": "2.0",
                             "paths": {
                                 "/path": {
                                     "get": {
@@ -795,7 +797,7 @@ class TestSamStageValues(TestCase):
                                         }
                                     }
                                 }
-                            }
+                            },
                         },
                     },
                 }
@@ -816,6 +818,7 @@ class TestSamStageValues(TestCase):
                 "StageName": "dev",
                 "Variables": {"vis": "data", "random": "test", "foo": "bar"},
                 "DefinitionBody": {
+                    "swagger": "2.0",
                     "paths": {
                         "/path2": {
                             "get": {
@@ -830,7 +833,7 @@ class TestSamStageValues(TestCase):
                                 }
                             }
                         }
-                    }
+                    },
                 },
             },
         }
@@ -841,6 +844,7 @@ class TestSamStageValues(TestCase):
                 "StageName": "Production",
                 "Variables": {"vis": "prod data", "random": "test", "foo": "bar"},
                 "DefinitionBody": {
+                    "swagger": "2.0",
                     "paths": {
                         "/path": {
                             "get": {
@@ -868,7 +872,7 @@ class TestSamStageValues(TestCase):
                                 }
                             }
                         },
-                    }
+                    },
                 },
             },
         }
@@ -900,6 +904,7 @@ class TestSamCors(TestCase):
                         "StageName": "Prod",
                         "Cors": {"AllowOrigin": {"Fn:Sub": "Some string to sub"}},
                         "DefinitionBody": {
+                            "swagger": "2.0",
                             "paths": {
                                 "/path2": {
                                     "post": {
@@ -925,7 +930,7 @@ class TestSamCors(TestCase):
                                         }
                                     }
                                 },
-                            }
+                            },
                         },
                     },
                 }
@@ -956,6 +961,7 @@ class TestSamCors(TestCase):
                         "StageName": "Prod",
                         "Cors": "'*'",
                         "DefinitionBody": {
+                            "swagger": "2.0",
                             "paths": {
                                 "/path2": {
                                     "post": {
@@ -981,7 +987,7 @@ class TestSamCors(TestCase):
                                         }
                                     }
                                 },
-                            }
+                            },
                         },
                     },
                 }
@@ -1017,6 +1023,7 @@ class TestSamCors(TestCase):
                             "MaxAge": "'600'",
                         },
                         "DefinitionBody": {
+                            "swagger": "2.0",
                             "paths": {
                                 "/path2": {
                                     "post": {
@@ -1042,7 +1049,7 @@ class TestSamCors(TestCase):
                                         }
                                     }
                                 },
-                            }
+                            },
                         },
                     },
                 }
@@ -1080,6 +1087,7 @@ class TestSamCors(TestCase):
                             "MaxAge": "'600'",
                         },
                         "DefinitionBody": {
+                            "swagger": "2.0",
                             "paths": {
                                 "/path2": {
                                     "post": {
@@ -1105,7 +1113,7 @@ class TestSamCors(TestCase):
                                         }
                                     }
                                 },
-                            }
+                            },
                         },
                     },
                 }
@@ -1283,6 +1291,7 @@ class TestSamCors(TestCase):
                         "StageName": "Prod",
                         "Cors": {"AllowOrigin": "'www.domain.com'"},
                         "DefinitionBody": {
+                            "swagger": "2.0",
                             "paths": {
                                 "/path2": {
                                     "get": {
@@ -1297,7 +1306,7 @@ class TestSamCors(TestCase):
                                         }
                                     }
                                 }
-                            }
+                            },
                         },
                     },
                 }
@@ -1331,6 +1340,7 @@ class TestSamCors(TestCase):
                     "Properties": {
                         "StageName": "Prod",
                         "DefinitionBody": {
+                            "swagger": "2.0",
                             "paths": {
                                 "/path2": {
                                     "get": {
@@ -1356,7 +1366,7 @@ class TestSamCors(TestCase):
                                         }
                                     }
                                 },
-                            }
+                            },
                         },
                     },
                 }
@@ -1391,6 +1401,7 @@ class TestSamHttpApiCors(TestCase):
                         "StageName": "Prod",
                         "CorsConfiguration": {"AllowOrigins": {"Fn:Sub": "Some string to sub"}},
                         "DefinitionBody": {
+                            "openapi": "3.0",
                             "paths": {
                                 "/path2": {
                                     "post": {
@@ -1416,7 +1427,7 @@ class TestSamHttpApiCors(TestCase):
                                         }
                                     }
                                 },
-                            }
+                            },
                         },
                     },
                 }
@@ -1447,6 +1458,7 @@ class TestSamHttpApiCors(TestCase):
                         "StageName": "Prod",
                         "CorsConfiguration": True,
                         "DefinitionBody": {
+                            "openapi": "3.0",
                             "paths": {
                                 "/path2": {
                                     "post": {
@@ -1472,7 +1484,7 @@ class TestSamHttpApiCors(TestCase):
                                         }
                                     }
                                 },
-                            }
+                            },
                         },
                     },
                 }
@@ -1503,6 +1515,7 @@ class TestSamHttpApiCors(TestCase):
                         "StageName": "Prod",
                         "CorsConfiguration": False,
                         "DefinitionBody": {
+                            "openapi": "3.0",
                             "paths": {
                                 "/path2": {
                                     "post": {
@@ -1528,7 +1541,7 @@ class TestSamHttpApiCors(TestCase):
                                         }
                                     }
                                 },
-                            }
+                            },
                         },
                     },
                 }
@@ -1561,6 +1574,7 @@ class TestSamHttpApiCors(TestCase):
                             "MaxAge": 600,
                         },
                         "DefinitionBody": {
+                            "openapi": "3.0",
                             "paths": {
                                 "/path2": {
                                     "post": {
@@ -1586,7 +1600,7 @@ class TestSamHttpApiCors(TestCase):
                                         }
                                     }
                                 },
-                            }
+                            },
                         },
                     },
                 }
@@ -1624,6 +1638,7 @@ class TestSamHttpApiCors(TestCase):
                             "MaxAge": 600,
                         },
                         "DefinitionBody": {
+                            "openapi": "3.0",
                             "paths": {
                                 "/path2": {
                                     "post": {
@@ -1649,7 +1664,7 @@ class TestSamHttpApiCors(TestCase):
                                         }
                                     }
                                 },
-                            }
+                            },
                         },
                     },
                 }
@@ -1732,6 +1747,7 @@ class TestSamHttpApiCors(TestCase):
                         "StageName": "Prod",
                         "CorsConfiguration": {"AllowOrigins": ["www.domain.com"]},
                         "DefinitionBody": {
+                            "openapi": "3.0",
                             "paths": {
                                 "/path2": {
                                     "get": {
@@ -1746,7 +1762,7 @@ class TestSamHttpApiCors(TestCase):
                                         }
                                     }
                                 }
-                            }
+                            },
                         },
                     },
                 }
@@ -1780,6 +1796,7 @@ class TestSamHttpApiCors(TestCase):
                     "Properties": {
                         "StageName": "Prod",
                         "DefinitionBody": {
+                            "openapi": "3.0",
                             "paths": {
                                 "/path2": {
                                     "get": {
@@ -1805,7 +1822,7 @@ class TestSamHttpApiCors(TestCase):
                                         }
                                     }
                                 },
-                            }
+                            },
                         },
                     },
                 }
@@ -1845,7 +1862,7 @@ def make_swagger(routes, binary_media_types=None):
         Swagger document
 
     """
-    swagger = {"paths": {}}
+    swagger = {"paths": {}, "swagger": "2.0"}
 
     for api in routes:
         swagger["paths"].setdefault(api.path, {})

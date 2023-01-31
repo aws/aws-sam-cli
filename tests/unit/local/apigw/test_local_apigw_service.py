@@ -14,10 +14,9 @@ from samcli.lib.providers.provider import Cors
 from samcli.local.apigw.local_apigw_service import (
     LocalApigwService,
     Route,
-    LambdaResponseParseException,
-    PayloadFormatVersionValidateException,
     CatchAllPathConverter,
 )
+from samcli.local.apigw.exceptions import LambdaResponseParseException, PayloadFormatVersionValidateException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 
 

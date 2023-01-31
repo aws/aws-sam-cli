@@ -169,6 +169,7 @@ class TestCloudFormationStageValues(TestCase):
                     "Type": "AWS::ApiGateway::RestApi",
                     "Properties": {
                         "Body": {
+                            "swagger": "2.0",
                             "paths": {
                                 "/path": {
                                     "get": {
@@ -183,7 +184,7 @@ class TestCloudFormationStageValues(TestCase):
                                         }
                                     }
                                 }
-                            }
+                            },
                         }
                     },
                 },
@@ -211,6 +212,7 @@ class TestCloudFormationStageValues(TestCase):
                     "Type": "AWS::ApiGateway::RestApi",
                     "Properties": {
                         "Body": {
+                            "swagger": "2.0",
                             "paths": {
                                 "/path": {
                                     "get": {
@@ -225,7 +227,7 @@ class TestCloudFormationStageValues(TestCase):
                                         }
                                     }
                                 }
-                            }
+                            },
                         }
                     },
                 },
@@ -244,6 +246,7 @@ class TestCloudFormationStageValues(TestCase):
                     "Type": "AWS::ApiGateway::RestApi",
                     "Properties": {
                         "Body": {
+                            "swagger": "2.0",
                             "paths": {
                                 "/path": {
                                     "get": {
@@ -271,7 +274,7 @@ class TestCloudFormationStageValues(TestCase):
                                         }
                                     }
                                 },
-                            }
+                            },
                         }
                     },
                 }
@@ -964,6 +967,7 @@ class TestCloudFormationWithApiGatewayV2Stage(TestCase):
                     "Type": "AWS::ApiGatewayV2::Api",
                     "Properties": {
                         "Body": {
+                            "openapi": "3.0",
                             "paths": {
                                 "/path": {
                                     "get": {
@@ -978,7 +982,7 @@ class TestCloudFormationWithApiGatewayV2Stage(TestCase):
                                         }
                                     }
                                 }
-                            }
+                            },
                         }
                     },
                 },
@@ -1006,6 +1010,7 @@ class TestCloudFormationWithApiGatewayV2Stage(TestCase):
                     "Type": "AWS::ApiGatewayV2::Api",
                     "Properties": {
                         "Body": {
+                            "openapi": "3.0",
                             "paths": {
                                 "/path": {
                                     "get": {
@@ -1020,7 +1025,7 @@ class TestCloudFormationWithApiGatewayV2Stage(TestCase):
                                         }
                                     }
                                 }
-                            }
+                            },
                         }
                     },
                 },
@@ -1039,6 +1044,7 @@ class TestCloudFormationWithApiGatewayV2Stage(TestCase):
                     "Type": "AWS::ApiGatewayV2::Api",
                     "Properties": {
                         "Body": {
+                            "openapi": "3.0",
                             "paths": {
                                 "/path": {
                                     "get": {
@@ -1066,7 +1072,7 @@ class TestCloudFormationWithApiGatewayV2Stage(TestCase):
                                         }
                                     }
                                 },
-                            }
+                            },
                         }
                     },
                 }

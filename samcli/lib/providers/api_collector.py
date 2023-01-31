@@ -7,7 +7,7 @@ import logging
 from collections import defaultdict
 from typing import Iterator, Tuple, Union, Optional, List, Set, Dict
 
-from samcli.local.apigw.local_apigw_service import Route
+from samcli.local.apigw.local_apigw_service import Route, Authorizer
 from samcli.lib.providers.provider import Cors, Api
 
 LOG = logging.getLogger(__name__)
@@ -17,6 +17,10 @@ class ApiCollector:
     def __init__(self) -> None:
         # Route properties stored per resource.
         self._route_per_resource: Dict[str, List[Route]] = defaultdict(list)
+
+        # Authorizer definitions and default authorizers for each api
+        self._authorizers_per_resources: Dict[str, Dict[str, Authorizer]] = defaultdict(dict)
+        self._default_authorizer_per_resource: Dict[str, str] = {}
 
         # processed values to be set before creating the api
         self._routes: List[Route] = []
@@ -39,6 +43,81 @@ class ApiCollector:
 
         for logical_id, _ in self._route_per_resource.items():
             yield logical_id, self._get_routes(logical_id)
+
+    def add_authorizers(self, logical_id: str, authorizers: Dict[str, Authorizer]) -> None:
+        """
+        Adds Authorizers to a API Gateway resource
+
+        Parameters
+        ----------
+        logical_id: str
+            Logical ID of API Gateway resource
+        authorizers: Dict[str, Authorizer]
+            Dictionary with key as authorizer name, and value as Authorizer object
+        """
+        self._authorizers_per_resources[logical_id].update(authorizers)
+
+    def set_default_authorizer(self, logical_id: str, authorizer_name: str) -> None:
+        """
+        Sets the default authorizer used for the API Gateway resource
+
+        Parameters
+        ----------
+        logical_id: str
+            Logical ID of API Gateway resource
+        authorizer_name: str
+            Name of the authorizer to reference
+        """
+        self._default_authorizer_per_resource[logical_id] = authorizer_name
+
+    def _link_authorizers(self) -> None:
+        """
+        Links the routes to the correct authorizer object
+        """
+        for apigw_id, routes in self._route_per_resource.items():
+            authorizers = self._authorizers_per_resources.get(apigw_id, {})
+
+            default_authorizer = self._default_authorizer_per_resource.get(apigw_id, None)
+            default_authorizer_obj = authorizers.get(default_authorizer, None)
+
+            for route in routes:
+                if route.authorizer_name is None:
+                    LOG.info(
+                        "Linking authorizer skipped, route '%s' has unset all authorizers",
+                        route.path,
+                    )
+
+                    continue
+
+                if route.authorizer_name == "":
+                    # set the default authorizer, if one exists, otherwise it will be None
+                    route.authorizer_name = default_authorizer
+                    route.authorizer_object = default_authorizer_obj
+
+                    LOG.info(
+                        "Linking default authorizer '%s', for route '%s'",
+                        default_authorizer,
+                        route.path,
+                    )
+                else:
+                    authorizer_object = authorizers.get(route.authorizer_name, None)
+
+                    if authorizer_object:
+                        route.authorizer_object = authorizer_object
+
+                        LOG.info(
+                            "Linking authorizer '%s', for route '%s'",
+                            route.authorizer_name,
+                            route.path,
+                        )
+                    else:
+                        route.authorizer_name = None
+
+                        LOG.info(
+                            "Linking authorizer skipped for route '%s', authorizer '%s' is unsupported",
+                            route.path,
+                            route.authorizer_name,
+                        )
 
     def add_routes(self, logical_id: str, routes: List[Route]) -> None:
         """
@@ -102,8 +181,12 @@ class ApiCollector:
         An Api object with all the properties
         """
         api = Api()
+
+        self._link_authorizers()
+
         routes = self.dedupe_function_routes(self.routes)
         routes = self.normalize_cors_methods(routes, self.cors)
+
         api.routes = routes
         api.binary_media_types_set = self.binary_media_types_set
         api.stage_name = self.stage_name
@@ -165,6 +248,8 @@ class ApiCollector:
                 payload_format_version=route.payload_format_version,
                 operation_name=route.operation_name,
                 stack_path=route.stack_path,
+                authorizer_name=route.authorizer_name,
+                authorizer_object=route.authorizer_object,
             )
         return list(grouped_routes.values())
 
