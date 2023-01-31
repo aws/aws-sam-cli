@@ -50,7 +50,7 @@ import sys
 import subprocess
 import zipfile
 import logging
-from .zip import unzip
+from zip import unzip
 
 LOG = logging.getLogger(__name__)
 
