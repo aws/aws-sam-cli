@@ -56,7 +56,7 @@ try:
     from zip import unzip  # type: ignore
 except ImportError:
     # this way to fix the hidden import unit testing
-    from .zip import unzip
+    from samcli.local.lambdafn.zip import unzip
 
 
 LOG = logging.getLogger(__name__)
