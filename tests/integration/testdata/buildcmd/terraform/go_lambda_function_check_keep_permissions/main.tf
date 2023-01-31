@@ -19,7 +19,7 @@ resource "null_resource" "build_lambda_function" {
   }
 
   provisioner "local-exec" {
-    command = "go build -trimpath -o bin/hello_world main.go && chmod 777 bin/*  zip -r hello_world.zip bin/*"
+    command = substr(pathexpand("~"), 0, 1) == "/"? "go build -trimpath -o bin/hello_world main.go && chmod 777 bin/* && zip -r hello_world.zip bin/*" : "powershell go build -trimpath -o bin\\hello_world main.go && attrib +R bin\\* && Compress-Archive -Path bin\\* -DestinationPath hello_world.zip"
   }
 }
 
@@ -46,7 +46,7 @@ resource "aws_lambda_function" "this" {
   role          = aws_iam_role.this.arn
 
   runtime  = "go1.x"
-  handler  = "hello_world"
+  handler  = "bin/hello_world"
   filename = "hello_world.zip"
 
   depends_on = [
