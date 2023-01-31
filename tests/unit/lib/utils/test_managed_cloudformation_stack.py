@@ -1,10 +1,7 @@
 from unittest import TestCase
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, call
 
-import botocore.session
-
-from botocore.exceptions import NoCredentialsError, NoRegionError, ProfileNotFound
-from botocore.stub import Stubber
+from botocore.exceptions import NoCredentialsError, NoRegionError, ProfileNotFound, ClientError
 from parameterized import parameterized
 
 from samcli.commands.exceptions import UserException, CredentialsError, RegionError
@@ -13,24 +10,15 @@ from samcli.lib.utils.managed_cloudformation_stack import (
     manage_stack,
     update_stack,
     _create_or_get_stack,
-    _create_or_update_stack,
     ManagedStackError,
 )
-
-CLOUDFORMATION_CLIENT = botocore.session.get_session().create_client("cloudformation", region_name="us-west-2")
 
 
 class TestManagedCloudFormationStack(TestCase):
     cf = None
-    stubber = None
 
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.cf = CLOUDFORMATION_CLIENT
-        cls.stubber = Stubber(cls.cf)
-
-    def _stubbed_cf_client(self):
-        return [self.cf, self.stubber]
+    def setUp(self) -> None:
+        self.cf = Mock()
 
     @patch("boto3.Session")
     def test_session_missing_profile(self, boto_mock):
@@ -86,32 +74,8 @@ class TestManagedCloudFormationStack(TestCase):
                 profile=None, region="fake-region", stack_name=SAM_CLI_STACK_NAME, template_body=_get_stack_template()
             )
 
-    @patch("boto3.client")
-    def test_new_stack(self, boto_mock):
-        stub_cf, stubber = self._stubbed_cf_client()
+    def test_new_stack(self):
         # first describe_stacks call will fail
-        ds_params = {"StackName": SAM_CLI_STACK_NAME}
-        stubber.add_client_error("describe_stacks", service_error_code="ClientError", expected_params=ds_params)
-        # creating change set
-        ccs_params = {
-            "StackName": SAM_CLI_STACK_NAME,
-            "TemplateBody": _get_stack_template(),
-            "Tags": [{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
-            "ChangeSetType": "CREATE",
-            "ChangeSetName": "InitialCreation",
-            "Capabilities": ["CAPABILITY_IAM"],
-            "Parameters": [],
-        }
-        ccs_resp = {"Id": "id", "StackId": "aws-sam-cli-managed-default"}
-        stubber.add_response("create_change_set", ccs_resp, ccs_params)
-        # describe change set creation status for waiter
-        dcs_params = {"ChangeSetName": "InitialCreation", "StackName": SAM_CLI_STACK_NAME}
-        dcs_resp = {"Status": "CREATE_COMPLETE"}
-        stubber.add_response("describe_change_set", dcs_resp, dcs_params)
-        # executing change set
-        ecs_params = {"ChangeSetName": "InitialCreation", "StackName": SAM_CLI_STACK_NAME}
-        ecs_resp = {}
-        stubber.add_response("execute_change_set", ecs_resp, ecs_params)
         # two describe_stacks calls will succeed - one for waiter, one direct
         post_create_ds_resp = {
             "Stacks": [
@@ -124,16 +88,37 @@ class TestManagedCloudFormationStack(TestCase):
                 }
             ]
         }
-        stubber.add_response("describe_stacks", post_create_ds_resp, ds_params)
-        stubber.add_response("describe_stacks", post_create_ds_resp, ds_params)
-        stubber.activate()
-        _create_or_get_stack(stub_cf, SAM_CLI_STACK_NAME, _get_stack_template())
-        stubber.assert_no_pending_responses()
-        stubber.deactivate()
+        self.cf.describe_stacks.side_effect = [
+            ClientError({}, "describe_stacks"), post_create_ds_resp
+        ]
 
-    @patch("boto3.client")
-    def test_stack_exists(self, patched_boto):
-        stub_cf, stubber = self._stubbed_cf_client()
+        # creating change set
+        ccs_resp = {"Id": "id", "StackId": "aws-sam-cli-managed-default"}
+        self.cf.create_change_set.return_value = ccs_resp
+        # describe change set creation status for waiter
+        dcs_resp = {"Status": "CREATE_COMPLETE"}
+        self.cf.describe_change_set.return_value = dcs_resp
+        # executing change set
+        ecs_resp = {}
+        self.cf.execute_change_set.return_value = ecs_resp
+
+        _create_or_get_stack(self.cf, SAM_CLI_STACK_NAME, _get_stack_template())
+
+        self.cf.describe_stacks.assert_has_calls([
+            call(StackName=SAM_CLI_STACK_NAME) for _ in range(2)
+        ])
+        self.cf.create_change_set.assert_called_with(
+            StackName=SAM_CLI_STACK_NAME,
+            TemplateBody=_get_stack_template(),
+            Tags=[{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
+            ChangeSetType="CREATE",
+            ChangeSetName="InitialCreation",
+            Capabilities=["CAPABILITY_IAM"],
+            Parameters=[],
+        )
+        self.cf.execute_change_set.assert_called_with(ChangeSetName="InitialCreation", StackName=SAM_CLI_STACK_NAME)
+
+    def test_stack_exists(self):
         ds_resp = {
             "Stacks": [
                 {
@@ -145,16 +130,11 @@ class TestManagedCloudFormationStack(TestCase):
                 }
             ]
         }
-        ds_params = {"StackName": SAM_CLI_STACK_NAME}
-        stubber.add_response("describe_stacks", ds_resp, ds_params)
-        stubber.activate()
-        _create_or_get_stack(stub_cf, SAM_CLI_STACK_NAME, _get_stack_template())
-        stubber.assert_no_pending_responses()
-        stubber.deactivate()
+        self.cf.describe_stacks.return_value = ds_resp
+        _create_or_get_stack(self.cf, SAM_CLI_STACK_NAME, _get_stack_template())
+        self.cf.describe_stacks.assert_called_with(StackName=SAM_CLI_STACK_NAME)
 
-    @patch("boto3.client")
-    def test_stack_missing_tag(self, patched_boto):
-        stub_cf, stubber = self._stubbed_cf_client()
+    def test_stack_missing_tag(self):
         ds_resp = {
             "Stacks": [
                 {
@@ -166,17 +146,12 @@ class TestManagedCloudFormationStack(TestCase):
                 }
             ]
         }
-        ds_params = {"StackName": SAM_CLI_STACK_NAME}
-        stubber.add_response("describe_stacks", ds_resp, ds_params)
-        stubber.activate()
+        self.cf.describe_stacks.return_value = ds_resp
         with self.assertRaises(UserException):
-            _create_or_get_stack(stub_cf, SAM_CLI_STACK_NAME, _get_stack_template())
-        stubber.assert_no_pending_responses()
-        stubber.deactivate()
+            _create_or_get_stack(self.cf, SAM_CLI_STACK_NAME, _get_stack_template())
+        self.cf.describe_stacks.assert_called_with(StackName=SAM_CLI_STACK_NAME)
 
-    @patch("boto3.client")
-    def test_stack_wrong_tag(self, patched_boto):
-        stub_cf, stubber = self._stubbed_cf_client()
+    def test_stack_wrong_tag(self):
         ds_resp = {
             "Stacks": [
                 {
@@ -188,70 +163,57 @@ class TestManagedCloudFormationStack(TestCase):
                 }
             ]
         }
-        ds_params = {"StackName": SAM_CLI_STACK_NAME}
-        stubber.add_response("describe_stacks", ds_resp, ds_params)
-        stubber.activate()
+        self.cf.describe_stacks.return_value = ds_resp
         with self.assertRaises(UserException):
-            _create_or_get_stack(stub_cf, SAM_CLI_STACK_NAME, _get_stack_template())
-        stubber.assert_no_pending_responses()
-        stubber.deactivate()
+            _create_or_get_stack(self.cf, SAM_CLI_STACK_NAME, _get_stack_template())
+        self.cf.describe_stacks.assert_called_with(StackName=SAM_CLI_STACK_NAME)
 
-    @patch("boto3.client")
-    @patch("boto3.Session")
-    def test_change_set_creation_fails(self, patched_boto, patched_session):
-        stub_cf, stubber = self._stubbed_cf_client()
+    def test_change_set_creation_fails(self):
         # first describe_stacks call will fail
-        ds_params = {"StackName": SAM_CLI_STACK_NAME}
-        stubber.add_client_error("describe_stacks", service_error_code="ClientError", expected_params=ds_params)
+        self.cf.describe_stacks.side_effect = [
+            ClientError({}, "describe_stacks")
+        ]
+
         # creating change set - fails
-        ccs_params = {
-            "StackName": SAM_CLI_STACK_NAME,
-            "TemplateBody": _get_stack_template(),
-            "Tags": [{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
-            "ChangeSetType": "CREATE",
-            "ChangeSetName": "InitialCreation",
-            "Capabilities": ["CAPABILITY_IAM"],
-            "Parameters": [],
-        }
-        stubber.add_client_error("create_change_set", service_error_code="ClientError", expected_params=ccs_params)
-        stubber.activate()
+        self.cf.create_change_set.side_effect = [
+            ClientError({}, "create_change_set")
+        ]
         with self.assertRaises(ManagedStackError):
-            _create_or_get_stack(stub_cf, SAM_CLI_STACK_NAME, _get_stack_template())
-        stubber.assert_no_pending_responses()
-        stubber.deactivate()
+            _create_or_get_stack(self.cf, SAM_CLI_STACK_NAME, _get_stack_template())
 
-    @patch("boto3.client")
-    def test_change_set_execution_fails(self, patched_boto):
-        stub_cf, stubber = self._stubbed_cf_client()
-        # first describe_stacks call will fail
-        ds_params = {"StackName": SAM_CLI_STACK_NAME}
-        stubber.add_client_error("describe_stacks", service_error_code="ClientError", expected_params=ds_params)
-        # creating change set
-        ccs_params = {
-            "StackName": SAM_CLI_STACK_NAME,
-            "TemplateBody": _get_stack_template(),
-            "Tags": [{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
-            "ChangeSetType": "CREATE",
-            "ChangeSetName": "InitialCreation",
-            "Capabilities": ["CAPABILITY_IAM"],
-            "Parameters": [],
-        }
-        ccs_resp = {"Id": "id", "StackId": "aws-sam-cli-managed-default"}
-        stubber.add_response("create_change_set", ccs_resp, ccs_params)
-        # describe change set creation status for waiter
-        dcs_params = {"ChangeSetName": "InitialCreation", "StackName": SAM_CLI_STACK_NAME}
-        dcs_resp = {"Status": "CREATE_COMPLETE"}
-        stubber.add_response("describe_change_set", dcs_resp, dcs_params)
-        # executing change set - fails
-        ecs_params = {"ChangeSetName": "InitialCreation", "StackName": SAM_CLI_STACK_NAME}
-        stubber.add_client_error(
-            "execute_change_set", service_error_code="InsufficientCapabilities", expected_params=ecs_params
+        self.cf.describe_stacks.assert_called_with(StackName=SAM_CLI_STACK_NAME)
+        self.cf.create_change_set.assert_called_with(
+            StackName=SAM_CLI_STACK_NAME,
+            TemplateBody=_get_stack_template(),
+            Tags=[{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
+            ChangeSetType="CREATE",
+            ChangeSetName="InitialCreation",
+            Capabilities=["CAPABILITY_IAM"],
+            Parameters=[],
         )
-        stubber.activate()
+
+    def test_change_set_execution_fails(self):
+        # first describe_stacks call will fail
+        self.cf.describe_stacks.side_effect = [ClientError({}, "describe_stacks")]
+        # creating change set
+        ccs_resp = {"Id": "id", "StackId": "aws-sam-cli-managed-default"}
+        self.cf.create_change_set.return_value = ccs_resp
+        # executing change set - fails
+        self.cf.execute_change_set.side_effect = [ClientError({}, "execute_change_set")]
         with self.assertRaises(ManagedStackError):
-            _create_or_get_stack(stub_cf, SAM_CLI_STACK_NAME, _get_stack_template())
-        stubber.assert_no_pending_responses()
-        stubber.deactivate()
+            _create_or_get_stack(self.cf, SAM_CLI_STACK_NAME, _get_stack_template())
+
+        self.cf.describe_stacks.assert_called_with(StackName=SAM_CLI_STACK_NAME)
+        self.cf.create_change_set.assert_called_with(
+            StackName=SAM_CLI_STACK_NAME,
+            TemplateBody=_get_stack_template(),
+            Tags=[{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
+            ChangeSetType="CREATE",
+            ChangeSetName="InitialCreation",
+            Capabilities=["CAPABILITY_IAM"],
+            Parameters=[],
+        )
+        self.cf.execute_change_set.assert_called_with(ChangeSetName="InitialCreation", StackName=SAM_CLI_STACK_NAME)
 
     @parameterized.expand(
         [
@@ -261,26 +223,21 @@ class TestManagedCloudFormationStack(TestCase):
         ]
     )
     def test_stack_is_invalid_state(self, tags, outputs):
-        with patch("boto3.client"):
-            stub_cf, stubber = self._stubbed_cf_client()
-            ds_resp = {
-                "Stacks": [
-                    {"StackName": SAM_CLI_STACK_NAME, "CreationTime": "2019-11-13", "StackStatus": "CREATE_FAILED"}
-                ]
-            }
+        ds_resp = {
+            "Stacks": [
+                {"StackName": SAM_CLI_STACK_NAME, "CreationTime": "2019-11-13", "StackStatus": "CREATE_FAILED"}
+            ]
+        }
 
-            # add Tags or Outputs information if it exists
-            # Boto client is missing this information if stack is in invalid state
-            if tags:
-                ds_resp["Stacks"][0]["Tags"] = tags
+        # add Tags or Outputs information if it exists
+        # Boto client is missing this information if stack is in invalid state
+        if tags:
+            ds_resp["Stacks"][0]["Tags"] = tags
 
-            if outputs:
-                ds_resp["Stacks"][0]["Outputs"] = outputs
+        if outputs:
+            ds_resp["Stacks"][0]["Outputs"] = outputs
 
-            ds_params = {"StackName": SAM_CLI_STACK_NAME}
-            stubber.add_response("describe_stacks", ds_resp, ds_params)
-            stubber.activate()
-            with self.assertRaises(UserException):
-                _create_or_get_stack(stub_cf, SAM_CLI_STACK_NAME, _get_stack_template())
-            stubber.assert_no_pending_responses()
-            stubber.deactivate()
+        self.cf.describe_stacks.return_value = ds_resp
+        with self.assertRaises(UserException):
+            _create_or_get_stack(self.cf, SAM_CLI_STACK_NAME, _get_stack_template())
+        self.cf.describe_stacks.assert_called_with(StackName=SAM_CLI_STACK_NAME)
