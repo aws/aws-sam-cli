@@ -50,7 +50,8 @@ import sys
 import subprocess
 import zipfile
 import logging
-from zip import unzip
+import zip
+
 
 LOG = logging.getLogger(__name__)
 
@@ -253,7 +254,7 @@ def find_and_copy_assets(directory_path, expression, data_object):
 
     try:
         if zipfile.is_zipfile(abs_attribute_path):
-            unzip(abs_attribute_path, directory_path)
+            zip.unzip(abs_attribute_path, directory_path)
         else:
             copytree(abs_attribute_path, directory_path)
     except OSError as ex:
