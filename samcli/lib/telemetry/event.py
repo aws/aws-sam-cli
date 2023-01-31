@@ -34,6 +34,7 @@ class UsedFeature(Enum):
     ACCELERATE = "Accelerate"
     CDK = "CDK"
     INIT_WITH_APPLICATION_INSIGHTS = "InitWithApplicationInsights"
+    CFNLint = "CFNLint"
 
 
 class EventType:

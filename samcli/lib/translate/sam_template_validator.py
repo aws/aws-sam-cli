@@ -13,7 +13,7 @@ from samtranslator.translator.translator import Translator
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION
 from samcli.yamlhelper import yaml_dump
-from .exceptions import InvalidSamDocumentException
+from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 
 LOG = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class SamTemplateValidator:
         self.sam_parser = parser.Parser()
         self.boto3_session = Session(profile_name=profile, region_name=region)
 
-    def is_valid(self):
+    def get_translated_template_if_valid(self):
         """
         Runs the SAM Translator to determine if the template provided is valid. This is similar to running a
         ChangeSet in CloudFormation for a SAM Template
@@ -70,6 +70,7 @@ class SamTemplateValidator:
         try:
             template = sam_translator.translate(sam_template=self.sam_template, parameter_values={})
             LOG.debug("Translated template is:\n%s", yaml_dump(template))
+            return yaml_dump(template)
         except InvalidDocumentException as e:
             raise InvalidSamDocumentException(
                 functools.reduce(lambda message, error: message + " " + str(error), e.causes, str(e))
