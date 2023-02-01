@@ -82,7 +82,7 @@ class CfnBaseApiProvider:
         swagger = reader.read()
         parser = SwaggerParser(stack_path, swagger)
 
-        authorizers = parser.get_authorizers()
+        authorizers = parser.get_authorizers(event_type)
         default_authorizer = parser.get_default_authorizer(event_type)
 
         routes = parser.get_routes(event_type)

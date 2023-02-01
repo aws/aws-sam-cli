@@ -3,7 +3,7 @@ Test the swagger parser
 """
 from unittest import TestCase
 
-from unittest.mock import patch, Mock
+from unittest.mock import ANY, patch, Mock
 from parameterized import parameterized, param
 
 from samcli.commands.local.lib.swagger.parser import SwaggerParser
@@ -393,7 +393,6 @@ class TestSwaggerParser_get_authorizers(TestCase):
                             "x-amazon-apigateway-authtype": "custom",
                             "x-amazon-apigateway-authorizer": {
                                 "type": "token",
-                                "identitySource": "method.request.header.Auth",
                                 "authorizerUri": "arn",
                             },
                         },
@@ -416,7 +415,7 @@ class TestSwaggerParser_get_authorizers(TestCase):
                         authorizer_name="TokenAuth",
                         type="token",
                         lambda_name="arn",
-                        identity_sources=["method.request.header.Auth"],
+                        identity_sources=[ANY],
                         validation_string=None,
                         use_simple_response=False,
                     ),
@@ -425,7 +424,7 @@ class TestSwaggerParser_get_authorizers(TestCase):
                         authorizer_name="QueryAuth",
                         type="request",
                         lambda_name="arn",
-                        identity_sources=["method.request.query.Auth"],
+                        identity_sources=[ANY],
                         validation_string=None,
                         use_simple_response=False,
                     ),
@@ -443,8 +442,8 @@ class TestSwaggerParser_get_authorizers(TestCase):
                                 "x-amazon-apigateway-authtype": "custom",
                                 "x-amazon-apigateway-authorizer": {
                                     "authorizerPayloadFormatVersion": "2.0",
-                                    "type": "token",
-                                    "identitySource": "method.request.header.Auth",
+                                    "type": "request",
+                                    "identitySource": "$request.header.Auth",
                                     "authorizerUri": "arn",
                                 },
                             },
@@ -455,9 +454,9 @@ class TestSwaggerParser_get_authorizers(TestCase):
                     "TokenAuth": LambdaAuthorizer(
                         payload_version="2.0",
                         authorizer_name="TokenAuth",
-                        type="token",
+                        type="request",
                         lambda_name="arn",
-                        identity_sources=["method.request.header.Auth"],
+                        identity_sources=[ANY],
                         validation_string=None,
                         use_simple_response=False,
                     ),
@@ -466,8 +465,14 @@ class TestSwaggerParser_get_authorizers(TestCase):
         ]
     )
     @patch("samcli.commands.local.lib.swagger.parser.LambdaUri")
-    def test_with_valid_lambda_auth_definition(self, swagger_doc, expected_authorizers, mock_lambda_uri):
+    @patch("samcli.commands.local.lib.swagger.parser.SwaggerParser._get_lambda_identity_sources")
+    def test_with_valid_lambda_auth_definition(
+        self, swagger_doc, expected_authorizers, get_id_sources_mock, mock_lambda_uri
+    ):
         mock_lambda_uri.get_function_name.return_value = "arn"
+
+        mock_identity_source = Mock()
+        get_id_sources_mock.return_value = [mock_identity_source]
 
         parser = SwaggerParser(Mock(), swagger_doc)
 
@@ -506,8 +511,8 @@ class TestSwaggerParser_get_authorizers(TestCase):
                                 "name": "Auth",
                                 "x-amazon-apigateway-authtype": "custom",
                                 "invalid-key-goes-here": {
-                                    "type": "token",
-                                    "identitySource": "method.request.header.Auth",
+                                    "type": "request",
+                                    "identitySource": "$request.header.Auth",
                                     "authorizerUri": "arn",
                                 },
                             },
@@ -518,13 +523,15 @@ class TestSwaggerParser_get_authorizers(TestCase):
         ]
     )
     @patch("samcli.commands.local.lib.swagger.parser.LambdaUri")
-    def test_unsupported_lambda_authorizers(self, swagger_doc, mock_lambda_uri):
+    @patch("samcli.commands.local.lib.swagger.parser.SwaggerParser._get_lambda_identity_sources")
+    def test_unsupported_lambda_authorizers(self, swagger_doc, get_id_sources_mock, mock_lambda_uri):
         parser = SwaggerParser(Mock(), swagger_doc)
 
         self.assertEqual(parser.get_authorizers(), {})
 
     @patch("samcli.commands.local.lib.swagger.parser.LambdaUri")
-    def test_invalid_lambda_auth_arn(self, mock_lambda_uri):
+    @patch("samcli.commands.local.lib.swagger.parser.SwaggerParser._get_lambda_identity_sources")
+    def test_invalid_lambda_auth_arn(self, get_id_sources_mock, mock_lambda_uri):
         mock_lambda_uri.get_function_name.return_value = None
 
         swagger_doc = {
@@ -537,7 +544,6 @@ class TestSwaggerParser_get_authorizers(TestCase):
                     "x-amazon-apigateway-authtype": "custom",
                     "x-amazon-apigateway-authorizer": {
                         "type": "token",
-                        "identitySource": "method.request.header.Auth",
                         "authorizerUri": "arn",
                     },
                 }
@@ -561,7 +567,6 @@ class TestSwaggerParser_get_authorizers(TestCase):
                             "x-amazon-apigateway-authtype": "custom",
                             "x-amazon-apigateway-authorizer": {
                                 "type": "token",
-                                "identitySource": "method.request.header.Auth",
                                 "authorizerUri": "arn",
                             },
                         }
@@ -579,7 +584,6 @@ class TestSwaggerParser_get_authorizers(TestCase):
                             "x-amazon-apigateway-authtype": "custom",
                             "x-amazon-apigateway-authorizer": {
                                 "type": "token",
-                                "identitySource": "method.request.header.Auth",
                                 "authorizerUri": "arn",
                             },
                         }
@@ -596,7 +600,6 @@ class TestSwaggerParser_get_authorizers(TestCase):
                             "x-amazon-apigateway-authtype": "custom",
                             "x-amazon-apigateway-authorizer": {
                                 "type": "token",
-                                "identitySource": "method.request.header.Auth",
                                 "authorizerUri": "arn",
                             },
                         }
@@ -651,3 +654,63 @@ class TestSwaggerParser_get_default_authorizer(TestCase):
 
         with self.assertRaises(expected_exception):
             parser.get_default_authorizer(Route.HTTP)
+
+
+class TestSwaggerParser_get_lambda_identity_sources(TestCase):
+    @parameterized.expand(
+        [
+            (
+                "token",
+                Route.API,
+                {"name": "Authentication", "in": "header"},
+                {},
+                ["method.request.header.Authentication"],
+            ),
+            (
+                "request",
+                Route.API,
+                {"name": "unused", "in": "header"},
+                {"identitySource": "method.request.header.Authentication, method.request.header.otherheader"},
+                ["method.request.header.Authentication", "method.request.header.otherheader"],
+            ),
+        ]
+    )
+    def test_valid_identity_sources(self, type, event_type, properties, authorizer_object, expected_result):
+        parser = SwaggerParser(Mock(), Mock())
+
+        result = parser._get_lambda_identity_sources("myauth", type, event_type, properties, authorizer_object)
+        self.assertEqual(result, expected_result)
+
+    @parameterized.expand(
+        [
+            (  # missing 'in' property
+                "token",
+                Route.API,
+                {"name": "Authentication"},
+                {},
+            ),
+            (  # missing 'name' property
+                "token",
+                Route.API,
+                {"in": "header"},
+                {},
+            ),
+            (  # token type for HTTP API
+                "token",
+                Route.HTTP,
+                {"name": "auth", "in": "header"},
+                {"identitySource": "method.request.header.Authentication, method.request.header.otherheader"},
+            ),
+            (  # missing 'identitySource' for request
+                "request",
+                Route.HTTP,
+                {"name": "unused", "in": "header"},
+                {},
+            ),
+        ]
+    )
+    def test_invalid_authorizer_definitions(self, type, event_type, properties, authorizer_object):
+        parser = SwaggerParser(Mock(), Mock())
+
+        result = parser._get_lambda_identity_sources("myauth", type, event_type, properties, authorizer_object)
+        self.assertEqual(result, [])

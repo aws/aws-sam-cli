@@ -17,7 +17,6 @@ LOG = logging.getLogger(__name__)
 
 class SwaggerParser:
     _AUTHORIZER_KEY = "x-amazon-apigateway-authorizer"
-    _AUTH_KEY = "x-amazon-apigateway-auth"
     _INTEGRATION_KEY = "x-amazon-apigateway-integration"
     _ANY_METHOD_EXTENSION_KEY = "x-amazon-apigateway-any-method"
     _BINARY_MEDIA_TYPES_EXTENSION_KEY = "x-amazon-apigateway-binary-media-types"  # pylint: disable=C0103
@@ -45,9 +44,14 @@ class SwaggerParser:
         """
         return self.swagger.get(self._BINARY_MEDIA_TYPES_EXTENSION_KEY) or []
 
-    def get_authorizers(self) -> Dict[str, Authorizer]:
+    def get_authorizers(self, event_type: str = Route.API) -> Dict[str, Authorizer]:
         """
         Parse Swagger document and returns a list of Authorizer objects
+
+        Parameters
+        ----------
+        event_type: str
+            String indicating what type of API Gateway this is
 
         Returns
         -------
@@ -88,24 +92,100 @@ class SwaggerParser:
 
                     continue
 
-                # only add authorizer if it is token or request based (not jwt)
+                # only add authorizer if it is Lambda token or request based (not jwt)
                 if authorizer_type in valid_types and lambda_name:
-                    lambda_authorizer = LambdaAuthorizer(
-                        authorizer_name=auth_name,
-                        type=authorizer_type,
-                        payload_version=payload_version,
-                        lambda_name=lambda_name,
-                        identity_sources=[authorizer_object.get("identitySource")],
-                        validation_string=authorizer_object.get("identityValidationExpression"),
+                    identity_sources = self._get_lambda_identity_sources(
+                        auth_name, authorizer_type, event_type, properties, authorizer_object
                     )
 
-                    authorizers[auth_name] = lambda_authorizer
+                    validation_expression = authorizer_object.get("identityValidationExpression")
+                    if event_type != Route.HTTP:
+                        validation_expression = None
+                        LOG.info(
+                            "Validation expressions is only available on Rest APIs, "
+                            "ignoring for Lambda authorizer '%s'",
+                            auth_name,
+                        )
+
+                    if identity_sources:
+                        lambda_authorizer = LambdaAuthorizer(
+                            authorizer_name=auth_name,
+                            type=authorizer_type,
+                            payload_version=payload_version,
+                            lambda_name=lambda_name,
+                            identity_sources=identity_sources,
+                            validation_string=validation_expression,
+                        )
+
+                        authorizers[auth_name] = lambda_authorizer
+
+                        LOG.info("Parsing Lambda authorizer '%s' type '%s'", auth_name, authorizer_type)
+                    else:
+                        LOG.warning(
+                            "Skip parsing Lambda authorizer '%s', must contain at least valid identity source",
+                            auth_name,
+                        )
                 else:
-                    LOG.info("Lambda authorizer '%s' type '%s' is unsupported, skipping", auth_name, authorizer_type)
+                    LOG.warning("Lambda authorizer '%s' type '%s' is unsupported, skipping", auth_name, authorizer_type)
             else:
-                LOG.info("Skip parsing unsupported authorizer %s", auth_name)
+                LOG.warning("Skip parsing unsupported authorizer '%s'", auth_name)
 
         return authorizers
+
+    @staticmethod
+    def _get_lambda_identity_sources(
+        auth_name: str, auth_type: str, event_type: str, properties: dict, authorizer_object: dict
+    ) -> List[str]:
+        """
+        Parses the properties depending on the Lambda Authorizer type (token or request) and retrieves identity sources
+
+        Parameters
+        ----------
+        auth_name: str
+            Name of the authorizer used for logging
+        auth_type: str
+            Type of authorizer (token, request)
+        event_type: str
+            API Gateway type (API, HTTP API)
+        properties: dict
+            Swagger Lambda Authorizer properties
+        authorizer_object: dict
+            Lambda Authorizer integration properties
+        Returns
+        -------
+        List[str]
+            A list of identity sources
+        """
+        identity_sources: List[str] = []
+
+        if auth_type == "token":
+            header_name = properties.get("name")
+
+            if not properties.get("in") == "header" or not header_name:
+                LOG.info(
+                    "Missing properties for Lambda Authorizer '%s', "
+                    "property 'in' must be set to 'header' and "
+                    "property 'name' must be provided",
+                    auth_name,
+                )
+            elif event_type == Route.HTTP:
+                LOG.info("Type 'token' for Lambda Authorizer '%s' is unsupported ", auth_name)
+            else:
+                identity_sources.append(f"method.request.header.{header_name}")
+        else:
+            identity_source_string = authorizer_object.get("identitySource")
+
+            if not identity_source_string:
+                LOG.info(
+                    "Missing property 'identitySource' in the authorizer integration for Lambda Authorizer '%s'",
+                    auth_name,
+                )
+            else:
+                # split the identity sources and remove any trailing spaces
+                split_identity_source: List[str] = identity_source_string.split(",")
+                identity_sources += [identity.strip() for identity in split_identity_source]
+
+        return identity_sources
 
     def get_default_authorizer(self, event_type: str) -> Union[str, None]:
         """
