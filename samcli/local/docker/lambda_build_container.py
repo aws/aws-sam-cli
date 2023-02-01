@@ -44,6 +44,7 @@ class LambdaBuildContainer(Container):
         image=None,
         is_building_layer=False,
         build_in_source=None,
+        mount_with_write: bool = False,
     ):
         abs_manifest_path = pathlib.Path(manifest_path).resolve()
         manifest_file_name = abs_manifest_path.name
@@ -75,6 +76,7 @@ class LambdaBuildContainer(Container):
             container_dirs,
             manifest_file_name,
             runtime,
+            build_method,
             optimizations,
             options,
             executable_search_paths,
@@ -82,6 +84,7 @@ class LambdaBuildContainer(Container):
             architecture,
             is_building_layer,
             build_in_source,
+            mount_with_write,
         )
 
         if image is None:
@@ -89,11 +92,18 @@ class LambdaBuildContainer(Container):
         entry = LambdaBuildContainer._get_entrypoint(request_json)
         cmd = []
 
+        mount_mode = "rw" if mount_with_write else "ro"
         additional_volumes = {
             # Manifest is mounted separately in order to support the case where manifest
             # is outside of source directory
-            manifest_dir: {"bind": container_dirs["manifest_dir"], "mode": "rw"}
+            manifest_dir: {"bind": container_dirs["manifest_dir"], "mode": mount_mode}
         }
+
+        additional_env_vars = {}
+        if language == "dotnet":
+            # mount_with_write must be True for dotnet to build inside container
+            additional_env_vars["DOTNET_CLI_HOME"] = "/tmp/dotnet"
+            additional_env_vars["XDG_DATA_HOME"] = "/tmp/xdg"
 
         if log_level:
             env_vars["LAMBDA_BUILDERS_LOG_LEVEL"] = log_level
@@ -106,6 +116,8 @@ class LambdaBuildContainer(Container):
             additional_volumes=additional_volumes,
             entrypoint=entry,
             env_vars=env_vars,
+            additional_env_vars=additional_env_vars,
+            mount_with_write=mount_with_write,
         )
 
     @property
@@ -121,6 +133,7 @@ class LambdaBuildContainer(Container):
         container_dirs,
         manifest_file_name,
         runtime,
+        build_method,
         optimizations,
         options,
         executable_search_paths,
@@ -128,6 +141,7 @@ class LambdaBuildContainer(Container):
         architecture,
         is_building_layer,
         build_in_source,
+        mount_with_write,
     ):
 
         runtime = runtime.replace(".al2", "")
@@ -150,6 +164,7 @@ class LambdaBuildContainer(Container):
                     # Path is always inside a Linux container. So '/' is valid
                     "manifest_path": "{}/{}".format(container_dirs["manifest_dir"], manifest_file_name),
                     "runtime": runtime,
+                    "build_method": build_method,
                     "optimizations": optimizations,
                     "options": options,
                     "executable_search_paths": executable_search_paths,
@@ -158,6 +173,7 @@ class LambdaBuildContainer(Container):
                     "is_building_layer": is_building_layer,
                     "experimental_flags": get_enabled_experimental_flags(),
                     "build_in_source": build_in_source,
+                    "mount_with_write": mount_with_write,
                 },
             }
         )
@@ -187,8 +203,10 @@ class LambdaBuildContainer(Container):
         base = "/tmp/samcli"
         result = {
             "source_dir": "{}/source".format(base),
-            "artifacts_dir": "{}/artifacts".format(base),
-            "scratch_dir": "{}/scratch".format(base),
+            # "artifacts_dir": "{}/artifacts".format(base),
+            # "scratch_dir": "{}/scratch".format(base),
+            "artifacts_dir": "/tmp/artifacts",
+            "scratch_dir": "/tmp/scratch",
             "manifest_dir": "{}/manifest".format(base),
         }
 
@@ -268,10 +286,11 @@ class LambdaBuildContainer(Container):
             valid image name
         """
         image_tag = LambdaBuildContainer.get_image_tag(architecture)
+        # a list of build methods need to get image based on build method itself instead of runtime
+        get_image_from_build_method = ["dotnet7"]
 
-        if build_method == "dotnet7":
-            return f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{build_method}:" + image_tag
-        return f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{runtime}:" + image_tag
+        image_name = build_method if build_method in get_image_from_build_method else runtime
+        return f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{image_name}:" + image_tag
 
     @staticmethod
     def get_image_tag(architecture):

@@ -77,6 +77,7 @@ class BuildContext:
         locate_layer_nested: bool = False,
         hook_name: Optional[str] = None,
         build_in_source: Optional[bool] = None,
+        mount_with_write: bool = False,
     ) -> None:
         """
         Initialize the class
@@ -132,6 +133,8 @@ class BuildContext:
             Name of the hook package
         build_in_source: Optional[bool]
             Set to True to build in the source directory.
+        mount_with_write: bool
+            Mount source code directory with write permissions when building inside container.
         """
 
         self._resource_identifier = resource_identifier
@@ -171,6 +174,7 @@ class BuildContext:
         self._locate_layer_nested = locate_layer_nested
         self._hook_name = hook_name
         self._build_in_source = build_in_source
+        self._mount_with_write = mount_with_write
 
     def __enter__(self) -> "BuildContext":
         self.set_up()
@@ -251,6 +255,7 @@ class BuildContext:
                 build_images=self._build_images,
                 combine_dependencies=not self._create_auto_dependency_layer,
                 build_in_source=self._build_in_source,
+                mount_with_write=self._mount_with_write,
             )
         except FunctionNotFound as ex:
             raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex

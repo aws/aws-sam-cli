@@ -16,7 +16,7 @@ from samcli.lib.utils.retry import retry
 from samcli.lib.utils.tar import extract_tarfile
 from .exceptions import ContainerNotStartableException
 
-from .utils import to_posix_path, find_free_port, NoFreePortsError
+from .utils import to_posix_path, find_free_port, NoFreePortsError, get_posix_effective_user
 
 LOG = logging.getLogger(__name__)
 
@@ -68,6 +68,8 @@ class Container:
         additional_volumes=None,
         container_host="localhost",
         container_host_interface="127.0.0.1",
+        additional_env_vars=None,
+        mount_with_write: bool = False,
     ):
         """
         Initializes the class with given configuration. This does not automatically create or run the container.
@@ -86,6 +88,8 @@ class Container:
         :param additional_volumes: Optional list of additional volumes
         :param string container_host: Optional. Host of locally emulated Lambda container
         :param string container_host_interface: Optional. Interface that Docker host binds ports to
+        :param additional_env_vars: Optional Dict of environment variables
+        :param bool mount_with_write: Optional. Mount source code directory with write permissions when building inside container
         """
 
         self._image = image
@@ -114,6 +118,8 @@ class Container:
 
         self._container_host = container_host
         self._container_host_interface = container_host_interface
+        self._additional_env_vars = additional_env_vars
+        self._mount_with_write = mount_with_write
 
         try:
             self.rapid_port_host = find_free_port(start=self._start_port_range, end=self._end_port_range)
@@ -135,14 +141,15 @@ class Container:
         _volumes = {}
 
         if self._host_dir:
-            LOG.info("Mounting %s as %s:rw, inside runtime container", self._host_dir, self._working_dir)
-
+            mount_mode = "rw" if self._mount_with_write else "ro,delegated"
+            LOG.info("Mounting %s as %s:%s, inside runtime container", self._host_dir, self._working_dir, mount_mode)
+            
             _volumes = {
                 self._host_dir: {
                     # Mount the host directory inside container at working_dir
                     # https://docs.docker.com/storage/bind-mounts
                     "bind": self._working_dir,
-                    "mode": "rw",
+                    "mode": mount_mode,
                 }
             }
 
@@ -156,6 +163,14 @@ class Container:
             "use_config_proxy": True,
         }
 
+        # Get effective user when mounting with write permissions
+        if self._mount_with_write:
+            effective_user = get_posix_effective_user()
+            if effective_user:
+                user_id = effective_user["user_id"]
+                group_id = effective_user["group_id"]
+                kwargs["user"] = f"{user_id}:{group_id}" if group_id else user_id
+
         if self._container_opts:
             kwargs.update(self._container_opts)
 
@@ -164,6 +179,13 @@ class Container:
 
         # Make sure all mounts are of posix path style.
         kwargs["volumes"] = {to_posix_path(host_dir): mount for host_dir, mount in kwargs["volumes"].items()}
+
+        # Insert additional env variables 
+        if self._env_vars:
+            if self._additional_env_vars:
+                self._env_vars.update(self._additional_env_vars)
+        else:
+            self._env_vars = self._additional_env_vars
 
         if self._env_vars:
             kwargs["environment"] = self._env_vars
@@ -181,6 +203,7 @@ class Container:
         if self._entrypoint:
             kwargs["entrypoint"] = self._entrypoint
 
+        # kwargs["entrypoint"] = ["tail", "-f", "/dev/null"]
         if self._memory_limit_mb:
             # Ex: 128m => 128MB
             kwargs["mem_limit"] = "{}m".format(self._memory_limit_mb)

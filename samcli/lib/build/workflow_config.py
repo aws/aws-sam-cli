@@ -254,6 +254,24 @@ def supports_build_in_container(config: CONFIG) -> Tuple[bool, Optional[str]]:
 
     return True, None
 
+def needs_mount_with_write(config: CONFIG) -> bool:
+    """
+    Given a workflow config, returns whether it needs mount with write permissions to build inside container or not.
+    
+    Parameters
+    ----------
+    config namedtuple(Capability)
+        Config specifying the particular build workflow
+
+    Returns
+    -------
+    bool
+        True, if this workflow needs mount with write permissions to build inside container.
+    """
+    mount_with_write_languages = ["dotnet"]
+    if config.language in mount_with_write_languages:
+        return True
+    return False
 
 class BasicWorkflowSelector:
     """

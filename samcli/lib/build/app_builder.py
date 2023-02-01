@@ -8,6 +8,7 @@ import logging
 import pathlib
 from typing import List, Optional, Dict, cast, NamedTuple
 
+import click
 import docker
 import docker.errors
 from aws_lambda_builders import (
@@ -61,6 +62,7 @@ from samcli.lib.build.workflow_config import (
     supports_build_in_container,
     CONFIG,
     UnsupportedRuntimeException,
+    needs_mount_with_write,
 )
 
 LOG = logging.getLogger(__name__)
@@ -101,6 +103,7 @@ class ApplicationBuilder:
         build_images: Optional[Dict] = None,
         combine_dependencies: bool = True,
         build_in_source: Optional[bool] = None,
+        mount_with_write: bool = False
     ) -> None:
         """
         Initialize the class
@@ -144,6 +147,8 @@ class ApplicationBuilder:
             dependencies or not.
         build_in_source: Optional[bool]
             Set to True to build in the source directory.
+        mount_with_write: bool
+            Mount source code directory with write permissions when building inside container.
         """
         self._resources_to_build = resources_to_build
         self._build_dir = build_dir
@@ -166,6 +171,7 @@ class ApplicationBuilder:
         self._build_images = build_images or {}
         self._combine_dependencies = combine_dependencies
         self._build_in_source = build_in_source
+        self._mount_with_write = mount_with_write
 
     def build(self) -> ApplicationBuildResult:
         """
@@ -896,6 +902,9 @@ class ApplicationBuilder:
         container_build_supported, reason = supports_build_in_container(config)
         if not container_build_supported:
             raise ContainerBuildNotSupported(reason)
+        
+        if not self._mount_with_write and needs_mount_with_write(config):
+            self._mount_with_write = self._prompt_user_to_enable_mount_with_write(config, source_dir)
 
         # If we are printing debug logs in SAM CLI, the builder library should also print debug logs
         log_level = LOG.getEffectiveLevel()
@@ -921,6 +930,7 @@ class ApplicationBuilder:
             image=build_image,
             is_building_layer=is_building_layer,
             build_in_source=self._build_in_source,
+            mount_with_write=self._mount_with_write,
         )
 
         try:
@@ -995,3 +1005,29 @@ class ApplicationBuilder:
             raise ValueError(msg)
 
         return cast(Dict, response)
+
+    @staticmethod
+    def _prompt_user_to_enable_mount_with_write(config: CONFIG, source_dir: str) -> bool:
+        """
+        Prompt user to choose if enables mounting with write permissions or not.
+
+        Parameters
+        ----------
+        config namedtuple(Capability)
+            Config specifying the particular build workflow
+
+        source_dir : str
+            Path to the function source code
+
+        Returns
+        -------
+        bool
+            True, if user enabled mounting with write permissions.
+        """
+        if click.confirm(
+            f"\nBuilding functions with {config.language} inside containers needs write permissions to the source code directory {source_dir}. " 
+            f"Some files in this directory may be changed or added by the build process. "
+            f"Pass --mount-with-write true to SAM CLI to avoid this confirmation. " 
+            f"Is it okay to mount this directory to the container with write permissions? "):
+            return True
+        return False

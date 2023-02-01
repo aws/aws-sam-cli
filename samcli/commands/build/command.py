@@ -136,6 +136,14 @@ $ sam build MyFunction
     help="Enabled parallel builds. Use this flag to build your AWS SAM template's functions and layers in parallel. "
     "By default the functions and layers are built in sequence",
 )
+@click.option(
+    "--mount-with-write",
+    "-w",
+    is_flag=True,
+    help="Mount source code directory with write permissions when building functions/layers inside container."
+    "By default the source code directory is read only.",
+    cls=ContainerOptions,
+)
 @build_dir_option
 @cache_dir_option
 @base_dir_option
@@ -175,6 +183,7 @@ def cli(
     config_env: str,
     hook_name: Optional[str],
     skip_prepare_infra: bool,
+    mount_with_write: bool,
 ) -> None:
     """
     `sam build` command entry point
@@ -205,6 +214,7 @@ def cli(
         exclude,
         hook_name,
         None,  # TODO: replace with build_in_source once it's added as a click option
+        mount_with_write,
     )  # pragma: no cover
 
 
@@ -230,6 +240,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     exclude: Optional[Tuple[str, ...]],
     hook_name: Optional[str],
     build_in_source: Optional[bool],
+    mount_with_write: bool,
 ) -> None:
     """
     Implementation of the ``cli`` method
@@ -275,6 +286,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         aws_region=click_ctx.region,
         hook_name=hook_name,
         build_in_source=build_in_source,
+        mount_with_write=mount_with_write,
     ) as ctx:
         ctx.run()
 
