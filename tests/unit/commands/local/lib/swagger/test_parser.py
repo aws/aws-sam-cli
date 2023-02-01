@@ -466,7 +466,7 @@ class TestSwaggerParser_get_authorizers(TestCase):
         ]
     )
     @patch("samcli.commands.local.lib.swagger.parser.LambdaUri")
-    def test_with_valid_definition(self, swagger_doc, expected_authorizers, mock_lambda_uri):
+    def test_with_valid_lambda_auth_definition(self, swagger_doc, expected_authorizers, mock_lambda_uri):
         mock_lambda_uri.get_function_name.return_value = "arn"
 
         parser = SwaggerParser(Mock(), swagger_doc)
@@ -518,13 +518,13 @@ class TestSwaggerParser_get_authorizers(TestCase):
         ]
     )
     @patch("samcli.commands.local.lib.swagger.parser.LambdaUri")
-    def test_unsupported_authorizers(self, swagger_doc, mock_lambda_uri):
+    def test_unsupported_lambda_authorizers(self, swagger_doc, mock_lambda_uri):
         parser = SwaggerParser(Mock(), swagger_doc)
 
         self.assertEqual(parser.get_authorizers(), {})
 
     @patch("samcli.commands.local.lib.swagger.parser.LambdaUri")
-    def test_invalid_arn(self, mock_lambda_uri):
+    def test_invalid_lambda_auth_arn(self, mock_lambda_uri):
         mock_lambda_uri.get_function_name.return_value = None
 
         swagger_doc = {
@@ -627,6 +627,8 @@ class TestSwaggerParser_get_default_authorizer(TestCase):
         [
             ({"openapi": "3.0", "security": []},),
             ({"swagger": "2.0", "security": []},),
+            ({"openapi": "3.0"},),
+            ({"swagger": "2.0"},),
         ]
     )
     def test_no_default_authorizer_defined(self, swagger):
