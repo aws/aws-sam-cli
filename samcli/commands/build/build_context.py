@@ -258,12 +258,12 @@ class BuildContext:
         try:
             self._check_exclude_warning()
 
+            for f in self.get_resources_to_build().functions:
+                EventTracker.track_event("BuildFunctionRuntime", f.runtime)
+
             build_result = builder.build()
 
             self._handle_build_post_processing(builder, build_result)
-
-            for f in self.get_resources_to_build().functions:
-                EventTracker.track_event("BuildFunctionRuntime", f.runtime)
 
             click.secho("\nBuild Succeeded", fg="green")
 
