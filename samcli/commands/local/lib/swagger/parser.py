@@ -52,7 +52,7 @@ class SwaggerParser:
         Returns
         -------
         dict[str, Authorizer]
-            Description here
+            A map of authorizer names and Authorizer objects found in the body definition
         """
         authorizers: Dict[str, Authorizer] = {}
 
@@ -108,6 +108,19 @@ class SwaggerParser:
         return authorizers
 
     def get_default_authorizer(self, event_type: str) -> Union[str, None]:
+        """
+        Parses the body definition to find root level Authorizer definitions
+
+        Parameters
+        ----------
+        event_type: str
+            String representing the type of API the definition body is defined as
+
+        Returns
+        -------
+        Union[str, None]
+            Returns the name of the authorizer, if there is one defined, otherwise None
+        """
         document_version = self.swagger.get("swagger") or self.swagger.get("openapi") or ""
         authorizers = self.swagger.get("security", [])
 
