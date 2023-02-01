@@ -7,7 +7,12 @@ from unittest.mock import patch, Mock
 from parameterized import parameterized, param
 
 from samcli.commands.local.lib.swagger.parser import SwaggerParser
-from samcli.local.apigw.exceptions import InvalidOasVersion
+from samcli.local.apigw.exceptions import (
+    IncorrectOasWithDefaultAuthorizerException,
+    InvalidOasVersion,
+    InvalidSecurityDefinition,
+    MultipleAuthorizerException,
+)
 from samcli.local.apigw.local_apigw_service import Route, LambdaAuthorizer
 
 
@@ -194,6 +199,127 @@ class TestSwaggerParser_get_apis(TestCase):
         expected = []
         self.assertEqual(expected, result)
 
+    def test_set_no_authorizer(self):
+        function_name = "function"
+        payload_version = "1.0"
+
+        swagger = {
+            "paths": {
+                "/path1": {
+                    "get": {
+                        "security": [],
+                        "x-amazon-apigateway-integration": {
+                            "type": "aws_proxy",
+                            "uri": "someuri",
+                            "payloadFormatVersion": payload_version,
+                        },
+                    }
+                }
+            }
+        }
+
+        parser = SwaggerParser(self.stack_path, swagger)
+        parser._get_integration_function_name = Mock(return_value=function_name)
+        parser._get_payload_format_version = Mock(return_value=payload_version)
+
+        results = parser.get_routes()
+        expected_result = [
+            Route(
+                path="/path1",
+                methods=["get"],
+                function_name=function_name,
+                payload_format_version=payload_version,
+                stack_path=self.stack_path,
+                authorizer_name=None,
+            ),
+        ]
+
+        self.assertEqual(results, expected_result)
+
+    def test_set_defined_authorizer(self):
+        function_name = "function"
+        payload_version = "1.0"
+        authorizer_name = "auth"
+
+        swagger = {
+            "paths": {
+                "/path1": {
+                    "get": {
+                        "security": [{authorizer_name: []}],
+                        "x-amazon-apigateway-integration": {
+                            "type": "aws_proxy",
+                            "uri": "someuri",
+                            "payloadFormatVersion": payload_version,
+                        },
+                    }
+                }
+            }
+        }
+
+        parser = SwaggerParser(self.stack_path, swagger)
+        parser._get_integration_function_name = Mock(return_value=function_name)
+        parser._get_payload_format_version = Mock(return_value=payload_version)
+
+        results = parser.get_routes()
+        expected_result = [
+            Route(
+                path="/path1",
+                methods=["get"],
+                function_name=function_name,
+                payload_format_version=payload_version,
+                stack_path=self.stack_path,
+                authorizer_name=authorizer_name,
+            ),
+        ]
+
+        self.assertEqual(results, expected_result)
+
+    @parameterized.expand(
+        [
+            (
+                {
+                    "paths": {
+                        "/path1": {
+                            "get": {
+                                "security": {},
+                                "x-amazon-apigateway-integration": {
+                                    "type": "aws_proxy",
+                                    "uri": "someuri",
+                                    "payloadFormatVersion": "1.0",
+                                },
+                            }
+                        }
+                    }
+                },
+                InvalidSecurityDefinition,
+            ),
+            (
+                {
+                    "paths": {
+                        "/path1": {
+                            "get": {
+                                "security": [{"auth1": []}, {"auth2": []}],
+                                "x-amazon-apigateway-integration": {
+                                    "type": "aws_proxy",
+                                    "uri": "someuri",
+                                    "payloadFormatVersion": "1.0",
+                                },
+                            }
+                        }
+                    }
+                },
+                MultipleAuthorizerException,
+            ),
+        ]
+    )
+    def test_invalid_authorizer_definition(self, swagger, expected_exception):
+        parser = SwaggerParser(self.stack_path, swagger)
+        parser._get_integration_function_name = Mock(return_value="function")
+        parser._get_payload_format_version = Mock(return_value="1.0")
+
+        with self.assertRaises(expected_exception):
+            parser.get_routes()
+
 
 class TestSwaggerParser_get_integration_function_name(TestCase):
     def setUp(self) -> None:
@@ -256,7 +382,7 @@ class TestSwaggerParser_get_binary_media_types(TestCase):
 class TestSwaggerParser_get_authorizers(TestCase):
     @parameterized.expand(
         [
-            ( # swagger 2.0 with token + request authorizers
+            (  # swagger 2.0 with token + request authorizers
                 {
                     "swagger": "2.0",
                     "securityDefinitions": {
@@ -302,10 +428,10 @@ class TestSwaggerParser_get_authorizers(TestCase):
                         identity_sources=["method.request.query.Auth"],
                         validation_string=None,
                         use_simple_response=False,
-                    )
+                    ),
                 },
             ),
-            ( # openapi 3.0 with token authorizer
+            (  # openapi 3.0 with token authorizer
                 {
                     "openapi": "3.0",
                     "components": {
@@ -323,7 +449,7 @@ class TestSwaggerParser_get_authorizers(TestCase):
                                 },
                             },
                         },
-                    }
+                    },
                 },
                 {
                     "TokenAuth": LambdaAuthorizer(
@@ -349,7 +475,7 @@ class TestSwaggerParser_get_authorizers(TestCase):
 
     @parameterized.expand(
         [
-            ( # test unsupported type (jwt)
+            (  # test unsupported type (jwt)
                 {
                     "openapi": "3.0",
                     "components": {
@@ -366,10 +492,10 @@ class TestSwaggerParser_get_authorizers(TestCase):
                                 },
                             },
                         },
-                    }
+                    },
                 },
             ),
-            ( # test invalid integration key
+            (  # test invalid integration key
                 {
                     "openapi": "3.0",
                     "components": {
@@ -386,9 +512,9 @@ class TestSwaggerParser_get_authorizers(TestCase):
                                 },
                             },
                         },
-                    }
+                    },
                 },
-            )
+            ),
         ]
     )
     @patch("samcli.commands.local.lib.swagger.parser.LambdaUri")
@@ -422,63 +548,104 @@ class TestSwaggerParser_get_authorizers(TestCase):
 
         self.assertEqual(parser.get_authorizers(), {})
 
-    @parameterized.expand([
-        (
-            {
-                "swagger": "4.0",
-                "securityDefinitions": {
-                    "TokenAuth": {
-                        "type": "apiKey",
-                        "in": "header",
-                        "name": "Auth",
-                        "x-amazon-apigateway-authtype": "custom",
-                        "x-amazon-apigateway-authorizer": {
-                            "type": "token",
-                            "identitySource": "method.request.header.Auth",
-                            "authorizerUri": "arn",
-                        },
+    @parameterized.expand(
+        [
+            (
+                {
+                    "swagger": "4.0",
+                    "securityDefinitions": {
+                        "TokenAuth": {
+                            "type": "apiKey",
+                            "in": "header",
+                            "name": "Auth",
+                            "x-amazon-apigateway-authtype": "custom",
+                            "x-amazon-apigateway-authorizer": {
+                                "type": "token",
+                                "identitySource": "method.request.header.Auth",
+                                "authorizerUri": "arn",
+                            },
+                        }
+                    },
+                },
+            ),
+            (
+                {
+                    "openapi": "1.0",
+                    "securityDefinitions": {
+                        "TokenAuth": {
+                            "type": "apiKey",
+                            "in": "header",
+                            "name": "Auth",
+                            "x-amazon-apigateway-authtype": "custom",
+                            "x-amazon-apigateway-authorizer": {
+                                "type": "token",
+                                "identitySource": "method.request.header.Auth",
+                                "authorizerUri": "arn",
+                            },
+                        }
+                    },
+                },
+            ),
+            (
+                {
+                    "securityDefinitions": {
+                        "TokenAuth": {
+                            "type": "apiKey",
+                            "in": "header",
+                            "name": "Auth",
+                            "x-amazon-apigateway-authtype": "custom",
+                            "x-amazon-apigateway-authorizer": {
+                                "type": "token",
+                                "identitySource": "method.request.header.Auth",
+                                "authorizerUri": "arn",
+                            },
+                        }
                     }
                 },
-            },
-        ),
-        (
-            {
-                "openapi": "1.0",
-                "securityDefinitions": {
-                    "TokenAuth": {
-                        "type": "apiKey",
-                        "in": "header",
-                        "name": "Auth",
-                        "x-amazon-apigateway-authtype": "custom",
-                        "x-amazon-apigateway-authorizer": {
-                            "type": "token",
-                            "identitySource": "method.request.header.Auth",
-                            "authorizerUri": "arn",
-                        },
-                    }
-                },
-            },
-        ),
-        (
-            {
-                "securityDefinitions": {
-                    "TokenAuth": {
-                        "type": "apiKey",
-                        "in": "header",
-                        "name": "Auth",
-                        "x-amazon-apigateway-authtype": "custom",
-                        "x-amazon-apigateway-authorizer": {
-                            "type": "token",
-                            "identitySource": "method.request.header.Auth",
-                            "authorizerUri": "arn",
-                        },
-                    }
-                }
-            },
-        ),
-    ])
+            ),
+        ]
+    )
     def test_invalid_oas_version(self, swagger_doc):
         parser = SwaggerParser(Mock(), swagger_doc)
 
         with self.assertRaises(InvalidOasVersion):
             parser.get_authorizers()
+
+
+class TestSwaggerParser_get_default_authorizer(TestCase):
+    def test_valid_default_authorizers(self):
+        authorizer_name = "authorizer"
+
+        swagger_doc = {"openapi": "3.0", "security": [{authorizer_name: []}]}
+
+        parser = SwaggerParser(Mock(), swagger_doc)
+        result = parser.get_default_authorizer(Route.HTTP)
+
+        self.assertEqual(result, authorizer_name)
+
+    @parameterized.expand(
+        [
+            ({"openapi": "3.0", "security": []},),
+            ({"swagger": "2.0", "security": []},),
+        ]
+    )
+    def test_no_default_authorizer_defined(self, swagger):
+        parser = SwaggerParser(Mock(), swagger)
+
+        result = parser.get_default_authorizer(Route.HTTP)
+        self.assertIsNone(result)
+
+        result = parser.get_default_authorizer(Route.API)
+        self.assertIsNone(result)
+
+    @parameterized.expand(
+        [
+            ({"swagger": "2.0", "security": [{"auth": []}]}, IncorrectOasWithDefaultAuthorizerException),
+            ({"openapi": "3.0", "security": [{"auth": []}, {"auth2": []}]}, MultipleAuthorizerException),
+        ]
+    )
+    def test_invalid_default_authorizer_definition(self, swagger, expected_exception):
+        parser = SwaggerParser(Mock(), swagger)
+
+        with self.assertRaises(expected_exception):
+            parser.get_default_authorizer(Route.HTTP)

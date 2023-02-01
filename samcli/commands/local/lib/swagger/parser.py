@@ -184,6 +184,7 @@ class SwaggerParser:
                 payload_format_version = self._get_payload_format_version(method_config)
 
                 authorizers = method_config.get("security", None)
+                authorizer = None
 
                 if authorizers is None:
                     # user has no security defined, set blank to use default
@@ -198,15 +199,12 @@ class SwaggerParser:
                     if len(authorizers) > 1:
                         raise MultipleAuthorizerException(
                             "There must only be a single authorizer defined "
-                            f"for a single route, found '{len(authorizers)}'"
+                            f"for path='{full_path}' method='{method}', found '{len(authorizers)}'"
                         )
 
                     if len(authorizers) == 1:
                         # user has authorizer defined
                         authorizer = str(list(authorizers[0])[0])
-                    else:
-                        # user has defined empty list, do not set authorizer
-                        authorizer = None
 
                 route = Route(
                     function_name,

@@ -78,7 +78,6 @@ class ApiCollector:
             authorizers = self._authorizers_per_resources.get(apigw_id, {})
 
             default_authorizer = self._default_authorizer_per_resource.get(apigw_id, None)
-            default_authorizer_obj = authorizers.get(default_authorizer, None)
 
             for route in routes:
                 if route.authorizer_name is None:
@@ -89,35 +88,26 @@ class ApiCollector:
 
                     continue
 
-                if route.authorizer_name == "":
-                    # set the default authorizer, if one exists, otherwise it will be None
-                    route.authorizer_name = default_authorizer
-                    route.authorizer_object = default_authorizer_obj
+                authorizer_name_lookup = route.authorizer_name or default_authorizer or ""
+                authorizer_object = authorizers.get(authorizer_name_lookup, None)
+
+                if authorizer_object:
+                    route.authorizer_name = authorizer_name_lookup
+                    route.authorizer_object = authorizer_object
 
                     LOG.info(
-                        "Linking default authorizer '%s', for route '%s'",
-                        default_authorizer,
+                        "Linking authorizer '%s', for route '%s'",
+                        route.authorizer_name,
                         route.path,
                     )
                 else:
-                    authorizer_object = authorizers.get(route.authorizer_name, None)
+                    route.authorizer_name = None
 
-                    if authorizer_object:
-                        route.authorizer_object = authorizer_object
-
-                        LOG.info(
-                            "Linking authorizer '%s', for route '%s'",
-                            route.authorizer_name,
-                            route.path,
-                        )
-                    else:
-                        route.authorizer_name = None
-
-                        LOG.info(
-                            "Linking authorizer skipped for route '%s', authorizer '%s' is unsupported",
-                            route.path,
-                            route.authorizer_name,
-                        )
+                    LOG.info(
+                        "Linking authorizer skipped for route '%s', authorizer '%s' is unsupported or not found",
+                        route.path,
+                        route.authorizer_name,
+                    )
 
     def add_routes(self, logical_id: str, routes: List[Route]) -> None:
         """
