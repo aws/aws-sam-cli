@@ -6,9 +6,14 @@ from botocore.exceptions import ClientError
 
 from samcli.commands.exceptions import InvalidStackNameException
 from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NestedStackManager
+from samcli.lib.package.utils import is_local_folder, is_zip_file
 from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIdentifier
 from samcli.lib.sync.flows.auto_dependency_layer_sync_flow import AutoDependencyLayerParentSyncFlow
-from samcli.lib.sync.flows.layer_sync_flow import LayerSyncFlow
+from samcli.lib.sync.flows.layer_sync_flow import (
+    LayerSyncFlow,
+    LayerSyncFlowSkipBuildDirectory,
+    LayerSyncFlowSkipBuildZipFile,
+)
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.resource_type_based_factory import ResourceTypeBasedFactory
 
@@ -170,8 +175,26 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
             )
         return None
 
-    def _create_layer_flow(self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]) -> SyncFlow:
-        return LayerSyncFlow(
+    def _create_layer_flow(
+        self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]
+    ) -> Optional[SyncFlow]:
+        layer = self._build_context.layer_provider.get(str(resource_identifier))
+        if not layer:
+            LOG.warning("Can't find layer resource with %s logical id", str(resource_identifier))
+            return None
+        layer_sync_flow_type = LayerSyncFlow
+
+        if not layer.build_method or layer.skip_build:
+            LOG.debug("Creating LayerSyncFlowNoBuildDirectory for %s resource", resource_identifier)
+            if is_local_folder(layer.codeuri):
+                layer_sync_flow_type = LayerSyncFlowSkipBuildDirectory
+
+            if is_zip_file(layer.codeuri):
+                LOG.debug("Creating LayerSyncFlowNoBuildZipFile for %s resource", resource_identifier)
+                layer_sync_flow_type = LayerSyncFlowSkipBuildZipFile
+
+        LOG.debug("Creating regular LayerSyncFlow for %s resource", resource_identifier)
+        return layer_sync_flow_type(
             str(resource_identifier),
             self._build_context,
             self._deploy_context,
