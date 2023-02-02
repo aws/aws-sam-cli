@@ -19,8 +19,8 @@ import jmespath
 from samcli.commands.package.exceptions import ImageNotFoundError, InvalidLocalPathError
 from samcli.lib.package.ecr_utils import is_ecr_url
 from samcli.lib.package.permissions import (
-    FilePermissionMapper,
-    DirPermissionMapper,
+    WindowsFilePermissionMapper,
+    WindowsDirPermissionMapper,
     AdditiveFilePermissionMapper,
     AdditiveDirPermissionMapper,
 )
@@ -292,8 +292,8 @@ def make_zip_with_permissions(file_name, source_root, permission_mappers):
 make_zip = functools.partial(
     make_zip_with_permissions,
     permission_mappers=[
-        FilePermissionMapper(permissions=0o100755) if platform.system().lower() == "windows" else None,
-        DirPermissionMapper(permissions=0o100755) if platform.system().lower() == "windows" else None,
+        WindowsFilePermissionMapper(permissions=0o100755) if platform.system().lower() == "windows" else None,
+        WindowsDirPermissionMapper(permissions=0o100755) if platform.system().lower() == "windows" else None,
     ],
 )
 # Context: Jan 2023
@@ -304,8 +304,8 @@ make_zip = functools.partial(
 make_zip_with_lambda_permissions = functools.partial(
     make_zip_with_permissions,
     permission_mappers=[
-        FilePermissionMapper(permissions=0o100755) if platform.system().lower() == "windows" else None,
-        DirPermissionMapper(permissions=0o100755) if platform.system().lower() == "windows" else None,
+        WindowsFilePermissionMapper(permissions=0o100755) if platform.system().lower() == "windows" else None,
+        WindowsDirPermissionMapper(permissions=0o100755) if platform.system().lower() == "windows" else None,
         AdditiveFilePermissionMapper(permissions=0o100444),
         AdditiveDirPermissionMapper(permissions=0o100111),
     ],

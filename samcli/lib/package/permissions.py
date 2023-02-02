@@ -5,7 +5,7 @@ import platform
 import zipfile
 
 
-class FilePermissionMapper:
+class WindowsFilePermissionMapper:
     def __init__(self, permissions: int):
         self.permissions = permissions
 
@@ -16,7 +16,7 @@ class FilePermissionMapper:
         return zip_info
 
 
-class DirPermissionMapper:
+class WindowsDirPermissionMapper:
     def __init__(self, permissions: int):
         self.permissions = permissions
 
