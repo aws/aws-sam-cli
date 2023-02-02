@@ -107,9 +107,7 @@ class SamApiProvider(CfnBaseApiProvider):
             self._extract_authorizers_from_props(logical_id, auth, collector, Route.API)
 
     @staticmethod
-    def _extract_authorizers_from_props(
-        logical_id: str, auth: dict, collector: ApiCollector, event_type: str
-    ) -> None:
+    def _extract_authorizers_from_props(logical_id: str, auth: dict, collector: ApiCollector, event_type: str) -> None:
         """
         Extracts Authorizers from the Auth properties section of Serverless resources
 
@@ -143,22 +141,7 @@ class SamApiProvider(CfnBaseApiProvider):
                 LOG.warning("Unable to parse the Lambda ARN for Authorizer '%s', skipping", auth_name)
                 continue
 
-            if authorizer_type == "token":
-                validation_expression = identity_object.get("ValidationExpression")
-
-                header = identity_object.get("Header", "Authorizer")
-                header = f"{prefix}.request.header.{header}"
-
-                authorizers[auth_name] = LambdaAuthorizer(
-                    payload_version="1.0",
-                    authorizer_name=auth_name,
-                    type="token",
-                    lambda_name=function_name,
-                    identity_sources=[header],
-                    validation_string=validation_expression,
-                )
-
-            elif authorizer_type == "request" or event_type == Route.HTTP:
+            if authorizer_type == "request" or event_type == Route.HTTP:
                 identity_sources = []
 
                 for query_string in identity_object.get("QueryStrings", []):
@@ -183,6 +166,20 @@ class SamApiProvider(CfnBaseApiProvider):
                     lambda_name=function_name,
                     identity_sources=identity_sources,
                     use_simple_response=simple_responses,
+                )
+            elif authorizer_type == "token":
+                validation_expression = identity_object.get("ValidationExpression")
+
+                header = identity_object.get("Header", "Authorization")
+                header = f"{prefix}request.header.{header}"
+
+                authorizers[auth_name] = LambdaAuthorizer(
+                    payload_version="1.0",
+                    authorizer_name=auth_name,
+                    type="token",
+                    lambda_name=function_name,
+                    identity_sources=[header],
+                    validation_string=validation_expression,
                 )
             else:
                 LOG.info("Authorizer '%s' is currently unsupported (not of type TOKEN or REQUEST), skipping", auth_name)
