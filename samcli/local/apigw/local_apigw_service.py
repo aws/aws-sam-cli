@@ -42,6 +42,10 @@ class Authorizer:
 
 @dataclass
 class LambdaAuthorizer(Authorizer):
+    TOKEN = "token"
+    REQUEST = "request"
+    VALID_TYPES = [TOKEN, REQUEST]
+
     lambda_name: str
     identity_sources: List[str]
     validation_string: Optional[str] = None
