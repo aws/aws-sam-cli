@@ -1849,10 +1849,13 @@ class TestSamHttpApiCors(TestCase):
 
 
 class TestSamApiUsingAuthorizers(TestCase):
+    @parameterized.expand(
+        [(SamApiProvider()._extract_from_serverless_api,), (SamApiProvider()._extract_from_serverless_http,)]
+    )
     @patch("samcli.lib.providers.cfn_base_api_provider.CfnBaseApiProvider.extract_swagger_route")
     @patch("samcli.lib.providers.sam_api_provider.SamApiProvider._extract_authorizers_from_props")
     def test_extract_serverless_api_extracts_default_authorizer(
-        self, extract_authorizers_mock, extract_swagger_route_mock
+        self, extraction_method, extract_authorizers_mock, extract_swagger_route_mock
     ):
         authorizer_name = "myauth"
 
@@ -1864,7 +1867,7 @@ class TestSamApiUsingAuthorizers(TestCase):
         api_collector_mock = Mock()
         api_collector_mock.set_default_authorizer = Mock()
 
-        SamApiProvider()._extract_from_serverless_api(Mock(), logical_id_mock, properties, api_collector_mock, Mock())
+        extraction_method(Mock(), logical_id_mock, properties, api_collector_mock, Mock())
 
         api_collector_mock.set_default_authorizer.assert_called_with(logical_id_mock, authorizer_name)
 
