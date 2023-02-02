@@ -42,10 +42,9 @@ from samcli.lib.utils.resources import (
     AWS_SERVERLESS_STATEMACHINE,
     AWS_STEPFUNCTIONS_STATEMACHINE,
 )
-
+from samcli.commands.build.build_context import BuildContext
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
-    from samcli.commands.build.build_context import BuildContext
 
 LOG = logging.getLogger(__name__)
 
@@ -180,27 +179,40 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
     ) -> Optional[SyncFlow]:
         layer = self._build_context.layer_provider.get(str(resource_identifier))
         if not layer:
-            LOG.warning("Can't find layer resource with %s logical id", str(resource_identifier))
+            LOG.warning("Can't find layer resource with '%s' logical id", str(resource_identifier))
             return None
-        layer_sync_flow_type = LayerSyncFlow
 
-        if not layer.build_method or layer.skip_build:
-            LOG.debug("Creating LayerSyncFlowNoBuildDirectory for %s resource", resource_identifier)
-            if is_local_folder(layer.codeuri):
-                layer_sync_flow_type = LayerSyncFlowSkipBuildDirectory
+        if BuildContext.is_layer_buildable(layer):
+            return LayerSyncFlow(
+                str(resource_identifier),
+                self._build_context,
+                self._deploy_context,
+                self._physical_id_mapping,
+                self._stacks,
+            )
 
-            if is_zip_file(layer.codeuri):
-                LOG.debug("Creating LayerSyncFlowNoBuildZipFile for %s resource", resource_identifier)
-                layer_sync_flow_type = LayerSyncFlowSkipBuildZipFile
+        if is_local_folder(layer.codeuri):
+            LOG.debug("Creating LayerSyncFlowSkipBuildDirectory for '%s' resource", resource_identifier)
+            return LayerSyncFlowSkipBuildDirectory(
+                str(resource_identifier),
+                self._build_context,
+                self._deploy_context,
+                self._physical_id_mapping,
+                self._stacks,
+            )
 
-        LOG.debug("Creating regular LayerSyncFlow for %s resource", resource_identifier)
-        return layer_sync_flow_type(
-            str(resource_identifier),
-            self._build_context,
-            self._deploy_context,
-            self._physical_id_mapping,
-            self._stacks,
-        )
+        if is_zip_file(layer.codeuri):
+            LOG.debug("Creating LayerSyncFlowSkipBuildZipFile for '%s' resource", resource_identifier)
+            return LayerSyncFlowSkipBuildZipFile(
+                str(resource_identifier),
+                self._build_context,
+                self._deploy_context,
+                self._physical_id_mapping,
+                self._stacks,
+            )
+
+        LOG.warning("Can't create sync flow for '%s' layer resource", resource_identifier)
+        return None
 
     def _create_rest_api_flow(self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]) -> SyncFlow:
         return RestApiSyncFlow(
