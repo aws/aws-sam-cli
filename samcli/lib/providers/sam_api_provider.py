@@ -3,12 +3,13 @@
 import logging
 from typing import List, Optional, Dict, Tuple, cast, Union
 
+from samcli.commands.local.lib.swagger.integration_uri import LambdaUri
 from samcli.lib.providers.api_collector import ApiCollector
 from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.providers.provider import Stack
 from samcli.lib.utils.colors import Colored
-from samcli.local.apigw.local_apigw_service import Route
+from samcli.local.apigw.local_apigw_service import Route, Authorizer, LambdaAuthorizer
 from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION, AWS_SERVERLESS_API, AWS_SERVERLESS_HTTPAPI
 
 LOG = logging.getLogger(__name__)
@@ -98,6 +99,96 @@ class SamApiProvider(CfnBaseApiProvider):
         collector.stage_variables = stage_variables
         collector.cors = cors
 
+        auth = properties.get("Auth", {})
+        if auth:
+            if auth.get("DefaultAuthorizer"):
+                collector.set_default_authorizer(logical_id, auth.get("DefaultAuthorizer"))
+
+            self._extract_authorizers_from_props(logical_id, auth, collector, Route.API)
+
+    @staticmethod
+    def _extract_authorizers_from_props(
+        logical_id: str, auth: dict, collector: ApiCollector, event_type: str
+    ) -> None:
+        """
+        Extracts Authorizers from the Auth properties section of Serverless resources
+
+        Parameters
+        ----------
+        logical_id: str
+            The logical ID of the Serverless resource
+        auth: dict
+            The Auth property dictionary
+        collector: ApiCollector
+            The Api Collector to send the Authorizers to
+        event_type: str
+            What kind of API this is (API, HTTP API)
+        """
+        prefix = "method." if event_type == Route.API else "$"
+        authorizers: Dict[str, Authorizer] = {}
+
+        for auth_name, auth_props in auth.get("Authorizers", {}).items():
+            authorizer_type = auth_props.get("FunctionPayloadType", "token").lower()
+            identity_object = auth_props.get("Identity", {})
+
+            function_arn = auth_props.get("FunctionArn")
+
+            if not function_arn:
+                LOG.info("Authorizer '%s' is currently unsupported (must be a Lambda Authorizer), skipping", auth_name)
+                continue
+
+            function_name = LambdaUri.get_function_name(function_arn)
+
+            if not function_name:
+                LOG.warning("Unable to parse the Lambda ARN for Authorizer '%s', skipping", auth_name)
+                continue
+
+            if authorizer_type == "token":
+                validation_expression = identity_object.get("ValidationExpression")
+
+                header = identity_object.get("Header", "Authorizer")
+                header = f"{prefix}.request.header.{header}"
+
+                authorizers[auth_name] = LambdaAuthorizer(
+                    payload_version="1.0",
+                    authorizer_name=auth_name,
+                    type="token",
+                    lambda_name=function_name,
+                    identity_sources=[header],
+                    validation_string=validation_expression,
+                )
+
+            elif authorizer_type == "request" or event_type == Route.HTTP:
+                identity_sources = []
+
+                for query_string in identity_object.get("QueryStrings", []):
+                    identity_sources.append(f"{prefix}request.query.{query_string}")
+
+                for header in identity_object.get("Headers", []):
+                    identity_sources.append(f"{prefix}request.header.{header}")
+
+                for context in identity_object.get("Context", []):
+                    identity_sources.append(f"{prefix}request.context.{context}")
+
+                for stage_variable in identity_object.get("StageVariables", []):
+                    identity_sources.append(f"{prefix}request.stage.{stage_variable}")
+
+                payload_version = identity_object.get("AuthorizerPayloadFormatVersion", "1.0")
+                simple_responses = identity_object.get("EnableSimpleResponses", False)
+
+                authorizers[auth_name] = LambdaAuthorizer(
+                    payload_version=payload_version,
+                    authorizer_name=auth_name,
+                    type="request",
+                    lambda_name=function_name,
+                    identity_sources=identity_sources,
+                    use_simple_response=simple_responses,
+                )
+            else:
+                LOG.info("Authorizer '%s' is currently unsupported (not of type TOKEN or REQUEST), skipping", auth_name)
+
+        collector.add_authorizers(logical_id, authorizers)
+
     def _extract_from_serverless_http(
         self, stack_path: str, logical_id: str, api_resource: Dict, collector: ApiCollector, cwd: Optional[str] = None
     ) -> None:
@@ -142,6 +233,13 @@ class SamApiProvider(CfnBaseApiProvider):
         collector.stage_name = stage_name
         collector.stage_variables = stage_variables
         collector.cors = cors
+
+        auth = properties.get("Auth", {})
+        if auth:
+            if auth.get("DefaultAuthorizer"):
+                collector.set_default_authorizer(logical_id, auth.get("DefaultAuthorizer"))
+
+            self._extract_authorizers_from_props(logical_id, auth, collector, Route.HTTP)
 
     def _extract_routes_from_function(
         self, stack_path: str, logical_id: str, function_resource: Dict, collector: ApiCollector
@@ -241,6 +339,11 @@ class SamApiProvider(CfnBaseApiProvider):
                 "It should either be a LogicalId string or a Ref of a Logical Id string".format(lambda_logical_id)
             )
 
+        # Find Authorizer
+        authorizer = event_properties.get("Auth", {}).get("Authorizer", "")
+        if authorizer == "NONE":
+            authorizer = None
+
         return (
             api_resource_id,
             Route(
@@ -250,6 +353,7 @@ class SamApiProvider(CfnBaseApiProvider):
                 event_type=event_type,
                 payload_format_version=payload_format_version,
                 stack_path=stack_path,
+                authorizer_name=authorizer,
             ),
         )
 
