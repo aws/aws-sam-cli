@@ -133,7 +133,7 @@ class TestSyncAdlWithWatchStartWithNoDependencies(TestSyncWatchBase):
         )
         read_until_string(
             self.watch_process,
-            "\x1b[32mFinished syncing Function Layer Reference Sync HelloWorldFunction.\x1b[0m\n",
+            "\x1b[32mFinished syncing Layer HelloWorldFunction",
             timeout=60,
         )
         lambda_response = json.loads(self._get_lambda_response(lambda_functions[0]))
@@ -147,7 +147,7 @@ class TestSyncAdlWithWatchStartWithNoDependencies(TestSyncWatchBase):
         )
         read_until_string(
             self.watch_process,
-            "\x1b[32mFinished syncing Function Layer Reference Sync HelloWorldFunction.\x1b[0m\n",
+            "\x1b[32mFinished syncing Layer HelloWorldFunction",
             timeout=60,
         )
         self._confirm_lambda_error(lambda_functions[0])
