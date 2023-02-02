@@ -26,6 +26,22 @@ class SamApiProvider(CfnBaseApiProvider):
     IMPLICIT_API_RESOURCE_ID = "ServerlessRestApi"
     IMPLICIT_HTTP_API_RESOURCE_ID = "ServerlessHttpApi"
 
+    _AUTH = "Auth"
+    _AUTH_HEADER = "Header"
+    _AUTH_SIMPLE_RESPONSES = "EnableSimpleResponses"
+    _AUTHORIZER = "Authorizer"
+    _AUTHORIZERS = "Authorizers"
+    _DEFAULT_AUTHORIZER = "DefaultAuthorizer"
+    _FUNCTION_TYPE = "FunctionPayloadType"
+    _AUTHORIZER_PAYLOAD = "AuthorizerPayloadFormatVersion"
+    _FUNCTION_ARN = "FunctionArn"
+    _VALIDATION_EXPRESSION = "ValidationExpression"
+    _IDENTITY = "Identity"
+    _IDENTITY_QUERY = "QueryStrings"
+    _IDENTITY_HEADERS = "Headers"
+    _IDENTITY_CONTEXT = "Context"
+    _IDENTITY_STAGE = "StageVariables"
+
     def extract_resources(self, stacks: List[Stack], collector: ApiCollector, cwd: Optional[str] = None) -> None:
         """
         Extract the Route Object from a given resource and adds it to the RouteCollector.
@@ -99,10 +115,10 @@ class SamApiProvider(CfnBaseApiProvider):
         collector.stage_variables = stage_variables
         collector.cors = cors
 
-        auth = properties.get("Auth", {})
+        auth = properties.get(SamApiProvider._AUTH, {})
         if auth:
-            if auth.get("DefaultAuthorizer"):
-                collector.set_default_authorizer(logical_id, auth.get("DefaultAuthorizer"))
+            if auth.get(SamApiProvider._DEFAULT_AUTHORIZER):
+                collector.set_default_authorizer(logical_id, auth.get(SamApiProvider._DEFAULT_AUTHORIZER))
 
             self._extract_authorizers_from_props(logical_id, auth, collector, Route.API)
 
@@ -125,11 +141,11 @@ class SamApiProvider(CfnBaseApiProvider):
         prefix = "method." if event_type == Route.API else "$"
         authorizers: Dict[str, Authorizer] = {}
 
-        for auth_name, auth_props in auth.get("Authorizers", {}).items():
-            authorizer_type = auth_props.get("FunctionPayloadType", "token").lower()
-            identity_object = auth_props.get("Identity", {})
+        for auth_name, auth_props in auth.get(SamApiProvider._AUTHORIZERS, {}).items():
+            authorizer_type = auth_props.get(SamApiProvider._FUNCTION_TYPE, LambdaAuthorizer.TOKEN).lower()
+            identity_object = auth_props.get(SamApiProvider._IDENTITY, {})
 
-            function_arn = auth_props.get("FunctionArn")
+            function_arn = auth_props.get(SamApiProvider._FUNCTION_ARN)
 
             if not function_arn:
                 LOG.info("Authorizer '%s' is currently unsupported (must be a Lambda Authorizer), skipping", auth_name)
@@ -141,42 +157,42 @@ class SamApiProvider(CfnBaseApiProvider):
                 LOG.warning("Unable to parse the Lambda ARN for Authorizer '%s', skipping", auth_name)
                 continue
 
-            if authorizer_type == "request" or event_type == Route.HTTP:
+            if authorizer_type == LambdaAuthorizer.REQUEST or event_type == Route.HTTP:
                 identity_sources = []
 
-                for query_string in identity_object.get("QueryStrings", []):
+                for query_string in identity_object.get(SamApiProvider._IDENTITY_QUERY, []):
                     identity_sources.append(f"{prefix}request.query.{query_string}")
 
-                for header in identity_object.get("Headers", []):
+                for header in identity_object.get(SamApiProvider._IDENTITY_HEADERS, []):
                     identity_sources.append(f"{prefix}request.header.{header}")
 
-                for context in identity_object.get("Context", []):
+                for context in identity_object.get(SamApiProvider._IDENTITY_CONTEXT, []):
                     identity_sources.append(f"{prefix}request.context.{context}")
 
-                for stage_variable in identity_object.get("StageVariables", []):
+                for stage_variable in identity_object.get(SamApiProvider._IDENTITY_STAGE, []):
                     identity_sources.append(f"{prefix}request.stage.{stage_variable}")
 
-                payload_version = identity_object.get("AuthorizerPayloadFormatVersion", "1.0")
-                simple_responses = identity_object.get("EnableSimpleResponses", False)
+                payload_version = identity_object.get(SamApiProvider._AUTHORIZER_PAYLOAD, "1.0")
+                simple_responses = identity_object.get(SamApiProvider._AUTH_SIMPLE_RESPONSES, False)
 
                 authorizers[auth_name] = LambdaAuthorizer(
                     payload_version=payload_version,
                     authorizer_name=auth_name,
-                    type="request",
+                    type=LambdaAuthorizer.REQUEST,
                     lambda_name=function_name,
                     identity_sources=identity_sources,
                     use_simple_response=simple_responses,
                 )
-            elif authorizer_type == "token":
-                validation_expression = identity_object.get("ValidationExpression")
+            elif authorizer_type == LambdaAuthorizer.TOKEN:
+                validation_expression = identity_object.get(SamApiProvider._VALIDATION_EXPRESSION)
 
-                header = identity_object.get("Header", "Authorization")
+                header = identity_object.get(SamApiProvider._AUTH_HEADER, "Authorization")
                 header = f"{prefix}request.header.{header}"
 
                 authorizers[auth_name] = LambdaAuthorizer(
                     payload_version="1.0",
                     authorizer_name=auth_name,
-                    type="token",
+                    type=LambdaAuthorizer.TOKEN,
                     lambda_name=function_name,
                     identity_sources=[header],
                     validation_string=validation_expression,
@@ -231,10 +247,10 @@ class SamApiProvider(CfnBaseApiProvider):
         collector.stage_variables = stage_variables
         collector.cors = cors
 
-        auth = properties.get("Auth", {})
+        auth = properties.get(SamApiProvider._AUTH, {})
         if auth:
-            if auth.get("DefaultAuthorizer"):
-                collector.set_default_authorizer(logical_id, auth.get("DefaultAuthorizer"))
+            if auth.get(SamApiProvider._DEFAULT_AUTHORIZER):
+                collector.set_default_authorizer(logical_id, auth.get(SamApiProvider._DEFAULT_AUTHORIZER))
 
             self._extract_authorizers_from_props(logical_id, auth, collector, Route.HTTP)
 
@@ -337,7 +353,7 @@ class SamApiProvider(CfnBaseApiProvider):
             )
 
         # Find Authorizer
-        authorizer = event_properties.get("Auth", {}).get("Authorizer", "")
+        authorizer = event_properties.get(SamApiProvider._AUTH, {}).get(SamApiProvider._AUTHORIZER, "")
         if authorizer == "NONE":
             authorizer = None
 
