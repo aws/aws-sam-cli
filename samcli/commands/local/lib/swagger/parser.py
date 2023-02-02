@@ -22,6 +22,22 @@ class SwaggerParser:
     _BINARY_MEDIA_TYPES_EXTENSION_KEY = "x-amazon-apigateway-binary-media-types"  # pylint: disable=C0103
     _ANY_METHOD = "ANY"
 
+    _SWAGGER = "swagger"
+    _OPENAPI = "openapi"
+    _2_X_VERSION = "2."
+    _3_X_VERSION = "3."
+    _SWAGGER_COMPONENTS = "components"
+    _SWAGGER_SECURITY = "security"
+    _SWAGGER_SECURITY_SCHEMES = "securitySchemes"
+    _SWAGGER_SECURITY_DEFINITIONS = "securityDefinitions"
+    _AUTHORIZER_TYPE = "type"
+    _AUTHORIZER_PAYLOAD_VERSION = "authorizerPayloadFormatVersion"
+    _AUTHORIZER_LAMBDA_URI = "authorizerUri"
+    _AUTHORIZER_LAMBDA_VALIDATION = "identityValidationExpression"
+    _AUTHORIZER_NAME = "name"
+    _AUTHORIZER_IN = "in"
+    _AUTHORIZER_IDENTITY_SOURCE = "identitySource"
+
     def __init__(self, stack_path: str, swagger):
         """
         Constructs an Swagger Parser object
@@ -61,14 +77,16 @@ class SwaggerParser:
         authorizers: Dict[str, Authorizer] = {}
 
         authorizer_dict = {}
-        document_version = self.swagger.get("swagger") or self.swagger.get("openapi") or ""
+        document_version = self.swagger.get(SwaggerParser._SWAGGER) or self.swagger.get(SwaggerParser._OPENAPI) or ""
 
-        if document_version.startswith("2."):
+        if document_version.startswith(SwaggerParser._2_X_VERSION):
             LOG.debug("Parsing Swagger document using 2.0 specification")
-            authorizer_dict = self.swagger.get("securityDefinitions", {})
-        elif document_version.startswith("3."):
+            authorizer_dict = self.swagger.get(SwaggerParser._SWAGGER_SECURITY_DEFINITIONS, {})
+        elif document_version.startswith(SwaggerParser._3_X_VERSION):
             LOG.debug("Parsing Swagger document using 3.0 specification")
-            authorizer_dict = self.swagger.get("components", {}).get("securitySchemes", {})
+            authorizer_dict = self.swagger.get(SwaggerParser._SWAGGER_COMPONENTS, {}).get(
+                SwaggerParser._SWAGGER_SECURITY_SCHEMES, {}
+            )
         else:
             raise InvalidOasVersion(
                 f"An invalid OpenApi version was detected: '{document_version}', must be one of 2.x or 3.x",
@@ -78,12 +96,10 @@ class SwaggerParser:
             authorizer_object = properties.get(self._AUTHORIZER_KEY)
 
             if authorizer_object:
-                valid_types = ["token", "request"]
+                authorizer_type = authorizer_object.get(SwaggerParser._AUTHORIZER_TYPE, "").lower()
+                payload_version = authorizer_object.get(SwaggerParser._AUTHORIZER_PAYLOAD_VERSION, "1.0")
 
-                authorizer_type = authorizer_object.get("type", "").lower()
-                payload_version = authorizer_object.get("authorizerPayloadFormatVersion", "1.0")
-
-                lambda_name = LambdaUri.get_function_name(authorizer_object.get("authorizerUri"))
+                lambda_name = LambdaUri.get_function_name(authorizer_object.get(SwaggerParser._AUTHORIZER_LAMBDA_URI))
 
                 if not lambda_name:
                     LOG.warning(
@@ -93,12 +109,12 @@ class SwaggerParser:
                     continue
 
                 # only add authorizer if it is Lambda token or request based (not jwt)
-                if authorizer_type in valid_types and lambda_name:
+                if authorizer_type in LambdaAuthorizer.VALID_TYPES and lambda_name:
                     identity_sources = self._get_lambda_identity_sources(
                         auth_name, authorizer_type, event_type, properties, authorizer_object
                     )
 
-                    validation_expression = authorizer_object.get("identityValidationExpression")
+                    validation_expression = authorizer_object.get(SwaggerParser._AUTHORIZER_LAMBDA_VALIDATION)
                     if event_type != Route.HTTP:
                         validation_expression = None
                         LOG.info(
@@ -158,10 +174,10 @@ class SwaggerParser:
         """
         identity_sources: List[str] = []
 
-        if auth_type == "token":
-            header_name = properties.get("name")
+        if auth_type == LambdaAuthorizer.TOKEN:
+            header_name = properties.get(SwaggerParser._AUTHORIZER_NAME)
 
-            if not properties.get("in") == "header" or not header_name:
+            if not properties.get(SwaggerParser._AUTHORIZER_IN) == "header" or not header_name:
                 LOG.info(
                     "Missing properties for Lambda Authorizer '%s', "
                     "property 'in' must be set to 'header' and "
@@ -173,7 +189,7 @@ class SwaggerParser:
             else:
                 identity_sources.append(f"method.request.header.{header_name}")
         else:
-            identity_source_string = authorizer_object.get("identitySource")
+            identity_source_string = authorizer_object.get(SwaggerParser._AUTHORIZER_IDENTITY_SOURCE)
 
             if not identity_source_string:
                 LOG.info(
@@ -201,10 +217,10 @@ class SwaggerParser:
         Union[str, None]
             Returns the name of the authorizer, if there is one defined, otherwise None
         """
-        document_version = self.swagger.get("swagger") or self.swagger.get("openapi") or ""
-        authorizers = self.swagger.get("security", [])
+        document_version = self.swagger.get(SwaggerParser._SWAGGER) or self.swagger.get(SwaggerParser._OPENAPI) or ""
+        authorizers = self.swagger.get(SwaggerParser._SWAGGER_SECURITY, [])
 
-        if document_version.startswith("3.") and event_type == Route.HTTP:
+        if document_version.startswith(SwaggerParser._3_X_VERSION) and event_type == Route.HTTP:
             if len(authorizers) > 1:
                 raise MultipleAuthorizerException(
                     f"There must only be a single authorizer defined for a single route, found '{len(authorizers)}'"
@@ -276,7 +292,7 @@ class SwaggerParser:
 
                 payload_format_version = self._get_payload_format_version(method_config)
 
-                authorizers = method_config.get("security", None)
+                authorizers = method_config.get(SwaggerParser._SWAGGER_SECURITY, None)
                 authorizer = None
 
                 if authorizers is None:
