@@ -13,7 +13,12 @@ from unittest import mock
 from unittest.mock import patch, Mock, MagicMock
 
 from samcli.commands.package.exceptions import ExportFailedError
-from samcli.lib.package.permissions import FilePermissionMapper, DirPermissionMapper
+from samcli.lib.package.permissions import (
+    FilePermissionMapper,
+    DirPermissionMapper,
+    AdditiveFilePermissionMapper,
+    AdditiveDirPermissionMapper,
+)
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Destination
 from samcli.lib.package.utils import zip_folder, make_zip, make_zip_with_lambda_permissions, make_zip_with_permissions
@@ -1736,6 +1741,8 @@ class TestArtifactExporter(unittest.TestCase):
             permission_mappers=[
                 FilePermissionMapper(permissions=0o100755) if platform.system().lower() == "windows" else None,
                 DirPermissionMapper(permissions=0o100755) if platform.system().lower() == "windows" else None,
+                AdditiveFilePermissionMapper(permissions=0o100444),
+                AdditiveDirPermissionMapper(permissions=0o100111),
             ],
         )
 

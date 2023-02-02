@@ -6,7 +6,7 @@ import zipfile
 
 
 class FilePermissionMapper:
-    def __init__(self, permissions: oct):
+    def __init__(self, permissions: int):
         self.permissions = permissions
 
     def apply(self, zip_info: zipfile.ZipInfo):
@@ -17,7 +17,7 @@ class FilePermissionMapper:
 
 
 class DirPermissionMapper:
-    def __init__(self, permissions: oct):
+    def __init__(self, permissions: int):
         self.permissions = permissions
 
     def apply(self, zip_info: zipfile.ZipInfo):
@@ -28,7 +28,7 @@ class DirPermissionMapper:
 
 
 class AdditiveDirPermissionMapper:
-    def __init__(self, permissions: oct):
+    def __init__(self, permissions: int):
         self.permissions = permissions
 
     def apply(self, zip_info: zipfile.ZipInfo):
@@ -38,7 +38,7 @@ class AdditiveDirPermissionMapper:
 
 
 class AdditiveFilePermissionMapper:
-    def __init__(self, permissions: oct):
+    def __init__(self, permissions: int):
         self.permissions = permissions
 
     def apply(self, zip_info: zipfile.ZipInfo):
