@@ -43,6 +43,7 @@ from samcli.lib.utils.resources import (
     AWS_STEPFUNCTIONS_STATEMACHINE,
 )
 from samcli.commands.build.build_context import BuildContext
+
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
 
