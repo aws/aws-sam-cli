@@ -107,6 +107,8 @@ class TestSyncFlowFactory(TestCase):
     @patch("samcli.lib.sync.sync_flow_factory.LayerSyncFlow")
     def test_create_layer_flow(self, layer_sync_mock):
         factory = self.create_factory()
+        # mock layer for not having SkipBuild:True
+        factory._build_context.layer_provider.get.return_value = Mock(skip_build=False)
         result = factory._create_layer_flow("Layer1", {})
         self.assertEqual(result, layer_sync_mock.return_value)
 
