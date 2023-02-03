@@ -64,33 +64,31 @@ Commands:
 
   *Create an App!*
 
-      init      Init an AWS SAM application
+      init            Init an AWS SAM application
 
   *Develop your app!*
 
-      build     Build your Lambda Function code
-      local     Run your serverless function locally
-      validate  Validate an AWS SAM template
+      build           Build your Lambda Function code
+      local           Run your serverless function locally
+      validate        Validate an AWS SAM template
+      sync (NEW)      Sync a project to AWS
 
-  *Develop your app in the Cloud! (NEW)*
-      sync      Sync a project to AWS
+  *Deploy your app!*
 
-  *Deploy your app to the Cloud!*
-
-      package   Package an AWS SAM application
-      deploy    Deploy an AWS SAM application
-      delete    Delete an AWS SAM application and the artifacts created by sam
-                deploy
-      publish   Publish a packaged AWS SAM template to AWS Serverless Application Repository
+      package         Package an AWS SAM application
+      deploy          Deploy an AWS SAM application
 
   *Monitor your app!*
 
-      logs      Fetch logs for a function
-      traces    Fetch AWS X-Ray traces
+      logs            Fetch logs for a function
+      traces          Fetch AWS X-Ray traces
 
-  *Operationalize your app with CI/CD!*
+  *And More!*
 
-      pipeline  Manage the continuous delivery of the application
+      delete          Delete an AWS SAM application and the artifacts created by sam deploy.
+      list (NEW)      Get local and deployed state of serverless application.
+      pipeline        Manage the continuous delivery of the application
+      publish         Publish a packaged AWS SAM template to AWS Serverless Application Repository for sharing.
 
 
 Global Options:
@@ -131,7 +129,7 @@ N/A
 Design
 ------
 
-WIP
+There will be a separate implementation PR to showcase the changes, but it will use `click` to override commands options and help text.
 
 `samconfig.toml` Changes
 ----------------
