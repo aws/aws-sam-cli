@@ -95,56 +95,56 @@ class SwaggerParser:
         for auth_name, properties in authorizer_dict.items():
             authorizer_object = properties.get(self._AUTHORIZER_KEY)
 
-            if authorizer_object:
-                authorizer_type = authorizer_object.get(SwaggerParser._AUTHORIZER_TYPE, "").lower()
-                payload_version = authorizer_object.get(SwaggerParser._AUTHORIZER_PAYLOAD_VERSION, "1.0")
-
-                lambda_name = LambdaUri.get_function_name(authorizer_object.get(SwaggerParser._AUTHORIZER_LAMBDA_URI))
-
-                if not lambda_name:
-                    LOG.warning(
-                        "Unable to parse authorizerUri '%s' for authorizer '%s', skipping", lambda_name, auth_name
-                    )
-
-                    continue
-
-                # only add authorizer if it is Lambda token or request based (not jwt)
-                if authorizer_type in LambdaAuthorizer.VALID_TYPES and lambda_name:
-                    identity_sources = self._get_lambda_identity_sources(
-                        auth_name, authorizer_type, event_type, properties, authorizer_object
-                    )
-
-                    validation_expression = authorizer_object.get(SwaggerParser._AUTHORIZER_LAMBDA_VALIDATION)
-                    if event_type != Route.HTTP:
-                        validation_expression = None
-                        LOG.info(
-                            "Validation expressions is only available on Rest APIs, "
-                            "ignoring for Lambda authorizer '%s'",
-                            auth_name,
-                        )
-
-                    if identity_sources:
-                        lambda_authorizer = LambdaAuthorizer(
-                            authorizer_name=auth_name,
-                            type=authorizer_type,
-                            payload_version=payload_version,
-                            lambda_name=lambda_name,
-                            identity_sources=identity_sources,
-                            validation_string=validation_expression,
-                        )
-
-                        authorizers[auth_name] = lambda_authorizer
-
-                        LOG.info("Parsing Lambda authorizer '%s' type '%s'", auth_name, authorizer_type)
-                    else:
-                        LOG.warning(
-                            "Skip parsing Lambda authorizer '%s', must contain at least valid identity source",
-                            auth_name,
-                        )
-                else:
-                    LOG.warning("Lambda authorizer '%s' type '%s' is unsupported, skipping", auth_name, authorizer_type)
-            else:
+            if not authorizer_object:
                 LOG.warning("Skip parsing unsupported authorizer '%s'", auth_name)
+                continue
+
+            authorizer_type = authorizer_object.get(SwaggerParser._AUTHORIZER_TYPE, "").lower()
+            payload_version = authorizer_object.get(SwaggerParser._AUTHORIZER_PAYLOAD_VERSION, "1.0")
+
+            lambda_name = LambdaUri.get_function_name(authorizer_object.get(SwaggerParser._AUTHORIZER_LAMBDA_URI))
+
+            if not lambda_name:
+                LOG.warning("Unable to parse authorizerUri '%s' for authorizer '%s', skipping", lambda_name, auth_name)
+                continue
+
+            # only add authorizer if it is Lambda token or request based (not jwt)
+            if not authorizer_type in LambdaAuthorizer.VALID_TYPES:
+                LOG.warning("Lambda authorizer '%s' type '%s' is unsupported, skipping", auth_name, authorizer_type)
+                continue
+
+            identity_sources = self._get_lambda_identity_sources(
+                auth_name, authorizer_type, event_type, properties, authorizer_object
+            )
+
+            validation_expression = authorizer_object.get(SwaggerParser._AUTHORIZER_LAMBDA_VALIDATION)
+            if event_type != Route.HTTP:
+                validation_expression = None
+
+                LOG.warning(
+                    "Validation expressions is only available on Rest APIs, " "ignoring for Lambda authorizer '%s'",
+                    auth_name,
+                )
+
+            if not identity_sources:
+                LOG.warning(
+                    "Skip parsing Lambda authorizer '%s', must contain at least valid identity source",
+                    auth_name,
+                )
+                continue
+
+            lambda_authorizer = LambdaAuthorizer(
+                authorizer_name=auth_name,
+                type=authorizer_type,
+                payload_version=payload_version,
+                lambda_name=lambda_name,
+                identity_sources=identity_sources,
+                validation_string=validation_expression,
+            )
+
+            authorizers[auth_name] = lambda_authorizer
+
+            LOG.debug("Parsing Lambda authorizer '%s' type '%s'", auth_name, authorizer_type)
 
         return authorizers
 
@@ -220,23 +220,35 @@ class SwaggerParser:
         document_version = self.swagger.get(SwaggerParser._SWAGGER) or self.swagger.get(SwaggerParser._OPENAPI) or ""
         authorizers = self.swagger.get(SwaggerParser._SWAGGER_SECURITY, [])
 
-        if document_version.startswith(SwaggerParser._3_X_VERSION) and event_type == Route.HTTP:
-            if len(authorizers) > 1:
-                raise MultipleAuthorizerException(
-                    f"There must only be a single authorizer defined for a single route, found '{len(authorizers)}'"
-                )
+        if not authorizers:
+            return None
 
-            if len(authorizers) == 1:
-                auth_name = str(list(authorizers[0])[0])
-
-                LOG.debug("Found default authorizer: %s", auth_name)
-
-                return auth_name
-
-        if authorizers:
+        if not document_version.startswith(SwaggerParser._3_X_VERSION) or not event_type == Route.HTTP:
             raise IncorrectOasWithDefaultAuthorizerException(
                 "Root level definition of default authorizers are only supported for OpenApi 3.0"
             )
+
+        if len(authorizers) > 1:
+            raise MultipleAuthorizerException(
+                f"There must only be a single authorizer defined for a single route, found '{len(authorizers)}'"
+            )
+
+        if len(authorizers) == 1:
+            # user has authorizer defined
+            authorizer_object = authorizers[0]
+            authorizer_object = list(authorizers[0])
+
+            # make sure that authorizer actually has keys
+            if len(authorizer_object) != 1:
+                raise InvalidSecurityDefinition(
+                    "Invalid default security definition found, there must " "be an authorizer defined."
+                )
+
+            authorizer_name = str(authorizer_object[0])
+
+            LOG.debug("Found default authorizer: %s", authorizer_name)
+
+            return authorizer_name
 
         return None
 
@@ -293,11 +305,11 @@ class SwaggerParser:
                 payload_format_version = self._get_payload_format_version(method_config)
 
                 authorizers = method_config.get(SwaggerParser._SWAGGER_SECURITY, None)
-                authorizer = None
+                authorizer_name = None
 
                 if authorizers is None:
                     # user has no security defined, set blank to use default
-                    authorizer = ""
+                    authorizer_name = ""
                 else:
                     if not isinstance(authorizers, list):
                         raise InvalidSecurityDefinition(
@@ -313,7 +325,17 @@ class SwaggerParser:
 
                     if len(authorizers) == 1:
                         # user has authorizer defined
-                        authorizer = str(list(authorizers[0])[0])
+                        authorizer_object = authorizers[0]
+                        authorizer_object = list(authorizers[0])
+
+                        # make sure that authorizer actually has keys
+                        if len(authorizer_object) != 1:
+                            raise InvalidSecurityDefinition(
+                                "Invalid security definition found, authorizers for "
+                                f"path='{full_path}' method='{method}' must contain an authorizer"
+                            )
+
+                        authorizer_name = str(authorizer_object[0])
 
                 route = Route(
                     function_name,
@@ -323,7 +345,7 @@ class SwaggerParser:
                     payload_format_version=payload_format_version,
                     operation_name=method_config.get("operationId"),
                     stack_path=self.stack_path,
-                    authorizer_name=authorizer,
+                    authorizer_name=authorizer_name,
                 )
                 result.append(route)
 
