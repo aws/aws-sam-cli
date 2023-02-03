@@ -122,7 +122,7 @@ class SwaggerParser:
                 validation_expression = None
 
                 LOG.warning(
-                    "Validation expressions is only available on Rest APIs, " "ignoring for Lambda authorizer '%s'",
+                    "Validation expressions is only available on Rest APIs, ignoring for Lambda authorizer '%s'",
                     auth_name,
                 )
 
@@ -178,7 +178,7 @@ class SwaggerParser:
             header_name = properties.get(SwaggerParser._AUTHORIZER_NAME)
 
             if not properties.get(SwaggerParser._AUTHORIZER_IN) == "header" or not header_name:
-                LOG.info(
+                LOG.warning(
                     "Missing properties for Lambda Authorizer '%s', "
                     "property 'in' must be set to 'header' and "
                     "property 'name' must be provided",
@@ -192,7 +192,7 @@ class SwaggerParser:
             identity_source_string = authorizer_object.get(SwaggerParser._AUTHORIZER_IDENTITY_SOURCE)
 
             if not identity_source_string:
-                LOG.info(
+                LOG.warning(
                     "Missing property 'identitySource' in the authorizer integration for Lambda Authorizer '%s'",
                     auth_name,
                 )
