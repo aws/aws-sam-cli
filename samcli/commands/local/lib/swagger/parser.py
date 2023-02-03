@@ -234,11 +234,21 @@ class SwaggerParser:
             )
 
         if len(authorizers) == 1:
-            auth_name = str(list(authorizers[0])[0])
+            # user has authorizer defined
+            authorizer_object = authorizers[0]
+            authorizer_object = list(authorizers[0])
 
-            LOG.debug("Found default authorizer: %s", auth_name)
+            # make sure that authorizer actually has keys
+            if len(authorizer_object) != 1:
+                raise InvalidSecurityDefinition(
+                    "Invalid default security definition found, there must " "be an authorizer defined."
+                )
 
-            return auth_name
+            authorizer_name = str(authorizer_object[0])
+
+            LOG.debug("Found default authorizer: %s", authorizer_name)
+
+            return authorizer_name
 
         return None
 
