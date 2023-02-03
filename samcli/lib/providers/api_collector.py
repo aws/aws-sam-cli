@@ -95,7 +95,7 @@ class ApiCollector:
                     route.authorizer_name = authorizer_name_lookup
                     route.authorizer_object = authorizer_object
 
-                    LOG.info(
+                    LOG.debug(
                         "Linking authorizer '%s', for route '%s'",
                         route.authorizer_name,
                         route.path,

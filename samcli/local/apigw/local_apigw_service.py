@@ -1,4 +1,7 @@
 """API Gateway Local Service"""
+# pylint: disable=too-many-lines
+# TODO (lucashuy): this module needs to be refactored
+
 from dataclasses import dataclass
 import io
 import json
