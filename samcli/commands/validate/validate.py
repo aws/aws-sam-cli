@@ -12,6 +12,7 @@ from samcli.cli.context import Context
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands._utils.cdk_support_decorators import unsupported_command_cdk
 from samcli.commands._utils.options import template_option_without_build
+from samcli.commands.exceptions import LinterRuleMatchedException
 from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
@@ -146,11 +147,17 @@ def _lint(ctx: Context, template: str) -> None:
         matches = list(cfnlint.core.get_matches(filenames, args))
         if not matches:
             click.secho("{} is a valid SAM Template".format(template), fg="green")
+            return
+
         rules = cfnlint.core.get_used_rules()
         matches_output = formatter.print_matches(matches, rules, filenames)
 
         if matches_output:
             click.secho(matches_output)
+
+        raise LinterRuleMatchedException(
+            "Linting failed. At least one linting rule was matched to the provided template."
+        )
 
     except cfnlint.core.InvalidRegionException as e:
         raise UserException(
