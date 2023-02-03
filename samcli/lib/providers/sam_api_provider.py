@@ -138,7 +138,10 @@ class SamApiProvider(CfnBaseApiProvider):
         event_type: str
             What kind of API this is (API, HTTP API)
         """
-        prefix = "method." if event_type == Route.API else "$"
+        API_IDENTITY_SOURCE_PREFIX = "method."
+        HTTP_IDENTITY_SOURCE_PREFIX = "$"
+
+        prefix = API_IDENTITY_SOURCE_PREFIX if event_type == Route.API else HTTP_IDENTITY_SOURCE_PREFIX
         authorizers: Dict[str, Authorizer] = {}
 
         for auth_name, auth_props in auth.get(SamApiProvider._AUTHORIZERS, {}).items():
@@ -161,16 +164,20 @@ class SamApiProvider(CfnBaseApiProvider):
                 identity_sources = []
 
                 for query_string in identity_object.get(SamApiProvider._IDENTITY_QUERY, []):
-                    identity_sources.append(f"{prefix}request.query.{query_string}")
+                    identity_sources.append(f"{prefix}request.querystring.{query_string}")
 
                 for header in identity_object.get(SamApiProvider._IDENTITY_HEADERS, []):
                     identity_sources.append(f"{prefix}request.header.{header}")
 
+                # context and stageVariables do not have "method." for V1 APIGW
+                # but the V2 still expects "$"
+                prefix = HTTP_IDENTITY_SOURCE_PREFIX if event_type == Route.HTTP else ""
+
                 for context in identity_object.get(SamApiProvider._IDENTITY_CONTEXT, []):
-                    identity_sources.append(f"{prefix}request.context.{context}")
+                    identity_sources.append(f"{prefix}context.{context}")
 
                 for stage_variable in identity_object.get(SamApiProvider._IDENTITY_STAGE, []):
-                    identity_sources.append(f"{prefix}request.stage.{stage_variable}")
+                    identity_sources.append(f"{prefix}stageVariables.{stage_variable}")
 
                 payload_version = identity_object.get(SamApiProvider._AUTHORIZER_PAYLOAD, "1.0")
                 simple_responses = identity_object.get(SamApiProvider._AUTH_SIMPLE_RESPONSES, False)
