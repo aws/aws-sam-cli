@@ -132,11 +132,11 @@ class ResourceMappingProducer(Producer):
             response = self.get_resources_info()
             for deployed_resource in response["StackResources"]:
                 resource_data = ResourcesDef(
-                    LogicalResourceId=deployed_resource["LogicalResourceId"],
-                    PhysicalResourceId=deployed_resource["PhysicalResourceId"],
+                    LogicalResourceId=deployed_resource.get("LogicalResourceId"),
+                    PhysicalResourceId=deployed_resource.get("PhysicalResourceId"),
                 )
                 resources_list.append(dataclasses.asdict(resource_data))
-                seen_resources.add(deployed_resource["LogicalResourceId"])
+                seen_resources.add(deployed_resource.get("LogicalResourceId"))
             for local_resource in stacks[ROOT_STACK].resources:
                 if local_resource not in seen_resources:
                     resource_data = ResourcesDef(LogicalResourceId=local_resource, PhysicalResourceId="-")
