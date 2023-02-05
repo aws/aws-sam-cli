@@ -14,10 +14,10 @@ from unittest.mock import patch, Mock, MagicMock
 
 from samcli.commands.package.exceptions import ExportFailedError
 from samcli.lib.package.permissions import (
-    WindowsFilePermissionMapper,
-    WindowsDirPermissionMapper,
-    AdditiveFilePermissionMapper,
-    AdditiveDirPermissionMapper,
+    WindowsFilePermissionPermissionMapper,
+    WindowsDirPermissionPermissionMapper,
+    AdditiveFilePermissionPermissionMapper,
+    AdditiveDirPermissionPermissionMapper,
 )
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Destination
@@ -1739,10 +1739,10 @@ class TestArtifactExporter(unittest.TestCase):
         windows_make_zip = functools.partial(
             make_zip_with_permissions,
             permission_mappers=[
-                WindowsFilePermissionMapper(permissions=0o100755) if platform.system().lower() == "windows" else None,
-                WindowsDirPermissionMapper(permissions=0o100755) if platform.system().lower() == "windows" else None,
-                AdditiveFilePermissionMapper(permissions=0o100444),
-                AdditiveDirPermissionMapper(permissions=0o100111),
+                WindowsFilePermissionPermissionMapper(permissions=0o100755),
+                WindowsDirPermissionPermissionMapper(permissions=0o100755),
+                AdditiveFilePermissionPermissionMapper(permissions=0o100444),
+                AdditiveDirPermissionPermissionMapper(permissions=0o100111),
             ],
         )
 

@@ -4,7 +4,6 @@ Utilities involved in Packaging.
 import functools
 import logging
 import os
-import platform
 import re
 import shutil
 import tempfile
@@ -12,17 +11,18 @@ import time
 import zipfile
 import contextlib
 from contextlib import contextmanager
-from typing import Dict, Optional, Callable, cast
+from typing import Dict, Optional, Callable, cast, List
 
 import jmespath
 
 from samcli.commands.package.exceptions import ImageNotFoundError, InvalidLocalPathError
 from samcli.lib.package.ecr_utils import is_ecr_url
 from samcli.lib.package.permissions import (
-    WindowsFilePermissionMapper,
-    WindowsDirPermissionMapper,
-    AdditiveFilePermissionMapper,
-    AdditiveDirPermissionMapper,
+    WindowsFilePermissionPermissionMapper,
+    WindowsDirPermissionPermissionMapper,
+    AdditiveFilePermissionPermissionMapper,
+    AdditiveDirPermissionPermissionMapper,
+    PermissionMapper,
 )
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.hash import dir_checksum
@@ -236,7 +236,7 @@ def zip_folder(folder_path, zip_method):
             os.remove(zipfile_name)
 
 
-def make_zip_with_permissions(file_name, source_root, permission_mappers):
+def make_zip_with_permissions(file_name, source_root, permission_mappers: List[PermissionMapper]):
     """
     Create a zip file from the source directory
 
@@ -254,6 +254,7 @@ def make_zip_with_permissions(file_name, source_root, permission_mappers):
     str
         The name of the zip file, including .zip extension
     """
+    permission_mappers = permission_mappers or []
     zipfile_name = "{0}.zip".format(file_name)
     source_root = os.path.abspath(source_root)
     compression_type = zipfile.ZIP_DEFLATED
@@ -272,14 +273,13 @@ def make_zip_with_permissions(file_name, source_root, permission_mappers):
                         # https://github.com/aws/aws-sam-cli/pull/2193#discussion_r513110608
                         # Changed to 0755 due to a regression in https://github.com/aws/aws-sam-cli/issues/2344
                         # Final PR: https://github.com/aws/aws-sam-cli/pull/2356/files
-                        if any(permission_mappers):
+                        if permission_mappers:
                             # Set host OS to Unix
                             info.create_system = 3
                             # Set current permission of the file/dir to ZipInfo's external_attr
                             info.external_attr = os.stat(full_path).st_mode << 16
                             for permission_mapper in permission_mappers:
-                                if permission_mapper:
-                                    info = permission_mapper.apply(info)
+                                info = permission_mapper.apply(info)
                             # Set current time to be the last time the zip content was modified.
                             info.date_time = time.localtime()[0:6]
                             zf.writestr(info, file_bytes, compress_type=compression_type)
@@ -292,8 +292,8 @@ def make_zip_with_permissions(file_name, source_root, permission_mappers):
 make_zip = functools.partial(
     make_zip_with_permissions,
     permission_mappers=[
-        WindowsFilePermissionMapper(permissions=0o100755) if platform.system().lower() == "windows" else None,
-        WindowsDirPermissionMapper(permissions=0o100755) if platform.system().lower() == "windows" else None,
+        WindowsFilePermissionPermissionMapper(permissions=0o100755),
+        WindowsDirPermissionPermissionMapper(permissions=0o100755),
     ],
 )
 # Context: Jan 2023
@@ -304,10 +304,10 @@ make_zip = functools.partial(
 make_zip_with_lambda_permissions = functools.partial(
     make_zip_with_permissions,
     permission_mappers=[
-        WindowsFilePermissionMapper(permissions=0o100755) if platform.system().lower() == "windows" else None,
-        WindowsDirPermissionMapper(permissions=0o100755) if platform.system().lower() == "windows" else None,
-        AdditiveFilePermissionMapper(permissions=0o100444),
-        AdditiveDirPermissionMapper(permissions=0o100111),
+        WindowsFilePermissionPermissionMapper(permissions=0o100755),
+        WindowsDirPermissionPermissionMapper(permissions=0o100755),
+        AdditiveFilePermissionPermissionMapper(permissions=0o100444),
+        AdditiveDirPermissionPermissionMapper(permissions=0o100111),
     ],
 )
 

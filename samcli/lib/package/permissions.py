@@ -5,7 +5,16 @@ import platform
 import zipfile
 
 
-class WindowsFilePermissionMapper:
+class PermissionMapper:
+    """
+    Base Mapper with an empty apply method.
+    """
+
+    def apply(self, zip_info: zipfile.ZipInfo):
+        pass
+
+
+class WindowsFilePermissionPermissionMapper(PermissionMapper):
     """
     Windows specific Permission Mapper onto a zipfile.ZipInfo object to
     set explicit permissions onto `external_attr` attribute if the given object
@@ -36,13 +45,12 @@ class WindowsFilePermissionMapper:
             modified object with `external_attr` set to member permissions.
 
         """
-        if platform.system().lower() != "windows":
-            return zip_info
-        zip_info.external_attr = self.permissions << 16 if not zip_info.is_dir() else zip_info.external_attr
+        if platform.system().lower() == "windows" and not zip_info.is_dir():
+            zip_info.external_attr = self.permissions << 16
         return zip_info
 
 
-class WindowsDirPermissionMapper:
+class WindowsDirPermissionPermissionMapper(PermissionMapper):
     """
     Windows specific Permission Mapper onto a zipfile.ZipInfo object to
     set explicit permissions onto `external_attr` attribute if the given object
@@ -73,13 +81,12 @@ class WindowsDirPermissionMapper:
             modified object with `external_attr` set to member permissions.
 
         """
-        if platform.system().lower() != "windows":
-            return zip_info
-        zip_info.external_attr = self.permissions << 16 if zip_info.is_dir() else zip_info.external_attr
+        if platform.system().lower() == "windows" and zip_info.is_dir():
+            zip_info.external_attr = self.permissions << 16
         return zip_info
 
 
-class AdditiveDirPermissionMapper:
+class AdditiveDirPermissionPermissionMapper(PermissionMapper):
     """
     Additive Permission Mapper onto a zipfile.ZipInfo object to
     set additive permissions onto `external_attr` attribute if the given object
@@ -116,7 +123,7 @@ class AdditiveDirPermissionMapper:
         return zip_info
 
 
-class AdditiveFilePermissionMapper:
+class AdditiveFilePermissionPermissionMapper(PermissionMapper):
     """
     Additive Permission Mapper onto a zipfile.ZipInfo object to
     set additive permissions onto `external_attr` attribute if the given object

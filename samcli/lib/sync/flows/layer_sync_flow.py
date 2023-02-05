@@ -266,7 +266,7 @@ class LayerSyncFlowSkipBuildDirectory(LayerSyncFlow):
 
     def gather_resources(self) -> None:
         zip_file_path = os.path.join(tempfile.gettempdir(), f"data-{uuid.uuid4().hex}")
-        self._zip_file = make_zip(zip_file_path, self._layer.codeuri)
+        self._zip_file = make_zip_with_lambda_permissions(zip_file_path, self._layer.codeuri)
         LOG.debug("%sCreated artifact ZIP file: %s", self.log_prefix, self._zip_file)
         self._local_sha = file_checksum(cast(str, self._zip_file), hashlib.sha256())
 
