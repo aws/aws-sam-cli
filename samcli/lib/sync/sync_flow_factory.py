@@ -6,9 +6,14 @@ from botocore.exceptions import ClientError
 
 from samcli.commands.exceptions import InvalidStackNameException
 from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NestedStackManager
+from samcli.lib.package.utils import is_local_folder, is_zip_file
 from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIdentifier
 from samcli.lib.sync.flows.auto_dependency_layer_sync_flow import AutoDependencyLayerParentSyncFlow
-from samcli.lib.sync.flows.layer_sync_flow import LayerSyncFlow
+from samcli.lib.sync.flows.layer_sync_flow import (
+    LayerSyncFlow,
+    LayerSyncFlowSkipBuildDirectory,
+    LayerSyncFlowSkipBuildZipFile,
+)
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.resource_type_based_factory import ResourceTypeBasedFactory
 
@@ -37,10 +42,10 @@ from samcli.lib.utils.resources import (
     AWS_SERVERLESS_STATEMACHINE,
     AWS_STEPFUNCTIONS_STATEMACHINE,
 )
+from samcli.commands.build.build_context import BuildContext
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
-    from samcli.commands.build.build_context import BuildContext
 
 LOG = logging.getLogger(__name__)
 
@@ -170,14 +175,45 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
             )
         return None
 
-    def _create_layer_flow(self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]) -> SyncFlow:
-        return LayerSyncFlow(
-            str(resource_identifier),
-            self._build_context,
-            self._deploy_context,
-            self._physical_id_mapping,
-            self._stacks,
-        )
+    def _create_layer_flow(
+        self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]
+    ) -> Optional[SyncFlow]:
+        layer = self._build_context.layer_provider.get(str(resource_identifier))
+        if not layer:
+            LOG.warning("Can't find layer resource with '%s' logical id", str(resource_identifier))
+            return None
+
+        if BuildContext.is_layer_buildable(layer):
+            return LayerSyncFlow(
+                str(resource_identifier),
+                self._build_context,
+                self._deploy_context,
+                self._physical_id_mapping,
+                self._stacks,
+            )
+
+        if is_local_folder(layer.codeuri):
+            LOG.debug("Creating LayerSyncFlowSkipBuildDirectory for '%s' resource", resource_identifier)
+            return LayerSyncFlowSkipBuildDirectory(
+                str(resource_identifier),
+                self._build_context,
+                self._deploy_context,
+                self._physical_id_mapping,
+                self._stacks,
+            )
+
+        if is_zip_file(layer.codeuri):
+            LOG.debug("Creating LayerSyncFlowSkipBuildZipFile for '%s' resource", resource_identifier)
+            return LayerSyncFlowSkipBuildZipFile(
+                str(resource_identifier),
+                self._build_context,
+                self._deploy_context,
+                self._physical_id_mapping,
+                self._stacks,
+            )
+
+        LOG.warning("Can't create sync flow for '%s' layer resource", resource_identifier)
+        return None
 
     def _create_rest_api_flow(self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]) -> SyncFlow:
         return RestApiSyncFlow(
