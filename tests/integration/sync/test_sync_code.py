@@ -12,7 +12,7 @@ from unittest import skipIf
 
 import pytest
 import boto3
-from parameterized import parameterized_class
+from parameterized import parameterized_class, parameterized
 
 from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_RESTAPI,
@@ -145,18 +145,30 @@ class TestSyncCode(TestSyncCodeBase):
             layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "python", 2)
             self.assertIn("requests", layer_contents)
 
-    def test_sync_code_layer(self):
-        shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("layer"), ignore_errors=True)
+    @parameterized.expand(
+        [
+            ("layer", "HelloWorldLayer", "HelloWorldFunction", "7"),
+            (
+                "layer_without_build_method",
+                "HelloWorldLayerWithoutBuildMethod",
+                "HelloWorldFunctionWithLayerWithoutBuild",
+                "30",
+            ),
+            ("layer_zip", "HelloWorldPreBuiltZipLayer", "HelloWorldFunctionWithPreBuiltLayer", "50"),
+        ]
+    )
+    def test_sync_code_layer(self, layer_path, layer_logical_id, function_logical_id, expected_value):
+        shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath(layer_path), ignore_errors=True)
         shutil.copytree(
-            self.test_data_path.joinpath(self.folder).joinpath("after").joinpath("layer"),
-            TestSyncCodeBase.temp_dir.joinpath("layer"),
+            self.test_data_path.joinpath(self.folder).joinpath("after").joinpath(layer_path),
+            TestSyncCodeBase.temp_dir.joinpath(layer_path),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
             template_file=TestSyncCodeBase.template_path,
             code=True,
             watch=False,
-            resource_list=["AWS::Serverless::LayerVersion"],
+            resource_id_list=[layer_logical_id],
             dependency_layer=self.dependency_layer,
             stack_name=TestSyncCodeBase.stack_name,
             parameter_overrides="Parameter=Clarity",
@@ -174,10 +186,10 @@ class TestSyncCode(TestSyncCodeBase):
         # Lambda Api call here, which tests both the python function and the layer
         lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
         for lambda_function in lambda_functions:
-            if lambda_function == "HelloWorldFunction":
+            if lambda_function == function_logical_id:
                 lambda_response = json.loads(self._get_lambda_response(lambda_function))
                 self.assertIn("extra_message", lambda_response)
-                self.assertEqual(lambda_response.get("message"), "9")
+                self.assertEqual(lambda_response.get("message_from_layer"), expected_value)
 
     @pytest.mark.flaky(reruns=3)
     def test_sync_function_layer_race_condition(self):
