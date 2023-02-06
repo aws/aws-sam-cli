@@ -5,6 +5,8 @@ Represents Lambda Build Containers.
 import json
 import logging
 import pathlib
+import os
+import shutil
 from typing import Optional
 
 from samcli.commands._utils.experimental import get_enabled_experimental_flags
@@ -46,6 +48,14 @@ class LambdaBuildContainer(Container):
         build_in_source=None,
         mount_with_write: bool = False,
     ):
+        # tmp dirs on host that will be mounted to allow write permissions to `/tmp/samcli/` on container
+        # only when `mount_with_write` is True
+        if mount_with_write:
+            self._host_tmp_dir = os.path.join(source_dir, "tmp")
+            self._host_tmp_base_dir = os.path.join(source_dir, "tmp", "samcli")
+        else:
+            self._host_tmp_dir = None
+            self._host_tmp_base_dir = None
         abs_manifest_path = pathlib.Path(manifest_path).resolve()
         manifest_file_name = abs_manifest_path.name
         manifest_dir = str(abs_manifest_path.parent)
@@ -99,11 +109,15 @@ class LambdaBuildContainer(Container):
             manifest_dir: {"bind": container_dirs["manifest_dir"], "mode": mount_mode}
         }
 
-        additional_env_vars = {}
-        if language == "dotnet":
-            # mount_with_write must be True for dotnet to build inside container
-            additional_env_vars["DOTNET_CLI_HOME"] = "/tmp/dotnet"
-            additional_env_vars["XDG_DATA_HOME"] = "/tmp/xdg"
+        if self._host_tmp_base_dir:
+            # Base directory is mounted in order to allow write permissions to `/tmp/samcli` on container
+            _base_dir = {
+                self._host_tmp_base_dir: {
+                    "bind": container_dirs["base_dir"],
+                    "mode": mount_mode
+                }
+            }
+            additional_volumes.update(_base_dir)
 
         if log_level:
             env_vars["LAMBDA_BUILDERS_LOG_LEVEL"] = log_level
@@ -116,9 +130,22 @@ class LambdaBuildContainer(Container):
             additional_volumes=additional_volumes,
             entrypoint=entry,
             env_vars=env_vars,
-            additional_env_vars=additional_env_vars,
             mount_with_write=mount_with_write,
         )
+
+    def make_host_tmp_dirs(self):
+        """
+        Make tmp dirs on host
+        """
+        if self._host_tmp_base_dir and not os.path.exists(self._host_tmp_base_dir):
+            os.makedirs(self._host_tmp_base_dir)
+
+    def remove_host_tmp_dirs(self):
+        """
+        Remove tmp dirs on host
+        """
+        if self._host_tmp_dir:
+            shutil.rmtree(self._host_tmp_dir)
 
     @property
     def executable_name(self):
@@ -202,11 +229,10 @@ class LambdaBuildContainer(Container):
         """
         base = "/tmp/samcli"
         result = {
+            "base_dir": base,
             "source_dir": "{}/source".format(base),
-            # "artifacts_dir": "{}/artifacts".format(base),
-            # "scratch_dir": "{}/scratch".format(base),
-            "artifacts_dir": "/tmp/artifacts",
-            "scratch_dir": "/tmp/scratch",
+            "artifacts_dir": "{}/artifacts".format(base),
+            "scratch_dir": "{}/scratch".format(base),
             "manifest_dir": "{}/manifest".format(base),
         }
 
@@ -285,11 +311,12 @@ class LambdaBuildContainer(Container):
         str
             valid image name
         """
-        image_tag = LambdaBuildContainer.get_image_tag(architecture)
         # a list of build methods need to get image based on build method itself instead of runtime
         get_image_from_build_method = ["dotnet7"]
 
         image_name = build_method if build_method in get_image_from_build_method else runtime
+        image_tag = LambdaBuildContainer.get_image_tag(architecture)
+
         return f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{image_name}:" + image_tag
 
     @staticmethod

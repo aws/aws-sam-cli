@@ -245,7 +245,7 @@ def supports_build_in_container(config: CONFIG) -> Tuple[bool, Optional[str]]:
     # A "workflow config" is like a primary key to identify the workflow. So we use the config as a key in the
     # map to identify which workflows can support building within a container.
 
-    unsupported = { 
+    unsupported = {
     }
 
     thiskey = _key(config)
@@ -257,7 +257,7 @@ def supports_build_in_container(config: CONFIG) -> Tuple[bool, Optional[str]]:
 def needs_mount_with_write(config: CONFIG) -> bool:
     """
     Given a workflow config, returns whether it needs mount with write permissions to build inside container or not.
-    
+
     Parameters
     ----------
     config namedtuple(Capability)

@@ -902,7 +902,7 @@ class ApplicationBuilder:
         container_build_supported, reason = supports_build_in_container(config)
         if not container_build_supported:
             raise ContainerBuildNotSupported(reason)
-        
+
         if not self._mount_with_write and needs_mount_with_write(config):
             self._mount_with_write = self._prompt_user_to_enable_mount_with_write(config, source_dir)
 
@@ -934,6 +934,7 @@ class ApplicationBuilder:
         )
 
         try:
+            container.make_host_tmp_dirs()
             try:
                 self._container_manager.run(container)
             except docker.errors.APIError as ex:
@@ -960,6 +961,7 @@ class ApplicationBuilder:
             # "/." is a Docker thing that instructions the copy command to download contents of the folder only
             result_dir_in_container = response["result"]["artifacts_dir"] + "/."
             container.copy(result_dir_in_container, artifacts_dir)
+            container.remove_host_tmp_dirs()
         finally:
             self._container_manager.stop(container)
 
@@ -1025,9 +1027,10 @@ class ApplicationBuilder:
             True, if user enabled mounting with write permissions.
         """
         if click.confirm(
-            f"\nBuilding functions with {config.language} inside containers needs write permissions to the source code directory {source_dir}. " 
+            f"\nBuilding functions with {config.language} inside containers needs write "
+            f"permissions to the source code directory {source_dir}. "
             f"Some files in this directory may be changed or added by the build process. "
-            f"Pass --mount-with-write true to SAM CLI to avoid this confirmation. " 
+            f"Pass --mount-with-write true to SAM CLI to avoid this confirmation. "
             f"Is it okay to mount this directory to the container with write permissions? "):
             return True
         return False
