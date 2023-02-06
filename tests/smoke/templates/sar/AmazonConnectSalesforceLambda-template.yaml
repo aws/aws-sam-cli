@@ -80,7 +80,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Timeout: 6
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 6503224b-2627-4c1c-90cd-e11062db858b
@@ -109,7 +109,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Timeout: 60
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 6503224b-2627-4c1c-90cd-e11062db858b
@@ -140,7 +140,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Timeout: 60
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 6503224b-2627-4c1c-90cd-e11062db858b

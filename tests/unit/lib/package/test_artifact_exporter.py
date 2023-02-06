@@ -1380,7 +1380,7 @@ class TestArtifactExporter(unittest.TestCase):
             "Resources": {
                 "FunResource": {
                     "Type": "AWS::Serverless::Function",
-                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x"},
+                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs18.x"},
                 }
             },
         }

@@ -120,7 +120,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -136,7 +136,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
 
@@ -144,7 +144,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
 
@@ -152,7 +152,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.base64_response
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
 
@@ -160,7 +160,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.base64_with_False_isBase64Encoded_response
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
 
@@ -168,7 +168,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.base64_with_True_Base64Encoded_response
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
 
@@ -176,7 +176,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.base64_with_Base64Encoded_priority_response
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
 
@@ -184,7 +184,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.echo_base64_event_body
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
 
@@ -192,7 +192,7 @@ Resources:
     Type:  AWS::Serverless::Function
     Properties:
       Handler: main.echo_event_handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:

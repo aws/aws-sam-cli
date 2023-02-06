@@ -33,7 +33,6 @@ class Runtime(Enum):
     nodejs14x = "nodejs14.x"
     nodejs16x = "nodejs16.x"
     nodejs18x = "nodejs18.x"
-    python36 = "python3.6"
     python37 = "python3.7"
     python38 = "python3.8"
     python39 = "python3.9"
@@ -338,7 +337,7 @@ class LambdaImage:
     @staticmethod
     def _generate_dockerfile(base_image, layers, architecture):
         """
-        FROM public.ecr.aws/lambda/python:3.6-x86_64
+        FROM public.ecr.aws/lambda/python:3.9-x86_64
 
         ADD aws-lambda-rie /var/rapid
 
