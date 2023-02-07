@@ -81,8 +81,8 @@ class ApiCollector:
 
             for route in routes:
                 if route.authorizer_name is None:
-                    LOG.info(
-                        "Linking authorizer skipped, route '%s' has unset all authorizers",
+                    LOG.debug(
+                        "Linking authorizer skipped, route '%s' is set to not use any authorizer.",
                         route.path,
                     )
 
