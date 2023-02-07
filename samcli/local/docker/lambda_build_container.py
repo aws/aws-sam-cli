@@ -313,11 +313,9 @@ class LambdaBuildContainer(Container):
         """
         # a list of build methods need to get image based on build method itself instead of runtime
         get_image_from_build_method = ["dotnet7"]
-
         image_name = build_method if build_method in get_image_from_build_method else runtime
-        image_tag = LambdaBuildContainer.get_image_tag(architecture)
 
-        return f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{image_name}:" + image_tag
+        return f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{image_name}:" + LambdaBuildContainer.get_image_tag(architecture)
 
     @staticmethod
     def get_image_tag(architecture):
