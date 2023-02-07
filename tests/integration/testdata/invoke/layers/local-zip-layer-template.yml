@@ -12,7 +12,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: layer-main.one_layer_hanlder
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 20
       Layers:
