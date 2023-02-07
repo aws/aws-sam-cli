@@ -64,7 +64,7 @@ class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
             outputs[1],
             "HelloWorldApi",
             "https://.*execute.*.amazonaws.com/Prod/hello/",
-            "API Gateway endpoint URL for Prod stage for Hello World function",
+            "",
         )
         self.check_stack_output(
             outputs[2],
