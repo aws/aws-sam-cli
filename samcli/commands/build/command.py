@@ -140,7 +140,8 @@ $ sam build MyFunction
     "--mount-with-write",
     "-w",
     is_flag=True,
-    help="Mount source code directory with write permissions when building functions/layers inside container."
+    help="Enable mounting with write permissions when building functions/layers inside container. "
+    "Some files in source code directory may be changed or added by the build process. "
     "By default the source code directory is read only.",
     cls=ContainerOptions,
 )

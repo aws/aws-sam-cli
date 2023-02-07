@@ -1027,10 +1027,10 @@ class ApplicationBuilder:
             True, if user enabled mounting with write permissions.
         """
         if click.confirm(
-            f"\nBuilding functions with {config.language} inside containers needs write "
-            f"permissions to the source code directory {source_dir}. "
+            f"\nBuilding functions with {config.language} inside containers needs "
+            f"mounting with write permissions to the source code directory {source_dir}. "
             f"Some files in this directory may be changed or added by the build process. "
-            f"Pass --mount-with-write true to SAM CLI to avoid this confirmation. "
-            f"Is it okay to mount this directory to the container with write permissions? "):
+            f"Pass --mount-with-write to `sam build` CLI to avoid this confirmation. "
+            f"\nWould you like to enable mounting with write permissions? "):
             return True
         return False
