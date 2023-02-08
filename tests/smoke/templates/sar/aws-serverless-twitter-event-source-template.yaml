@@ -109,7 +109,7 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 3fa2a8d3-bad5-4cd4-b1e2-f9d09cf96414
-      Runtime: python3.6
+      Runtime: python3.9
       Events:
         Timer:
           Type: Schedule

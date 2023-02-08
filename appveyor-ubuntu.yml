@@ -31,7 +31,6 @@ environment:
       PYTHON_ARCH: '64'
       RUN_SMOKE: 1
       NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_36_PIP: 1
       INSTALL_PY_38_PIP: 1
       INSTALL_PY_39_PIP: 1
       APPVEYOR_CONSOLE_DISABLE_PTY: true
@@ -41,7 +40,6 @@ environment:
       PYTHON_ARCH: '64'
       RUN_SMOKE: 1
       NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_36_PIP: 1
       INSTALL_PY_37_PIP: 1
       INSTALL_PY_39_PIP: 1
       APPVEYOR_CONSOLE_DISABLE_PTY: true
@@ -51,7 +49,6 @@ environment:
       PYTHON_ARCH: '64'
       RUN_SMOKE: 1
       NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_36_PIP: 1
       INSTALL_PY_37_PIP: 1
       INSTALL_PY_38_PIP: 1
       APPVEYOR_CONSOLE_DISABLE_PTY: true
@@ -85,17 +82,13 @@ install:
   - sh: "./aws_cli/bin/python -m pip install awscli"
   - sh: "PATH=$(echo $PWD'/aws_cli/bin'):$PATH"
 
-  - sh: "sudo apt-get -y install python3.6"
-  - sh: "sudo apt-get -y install python2.7"
   - sh: "sudo apt-get -y install python3.7"
   - sh: "sudo apt-get -y install python3.8"
   - sh: "sudo apt-get -y install python3.9 python3.9-dev python3.9-venv"
 
   - sh: "which python3.8"
   - sh: "which python3.7"
-  - sh: "which python3.6"
   - sh: "which python3.9"
-  - sh: "which python2.7"
 
   - sh: "PATH=$PATH:/usr/bin/python3.9:/usr/bin/python3.8:/usr/bin/python3.7"
   - sh: "curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py"
@@ -106,7 +99,6 @@ install:
   - ps: "If ($env:INSTALL_PY_39_PIP) {python3.9 get-pip.py --user}"
   - ps: "If ($env:INSTALL_PY_38_PIP) {python3.8 get-pip.py --user}"
   - ps: "If ($env:INSTALL_PY_37_PIP) {python3.7 get-pip.py --user}"
-  - ps: "If ($env:INSTALL_PY_36_PIP) {python3.6 get-pip-36.py --user}"
 
   # update ca-certificates which causes failures with newest golang library
   - sh: "sudo apt-get install --reinstall ca-certificates"

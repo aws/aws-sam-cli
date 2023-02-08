@@ -17,7 +17,7 @@ class TestSamLayerProvider(TestCase):
                 "Properties": {
                     "LayerName": "Layer1",
                     "ContentUri": "PyLayer/",
-                    "CompatibleRuntimes": ["python3.8", "python3.6"],
+                    "CompatibleRuntimes": ["python3.8", "python3.9"],
                 },
                 "Metadata": {"BuildMethod": "python3.8"},
             },
@@ -26,7 +26,7 @@ class TestSamLayerProvider(TestCase):
                 "Properties": {
                     "LayerName": "Layer1",
                     "Content": "PyLayer/",
-                    "CompatibleRuntimes": ["python3.8", "python3.6"],
+                    "CompatibleRuntimes": ["python3.8", "python3.9"],
                 },
                 "Metadata": {"BuildMethod": "python3.8"},
             },
@@ -35,7 +35,7 @@ class TestSamLayerProvider(TestCase):
                 "Properties": {
                     "LayerName": "Layer1",
                     "Content": "PyLayer/",
-                    "CompatibleRuntimes": ["python3.8", "python3.6"],
+                    "CompatibleRuntimes": ["python3.8", "python3.9"],
                 },
                 "Metadata": {"BuildMethod": "python3.8", "SamResourceId": "LambdaLayerWithCustomId-x"},
             },
@@ -47,7 +47,7 @@ class TestSamLayerProvider(TestCase):
                         "S3Bucket": "bucket",
                         "S3Key": "key",
                     },
-                    "CompatibleRuntimes": ["python3.8", "python3.6"],
+                    "CompatibleRuntimes": ["python3.8", "python3.9"],
                 },
                 "Metadata": {
                     "BuildMethod": "python3.8",
@@ -61,7 +61,7 @@ class TestSamLayerProvider(TestCase):
                 "Properties": {
                     "LayerName": "Layer1",
                     "ContentUri": "PyLayer/",
-                    "CompatibleRuntimes": ["python3.8", "python3.6"],
+                    "CompatibleRuntimes": ["python3.8", "python3.9"],
                 },
             },
             "LambdaLayerNoBuild": {
@@ -69,7 +69,7 @@ class TestSamLayerProvider(TestCase):
                 "Properties": {
                     "LayerName": "Layer1",
                     "Content": "PyLayer/",
-                    "CompatibleRuntimes": ["python3.8", "python3.6"],
+                    "CompatibleRuntimes": ["python3.8", "python3.9"],
                 },
             },
             "ServerlessLayerS3Content": {
@@ -77,7 +77,7 @@ class TestSamLayerProvider(TestCase):
                 "Properties": {
                     "LayerName": "Layer1",
                     "ContentUri": "s3://dummy-bucket/my-layer.zip",
-                    "CompatibleRuntimes": ["python3.8", "python3.6"],
+                    "CompatibleRuntimes": ["python3.8", "python3.9"],
                 },
             },
             "LambdaLayerS3Content": {
@@ -85,7 +85,7 @@ class TestSamLayerProvider(TestCase):
                 "Properties": {
                     "LayerName": "Layer1",
                     "Content": {"S3Bucket": "dummy-bucket", "S3Key": "layer.zip"},
-                    "CompatibleRuntimes": ["python3.8", "python3.6"],
+                    "CompatibleRuntimes": ["python3.8", "python3.9"],
                 },
             },
             "SamFunc": {
@@ -113,7 +113,7 @@ class TestSamLayerProvider(TestCase):
                 "Properties": {
                     "LayerName": "Layer1",
                     "ContentUri": "PyLayer",
-                    "CompatibleRuntimes": ["python3.8", "python3.6"],
+                    "CompatibleRuntimes": ["python3.8", "python3.9"],
                 },
                 "Metadata": {"BuildMethod": "python3.8"},
             },
@@ -125,7 +125,7 @@ class TestSamLayerProvider(TestCase):
                         "S3Bucket": "bucket",
                         "S3Key": "key",
                     },
-                    "CompatibleRuntimes": ["python3.8", "python3.6"],
+                    "CompatibleRuntimes": ["python3.8", "python3.9"],
                 },
                 "Metadata": {
                     "BuildMethod": "python3.8",
@@ -155,7 +155,7 @@ class TestSamLayerProvider(TestCase):
                 LayerVersion(
                     "ServerlessLayer",
                     "PyLayer",
-                    ["python3.8", "python3.6"],
+                    ["python3.8", "python3.9"],
                     {"BuildMethod": "python3.8", "SamResourceId": "ServerlessLayer"},
                     stack_path="",
                 ),
@@ -165,7 +165,7 @@ class TestSamLayerProvider(TestCase):
                 LayerVersion(
                     "LambdaLayer",
                     "PyLayer",
-                    ["python3.8", "python3.6"],
+                    ["python3.8", "python3.9"],
                     {"BuildMethod": "python3.8", "SamResourceId": "LambdaLayer"},
                     stack_path="",
                 ),
@@ -175,7 +175,7 @@ class TestSamLayerProvider(TestCase):
                 LayerVersion(
                     "ServerlessLayerNoBuild",
                     "PyLayer",
-                    ["python3.8", "python3.6"],
+                    ["python3.8", "python3.9"],
                     {"SamResourceId": "ServerlessLayerNoBuild"},
                     stack_path="",
                 ),
@@ -185,7 +185,7 @@ class TestSamLayerProvider(TestCase):
                 LayerVersion(
                     "LambdaLayerNoBuild",
                     "PyLayer",
-                    ["python3.8", "python3.6"],
+                    ["python3.8", "python3.9"],
                     {"SamResourceId": "LambdaLayerNoBuild"},
                     stack_path="",
                 ),
@@ -197,7 +197,7 @@ class TestSamLayerProvider(TestCase):
                 LayerVersion(
                     "SamLayerInChild",
                     os.path.join("child", "PyLayer"),
-                    ["python3.8", "python3.6"],
+                    ["python3.8", "python3.9"],
                     {"BuildMethod": "python3.8", "SamResourceId": "SamLayerInChild"},
                     stack_path="ChildStack",
                 ),
@@ -207,7 +207,7 @@ class TestSamLayerProvider(TestCase):
                 LayerVersion(
                     "LambdaLayerWithCustomId",
                     "PyLayer",
-                    ["python3.8", "python3.6"],
+                    ["python3.8", "python3.9"],
                     {"BuildMethod": "python3.8", "SamResourceId": "LambdaLayerWithCustomId-x"},
                     stack_path="",
                 ),
@@ -217,7 +217,7 @@ class TestSamLayerProvider(TestCase):
                 LayerVersion(
                     "LambdaLayerWithCustomId",
                     "PyLayer",
-                    ["python3.8", "python3.6"],
+                    ["python3.8", "python3.9"],
                     {"BuildMethod": "python3.8", "SamResourceId": "LambdaLayerWithCustomId-x"},
                     stack_path="",
                 ),
@@ -227,7 +227,7 @@ class TestSamLayerProvider(TestCase):
                 LayerVersion(
                     "CDKLambdaLayer",
                     "PyLayer",
-                    ["python3.8", "python3.6"],
+                    ["python3.8", "python3.9"],
                     {
                         "BuildMethod": "python3.8",
                         "aws:cdk:path": "stack/CDKLambdaLayer-x/Resource",
@@ -244,7 +244,7 @@ class TestSamLayerProvider(TestCase):
                 LayerVersion(
                     "CDKLambdaLayer",
                     "PyLayer",
-                    ["python3.8", "python3.6"],
+                    ["python3.8", "python3.9"],
                     {
                         "BuildMethod": "python3.8",
                         "aws:cdk:path": "stack/CDKLambdaLayer-x/Resource",
@@ -261,7 +261,7 @@ class TestSamLayerProvider(TestCase):
                 LayerVersion(
                     "CDKLambdaLayerInChild",
                     os.path.join("child", "PyLayer"),
-                    ["python3.8", "python3.6"],
+                    ["python3.8", "python3.9"],
                     {
                         "BuildMethod": "python3.8",
                         "aws:cdk:path": "stack/CDKLambdaLayerInChild-x/Resource",
@@ -278,7 +278,7 @@ class TestSamLayerProvider(TestCase):
                 LayerVersion(
                     "CDKLambdaLayerInChild",
                     os.path.join("child", "PyLayer"),
-                    ["python3.8", "python3.6"],
+                    ["python3.8", "python3.9"],
                     {
                         "BuildMethod": "python3.8",
                         "aws:cdk:path": "stack/CDKLambdaLayerInChild-x/Resource",
@@ -295,7 +295,7 @@ class TestSamLayerProvider(TestCase):
                 LayerVersion(
                     "CDKLambdaLayerInChild",
                     os.path.join("child", "PyLayer"),
-                    ["python3.8", "python3.6"],
+                    ["python3.8", "python3.9"],
                     {
                         "BuildMethod": "python3.8",
                         "aws:cdk:path": "stack/CDKLambdaLayerInChild-x/Resource",

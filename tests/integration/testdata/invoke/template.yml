@@ -31,7 +31,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
 
@@ -39,14 +39,14 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       Timeout: 600
 
   TimeoutFunction:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.sleep_handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 5
 
@@ -54,7 +54,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.sleep_handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
 
@@ -63,7 +63,7 @@ Resources:
     Properties:
       FunctionName: !Ref FunctionNameParam
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
 
@@ -71,7 +71,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.custom_env_var_echo_hanler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Environment:
         Variables:
@@ -82,7 +82,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.custom_env_var_echo_hanler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Environment:
         Variables:
@@ -94,7 +94,7 @@ Resources:
     Properties:
       FunctionName: customname
       Handler: main.custom_env_var_echo_hanler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Environment:
         Variables:
@@ -105,7 +105,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.write_to_stderr
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
 
@@ -113,7 +113,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.write_to_stdout
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
 
@@ -121,7 +121,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.echo_event
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
 
@@ -129,7 +129,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.raise_exception
-      Runtime: python3.6
+      Runtime: python3.7
       CodeUri: .
       Timeout: 600
 
@@ -137,7 +137,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.sleep_handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout:
         Ref: DefaultTimeout
@@ -145,7 +145,7 @@ Resources:
   FunctionWithMetadata:
     Type: AWS::Serverless::Function
     Properties:
-      Runtime: python3.6
+      Runtime: python3.9
       Handler: main.echo_hello_world
       Timeout: 600
     Metadata:
@@ -156,7 +156,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.env_var_echo_hanler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Environment:
@@ -175,7 +175,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.sleep_handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout:
         Ref: StringValueTimeout
@@ -185,14 +185,14 @@ Resources:
     Properties:
       FunctionName: func-name-override
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
 
   EchoFunctionWithFunctionNameOverride:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: echo-func-name-override
       Handler: main.echo_event
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
 
   GitLayerFunction:
@@ -200,7 +200,7 @@ Resources:
     Properties:
       CodeUri: .
       Handler: main.execute_git
-      Runtime: python3.8
+      Runtime: python3.9
       Layers:
         - arn:aws:lambda:us-east-1:553035198032:layer:git-lambda2:5
 
@@ -209,7 +209,7 @@ Resources:
     Properties:
       CodeUri: .
       Handler: main.execute_git
-      Runtime: python3.8
+      Runtime: python3.9
       Layers:
         - !Sub "arn:aws:lambda:us-east-1:553035198032:layer:git-lambda2:${LayerVersion}"
         

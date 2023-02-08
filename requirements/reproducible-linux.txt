@@ -15,14 +15,13 @@ attrs==20.3.0 \
     #   jschema-to-python
     #   jsonschema
     #   sarif-om
-aws-lambda-builders==1.25.0 \
-    --hash=sha256:4bb736a74457f87883861d57c0f6a859bd4e047b78ee58e09d16703a0c5172f3 \
-    --hash=sha256:f9d2094f714434b3668377fee5729c883849aede8a64eafe689fff08a530783b
+aws-lambda-builders==1.26.0 \
+    --hash=sha256:511a3be80511b3cedbc223504fef9366063c45f8fff94d2acb270de92e9efb02 \
+    --hash=sha256:d316837180d3ed5a04a40584e25c318fb97a7d0ab987c0f21bd07e421fd4d1d8
     # via aws-sam-cli (setup.py)
-aws-sam-translator==1.58.1 \
-    --hash=sha256:c4e261e450d574572d389edcafab04d1fe337615f867610410390c2435cb1f26 \
-    --hash=sha256:ca47d6eb04d8cf358bea9160411193da40a80dc3e79bb0c5bace0c21f0e4c888 \
-    --hash=sha256:cd60a19085d432bc00769b597bc2e6854f546ff9928f8067fc5fbcb5a1ed74ff
+aws-sam-translator==1.59.0 \
+    --hash=sha256:6761293a21bd1cb0e19f168926ebfc4a3a6c9011aca67bd448ef485a55d6f658 \
+    --hash=sha256:9b8f23a5754cba92677d334ece5c5d9dc9b1f1a327a650fc8939ae3fc6da4141
     # via
     #   aws-sam-cli (setup.py)
     #   cfn-lint
@@ -507,12 +506,6 @@ serverlessrepo==0.1.10 \
     --hash=sha256:671f48038123f121437b717ed51f253a55775590f00fbab6fbc6a01f8d05c017 \
     --hash=sha256:b99c69be8ce87ccc48103fbe371ba7b148c3374c57862e59118c402522e5ed52
     # via aws-sam-cli (setup.py)
-setuptools==65.5.1 \
-    --hash=sha256:d0b9a8433464d5800cbe05094acf5c6d52a91bfac9b52bcfc4d41382be5d5d31 \
-    --hash=sha256:e197a19aa8ec9722928f2206f8de752def0e4c9fc6953527360d1c36d94ddb2f
-    # via
-    #   aws-lambda-builders
-    #   jsonschema
 six==1.15.0 \
     --hash=sha256:30639c035cdb23534cd4aa2dd52c3bf48f06e5f4a941509c8bafd8ce11080259 \
     --hash=sha256:8b74bedcbbbaca38ff6d7491d76f2b06b3592611af620f8426e82dddb04a5ced
@@ -589,3 +582,11 @@ zipp==3.10.0 \
     --hash=sha256:4fcb6f278987a6605757302a6e40e896257570d11c51628968ccb2a47e80c6c1 \
     --hash=sha256:7a7262fd930bd3e36c50b9a64897aec3fafff3dfdeec9623ae22b40e93f99bb8
     # via importlib-metadata
+
+# The following packages are considered to be unsafe in a requirements file:
+setuptools==65.5.1 \
+    --hash=sha256:d0b9a8433464d5800cbe05094acf5c6d52a91bfac9b52bcfc4d41382be5d5d31 \
+    --hash=sha256:e197a19aa8ec9722928f2206f8de752def0e4c9fc6953527360d1c36d94ddb2f
+    # via
+    #   aws-lambda-builders
+    #   jsonschema
