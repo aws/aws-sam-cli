@@ -92,7 +92,7 @@ RUST_CARGO_LAMBDA_CONFIG = CONFIG(
     language="rust",
     dependency_manager="cargo",
     application_framework=None,
-    manifest_name="",
+    manifest_name="Cargo.toml",
     executable_search_paths=None,
 )
 
