@@ -1,0 +1,74 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Timeout: 10
+
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: function/
+      Handler: app.lambda_handler
+      Runtime: python3.7
+      Layers:
+        - Ref: HelloWorldLayer
+      Tracing: Active
+
+  HelloWorldFunctionWithLayerWithoutBuild:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: function/
+      Handler: app.lambda_handler
+      Runtime: python3.7
+      Layers:
+        - Ref: HelloWorldLayerWithoutBuildMethod
+      Tracing: Active
+
+  HelloWorldFunctionWithPreBuiltLayer:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: function/
+      Handler: app.lambda_handler
+      Runtime: python3.7
+      Layers:
+        - Ref: HelloWorldPreBuiltZipLayer
+      Tracing: Active
+
+  HelloWorldLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: HelloWorldLayer
+      Description: Hello World Layer
+      ContentUri: layer/
+      CompatibleRuntimes:
+        - python3.7
+    Metadata:
+      BuildMethod: python3.7
+
+  HelloWorldLayerWithoutBuildMethod:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: HelloWorldLayerWithoutBuild
+      Description: Hello World Layer without BuildMethod
+      ContentUri: layer_without_build_method/
+      CompatibleRuntimes:
+        - python3.7
+
+  HelloWorldPreBuiltZipLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: HelloWorldPreBuiltZipLayer
+      Description: Hello World Layer which is pre-built as ZIP file
+      ContentUri: layer_zip/layer.zip
+      CompatibleRuntimes:
+        - python3.7
+
+  HelloStepFunction:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionUri: statemachine/function.asl.json
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref HelloWorldFunction
