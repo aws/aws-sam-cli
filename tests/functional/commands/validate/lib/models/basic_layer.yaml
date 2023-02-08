@@ -31,7 +31,8 @@ Resources:
       ContentUri: s3://sam-demo-bucket/layer.zip
       Description: Starter Lambda Layer
       CompatibleRuntimes:
-      - python3.9
+      - python3.6
+      - python2.7
       LicenseInfo: License information
       RetentionPolicy: Retain
 
