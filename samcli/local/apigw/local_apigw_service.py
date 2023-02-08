@@ -49,6 +49,10 @@ class LambdaAuthorizer(Authorizer):
     REQUEST = "request"
     VALID_TYPES = [TOKEN, REQUEST]
 
+    PAYLOAD_V1 = "1.0"
+    PAYLOAD_V2 = "2.0"
+    PAYLOAD_VERSIONS = [PAYLOAD_V1, PAYLOAD_V2]
+
     lambda_name: str
     identity_sources: List[str]
     validation_string: Optional[str] = None

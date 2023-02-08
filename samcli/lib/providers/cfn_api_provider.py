@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional, Tuple, List, cast
 
 from samcli.commands.local.lib.swagger.integration_uri import LambdaUri
 from samcli.lib.providers.provider import Stack
-from samcli.local.apigw.local_apigw_service import Route
+from samcli.local.apigw.local_apigw_service import Route, LambdaAuthorizer
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
 from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
 from samcli.lib.providers.api_collector import ApiCollector
@@ -14,10 +14,12 @@ from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_RESOURCE,
     AWS_APIGATEWAY_RESTAPI,
     AWS_APIGATEWAY_STAGE,
+    AWS_APIGATEWAY_AUTHORIZER,
     AWS_APIGATEWAY_V2_API,
     AWS_APIGATEWAY_V2_INTEGRATION,
     AWS_APIGATEWAY_V2_ROUTE,
     AWS_APIGATEWAY_V2_STAGE,
+    AWS_APIGATEWAY_V2_AUTHORIZER,
 )
 
 LOG = logging.getLogger(__name__)
@@ -31,11 +33,26 @@ class CfnApiProvider(CfnBaseApiProvider):
         AWS_APIGATEWAY_STAGE,
         AWS_APIGATEWAY_RESOURCE,
         AWS_APIGATEWAY_METHOD,
+        AWS_APIGATEWAY_AUTHORIZER,
         AWS_APIGATEWAY_V2_API,
         AWS_APIGATEWAY_V2_INTEGRATION,
         AWS_APIGATEWAY_V2_ROUTE,
         AWS_APIGATEWAY_V2_STAGE,
+        AWS_APIGATEWAY_V2_AUTHORIZER,
     ]
+
+    _AUTHORIZER_TYPE = "Type"
+    _AUTHORIZER_REST_API = "RestApiId"
+    _AUTHORIZER_NAME = "Name"
+    _AUTHORIZER_IDENTITY_SOURCE = "IdentitySource"
+    _AUTHORIZER_VALIDATION = "IdentityValidationExpression"
+    _AUTHORIZER_AUTHORIZER_URI = "AuthorizerUri"
+    _AUTHORIZER_V2_TYPE = "AuthorizerType"
+    _AUTHORIZER_V2_API = "ApiId"
+    _AUTHORIZER_V2_PAYLOAD = "AuthorizerPayloadFormatVersion"
+    _AUTHORIZER_V2_SIMPLE_RESPONSE = "EnableSimpleResponses"
+    _METHOD_AUTHORIZER_ID = "AuthorizerId"
+    _ROUTE_AUTHORIZER_ID = "AuthorizerId"
 
     def extract_resources(self, stacks: List[Stack], collector: ApiCollector, cwd: Optional[str] = None) -> None:
         """
@@ -66,6 +83,9 @@ class CfnApiProvider(CfnBaseApiProvider):
                 if resource_type == AWS_APIGATEWAY_METHOD:
                     self._extract_cloud_formation_method(stack.stack_path, resources, logical_id, resource, collector)
 
+                if resource_type == AWS_APIGATEWAY_AUTHORIZER:
+                    self._extract_cloud_formation_authorizer(logical_id, resource, collector)
+
                 if resource_type == AWS_APIGATEWAY_V2_API:
                     self._extract_cfn_gateway_v2_api(stack.stack_path, logical_id, resource, collector, cwd=cwd)
 
@@ -74,6 +94,208 @@ class CfnApiProvider(CfnBaseApiProvider):
 
                 if resource_type == AWS_APIGATEWAY_V2_STAGE:
                     self._extract_cfn_gateway_v2_stage(resources, resource, collector)
+
+                if resource_type == AWS_APIGATEWAY_V2_AUTHORIZER:
+                    self._extract_cfn_gateway_v2_authorizer(logical_id, resource, collector)
+
+    @staticmethod
+    def _extract_cloud_formation_authorizer(logical_id: str, resource: dict, collector: ApiCollector) -> None:
+        """
+        Extract Authorizers from AWS::ApiGateway::Authorizer and add them to the collector.
+
+        Parameters
+        ----------
+        logical_id: str
+            The logical ID of the Authorizer
+        resource: dict
+            The attributes for the Authorizer
+        collector: ApiCollector
+            ApiCollector to save Authorizers into
+        """
+        properties = resource.get("Properties", {})
+        authorizer_type = properties.get(CfnApiProvider._AUTHORIZER_TYPE, "").lower()
+        rest_api_id = properties.get(CfnApiProvider._AUTHORIZER_REST_API)
+        name = properties.get(CfnApiProvider._AUTHORIZER_NAME)
+        authorizer_uri = properties.get(CfnApiProvider._AUTHORIZER_AUTHORIZER_URI)
+
+        if not authorizer_type:
+            raise InvalidSamTemplateException(
+                f"Authorizer '{logical_id}' is missing the '{CfnApiProvider._AUTHORIZER_TYPE}' "
+                "property, an Authorizer type must be defined."
+            )
+
+        if not rest_api_id:
+            raise InvalidSamTemplateException(
+                f"Authorizer '{logical_id}' is missing the '{CfnApiProvider._AUTHORIZER_REST_API}' "
+                "property, this must be defined."
+            )
+
+        if not name:
+            raise InvalidSamTemplateException(
+                f"Authorizer '{logical_id}' is missing the '{CfnApiProvider._AUTHORIZER_NAME}' "
+                "property, the Name must be defined."
+            )
+
+        if authorizer_type not in LambdaAuthorizer.VALID_TYPES:
+            LOG.warning(
+                "Authorizer '%s' with type '%s' is currently not supported. "
+                "Only Lambda Authorizers of type TOKEN and REQUEST are supported.",
+                logical_id,
+                authorizer_type,
+            )
+            return
+
+        if not authorizer_uri:
+            raise InvalidSamTemplateException(
+                f"Authorizer '{logical_id}' is missing the '{CfnApiProvider._AUTHORIZER_AUTHORIZER_URI}' "
+                "property, a valid Lambda ARN must be provided."
+            )
+
+        function_name = LambdaUri.get_function_name(authorizer_uri)
+        if not function_name:
+            LOG.warning(
+                "Was not able to resolve Lambda function ARN for Authorizer '%s'. "
+                "Double check the ARN format, or use more simple intrinsics.",
+                logical_id,
+            )
+            return
+
+        identity_source_template = properties.get(CfnApiProvider._AUTHORIZER_IDENTITY_SOURCE, None)
+
+        if identity_source_template is None and authorizer_type == LambdaAuthorizer.TOKEN:
+            raise InvalidSamTemplateException(
+                f"Lambda Authorizer '{logical_id}' of type TOKEN, must have "
+                f"'{CfnApiProvider._AUTHORIZER_IDENTITY_SOURCE}' of type string defined."
+            )
+
+        if identity_source_template is not None and not isinstance(identity_source_template, str):
+            raise InvalidSamTemplateException(
+                f"Lambda Authorizer '{logical_id}' contains an invalid '{CfnApiProvider._AUTHORIZER_IDENTITY_SOURCE}', "
+                "it must be a comma-separated string."
+            )
+
+        # split and parse out identity sources
+        identity_source_list = []
+
+        if identity_source_template:
+            for identity_source in identity_source_template.split(","):
+                identity_source_list.append(identity_source.strip())
+
+        validation_expression = properties.get(CfnApiProvider._AUTHORIZER_VALIDATION)
+
+        if authorizer_type == LambdaAuthorizer.REQUEST and validation_expression:
+            raise InvalidSamTemplateException(
+                "Lambda Authorizer '%s' has '%s' property defined, but validation is only "
+                "supported on TOKEN type authorizers." % (logical_id, CfnApiProvider._AUTHORIZER_VALIDATION)
+            )
+
+        lambda_authorizer = LambdaAuthorizer(
+            payload_version="1.0",
+            authorizer_name=name,
+            type=authorizer_type,
+            lambda_name=function_name,
+            identity_sources=identity_source_list,
+            validation_string=validation_expression,
+        )
+
+        collector.add_authorizers(rest_api_id, {name: lambda_authorizer})
+
+    @staticmethod
+    def _extract_cfn_gateway_v2_authorizer(logical_id: str, resource: dict, collector: ApiCollector) -> None:
+        """
+        Extract Authorizers from AWS::ApiGatewayV2::Authorizer and add them to the collector.
+
+        Parameters
+        ----------
+        logical_id: str
+            The logical ID of the Authorizer
+        resource: dict
+            The attributes for the Authorizer
+        collector: ApiCollector
+            ApiCollector to save Authorizers into
+        """
+        properties = resource.get("Properties", {})
+        authorizer_type = properties.get(CfnApiProvider._AUTHORIZER_V2_TYPE, "").lower()
+        api_id = properties.get(CfnApiProvider._AUTHORIZER_V2_API)
+        name = properties.get(CfnApiProvider._AUTHORIZER_NAME)
+        authorizer_uri = properties.get(CfnApiProvider._AUTHORIZER_AUTHORIZER_URI)
+
+        if not authorizer_type:
+            raise InvalidSamTemplateException(
+                f"Authorizer '{logical_id}' is missing the '{CfnApiProvider._AUTHORIZER_V2_TYPE}' "
+                "property, an Authorizer type must be defined."
+            )
+
+        if not api_id:
+            raise InvalidSamTemplateException(
+                f"Authorizer '{logical_id}' is missing the '{CfnApiProvider._AUTHORIZER_V2_API}' "
+                "property, this must be defined."
+            )
+
+        if not name:
+            raise InvalidSamTemplateException(
+                f"Authorizer '{logical_id}' is missing the '{CfnApiProvider._AUTHORIZER_NAME}' "
+                "property, the Name must be defined."
+            )
+
+        if authorizer_type != LambdaAuthorizer.REQUEST:
+            LOG.warning(
+                "Authorizer '%s' with type '%s' is currently not supported. "
+                "Only Lambda Authorizers of type REQUEST are supported for API Gateway V2.",
+                logical_id,
+                authorizer_type,
+            )
+            return
+
+        if not authorizer_uri:
+            raise InvalidSamTemplateException(
+                f"Authorizer '{logical_id}' is missing the '{CfnApiProvider._AUTHORIZER_AUTHORIZER_URI}' "
+                "property, a valid Lambda ARN must be provided."
+            )
+
+        function_name = LambdaUri.get_function_name(authorizer_uri)
+        if not function_name:
+            LOG.warning(
+                "Was not able to resolve Lambda function ARN for Authorizer '%s'. "
+                "Double check the ARN format, or use more simple intrinsics.",
+                logical_id,
+            )
+            return
+
+        identity_sources = properties.get(CfnApiProvider._AUTHORIZER_IDENTITY_SOURCE, None)
+
+        if not isinstance(identity_sources, list):
+            raise InvalidSamTemplateException(
+                f"Lambda Authorizer '{logical_id}' must have "
+                f"'{CfnApiProvider._AUTHORIZER_IDENTITY_SOURCE}' of type list defined."
+            )
+
+        payload_version = properties.get(CfnApiProvider._AUTHORIZER_V2_PAYLOAD)
+
+        if not payload_version in LambdaAuthorizer.PAYLOAD_VERSIONS:
+            raise InvalidSamTemplateException(
+                f"Lambda Authorizer '{logical_id}' is missing or invalid '{CfnApiProvider._AUTHORIZER_V2_PAYLOAD}'"
+                ", it must be set to '1.0' or '2.0'"
+            )
+
+        simple_responses = properties.get(CfnApiProvider._AUTHORIZER_V2_SIMPLE_RESPONSE, False)
+
+        if payload_version == LambdaAuthorizer.PAYLOAD_V1 and simple_responses:
+            raise InvalidSamTemplateException(
+                f"'{CfnApiProvider._AUTHORIZER_V2_SIMPLE_RESPONSE}' is only supported for '2.0' "
+                f"payload format versions for Lambda Authorizer '{logical_id}'."
+            )
+
+        lambda_authorizer = LambdaAuthorizer(
+            payload_version=payload_version,
+            authorizer_name=name,
+            type=authorizer_type,
+            lambda_name=function_name,
+            identity_sources=identity_sources,
+            use_simple_response=simple_responses,
+        )
+
+        collector.add_authorizers(api_id, {name: lambda_authorizer})
 
     @staticmethod
     def _extract_cloud_formation_route(
@@ -214,12 +436,15 @@ class CfnApiProvider(CfnBaseApiProvider):
         if content_handling == CfnApiProvider.METHOD_BINARY_TYPE and content_type:
             collector.add_binary_media_types(logical_id, [content_type])
 
+        authorizer_name = properties.get(CfnApiProvider._METHOD_AUTHORIZER_ID)
+
         routes = Route(
             methods=[method],
             function_name=self._get_integration_function_name(integration),
             path=resource_path,
             operation_name=operation_name,
             stack_path=stack_path,
+            authorizer_name=authorizer_name,
         )
         collector.add_routes(rest_api_id, [routes])
 
@@ -332,6 +557,8 @@ class CfnApiProvider(CfnBaseApiProvider):
                 "The AWS::ApiGatewayV2::Route {} does not have a correct route key {}".format(logical_id, route_key)
             )
 
+        authorizer_name = properties.get(CfnApiProvider._ROUTE_AUTHORIZER_ID)
+
         routes = Route(
             methods=[method],
             path=path,
@@ -340,6 +567,7 @@ class CfnApiProvider(CfnBaseApiProvider):
             payload_format_version=payload_format_version,
             operation_name=operation_name,
             stack_path=stack_path,
+            authorizer_name=authorizer_name,
         )
         collector.add_routes(api_id, [routes])
 
