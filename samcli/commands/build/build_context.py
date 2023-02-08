@@ -15,7 +15,7 @@ from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.utils.packagetype import IMAGE
 
 from samcli.commands._utils.template import get_template_data
-from samcli.commands._utils.experimental import is_experimental_enabled, ExperimentalFlag, prompt_experimental
+from samcli.commands._utils.experimental import ExperimentalFlag, prompt_experimental
 from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
 from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NestedStackManager
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
