@@ -16,26 +16,6 @@ Resources:
         - Ref: HelloWorldLayer
       Tracing: Active
 
-  HelloWorldFunctionWithLayerWithoutBuild:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: function/
-      Handler: app.lambda_handler
-      Runtime: python3.7
-      Layers:
-        - Ref: HelloWorldLayerWithoutBuildMethod
-      Tracing: Active
-
-  HelloWorldFunctionWithPreBuiltLayer:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: function/
-      Handler: app.lambda_handler
-      Runtime: python3.7
-      Layers:
-        - Ref: HelloWorldPreBuiltZipLayer
-      Tracing: Active
-
   HelloWorldApi:
     Type: AWS::Serverless::Api
     Properties:
@@ -58,24 +38,6 @@ Resources:
         - python3.7
     Metadata:
       BuildMethod: python3.7
-
-  HelloWorldLayerWithoutBuildMethod:
-    Type: AWS::Serverless::LayerVersion
-    Properties:
-      LayerName: HelloWorldLayerWithoutBuild
-      Description: Hello World Layer without BuildMethod
-      ContentUri: layer_without_build_method/
-      CompatibleRuntimes:
-        - python3.7
-
-  HelloWorldPreBuiltZipLayer:
-    Type: AWS::Serverless::LayerVersion
-    Properties:
-      LayerName: HelloWorldPreBuiltZipLayer
-      Description: Hello World Layer which is pre-built as ZIP file
-      ContentUri: layer_zip/layer.zip
-      CompatibleRuntimes:
-        - python3.7
 
   HelloStepFunction:
     Type: AWS::Serverless::StateMachine
