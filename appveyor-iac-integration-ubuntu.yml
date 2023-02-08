@@ -11,7 +11,6 @@ environment:
     - PYTHON_VERSION: '3.7'
       PYTHON_ARCH: '64'
       NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_36_PIP: 1
       INSTALL_PY_38_PIP: 1
       INSTALL_PY_39_PIP: 1
       APPVEYOR_CONSOLE_DISABLE_PTY: true
@@ -19,7 +18,6 @@ environment:
     - PYTHON_VERSION: '3.8'
       PYTHON_ARCH: '64'
       NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_36_PIP: 1
       INSTALL_PY_37_PIP: 1
       INSTALL_PY_39_PIP: 1
       APPVEYOR_CONSOLE_DISABLE_PTY: true
@@ -27,7 +25,6 @@ environment:
     - PYTHON_VERSION: '3.9'
       PYTHON_ARCH: '64'
       NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_36_PIP: 1
       INSTALL_PY_37_PIP: 1
       INSTALL_PY_38_PIP: 1
       APPVEYOR_CONSOLE_DISABLE_PTY: true
@@ -61,26 +58,22 @@ install:
   - sh: "sudo apt install maven"
   - sh: "mvn --version"
 
-  - sh: "sudo apt-get -y install python3.6"
   - sh: "sudo apt-get -y install python3.7"
   - sh: "sudo apt-get -y install python3.8"
   - sh: "sudo apt-get -y install python3.9 python3.9-venv"
 
   - sh: "which python3.8"
   - sh: "which python3.7"
-  - sh: "which python3.6"
   - sh: "which python3.9"
 
   - sh: "PATH=$PATH:/usr/bin/python3.9:/usr/bin/python3.8:/usr/bin/python3.7"
   - sh: "curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py"
-  - sh: "curl https://bootstrap.pypa.io/pip/3.6/get-pip.py -o get-pip-36.py"
 
   - sh: "sudo apt-get -y install python3-distutils"
   - sh: "sudo apt-get -y install python3.9-distutils"
   - ps: "If ($env:INSTALL_PY_39_PIP) {python3.9 get-pip.py --user}"
   - ps: "If ($env:INSTALL_PY_38_PIP) {python3.8 get-pip.py --user}"
   - ps: "If ($env:INSTALL_PY_37_PIP) {python3.7 get-pip.py --user}"
-  - ps: "If ($env:INSTALL_PY_36_PIP) {python3.6 get-pip-36.py --user}"
 
   # get testing env vars
   - sh: "sudo apt install -y jq"

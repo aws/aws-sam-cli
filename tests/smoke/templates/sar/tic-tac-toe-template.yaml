@@ -10,7 +10,7 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: a5f8d917-8537-4143-8bf1-f7e8a344afda
-      Runtime: python3.6
+      Runtime: python3.9
       MemorySize: 128
       Events:
         RestAPI:

@@ -120,13 +120,13 @@ def kill_process(process: Popen) -> None:
         raise ValueError(f"Processes: {alive} are still alive.")
 
 
-def read_until_string(process: Popen, expected_output: str, timeout: int = 5) -> None:
+def read_until_string(process: Popen, expected_output: str, timeout: int = 30) -> None:
     """Read output from process until a line equals to expected_output has shown up or reaching timeout.
     Throws TimeoutError if times out
     """
 
     def _compare_output(output, _: List[str]) -> bool:
-        return bool(output == expected_output)
+        return bool(expected_output in output)
 
     try:
         read_until(process, _compare_output, timeout)

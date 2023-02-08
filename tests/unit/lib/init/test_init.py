@@ -14,7 +14,7 @@ from samcli.lib.utils.packagetype import ZIP
 class TestInit(TestCase):
     def setUp(self):
         self.location = None
-        self.runtime = "python3.6"
+        self.runtime = "python3.9"
         self.dependency_manager = "pip"
         self.output_dir = "mydir"
         self.name = "testing project"
@@ -71,7 +71,7 @@ class TestInit(TestCase):
             )
         self.assertEqual(
             "An error occurred while generating this project "
-            "testing project: Lambda Runtime python3.6 "
+            "testing project: Lambda Runtime python3.9 "
             "does not support dependency manager: gradle",
             str(ctx.exception),
         )
