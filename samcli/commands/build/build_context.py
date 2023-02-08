@@ -15,6 +15,7 @@ from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.utils.packagetype import IMAGE
 
 from samcli.commands._utils.template import get_template_data
+from samcli.commands._utils.experimental import is_experimental_enabled, ExperimentalFlag, prompt_experimental
 from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
 from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NestedStackManager
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
@@ -257,6 +258,7 @@ class BuildContext:
 
         try:
             self._check_exclude_warning()
+            self._check_rust_cargo_experimental_flag()
 
             for f in self.get_resources_to_build().functions:
                 EventTracker.track_event("BuildFunctionRuntime", f.runtime)
@@ -670,3 +672,22 @@ Commands you can use next
         excludes: Tuple[str, ...] = self._exclude if self._exclude is not None else ()
         if self._resource_identifier in excludes:
             LOG.warning(self._EXCLUDE_WARNING_MESSAGE)
+
+    def _check_rust_cargo_experimental_flag(self) -> None:
+        """
+        Prints warning message and confirms if user wants to use beta feature
+        """
+        WARNING_MESSAGE = (
+            'Build method "rustcargolambda" is a beta feature.\n'
+            "Please confirm if you would like to proceed\n"
+            'You can also enable this beta feature with "sam build --beta-features".'
+        )
+        resources_to_build = self.get_resources_to_build()
+        is_building_rust = False
+        for function in resources_to_build.functions:
+            if function.metadata and function.metadata.get("BuildMethod", "") == "rustcargolambda":
+                is_building_rust = True
+                break
+
+        if is_building_rust:
+            prompt_experimental(ExperimentalFlag.RustCargoLambda, WARNING_MESSAGE)
