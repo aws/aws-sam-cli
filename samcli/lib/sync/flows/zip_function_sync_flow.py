@@ -92,6 +92,7 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
                 container_manager=self._build_context.container_manager,
                 mode=self._build_context.mode,
                 combine_dependencies=self._combine_dependencies(),
+                build_in_source=self._build_context.build_in_source,
             )
             LOG.debug("%sBuilding Function", self.log_prefix)
             build_result = builder.build()

@@ -670,3 +670,7 @@ Commands you can use next
         excludes: Tuple[str, ...] = self._exclude if self._exclude is not None else ()
         if self._resource_identifier in excludes:
             LOG.warning(self._EXCLUDE_WARNING_MESSAGE)
+
+    @property
+    def build_in_source(self) -> Optional[bool]:
+        return self._build_in_source
