@@ -36,7 +36,6 @@ class TestSwaggerParser_get_apis(TestCase):
                 methods=["get"],
                 function_name=function_name,
                 stack_path=self.stack_path,
-                authorizer_name="",
             )
         ]
         result = parser.get_routes()
@@ -68,21 +67,18 @@ class TestSwaggerParser_get_apis(TestCase):
                 methods=["get"],
                 function_name=function_name,
                 stack_path=self.stack_path,
-                authorizer_name="",
             ),
             Route(
                 path="/path1",
                 methods=["delete"],
                 function_name=function_name,
                 stack_path=self.stack_path,
-                authorizer_name="",
             ),
             Route(
                 path="/path2",
                 methods=["post"],
                 function_name=function_name,
                 stack_path=self.stack_path,
-                authorizer_name="",
             ),
         }
         result = parser.get_routes()
@@ -111,7 +107,6 @@ class TestSwaggerParser_get_apis(TestCase):
                 path="/path1",
                 function_name=function_name,
                 stack_path=self.stack_path,
-                authorizer_name="",
             )
         ]
         result = parser.get_routes()
@@ -168,7 +163,6 @@ class TestSwaggerParser_get_apis(TestCase):
                 function_name=function_name,
                 payload_format_version="1.0",
                 stack_path=self.stack_path,
-                authorizer_name="",
             ),
             Route(
                 path="/path2",
@@ -176,7 +170,6 @@ class TestSwaggerParser_get_apis(TestCase):
                 function_name=function_name,
                 payload_format_version="2.0",
                 stack_path=self.stack_path,
-                authorizer_name="",
             ),
         ]
         result = parser.get_routes()
@@ -231,6 +224,8 @@ class TestSwaggerParser_get_apis(TestCase):
                 payload_format_version=payload_version,
                 stack_path=self.stack_path,
                 authorizer_name=None,
+                authorizer_object=None,
+                use_default_authorizer=False
             ),
         ]
 
@@ -714,3 +709,12 @@ class TestSwaggerParser_get_lambda_identity_sources(TestCase):
 
         result = parser._get_lambda_identity_sources("myauth", type, event_type, properties, authorizer_object)
         self.assertEqual(result, [])
+
+    def test_invalid_identity_source_throws_exception(self):
+        parser = SwaggerParser(Mock(), Mock())
+
+        properties = {"name": "Authentication", "in": "header"}
+        auth_properties = {"identitySource": "invalid string goes here"}
+
+        with self.assertRaises(InvalidSecurityDefinition):
+            parser._get_lambda_identity_sources(Mock(), "request", Route.API, properties, auth_properties)

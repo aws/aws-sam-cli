@@ -2,6 +2,7 @@
 
 import logging
 from typing import List, Union, Dict
+from samcli.commands.local.lib.identity_source_validator import IdentitySourceValidator
 
 from samcli.commands.local.lib.swagger.integration_uri import LambdaUri, IntegrationType
 from samcli.local.apigw.local_apigw_service import Route, LambdaAuthorizer, Authorizer
@@ -197,9 +198,20 @@ class SwaggerParser:
                     auth_name,
                 )
             else:
-                # split the identity sources and remove any trailing spaces
+                # split the identity sources, remove any trailing spaces, and validate
                 split_identity_source: List[str] = identity_source_string.split(",")
-                identity_sources += [identity.strip() for identity in split_identity_source]
+
+                for identity in split_identity_source:
+                    trimmed_identity = identity.strip()
+                    is_valid_format = IdentitySourceValidator.validate_identity_source(trimmed_identity, event_type)
+
+                    if not is_valid_format:
+                        raise InvalidSecurityDefinition(
+                            f"Identity source '{trimmed_identity}' for Lambda Authorizer '{auth_name}' "
+                            "is not a valid identity source, check the spelling/format."
+                        )
+
+                    identity_sources.append(trimmed_identity)
 
         return identity_sources
 
@@ -305,12 +317,11 @@ class SwaggerParser:
                 payload_format_version = self._get_payload_format_version(method_config)
 
                 authorizers = method_config.get(SwaggerParser._SWAGGER_SECURITY, None)
-                authorizer_name = None
 
-                if authorizers is None:
-                    # user has no security defined, set blank to use default
-                    authorizer_name = ""
-                else:
+                authorizer_name = None
+                use_default_authorizer = True
+
+                if authorizers is not None:
                     if not isinstance(authorizers, list):
                         raise InvalidSecurityDefinition(
                             "Invalid security definition found, authorizers for "
@@ -336,6 +347,9 @@ class SwaggerParser:
                             )
 
                         authorizer_name = str(authorizer_object[0])
+                    else:
+                        # customer provided empty list, do not use default authorizer
+                        use_default_authorizer = False
 
                 route = Route(
                     function_name,
@@ -346,6 +360,7 @@ class SwaggerParser:
                     operation_name=method_config.get("operationId"),
                     stack_path=self.stack_path,
                     authorizer_name=authorizer_name,
+                    use_default_authorizer=use_default_authorizer,
                 )
                 result.append(route)
 

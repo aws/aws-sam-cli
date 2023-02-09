@@ -80,7 +80,7 @@ class ApiCollector:
             default_authorizer = self._default_authorizer_per_resource.get(apigw_id, None)
 
             for route in routes:
-                if route.authorizer_name is None:
+                if route.authorizer_name is None and not route.use_default_authorizer:
                     LOG.debug(
                         "Linking authorizer skipped, route '%s' is set to not use any authorizer.",
                         route.path,
@@ -88,6 +88,7 @@ class ApiCollector:
 
                     continue
 
+                # determine the name of the authorizer object we want to search for in our dict
                 authorizer_name_lookup = route.authorizer_name or default_authorizer or ""
                 authorizer_object = authorizers.get(authorizer_name_lookup, None)
 

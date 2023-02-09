@@ -14,7 +14,7 @@ class TestApiCollector_linking_authorizer(TestCase):
     @parameterized.expand(
         [
             (  # test link default authorizer
-                [Route(function_name="func1", path="path1", methods=["get"], stack_path="path1", authorizer_name="")],
+                [Route(function_name="func1", path="path1", methods=["get"], stack_path="path1", authorizer_name=None,use_default_authorizer=True)],
                 {
                     "auth1": Authorizer(authorizer_name="auth1", type="token1", payload_version="1.0"),
                     "auth2": Authorizer(authorizer_name="auth2", type="token2", payload_version="1.0"),
@@ -28,11 +28,12 @@ class TestApiCollector_linking_authorizer(TestCase):
                         stack_path="path1",
                         authorizer_name="auth1",
                         authorizer_object=Authorizer(authorizer_name="auth1", type="token1", payload_version="1.0"),
+                        use_default_authorizer=True
                     )
                 ],
             ),
             (  # test link non existant default authorizer
-                [Route(function_name="func1", path="path1", methods=["get"], stack_path="path1", authorizer_name="")],
+                [Route(function_name="func1", path="path1", methods=["get"], stack_path="path1", authorizer_name=None,use_default_authorizer=True)],
                 {
                     "auth1": Authorizer(authorizer_name="auth1", type="token1", payload_version="1.0"),
                     "auth2": Authorizer(authorizer_name="auth2", type="token2", payload_version="1.0"),
@@ -46,11 +47,12 @@ class TestApiCollector_linking_authorizer(TestCase):
                         stack_path="path1",
                         authorizer_name=None,
                         authorizer_object=None,
+                        use_default_authorizer=True
                     )
                 ],
             ),
             (  # test no authorizer defined in route
-                [Route(function_name="func1", path="path1", methods=["get"], stack_path="path1", authorizer_name=None)],
+                [Route(function_name="func1", path="path1", methods=["get"], stack_path="path1", authorizer_name=None,use_default_authorizer=False)],
                 {
                     "auth1": Authorizer(authorizer_name="auth1", type="token1", payload_version="1.0"),
                     "auth2": Authorizer(authorizer_name="auth2", type="token2", payload_version="1.0"),
@@ -64,6 +66,7 @@ class TestApiCollector_linking_authorizer(TestCase):
                         stack_path="path1",
                         authorizer_name=None,
                         authorizer_object=None,
+                        use_default_authorizer=False
                     )
                 ],
             ),
