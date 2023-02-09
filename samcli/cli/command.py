@@ -1,12 +1,12 @@
 """
 Base classes that implement the CLI framework
 """
-
 import logging
 import importlib
 from collections import OrderedDict
 
 import click
+from click import HelpFormatter, Context
 
 logger = logging.getLogger(__name__)
 
@@ -38,11 +38,11 @@ _SAM_CLI_COMMAND_SHORT_HELP = {
     "package": "Package an AWS SAM application",
     "deploy": "Deploy an AWS SAM application",
     "delete": "Delete an AWS SAM application and the artifacts created by sam deploy",
-    "logs": "Fetch logs for a function",
-    "publish": "Publish a packaged AWS SAM template to AWS Serverless Application Repository",
+    "logs": "Fetch logs for an AWS Lambda function",
+    "publish": "Publish a packaged AWS SAM template to AWS Serverless Application Repository for easy sharing",
     "traces": "Fetch AWS X-Ray traces",
-    "sync": "Sync a project to AWS",
-    "pipeline": "Manage the continuous delivery of the application",
+    "sync": "Sync a AWS SAM project to AWS",
+    "pipeline": "Manage the continuous delivery of your serverless application",
     "list": "Fetch the state of your serverless application",
 }
 
@@ -67,6 +67,11 @@ class BaseCommand(click.MultiCommand):
     By convention, the name of last module in the package's name is the command's name. ie. A package of "foo.bar.baz"
     will produce a command name "baz".
     """
+
+    ADDITIVE_LEFT_JUSTIFICATION = 7
+    LEFT_JUSTIFICATION_LENGTH = (
+        max([len(command) for command in _SAM_CLI_COMMAND_SHORT_HELP.keys()]) + ADDITIVE_LEFT_JUSTIFICATION
+    )
 
     def __init__(self, *args, cmd_packages=None, **kwargs):
         """
@@ -103,6 +108,116 @@ class BaseCommand(click.MultiCommand):
             commands[cmd_name] = pkg_name
 
         return commands
+
+    def format_options(self, ctx: Context, formatter: HelpFormatter) -> None:
+        # Re-order options so that they come after the commands.
+        self.format_commands(ctx, formatter)
+        opts = []
+        for param in self.get_params(ctx):
+            rv = param.get_help_record(ctx)
+            if rv is not None:
+                option, option_help_text = rv
+                opts.append((option.ljust(self.LEFT_JUSTIFICATION_LENGTH), option_help_text))
+
+        if opts:
+            formatter.write(click.style("\n"))
+            with formatter.section(click.style("Global Options", bold=True)):
+                formatter.write(click.style("\n"))
+                formatter.write_dl(opts)
+            formatter.write(click.style("\n"))
+
+    @staticmethod
+    def format_help_str_command(help_text: str) -> str:
+        return help_text.strip()
+
+    def format_commands(self, ctx, formatter):
+        formatter.write_paragraph()
+        # TODO(sriram-mv): Fix column spacing to be more generic and clean this up
+        # TODO(sriram-mv): Create overall structure with an overview section to set indentation.
+        # TODO(sriram-mv): Clean this up and make it modular.
+        with formatter.section(click.style("Create an App!", bold=True)):
+            formatter.write(click.style("\n"))
+            formatter.write_dl(
+                [
+                    ("init", BaseCommand.format_help_str_command(_SAM_CLI_COMMAND_SHORT_HELP.get("init"))),
+                ],
+            )
+
+        with formatter.section(click.style("Develop your App!", bold=True)):
+            formatter.write(click.style("\n"))
+            formatter.write_dl(
+                [
+                    (
+                        "build".ljust(self.LEFT_JUSTIFICATION_LENGTH),
+                        BaseCommand.format_help_str_command(_SAM_CLI_COMMAND_SHORT_HELP.get("build")),
+                    ),
+                    (
+                        "local".ljust(self.LEFT_JUSTIFICATION_LENGTH),
+                        BaseCommand.format_help_str_command(_SAM_CLI_COMMAND_SHORT_HELP.get("local")),
+                    ),
+                    (
+                        "validate".ljust(self.LEFT_JUSTIFICATION_LENGTH),
+                        BaseCommand.format_help_str_command(_SAM_CLI_COMMAND_SHORT_HELP.get("validate")),
+                    ),
+                    (
+                        click.style("sync *NEW*", fg="bright_yellow"),
+                        BaseCommand.format_help_str_command(_SAM_CLI_COMMAND_SHORT_HELP.get("sync")),
+                    ),
+                ],
+            )
+
+        with formatter.section(click.style("Deploy your App!", bold=True)):
+            formatter.write(click.style("\n"))
+            formatter.write_dl(
+                [
+                    (
+                        "package".ljust(self.LEFT_JUSTIFICATION_LENGTH),
+                        BaseCommand.format_help_str_command(_SAM_CLI_COMMAND_SHORT_HELP.get("package")),
+                    ),
+                    (
+                        "deploy".ljust(self.LEFT_JUSTIFICATION_LENGTH),
+                        BaseCommand.format_help_str_command(_SAM_CLI_COMMAND_SHORT_HELP.get("deploy")),
+                    ),
+                ]
+            )
+
+        with formatter.section(click.style("Monitor your App!", bold=True)):
+            formatter.write(click.style("\n"))
+            formatter.write_dl(
+                [
+                    (
+                        "logs".ljust(self.LEFT_JUSTIFICATION_LENGTH),
+                        BaseCommand.format_help_str_command(_SAM_CLI_COMMAND_SHORT_HELP.get("logs")),
+                    ),
+                    (
+                        "traces".ljust(self.LEFT_JUSTIFICATION_LENGTH),
+                        BaseCommand.format_help_str_command(_SAM_CLI_COMMAND_SHORT_HELP.get("traces")),
+                    ),
+                ],
+            )
+
+        with formatter.section(click.style("And More!", bold=True)):
+            formatter.write(click.style("\n"))
+            formatter.write_dl(
+                [
+                    (
+                        "delete".ljust(self.LEFT_JUSTIFICATION_LENGTH),
+                        BaseCommand.format_help_str_command(_SAM_CLI_COMMAND_SHORT_HELP.get("delete")),
+                    ),
+                    (
+                        click.style("list *NEW*", fg="bright_yellow").ljust(self.LEFT_JUSTIFICATION_LENGTH),
+                        BaseCommand.format_help_str_command(_SAM_CLI_COMMAND_SHORT_HELP.get("list")),
+                    ),
+                    (
+                        "pipeline".ljust(self.LEFT_JUSTIFICATION_LENGTH),
+                        BaseCommand.format_help_str_command(_SAM_CLI_COMMAND_SHORT_HELP.get("pipeline")),
+                    ),
+                    (
+                        "publish".ljust(self.LEFT_JUSTIFICATION_LENGTH),
+                        BaseCommand.format_help_str_command(_SAM_CLI_COMMAND_SHORT_HELP.get("publish")),
+                    ),
+                ],
+            )
 
     def list_commands(self, ctx):
         """
