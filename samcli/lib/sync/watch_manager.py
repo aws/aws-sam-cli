@@ -25,6 +25,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.package.package_context import PackageContext
     from samcli.commands.build.build_context import BuildContext
+    from samcli.commands.sync.sync_context import SyncState
 
 DEFAULT_WAIT_TIME = 1
 LOG = logging.getLogger(__name__)
@@ -45,6 +46,7 @@ class WatchManager:
     _color: Colored
     _auto_dependency_layer: bool
     _skip_infra_syncs: bool
+    _sync_state: "SyncState"
 
     def __init__(
         self,
@@ -54,6 +56,7 @@ class WatchManager:
         deploy_context: "DeployContext",
         auto_dependency_layer: bool,
         skip_infra_syncs: bool,
+        sync_state: "SyncState",
     ):
         """Manager for sync watch execution logic.
         This manager will observe template and its code resources.
@@ -77,6 +80,7 @@ class WatchManager:
         self._deploy_context = deploy_context
         self._auto_dependency_layer = auto_dependency_layer
         self._skip_infra_syncs = skip_infra_syncs
+        self._sync_state = sync_state
 
         self._sync_flow_factory = None
         self._sync_flow_executor = ContinuousSyncFlowExecutor()
@@ -110,7 +114,7 @@ class WatchManager:
         """
         self._stacks = SamLocalStackProvider.get_stacks(self._template)[0]
         self._sync_flow_factory = SyncFlowFactory(
-            self._build_context, self._deploy_context, self._stacks, self._auto_dependency_layer
+            self._build_context, self._deploy_context, self._stacks, self._auto_dependency_layer, self._sync_state
         )
         self._sync_flow_factory.load_physical_id_mapping()
         self._trigger_factory = CodeTriggerFactory(self._stacks, Path(self._build_context.base_dir))

@@ -13,6 +13,7 @@ class TestImageFunctionSyncFlow(TestCase):
             deploy_context=MagicMock(),
             physical_id_mapping={},
             stacks=[MagicMock()],
+            sync_state=MagicMock(),
             docker_client=MagicMock(),
         )
         return sync_flow

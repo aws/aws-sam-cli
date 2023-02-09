@@ -46,6 +46,7 @@ from samcli.commands.build.build_context import BuildContext
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
+    from samcli.commands.sync.sync_context import SyncState
 
 LOG = logging.getLogger(__name__)
 
@@ -88,6 +89,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
     _build_context: "BuildContext"
     _physical_id_mapping: Dict[str, str]
     _auto_dependency_layer: bool
+    _sync_state: "SyncState"
 
     def __init__(
         self,
@@ -95,6 +97,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
         deploy_context: "DeployContext",
         stacks: List[Stack],
         auto_dependency_layer: bool,
+        sync_state: "SyncState",
     ) -> None:
         """
         Parameters
@@ -111,6 +114,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
         self._build_context = build_context
         self._auto_dependency_layer = auto_dependency_layer
         self._physical_id_mapping = dict()
+        self._sync_state = sync_state
 
     def load_physical_id_mapping(self) -> None:
         """Load physical IDs of the stack resources from remote"""
@@ -156,6 +160,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                     self._deploy_context,
                     self._physical_id_mapping,
                     self._stacks,
+                    self._sync_state,
                 )
 
             return ZipFunctionSyncFlow(
@@ -164,6 +169,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                 self._deploy_context,
                 self._physical_id_mapping,
                 self._stacks,
+                self._sync_state,
             )
         if package_type == IMAGE:
             return ImageFunctionSyncFlow(
@@ -172,6 +178,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                 self._deploy_context,
                 self._physical_id_mapping,
                 self._stacks,
+                self._sync_state,
             )
         return None
 
@@ -190,6 +197,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                 self._deploy_context,
                 self._physical_id_mapping,
                 self._stacks,
+                self._sync_state,
             )
 
         if is_local_folder(layer.codeuri):
@@ -200,6 +208,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                 self._deploy_context,
                 self._physical_id_mapping,
                 self._stacks,
+                self._sync_state,
             )
 
         if is_zip_file(layer.codeuri):
@@ -210,6 +219,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                 self._deploy_context,
                 self._physical_id_mapping,
                 self._stacks,
+                self._sync_state,
             )
 
         LOG.warning("Can't create sync flow for '%s' layer resource", resource_identifier)
@@ -222,6 +232,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
             self._deploy_context,
             self._physical_id_mapping,
             self._stacks,
+            self._sync_state,
         )
 
     def _create_api_flow(self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]) -> SyncFlow:
@@ -231,6 +242,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
             self._deploy_context,
             self._physical_id_mapping,
             self._stacks,
+            self._sync_state,
         )
 
     def _create_stepfunctions_flow(
@@ -242,6 +254,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
             self._deploy_context,
             self._physical_id_mapping,
             self._stacks,
+            self._sync_state,
         )
 
     GeneratorFunction = Callable[["SyncFlowFactory", ResourceIdentifier, Dict[str, Any]], Optional[SyncFlow]]

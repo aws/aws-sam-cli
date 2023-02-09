@@ -26,6 +26,7 @@ from samcli.lib.utils.osutils import rmtree_if_exists
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.build.build_context import BuildContext
     from samcli.commands.deploy.deploy_context import DeployContext
+    from samcli.commands.sync.sync_context import SyncState
 
 LOG = logging.getLogger(__name__)
 FUNCTION_SLEEP = 1  # used to wait for lambda function configuration last update to be successful
@@ -44,6 +45,7 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
     _artifact_folder: Optional[str]
     _zip_file: Optional[str]
     _local_sha: Optional[str]
+    _sync_state: "SyncState"
 
     def __init__(
         self,
@@ -52,8 +54,11 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
         deploy_context: "DeployContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
+        sync_state: "SyncState",
     ):
-        super().__init__(build_context, deploy_context, physical_id_mapping, f"Layer {layer_identifier}", stacks)
+        super().__init__(
+            build_context, deploy_context, physical_id_mapping, f"Layer {layer_identifier}", stacks, sync_state
+        )
         self._layer_identifier = layer_identifier
         self._layer_arn = None
         self._old_layer_version = None
@@ -111,6 +116,7 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
                         self._deploy_context,
                         self._physical_id_mapping,
                         self._stacks,
+                        self._sync_state,
                     )
                 )
         return dependencies
@@ -186,8 +192,9 @@ class LayerSyncFlow(AbstractLayerSyncFlow):
         deploy_context: "DeployContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
+        sync_state: "SyncState",
     ):
-        super().__init__(layer_identifier, build_context, deploy_context, physical_id_mapping, stacks)
+        super().__init__(layer_identifier, build_context, deploy_context, physical_id_mapping, stacks, sync_state)
         self._layer = cast(LayerVersion, build_context.layer_provider.get(self._layer_identifier))
 
     def set_up(self) -> None:
@@ -304,6 +311,7 @@ class FunctionLayerReferenceSync(SyncFlow):
         deploy_context: "DeployContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
+        sync_state: "SyncState",
     ):
         super().__init__(
             build_context,
@@ -311,6 +319,7 @@ class FunctionLayerReferenceSync(SyncFlow):
             physical_id_mapping,
             log_name="Function Layer Reference Sync " + function_identifier,
             stacks=stacks,
+            sync_state=sync_state,
         )
         self._function_identifier = function_identifier
         self._layer_arn = layer_arn

@@ -8,6 +8,7 @@ from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
+    from samcli.commands.sync.sync_context import SyncState
 
 LOG = logging.getLogger(__name__)
 
@@ -29,6 +30,7 @@ class AliasVersionSyncFlow(SyncFlow):
         deploy_context: "DeployContext",
         physical_id_mapping: Dict[str, str],
         stacks: Optional[List[Stack]] = None,
+        sync_state: Optional["SyncState"] = None,
     ):
         """
         Parameters
@@ -52,6 +54,7 @@ class AliasVersionSyncFlow(SyncFlow):
             physical_id_mapping,
             log_name=f"Alias {alias_name} and Version of {function_identifier}",
             stacks=stacks,
+            sync_state=sync_state,
         )
         self._function_identifier = function_identifier
         self._alias_name = alias_name

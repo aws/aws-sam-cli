@@ -241,6 +241,8 @@ class TestDoCli(TestCase):
         DeployContextMock.return_value.__enter__.return_value = deploy_context_mock
         sync_context_mock = Mock()
         SyncContextMock.return_value.__enter__.return_value = sync_context_mock
+        current_state = Mock()
+        sync_context_mock.current_state = current_state
 
         do_cli(
             self.template_file,
@@ -339,6 +341,7 @@ class TestDoCli(TestCase):
             deploy_context_mock,
             auto_dependency_layer,
             skip_infra_syncs,
+            current_state,
         )
 
     @parameterized.expand([(True, False, True, False), (True, False, False, True)])
@@ -382,6 +385,8 @@ class TestDoCli(TestCase):
         DeployContextMock.return_value.__enter__.return_value = deploy_context_mock
         sync_context_mock = Mock()
         SyncContextMock.return_value.__enter__.return_value = sync_context_mock
+        current_state = Mock()
+        sync_context_mock.current_state = current_state
 
         check_enable_adl_mock.return_value = auto_dependency_layer
 
@@ -420,6 +425,7 @@ class TestDoCli(TestCase):
             self.resource_id,
             self.resource,
             auto_dependency_layer,
+            current_state,
         )
 
 
@@ -450,6 +456,7 @@ class TestSyncCode(TestCase):
         get_unique_resource_ids_mock.return_value = {
             ResourceIdentifier("Function1"),
         }
+        current_state = MagicMock()
 
         execute_code_sync(
             self.template_file,
@@ -458,6 +465,7 @@ class TestSyncCode(TestCase):
             resource_identifier_strings,
             resource_types,
             True,
+            current_state,
         )
 
         sync_flow_factory_mock.return_value.create_sync_flow.assert_called_once_with(ResourceIdentifier("Function1"))
@@ -489,6 +497,7 @@ class TestSyncCode(TestCase):
             ResourceIdentifier("Function1"),
             ResourceIdentifier("Function2"),
         }
+        current_state = MagicMock()
 
         execute_code_sync(
             self.template_file,
@@ -497,6 +506,7 @@ class TestSyncCode(TestCase):
             resource_identifier_strings,
             resource_types,
             True,
+            current_state,
         )
 
         sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function1"))
@@ -535,6 +545,8 @@ class TestSyncCode(TestCase):
             ResourceIdentifier("Function2"),
             ResourceIdentifier("Function3"),
         }
+        current_state = MagicMock()
+
         execute_code_sync(
             self.template_file,
             self.build_context,
@@ -542,6 +554,7 @@ class TestSyncCode(TestCase):
             resource_identifier_strings,
             resource_types,
             True,
+            current_state,
         )
 
         sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function1"))
@@ -583,6 +596,8 @@ class TestSyncCode(TestCase):
             ResourceIdentifier("Function3"),
             ResourceIdentifier("Function4"),
         }
+        current_state = MagicMock()
+
         execute_code_sync(
             self.template_file,
             self.build_context,
@@ -590,6 +605,7 @@ class TestSyncCode(TestCase):
             resource_identifier_strings,
             resource_types,
             True,
+            current_state,
         )
 
         sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function1"))
@@ -634,7 +650,9 @@ class TestSyncCode(TestCase):
             ResourceIdentifier("Function3"),
             ResourceIdentifier("Function4"),
         ]
-        execute_code_sync(self.template_file, self.build_context, self.deploy_context, "", [], True)
+        current_state = MagicMock()
+
+        execute_code_sync(self.template_file, self.build_context, self.deploy_context, "", [], True, current_state)
 
         sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function1"))
         sync_flow_executor_mock.return_value.add_sync_flow.assert_any_call(sync_flows[0])
@@ -660,6 +678,7 @@ class TestWatch(TestCase):
         self.build_context = MagicMock()
         self.package_context = MagicMock()
         self.deploy_context = MagicMock()
+        self.current_state = MagicMock()
 
     @parameterized.expand(itertools.product([True, False], [True, False]))
     @patch("samcli.commands.sync.command.click")
@@ -679,6 +698,7 @@ class TestWatch(TestCase):
             self.deploy_context,
             auto_dependency_layer,
             skip_infra_syncs,
+            self.current_state,
         )
 
         watch_manager_mock.assert_called_once_with(
@@ -688,6 +708,7 @@ class TestWatch(TestCase):
             self.deploy_context,
             auto_dependency_layer,
             skip_infra_syncs,
+            self.current_state,
         )
         watch_manager_mock.return_value.start.assert_called_once_with()
 

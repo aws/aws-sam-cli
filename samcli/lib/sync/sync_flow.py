@@ -18,6 +18,7 @@ from samcli.lib.sync.exceptions import MissingLockException, MissingPhysicalReso
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
+    from samcli.commands.sync.sync_context import SyncState
 
 # Logging with multiple processes is not safe. Use a log queue in the future.
 # https://docs.python.org/3/howto/logging-cookbook.html#:~:text=Although%20logging%20is%20thread%2Dsafe,across%20multiple%20processes%20in%20Python.
@@ -49,6 +50,7 @@ class SyncFlow(ABC):
     _session: Optional[Session]
     _physical_id_mapping: Dict[str, str]
     _locks: Optional[Dict[str, Lock]]
+    _sync_state: "SyncState"
 
     def __init__(
         self,
@@ -57,6 +59,7 @@ class SyncFlow(ABC):
         physical_id_mapping: Dict[str, str],
         log_name: str,
         stacks: Optional[List[Stack]] = None,
+        sync_state: Optional["SyncState"] = None,
     ):
         """
         Parameters
@@ -76,6 +79,7 @@ class SyncFlow(ABC):
         self._deploy_context = deploy_context
         self._log_name = log_name
         self._stacks = stacks
+        self._sync_state = sync_state
         self._session = None
         self._physical_id_mapping = physical_id_mapping
         self._locks = None

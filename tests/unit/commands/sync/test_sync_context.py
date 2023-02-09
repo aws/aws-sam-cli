@@ -96,3 +96,7 @@ class TestSyncContext(TestCase):
             self.assertIsNone(self.sync_context._previous_state)
             self.assertIsNotNone(self.sync_context._current_state)
             patched_rmtree_if_exists.assert_not_called()
+
+    def test_sync_context_get_current_state(self):
+        current_state = self.sync_context.current_state
+        self.assertEqual(current_state, self.sync_context._current_state)

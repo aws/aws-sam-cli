@@ -76,7 +76,7 @@ class SyncContext:
 
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args) -> None:
         self._write()
 
     def _write(self) -> None:
@@ -91,7 +91,7 @@ class SyncContext:
         except OSError:
             LOG.debug("Missing previous sync state, will create a new file at the end of this execution")
 
-    def _cleanup_build_folders(self):
+    def _cleanup_build_folders(self) -> None:
         """
         Cleans up build, cache and dependencies folders for clean start of the next session
         """
@@ -104,3 +104,10 @@ class SyncContext:
         dependencies_dir = Path(DEFAULT_DEPENDENCIES_DIR)
         LOG.debug("Cleaning up dependencies directory: %s", dependencies_dir)
         rmtree_if_exists(dependencies_dir)
+
+    @property
+    def current_state(self) -> SyncState:
+        """
+        Returns the sync state object within the sync context
+        """
+        return self._current_state

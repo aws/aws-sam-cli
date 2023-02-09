@@ -13,6 +13,7 @@ from samcli.lib.providers.exceptions import MissingLocalDefinition
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
+    from samcli.commands.sync.sync_context import SyncState
 
 LOG = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ class StepFunctionsSyncFlow(SyncFlow):
         deploy_context: "DeployContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
+        sync_state: "SyncState",
     ):
         """
         Parameters
@@ -52,6 +54,7 @@ class StepFunctionsSyncFlow(SyncFlow):
             physical_id_mapping,
             log_name="StepFunctions " + state_machine_identifier,
             stacks=stacks,
+            sync_state=sync_state,
         )
         self._state_machine_identifier = state_machine_identifier
         self._resource = get_resource_by_id(self._stacks, ResourceIdentifier(self._state_machine_identifier))

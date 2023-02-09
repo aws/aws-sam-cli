@@ -27,6 +27,7 @@ from samcli.lib.utils.hash import file_checksum
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
+    from samcli.commands.sync.sync_context import SyncState
 
 LOG = logging.getLogger(__name__)
 
@@ -51,6 +52,7 @@ class AutoDependencyLayerSyncFlow(AbstractLayerSyncFlow):
         deploy_context: "DeployContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
+        sync_state: "SyncState",
     ):
         super().__init__(
             NestedStackBuilder.get_layer_logical_id(function_identifier),
@@ -58,6 +60,7 @@ class AutoDependencyLayerSyncFlow(AbstractLayerSyncFlow):
             deploy_context,
             physical_id_mapping,
             stacks,
+            sync_state=sync_state,
         )
         self._function_identifier = function_identifier
         self._build_graph = build_graph
@@ -128,6 +131,7 @@ class AutoDependencyLayerParentSyncFlow(ZipFunctionSyncFlow):
                     self._deploy_context,
                     self._physical_id_mapping,
                     cast(List[Stack], self._stacks),
+                    self._sync_state,
                 )
             )
         return parent_dependencies
