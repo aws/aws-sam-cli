@@ -12,11 +12,11 @@ from samcli.local.lambdafn.exceptions import ResourceNotFound
 from samcli.commands.build.build_context import BuildContext
 from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
 from samcli.commands.exceptions import UserException
+from samcli.lib.build.exceptions import ContainerBuildNotSupported
 from samcli.lib.build.app_builder import (
     BuildError,
     UnsupportedBuilderLibraryVersionError,
     BuildInsideContainerError,
-    ContainerBuildNotSupported,
     ApplicationBuildResult,
 )
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException

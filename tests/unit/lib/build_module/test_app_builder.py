@@ -18,12 +18,12 @@ from samcli.lib.build.app_builder import (
     UnsupportedBuilderLibraryVersionError,
     BuildError,
     LambdaBuilderError,
-    ContainerBuildNotSupported,
     BuildInsideContainerError,
     DockerfileOutSideOfContext,
     DockerBuildFailed,
     DockerConnectionError,
 )
+from samcli.lib.build.exceptions import ContainerBuildNotSupported
 from samcli.commands.local.cli_common.user_exceptions import InvalidFunctionPropertyType
 from samcli.lib.telemetry.event import EventName, EventTracker
 from samcli.lib.utils.architecture import X86_64, ARM64
@@ -1060,6 +1060,45 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             None,
             "test_image",
             is_building_layer=True,
+        )
+
+    @patch("samcli.lib.build.app_builder.supports_specified_workflow")
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    @patch("samcli.lib.build.app_builder.get_layer_subfolder")
+    def test_must_build_layer_in_container_with_specified_workflow_if_supported(
+        self, get_layer_subfolder_mock, osutils_mock, get_workflow_config_mock, supports_specified_workflow_mock
+    ):
+        self.builder._container_manager = self.container_manager
+        get_layer_subfolder_mock.return_value = "python"
+        config_mock = Mock()
+        config_mock.manifest_name = "manifest_name"
+
+        scratch_dir = "scratch"
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=scratch_dir)
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        get_workflow_config_mock.return_value = config_mock
+        build_function_on_container_mock = Mock()
+
+        build_images = {"layer_name": "test_image"}
+        self.builder._build_images = build_images
+        self.builder._build_function_on_container = build_function_on_container_mock
+        supports_specified_workflow_mock.return_value = True
+
+        self.builder._build_layer("layer_name", "code_uri", "python3.8", ["python3.8"], ARM64, "full_path")
+        build_function_on_container_mock.assert_called_once_with(
+            config_mock,
+            PathValidator("code_uri"),
+            PathValidator("python"),
+            PathValidator("manifest_name"),
+            "python3.8",
+            ARM64,
+            None,
+            None,
+            "test_image",
+            is_building_layer=True,
+            specified_workflow="python3.8",
         )
 
 

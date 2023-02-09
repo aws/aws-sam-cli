@@ -1143,10 +1143,6 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         LOG.info("Running Command: {}".format(cmdlist))
         LOG.info("Running with SAM_BUILD_MODE={}".format(mode))
 
-        newenv = os.environ.copy()
-        if mode:
-            newenv["SAM_BUILD_MODE"] = mode
-
         # mock user input to mount with write
         user_click_confirm_input = 'y'
         run_command_with_input(cmdlist, user_click_confirm_input.encode(), cwd=self.working_dir)

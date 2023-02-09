@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from samcli.lib.build.workflow_config import (
     get_workflow_config,
+    needs_mount_with_write,
     UnsupportedRuntimeException,
     UnsupportedBuilderException,
 )
@@ -61,6 +62,16 @@ class Test_get_workflow_config(TestCase):
         self.assertIsNone(result.executable_search_paths)
         self.assertEqual(len(EventTracker.get_tracked_events()), 1)
         self.assertIn(Event("BuildWorkflowUsed", "dotnet-cli-package"), EventTracker.get_tracked_events())
+
+    @parameterized.expand([("dotnetcore3.1",), ("dotnet6",), ("provided.al2", "dotnet7")])
+    def test_must_mount_with_write_for_dotnet_in_container(self, runtime, specified_workflow=None):
+        result = get_workflow_config(runtime, self.code_dir, self.project_dir, specified_workflow)
+        self.assertEqual(result.language, "dotnet")
+        self.assertEqual(result.dependency_manager, "cli-package")
+        self.assertEqual(result.application_framework, None)
+        self.assertEqual(result.manifest_name, ".csproj")
+        self.assertIsNone(result.executable_search_paths)
+        self.assertTrue(needs_mount_with_write(result))
 
     @parameterized.expand([("provided",)])
     def test_must_work_for_provided_with_no_specified_workflow(self, runtime):
