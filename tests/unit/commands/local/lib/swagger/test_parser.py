@@ -225,7 +225,7 @@ class TestSwaggerParser_get_apis(TestCase):
                 stack_path=self.stack_path,
                 authorizer_name=None,
                 authorizer_object=None,
-                use_default_authorizer=False
+                use_default_authorizer=False,
             ),
         ]
 
