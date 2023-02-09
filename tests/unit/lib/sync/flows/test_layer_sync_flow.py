@@ -107,6 +107,7 @@ class TestLayerSyncFlow(TestCase):
             manifest_path_override=self.build_context_mock.manifest_path_override,
             container_manager=self.build_context_mock.container_manager,
             mode=self.build_context_mock.mode,
+            build_in_source=self.build_context_mock.build_in_source,
         )
 
         patched_tempfile.gettempdir.assert_called_once()

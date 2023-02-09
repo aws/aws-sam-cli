@@ -691,3 +691,7 @@ Commands you can use next
 
         if is_building_rust:
             prompt_experimental(ExperimentalFlag.RustCargoLambda, WARNING_MESSAGE)
+
+    @property
+    def build_in_source(self) -> Optional[bool]:
+        return self._build_in_source
