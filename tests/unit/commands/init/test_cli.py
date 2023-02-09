@@ -51,15 +51,15 @@ class TestCli(TestCase):
         self.location = None
         self.pt_explicit = True
         self.package_type = ZIP
-        self.runtime = "python3.6"
+        self.runtime = "python3.9"
         self.base_image = None
         self.dependency_manager = "pip"
         self.output_dir = "."
         self.name = "testing project"
         self.app_template = "hello-world"
         self.no_input = False
-        self.extra_context = '{"project_name": "testing project", "runtime": "python3.6"}'
-        self.extra_context_as_json = {"project_name": "testing project", "runtime": "python3.6"}
+        self.extra_context = '{"project_name": "testing project", "runtime": "python3.9"}'
+        self.extra_context_as_json = {"project_name": "testing project", "runtime": "python3.9"}
 
         with open(os.path.join(os.path.dirname(__file__), "test_manifest.json")) as f:
             self.data = json.load(f)
@@ -441,7 +441,7 @@ class TestCli(TestCase):
                 package_type=IMAGE,
                 runtime=None,
                 architecture=X86_64,
-                base_image="python3.6-base",
+                base_image="python3.9-base",
                 dependency_manager="wrong-dependency-manager",
                 output_dir=self.output_dir,
                 name=self.name,
@@ -537,7 +537,7 @@ class TestCli(TestCase):
             True,
             {
                 "project_name": "testing project",
-                "runtime": "python3.6",
+                "runtime": "python3.9",
                 "schema_name": "events",
                 "schema_type": "aws",
                 "architectures": {"value": [X86_64]},
@@ -583,7 +583,7 @@ class TestCli(TestCase):
             True,
             {
                 "project_name": "testing project",
-                "runtime": "python3.6",
+                "runtime": "python3.9",
                 "schema_name": "events",
                 "schema_type": "aws",
                 "architectures": {"value": [ARM64]},
@@ -780,7 +780,7 @@ class TestCli(TestCase):
             True,
             {
                 "project_name": "testing project",
-                "runtime": "python3.6",
+                "runtime": "python3.9",
                 "schema_name": "events",
                 "schema_type": "aws",
                 "architectures": {"value": [X86_64]},

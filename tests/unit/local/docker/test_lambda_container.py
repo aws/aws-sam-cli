@@ -21,7 +21,6 @@ RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT = [
     Runtime.nodejs18x.value,
     Runtime.python37.value,
     Runtime.python38.value,
-    Runtime.python36.value,
     Runtime.python39.value,
     Runtime.dotnet6.value,
 ]
@@ -395,10 +394,10 @@ class TestLambdaContainer_init(TestCase):
             code_dir=self.code_dir,
             layers=[],
             lambda_image=image_builder_mock,
+            architecture="x86_64",
             env_vars=self.env_var,
             memory_mb=self.memory_mb,
             debug_options=self.debug_options,
-            architecture="x86_64",
             function_full_path=self.function_name,
         )
 
@@ -482,7 +481,7 @@ class TestLambdaContainer_get_exposed_ports(TestCase):
 
 class TestLambdaContainer_get_image(TestCase):
     def test_must_return_build_image(self):
-        expected = f"public.ecr.aws/sam/emulation-foo:{RAPID_IMAGE_TAG_PREFIX}-x.y.z"
+        expected = f"public.ecr.aws/lambda/foo:1.0-{RAPID_IMAGE_TAG_PREFIX}-x.y.z"
 
         image_builder = Mock()
         image_builder.build.return_value = expected
@@ -490,17 +489,17 @@ class TestLambdaContainer_get_image(TestCase):
         self.assertEqual(
             LambdaContainer._get_image(
                 lambda_image=image_builder,
-                runtime="foo",
+                runtime="foo1.0",
                 packagetype=ZIP,
                 image=None,
                 layers=[],
-                architecture="arm64",
                 function_name=None,
+                architecture="x86_64",
             ),
             expected,
         )
 
-        image_builder.build.assert_called_with("foo", ZIP, None, [], "arm64", function_name=None)
+        image_builder.build.assert_called_with("foo1.0", ZIP, None, [], "x86_64", function_name=None)
 
 
 class TestLambdaContainer_get_debug_settings(TestCase):

@@ -106,7 +106,7 @@ class TestContainerManager_run(TestCase):
 
     def test_must_not_pull_image_if_image_is_rapid_image(self):
         input_data = "input data"
-        rapid_image_name = f"Mock_image_name:{RAPID_IMAGE_TAG_PREFIX}-1.0.0"
+        rapid_image_name = f"Mock_image_name/python:3.9-{RAPID_IMAGE_TAG_PREFIX}-x86_64"
 
         self.manager.has_image = Mock()
         self.manager.pull_image = Mock()

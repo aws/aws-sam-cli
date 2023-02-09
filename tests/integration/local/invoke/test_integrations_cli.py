@@ -31,7 +31,7 @@ TIMEOUT = 300
         (Path("nested-templates/template-parent.yaml"),),
     ],
 )
-class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
+class TestSamPython37HelloWorldIntegration(InvokeIntegBase):
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returncode_is_zero(self):
         command_list = self.get_command_list(
@@ -223,7 +223,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
             "HelloWorldServerlessFunction",
             template_path=self.template_path,
             event_path=self.event_path,
-            invoke_image="amazon/aws-sam-cli-emulation-image-python3.6",
+            invoke_image="amazon/aws-sam-cli-emulation-image-python3.7",
         )
 
         process = Popen(command_list, stdout=PIPE)
@@ -437,7 +437,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=TIMEOUT, method="thread")
     def test_skip_pull_image_in_env_var(self):
-        docker.from_env().api.pull("lambci/lambda:python3.6")
+        docker.from_env().api.pull("lambci/lambda:python3.7")
 
         command_list = self.get_command_list(
             "HelloWorldLambdaFunction", template_path=self.template_path, event_path=self.event_path

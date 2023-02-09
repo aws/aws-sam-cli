@@ -52,7 +52,7 @@ class UnhandledException(click.ClickException):
             file = click._compat.get_text_stderr()  # pylint: disable=protected-access
 
         tb = "".join(traceback.format_tb(self.__traceback__))
-        click.echo(f"\nError: {repr(self._exception)}", file=file, err=True)
+        click.echo(f"\nError: {self._exception}", file=file, err=True)
         click.echo(f"Traceback:\n{tb}", file=file, err=True)
 
         encoded_title = quote(f"Bug: {self._command} - {type(self._exception).__name__}")
@@ -138,4 +138,10 @@ class InvalidImageException(UserException):
 class InvalidStackNameException(UserException):
     """
     Value provided to --stack-name is invalid
+    """
+
+
+class LinterRuleMatchedException(UserException):
+    """
+    The linter matched a rule meaning that the template linting failed
     """
