@@ -6,8 +6,7 @@ import json
 import logging
 import pathlib
 import os
-import shutil
-from typing import Optional
+from uuid import uuid4
 
 from samcli.commands._utils.experimental import get_enabled_experimental_flags
 from samcli.local.docker.container import Container
@@ -36,7 +35,7 @@ class LambdaBuildContainer(Container):
         manifest_path,
         runtime,
         architecture,
-        build_method=None,
+        specified_workflow=None,
         optimizations=None,
         options=None,
         executable_search_paths=None,
@@ -48,14 +47,6 @@ class LambdaBuildContainer(Container):
         build_in_source=None,
         mount_with_write: bool = False,
     ):
-        # tmp dirs on host that will be mounted to allow write permissions to `/tmp/samcli/` on container
-        # only when `mount_with_write` is True
-        if mount_with_write:
-            self._host_tmp_dir = os.path.join(source_dir, "tmp")
-            self._host_tmp_base_dir = os.path.join(source_dir, "tmp", "samcli")
-        else:
-            self._host_tmp_dir = None
-            self._host_tmp_base_dir = None
         abs_manifest_path = pathlib.Path(manifest_path).resolve()
         manifest_file_name = abs_manifest_path.name
         manifest_dir = str(abs_manifest_path.parent)
@@ -86,7 +77,7 @@ class LambdaBuildContainer(Container):
             container_dirs,
             manifest_file_name,
             runtime,
-            build_method,
+            specified_workflow,
             optimizations,
             options,
             executable_search_paths,
@@ -98,7 +89,9 @@ class LambdaBuildContainer(Container):
         )
 
         if image is None:
-            image = LambdaBuildContainer._get_image(runtime, architecture, build_method=build_method)
+            # use specified_workflow to get image if exists, otherwise use runtime
+            runtime_to_get_image = specified_workflow if specified_workflow else runtime
+            image = LambdaBuildContainer._get_image(runtime_to_get_image, architecture)
         entry = LambdaBuildContainer._get_entrypoint(request_json)
         cmd = []
 
@@ -109,15 +102,18 @@ class LambdaBuildContainer(Container):
             manifest_dir: {"bind": container_dirs["manifest_dir"], "mode": mount_mode}
         }
 
-        if self._host_tmp_base_dir:
-            # Base directory is mounted in order to allow write permissions to `/tmp/samcli` on container
-            _base_dir = {
-                self._host_tmp_base_dir: {
-                    "bind": container_dirs["base_dir"],
-                    "mode": mount_mode
+        host_tmp_dir = None
+        if mount_with_write:
+            # Mounting tmp dir on the host as ``/tmp/samcli`` on container, which gives current user write permissions
+            host_tmp_dir = os.path.join(source_dir, str(uuid4()))
+            additional_volumes.update(
+                {
+                    host_tmp_dir: {
+                        "bind": container_dirs["base_dir"],
+                        "mode": mount_mode
+                    }
                 }
-            }
-            additional_volumes.update(_base_dir)
+            )
 
         if log_level:
             env_vars["LAMBDA_BUILDERS_LOG_LEVEL"] = log_level
@@ -131,21 +127,8 @@ class LambdaBuildContainer(Container):
             entrypoint=entry,
             env_vars=env_vars,
             mount_with_write=mount_with_write,
+            host_tmp_dir=host_tmp_dir,
         )
-
-    def make_host_tmp_dirs(self):
-        """
-        Make tmp dirs on host
-        """
-        if self._host_tmp_base_dir and not os.path.exists(self._host_tmp_base_dir):
-            os.makedirs(self._host_tmp_base_dir)
-
-    def remove_host_tmp_dirs(self):
-        """
-        Remove tmp dirs on host
-        """
-        if self._host_tmp_dir:
-            shutil.rmtree(self._host_tmp_dir)
 
     @property
     def executable_name(self):
@@ -160,7 +143,7 @@ class LambdaBuildContainer(Container):
         container_dirs,
         manifest_file_name,
         runtime,
-        build_method,
+        specified_workflow,
         optimizations,
         options,
         executable_search_paths,
@@ -185,13 +168,14 @@ class LambdaBuildContainer(Container):
                         "dependency_manager": dependency_manager,
                         "application_framework": application_framework,
                     },
+                    "base_dir": container_dirs["base_dir"],
                     "source_dir": container_dirs["source_dir"],
                     "artifacts_dir": container_dirs["artifacts_dir"],
                     "scratch_dir": container_dirs["scratch_dir"],
                     # Path is always inside a Linux container. So '/' is valid
                     "manifest_path": "{}/{}".format(container_dirs["manifest_dir"], manifest_file_name),
                     "runtime": runtime,
-                    "build_method": build_method,
+                    "specified_workflow": specified_workflow,
                     "optimizations": optimizations,
                     "options": options,
                     "executable_search_paths": executable_search_paths,
@@ -295,7 +279,7 @@ class LambdaBuildContainer(Container):
         return result
 
     @staticmethod
-    def _get_image(runtime, architecture, build_method: Optional[str] = None):
+    def _get_image(runtime, architecture):
         """
         Parameters
         ----------
@@ -303,19 +287,13 @@ class LambdaBuildContainer(Container):
             Name of the Lambda runtime
         architecture : str
             Architecture type either 'x86_64' or 'arm64
-        build_method : str
-            The build method specified in metadata
 
         Returns
         -------
         str
             valid image name
         """
-        # a list of build methods need to get image based on build method itself instead of runtime
-        get_image_from_build_method = ["dotnet7"]
-        image_name = build_method if build_method in get_image_from_build_method else runtime
-
-        return f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{image_name}:" + LambdaBuildContainer.get_image_tag(architecture)
+        return f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{runtime}:" + LambdaBuildContainer.get_image_tag(architecture)
 
     @staticmethod
     def get_image_tag(architecture):

@@ -137,8 +137,9 @@ $ sam build MyFunction
     "By default the functions and layers are built in sequence",
 )
 @click.option(
-    "--mount-with-write",
+    "--mount-with-write/--mount-with-read",
     "-w",
+    default=False,
     is_flag=True,
     help="Enable mounting with write permissions when building functions/layers inside container. "
     "Some files in source code directory may be changed or added by the build process. "

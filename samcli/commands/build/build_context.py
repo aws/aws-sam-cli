@@ -34,7 +34,6 @@ from samcli.lib.build.app_builder import (
     ApplicationBuilder,
     BuildError,
     UnsupportedBuilderLibraryVersionError,
-    ContainerBuildNotSupported,
     ApplicationBuildResult,
 )
 from samcli.commands._utils.constants import DEFAULT_BUILD_DIR
@@ -299,7 +298,6 @@ class BuildContext:
             BuildError,
             BuildInsideContainerError,
             UnsupportedBuilderLibraryVersionError,
-            ContainerBuildNotSupported,
             InvalidBuildGraphException,
         ) as ex:
             click.secho("\nBuild Failed", fg="red")

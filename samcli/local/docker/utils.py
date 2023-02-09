@@ -10,7 +10,6 @@ import logging
 import posixpath
 import pathlib
 import socket
-from typing import Dict
 
 import docker
 import requests
@@ -155,22 +154,3 @@ def get_docker_platform(architecture: str) -> str:
     validate_architecture(architecture)
 
     return f"linux/{get_image_arch(architecture)}"
-
-def get_posix_effective_user() -> Dict[str, str]:
-    """
-    Returns the posix effective user and group id
-
-    :returns Dictionary containing user and group id, or None for non posix systems
-    """
-    if os.name.lower() == 'posix':
-        effective_user = {}
-
-        user_id = os.getuid()
-        effective_user["user_id"] = user_id
-
-        # group id is optional
-        group_ids = os.getgroups()
-        effective_user["group_id"] = group_ids[0] if user_id and len(group_ids) > 0 else None
-        return effective_user
-    # return None for non posix systems
-    return None

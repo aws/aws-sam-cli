@@ -8,7 +8,6 @@ import logging
 import pathlib
 from typing import List, Optional, Dict, cast, NamedTuple
 
-import click
 import docker
 import docker.errors
 from aws_lambda_builders import (
@@ -17,6 +16,7 @@ from aws_lambda_builders import (
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
 
+from samcli.commands.build.utils import prompt_user_to_enable_mount_with_write
 from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition, BuildGraph
 from samcli.lib.build.build_strategy import (
     DefaultBuildStrategy,
@@ -52,14 +52,13 @@ from samcli.lib.build.exceptions import (
     DockerBuildFailed,
     BuildError,
     BuildInsideContainerError,
-    ContainerBuildNotSupported,
     UnsupportedBuilderLibraryVersionError,
 )
 
 from samcli.lib.build.workflow_config import (
     get_workflow_config,
+    supports_specified_workflow,
     get_layer_subfolder,
-    supports_build_in_container,
     CONFIG,
     UnsupportedRuntimeException,
     needs_mount_with_write,
@@ -550,6 +549,7 @@ class ApplicationBuilder:
                     build_runtime = compatible_runtimes[0]
                 global_image = self._build_images.get(None)
                 image = self._build_images.get(layer_name, global_image)
+                build_workflow = specified_workflow if supports_specified_workflow(specified_workflow) else None
                 self._build_function_on_container(
                     config,
                     code_dir,
@@ -561,7 +561,7 @@ class ApplicationBuilder:
                     container_env_vars,
                     image,
                     is_building_layer=True,
-                    build_method=specified_workflow,
+                    specified_workflow=build_workflow,
                 )
             else:
                 self._build_function_in_process(
@@ -651,11 +651,9 @@ class ApplicationBuilder:
             # Create the arguments to pass to the builder
             # Code is always relative to the given base directory.
             code_dir = str(pathlib.Path(self._base_dir, codeuri).resolve())
-
             # Determine if there was a build workflow that was specified directly in the template.
-            specified_build_workflow = metadata.get("BuildMethod", None) if metadata else None
-
-            config = get_workflow_config(runtime, code_dir, self._base_dir, specified_workflow=specified_build_workflow)
+            specified_workflow = metadata.get("BuildMethod", None) if metadata else None
+            config = get_workflow_config(runtime, code_dir, self._base_dir, specified_workflow=specified_workflow)
 
             if config.language == "provided" and isinstance(metadata, dict) and metadata.get("ProjectRootDirectory"):
                 code_dir = str(pathlib.Path(self._base_dir, metadata.get("ProjectRootDirectory", code_dir)).resolve())
@@ -689,7 +687,7 @@ class ApplicationBuilder:
                     # None represents the global build image for all functions/layers
                     global_image = self._build_images.get(None)
                     image = self._build_images.get(function_name, global_image)
-
+                    build_workflow = specified_workflow if supports_specified_workflow(specified_workflow) else None
                     return self._build_function_on_container(
                         config,
                         code_dir,
@@ -700,7 +698,7 @@ class ApplicationBuilder:
                         options,
                         container_env_vars,
                         image,
-                        build_method=specified_build_workflow,
+                        specified_workflow=build_workflow,
                     )
 
                 return self._build_function_in_process(
@@ -888,7 +886,7 @@ class ApplicationBuilder:
         container_env_vars: Optional[Dict] = None,
         build_image: Optional[str] = None,
         is_building_layer: bool = False,
-        build_method: Optional[str] = None,
+        specified_workflow: Optional[str] = None,
     ) -> str:
         # _build_function_on_container() is only called when self._container_manager if not None
         if not self._container_manager:
@@ -899,13 +897,8 @@ class ApplicationBuilder:
                 "Docker is unreachable. Docker needs to be running to build inside a container."
             )
 
-        container_build_supported, reason = supports_build_in_container(config)
-        if not container_build_supported:
-            raise ContainerBuildNotSupported(reason)
-
         if not self._mount_with_write and needs_mount_with_write(config):
-            self._mount_with_write = self._prompt_user_to_enable_mount_with_write(config, source_dir)
-
+            self._mount_with_write = prompt_user_to_enable_mount_with_write(config, source_dir)
         # If we are printing debug logs in SAM CLI, the builder library should also print debug logs
         log_level = LOG.getEffectiveLevel()
 
@@ -920,7 +913,7 @@ class ApplicationBuilder:
             manifest_path,
             runtime,
             architecture,
-            build_method=build_method,
+            specified_workflow=specified_workflow,
             log_level=log_level,
             optimizations=None,
             options=options,
@@ -934,7 +927,6 @@ class ApplicationBuilder:
         )
 
         try:
-            container.make_host_tmp_dirs()
             try:
                 self._container_manager.run(container)
             except docker.errors.APIError as ex:
@@ -942,7 +934,6 @@ class ApplicationBuilder:
                     raise UnsupportedBuilderLibraryVersionError(
                         container.image, "{} executable not found in container".format(container.executable_name)
                     ) from ex
-
             # Container's output provides status of whether the build succeeded or failed
             # stdout contains the result of JSON-RPC call
             stdout_stream = io.BytesIO()
@@ -961,7 +952,6 @@ class ApplicationBuilder:
             # "/." is a Docker thing that instructions the copy command to download contents of the folder only
             result_dir_in_container = response["result"]["artifacts_dir"] + "/."
             container.copy(result_dir_in_container, artifacts_dir)
-            container.remove_host_tmp_dirs()
         finally:
             self._container_manager.stop(container)
 
@@ -1007,30 +997,3 @@ class ApplicationBuilder:
             raise ValueError(msg)
 
         return cast(Dict, response)
-
-    @staticmethod
-    def _prompt_user_to_enable_mount_with_write(config: CONFIG, source_dir: str) -> bool:
-        """
-        Prompt user to choose if enables mounting with write permissions or not.
-
-        Parameters
-        ----------
-        config namedtuple(Capability)
-            Config specifying the particular build workflow
-
-        source_dir : str
-            Path to the function source code
-
-        Returns
-        -------
-        bool
-            True, if user enabled mounting with write permissions.
-        """
-        if click.confirm(
-            f"\nBuilding functions with {config.language} inside containers needs "
-            f"mounting with write permissions to the source code directory {source_dir}. "
-            f"Some files in this directory may be changed or added by the build process. "
-            f"Pass --mount-with-write to `sam build` CLI to avoid this confirmation. "
-            f"\nWould you like to enable mounting with write permissions? "):
-            return True
-        return False
