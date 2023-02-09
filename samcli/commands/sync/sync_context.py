@@ -64,10 +64,7 @@ def _sync_state_to_toml_document(sync_state: SyncState) -> TOMLDocument:
 
     resource_sync_states_toml_table = tomlkit.table()
     for resource_id in sync_state.resource_sync_states:
-        resource_sync_state = sync_state.resource_sync_states.get(resource_id)
-
-        # assert is here to make mypy happy as it assumes resource_sync_state is None
-        assert isinstance(resource_sync_state, ResourceSyncState)
+        resource_sync_state = sync_state.resource_sync_states[resource_id]
 
         resource_sync_state_toml_table = tomlkit.table()
 
