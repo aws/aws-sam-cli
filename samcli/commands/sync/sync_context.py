@@ -104,10 +104,3 @@ class SyncContext:
         dependencies_dir = Path(DEFAULT_DEPENDENCIES_DIR)
         LOG.debug("Cleaning up dependencies directory: %s", dependencies_dir)
         rmtree_if_exists(dependencies_dir)
-
-    @property
-    def current_state(self) -> SyncState:
-        """
-        Returns the sync state object within the sync context
-        """
-        return self._current_state

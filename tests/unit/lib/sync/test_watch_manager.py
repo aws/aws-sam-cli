@@ -20,7 +20,7 @@ class TestWatchManager(TestCase):
         self.build_context = MagicMock()
         self.package_context = MagicMock()
         self.deploy_context = MagicMock()
-        self.sync_state = MagicMock()
+        self.sync_context = MagicMock()
         self.watch_manager = WatchManager(
             self.template,
             self.build_context,
@@ -28,7 +28,7 @@ class TestWatchManager(TestCase):
             self.deploy_context,
             False,
             False,
-            sync_state=self.sync_state,
+            sync_context=self.sync_context,
         )
 
     def tearDown(self) -> None:
@@ -59,7 +59,7 @@ class TestWatchManager(TestCase):
         self.watch_manager._update_stacks()
         get_stacks_mock.assert_called_once_with(self.template)
         sync_flow_factory_mock.assert_called_once_with(
-            self.build_context, self.deploy_context, stacks, False, self.sync_state
+            self.build_context, self.deploy_context, stacks, False, self.sync_context
         )
         sync_flow_factory_mock.return_value.load_physical_id_mapping.assert_called_once_with()
         trigger_factory_mock.assert_called_once_with(stacks, path_mock.return_value)

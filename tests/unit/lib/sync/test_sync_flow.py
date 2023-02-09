@@ -15,7 +15,7 @@ class TestSyncFlow(TestCase):
             physical_id_mapping={},
             log_name="log-name",
             stacks=[MagicMock()],
-            sync_state=MagicMock(),
+            sync_context=MagicMock(),
         )
         sync_flow.gather_resources = MagicMock()
         sync_flow.compare_remote = MagicMock()

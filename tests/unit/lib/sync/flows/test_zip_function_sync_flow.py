@@ -18,7 +18,7 @@ class TestZipFunctionSyncFlow(TestCase):
             deploy_context=MagicMock(),
             physical_id_mapping={},
             stacks=[MagicMock()],
-            sync_state=MagicMock(),
+            sync_context=MagicMock(),
         )
         sync_flow._get_resource_api_calls = MagicMock()
         return sync_flow
@@ -199,7 +199,7 @@ class TestZipFunctionSyncFlow(TestCase):
             deploy_context=MagicMock(),
             physical_id_mapping={},
             stacks=[MagicMock()],
-            sync_state=MagicMock(),
+            sync_context=MagicMock(),
         )
 
         result = sync_flow._get_resource_api_calls()

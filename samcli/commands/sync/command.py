@@ -56,7 +56,6 @@ if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.package.package_context import PackageContext
     from samcli.commands.build.build_context import BuildContext
-    from samcli.commands.sync.sync_context import SyncState
 
 LOG = logging.getLogger(__name__)
 
@@ -360,7 +359,7 @@ def do_cli(
                                 deploy_context,
                                 dependency_layer,
                                 code,
-                                sync_context.current_state,
+                                sync_context,
                             )
                         elif code:
                             execute_code_sync(
@@ -370,7 +369,7 @@ def do_cli(
                                 resource_id,
                                 resource,
                                 dependency_layer,
-                                sync_context.current_state,
+                                sync_context,
                             )
                         else:
                             execute_infra_contexts(build_context, package_context, deploy_context)
@@ -407,7 +406,7 @@ def execute_code_sync(
     resource_ids: Optional[Tuple[str]],
     resource_types: Optional[Tuple[str]],
     auto_dependency_layer: bool,
-    sync_state: "SyncState",
+    sync_context: "SyncContext",
 ) -> None:
     """Executes the sync flow for code.
 
@@ -425,11 +424,11 @@ def execute_code_sync(
         List of resource types to be synced.
     auto_dependency_layer: bool
         Boolean flag to whether enable certain sync flows for auto dependency layer feature
-    sync_state: SyncState
-        SyncState object that obtains sync information.
+    sync_context: SyncContext
+        SyncContext object that obtains sync information.
     """
     stacks = SamLocalStackProvider.get_stacks(template)[0]
-    factory = SyncFlowFactory(build_context, deploy_context, stacks, auto_dependency_layer, sync_state)
+    factory = SyncFlowFactory(build_context, deploy_context, stacks, auto_dependency_layer, sync_context)
     factory.load_physical_id_mapping()
     executor = SyncFlowExecutor()
 
@@ -455,7 +454,7 @@ def execute_watch(
     deploy_context: "DeployContext",
     auto_dependency_layer: bool,
     skip_infra_syncs: bool,
-    sync_state: "SyncState",
+    sync_context: "SyncContext",
 ):
     """Start sync watch execution
 
@@ -469,11 +468,11 @@ def execute_watch(
         PackageContext
     deploy_context : DeployContext
         DeployContext
-    sync_state: SyncState
-        SyncState object that obtains sync information.
+    sync_context: SyncContext
+        SyncContext object that obtains sync information.
     """
     watch_manager = WatchManager(
-        template, build_context, package_context, deploy_context, auto_dependency_layer, skip_infra_syncs, sync_state
+        template, build_context, package_context, deploy_context, auto_dependency_layer, skip_infra_syncs, sync_context
     )
     watch_manager.start()
 

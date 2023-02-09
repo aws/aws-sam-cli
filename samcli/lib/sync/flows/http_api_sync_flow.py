@@ -11,7 +11,7 @@ from samcli.lib.providers.exceptions import MissingLocalDefinition
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.build.build_context import BuildContext
     from samcli.commands.deploy.deploy_context import DeployContext
-    from samcli.commands.sync.sync_context import SyncState
+    from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ class HttpApiSyncFlow(GenericApiSyncFlow):
         deploy_context: "DeployContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
-        sync_state: "SyncState",
+        sync_context: "SyncContext",
     ):
         """
         Parameters
@@ -49,7 +49,7 @@ class HttpApiSyncFlow(GenericApiSyncFlow):
             physical_id_mapping,
             log_name="HttpApi " + api_identifier,
             stacks=stacks,
-            sync_state=sync_state,
+            sync_context=sync_context,
         )
 
     def set_up(self) -> None:

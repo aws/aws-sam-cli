@@ -23,7 +23,7 @@ class TestStepFunctionsSyncFlow(TestCase):
             deploy_context=MagicMock(),
             physical_id_mapping={},
             stacks=[MagicMock()],
-            sync_state=MagicMock(),
+            sync_context=MagicMock(),
         )
         return sync_flow
 

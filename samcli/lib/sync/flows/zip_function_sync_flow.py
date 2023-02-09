@@ -25,7 +25,7 @@ from samcli.lib.utils.osutils import rmtree_if_exists
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
-    from samcli.commands.sync.sync_context import SyncState
+    from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)
 MAXIMUM_FUNCTION_ZIP_SIZE = 50 * 1024 * 1024  # 50MB limit for Lambda direct ZIP upload
@@ -47,7 +47,7 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
         deploy_context: "DeployContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
-        sync_state: "SyncState",
+        sync_context: "SyncContext",
     ):
 
         """
@@ -64,7 +64,7 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
         stacks : Optional[List[Stack]]
             Stacks
         """
-        super().__init__(function_identifier, build_context, deploy_context, physical_id_mapping, stacks, sync_state)
+        super().__init__(function_identifier, build_context, deploy_context, physical_id_mapping, stacks, sync_context)
         self._s3_client = None
         self._artifact_folder = None
         self._zip_file = None

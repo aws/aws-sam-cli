@@ -40,7 +40,7 @@ class TestSyncFlowFactory(TestCase):
             deploy_context=MagicMock(),
             stacks=[stack_resource, MagicMock()],
             auto_dependency_layer=auto_dependency_layer,
-            sync_state=MagicMock(),
+            sync_context=MagicMock(),
         )
         return factory
 

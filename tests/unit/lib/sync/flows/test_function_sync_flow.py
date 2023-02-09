@@ -15,7 +15,7 @@ class TestFunctionSyncFlow(TestCase):
             deploy_context=MagicMock(),
             physical_id_mapping={},
             stacks=[MagicMock()],
-            sync_state=MagicMock(),
+            sync_context=MagicMock(),
         )
         sync_flow.gather_resources = MagicMock()
         sync_flow.compare_remote = MagicMock()

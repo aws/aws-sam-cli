@@ -11,7 +11,7 @@ from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIde
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.build.build_context import BuildContext
     from samcli.commands.deploy.deploy_context import DeployContext
-    from samcli.commands.sync.sync_context import SyncState
+    from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class GenericApiSyncFlow(SyncFlow):
         physical_id_mapping: Dict[str, str],
         log_name: str,
         stacks: List[Stack],
-        sync_state: "SyncState",
+        sync_context: "SyncContext",
     ):
         """
         Parameters
@@ -52,7 +52,12 @@ class GenericApiSyncFlow(SyncFlow):
             List of stacks containing a root stack and optional nested stacks
         """
         super().__init__(
-            build_context, deploy_context, physical_id_mapping, log_name=log_name, stacks=stacks, sync_state=sync_state
+            build_context,
+            deploy_context,
+            physical_id_mapping,
+            log_name=log_name,
+            stacks=stacks,
+            sync_context=sync_context,
         )
         self._api_identifier = api_identifier
 
