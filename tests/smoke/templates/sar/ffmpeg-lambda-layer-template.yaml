@@ -11,8 +11,8 @@ Resources:
   LambdaLayer:
     Properties:
       CompatibleRuntimes:
-      - nodejs10.x
-      - python3.6
+      - nodejs18.x
+      - python3.9
       - ruby2.7
       - java8
       - go1.x

@@ -46,7 +46,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
     def tearDownClass(cls):
         try:
             cls.client.api.remove_image(cls.docker_tag)
-            cls.client.api.remove_image(f"{cls.image_name}:{RAPID_IMAGE_TAG_PREFIX}-{version}")
+            cls.client.api.remove_image(f"{cls.image_name}:{RAPID_IMAGE_TAG_PREFIX}-{X86_64}")
         except APIError:
             pass
 
@@ -454,7 +454,7 @@ class TestDeleteOldRapidImages(InvokeIntegBase):
                 path=self.test_data_invoke_path, dockerfile="Dockerfile", tag=tag, decode=True, nocache=True
             ):
                 print(log)
-        self.new_rapid_image_tag = f"{self.repo}:{RAPID_IMAGE_TAG_PREFIX}-{version}-{X86_64}"
+        self.new_rapid_image_tag = f"{self.repo}:{RAPID_IMAGE_TAG_PREFIX}-{X86_64}"
 
     def tearDown(self):
         for tag in self.old_rapid_image_tags + [self.new_rapid_image_tag] + self.other_repo_tags:

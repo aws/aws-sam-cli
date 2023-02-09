@@ -5,7 +5,12 @@ from unittest.mock import MagicMock, Mock, patch, call, ANY, mock_open, Property
 
 from samcli.lib.sync.exceptions import MissingPhysicalResourceError, NoLayerVersionsFoundError
 from samcli.lib.sync.flows.function_sync_flow import wait_for_function_update_complete
-from samcli.lib.sync.flows.layer_sync_flow import LayerSyncFlow, FunctionLayerReferenceSync
+from samcli.lib.sync.flows.layer_sync_flow import (
+    LayerSyncFlow,
+    FunctionLayerReferenceSync,
+    LayerSyncFlowSkipBuildDirectory,
+    LayerSyncFlowSkipBuildZipFile,
+)
 from samcli.lib.sync.sync_flow import SyncFlow, ApiCallTypes
 
 
@@ -57,7 +62,7 @@ class TestLayerSyncFlow(TestCase):
 
     @patch("samcli.lib.sync.flows.layer_sync_flow.ApplicationBuilder")
     @patch("samcli.lib.sync.flows.layer_sync_flow.tempfile")
-    @patch("samcli.lib.sync.flows.layer_sync_flow.make_zip_with_lambda_permissions")
+    @patch("samcli.lib.sync.flows.layer_sync_flow.make_zip")
     @patch("samcli.lib.sync.flows.layer_sync_flow.file_checksum")
     @patch("samcli.lib.sync.flows.layer_sync_flow.os")
     @patch("samcli.lib.sync.flows.layer_sync_flow.rmtree_if_exists")
@@ -429,3 +434,24 @@ class TestFunctionLayerReferenceSync(TestCase):
 
     def test_gather_dependencies(self):
         self.assertEqual(self.function_layer_sync.gather_dependencies(), [])
+
+
+class TestLayerSyncFlowSkipBuild(TestCase):
+    @patch("samcli.lib.sync.flows.layer_sync_flow.make_zip")
+    @patch("samcli.lib.sync.flows.layer_sync_flow.file_checksum")
+    def test_gather_resources_for_skip_build_directory(self, mock_checksum, mock_make_zip):
+        layer_sync_flow = LayerSyncFlowSkipBuildDirectory("LayerA", Mock(), Mock(), {}, [])
+        layer_sync_flow.gather_resources()
+
+        mock_make_zip.assert_called_with(ANY, layer_sync_flow._layer.codeuri)
+        mock_checksum.assert_called_once()
+
+    @patch("samcli.lib.sync.flows.layer_sync_flow.shutil")
+    @patch("samcli.lib.sync.flows.layer_sync_flow.file_checksum")
+    def test_gather_resources_for_skip_build_zip_file(self, mock_checksum, mock_shutil):
+        layer_sync_flow = LayerSyncFlowSkipBuildZipFile("LayerA", Mock(), Mock(), {}, [])
+
+        layer_sync_flow.gather_resources()
+
+        mock_shutil.copy2.assert_called_with(layer_sync_flow._layer.codeuri, ANY)
+        mock_checksum.assert_called_once()

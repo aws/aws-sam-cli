@@ -36,7 +36,7 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: c2e6d051-3006-4064-a082-545166e77055
-      Runtime: python3.6
+      Runtime: python3.9
       Events:
         Api1:
           Type: Api

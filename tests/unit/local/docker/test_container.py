@@ -839,8 +839,8 @@ class TestContainer_copy(TestCase):
         self.container.id = "containerid"
 
     @patch("samcli.local.docker.container.tempfile")
-    @patch("samcli.local.docker.container.tarfile")
-    def test_must_copy_files_from_container(self, tarfile_mock, tempfile_mock):
+    @patch("samcli.local.docker.container.extract_tarfile")
+    def test_must_copy_files_from_container(self, extract_tarfile_mock, tempfile_mock):
         source = "source"
         dest = "dest"
 
@@ -853,19 +853,14 @@ class TestContainer_copy(TestCase):
         tempfile_ctxmgr.__enter__ = Mock(return_value=fp_mock)
         tempfile_ctxmgr.__exit__ = Mock()
 
-        tarfile_ctxmgr = tarfile_mock.open.return_value = Mock()
-        tar_mock = Mock()
-        tarfile_ctxmgr.return_value.__enter__ = Mock(return_value=tar_mock)
-        tarfile_ctxmgr.return_value.__exit__ = Mock()
-
         self.container.copy(source, dest)
+
+        extract_tarfile_mock.assert_called_with(file_obj=fp_mock, unpack_dir=dest)
 
         # Make sure archive data is written to the file
         fp_mock.write.assert_has_calls([call(x) for x in tar_stream], any_order=False)
 
         # Make sure we open the tarfile right and extract to right location
-        tarfile_mock.open.assert_called_with(fileobj=fp_mock, mode="r")
-        tar_mock.extractall(path=dest)
 
     def test_raise_if_container_is_not_created(self):
         source = "source"

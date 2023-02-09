@@ -65,7 +65,7 @@ Resources:
         Fn::GetAtt:
           - IamRoleLambdaExecution
           - Arn
-      Runtime: python3.6
+      Runtime: python3.9
     DependsOn:
       - HelloWorldLogGroup
       - IamRoleLambdaExecution
