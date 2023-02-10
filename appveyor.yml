@@ -166,7 +166,7 @@ for:
       - sh: "terraform -version"
 
       # install Rust
-      - sh: "curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL "https://sh.rustup.rs" | sh -s -- --default-toolchain none -y"
+      - sh: "curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL https://sh.rustup.rs | sh -s -- --default-toolchain none -y"
       - sh: "rustup toolchain install stable --profile minimal --no-self-update"
       - sh: "rustup default stable"
       - sh: "pip install cargo-lambda==$CARGO_LAMBDA_VERSION"
