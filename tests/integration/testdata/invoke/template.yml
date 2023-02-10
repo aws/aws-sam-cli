@@ -152,6 +152,21 @@ Resources:
       aws:asset:property: CodeUri
       aws:asset:path: ./different_code_location
 
+  FunctionWithName:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.9
+      Handler: main.return_context_function_name
+      FunctionName: MyCustomName
+      Timeout: 600
+  
+  FunctionWithoutName:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.9
+      Handler: main.return_context_function_name
+      Timeout: 600
+
   EchoEnvWithParameters:
     Type: AWS::Serverless::Function
     Properties:

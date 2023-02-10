@@ -201,6 +201,22 @@ class TestSamPython37HelloWorldIntegration(InvokeIntegBase):
         process_stdout = stdout.strip()
         self.assertEqual(process_stdout.decode("utf-8"), '"MyVar"')
 
+    @parameterized.expand([("FunctionWithoutName", "FunctionWithoutName"), ("FunctionWithName", "MyCustomName")])
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_to_validate_context_function_name(self, function_name, expected_return):
+        command_list = self.get_command_list(
+            function_name, template_path=self.template_path, event_path=self.event_path, env_var_path=self.env_var_path
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stdout = stdout.strip()
+        self.assertEqual(process_stdout.decode("utf-8"), f'"{expected_return}"')
+
     @parameterized.expand([("EchoGlobalCustomEnvVarFunction")])
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_global_env_vars_function(self, function_name):

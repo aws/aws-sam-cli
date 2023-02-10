@@ -285,7 +285,7 @@ class LocalLambdaRunner:
         aws_creds = self.get_aws_creds()
 
         return EnvironmentVariables(
-            function.name,
+            function.functionname,
             function.memory,
             function.timeout,
             function.handler,

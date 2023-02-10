@@ -56,3 +56,6 @@ def execute_git(event, context):
     assert return_code == 0
 
     return "git init passed"
+
+def return_context_function_name(event, context):
+    return context.function_name
