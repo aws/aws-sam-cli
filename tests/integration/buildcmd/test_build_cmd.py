@@ -1134,7 +1134,7 @@ class TestBuildCommand_Go_Modules_With_Specified_Architecture(BuildIntegGoBase):
             "template_build_method_rust_single_function.yaml",
             "Rust/single-function",
             None,
-            {"req_id": "34", "msg": "Hello World"}
+            {"req_id": "34", "msg": "Hello World"},
         ),
         (
             "template_build_method_rust_binary.yaml",
@@ -1151,7 +1151,6 @@ class TestBuildCommand_Go_Modules_With_Specified_Architecture(BuildIntegGoBase):
     ],
 )
 class TestBuildCommand_Rust(BuildIntegRustBase):
-
     def setUp(self):
         super().setUp()
         # Copy source code to working_dir to allow tests run in parallel, as Cargo Lambda generates artifacts in source code dir
@@ -1164,12 +1163,14 @@ class TestBuildCommand_Rust(BuildIntegRustBase):
         shutil.copyfile(Path(self.template_path), tmp_template_path)
         self.template_path = str(tmp_template_path)
 
-    @parameterized.expand([
-        ("x86_64", None),
-        ("arm64", None),
-        ("x86_64", "debug"),
-        ("arm64", "debug"),
-    ])
+    @parameterized.expand(
+        [
+            ("x86_64", None),
+            ("arm64", None),
+            ("x86_64", "debug"),
+            ("arm64", "debug"),
+        ]
+    )
     def test_build(self, architecture, build_mode):
         self._test_with_rust_cargo_lambda(
             runtime="provided.al2",
@@ -1179,7 +1180,8 @@ class TestBuildCommand_Rust(BuildIntegRustBase):
             build_mode=build_mode,
             expected_invoke_result=self.expected_invoke_result,
         )
-    
+
+
 @skipIf(
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",

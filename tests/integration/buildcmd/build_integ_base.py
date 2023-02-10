@@ -963,7 +963,17 @@ class BuildIntegRustBase(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
     EXPECTED_FILES_PROJECT_MANIFEST = {"bootstrap"}
 
-    def _test_with_rust_cargo_lambda(self, runtime, code_uri, handler="bootstap", binary=None, build_mode=None, architecture=None, use_container=False, expected_invoke_result=None):
+    def _test_with_rust_cargo_lambda(
+        self,
+        runtime,
+        code_uri,
+        handler="bootstap",
+        binary=None,
+        build_mode=None,
+        architecture=None,
+        use_container=False,
+        expected_invoke_result=None,
+    ):
         overrides = self.get_override(runtime, code_uri, architecture, handler)
         if binary:
             overrides["Binary"] = binary
@@ -972,7 +982,7 @@ class BuildIntegRustBase(BuildIntegBase):
         newenv = os.environ.copy()
         if build_mode:
             newenv["SAM_BUILD_MODE"] = build_mode
-            
+
         run_command(cmdlist, cwd=self.working_dir, env=newenv)
 
         self._verify_built_artifact(
@@ -985,7 +995,7 @@ class BuildIntegRustBase(BuildIntegBase):
                 self.built_template,
                 self.FUNCTION_LOGICAL_ID,
                 self._make_parameter_override_arg(overrides),
-                expected_invoke_result
+                expected_invoke_result,
             )
 
         if use_container:
