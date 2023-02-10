@@ -777,6 +777,10 @@ class ApplicationBuilder:
             )
             if working_directory:
                 options = {**options, "working_directory": convert_path_to_unix_path(working_directory)}
+
+        if language == "rust" and "Binary" in build_props:
+            options = options if options else {}
+            options["artifact_executable_name"] = build_props["Binary"]
         return options
 
     @staticmethod

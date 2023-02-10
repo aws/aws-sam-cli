@@ -2727,6 +2727,7 @@ class TestApplicationBuilder_get_build_options(TestCase):
             ("nodejs", "npm", {"UseNpmCi": True}, {"use_npm_ci": True}),
             ("esbuild", "npm-esbuild", {"UseNpmCi": True}, {"entry_points": ["app"], "use_npm_ci": True}),
             ("provided", "", {}, {"build_logical_id": "Function"}),
+            ("rust", "cargo", {"Binary": "hello_world"}, {"artifact_executable_name": "hello_world"}),
         ]
     )
     def test_get_options_various_languages_dependency_managers(
