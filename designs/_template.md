@@ -53,11 +53,11 @@ Design
 of your implementation, relationships* *between components, constraints,
 etc.*
 
-`.samrc` Changes
+``samconfig.toml`` Changes
 ----------------
 
 *Explain the new configuration entries, if any, you want to add to
-.samrc*
+`samconfig.toml`*
 
 Security
 --------
@@ -78,7 +78,7 @@ connection secured**
 **Are you reading/writing to a temporary folder? If so, what is this
 used for and when do you clean up?**
 
-**How do you validate new .samrc configuration?**
+**How do you validate new `samconfig.toml` configuration?**
 
 What is your Testing Plan (QA)?
 ===============================

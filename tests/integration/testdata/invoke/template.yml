@@ -129,7 +129,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.raise_exception
-      Runtime: python3.9
+      Runtime: python3.7
       CodeUri: .
       Timeout: 600
 
