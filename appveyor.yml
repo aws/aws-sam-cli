@@ -80,6 +80,7 @@ for:
       - rustup target add aarch64-unknown-linux-gnu --toolchain stable
       - rustc -V
       - cargo -V
+      - cargo --list
       - cargo lambda -V
 
       # Install AWS CLI Globally outside of a venv.
@@ -172,7 +173,8 @@ for:
       - sh: "rustup toolchain install stable --profile minimal --no-self-update"
       - sh: "rustup default stable"
       - sh: "pip install cargo-lambda==$CARGO_LAMBDA_VERSION"
-      - sh: "PATH=${HOME}/.local/bin:$PATH"
+      - sh: "PATH=$HOME/.cargo/bin:$PATH"
+      - sh: "PATH=$HOME/.local/bin:$PATH"
       # - sh: "wget https://github.com/cargo-lambda/cargo-lambda/releases/download/$CARGO_LAMBDA_VERSION/cargo-lambda-$CARGO_LAMBDA_VERSION.x86_64-unknown-linux-musl.tar.gz -P /tmp"
       # - sh: "tar -C ${HOME}/.cargo/bin -zxf /tmp/cargo-lambda-*.tar.gz"
       # - sh: "PATH=${HOME}/.cargo/bin:$PATH"
