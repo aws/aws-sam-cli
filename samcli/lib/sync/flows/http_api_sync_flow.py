@@ -24,9 +24,9 @@ class HttpApiSyncFlow(GenericApiSyncFlow):
         api_identifier: str,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
-        sync_context: "SyncContext",
     ):
         """
         Parameters
@@ -37,6 +37,8 @@ class HttpApiSyncFlow(GenericApiSyncFlow):
             BuildContext used for build related parameters
         deploy_context : BuildContext
             DeployContext used for this deploy related parameters
+        sync_context: SyncContext
+            SyncContext object that obtains sync information.
         physical_id_mapping : Dict[str, str]
             Mapping between resource logical identifier and physical identifier
         stacks : List[Stack], optional
@@ -46,10 +48,10 @@ class HttpApiSyncFlow(GenericApiSyncFlow):
             api_identifier,
             build_context,
             deploy_context,
+            sync_context,
             physical_id_mapping,
             log_name="HttpApi " + api_identifier,
             stacks=stacks,
-            sync_context=sync_context,
         )
 
     def set_up(self) -> None:

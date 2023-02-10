@@ -35,9 +35,9 @@ class FunctionSyncFlow(SyncFlow):
         function_identifier: str,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
-        sync_context: "SyncContext",
     ):
         """
         Parameters
@@ -48,6 +48,8 @@ class FunctionSyncFlow(SyncFlow):
             BuildContext
         deploy_context : DeployContext
             DeployContext
+        sync_context: SyncContext
+            SyncContext object that obtains sync information.
         physical_id_mapping : Dict[str, str]
             Physical ID Mapping
         stacks : Optional[List[Stack]]
@@ -56,10 +58,10 @@ class FunctionSyncFlow(SyncFlow):
         super().__init__(
             build_context,
             deploy_context,
+            sync_context,
             physical_id_mapping,
             log_name="Lambda Function " + function_identifier,
             stacks=stacks,
-            sync_context=sync_context,
         )
         self._function_identifier = function_identifier
         self._function_provider = self._build_context.function_provider
@@ -98,9 +100,9 @@ class FunctionSyncFlow(SyncFlow):
                     auto_publish_alias_name,
                     self._build_context,
                     self._deploy_context,
+                    self._sync_context,
                     self._physical_id_mapping,
                     self._stacks,
-                    self._sync_context,
                 )
             )
             LOG.debug("%sCreated  Alias and Version SyncFlow", self.log_prefix)

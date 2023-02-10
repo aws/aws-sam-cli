@@ -45,9 +45,9 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
         function_identifier: str,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
-        sync_context: "SyncContext",
     ):
 
         """
@@ -59,12 +59,14 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
             BuildContext
         deploy_context : DeployContext
             DeployContext
+        sync_context: SyncContext
+            SyncContext object that obtains sync information.
         physical_id_mapping : Dict[str, str]
             Physical ID Mapping
         stacks : Optional[List[Stack]]
             Stacks
         """
-        super().__init__(function_identifier, build_context, deploy_context, physical_id_mapping, stacks, sync_context)
+        super().__init__(function_identifier, build_context, deploy_context, sync_context, physical_id_mapping, stacks)
         self._s3_client = None
         self._artifact_folder = None
         self._zip_file = None

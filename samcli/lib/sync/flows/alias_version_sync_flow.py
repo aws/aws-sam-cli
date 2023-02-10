@@ -28,9 +28,9 @@ class AliasVersionSyncFlow(SyncFlow):
         alias_name: str,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         stacks: Optional[List[Stack]] = None,
-        sync_context: Optional["SyncContext"] = None,
     ):
         """
         Parameters
@@ -43,6 +43,8 @@ class AliasVersionSyncFlow(SyncFlow):
             BuildContext
         deploy_context : DeployContext
             DeployContext
+        sync_context: SyncContext
+            SyncContext object that obtains sync information.
         physical_id_mapping : Dict[str, str]
             Physical ID Mapping
         stacks : Optional[List[Stack]]
@@ -51,10 +53,10 @@ class AliasVersionSyncFlow(SyncFlow):
         super().__init__(
             build_context,
             deploy_context,
+            sync_context,
             physical_id_mapping,
             log_name=f"Alias {alias_name} and Version of {function_identifier}",
             stacks=stacks,
-            sync_context=sync_context,
         )
         self._function_identifier = function_identifier
         self._alias_name = alias_name

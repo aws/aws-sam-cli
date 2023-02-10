@@ -18,7 +18,12 @@ from samcli.lib.sync.flows.layer_sync_flow import FunctionLayerReferenceSync
 class TestAutoDependencyLayerParentSyncFlow(TestCase):
     def setUp(self) -> None:
         self.sync_flow = AutoDependencyLayerParentSyncFlow(
-            "function_identifier", Mock(), Mock(stack_name="stack_name"), Mock(), [Mock()], sync_context=Mock()
+            "function_identifier",
+            Mock(),
+            Mock(stack_name="stack_name"),
+            Mock(),
+            Mock(),
+            [Mock()],
         )
 
     @patch("samcli.lib.sync.flows.auto_dependency_layer_sync_flow.super")
@@ -56,8 +61,8 @@ class TestAutoDependencyLayerSyncFlow(TestCase):
             Mock(build_dir=self.build_dir),
             Mock(stack_name=self.stack_name),
             Mock(),
+            Mock(),
             [Mock()],
-            sync_context=Mock(),
         )
 
     def test_gather_resources_fail_when_no_function_build_definition_found(self):

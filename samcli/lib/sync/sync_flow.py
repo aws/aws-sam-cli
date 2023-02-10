@@ -46,20 +46,20 @@ class SyncFlow(ABC):
     _log_name: str
     _build_context: "BuildContext"
     _deploy_context: "DeployContext"
+    _sync_context: "SyncContext"
     _stacks: Optional[List[Stack]]
     _session: Optional[Session]
     _physical_id_mapping: Dict[str, str]
     _locks: Optional[Dict[str, Lock]]
-    _sync_context: "SyncContext"
 
     def __init__(
         self,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         log_name: str,
         stacks: Optional[List[Stack]] = None,
-        sync_context: Optional["SyncContext"] = None,
     ):
         """
         Parameters
@@ -68,6 +68,8 @@ class SyncFlow(ABC):
             BuildContext used for build related parameters
         deploy_context : BuildContext
             DeployContext used for this deploy related parameters
+        sync_context: SyncContext
+            SyncContext object that obtains sync information.
         physical_id_mapping : Dict[str, str]
             Mapping between resource logical identifier and physical identifier
         log_name : str
@@ -77,9 +79,9 @@ class SyncFlow(ABC):
         """
         self._build_context = build_context
         self._deploy_context = deploy_context
+        self._sync_context = sync_context
         self._log_name = log_name
         self._stacks = stacks
-        self._sync_context = sync_context
         self._session = None
         self._physical_id_mapping = physical_id_mapping
         self._locks = None

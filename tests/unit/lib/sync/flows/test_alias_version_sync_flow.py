@@ -15,9 +15,9 @@ class TestAliasVersionSyncFlow(TestCase):
             "Alias1",
             build_context=MagicMock(),
             deploy_context=MagicMock(),
+            sync_context=MagicMock(),
             physical_id_mapping={},
             stacks=[MagicMock()],
-            sync_context=MagicMock(),
         )
         return sync_flow
 

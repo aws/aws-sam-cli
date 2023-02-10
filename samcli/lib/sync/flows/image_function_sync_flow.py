@@ -31,9 +31,9 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
         function_identifier: str,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
-        sync_context: "SyncContext",
         docker_client: Optional[DockerClient] = None,
     ):
         """
@@ -45,6 +45,8 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
             BuildContext
         deploy_context : DeployContext
             DeployContext
+        sync_context: SyncContext
+            SyncContext object that obtains sync information.
         physical_id_mapping : Dict[str, str]
             Physical ID Mapping
         stacks : Optional[List[Stack]]
@@ -53,7 +55,7 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
             Docker client to be used for building and uploading images.
             Defaults to docker.from_env() if None is provided.
         """
-        super().__init__(function_identifier, build_context, deploy_context, physical_id_mapping, stacks, sync_context)
+        super().__init__(function_identifier, build_context, deploy_context, sync_context, physical_id_mapping, stacks)
         self._ecr_client = None
         self._image_name = None
         self._docker_client = docker_client

@@ -50,17 +50,17 @@ class AutoDependencyLayerSyncFlow(AbstractLayerSyncFlow):
         build_graph: BuildGraph,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
-        sync_context: "SyncContext",
     ):
         super().__init__(
             NestedStackBuilder.get_layer_logical_id(function_identifier),
             build_context,
             deploy_context,
+            sync_context,
             physical_id_mapping,
             stacks,
-            sync_context=sync_context,
         )
         self._function_identifier = function_identifier
         self._build_graph = build_graph
@@ -129,9 +129,9 @@ class AutoDependencyLayerParentSyncFlow(ZipFunctionSyncFlow):
                     cast(BuildGraph, self._build_graph),
                     self._build_context,
                     self._deploy_context,
+                    self._sync_context,
                     self._physical_id_mapping,
                     cast(List[Stack], self._stacks),
-                    self._sync_context,
                 )
             )
         return parent_dependencies

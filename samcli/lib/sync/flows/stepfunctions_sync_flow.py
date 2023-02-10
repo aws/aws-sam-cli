@@ -30,9 +30,9 @@ class StepFunctionsSyncFlow(SyncFlow):
         state_machine_identifier: str,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
-        sync_context: "SyncContext",
     ):
         """
         Parameters
@@ -43,6 +43,8 @@ class StepFunctionsSyncFlow(SyncFlow):
             BuildContext used for build related parameters
         deploy_context : BuildContext
             DeployContext used for this deploy related parameters
+        sync_context: SyncContext
+            SyncContext object that obtains sync information.
         physical_id_mapping : Dict[str, str]
             Mapping between resource logical identifier and physical identifier
         stacks : List[Stack], optional
@@ -51,10 +53,10 @@ class StepFunctionsSyncFlow(SyncFlow):
         super().__init__(
             build_context,
             deploy_context,
+            sync_context,
             physical_id_mapping,
             log_name="StepFunctions " + state_machine_identifier,
             stacks=stacks,
-            sync_context=sync_context,
         )
         self._state_machine_identifier = state_machine_identifier
         self._resource = get_resource_by_id(self._stacks, ResourceIdentifier(self._state_machine_identifier))

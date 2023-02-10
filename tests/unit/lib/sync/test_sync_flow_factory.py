@@ -38,9 +38,9 @@ class TestSyncFlowFactory(TestCase):
         factory = SyncFlowFactory(
             build_context=MagicMock(),
             deploy_context=MagicMock(),
+            sync_context=MagicMock(),
             stacks=[stack_resource, MagicMock()],
             auto_dependency_layer=auto_dependency_layer,
-            sync_context=MagicMock(),
         )
         return factory
 

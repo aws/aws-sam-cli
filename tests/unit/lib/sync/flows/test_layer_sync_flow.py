@@ -19,14 +19,15 @@ class TestLayerSyncFlow(TestCase):
         self.layer_identifier = "LayerA"
         self.build_context_mock = Mock()
         self.deploy_context_mock = Mock()
+        self.sync_context_mock = Mock()
 
         self.layer_sync_flow = LayerSyncFlow(
             self.layer_identifier,
             self.build_context_mock,
             self.deploy_context_mock,
+            self.sync_context_mock,
             {self.layer_identifier: "layer_version_arn"},
             [],
-            sync_context=Mock(),
         )
 
     @patch("samcli.lib.sync.sync_flow.get_boto_client_provider_from_session_with_config")
@@ -251,9 +252,9 @@ class TestLayerSyncFlow(TestCase):
             self.layer_sync_flow._new_layer_version,
             self.layer_sync_flow._build_context,
             self.layer_sync_flow._deploy_context,
+            self.layer_sync_flow._sync_context,
             self.layer_sync_flow._physical_id_mapping,
             self.layer_sync_flow._stacks,
-            self.layer_sync_flow._sync_context,
         )
 
         self.assertEqual(len(dependencies), 1)
@@ -309,9 +310,9 @@ class TestLayerSyncFlow(TestCase):
             self.layer_sync_flow._new_layer_version,
             self.layer_sync_flow._build_context,
             self.layer_sync_flow._deploy_context,
+            self.layer_sync_flow._sync_context,
             self.layer_sync_flow._physical_id_mapping,
             self.layer_sync_flow._stacks,
-            self.layer_sync_flow._sync_context,
         )
 
         self.assertEqual(len(dependencies), 1)
@@ -357,7 +358,14 @@ class TestFunctionLayerReferenceSync(TestCase):
         self.new_layer_version = 2
 
         self.function_layer_sync = FunctionLayerReferenceSync(
-            self.function_identifier, self.layer_name, self.new_layer_version, Mock(), Mock(), {}, [], sync_context=None
+            self.function_identifier,
+            self.layer_name,
+            self.new_layer_version,
+            Mock(),
+            Mock(),
+            Mock(),
+            {},
+            [],
         )
 
     @patch("samcli.lib.sync.sync_flow.get_boto_client_provider_from_session_with_config")
@@ -443,7 +451,7 @@ class TestLayerSyncFlowSkipBuild(TestCase):
     @patch("samcli.lib.sync.flows.layer_sync_flow.make_zip")
     @patch("samcli.lib.sync.flows.layer_sync_flow.file_checksum")
     def test_gather_resources_for_skip_build_directory(self, mock_checksum, mock_make_zip):
-        layer_sync_flow = LayerSyncFlowSkipBuildDirectory("LayerA", Mock(), Mock(), {}, [], sync_context=Mock())
+        layer_sync_flow = LayerSyncFlowSkipBuildDirectory("LayerA", Mock(), Mock(), Mock(), {}, [])
         layer_sync_flow.gather_resources()
 
         mock_make_zip.assert_called_with(ANY, layer_sync_flow._layer.codeuri)
@@ -452,7 +460,7 @@ class TestLayerSyncFlowSkipBuild(TestCase):
     @patch("samcli.lib.sync.flows.layer_sync_flow.shutil")
     @patch("samcli.lib.sync.flows.layer_sync_flow.file_checksum")
     def test_gather_resources_for_skip_build_zip_file(self, mock_checksum, mock_shutil):
-        layer_sync_flow = LayerSyncFlowSkipBuildZipFile("LayerA", Mock(), Mock(), {}, [], sync_context=Mock())
+        layer_sync_flow = LayerSyncFlowSkipBuildZipFile("LayerA", Mock(), Mock(), Mock(), {}, [])
 
         layer_sync_flow.gather_resources()
 

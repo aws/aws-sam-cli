@@ -87,17 +87,17 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
 
     _deploy_context: "DeployContext"
     _build_context: "BuildContext"
+    _sync_context: "SyncContext"
     _physical_id_mapping: Dict[str, str]
     _auto_dependency_layer: bool
-    _sync_context: "SyncContext"
 
     def __init__(
         self,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         stacks: List[Stack],
         auto_dependency_layer: bool,
-        sync_context: "SyncContext",
     ) -> None:
         """
         Parameters
@@ -106,15 +106,17 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
             BuildContext to be passed into each individual SyncFlow
         deploy_context : DeployContext
             DeployContext to be passed into each individual SyncFlow
+        sync_context: SyncContext
+            SyncContext object that obtains sync information.
         stacks : List[Stack]
             List of stacks containing a root stack and optional nested ones
         """
         super().__init__(stacks)
         self._deploy_context = deploy_context
         self._build_context = build_context
+        self._sync_context = sync_context
         self._auto_dependency_layer = auto_dependency_layer
         self._physical_id_mapping = dict()
-        self._sync_context = sync_context
 
     def load_physical_id_mapping(self) -> None:
         """Load physical IDs of the stack resources from remote"""
@@ -158,27 +160,27 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                     str(resource_identifier),
                     self._build_context,
                     self._deploy_context,
+                    self._sync_context,
                     self._physical_id_mapping,
                     self._stacks,
-                    self._sync_context,
                 )
 
             return ZipFunctionSyncFlow(
                 str(resource_identifier),
                 self._build_context,
                 self._deploy_context,
+                self._sync_context,
                 self._physical_id_mapping,
                 self._stacks,
-                self._sync_context,
             )
         if package_type == IMAGE:
             return ImageFunctionSyncFlow(
                 str(resource_identifier),
                 self._build_context,
                 self._deploy_context,
+                self._sync_context,
                 self._physical_id_mapping,
                 self._stacks,
-                self._sync_context,
             )
         return None
 
@@ -195,9 +197,9 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                 str(resource_identifier),
                 self._build_context,
                 self._deploy_context,
+                self._sync_context,
                 self._physical_id_mapping,
                 self._stacks,
-                self._sync_context,
             )
 
         if is_local_folder(layer.codeuri):
@@ -206,9 +208,9 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                 str(resource_identifier),
                 self._build_context,
                 self._deploy_context,
+                self._sync_context,
                 self._physical_id_mapping,
                 self._stacks,
-                self._sync_context,
             )
 
         if is_zip_file(layer.codeuri):
@@ -217,9 +219,9 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                 str(resource_identifier),
                 self._build_context,
                 self._deploy_context,
+                self._sync_context,
                 self._physical_id_mapping,
                 self._stacks,
-                self._sync_context,
             )
 
         LOG.warning("Can't create sync flow for '%s' layer resource", resource_identifier)
@@ -230,9 +232,9 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
             str(resource_identifier),
             self._build_context,
             self._deploy_context,
+            self._sync_context,
             self._physical_id_mapping,
             self._stacks,
-            self._sync_context,
         )
 
     def _create_api_flow(self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]) -> SyncFlow:
@@ -240,9 +242,9 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
             str(resource_identifier),
             self._build_context,
             self._deploy_context,
+            self._sync_context,
             self._physical_id_mapping,
             self._stacks,
-            self._sync_context,
         )
 
     def _create_stepfunctions_flow(
@@ -252,9 +254,9 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
             str(resource_identifier),
             self._build_context,
             self._deploy_context,
+            self._sync_context,
             self._physical_id_mapping,
             self._stacks,
-            self._sync_context,
         )
 
     GeneratorFunction = Callable[["SyncFlowFactory", ResourceIdentifier, Dict[str, Any]], Optional[SyncFlow]]
