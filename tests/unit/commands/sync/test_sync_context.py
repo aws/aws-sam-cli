@@ -38,8 +38,8 @@ class TestSyncState(TestCase):
             ),
         ]
     )
-    def test_sync_state(self, resource_sync_states, dependency_layer):
-        sync_state = SyncState(dependency_layer, resource_sync_states)
+    def test_sync_state(self, dependency_layer, resource_sync_states):
+        sync_state = SyncState(dependency_layer=dependency_layer, resource_sync_states=resource_sync_states)
         self.assertEqual(sync_state.dependency_layer, dependency_layer)
         self.assertEqual(sync_state.resource_sync_states, resource_sync_states)
 
@@ -49,8 +49,8 @@ class TestSyncState(TestCase):
             (False, "Parent/Child/MockResourceId", "mock-nested-hash"),
         ]
     )
-    def test_sync_state_update_resource_sync_state(self, resource_hash, resource_id, dependency_layer):
-        sync_state = SyncState(dependency_layer, {})
+    def test_sync_state_update_resource_sync_state(self, dependency_layer, resource_id, resource_hash):
+        sync_state = SyncState(dependency_layer=dependency_layer, resource_sync_states={})
         self.assertEqual(sync_state.dependency_layer, dependency_layer)
         self.assertEqual(sync_state.resource_sync_states, {})
 
@@ -64,8 +64,8 @@ class TestResourceSyncState(TestCase):
             ("mockhash", MOCK_TIME),
         ]
     )
-    def test_sync_state(self, sync_time, hash_str):
-        sync_state = ResourceSyncState(hash_str, sync_time)
+    def test_sync_state(self, hash_str, sync_time):
+        sync_state = ResourceSyncState(hash_value=hash_str, sync_time=sync_time)
         self.assertEqual(sync_state.hash_value, hash_str)
         self.assertEqual(sync_state.sync_time, sync_time)
 
