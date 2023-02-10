@@ -1,0 +1,72 @@
+import os
+import pytest
+import logging
+import json
+from unittest import skip
+from parameterized import parameterized
+
+from tests.integration.sync.sync_integ_base import SyncIntegBase
+from tests.testing_utils import run_command_with_input
+from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION
+
+LOG = logging.getLogger(__name__)
+
+
+@skip("Building in source option is not exposed yet. Stop skipping once it is.")
+class TestSyncInfra_BuildInSource_Makefile(SyncIntegBase):
+    dependency_layer = False
+
+    def setUp(self):
+        super().setUp()
+        self.new_files_in_source = [
+            self.test_data_path.joinpath(
+                "code/before/makefile_function_create_new_file/file-created-from-makefile-function"
+            ),
+            self.test_data_path.joinpath("code/before/makefile_layer_create_new_file/file-created-from-makefile-layer"),
+        ]
+
+    def tearDown(self):
+        super().tearDown()
+        for path in self.new_files_in_source:
+            if os.path.isfile(path):
+                os.remove(path)
+
+    @parameterized.expand(
+        [
+            (True, True),  # build in source
+            (False, False),  # don't build in source
+            (None, False),  # use default for workflow (don't build in source)
+        ]
+    )
+    def test_sync_builds_and_deploys_successfully(self, build_in_source, new_file_should_be_in_source):
+        template_path = str(self.test_data_path.joinpath("code/before/template-makefile-create-new-file.yaml"))
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        sync_command_list = self.get_sync_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            dependency_layer=self.dependency_layer,
+            parameter_overrides="Parameter=Clarity",
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            capabilities_list=self.basic_capabilities,
+            tags="integ=true clarity=yes foo_bar=baz",
+            build_in_source=build_in_source,
+        )
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+        self.assertIn("Sync infra completed.", str(sync_process_execute.stderr))
+
+        # check whether the new files where created in the source directory
+        for path in self.new_files_in_source:
+            self.assertEqual(os.path.isfile(path), new_file_should_be_in_source)
+
+        stack_resources = self._get_stacks(stack_name)
+        lambda_functions = stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertEqual(
+                lambda_response.get("message"), "function requests version: 2.23.0, layer six version: 1.16.0"
+            )

@@ -44,6 +44,7 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         self.stacks = []
         self.s3_prefix = uuid.uuid4().hex
         self.dependency_layer = True if self.dependency_layer is None else self.dependency_layer
+        self.basic_capabilities = ["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"]
         super().setUp()
 
     def tearDown(self):
@@ -232,6 +233,7 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         metadata=None,
         debug=None,
         use_container=False,
+        build_in_source=False,
     ):
         command_list = [get_sam_command(), "sync"]
 
@@ -288,5 +290,7 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
             command_list += ["--debug"]
         if use_container:
             command_list += ["--use-container"]
+        if build_in_source is not None:
+            command_list += ["--build-in-source"] if build_in_source else ["--no-build-in-source"]
 
         return command_list
