@@ -88,6 +88,14 @@ NODEJS_NPM_ESBUILD_CONFIG = CONFIG(
     executable_search_paths=None,
 )
 
+RUST_CARGO_LAMBDA_CONFIG = CONFIG(
+    language="rust",
+    dependency_manager="cargo",
+    application_framework=None,
+    manifest_name="Cargo.toml",
+    executable_search_paths=None,
+)
+
 ALL_CONFIGS: List[CONFIG] = [
     PYTHON_PIP_CONFIG,
     NODEJS_NPM_CONFIG,
@@ -99,4 +107,5 @@ ALL_CONFIGS: List[CONFIG] = [
     GO_MOD_CONFIG,
     PROVIDED_MAKE_CONFIG,
     NODEJS_NPM_ESBUILD_CONFIG,
+    RUST_CARGO_LAMBDA_CONFIG,
 ]
