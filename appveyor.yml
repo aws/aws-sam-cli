@@ -67,21 +67,21 @@ for:
       - "choco install terraform"
       - "terraform -version"
 
-      # install Rust
-      - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
-      - rustup-init.exe -y --default-host x86_64-pc-windows-msvc --default-toolchain stable
-      - "python -m pip install cargo-lambda==%CARGO_LAMBDA_VERSION%"
-      # - ps: Invoke-WebRequest -Uri https://github.com/cargo-lambda/cargo-lambda/releases/download/$env:CARGO_LAMBDA_VERSION/cargo-lambda-$env:CARGO_LAMBDA_VERSION.windows-x64.zip -OutFile C:\Users\appveyor\cargo-lambda.zip
-      # - ps: Expand-Archive -DestinationPath C:\Users\appveyor\.cargo\bin C:\Users\appveyor\cargo-lambda.zip
-      - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
-      - set PATH=%PATH%;C:\Users\appveyor\.local\bin
-      - set RUST_BACKTRACE=1
-      - rustup target add x86_64-unknown-linux-gnu --toolchain stable
-      - rustup target add aarch64-unknown-linux-gnu --toolchain stable
-      - rustc -V
-      - cargo -V
-      - cargo --list
-      - cargo lambda -V
+      # # install Rust
+      # - appveyor-retry appveyor DownloadFile https://win.rustup.rs/x86_64 -FileName rustup-init.exe
+      # - rustup-init.exe -y --default-host x86_64-pc-windows-msvc --default-toolchain stable
+      # - "python -m pip install cargo-lambda==%CARGO_LAMBDA_VERSION%"
+      # # - ps: Invoke-WebRequest -Uri https://github.com/cargo-lambda/cargo-lambda/releases/download/$env:CARGO_LAMBDA_VERSION/cargo-lambda-$env:CARGO_LAMBDA_VERSION.windows-x64.zip -OutFile C:\Users\appveyor\cargo-lambda.zip
+      # # - ps: Expand-Archive -DestinationPath C:\Users\appveyor\.cargo\bin C:\Users\appveyor\cargo-lambda.zip
+      # - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
+      # - set PATH=%PATH%;C:\Users\appveyor\.local\bin
+      # - set RUST_BACKTRACE=1
+      # - rustup target add x86_64-unknown-linux-gnu --toolchain stable
+      # - rustup target add aarch64-unknown-linux-gnu --toolchain stable
+      # - rustc -V
+      # - cargo -V
+      # - cargo --list
+      # - cargo lambda -V
 
       # Install AWS CLI Globally outside of a venv.
       - "pip install awscli"
@@ -168,21 +168,21 @@ for:
       - sh: "terraform -version"
 
       # install Rust
-      - sh: "curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL https://sh.rustup.rs | sh -s -- --default-toolchain none -y"
-      - sh: "source $HOME/.cargo/env"
-      - sh: "rustup toolchain install stable --profile minimal --no-self-update"
-      - sh: "rustup default stable"
-      - sh: "pip install cargo-lambda==$CARGO_LAMBDA_VERSION"
-      - sh: "PATH=$HOME/.cargo/bin:$PATH"
-      - sh: "PATH=$HOME/.local/bin:$PATH"
+      # - sh: "curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL https://sh.rustup.rs | sh -s -- --default-toolchain none -y"
+      # - sh: "source $HOME/.cargo/env"
+      # - sh: "rustup toolchain install stable --profile minimal --no-self-update"
+      # - sh: "rustup default stable"
+      # - sh: "pip install cargo-lambda==$CARGO_LAMBDA_VERSION"
+      # - sh: "PATH=$HOME/.cargo/bin:$PATH"
+      # - sh: "PATH=$HOME/.local/bin:$PATH"
       # - sh: "wget https://github.com/cargo-lambda/cargo-lambda/releases/download/$CARGO_LAMBDA_VERSION/cargo-lambda-$CARGO_LAMBDA_VERSION.x86_64-unknown-linux-musl.tar.gz -P /tmp"
       # - sh: "tar -C ${HOME}/.cargo/bin -zxf /tmp/cargo-lambda-*.tar.gz"
       # - sh: "PATH=${HOME}/.cargo/bin:$PATH"
       # - sh: "rustup target add x86_64-unknown-linux-gnu --toolchain stable"
       # - sh: "rustup target add aarch64-unknown-linux-gnu --toolchain stable"
-      - sh: "rustc -V"
-      - sh: "cargo -V"
-      - sh: "cargo lambda -V"
+      # - sh: "rustc -V"
+      # - sh: "cargo -V"
+      # - sh: "cargo lambda -V"
 
       # Install AWS CLI
       - sh: "virtualenv aws_cli"
