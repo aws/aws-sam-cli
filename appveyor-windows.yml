@@ -22,6 +22,7 @@ configuration:
 environment:
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
+  CARGO_LAMBDA_VERSION: "v0.17.1"
 
   # Python uses $TMPDIR envvar to find root of tempdir
   TMPDIR: "%TEMP%"
@@ -68,6 +69,19 @@ install:
   # install Terraform CLI
   - "choco install terraform"
   - "terraform -version"
+
+  # install Rust
+  - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
+  - rustup-init.exe -y --default-host x86_64-pc-windows-msvc --default-toolchain stable
+  - ps: Invoke-WebRequest -Uri https://github.com/cargo-lambda/cargo-lambda/releases/download/$env:CARGO_LAMBDA_VERSION/cargo-lambda-$env:CARGO_LAMBDA_VERSION.windows-x64.zip -OutFile C:\Users\appveyor\cargo-lambda.zip
+  - ps: Expand-Archive -DestinationPath C:\Users\appveyor\.cargo\bin C:\Users\appveyor\cargo-lambda.zip
+  - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
+  - set RUST_BACKTRACE=1
+  - rustup target add x86_64-unknown-linux-gnu --toolchain stable
+  - rustup target add aarch64-unknown-linux-gnu --toolchain stable
+  - rustc -V
+  - cargo -V
+  - cargo lambda -V
 
   # Upgrade setuptools, wheel and virtualenv
   - "python -m pip install --upgrade setuptools wheel virtualenv"
