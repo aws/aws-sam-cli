@@ -39,6 +39,7 @@ from .build_integ_base import (
     BuildIntegPythonBase,
     BuildIntegJavaBase,
     BuildIntegEsbuildBase,
+    BuildIntegRustBase,
 )
 
 LOG = logging.getLogger(__name__)
@@ -513,7 +514,7 @@ class TestBuildCommand_NodeFunctions(BuildIntegNodeBase):
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
-    template = "template_with_metadata.yaml"
+    template = "template_with_metadata_esbuild.yaml"
 
     @parameterized.expand(
         [
@@ -1122,6 +1123,63 @@ class TestBuildCommand_Go_Modules_With_Specified_Architecture(BuildIntegGoBase):
         self.assertEqual(process_execute.process.returncode, 1)
 
 
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+@parameterized_class(
+    ("template", "code_uri", "binary", "expected_invoke_result"),
+    [
+        (
+            "template_build_method_rust_single_function.yaml",
+            "Rust/single-function",
+            None,
+            {"req_id": "34", "msg": "Hello World"}
+        ),
+        (
+            "template_build_method_rust_binary.yaml",
+            "Rust/multi-binaries",
+            "function_a",
+            {"req_id": "63", "msg": "Hello FunctionA"},
+        ),
+        (
+            "template_build_method_rust_binary.yaml",
+            "Rust/multi-binaries",
+            "function_b",
+            {"req_id": "99", "msg": "Hello FunctionB"},
+        ),
+    ],
+)
+class TestBuildCommand_Rust(BuildIntegRustBase):
+
+    def setUp(self):
+        super().setUp()
+        # Copy source code to working_dir to allow tests run in parallel, as Cargo Lambda generates artifacts in source code dir
+        osutils.copytree(
+            Path(self.template_path).parent.joinpath(self.code_uri),
+            Path(self.working_dir).joinpath(self.code_uri),
+        )
+        # copy template path
+        tmp_template_path = Path(self.working_dir).joinpath(self.template)
+        shutil.copyfile(Path(self.template_path), tmp_template_path)
+        self.template_path = str(tmp_template_path)
+
+    @parameterized.expand([
+        ("x86_64", None),
+        ("arm64", None),
+        ("x86_64", "debug"),
+        ("arm64", "debug"),
+    ])
+    def test_build(self, architecture, build_mode):
+        self._test_with_rust_cargo_lambda(
+            runtime="provided.al2",
+            code_uri=self.code_uri,
+            binary=self.binary,
+            architecture=architecture,
+            build_mode=build_mode,
+            expected_invoke_result=self.expected_invoke_result,
+        )
+    
 @skipIf(
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
