@@ -8,6 +8,7 @@ from typing import Optional, cast, List
 
 import click
 
+from samcli.cli.formatters import RootCommandHelpTextFormatter
 from samcli.commands.exceptions import CredentialsError
 from samcli.lib.utils.sam_logging import (
     LAMBDA_BULDERS_LOGGER_NAME,
@@ -31,6 +32,7 @@ class Context:
     """
 
     _session_id: str
+    formatter_class = RootCommandHelpTextFormatter
 
     def __init__(self):
         """

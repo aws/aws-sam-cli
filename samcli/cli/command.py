@@ -6,7 +6,10 @@ import importlib
 from collections import OrderedDict
 
 import click
-from click import HelpFormatter, Context
+from click import Context
+
+from samcli.cli.formatters import RootCommandHelpTextFormatter, DefinitionRow
+
 
 logger = logging.getLogger(__name__)
 
@@ -31,19 +34,19 @@ _SAM_CLI_COMMAND_PACKAGES = [
 ]
 
 _SAM_CLI_COMMAND_SHORT_HELP = {
-    "init": "Init an AWS SAM application",
-    "validate": "Validate an AWS SAM template",
-    "build": "Build your Lambda Function code",
-    "local": "Run your serverless function locally",
-    "package": "Package an AWS SAM application",
-    "deploy": "Deploy an AWS SAM application",
-    "delete": "Delete an AWS SAM application and the artifacts created by sam deploy",
-    "logs": "Fetch logs for an AWS Lambda function",
-    "publish": "Publish a packaged AWS SAM template to AWS Serverless Application Repository for easy sharing",
-    "traces": "Fetch AWS X-Ray traces",
-    "sync": "Sync a AWS SAM project to AWS",
-    "pipeline": "Manage the continuous delivery of your serverless application",
-    "list": "Fetch the state of your serverless application",
+    "init": "Init an AWS SAM application.",
+    "validate": "Validate an AWS SAM template.",
+    "build": "Build your AWS Lambda Function code.",
+    "local": "Run your AWS serverless function locally.",
+    "package": "Package an AWS SAM application.",
+    "deploy": "Deploy an AWS SAM application.",
+    "delete": "Delete an AWS SAM application and the artifacts created by sam deploy.",
+    "logs": "Fetch AWS Cloudwatch logs for a function.",
+    "publish": "Publish a packaged AWS SAM template to AWS Serverless Application Repository.",
+    "traces": "Fetch AWS X-Ray traces.",
+    "sync": "Sync an AWS SAM project to AWS.",
+    "pipeline": "Manage the continuous delivery of your AWS serverless application.",
+    "list": "Fetch the state of your AWS serverless application.",
 }
 
 
@@ -68,10 +71,10 @@ class BaseCommand(click.MultiCommand):
     will produce a command name "baz".
     """
 
-    ADDITIVE_LEFT_JUSTIFICATION = 7
-    LEFT_JUSTIFICATION_LENGTH = (
-        max([len(command) for command in _SAM_CLI_COMMAND_SHORT_HELP.keys()]) + ADDITIVE_LEFT_JUSTIFICATION
-    )
+    class CustomFormatterContext(click.Context):
+        formatter_class = RootCommandHelpTextFormatter
+
+    context_class = CustomFormatterContext
 
     def __init__(self, *args, cmd_packages=None, **kwargs):
         """
@@ -109,112 +112,91 @@ class BaseCommand(click.MultiCommand):
 
         return commands
 
-    def format_options(self, ctx: Context, formatter: HelpFormatter) -> None:
+    def format_options(self, ctx: Context, formatter: RootCommandHelpTextFormatter) -> None:
         # Re-order options so that they come after the commands.
         self.format_commands(ctx, formatter)
         opts = []
         for param in self.get_params(ctx):
             rv = param.get_help_record(ctx)
             if rv is not None:
-                option, option_help_text = rv
-                opts.append((option.ljust(self.LEFT_JUSTIFICATION_LENGTH), option_help_text))
+                term, help_text = rv
+                opts.append(DefinitionRow(name=term, help_text=help_text))
 
         if opts:
-            formatter.write(click.style("\n"))
-            with formatter.section(click.style("Global Options", bold=True)):
-                formatter.write(click.style("\n"))
+            with formatter.section("Global Options"):
                 formatter.write_dl(opts)
-            formatter.write(click.style("\n"))
-
-    @staticmethod
-    def format_help_str_command(help_text: str) -> str:
-        return help_text.strip()
 
     def format_commands(self, ctx, formatter):
         formatter.write_paragraph()
-        # TODO(sriram-mv): Fix column spacing to be more generic and clean this up
-        # TODO(sriram-mv): Create overall structure with an overview section to set indentation.
-        # TODO(sriram-mv): Clean this up and make it modular.
-        with formatter.section(click.style("Create an App!", bold=True)):
-            formatter.write(click.style("\n"))
+        with formatter.section("Create an App!"):
             formatter.write_dl(
                 [
-                    ("init", BaseCommand.format_help_str_command(_SAM_CLI_COMMAND_SHORT_HELP.get("init"))),
+                    DefinitionRow(name="init", help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("init")),
                 ],
             )
 
-        with formatter.section(click.style("Develop your App!", bold=True)):
-            formatter.write(click.style("\n"))
+        with formatter.section("Develop your App!"):
             formatter.write_dl(
                 [
-                    (
-                        "build".ljust(self.LEFT_JUSTIFICATION_LENGTH),
-                        BaseCommand.format_help_str_command(_SAM_CLI_COMMAND_SHORT_HELP.get("build")),
+                    DefinitionRow(
+                        name="build",
+                        help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("build"),
                     ),
-                    (
-                        "local".ljust(self.LEFT_JUSTIFICATION_LENGTH),
-                        BaseCommand.format_help_str_command(_SAM_CLI_COMMAND_SHORT_HELP.get("local")),
+                    DefinitionRow(
+                        name="local",
+                        help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("local"),
                     ),
-                    (
-                        "validate".ljust(self.LEFT_JUSTIFICATION_LENGTH),
-                        BaseCommand.format_help_str_command(_SAM_CLI_COMMAND_SHORT_HELP.get("validate")),
+                    DefinitionRow(
+                        name="validate",
+                        help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("validate"),
                     ),
-                    (
-                        click.style("sync *NEW*", fg="bright_yellow"),
-                        BaseCommand.format_help_str_command(_SAM_CLI_COMMAND_SHORT_HELP.get("sync")),
-                    ),
+                    DefinitionRow(name="sync", help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("sync"), new=True),
                 ],
             )
 
-        with formatter.section(click.style("Deploy your App!", bold=True)):
-            formatter.write(click.style("\n"))
+        with formatter.section("Deploy your App!"):
             formatter.write_dl(
                 [
-                    (
-                        "package".ljust(self.LEFT_JUSTIFICATION_LENGTH),
-                        BaseCommand.format_help_str_command(_SAM_CLI_COMMAND_SHORT_HELP.get("package")),
+                    DefinitionRow(
+                        name="package",
+                        help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("package"),
                     ),
-                    (
-                        "deploy".ljust(self.LEFT_JUSTIFICATION_LENGTH),
-                        BaseCommand.format_help_str_command(_SAM_CLI_COMMAND_SHORT_HELP.get("deploy")),
+                    DefinitionRow(
+                        name="deploy",
+                        help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("deploy"),
                     ),
                 ]
             )
 
-        with formatter.section(click.style("Monitor your App!", bold=True)):
-            formatter.write(click.style("\n"))
+        with formatter.section("Monitor your App!"):
             formatter.write_dl(
                 [
-                    (
-                        "logs".ljust(self.LEFT_JUSTIFICATION_LENGTH),
-                        BaseCommand.format_help_str_command(_SAM_CLI_COMMAND_SHORT_HELP.get("logs")),
+                    DefinitionRow(
+                        name="logs",
+                        help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("logs"),
                     ),
-                    (
-                        "traces".ljust(self.LEFT_JUSTIFICATION_LENGTH),
-                        BaseCommand.format_help_str_command(_SAM_CLI_COMMAND_SHORT_HELP.get("traces")),
+                    DefinitionRow(
+                        name="traces",
+                        help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("traces"),
                     ),
                 ],
             )
 
-        with formatter.section(click.style("And More!", bold=True)):
-            formatter.write(click.style("\n"))
+        with formatter.section("And More!"):
             formatter.write_dl(
                 [
-                    (
-                        "delete".ljust(self.LEFT_JUSTIFICATION_LENGTH),
-                        BaseCommand.format_help_str_command(_SAM_CLI_COMMAND_SHORT_HELP.get("delete")),
+                    DefinitionRow(name="list", help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("list"), new=True),
+                    DefinitionRow(
+                        name="delete",
+                        help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("delete"),
                     ),
-                    (
-                        click.style("list *NEW*", fg="bright_yellow").ljust(self.LEFT_JUSTIFICATION_LENGTH),
-                        BaseCommand.format_help_str_command(_SAM_CLI_COMMAND_SHORT_HELP.get("list")),
+                    DefinitionRow(
+                        name="pipeline",
+                        help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("pipeline"),
                     ),
-                    (
-                        "pipeline".ljust(self.LEFT_JUSTIFICATION_LENGTH),
-                        BaseCommand.format_help_str_command(_SAM_CLI_COMMAND_SHORT_HELP.get("pipeline")),
-                    ),
-                    (
-                        "publish".ljust(self.LEFT_JUSTIFICATION_LENGTH),
-                        BaseCommand.format_help_str_command(_SAM_CLI_COMMAND_SHORT_HELP.get("publish")),
+                    DefinitionRow(
+                        name="publish",
+                        help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("publish"),
                     ),
                 ],
             )
