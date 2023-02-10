@@ -59,7 +59,7 @@ class TestSyncInfra_BuildInSource_Makefile(SyncIntegBase):
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertIn("Sync infra completed.", str(sync_process_execute.stderr))
 
-        # check whether the new files where created in the source directory
+        # check whether the new files were created in the source directory
         for path in self.new_files_in_source:
             self.assertEqual(os.path.isfile(path), new_file_should_be_in_source)
 
