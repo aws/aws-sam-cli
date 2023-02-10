@@ -242,6 +242,7 @@ class LayerSyncFlow(AbstractLayerSyncFlow):
                 manifest_path_override=self._build_context.manifest_path_override,
                 container_manager=self._build_context.container_manager,
                 mode=self._build_context.mode,
+                build_in_source=self._build_context.build_in_source,
             )
             LOG.debug("%sBuilding Layer", self.log_prefix)
             self._artifact_folder = builder.build().artifacts.get(self._layer_identifier)
