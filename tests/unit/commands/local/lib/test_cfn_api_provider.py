@@ -1255,12 +1255,16 @@ class TestCollectLambdaAuthorizersWithApiGatewayV1Resources(TestCase):
         ]
     )
     @patch("samcli.commands.local.lib.swagger.integration_uri.LambdaUri.get_function_name")
-    def test_collect_v1_lambda_authorizer(self, resource, expected_authorizer, get_func_name_mock):
+    @patch("samcli.commands.local.lib.validators.lambda_auth_props.LambdaAuthorizerV1Validator")
+    def test_collect_v1_lambda_authorizer(self, resource, expected_authorizer, validator_mock, get_func_name_mock):
         lambda_auth_logical_id = "my-auth-id"
 
         # mock ARN resolving function
         auth_lambda_func_name = "my-lambda"
         get_func_name_mock.return_value = auth_lambda_func_name
+
+        validator_mock.validate = Mock()
+        validator_mock.validate.return_value = True
 
         mock_collector = Mock()
         mock_collector.add_authorizers = Mock()
@@ -1269,102 +1273,11 @@ class TestCollectLambdaAuthorizersWithApiGatewayV1Resources(TestCase):
 
         mock_collector.add_authorizers.assert_called_with("my-rest-api", expected_authorizer)
 
-    @parameterized.expand(
-        [
-            (  # test no type
-                {"Properties": {}},
-                "Authorizer 'my-auth-id' is missing the 'Type' property, an Authorizer type must be defined.",
-            ),
-            (  # test no rest api id
-                {"Properties": {"Type": "TOKEN"}},
-                "Authorizer 'my-auth-id' is missing the 'RestApiId' property, this must be defined.",
-            ),
-            (  # test no name
-                {"Properties": {"Type": "TOKEN", "RestApiId": "restapiid"}},
-                "Authorizer 'my-auth-id' is missing the 'Name' property, the Name must be defined.",
-            ),
-            (  # test no authorizer uri
-                {"Properties": {"Type": "TOKEN", "RestApiId": "restapiid", "Name": "myauth"}},
-                "Authorizer 'my-auth-id' is missing the 'AuthorizerUri' property, a valid Lambda ARN must be provided.",
-            ),
-            (  # test invalid identity source (missing)
-                {"Properties": {"Type": "TOKEN", "RestApiId": "restapiid", "Name": "myauth", "AuthorizerUri": "arn"}},
-                "Lambda Authorizer 'my-auth-id' of type TOKEN, must have 'IdentitySource' of type string defined.",
-            ),
-            (  # test invalid identity source (must be str)
-                {
-                    "Properties": {
-                        "Type": "TOKEN",
-                        "RestApiId": "restapiid",
-                        "Name": "myauth",
-                        "AuthorizerUri": "arn",
-                        "IdentitySource": {},
-                    }
-                },
-                "Lambda Authorizer 'my-auth-id' contains an invalid 'IdentitySource', it must be a comma-separated string.",
-            ),
-            (  # test request type using validation
-                {
-                    "Properties": {
-                        "Type": "REQUEST",
-                        "RestApiId": "restapiid",
-                        "Name": "myauth",
-                        "AuthorizerUri": "arn",
-                        "IdentityValidationExpression": "123",
-                    }
-                },
-                "Lambda Authorizer 'my-auth-id' has 'IdentityValidationExpression' property defined, but validation is only supported on TOKEN type authorizers.",
-            ),
-        ]
-    )
-    @patch("samcli.commands.local.lib.swagger.integration_uri.LambdaUri.get_function_name")
-    def test_collect_v1_invalid_lambda_authorizer(self, resource, expected_exception_message, get_func_name_mock):
-        lambda_auth_logical_id = "my-auth-id"
-
-        # mock ARN resolving function
-        auth_lambda_func_name = "my-lambda"
-        get_func_name_mock.return_value = auth_lambda_func_name
-
-        with self.assertRaisesRegex(InvalidSamTemplateException, expected_exception_message):
-            CfnApiProvider._extract_cloud_formation_authorizer(lambda_auth_logical_id, resource, Mock())
-
-    @patch("samcli.commands.local.lib.swagger.integration_uri.LambdaUri.get_function_name")
-    def test_collect_v1_skip_invalid_type(self, get_func_name_mock):
-        properties = {"Properties": {"Type": "_-_-_", "RestApiId": "restapiid", "Name": "myauth"}}
-        lambda_auth_logical_id = "my-auth-id"
-
-        # mock ARN resolving function
-        auth_lambda_func_name = "my-lambda"
-        get_func_name_mock.return_value = auth_lambda_func_name
-
-        mock_collector = Mock()
-        mock_collector.add_authorizers = Mock()
-
-        CfnApiProvider._extract_cloud_formation_authorizer(lambda_auth_logical_id, properties, mock_collector)
-
-        mock_collector.add_authorizers.assert_not_called()
-
-    @patch("samcli.commands.local.lib.swagger.integration_uri.LambdaUri.get_function_name")
-    def test_collect_v1_skip_invalid_arn(self, get_func_name_mock):
-        properties = {
-            "Properties": {"Type": "TOKEN", "RestApiId": "restapiid", "Name": "myauth", "AuthorizerUri": "arn"}
-        }
-        lambda_auth_logical_id = "my-auth-id"
-
-        # mock ARN resolving function to return None
-        get_func_name_mock.return_value = None
-
-        mock_collector = Mock()
-        mock_collector.add_authorizers = Mock()
-
-        CfnApiProvider._extract_cloud_formation_authorizer(lambda_auth_logical_id, properties, mock_collector)
-
-        mock_collector.add_authorizers.assert_not_called()
-
 
 class TestCollectLambdaAuthorizersWithApiGatewayV2Resources(TestCase):
     @patch("samcli.commands.local.lib.swagger.integration_uri.LambdaUri.get_function_name")
-    def test_collect_v2_lambda_authorizer(self, get_func_name_mock):
+    @patch("samcli.commands.local.lib.validators.lambda_auth_props.LambdaAuthorizerV2Validator")
+    def test_collect_v2_lambda_authorizer(self, validator_mock, get_func_name_mock):
         identity_sources = ["$request.header.auth", "$context.something"]
 
         properties = {
@@ -1397,119 +1310,9 @@ class TestCollectLambdaAuthorizersWithApiGatewayV2Resources(TestCase):
         mock_collector = Mock()
         mock_collector.add_authorizers = Mock()
 
+        validator_mock.validate = Mock()
+        validator_mock.validate.return_value = True
+
         CfnApiProvider._extract_cfn_gateway_v2_authorizer(lambda_auth_logical_id, properties, mock_collector)
 
         mock_collector.add_authorizers.assert_called_with("my-rest-api", expected_authorizers)
-
-    @parameterized.expand(
-        [
-            (  # test no type
-                {"Properties": {}},
-                "Authorizer 'my-auth-id' is missing the 'AuthorizerType' property, an Authorizer type must be defined.",
-            ),
-            (  # test no rest api id
-                {"Properties": {"AuthorizerType": "REQUEST"}},
-                "Authorizer 'my-auth-id' is missing the 'ApiId' property, this must be defined.",
-            ),
-            (  # test no name
-                {"Properties": {"AuthorizerType": "REQUEST", "ApiId": "restapiid"}},
-                "Authorizer 'my-auth-id' is missing the 'Name' property, the Name must be defined.",
-            ),
-            (  # test no authorizer uri
-                {"Properties": {"AuthorizerType": "REQUEST", "ApiId": "restapiid", "Name": "myauth"}},
-                "Authorizer 'my-auth-id' is missing the 'AuthorizerUri' property, a valid Lambda ARN must be provided.",
-            ),
-            (  # test invalid identity source (missing)
-                {
-                    "Properties": {
-                        "AuthorizerType": "REQUEST",
-                        "ApiId": "restapiid",
-                        "Name": "myauth",
-                        "AuthorizerUri": "arn",
-                    }
-                },
-                "Lambda Authorizer 'my-auth-id' must have 'IdentitySource' of type list defined.",
-            ),
-            (  # test invalid identity source (must be list)
-                {
-                    "Properties": {
-                        "AuthorizerType": "REQUEST",
-                        "ApiId": "restapiid",
-                        "Name": "myauth",
-                        "AuthorizerUri": "arn",
-                        "IdentitySource": "hello world, im not a list",
-                    }
-                },
-                "Lambda Authorizer 'my-auth-id' must have 'IdentitySource' of type list defined.",
-            ),
-            (  # test missing payload version
-                {
-                    "Properties": {
-                        "AuthorizerType": "REQUEST",
-                        "ApiId": "restapiid",
-                        "Name": "myauth",
-                        "AuthorizerUri": "arn",
-                        "IdentitySource": [],
-                    }
-                },
-                "Lambda Authorizer 'my-auth-id' is missing or invalid 'AuthorizerPayloadFormatVersion', it must be set to '1.0' or '2.0'",
-            ),
-            (  # test using simple response but wrong payload version
-                {
-                    "Properties": {
-                        "AuthorizerType": "REQUEST",
-                        "ApiId": "restapiid",
-                        "Name": "myauth",
-                        "AuthorizerUri": "arn",
-                        "IdentitySource": [],
-                        "AuthorizerPayloadFormatVersion": "1.0",
-                        "EnableSimpleResponses": True,
-                    }
-                },
-                "'EnableSimpleResponses' is only supported for '2.0' payload format versions for Lambda Authorizer 'my-auth-id'.",
-            ),
-        ]
-    )
-    @patch("samcli.commands.local.lib.swagger.integration_uri.LambdaUri.get_function_name")
-    def test_collect_v2_invalid_lambda_authorizer(self, resource, expected_exception_message, get_func_name_mock):
-        lambda_auth_logical_id = "my-auth-id"
-
-        # mock ARN resolving function
-        auth_lambda_func_name = "my-lambda"
-        get_func_name_mock.return_value = auth_lambda_func_name
-
-        with self.assertRaisesRegex(InvalidSamTemplateException, expected_exception_message):
-            CfnApiProvider._extract_cfn_gateway_v2_authorizer(lambda_auth_logical_id, resource, Mock())
-
-    @patch("samcli.commands.local.lib.swagger.integration_uri.LambdaUri.get_function_name")
-    def test_collect_v2_skip_invalid_type(self, get_func_name_mock):
-        properties = {"Properties": {"AuthorizerType": "TOKEN", "ApiId": "restapiid", "Name": "myauth"}}
-        lambda_auth_logical_id = "my-auth-id"
-
-        # mock ARN resolving function
-        auth_lambda_func_name = "my-lambda"
-        get_func_name_mock.return_value = auth_lambda_func_name
-
-        mock_collector = Mock()
-        mock_collector.add_authorizers = Mock()
-
-        CfnApiProvider._extract_cfn_gateway_v2_authorizer(lambda_auth_logical_id, properties, mock_collector)
-
-        mock_collector.add_authorizers.assert_not_called()
-
-    @patch("samcli.commands.local.lib.swagger.integration_uri.LambdaUri.get_function_name")
-    def test_collect_v2_skip_invalid_arn(self, get_func_name_mock):
-        properties = {
-            "Properties": {"AuthorizerType": "REQUEST", "ApiId": "restapiid", "Name": "myauth", "AuthorizerUri": "arn"}
-        }
-        lambda_auth_logical_id = "my-auth-id"
-
-        # mock ARN resolving function to return None
-        get_func_name_mock.return_value = None
-
-        mock_collector = Mock()
-        mock_collector.add_authorizers = Mock()
-
-        CfnApiProvider._extract_cfn_gateway_v2_authorizer(lambda_auth_logical_id, properties, mock_collector)
-
-        mock_collector.add_authorizers.assert_not_called()

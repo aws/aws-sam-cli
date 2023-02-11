@@ -112,67 +112,20 @@ class CfnApiProvider(CfnBaseApiProvider):
         collector: ApiCollector
             ApiCollector to save Authorizers into
         """
+        from samcli.commands.local.lib.validators.lambda_auth_props import LambdaAuthorizerV1Validator  # type: ignore
+
+        if not LambdaAuthorizerV1Validator.validate(logical_id, resource):
+            return
+
         properties = resource.get("Properties", {})
         authorizer_type = properties.get(CfnApiProvider._AUTHORIZER_TYPE, "").lower()
         rest_api_id = properties.get(CfnApiProvider._AUTHORIZER_REST_API)
         name = properties.get(CfnApiProvider._AUTHORIZER_NAME)
         authorizer_uri = properties.get(CfnApiProvider._AUTHORIZER_AUTHORIZER_URI)
+        identity_source_template = properties.get(CfnApiProvider._AUTHORIZER_IDENTITY_SOURCE, [])
 
-        if not authorizer_type:
-            raise InvalidSamTemplateException(
-                f"Authorizer '{logical_id}' is missing the '{CfnApiProvider._AUTHORIZER_TYPE}' "
-                "property, an Authorizer type must be defined."
-            )
-
-        if not rest_api_id:
-            raise InvalidSamTemplateException(
-                f"Authorizer '{logical_id}' is missing the '{CfnApiProvider._AUTHORIZER_REST_API}' "
-                "property, this must be defined."
-            )
-
-        if not name:
-            raise InvalidSamTemplateException(
-                f"Authorizer '{logical_id}' is missing the '{CfnApiProvider._AUTHORIZER_NAME}' "
-                "property, the Name must be defined."
-            )
-
-        if authorizer_type not in LambdaAuthorizer.VALID_TYPES:
-            LOG.warning(
-                "Authorizer '%s' with type '%s' is currently not supported. "
-                "Only Lambda Authorizers of type TOKEN and REQUEST are supported.",
-                logical_id,
-                authorizer_type,
-            )
-            return
-
-        if not authorizer_uri:
-            raise InvalidSamTemplateException(
-                f"Authorizer '{logical_id}' is missing the '{CfnApiProvider._AUTHORIZER_AUTHORIZER_URI}' "
-                "property, a valid Lambda ARN must be provided."
-            )
-
-        function_name = LambdaUri.get_function_name(authorizer_uri)
-        if not function_name:
-            LOG.warning(
-                "Was not able to resolve Lambda function ARN for Authorizer '%s'. "
-                "Double check the ARN format, or use more simple intrinsics.",
-                logical_id,
-            )
-            return
-
-        identity_source_template = properties.get(CfnApiProvider._AUTHORIZER_IDENTITY_SOURCE, None)
-
-        if identity_source_template is None and authorizer_type == LambdaAuthorizer.TOKEN:
-            raise InvalidSamTemplateException(
-                f"Lambda Authorizer '{logical_id}' of type TOKEN, must have "
-                f"'{CfnApiProvider._AUTHORIZER_IDENTITY_SOURCE}' of type string defined."
-            )
-
-        if identity_source_template is not None and not isinstance(identity_source_template, str):
-            raise InvalidSamTemplateException(
-                f"Lambda Authorizer '{logical_id}' contains an invalid '{CfnApiProvider._AUTHORIZER_IDENTITY_SOURCE}', "
-                "it must be a comma-separated string."
-            )
+        # this will always return a string since we have already validated above
+        function_name = cast(str, LambdaUri.get_function_name(authorizer_uri))
 
         # split and parse out identity sources
         identity_source_list = []
@@ -182,12 +135,6 @@ class CfnApiProvider(CfnBaseApiProvider):
                 identity_source_list.append(identity_source.strip())
 
         validation_expression = properties.get(CfnApiProvider._AUTHORIZER_VALIDATION)
-
-        if authorizer_type == LambdaAuthorizer.REQUEST and validation_expression:
-            raise InvalidSamTemplateException(
-                "Lambda Authorizer '%s' has '%s' property defined, but validation is only "
-                "supported on TOKEN type authorizers." % (logical_id, CfnApiProvider._AUTHORIZER_VALIDATION)
-            )
 
         lambda_authorizer = LambdaAuthorizer(
             payload_version="1.0",
@@ -214,77 +161,22 @@ class CfnApiProvider(CfnBaseApiProvider):
         collector: ApiCollector
             ApiCollector to save Authorizers into
         """
+        from samcli.commands.local.lib.validators.lambda_auth_props import LambdaAuthorizerV2Validator
+
+        if not LambdaAuthorizerV2Validator.validate(logical_id, resource):
+            return
+
         properties = resource.get("Properties", {})
         authorizer_type = properties.get(CfnApiProvider._AUTHORIZER_V2_TYPE, "").lower()
         api_id = properties.get(CfnApiProvider._AUTHORIZER_V2_API)
         name = properties.get(CfnApiProvider._AUTHORIZER_NAME)
         authorizer_uri = properties.get(CfnApiProvider._AUTHORIZER_AUTHORIZER_URI)
-
-        if not authorizer_type:
-            raise InvalidSamTemplateException(
-                f"Authorizer '{logical_id}' is missing the '{CfnApiProvider._AUTHORIZER_V2_TYPE}' "
-                "property, an Authorizer type must be defined."
-            )
-
-        if not api_id:
-            raise InvalidSamTemplateException(
-                f"Authorizer '{logical_id}' is missing the '{CfnApiProvider._AUTHORIZER_V2_API}' "
-                "property, this must be defined."
-            )
-
-        if not name:
-            raise InvalidSamTemplateException(
-                f"Authorizer '{logical_id}' is missing the '{CfnApiProvider._AUTHORIZER_NAME}' "
-                "property, the Name must be defined."
-            )
-
-        if authorizer_type != LambdaAuthorizer.REQUEST:
-            LOG.warning(
-                "Authorizer '%s' with type '%s' is currently not supported. "
-                "Only Lambda Authorizers of type REQUEST are supported for API Gateway V2.",
-                logical_id,
-                authorizer_type,
-            )
-            return
-
-        if not authorizer_uri:
-            raise InvalidSamTemplateException(
-                f"Authorizer '{logical_id}' is missing the '{CfnApiProvider._AUTHORIZER_AUTHORIZER_URI}' "
-                "property, a valid Lambda ARN must be provided."
-            )
-
-        function_name = LambdaUri.get_function_name(authorizer_uri)
-        if not function_name:
-            LOG.warning(
-                "Was not able to resolve Lambda function ARN for Authorizer '%s'. "
-                "Double check the ARN format, or use more simple intrinsics.",
-                logical_id,
-            )
-            return
-
         identity_sources = properties.get(CfnApiProvider._AUTHORIZER_IDENTITY_SOURCE, None)
-
-        if not isinstance(identity_sources, list):
-            raise InvalidSamTemplateException(
-                f"Lambda Authorizer '{logical_id}' must have "
-                f"'{CfnApiProvider._AUTHORIZER_IDENTITY_SOURCE}' of type list defined."
-            )
-
         payload_version = properties.get(CfnApiProvider._AUTHORIZER_V2_PAYLOAD)
-
-        if not payload_version in LambdaAuthorizer.PAYLOAD_VERSIONS:
-            raise InvalidSamTemplateException(
-                f"Lambda Authorizer '{logical_id}' is missing or invalid '{CfnApiProvider._AUTHORIZER_V2_PAYLOAD}'"
-                ", it must be set to '1.0' or '2.0'"
-            )
-
         simple_responses = properties.get(CfnApiProvider._AUTHORIZER_V2_SIMPLE_RESPONSE, False)
 
-        if payload_version == LambdaAuthorizer.PAYLOAD_V1 and simple_responses:
-            raise InvalidSamTemplateException(
-                f"'{CfnApiProvider._AUTHORIZER_V2_SIMPLE_RESPONSE}' is only supported for '2.0' "
-                f"payload format versions for Lambda Authorizer '{logical_id}'."
-            )
+        # this will always return a string since we have already validated above
+        function_name = cast(str, LambdaUri.get_function_name(authorizer_uri))
 
         lambda_authorizer = LambdaAuthorizer(
             payload_version=payload_version,
