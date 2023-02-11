@@ -75,7 +75,7 @@ test_script:
   # Reactivate virtualenv before running tests
   - "venv\\Scripts\\activate"
   - "docker system prune -a -f"
-  - ps: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_Rust"
+  - ps: "pytest -vv -n 4 tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_Rust"
 # Uncomment for RDP
 #on_finish:
 #  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
