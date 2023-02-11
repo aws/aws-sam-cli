@@ -63,7 +63,7 @@ class TestSyncInfra(SyncIntegBase):
             use_container=use_container,
         )
 
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertIn("Stack creation succeeded. Sync infra completed.", str(sync_process_execute.stderr))
 
@@ -101,7 +101,7 @@ class TestSyncInfra(SyncIntegBase):
             use_container=use_container,
         )
 
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertIn("Stack update succeeded. Sync infra completed.", str(sync_process_execute.stderr))
         self.assertNotIn("Commands you can use next", str(sync_process_execute.stderr))
@@ -140,7 +140,7 @@ class TestSyncInfra(SyncIntegBase):
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "n\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "n\n".encode(), cwd=self.test_data_path)
 
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertNotIn("Build Succeeded", str(sync_process_execute.stderr))
@@ -162,7 +162,7 @@ class TestSyncInfra(SyncIntegBase):
             tags="integ=true clarity=yes foo_bar=baz",
         )
 
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 2)
         self.assertIn("Error: Missing option '--stack-name'.", str(sync_process_execute.stderr))
 
@@ -187,7 +187,7 @@ class TestSyncInfra(SyncIntegBase):
             tags="integ=true clarity=yes foo_bar=baz",
         )
 
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 1)
         self.assertIn(
             "An error occurred (InsufficientCapabilitiesException) when calling the CreateStack operation: \
@@ -215,7 +215,7 @@ Requires capabilities : [CAPABILITY_AUTO_EXPAND]",
             tags="integ=true clarity=yes foo_bar=baz",
         )
 
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertIn("Stack creation succeeded. Sync infra completed.", str(sync_process_execute.stderr))
 
@@ -299,67 +299,64 @@ class TestSyncInfraCDKTemplates(SyncIntegBase):
         repository = ""
         if function_id:
             repository = f"{function_id}={self.ecr_repo_name}"
-        with tempfile.TemporaryDirectory() as temp:
-            temp_path = Path(temp)
-            shutil.copytree(str(self.test_data_path.joinpath("infra/cdk")), str(temp_path.joinpath("cdk")))
-            template_path = str(temp_path.joinpath("cdk").joinpath(template_file))
-            stack_name = self._method_to_stack_name(self.id())
-            self.stacks.append({"name": stack_name})
+        template_path = str(self.test_data_path.joinpath("infra/cdk").joinpath(template_file))
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
 
-            # Run infra sync
-            sync_command_list = self.get_sync_command_list(
-                template_file=template_path,
-                code=False,
-                watch=False,
-                dependency_layer=dependency_layer,
-                stack_name=stack_name,
-                parameter_overrides="Parameter=Clarity",
-                image_repositories=repository,
-                s3_prefix=self.s3_prefix,
-                kms_key_id=self.kms_key,
-                tags="integ=true clarity=yes foo_bar=baz",
-            )
-            sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
-            self.assertEqual(sync_process_execute.process.returncode, 0)
-            self.assertIn("Stack creation succeeded. Sync infra completed.", str(sync_process_execute.stderr))
+        # Run infra sync
+        sync_command_list = self.get_sync_command_list(
+            template_file=template_path,
+            code=False,
+            watch=False,
+            dependency_layer=dependency_layer,
+            stack_name=stack_name,
+            parameter_overrides="Parameter=Clarity",
+            image_repositories=repository,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+        self.assertIn("Stack creation succeeded. Sync infra completed.", str(sync_process_execute.stderr))
 
-            # CFN Api call here to collect all the stack resources
-            self.stack_resources = self._get_stacks(stack_name)
-            # Lambda Api call here, which tests both the python function and the layer
-            lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
-            for lambda_function in lambda_functions:
-                lambda_response = json.loads(self._get_lambda_response(lambda_function))
-                self.assertIn("extra_message", lambda_response)
-                self.assertEqual(lambda_response.get("message"), "7")
+        # CFN Api call here to collect all the stack resources
+        self.stack_resources = self._get_stacks(stack_name)
+        # Lambda Api call here, which tests both the python function and the layer
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "7")
 
-            template_path = str(temp_path.joinpath("cdk").joinpath(template_after))
+        template_path = str(self.test_data_path.joinpath("infra/cdk").joinpath(template_after))
 
-            # Run infra sync
-            sync_command_list = self.get_sync_command_list(
-                template_file=template_path,
-                code=False,
-                watch=False,
-                dependency_layer=dependency_layer,
-                stack_name=stack_name,
-                parameter_overrides="Parameter=Clarity",
-                image_repositories=repository,
-                s3_prefix=self.s3_prefix,
-                kms_key_id=self.kms_key,
-                tags="integ=true clarity=yes foo_bar=baz",
-            )
+        # Run infra sync
+        sync_command_list = self.get_sync_command_list(
+            template_file=template_path,
+            code=False,
+            watch=False,
+            dependency_layer=dependency_layer,
+            stack_name=stack_name,
+            parameter_overrides="Parameter=Clarity",
+            image_repositories=repository,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
 
-            sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
-            self.assertEqual(sync_process_execute.process.returncode, 0)
-            self.assertIn("Stack update succeeded. Sync infra completed.", str(sync_process_execute.stderr))
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+        self.assertIn("Stack update succeeded. Sync infra completed.", str(sync_process_execute.stderr))
 
-            # CFN Api call here to collect all the stack resources
-            self.stack_resources = self._get_stacks(stack_name)
-            # Lambda Api call here, which tests both the python function and the layer
-            lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
-            for lambda_function in lambda_functions:
-                lambda_response = json.loads(self._get_lambda_response(lambda_function))
-                self.assertIn("extra_message", lambda_response)
-                self.assertEqual(lambda_response.get("message"), "9")
+        # CFN Api call here to collect all the stack resources
+        self.stack_resources = self._get_stacks(stack_name)
+        # Lambda Api call here, which tests both the python function and the layer
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "9")
 
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
@@ -393,7 +390,7 @@ class TestSyncInfraWithJava(SyncIntegBase):
             capabilities_list=["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertIn("Sync infra completed.", str(sync_process_execute.stderr))
 
@@ -430,7 +427,7 @@ class TestSyncInfraWithEsbuild(SyncIntegBase):
             capabilities_list=["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertIn("Sync infra completed.", str(sync_process_execute.stderr))
 
