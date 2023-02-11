@@ -170,10 +170,10 @@ for:
       # install Rust
       - sh: "curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL https://sh.rustup.rs | sh -s -- --default-toolchain none -y"
       - sh: "source $HOME/.cargo/env"
-      - sh: "rustup target add x86_64-unknown-linux-gnu --toolchain stable"
-      - sh: "rustup target add aarch64-unknown-linux-gnu --toolchain stable"
       - sh: "rustup toolchain install stable --profile minimal --no-self-update"
       - sh: "rustup default stable"
+      - sh: "rustup target add x86_64-unknown-linux-gnu --toolchain stable"
+      - sh: "rustup target add aarch64-unknown-linux-gnu --toolchain stable"
       - sh: "pip install cargo-lambda==$CARGO_LAMBDA_VERSION"
       # - sh: "PATH=$HOME/.cargo/bin:$PATH"
       # - sh: "PATH=$HOME/.local/bin:$PATH"
