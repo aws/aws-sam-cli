@@ -143,7 +143,7 @@ for:
         - configuration: BuildIntegTesting
 
     build_script:
-      # install Rust
+      # install Rust in build_script to not override the default "install" actions
       - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
       - rustup-init.exe -y --default-host x86_64-pc-windows-msvc --default-toolchain stable
       - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
