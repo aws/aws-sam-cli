@@ -31,6 +31,14 @@ LOG = logging.getLogger(__name__)
 FUNCTION_SLEEP = 1  # used to wait for lambda function configuration last update to be successful
 
 
+def get_latest_layer_version(lambda_client: Any, layer_arn: str) -> int:
+    """Fetches all layer versions from remote and returns the latest one"""
+    layer_versions = lambda_client.list_layer_versions(LayerName=layer_arn).get("LayerVersions", [])
+    if not layer_versions:
+        raise NoLayerVersionsFoundError(layer_arn)
+    return cast(int, layer_versions[0].get("Version"))
+
+
 class AbstractLayerSyncFlow(SyncFlow, ABC):
     """
     AbstractLayerSyncFlow contains common operations for a Layer sync.
@@ -69,7 +77,7 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
         """
         Compare Sha256 of the deployed layer code vs the one just built, True if they are same, False otherwise
         """
-        self._old_layer_version = self._get_latest_layer_version()
+        self._old_layer_version = get_latest_layer_version(self._lambda_client, cast(str, self._layer_arn))
         old_layer_info = self._lambda_client.get_layer_version(
             LayerName=self._layer_arn,
             VersionNumber=self._old_layer_version,
@@ -78,13 +86,6 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
         LOG.debug("%sLocal SHA: %s Remote SHA: %s", self.log_prefix, self._local_sha, remote_sha)
 
         return self._local_sha == remote_sha
-
-    def _get_latest_layer_version(self):
-        """Fetches all layer versions from remote and returns the latest one"""
-        layer_versions = self._lambda_client.list_layer_versions(LayerName=self._layer_arn).get("LayerVersions", [])
-        if not layer_versions:
-            raise NoLayerVersionsFoundError(self._layer_arn)
-        return layer_versions[0].get("Version")
 
     def sync(self) -> None:
         """
@@ -294,13 +295,13 @@ class FunctionLayerReferenceSync(SyncFlow):
     _function_identifier: str
     _layer_arn: str
     _old_layer_version: int
-    _new_layer_version: int
+    _new_layer_version: Optional[int]
 
     def __init__(
         self,
         function_identifier: str,
         layer_arn: str,
-        new_layer_version: int,
+        new_layer_version: Optional[int],
         build_context: "BuildContext",
         deploy_context: "DeployContext",
         physical_id_mapping: Dict[str, str],
@@ -321,6 +322,11 @@ class FunctionLayerReferenceSync(SyncFlow):
     def set_up(self) -> None:
         super().set_up()
         self._lambda_client = self._boto_client("lambda")
+
+    def gather_resources(self) -> None:
+        if not self._new_layer_version:
+            LOG.debug("No layer version set for %s, fetching latest one", self._layer_arn)
+            self._new_layer_version = get_latest_layer_version(self._lambda_client, self._layer_arn)
 
     def sync(self) -> None:
         """
@@ -386,9 +392,6 @@ class FunctionLayerReferenceSync(SyncFlow):
 
     def compare_remote(self) -> bool:
         return False
-
-    def gather_resources(self) -> None:
-        pass
 
     def gather_dependencies(self) -> List["SyncFlow"]:
         return []
