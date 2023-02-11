@@ -34,7 +34,7 @@ _SAM_CLI_COMMAND_PACKAGES = [
 ]
 
 _SAM_CLI_COMMAND_SHORT_HELP = {
-    "init": "Init an AWS SAM application.",
+    "init": "Initialize an AWS SAM application.",
     "validate": "Validate an AWS SAM template.",
     "build": "Build your AWS Lambda Function code.",
     "local": "Run your AWS serverless function locally.",
@@ -42,7 +42,7 @@ _SAM_CLI_COMMAND_SHORT_HELP = {
     "deploy": "Deploy an AWS SAM application.",
     "delete": "Delete an AWS SAM application and the artifacts created by sam deploy.",
     "logs": "Fetch AWS Cloudwatch logs for a function.",
-    "publish": "Publish a packaged AWS SAM template to AWS Serverless Application Repository.",
+    "publish": "Publish a packaged AWS SAM template to AWS Serverless Application Repository for easy sharing.",
     "traces": "Fetch AWS X-Ray traces.",
     "sync": "Sync an AWS SAM project to AWS.",
     "pipeline": "Manage the continuous delivery of your AWS serverless application.",
@@ -123,83 +123,84 @@ class BaseCommand(click.MultiCommand):
                 opts.append(DefinitionRow(name=term, help_text=help_text))
 
         if opts:
-            with formatter.section("Global Options"):
-                formatter.write_dl(opts)
+            with formatter.section("Options"):
+                formatter.indent()
+                formatter.write_dl(opts, new_lines=1)
 
     def format_commands(self, ctx, formatter):
-        formatter.write_paragraph()
-        with formatter.section("Create an App!"):
-            formatter.write_dl(
-                [
-                    DefinitionRow(name="init", help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("init")),
-                ],
-            )
+        with formatter.section("Commands"):
+            with formatter.section("Create an App!"):
+                formatter.write_dl(
+                    [
+                        DefinitionRow(name="init", help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("init")),
+                    ],
+                )
 
-        with formatter.section("Develop your App!"):
-            formatter.write_dl(
-                [
-                    DefinitionRow(
-                        name="build",
-                        help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("build"),
-                    ),
-                    DefinitionRow(
-                        name="local",
-                        help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("local"),
-                    ),
-                    DefinitionRow(
-                        name="validate",
-                        help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("validate"),
-                    ),
-                    DefinitionRow(name="sync", help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("sync"), new=True),
-                ],
-            )
+            with formatter.section("Develop your App!"):
+                formatter.write_dl(
+                    [
+                        DefinitionRow(
+                            name="build",
+                            help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("build"),
+                        ),
+                        DefinitionRow(
+                            name="local",
+                            help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("local"),
+                        ),
+                        DefinitionRow(
+                            name="validate",
+                            help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("validate"),
+                        ),
+                        DefinitionRow(name="sync", help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("sync"), new=True),
+                    ],
+                )
 
-        with formatter.section("Deploy your App!"):
-            formatter.write_dl(
-                [
-                    DefinitionRow(
-                        name="package",
-                        help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("package"),
-                    ),
-                    DefinitionRow(
-                        name="deploy",
-                        help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("deploy"),
-                    ),
-                ]
-            )
+            with formatter.section("Deploy your App!"):
+                formatter.write_dl(
+                    [
+                        DefinitionRow(
+                            name="package",
+                            help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("package"),
+                        ),
+                        DefinitionRow(
+                            name="deploy",
+                            help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("deploy"),
+                        ),
+                    ]
+                )
 
-        with formatter.section("Monitor your App!"):
-            formatter.write_dl(
-                [
-                    DefinitionRow(
-                        name="logs",
-                        help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("logs"),
-                    ),
-                    DefinitionRow(
-                        name="traces",
-                        help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("traces"),
-                    ),
-                ],
-            )
+            with formatter.section("Monitor your App!"):
+                formatter.write_dl(
+                    [
+                        DefinitionRow(
+                            name="logs",
+                            help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("logs"),
+                        ),
+                        DefinitionRow(
+                            name="traces",
+                            help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("traces"),
+                        ),
+                    ],
+                )
 
-        with formatter.section("And More!"):
-            formatter.write_dl(
-                [
-                    DefinitionRow(name="list", help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("list"), new=True),
-                    DefinitionRow(
-                        name="delete",
-                        help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("delete"),
-                    ),
-                    DefinitionRow(
-                        name="pipeline",
-                        help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("pipeline"),
-                    ),
-                    DefinitionRow(
-                        name="publish",
-                        help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("publish"),
-                    ),
-                ],
-            )
+            with formatter.section("And More!"):
+                formatter.write_dl(
+                    [
+                        DefinitionRow(name="list", help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("list"), new=True),
+                        DefinitionRow(
+                            name="delete",
+                            help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("delete"),
+                        ),
+                        DefinitionRow(
+                            name="pipeline",
+                            help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("pipeline"),
+                        ),
+                        DefinitionRow(
+                            name="publish",
+                            help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("publish"),
+                        ),
+                    ],
+                )
 
     def list_commands(self, ctx):
         """
