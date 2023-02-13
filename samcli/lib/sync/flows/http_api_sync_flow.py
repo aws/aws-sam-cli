@@ -51,7 +51,7 @@ class HttpApiSyncFlow(GenericApiSyncFlow):
             deploy_context,
             sync_context,
             physical_id_mapping,
-            log_name="HttpApi " + api_identifier,
+            log_name="HttpApi " + httpapi_identifier,
             stacks=stacks,
         )
 
