@@ -162,3 +162,4 @@ class TestValidate(TestCase):
         )
 
         self.assertIn(warning_message, output)
+        self.assertEqual(command_result.process.returncode, 1)

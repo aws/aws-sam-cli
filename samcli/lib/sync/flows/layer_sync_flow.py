@@ -4,6 +4,7 @@ import hashlib
 import logging
 import os
 import re
+import shutil
 import tempfile
 import uuid
 from abc import ABC, abstractmethod
@@ -230,6 +231,7 @@ class LayerSyncFlow(AbstractLayerSyncFlow):
                 manifest_path_override=self._build_context.manifest_path_override,
                 container_manager=self._build_context.container_manager,
                 mode=self._build_context.mode,
+                build_in_source=self._build_context.build_in_source,
             )
             LOG.debug("%sBuilding Layer", self.log_prefix)
             self._artifact_folder = builder.build().artifacts.get(self._layer_identifier)
@@ -256,6 +258,30 @@ class LayerSyncFlow(AbstractLayerSyncFlow):
                 )
                 dependent_functions.append(function)
         return dependent_functions
+
+
+class LayerSyncFlowSkipBuildDirectory(LayerSyncFlow):
+    """
+    LayerSyncFlow special implementation that will skip build step and zip contents of CodeUri
+    """
+
+    def gather_resources(self) -> None:
+        zip_file_path = os.path.join(tempfile.gettempdir(), f"data-{uuid.uuid4().hex}")
+        self._zip_file = make_zip(zip_file_path, self._layer.codeuri)
+        LOG.debug("%sCreated artifact ZIP file: %s", self.log_prefix, self._zip_file)
+        self._local_sha = file_checksum(cast(str, self._zip_file), hashlib.sha256())
+
+
+class LayerSyncFlowSkipBuildZipFile(LayerSyncFlow):
+    """
+    LayerSyncFlow special implementation, that will skip build and upload zip file which is defined in CodeUri directly
+    """
+
+    def gather_resources(self) -> None:
+        self._zip_file = os.path.join(tempfile.gettempdir(), f"data-{uuid.uuid4().hex}")
+        shutil.copy2(cast(str, self._layer.codeuri), self._zip_file)
+        LOG.debug("%sCreated artifact ZIP file: %s", self.log_prefix, self._zip_file)
+        self._local_sha = file_checksum(self._zip_file, hashlib.sha256())
 
 
 class FunctionLayerReferenceSync(SyncFlow):

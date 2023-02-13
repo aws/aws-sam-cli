@@ -91,7 +91,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.custom_env_var_echo_hanler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Environment:
         Variables:

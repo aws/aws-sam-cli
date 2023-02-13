@@ -61,9 +61,9 @@ class StackOutputsProducer(Producer):
         output_list = []
         for stack_output in response:
             stack_output_data = StackOutputs(
-                OutputKey=stack_output["OutputKey"],
-                OutputValue=stack_output["OutputValue"],
-                Description=stack_output["Description"],
+                OutputKey=stack_output.get("OutputKey", ""),
+                OutputValue=stack_output.get("OutputValue", ""),
+                Description=stack_output.get("Description", ""),
             )
             output_list.append(dataclasses.asdict(stack_output_data))
         mapped_output = self.mapper.map(output_list)

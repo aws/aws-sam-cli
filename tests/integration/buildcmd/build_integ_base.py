@@ -80,6 +80,7 @@ class BuildIntegBase(TestCase):
         region=None,
         hook_name=None,
         beta_features=None,
+        build_in_source=None,
         mount_with_write=False,
     ):
 
@@ -141,6 +142,9 @@ class BuildIntegBase(TestCase):
 
         if hook_name:
             command_list += ["--hook-name", hook_name]
+
+        if build_in_source is not None:
+            command_list += ["--build-in-source"] if build_in_source else ["--no-build-in-source"]
 
         return command_list
 
@@ -717,19 +721,23 @@ class BuildIntegProvidedBase(BuildIntegBase):
     EXPECTED_FILES_PROJECT_MANIFEST = {"__init__.py", "main.py", "requests", "requirements.txt"}
 
     FUNCTION_LOGICAL_ID = "Function"
-    code_uri = "Provided"
 
-    def _test_with_Makefile(self, runtime, use_container, manifest, architecture=None):
+    def _test_with_Makefile(
+        self, runtime, use_container, manifest, architecture=None, code_uri="Provided", build_in_source=None
+    ):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
-        overrides = self.get_override(runtime, self.code_uri, architecture, "main.handler")
+        overrides = self.get_override(runtime, code_uri, architecture, "main.handler")
         manifest_path = None
         if manifest:
             manifest_path = os.path.join(self.test_data_path, "Provided", manifest)
 
         cmdlist = self.get_command_list(
-            use_container=use_container, parameter_overrides=overrides, manifest_path=manifest_path
+            use_container=use_container,
+            parameter_overrides=overrides,
+            manifest_path=manifest_path,
+            build_in_source=build_in_source,
         )
 
         LOG.info("Running Command: {}".format(cmdlist))

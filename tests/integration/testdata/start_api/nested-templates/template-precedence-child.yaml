@@ -6,7 +6,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.echo_integer_body
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: ..
       Timeout: 600
       Events:
@@ -25,7 +25,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.echo_event_handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: ..
       Timeout: 600
       Events:

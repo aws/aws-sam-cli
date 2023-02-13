@@ -6,7 +6,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
 
@@ -14,7 +14,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.write_to_stderr
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
 
@@ -23,6 +23,6 @@ Resources:
     Properties:
       FunctionName: FunctionNameC
       Handler: main.write_to_stdout
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600

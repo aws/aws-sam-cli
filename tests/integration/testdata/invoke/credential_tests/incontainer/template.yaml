@@ -20,7 +20,7 @@ Resources:
     Properties:
       CodeUri: python
       Handler: app.lambda_handler
-      Runtime: python3.6
+      Runtime: python3.9
   RubyStsExample:
     Type: AWS::Serverless::Function
     Properties:
@@ -32,4 +32,4 @@ Resources:
     Properties:
       CodeUri: nodejs
       Handler: app.lambdaHandler
-      Runtime: nodejs12.x
+      Runtime: nodejs18.x
