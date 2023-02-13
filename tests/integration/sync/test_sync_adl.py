@@ -28,7 +28,7 @@ class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
         # update app.py with updated response
         self.update_file(
             self.test_data_path.joinpath("code", "after", "python_function_no_deps", "app_without_numpy.py"),
-            self.test_data_path.joinpath("code", "before", "python_function_no_deps", "app_without_numpy.py"),
+            self.test_data_path.joinpath("code", "before", "python_function_no_deps", "app.py"),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
@@ -55,7 +55,7 @@ class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
         # update app.py with some dependency which is missing in requirements.txt
         self.update_file(
             self.test_data_path.joinpath("code", "after", "python_function_no_deps", "app_with_numpy.py"),
-            self.test_data_path.joinpath("code", "before", "python_function_no_deps", "app_with_numpy.py"),
+            self.test_data_path.joinpath("code", "before", "python_function_no_deps", "app.py"),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
