@@ -67,22 +67,6 @@ for:
       - "choco install terraform"
       - "terraform -version"
 
-      # # install Rust
-      # - appveyor-retry appveyor DownloadFile https://win.rustup.rs/x86_64 -FileName rustup-init.exe
-      # - rustup-init.exe -y --default-host x86_64-pc-windows-msvc --default-toolchain stable
-      # - "python -m pip install cargo-lambda==%CARGO_LAMBDA_VERSION%"
-      # # - ps: Invoke-WebRequest -Uri https://github.com/cargo-lambda/cargo-lambda/releases/download/$env:CARGO_LAMBDA_VERSION/cargo-lambda-$env:CARGO_LAMBDA_VERSION.windows-x64.zip -OutFile C:\Users\appveyor\cargo-lambda.zip
-      # # - ps: Expand-Archive -DestinationPath C:\Users\appveyor\.cargo\bin C:\Users\appveyor\cargo-lambda.zip
-      # - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
-      # - set PATH=%PATH%;C:\Users\appveyor\.local\bin
-      # - set RUST_BACKTRACE=1
-      # - rustup target add x86_64-unknown-linux-gnu --toolchain stable
-      # - rustup target add aarch64-unknown-linux-gnu --toolchain stable
-      # - rustc -V
-      # - cargo -V
-      # - cargo --list
-      # - cargo lambda -V
-
       # Install AWS CLI Globally outside of a venv.
       - "pip install awscli"
       
