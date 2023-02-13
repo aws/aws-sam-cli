@@ -41,6 +41,8 @@ class SamApiProvider(CfnBaseApiProvider):
     _IDENTITY_HEADERS = "Headers"
     _IDENTITY_CONTEXT = "Context"
     _IDENTITY_STAGE = "StageVariables"
+    _API_IDENTITY_SOURCE_PREFIX = "method."
+    _HTTP_IDENTITY_SOURCE_PREFIX = "$"
 
     def extract_resources(self, stacks: List[Stack], collector: ApiCollector, cwd: Optional[str] = None) -> None:
         """
@@ -116,11 +118,124 @@ class SamApiProvider(CfnBaseApiProvider):
         collector.cors = cors
 
         auth = properties.get(SamApiProvider._AUTH, {})
-        if auth:
-            if auth.get(SamApiProvider._DEFAULT_AUTHORIZER):
-                collector.set_default_authorizer(logical_id, auth.get(SamApiProvider._DEFAULT_AUTHORIZER))
+        if not auth:
+            return
 
-            self._extract_authorizers_from_props(logical_id, auth, collector, Route.API)
+        default_authorizer = auth.get(SamApiProvider._DEFAULT_AUTHORIZER)
+        if default_authorizer:
+            collector.set_default_authorizer(logical_id, default_authorizer)
+
+        self._extract_authorizers_from_props(logical_id, auth, collector, Route.API)
+
+    @staticmethod
+    def _extract_request_lambda_authorizer(
+        auth_name: str, function_name: str, prefix: str, properties: dict, event_type: str
+    ) -> LambdaAuthorizer:
+        """
+        Generates a request Lambda Authorizer from the given identity object
+
+        Parameters
+        ----------
+        auth_name: str
+            Name of the authorizer
+        function_name: str
+            Name of the Lambda function this authorizer uses
+        prefix: str
+            The prefix to prepend to identity sources
+        properties: dict
+            The authorizer properties that contains identity sources and authorizer specific properties
+        event_type: str
+            The type of API this is (API or HTTP API)
+
+        Returns
+        -------
+        LambdaAuthorizer
+            The request based Lambda Authorizer object
+        """
+        payload_version = properties.get(SamApiProvider._AUTHORIZER_PAYLOAD)
+
+        if payload_version is not None and not isinstance(payload_version, str):
+            raise InvalidSamDocumentException(
+                f"'{SamApiProvider._AUTHORIZER_PAYLOAD}' must be of type string for Lambda Authorizer '{auth_name}'."
+            )
+
+        if not payload_version in LambdaAuthorizer.PAYLOAD_VERSIONS and event_type == Route.HTTP:
+            raise InvalidSamDocumentException(
+                f"Lambda Authorizer '{auth_name}' must contain a valid "
+                f"'{SamApiProvider._AUTHORIZER_PAYLOAD}' for HTTP APIs."
+            )
+
+        simple_responses = properties.get(SamApiProvider._AUTH_SIMPLE_RESPONSES, False)
+        if simple_responses and payload_version == LambdaAuthorizer.PAYLOAD_V1:
+            raise InvalidSamDocumentException(
+                f"{SamApiProvider._AUTH_SIMPLE_RESPONSES} must be used with the 2.0 "
+                f"payload format version in Lambda Authorizer '{auth_name}'."
+            )
+
+        identity_sources = []
+        identity_object = properties.get(SamApiProvider._IDENTITY, {})
+
+        for query_string in identity_object.get(SamApiProvider._IDENTITY_QUERY, []):
+            identity_sources.append(f"{prefix}request.querystring.{query_string}")
+
+        for header in identity_object.get(SamApiProvider._IDENTITY_HEADERS, []):
+            identity_sources.append(f"{prefix}request.header.{header}")
+
+        # context and stageVariables do not have "method." for V1 APIGW
+        # but the V2 still expects "$"
+        prefix = SamApiProvider._HTTP_IDENTITY_SOURCE_PREFIX if event_type == Route.HTTP else ""
+
+        for context in identity_object.get(SamApiProvider._IDENTITY_CONTEXT, []):
+            identity_sources.append(f"{prefix}context.{context}")
+
+        for stage_variable in identity_object.get(SamApiProvider._IDENTITY_STAGE, []):
+            identity_sources.append(f"{prefix}stageVariables.{stage_variable}")
+
+        return LambdaAuthorizer(
+            payload_version=payload_version if payload_version else "1.0",
+            authorizer_name=auth_name,
+            type=LambdaAuthorizer.REQUEST,
+            lambda_name=function_name,
+            identity_sources=identity_sources,
+            use_simple_response=simple_responses,
+        )
+
+    @staticmethod
+    def _extract_token_lambda_authorizer(
+        auth_name: str, function_name: str, prefix: str, identity_object: dict
+    ) -> LambdaAuthorizer:
+        """
+        Generates a token Lambda Authorizer from the given identity object
+
+        Parameters
+        ----------
+        auth_name: str
+            Name of the authorizer
+        function_name: str
+            Name of the Lambda function this authorizer uses
+        prefix: str
+            The prefix to prepend to identity sources
+        identity_object: dict
+            The identity source object that contains the various identity sources
+
+        Returns
+        -------
+        LambdaAuthorizer
+            The token based Lambda Authorizer object
+        """
+        validation_expression = identity_object.get(SamApiProvider._VALIDATION_EXPRESSION)
+
+        header = identity_object.get(SamApiProvider._AUTH_HEADER, "Authorization")
+        header = f"{prefix}request.header.{header}"
+
+        return LambdaAuthorizer(
+            payload_version=LambdaAuthorizer.PAYLOAD_V1,
+            authorizer_name=auth_name,
+            type=LambdaAuthorizer.TOKEN,
+            lambda_name=function_name,
+            identity_sources=[header],
+            validation_string=validation_expression,
+        )
 
     @staticmethod
     def _extract_authorizers_from_props(logical_id: str, auth: dict, collector: ApiCollector, event_type: str) -> None:
@@ -138,14 +253,16 @@ class SamApiProvider(CfnBaseApiProvider):
         event_type: str
             What kind of API this is (API, HTTP API)
         """
-        API_IDENTITY_SOURCE_PREFIX = "method."
-        HTTP_IDENTITY_SOURCE_PREFIX = "$"
+        prefix = (
+            SamApiProvider._API_IDENTITY_SOURCE_PREFIX
+            if event_type == Route.API
+            else SamApiProvider._HTTP_IDENTITY_SOURCE_PREFIX
+        )
 
-        prefix = API_IDENTITY_SOURCE_PREFIX if event_type == Route.API else HTTP_IDENTITY_SOURCE_PREFIX
         authorizers: Dict[str, Authorizer] = {}
 
         for auth_name, auth_props in auth.get(SamApiProvider._AUTHORIZERS, {}).items():
-            authorizer_type = auth_props.get(SamApiProvider._FUNCTION_TYPE, LambdaAuthorizer.TOKEN).lower()
+            authorizer_type = auth_props.get(SamApiProvider._FUNCTION_TYPE, LambdaAuthorizer.TOKEN)
             identity_object = auth_props.get(SamApiProvider._IDENTITY, {})
 
             function_arn = auth_props.get(SamApiProvider._FUNCTION_ARN)
@@ -160,49 +277,13 @@ class SamApiProvider(CfnBaseApiProvider):
                 LOG.warning("Unable to parse the Lambda ARN for Authorizer '%s', skipping", auth_name)
                 continue
 
-            if authorizer_type == LambdaAuthorizer.REQUEST or event_type == Route.HTTP:
-                identity_sources = []
-
-                for query_string in identity_object.get(SamApiProvider._IDENTITY_QUERY, []):
-                    identity_sources.append(f"{prefix}request.querystring.{query_string}")
-
-                for header in identity_object.get(SamApiProvider._IDENTITY_HEADERS, []):
-                    identity_sources.append(f"{prefix}request.header.{header}")
-
-                # context and stageVariables do not have "method." for V1 APIGW
-                # but the V2 still expects "$"
-                prefix = HTTP_IDENTITY_SOURCE_PREFIX if event_type == Route.HTTP else ""
-
-                for context in identity_object.get(SamApiProvider._IDENTITY_CONTEXT, []):
-                    identity_sources.append(f"{prefix}context.{context}")
-
-                for stage_variable in identity_object.get(SamApiProvider._IDENTITY_STAGE, []):
-                    identity_sources.append(f"{prefix}stageVariables.{stage_variable}")
-
-                payload_version = identity_object.get(SamApiProvider._AUTHORIZER_PAYLOAD, "1.0")
-                simple_responses = identity_object.get(SamApiProvider._AUTH_SIMPLE_RESPONSES, False)
-
-                authorizers[auth_name] = LambdaAuthorizer(
-                    payload_version=payload_version,
-                    authorizer_name=auth_name,
-                    type=LambdaAuthorizer.REQUEST,
-                    lambda_name=function_name,
-                    identity_sources=identity_sources,
-                    use_simple_response=simple_responses,
+            if authorizer_type == LambdaAuthorizer.REQUEST.upper() or event_type == Route.HTTP:
+                authorizers[auth_name] = SamApiProvider._extract_request_lambda_authorizer(
+                    auth_name, function_name, prefix, auth_props, event_type
                 )
-            elif authorizer_type == LambdaAuthorizer.TOKEN:
-                validation_expression = identity_object.get(SamApiProvider._VALIDATION_EXPRESSION)
-
-                header = identity_object.get(SamApiProvider._AUTH_HEADER, "Authorization")
-                header = f"{prefix}request.header.{header}"
-
-                authorizers[auth_name] = LambdaAuthorizer(
-                    payload_version="1.0",
-                    authorizer_name=auth_name,
-                    type=LambdaAuthorizer.TOKEN,
-                    lambda_name=function_name,
-                    identity_sources=[header],
-                    validation_string=validation_expression,
+            elif authorizer_type == LambdaAuthorizer.TOKEN.upper():
+                authorizers[auth_name] = SamApiProvider._extract_token_lambda_authorizer(
+                    auth_name, function_name, prefix, identity_object
                 )
             else:
                 LOG.info("Authorizer '%s' is currently unsupported (not of type TOKEN or REQUEST), skipping", auth_name)
@@ -255,11 +336,14 @@ class SamApiProvider(CfnBaseApiProvider):
         collector.cors = cors
 
         auth = properties.get(SamApiProvider._AUTH, {})
-        if auth:
-            if auth.get(SamApiProvider._DEFAULT_AUTHORIZER):
-                collector.set_default_authorizer(logical_id, auth.get(SamApiProvider._DEFAULT_AUTHORIZER))
+        if not auth:
+            return
 
-            self._extract_authorizers_from_props(logical_id, auth, collector, Route.HTTP)
+        default_authorizer = auth.get(SamApiProvider._DEFAULT_AUTHORIZER)
+        if default_authorizer:
+            collector.set_default_authorizer(logical_id, default_authorizer)
+
+        self._extract_authorizers_from_props(logical_id, auth, collector, Route.HTTP)
 
     def _extract_routes_from_function(
         self, stack_path: str, logical_id: str, function_resource: Dict, collector: ApiCollector

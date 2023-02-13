@@ -1928,6 +1928,7 @@ class TestSamApiUsingAuthorizers(TestCase):
                                 "StageVariables": ["stage1", "stage2"],
                             },
                             "FunctionArn": "will_be_mocked",
+                            "AuthorizerPayloadFormatVersion": "1.0",
                         }
                     }
                 },
@@ -1960,9 +1961,9 @@ class TestSamApiUsingAuthorizers(TestCase):
                                 "Headers": ["header1", "header2"],
                                 "Context": ["context1", "context2"],
                                 "StageVariables": ["stage1", "stage2"],
-                                "AuthorizerPayloadFormatVersion": "2.0",
-                                "EnableSimpleResponses": True,
                             },
+                            "AuthorizerPayloadFormatVersion": "2.0",
+                            "EnableSimpleResponses": True,
                             "FunctionArn": "will_be_mocked",
                         }
                     }
@@ -2060,6 +2061,54 @@ class TestSamApiUsingAuthorizers(TestCase):
         SamApiProvider._extract_authorizers_from_props(logical_id, properties, collector_mock, Route.API)
 
         collector_mock.add_authorizers.assert_called_with(logical_id, {})
+
+    @parameterized.expand(
+        [
+            (  # wrong payload type
+                {
+                    "FunctionPayloadType": "REQUEST",
+                    "Identity": {
+                        "Header": "myheader",
+                    },
+                    "AuthorizerPayloadFormatVersion": True,
+                },
+                "'AuthorizerPayloadFormatVersion' must be of type string for Lambda Authorizer 'auth'.",
+            ),
+            (  # missing payload format version
+                {
+                    "FunctionPayloadType": "REQUEST",
+                    "Identity": {
+                        "Header": "myheader",
+                    },
+                },
+                "Lambda Authorizer 'auth' must contain a valid 'AuthorizerPayloadFormatVersion' for HTTP APIs.",
+            ),
+            (  # invalid payload format version
+                {
+                    "FunctionPayloadType": "REQUEST",
+                    "Identity": {
+                        "Header": "myheader",
+                    },
+                    "AuthorizerPayloadFormatVersion": "invalid",
+                },
+                "Lambda Authorizer 'auth' must contain a valid 'AuthorizerPayloadFormatVersion' for HTTP APIs.",
+            ),
+            (  # simple responses using wrong format version
+                {
+                    "FunctionPayloadType": "REQUEST",
+                    "Identity": {
+                        "Header": "myheader",
+                    },
+                    "AuthorizerPayloadFormatVersion": "1.0",
+                    "EnableSimpleResponses": True,
+                },
+                "EnableSimpleResponses must be used with the 2.0 payload format version in Lambda Authorizer 'auth'.",
+            ),
+        ]
+    )
+    def test_extract_invalid_http_authorizer_throws_exception(self, properties, expected_ex):
+        with self.assertRaisesRegex(InvalidSamDocumentException, expected_ex):
+            SamApiProvider._extract_request_lambda_authorizer("auth", "lambda", Mock(), properties, Route.HTTP)
 
     @parameterized.expand(
         [
