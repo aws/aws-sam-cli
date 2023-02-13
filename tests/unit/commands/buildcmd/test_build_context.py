@@ -12,7 +12,6 @@ from samcli.local.lambdafn.exceptions import ResourceNotFound
 from samcli.commands.build.build_context import BuildContext
 from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
 from samcli.commands.exceptions import UserException
-from samcli.lib.build.exceptions import ContainerBuildNotSupported
 from samcli.lib.build.app_builder import (
     BuildError,
     UnsupportedBuilderLibraryVersionError,
@@ -986,6 +985,7 @@ class TestBuildContext_run(TestCase):
             build_images={},
             create_auto_dependency_layer=auto_dependency_layer,
             build_in_source=False,
+            mount_with_write=False,
         ) as build_context:
             build_context.run()
 
@@ -1005,6 +1005,7 @@ class TestBuildContext_run(TestCase):
                 build_images=build_context._build_images,
                 combine_dependencies=not auto_dependency_layer,
                 build_in_source=build_context._build_in_source,
+                mount_with_write=False,
             )
             builder_mock.build.assert_called_once()
             builder_mock.update_template.assert_has_calls(
@@ -1060,7 +1061,6 @@ class TestBuildContext_run(TestCase):
             (UnsupportedRuntimeException(), "UnsupportedRuntimeException"),
             (BuildInsideContainerError(), "BuildInsideContainerError"),
             (BuildError(wrapped_from=DeepWrap().__class__.__name__, msg="Test"), "DeepWrap"),
-            (ContainerBuildNotSupported(), "ContainerBuildNotSupported"),
             (
                 UnsupportedBuilderLibraryVersionError(container_name="name", error_msg="msg"),
                 "UnsupportedBuilderLibraryVersionError",

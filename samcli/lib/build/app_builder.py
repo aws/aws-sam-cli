@@ -102,7 +102,7 @@ class ApplicationBuilder:
         build_images: Optional[Dict] = None,
         combine_dependencies: bool = True,
         build_in_source: Optional[bool] = None,
-        mount_with_write: bool = False
+        mount_with_write: bool = False,
     ) -> None:
         """
         Initialize the class

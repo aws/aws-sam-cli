@@ -6,6 +6,7 @@ import json
 import logging
 import pathlib
 import os
+from typing import List
 from uuid import uuid4
 
 from samcli.commands._utils.experimental import get_enabled_experimental_flags
@@ -93,7 +94,7 @@ class LambdaBuildContainer(Container):
             runtime_to_get_image = specified_workflow if specified_workflow else runtime
             image = LambdaBuildContainer._get_image(runtime_to_get_image, architecture)
         entry = LambdaBuildContainer._get_entrypoint(request_json)
-        cmd = []
+        cmd: List[str] = []
 
         mount_mode = "rw" if mount_with_write else "ro"
         additional_volumes = {
@@ -106,14 +107,7 @@ class LambdaBuildContainer(Container):
         if mount_with_write:
             # Mounting tmp dir on the host as ``/tmp/samcli`` on container, which gives current user write permissions
             host_tmp_dir = os.path.join(source_dir, str(uuid4()))
-            additional_volumes.update(
-                {
-                    host_tmp_dir: {
-                        "bind": container_dirs["base_dir"],
-                        "mode": mount_mode
-                    }
-                }
-            )
+            additional_volumes.update({host_tmp_dir: {"bind": container_dirs["base_dir"], "mode": mount_mode}})
 
         if log_level:
             env_vars["LAMBDA_BUILDERS_LOG_LEVEL"] = log_level

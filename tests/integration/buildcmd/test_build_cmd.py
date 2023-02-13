@@ -1052,7 +1052,9 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         ]
     )
     @pytest.mark.flaky(reruns=3)
-    def test_with_dotnetcore_in_container_mount_with_write_explicit(self, runtime, code_uri, mode, architecture="x86_64"):
+    def test_with_dotnetcore_in_container_mount_with_write_explicit(
+        self, runtime, code_uri, mode, architecture="x86_64"
+    ):
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,
@@ -1123,7 +1125,13 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         ]
     )
     @pytest.mark.flaky(reruns=3)
-    def test_with_dotnetcore_in_container_mount_with_write_interactive(self, runtime, code_uri, mode, architecture="x86_64",):
+    def test_with_dotnetcore_in_container_mount_with_write_interactive(
+        self,
+        runtime,
+        code_uri,
+        mode,
+        architecture="x86_64",
+    ):
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,
@@ -1144,10 +1152,9 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         LOG.info("Running with SAM_BUILD_MODE={}".format(mode))
 
         # mock user input to mount with write
-        user_click_confirm_input = 'y'
+        user_click_confirm_input = "y"
         run_command_with_input(cmdlist, user_click_confirm_input.encode(), cwd=self.working_dir)
-        LOG.info('code_uri:')
-        LOG.info(code_uri)
+
         self._verify_built_artifact(
             self.default_build_dir,
             self.FUNCTION_LOGICAL_ID,
@@ -1182,7 +1189,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
             )
         self.verify_docker_container_cleanedup(runtime)
-    
+
     @parameterized.expand([("dotnetcore3.1", "Dotnetcore3.1"), ("dotnet6", "Dotnet6")])
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
@@ -1197,7 +1204,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
 
         LOG.info("Running Command: {}".format(cmdlist))
         # mock user input to not allow mounting with write
-        user_click_confirm_input = 'N'
+        user_click_confirm_input = "N"
         process_execute = run_command_with_input(cmdlist, user_click_confirm_input.encode())
 
         # Must error out, because mounting with write is not allowed

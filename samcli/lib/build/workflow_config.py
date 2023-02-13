@@ -245,8 +245,7 @@ def supports_build_in_container(config: CONFIG) -> Tuple[bool, Optional[str]]:
     # A "workflow config" is like a primary key to identify the workflow. So we use the config as a key in the
     # map to identify which workflows can support building within a container.
 
-    unsupported: Dict[str, str] = {
-    }
+    unsupported: Dict[str, str] = {}
 
     thiskey = _key(config)
     if thiskey in unsupported:
@@ -271,9 +270,7 @@ def supports_specified_workflow(specified_workflow: str) -> bool:
         True, if this workflow is supported, can be used to overwrite runtime and get docker image
     """
 
-    supported_specified_workflow = [
-        "dotnet7"
-    ]
+    supported_specified_workflow = ["dotnet7"]
 
     return specified_workflow in supported_specified_workflow
 

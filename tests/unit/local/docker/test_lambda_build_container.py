@@ -208,7 +208,7 @@ class TestLambdaBuildContainer_get_image(TestCase):
             log_level="log-level",
             mode="mode",
             architecture=architecture,
-            specified_workflow=specified_workflow
+            specified_workflow=specified_workflow,
         )
         get_image_mock.assert_called_once_with(specified_workflow, architecture)
 

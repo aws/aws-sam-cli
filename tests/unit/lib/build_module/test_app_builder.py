@@ -990,6 +990,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             None,
             None,
             is_building_layer=True,
+            specified_workflow=None,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -1025,6 +1026,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             None,
             "test_image",
             is_building_layer=True,
+            specified_workflow=None,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -1060,6 +1062,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             None,
             "test_image",
             is_building_layer=True,
+            specified_workflow=None,
         )
 
     @patch("samcli.lib.build.app_builder.supports_specified_workflow")
@@ -2287,7 +2290,16 @@ class TestApplicationBuilder_build_function(TestCase):
         self.builder._build_function(function_name, codeuri, packagetype, runtime, architecture, handler, artifacts_dir)
 
         self.builder._build_function_on_container.assert_called_with(
-            config_mock, code_dir, artifacts_dir, manifest_path, runtime, architecture, None, None, None
+            config_mock,
+            code_dir,
+            artifacts_dir,
+            manifest_path,
+            runtime,
+            architecture,
+            None,
+            None,
+            None,
+            specified_workflow=None,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -2327,7 +2339,16 @@ class TestApplicationBuilder_build_function(TestCase):
         )
 
         self.builder._build_function_on_container.assert_called_with(
-            config_mock, code_dir, artifacts_dir, manifest_path, runtime, architecture, None, {"TEST": "test"}, None
+            config_mock,
+            code_dir,
+            artifacts_dir,
+            manifest_path,
+            runtime,
+            architecture,
+            None,
+            {"TEST": "test"},
+            None,
+            specified_workflow=None,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -2362,7 +2383,16 @@ class TestApplicationBuilder_build_function(TestCase):
         )
 
         self.builder._build_function_on_container.assert_called_with(
-            config_mock, code_dir, artifacts_dir, manifest_path, runtime, architecture, None, None, image_uri
+            config_mock,
+            code_dir,
+            artifacts_dir,
+            manifest_path,
+            runtime,
+            architecture,
+            None,
+            None,
+            image_uri,
+            specified_workflow=None,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -2397,7 +2427,16 @@ class TestApplicationBuilder_build_function(TestCase):
         )
 
         self.builder._build_function_on_container.assert_called_with(
-            config_mock, code_dir, artifacts_dir, manifest_path, runtime, architecture, None, None, image_uri
+            config_mock,
+            code_dir,
+            artifacts_dir,
+            manifest_path,
+            runtime,
+            architecture,
+            None,
+            None,
+            image_uri,
+            specified_workflow=None,
         )
 
 
@@ -2590,6 +2629,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
             "manifest_path",
             "runtime",
             X86_64,
+            specified_workflow=None,
             image=None,
             log_level=log_level,
             optimizations=None,
@@ -2599,6 +2639,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
             env_vars={},
             is_building_layer=False,
             build_in_source=False,
+            mount_with_write=False,
         )
 
         self.container_manager.run.assert_called_with(container_mock)
@@ -2645,20 +2686,6 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
         self.assertEqual(
             str(ctx.exception), "Docker is unreachable. Docker needs to be running to build inside a container."
         )
-
-    @patch("samcli.lib.build.app_builder.supports_build_in_container")
-    def test_must_raise_on_unsupported_container_build(self, supports_build_in_container_mock):
-        config = Mock()
-
-        reason = "my reason"
-        supports_build_in_container_mock.return_value = (False, reason)
-
-        with self.assertRaises(ContainerBuildNotSupported) as ctx:
-            self.builder._build_function_on_container(
-                config, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime", X86_64, {}
-            )
-
-        self.assertEqual(str(ctx.exception), reason)
 
 
 class TestApplicationBuilder_parse_builder_response(TestCase):

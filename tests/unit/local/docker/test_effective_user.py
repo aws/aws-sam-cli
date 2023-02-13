@@ -8,7 +8,6 @@ from samcli.local.docker.effective_user import EffectiveUser
 
 
 class TestEffectiveUser(TestCase):
-
     @patch("samcli.local.docker.effective_user.os.name.lower")
     @patch("samcli.local.docker.effective_user.os")
     def test_return_effective_user_if_posix(self, mock_os, mock_os_name):
