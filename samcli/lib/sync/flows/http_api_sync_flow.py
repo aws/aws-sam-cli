@@ -1,4 +1,5 @@
 """SyncFlow for HttpApi"""
+
 import logging
 from typing import Dict, List, TYPE_CHECKING
 
@@ -21,7 +22,7 @@ class HttpApiSyncFlow(GenericApiSyncFlow):
 
     def __init__(
         self,
-        api_identifier: str,
+        httpapi_identifier: str,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
         sync_context: "SyncContext",
@@ -31,7 +32,7 @@ class HttpApiSyncFlow(GenericApiSyncFlow):
         """
         Parameters
         ----------
-        api_identifier : str
+        httpapi_identifier : str
             HttpApi resource identifier that needs to have associated HttpApi updated.
         build_context : BuildContext
             BuildContext used for build related parameters
@@ -45,7 +46,7 @@ class HttpApiSyncFlow(GenericApiSyncFlow):
             List of stacks containing a root stack and optional nested stacks
         """
         super().__init__(
-            api_identifier,
+            httpapi_identifier,
             build_context,
             deploy_context,
             sync_context,
