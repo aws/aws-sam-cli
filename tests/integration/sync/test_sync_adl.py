@@ -126,8 +126,8 @@ class TestSyncAdlWithWatchStartWithNoDependencies(TestSyncWatchBase):
 
         # change lambda with another output
         self.update_file(
-            self.test_dir.joinpath("code", "after", "python_function_no_deps", "app_without_numpy.py"),
-            self.test_dir.joinpath("code", "before", "python_function_no_deps", "app.py"),
+            self.test_data_path.joinpath("code", "after", "python_function_no_deps", "app_without_numpy.py"),
+            self.test_data_path.joinpath("code", "before", "python_function_no_deps", "app.py"),
         )
         read_until_string(
             self.watch_process,
@@ -140,8 +140,8 @@ class TestSyncAdlWithWatchStartWithNoDependencies(TestSyncWatchBase):
 
         # change lambda with import with missing dependency
         self.update_file(
-            self.test_dir.joinpath("code", "after", "python_function_no_deps", "app_with_numpy.py"),
-            self.test_dir.joinpath("code", "before", "python_function_no_deps", "app.py"),
+            self.test_data_path.joinpath("code", "after", "python_function_no_deps", "app_with_numpy.py"),
+            self.test_data_path.joinpath("code", "before", "python_function_no_deps", "app.py"),
         )
         read_until_string(
             self.watch_process,
@@ -152,8 +152,8 @@ class TestSyncAdlWithWatchStartWithNoDependencies(TestSyncWatchBase):
 
         # add dependency and confirm it executes as expected
         self.update_file(
-            self.test_dir.joinpath("code", "after", "python_function_no_deps", "requirements.txt"),
-            self.test_dir.joinpath("code", "before", "python_function_no_deps", "requirements.txt"),
+            self.test_data_path.joinpath("code", "after", "python_function_no_deps", "requirements.txt"),
+            self.test_data_path.joinpath("code", "before", "python_function_no_deps", "requirements.txt"),
         )
         read_until_string(
             self.watch_process,
