@@ -1063,7 +1063,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
 
         # test with explicit mount_with_write flag
         cmdlist = self.get_command_list(use_container=True, parameter_overrides=overrides, mount_with_write=True)
-        # env vars needed for testing until dotnet images on public.ecr.aws are up-to-date
+        # env vars needed for testing unless set by dotnet images on public.ecr.aws
         cmdlist += ["--container-env-var", "DOTNET_CLI_HOME=/tmp/dotnet"]
         cmdlist += ["--container-env-var", "XDG_DATA_HOME=/tmp/xdg"]
 
@@ -1140,7 +1140,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
 
         # test without explicit mount_with_write flag
         cmdlist = self.get_command_list(use_container=True, parameter_overrides=overrides)
-        # env vars needed for testing until dotnet images on public.ecr.aws are up-to-date
+        # env vars needed for testing unless set by dotnet images on public.ecr.aws
         cmdlist += ["--container-env-var", "DOTNET_CLI_HOME=/tmp/dotnet"]
         cmdlist += ["--container-env-var", "XDG_DATA_HOME=/tmp/xdg"]
 

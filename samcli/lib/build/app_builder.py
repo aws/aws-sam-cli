@@ -7,7 +7,6 @@ import json
 import logging
 import pathlib
 from typing import List, Optional, Dict, cast, NamedTuple
-
 import docker
 import docker.errors
 from aws_lambda_builders import (
@@ -15,7 +14,6 @@ from aws_lambda_builders import (
 )
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
-
 from samcli.commands.build.utils import prompt_user_to_enable_mount_with_write
 from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition, BuildGraph
 from samcli.lib.build.build_strategy import (
@@ -54,7 +52,6 @@ from samcli.lib.build.exceptions import (
     BuildInsideContainerError,
     UnsupportedBuilderLibraryVersionError,
 )
-
 from samcli.lib.build.workflow_config import (
     get_workflow_config,
     supports_specified_workflow,
