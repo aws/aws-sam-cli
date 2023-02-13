@@ -302,7 +302,7 @@ for:
 
     test_script:
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/sync --json-report --json-report-file=TEST_REPORT-integration-sync.json"
+      - sh: "pytest -vv tests/integration/sync -n 4 --reruns 4 --dist loadscope --json-report --json-report-file=TEST_REPORT-integration-sync.json"
 
   # Integ testing local
   -
