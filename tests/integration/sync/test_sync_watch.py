@@ -53,8 +53,7 @@ LOG.addHandler(handler)
 class TestSyncWatchBase(SyncIntegBase):
     @classmethod
     def setUpClass(cls):
-        PackageIntegBase.setUpClass()
-        cls.test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "sync")
+        SyncIntegBase.setUpClass()
 
     def setUp(self):
         self.cfn_client = boto3.client("cloudformation")
