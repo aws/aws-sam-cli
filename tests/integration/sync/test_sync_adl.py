@@ -28,7 +28,7 @@ class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
         # update app.py with updated response
         self.update_file(
             self.test_data_path.joinpath("code", "after", "python_function_no_deps", "app_without_numpy.py"),
-            TestSyncCode.temp_dir.joinpath("python_function_no_deps", "app.py"),
+            self.test_data_path.joinpath("code", "before", "python_function_no_deps", "app_without_numpy.py"),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
@@ -44,7 +44,7 @@ class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         # Confirm lambda returns updated response
@@ -55,7 +55,7 @@ class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
         # update app.py with some dependency which is missing in requirements.txt
         self.update_file(
             self.test_data_path.joinpath("code", "after", "python_function_no_deps", "app_with_numpy.py"),
-            TestSyncCode.temp_dir.joinpath("python_function_no_deps", "app.py"),
+            self.test_data_path.joinpath("code", "before", "python_function_no_deps", "app_with_numpy.py"),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
@@ -71,7 +71,7 @@ class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         # confirm that lambda execution will fail
@@ -81,7 +81,7 @@ class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
         # finally, update requirements.txt with missing dependency
         self.update_file(
             self.test_data_path.joinpath("code", "after", "python_function_no_deps", "requirements.txt"),
-            TestSyncCode.temp_dir.joinpath("python_function_no_deps", "requirements.txt"),
+            self.test_data_path.joinpath("code", "before", "python_function_no_deps", "requirements.txt"),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
@@ -97,7 +97,7 @@ class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
         lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
 
@@ -193,7 +193,7 @@ class TestDisableAdlForEsbuildFunctions(SyncIntegBase):
             capabilities_list=["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertIn("Sync infra completed.", str(sync_process_execute.stderr))
 
