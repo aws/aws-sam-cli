@@ -109,11 +109,9 @@ class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
 
 @skipIf(SKIP_SYNC_TESTS or IS_WINDOWS, "Skip sync tests in CI/CD only")
 class TestSyncAdlWithWatchStartWithNoDependencies(TestSyncWatchBase):
-    @classmethod
-    def setUpClass(cls):
-        cls.template_before = os.path.join("code", "before", "template-python-no-dependencies.yaml")
-        cls.dependency_layer = True
-        super().setUpClass()
+    template = "template-python-no-dependencies.yaml"
+    folder = "code"
+    dependency_layer = True
 
     def run_initial_infra_validation(self):
         self.stack_resources = self._get_stacks(self.stack_name)
