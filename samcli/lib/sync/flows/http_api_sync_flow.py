@@ -1,4 +1,5 @@
 """SyncFlow for HttpApi"""
+
 import logging
 from typing import Dict, List, TYPE_CHECKING
 
@@ -11,6 +12,7 @@ from samcli.lib.providers.exceptions import MissingLocalDefinition
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.build.build_context import BuildContext
     from samcli.commands.deploy.deploy_context import DeployContext
+    from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)
 
@@ -20,32 +22,36 @@ class HttpApiSyncFlow(GenericApiSyncFlow):
 
     def __init__(
         self,
-        api_identifier: str,
+        httpapi_identifier: str,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
     ):
         """
         Parameters
         ----------
-        api_identifier : str
+        httpapi_identifier : str
             HttpApi resource identifier that needs to have associated HttpApi updated.
         build_context : BuildContext
             BuildContext used for build related parameters
         deploy_context : BuildContext
             DeployContext used for this deploy related parameters
+        sync_context: SyncContext
+            SyncContext object that obtains sync information.
         physical_id_mapping : Dict[str, str]
             Mapping between resource logical identifier and physical identifier
         stacks : List[Stack], optional
             List of stacks containing a root stack and optional nested stacks
         """
         super().__init__(
-            api_identifier,
+            httpapi_identifier,
             build_context,
             deploy_context,
+            sync_context,
             physical_id_mapping,
-            log_name="HttpApi " + api_identifier,
+            log_name="HttpApi " + httpapi_identifier,
             stacks=stacks,
         )
 
