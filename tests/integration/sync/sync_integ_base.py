@@ -233,7 +233,7 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         metadata=None,
         debug=None,
         use_container=False,
-        build_in_source=False,
+        build_in_source=None,
     ):
         command_list = [get_sam_command(), "sync"]
 
