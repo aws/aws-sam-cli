@@ -40,7 +40,7 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 61fe05d1-8872-4326-be91-eaec92a186dc
-      Runtime: python3.6
+      Runtime: python3.9
       Events:
         AlexaTrigger:
           Type: AlexaSkill

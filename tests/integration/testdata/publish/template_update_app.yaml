@@ -33,6 +33,6 @@ Resources:
             Path: /hello
           Type: Api
       Handler: main.lambda_handler
-      Runtime: python3.6
+      Runtime: python3.9
     Type: AWS::Serverless::Function
 Transform: AWS::Serverless-2016-10-31

@@ -23,7 +23,7 @@
       "Type": "AWS::Serverless::Function",
       "Properties": {
         "Handler": "layer-main.one_layer_hanlder",
-        "Runtime": "python3.6",
+        "Runtime": "python3.9",
         "CodeUri": ".",
         "Layers": [
           "arn:aws:lambda:us-west-2:111111111111:layer:layer:1"
@@ -34,7 +34,7 @@
       "Type": "AWS::Serverless::Function",
       "Properties": {
         "Handler": "layer-main.one_layer_hanlder",
-        "Runtime": "python3.6",
+        "Runtime": "python3.9",
         "CodeUri": ".",
         "Layers": [
           "arn:aws:lambda:us-west-2:111111111111:layer:changed_layer:1"
@@ -45,7 +45,7 @@
       "Type": "AWS::Serverless::Function",
       "Properties": {
         "Handler": "layer-main.custom_layer_handler",
-        "Runtime": "python3.6",
+        "Runtime": "python3.9",
         "CodeUri": ".",
         "Layers": [
           {"Ref": "MyCustomServerlessLayer"}
@@ -56,7 +56,7 @@
       "Type": "AWS::Serverless::Function",
       "Properties": {
         "Handler": "layer-main.custom_layer_handler",
-        "Runtime": "python3.6",
+        "Runtime": "python3.9",
         "CodeUri": ".",
         "Layers": [
           {"Ref": "MyCustomLambdaLayer"}
@@ -67,7 +67,7 @@
       "Type": "AWS::Serverless::Function",
       "Properties": {
         "Handler": "layer-main.one_layer_hanlder",
-        "Runtime": "python3.6",
+        "Runtime": "python3.9",
         "CodeUri": ".",
         "Layers": [
           "arn:aws:lambda:us-west-2:111111111111:layer:layer:1",
@@ -79,7 +79,7 @@
       "Type": "AWS::Serverless::Function",
       "Properties": {
         "Handler": "layer-main.one_layer_hanlder",
-        "Runtime": "python3.6",
+        "Runtime": "python3.9",
         "CodeUri": ".",
         "Layers": [
           "arn:aws:lambda:us-west-2:111111111111:layer:layer:1"
@@ -90,7 +90,7 @@
       "Type": "AWS::Serverless::Function",
       "Properties": {
         "Handler": "layer-main.one_layer_hanlder",
-        "Runtime": "python3.6",
+        "Runtime": "python3.9",
         "CodeUri": ".",
         "Layers": [
           "arn:aws:lambda:us-west-2:111111111111:layer:changed_layer:1"
@@ -101,7 +101,7 @@
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Handler": "layer-main.custom_layer_handler",
-        "Runtime": "python3.6",
+        "Runtime": "python3.9",
         "CodeUri": ".",
         "Layers": [
           {"Ref": "MyCustomServerlessLayer"}
@@ -112,7 +112,7 @@
       "Type": "AWS::Serverless::Function",
       "Properties": {
         "Handler": "layer-main.custom_layer_handler",
-        "Runtime": "python3.6",
+        "Runtime": "python3.9",
         "CodeUri": ".",
         "Layers": [
           {"Ref": "MyCustomLambdaLayer"}
@@ -123,7 +123,7 @@
       "Type": "AWS::Serverless::Function",
       "Properties": {
         "Handler": "layer-main.one_layer_hanlder",
-        "Runtime": "python3.6",
+        "Runtime": "python3.9",
         "CodeUri": ".",
         "Layers": [
           "arn:aws:lambda:us-west-2:111111111111:layer:layer:1",
@@ -135,7 +135,7 @@
       "Type": "AWS::Serverless::Function",
       "Properties": {
         "Handler": "layer-main.handler",
-        "Runtime": "python3.6",
+        "Runtime": "python3.9",
         "CodeUri": ".",
         "Layers": [
           "arn:aws:lambda:us-west-2:111111111111:layer:non_existent_layer:1"
@@ -146,7 +146,7 @@
       "Type": "AWS::Serverless::Function",
       "Properties": {
         "Handler": "layer-main.handler",
-        "Runtime": "python3.6",
+        "Runtime": "python3.9",
         "CodeUri": ".",
         "Layers": [
           "arn:aws:lambda:us-west-2:111111111101:layer:layerDoesNotExist:1"

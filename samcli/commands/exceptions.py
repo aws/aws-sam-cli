@@ -139,3 +139,9 @@ class InvalidStackNameException(UserException):
     """
     Value provided to --stack-name is invalid
     """
+
+
+class LinterRuleMatchedException(UserException):
+    """
+    The linter matched a rule meaning that the template linting failed
+    """

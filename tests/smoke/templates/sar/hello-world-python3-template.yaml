@@ -23,6 +23,6 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: a5e87229-90d7-477c-b7f5-8f04af8cdf1c
-      Runtime: python3.6
+      Runtime: python3.9
       MemorySize: 128
 Transform: AWS::Serverless-2016-10-31

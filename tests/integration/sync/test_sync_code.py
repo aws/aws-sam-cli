@@ -12,7 +12,7 @@ from unittest import skipIf
 
 import pytest
 import boto3
-from parameterized import parameterized_class
+from parameterized import parameterized_class, parameterized
 
 from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_RESTAPI,
@@ -673,3 +673,63 @@ class TestSyncCodeEsbuildFunctionTemplate(TestSyncCodeBase):
                 lambda_response = json.loads(self._get_lambda_response(lambda_function))
                 self.assertIn("extra_message", lambda_response)
                 self.assertEqual(lambda_response.get("message"), "Hello world!")
+
+
+@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@parameterized_class(
+    [
+        {"dependency_layer": True, "use_container": True},
+        {"dependency_layer": True, "use_container": False},
+        {"dependency_layer": False, "use_container": False},
+        {"dependency_layer": False, "use_container": True},
+    ]
+)
+class TestSyncLayerCode(TestSyncCodeBase):
+    template = "template-python-code-only-layer.yaml"
+    folder = "code"
+
+    @parameterized.expand(
+        [
+            ("layer", "HelloWorldLayer", "HelloWorldFunction", "7"),
+            (
+                "layer_without_build_method",
+                "HelloWorldLayerWithoutBuildMethod",
+                "HelloWorldFunctionWithLayerWithoutBuild",
+                "30",
+            ),
+            ("layer_zip", "HelloWorldPreBuiltZipLayer", "HelloWorldFunctionWithPreBuiltLayer", "50"),
+        ]
+    )
+    def test_sync_code_layer(self, layer_path, layer_logical_id, function_logical_id, expected_value):
+        shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath(layer_path), ignore_errors=True)
+        shutil.copytree(
+            self.test_data_path.joinpath(self.folder).joinpath("after").joinpath(layer_path),
+            TestSyncCodeBase.temp_dir.joinpath(layer_path),
+        )
+        # Run code sync
+        sync_command_list = self.get_sync_command_list(
+            template_file=TestSyncCodeBase.template_path,
+            code=True,
+            watch=False,
+            resource_id_list=[layer_logical_id],
+            dependency_layer=self.dependency_layer,
+            stack_name=TestSyncCodeBase.stack_name,
+            parameter_overrides="Parameter=Clarity",
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+            use_container=self.use_container,
+        )
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+
+        # CFN Api call here to collect all the stack resources
+        self.stack_resources = self._get_stacks(TestSyncCodeBase.stack_name)
+        # Lambda Api call here, which tests both the python function and the layer
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            if lambda_function == function_logical_id:
+                lambda_response = json.loads(self._get_lambda_response(lambda_function))
+                self.assertIn("extra_message", lambda_response)
+                self.assertEqual(lambda_response.get("message_from_layer"), expected_value)
