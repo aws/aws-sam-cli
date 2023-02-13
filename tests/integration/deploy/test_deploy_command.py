@@ -84,7 +84,10 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         with tempfile.NamedTemporaryFile(delete=False) as output_template_file:
             # Package necessary artifacts.
             package_command_list = self.get_command_list(
-                s3_bucket=self.s3_bucket.name, template=template_path, output_template_file=output_template_file.name
+                template=template_path,
+                s3_bucket=self.s3_bucket.name,
+                s3_prefix=self.s3_prefix,
+                output_template_file=output_template_file.name,
             )
             package_process = run_command(command_list=package_command_list)
 
@@ -598,7 +601,7 @@ to create a managed default bucket, or run sam deploy --guided",
         self.stacks.append({"name": stack_name})
 
         deploy_command_list = self.get_deploy_command_list(
-            template_file=template_path, stack_name=stack_name, capabilities="CAPABILITY_IAM"
+            template_file=template_path, stack_name=stack_name, s3_prefix=self.s3_prefix, capabilities="CAPABILITY_IAM"
         )
         deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
@@ -612,7 +615,11 @@ to create a managed default bucket, or run sam deploy --guided",
         self.stacks.append({"name": stack_name})
 
         deploy_command_list = self.get_deploy_command_list(
-            template_file=template_path, stack_name=stack_name, config_file=config_path, capabilities="CAPABILITY_IAM"
+            template_file=template_path,
+            stack_name=stack_name,
+            s3_prefix=self.s3_prefix,
+            config_file=config_path,
+            capabilities="CAPABILITY_IAM",
         )
         deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
@@ -801,7 +808,9 @@ to create a managed default bucket, or run sam deploy --guided",
         template_path = self.test_data_path.joinpath(template_file)
         config_path = self.test_data_path.joinpath(config_file)
 
-        deploy_command_list = self.get_deploy_command_list(template_file=template_path, config_file=config_path)
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path, s3_prefix=self.s3_prefix, config_file=config_path
+        )
 
         deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 1)
@@ -911,6 +920,7 @@ to create a managed default bucket, or run sam deploy --guided",
         # The default region (us-east-1) has no entry in the map
         deploy_command_list = self.get_deploy_command_list(
             template_file=template_path,
+            s3_prefix = self.s3_prefix,
             stack_name=stack_name,
             capabilities_list=["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
             region=region,  # the !FindInMap has an entry for use-east-2 region only
@@ -1589,7 +1599,7 @@ to create a managed default bucket, or run sam deploy --guided",
         self.stacks.append({"name": stack_name})
 
         deploy_command_list = self.get_deploy_command_list(
-            template_file=template, stack_name=stack_name, capabilities="CAPABILITY_IAM"
+            template_file=template, stack_name=stack_name, s3_prefix=self.s3_prefix, capabilities="CAPABILITY_IAM"
         )
         deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
