@@ -25,7 +25,7 @@ class RestApiSyncFlow(GenericApiSyncFlow):
 
     def __init__(
         self,
-        api_identifier: str,
+        restapi_identifier: str,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
         sync_context: "SyncContext",
@@ -35,7 +35,7 @@ class RestApiSyncFlow(GenericApiSyncFlow):
         """
         Parameters
         ----------
-        api_identifier : str
+        restapi_identifier : str
             RestApi resource identifier that needs to have associated RestApi updated.
         build_context : BuildContext
             BuildContext used for build related parameters
@@ -49,12 +49,12 @@ class RestApiSyncFlow(GenericApiSyncFlow):
             List of stacks containing a root stack and optional nested stacks
         """
         super().__init__(
-            api_identifier,
+            restapi_identifier,
             build_context,
             deploy_context,
             sync_context,
             physical_id_mapping,
-            log_name="RestApi " + api_identifier,
+            log_name="RestApi " + restapi_identifier,
             stacks=stacks,
         )
         self._api_physical_id = ""
