@@ -8,8 +8,9 @@ from typing import List, Optional, Dict, Tuple
 import click
 
 from samcli.cli.context import Context
-from samcli.commands._utils.experimental import experimental
+from samcli.commands._utils.experimental import experimental, ExperimentalFlag, is_experimental_enabled
 from samcli.commands._utils.options import (
+    skip_prepare_infra_option,
     template_option_without_build,
     docker_common_options,
     parameter_override_option,
@@ -18,6 +19,8 @@ from samcli.commands._utils.options import (
     base_dir_option,
     manifest_option,
     cached_option,
+    use_container_build_option,
+    hook_name_click_option,
 )
 from samcli.commands._utils.option_value_processor import process_env_var, process_image_options
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
@@ -40,8 +43,8 @@ Supported Resource Types
 \b
 Supported Runtimes
 ------------------
-1. Python 3.6, 3.7, 3.8 3.9 using PIP\n
-2. Nodejs 16.x, 14.x, 12.x using NPM\n
+1. Python 3.7, 3.8, 3.9 using PIP\n
+2. Nodejs 18.x, 16.x, 14.x, 12.x using NPM\n
 3. Ruby 2.7 using Bundler\n
 4. Java 8, Java 11 using Gradle and Maven\n
 5. Dotnetcore3.1, Dotnet6 using Dotnet CLI (without --use-container flag)\n
@@ -79,13 +82,12 @@ $ sam build MyFunction
 
 @click.command("build", help=HELP_TEXT, short_help="Build your Lambda function code")
 @configuration_option(provider=TomlProvider(section="parameters"))
-@click.option(
-    "--use-container",
-    "-u",
-    is_flag=True,
-    help="If your functions depend on packages that have natively compiled dependencies, use this flag "
-    "to build your function inside an AWS Lambda-like Docker container",
+@hook_name_click_option(
+    force_prepare=True,
+    invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"],
 )
+@skip_prepare_infra_option
+@use_container_build_option
 @click.option(
     "--container-env-var",
     "-e",
@@ -113,9 +115,9 @@ $ sam build MyFunction
     required=False,
     help="Container image URIs for building functions/layers. "
     "You can specify for all functions/layers with just the image URI "
-    "(--build-image public.ecr.aws/sam/build-nodejs14.x:latest). "
+    "(--build-image public.ecr.aws/sam/build-nodejs18.x:latest). "
     "You can specify for each individual function with "
-    "(--build-image FunctionLogicalID=public.ecr.aws/sam/build-nodejs14.x:latest). "
+    "(--build-image FunctionLogicalID=public.ecr.aws/sam/build-nodejs18.x:latest). "
     "A combination of the two can be used. If a function does not have build image specified or "
     "an image URI for all functions, the default SAM CLI build images will be used.",
     cls=ContainerOptions,
@@ -171,6 +173,8 @@ def cli(
     parameter_overrides: dict,
     config_file: str,
     config_env: str,
+    hook_name: Optional[str],
+    skip_prepare_infra: bool,
 ) -> None:
     """
     `sam build` command entry point
@@ -199,6 +203,8 @@ def cli(
         container_env_var_file,
         build_image,
         exclude,
+        hook_name,
+        None,  # TODO: replace with build_in_source once it's added as a click option
     )  # pragma: no cover
 
 
@@ -222,10 +228,19 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     container_env_var_file: Optional[str],
     build_image: Optional[Tuple[str]],
     exclude: Optional[Tuple[str, ...]],
+    hook_name: Optional[str],
+    build_in_source: Optional[bool],
 ) -> None:
     """
     Implementation of the ``cli`` method
     """
+    if (
+        hook_name
+        and ExperimentalFlag.IaCsSupport.get(hook_name) is not None
+        and not is_experimental_enabled(ExperimentalFlag.IaCsSupport[hook_name])
+    ):
+        LOG.info("Terraform Support beta feature is not enabled.")
+        return
 
     from samcli.commands.build.build_context import BuildContext
 
@@ -258,6 +273,8 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         build_images=processed_build_images,
         excluded_resources=exclude,
         aws_region=click_ctx.region,
+        hook_name=hook_name,
+        build_in_source=build_in_source,
     ) as ctx:
         ctx.run()
 

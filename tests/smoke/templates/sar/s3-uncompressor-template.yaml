@@ -78,7 +78,7 @@ Resources:
           - UncompressFunctionDLQ
           - Arn
         Type: SQS
-      Runtime: python3.6
+      Runtime: python3.9
       Events:
         upload:
           Type: S3

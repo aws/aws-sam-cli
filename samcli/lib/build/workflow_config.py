@@ -18,6 +18,7 @@ from samcli.lib.build.workflows import (
     GO_MOD_CONFIG,
     PROVIDED_MAKE_CONFIG,
     NODEJS_NPM_ESBUILD_CONFIG,
+    RUST_CARGO_LAMBDA_CONFIG,
 )
 from samcli.lib.telemetry.event import EventTracker
 
@@ -84,7 +85,6 @@ def get_selector(
 
 def get_layer_subfolder(build_workflow: str) -> str:
     subfolders_by_runtime = {
-        "python3.6": "python",
         "python3.7": "python",
         "python3.8": "python",
         "python3.9": "python",
@@ -94,6 +94,7 @@ def get_layer_subfolder(build_workflow: str) -> str:
         "nodejs12.x": "nodejs",
         "nodejs14.x": "nodejs",
         "nodejs16.x": "nodejs",
+        "nodejs18.x": "nodejs",
         "ruby2.7": "ruby/lib",
         "java8": "java",
         "java11": "java",
@@ -140,16 +141,20 @@ def get_workflow_config(
         namedtuple that represents the Builder Workflow Config
     """
 
-    selectors_by_build_method = {"makefile": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG)}
+    selectors_by_build_method = {
+        "makefile": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG),
+        "dotnet7": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
+        "rustcargolambda": BasicWorkflowSelector(RUST_CARGO_LAMBDA_CONFIG),
+    }
 
     selectors_by_runtime = {
-        "python3.6": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.7": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.8": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.9": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "nodejs12.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs14.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs16.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
+        "nodejs18.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "ruby2.7": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "dotnetcore3.1": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "dotnet6": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),

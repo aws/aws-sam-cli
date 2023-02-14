@@ -12,6 +12,7 @@ class TestSyncFlow(TestCase):
         sync_flow = SyncFlow(
             build_context=MagicMock(),
             deploy_context=MagicMock(),
+            sync_context=MagicMock(),
             physical_id_mapping={},
             log_name="log-name",
             stacks=[MagicMock()],

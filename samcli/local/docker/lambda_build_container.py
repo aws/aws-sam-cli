@@ -41,6 +41,7 @@ class LambdaBuildContainer(Container):
         env_vars=None,
         image=None,
         is_building_layer=False,
+        build_in_source=None,
     ):
         abs_manifest_path = pathlib.Path(manifest_path).resolve()
         manifest_file_name = abs_manifest_path.name
@@ -48,7 +49,7 @@ class LambdaBuildContainer(Container):
 
         source_dir = str(pathlib.Path(source_dir).resolve())
 
-        container_dirs = LambdaBuildContainer._get_container_dirs(source_dir, manifest_dir)
+        container_dirs = LambdaBuildContainer.get_container_dirs(source_dir, manifest_dir)
         env_vars = env_vars if env_vars else {}
 
         # `executable_search_paths` are provided as a list of paths on the host file system that needs to passed to
@@ -78,6 +79,7 @@ class LambdaBuildContainer(Container):
             mode,
             architecture,
             is_building_layer,
+            build_in_source,
         )
 
         if image is None:
@@ -123,6 +125,7 @@ class LambdaBuildContainer(Container):
         mode,
         architecture,
         is_building_layer,
+        build_in_source,
     ):
 
         runtime = runtime.replace(".al2", "")
@@ -152,6 +155,7 @@ class LambdaBuildContainer(Container):
                     "architecture": architecture,
                     "is_building_layer": is_building_layer,
                     "experimental_flags": get_enabled_experimental_flags(),
+                    "build_in_source": build_in_source,
                 },
             }
         )
@@ -161,7 +165,7 @@ class LambdaBuildContainer(Container):
         return [LambdaBuildContainer._BUILDERS_EXECUTABLE, request_json]
 
     @staticmethod
-    def _get_container_dirs(source_dir, manifest_dir):
+    def get_container_dirs(source_dir, manifest_dir):
         """
         Provides paths to directories within the container that is required by the builder
 

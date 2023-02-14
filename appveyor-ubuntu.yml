@@ -4,7 +4,15 @@ image:
 
 configuration:
   - BuildIntegTesting
+  - LocalZipTerraformBuildIntegTesting
+  - LocalZipTerraformBuildInContainerIntegTesting
+  - S3ZipTerraformBuildIntegTesting
+  - S3ZipTerraformBuildInContainerIntegTesting
+  - OtherTerraformBuildIntegTesting
   - DeployIntegTesting
+  - PackageIntegTesting
+  - DeleteIntegTesting
+  - SyncIntegTesting
   - LocalIntegTesting
   # other Integration testing, Dev, regression and smoke testing
   - OtherTesting
@@ -23,7 +31,6 @@ environment:
       PYTHON_ARCH: '64'
       RUN_SMOKE: 1
       NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_36_PIP: 1
       INSTALL_PY_38_PIP: 1
       INSTALL_PY_39_PIP: 1
       APPVEYOR_CONSOLE_DISABLE_PTY: true
@@ -33,7 +40,6 @@ environment:
       PYTHON_ARCH: '64'
       RUN_SMOKE: 1
       NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_36_PIP: 1
       INSTALL_PY_37_PIP: 1
       INSTALL_PY_39_PIP: 1
       APPVEYOR_CONSOLE_DISABLE_PTY: true
@@ -43,7 +49,6 @@ environment:
       PYTHON_ARCH: '64'
       RUN_SMOKE: 1
       NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_36_PIP: 1
       INSTALL_PY_37_PIP: 1
       INSTALL_PY_38_PIP: 1
       APPVEYOR_CONSOLE_DISABLE_PTY: true
@@ -54,7 +59,7 @@ install:
   # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
   - sh: "sudo apt-get update"
 
-  - sh: "gvm use go1.15"
+  - sh: "gvm use go1.19"
   - sh: "echo $PATH"
   - sh: "ls /usr/"
   - sh: "JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64"
@@ -77,17 +82,13 @@ install:
   - sh: "./aws_cli/bin/python -m pip install awscli"
   - sh: "PATH=$(echo $PWD'/aws_cli/bin'):$PATH"
 
-  - sh: "sudo apt-get -y install python3.6"
-  - sh: "sudo apt-get -y install python2.7"
   - sh: "sudo apt-get -y install python3.7"
   - sh: "sudo apt-get -y install python3.8"
   - sh: "sudo apt-get -y install python3.9 python3.9-dev python3.9-venv"
 
   - sh: "which python3.8"
   - sh: "which python3.7"
-  - sh: "which python3.6"
   - sh: "which python3.9"
-  - sh: "which python2.7"
 
   - sh: "PATH=$PATH:/usr/bin/python3.9:/usr/bin/python3.8:/usr/bin/python3.7"
   - sh: "curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py"
@@ -98,13 +99,20 @@ install:
   - ps: "If ($env:INSTALL_PY_39_PIP) {python3.9 get-pip.py --user}"
   - ps: "If ($env:INSTALL_PY_38_PIP) {python3.8 get-pip.py --user}"
   - ps: "If ($env:INSTALL_PY_37_PIP) {python3.7 get-pip.py --user}"
-  - ps: "If ($env:INSTALL_PY_36_PIP) {python3.6 get-pip-36.py --user}"
 
   # update ca-certificates which causes failures with newest golang library
   - sh: "sudo apt-get install --reinstall ca-certificates"
 
   # get testing env vars
   - sh: "sudo apt install -y jq"
+
+  # install Terraform
+  - sh: "sudo apt update"
+  - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \\\"\\,\\v | awk '{$1=$1};1'`"
+  - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
+  - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
+  - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
+  - sh: "terraform -version"
 
   - sh: "python3.9 -m venv .venv_env_vars"
   - sh: ".venv_env_vars/bin/pip install boto3"
@@ -154,6 +162,9 @@ build_script:
 
 # Final clean up no matter success or failure
 on_finish:
+  # Upload test reports as artifacts
+  - sh: find "$APPVEYOR_BUILD_FOLDER" -type f -name 'TEST*.json' -print0 | xargs -0 -I '{}' appveyor PushArtifact '{}'
+
   - sh: 'export AWS_ACCESS_KEY_ID=$CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID'
   - sh: 'export AWS_SECRET_ACCESS_KEY=$CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY'
   - sh: 'export AWS_SESSION_TOKEN=$CI_ACCESS_ROLE_AWS_SESSION_TOKEN'
@@ -173,13 +184,83 @@ for:
       - "pip install -e \".[pre-dev]\""
 
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/buildcmd"
+      - sh: "pytest -vv tests/integration/buildcmd --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
       # Set JAVA_HOME to java11
       - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
-      - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process"
+      - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java11.json"
 
-  # Integ testing deploy, package, delete, and sync
+  # Local ZIP  Terraform Build integ testing
+  -
+    matrix:
+      only:
+        - image: Ubuntu
+          configuration: LocalZipTerraformBuildIntegTesting
+
+    test_script:
+      # Pre-dev Tests
+      - "pip install -e \".[pre-dev]\""
+
+      - "pip install -e \".[dev]\""
+      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend_0 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+  # Local ZIP  Terraform Build In Container  integ testing
+  -
+    matrix:
+      only:
+        - image: Ubuntu
+          configuration: LocalZipTerraformBuildInContainerIntegTesting
+
+    test_script:
+      # Pre-dev Tests
+      - "pip install -e \".[pre-dev]\""
+
+      - "pip install -e \".[dev]\""
+      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend_1 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+  # S3 ZIP  Terraform Build integ testing
+  -
+    matrix:
+      only:
+        - image: Ubuntu
+          configuration: S3ZipTerraformBuildIntegTesting
+
+    test_script:
+      # Pre-dev Tests
+      - "pip install -e \".[pre-dev]\""
+
+      - "pip install -e \".[dev]\""
+      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend_0 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+  # S3 ZIP  Terraform Build In Container integ testing
+  -
+    matrix:
+      only:
+        - image: Ubuntu
+          configuration: S3ZipTerraformBuildInContainerIntegTesting
+
+    test_script:
+      # Pre-dev Tests
+      - "pip install -e \".[pre-dev]\""
+
+      - "pip install -e \".[dev]\""
+      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend_1 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+  # Other Terraform Build In Container integ testing
+  -
+    matrix:
+      only:
+        - image: Ubuntu
+          configuration: OtherTerraformBuildIntegTesting
+
+    test_script:
+      # Pre-dev Tests
+      - "pip install -e \".[pre-dev]\""
+
+      - "pip install -e \".[dev]\""
+      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+  # Integ testing deploy
   -
     matrix:
       only:
@@ -188,7 +269,40 @@ for:
 
     test_script:
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/delete tests/integration/deploy tests/integration/package tests/integration/sync"
+      - sh: "pytest -vv tests/integration/deploy --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
+
+  # Integ testing package
+  -
+    matrix:
+      only:
+        - image: Ubuntu
+          configuration: PackageIntegTesting
+
+    test_script:
+      - "pip install -e \".[dev]\""
+      - sh: "pytest -vv tests/integration/package -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package.json"
+
+  # Integ testing delete
+  -
+    matrix:
+      only:
+        - image: Ubuntu
+          configuration: DeleteIntegTesting
+
+    test_script:
+      - "pip install -e \".[dev]\""
+      - sh: "pytest -vv tests/integration/delete -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-delete.json"
+
+  # Integ testing sync
+  -
+    matrix:
+      only:
+        - image: Ubuntu
+          configuration: SyncIntegTesting
+
+    test_script:
+      - "pip install -e \".[dev]\""
+      - sh: "pytest -vv tests/integration/sync --json-report --json-report-file=TEST_REPORT-integration-sync.json"
 
   # Integ testing local
   -
@@ -203,7 +317,7 @@ for:
       - "pylint --rcfile .pylintrc samcli"
 
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/local"
+      - sh: "pytest -vv tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-local.json"
 
   # Other testing
   -
@@ -219,15 +333,15 @@ for:
 
       # Dev Tests
       - "pip install -e \".[dev]\""
-      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
+      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit --json-report --json-report-file=TEST_REPORT-unit.json"
       - "pylint --rcfile .pylintrc samcli"
       - "mypy setup.py samcli tests"
-      - "pytest -n 4 tests/functional"
+      - "pytest -n 4 tests/functional --json-report --json-report-file=TEST_REPORT-functional.json"
       
-      - sh: "pytest tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local"
-      - sh: "pytest -vv tests/regression"
+      - sh: "pytest tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json"
+      - sh: "pytest -vv tests/regression --json-report --json-report-file=TEST_REPORT-regression.json"
       - sh: "black --check setup.py tests samcli"
 
       # Smoke tests run in parallel - it runs on both Linux & Windows
       # Presence of the RUN_SMOKE envvar will run the smoke tests
-      - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"
+      - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke --json-report --json-report-file=TEST_REPORT-smoke.json}"

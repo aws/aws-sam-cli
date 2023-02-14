@@ -20,7 +20,6 @@ from samtranslator.model.exceptions import (
     InvalidResourceException,
     InvalidEventException,
 )
-from samtranslator.model.types import is_str
 from samtranslator.plugins import LifeCycleEvents
 from samtranslator.sdk.resource import SamResource, SamResourceType
 from samtranslator.translator.translator import prepare_plugins
@@ -92,7 +91,7 @@ class SamTranslatorWrapper:
 
             def patched_func(self):
                 if self.condition:
-                    if not is_str()(self.condition, should_raise=False):
+                    if not isinstance(self.condition, str):
                         raise InvalidDocumentException(
                             [InvalidTemplateException("Every Condition member must be a string.")]
                         )

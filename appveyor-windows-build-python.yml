@@ -39,7 +39,7 @@ install:
   - "C:\\Python39\\python.exe -m pip freeze"
   - "refreshenv"
   - ps: "mkdir -Force C:\\tmp"
-  - "SET PATH=%PYTHON_HOME%;%PATH%;C:\\Python36-x64;C:\\Python27-x64;C:\\Python38;C:\\Python39"
+  - "SET PATH=%PYTHON_HOME%;%PATH%;C:\\Python38;C:\\Python39"
   - "echo %PYTHON_HOME%"
   - "echo %PATH%"
   - "python --version"
@@ -52,8 +52,6 @@ install:
   - "python -m pip install --upgrade setuptools wheel virtualenv"
 
   # Upgrade pip in each python
-  - "C:\\Python27\\python.exe -m pip install --upgrade pip"
-  - "C:\\Python36-x64\\python.exe -m pip install --upgrade pip"
   # python is python3.7
   - "python -m pip install --upgrade pip"
   - "C:\\Python38\\python.exe -m pip install --upgrade pip"

@@ -15,7 +15,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       FunctionName: customname
       CodeUri: .
       Timeout: 600
@@ -42,7 +42,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.echo_event_handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -68,7 +68,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.echo_event_handler_2
-      Runtime: python3.6
+      Runtime: python3.9
       Timeout: 600
       CodeUri: .
       Events:
@@ -82,7 +82,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.echo_integer_body
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -96,7 +96,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.content_type_setter_handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -110,7 +110,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.only_set_status_code_handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -124,7 +124,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.only_set_body_handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -138,7 +138,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.string_status_code_handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -152,7 +152,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.sleep_10_sec_handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 20
       Events:
@@ -166,7 +166,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.sleep_10_sec_handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 20
       Events:
@@ -180,7 +180,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.write_to_stderr
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -194,7 +194,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.write_to_stdout
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -208,7 +208,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.invalid_response_returned
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -222,7 +222,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.invalid_hash_response
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -236,7 +236,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.base64_response
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -250,7 +250,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.echo_base64_event_body
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -264,7 +264,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.multiple_headers
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -278,7 +278,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.multiple_headers_overrides_headers
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:

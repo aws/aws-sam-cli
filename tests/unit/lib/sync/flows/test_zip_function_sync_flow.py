@@ -16,6 +16,7 @@ class TestZipFunctionSyncFlow(TestCase):
             self.function_identifier,
             build_context=self.build_context_mock,
             deploy_context=MagicMock(),
+            sync_context=MagicMock(),
             physical_id_mapping={},
             stacks=[MagicMock()],
         )
@@ -196,6 +197,7 @@ class TestZipFunctionSyncFlow(TestCase):
             "Function1",
             build_context=build_context,
             deploy_context=MagicMock(),
+            sync_context=MagicMock(),
             physical_id_mapping={},
             stacks=[MagicMock()],
         )
@@ -213,7 +215,8 @@ class TestZipFunctionSyncFlow(TestCase):
         sync_flow = self.create_function_sync_flow()
         self.assertTrue(sync_flow._combine_dependencies())
 
-    def test_verify_function_status_recursion(self):
+    @patch("time.sleep", return_value=None)
+    def test_verify_function_status_recursion(self, patched_time):
         given_lambda_client = MagicMock()
         given_physical_id = "function"
 

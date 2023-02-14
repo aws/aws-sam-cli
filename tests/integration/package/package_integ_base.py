@@ -9,7 +9,7 @@ import boto3
 from botocore.exceptions import ClientError
 
 from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack
-from tests.testing_utils import method_to_stack_name
+from tests.testing_utils import method_to_stack_name, get_sam_command
 
 SLEEP = 3
 
@@ -22,8 +22,8 @@ class PackageIntegBase(TestCase):
         Our integration tests use S3 bucket and ECR Repo to run several tests.
         Given that S3 objects are eventually consistent and we are using same bucket for
         lot of integration tests, we want to have multiple buckets to reduce
-        transient failures. In order to achieve this we created 3 buckets one for each python version we support (3.6,
-        3.7 and 3.8). Tests running for respective python version will use respective bucket.
+        transient failures. In order to achieve this we created 3 buckets one for each python version we support (3.7,
+        3.8 and 3.9). Tests running for respective python version will use respective bucket.
 
         AWS_S3 will point to a new environment variable AWS_S3_36 or AWS_S3_37 or AWS_S3_38. This is controlled by
         Appveyor. These environment variables will hold bucket name to run integration tests. Eg:
@@ -83,13 +83,6 @@ class PackageIntegBase(TestCase):
     def tearDown(self):
         super().tearDown()
 
-    def base_command(self):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
-
-        return command
-
     def get_command_list(
         self,
         s3_bucket=None,
@@ -106,7 +99,7 @@ class PackageIntegBase(TestCase):
         image_repositories=None,
         resolve_s3=False,
     ):
-        command_list = [self.base_command(), "package"]
+        command_list = [get_sam_command(), "package"]
 
         if s3_bucket:
             command_list = command_list + ["--s3-bucket", str(s3_bucket)]

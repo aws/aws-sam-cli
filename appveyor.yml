@@ -15,7 +15,6 @@ environment:
       PYTHON_ARCH: '64'
       RUN_SMOKE: 1
       NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_36_PIP: 1
       INSTALL_PY_38_PIP: 1
       INSTALL_PY_39_PIP: 1
       AWS_S3: 'AWS_S3_37'
@@ -27,7 +26,6 @@ environment:
       PYTHON_ARCH: '64'
       RUN_SMOKE: 1
       NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_36_PIP: 1
       INSTALL_PY_37_PIP: 1
       INSTALL_PY_39_PIP: 1
       AWS_S3: 'AWS_S3_38'
@@ -39,7 +37,6 @@ environment:
       PYTHON_ARCH: '64'
       RUN_SMOKE: 1
       NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_36_PIP: 1
       INSTALL_PY_37_PIP: 1
       INSTALL_PY_38_PIP: 1
       AWS_S3: 'AWS_S3_39'
@@ -64,6 +61,10 @@ for:
       - "echo %PATH%"
       - "python -m pip install --upgrade setuptools wheel virtualenv"
       - "docker info"
+
+      # install Terraform CLI
+      - "choco install terraform"
+      - "terraform -version"
 
       # Install AWS CLI Globally outside of a venv.
       - "pip install awscli"
@@ -123,7 +124,7 @@ for:
       # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
       - sh: "sudo apt-get update"
 
-      - sh: "gvm use go1.15"
+      - sh: "gvm use go1.19"
       - sh: "echo $PATH"
       - sh: "ls /usr/"
       - sh: "JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64"
@@ -141,33 +142,35 @@ for:
       - sh: "sudo unzip -d /opt/gradle /tmp/gradle-*.zip"
       - sh: "PATH=/opt/gradle/gradle-5.5/bin:$PATH"
 
+      # install Terraform
+      - sh: "sudo apt update"
+      - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \\\"\\,\\v | awk '{$1=$1};1'`"
+      - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
+      - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
+      - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
+      - sh: "terraform -version"
+
       # Install AWS CLI
       - sh: "virtualenv aws_cli"
       - sh: "./aws_cli/bin/python -m pip install awscli"
       - sh: "PATH=$(echo $PWD'/aws_cli/bin'):$PATH"
 
-      - sh: "sudo apt-get -y install python3.6"
-      - sh: "sudo apt-get -y install python2.7"
       - sh: "sudo apt-get -y install python3.7"
       - sh: "sudo apt-get -y install python3.8"
       - sh: "sudo apt-get -y install python3.9"
 
       - sh: "which python3.8"
       - sh: "which python3.7"
-      - sh: "which python3.6"
       - sh: "which python3.9"
-      - sh: "which python2.7"
 
       - sh: "PATH=$PATH:/usr/bin/python3.9:/usr/bin/python3.8:/usr/bin/python3.7"
       - sh: "curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py"
-      - sh: "curl https://bootstrap.pypa.io/pip/3.6/get-pip.py -o get-pip-36.py"
 
       - sh: "sudo apt-get -y install python3-distutils"
       - sh: "sudo apt-get -y install python3.9-distutils"
       - ps: "If ($env:INSTALL_PY_39_PIP) {python3.9 get-pip.py --user}"
       - ps: "If ($env:INSTALL_PY_38_PIP) {python3.8 get-pip.py --user}"
       - ps: "If ($env:INSTALL_PY_37_PIP) {python3.7 get-pip.py --user}"
-      - ps: "If ($env:INSTALL_PY_36_PIP) {python3.6 get-pip-36.py --user}"
 
       # update ca-certificates which causes failures with newest golang library
       - sh: "sudo apt-get install --reinstall ca-certificates"

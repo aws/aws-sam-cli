@@ -116,13 +116,17 @@ class CfnUtils:
 
         # Wait for Delete to Finish
         waiter = self._client.get_waiter("stack_delete_complete")
-        # Poll every 5 seconds.
+        # Remove `MaxAttempts` from waiter_config.
+        # Regression: https://github.com/aws/aws-sam-cli/issues/4361
         waiter_config = {"Delay": 30}
         try:
             waiter.wait(StackName=stack_name, WaiterConfig=waiter_config)
         except WaiterError as ex:
+            stack_status = ex.last_response.get("Stacks", [{}])[0].get("StackStatusReason", "")
 
             if "DELETE_FAILED" in str(ex):
-                raise CfDeleteFailedStatusError(stack_name=stack_name, msg="ex: {0}".format(ex)) from ex
+                raise CfDeleteFailedStatusError(
+                    stack_name=stack_name, stack_status=stack_status, msg="ex: {0}".format(ex)
+                ) from ex
 
-            raise DeleteFailedError(stack_name=stack_name, msg="ex: {0}".format(ex)) from ex
+            raise DeleteFailedError(stack_name=stack_name, stack_status=stack_status, msg="ex: {0}".format(ex)) from ex

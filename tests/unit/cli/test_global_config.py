@@ -1,4 +1,5 @@
 import os
+import uuid
 from unittest.mock import ANY, MagicMock, patch, mock_open
 from unittest import TestCase
 from samcli.cli.global_config import ConfigEntry, DefaultEntry, GlobalConfig
@@ -308,3 +309,14 @@ class TestGlobalConfig(TestCase):
     def test_set_last_version_check(self):
         GlobalConfig().last_version_check = 123.4
         self.assertEqual(GlobalConfig()._config_data[DefaultEntry.LAST_VERSION_CHECK.config_key], 123.4)
+
+    def test_is_accelerate_opt_in_stack_return_false_first_time(self):
+        self.assertFalse(GlobalConfig().is_accelerate_opt_in_stack(uuid.uuid4().hex, uuid.uuid4().hex))
+
+    def test_is_accelerate_opt_in_stack_return_true_second_time(self):
+        template_path = uuid.uuid4().hex
+        stack_name = uuid.uuid4().hex
+        self.assertFalse(GlobalConfig().is_accelerate_opt_in_stack(template_path, stack_name))
+
+        GlobalConfig().set_accelerate_opt_in_stack(template_path, stack_name)
+        self.assertTrue(GlobalConfig().is_accelerate_opt_in_stack(template_path, stack_name))

@@ -20,8 +20,15 @@ class TestWatchManager(TestCase):
         self.build_context = MagicMock()
         self.package_context = MagicMock()
         self.deploy_context = MagicMock()
+        self.sync_context = MagicMock()
         self.watch_manager = WatchManager(
-            self.template, self.build_context, self.package_context, self.deploy_context, False
+            self.template,
+            self.build_context,
+            self.package_context,
+            self.deploy_context,
+            self.sync_context,
+            False,
+            False,
         )
 
     def tearDown(self) -> None:
@@ -51,7 +58,9 @@ class TestWatchManager(TestCase):
         ]
         self.watch_manager._update_stacks()
         get_stacks_mock.assert_called_once_with(self.template)
-        sync_flow_factory_mock.assert_called_once_with(self.build_context, self.deploy_context, stacks, False)
+        sync_flow_factory_mock.assert_called_once_with(
+            self.build_context, self.deploy_context, self.sync_context, stacks, False
+        )
         sync_flow_factory_mock.return_value.load_physical_id_mapping.assert_called_once_with()
         trigger_factory_mock.assert_called_once_with(stacks, path_mock.return_value)
 
@@ -226,6 +235,48 @@ class TestWatchManager(TestCase):
         self.path_observer.unschedule_all.assert_called_once_with()
 
         self.path_observer.start.assert_called_once_with()
+
+    @patch("samcli.lib.sync.watch_manager.time.sleep")
+    def test_start_code_only(self, sleep_mock):
+        sleep_mock.side_effect = KeyboardInterrupt()
+
+        stop_code_sync_mock = MagicMock()
+        execute_infra_sync_mock = MagicMock()
+
+        update_stacks_mock = MagicMock()
+        add_template_trigger_mock = MagicMock()
+        add_code_trigger_mock = MagicMock()
+        start_code_sync_mock = MagicMock()
+
+        self.watch_manager._stop_code_sync = stop_code_sync_mock
+        self.watch_manager._execute_infra_context = execute_infra_sync_mock
+        self.watch_manager._update_stacks = update_stacks_mock
+        self.watch_manager._add_template_triggers = add_template_trigger_mock
+        self.watch_manager._add_code_triggers = add_code_trigger_mock
+        self.watch_manager._start_code_sync = start_code_sync_mock
+
+        self.watch_manager._skip_infra_syncs = True
+        with self.assertRaises(KeyboardInterrupt):
+            self.watch_manager._start()
+
+        self.path_observer.start.assert_called_once_with()
+        self.assertFalse(self.watch_manager._waiting_infra_sync)
+
+        stop_code_sync_mock.assert_not_called()
+        execute_infra_sync_mock.assert_not_called()
+        update_stacks_mock.assert_not_called()
+        add_template_trigger_mock.assert_not_called()
+        add_code_trigger_mock.assert_not_called()
+        start_code_sync_mock.assert_not_called()
+
+        self.path_observer.unschedule_all.assert_not_called()
+
+        self.path_observer.start.assert_called_once_with()
+
+    def test_start_code_only_infra_sync_not_set(self):
+        self.watch_manager._skip_infra_syncs = True
+        self.watch_manager.queue_infra_sync()
+        self.assertFalse(self.watch_manager._waiting_infra_sync)
 
     @patch("samcli.lib.sync.watch_manager.time.sleep")
     def test__start_infra_exception(self, sleep_mock):

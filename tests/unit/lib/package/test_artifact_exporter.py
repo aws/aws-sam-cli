@@ -44,8 +44,10 @@ from samcli.lib.package.packageable_resources import (
     ServerlessLayerVersionResource,
     ServerlessRepoApplicationLicense,
     ServerlessRepoApplicationReadme,
+    AppSyncResolverCodeResource,
     AppSyncResolverRequestTemplateResource,
     AppSyncResolverResponseTemplateResource,
+    AppSyncFunctionConfigurationCodeResource,
     AppSyncFunctionConfigurationRequestTemplateResource,
     AppSyncFunctionConfigurationResponseTemplateResource,
     GlueJobCommandScriptLocationResource,
@@ -80,10 +82,12 @@ class TestArtifactExporter(unittest.TestCase):
             {"class": ServerlessFunctionResource, "expected_result": uploaded_s3_url},
             {"class": ServerlessApiResource, "expected_result": uploaded_s3_url},
             {"class": GraphQLSchemaResource, "expected_result": uploaded_s3_url},
+            {"class": AppSyncResolverCodeResource, "expected_result": uploaded_s3_url},
             {"class": AppSyncResolverRequestTemplateResource, "expected_result": uploaded_s3_url},
             {"class": AppSyncResolverResponseTemplateResource, "expected_result": uploaded_s3_url},
             {"class": AppSyncFunctionConfigurationRequestTemplateResource, "expected_result": uploaded_s3_url},
             {"class": AppSyncFunctionConfigurationResponseTemplateResource, "expected_result": uploaded_s3_url},
+            {"class": AppSyncFunctionConfigurationCodeResource, "expected_result": uploaded_s3_url},
             {"class": ApiGatewayRestApiResource, "expected_result": {"Bucket": "foo", "Key": "bar", "Version": "baz"}},
             {
                 "class": LambdaFunctionResource,
@@ -1376,7 +1380,7 @@ class TestArtifactExporter(unittest.TestCase):
             "Resources": {
                 "FunResource": {
                     "Type": "AWS::Serverless::Function",
-                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x"},
+                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs18.x"},
                 }
             },
         }

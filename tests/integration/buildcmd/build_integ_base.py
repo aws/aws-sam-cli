@@ -7,6 +7,7 @@ import tempfile
 import time
 import logging
 import json
+from typing import Optional
 from unittest import TestCase
 
 import docker
@@ -17,20 +18,27 @@ from samcli.lib.utils import osutils
 from samcli.lib.utils.architecture import X86_64, has_runtime_multi_arch_image
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from samcli.yamlhelper import yaml_parse
-from tests.testing_utils import IS_WINDOWS, run_command, SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE, SKIP_DOCKER_BUILD
+from tests.testing_utils import (
+    IS_WINDOWS,
+    run_command,
+    SKIP_DOCKER_TESTS,
+    SKIP_DOCKER_MESSAGE,
+    SKIP_DOCKER_BUILD,
+    get_sam_command,
+)
 
 LOG = logging.getLogger(__name__)
 
 
 class BuildIntegBase(TestCase):
-    template = "template.yaml"
+    template: Optional[str] = "template.yaml"
 
     @classmethod
     def setUpClass(cls):
-        cls.cmd = cls.base_command()
+        cls.cmd = get_sam_command()
         integration_dir = Path(__file__).resolve().parents[1]
         cls.test_data_path = str(Path(integration_dir, "testdata", "buildcmd"))
-        cls.template_path = str(Path(cls.test_data_path, cls.template))
+        cls.template_path = str(Path(cls.test_data_path, cls.template)) if cls.template else None
 
     def setUp(self):
         # To invoke a function created by the build command, we need the built artifacts to be in a
@@ -52,14 +60,6 @@ class BuildIntegBase(TestCase):
         self.working_dir and shutil.rmtree(self.working_dir, ignore_errors=True)
         self.scratch_dir and shutil.rmtree(self.scratch_dir, ignore_errors=True)
 
-    @classmethod
-    def base_command(cls):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
-
-        return command
-
     def get_command_list(
         self,
         build_dir=None,
@@ -78,7 +78,9 @@ class BuildIntegBase(TestCase):
         build_image=None,
         exclude=None,
         region=None,
-        beta_features=False,
+        hook_name=None,
+        beta_features=None,
+        build_in_source=None,
     ):
 
         command_list = [self.cmd, "build"]
@@ -86,7 +88,7 @@ class BuildIntegBase(TestCase):
         if function_identifier:
             command_list += [function_identifier]
 
-        command_list += ["-t", self.template_path]
+        command_list += ["-t", self.template_path] if self.template_path else []
 
         if parameter_overrides:
             command_list += ["--parameter-overrides", self._make_parameter_override_arg(parameter_overrides)]
@@ -131,8 +133,14 @@ class BuildIntegBase(TestCase):
         if region:
             command_list += ["--region", region]
 
-        if beta_features:
-            command_list += ["--beta-features"]
+        if beta_features is not None:
+            command_list += ["--beta-features"] if beta_features else ["--no-beta-features"]
+
+        if hook_name:
+            command_list += ["--hook-name", hook_name]
+
+        if build_in_source is not None:
+            command_list += ["--build-in-source"] if build_in_source else ["--no-build-in-source"]
 
         return command_list
 
@@ -710,17 +718,22 @@ class BuildIntegProvidedBase(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID = "Function"
 
-    def _test_with_Makefile(self, runtime, use_container, manifest, architecture=None):
+    def _test_with_Makefile(
+        self, runtime, use_container, manifest, architecture=None, code_uri="Provided", build_in_source=None
+    ):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
-        overrides = self.get_override(runtime, "Provided", architecture, "main.handler")
+        overrides = self.get_override(runtime, code_uri, architecture, "main.handler")
         manifest_path = None
         if manifest:
             manifest_path = os.path.join(self.test_data_path, "Provided", manifest)
 
         cmdlist = self.get_command_list(
-            use_container=use_container, parameter_overrides=overrides, manifest_path=manifest_path
+            use_container=use_container,
+            parameter_overrides=overrides,
+            manifest_path=manifest_path,
+            build_in_source=build_in_source,
         )
 
         LOG.info("Running Command: {}".format(cmdlist))

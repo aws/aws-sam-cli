@@ -5,7 +5,12 @@ from unittest.mock import MagicMock, Mock, patch, call, ANY, mock_open, Property
 
 from samcli.lib.sync.exceptions import MissingPhysicalResourceError, NoLayerVersionsFoundError
 from samcli.lib.sync.flows.function_sync_flow import wait_for_function_update_complete
-from samcli.lib.sync.flows.layer_sync_flow import LayerSyncFlow, FunctionLayerReferenceSync
+from samcli.lib.sync.flows.layer_sync_flow import (
+    LayerSyncFlow,
+    FunctionLayerReferenceSync,
+    LayerSyncFlowSkipBuildDirectory,
+    LayerSyncFlowSkipBuildZipFile,
+)
 from samcli.lib.sync.sync_flow import SyncFlow, ApiCallTypes
 
 
@@ -14,11 +19,13 @@ class TestLayerSyncFlow(TestCase):
         self.layer_identifier = "LayerA"
         self.build_context_mock = Mock()
         self.deploy_context_mock = Mock()
+        self.sync_context_mock = Mock()
 
         self.layer_sync_flow = LayerSyncFlow(
             self.layer_identifier,
             self.build_context_mock,
             self.deploy_context_mock,
+            self.sync_context_mock,
             {self.layer_identifier: "layer_version_arn"},
             [],
         )
@@ -102,6 +109,7 @@ class TestLayerSyncFlow(TestCase):
             manifest_path_override=self.build_context_mock.manifest_path_override,
             container_manager=self.build_context_mock.container_manager,
             mode=self.build_context_mock.mode,
+            build_in_source=self.build_context_mock.build_in_source,
         )
 
         patched_tempfile.gettempdir.assert_called_once()
@@ -245,6 +253,7 @@ class TestLayerSyncFlow(TestCase):
             self.layer_sync_flow._new_layer_version,
             self.layer_sync_flow._build_context,
             self.layer_sync_flow._deploy_context,
+            self.layer_sync_flow._sync_context,
             self.layer_sync_flow._physical_id_mapping,
             self.layer_sync_flow._stacks,
         )
@@ -302,6 +311,7 @@ class TestLayerSyncFlow(TestCase):
             self.layer_sync_flow._new_layer_version,
             self.layer_sync_flow._build_context,
             self.layer_sync_flow._deploy_context,
+            self.layer_sync_flow._sync_context,
             self.layer_sync_flow._physical_id_mapping,
             self.layer_sync_flow._stacks,
         )
@@ -349,7 +359,14 @@ class TestFunctionLayerReferenceSync(TestCase):
         self.new_layer_version = 2
 
         self.function_layer_sync = FunctionLayerReferenceSync(
-            self.function_identifier, self.layer_name, self.new_layer_version, Mock(), Mock(), {}, []
+            self.function_identifier,
+            self.layer_name,
+            self.new_layer_version,
+            Mock(),
+            Mock(),
+            Mock(),
+            {},
+            [],
         )
 
     @patch("samcli.lib.sync.sync_flow.get_boto_client_provider_from_session_with_config")
@@ -429,3 +446,24 @@ class TestFunctionLayerReferenceSync(TestCase):
 
     def test_gather_dependencies(self):
         self.assertEqual(self.function_layer_sync.gather_dependencies(), [])
+
+
+class TestLayerSyncFlowSkipBuild(TestCase):
+    @patch("samcli.lib.sync.flows.layer_sync_flow.make_zip")
+    @patch("samcli.lib.sync.flows.layer_sync_flow.file_checksum")
+    def test_gather_resources_for_skip_build_directory(self, mock_checksum, mock_make_zip):
+        layer_sync_flow = LayerSyncFlowSkipBuildDirectory("LayerA", Mock(), Mock(), Mock(), {}, [])
+        layer_sync_flow.gather_resources()
+
+        mock_make_zip.assert_called_with(ANY, layer_sync_flow._layer.codeuri)
+        mock_checksum.assert_called_once()
+
+    @patch("samcli.lib.sync.flows.layer_sync_flow.shutil")
+    @patch("samcli.lib.sync.flows.layer_sync_flow.file_checksum")
+    def test_gather_resources_for_skip_build_zip_file(self, mock_checksum, mock_shutil):
+        layer_sync_flow = LayerSyncFlowSkipBuildZipFile("LayerA", Mock(), Mock(), Mock(), {}, [])
+
+        layer_sync_flow.gather_resources()
+
+        mock_shutil.copy2.assert_called_with(layer_sync_flow._layer.codeuri, ANY)
+        mock_checksum.assert_called_once()

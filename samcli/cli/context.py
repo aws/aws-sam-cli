@@ -6,10 +6,6 @@ import logging
 import uuid
 from typing import Optional, cast, List
 
-import boto3
-import botocore
-import botocore.session
-from botocore import credentials
 import click
 
 from samcli.commands.exceptions import CredentialsError
@@ -45,6 +41,23 @@ class Context:
         self._aws_profile = None
         self._session_id = str(uuid.uuid4())
         self._experimental = False
+        self._exception = None
+
+    @property
+    def exception(self):
+        return self._exception
+
+    @exception.setter
+    def exception(self, value: Exception):
+        """
+        Save the exception to handler in the future
+
+        Parameter
+        ---------
+        value: Exception
+            The exception to save for future handling
+        """
+        self._exception = value
 
     @property
     def debug(self):
@@ -181,8 +194,11 @@ class Context:
         the Boto3's session object are read-only. Therefore when Click parses new AWS session related properties (like
         region & profile), it will call this method to create a new session with latest values for these properties.
         """
+        import boto3
+        from botocore import credentials, exceptions, session
+
         try:
-            botocore_session = botocore.session.get_session()
+            botocore_session = session.get_session()
             boto3.setup_default_session(
                 botocore_session=botocore_session, region_name=self._aws_region, profile_name=self._aws_profile
             )
@@ -191,7 +207,7 @@ class Context:
                 "assume-role"
             ).cache = credentials.JSONFileCache()
 
-        except botocore.exceptions.ProfileNotFound as ex:
+        except exceptions.ProfileNotFound as ex:
             raise CredentialsError(str(ex)) from ex
 
 

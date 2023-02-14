@@ -35,6 +35,7 @@ MANIFEST_URL = (
 )
 APP_TEMPLATES_REPO_URL = "https://github.com/aws/aws-sam-cli-app-templates"
 APP_TEMPLATES_REPO_NAME = "aws-sam-cli-app-templates"
+APP_TEMPLATES_REPO_NAME_WINDOWS = "tmpl"
 
 
 class InvalidInitTemplateError(UserException):
@@ -73,11 +74,17 @@ class InitTemplates:
 
     def clone_templates_repo(self):
         if not self._git_repo.clone_attempted:
+            from platform import system
+
             shared_dir: Path = GlobalConfig().config_dir
+
+            os_name = system().lower()
+            cloned_folder_name = APP_TEMPLATES_REPO_NAME_WINDOWS if os_name == "windows" else APP_TEMPLATES_REPO_NAME
+
             try:
                 self._git_repo.clone(
                     clone_dir=shared_dir,
-                    clone_name=APP_TEMPLATES_REPO_NAME,
+                    clone_name=cloned_folder_name,
                     replace_existing=True,
                     commit=APP_TEMPLATES_REPO_COMMIT,
                 )
@@ -85,7 +92,7 @@ class InitTemplates:
                 raise AppTemplateUpdateException(str(ex)) from ex
             except (OSError, CloneRepoException):
                 LOG.debug("Clone error, attempting to use an old clone from a previous run")
-                expected_previous_clone_local_path: Path = shared_dir.joinpath(APP_TEMPLATES_REPO_NAME)
+                expected_previous_clone_local_path: Path = shared_dir.joinpath(cloned_folder_name)
                 if expected_previous_clone_local_path.exists():
                     self._git_repo.local_path = expected_previous_clone_local_path
 

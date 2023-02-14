@@ -225,7 +225,7 @@ class TestLambdaService(StartLambdaIntegBaseClass):
                 "errorMessage": "Lambda is raising an exception",
                 "errorType": "Exception",
                 "stackTrace": [
-                    ["/var/task/main.py", 51, "raise_exception", 'raise Exception("Lambda is raising an exception")']
+                    '  File "/var/task/main.py", line 51, in raise_exception\n    raise Exception("Lambda is raising an exception")\n'
                 ],
             },
         )
@@ -507,7 +507,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -570,7 +570,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -673,7 +673,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -776,7 +776,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -854,7 +854,7 @@ def handler(event, context):
 class TestWatchingImageWarmContainers(WatchWarmContainersIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
-Parameteres:
+Parameters:
   Tag:
     Type: String
   ImageUri:
@@ -932,7 +932,7 @@ COPY main.py ./"""
 class TestWatchingTemplateChangesDockerFileLocationChanged(WatchWarmContainersIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
-Parameteres:
+Parameters:
   Tag:
     Type: String
   ImageUri:
@@ -960,7 +960,7 @@ Resources:
         """
     template_content_2 = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
-Parameteres:
+Parameters:
   Tag:
     Type: String
   ImageUri:
@@ -1045,7 +1045,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -1103,7 +1103,7 @@ def handler(event, context):
 class TestWatchingImageLazyContainers(WatchWarmContainersIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
-Parameteres:
+Parameters:
   Tag:
     Type: String
   ImageUri:
@@ -1186,7 +1186,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -1289,7 +1289,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -1392,7 +1392,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -1470,7 +1470,7 @@ def handler(event, context):
 class TestWatchingTemplateChangesDockerFileLocationChangedLazyContainer(WatchWarmContainersIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
-Parameteres:
+Parameters:
   Tag:
     Type: String
   ImageUri:
@@ -1498,7 +1498,7 @@ Resources:
         """
     template_content_2 = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
-Parameteres:
+Parameters:
   Tag:
     Type: String
   ImageUri:
@@ -1585,8 +1585,8 @@ COPY main.py ./"""
 class TestLambdaServiceWithCustomInvokeImages(StartLambdaIntegBaseClass):
 
     invoke_image = [
-        "amazon/aws-sam-cli-emulation-image-python3.6",
-        "HelloWorldServerlessFunction=public.ecr.aws/sam/emulation-python3.6",
+        "amazon/aws-sam-cli-emulation-image-python3.9",
+        "HelloWorldServerlessFunction=public.ecr.aws/sam/emulation-python3.9",
     ]
 
     def setUp(self):

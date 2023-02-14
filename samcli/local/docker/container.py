@@ -3,7 +3,6 @@ Representation of a generic Docker container
 """
 import os
 import logging
-import tarfile
 import tempfile
 import threading
 import socket
@@ -14,6 +13,7 @@ import requests
 
 from docker.errors import NotFound as DockerNetworkNotFound
 from samcli.lib.utils.retry import retry
+from samcli.lib.utils.tar import extract_tarfile
 from .exceptions import ContainerNotStartableException
 
 from .utils import to_posix_path, find_free_port, NoFreePortsError
@@ -362,7 +362,8 @@ class Container:
         a_socket.close()
         return connection_succeeded
 
-    def copy(self, from_container_path, to_host_path):
+    def copy(self, from_container_path, to_host_path) -> None:
+        """Copies a path from container into host path"""
 
         if not self.is_created():
             raise RuntimeError("Container does not exist. Cannot get logs for this container")
@@ -378,8 +379,7 @@ class Container:
             # Seek the handle back to start of file for tarfile to use
             fp.seek(0)
 
-            with tarfile.open(fileobj=fp, mode="r") as tar:
-                tar.extractall(path=to_host_path)
+            extract_tarfile(file_obj=fp, unpack_dir=to_host_path)
 
     @staticmethod
     def _write_container_output(output_itr, stdout=None, stderr=None):
@@ -396,13 +396,17 @@ class Container:
             Stream writer to write stderr data from the Container into
         """
 
-        # Iterator returns a tuple of (stdout, stderr)
-        for stdout_data, stderr_data in output_itr:
-            if stdout_data and stdout:
-                stdout.write(stdout_data)
+        # following iterator might throw an exception (see: https://github.com/aws/aws-sam-cli/issues/4222)
+        try:
+            # Iterator returns a tuple of (stdout, stderr)
+            for stdout_data, stderr_data in output_itr:
+                if stdout_data and stdout:
+                    stdout.write(stdout_data)
 
-            if stderr_data and stderr:
-                stderr.write(stderr_data)
+                if stderr_data and stderr:
+                    stderr.write(stderr_data)
+        except Exception as ex:
+            LOG.debug("Failed to get the logs from the container", exc_info=ex)
 
     @property
     def network_id(self):

@@ -11,6 +11,6 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.echo_event
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600

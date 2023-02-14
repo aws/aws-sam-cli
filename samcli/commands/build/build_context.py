@@ -15,6 +15,7 @@ from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.utils.packagetype import IMAGE
 
 from samcli.commands._utils.template import get_template_data
+from samcli.commands._utils.experimental import ExperimentalFlag, prompt_experimental
 from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
 from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NestedStackManager
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
@@ -37,7 +38,7 @@ from samcli.lib.build.app_builder import (
     ContainerBuildNotSupported,
     ApplicationBuildResult,
 )
-from samcli.commands._utils.options import DEFAULT_BUILD_DIR
+from samcli.commands._utils.constants import DEFAULT_BUILD_DIR
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands._utils.template import move_template
@@ -75,6 +76,8 @@ class BuildContext:
         stack_name: Optional[str] = None,
         print_success_message: bool = True,
         locate_layer_nested: bool = False,
+        hook_name: Optional[str] = None,
+        build_in_source: Optional[bool] = None,
     ) -> None:
         """
         Initialize the class
@@ -126,6 +129,10 @@ class BuildContext:
             Print successful message
         locate_layer_nested: bool
             Locate layer to its actual, worked with nested stack
+        hook_name: Optional[str]
+            Name of the hook package
+        build_in_source: Optional[bool]
+            Set to True to build in the source directory.
         """
 
         self._resource_identifier = resource_identifier
@@ -163,6 +170,8 @@ class BuildContext:
         self._container_manager: Optional[ContainerManager] = None
         self._stacks: List[Stack] = []
         self._locate_layer_nested = locate_layer_nested
+        self._hook_name = hook_name
+        self._build_in_source = build_in_source
 
     def __enter__(self) -> "BuildContext":
         self.set_up()
@@ -242,19 +251,21 @@ class BuildContext:
                 container_env_var_file=self._container_env_var_file,
                 build_images=self._build_images,
                 combine_dependencies=not self._create_auto_dependency_layer,
+                build_in_source=self._build_in_source,
             )
         except FunctionNotFound as ex:
             raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
 
         try:
             self._check_exclude_warning()
+            self._check_rust_cargo_experimental_flag()
+
+            for f in self.get_resources_to_build().functions:
+                EventTracker.track_event("BuildFunctionRuntime", f.runtime)
 
             build_result = builder.build()
 
             self._handle_build_post_processing(builder, build_result)
-
-            for f in self.get_resources_to_build().functions:
-                EventTracker.track_event("BuildFunctionRuntime", f.runtime)
 
             click.secho("\nBuild Succeeded", fg="green")
 
@@ -272,7 +283,7 @@ class BuildContext:
                 output_template_path_in_success_message = out_template_path
 
             if self._print_success_message:
-                msg = self.gen_success_msg(
+                msg = self._gen_success_msg(
                     build_dir_in_success_message,
                     output_template_path_in_success_message,
                     os.path.abspath(self.build_dir) == os.path.abspath(DEFAULT_BUILD_DIR),
@@ -344,29 +355,55 @@ class BuildContext:
 
             move_template(stack.location, output_template_path, modified_template)
 
-    @staticmethod
-    def gen_success_msg(artifacts_dir: str, output_template_path: str, is_default_build_dir: bool) -> str:
+    def _gen_success_msg(self, artifacts_dir: str, output_template_path: str, is_default_build_dir: bool) -> str:
+        """
+        Generates a success message containing some suggested commands to run
 
-        invoke_cmd = "sam local invoke"
-        if not is_default_build_dir:
-            invoke_cmd += " -t {}".format(output_template_path)
+        Parameters
+        ----------
+        artifacts_dir: str
+            A string path representing the folder of built artifacts
+        output_template_path: str
+            A string path representing the final template file
+        is_default_build_dir: bool
+            True if the build folder is the folder defined by SAM CLI
 
-        deploy_cmd = "sam deploy --guided"
-        if not is_default_build_dir:
-            deploy_cmd += " --template-file {}".format(output_template_path)
+        Returns
+        -------
+        str
+            A formatted success message string
+        """
 
-        msg = """\nBuilt Artifacts  : {artifacts_dir}
-Built Template   : {template}
+        validate_suggestion = "Validate SAM template: sam validate"
+        invoke_suggestion = "Invoke Function: sam local invoke"
+        sync_suggestion = "Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch"
+        deploy_suggestion = "Deploy: sam deploy --guided"
+        start_lambda_suggestion = "Emulate local Lambda functions: sam local start-lambda"
+
+        if not is_default_build_dir and not self._hook_name:
+            invoke_suggestion += " -t {}".format(output_template_path)
+            deploy_suggestion += " --template-file {}".format(output_template_path)
+
+        commands = [validate_suggestion, invoke_suggestion, sync_suggestion, deploy_suggestion]
+
+        # check if we have used a hook package before building
+        if self._hook_name:
+            hook_package_flag = f" --hook-name {self._hook_name}"
+
+            start_lambda_suggestion += hook_package_flag
+            invoke_suggestion += hook_package_flag
+
+            commands = [invoke_suggestion, start_lambda_suggestion]
+
+        msg = f"""\nBuilt Artifacts  : {artifacts_dir}
+Built Template   : {output_template_path}
 
 Commands you can use next
 =========================
-[*] Validate SAM template: sam validate
-[*] Invoke Function: {invokecmd}
-[*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
-[*] Deploy: {deploycmd}
-        """.format(
-            invokecmd=invoke_cmd, deploycmd=deploy_cmd, artifacts_dir=artifacts_dir, template=output_template_path
-        )
+"""
+
+        # add bullet point then join all the commands with new line
+        msg += "[*] " + f"{os.linesep}[*] ".join(commands)
 
         return msg
 
@@ -525,7 +562,7 @@ Commands you can use next
             [
                 l
                 for l in self.layer_provider.get_all()
-                if (l.name not in excludes) and BuildContext._is_layer_buildable(l)
+                if (l.name not in excludes) and BuildContext.is_layer_buildable(l)
             ]
         )
         return result
@@ -556,7 +593,7 @@ Commands you can use next
             return
 
         resource_collector.add_function(function)
-        resource_collector.add_layers([l for l in function.layers if l.build_method is not None and not l.skip_build])
+        resource_collector.add_layers([l for l in function.layers if BuildContext.is_layer_buildable(l)])
 
     def _collect_single_buildable_layer(
         self, resource_identifier: str, resource_collector: ResourcesToBuildCollector
@@ -611,7 +648,7 @@ Commands you can use next
         return True
 
     @staticmethod
-    def _is_layer_buildable(layer: LayerVersion):
+    def is_layer_buildable(layer: LayerVersion):
         # if build method is not specified, it is not buildable
         if not layer.build_method:
             LOG.debug("Skip building layer without a build method: %s", layer.full_path)
@@ -635,3 +672,26 @@ Commands you can use next
         excludes: Tuple[str, ...] = self._exclude if self._exclude is not None else ()
         if self._resource_identifier in excludes:
             LOG.warning(self._EXCLUDE_WARNING_MESSAGE)
+
+    def _check_rust_cargo_experimental_flag(self) -> None:
+        """
+        Prints warning message and confirms if user wants to use beta feature
+        """
+        WARNING_MESSAGE = (
+            'Build method "rustcargolambda" is a beta feature.\n'
+            "Please confirm if you would like to proceed\n"
+            'You can also enable this beta feature with "sam build --beta-features".'
+        )
+        resources_to_build = self.get_resources_to_build()
+        is_building_rust = False
+        for function in resources_to_build.functions:
+            if function.metadata and function.metadata.get("BuildMethod", "") == "rustcargolambda":
+                is_building_rust = True
+                break
+
+        if is_building_rust:
+            prompt_experimental(ExperimentalFlag.RustCargoLambda, WARNING_MESSAGE)
+
+    @property
+    def build_in_source(self) -> Optional[bool]:
+        return self._build_in_source

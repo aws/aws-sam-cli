@@ -583,7 +583,8 @@ class TestContainer_wait_for_result(TestCase):
 
     @patch("socket.socket")
     @patch("samcli.local.docker.container.requests")
-    def test_wait_for_result_error_retried(self, mock_requests, patched_socket):
+    @patch("time.sleep")
+    def test_wait_for_result_error_retried(self, patched_sleep, mock_requests, patched_socket):
         self.container.is_created.return_value = True
 
         real_container_mock = Mock()
@@ -630,7 +631,8 @@ class TestContainer_wait_for_result(TestCase):
 
     @patch("socket.socket")
     @patch("samcli.local.docker.container.requests")
-    def test_wait_for_result_error(self, mock_requests, patched_socket):
+    @patch("time.sleep")
+    def test_wait_for_result_error(self, patched_sleep, mock_requests, patched_socket):
         self.container.is_created.return_value = True
 
         real_container_mock = Mock()
@@ -651,12 +653,14 @@ class TestContainer_wait_for_result(TestCase):
                 event=self.event, full_path=self.name, stdout=stdout_mock, stderr=stderr_mock
             )
 
-    @patch("samcli.local.docker.container.CONTAINER_CONNECTION_TIMEOUT", 0.5)
+    # set timeout to be 0.1ms
+    @patch("samcli.local.docker.container.CONTAINER_CONNECTION_TIMEOUT", 0.0001)
     @patch("socket.socket")
     @patch("samcli.local.docker.container.requests")
-    def test_wait_for_result_waits_for_socket_before_post_request(self, mock_requests, patched_socket):
+    @patch("time.sleep")
+    def test_wait_for_result_waits_for_socket_before_post_request(self, patched_time, mock_requests, patched_socket):
         self.container.is_created.return_value = True
-
+        mock_requests.post = Mock(return_value=None)
         real_container_mock = Mock()
         self.mock_docker_client.containers.get.return_value = real_container_mock
 
@@ -677,6 +681,19 @@ class TestContainer_wait_for_result(TestCase):
             )
 
         self.assertEqual(mock_requests.post.call_count, 0)
+
+    def test_write_container_output_successful(self):
+        stdout_mock = Mock()
+        stderr_mock = Mock()
+
+        def _output_iterator():
+            yield "Hello", None
+            yield None, "World"
+            raise ValueError("The pipe has been ended.")
+
+        Container._write_container_output(_output_iterator(), stdout_mock, stderr_mock)
+        stdout_mock.assert_has_calls([call.write("Hello")])
+        stderr_mock.assert_has_calls([call.write("World")])
 
 
 class TestContainer_wait_for_logs(TestCase):
@@ -822,8 +839,8 @@ class TestContainer_copy(TestCase):
         self.container.id = "containerid"
 
     @patch("samcli.local.docker.container.tempfile")
-    @patch("samcli.local.docker.container.tarfile")
-    def test_must_copy_files_from_container(self, tarfile_mock, tempfile_mock):
+    @patch("samcli.local.docker.container.extract_tarfile")
+    def test_must_copy_files_from_container(self, extract_tarfile_mock, tempfile_mock):
         source = "source"
         dest = "dest"
 
@@ -836,19 +853,14 @@ class TestContainer_copy(TestCase):
         tempfile_ctxmgr.__enter__ = Mock(return_value=fp_mock)
         tempfile_ctxmgr.__exit__ = Mock()
 
-        tarfile_ctxmgr = tarfile_mock.open.return_value = Mock()
-        tar_mock = Mock()
-        tarfile_ctxmgr.return_value.__enter__ = Mock(return_value=tar_mock)
-        tarfile_ctxmgr.return_value.__exit__ = Mock()
-
         self.container.copy(source, dest)
+
+        extract_tarfile_mock.assert_called_with(file_obj=fp_mock, unpack_dir=dest)
 
         # Make sure archive data is written to the file
         fp_mock.write.assert_has_calls([call(x) for x in tar_stream], any_order=False)
 
         # Make sure we open the tarfile right and extract to right location
-        tarfile_mock.open.assert_called_with(fileobj=fp_mock, mode="r")
-        tar_mock.extractall(path=dest)
 
     def test_raise_if_container_is_not_created(self):
         source = "source"

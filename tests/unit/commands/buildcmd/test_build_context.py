@@ -712,7 +712,7 @@ class TestBuildContext__enter__(TestCase):
             create_auto_dependency_layer=auto_dependency_layer,
             print_success_message=False,
         ) as build_context:
-            with patch("samcli.commands.build.build_context.BuildContext.gen_success_msg") as mock_message:
+            with patch("samcli.commands.build.build_context.BuildContext._gen_success_msg") as mock_message:
                 build_context.run()
                 mock_message.assert_not_called()
 
@@ -985,6 +985,7 @@ class TestBuildContext_run(TestCase):
             container_env_var_file=None,
             build_images={},
             create_auto_dependency_layer=auto_dependency_layer,
+            build_in_source=False,
         ) as build_context:
             build_context.run()
 
@@ -1003,6 +1004,7 @@ class TestBuildContext_run(TestCase):
                 container_env_var_file=build_context._container_env_var_file,
                 build_images=build_context._build_images,
                 combine_dependencies=not auto_dependency_layer,
+                build_in_source=build_context._build_in_source,
             )
             builder_mock.build.assert_called_once()
             builder_mock.update_template.assert_has_calls(
@@ -1252,3 +1254,52 @@ class TestBuildContext_exclude_warning(TestCase):
             log_mock.warning.assert_called_once_with(BuildContext._EXCLUDE_WARNING_MESSAGE)
         else:
             log_mock.warning.assert_not_called()
+
+
+class TestBuildContext_gen_success_msg(TestCase):
+    def setUp(self):
+        self.build_dir = "build_dir"
+        self.template_file = "template_file"
+
+        self.build_context = BuildContext(
+            resource_identifier="function_identifier",
+            template_file=self.template_file,
+            base_dir="base_dir",
+            build_dir=self.build_dir,
+            cache_dir="cache_dir",
+            parallel=False,
+            mode="mode",
+            cached=False,
+        )
+
+    def test_gen_message_with_non_default_build_without_hook_package(self):
+        self.build_context._hook_name = False
+
+        msg = self.build_context._gen_success_msg(self.build_dir, self.template_file, False)
+        expected_msg = (
+            f"""\nBuilt Artifacts  : build_dir
+Built Template   : template_file\n
+Commands you can use next
+=========================
+[*] Validate SAM template: sam validate{os.linesep}[*] Invoke Function: sam local invoke -t template_file"""
+            f"""{os.linesep}[*] Test Function in the Cloud: sam sync --stack-name {"{{stack-name}}"} --watch"""
+            f"""{os.linesep}[*] Deploy: sam deploy --guided --template-file template_file"""
+        )
+
+        self.assertEqual(msg, expected_msg)
+
+    def test_gen_message_with_non_default_build_with_hook_package(self):
+        self.build_context._hook_name = "iac"
+
+        msg = self.build_context._gen_success_msg(self.build_dir, self.template_file, False)
+        expected_msg = (
+            f"""\nBuilt Artifacts  : build_dir
+Built Template   : template_file
+
+Commands you can use next
+=========================
+[*] Invoke Function: sam local invoke --hook-name iac{os.linesep}[*] Emulate local Lambda functions: sam """
+            """local start-lambda --hook-name iac"""
+        )
+
+        self.assertEqual(msg, expected_msg)

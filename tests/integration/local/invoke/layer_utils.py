@@ -9,13 +9,17 @@ from pathlib import Path
 
 
 class LayerUtils(object):
-    def __init__(self, region=None):
+    def __init__(self, region=None, layer_zip_parent=None):
         self.region = region if region else Session().region_name
         self.layer_meta = namedtuple("LayerMeta", ["layer_name", "layer_arn", "layer_version"])
         self.lambda_client = boto3.client("lambda", region_name=region)
         self.parameters_overrides = {}
         self.layers_meta = []
-        self.layer_zip_parent = InvokeIntegBase.get_integ_dir().joinpath("testdata", "invoke", "layer_zips")
+        self.layer_zip_parent = (
+            Path(layer_zip_parent)
+            if layer_zip_parent
+            else InvokeIntegBase.get_integ_dir().joinpath("testdata", "invoke", "layer_zips")
+        )
 
     @staticmethod
     def generate_layer_name():

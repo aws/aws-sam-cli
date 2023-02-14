@@ -126,7 +126,7 @@ class DefaultBuildStrategy(BuildStrategy):
         build_graph: BuildGraph,
         build_dir: str,
         build_function: Callable[[str, str, str, str, str, Optional[str], str, dict, dict, Optional[str], bool], str],
-        build_layer: Callable[[str, str, str, List[str], str, str, dict, Optional[str], bool], str],
+        build_layer: Callable[[str, str, str, List[str], str, str, dict, Optional[str], bool, Optional[Dict]], str],
         cached: bool = False,
     ) -> None:
         super().__init__(build_graph)
@@ -227,6 +227,7 @@ class DefaultBuildStrategy(BuildStrategy):
                 layer_definition.env_vars,
                 layer_definition.dependencies_dir if self._cached else None,
                 layer_definition.download_dependencies,
+                layer.metadata,
             )
         }
 
