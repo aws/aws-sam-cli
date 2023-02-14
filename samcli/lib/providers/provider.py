@@ -7,6 +7,7 @@ import logging
 import os
 import posixpath
 from collections import namedtuple
+from platform import machine
 from typing import Any, Set, NamedTuple, Optional, List, Dict, Tuple, Union, cast, Iterator, TYPE_CHECKING
 
 from samcli.commands.local.cli_common.user_exceptions import (
@@ -20,7 +21,7 @@ from samcli.lib.samlib.resource_metadata_normalizer import (
     SAM_METADATA_SKIP_BUILD_KEY,
     SAM_RESOURCE_ID_KEY,
 )
-from samcli.lib.utils.architecture import X86_64
+from samcli.lib.utils.architecture import X86_64, ARM64
 
 if TYPE_CHECKING:  # pragma: no cover
     # avoid circular import, https://docs.python.org/3/library/typing.html#typing.TYPE_CHECKING
@@ -129,7 +130,7 @@ class Function(NamedTuple):
             If the architectures value is invalid
         """
         if not self.architectures:
-            return X86_64
+            return ARM64 if machine() in ("arm64", "aarch64") else X86_64
 
         arch_list = cast(list, self.architectures)
         if len(arch_list) != 1:

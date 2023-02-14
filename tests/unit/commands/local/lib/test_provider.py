@@ -1,5 +1,6 @@
 import os
 import posixpath
+from platform import machine
 from unittest import TestCase
 from unittest.mock import MagicMock, Mock, patch
 
@@ -300,7 +301,7 @@ class TestFunction(TestCase):
     @parameterized.expand(
         [
             ([ARM64], ARM64),
-            ([], X86_64),
+            ([], ARM64 if machine() in ("arm64", "aarch64") else X86_64),
             ([X86_64], X86_64),
         ]
     )
