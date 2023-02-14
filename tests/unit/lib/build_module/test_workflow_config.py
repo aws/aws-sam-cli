@@ -4,7 +4,6 @@ from unittest.mock import patch
 
 from samcli.lib.build.workflow_config import (
     get_workflow_config,
-    needs_mount_with_write,
     UnsupportedRuntimeException,
     UnsupportedBuilderException,
 )
@@ -28,6 +27,7 @@ class Test_get_workflow_config(TestCase):
         self.assertIsNone(result.executable_search_paths)
         self.assertEqual(len(EventTracker.get_tracked_events()), 1)
         self.assertIn(Event("BuildWorkflowUsed", "python-pip"), EventTracker.get_tracked_events())
+        self.assertFalse(result.must_mount_with_write_in_container)
 
     @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
     def test_must_work_for_nodejs(self, runtime):
@@ -40,6 +40,7 @@ class Test_get_workflow_config(TestCase):
         self.assertIsNone(result.executable_search_paths)
         self.assertEqual(len(EventTracker.get_tracked_events()), 1)
         self.assertIn(Event("BuildWorkflowUsed", "nodejs-npm"), EventTracker.get_tracked_events())
+        self.assertFalse(result.must_mount_with_write_in_container)
 
     @parameterized.expand([("provided",)])
     def test_must_work_for_provided(self, runtime):
@@ -51,6 +52,7 @@ class Test_get_workflow_config(TestCase):
         self.assertIsNone(result.executable_search_paths)
         self.assertEqual(len(EventTracker.get_tracked_events()), 1)
         self.assertIn(Event("BuildWorkflowUsed", "provided-None"), EventTracker.get_tracked_events())
+        self.assertFalse(result.must_mount_with_write_in_container)
 
     @parameterized.expand([("provided.al2",)])
     def test_must_work_for_provided_with_build_method_dotnet7(self, runtime):
@@ -62,16 +64,12 @@ class Test_get_workflow_config(TestCase):
         self.assertIsNone(result.executable_search_paths)
         self.assertEqual(len(EventTracker.get_tracked_events()), 1)
         self.assertIn(Event("BuildWorkflowUsed", "dotnet-cli-package"), EventTracker.get_tracked_events())
+        self.assertTrue(result.must_mount_with_write_in_container)
 
     @parameterized.expand([("dotnetcore3.1",), ("dotnet6",), ("provided.al2", "dotnet7")])
     def test_must_mount_with_write_for_dotnet_in_container(self, runtime, specified_workflow=None):
         result = get_workflow_config(runtime, self.code_dir, self.project_dir, specified_workflow)
-        self.assertEqual(result.language, "dotnet")
-        self.assertEqual(result.dependency_manager, "cli-package")
-        self.assertEqual(result.application_framework, None)
-        self.assertEqual(result.manifest_name, ".csproj")
-        self.assertIsNone(result.executable_search_paths)
-        self.assertTrue(needs_mount_with_write(result))
+        self.assertTrue(result.must_mount_with_write_in_container)
 
     @parameterized.expand([("provided.al2",)])
     def test_must_work_for_provided_with_build_method_rustcargolambda(self, runtime):
@@ -83,6 +81,7 @@ class Test_get_workflow_config(TestCase):
         self.assertIsNone(result.executable_search_paths)
         self.assertEqual(len(EventTracker.get_tracked_events()), 1)
         self.assertIn(Event("BuildWorkflowUsed", "rust-cargo"), EventTracker.get_tracked_events())
+        self.assertFalse(result.must_mount_with_write_in_container)
 
     @parameterized.expand([("provided",)])
     def test_must_work_for_provided_with_no_specified_workflow(self, runtime):
@@ -95,6 +94,7 @@ class Test_get_workflow_config(TestCase):
         self.assertIsNone(result.executable_search_paths)
         self.assertEqual(len(EventTracker.get_tracked_events()), 1)
         self.assertIn(Event("BuildWorkflowUsed", "provided-None"), EventTracker.get_tracked_events())
+        self.assertFalse(result.must_mount_with_write_in_container)
 
     @parameterized.expand([("provided",)])
     def test_raise_exception_for_bad_specified_workflow(self, runtime):
@@ -111,6 +111,7 @@ class Test_get_workflow_config(TestCase):
         self.assertIsNone(result.executable_search_paths)
         self.assertEqual(len(EventTracker.get_tracked_events()), 1)
         self.assertIn(Event("BuildWorkflowUsed", "ruby-bundler"), EventTracker.get_tracked_events())
+        self.assertFalse(result.must_mount_with_write_in_container)
 
     @parameterized.expand(
         [("java8", "build.gradle", "gradle"), ("java8", "build.gradle.kts", "gradle"), ("java8", "pom.xml", "maven")]
@@ -126,6 +127,7 @@ class Test_get_workflow_config(TestCase):
         self.assertEqual(result.application_framework, None)
         self.assertEqual(result.manifest_name, build_file)
         self.assertEqual(len(EventTracker.get_tracked_events()), 1)
+        self.assertFalse(result.must_mount_with_write_in_container)
 
         if dep_manager == "gradle":
             self.assertEqual(result.executable_search_paths, [self.code_dir, self.project_dir])
@@ -144,6 +146,7 @@ class Test_get_workflow_config(TestCase):
         self.assertIsNone(result.executable_search_paths)
         self.assertEqual(len(EventTracker.get_tracked_events()), 1)
         self.assertIn(Event("BuildWorkflowUsed", "nodejs-npm-esbuild"), EventTracker.get_tracked_events())
+        self.assertFalse(result.must_mount_with_write_in_container)
 
     @parameterized.expand([("java8", "unknown.manifest")])
     @patch("samcli.lib.build.workflow_config.os")

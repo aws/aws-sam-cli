@@ -94,7 +94,6 @@ class TestLambdaBuildContainer_make_request(TestCase):
             container_dirs,
             "manifest_file_name",
             "runtime",
-            "specified_workflow",
             "optimizations",
             "options",
             "executable_search_paths",
@@ -102,7 +101,6 @@ class TestLambdaBuildContainer_make_request(TestCase):
             "architecture",
             is_building_layer,
             build_in_source=False,
-            mount_with_write=False,
         )
 
         self.maxDiff = None  # Print whole json diff
@@ -119,13 +117,11 @@ class TestLambdaBuildContainer_make_request(TestCase):
                         "dependency_manager": "dependency",
                         "application_framework": "application",
                     },
-                    "base_dir": "base_dir",
                     "source_dir": "source_dir",
                     "artifacts_dir": "artifacts_dir",
                     "scratch_dir": "scratch_dir",
                     "manifest_path": "manifest_dir/manifest_file_name",
                     "runtime": "runtime",
-                    "specified_workflow": "specified_workflow",
                     "optimizations": "optimizations",
                     "options": "options",
                     "executable_search_paths": "executable_search_paths",
@@ -134,7 +130,6 @@ class TestLambdaBuildContainer_make_request(TestCase):
                     "is_building_layer": is_building_layer,
                     "experimental_flags": experimental_flags,
                     "build_in_source": False,
-                    "mount_with_write": False,
                 },
             },
         )

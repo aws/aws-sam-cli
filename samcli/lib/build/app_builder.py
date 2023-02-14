@@ -58,7 +58,6 @@ from samcli.lib.build.workflow_config import (
     get_layer_subfolder,
     CONFIG,
     UnsupportedRuntimeException,
-    needs_mount_with_write,
 )
 
 LOG = logging.getLogger(__name__)
@@ -898,7 +897,7 @@ class ApplicationBuilder:
                 "Docker is unreachable. Docker needs to be running to build inside a container."
             )
 
-        if not self._mount_with_write and needs_mount_with_write(config):
+        if not self._mount_with_write and config.must_mount_with_write_in_container:
             self._mount_with_write = prompt_user_to_enable_mount_with_write(config, source_dir)
         # If we are printing debug logs in SAM CLI, the builder library should also print debug logs
         log_level = LOG.getEffectiveLevel()

@@ -275,26 +275,6 @@ def supports_specified_workflow(specified_workflow: str) -> bool:
     return specified_workflow in supported_specified_workflow
 
 
-def needs_mount_with_write(config: CONFIG) -> bool:
-    """
-    Given a workflow config, returns whether it needs mount with write permissions to build inside container or not.
-
-    Parameters
-    ----------
-    config namedtuple(Capability)
-        Config specifying the particular build workflow
-
-    Returns
-    -------
-    bool
-        True, if this workflow needs mount with write permissions to build inside container.
-    """
-    mount_with_write_languages = ["dotnet"]
-    if config.language in mount_with_write_languages:
-        return True
-    return False
-
-
 class BasicWorkflowSelector:
     """
     Basic workflow selector that returns the first available configuration in the given list of configurations

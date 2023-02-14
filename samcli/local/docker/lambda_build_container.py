@@ -78,7 +78,6 @@ class LambdaBuildContainer(Container):
             container_dirs,
             manifest_file_name,
             runtime,
-            specified_workflow,
             optimizations,
             options,
             executable_search_paths,
@@ -86,7 +85,6 @@ class LambdaBuildContainer(Container):
             architecture,
             is_building_layer,
             build_in_source,
-            mount_with_write,
         )
 
         if image is None:
@@ -137,7 +135,6 @@ class LambdaBuildContainer(Container):
         container_dirs,
         manifest_file_name,
         runtime,
-        specified_workflow,
         optimizations,
         options,
         executable_search_paths,
@@ -145,7 +142,6 @@ class LambdaBuildContainer(Container):
         architecture,
         is_building_layer,
         build_in_source,
-        mount_with_write,
     ):
 
         runtime = runtime.replace(".al2", "")
@@ -162,14 +158,12 @@ class LambdaBuildContainer(Container):
                         "dependency_manager": dependency_manager,
                         "application_framework": application_framework,
                     },
-                    "base_dir": container_dirs["base_dir"],
                     "source_dir": container_dirs["source_dir"],
                     "artifacts_dir": container_dirs["artifacts_dir"],
                     "scratch_dir": container_dirs["scratch_dir"],
                     # Path is always inside a Linux container. So '/' is valid
                     "manifest_path": "{}/{}".format(container_dirs["manifest_dir"], manifest_file_name),
                     "runtime": runtime,
-                    "specified_workflow": specified_workflow,
                     "optimizations": optimizations,
                     "options": options,
                     "executable_search_paths": executable_search_paths,
@@ -178,7 +172,6 @@ class LambdaBuildContainer(Container):
                     "is_building_layer": is_building_layer,
                     "experimental_flags": get_enabled_experimental_flags(),
                     "build_in_source": build_in_source,
-                    "mount_with_write": mount_with_write,
                 },
             }
         )
