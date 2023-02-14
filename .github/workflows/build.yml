@@ -53,6 +53,9 @@ jobs:
       AWS_DEFAULT_REGION: us-east-1
       SAM_CLI_DEV: "1"
       CARGO_LAMBDA_VERSION: 0.17.1
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
