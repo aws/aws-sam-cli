@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import shutil
 import pytest
 import logging
@@ -20,12 +21,12 @@ class TestSyncInfra_BuildInSource_Makefile(SyncIntegBase):
 
     def setUp(self):
         super().setUp()
-        self.new_files_in_source = [
-            self.test_data_path.joinpath(
-                "code/before/makefile_function_create_new_file/file-created-from-makefile-function"
-            ),
-            self.test_data_path.joinpath("code/before/makefile_layer_create_new_file/file-created-from-makefile-layer"),
+
+        paths = [
+            Path("makefile_function_create_new_file", "file-created-from-makefile-function"),
+            Path("makefile_layer_create_new_file", "file-created-from-makefile-layer"),
         ]
+        self.new_files_in_source = [self.test_data_path.joinpath("code", "before", path) for path in paths]
 
     def tearDown(self):
         super().tearDown()
@@ -41,7 +42,7 @@ class TestSyncInfra_BuildInSource_Makefile(SyncIntegBase):
         ]
     )
     def test_sync_builds_and_deploys_successfully(self, build_in_source, new_file_should_be_in_source):
-        template_path = str(self.test_data_path.joinpath("code/before/template-makefile-create-new-file.yaml"))
+        template_path = str(self.test_data_path.joinpath("code", "before", "template-makefile-create-new-file.yaml"))
         stack_name = self._method_to_stack_name(self.id())
         self.stacks.append({"name": stack_name})
 
@@ -53,7 +54,7 @@ class TestSyncInfra_BuildInSource_Makefile(SyncIntegBase):
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
-            capabilities_list=self.basic_capabilities,
+            capabilities_list=["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
             tags="integ=true clarity=yes foo_bar=baz",
             build_in_source=build_in_source,
         )
@@ -82,13 +83,12 @@ class TestSyncCode_BuildInSource_Makefile(TestSyncCodeBase):
 
     def setUp(self):
         super().setUp()
-        codeuris = [
-            "makefile_function_create_new_file/file-created-from-makefile-function",
-            "makefile_layer_create_new_file/file-created-from-makefile-layer",
+        paths = [
+            Path("makefile_function_create_new_file", "file-created-from-makefile-function"),
+            Path("makefile_layer_create_new_file", "file-created-from-makefile-layer"),
         ]
-
         # When running tests, TestSyncCodeBase copies the source onto a temp directory
-        self.new_files_in_source = [TestSyncCodeBase.temp_dir.joinpath(codeuri) for codeuri in codeuris]
+        self.new_files_in_source = [TestSyncCodeBase.temp_dir.joinpath(path) for path in paths]
 
     def tearDown(self):
         super().tearDown()

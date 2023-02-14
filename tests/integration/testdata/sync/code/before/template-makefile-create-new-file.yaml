@@ -25,5 +25,3 @@ Resources:
         - python3.7
     Metadata:
       BuildMethod: makefile
-
-    

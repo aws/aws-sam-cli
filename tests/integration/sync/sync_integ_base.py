@@ -44,7 +44,6 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         self.stacks = []
         self.s3_prefix = uuid.uuid4().hex
         self.dependency_layer = True if self.dependency_layer is None else self.dependency_layer
-        self.basic_capabilities = ["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"]
         super().setUp()
 
     def tearDown(self):
