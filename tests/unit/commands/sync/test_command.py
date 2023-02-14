@@ -337,6 +337,7 @@ class TestDoCli(TestCase):
             build_context_mock,
             package_context_mock,
             deploy_context_mock,
+            sync_context_mock,
             auto_dependency_layer,
             skip_infra_syncs,
         )
@@ -417,6 +418,7 @@ class TestDoCli(TestCase):
             self.template_file,
             build_context_mock,
             deploy_context_mock,
+            sync_context_mock,
             self.resource_id,
             self.resource,
             auto_dependency_layer,
@@ -428,6 +430,7 @@ class TestSyncCode(TestCase):
         self.template_file = "template.yaml"
         self.build_context = MagicMock()
         self.deploy_context = MagicMock()
+        self.sync_context = MagicMock()
 
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.SamLocalStackProvider.get_stacks")
@@ -455,6 +458,7 @@ class TestSyncCode(TestCase):
             self.template_file,
             self.build_context,
             self.deploy_context,
+            self.sync_context,
             resource_identifier_strings,
             resource_types,
             True,
@@ -494,6 +498,7 @@ class TestSyncCode(TestCase):
             self.template_file,
             self.build_context,
             self.deploy_context,
+            self.sync_context,
             resource_identifier_strings,
             resource_types,
             True,
@@ -535,10 +540,12 @@ class TestSyncCode(TestCase):
             ResourceIdentifier("Function2"),
             ResourceIdentifier("Function3"),
         }
+
         execute_code_sync(
             self.template_file,
             self.build_context,
             self.deploy_context,
+            self.sync_context,
             resource_identifier_strings,
             resource_types,
             True,
@@ -583,10 +590,12 @@ class TestSyncCode(TestCase):
             ResourceIdentifier("Function3"),
             ResourceIdentifier("Function4"),
         }
+
         execute_code_sync(
             self.template_file,
             self.build_context,
             self.deploy_context,
+            self.sync_context,
             resource_identifier_strings,
             resource_types,
             True,
@@ -634,7 +643,8 @@ class TestSyncCode(TestCase):
             ResourceIdentifier("Function3"),
             ResourceIdentifier("Function4"),
         ]
-        execute_code_sync(self.template_file, self.build_context, self.deploy_context, "", [], True)
+
+        execute_code_sync(self.template_file, self.build_context, self.deploy_context, self.sync_context, "", [], True)
 
         sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function1"))
         sync_flow_executor_mock.return_value.add_sync_flow.assert_any_call(sync_flows[0])
@@ -660,6 +670,7 @@ class TestWatch(TestCase):
         self.build_context = MagicMock()
         self.package_context = MagicMock()
         self.deploy_context = MagicMock()
+        self.sync_context = MagicMock()
 
     @parameterized.expand(itertools.product([True, False], [True, False]))
     @patch("samcli.commands.sync.command.click")
@@ -677,6 +688,7 @@ class TestWatch(TestCase):
             self.build_context,
             self.package_context,
             self.deploy_context,
+            self.sync_context,
             auto_dependency_layer,
             skip_infra_syncs,
         )
@@ -686,6 +698,7 @@ class TestWatch(TestCase):
             self.build_context,
             self.package_context,
             self.deploy_context,
+            self.sync_context,
             auto_dependency_layer,
             skip_infra_syncs,
         )
