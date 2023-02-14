@@ -8,6 +8,7 @@ from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
+    from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)
 
@@ -27,6 +28,7 @@ class AliasVersionSyncFlow(SyncFlow):
         alias_name: str,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         stacks: Optional[List[Stack]] = None,
     ):
@@ -41,6 +43,8 @@ class AliasVersionSyncFlow(SyncFlow):
             BuildContext
         deploy_context : DeployContext
             DeployContext
+        sync_context: SyncContext
+            SyncContext object that obtains sync information.
         physical_id_mapping : Dict[str, str]
             Physical ID Mapping
         stacks : Optional[List[Stack]]
@@ -49,6 +53,7 @@ class AliasVersionSyncFlow(SyncFlow):
         super().__init__(
             build_context,
             deploy_context,
+            sync_context,
             physical_id_mapping,
             log_name=f"Alias {alias_name} and Version of {function_identifier}",
             stacks=stacks,
