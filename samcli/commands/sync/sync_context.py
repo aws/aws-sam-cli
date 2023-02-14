@@ -152,7 +152,7 @@ class SyncContext:
 
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args) -> None:
         self._write()
 
     def update_resource_sync_state(self, resource_id: str, hash_value: str) -> None:
@@ -210,7 +210,7 @@ class SyncContext:
         except OSError:
             LOG.debug("Missing previous sync state, will create a new file at the end of this execution")
 
-    def _cleanup_build_folders(self):
+    def _cleanup_build_folders(self) -> None:
         """
         Cleans up build, cache and dependencies folders for clean start of the next session
         """
