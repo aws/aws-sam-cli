@@ -4,8 +4,9 @@ Init flow based helper functions
 import logging
 import functools
 import re
+from platform import machine
 
-from samcli.lib.utils.architecture import X86_64
+from samcli.lib.utils.architecture import X86_64, ARM64
 from samcli.local.common.runtime_template import INIT_RUNTIMES, is_custom_runtime, LAMBDA_IMAGES_RUNTIMES_MAP
 
 LOG = logging.getLogger(__name__)
@@ -165,4 +166,7 @@ def get_architectures(architecture):
     """
     Returns list of architecture value based on the init input value
     """
-    return [X86_64] if architecture is None else [architecture]
+    if architecture is not None:
+        return [architecture]
+
+    return [ARM64] if machine() in ("arm64", "aarch64") else [X86_64]

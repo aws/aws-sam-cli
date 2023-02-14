@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import requests
 from pathlib import Path
+from platform import machine
 from typing import Dict, Any
 from unittest import TestCase
 from unittest.mock import patch, ANY
@@ -31,6 +32,8 @@ from samcli.lib.utils import osutils
 from samcli.lib.utils.git_repo import GitRepo
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.architecture import X86_64, ARM64
+
+default_arch = ARM64 if machine() in ("arm64", "aarch64") else X86_64
 
 
 class MockInitTemplates:
@@ -926,7 +929,7 @@ Y
                 "AWS_Schema_source": "aws.autoscaling",
                 "AWS_Schema_detail_type": "aws.autoscaling response",
                 "AWS_Schema_root": "schemas.aws.AWSAPICallViaCloudTrail",
-                "architectures": {"value": [X86_64]},
+                "architectures": {"value": [default_arch]},
             },
             False,
             False,
@@ -997,7 +1000,7 @@ test-project
             ".",
             "test-project",
             True,
-            {"project_name": "test-project", "runtime": "java8", "architectures": {"value": [X86_64]}},
+            {"project_name": "test-project", "runtime": "java8", "architectures": {"value": [default_arch]}},
             False,
             False,
         )
@@ -1144,7 +1147,7 @@ us-east-1
                 "AWS_Schema_source": "aws.autoscaling",
                 "AWS_Schema_detail_type": "aws.autoscaling response",
                 "AWS_Schema_root": "schemas.aws.AWSAPICallViaCloudTrail",
-                "architectures": {"value": [X86_64]},
+                "architectures": {"value": [default_arch]},
             },
             False,
             False,
@@ -1398,7 +1401,7 @@ Y
                 "AWS_Schema_source": "aws.autoscaling",
                 "AWS_Schema_detail_type": "aws.autoscaling response",
                 "AWS_Schema_root": "schemas.aws.AWSAPICallViaCloudTrail",
-                "architectures": {"value": [X86_64]},
+                "architectures": {"value": [default_arch]},
             },
             False,
             False,
@@ -2023,7 +2026,7 @@ test-project
             ".",
             "test-project",
             True,
-            {"project_name": "test-project", "runtime": "python3.9", "architectures": {"value": ["x86_64"]}},
+            {"project_name": "test-project", "runtime": "python3.9", "architectures": {"value": [default_arch]}},
             False,
             False,
         )
@@ -2112,7 +2115,7 @@ test-project
             ".",
             "test-project",
             True,
-            {"project_name": "test-project", "runtime": "java11", "architectures": {"value": ["x86_64"]}},
+            {"project_name": "test-project", "runtime": "java11", "architectures": {"value": [default_arch]}},
             False,
             False,
         )
@@ -2388,7 +2391,7 @@ test-project
             ".",
             "test-project",
             True,
-            {"project_name": "test-project", "runtime": "java11", "architectures": {"value": ["x86_64"]}},
+            {"project_name": "test-project", "runtime": "java11", "architectures": {"value": [default_arch]}},
             False,
             False,
         )
@@ -2601,7 +2604,7 @@ test-project
             ".",
             "test-project",
             True,
-            {"project_name": "test-project", "runtime": "java11", "architectures": {"value": ["x86_64"]}},
+            {"project_name": "test-project", "runtime": "java11", "architectures": {"value": [default_arch]}},
             False,
             False,
         )
@@ -2692,7 +2695,7 @@ test-project
             ".",
             "test-project",
             True,
-            {"project_name": "test-project", "runtime": "java11", "architectures": {"value": ["x86_64"]}},
+            {"project_name": "test-project", "runtime": "java11", "architectures": {"value": [default_arch]}},
             False,
             False,
         )
@@ -2775,7 +2778,7 @@ test-project
             ".",
             "test-project",
             True,
-            {"project_name": "test-project", "runtime": "java11", "architectures": {"value": ["x86_64"]}},
+            {"project_name": "test-project", "runtime": "java11", "architectures": {"value": [default_arch]}},
             False,
             False,
         )
@@ -2864,7 +2867,7 @@ test-project
             ".",
             "test-project",
             True,
-            {"project_name": "test-project", "runtime": "provided.al2", "architectures": {"value": ["x86_64"]}},
+            {"project_name": "test-project", "runtime": "provided.al2", "architectures": {"value": [default_arch]}},
             False,
             False,
         )
@@ -2945,7 +2948,7 @@ test-project
             ".",
             "test-project",
             True,
-            {"project_name": "test-project", "runtime": "provided.al2", "architectures": {"value": ["x86_64"]}},
+            {"project_name": "test-project", "runtime": "provided.al2", "architectures": {"value": [default_arch]}},
             False,
             False,
         )
@@ -3030,7 +3033,7 @@ test-project
             ".",
             "test-project",
             True,
-            {"project_name": "test-project", "runtime": "java11", "architectures": {"value": ["x86_64"]}},
+            {"project_name": "test-project", "runtime": "java11", "architectures": {"value": [default_arch]}},
             True,
             False,
         )
@@ -3115,7 +3118,7 @@ test-project
             ".",
             "test-project",
             True,
-            {"project_name": "test-project", "runtime": "java11", "architectures": {"value": ["x86_64"]}},
+            {"project_name": "test-project", "runtime": "java11", "architectures": {"value": [default_arch]}},
             False,
             True,
         )
