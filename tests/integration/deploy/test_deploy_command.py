@@ -536,11 +536,11 @@ to create a managed default bucket, or run sam deploy --guided",
             "confirm_changeset": False,
         }
         # Package and Deploy in one go without confirming change set.
-        deploy_command_list = self.get_deploy_command_list(**kwargs, cwd=self.test_data_path)
+        deploy_command_list = self.get_deploy_command_list(**kwargs)
         print("######################################")
         print(deploy_command_list)
         print("######################################")
-        deploy_process_execute = run_command(deploy_command_list)
+        deploy_process_execute = run_command(deploy_command_list, cwd=self.test_data_path)
         # Deploy should succeed
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
