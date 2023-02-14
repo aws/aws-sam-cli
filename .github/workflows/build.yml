@@ -48,6 +48,8 @@ jobs:
     name: Integration Tests / buildcmd - Rust / ${{ matrix.os }} / ${{ matrix.python }}
     runs-on: ${{ matrix.os }}
     env:
+      AWS_DEFAULT_REGION: us-east-1
+      SAM_CLI_DEV: "1"
       CARGO_LAMBDA_VERSION: 0.17.1
     strategy:
       fail-fast: false
