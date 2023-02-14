@@ -6,7 +6,7 @@ from enum import Enum, auto
 
 import boto3
 from botocore.config import Config
-from tests.testing_utils import get_sam_command
+from tests.testing_utils import get_sam_command, run_command, run_command_with_input
 
 
 class ResourceType(Enum):
@@ -16,7 +16,6 @@ class ResourceType(Enum):
 
 
 class DeployIntegBase(TestCase):
-
     def setUp(self):
         super().setUp()
         self.left_over_resources = {
@@ -35,6 +34,12 @@ class DeployIntegBase(TestCase):
         self.delete_s3_buckets()
         self.delete_iam_roles()
         self.delete_lambda_functions()
+
+    def run_command(self, command_list):
+        return run_command(command_list, cwd=self.test_data_path)
+
+    def run_command_with_input(self, command_list, stdin_input):
+        return run_command_with_input(command_list, stdin_input, cwd=self.test_data_path)
 
     def delete_s3_buckets(self):
         config = Config(retries={"max_attempts": 10, "mode": "adaptive"})

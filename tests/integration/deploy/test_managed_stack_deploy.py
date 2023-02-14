@@ -11,7 +11,6 @@ from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.integration.package.package_integ_base import PackageIntegBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
-from tests.testing_utils import run_command, run_command_with_input
 
 PYTHON_VERSION = os.environ.get("PYTHON_VERSION", "0.0.0")
 
@@ -78,7 +77,7 @@ class TestManagedStackDeploy(PackageIntegBase, DeployIntegBase):
             region=DEFAULT_REGION,
         )
 
-        deploy_process_execute = run_command(deploy_command_list, cwd=self.test_data_path)
+        deploy_process_execute = self.run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
         self._managed_stack_sanity_check(self.cfn_client, self.s3_client, DEFAULT_REGION)
 
@@ -94,8 +93,8 @@ class TestManagedStackDeploy(PackageIntegBase, DeployIntegBase):
             template_file=template_path, region=DEFAULT_REGION, guided=True
         )
 
-        deploy_process_execute = run_command_with_input(
-            deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode(), cwd=self.test_data_path
+        deploy_process_execute = self.run_command_with_input(
+            deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode()
         )
 
         # Deploy should succeed with a managed stack
