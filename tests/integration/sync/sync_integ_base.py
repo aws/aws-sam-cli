@@ -28,6 +28,8 @@ LOG = logging.getLogger(__name__)
 
 
 class SyncIntegBase(BuildIntegBase, PackageIntegBase):
+    test_data_path = None
+
     @classmethod
     def setUpClass(cls) -> None:
         PackageIntegBase.setUpClass()
@@ -38,7 +40,8 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
 
     @classmethod
     def tearDownClass(cls) -> None:
-        shutil.rmtree(cls.test_data_path, ignore_errors=True)
+        if cls.test_data_path:
+            shutil.rmtree(cls.test_data_path, ignore_errors=True)
 
     def setUp(self):
         self.cfn_client = boto3.client("cloudformation")

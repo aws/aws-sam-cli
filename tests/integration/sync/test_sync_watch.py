@@ -129,7 +129,6 @@ class TestSyncWatchBase(SyncIntegBase):
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
 class TestSyncWatchEsbuildBase(TestSyncWatchBase):
-
     def _setup_verify_infra(self):
         template_path = self.test_data_path.joinpath(self.template_before)
         self.stacks.append({"name": self.stack_name})

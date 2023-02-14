@@ -362,6 +362,9 @@ class TestSyncInfraCDKTemplates(SyncIntegBase):
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
 @parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 class TestSyncInfraWithJava(SyncIntegBase):
+    ecr_repo_name = None
+    kms_key = None
+
     @parameterized.expand(["infra/template-java.yaml"])
     def test_sync_infra_with_java(self, template_file):
         """This will test a case where user will flip ADL flag between sync sessions"""
