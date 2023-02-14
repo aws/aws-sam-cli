@@ -13,10 +13,12 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - make-pr
+      - integration_tests-buildcmd_rust
     steps:
       - name: report-failure
         if : |
-          needs.make-pr.result != 'success'
+          needs.make-pr.result != 'success' || 
+          needs.integration_tests-buildcmd_rust.result != 'success'
         run: exit 1
       - name: report-success
         run: exit 0
