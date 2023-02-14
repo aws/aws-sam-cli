@@ -95,6 +95,21 @@ class SyncFlow(ABC):
         raise NotImplementedError("gather_resources")
 
     @abstractmethod
+    def compare_local(self) -> bool:
+        """Comparison between local resource and its local stored state.
+        If the resources are identical, sync and gather dependencies will be skipped.
+        Simply return False if there is no comparison needed.
+        Ex: Comparing local Lambda function artifact with stored SHA256
+
+        Returns
+        -------
+        bool
+            Return True if current resource and cached are in sync. Skipping rest of the execution.
+            Return False otherwise.
+        """
+        raise NotImplementedError("compare_local")
+
+    @abstractmethod
     def compare_remote(self) -> bool:
         """Comparison between local and remote resources.
         This can be used for optimization if comparison is a lot faster than sync.
@@ -309,7 +324,7 @@ class SyncFlow(ABC):
         LOG.debug("%sGathering Resources", self.log_prefix)
         self.gather_resources()
         LOG.debug("%sComparing with Remote", self.log_prefix)
-        if not self.compare_remote():
+        if not self.compare_local() or not self.compare_remote():
             LOG.debug("%sSyncing", self.log_prefix)
             self.sync()
             LOG.debug("%sGathering Dependencies", self.log_prefix)

@@ -64,6 +64,9 @@ class AliasVersionSyncFlow(SyncFlow):
     def gather_resources(self) -> None:
         pass
 
+    def compare_local(self) -> bool:
+        return False
+
     def compare_remote(self) -> bool:
         return False
 

@@ -104,6 +104,9 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
         LOG.debug("%sCreated artifact ZIP file: %s", self.log_prefix, self._zip_file)
         self._local_sha = file_checksum(cast(str, self._zip_file), hashlib.sha256())
 
+    def compare_local(self) -> bool:
+        return False
+
     def compare_remote(self) -> bool:
         remote_info = self._lambda_client.get_function(FunctionName=self.get_physical_id(self._function_identifier))
         remote_sha = base64.b64decode(remote_info["Configuration"]["CodeSha256"]).hex()

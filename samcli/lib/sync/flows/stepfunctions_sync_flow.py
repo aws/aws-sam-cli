@@ -1,5 +1,6 @@
 """Base SyncFlow for StepFunctions"""
 import logging
+import hashlib
 from pathlib import Path
 from typing import Any, Dict, List, TYPE_CHECKING, Optional
 
@@ -8,6 +9,7 @@ from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIde
 from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall, get_definition_path
 from samcli.lib.sync.exceptions import InfraSyncRequiredError
 from samcli.lib.providers.exceptions import MissingLocalDefinition
+from samcli.lib.utils.hash import str_checksum
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -71,6 +73,7 @@ class StepFunctionsSyncFlow(SyncFlow):
             raise InfraSyncRequiredError(self._state_machine_identifier, "DefinitionSubstitutions field is specified.")
         self._definition_uri = self._get_definition_file(self._state_machine_identifier)
         self._states_definition = self._process_definition_file()
+        self._local_sha = str_checksum(self._states_definition)
 
     def _process_definition_file(self) -> Optional[str]:
         if self._definition_uri is None:
@@ -89,6 +92,12 @@ class StepFunctionsSyncFlow(SyncFlow):
             self._build_context.base_dir,
             self._stacks,
         )
+
+    def compare_local(self) -> bool:
+        stored_sha = None
+        if self._local_sha == stored_sha:
+            return True
+        return False
 
     def compare_remote(self) -> bool:
         # Not comparing with remote right now, instead only making update api calls

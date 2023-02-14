@@ -65,6 +65,9 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
         super().set_up()
         self._lambda_client = self._boto_client("lambda")
 
+    def compare_local(self) -> bool:
+        return False
+
     def compare_remote(self) -> bool:
         """
         Compare Sha256 of the deployed layer code vs the one just built, True if they are same, False otherwise
@@ -383,6 +386,9 @@ class FunctionLayerReferenceSync(SyncFlow):
                 [ApiCallTypes.UPDATE_FUNCTION_CODE, ApiCallTypes.UPDATE_FUNCTION_CONFIGURATION],
             )
         ]
+
+    def compare_local(self) -> bool:
+        return False
 
     def compare_remote(self) -> bool:
         return False

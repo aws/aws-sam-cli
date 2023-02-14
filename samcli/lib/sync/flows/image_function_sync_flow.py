@@ -78,6 +78,9 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
         )
         self._image_name = builder.build().artifacts.get(self._function_identifier)
 
+    def compare_local(self) -> bool:
+        return False
+
     def compare_remote(self) -> bool:
         return False
 

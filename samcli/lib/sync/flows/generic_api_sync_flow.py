@@ -81,6 +81,10 @@ class GenericApiSyncFlow(SyncFlow):
             self._stacks,
         )
 
+    def compare_local(self) -> bool:
+        self._swagger_body
+        return False
+
     def compare_remote(self) -> bool:
         return False
 
