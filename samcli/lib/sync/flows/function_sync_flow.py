@@ -17,6 +17,7 @@ from samcli.lib.sync.sync_flow import SyncFlow
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
+    from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)
 FUNCTION_SLEEP = 1  # used to wait for lambda function last update to be successful
@@ -35,6 +36,7 @@ class FunctionSyncFlow(SyncFlow, ABC):
         function_identifier: str,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
     ):
@@ -47,6 +49,8 @@ class FunctionSyncFlow(SyncFlow, ABC):
             BuildContext
         deploy_context : DeployContext
             DeployContext
+        sync_context: SyncContext
+            SyncContext object that obtains sync information.
         physical_id_mapping : Dict[str, str]
             Physical ID Mapping
         stacks : Optional[List[Stack]]
@@ -55,6 +59,7 @@ class FunctionSyncFlow(SyncFlow, ABC):
         super().__init__(
             build_context,
             deploy_context,
+            sync_context,
             physical_id_mapping,
             log_name="Lambda Function " + function_identifier,
             stacks=stacks,
@@ -96,6 +101,7 @@ class FunctionSyncFlow(SyncFlow, ABC):
                     auto_publish_alias_name,
                     self._build_context,
                     self._deploy_context,
+                    self._sync_context,
                     self._physical_id_mapping,
                     self._stacks,
                 )

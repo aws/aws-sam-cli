@@ -13,6 +13,7 @@ class TestHttpApiSyncFlow(TestCase):
             "Api1",
             build_context=MagicMock(),
             deploy_context=MagicMock(),
+            sync_context=MagicMock(),
             physical_id_mapping={},
             stacks=[MagicMock()],
         )

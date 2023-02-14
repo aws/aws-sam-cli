@@ -46,6 +46,7 @@ from samcli.commands.build.build_context import BuildContext
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
+    from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)
 
@@ -86,6 +87,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
 
     _deploy_context: "DeployContext"
     _build_context: "BuildContext"
+    _sync_context: "SyncContext"
     _physical_id_mapping: Dict[str, str]
     _auto_dependency_layer: bool
 
@@ -93,6 +95,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
         self,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         stacks: List[Stack],
         auto_dependency_layer: bool,
     ) -> None:
@@ -103,12 +106,15 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
             BuildContext to be passed into each individual SyncFlow
         deploy_context : DeployContext
             DeployContext to be passed into each individual SyncFlow
+        sync_context: SyncContext
+            SyncContext object that obtains sync information.
         stacks : List[Stack]
             List of stacks containing a root stack and optional nested ones
         """
         super().__init__(stacks)
         self._deploy_context = deploy_context
         self._build_context = build_context
+        self._sync_context = sync_context
         self._auto_dependency_layer = auto_dependency_layer
         self._physical_id_mapping = dict()
 
@@ -154,6 +160,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                     str(resource_identifier),
                     self._build_context,
                     self._deploy_context,
+                    self._sync_context,
                     self._physical_id_mapping,
                     self._stacks,
                 )
@@ -162,6 +169,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                 str(resource_identifier),
                 self._build_context,
                 self._deploy_context,
+                self._sync_context,
                 self._physical_id_mapping,
                 self._stacks,
             )
@@ -170,6 +178,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                 str(resource_identifier),
                 self._build_context,
                 self._deploy_context,
+                self._sync_context,
                 self._physical_id_mapping,
                 self._stacks,
             )
@@ -188,6 +197,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                 str(resource_identifier),
                 self._build_context,
                 self._deploy_context,
+                self._sync_context,
                 self._physical_id_mapping,
                 self._stacks,
             )
@@ -198,6 +208,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                 str(resource_identifier),
                 self._build_context,
                 self._deploy_context,
+                self._sync_context,
                 self._physical_id_mapping,
                 self._stacks,
             )
@@ -208,6 +219,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                 str(resource_identifier),
                 self._build_context,
                 self._deploy_context,
+                self._sync_context,
                 self._physical_id_mapping,
                 self._stacks,
             )
@@ -220,6 +232,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
             str(resource_identifier),
             self._build_context,
             self._deploy_context,
+            self._sync_context,
             self._physical_id_mapping,
             self._stacks,
         )
@@ -229,6 +242,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
             str(resource_identifier),
             self._build_context,
             self._deploy_context,
+            self._sync_context,
             self._physical_id_mapping,
             self._stacks,
         )
@@ -240,6 +254,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
             str(resource_identifier),
             self._build_context,
             self._deploy_context,
+            self._sync_context,
             self._physical_id_mapping,
             self._stacks,
         )

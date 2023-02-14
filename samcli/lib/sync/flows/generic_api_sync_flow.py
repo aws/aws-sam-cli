@@ -12,6 +12,7 @@ from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIde
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.build.build_context import BuildContext
     from samcli.commands.deploy.deploy_context import DeployContext
+    from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)
 
@@ -30,6 +31,7 @@ class GenericApiSyncFlow(SyncFlow, ABC):
         api_identifier: str,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         log_name: str,
         stacks: List[Stack],
@@ -43,6 +45,8 @@ class GenericApiSyncFlow(SyncFlow, ABC):
             BuildContext used for build related parameters
         deploy_context : BuildContext
             DeployContext used for this deploy related parameters
+        sync_context: SyncContext
+            SyncContext object that obtains sync information.
         physical_id_mapping : Dict[str, str]
             Mapping between resource logical identifier and physical identifier
         log_name: str
@@ -53,6 +57,7 @@ class GenericApiSyncFlow(SyncFlow, ABC):
         super().__init__(
             build_context,
             deploy_context,
+            sync_context,
             physical_id_mapping,
             log_name=log_name,
             stacks=stacks,
