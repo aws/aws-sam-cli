@@ -18,6 +18,7 @@ from samcli.lib.sync.exceptions import MissingLockException, MissingPhysicalReso
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
+    from samcli.commands.sync.sync_context import SyncContext
 
 # Logging with multiple processes is not safe. Use a log queue in the future.
 # https://docs.python.org/3/howto/logging-cookbook.html#:~:text=Although%20logging%20is%20thread%2Dsafe,across%20multiple%20processes%20in%20Python.
@@ -45,6 +46,7 @@ class SyncFlow(ABC):
     _log_name: str
     _build_context: "BuildContext"
     _deploy_context: "DeployContext"
+    _sync_context: "SyncContext"
     _stacks: Optional[List[Stack]]
     _session: Optional[Session]
     _physical_id_mapping: Dict[str, str]
@@ -54,6 +56,7 @@ class SyncFlow(ABC):
         self,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         log_name: str,
         stacks: Optional[List[Stack]] = None,
@@ -65,6 +68,8 @@ class SyncFlow(ABC):
             BuildContext used for build related parameters
         deploy_context : BuildContext
             DeployContext used for this deploy related parameters
+        sync_context: SyncContext
+            SyncContext object that obtains sync information.
         physical_id_mapping : Dict[str, str]
             Mapping between resource logical identifier and physical identifier
         log_name : str
@@ -74,6 +79,7 @@ class SyncFlow(ABC):
         """
         self._build_context = build_context
         self._deploy_context = deploy_context
+        self._sync_context = sync_context
         self._log_name = log_name
         self._stacks = stacks
         self._session = None

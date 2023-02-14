@@ -15,6 +15,7 @@ from samcli.lib.utils.hash import str_checksum
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
+    from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ class StepFunctionsSyncFlow(SyncFlow):
         state_machine_identifier: str,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
     ):
@@ -43,6 +45,8 @@ class StepFunctionsSyncFlow(SyncFlow):
             BuildContext used for build related parameters
         deploy_context : BuildContext
             DeployContext used for this deploy related parameters
+        sync_context: SyncContext
+            SyncContext object that obtains sync information.
         physical_id_mapping : Dict[str, str]
             Mapping between resource logical identifier and physical identifier
         stacks : List[Stack], optional
@@ -51,6 +55,7 @@ class StepFunctionsSyncFlow(SyncFlow):
         super().__init__(
             build_context,
             deploy_context,
+            sync_context,
             physical_id_mapping,
             log_name="StepFunctions " + state_machine_identifier,
             stacks=stacks,
