@@ -1,3 +1,6 @@
+import shutil
+import tempfile
+from pathlib import Path
 from unittest import TestCase
 from enum import Enum, auto
 
@@ -21,8 +24,13 @@ class DeployIntegBase(TestCase):
             ResourceType.S3_BUCKET: list(),
             ResourceType.IAM_ROLE: list(),
         }
+        # make temp directory and move all test files into there for each test run
+        original_test_data_path = self.test_data_path
+        self.test_data_path = Path(tempfile.mkdtemp())
+        shutil.copytree(original_test_data_path, self.test_data_path, dirs_exist_ok=True)
 
     def tearDown(self):
+        shutil.rmtree(self.test_data_path)
         super().tearDown()
         self.delete_s3_buckets()
         self.delete_iam_roles()

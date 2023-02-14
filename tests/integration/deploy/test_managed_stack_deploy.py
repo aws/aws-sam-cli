@@ -1,11 +1,9 @@
 import os
-import shutil
-import time
 from unittest import skipIf
 
 import boto3
-from botocore.exceptions import ClientError
 from botocore.config import Config
+from botocore.exceptions import ClientError
 from parameterized import parameterized
 
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
@@ -24,7 +22,6 @@ SKIP_MANAGED_STACK_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and n
 IS_TARGETTED_PYTHON_VERSION = PYTHON_VERSION.startswith("3.7")
 
 CFN_PYTHON_VERSION_SUFFIX = PYTHON_VERSION.replace(".", "-")
-CFN_SLEEP = 3
 # Set region for managed stacks to be in a different region than the ones in deploy
 DEFAULT_REGION = "us-west-2"
 
@@ -41,15 +38,14 @@ class TestManagedStackDeploy(PackageIntegBase, DeployIntegBase):
         self.s3_client = boto3.client("s3", region_name=DEFAULT_REGION)
         self.sns_arn = os.environ.get("AWS_SNS")
         self.stacks = []
-        time.sleep(CFN_SLEEP)
 
         self._delete_managed_stack(self.cfn_client, self.s3_client, DEFAULT_REGION)
         self.assertFalse(self._does_stack_exist(self.cfn_client, SAM_CLI_STACK_NAME))
 
-        super().setUp()
+        PackageIntegBase.setUp(self)
+        DeployIntegBase.setUp(self)
 
     def tearDown(self):
-        shutil.rmtree(os.path.join(os.getcwd(), ".aws-sam", "build"), ignore_errors=True)
         for stack in self.stacks:
             stack_name = stack["name"]
             if stack_name != SAM_CLI_STACK_NAME:
@@ -61,7 +57,8 @@ class TestManagedStackDeploy(PackageIntegBase, DeployIntegBase):
 
         self._delete_managed_stack(self.cfn_client, self.s3_client, DEFAULT_REGION)
         self.assertFalse(self._does_stack_exist(self.cfn_client, SAM_CLI_STACK_NAME))
-        super().tearDown()
+        DeployIntegBase.tearDown(self)
+        PackageIntegBase.tearDown(self)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_managed_stack_creation_resolve_s3(self, template_file):
@@ -81,7 +78,7 @@ class TestManagedStackDeploy(PackageIntegBase, DeployIntegBase):
             region=DEFAULT_REGION,
         )
 
-        deploy_process_execute = run_command(deploy_command_list)
+        deploy_process_execute = run_command(deploy_command_list, cwd=self.test_data_path)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
         self._managed_stack_sanity_check(self.cfn_client, self.s3_client, DEFAULT_REGION)
 
@@ -98,7 +95,7 @@ class TestManagedStackDeploy(PackageIntegBase, DeployIntegBase):
         )
 
         deploy_process_execute = run_command_with_input(
-            deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode()
+            deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode(), cwd=self.test_data_path
         )
 
         # Deploy should succeed with a managed stack
@@ -107,11 +104,6 @@ class TestManagedStackDeploy(PackageIntegBase, DeployIntegBase):
         # Remove samconfig.toml
         os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
         self._managed_stack_sanity_check(self.cfn_client, self.s3_client, DEFAULT_REGION)
-
-    def _method_to_stack_name(self, method_name):
-        """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
-        method_name = method_name.split(".")[-1]
-        return f"{method_name.replace('_', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
 
     def _delete_managed_stack(self, cfn_client, s3_client, region, wait=True):
         if not self._does_stack_exist(cfn_client, SAM_CLI_STACK_NAME):
