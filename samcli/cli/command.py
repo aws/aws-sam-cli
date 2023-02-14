@@ -96,10 +96,13 @@ class BaseCommand(click.MultiCommand):
 
         return commands
 
-    def format_options(self, ctx, formatter):
-        # Re-order options so that they come after the commands.
+    def format_options(self, ctx: click.Context, formatter: RootCommandHelpTextFormatter):  # type: ignore
+        # NOTE(sriram-mv): `ignore` is put in place here for mypy even though it is the correct behavior,
+        # as the `formatter_class` can be set in subclass of Command. If ignore is not set,
+        # mypy raises argument needs to be HelpFormatter as super class defines it.
+        # NOTE(sriram-mv): Re-order options so that they come after the commands.
         self.format_commands(ctx, formatter)
-        opts = [RowDefinition(text="\n")]
+        opts = [RowDefinition(name="", text="\n")]
         for param in self.get_params(ctx):
             row = param.get_help_record(ctx)
             if row is not None:
@@ -114,6 +117,7 @@ class BaseCommand(click.MultiCommand):
             formatter.write_rd(
                 [
                     RowDefinition(
+                        name="",
                         text="\n",
                     ),
                     RowDefinition(
@@ -124,12 +128,15 @@ class BaseCommand(click.MultiCommand):
                 ],
             )
 
-    def format_commands(self, ctx, formatter):
+    def format_commands(self, ctx: click.Context, formatter: RootCommandHelpTextFormatter):  # type: ignore
+        # NOTE(sriram-mv): `ignore` is put in place here for mypy even though it is the correct behavior,
+        # as the `formatter_class` can be set in subclass of Command. If ignore is not set,
+        # mypy raises argument needs to be HelpFormatter as super class defines it.
         with formatter.section("Commands"):
             with formatter.section("Create an App"):
                 formatter.write_rd(
                     [
-                        RowDefinition(name="init", text=SAM_CLI_COMMANDS.get("init")),
+                        RowDefinition(name="init", text=SAM_CLI_COMMANDS.get("init", "")),
                     ],
                 )
 
@@ -138,19 +145,19 @@ class BaseCommand(click.MultiCommand):
                     [
                         RowDefinition(
                             name="build",
-                            text=SAM_CLI_COMMANDS.get("build"),
+                            text=SAM_CLI_COMMANDS.get("build", ""),
                         ),
                         RowDefinition(
                             name="local",
-                            text=SAM_CLI_COMMANDS.get("local"),
+                            text=SAM_CLI_COMMANDS.get("local", ""),
                         ),
                         RowDefinition(
                             name="validate",
-                            text=SAM_CLI_COMMANDS.get("validate"),
+                            text=SAM_CLI_COMMANDS.get("validate", ""),
                         ),
                         RowDefinition(
                             name="sync",
-                            text=SAM_CLI_COMMANDS.get("sync"),
+                            text=SAM_CLI_COMMANDS.get("sync", ""),
                             extra_row_modifiers=[HighlightNewRowNameModifier()],
                         ),
                     ],
@@ -161,11 +168,11 @@ class BaseCommand(click.MultiCommand):
                     [
                         RowDefinition(
                             name="package",
-                            text=SAM_CLI_COMMANDS.get("package"),
+                            text=SAM_CLI_COMMANDS.get("package", ""),
                         ),
                         RowDefinition(
                             name="deploy",
-                            text=SAM_CLI_COMMANDS.get("deploy"),
+                            text=SAM_CLI_COMMANDS.get("deploy", ""),
                         ),
                     ]
                 )
@@ -175,11 +182,11 @@ class BaseCommand(click.MultiCommand):
                     [
                         RowDefinition(
                             name="logs",
-                            text=SAM_CLI_COMMANDS.get("logs"),
+                            text=SAM_CLI_COMMANDS.get("logs", ""),
                         ),
                         RowDefinition(
                             name="traces",
-                            text=SAM_CLI_COMMANDS.get("traces"),
+                            text=SAM_CLI_COMMANDS.get("traces", ""),
                         ),
                     ],
                 )
@@ -189,20 +196,20 @@ class BaseCommand(click.MultiCommand):
                     [
                         RowDefinition(
                             name="list",
-                            text=SAM_CLI_COMMANDS.get("list"),
+                            text=SAM_CLI_COMMANDS.get("list", ""),
                             extra_row_modifiers=[HighlightNewRowNameModifier()],
                         ),
                         RowDefinition(
                             name="delete",
-                            text=SAM_CLI_COMMANDS.get("delete"),
+                            text=SAM_CLI_COMMANDS.get("delete", ""),
                         ),
                         RowDefinition(
                             name="pipeline",
-                            text=SAM_CLI_COMMANDS.get("pipeline"),
+                            text=SAM_CLI_COMMANDS.get("pipeline", ""),
                         ),
                         RowDefinition(
                             name="publish",
-                            text=SAM_CLI_COMMANDS.get("publish"),
+                            text=SAM_CLI_COMMANDS.get("publish", ""),
                         ),
                     ],
                 )
