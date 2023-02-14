@@ -151,18 +151,6 @@ for:
       - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
       - sh: "terraform -version"
 
-      # install Rust
-      - sh: "curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL https://sh.rustup.rs | sh -s -- --default-toolchain none -y"
-      - sh: "source $HOME/.cargo/env"
-      - sh: "rustup toolchain install stable --profile minimal --no-self-update"
-      - sh: "rustup default stable"
-      - sh: "rustup target add x86_64-unknown-linux-gnu --toolchain stable"
-      - sh: "rustup target add aarch64-unknown-linux-gnu --toolchain stable"
-      - sh: "pip install cargo-lambda==$CARGO_LAMBDA_VERSION"
-      - sh: "rustc -V"
-      - sh: "cargo -V"
-      - sh: "cargo lambda -V"
-
       # Install AWS CLI
       - sh: "virtualenv aws_cli"
       - sh: "./aws_cli/bin/python -m pip install awscli"
@@ -209,7 +197,8 @@ for:
           then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
         fi"
 
-      - sh: "pytest -vv tests/integration"
+      # NOTE: test_build_cmd_rust.py is run in GH Action
+      - sh: "pytest -vv tests/integration --ignore=tests/integration/buildcmd/test_build_cmd_rust.py"
       - sh: "pytest -vv tests/regression"
       - sh: "black --check setup.py tests samcli"
 
