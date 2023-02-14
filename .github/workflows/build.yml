@@ -1,4 +1,4 @@
-name: Unit Tests
+name: Build And Tests
 
 on:
   pull_request:
@@ -7,7 +7,21 @@ on:
       - "feat/*"
 
 jobs:
-  build:
+  run-workflow:
+    name: PR Workflow
+    if: always()
+    runs-on: ubuntu-latest
+    needs:
+      - make-pr
+    steps:
+      - name: report-failure
+        if : |
+          needs.make-pr.result != 'success'
+        run: exit 1
+      - name: report-success
+        run: exit 0
+
+  make-pr:
     name: ${{ matrix.os }} / ${{ matrix.python }}
     runs-on: ${{ matrix.os }}
     strategy:
