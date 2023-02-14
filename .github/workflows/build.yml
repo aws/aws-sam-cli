@@ -61,7 +61,7 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          - windows-latest
+          # TODO: add windows-latest; fails due to unable to switch to Linux container
         python:
           - "3.7"
           - "3.8"
@@ -82,7 +82,7 @@ jobs:
             curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL "https://sh.rustup.rs" | sh -s -- --default-toolchain none -y
             echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
           fi
-        if: ${{ matrix.os }} == 'ubuntu-latest'
+        if: ${{ matrix.os == 'ubuntu-latest' }}
       - name: rustup toolchain install ${{ matrix.rust }}
         run: rustup toolchain install ${{ matrix.rust }} --profile minimal --no-self-update
       - run: rustup default ${{ matrix.rust }}
