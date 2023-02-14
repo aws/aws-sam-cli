@@ -101,9 +101,9 @@ class BaseCommand(click.MultiCommand):
         self.format_commands(ctx, formatter)
         opts = [RowDefinition(text="\n")]
         for param in self.get_params(ctx):
-            rv = param.get_help_record(ctx)
-            if rv is not None:
-                term, help_text = rv
+            row = param.get_help_record(ctx)
+            if row is not None:
+                term, help_text = row
                 opts.append(RowDefinition(name=term, text=help_text))
 
         if opts:

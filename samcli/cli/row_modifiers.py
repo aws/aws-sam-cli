@@ -3,12 +3,14 @@ Row Definition and Row Modifiers to be used with `click.HelpFormatter write_dl m
 """
 
 from typing import NamedTuple, List
+from abc import ABC
 
 from click import style
 
 
-class RowModifier:
-    pass
+class RowModifier(ABC):
+    def apply(self, row, justification_length):
+        raise NotImplementedError
 
 
 class RowDefinition(NamedTuple):

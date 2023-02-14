@@ -17,7 +17,9 @@ class RootCommandHelpTextFormatter(HelpFormatter):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # NOTE(sriram-mv): Do not left justify for more than half the width.
+        # NOTE(sriram-mv): Add Additional space after determining the longest command.
+        # However, do not justify with padding for more than half the width of
+        # the terminal to retain aesthetics
         self.left_justification_length = min(
             max([len(command) for command, _ in SAM_CLI_COMMANDS.items()]) + self.ADDITIVE_JUSTIFICATION,
             self.width // 2 - self.indent_increment,
