@@ -6,10 +6,10 @@ import importlib
 from collections import OrderedDict
 
 import click
-from click import Context
 
-from samcli.cli.formatters import RootCommandHelpTextFormatter, DefinitionRow
-
+from samcli.cli.formatters import RootCommandHelpTextFormatter
+from samcli.cli.row_modifiers import RowDefinition, HighlightNewRowNameModifier, ShowcaseRowModifier
+from samcli.cli.root.command_list import SAM_CLI_COMMANDS
 
 logger = logging.getLogger(__name__)
 
@@ -32,22 +32,6 @@ _SAM_CLI_COMMAND_PACKAGES = [
     # We intentionally do not expose the `bootstrap` command for now. We might open it up later
     # "samcli.commands.bootstrap",
 ]
-
-_SAM_CLI_COMMAND_SHORT_HELP = {
-    "init": "Initialize an AWS SAM application.",
-    "validate": "Validate an AWS SAM template.",
-    "build": "Build your AWS Lambda Function code.",
-    "local": "Run your AWS serverless function locally.",
-    "package": "Package an AWS SAM application.",
-    "deploy": "Deploy an AWS SAM application.",
-    "delete": "Delete an AWS SAM application and the artifacts created by sam deploy.",
-    "logs": "Fetch AWS Cloudwatch logs for a function.",
-    "publish": "Publish a packaged AWS SAM template to AWS Serverless Application Repository for easy sharing.",
-    "traces": "Fetch AWS X-Ray traces.",
-    "sync": "Sync an AWS SAM project to AWS.",
-    "pipeline": "Manage the continuous delivery of your AWS serverless application.",
-    "list": "Fetch the state of your AWS serverless application.",
-}
 
 
 class BaseCommand(click.MultiCommand):
@@ -112,92 +96,113 @@ class BaseCommand(click.MultiCommand):
 
         return commands
 
-    def format_options(self, ctx: Context, formatter: RootCommandHelpTextFormatter) -> None:
+    def format_options(self, ctx, formatter):
         # Re-order options so that they come after the commands.
         self.format_commands(ctx, formatter)
-        opts = []
+        opts = [RowDefinition(text="\n")]
         for param in self.get_params(ctx):
             rv = param.get_help_record(ctx)
             if rv is not None:
                 term, help_text = rv
-                opts.append(DefinitionRow(name=term, help_text=help_text))
+                opts.append(RowDefinition(name=term, text=help_text))
 
         if opts:
-            with formatter.section("Options"):
-                formatter.indent()
-                formatter.write_dl(opts, new_lines=1)
+            with formatter.indented_section(name="Options", extra_indents=1):
+                formatter.write_rd(opts)
+
+        with formatter.indented_section(name="Examples", extra_indents=1):
+            formatter.write_rd(
+                [
+                    RowDefinition(
+                        text="\n",
+                    ),
+                    RowDefinition(
+                        name="Get Started:",
+                        text=click.style(f"${ctx.command_path} init"),
+                        extra_row_modifiers=[ShowcaseRowModifier()],
+                    ),
+                ],
+            )
 
     def format_commands(self, ctx, formatter):
         with formatter.section("Commands"):
-            with formatter.section("Create an App!"):
-                formatter.write_dl(
+            with formatter.section("Create an App"):
+                formatter.write_rd(
                     [
-                        DefinitionRow(name="init", help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("init")),
+                        RowDefinition(name="init", text=SAM_CLI_COMMANDS.get("init")),
                     ],
                 )
 
-            with formatter.section("Develop your App!"):
-                formatter.write_dl(
+            with formatter.section("Develop your App"):
+                formatter.write_rd(
                     [
-                        DefinitionRow(
+                        RowDefinition(
                             name="build",
-                            help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("build"),
+                            text=SAM_CLI_COMMANDS.get("build"),
                         ),
-                        DefinitionRow(
+                        RowDefinition(
                             name="local",
-                            help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("local"),
+                            text=SAM_CLI_COMMANDS.get("local"),
                         ),
-                        DefinitionRow(
+                        RowDefinition(
                             name="validate",
-                            help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("validate"),
+                            text=SAM_CLI_COMMANDS.get("validate"),
                         ),
-                        DefinitionRow(name="sync", help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("sync"), new=True),
+                        RowDefinition(
+                            name="sync",
+                            text=SAM_CLI_COMMANDS.get("sync"),
+                            extra_row_modifiers=[HighlightNewRowNameModifier()],
+                        ),
                     ],
                 )
 
-            with formatter.section("Deploy your App!"):
-                formatter.write_dl(
+            with formatter.section("Deploy your App"):
+                formatter.write_rd(
                     [
-                        DefinitionRow(
+                        RowDefinition(
                             name="package",
-                            help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("package"),
+                            text=SAM_CLI_COMMANDS.get("package"),
                         ),
-                        DefinitionRow(
+                        RowDefinition(
                             name="deploy",
-                            help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("deploy"),
+                            text=SAM_CLI_COMMANDS.get("deploy"),
                         ),
                     ]
                 )
 
-            with formatter.section("Monitor your App!"):
-                formatter.write_dl(
+            with formatter.section("Monitor your App"):
+                formatter.write_rd(
                     [
-                        DefinitionRow(
+                        RowDefinition(
                             name="logs",
-                            help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("logs"),
+                            text=SAM_CLI_COMMANDS.get("logs"),
                         ),
-                        DefinitionRow(
+                        RowDefinition(
                             name="traces",
-                            help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("traces"),
+                            text=SAM_CLI_COMMANDS.get("traces"),
                         ),
                     ],
                 )
 
-            with formatter.section("And More!"):
-                formatter.write_dl(
+            with formatter.section("And More"):
+                formatter.write_rd(
                     [
-                        DefinitionRow(name="list", help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("list"), new=True),
-                        DefinitionRow(
+                        RowDefinition(
+                            name="list",
+                            text=SAM_CLI_COMMANDS.get("list"),
+                            extra_row_modifiers=[HighlightNewRowNameModifier()],
+                        ),
+                        RowDefinition(
                             name="delete",
-                            help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("delete"),
+                            text=SAM_CLI_COMMANDS.get("delete"),
                         ),
-                        DefinitionRow(
+                        RowDefinition(
                             name="pipeline",
-                            help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("pipeline"),
+                            text=SAM_CLI_COMMANDS.get("pipeline"),
                         ),
-                        DefinitionRow(
+                        RowDefinition(
                             name="publish",
-                            help_text=_SAM_CLI_COMMAND_SHORT_HELP.get("publish"),
+                            text=SAM_CLI_COMMANDS.get("publish"),
                         ),
                     ],
                 )
@@ -242,6 +247,4 @@ class BaseCommand(click.MultiCommand):
                 )
                 return None
 
-        return (
-            mod.cli if mod else click.Command(name=cmd_name, short_help=_SAM_CLI_COMMAND_SHORT_HELP.get(cmd_name, ""))
-        )
+        return mod.cli if mod else click.Command(name=cmd_name, short_help=SAM_CLI_COMMANDS.get(cmd_name, ""))
