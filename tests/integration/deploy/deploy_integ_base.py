@@ -13,9 +13,6 @@ class ResourceType(Enum):
 
 
 class DeployIntegBase(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        pass
 
     def setUp(self):
         super().setUp()

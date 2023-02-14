@@ -24,7 +24,6 @@ from tests.testing_utils import run_command, run_command_with_input
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
 SKIP_DEPLOY_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
-CFN_SLEEP = 3
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
 
 
@@ -54,11 +53,15 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         self.ecr_client = boto3.client("ecr")
         self.sns_arn = os.environ.get("AWS_SNS")
         self.stacks = []
-        time.sleep(CFN_SLEEP)
+
+        # make temp directory and move all test files into there for each test run
+        original_test_data_path = self.test_data_path
+        self.test_data_path = Path(tempfile.mkdtemp())
+        shutil.copytree(original_test_data_path, self.test_data_path, dirs_exist_ok=True)
+
         super().setUp()
 
     def tearDown(self):
-        shutil.rmtree(os.path.join(os.getcwd(), ".aws-sam", "build"), ignore_errors=True)
         for stack in self.stacks:
             # because of the termination protection, do not delete aws-sam-cli-managed-default stack
             stack_name = stack["name"]
@@ -70,6 +73,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
                 ecr_client = self.ecr_client if not region else boto3.client("ecr", config=Config(region_name=region))
                 self._delete_companion_stack(cfn_client, ecr_client, self._stack_name_to_companion_stack(stack_name))
                 cfn_client.delete_stack(StackName=stack_name)
+        shutil.rmtree(self.test_data_path)
         super().tearDown()
 
     @parameterized.expand(
