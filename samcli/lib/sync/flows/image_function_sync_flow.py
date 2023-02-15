@@ -16,6 +16,7 @@ from samcli.lib.sync.sync_flow import ApiCallTypes, ResourceAPICall
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
+    from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)
 
@@ -30,6 +31,7 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
         function_identifier: str,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
         docker_client: Optional[DockerClient] = None,
@@ -43,6 +45,8 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
             BuildContext
         deploy_context : DeployContext
             DeployContext
+        sync_context: SyncContext
+            SyncContext object that obtains sync information.
         physical_id_mapping : Dict[str, str]
             Physical ID Mapping
         stacks : Optional[List[Stack]]
@@ -51,7 +55,7 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
             Docker client to be used for building and uploading images.
             Defaults to docker.from_env() if None is provided.
         """
-        super().__init__(function_identifier, build_context, deploy_context, physical_id_mapping, stacks)
+        super().__init__(function_identifier, build_context, deploy_context, sync_context, physical_id_mapping, stacks)
         self._ecr_client = None
         self._image_name = None
         self._docker_client = docker_client
@@ -74,6 +78,7 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
             manifest_path_override=self._build_context.manifest_path_override,
             container_manager=self._build_context.container_manager,
             mode=self._build_context.mode,
+            build_in_source=self._build_context.build_in_source,
         )
         self._image_name = builder.build().artifacts.get(self._function_identifier)
 

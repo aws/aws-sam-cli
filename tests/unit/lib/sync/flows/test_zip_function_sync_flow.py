@@ -16,6 +16,7 @@ class TestZipFunctionSyncFlow(TestCase):
             self.function_identifier,
             build_context=self.build_context_mock,
             deploy_context=MagicMock(),
+            sync_context=MagicMock(),
             physical_id_mapping={},
             stacks=[MagicMock()],
         )
@@ -196,6 +197,7 @@ class TestZipFunctionSyncFlow(TestCase):
             "Function1",
             build_context=build_context,
             deploy_context=MagicMock(),
+            sync_context=MagicMock(),
             physical_id_mapping={},
             stacks=[MagicMock()],
         )
