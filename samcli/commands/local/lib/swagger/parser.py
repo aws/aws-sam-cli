@@ -101,7 +101,9 @@ class SwaggerParser:
                 continue
 
             authorizer_type = authorizer_object.get(SwaggerParser._AUTHORIZER_TYPE, "").lower()
-            payload_version = authorizer_object.get(SwaggerParser._AUTHORIZER_PAYLOAD_VERSION, "1.0")
+            payload_version = authorizer_object.get(
+                SwaggerParser._AUTHORIZER_PAYLOAD_VERSION, LambdaAuthorizer.PAYLOAD_V1
+            )
 
             lambda_name = LambdaUri.get_function_name(authorizer_object.get(SwaggerParser._AUTHORIZER_LAMBDA_URI))
 

@@ -4,10 +4,12 @@ from collections import OrderedDict
 from unittest import TestCase
 
 from unittest.mock import patch, Mock
+from parameterized import parameterized
+from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
 
 from samcli.lib.providers.api_provider import ApiProvider
 from samcli.lib.providers.cfn_api_provider import CfnApiProvider
-from samcli.local.apigw.local_apigw_service import Route
+from samcli.local.apigw.local_apigw_service import LambdaAuthorizer, Route
 from tests.unit.commands.local.lib.test_sam_api_provider import make_swagger
 from samcli.lib.providers.provider import Cors, Stack
 
@@ -1183,3 +1185,134 @@ class TestApiGatewayMethodCorsSettings(TestCase):
         }
         provider = ApiProvider(make_mock_stacks_from_template(template))
         self.assertIsNone(provider.api.cors)
+
+
+class TestCollectLambdaAuthorizersWithApiGatewayV1Resources(TestCase):
+    @parameterized.expand(
+        [
+            (  # test token auth WITHOUT validation
+                {
+                    "Properties": {
+                        "Type": "TOKEN",
+                        "RestApiId": "my-rest-api",
+                        "Name": "my-auth-name",
+                        "AuthorizerUri": "arn",
+                        "IdentitySource": "method.request.header.auth",
+                    }
+                },
+                {
+                    "my-auth-name": LambdaAuthorizer(
+                        payload_version="1.0",
+                        authorizer_name="my-auth-name",
+                        type=LambdaAuthorizer.TOKEN,
+                        lambda_name="my-lambda",
+                        identity_sources=["method.request.header.auth"],
+                    )
+                },
+            ),
+            (  # test token auth WITH validation
+                {
+                    "Properties": {
+                        "Type": "TOKEN",
+                        "RestApiId": "my-rest-api",
+                        "Name": "my-auth-name",
+                        "AuthorizerUri": "arn",
+                        "IdentitySource": "method.request.header.auth",
+                        "IdentityValidationExpression": "*",
+                    }
+                },
+                {
+                    "my-auth-name": LambdaAuthorizer(
+                        payload_version="1.0",
+                        authorizer_name="my-auth-name",
+                        type=LambdaAuthorizer.TOKEN,
+                        lambda_name="my-lambda",
+                        identity_sources=["method.request.header.auth"],
+                        validation_string="*",
+                    )
+                },
+            ),
+            (  # test request auth
+                {
+                    "Properties": {
+                        "Type": "REQUEST",
+                        "RestApiId": "my-rest-api",
+                        "Name": "my-auth-name",
+                        "AuthorizerUri": "arn",
+                        "IdentitySource": "method.request.header.auth, method.request.querystring.abc",
+                    }
+                },
+                {
+                    "my-auth-name": LambdaAuthorizer(
+                        payload_version="1.0",
+                        authorizer_name="my-auth-name",
+                        type=LambdaAuthorizer.REQUEST,
+                        lambda_name="my-lambda",
+                        identity_sources=["method.request.header.auth", "method.request.querystring.abc"],
+                    )
+                },
+            ),
+        ]
+    )
+    @patch("samcli.commands.local.lib.swagger.integration_uri.LambdaUri.get_function_name")
+    @patch("samcli.commands.local.lib.validators.lambda_auth_props.LambdaAuthorizerV1Validator")
+    def test_collect_v1_lambda_authorizer(self, resource, expected_authorizer, validator_mock, get_func_name_mock):
+        lambda_auth_logical_id = "my-auth-id"
+
+        # mock ARN resolving function
+        auth_lambda_func_name = "my-lambda"
+        get_func_name_mock.return_value = auth_lambda_func_name
+
+        validator_mock.validate = Mock()
+        validator_mock.validate.return_value = True
+
+        mock_collector = Mock()
+        mock_collector.add_authorizers = Mock()
+
+        CfnApiProvider._extract_cloud_formation_authorizer(lambda_auth_logical_id, resource, mock_collector)
+
+        mock_collector.add_authorizers.assert_called_with("my-rest-api", expected_authorizer)
+
+
+class TestCollectLambdaAuthorizersWithApiGatewayV2Resources(TestCase):
+    @patch("samcli.commands.local.lib.swagger.integration_uri.LambdaUri.get_function_name")
+    @patch("samcli.commands.local.lib.validators.lambda_auth_props.LambdaAuthorizerV2Validator")
+    def test_collect_v2_lambda_authorizer(self, validator_mock, get_func_name_mock):
+        identity_sources = ["$request.header.auth", "$context.something"]
+
+        properties = {
+            "Properties": {
+                "AuthorizerType": "REQUEST",
+                "ApiId": "my-rest-api",
+                "Name": "my-auth-name",
+                "AuthorizerUri": "arn",
+                "IdentitySource": identity_sources,
+                "AuthorizerPayloadFormatVersion": "2.0",
+            }
+        }
+
+        expected_authorizers = {
+            "my-auth-name": LambdaAuthorizer(
+                payload_version="2.0",
+                authorizer_name="my-auth-name",
+                type=LambdaAuthorizer.REQUEST,
+                lambda_name="my-lambda",
+                identity_sources=identity_sources,
+            )
+        }
+
+        lambda_auth_logical_id = "my-auth-id"
+
+        # mock ARN resolving function
+        auth_lambda_func_name = "my-lambda"
+        get_func_name_mock.return_value = auth_lambda_func_name
+
+        mock_collector = Mock()
+        mock_collector.add_authorizers = Mock()
+
+        validator_mock.validate = Mock()
+        validator_mock.validate.return_value = True
+
+        CfnApiProvider._extract_cfn_gateway_v2_authorizer(lambda_auth_logical_id, properties, mock_collector)
+
+        mock_collector.add_authorizers.assert_called_with("my-rest-api", expected_authorizers)
