@@ -9,7 +9,6 @@ from parameterized import parameterized
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
-from tests.integration.package.package_integ_base import PackageIntegBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 
 PYTHON_VERSION = os.environ.get("PYTHON_VERSION", "0.0.0")
@@ -26,11 +25,7 @@ DEFAULT_REGION = "us-west-2"
 
 
 @skipIf(SKIP_MANAGED_STACK_TESTS or not IS_TARGETTED_PYTHON_VERSION, "Skip managed stack tests in CI/CD only")
-class TestManagedStackDeploy(PackageIntegBase, DeployIntegBase):
-    @classmethod
-    def setUpClass(cls):
-        PackageIntegBase.setUpClass()
-        DeployIntegBase.setUpClass()
+class TestManagedStackDeploy(DeployIntegBase):
 
     def setUp(self):
         self.cfn_client = boto3.client("cloudformation", region_name=DEFAULT_REGION)
@@ -41,8 +36,7 @@ class TestManagedStackDeploy(PackageIntegBase, DeployIntegBase):
         self._delete_managed_stack(self.cfn_client, self.s3_client, DEFAULT_REGION)
         self.assertFalse(self._does_stack_exist(self.cfn_client, SAM_CLI_STACK_NAME))
 
-        PackageIntegBase.setUp(self)
-        DeployIntegBase.setUp(self)
+        super().setUp()
 
     def tearDown(self):
         for stack in self.stacks:
@@ -56,8 +50,7 @@ class TestManagedStackDeploy(PackageIntegBase, DeployIntegBase):
 
         self._delete_managed_stack(self.cfn_client, self.s3_client, DEFAULT_REGION)
         self.assertFalse(self._does_stack_exist(self.cfn_client, SAM_CLI_STACK_NAME))
-        DeployIntegBase.tearDown(self)
-        PackageIntegBase.tearDown(self)
+        super().tearDown()
 
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_managed_stack_creation_resolve_s3(self, template_file):

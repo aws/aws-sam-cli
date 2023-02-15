@@ -24,7 +24,7 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 
 
 @skipIf(SKIP_DEPLOY_TESTS, "Skip deploy tests in CI/CD only")
-class TestDeploy(PackageIntegBase, DeployIntegBase):
+class TestDeploy(DeployIntegBase):
     @classmethod
     def setUpClass(cls):
         cls.docker_client = docker.from_env()
@@ -41,16 +41,14 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         # setup signing profile arn & name
         cls.signing_profile_name = os.environ.get("AWS_SIGNING_PROFILE_NAME")
         cls.signing_profile_version_arn = os.environ.get("AWS_SIGNING_PROFILE_VERSION_ARN")
-        PackageIntegBase.setUpClass()
-        DeployIntegBase.setUpClass()
+        super().setUpClass()
 
     def setUp(self):
         self.cfn_client = boto3.client("cloudformation")
         self.ecr_client = boto3.client("ecr")
         self.sns_arn = os.environ.get("AWS_SNS")
         self.stacks = []
-        PackageIntegBase.setUp(self)
-        DeployIntegBase.setUp(self)
+        super().setUp()
 
     def tearDown(self):
         for stack in self.stacks:

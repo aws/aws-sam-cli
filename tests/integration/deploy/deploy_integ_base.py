@@ -6,6 +6,8 @@ from enum import Enum, auto
 
 import boto3
 from botocore.config import Config
+
+from tests.integration.package.package_integ_base import PackageIntegBase
 from tests.testing_utils import get_sam_command, run_command, run_command_with_input
 
 
@@ -15,7 +17,7 @@ class ResourceType(Enum):
     IAM_ROLE = auto()
 
 
-class DeployIntegBase(TestCase):
+class DeployIntegBase(PackageIntegBase):
     def setUp(self):
         super().setUp()
         self.left_over_resources = {
@@ -26,7 +28,8 @@ class DeployIntegBase(TestCase):
         # make temp directory and move all test files into there for each test run
         original_test_data_path = self.test_data_path
         self.test_data_path = Path(tempfile.mkdtemp())
-        shutil.copytree(original_test_data_path, self.test_data_path, dirs_exist_ok=True)
+        shutil.rmtree(self.test_data_path) # copytree call below fails if root folder present, delete it first
+        shutil.copytree(original_test_data_path, self.test_data_path)
 
     def tearDown(self):
         shutil.rmtree(self.test_data_path)

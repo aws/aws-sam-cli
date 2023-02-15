@@ -1,31 +1,23 @@
 import os
-import time
 import boto3
 import json
 from unittest import skipIf
-from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.integration.list.endpoints.endpoints_integ_base import EndpointsIntegBase
 from samcli.commands.list.endpoints.command import HELP_TEXT
 from tests.testing_utils import CI_OVERRIDE, RUN_BY_CANARY
 from tests.testing_utils import run_command, run_command_with_input, method_to_stack_name
 
-CFN_SLEEP = 3
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
 
 
 @skipIf(
     (not RUN_BY_CANARY and not CI_OVERRIDE),
-    "Skip Terraform test cases unless running in CI",
+    "Skip List test cases unless running in CI",
 )
-class TestEndpoints(DeployIntegBase, EndpointsIntegBase):
-    @classmethod
-    def setUpClass(cls):
-        DeployIntegBase.setUpClass()
-        EndpointsIntegBase.setUpClass()
+class TestEndpoints(EndpointsIntegBase):
 
     def setUp(self):
         self.cf_client = boto3.client("cloudformation")
-        time.sleep(CFN_SLEEP)
         super().setUp()
 
     def test_endpoints_help_message(self):
