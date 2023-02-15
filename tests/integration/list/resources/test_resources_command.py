@@ -15,7 +15,6 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
     "Skip List test cases unless running in CI",
 )
 class TestResources(ResourcesIntegBase):
-
     def setUp(self):
         self.cf_client = boto3.client("cloudformation")
         super().setUp()

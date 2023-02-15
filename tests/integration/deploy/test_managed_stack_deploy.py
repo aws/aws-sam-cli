@@ -25,7 +25,6 @@ DEFAULT_REGION = "us-west-2"
 
 @skipIf(SKIP_MANAGED_STACK_TESTS or not IS_TARGETTED_PYTHON_VERSION, "Skip managed stack tests in CI/CD only")
 class TestManagedStackDeploy(DeployIntegBase):
-
     def setUp(self):
         super().setUp()
         self.s3_client = boto3.client("s3", region_name=DEFAULT_REGION)

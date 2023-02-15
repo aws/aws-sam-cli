@@ -15,7 +15,6 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
     "Skip List test cases unless running in CI",
 )
 class TestEndpoints(EndpointsIntegBase):
-
     def test_endpoints_help_message(self):
         cmdlist = self.get_endpoints_command_list(help=True)
         command_result = run_command(cmdlist)
