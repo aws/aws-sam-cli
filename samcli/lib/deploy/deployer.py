@@ -307,8 +307,13 @@ class Deployer:
 
         # Wait for changeset to be created
         waiter = self._client.get_waiter("change_set_create_complete")
-        # Poll every 5 seconds. Changeset creation should be fast
+        # If there is a client sleep, use it as the delay or use the default 5 seconds
         waiter_config = {"Delay": 5}
+        if ( 
+            self.client_sleep 
+            and self.client_sleep > waiter_config["Delay"]
+        ):
+          waiter_config["Delay"] = self.client_sleep
         try:
             waiter.wait(ChangeSetName=changeset_id, StackName=stack_name, WaiterConfig=waiter_config)
         except botocore.exceptions.WaiterError as ex:
