@@ -1,4 +1,5 @@
 """Base SyncFlow for Lambda Function"""
+from abc import ABC
 from enum import Enum
 import logging
 
@@ -22,7 +23,7 @@ LOG = logging.getLogger(__name__)
 FUNCTION_SLEEP = 1  # used to wait for lambda function last update to be successful
 
 
-class FunctionSyncFlow(SyncFlow):
+class FunctionSyncFlow(SyncFlow, ABC):
     _function_identifier: str
     _function_provider: SamFunctionProvider
     _function: Function
