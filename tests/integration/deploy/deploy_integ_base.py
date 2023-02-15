@@ -1,9 +1,12 @@
+import shutil
+import tempfile
+from pathlib import Path
 from unittest import TestCase
 from enum import Enum, auto
 
 import boto3
 from botocore.config import Config
-from tests.testing_utils import get_sam_command
+from tests.testing_utils import get_sam_command, run_command, run_command_with_input
 
 
 class ResourceType(Enum):
@@ -13,10 +16,6 @@ class ResourceType(Enum):
 
 
 class DeployIntegBase(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        pass
-
     def setUp(self):
         super().setUp()
         self.left_over_resources = {
@@ -24,12 +23,23 @@ class DeployIntegBase(TestCase):
             ResourceType.S3_BUCKET: list(),
             ResourceType.IAM_ROLE: list(),
         }
+        # make temp directory and move all test files into there for each test run
+        original_test_data_path = self.test_data_path
+        self.test_data_path = Path(tempfile.mkdtemp())
+        shutil.copytree(original_test_data_path, self.test_data_path, dirs_exist_ok=True)
 
     def tearDown(self):
+        shutil.rmtree(self.test_data_path)
         super().tearDown()
         self.delete_s3_buckets()
         self.delete_iam_roles()
         self.delete_lambda_functions()
+
+    def run_command(self, command_list):
+        return run_command(command_list, cwd=self.test_data_path)
+
+    def run_command_with_input(self, command_list, stdin_input):
+        return run_command_with_input(command_list, stdin_input, cwd=self.test_data_path)
 
     def delete_s3_buckets(self):
         config = Config(retries={"max_attempts": 10, "mode": "adaptive"})

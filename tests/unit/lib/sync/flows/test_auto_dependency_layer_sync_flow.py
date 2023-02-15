@@ -79,7 +79,7 @@ class TestAutoDependencyLayerSyncFlow(TestCase):
 
     @patch("samcli.lib.sync.flows.auto_dependency_layer_sync_flow.uuid")
     @patch("samcli.lib.sync.flows.auto_dependency_layer_sync_flow.file_checksum")
-    @patch("samcli.lib.sync.flows.auto_dependency_layer_sync_flow.make_zip")
+    @patch("samcli.lib.sync.flows.auto_dependency_layer_sync_flow.make_zip_with_lambda_permissions")
     @patch("samcli.lib.sync.flows.auto_dependency_layer_sync_flow.tempfile")
     @patch("samcli.lib.sync.flows.auto_dependency_layer_sync_flow.NestedStackManager")
     def test_gather_resources(
