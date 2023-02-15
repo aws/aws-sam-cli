@@ -326,10 +326,12 @@ class BuildIntegEsbuildBase(BuildIntegBase):
     MAX_MINIFIED_LINE_COUNT = 2
 
     def _test_with_default_package_json(
-        self, runtime, use_container, code_uri, expected_files, handler, architecture=None
+        self, runtime, use_container, code_uri, expected_files, handler, architecture=None, build_in_source=None
     ):
         overrides = self.get_override(runtime, code_uri, architecture, handler)
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, build_in_source=build_in_source
+        )
 
         LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
