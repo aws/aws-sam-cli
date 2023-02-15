@@ -87,7 +87,8 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
             build_in_source=self._build_context.build_in_source,
         )
         self._image_name = builder.build().artifacts.get(self._function_identifier)
-        self._local_sha = str_checksum(self._image_name)
+        if self._image_name:
+            self._local_sha = str_checksum(self._image_name)
 
     def compare_remote(self) -> bool:
         return False

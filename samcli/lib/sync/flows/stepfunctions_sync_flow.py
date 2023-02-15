@@ -82,7 +82,8 @@ class StepFunctionsSyncFlow(SyncFlow):
             raise InfraSyncRequiredError(self._state_machine_identifier, "DefinitionSubstitutions field is specified.")
         self._definition_uri = self._get_definition_file(self._state_machine_identifier)
         self._states_definition = self._process_definition_file()
-        self._local_sha = str_checksum(self._states_definition)
+        if self._states_definition:
+            self._local_sha = str_checksum(self._states_definition)
 
     def _process_definition_file(self) -> Optional[str]:
         if self._definition_uri is None:

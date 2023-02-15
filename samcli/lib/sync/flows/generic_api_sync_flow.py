@@ -68,7 +68,8 @@ class GenericApiSyncFlow(SyncFlow, ABC):
     def gather_resources(self) -> None:
         self._definition_uri = self._get_definition_file(self._api_identifier)
         self._swagger_body = self._process_definition_file()
-        self._local_sha = str_checksum(self._swagger_body.decode("utf-8"))
+        if self._swagger_body:
+            self._local_sha = str_checksum(self._swagger_body.decode("utf-8"))
 
     def _process_definition_file(self) -> Optional[bytes]:
         if self._definition_uri is None:

@@ -37,7 +37,6 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
     _s3_client: Any
     _artifact_folder: Optional[str]
     _zip_file: Optional[str]
-    _local_sha: Optional[str]
     _build_graph: Optional[BuildGraph]
 
     def __init__(
