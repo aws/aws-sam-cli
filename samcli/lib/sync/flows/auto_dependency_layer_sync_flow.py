@@ -11,7 +11,7 @@ from typing import List, TYPE_CHECKING, Dict, cast, Optional
 from samcli.lib.bootstrap.nested_stack.nested_stack_builder import NestedStackBuilder
 from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NestedStackManager
 from samcli.lib.build.build_graph import BuildGraph
-from samcli.lib.package.utils import make_zip
+from samcli.lib.package.utils import make_zip_with_lambda_permissions
 from samcli.lib.providers.provider import Function, Stack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.sync.exceptions import (
@@ -88,7 +88,7 @@ class AutoDependencyLayerSyncFlow(AbstractLayerSyncFlow):
             self._get_compatible_runtimes()[0],
         )
         zip_file_path = os.path.join(tempfile.gettempdir(), "data-" + uuid.uuid4().hex)
-        self._zip_file = make_zip(zip_file_path, self._artifact_folder)
+        self._zip_file = make_zip_with_lambda_permissions(zip_file_path, self._artifact_folder)
         self._local_sha = file_checksum(cast(str, self._zip_file), hashlib.sha256())
 
     def _get_dependent_functions(self) -> List[Function]:
