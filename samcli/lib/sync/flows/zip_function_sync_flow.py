@@ -69,7 +69,6 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
         self._s3_client = None
         self._artifact_folder = None
         self._zip_file = None
-        self._local_sha = None
         self._build_graph = None
         self._color = Colored()
         # Sync state is the unique identifier for each sync flow
