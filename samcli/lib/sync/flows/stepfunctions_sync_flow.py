@@ -1,7 +1,7 @@
 """Base SyncFlow for StepFunctions"""
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, TYPE_CHECKING, Optional, cast
+from typing import Any, Dict, List, TYPE_CHECKING, Optional
 
 
 from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIdentifier

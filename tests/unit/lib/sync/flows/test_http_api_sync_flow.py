@@ -112,7 +112,7 @@ class TestHttpApiSyncFlow(TestCase):
         sync_flow._get_definition_file.return_value = "file.yaml"
 
         sync_flow._process_definition_file = MagicMock()
-        sync_flow._process_definition_file.return_value = '{"key": "value"}'
+        sync_flow._process_definition_file.return_value = '{"key": "value"}'.encode("utf-8")
 
         sync_flow.set_up()
 

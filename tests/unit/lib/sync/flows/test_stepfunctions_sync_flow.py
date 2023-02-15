@@ -125,7 +125,7 @@ class TestStepFunctionsSyncFlow(TestCase):
         sync_flow.set_up()
 
         sync_flow.gather_resources()
-        sync_flow._get_definition_file.assert_called_once_with("Api1")
+        sync_flow._get_definition_file.assert_called_once_with("StateMachine1")
         sync_flow._process_definition_file.assert_called_once()
 
         self.assertEqual(sync_flow._local_sha, str_checksum('{"key": "value"}'))

@@ -452,14 +452,16 @@ class TestFunctionLayerReferenceSync(TestCase):
         self.function_layer_sync._new_layer_version = layer_version
         self.function_layer_sync._lambda_client = Mock()
 
+        patched_get_latest_layer_version.return_value = 2
+
         self.function_layer_sync.gather_resources()
 
         if layer_version:
             patched_get_latest_layer_version.assert_not_called()
+            self.assertEqual(self.function_layer_sync._local_sha, str_checksum("1"))
         else:
             patched_get_latest_layer_version.assert_called_once()
-
-        self.assertEqual(self.function_layer_sync._local_sha, str_checksum("1"))
+            self.assertEqual(self.function_layer_sync._local_sha, str_checksum("2"))
 
 
 class TestLayerSyncFlowSkipBuild(TestCase):
