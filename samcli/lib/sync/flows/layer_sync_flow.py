@@ -19,7 +19,7 @@ from samcli.lib.sync.exceptions import MissingPhysicalResourceError, NoLayerVers
 from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall, ApiCallTypes
 from samcli.lib.sync.sync_flow_executor import HELP_TEXT_FOR_SYNC_INFRA
 from samcli.lib.utils.colors import Colored
-from samcli.lib.utils.hash import file_checksum
+from samcli.lib.utils.hash import file_checksum, str_checksum
 from samcli.lib.sync.flows.function_sync_flow import wait_for_function_update_complete
 from samcli.lib.utils.osutils import rmtree_if_exists
 
@@ -44,7 +44,6 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
     _layer_identifier: str
     _artifact_folder: Optional[str]
     _zip_file: Optional[str]
-    _local_sha: Optional[str]
 
     def __init__(
         self,
@@ -73,9 +72,6 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
     def set_up(self) -> None:
         super().set_up()
         self._lambda_client = self._boto_client("lambda")
-
-    def compare_local(self) -> bool:
-        return False
 
     def compare_remote(self) -> bool:
         """
@@ -203,6 +199,11 @@ class LayerSyncFlow(AbstractLayerSyncFlow):
     ):
         super().__init__(layer_identifier, build_context, deploy_context, sync_context, physical_id_mapping, stacks)
         self._layer = cast(LayerVersion, build_context.layer_provider.get(self._layer_identifier))
+        # Sync state is the unique identifier for each sync flow
+        # In sync state toml file we will store
+        # Key as LayerSyncFlow:LayerLogicalId
+        # Value as layer ZIP hash
+        self._sync_state_identifier = self.__class__.__name__ + ":" + self._layer_identifier
 
     def set_up(self) -> None:
         super().set_up()
@@ -279,6 +280,22 @@ class LayerSyncFlowSkipBuildDirectory(LayerSyncFlow):
     LayerSyncFlow special implementation that will skip build step and zip contents of CodeUri
     """
 
+    def __init__(
+        self,
+        layer_identifier: str,
+        build_context: "BuildContext",
+        deploy_context: "DeployContext",
+        sync_context: "SyncContext",
+        physical_id_mapping: Dict[str, str],
+        stacks: List[Stack],
+    ):
+        super().__init__(layer_identifier, build_context, deploy_context, sync_context, physical_id_mapping, stacks)
+        # Sync state is the unique identifier for each sync flow
+        # In sync state toml file we will store
+        # Key as LayerSyncFlowSkipBuildDirectory:LayerLogicalId
+        # Value as layer ZIP hash
+        self._sync_state_identifier = self.__class__.__name__ + ":" + self._layer_identifier
+
     def gather_resources(self) -> None:
         zip_file_path = os.path.join(tempfile.gettempdir(), f"data-{uuid.uuid4().hex}")
         self._zip_file = make_zip(zip_file_path, self._layer.codeuri)
@@ -290,6 +307,22 @@ class LayerSyncFlowSkipBuildZipFile(LayerSyncFlow):
     """
     LayerSyncFlow special implementation, that will skip build and upload zip file which is defined in CodeUri directly
     """
+
+    def __init__(
+        self,
+        layer_identifier: str,
+        build_context: "BuildContext",
+        deploy_context: "DeployContext",
+        sync_context: "SyncContext",
+        physical_id_mapping: Dict[str, str],
+        stacks: List[Stack],
+    ):
+        super().__init__(layer_identifier, build_context, deploy_context, sync_context, physical_id_mapping, stacks)
+        # Sync state is the unique identifier for each sync flow
+        # In sync state toml file we will store
+        # Key as LayerSyncFlowSkipBuildZipFile:LayerLogicalId
+        # Value as layer ZIP hash
+        self._sync_state_identifier = self.__class__.__name__ + ":" + self._layer_identifier
 
     def gather_resources(self) -> None:
         self._zip_file = os.path.join(tempfile.gettempdir(), f"data-{uuid.uuid4().hex}")
@@ -333,6 +366,11 @@ class FunctionLayerReferenceSync(SyncFlow):
         self._layer_arn = layer_arn
         self._new_layer_version = new_layer_version
         self._color = Colored()
+        # Sync state is the unique identifier for each sync flow
+        # In sync state toml file we will store
+        # Key as FunctionLayerReferenceSync:FunctionLogicalId:LayerArn
+        # Value as LayerVersion hash
+        self._sync_state_identifier = self.__class__.__name__ + ":" + self._function_identifier + ":" + self._layer_arn
 
     def set_up(self) -> None:
         super().set_up()
@@ -400,14 +438,11 @@ class FunctionLayerReferenceSync(SyncFlow):
             )
         ]
 
-    def compare_local(self) -> bool:
-        return False
-
     def compare_remote(self) -> bool:
         return False
 
     def gather_resources(self) -> None:
-        pass
+        self._local_sha = str_checksum(self._new_layer_version)
 
     def gather_dependencies(self) -> List["SyncFlow"]:
         return []

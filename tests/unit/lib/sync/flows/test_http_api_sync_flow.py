@@ -5,6 +5,7 @@ from samcli.lib.providers.provider import Stack
 
 from samcli.lib.sync.flows.http_api_sync_flow import HttpApiSyncFlow
 from samcli.lib.providers.exceptions import MissingLocalDefinition
+from samcli.lib.utils.hash import str_checksum
 
 
 class TestHttpApiSyncFlow(TestCase):
@@ -101,6 +102,27 @@ class TestHttpApiSyncFlow(TestCase):
             self.assertEqual(data, '{"key": "value"}'.encode("utf-8"))
 
     @patch("samcli.lib.sync.sync_flow.Session")
+    def test_gather_resources_generate_local_sha(self, session_mock):
+        sync_flow = self.create_sync_flow()
+
+        sync_flow.get_physical_id = MagicMock()
+        sync_flow.get_physical_id.return_value = "PhysicalId1"
+
+        sync_flow._get_definition_file = MagicMock()
+        sync_flow._get_definition_file.return_value = "file.yaml"
+
+        sync_flow._process_definition_file = MagicMock()
+        sync_flow._process_definition_file.return_value = '{"key": "value"}'
+
+        sync_flow.set_up()
+
+        sync_flow.gather_resources()
+        sync_flow._get_definition_file.assert_called_once_with("Api1")
+        sync_flow._process_definition_file.assert_called_once()
+
+        self.assertEqual(sync_flow._local_sha, str_checksum('{"key": "value"}'))
+
+    @patch("samcli.lib.sync.sync_flow.Session")
     def test_failed_gather_resources(self, session_mock):
         sync_flow = self.create_sync_flow()
 
@@ -132,13 +154,3 @@ class TestHttpApiSyncFlow(TestCase):
     def test_get_resource_api_calls(self):
         sync_flow = self.create_sync_flow()
         self.assertEqual(sync_flow._get_resource_api_calls(), [])
-
-    @patch("samcli.lib.sync.flows.generic_api_sync_flow.get_resource_by_id")
-    def test_gather_with_no_definition_uri_and_swagger(self, patched_get_resource_by_id):
-        patched_get_resource_by_id.return_value = None
-
-        sync_flow = self.create_sync_flow()
-        sync_flow.gather_resources()
-
-        self.assertIsNone(sync_flow._definition_uri)
-        self.assertIsNone(sync_flow._swagger_body)

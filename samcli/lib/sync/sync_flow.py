@@ -51,6 +51,12 @@ class SyncFlow(ABC):
     _session: Optional[Session]
     _physical_id_mapping: Dict[str, str]
     _locks: Optional[Dict[str, Lock]]
+    # Local hash represents the state of a particular sync flow
+    # We store the hash value in sync state toml file as value
+    _local_sha: str
+    # Sync state is the unique identifier for each sync flow
+    # We store the identifier in sync state toml file as key
+    _sync_state_identifier: str
 
     def __init__(
         self,
@@ -85,6 +91,8 @@ class SyncFlow(ABC):
         self._session = None
         self._physical_id_mapping = physical_id_mapping
         self._locks = None
+        self._local_sha = ""
+        self._sync_state_identifier = ""
 
     def set_up(self) -> None:
         """Clients and other expensives setups should be handled here instead of constructor"""
@@ -100,7 +108,6 @@ class SyncFlow(ABC):
         """
         raise NotImplementedError("gather_resources")
 
-    @abstractmethod
     def compare_local(self) -> bool:
         """Comparison between local resource and its local stored state.
         If the resources are identical, sync and gather dependencies will be skipped.
@@ -113,7 +120,10 @@ class SyncFlow(ABC):
             Return True if current resource and cached are in sync. Skipping rest of the execution.
             Return False otherwise.
         """
-        raise NotImplementedError("compare_local")
+        stored_sha = self._sync_context.get_resource_latest_sync_hash(self._sync_state_identifier)
+        if self._local_sha and stored_sha and self._local_sha == stored_sha:
+            return True
+        return False
 
     @abstractmethod
     def compare_remote(self) -> bool:
@@ -330,7 +340,7 @@ class SyncFlow(ABC):
         LOG.debug("%sGathering Resources", self.log_prefix)
         self.gather_resources()
         LOG.debug("%sComparing with Remote", self.log_prefix)
-        if not self.compare_local() or not self.compare_remote():
+        if (not self.compare_local()) and (not self.compare_remote()):
             LOG.debug("%sSyncing", self.log_prefix)
             self.sync()
             LOG.debug("%sGathering Dependencies", self.log_prefix)

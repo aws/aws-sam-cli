@@ -447,6 +447,9 @@ class TestFunctionLayerReferenceSync(TestCase):
     def test_gather_dependencies(self):
         self.assertEqual(self.function_layer_sync.gather_dependencies(), [])
 
+    def test_gather_resources(self):
+        pass
+
 
 class TestLayerSyncFlowSkipBuild(TestCase):
     @patch("samcli.lib.sync.flows.layer_sync_flow.make_zip")

@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from samcli.lib.providers.provider import Stack
 from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall
+from samcli.lib.utils.hash import str_checksum
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
@@ -61,6 +62,11 @@ class AliasVersionSyncFlow(SyncFlow):
         self._function_identifier = function_identifier
         self._alias_name = alias_name
         self._lambda_client = None
+        # Sync state is the unique identifier for each sync flow
+        # In sync state toml file we will store
+        # Key as AliasVersionSyncFlow:FunctionLogicalId:AliasName
+        # Value as alias version number
+        self._sync_state_identifier = self.__class__.__name__ + ":" + self._function_identifier + ":" + self._alias_name
 
     def set_up(self) -> None:
         super().set_up()
@@ -78,6 +84,7 @@ class AliasVersionSyncFlow(SyncFlow):
     def sync(self) -> None:
         function_physical_id = self.get_physical_id(self._function_identifier)
         version = self._lambda_client.publish_version(FunctionName=function_physical_id).get("Version")
+        self._local_sha = str_checksum(version)
         LOG.debug("%sCreated new function version: %s", self.log_prefix, version)
         if version:
             self._lambda_client.update_alias(

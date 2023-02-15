@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall, get_definition_path
 from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIdentifier
+from samcli.lib.utils.hash import str_checksum
 
 # BuildContext and DeployContext will only be imported for type checking to improve performance
 # since no istances of contexts will be instantiated in this class
@@ -66,6 +67,7 @@ class GenericApiSyncFlow(SyncFlow):
     def gather_resources(self) -> None:
         self._definition_uri = self._get_definition_file(self._api_identifier)
         self._swagger_body = self._process_definition_file()
+        self._local_sha = str_checksum(self._swagger_body.decode("utf-8"))
 
     def _process_definition_file(self) -> Optional[bytes]:
         if self._definition_uri is None:
@@ -85,10 +87,6 @@ class GenericApiSyncFlow(SyncFlow):
             self._build_context.base_dir,
             self._stacks,
         )
-
-    def compare_local(self) -> bool:
-        self._swagger_body
-        return False
 
     def compare_remote(self) -> bool:
         return False

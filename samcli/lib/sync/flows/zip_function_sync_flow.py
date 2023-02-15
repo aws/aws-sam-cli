@@ -73,6 +73,11 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
         self._local_sha = None
         self._build_graph = None
         self._color = Colored()
+        # Sync state is the unique identifier for each sync flow
+        # In sync state toml file we will store
+        # Key as ZipFunctionSyncFlow:FunctionLogicalId
+        # Value as function ZIP hash
+        self._sync_state_identifier = self.__class__.__name__ + ":" + function_identifier
 
     def set_up(self) -> None:
         super().set_up()
@@ -107,9 +112,6 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
         self._zip_file = make_zip(zip_file_path, self._artifact_folder)
         LOG.debug("%sCreated artifact ZIP file: %s", self.log_prefix, self._zip_file)
         self._local_sha = file_checksum(cast(str, self._zip_file), hashlib.sha256())
-
-    def compare_local(self) -> bool:
-        return False
 
     def compare_remote(self) -> bool:
         remote_info = self._lambda_client.get_function(FunctionName=self.get_physical_id(self._function_identifier))

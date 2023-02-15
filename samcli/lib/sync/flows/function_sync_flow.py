@@ -105,7 +105,7 @@ class FunctionSyncFlow(SyncFlow):
                     self._stacks,
                 )
             )
-            LOG.debug("%sCreated  Alias and Version SyncFlow", self.log_prefix)
+            LOG.debug("%sCreated Alias and Version SyncFlow", self.log_prefix)
 
         return sync_flows
 

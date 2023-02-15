@@ -18,6 +18,7 @@ class TestSyncFlow(TestCase):
             stacks=[MagicMock()],
         )
         sync_flow.gather_resources = MagicMock()
+        sync_flow.compare_local = MagicMock()
         sync_flow.compare_remote = MagicMock()
         sync_flow.sync = MagicMock()
         sync_flow.gather_dependencies = MagicMock()
@@ -28,11 +29,13 @@ class TestSyncFlow(TestCase):
     @patch.multiple(SyncFlow, __abstractmethods__=set())
     def test_execute_all_steps(self, session_mock):
         sync_flow = self.create_sync_flow()
+        sync_flow.compare_local.return_value = False
         sync_flow.compare_remote.return_value = False
         sync_flow.gather_dependencies.return_value = ["A"]
         result = sync_flow.execute()
 
         sync_flow.gather_resources.assert_called_once()
+        sync_flow.compare_local.assert_called_once()
         sync_flow.compare_remote.assert_called_once()
         sync_flow.sync.assert_called_once()
         sync_flow.gather_dependencies.assert_called_once()
@@ -40,13 +43,31 @@ class TestSyncFlow(TestCase):
 
     @patch("samcli.lib.sync.sync_flow.Session")
     @patch.multiple(SyncFlow, __abstractmethods__=set())
-    def test_execute_skip_after_compare(self, session_mock):
+    def test_execute_skip_after_compare_local(self, session_mock):
         sync_flow = self.create_sync_flow()
+        sync_flow.compare_local.return_value = True
+        sync_flow.compare_remote.return_value = False
+        sync_flow.gather_dependencies.return_value = ["A"]
+        result = sync_flow.execute()
+
+        sync_flow.gather_resources.assert_called_once()
+        sync_flow.compare_local.assert_called_once()
+        sync_flow.compare_remote.assert_not_called()
+        sync_flow.sync.assert_not_called()
+        sync_flow.gather_dependencies.assert_not_called()
+        self.assertEqual(result, [])
+
+    @patch("samcli.lib.sync.sync_flow.Session")
+    @patch.multiple(SyncFlow, __abstractmethods__=set())
+    def test_execute_skip_after_compare_remote(self, session_mock):
+        sync_flow = self.create_sync_flow()
+        sync_flow.compare_local.return_value = False
         sync_flow.compare_remote.return_value = True
         sync_flow.gather_dependencies.return_value = ["A"]
         result = sync_flow.execute()
 
         sync_flow.gather_resources.assert_called_once()
+        sync_flow.compare_local.assert_called_once()
         sync_flow.compare_remote.assert_called_once()
         sync_flow.sync.assert_not_called()
         sync_flow.gather_dependencies.assert_not_called()
@@ -167,3 +188,31 @@ class TestSyncFlow(TestCase):
 
         definition_path = get_definition_path(resource, "identifier", True, "base_dir", [])
         self.assertEqual(definition_path, Path("base_dir").joinpath("test_uri"))
+
+    @patch("samcli.lib.sync.sync_flow.Session")
+    @patch.multiple(SyncFlow, __abstractmethods__=set())
+    def test_compare_local(self, patched_session):
+        sync_flow = SyncFlow(
+            build_context=MagicMock(),
+            deploy_context=MagicMock(),
+            sync_context=MagicMock(),
+            physical_id_mapping={},
+            log_name="log-name",
+            stacks=[MagicMock()],
+        )
+        sync_flow.gather_resources = MagicMock()
+        sync_flow.compare_remote = MagicMock()
+        sync_flow.sync = MagicMock()
+        sync_flow.gather_dependencies = MagicMock()
+        sync_flow._get_resource_api_calls = MagicMock()
+
+        sync_flow._local_sha = None
+        self.assertEqual(sync_flow.compare_local(), False)
+
+        sync_flow._local_sha = "hash"
+
+        sync_flow._sync_context.get_resource_latest_sync_hash.return_value = None
+        self.assertEqual(sync_flow.compare_local(), False)
+
+        sync_flow._sync_context.get_resource_latest_sync_hash.return_value = "hash"
+        self.assertEqual(sync_flow.compare_local(), True)

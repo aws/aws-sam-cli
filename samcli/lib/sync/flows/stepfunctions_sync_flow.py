@@ -1,8 +1,7 @@
 """Base SyncFlow for StepFunctions"""
 import logging
-import hashlib
 from pathlib import Path
-from typing import Any, Dict, List, TYPE_CHECKING, Optional
+from typing import Any, Dict, List, TYPE_CHECKING, Optional, cast
 
 
 from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIdentifier
@@ -65,6 +64,11 @@ class StepFunctionsSyncFlow(SyncFlow):
         self._stepfunctions_client = None
         self._definition_uri = None
         self._states_definition = None
+        # Sync state is the unique identifier for each sync flow
+        # In sync state toml file we will store
+        # Key as StepFunctionsSyncFlow:StepFunctionsLogicalId
+        # Value as state machine definition hash
+        self._sync_state_identifier = self.__class__.__name__ + ":" + self._state_machine_identifier
 
     def set_up(self) -> None:
         super().set_up()
@@ -97,12 +101,6 @@ class StepFunctionsSyncFlow(SyncFlow):
             self._build_context.base_dir,
             self._stacks,
         )
-
-    def compare_local(self) -> bool:
-        stored_sha = None
-        if self._local_sha == stored_sha:
-            return True
-        return False
 
     def compare_remote(self) -> bool:
         # Not comparing with remote right now, instead only making update api calls

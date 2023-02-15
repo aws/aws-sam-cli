@@ -64,6 +64,11 @@ class AutoDependencyLayerSyncFlow(AbstractLayerSyncFlow):
         )
         self._function_identifier = function_identifier
         self._build_graph = build_graph
+        # Sync state is the unique identifier for each sync flow
+        # In sync state toml file we will store
+        # Key as AutoDependencyLayerSyncFlow:FunctionLogicalId
+        # Value as layer folder ZIP hash
+        self._sync_state_identifier = self.__class__.__name__ + ":" + self._function_identifier
 
     def set_up(self) -> None:
         super().set_up()
@@ -109,6 +114,25 @@ class AutoDependencyLayerParentSyncFlow(ZipFunctionSyncFlow):
     It builds function with regular ZipFunctionSyncFlow, and then adds _AutoDependencyLayerSyncFlow to start syncing
     dependency layer.
     """
+
+    def __init__(
+        self,
+        function_identifier: str,
+        build_context: "BuildContext",
+        deploy_context: "DeployContext",
+        sync_context: "SyncContext",
+        physical_id_mapping: Dict[str, str],
+        stacks: List[Stack],
+    ):
+        """
+        Calls the parent contrusctor
+        """
+        super().__init__(function_identifier, build_context, deploy_context, sync_context, physical_id_mapping, stacks)
+        # Sync state is the unique identifier for each sync flow
+        # In sync state toml file we will store
+        # Key as AutoDependencyLayerParentSyncFlow:FunctionLogicalId
+        # Value as function ZIP hash
+        self._sync_state_identifier = self.__class__.__name__ + ":" + self._function_identifier
 
     def gather_dependencies(self) -> List[SyncFlow]:
         """
