@@ -2,7 +2,7 @@
 
 import logging
 from typing import List, Union, Dict
-from samcli.commands.local.lib.identity_source_validator import IdentitySourceValidator
+from samcli.commands.local.lib.validators.identity_source_validator import IdentitySourceValidator
 
 from samcli.commands.local.lib.swagger.integration_uri import LambdaUri, IntegrationType
 from samcli.local.apigw.local_apigw_service import Route, LambdaAuthorizer, Authorizer
