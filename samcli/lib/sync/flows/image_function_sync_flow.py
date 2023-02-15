@@ -60,11 +60,17 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
         self._ecr_client = None
         self._image_name = None
         self._docker_client = docker_client
-        # Sync state is the unique identifier for each sync flow
-        # In sync state toml file we will store
-        # Key as ImageFunctionSyncFlow:FunctionLogicalId
-        # Value as image name hash
-        self._sync_state_identifier = self.__class__.__name__ + ":" + self._function_identifier
+
+    @property
+    def sync_state_identifier(self) -> str:
+        """
+        Sync state is the unique identifier for each sync flow
+        In sync state toml file we will store
+        Key as ImageFunctionSyncFlow:FunctionLogicalId
+        Value as image name hash
+        """
+        identifier = self.__class__.__name__ + ":" + self._function_identifier
+        return identifier.replace("/", ":")
 
     def set_up(self) -> None:
         super().set_up()

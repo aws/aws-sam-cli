@@ -54,9 +54,6 @@ class SyncFlow(ABC):
     # Local hash represents the state of a particular sync flow
     # We store the hash value in sync state toml file as value
     _local_sha: str
-    # Sync state is the unique identifier for each sync flow
-    # We store the identifier in sync state toml file as key
-    _sync_state_identifier: str
 
     def __init__(
         self,
@@ -92,7 +89,6 @@ class SyncFlow(ABC):
         self._physical_id_mapping = physical_id_mapping
         self._locks = None
         self._local_sha = ""
-        self._sync_state_identifier = ""
 
     def set_up(self) -> None:
         """Clients and other expensives setups should be handled here instead of constructor"""
@@ -100,6 +96,16 @@ class SyncFlow(ABC):
 
     def _boto_client(self, client_name: str):
         return get_boto_client_provider_from_session_with_config(cast(Session, self._session))(client_name)
+
+    # Sync state is the unique identifier for each sync flow
+    # We store the identifier in sync state toml file as key
+    @property
+    def sync_state_identifier(self) -> str:
+        """
+        Sync state is the unique identifier for each sync flow
+        We store the identifier in sync state toml file as key
+        """
+        return "SyncFlow:ResourceId"
 
     @abstractmethod
     def gather_resources(self) -> None:
@@ -120,7 +126,7 @@ class SyncFlow(ABC):
             Return True if current resource and cached are in sync. Skipping rest of the execution.
             Return False otherwise.
         """
-        stored_sha = self._sync_context.get_resource_latest_sync_hash(self._sync_state_identifier)
+        stored_sha = self._sync_context.get_resource_latest_sync_hash(self.sync_state_identifier)
         if self._local_sha and stored_sha and self._local_sha == stored_sha:
             return True
         return False

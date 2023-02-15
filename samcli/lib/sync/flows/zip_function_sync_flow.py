@@ -71,11 +71,17 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
         self._zip_file = None
         self._build_graph = None
         self._color = Colored()
-        # Sync state is the unique identifier for each sync flow
-        # In sync state toml file we will store
-        # Key as ZipFunctionSyncFlow:FunctionLogicalId
-        # Value as function ZIP hash
-        self._sync_state_identifier = self.__class__.__name__ + ":" + function_identifier
+
+    @property
+    def sync_state_identifier(self) -> str:
+        """
+        Sync state is the unique identifier for each sync flow
+        In sync state toml file we will store
+        Key as ZipFunctionSyncFlow:FunctionLogicalId
+        Value as function ZIP hash
+        """
+        identifier = self.__class__.__name__ + ":" + self._function_identifier
+        return identifier.replace("/", ":")
 
     def set_up(self) -> None:
         super().set_up()

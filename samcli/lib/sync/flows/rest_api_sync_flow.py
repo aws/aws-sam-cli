@@ -58,11 +58,17 @@ class RestApiSyncFlow(GenericApiSyncFlow):
             stacks=stacks,
         )
         self._api_physical_id = ""
-        # Sync state is the unique identifier for each sync flow
-        # In sync state toml file we will store
-        # Key as RestApiSyncFlow:RestApiLogicalId
-        # Value as RestApi definition hash
-        self._sync_state_identifier = self.__class__.__name__ + ":" + self._api_identifier
+
+    @property
+    def sync_state_identifier(self) -> str:
+        """
+        Sync state is the unique identifier for each sync flow
+        In sync state toml file we will store
+        Key as RestApiSyncFlow:RestApiLogicalId
+        Value as RestApi definition hash
+        """
+        identifier = self.__class__.__name__ + ":" + self._api_identifier
+        return identifier.replace("/", ":")
 
     def set_up(self) -> None:
         super().set_up()

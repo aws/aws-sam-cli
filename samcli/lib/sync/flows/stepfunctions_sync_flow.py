@@ -64,11 +64,17 @@ class StepFunctionsSyncFlow(SyncFlow):
         self._stepfunctions_client = None
         self._definition_uri = None
         self._states_definition = None
-        # Sync state is the unique identifier for each sync flow
-        # In sync state toml file we will store
-        # Key as StepFunctionsSyncFlow:StepFunctionsLogicalId
-        # Value as state machine definition hash
-        self._sync_state_identifier = self.__class__.__name__ + ":" + self._state_machine_identifier
+
+    @property
+    def sync_state_identifier(self) -> str:
+        """
+        Sync state is the unique identifier for each sync flow
+        In sync state toml file we will store
+        Key as StepFunctionsSyncFlow:StepFunctionsLogicalId
+        Value as state machine definition hash
+        """
+        identifier = self.__class__.__name__ + ":" + self._state_machine_identifier
+        return identifier.replace("/", ":")
 
     def set_up(self) -> None:
         super().set_up()

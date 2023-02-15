@@ -54,11 +54,17 @@ class HttpApiSyncFlow(GenericApiSyncFlow):
             log_name="HttpApi " + httpapi_identifier,
             stacks=stacks,
         )
-        # Sync state is the unique identifier for each sync flow
-        # In sync state toml file we will store
-        # Key as HttpApiSyncFlow:HttpApiLogicalId
-        # Value as HttpApi definition hash
-        self._sync_state_identifier = self.__class__.__name__ + ":" + self._api_identifier
+
+    @property
+    def sync_state_identifier(self) -> str:
+        """
+        Sync state is the unique identifier for each sync flow
+        In sync state toml file we will store
+        Key as HttpApiSyncFlow:HttpApiLogicalId
+        Value as HttpApi definition hash
+        """
+        identifier = self.__class__.__name__ + ":" + self._api_identifier
+        return identifier.replace("/", ":")
 
     def set_up(self) -> None:
         super().set_up()

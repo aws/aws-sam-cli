@@ -62,11 +62,17 @@ class AliasVersionSyncFlow(SyncFlow):
         self._function_identifier = function_identifier
         self._alias_name = alias_name
         self._lambda_client = None
-        # Sync state is the unique identifier for each sync flow
-        # In sync state toml file we will store
-        # Key as AliasVersionSyncFlow:FunctionLogicalId:AliasName
-        # Value as alias version number
-        self._sync_state_identifier = self.__class__.__name__ + ":" + self._function_identifier + ":" + self._alias_name
+
+    @property
+    def sync_state_identifier(self) -> str:
+        """
+        Sync state is the unique identifier for each sync flow
+        In sync state toml file we will store
+        Key as AliasVersionSyncFlow:FunctionLogicalId:AliasName
+        Value as alias version number
+        """
+        identifier = self.__class__.__name__ + ":" + self._function_identifier + ":" + self._alias_name
+        return identifier.replace("/", ":")
 
     def set_up(self) -> None:
         super().set_up()
