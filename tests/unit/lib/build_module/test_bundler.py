@@ -217,9 +217,7 @@ class PostProcessHandler(TestCase):
             },
         }
 
-        template = {
-            "Resources": resources
-        }
+        template = {"Resources": resources}
 
         dummy_stack = DummyStack(resources)
 
