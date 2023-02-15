@@ -268,7 +268,7 @@ class SamApiProvider(CfnBaseApiProvider):
             function_arn = auth_props.get(SamApiProvider._FUNCTION_ARN)
 
             if not function_arn:
-                LOG.info("Authorizer '%s' is currently unsupported (must be a Lambda Authorizer), skipping", auth_name)
+                LOG.debug("Authorizer '%s' is currently unsupported (must be a Lambda Authorizer), skipping", auth_name)
                 continue
 
             function_name = LambdaUri.get_function_name(function_arn)
@@ -286,7 +286,9 @@ class SamApiProvider(CfnBaseApiProvider):
                     auth_name, function_name, prefix, identity_object
                 )
             else:
-                LOG.info("Authorizer '%s' is currently unsupported (not of type TOKEN or REQUEST), skipping", auth_name)
+                LOG.debug(
+                    "Authorizer '%s' is currently unsupported (not of type TOKEN or REQUEST), skipping", auth_name
+                )
 
         collector.add_authorizers(logical_id, authorizers)
 
