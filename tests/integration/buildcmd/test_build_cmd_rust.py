@@ -16,6 +16,9 @@ from tests.testing_utils import (
     RUNNING_TEST_FOR_MASTER_ON_CI,
     RUN_BY_CANARY,
     CI_OVERRIDE,
+    SKIP_DOCKER_TESTS,
+    SKIP_DOCKER_BUILD,
+    SKIP_DOCKER_MESSAGE,
 )
 from .build_integ_base import (
     BuildIntegRustBase,
@@ -69,13 +72,16 @@ class TestBuildCommand_Rust(BuildIntegRustBase):
 
     @parameterized.expand(
         [
-            ("x86_64", None),
-            ("arm64", None),
-            ("x86_64", "debug"),
-            ("arm64", "debug"),
+            ("x86_64", None, False),
+            ("arm64", None, False),
+            ("x86_64", "debug", False),
+            ("arm64", "debug", False),
         ]
     )
-    def test_build(self, architecture, build_mode):
+    def test_build(self, architecture, build_mode, use_container):
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         self._test_with_rust_cargo_lambda(
             runtime="provided.al2",
             code_uri=self.code_uri,

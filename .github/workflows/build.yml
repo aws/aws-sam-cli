@@ -61,7 +61,7 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          # TODO: add windows-latest; fails due to unable to switch to Linux container
+          - windows-latest
         python:
           - "3.7"
           - "3.8"
