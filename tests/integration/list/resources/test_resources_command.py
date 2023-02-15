@@ -69,6 +69,8 @@ class TestResources(ResourcesIntegBase):
         run_command_with_input(
             deploy_command_list, "{}\n{}\nY\nY\nY\nY\nY\n\n\nY\n".format(stack_name, region).encode()
         )
+        self.stacks.append({"name": stack_name})
+
         cmdlist = self.get_resources_command_list(
             stack_name=stack_name, region=region, output="json", template_file=template_path
         )

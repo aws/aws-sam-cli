@@ -16,10 +16,6 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 )
 class TestEndpoints(EndpointsIntegBase):
 
-    def setUp(self):
-        self.cf_client = boto3.client("cloudformation")
-        super().setUp()
-
     def test_endpoints_help_message(self):
         cmdlist = self.get_endpoints_command_list(help=True)
         command_result = run_command(cmdlist)
@@ -60,6 +56,8 @@ class TestEndpoints(EndpointsIntegBase):
         run_command_with_input(
             deploy_command_list, "{}\n{}\nY\nY\nY\nY\nY\nY\n\n\nY\n".format(stack_name, region).encode()
         )
+        self.stacks.append({"name": stack_name})
+
         cmdlist = self.get_endpoints_command_list(
             stack_name=stack_name, output="json", region=region, template_file=template_path
         )

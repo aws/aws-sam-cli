@@ -4,17 +4,14 @@ import uuid
 from pathlib import Path
 from unittest import skipIf
 
-import boto3
 import botocore
 import docker
-from botocore.config import Config
 from botocore.exceptions import ClientError
 from parameterized import parameterized
 
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
-from tests.integration.package.package_integ_base import PackageIntegBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
@@ -44,26 +41,8 @@ class TestDeploy(DeployIntegBase):
         super().setUpClass()
 
     def setUp(self):
-        self.cfn_client = boto3.client("cloudformation")
-        self.ecr_client = boto3.client("ecr")
         self.sns_arn = os.environ.get("AWS_SNS")
-        self.stacks = []
         super().setUp()
-
-    def tearDown(self):
-        for stack in self.stacks:
-            # because of the termination protection, do not delete aws-sam-cli-managed-default stack
-            stack_name = stack["name"]
-            if stack_name != SAM_CLI_STACK_NAME:
-                region = stack.get("region")
-                cfn_client = (
-                    self.cfn_client if not region else boto3.client("cloudformation", config=Config(region_name=region))
-                )
-                ecr_client = self.ecr_client if not region else boto3.client("ecr", config=Config(region_name=region))
-                self._delete_companion_stack(cfn_client, ecr_client, self._stack_name_to_companion_stack(stack_name))
-                cfn_client.delete_stack(StackName=stack_name)
-        DeployIntegBase.tearDown(self)
-        PackageIntegBase.tearDown(self)
 
     @parameterized.expand(
         [

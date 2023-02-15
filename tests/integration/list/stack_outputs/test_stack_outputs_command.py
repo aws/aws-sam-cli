@@ -42,6 +42,8 @@ class TestStackOutputs(StackOutputsIntegBase):
         run_command_with_input(
             deploy_command_list, "{}\n{}\nY\nY\nY\nY\nY\n\n\nY\n".format(stack_name, region).encode()
         )
+        self.stacks.append({"name": stack_name})
+
         cmdlist = self.get_stack_outputs_command_list(stack_name=stack_name, region=region, output="json")
         command_result = run_command(cmdlist, cwd=self.working_dir)
         outputs = json.loads(command_result.stdout.decode())
@@ -79,6 +81,8 @@ class TestStackOutputs(StackOutputsIntegBase):
         run_command_with_input(
             deploy_command_list, "{}\n{}\nY\nY\nY\nY\nY\n\n\nY\n".format(stack_name, region).encode()
         )
+        self.stacks.append({"name": stack_name})
+
         cmdlist = self.get_stack_outputs_command_list(stack_name=stack_name, region=region, output="json")
         command_result = run_command(cmdlist, cwd=self.working_dir)
         expected_output = (
