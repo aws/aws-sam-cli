@@ -398,7 +398,7 @@ class TestSwaggerParser_get_authorizers(TestCase):
                             "x-amazon-apigateway-authtype": "custom",
                             "x-amazon-apigateway-authorizer": {
                                 "type": "request",
-                                "identitySource": "method.request.query.Auth",
+                                "identitySource": "method.request.querystring.Auth",
                                 "authorizerUri": "arn",
                             },
                         },
