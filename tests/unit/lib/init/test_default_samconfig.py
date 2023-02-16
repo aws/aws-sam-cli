@@ -69,10 +69,10 @@ class TestDefaultSamconfig(TestCase):
         default_config._create_default = Mock()
         default_config._create_default.return_value = "default"
         default_config._write_global()
-        default_config._create_default.assert_called_once_with(
-            writing_type=WritingType.Both, key="stack_name", value=f"sam-app-sam-app"
+        default_config._write.assert_called_once_with(
+            defaults=[Default(writing_type=WritingType.Both, key="stack_name", value=f"sam-app-sam-app")],
+            command=["global"],
         )
-        default_config._write.assert_called_once_with(defaults=["default"], command=["global"])
 
     def test_write_build(self):
         default_config = DefaultSamconfig("path", "ZIP", "sam-app")
@@ -80,13 +80,13 @@ class TestDefaultSamconfig(TestCase):
         default_config._create_default = Mock()
         default_config._create_default.return_value = "default"
         default_config._write_build()
-        default_config._create_default.assert_has_calls(
-            [
-                call(writing_type=WritingType.ZIP, key="cached", value=True),
-                call(writing_type=WritingType.Both, key="parallel", value=True),
-            ]
+        default_config._write.assert_called_once_with(
+            defaults=[
+                Default(writing_type=WritingType.ZIP, key="cached", value=True),
+                Default(writing_type=WritingType.Both, key="parallel", value=True),
+            ],
+            command=["build"],
         )
-        default_config._write.assert_called_once_with(defaults=["default", "default"], command=["build"])
 
     def test_write_deploy(self):
         default_config = DefaultSamconfig("path", "ZIP", "sam-app")
@@ -94,16 +94,15 @@ class TestDefaultSamconfig(TestCase):
         default_config._create_default = Mock()
         default_config._create_default.return_value = "default"
         default_config._write_deploy()
-        default_config._create_default.assert_has_calls(
-            [
-                call(writing_type=WritingType.Both, key="capabilities", value="CAPABILITY_IAM"),
-                call(writing_type=WritingType.Both, key="confirm_changeset", value=True),
-                call(writing_type=WritingType.ZIP, key="resolve_s3", value=True),
-                call(writing_type=WritingType.Image, key="resolve_image_repos", value=True),
-            ]
-        )
+
         default_config._write.assert_called_once_with(
-            defaults=["default", "default", "default", "default"], command=["deploy"]
+            defaults=[
+                Default(writing_type=WritingType.Both, key="capabilities", value="CAPABILITY_IAM"),
+                Default(writing_type=WritingType.Both, key="confirm_changeset", value=True),
+                Default(writing_type=WritingType.ZIP, key="resolve_s3", value=True),
+                Default(writing_type=WritingType.Image, key="resolve_image_repos", value=True),
+            ],
+            command=["deploy"],
         )
 
     def test_write_sync(self):
@@ -112,8 +111,9 @@ class TestDefaultSamconfig(TestCase):
         default_config._create_default = Mock()
         default_config._create_default.return_value = "default"
         default_config._write_sync()
-        default_config._create_default.assert_called_once_with(writing_type=WritingType.Both, key="watch", value=True)
-        default_config._write.assert_called_once_with(defaults=["default"], command=["sync"])
+        default_config._write.assert_called_once_with(
+            defaults=[Default(writing_type=WritingType.Both, key="watch", value=True)], command=["sync"]
+        )
 
     def test_write_local_start_api(self):
         default_config = DefaultSamconfig("path", "ZIP", "sam-app")
@@ -121,10 +121,10 @@ class TestDefaultSamconfig(TestCase):
         default_config._create_default = Mock()
         default_config._create_default.return_value = "default"
         default_config._write_local_start_api()
-        default_config._create_default.assert_called_once_with(
-            writing_type=WritingType.Both, key="warm_containers", value="EAGER"
+        default_config._write.assert_called_once_with(
+            defaults=[Default(writing_type=WritingType.Both, key="warm_containers", value="EAGER")],
+            command=["local", "start-api"],
         )
-        default_config._write.assert_called_once_with(defaults=["default"], command=["local", "start-api"])
 
     def test_write_local_start_lambda(self):
         default_config = DefaultSamconfig("path", "ZIP", "sam-app")
@@ -132,11 +132,7 @@ class TestDefaultSamconfig(TestCase):
         default_config._create_default = Mock()
         default_config._create_default.return_value = "default"
         default_config._write_local_start_lambda()
-        default_config._create_default.assert_called_once_with(
-            writing_type=WritingType.Both, key="warm_containers", value="EAGER"
+        default_config._write.assert_called_once_with(
+            defaults=[Default(writing_type=WritingType.Both, key="warm_containers", value="EAGER")],
+            command=["local", "start-lambda"],
         )
-        default_config._write.assert_called_once_with(defaults=["default"], command=["local", "start-lambda"])
-
-    def test_create_default(self):
-        expected_default = Default(WritingType.Both, "key", "value")
-        self.assertTrue(expected_default, DefaultSamconfig._create_default(WritingType.Both, "key", "value"))

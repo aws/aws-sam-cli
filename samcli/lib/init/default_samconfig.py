@@ -64,9 +64,7 @@ class DefaultSamconfig:
         """
         Write global default properties to samconfig.toml
         """
-        defaults = [
-            self._create_default(writing_type=WritingType.Both, key="stack_name", value=f"sam-app-{self._project_name}")
-        ]
+        defaults = [Default(writing_type=WritingType.Both, key="stack_name", value=f"sam-app-{self._project_name}")]
         self._write(defaults=defaults, command=["global"])
 
     def _write_build(self) -> None:
@@ -74,8 +72,8 @@ class DefaultSamconfig:
         Write build default properties to samconfig.toml
         """
         defaults = [
-            self._create_default(writing_type=WritingType.ZIP, key="cached", value=True),
-            self._create_default(writing_type=WritingType.Both, key="parallel", value=True),
+            Default(writing_type=WritingType.ZIP, key="cached", value=True),
+            Default(writing_type=WritingType.Both, key="parallel", value=True),
         ]
         self._write(defaults=defaults, command=["build"])
 
@@ -84,10 +82,10 @@ class DefaultSamconfig:
         Write deploy default properties to samconfig.toml
         """
         defaults = [
-            self._create_default(writing_type=WritingType.Both, key="capabilities", value="CAPABILITY_IAM"),
-            self._create_default(writing_type=WritingType.Both, key="confirm_changeset", value=True),
-            self._create_default(writing_type=WritingType.ZIP, key="resolve_s3", value=True),
-            self._create_default(writing_type=WritingType.Image, key="resolve_image_repos", value=True),
+            Default(writing_type=WritingType.Both, key="capabilities", value="CAPABILITY_IAM"),
+            Default(writing_type=WritingType.Both, key="confirm_changeset", value=True),
+            Default(writing_type=WritingType.ZIP, key="resolve_s3", value=True),
+            Default(writing_type=WritingType.Image, key="resolve_image_repos", value=True),
         ]
         self._write(defaults=defaults, command=["deploy"])
 
@@ -95,40 +93,19 @@ class DefaultSamconfig:
         """
         Write sync default properties to samconfig.toml
         """
-        defaults = [self._create_default(writing_type=WritingType.Both, key="watch", value=True)]
+        defaults = [Default(writing_type=WritingType.Both, key="watch", value=True)]
         self._write(defaults=defaults, command=["sync"])
 
     def _write_local_start_api(self) -> None:
         """
         Write local start-api default properties to samconfig.toml
         """
-        defaults = [self._create_default(writing_type=WritingType.Both, key="warm_containers", value="EAGER")]
+        defaults = [Default(writing_type=WritingType.Both, key="warm_containers", value="EAGER")]
         self._write(defaults=defaults, command=["local", "start-api"])
 
     def _write_local_start_lambda(self) -> None:
         """
         Write local start-lambda default properties to samconfig.toml
         """
-        defaults = [self._create_default(writing_type=WritingType.Both, key="warm_containers", value="EAGER")]
+        defaults = [Default(writing_type=WritingType.Both, key="warm_containers", value="EAGER")]
         self._write(defaults=defaults, command=["local", "start-lambda"])
-
-    @staticmethod
-    def _create_default(writing_type: WritingType, key: str, value: Any) -> Default:
-        """
-        Helper method to create a default samconfig property.
-
-        Parameters
-        ----------
-        writing_type: WritingType
-            WritingType representing if a property should be writtent to a template package type
-        key: str
-            string representing the key to write to the samconfig.toml file
-        value:
-            Any toml supported value
-
-        Returns
-        -------
-            Default
-            The Default property object
-        """
-        return Default(writing_type, key, value)
