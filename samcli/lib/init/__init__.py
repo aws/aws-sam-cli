@@ -1,6 +1,8 @@
 """
 Init module to scaffold a project app from a template
 """
+from typing import Optional, Dict
+
 import itertools
 import logging
 import platform
@@ -12,6 +14,7 @@ from cookiecutter.main import cookiecutter
 
 from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING, is_custom_runtime
 from samcli.lib.telemetry.event import EventTracker
+from samcli.lib.init.default_samconfig import DefaultSamconfig
 from samcli.lib.init.template_modifiers.xray_tracing_template_modifier import XRayTracingTemplateModifier
 from samcli.lib.init.template_modifiers.application_insights_template_modifier import (
     ApplicationInsightsTemplateModifier,
@@ -131,6 +134,8 @@ def generate_project(
 
     _enable_application_insights(application_insights, output_dir, name)
 
+    _create_default_samconfig(package_type, output_dir, name)
+
 
 def _apply_tracing(tracing: bool, output_dir: str, name: str) -> None:
     if tracing:
@@ -145,3 +150,26 @@ def _enable_application_insights(application_insights: bool, output_dir: str, na
         template_modifier = ApplicationInsightsTemplateModifier(template_file_path)
         template_modifier.modify_template()
         EventTracker.track_event(EventName.USED_FEATURE.value, UsedFeature.INIT_WITH_APPLICATION_INSIGHTS.value)
+
+
+def _create_default_samconfig(package_type: str, output_dir: str, name: str) -> None:
+    """
+    Init post-processing function to create a default samconfig.toml
+    file and place it into the cookie cutter project.
+
+    Parameters
+    ----------
+    package_type: str
+        string representing the package type, 'Zip' or 'Image', see samcli/lib/utils/packagetype.py
+    output_dir: str
+        string representing the output directory of the template
+    name:
+        string representing the name of the application
+    """
+    project_root_path = Path(output_dir, name)
+    if Path(project_root_path, "samconfig.toml").is_file():
+        LOG.debug("Default samconfig.toml already in cookie cutter template")
+        return
+    LOG.debug("Moving samconfig.toml into cookie cutter template")
+    samconfig = DefaultSamconfig(project_root_path, package_type, name)
+    samconfig.create()
