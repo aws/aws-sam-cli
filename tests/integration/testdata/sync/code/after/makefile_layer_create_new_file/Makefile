@@ -1,5 +1,5 @@
 build-HelloWorldLayer:
-	touch file-created-from-makefile-layer
+	echo "temp" >> file-created-from-makefile-layer.txt
 	mkdir -p $(ARTIFACTS_DIR)/python
 	cp *.py $(ARTIFACTS_DIR)/python
 	cp requirements.txt $(ARTIFACTS_DIR)/python

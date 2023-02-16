@@ -19,7 +19,7 @@ class TestBuildCommand_BuildInSource_Makefile(BuildIntegProvidedBase):
         super().setUpClass()
         cls.code_uri = "provided_create_new_file"
         cls.code_uri_path = os.path.join(cls.test_data_path, cls.code_uri)
-        cls.file_created_from_make_command = "file-created-from-make-command"
+        cls.file_created_from_make_command = "file-created-from-make-command.txt"
 
     def tearDown(self):
         super().tearDown()

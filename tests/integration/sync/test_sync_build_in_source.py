@@ -23,8 +23,8 @@ class TestSyncInfra_BuildInSource_Makefile(SyncIntegBase):
         super().setUp()
 
         paths = [
-            Path("makefile_function_create_new_file", "file-created-from-makefile-function"),
-            Path("makefile_layer_create_new_file", "file-created-from-makefile-layer"),
+            Path("makefile_function_create_new_file", "file-created-from-makefile-function.txt"),
+            Path("makefile_layer_create_new_file", "file-created-from-makefile-layer.txt"),
         ]
         self.new_files_in_source = [self.test_data_path.joinpath("code", "before", path) for path in paths]
 
@@ -84,8 +84,8 @@ class TestSyncCode_BuildInSource_Makefile(TestSyncCodeBase):
     def setUp(self):
         super().setUp()
         paths = [
-            Path("makefile_function_create_new_file", "file-created-from-makefile-function"),
-            Path("makefile_layer_create_new_file", "file-created-from-makefile-layer"),
+            Path("makefile_function_create_new_file", "file-created-from-makefile-function.txt"),
+            Path("makefile_layer_create_new_file", "file-created-from-makefile-layer.txt"),
         ]
         # When running tests, TestSyncCodeBase copies the source onto a temp directory
         self.new_files_in_source = [TestSyncCodeBase.temp_dir.joinpath(path) for path in paths]
