@@ -563,9 +563,9 @@ websocket-client==0.58.0 \
     --hash=sha256:44b5df8f08c74c3d82d28100fdc81f4536809ce98a17f0757557813275fbb663 \
     --hash=sha256:63509b41d158ae5b7f67eb4ad20fecbb4eee99434e73e140354dc3ff8e09716f
     # via docker
-werkzeug==2.0.3 \
-    --hash=sha256:1421ebfc7648a39a5c58c601b154165d05cf47a3cd0ccb70857cbdacf6c8f2b8 \
-    --hash=sha256:b863f8ff057c522164b6067c9e28b041161b4be5ba4d0daceeaa50a163822d3c
+werkzeug==2.2.3 \
+    --hash=sha256:2e1ccc9417d4da358b9de6f174e3ac094391ea1d4fbef2d667865d819dfd0afe \
+    --hash=sha256:56433961bc1f12533306c624f3be5e744389ac61d722175d543e1751285da612
     # via
     #   aws-sam-cli (setup.py)
     #   flask
