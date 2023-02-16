@@ -273,7 +273,7 @@ class InvokeContext:
 
         for func in self._function_provider.get_all():
             if func.packagetype == ZIP and func.inlinecode:
-                LOG.info(
+                LOG.warning(
                     "Warning: Inline code found for function %s."
                     " Invocation of inline code is not supported for sam local commands.",
                     func.function_id,
