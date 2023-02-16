@@ -23,6 +23,7 @@ environment:
   NODE_VERSION: "14.17.6"
   AWS_S3: 'AWS_S3_TESTING'
   AWS_ECR: 'AWS_ECR_TESTING'
+  CARGO_LAMBDA_VERSION: "v0.17.1"
  
   matrix:
 
@@ -113,6 +114,18 @@ install:
   - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
   - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
   - sh: "terraform -version"
+
+  # install Rust
+  - sh: "curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL https://sh.rustup.rs | sh -s -- --default-toolchain none -y"
+  - sh: "source $HOME/.cargo/env"
+  - sh: "rustup toolchain install stable --profile minimal --no-self-update"
+  - sh: "rustup default stable"
+  - sh: "rustup target add x86_64-unknown-linux-gnu --toolchain stable"
+  - sh: "rustup target add aarch64-unknown-linux-gnu --toolchain stable"
+  - sh: "pip install cargo-lambda==$CARGO_LAMBDA_VERSION"
+  - sh: "rustc -V"
+  - sh: "cargo -V"
+  - sh: "cargo lambda -V"
 
   - sh: "python3.9 -m venv .venv_env_vars"
   - sh: ".venv_env_vars/bin/pip install boto3"
@@ -269,7 +282,7 @@ for:
 
     test_script:
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/deploy --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
+      - sh: "pytest -vv tests/integration/deploy -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
 
   # Integ testing package
   -

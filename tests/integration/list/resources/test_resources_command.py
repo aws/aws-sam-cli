@@ -1,31 +1,22 @@
 import os
-import time
 import boto3
 import json
 from unittest import skipIf
-from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.integration.list.resources.resources_integ_base import ResourcesIntegBase
 from samcli.commands.list.resources.command import HELP_TEXT
 from tests.testing_utils import CI_OVERRIDE, RUN_BY_CANARY
 from tests.testing_utils import run_command, run_command_with_input, method_to_stack_name
 
-CFN_SLEEP = 3
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
 
 
 @skipIf(
     (not RUN_BY_CANARY and not CI_OVERRIDE),
-    "Skip Terraform test cases unless running in CI",
+    "Skip List test cases unless running in CI",
 )
-class TestResources(DeployIntegBase, ResourcesIntegBase):
-    @classmethod
-    def setUpClass(cls):
-        DeployIntegBase.setUpClass()
-        ResourcesIntegBase.setUpClass()
-
+class TestResources(ResourcesIntegBase):
     def setUp(self):
         self.cf_client = boto3.client("cloudformation")
-        time.sleep(CFN_SLEEP)
         super().setUp()
 
     def test_resources_help_message(self):
@@ -77,6 +68,8 @@ class TestResources(DeployIntegBase, ResourcesIntegBase):
         run_command_with_input(
             deploy_command_list, "{}\n{}\nY\nY\nY\nY\nY\n\n\nY\n".format(stack_name, region).encode()
         )
+        self.stacks.append({"name": stack_name})
+
         cmdlist = self.get_resources_command_list(
             stack_name=stack_name, region=region, output="json", template_file=template_path
         )
