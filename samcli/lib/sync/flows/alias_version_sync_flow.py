@@ -71,8 +71,7 @@ class AliasVersionSyncFlow(SyncFlow):
         Key as AliasVersionSyncFlow:FunctionLogicalId:AliasName
         Value as alias version number
         """
-        identifier = self.__class__.__name__ + ":" + self._function_identifier + ":" + self._alias_name
-        return identifier.replace("/", ":")
+        return self.__class__.__name__ + ":" + self._function_identifier + ":" + self._alias_name
 
     def set_up(self) -> None:
         super().set_up()

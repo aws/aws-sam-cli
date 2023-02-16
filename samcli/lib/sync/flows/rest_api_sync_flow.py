@@ -67,8 +67,7 @@ class RestApiSyncFlow(GenericApiSyncFlow):
         Key as RestApiSyncFlow:RestApiLogicalId
         Value as RestApi definition hash
         """
-        identifier = self.__class__.__name__ + ":" + self._api_identifier
-        return identifier.replace("/", ":")
+        return self.__class__.__name__ + ":" + self._api_identifier
 
     def set_up(self) -> None:
         super().set_up()

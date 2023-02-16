@@ -69,8 +69,7 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
         Key as ImageFunctionSyncFlow:FunctionLogicalId
         Value as image name hash
         """
-        identifier = self.__class__.__name__ + ":" + self._function_identifier
-        return identifier.replace("/", ":")
+        return self.__class__.__name__ + ":" + self._function_identifier
 
     def set_up(self) -> None:
         super().set_up()

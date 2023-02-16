@@ -73,8 +73,7 @@ class AutoDependencyLayerSyncFlow(AbstractLayerSyncFlow):
         Key as AutoDependencyLayerSyncFlow:FunctionLogicalId
         Value as layer folder ZIP hash
         """
-        identifier = self.__class__.__name__ + ":" + self._function_identifier
-        return identifier.replace("/", ":")
+        return self.__class__.__name__ + ":" + self._function_identifier
 
     def set_up(self) -> None:
         super().set_up()
@@ -129,8 +128,7 @@ class AutoDependencyLayerParentSyncFlow(ZipFunctionSyncFlow):
         Key as AutoDependencyLayerParentSyncFlow:FunctionLogicalId
         Value as function ZIP hash
         """
-        identifier = self.__class__.__name__ + ":" + self._function_identifier
-        return identifier.replace("/", ":")
+        return self.__class__.__name__ + ":" + self._function_identifier
 
     def gather_dependencies(self) -> List[SyncFlow]:
         """

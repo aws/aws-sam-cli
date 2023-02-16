@@ -209,8 +209,7 @@ class LayerSyncFlow(AbstractLayerSyncFlow):
         Key as LayerSyncFlow:LayerLogicalId
         Value as layer ZIP hash
         """
-        identifier = self.__class__.__name__ + ":" + self._layer_identifier
-        return identifier.replace("/", ":")
+        return self.__class__.__name__ + ":" + self._layer_identifier
 
     def set_up(self) -> None:
         super().set_up()
@@ -295,8 +294,7 @@ class LayerSyncFlowSkipBuildDirectory(LayerSyncFlow):
         Key as LayerSyncFlowSkipBuildDirectory:LayerLogicalId
         Value as layer ZIP hash
         """
-        identifier = self.__class__.__name__ + ":" + self._layer_identifier
-        return identifier.replace("/", ":")
+        return self.__class__.__name__ + ":" + self._layer_identifier
 
     def gather_resources(self) -> None:
         zip_file_path = os.path.join(tempfile.gettempdir(), f"data-{uuid.uuid4().hex}")
@@ -318,8 +316,7 @@ class LayerSyncFlowSkipBuildZipFile(LayerSyncFlow):
         Key as LayerSyncFlowSkipBuildZipFile:LayerLogicalId
         Value as layer ZIP hash
         """
-        identifier = self.__class__.__name__ + ":" + self._layer_identifier
-        return identifier.replace("/", ":")
+        return self.__class__.__name__ + ":" + self._layer_identifier
 
     def gather_resources(self) -> None:
         self._zip_file = os.path.join(tempfile.gettempdir(), f"data-{uuid.uuid4().hex}")
@@ -372,8 +369,7 @@ class FunctionLayerReferenceSync(SyncFlow):
         Key as FunctionLayerReferenceSync:FunctionLogicalId:LayerArn
         Value as LayerVersion hash
         """
-        identifier = self.__class__.__name__ + ":" + self._function_identifier + ":" + self._layer_arn
-        return identifier.replace("/", ":")
+        return self.__class__.__name__ + ":" + self._function_identifier + ":" + self._layer_arn
 
     def set_up(self) -> None:
         super().set_up()

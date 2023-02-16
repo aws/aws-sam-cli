@@ -73,8 +73,7 @@ class StepFunctionsSyncFlow(SyncFlow):
         Key as StepFunctionsSyncFlow:StepFunctionsLogicalId
         Value as state machine definition hash
         """
-        identifier = self.__class__.__name__ + ":" + self._state_machine_identifier
-        return identifier.replace("/", ":")
+        return self.__class__.__name__ + ":" + self._state_machine_identifier
 
     def set_up(self) -> None:
         super().set_up()
