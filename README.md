@@ -4,7 +4,7 @@
 # AWS SAM CLI
 
 ![Apache 2.0 License](https://img.shields.io/github/license/aws/aws-sam-cli)
-![SAM CLI Version](https://img.shields.io/github/release/awslabs/aws-sam-cli.svg?label=CLI%20Version)
+![SAM CLI Version](https://img.shields.io/github/release/aws/aws-sam-cli.svg?label=CLI%20Version)
 ![Install](https://img.shields.io/badge/brew-aws--sam--cli-orange)
 ![pip](https://img.shields.io/badge/pip-aws--sam--cli-9cf)
 
@@ -64,7 +64,7 @@ We think you'll like the code base. Clone it and run `make pr` or `./Make -pr` o
 
 ## Related Repositories and Resources
 
-+ **SAM Transform** [Open source template specification](https://github.com/awslabs/serverless-application-model/) that provides shorthand syntax for CloudFormation
++ **SAM Transform** [Open source template specification](https://github.com/aws/serverless-application-model/) that provides shorthand syntax for CloudFormation
 + **SAM CLI application templates** Get started quickly with [predefined application templates](https://github.com/aws/aws-sam-cli-app-templates/blob/master/README.md) for all supported runtimes and languages, used by `sam init`
 + **Lambda Builders** [Lambda builder tools](https://github.com/aws/aws-lambda-builders) for supported runtimes and custom build workflows, used by `sam build`
 + **Build and local emulation images for CI/CD tools** [Build container images](https://gallery.ecr.aws/sam/) to use with CI/CD tasks 
@@ -76,19 +76,19 @@ We love our contributors ❤️ We have over 100 contributors who have built var
 Read this [testimonial from @ndobryanskyy](https://www.lohika.com/aws-sam-my-exciting-first-open-source-experience/) to learn
 more about what it was like contributing to SAM. 
 
-Depending on your interest and skill, you can help build the different parts of the SAM project; 
+Depending on your interest and skill, you can help build the different parts of the SAM project;
 
 **Enhance the SAM Specification**
 
 Make pull requests, report bugs, and share ideas to improve the full SAM template specification.
-Source code is located on Github at [awslabs/serverless-application-model](https://github.com/awslabs/serverless-application-model). 
-Read the [SAM Specification Contributing Guide](https://github.com/awslabs/serverless-application-model/blob/master/CONTRIBUTING.md)
+Source code is located on Github at [aws/serverless-application-model](https://github.com/aws/serverless-application-model).
+Read the [SAM Specification Contributing Guide](https://github.com/aws/serverless-application-model/blob/master/CONTRIBUTING.md)
 to get started.
     
 **Strengthen SAM CLI**
 
 Add new commands, enhance existing ones, report bugs, or request new features for the SAM CLI.
-Source code is located on Github at [awslabs/aws-sam-cli](https://github.com/awslabs/aws-sam-cli). Read the [SAM CLI Contributing Guide](https://github.com/awslabs/aws-sam-cli/blob/develop/CONTRIBUTING.md) to 
+Source code is located on Github at [aws/aws-sam-cli](https://github.com/aws/aws-sam-cli). Read the [SAM CLI Contributing Guide](https://github.com/aws/aws-sam-cli/blob/develop/CONTRIBUTING.md) to
 get started. 
 
 **Update SAM Developer Guide**
