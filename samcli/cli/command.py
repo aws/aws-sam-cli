@@ -1,12 +1,15 @@
 """
 Base classes that implement the CLI framework
 """
-
 import logging
 import importlib
 from collections import OrderedDict
 
 import click
+
+from samcli.cli.formatters import RootCommandHelpTextFormatter
+from samcli.cli.row_modifiers import RowDefinition, HighlightNewRowNameModifier, ShowcaseRowModifier
+from samcli.cli.root.command_list import SAM_CLI_COMMANDS
 
 logger = logging.getLogger(__name__)
 
@@ -30,22 +33,6 @@ _SAM_CLI_COMMAND_PACKAGES = [
     # "samcli.commands.bootstrap",
 ]
 
-_SAM_CLI_COMMAND_SHORT_HELP = {
-    "init": "Init an AWS SAM application",
-    "validate": "Validate an AWS SAM template",
-    "build": "Build your Lambda Function code",
-    "local": "Run your serverless function locally",
-    "package": "Package an AWS SAM application",
-    "deploy": "Deploy an AWS SAM application",
-    "delete": "Delete an AWS SAM application and the artifacts created by sam deploy",
-    "logs": "Fetch logs for a function",
-    "publish": "Publish a packaged AWS SAM template to AWS Serverless Application Repository",
-    "traces": "Fetch AWS X-Ray traces",
-    "sync": "Sync a project to AWS",
-    "pipeline": "Manage the continuous delivery of the application",
-    "list": "Fetch the state of your serverless application",
-}
-
 
 class BaseCommand(click.MultiCommand):
     """
@@ -67,6 +54,11 @@ class BaseCommand(click.MultiCommand):
     By convention, the name of last module in the package's name is the command's name. ie. A package of "foo.bar.baz"
     will produce a command name "baz".
     """
+
+    class CustomFormatterContext(click.Context):
+        formatter_class = RootCommandHelpTextFormatter
+
+    context_class = CustomFormatterContext
 
     def __init__(self, *args, cmd_packages=None, **kwargs):
         """
@@ -103,6 +95,124 @@ class BaseCommand(click.MultiCommand):
             commands[cmd_name] = pkg_name
 
         return commands
+
+    def format_options(self, ctx: click.Context, formatter: RootCommandHelpTextFormatter):  # type: ignore
+        # NOTE(sriram-mv): `ignore` is put in place here for mypy even though it is the correct behavior,
+        # as the `formatter_class` can be set in subclass of Command. If ignore is not set,
+        # mypy raises argument needs to be HelpFormatter as super class defines it.
+        # NOTE(sriram-mv): Re-order options so that they come after the commands.
+        self.format_commands(ctx, formatter)
+        opts = [RowDefinition(name="", text="\n")]
+        for param in self.get_params(ctx):
+            row = param.get_help_record(ctx)
+            if row is not None:
+                term, help_text = row
+                opts.append(RowDefinition(name=term, text=help_text))
+
+        if opts:
+            with formatter.indented_section(name="Options", extra_indents=1):
+                formatter.write_rd(opts)
+
+        with formatter.indented_section(name="Examples", extra_indents=1):
+            formatter.write_rd(
+                [
+                    RowDefinition(
+                        name="",
+                        text="\n",
+                    ),
+                    RowDefinition(
+                        name="Get Started:",
+                        text=click.style(f"${ctx.command_path} init"),
+                        extra_row_modifiers=[ShowcaseRowModifier()],
+                    ),
+                ],
+            )
+
+    def format_commands(self, ctx: click.Context, formatter: RootCommandHelpTextFormatter):  # type: ignore
+        # NOTE(sriram-mv): `ignore` is put in place here for mypy even though it is the correct behavior,
+        # as the `formatter_class` can be set in subclass of Command. If ignore is not set,
+        # mypy raises argument needs to be HelpFormatter as super class defines it.
+        with formatter.section("Commands"):
+            with formatter.section("Create an App"):
+                formatter.write_rd(
+                    [
+                        RowDefinition(name="init", text=SAM_CLI_COMMANDS.get("init", "")),
+                    ],
+                )
+
+            with formatter.section("Develop your App"):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            name="build",
+                            text=SAM_CLI_COMMANDS.get("build", ""),
+                        ),
+                        RowDefinition(
+                            name="local",
+                            text=SAM_CLI_COMMANDS.get("local", ""),
+                        ),
+                        RowDefinition(
+                            name="validate",
+                            text=SAM_CLI_COMMANDS.get("validate", ""),
+                        ),
+                        RowDefinition(
+                            name="sync",
+                            text=SAM_CLI_COMMANDS.get("sync", ""),
+                            extra_row_modifiers=[HighlightNewRowNameModifier()],
+                        ),
+                    ],
+                )
+
+            with formatter.section("Deploy your App"):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            name="package",
+                            text=SAM_CLI_COMMANDS.get("package", ""),
+                        ),
+                        RowDefinition(
+                            name="deploy",
+                            text=SAM_CLI_COMMANDS.get("deploy", ""),
+                        ),
+                    ]
+                )
+
+            with formatter.section("Monitor your App"):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            name="logs",
+                            text=SAM_CLI_COMMANDS.get("logs", ""),
+                        ),
+                        RowDefinition(
+                            name="traces",
+                            text=SAM_CLI_COMMANDS.get("traces", ""),
+                        ),
+                    ],
+                )
+
+            with formatter.section("And More"):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            name="list",
+                            text=SAM_CLI_COMMANDS.get("list", ""),
+                            extra_row_modifiers=[HighlightNewRowNameModifier()],
+                        ),
+                        RowDefinition(
+                            name="delete",
+                            text=SAM_CLI_COMMANDS.get("delete", ""),
+                        ),
+                        RowDefinition(
+                            name="pipeline",
+                            text=SAM_CLI_COMMANDS.get("pipeline", ""),
+                        ),
+                        RowDefinition(
+                            name="publish",
+                            text=SAM_CLI_COMMANDS.get("publish", ""),
+                        ),
+                    ],
+                )
 
     def list_commands(self, ctx):
         """
@@ -144,6 +254,4 @@ class BaseCommand(click.MultiCommand):
                 )
                 return None
 
-        return (
-            mod.cli if mod else click.Command(name=cmd_name, short_help=_SAM_CLI_COMMAND_SHORT_HELP.get(cmd_name, ""))
-        )
+        return mod.cli if mod else click.Command(name=cmd_name, short_help=SAM_CLI_COMMANDS.get(cmd_name, ""))
