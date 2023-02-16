@@ -1,11 +1,13 @@
 import shutil
 import tempfile
 from pathlib import Path
-from unittest import TestCase
 from enum import Enum, auto
 
 import boto3
 from botocore.config import Config
+
+from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
+from tests.integration.package.package_integ_base import PackageIntegBase
 from tests.testing_utils import get_sam_command, run_command, run_command_with_input
 
 
@@ -15,7 +17,7 @@ class ResourceType(Enum):
     IAM_ROLE = auto()
 
 
-class DeployIntegBase(TestCase):
+class DeployIntegBase(PackageIntegBase):
     def setUp(self):
         super().setUp()
         self.left_over_resources = {
@@ -26,9 +28,27 @@ class DeployIntegBase(TestCase):
         # make temp directory and move all test files into there for each test run
         original_test_data_path = self.test_data_path
         self.test_data_path = Path(tempfile.mkdtemp())
-        shutil.copytree(original_test_data_path, self.test_data_path, dirs_exist_ok=True)
+
+        # copytree call below fails if root folder present, delete it first
+        shutil.rmtree(self.test_data_path, ignore_errors=True)
+        shutil.copytree(original_test_data_path, self.test_data_path)
+
+        self.cfn_client = boto3.client("cloudformation")
+        self.ecr_client = boto3.client("ecr")
+        self.stacks = []
 
     def tearDown(self):
+        for stack in self.stacks:
+            # because of the termination protection, do not delete aws-sam-cli-managed-default stack
+            stack_name = stack["name"]
+            if stack_name != SAM_CLI_STACK_NAME:
+                region = stack.get("region")
+                cfn_client = (
+                    self.cfn_client if not region else boto3.client("cloudformation", config=Config(region_name=region))
+                )
+                ecr_client = self.ecr_client if not region else boto3.client("ecr", config=Config(region_name=region))
+                self._delete_companion_stack(cfn_client, ecr_client, self._stack_name_to_companion_stack(stack_name))
+                cfn_client.delete_stack(StackName=stack_name)
         shutil.rmtree(self.test_data_path)
         super().tearDown()
         self.delete_s3_buckets()

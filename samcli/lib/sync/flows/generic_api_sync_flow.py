@@ -1,5 +1,6 @@
 """SyncFlow interface for HttpApi and RestApi"""
 import logging
+from abc import ABC
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
@@ -16,7 +17,7 @@ if TYPE_CHECKING:  # pragma: no cover
 LOG = logging.getLogger(__name__)
 
 
-class GenericApiSyncFlow(SyncFlow):
+class GenericApiSyncFlow(SyncFlow, ABC):
     """SyncFlow interface for HttpApi and RestApi"""
 
     _api_client: Any

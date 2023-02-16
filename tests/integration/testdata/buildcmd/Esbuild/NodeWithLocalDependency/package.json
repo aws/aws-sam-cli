@@ -7,7 +7,7 @@
   "license": "APACHE2.0",
   "main": "main.js",
   "dependencies": {
-    "minimal-request-promise": "*",
-    "esbuild": "^0.14.14"
+    "esbuild": "^0.14.14",
+    "local-dependency": "file:../Node"
   }
 }
