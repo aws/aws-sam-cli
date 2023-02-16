@@ -2125,7 +2125,9 @@ class TestSamApiUsingAuthorizers(TestCase):
 
         _, route = SamApiProvider._convert_event_route(Mock(), Mock(), properties, Route.API)
 
-        self.assertEqual(route, Route(ANY, ANY, ["method"], ANY, ANY, ANY, ANY, ANY, expected_auth_name, ANY, use_default))
+        self.assertEqual(
+            route, Route(ANY, ANY, ["method"], ANY, ANY, ANY, ANY, ANY, expected_auth_name, ANY, use_default)
+        )
 
 
 def make_swagger(routes, binary_media_types=None):
