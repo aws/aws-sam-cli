@@ -5,7 +5,6 @@ from abc import ABC, abstractmethod
 import logging
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
 from samcli.commands.local.lib.swagger.integration_uri import LambdaUri
-from samcli.lib.providers.cfn_api_provider import CfnApiProvider
 from samcli.local.apigw.local_apigw_service import LambdaAuthorizer
 
 
@@ -13,6 +12,14 @@ LOG = logging.getLogger(__name__)
 
 
 class BaseLambdaAuthorizerValidator(ABC):
+    AUTHORIZER_TYPE = "Type"
+    AUTHORIZER_REST_API = "RestApiId"
+    AUTHORIZER_NAME = "Name"
+    AUTHORIZER_IDENTITY_SOURCE = "IdentitySource"
+    AUTHORIZER_VALIDATION = "IdentityValidationExpression"
+    AUTHORIZER_AUTHORIZER_URI = "AuthorizerUri"
+
+    @staticmethod
     @abstractmethod
     def validate(logical_id: str, resource: dict) -> bool:
         """
@@ -30,7 +37,6 @@ class BaseLambdaAuthorizerValidator(ABC):
         bool
             True if the `Properties` contains all the required key values
         """
-        pass
 
     @staticmethod
     def _validate_common_properties(logical_id: str, properties: dict, type_key: str, api_key: str):
@@ -51,7 +57,7 @@ class BaseLambdaAuthorizerValidator(ABC):
         """
         authorizer_type = properties.get(type_key)
         api_id = properties.get(api_key)
-        name = properties.get(CfnApiProvider._AUTHORIZER_NAME)
+        name = properties.get(BaseLambdaAuthorizerValidator.AUTHORIZER_NAME)
 
         if not authorizer_type:
             raise InvalidSamTemplateException(
@@ -66,7 +72,7 @@ class BaseLambdaAuthorizerValidator(ABC):
 
         if not name:
             raise InvalidSamTemplateException(
-                f"Authorizer '{logical_id}' is missing the '{CfnApiProvider._AUTHORIZER_NAME}' "
+                f"Authorizer '{logical_id}' is missing the '{BaseLambdaAuthorizerValidator.AUTHORIZER_NAME}' "
                 "property, the Name must be defined."
             )
 
@@ -93,11 +99,14 @@ class LambdaAuthorizerV1Validator(BaseLambdaAuthorizerValidator):
             True if the `Properties` contains all the required key values
         """
         properties = resource.get("Properties", {})
-        authorizer_type = properties.get(CfnApiProvider._AUTHORIZER_TYPE, "")
-        authorizer_uri = properties.get(CfnApiProvider._AUTHORIZER_AUTHORIZER_URI)
+        authorizer_type = properties.get(LambdaAuthorizerV1Validator.AUTHORIZER_TYPE, "")
+        authorizer_uri = properties.get(LambdaAuthorizerV1Validator.AUTHORIZER_AUTHORIZER_URI)
 
         LambdaAuthorizerV1Validator._validate_common_properties(
-            logical_id, properties, CfnApiProvider._AUTHORIZER_TYPE, CfnApiProvider._AUTHORIZER_REST_API
+            logical_id,
+            properties,
+            LambdaAuthorizerV1Validator.AUTHORIZER_TYPE,
+            LambdaAuthorizerV1Validator.AUTHORIZER_REST_API,
         )
 
         # (lucashuy) AWS SAM CLI keeps references to types as lowercase strings
@@ -114,7 +123,7 @@ class LambdaAuthorizerV1Validator(BaseLambdaAuthorizerValidator):
 
         if not authorizer_uri:
             raise InvalidSamTemplateException(
-                f"Authorizer '{logical_id}' is missing the '{CfnApiProvider._AUTHORIZER_AUTHORIZER_URI}' "
+                f"Authorizer '{logical_id}' is missing the '{LambdaAuthorizerV1Validator.AUTHORIZER_AUTHORIZER_URI}' "
                 "property, a valid Lambda ARN must be provided."
             )
 
@@ -127,12 +136,12 @@ class LambdaAuthorizerV1Validator(BaseLambdaAuthorizerValidator):
             )
             return False
 
-        identity_source_template = properties.get(CfnApiProvider._AUTHORIZER_IDENTITY_SOURCE, None)
+        identity_source_template = properties.get(LambdaAuthorizerV1Validator.AUTHORIZER_IDENTITY_SOURCE, None)
 
         if identity_source_template is None and authorizer_type == LambdaAuthorizer.TOKEN.upper():
             raise InvalidSamTemplateException(
                 f"Lambda Authorizer '{logical_id}' of type TOKEN, must have "
-                f"'{CfnApiProvider._AUTHORIZER_IDENTITY_SOURCE}' of type string defined."
+                f"'{LambdaAuthorizerV1Validator.AUTHORIZER_IDENTITY_SOURCE}' of type string defined."
             )
 
         # (lucashuy) (regarding this if statement and the one below this)
@@ -141,22 +150,28 @@ class LambdaAuthorizerV1Validator(BaseLambdaAuthorizerValidator):
         # test if the it is a string.
         if identity_source_template is not None and not isinstance(identity_source_template, str):
             raise InvalidSamTemplateException(
-                f"Lambda Authorizer '{logical_id}' contains an invalid '{CfnApiProvider._AUTHORIZER_IDENTITY_SOURCE}', "
+                f"Lambda Authorizer '{logical_id}' contains an invalid "
+                f"'{LambdaAuthorizerV1Validator.AUTHORIZER_IDENTITY_SOURCE}', "
                 "it must be a comma-separated string."
             )
 
-        validation_expression = properties.get(CfnApiProvider._AUTHORIZER_VALIDATION)
+        validation_expression = properties.get(LambdaAuthorizerV1Validator.AUTHORIZER_VALIDATION)
 
         if authorizer_type == LambdaAuthorizer.REQUEST.upper() and validation_expression:
             raise InvalidSamTemplateException(
                 "Lambda Authorizer '%s' has '%s' property defined, but validation is only "
-                "supported on TOKEN type authorizers." % (logical_id, CfnApiProvider._AUTHORIZER_VALIDATION)
+                "supported on TOKEN type authorizers." % (logical_id, LambdaAuthorizerV1Validator.AUTHORIZER_VALIDATION)
             )
 
         return True
 
 
 class LambdaAuthorizerV2Validator(BaseLambdaAuthorizerValidator):
+    AUTHORIZER_V2_TYPE = "AuthorizerType"
+    AUTHORIZER_V2_API = "ApiId"
+    AUTHORIZER_V2_PAYLOAD = "AuthorizerPayloadFormatVersion"
+    AUTHORIZER_V2_SIMPLE_RESPONSE = "EnableSimpleResponses"
+
     @staticmethod
     def validate(
         logical_id: str,
@@ -178,11 +193,14 @@ class LambdaAuthorizerV2Validator(BaseLambdaAuthorizerValidator):
             True if the `Properties` contains all the required key values
         """
         properties = resource.get("Properties", {})
-        authorizer_type = properties.get(CfnApiProvider._AUTHORIZER_V2_TYPE, "")
-        authorizer_uri = properties.get(CfnApiProvider._AUTHORIZER_AUTHORIZER_URI)
+        authorizer_type = properties.get(LambdaAuthorizerV2Validator.AUTHORIZER_V2_TYPE, "")
+        authorizer_uri = properties.get(LambdaAuthorizerV2Validator.AUTHORIZER_AUTHORIZER_URI)
 
         LambdaAuthorizerV2Validator._validate_common_properties(
-            logical_id, properties, CfnApiProvider._AUTHORIZER_V2_TYPE, CfnApiProvider._AUTHORIZER_V2_API
+            logical_id,
+            properties,
+            LambdaAuthorizerV2Validator.AUTHORIZER_V2_TYPE,
+            LambdaAuthorizerV2Validator.AUTHORIZER_V2_API,
         )
 
         # (lucashuy) AWS SAM CLI keeps references to types as lowercase strings
@@ -199,7 +217,7 @@ class LambdaAuthorizerV2Validator(BaseLambdaAuthorizerValidator):
 
         if not authorizer_uri:
             raise InvalidSamTemplateException(
-                f"Authorizer '{logical_id}' is missing the '{CfnApiProvider._AUTHORIZER_AUTHORIZER_URI}' "
+                f"Authorizer '{logical_id}' is missing the '{LambdaAuthorizerV2Validator.AUTHORIZER_AUTHORIZER_URI}' "
                 "property, a valid Lambda ARN must be provided."
             )
 
@@ -212,27 +230,28 @@ class LambdaAuthorizerV2Validator(BaseLambdaAuthorizerValidator):
             )
             return False
 
-        identity_sources = properties.get(CfnApiProvider._AUTHORIZER_IDENTITY_SOURCE, None)
+        identity_sources = properties.get(LambdaAuthorizerV2Validator.AUTHORIZER_IDENTITY_SOURCE, None)
 
         if not isinstance(identity_sources, list):
             raise InvalidSamTemplateException(
                 f"Lambda Authorizer '{logical_id}' must have "
-                f"'{CfnApiProvider._AUTHORIZER_IDENTITY_SOURCE}' of type list defined."
+                f"'{LambdaAuthorizerV2Validator.AUTHORIZER_IDENTITY_SOURCE}' of type list defined."
             )
 
-        payload_version = properties.get(CfnApiProvider._AUTHORIZER_V2_PAYLOAD)
+        payload_version = properties.get(LambdaAuthorizerV2Validator.AUTHORIZER_V2_PAYLOAD)
 
         if not payload_version in LambdaAuthorizer.PAYLOAD_VERSIONS:
             raise InvalidSamTemplateException(
-                f"Lambda Authorizer '{logical_id}' is missing or invalid '{CfnApiProvider._AUTHORIZER_V2_PAYLOAD}'"
+                f"Lambda Authorizer '{logical_id}' is missing or invalid "
+                f"'{LambdaAuthorizerV2Validator.AUTHORIZER_V2_PAYLOAD}'"
                 ", it must be set to '1.0' or '2.0'"
             )
 
-        simple_responses = properties.get(CfnApiProvider._AUTHORIZER_V2_SIMPLE_RESPONSE, False)
+        simple_responses = properties.get(LambdaAuthorizerV2Validator.AUTHORIZER_V2_SIMPLE_RESPONSE, False)
 
         if payload_version == LambdaAuthorizer.PAYLOAD_V1 and simple_responses:
             raise InvalidSamTemplateException(
-                f"'{CfnApiProvider._AUTHORIZER_V2_SIMPLE_RESPONSE}' is only supported for '2.0' "
+                f"'{LambdaAuthorizerV2Validator.AUTHORIZER_V2_SIMPLE_RESPONSE}' is only supported for '2.0' "
                 f"payload format versions for Lambda Authorizer '{logical_id}'."
             )
 

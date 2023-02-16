@@ -8,6 +8,10 @@ from samcli.local.apigw.local_apigw_service import Route, LambdaAuthorizer
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
 from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
 from samcli.lib.providers.api_collector import ApiCollector
+from samcli.commands.local.lib.validators.lambda_auth_props import (
+    LambdaAuthorizerV1Validator,
+    LambdaAuthorizerV2Validator,
+)
 
 from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_METHOD,
@@ -41,16 +45,6 @@ class CfnApiProvider(CfnBaseApiProvider):
         AWS_APIGATEWAY_V2_AUTHORIZER,
     ]
 
-    _AUTHORIZER_TYPE = "Type"
-    _AUTHORIZER_REST_API = "RestApiId"
-    _AUTHORIZER_NAME = "Name"
-    _AUTHORIZER_IDENTITY_SOURCE = "IdentitySource"
-    _AUTHORIZER_VALIDATION = "IdentityValidationExpression"
-    _AUTHORIZER_AUTHORIZER_URI = "AuthorizerUri"
-    _AUTHORIZER_V2_TYPE = "AuthorizerType"
-    _AUTHORIZER_V2_API = "ApiId"
-    _AUTHORIZER_V2_PAYLOAD = "AuthorizerPayloadFormatVersion"
-    _AUTHORIZER_V2_SIMPLE_RESPONSE = "EnableSimpleResponses"
     _METHOD_AUTHORIZER_ID = "AuthorizerId"
     _ROUTE_AUTHORIZER_ID = "AuthorizerId"
 
@@ -112,17 +106,15 @@ class CfnApiProvider(CfnBaseApiProvider):
         collector: ApiCollector
             ApiCollector to save Authorizers into
         """
-        from samcli.commands.local.lib.validators.lambda_auth_props import LambdaAuthorizerV1Validator  # type: ignore
-
         if not LambdaAuthorizerV1Validator.validate(logical_id, resource):
             return
 
         properties = resource.get("Properties", {})
-        authorizer_type = properties.get(CfnApiProvider._AUTHORIZER_TYPE, "").lower()
-        rest_api_id = properties.get(CfnApiProvider._AUTHORIZER_REST_API)
-        name = properties.get(CfnApiProvider._AUTHORIZER_NAME)
-        authorizer_uri = properties.get(CfnApiProvider._AUTHORIZER_AUTHORIZER_URI)
-        identity_source_template = properties.get(CfnApiProvider._AUTHORIZER_IDENTITY_SOURCE, [])
+        authorizer_type = properties.get(LambdaAuthorizerV1Validator.AUTHORIZER_TYPE, "").lower()
+        rest_api_id = properties.get(LambdaAuthorizerV1Validator.AUTHORIZER_REST_API)
+        name = properties.get(LambdaAuthorizerV1Validator.AUTHORIZER_NAME)
+        authorizer_uri = properties.get(LambdaAuthorizerV1Validator.AUTHORIZER_AUTHORIZER_URI)
+        identity_source_template = properties.get(LambdaAuthorizerV1Validator.AUTHORIZER_IDENTITY_SOURCE, [])
 
         # this will always return a string since we have already validated above
         function_name = cast(str, LambdaUri.get_function_name(authorizer_uri))
@@ -134,7 +126,7 @@ class CfnApiProvider(CfnBaseApiProvider):
             for identity_source in identity_source_template.split(","):
                 identity_source_list.append(identity_source.strip())
 
-        validation_expression = properties.get(CfnApiProvider._AUTHORIZER_VALIDATION)
+        validation_expression = properties.get(LambdaAuthorizerV1Validator.AUTHORIZER_VALIDATION)
 
         lambda_authorizer = LambdaAuthorizer(
             payload_version="1.0",
@@ -161,19 +153,17 @@ class CfnApiProvider(CfnBaseApiProvider):
         collector: ApiCollector
             ApiCollector to save Authorizers into
         """
-        from samcli.commands.local.lib.validators.lambda_auth_props import LambdaAuthorizerV2Validator
-
         if not LambdaAuthorizerV2Validator.validate(logical_id, resource):
             return
 
         properties = resource.get("Properties", {})
-        authorizer_type = properties.get(CfnApiProvider._AUTHORIZER_V2_TYPE, "").lower()
-        api_id = properties.get(CfnApiProvider._AUTHORIZER_V2_API)
-        name = properties.get(CfnApiProvider._AUTHORIZER_NAME)
-        authorizer_uri = properties.get(CfnApiProvider._AUTHORIZER_AUTHORIZER_URI)
-        identity_sources = properties.get(CfnApiProvider._AUTHORIZER_IDENTITY_SOURCE, None)
-        payload_version = properties.get(CfnApiProvider._AUTHORIZER_V2_PAYLOAD)
-        simple_responses = properties.get(CfnApiProvider._AUTHORIZER_V2_SIMPLE_RESPONSE, False)
+        authorizer_type = properties.get(LambdaAuthorizerV2Validator.AUTHORIZER_V2_TYPE, "").lower()
+        api_id = properties.get(LambdaAuthorizerV2Validator.AUTHORIZER_V2_API)
+        name = properties.get(LambdaAuthorizerV2Validator.AUTHORIZER_NAME)
+        authorizer_uri = properties.get(LambdaAuthorizerV2Validator.AUTHORIZER_AUTHORIZER_URI)
+        identity_sources = properties.get(LambdaAuthorizerV2Validator.AUTHORIZER_IDENTITY_SOURCE, None)
+        payload_version = properties.get(LambdaAuthorizerV2Validator.AUTHORIZER_V2_PAYLOAD)
+        simple_responses = properties.get(LambdaAuthorizerV2Validator.AUTHORIZER_V2_SIMPLE_RESPONSE, False)
 
         # this will always return a string since we have already validated above
         function_name = cast(str, LambdaUri.get_function_name(authorizer_uri))
