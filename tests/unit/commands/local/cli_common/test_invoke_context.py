@@ -6,6 +6,7 @@ import os
 
 from parameterized import parameterized
 
+from samcli.lib.utils.packagetype import ZIP
 from samcli.commands._utils.template import TemplateFailedParsingException
 from samcli.commands.local.cli_common.invoke_context import (
     InvokeContext,
@@ -28,6 +29,17 @@ class TestInvokeContext__enter__(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
     def test_must_read_from_necessary_files(self, SamFunctionProviderMock, ContainerManagerMock):
         function_provider = Mock()
+        function_provider.get_all.return_value = [
+            Mock(
+                functionname="name",
+                function_id="id",
+                handler="app.handler",
+                runtime="test",
+                packagetype=ZIP,
+                inlinecode="| \
+                exports.handler = async () => 'Hello World!'",
+            )
+        ]
 
         SamFunctionProviderMock.return_value = function_provider
 
@@ -78,6 +90,7 @@ class TestInvokeContext__enter__(TestCase):
         result = invoke_context.__enter__()
         self.assertTrue(result is invoke_context, "__enter__() must return self")
 
+        function_provider.get_all.assert_called_once()
         self.assertEqual(invoke_context._function_provider, function_provider)
         self.assertEqual(invoke_context._env_vars_value, env_vars_value)
         self.assertEqual(invoke_context._log_file_handle, log_file_handle)
@@ -195,7 +208,11 @@ class TestInvokeContext__enter__(TestCase):
         self, RefreshableSamFunctionProviderMock, ContainerManagerMock
     ):
         function_provider = Mock()
-        function_provider.functions = {"function_name": ANY}
+        function = Mock(
+            functionname="function_name", handler="app.handler", runtime="test", packagetype=ZIP, inlinecode=None
+        )
+        function_provider.functions = {"function_name": function}
+        function_provider.get_all.return_value = [function]
         RefreshableSamFunctionProviderMock.return_value = function_provider
 
         template_file = "template_file"
@@ -286,6 +303,9 @@ class TestInvokeContext__enter__(TestCase):
         self, RefreshableSamFunctionProviderMock, ContainerManagerMock
     ):
         function_provider = Mock()
+        function_provider.get_all.return_value = [
+            Mock(functionname="function_name", handler="app.handler", runtime="test", packagetype=ZIP, inlinecode=None)
+        ]
 
         RefreshableSamFunctionProviderMock.return_value = function_provider
 
@@ -892,7 +912,7 @@ class TestInvokeContext_stdout_property(TestCase):
     @patch.object(InvokeContext, "__exit__")
     @patch("samcli.commands.local.cli_common.invoke_context.StreamWriter")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
-    def test_must_use_log_file_handle(self, StreamWriterMock, SamFunctionProviderMock, ExitMock):
+    def test_must_use_log_file_handle(self, SamFunctionProviderMock, StreamWriterMock, ExitMock):
 
         stream_writer_mock = Mock()
         StreamWriterMock.return_value = stream_writer_mock
@@ -974,7 +994,7 @@ class TestInvokeContext_stderr_property(TestCase):
     @patch.object(InvokeContext, "__exit__")
     @patch("samcli.commands.local.cli_common.invoke_context.StreamWriter")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
-    def test_must_use_log_file_handle(self, StreamWriterMock, SamFunctionProviderMock, ExitMock):
+    def test_must_use_log_file_handle(self, SamFunctionProviderMock, StreamWriterMock, ExitMock):
 
         stream_writer_mock = Mock()
         StreamWriterMock.return_value = stream_writer_mock
