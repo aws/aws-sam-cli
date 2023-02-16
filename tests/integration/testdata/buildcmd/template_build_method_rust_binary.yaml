@@ -25,6 +25,6 @@ Resources:
       Architectures:
         - !Ref Architectures
     Metadata:
-      BuildMethod: rustcargolambda
+      BuildMethod: rust-cargolambda
       BuildProperties:
         Binary: !Ref Binary
