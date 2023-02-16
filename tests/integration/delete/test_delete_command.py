@@ -1,21 +1,15 @@
 import os
-import shutil
-import tempfile
 import time
-import uuid
-import pytest
-from pathlib import Path
 from unittest import skipIf
+
 import boto3
 import docker
-from botocore.config import Config
-from parameterized import parameterized
+import pytest
 from botocore.exceptions import ClientError
+from parameterized import parameterized
 
-from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
-from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
-from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.integration.delete.delete_integ_base import DeleteIntegBase
+from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.integration.package.package_integ_base import PackageIntegBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 from tests.testing_utils import run_command, run_command_with_input
@@ -28,7 +22,7 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 
 
 @skipIf(SKIP_DELETE_TESTS, "Skip delete tests in CI/CD only")
-class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
+class TestDelete(DeleteIntegBase):
     @classmethod
     def setUpClass(cls):
         cls.docker_client = docker.from_env()
@@ -38,10 +32,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
         # setup some images locally by pulling them.
         for repo, tag in cls.local_images:
             cls.docker_client.api.pull(repository=repo, tag=tag)
-
-        PackageIntegBase.setUpClass()
-        DeployIntegBase.setUpClass()
-        DeleteIntegBase.setUpClass()
+        super().setUpClass()
 
     def setUp(self):
         # Save reference to session object to get region_name

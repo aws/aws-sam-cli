@@ -7,6 +7,7 @@ environment:
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
   NODE_VERSION: "14.17.6"
+  CARGO_LAMBDA_VERSION: "v0.17.1"
  
   matrix:
 
@@ -196,7 +197,8 @@ for:
           then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
         fi"
 
-      - sh: "pytest -vv tests/integration"
+      # NOTE: test_build_cmd_rust.py is run in GH Action
+      - sh: "pytest -vv tests/integration --ignore=tests/integration/buildcmd/test_build_cmd_rust.py"
       - sh: "pytest -vv tests/regression"
       - sh: "black --check setup.py tests samcli"
 
