@@ -8,6 +8,8 @@ from subprocess import Popen, TimeoutExpired, PIPE
 import os
 import shutil
 import tempfile
+
+from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 from pathlib import Path
@@ -711,9 +713,11 @@ class TestInitWithArbitraryProject(TestCase):
     def tearDown(self):
         shutil.rmtree(self.tempdir)
 
-    def _validate_expected_files_exist(self, output_folder: Path):
+    def _validate_expected_files_exist(self, output_folder: Path, config_exists: bool = True):
         self.assertTrue(output_folder.exists())
-        self.assertEqual(os.listdir(str(output_folder)), ["test.txt"])
+        self.assertEqual(
+            os.listdir(str(output_folder)), ["test.txt"] + [DEFAULT_CONFIG_FILE_NAME] if config_exists else ["test.txt"]
+        )
         self.assertEqual(Path(output_folder, "test.txt").read_text(), "hello world")
 
     @parameterized.expand([(None,), ("project_name",)])
@@ -733,7 +737,7 @@ class TestInitWithArbitraryProject(TestCase):
             expected_output_folder = Path(temp, project_name) if project_name else Path(temp)
 
             self.assertEqual(process.returncode, 0)
-            self._validate_expected_files_exist(expected_output_folder)
+            self._validate_expected_files_exist(expected_output_folder, config_exists=True if project_name else False)
 
     def test_zip_not_exists(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -922,7 +926,7 @@ class TestInitProducesSamconfigFile(TestCase):
     def _validate_common_properties(self, text):
         self.assertTrue(self._check_property("parallel = true", text))
         self.assertTrue(self._check_property('warm_containers = "EAGER"', text))
-        self.assertTrue(self._check_property('stack_name = "sam-app-sam-app"', text))
+        self.assertTrue(self._check_property('stack_name = "sam-app"', text))
         self.assertTrue(self._check_property("watch = true", text))
         self.assertTrue(self._check_property('capabilities = "CAPABILITY_IAM"', text))
 

@@ -85,7 +85,6 @@ class TestDefaultSamconfig(TestCase):
                 call(cmd_names=["global"], section="parameters", key="stack_name", value="sam-app"),
                 call(cmd_names=["build"], section="parameters", key="parallel", value=True),
                 call(cmd_names=["deploy"], section="parameters", key="resolve_image_repos", value=True),
-                call(cmd_names=["package"], section="parameters", key="resolve_image_repos", value=True),
                 call(cmd_names=["deploy"], section="parameters", key="capabilities", value="CAPABILITY_IAM"),
                 call(cmd_names=["deploy"], section="parameters", key="confirm_changeset", value=True),
                 call(cmd_names=["sync"], section="parameters", key="watch", value=True),

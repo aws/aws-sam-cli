@@ -166,7 +166,11 @@ def _create_default_samconfig(package_type: str, output_dir: str, name: str) -> 
     name:
         string representing the name of the application
     """
-    project_root_path = Path(output_dir, name)
+    # NOTE(sriram-mv): If this is coming from a `--location` without a corresponding project name,
+    # do not attempt to insert a samconfig.toml for a straight cookie-cutter init.
+    if not name:
+        return
+    project_root_path = Path(output_dir, name) if name else Path(output_dir)
     if Path(project_root_path, "samconfig.toml").is_file():
         LOG.debug("Default samconfig.toml already in cookie cutter template")
         return

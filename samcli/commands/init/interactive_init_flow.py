@@ -1,6 +1,7 @@
 """
 Isolates interactive init prompt flow. Expected to call generator logic at end of flow.
 """
+import pathlib
 import tempfile
 import logging
 from typing import Optional, Tuple
@@ -553,9 +554,9 @@ def generate_summary_message(
     Dependency Manager: {dependency_manager}
     Application Template: {app_template}
     Output Directory: {output_dir}
-    Configuration file: {output_dir}/{name}/{DEFAULT_CONFIG_FILE_NAME}
+    Configuration file: {pathlib.Path(output_dir).joinpath(name, DEFAULT_CONFIG_FILE_NAME)}
     
-    Next steps can be found in the README file at {output_dir}/{name}/README.md
+    Next steps can be found in the README file at {pathlib.Path(output_dir).joinpath(name, "README.md")}
         """
     elif package_type == IMAGE:
         summary_msg = f"""
@@ -567,9 +568,9 @@ def generate_summary_message(
     Architectures: {architecture[0]}
     Dependency Manager: {dependency_manager}
     Output Directory: {output_dir}
-    Configuration file: {output_dir}/{name}/{DEFAULT_CONFIG_FILE_NAME}
+    Configuration file: {pathlib.Path(output_dir).joinpath(name, DEFAULT_CONFIG_FILE_NAME)}
 
-    Next steps can be found in the README file at {output_dir}/{name}/README.md
+    Next steps can be found in the README file at {pathlib.Path(output_dir).joinpath(name, "README.md")}
     """
 
     return summary_msg
