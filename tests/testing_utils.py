@@ -16,9 +16,9 @@ from uuid import uuid4
 import psutil
 
 IS_WINDOWS = platform.system().lower() == "windows"
-RUNNING_ON_CI = os.environ.get("APPVEYOR", False)
+RUNNING_ON_CI = os.environ.get("APPVEYOR", False) or os.environ.get("CI", False)
 RUNNING_TEST_FOR_MASTER_ON_CI = os.environ.get("APPVEYOR_REPO_BRANCH", "master") != "master"
-CI_OVERRIDE = os.environ.get("APPVEYOR_CI_OVERRIDE", False)
+CI_OVERRIDE = os.environ.get("APPVEYOR_CI_OVERRIDE", False) or os.environ.get("CI_OVERRIDE", False)
 RUN_BY_CANARY = os.environ.get("BY_CANARY", False)
 
 # Tests require docker suffers from Docker Hub request limit

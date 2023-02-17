@@ -678,14 +678,14 @@ Commands you can use next
         Prints warning message and confirms if user wants to use beta feature
         """
         WARNING_MESSAGE = (
-            'Build method "rustcargolambda" is a beta feature.\n'
+            'Build method "rust-cargolambda" is a beta feature.\n'
             "Please confirm if you would like to proceed\n"
             'You can also enable this beta feature with "sam build --beta-features".'
         )
         resources_to_build = self.get_resources_to_build()
         is_building_rust = False
         for function in resources_to_build.functions:
-            if function.metadata and function.metadata.get("BuildMethod", "") == "rustcargolambda":
+            if function.metadata and function.metadata.get("BuildMethod", "") == "rust-cargolambda":
                 is_building_rust = True
                 break
 

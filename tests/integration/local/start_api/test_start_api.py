@@ -265,6 +265,35 @@ class TestServiceErrorResponses(StartApiIntegBaseClass):
         pass
 
 
+class TestServiceFunctionWithInlineCode(StartApiIntegBaseClass):
+    template_path = "/testdata/start_api/template-inlinecode.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_function_without_inline_code_endpoint(self):
+        response = requests.get(self.url + "/no_inlinecode", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_function_with_inline_code_endpoint(self):
+        response = requests.get(self.url + "/inlinecode", timeout=300)
+
+        self.assertEqual(response.status_code, 501)
+        self.assertEqual(
+            response.json(),
+            {
+                "message": "Inline code is not supported for sam local commands."
+                " Please write your code in a separate file."
+            },
+        )
+
+
 @parameterized_class(
     ("template_path",),
     [
