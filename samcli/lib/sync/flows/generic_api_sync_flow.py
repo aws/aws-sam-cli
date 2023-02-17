@@ -65,6 +65,16 @@ class GenericApiSyncFlow(SyncFlow, ABC):
         )
         self._api_identifier = api_identifier
 
+    @property
+    def sync_state_identifier(self) -> str:
+        """
+        Sync state is the unique identifier for each sync flow
+        In sync state toml file we will store
+        Key as HttpApiSyncFlow:HttpApiLogicalId
+        Value as HttpApi definition hash
+        """
+        return self.__class__.__name__ + ":" + self._api_identifier
+
     def gather_resources(self) -> None:
         self._definition_uri = self._get_definition_file(self._api_identifier)
         self._swagger_body = self._process_definition_file()

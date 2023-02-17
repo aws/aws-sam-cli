@@ -103,7 +103,7 @@ class SyncFlow(ABC):
         Sync state is the unique identifier for each sync flow
         We store the identifier in sync state toml file as key
         """
-        return "SyncFlow:ResourceId"
+        raise NotImplementedError("sync_state_identifier")
 
     @abstractmethod
     def gather_resources(self) -> None:

@@ -110,16 +110,6 @@ class AutoDependencyLayerParentSyncFlow(ZipFunctionSyncFlow):
     dependency layer.
     """
 
-    @property
-    def sync_state_identifier(self) -> str:
-        """
-        Sync state is the unique identifier for each sync flow
-        In sync state toml file we will store
-        Key as AutoDependencyLayerParentSyncFlow:FunctionLogicalId
-        Value as function ZIP hash
-        """
-        return self.__class__.__name__ + ":" + self._function_identifier
-
     def gather_dependencies(self) -> List[SyncFlow]:
         """
         Return auto dependency layer sync flow along with parent dependencies

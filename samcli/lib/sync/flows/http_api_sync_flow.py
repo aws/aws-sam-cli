@@ -55,16 +55,6 @@ class HttpApiSyncFlow(GenericApiSyncFlow):
             stacks=stacks,
         )
 
-    @property
-    def sync_state_identifier(self) -> str:
-        """
-        Sync state is the unique identifier for each sync flow
-        In sync state toml file we will store
-        Key as HttpApiSyncFlow:HttpApiLogicalId
-        Value as HttpApi definition hash
-        """
-        return self.__class__.__name__ + ":" + self._api_identifier
-
     def set_up(self) -> None:
         super().set_up()
         self._api_client = self._boto_client("apigatewayv2")
