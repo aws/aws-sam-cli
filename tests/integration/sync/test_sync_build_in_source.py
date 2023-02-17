@@ -234,6 +234,7 @@ class TestSyncInfra_BuildInSource_Esbuild(SyncIntegBase):
 
 
 @skip("Building in source option is not exposed yet. Stop skipping once it is.")
+@parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 class TestSyncCode_BuildInSource_Esbuild(TestSyncCodeBase):
     dependency_layer = False
     folder = "code"
