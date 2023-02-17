@@ -70,8 +70,8 @@ class GenericApiSyncFlow(SyncFlow, ABC):
         """
         Sync state is the unique identifier for each sync flow
         In sync state toml file we will store
-        Key as HttpApiSyncFlow:HttpApiLogicalId
-        Value as HttpApi definition hash
+        Key as HttpApiSyncFlow:HttpApiLogicalId or RestApiSyncFlow:RestApiLogicalId
+        Value as API definition hash
         """
         return self.__class__.__name__ + ":" + self._api_identifier
 
