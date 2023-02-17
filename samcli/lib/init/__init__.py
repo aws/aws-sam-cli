@@ -6,7 +6,6 @@ from typing import Optional, Dict
 import itertools
 import logging
 import platform
-
 from pathlib import Path
 
 from cookiecutter.exceptions import CookiecutterException, RepositoryNotFound, UnknownRepoType
@@ -19,12 +18,14 @@ from samcli.lib.init.template_modifiers.xray_tracing_template_modifier import XR
 from samcli.lib.init.template_modifiers.application_insights_template_modifier import (
     ApplicationInsightsTemplateModifier,
 )
-from samcli.lib.telemetry.event import EventName, UsedFeature
-from samcli.lib.utils.packagetype import ZIP
+from samcli.lib.init.template_modifiers.xray_tracing_template_modifier import XRayTracingTemplateModifier
+from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
 from samcli.lib.utils import osutils
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME, DEFAULT_CONFIG_FILE_EXTENSION
-from .exceptions import GenerateProjectFailedError, InvalidLocationError
+from samcli.lib.utils.packagetype import ZIP
+from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING, is_custom_runtime
 from .arbitrary_project import generate_non_cookiecutter_project
+from .exceptions import GenerateProjectFailedError, InvalidLocationError
 
 LOG = logging.getLogger(__name__)
 

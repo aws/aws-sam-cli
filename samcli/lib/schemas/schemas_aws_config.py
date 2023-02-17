@@ -1,8 +1,8 @@
 """ configure Schemas client based on AWS configuration provided by user """
 
 import click
-
 from boto3.session import Session
+
 from samcli.commands.local.cli_common.user_exceptions import ResourceNotFound
 
 

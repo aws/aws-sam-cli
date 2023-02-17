@@ -41,6 +41,7 @@ def region_option(f):
     def callback(ctx, param, value):
         state = ctx.ensure_object(Context)
         from botocore import exceptions, utils
+
         from samcli.commands.exceptions import RegionError
 
         try:

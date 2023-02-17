@@ -2,8 +2,8 @@
 Wrapper to generated colored messages for printing in Terminal
 """
 
-import platform
 import os
+import platform
 
 import click
 

@@ -11,18 +11,18 @@ from botocore.credentials import Credentials
 
 from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.commands.local.lib.exceptions import (
-    OverridesNotWellDefinedError,
-    NoPrivilegeException,
     InvalidIntermediateImageError,
+    NoPrivilegeException,
+    OverridesNotWellDefinedError,
     UnsupportedInlineCodeError,
 )
 from samcli.lib.providers.provider import Function
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.utils.architecture import validate_architecture_runtime
 from samcli.lib.utils.codeuri import resolve_code_path
-from samcli.lib.utils.packagetype import ZIP, IMAGE
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
-from samcli.local.docker.container import ContainerResponseException, ContainerConnectionTimeoutException
+from samcli.local.docker.container import ContainerConnectionTimeoutException, ContainerResponseException
 from samcli.local.lambdafn.config import FunctionConfig
 from samcli.local.lambdafn.env_vars import EnvironmentVariables
 from samcli.local.lambdafn.exceptions import FunctionNotFound
@@ -38,6 +38,7 @@ class LocalLambdaRunner:
     """
 
     MAX_DEBUG_TIMEOUT = 36000  # 10 hours in seconds
+    WIN_ERROR_CODE = 1314
 
     def __init__(
         self,
@@ -158,7 +159,7 @@ class LocalLambdaRunner:
             # trying to connect to the socket for Docker it would throw ContainerResponseException but now it's this.
             LOG.info(str(e))
         except OSError as os_error:
-            if getattr(os_error, "winerror", None) == 1314:
+            if getattr(os_error, "winerror", None) == self.WIN_ERROR_CODE:
                 raise NoPrivilegeException(
                     "Administrator, Windows Developer Mode, "
                     "or SeCreateSymbolicLinkPrivilege is required to create symbolic link for files: {}, {}".format(

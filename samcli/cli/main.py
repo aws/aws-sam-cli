@@ -2,23 +2,23 @@
 Entry point for the CLI
 """
 
-import logging
 import json
+import logging
 
 import click
 
 from samcli import __version__
+from samcli.cli.command import BaseCommand
+from samcli.cli.context import Context
+from samcli.cli.global_config import GlobalConfig
+from samcli.cli.options import debug_option, profile_option, region_option
 from samcli.lib.utils.sam_logging import (
     LAMBDA_BULDERS_LOGGER_NAME,
-    SamCliLogger,
     SAM_CLI_FORMATTER,
     SAM_CLI_LOGGER_NAME,
+    SamCliLogger,
 )
-from samcli.lib.utils.system_info import gather_system_info, gather_additional_dependencies_info
-from samcli.cli.options import debug_option, region_option, profile_option
-from samcli.cli.context import Context
-from samcli.cli.command import BaseCommand
-from samcli.cli.global_config import GlobalConfig
+from samcli.lib.utils.system_info import gather_additional_dependencies_info, gather_system_info
 
 LOG = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
@@ -129,7 +129,8 @@ def cli(ctx):
     Learn more: https://docs.aws.amazon.com/serverless-application-model/
     """
     import atexit
-    from samcli.lib.telemetry.metric import send_installed_metric, emit_all_metrics
+
+    from samcli.lib.telemetry.metric import emit_all_metrics, send_installed_metric
 
     # if development version of SAM CLI is used, attach module proxy
     # to catch missing configuration for dynamic/hidden imports

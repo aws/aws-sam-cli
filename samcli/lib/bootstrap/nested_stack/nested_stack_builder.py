@@ -7,7 +7,7 @@ from typing import cast
 from samcli.lib.bootstrap.stack_builder import AbstractStackBuilder
 from samcli.lib.providers.provider import Function
 from samcli.lib.utils.hash import str_checksum
-from samcli.lib.utils.resources import AWS_SERVERLESS_LAYERVERSION, AWS_CLOUDFORMATION_STACK
+from samcli.lib.utils.resources import AWS_CLOUDFORMATION_STACK, AWS_SERVERLESS_LAYERVERSION
 
 CREATED_BY_METADATA_KEY = "CreatedBy"
 CREATED_BY_METADATA_VALUE = "AWS SAM CLI sync command"

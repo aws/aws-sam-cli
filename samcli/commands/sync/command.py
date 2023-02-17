@@ -1,61 +1,62 @@
 """CLI command for "sync" command."""
-import os
 import logging
-from typing import List, Set, TYPE_CHECKING, Optional, Tuple
+import os
+from typing import TYPE_CHECKING, List, Optional, Set, Tuple
 
 import click
 
-from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
+from samcli.cli.cli_config_file import TomlProvider, configuration_option
+from samcli.cli.context import Context
+from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
+from samcli.cli.main import common_options as cli_framework_options
 from samcli.commands._utils.cdk_support_decorators import unsupported_command_cdk
-from samcli.commands._utils.options import (
-    s3_bucket_option,
-    template_option_without_build,
-    parameter_override_option,
-    capabilities_option,
-    metadata_option,
-    notification_arns_option,
-    tags_option,
-    stack_name_option,
-    base_dir_option,
-    use_container_build_option,
-    image_repository_option,
-    image_repositories_option,
-    s3_prefix_option,
-    kms_key_id_option,
-    role_arn_option,
-)
+from samcli.commands._utils.click_mutex import ClickMutex
 from samcli.commands._utils.constants import (
     DEFAULT_BUILD_DIR,
     DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
     DEFAULT_CACHE_DIR,
 )
-from samcli.cli.cli_config_file import configuration_option, TomlProvider
-from samcli.commands._utils.click_mutex import ClickMutex
-from samcli.lib.telemetry.event import EventTracker, track_long_event
-from samcli.commands.sync.sync_context import SyncContext
-from samcli.lib.build.bundler import EsbuildBundlerManager
-from samcli.lib.utils.colors import Colored
-from samcli.lib.utils.version_checker import check_newer_version
-from samcli.lib.bootstrap.bootstrap import manage_stack
-from samcli.lib.cli_validation.image_repository_validation import image_repository_validation
-from samcli.lib.telemetry.metric import track_command, track_template_warnings
-from samcli.lib.warnings.sam_cli_warning import CodeDeployWarning, CodeDeployConditionWarning
+from samcli.commands._utils.options import (
+    base_dir_option,
+    capabilities_option,
+    image_repositories_option,
+    image_repository_option,
+    kms_key_id_option,
+    metadata_option,
+    notification_arns_option,
+    parameter_override_option,
+    role_arn_option,
+    s3_bucket_option,
+    s3_prefix_option,
+    stack_name_option,
+    tags_option,
+    template_option_without_build,
+    use_container_build_option,
+)
 from samcli.commands.build.command import _get_mode_value_from_envvar
-from samcli.lib.sync.sync_flow_factory import SyncCodeResources, SyncFlowFactory
-from samcli.lib.sync.sync_flow_executor import SyncFlowExecutor
-from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+from samcli.commands.sync.sync_context import SyncContext
+from samcli.lib.bootstrap.bootstrap import manage_stack
+from samcli.lib.build.bundler import EsbuildBundlerManager
+from samcli.lib.cli_validation.image_repository_validation import image_repository_validation
 from samcli.lib.providers.provider import (
     ResourceIdentifier,
     get_all_resource_ids,
     get_unique_resource_ids,
 )
-from samcli.cli.context import Context
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+from samcli.lib.sync.sync_flow_executor import SyncFlowExecutor
+from samcli.lib.sync.sync_flow_factory import SyncCodeResources, SyncFlowFactory
 from samcli.lib.sync.watch_manager import WatchManager
+from samcli.lib.telemetry.event import EventTracker, track_long_event
+from samcli.lib.telemetry.metric import track_command, track_template_warnings
+from samcli.lib.utils.colors import Colored
+from samcli.lib.utils.version_checker import check_newer_version
+from samcli.lib.warnings.sam_cli_warning import CodeDeployConditionWarning, CodeDeployWarning
 
 if TYPE_CHECKING:  # pragma: no cover
+    from samcli.commands.build.build_context import BuildContext
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.package.package_context import PackageContext
-    from samcli.commands.build.build_context import BuildContext
 
 LOG = logging.getLogger(__name__)
 
@@ -246,10 +247,10 @@ def do_cli(
     Implementation of the ``cli`` method
     """
     from samcli.cli.global_config import GlobalConfig
-    from samcli.lib.utils import osutils
     from samcli.commands.build.build_context import BuildContext
-    from samcli.commands.package.package_context import PackageContext
     from samcli.commands.deploy.deploy_context import DeployContext
+    from samcli.commands.package.package_context import PackageContext
+    from samcli.lib.utils import osutils
 
     global_config = GlobalConfig()
     if not global_config.is_accelerate_opt_in_stack(template_file, stack_name):

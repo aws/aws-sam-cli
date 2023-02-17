@@ -1,12 +1,11 @@
 """API Gateway Local Service"""
+import base64
 import io
 import json
 import logging
-import base64
-from typing import List, Optional
-
-from time import time
 from datetime import datetime
+from time import time
+from typing import List, Optional
 
 from flask import Flask, request
 from werkzeug.datastructures import Headers
@@ -14,21 +13,21 @@ from werkzeug.routing import BaseConverter
 from werkzeug.serving import WSGIRequestHandler
 
 from samcli.lib.providers.provider import Cors
-from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
 from samcli.lib.utils.stream_writer import StreamWriter
-from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.local.events.api_event import (
-    ContextIdentity,
-    ContextHTTP,
-    RequestContext,
-    RequestContextV2,
     ApiGatewayLambdaEvent,
     ApiGatewayV2LambdaEvent,
+    ContextHTTP,
+    ContextIdentity,
+    RequestContext,
+    RequestContextV2,
 )
 
 from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
-from .service_error_responses import ServiceErrorResponses
+from samcli.local.lambdafn.exceptions import FunctionNotFound
+from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
 from .path_converter import PathConverter
+from .service_error_responses import ServiceErrorResponses
 
 LOG = logging.getLogger(__name__)
 

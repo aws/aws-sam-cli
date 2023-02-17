@@ -8,19 +8,19 @@ import shutil
 import tempfile
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any, TYPE_CHECKING, cast, Dict, List, Optional
 from contextlib import ExitStack
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
 from samcli.lib.build.app_builder import ApplicationBuilder
 from samcli.lib.package.utils import make_zip_with_lambda_permissions
-from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_by_id, Function, LayerVersion
+from samcli.lib.providers.provider import Function, LayerVersion, ResourceIdentifier, Stack, get_resource_by_id
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.sync.exceptions import MissingPhysicalResourceError, NoLayerVersionsFoundError
-from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall, ApiCallTypes
+from samcli.lib.sync.flows.function_sync_flow import wait_for_function_update_complete
+from samcli.lib.sync.sync_flow import ApiCallTypes, ResourceAPICall, SyncFlow
 from samcli.lib.sync.sync_flow_executor import HELP_TEXT_FOR_SYNC_INFRA
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.hash import file_checksum
-from samcli.lib.sync.flows.function_sync_flow import wait_for_function_update_complete
 from samcli.lib.utils.osutils import rmtree_if_exists
 
 if TYPE_CHECKING:  # pragma: no cover

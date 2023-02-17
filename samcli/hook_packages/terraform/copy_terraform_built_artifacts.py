@@ -42,14 +42,14 @@ Note: This script intentionally does not use Python3 specific syntax.
 # pylint: skip-file
 
 import argparse
-import re
-import os
 import json
-import shutil
-import sys
-import subprocess
-import zipfile
 import logging
+import os
+import re
+import shutil
+import subprocess
+import sys
+import zipfile
 
 LOG = logging.getLogger(__name__)
 

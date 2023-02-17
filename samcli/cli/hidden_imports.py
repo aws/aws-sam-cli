@@ -3,6 +3,7 @@ Keeps list of hidden/dynamic imports that is being used in SAM CLI, so that pyin
 """
 import pkgutil
 from typing import cast
+
 from typing_extensions import Protocol
 
 

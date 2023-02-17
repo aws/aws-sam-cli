@@ -3,24 +3,29 @@ CLI command for "local start-lambda" command
 """
 
 import logging
+
 import click
 
-from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
-from samcli.commands._utils.experimental import experimental, is_experimental_enabled, ExperimentalFlag
-from samcli.commands._utils.options import hook_name_click_option, skip_prepare_infra_option
+from samcli.cli.cli_config_file import TomlProvider, configuration_option
+from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
+from samcli.cli.main import common_options as cli_framework_options
+from samcli.commands._utils.experimental import ExperimentalFlag, experimental, is_experimental_enabled
+from samcli.commands._utils.option_value_processor import process_image_options
+from samcli.commands._utils.options import (
+    generate_next_command_recommendation,
+    hook_name_click_option,
+    skip_prepare_infra_option,
+)
 from samcli.commands.local.cli_common.options import (
     invoke_common_options,
+    local_common_options,
     service_common_options,
     warm_containers_common_options,
-    local_common_options,
 )
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.telemetry.metric import track_command
-from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.local.docker.exceptions import ContainerNotStartableException
-from samcli.commands._utils.option_value_processor import process_image_options
-from samcli.commands._utils.options import generate_next_command_recommendation
 
 LOG = logging.getLogger(__name__)
 
@@ -170,10 +175,10 @@ def do_cli(  # pylint: disable=R0914
 
     from samcli.commands.local.cli_common.invoke_context import InvokeContext
     from samcli.commands.local.cli_common.user_exceptions import UserException
-    from samcli.lib.providers.exceptions import InvalidLayerReference
+    from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
     from samcli.commands.local.lib.local_lambda_service import LocalLambdaService
     from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
-    from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
+    from samcli.lib.providers.exceptions import InvalidLayerReference
     from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
 
     if (

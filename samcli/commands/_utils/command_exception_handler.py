@@ -3,9 +3,9 @@ Contains method decorator which can be used to convert common exceptions into cl
 which will end exeecution gracefully
 """
 from functools import wraps
-from typing import Callable, Dict, Any, Optional
+from typing import Any, Callable, Dict, Optional
 
-from botocore.exceptions import NoRegionError, ClientError
+from botocore.exceptions import ClientError, NoRegionError
 
 from samcli.commands._utils.parameterized_option import parameterized_option
 from samcli.commands.exceptions import CredentialsError, RegionError

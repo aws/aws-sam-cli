@@ -1,10 +1,10 @@
 """A flow of questions to be asked to the user in an interactive way."""
-from typing import Any, Dict, Optional, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import click
 
-from .question import Question
 from ..utils.colors import Colored
+from .question import Question
 
 
 class InteractiveFlow:

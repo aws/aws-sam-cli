@@ -1,8 +1,8 @@
 """Local Lambda Service that only invokes a function"""
 
+import io
 import json
 import logging
-import io
 
 from flask import Flask, request
 from werkzeug.routing import BaseConverter
@@ -11,6 +11,8 @@ from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
 from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
 from samcli.local.lambdafn.exceptions import FunctionNotFound
+from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
+
 from .lambda_error_responses import LambdaErrorResponses
 
 LOG = logging.getLogger(__name__)

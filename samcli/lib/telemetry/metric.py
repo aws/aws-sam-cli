@@ -1,16 +1,14 @@
 """
 Provides methods to generate and send metrics
 """
+import logging
+import platform
+import uuid
 from dataclasses import dataclass
-
+from functools import reduce, wraps
 from pathlib import Path
 from timeit import default_timer
-from functools import wraps, reduce
-
-import uuid
-import platform
-import logging
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 import click
 
@@ -18,16 +16,16 @@ from samcli import __version__ as samcli_version
 from samcli.cli.context import Context
 from samcli.cli.global_config import GlobalConfig
 from samcli.commands._utils.experimental import get_all_experimental_statues
-from samcli.commands.exceptions import UserException, UnhandledException
+from samcli.commands.exceptions import UnhandledException, UserException
+from samcli.lib.hook.exceptions import InvalidHookPackageConfigException
 from samcli.lib.hook.hook_config import HookPackageConfig
 from samcli.lib.hook.hook_wrapper import INTERNAL_PACKAGES_ROOT
-from samcli.lib.hook.exceptions import InvalidHookPackageConfigException
 from samcli.lib.hook.utils import get_hook_metadata
 from samcli.lib.iac.cdk.utils import is_cdk_project
 from samcli.lib.iac.plugins_interfaces import ProjectTypes
 from samcli.lib.telemetry.cicd import CICDDetector, CICDPlatform
 from samcli.lib.telemetry.event import EventTracker
-from samcli.lib.telemetry.project_metadata import get_git_remote_origin_url, get_project_name, get_initial_commit_hash
+from samcli.lib.telemetry.project_metadata import get_git_remote_origin_url, get_initial_commit_hash, get_project_name
 from samcli.lib.telemetry.telemetry import Telemetry
 from samcli.lib.warnings.sam_cli_warning import TemplateWarningsChecker
 

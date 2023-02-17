@@ -1,15 +1,15 @@
 """
 Base classes that implement the CLI framework
 """
-import logging
 import importlib
+import logging
 from collections import OrderedDict
 
 import click
 
 from samcli.cli.formatters import RootCommandHelpTextFormatter
-from samcli.cli.row_modifiers import RowDefinition, HighlightNewRowNameModifier, ShowcaseRowModifier
 from samcli.cli.root.command_list import SAM_CLI_COMMANDS
+from samcli.cli.row_modifiers import HighlightNewRowNameModifier, RowDefinition, ShowcaseRowModifier
 
 logger = logging.getLogger(__name__)
 

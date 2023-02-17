@@ -2,16 +2,15 @@
 Class representing the samconfig.toml
 """
 
-import os
 import logging
-
+import os
 from pathlib import Path
 from typing import Any, Iterable
 
 import tomlkit
 
-from samcli.lib.config.version import SAM_CONFIG_VERSION, VERSION_KEY
 from samcli.lib.config.exceptions import SamConfigVersionException
+from samcli.lib.config.version import SAM_CONFIG_VERSION, VERSION_KEY
 
 LOG = logging.getLogger(__name__)
 

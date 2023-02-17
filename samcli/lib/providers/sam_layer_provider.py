@@ -2,9 +2,10 @@
 Class that provides layers from a given SAM template
 """
 import logging
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
 
 from samcli.lib.utils.resources import AWS_LAMBDA_LAYERVERSION, AWS_SERVERLESS_LAYERVERSION
+
 from .provider import LayerVersion, Stack
 from .sam_base_provider import SamBaseProvider
 from .sam_stack_provider import SamLocalStackProvider

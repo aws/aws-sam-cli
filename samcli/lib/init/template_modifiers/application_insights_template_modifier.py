@@ -3,6 +3,7 @@ Class used to parse and update template when application-insights is enabled
 """
 import logging
 from typing import Any
+
 from samcli.lib.init.template_modifiers.cli_template_modifier import TemplateModifier
 from samcli.lib.utils.resources import AWS_APPLICATION_INSIGHTS, AWS_RESOURCE_GROUP
 
