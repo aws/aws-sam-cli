@@ -11,7 +11,7 @@ inaccurate, update this guide and send a Pull Request.
 
 For setting up a local development environment, we recommend using Gitpod - a service that allows you to spin up an in-browser Visual Studio Code-compatible editor, with everything set up and ready to go for development on this project. Just click the button below to create your private workspace:
 
-[![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/awslabs/aws-sam-cli)
+[![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/aws/aws-sam-cli)
 
 This will start a new Gitpod workspace, and immediately kick off a build of the code. Once it's done, you can start working.
 
