@@ -31,6 +31,7 @@ from samcli.commands._utils.constants import (
 )
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.commands._utils.click_mutex import ClickMutex
+from samcli.lib.sync.infra_sync_executor import InfraSyncExecutor
 from samcli.lib.telemetry.event import EventTracker, track_long_event
 from samcli.commands.sync.sync_context import SyncContext
 from samcli.lib.build.bundler import EsbuildBundlerManager
@@ -391,12 +392,8 @@ def execute_infra_contexts(
     deploy_context : DeployContext
         DeployContext
     """
-    LOG.debug("Executing the build using build context.")
-    build_context.run()
-    LOG.debug("Executing the packaging using package context.")
-    package_context.run()
-    LOG.debug("Executing the deployment using deploy context.")
-    deploy_context.run()
+    infra_sync_executor = InfraSyncExecutor(build_context, package_context, deploy_context)
+    infra_sync_executor.execute_infra_sync()
 
 
 def execute_code_sync(

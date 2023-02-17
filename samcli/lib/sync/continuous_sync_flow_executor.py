@@ -2,7 +2,7 @@
 import time
 import logging
 
-from typing import Callable, Optional
+from typing import Callable, Optional, List
 from concurrent.futures.thread import ThreadPoolExecutor
 
 from dataclasses import dataclass
@@ -36,12 +36,23 @@ class ContinuousSyncFlowExecutor(SyncFlowExecutor):
         super().__init__()
         self._stop_flag = False
 
-    def stop(self, should_stop=True) -> None:
-        """Stop executor after all current SyncFlows are finished."""
+    def stop(self, should_stop=True) -> List[SyncFlowTask]:
+        """
+        Stop executor after all current SyncFlows are finished.
+
+        Returns
+        -------
+        List[SyncFlowTask]
+        Returns the list of sync flow tasks that got removed from the queue
+        """
         with self._flow_queue_lock:
             self._stop_flag = should_stop
             if should_stop:
+                cleared_tasks = []
+                for task in self._flow_queue.queue:
+                    cleared_tasks.append(task)
                 self._flow_queue.queue.clear()
+        return cleared_tasks
 
     def should_stop(self) -> bool:
         """
@@ -99,6 +110,16 @@ class ContinuousSyncFlowExecutor(SyncFlowExecutor):
             return
 
         super()._add_sync_flow_task(task)
+
+    def add_sync_flow_task(self, task: SyncFlowTask) -> None:
+        """Public method for sync flow task submission with already created tasks
+
+        Parameters
+        ----------
+        task : SyncFlowTask
+            SyncFlowTask to be executed
+        """
+        self._add_sync_flow_task(task)
 
     def add_delayed_sync_flow(self, sync_flow: SyncFlow, dedup: bool = True, wait_time: float = 0) -> None:
         """Add a SyncFlow to queue to be executed
