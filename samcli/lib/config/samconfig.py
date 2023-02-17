@@ -15,7 +15,8 @@ from samcli.lib.config.exceptions import SamConfigVersionException
 
 LOG = logging.getLogger(__name__)
 
-DEFAULT_CONFIG_FILE_NAME = "samconfig.toml"
+DEFAULT_CONFIG_FILE_EXTENSION = "toml"
+DEFAULT_CONFIG_FILE_NAME = f"samconfig.{DEFAULT_CONFIG_FILE_EXTENSION}"
 DEFAULT_ENV = "default"
 DEFAULT_GLOBAL_CMDNAME = "global"
 
