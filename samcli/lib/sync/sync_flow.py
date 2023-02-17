@@ -97,8 +97,6 @@ class SyncFlow(ABC):
     def _boto_client(self, client_name: str):
         return get_boto_client_provider_from_session_with_config(cast(Session, self._session))(client_name)
 
-    # Sync state is the unique identifier for each sync flow
-    # We store the identifier in sync state toml file as key
     @property
     def sync_state_identifier(self) -> str:
         """

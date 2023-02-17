@@ -76,6 +76,16 @@ class FunctionSyncFlow(SyncFlow, ABC):
         self._lambda_client = self._boto_client("lambda")
         self._lambda_waiter = self._lambda_client.get_waiter("function_updated")
 
+    @property
+    def sync_state_identifier(self) -> str:
+        """
+        Sync state is the unique identifier for each sync flow
+        In sync state toml file we will store
+        Key as ZipFunctionSyncFlow:FunctionLogicalId
+        Value as function ZIP hash
+        """
+        return self.__class__.__name__ + ":" + self._function_identifier
+
     def gather_dependencies(self) -> List[SyncFlow]:
         """Gathers alias and versions related to a function.
         Currently only handles serverless function AutoPublishAlias field

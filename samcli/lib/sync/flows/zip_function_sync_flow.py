@@ -72,16 +72,6 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
         self._build_graph = None
         self._color = Colored()
 
-    @property
-    def sync_state_identifier(self) -> str:
-        """
-        Sync state is the unique identifier for each sync flow
-        In sync state toml file we will store
-        Key as ZipFunctionSyncFlow:FunctionLogicalId
-        Value as function ZIP hash
-        """
-        return self.__class__.__name__ + ":" + self._function_identifier
-
     def set_up(self) -> None:
         super().set_up()
         self._s3_client = self._boto_client("s3")
