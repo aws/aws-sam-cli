@@ -11,6 +11,7 @@ from typing import Dict, List, Optional, IO, cast, Tuple, Any, Type
 
 from samcli.commands.local.cli_common.user_exceptions import InvokeContextException, DebugContextException
 from samcli.lib.utils import osutils
+from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.providers.provider import Stack, Function
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.async_utils import AsyncContext
@@ -269,6 +270,15 @@ class InvokeContext:
         # initialize all lambda function containers upfront
         if self._containers_initializing_mode == ContainersInitializationMode.EAGER:
             self._initialize_all_functions_containers()
+
+        for func in self._function_provider.get_all():
+            if func.packagetype == ZIP and func.inlinecode:
+                LOG.warning(
+                    "Warning: Inline code found for function %s."
+                    " Invocation of inline code is not supported for sam local commands.",
+                    func.function_id,
+                )
+                break
 
         return self
 

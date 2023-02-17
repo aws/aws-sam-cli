@@ -19,6 +19,7 @@ from samcli.local.apigw.local_apigw_service import (
     CatchAllPathConverter,
 )
 from samcli.local.lambdafn.exceptions import FunctionNotFound
+from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
 
 
 class TestApiGatewayService(TestCase):
@@ -386,6 +387,25 @@ class TestApiGatewayService(TestCase):
         response = self.api_service._request_handler()
 
         self.assertEqual(response, not_found_response_mock)
+
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
+    @patch("samcli.local.apigw.local_apigw_service.ServiceErrorResponses")
+    def test_request_handles_error_when_invoke_function_with_inline_code(
+        self, service_error_responses_patch, request_mock
+    ):
+        not_implemented_response_mock = Mock()
+        self.api_service._construct_v_1_0_event = Mock()
+        self.api_service._get_current_route = MagicMock()
+        self.api_service._get_current_route.return_value.payload_format_version = "2.0"
+        self.api_service._get_current_route.methods = []
+
+        service_error_responses_patch.not_implemented_locally.return_value = not_implemented_response_mock
+
+        self.lambda_runner.invoke.side_effect = UnsupportedInlineCodeError(message="Inline code is not supported")
+        request_mock.return_value = ("test", "test")
+        response = self.api_service._request_handler()
+
+        self.assertEqual(response, not_implemented_response_mock)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_request_throws_when_invoke_fails(self, request_mock):

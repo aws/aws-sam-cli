@@ -8,6 +8,7 @@ from flask import Flask, request
 from werkzeug.routing import BaseConverter
 
 from samcli.lib.utils.stream_writer import StreamWriter
+from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
 from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from .lambda_error_responses import LambdaErrorResponses
@@ -166,6 +167,10 @@ class LocalLambdaInvokeService(BaseLocalService):
         except FunctionNotFound:
             LOG.debug("%s was not found to invoke.", function_name)
             return LambdaErrorResponses.resource_not_found(function_name)
+        except UnsupportedInlineCodeError:
+            return LambdaErrorResponses.not_implemented_locally(
+                "Inline code is not supported for sam local commands. Please write your code in a separate file."
+            )
 
         lambda_response, is_lambda_user_error_response = LambdaOutputParser.get_lambda_output(stdout_stream)
 
