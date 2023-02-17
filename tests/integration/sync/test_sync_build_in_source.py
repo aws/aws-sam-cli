@@ -162,7 +162,9 @@ class TestSyncInfra_BuildInSource_Esbuild(SyncIntegBase):
         ]
     )
     @pytest.mark.flaky(reruns=3)
-    def test_builds_successfully_without_local_dependencies(self, build_in_source, dependencies_expected_in_source):
+    def test_sync_builds_successfully_without_local_dependencies(
+        self, build_in_source, dependencies_expected_in_source
+    ):
         template_path = str(self.test_data_path.joinpath("code", "before", "template-esbuild.yaml"))
         stack_name = self._method_to_stack_name(self.id())
         self.stacks.append({"name": stack_name})
@@ -198,7 +200,7 @@ class TestSyncInfra_BuildInSource_Esbuild(SyncIntegBase):
             self.assertEqual(lambda_response.get("message"), "hello world")
 
     @pytest.mark.flaky(reruns=3)
-    def test_builds_successfully_with_local_dependency(self):
+    def test_sync_builds_successfully_with_local_dependency(self):
         template_path = str(self.test_data_path.joinpath("code", "before", "template-esbuild.yaml"))
         stack_name = self._method_to_stack_name(self.id())
         self.stacks.append({"name": stack_name})
@@ -257,7 +259,9 @@ class TestSyncCode_BuildInSource_Esbuild(TestSyncCodeBase):
             (None, False),  # use default for workflow (don't build in source)
         ]
     )
-    def test_builds_successfully_without_local_dependencies(self, build_in_source, dependencies_expected_in_source):
+    def test_sync_code_builds_successfully_without_local_dependencies(
+        self, build_in_source, dependencies_expected_in_source
+    ):
         self.source_dependencies_paths = [TestSyncCodeBase.temp_dir.joinpath("esbuild_function", "node_modules")]
 
         # Run code sync
@@ -286,7 +290,7 @@ class TestSyncCode_BuildInSource_Esbuild(TestSyncCodeBase):
             lambda_response = json.loads(self._get_lambda_response(lambda_function))
             self.assertEqual(lambda_response.get("message"), "hello world")
 
-    def test_builds_successfully_with_local_dependencies(self):
+    def test_sync_code_builds_successfully_with_local_dependencies(self):
         codeuri = "esbuild_function_with_local_dependency"
         self.source_dependencies_paths = [TestSyncCodeBase.temp_dir.joinpath(codeuri, "node_modules")]
 
