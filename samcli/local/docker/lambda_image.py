@@ -21,7 +21,6 @@ from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.lib.utils.tar import create_tarball
 from samcli.local.docker.utils import get_rapid_name, get_docker_platform
 
-from samcli import __version__ as version
 
 LOG = logging.getLogger(__name__)
 

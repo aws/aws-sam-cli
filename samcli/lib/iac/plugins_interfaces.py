@@ -6,7 +6,7 @@ Provide IAC Plugins Interface && Project representation
 
 import abc
 from collections import OrderedDict
-from collections.abc import Callable, Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping
 from copy import deepcopy
 from enum import Enum
 from typing import List, Any, Dict, Iterator, Optional, Union

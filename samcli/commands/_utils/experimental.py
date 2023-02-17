@@ -17,7 +17,8 @@ from samcli.lib.utils.colors import Colored
 LOG = logging.getLogger(__name__)
 
 EXPERIMENTAL_PROMPT = """
-This feature is currently in beta. Visit the docs page to learn more about the AWS Beta terms https://aws.amazon.com/service-terms/.
+This feature is currently in beta.
+Visit the docs page to learn more about the AWS Beta terms https://aws.amazon.com/service-terms/.
 Enter Y to proceed with the command, or enter N to cancel:
 """
 
