@@ -29,6 +29,7 @@ from samcli.local.common.runtime_template import (
 )
 from samcli.commands.init.init_generator import do_generate
 from samcli.commands.init.init_templates import InitTemplates, InvalidInitTemplateError
+from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.utils.osutils import remove
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.commands._utils.options import generate_next_command_recommendation
@@ -552,6 +553,7 @@ def generate_summary_message(
     Dependency Manager: {dependency_manager}
     Application Template: {app_template}
     Output Directory: {output_dir}
+    Configuration file: {output_dir}/{name}/{DEFAULT_CONFIG_FILE_NAME}
     
     Next steps can be found in the README file at {output_dir}/{name}/README.md
         """
@@ -565,6 +567,7 @@ def generate_summary_message(
     Architectures: {architecture[0]}
     Dependency Manager: {dependency_manager}
     Output Directory: {output_dir}
+    Configuration file: {output_dir}/{name}/{DEFAULT_CONFIG_FILE_NAME}
 
     Next steps can be found in the README file at {output_dir}/{name}/README.md
     """

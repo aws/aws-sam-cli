@@ -137,7 +137,7 @@ class SamConfig:
 
     def put_comment(self, comment):
         """
-        Write the data back to file
+        Write a comment section back to the file.
 
         Parameters
         ------
