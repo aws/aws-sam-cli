@@ -1044,9 +1044,12 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
             ("dotnet6", "Dotnet6", None),
             ("dotnetcore3.1", "Dotnetcore3.1", "debug"),
             ("dotnet6", "Dotnet6", "debug"),
+            # force to run tests on arm64 machines may cause dotnet7 test failing
+            # because Native AOT Lambda functions require the host and lambda architectures to match
             ("provided.al2", "Dotnet7", None),
         ]
     )
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
     def test_with_dotnetcore_in_container_mount_with_write_explicit(
         self, runtime, code_uri, mode, architecture="x86_64"
@@ -1105,10 +1108,9 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         )
 
         expected = "{'message': 'Hello World'}"
-        if not SKIP_DOCKER_TESTS:
-            self._verify_invoke_built_function(
-                self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
-            )
+        self._verify_invoke_built_function(
+            self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+        )
         self.verify_docker_container_cleanedup(runtime)
 
     @parameterized.expand(
@@ -1117,9 +1119,12 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
             ("dotnet6", "Dotnet6", None),
             ("dotnetcore3.1", "Dotnetcore3.1", "debug"),
             ("dotnet6", "Dotnet6", "debug"),
+            # force to run tests on arm64 machines may cause dotnet7 test failing
+            # because Native AOT Lambda functions require the host and lambda architectures to match
             ("provided.al2", "Dotnet7", None),
         ]
     )
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
     def test_with_dotnetcore_in_container_mount_with_write_interactive(
         self,
@@ -1180,10 +1185,9 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         )
 
         expected = "{'message': 'Hello World'}"
-        if not SKIP_DOCKER_TESTS:
-            self._verify_invoke_built_function(
-                self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
-            )
+        self._verify_invoke_built_function(
+            self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+        )
         self.verify_docker_container_cleanedup(runtime)
 
     @parameterized.expand([("dotnetcore3.1", "Dotnetcore3.1"), ("dotnet6", "Dotnet6")])
