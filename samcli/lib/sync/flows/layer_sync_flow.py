@@ -81,6 +81,16 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
         super().set_up()
         self._lambda_client = self._boto_client("lambda")
 
+    @property
+    def sync_state_identifier(self) -> str:
+        """
+        Sync state is the unique identifier for each sync flow
+        In sync state toml file we will store
+        Key as LayerSyncFlow:LayerLogicalId
+        Value as layer ZIP hash
+        """
+        return self.__class__.__name__ + ":" + self._layer_identifier
+
     def compare_remote(self) -> bool:
         """
         Compare Sha256 of the deployed layer code vs the one just built, True if they are same, False otherwise
@@ -201,16 +211,6 @@ class LayerSyncFlow(AbstractLayerSyncFlow):
         super().__init__(layer_identifier, build_context, deploy_context, sync_context, physical_id_mapping, stacks)
         self._layer = cast(LayerVersion, build_context.layer_provider.get(self._layer_identifier))
 
-    @property
-    def sync_state_identifier(self) -> str:
-        """
-        Sync state is the unique identifier for each sync flow
-        In sync state toml file we will store
-        Key as LayerSyncFlow:LayerLogicalId
-        Value as layer ZIP hash
-        """
-        return self.__class__.__name__ + ":" + self._layer_identifier
-
     def set_up(self) -> None:
         super().set_up()
 
@@ -286,16 +286,6 @@ class LayerSyncFlowSkipBuildDirectory(LayerSyncFlow):
     LayerSyncFlow special implementation that will skip build step and zip contents of CodeUri
     """
 
-    @property
-    def sync_state_identifier(self) -> str:
-        """
-        Sync state is the unique identifier for each sync flow
-        In sync state toml file we will store
-        Key as LayerSyncFlowSkipBuildDirectory:LayerLogicalId
-        Value as layer ZIP hash
-        """
-        return self.__class__.__name__ + ":" + self._layer_identifier
-
     def gather_resources(self) -> None:
         zip_file_path = os.path.join(tempfile.gettempdir(), f"data-{uuid.uuid4().hex}")
         self._zip_file = make_zip_with_lambda_permissions(zip_file_path, self._layer.codeuri)
@@ -307,16 +297,6 @@ class LayerSyncFlowSkipBuildZipFile(LayerSyncFlow):
     """
     LayerSyncFlow special implementation, that will skip build and upload zip file which is defined in CodeUri directly
     """
-
-    @property
-    def sync_state_identifier(self) -> str:
-        """
-        Sync state is the unique identifier for each sync flow
-        In sync state toml file we will store
-        Key as LayerSyncFlowSkipBuildZipFile:LayerLogicalId
-        Value as layer ZIP hash
-        """
-        return self.__class__.__name__ + ":" + self._layer_identifier
 
     def gather_resources(self) -> None:
         self._zip_file = os.path.join(tempfile.gettempdir(), f"data-{uuid.uuid4().hex}")

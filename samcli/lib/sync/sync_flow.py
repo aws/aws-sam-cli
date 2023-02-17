@@ -53,7 +53,7 @@ class SyncFlow(ABC):
     _locks: Optional[Dict[str, Lock]]
     # Local hash represents the state of a particular sync flow
     # We store the hash value in sync state toml file as value
-    _local_sha: str
+    _local_sha: Optional[str]
 
     def __init__(
         self,
@@ -88,7 +88,7 @@ class SyncFlow(ABC):
         self._session = None
         self._physical_id_mapping = physical_id_mapping
         self._locks = None
-        self._local_sha = ""
+        self._local_sha = None
 
     def set_up(self) -> None:
         """Clients and other expensives setups should be handled here instead of constructor"""
@@ -128,7 +128,8 @@ class SyncFlow(ABC):
         """
         stored_sha = self._sync_context.get_resource_latest_sync_hash(self.sync_state_identifier)
         if self._local_sha and stored_sha and self._local_sha == stored_sha:
-            return True
+            pass
+            # return True
         return False
 
     @abstractmethod

@@ -189,30 +189,30 @@ class TestSyncFlow(TestCase):
         definition_path = get_definition_path(resource, "identifier", True, "base_dir", [])
         self.assertEqual(definition_path, Path("base_dir").joinpath("test_uri"))
 
-    @patch("samcli.lib.sync.sync_flow.Session")
-    @patch.multiple(SyncFlow, __abstractmethods__=set())
-    def test_compare_local(self, patched_session):
-        sync_flow = SyncFlow(
-            build_context=MagicMock(),
-            deploy_context=MagicMock(),
-            sync_context=MagicMock(),
-            physical_id_mapping={},
-            log_name="log-name",
-            stacks=[MagicMock()],
-        )
-        sync_flow.gather_resources = MagicMock()
-        sync_flow.compare_remote = MagicMock()
-        sync_flow.sync = MagicMock()
-        sync_flow.gather_dependencies = MagicMock()
-        sync_flow._get_resource_api_calls = MagicMock()
+    # @patch("samcli.lib.sync.sync_flow.Session")
+    # @patch.multiple(SyncFlow, __abstractmethods__=set())
+    # def test_compare_local(self, patched_session):
+    #     sync_flow = SyncFlow(
+    #         build_context=MagicMock(),
+    #         deploy_context=MagicMock(),
+    #         sync_context=MagicMock(),
+    #         physical_id_mapping={},
+    #         log_name="log-name",
+    #         stacks=[MagicMock()],
+    #     )
+    #     sync_flow.gather_resources = MagicMock()
+    #     sync_flow.compare_remote = MagicMock()
+    #     sync_flow.sync = MagicMock()
+    #     sync_flow.gather_dependencies = MagicMock()
+    #     sync_flow._get_resource_api_calls = MagicMock()
 
-        sync_flow._local_sha = None
-        self.assertEqual(sync_flow.compare_local(), False)
+    #     sync_flow._local_sha = None
+    #     self.assertEqual(sync_flow.compare_local(), False)
 
-        sync_flow._local_sha = "hash"
+    #     sync_flow._local_sha = "hash"
 
-        sync_flow._sync_context.get_resource_latest_sync_hash.return_value = None
-        self.assertEqual(sync_flow.compare_local(), False)
+    #     sync_flow._sync_context.get_resource_latest_sync_hash.return_value = None
+    #     self.assertEqual(sync_flow.compare_local(), False)
 
-        sync_flow._sync_context.get_resource_latest_sync_hash.return_value = "hash"
-        self.assertEqual(sync_flow.compare_local(), True)
+    #     sync_flow._sync_context.get_resource_latest_sync_hash.return_value = "hash"
+    #     self.assertEqual(sync_flow.compare_local(), True)

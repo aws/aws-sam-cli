@@ -65,16 +65,6 @@ class AutoDependencyLayerSyncFlow(AbstractLayerSyncFlow):
         self._function_identifier = function_identifier
         self._build_graph = build_graph
 
-    @property
-    def sync_state_identifier(self) -> str:
-        """
-        Sync state is the unique identifier for each sync flow
-        In sync state toml file we will store
-        Key as AutoDependencyLayerSyncFlow:FunctionLogicalId
-        Value as layer folder ZIP hash
-        """
-        return self.__class__.__name__ + ":" + self._function_identifier
-
     def set_up(self) -> None:
         super().set_up()
 
