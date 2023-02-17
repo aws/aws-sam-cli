@@ -16,6 +16,7 @@ class TestZipFunctionSyncFlow(TestCase):
             self.function_identifier,
             build_context=self.build_context_mock,
             deploy_context=MagicMock(),
+            sync_context=MagicMock(),
             physical_id_mapping={},
             stacks=[MagicMock()],
         )
@@ -33,7 +34,7 @@ class TestZipFunctionSyncFlow(TestCase):
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.hashlib.sha256")
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.uuid.uuid4")
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.file_checksum")
-    @patch("samcli.lib.sync.flows.zip_function_sync_flow.make_zip")
+    @patch("samcli.lib.sync.flows.zip_function_sync_flow.make_zip_with_lambda_permissions")
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.tempfile.gettempdir")
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.ApplicationBuilder")
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.rmtree_if_exists")
@@ -196,6 +197,7 @@ class TestZipFunctionSyncFlow(TestCase):
             "Function1",
             build_context=build_context,
             deploy_context=MagicMock(),
+            sync_context=MagicMock(),
             physical_id_mapping={},
             stacks=[MagicMock()],
         )

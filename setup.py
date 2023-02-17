@@ -49,7 +49,7 @@ setup(
     long_description_content_type="text/markdown",
     author="Amazon Web Services",
     author_email="aws-sam-developers@amazon.com",
-    url="https://github.com/awslabs/aws-sam-cli",
+    url="https://github.com/aws/aws-sam-cli",
     license="Apache License 2.0",
     packages=find_packages(exclude=["tests.*", "tests", "installer.*", "installer"]),
     keywords="AWS SAM CLI",
