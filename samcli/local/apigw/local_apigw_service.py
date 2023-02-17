@@ -12,6 +12,7 @@ from werkzeug.datastructures import Headers
 from werkzeug.routing import BaseConverter
 from werkzeug.serving import WSGIRequestHandler
 
+from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
 from samcli.lib.providers.provider import Cors
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.events.api_event import (
@@ -22,10 +23,9 @@ from samcli.local.events.api_event import (
     RequestContext,
     RequestContextV2,
 )
-
-from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
+
 from .path_converter import PathConverter
 from .service_error_responses import ServiceErrorResponses
 
