@@ -8,15 +8,15 @@ from samcli.local.apigw.local_apigw_service import Route
 
 class IdentitySourceValidator:
     # match lowercase + uppercase + numbers + those 3 symbols, until the end of string
-    API_GATEWAY_V1_QUERY_REGEX = r"method\.request\.querystring\.[a-zA-Z0-9._-]+$"
-    API_GATEWAY_V1_HEADER_REGEX = r"method\.request\.header\.[a-zA-Z0-9._-]+$"
-    API_GATEWAY_V1_CONTEXT_REGEX = r"context\.[a-zA-Z0-9._-]+$"
-    API_GATEWAY_V1_STAGE_REGEX = r"stageVariables\.[a-zA-Z0-9._-]+$"
+    API_GATEWAY_V1_QUERY_REGEX = re.compile(r"method\.request\.querystring\.[a-zA-Z0-9._-]+$")
+    API_GATEWAY_V1_HEADER_REGEX = re.compile(r"method\.request\.header\.[a-zA-Z0-9._-]+$")
+    API_GATEWAY_V1_CONTEXT_REGEX = re.compile(r"context\.[a-zA-Z0-9._-]+$")
+    API_GATEWAY_V1_STAGE_REGEX = re.compile(r"stageVariables\.[a-zA-Z0-9._-]+$")
 
-    API_GATEWAY_V2_QUERY_REGEX = r"\$request\.querystring\.[a-zA-Z0-9._-]+$"
-    API_GATEWAY_V2_HEADER_REGEX = r"\$request\.header\.[a-zA-Z0-9._-]+$"
-    API_GATEWAY_V2_CONTEXT_REGEX = r"\$context\.[a-zA-Z0-9._-]+$"
-    API_GATEWAY_V2_STAGE_REGEX = r"\$stageVariables\.[a-zA-Z0-9._-]+$"
+    API_GATEWAY_V2_QUERY_REGEX = re.compile(r"\$request\.querystring\.[a-zA-Z0-9._-]+$")
+    API_GATEWAY_V2_HEADER_REGEX = re.compile(r"\$request\.header\.[a-zA-Z0-9._-]+$")
+    API_GATEWAY_V2_CONTEXT_REGEX = re.compile(r"\$context\.[a-zA-Z0-9._-]+$")
+    API_GATEWAY_V2_STAGE_REGEX = re.compile(r"\$stageVariables\.[a-zA-Z0-9._-]+$")
 
     API_GATEWAY_VALIDATION_LIST = {
         Route.API: [
@@ -51,7 +51,7 @@ class IdentitySourceValidator:
             True if the identity source is valid
         """
         for regex in IdentitySourceValidator.API_GATEWAY_VALIDATION_LIST[event_type]:
-            if re.match(regex, identity_source):
+            if regex.match(identity_source):
                 return True
 
         return False
