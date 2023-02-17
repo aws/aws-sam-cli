@@ -88,6 +88,7 @@ class Route:
         stack_path: str = "",
         authorizer_name: Optional[str] = None,
         authorizer_object: Optional[Authorizer] = None,
+        use_default_authorizer: bool = True,
     ):
         """
         Creates an ApiGatewayRoute
@@ -102,6 +103,7 @@ class Route:
         :param str stack_path: path of the stack the route is located
         :param str authorizer_name: the authorizer this route is using, if any
         :param Authorizer authorizer_object: the authorizer object this route is using, if any
+        :param bool use_default_authorizer: whether or not to use a default authorizer (if defined)
         """
         self.methods = self.normalize_method(methods)
         self.function_name = function_name
@@ -113,6 +115,7 @@ class Route:
         self.stack_path = stack_path
         self.authorizer_name = authorizer_name
         self.authorizer_object = authorizer_object
+        self.use_default_authorizer = use_default_authorizer
 
     def __eq__(self, other):
         return (
@@ -124,6 +127,7 @@ class Route:
             and self.stack_path == other.stack_path
             and self.authorizer_name == other.authorizer_name
             and self.authorizer_object == other.authorizer_object
+            and self.use_default_authorizer == other.use_default_authorizer
         )
 
     def __hash__(self):

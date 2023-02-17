@@ -2112,12 +2112,12 @@ class TestSamApiUsingAuthorizers(TestCase):
 
     @parameterized.expand(
         [
-            ({"Auth": {"Authorizer": "myauth"}}, "myauth"),  # defined auth
-            ({"Auth": {"Authorizer": "NONE"}}, None),  # explict no authorizers
-            ({}, ""),  # default auth
+            ({"Auth": {"Authorizer": "myauth"}}, "myauth", True),  # defined auth
+            ({"Auth": {"Authorizer": "NONE"}}, None, False),  # explict no authorizers
+            ({}, None, True),  # default auth
         ]
     )
-    def test_add_authorizer_in_serverless_function(self, authorizer_obj, expected_auth_name):
+    def test_add_authorizer_in_serverless_function(self, authorizer_obj, expected_auth_name, use_default):
         properties = {"Path": "path", "Method": "method", "RestApiId": "id"}
 
         if authorizer_obj:
@@ -2125,7 +2125,9 @@ class TestSamApiUsingAuthorizers(TestCase):
 
         _, route = SamApiProvider._convert_event_route(Mock(), Mock(), properties, Route.API)
 
-        self.assertEqual(route, Route(ANY, ANY, ["method"], ANY, ANY, ANY, ANY, ANY, expected_auth_name, ANY))
+        self.assertEqual(
+            route, Route(ANY, ANY, ["method"], ANY, ANY, ANY, ANY, ANY, expected_auth_name, ANY, use_default)
+        )
 
 
 def make_swagger(routes, binary_media_types=None):

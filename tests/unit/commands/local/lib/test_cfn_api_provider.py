@@ -1255,7 +1255,7 @@ class TestCollectLambdaAuthorizersWithApiGatewayV1Resources(TestCase):
         ]
     )
     @patch("samcli.commands.local.lib.swagger.integration_uri.LambdaUri.get_function_name")
-    @patch("samcli.commands.local.lib.validators.lambda_auth_props.LambdaAuthorizerV1Validator")
+    @patch("samcli.commands.local.lib.validators.lambda_auth_props.LambdaAuthorizerV1Validator.validate")
     def test_collect_v1_lambda_authorizer(self, resource, expected_authorizer, validator_mock, get_func_name_mock):
         lambda_auth_logical_id = "my-auth-id"
 
@@ -1263,8 +1263,7 @@ class TestCollectLambdaAuthorizersWithApiGatewayV1Resources(TestCase):
         auth_lambda_func_name = "my-lambda"
         get_func_name_mock.return_value = auth_lambda_func_name
 
-        validator_mock.validate = Mock()
-        validator_mock.validate.return_value = True
+        validator_mock.return_value = True
 
         mock_collector = Mock()
         mock_collector.add_authorizers = Mock()
@@ -1276,7 +1275,7 @@ class TestCollectLambdaAuthorizersWithApiGatewayV1Resources(TestCase):
 
 class TestCollectLambdaAuthorizersWithApiGatewayV2Resources(TestCase):
     @patch("samcli.commands.local.lib.swagger.integration_uri.LambdaUri.get_function_name")
-    @patch("samcli.commands.local.lib.validators.lambda_auth_props.LambdaAuthorizerV2Validator")
+    @patch("samcli.commands.local.lib.validators.lambda_auth_props.LambdaAuthorizerV2Validator.validate")
     def test_collect_v2_lambda_authorizer(self, validator_mock, get_func_name_mock):
         identity_sources = ["$request.header.auth", "$context.something"]
 
@@ -1310,8 +1309,7 @@ class TestCollectLambdaAuthorizersWithApiGatewayV2Resources(TestCase):
         mock_collector = Mock()
         mock_collector.add_authorizers = Mock()
 
-        validator_mock.validate = Mock()
-        validator_mock.validate.return_value = True
+        validator_mock.return_value = True
 
         CfnApiProvider._extract_cfn_gateway_v2_authorizer(lambda_auth_logical_id, properties, mock_collector)
 

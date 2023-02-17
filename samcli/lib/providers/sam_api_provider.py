@@ -445,10 +445,14 @@ class SamApiProvider(CfnBaseApiProvider):
                 "It should either be a LogicalId string or a Ref of a Logical Id string".format(lambda_logical_id)
             )
 
+        use_default_authorizer = True
+
         # Find Authorizer
-        authorizer = event_properties.get(SamApiProvider._AUTH, {}).get(SamApiProvider._AUTHORIZER, "")
-        if authorizer == "NONE":
-            authorizer = None
+        authorizer_name = event_properties.get(SamApiProvider._AUTH, {}).get(SamApiProvider._AUTHORIZER, None)
+        if authorizer_name == "NONE":
+            # do not use any authorizers
+            use_default_authorizer = False
+            authorizer_name = None
 
         return (
             api_resource_id,
@@ -459,7 +463,8 @@ class SamApiProvider(CfnBaseApiProvider):
                 event_type=event_type,
                 payload_format_version=payload_format_version,
                 stack_path=stack_path,
-                authorizer_name=authorizer,
+                authorizer_name=authorizer_name,
+                use_default_authorizer=use_default_authorizer,
             ),
         )
 
