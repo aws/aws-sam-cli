@@ -25,6 +25,8 @@ from samcli.local.events.api_event import (
     ApiGatewayLambdaEvent,
     ApiGatewayV2LambdaEvent,
 )
+
+from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
 from .service_error_responses import ServiceErrorResponses
 from .path_converter import PathConverter
 
@@ -361,6 +363,10 @@ class LocalApigwService(BaseLocalService):
             self.lambda_runner.invoke(route.function_name, event, stdout=stdout_stream_writer, stderr=self.stderr)
         except FunctionNotFound:
             return ServiceErrorResponses.lambda_not_found_response()
+        except UnsupportedInlineCodeError:
+            return ServiceErrorResponses.not_implemented_locally(
+                "Inline code is not supported for sam local commands. Please write your code in a separate file."
+            )
 
         lambda_response, _ = LambdaOutputParser.get_lambda_output(stdout_stream)
 
