@@ -716,7 +716,8 @@ class TestInitWithArbitraryProject(TestCase):
     def _validate_expected_files_exist(self, output_folder: Path, config_exists: bool = True):
         self.assertTrue(output_folder.exists())
         self.assertEqual(
-            os.listdir(str(output_folder)), ["test.txt"] + [DEFAULT_CONFIG_FILE_NAME] if config_exists else ["test.txt"]
+            set(os.listdir(str(output_folder))),
+            set(["test.txt"] + [DEFAULT_CONFIG_FILE_NAME] if config_exists else ["test.txt"]),
         )
         self.assertEqual(Path(output_folder, "test.txt").read_text(), "hello world")
 
