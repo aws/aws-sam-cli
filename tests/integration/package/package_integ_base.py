@@ -80,9 +80,6 @@ class PackageIntegBase(TestCase):
         self.s3_prefix = uuid.uuid4().hex
         super().setUp()
 
-    def tearDown(self):
-        super().tearDown()
-
     def get_command_list(
         self,
         s3_bucket=None,

@@ -1,32 +1,23 @@
 import os
-import time
 import boto3
 import json
 from unittest import skipIf
 
-from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.integration.list.stack_outputs.stack_outputs_integ_base import StackOutputsIntegBase
 from samcli.commands.list.stack_outputs.command import HELP_TEXT
 from tests.testing_utils import CI_OVERRIDE, RUN_BY_CANARY
 from tests.testing_utils import run_command, run_command_with_input, method_to_stack_name
 
-CFN_SLEEP = 3
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
 
 
 @skipIf(
     (not RUN_BY_CANARY and not CI_OVERRIDE),
-    "Skip Terraform test cases unless running in CI",
+    "Skip List test cases unless running in CI",
 )
-class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
-    @classmethod
-    def setUpClass(cls):
-        DeployIntegBase.setUpClass()
-        StackOutputsIntegBase.setUpClass()
-
+class TestStackOutputs(StackOutputsIntegBase):
     def setUp(self):
         self.cf_client = boto3.client("cloudformation")
-        time.sleep(CFN_SLEEP)
         super().setUp()
 
     def test_stack_outputs_help_message(self):
@@ -50,6 +41,8 @@ class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
         run_command_with_input(
             deploy_command_list, "{}\n{}\nY\nY\nY\nY\nY\n\n\nY\n".format(stack_name, region).encode()
         )
+        self.stacks.append({"name": stack_name})
+
         cmdlist = self.get_stack_outputs_command_list(stack_name=stack_name, region=region, output="json")
         command_result = run_command(cmdlist, cwd=self.working_dir)
         outputs = json.loads(command_result.stdout.decode())
@@ -87,6 +80,8 @@ class TestStackOutputs(DeployIntegBase, StackOutputsIntegBase):
         run_command_with_input(
             deploy_command_list, "{}\n{}\nY\nY\nY\nY\nY\n\n\nY\n".format(stack_name, region).encode()
         )
+        self.stacks.append({"name": stack_name})
+
         cmdlist = self.get_stack_outputs_command_list(stack_name=stack_name, region=region, output="json")
         command_result = run_command(cmdlist, cwd=self.working_dir)
         expected_output = (
