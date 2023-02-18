@@ -1,11 +1,9 @@
 """SyncFlowExecutor that will run continuously until stop is called."""
-import time
 import logging
-
-from typing import Callable, Optional
+import time
 from concurrent.futures.thread import ThreadPoolExecutor
-
 from dataclasses import dataclass
+from typing import Callable, Optional
 
 from samcli.lib.sync.exceptions import SyncFlowException
 from samcli.lib.sync.sync_flow import SyncFlow

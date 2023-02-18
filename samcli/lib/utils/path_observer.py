@@ -2,17 +2,16 @@
 HandlerObserver and its helper classes.
 """
 import re
-
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, List, Optional
-from dataclasses import dataclass
 
-from watchdog.observers import Observer
 from watchdog.events import (
     FileSystemEvent,
     FileSystemEventHandler,
     RegexMatchingEventHandler,
 )
+from watchdog.observers import Observer
 from watchdog.observers.api import DEFAULT_OBSERVER_TIMEOUT, ObservedWatch
 
 

@@ -3,9 +3,9 @@ Utilities for code signing process
 """
 
 import logging
-from typing import List, Dict, Set
+from typing import Dict, List, Set
 
-from click import prompt, STRING
+from click import STRING, prompt
 
 from samcli.lib.providers.provider import Stack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider

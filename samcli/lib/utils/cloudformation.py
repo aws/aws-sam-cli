@@ -3,7 +3,7 @@ This utility file contains methods to read information from certain CFN stack
 """
 import logging
 import posixpath
-from typing import Dict, Set, Optional, Iterable, Any
+from typing import Any, Dict, Iterable, Optional, Set
 
 from attr import dataclass
 from botocore.exceptions import ClientError

@@ -1,8 +1,11 @@
 """ This module parses a json/yaml file that defines a flow of questions to fulfill the cookiecutter context"""
 from typing import Dict, Optional, Tuple
+
 import yaml
+
 from samcli.commands.exceptions import UserException
 from samcli.yamlhelper import parse_yaml_file
+
 from .interactive_flow import InteractiveFlow
 from .question import Question, QuestionFactory
 

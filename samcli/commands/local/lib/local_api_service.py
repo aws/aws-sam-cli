@@ -6,8 +6,8 @@ import logging
 import os
 
 from samcli.commands.local.lib.exceptions import NoApisDefined
-from samcli.local.apigw.local_apigw_service import LocalApigwService
 from samcli.lib.providers.api_provider import ApiProvider
+from samcli.local.apigw.local_apigw_service import LocalApigwService
 
 LOG = logging.getLogger(__name__)
 

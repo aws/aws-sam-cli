@@ -1,20 +1,19 @@
 """
 Terraform prepare property builder
 """
-from typing import Any, Optional, Dict
-from samcli.hook_packages.terraform.hooks.prepare.types import (
-    TFResource,
-    PropertyBuilderMapping,
-    PropertyBuilder,
-    ResourceTranslator,
-)
+from typing import Any, Dict, Optional
+
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import _resolve_resource_attribute
-from samcli.lib.utils.packagetype import ZIP, IMAGE
-from samcli.lib.hook.exceptions import PrepareHookException
-from samcli.lib.utils.resources import (
-    AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
-    AWS_LAMBDA_LAYERVERSION as CFN_AWS_LAMBDA_LAYER_VERSION,
+from samcli.hook_packages.terraform.hooks.prepare.types import (
+    PropertyBuilder,
+    PropertyBuilderMapping,
+    ResourceTranslator,
+    TFResource,
 )
+from samcli.lib.hook.exceptions import PrepareHookException
+from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION
+from samcli.lib.utils.resources import AWS_LAMBDA_LAYERVERSION as CFN_AWS_LAMBDA_LAYER_VERSION
 
 REMOTE_DUMMY_VALUE = "<<REMOTE DUMMY VALUE - RAISE ERROR IF IT IS STILL THERE>>"
 TF_AWS_LAMBDA_FUNCTION = "aws_lambda_function"

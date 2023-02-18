@@ -2,9 +2,9 @@
 Utilities for sam deploy command
 """
 
+import copy
 import json
 import textwrap
-import copy
 
 import click
 

@@ -1,8 +1,9 @@
 """
 Implementation of the data to json mapper
 """
-from typing import Dict
 import json
+from typing import Dict
+
 from samcli.lib.list.list_interfaces import Mapper
 
 
