@@ -1,9 +1,8 @@
 """
 Isolates interactive init prompt flow. Expected to call generator logic at end of flow.
 """
-import pathlib
-import tempfile
 import logging
+import pathlib
 import tempfile
 from typing import Optional, Tuple
 
@@ -26,6 +25,7 @@ from samcli.commands.init.interactive_event_bridge_flow import (
     get_schemas_api_caller,
     get_schemas_template_parameter,
 )
+from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.schemas.schemas_code_manager import do_download_source_code_binding, do_extract_and_merge_schemas_code
 from samcli.lib.utils.osutils import remove
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -34,12 +34,6 @@ from samcli.local.common.runtime_template import (
     get_provided_runtime_from_custom_runtime,
     is_custom_runtime,
 )
-from samcli.commands.init.init_generator import do_generate
-from samcli.commands.init.init_templates import InitTemplates, InvalidInitTemplateError
-from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
-from samcli.lib.utils.osutils import remove
-from samcli.lib.utils.packagetype import IMAGE, ZIP
-from samcli.commands._utils.options import generate_next_command_recommendation
 
 LOG = logging.getLogger(__name__)
 
