@@ -8,6 +8,8 @@ from subprocess import Popen, TimeoutExpired, PIPE
 import os
 import shutil
 import tempfile
+
+from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 from pathlib import Path
@@ -711,9 +713,12 @@ class TestInitWithArbitraryProject(TestCase):
     def tearDown(self):
         shutil.rmtree(self.tempdir)
 
-    def _validate_expected_files_exist(self, output_folder: Path):
+    def _validate_expected_files_exist(self, output_folder: Path, config_exists: bool = True):
         self.assertTrue(output_folder.exists())
-        self.assertEqual(os.listdir(str(output_folder)), ["test.txt"])
+        self.assertEqual(
+            set(os.listdir(str(output_folder))),
+            set(["test.txt"] + [DEFAULT_CONFIG_FILE_NAME] if config_exists else ["test.txt"]),
+        )
         self.assertEqual(Path(output_folder, "test.txt").read_text(), "hello world")
 
     @parameterized.expand([(None,), ("project_name",)])
@@ -733,7 +738,7 @@ class TestInitWithArbitraryProject(TestCase):
             expected_output_folder = Path(temp, project_name) if project_name else Path(temp)
 
             self.assertEqual(process.returncode, 0)
-            self._validate_expected_files_exist(expected_output_folder)
+            self._validate_expected_files_exist(expected_output_folder, config_exists=True if project_name else False)
 
     def test_zip_not_exists(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -826,3 +831,112 @@ sam-interactive-init-app-default-runtime
             self.assertTrue(expected_output_folder.is_dir())
             self.assertTrue(Path(expected_output_folder, "hello_world").is_dir())
             self.assertTrue(Path(expected_output_folder, "hello_world", "app.py").is_file())
+
+
+class TestInitProducesSamconfigFile(TestCase):
+    def test_zip_template_config(self):
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    get_sam_command(),
+                    "init",
+                    "--runtime",
+                    "nodejs14.x",
+                    "--dependency-manager",
+                    "npm",
+                    "--architecture",
+                    "arm64",
+                    "--app-template",
+                    "hello-world",
+                    "--name",
+                    "sam-app",
+                    "--no-interactive",
+                    "-o",
+                    temp,
+                ],
+                stdout=PIPE,
+                stderr=PIPE,
+            )
+            try:
+                stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
+                stderr = stderr_data.decode("utf-8")
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            project_directory = Path(temp, "sam-app")
+
+            self.assertEqual(process.returncode, 0)
+            self.assertTrue(project_directory.is_dir())
+            self.assertNotIn(COMMIT_ERROR, stderr)
+            self._validate_zip_samconfig(project_directory)
+
+    def test_image_template_config(self):
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    get_sam_command(),
+                    "init",
+                    "--package-type",
+                    IMAGE,
+                    "--base-image",
+                    "amazon/nodejs14.x-base",
+                    "--dependency-manager",
+                    "npm",
+                    "--name",
+                    "sam-app",
+                    "--no-interactive",
+                    "-o",
+                    temp,
+                ],
+                stdout=PIPE,
+                stderr=PIPE,
+            )
+            try:
+                stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
+                stderr = stderr_data.decode("utf-8")
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            project_directory = Path(temp, "sam-app")
+
+            self.assertEqual(process.returncode, 0)
+            self.assertTrue(project_directory.is_dir())
+            self.assertNotIn(COMMIT_ERROR, stderr)
+            self._validate_image_samconfig(project_directory)
+
+    def _validate_image_samconfig(self, project_path):
+        text = self._read_config(project_path)
+
+        self._validate_common_properties(text)
+
+        self.assertFalse(self._check_property("cached = true", text))
+        self.assertFalse(self._check_property("resolve_s3 = true", text))
+        self.assertTrue(self._check_property("resolve_image_repos = true", text))
+
+    def _validate_zip_samconfig(self, project_path):
+        text = self._read_config(project_path)
+
+        self._validate_common_properties(text)
+
+        self.assertTrue(self._check_property("cached = true", text))
+        self.assertTrue(self._check_property("resolve_s3 = true", text))
+        self.assertFalse(self._check_property("resolve_image_repos = true", text))
+
+    def _validate_common_properties(self, text):
+        self.assertTrue(self._check_property("parallel = true", text))
+        self.assertTrue(self._check_property('warm_containers = "EAGER"', text))
+        self.assertTrue(self._check_property('stack_name = "sam-app"', text))
+        self.assertTrue(self._check_property("watch = true", text))
+        self.assertTrue(self._check_property('capabilities = "CAPABILITY_IAM"', text))
+
+    @staticmethod
+    def _check_property(to_find, container):
+        return any(to_find in line for line in container)
+
+    @staticmethod
+    def _read_config(project_path):
+        with open(Path(project_path, "samconfig.toml"), "r") as f:
+            text = f.readlines()
+        return text

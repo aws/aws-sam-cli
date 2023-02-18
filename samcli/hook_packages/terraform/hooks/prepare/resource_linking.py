@@ -2,19 +2,19 @@
 Use Terraform plan to link resources together
 e.g. linking layers to functions
 """
-from typing import Dict, List, Optional, Union
-import re
 import logging
+import re
+from typing import Dict, List, Optional, Union
 
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     InvalidResourceLinkingException,
-    OneLambdaLayerLinkingLimitationException,
     LocalVariablesLinkingLimitationException,
+    OneLambdaLayerLinkingLimitationException,
 )
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     ConstantValue,
-    References,
     Expression,
+    References,
     ResolvedReference,
     TFModule,
     TFResource,

@@ -8,11 +8,11 @@ import os
 from json import JSONDecodeError
 from pathlib import Path
 from textwrap import dedent
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional, Tuple
 
 import click
-from samcli.cli.global_config import GlobalConfig
 
+from samcli.cli.global_config import GlobalConfig
 from samcli.commands.exceptions import (
     AppPipelineTemplateMetadataException,
     PipelineTemplateCloneException,
@@ -24,14 +24,15 @@ from samcli.lib.cookiecutter.question import Choice
 from samcli.lib.cookiecutter.template import Template
 from samcli.lib.utils import osutils
 from samcli.lib.utils.colors import Colored
-from samcli.lib.utils.git_repo import GitRepo, CloneRepoException
-from .pipeline_templates_manifest import Provider, PipelineTemplateMetadata, PipelineTemplatesManifest
+from samcli.lib.utils.git_repo import CloneRepoException, GitRepo
+
 from ..bootstrap.cli import (
-    do_cli as do_bootstrap,
     PIPELINE_CONFIG_DIR,
     PIPELINE_CONFIG_FILENAME,
     _get_bootstrap_command_names,
 )
+from ..bootstrap.cli import do_cli as do_bootstrap
+from .pipeline_templates_manifest import PipelineTemplateMetadata, PipelineTemplatesManifest, Provider
 
 LOG = logging.getLogger(__name__)
 shared_path: Path = GlobalConfig().config_dir

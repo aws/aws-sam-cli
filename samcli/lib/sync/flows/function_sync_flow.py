@@ -1,22 +1,21 @@
 """Base SyncFlow for Lambda Function"""
+import logging
+import time
 from abc import ABC
 from enum import Enum
-import logging
+from typing import TYPE_CHECKING, Any, Dict, List, cast
 
-import time
-from typing import Any, Dict, List, TYPE_CHECKING, cast
 from botocore.client import BaseClient
 
+from samcli.lib.providers.provider import Function, Stack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.sync.flows.alias_version_sync_flow import AliasVersionSyncFlow
-from samcli.lib.providers.provider import Function, Stack
+from samcli.lib.sync.sync_flow import SyncFlow
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 
-from samcli.lib.sync.sync_flow import SyncFlow
-
 if TYPE_CHECKING:  # pragma: no cover
-    from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
+    from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)

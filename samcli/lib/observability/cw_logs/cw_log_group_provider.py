@@ -4,13 +4,13 @@ Discover & provide the log group name
 import logging
 from typing import Optional
 
+from samcli.lib.utils.boto_utils import BotoProviderType
 from samcli.lib.utils.resources import (
-    AWS_LAMBDA_FUNCTION,
     AWS_APIGATEWAY_RESTAPI,
     AWS_APIGATEWAY_V2_API,
+    AWS_LAMBDA_FUNCTION,
     AWS_STEPFUNCTIONS_STATEMACHINE,
 )
-from samcli.lib.utils.boto_utils import BotoProviderType
 
 LOG = logging.getLogger(__name__)
 
@@ -140,9 +140,10 @@ class LogGroupProvider:
             log_group_arn = logging_destination.get("cloudWatchLogsLogGroup", {}).get("logGroupArn")
             LOG.debug("Log group ARN: %s", log_group_arn)
             if log_group_arn:
-                if ":" in log_group_arn and len(log_group_arn.split(":")) > 6:
+                log_group_index_in_arn = 6
+                if ":" in log_group_arn and len(log_group_arn.split(":")) > log_group_index_in_arn:
                     log_group_arn_parts = log_group_arn.split(":")
-                    log_group_name = log_group_arn_parts[6]
+                    log_group_name = log_group_arn_parts[log_group_index_in_arn]
                     return str(log_group_name)
 
                 LOG.warning(

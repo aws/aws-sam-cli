@@ -4,9 +4,9 @@ Tarball Archive utility
 
 import os
 import tarfile
-from typing import Union, IO, Optional
-from tempfile import TemporaryFile
 from contextlib import contextmanager
+from tempfile import TemporaryFile
+from typing import IO, Optional, Union
 
 
 @contextmanager

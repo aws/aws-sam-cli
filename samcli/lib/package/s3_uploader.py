@@ -16,19 +16,18 @@ Client for uploading packaged artifacts to s3
 # language governing permissions and limitations under the License.
 
 import logging
-import threading
 import os
 import sys
+import threading
 from collections import abc
-from typing import Optional, Dict, Any, cast
-from urllib.parse import urlparse, parse_qs
+from typing import Any, Dict, Optional, cast
+from urllib.parse import parse_qs, urlparse
 
 import botocore
 import botocore.exceptions
-
 from boto3.s3 import transfer
 
-from samcli.commands.package.exceptions import NoSuchBucketError, BucketNotSpecifiedError
+from samcli.commands.package.exceptions import BucketNotSpecifiedError, NoSuchBucketError
 from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name
 
 LOG = logging.getLogger(__name__)
@@ -330,10 +329,10 @@ class ProgressPercentage:
         # to a single filename.
         with self._lock:
             self._seen_so_far += bytes_transferred
-            percentage = (self._seen_so_far / self._size) * 100
+            percentage = (self._seen_so_far / self._size) * 100  # noqa: PLR2004
             sys.stderr.write(
                 "\rUploading to %s  %s / %s  (%.2f%%)" % (self._remote_path, self._seen_so_far, self._size, percentage)
             )
             sys.stderr.flush()
-            if int(percentage) == 100:
+            if int(percentage) == 100:  # noqa: PLR2004
                 sys.stderr.write("\n")

@@ -1,7 +1,7 @@
 """Holds Classes for API Gateway to Lambda Events"""
-from time import time
-from datetime import datetime
 import uuid
+from datetime import datetime
+from time import time
 
 
 class ContextIdentity:

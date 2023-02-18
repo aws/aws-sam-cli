@@ -5,14 +5,14 @@ import logging
 
 import click
 
-from samcli.cli.cli_config_file import configuration_option, TomlProvider
-from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
+from samcli.cli.cli_config_file import TomlProvider, configuration_option
+from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
+from samcli.cli.main import common_options as cli_framework_options
 from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.commands._utils.options import common_observability_options
 from samcli.lib.observability.util import OutputOption
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
-
 
 LOG = logging.getLogger(__name__)
 
@@ -64,7 +64,9 @@ def do_cli(trace_ids, start_time, end_time, tailing, output, region):
     Implementation of the ``cli`` method
     """
     from datetime import datetime
+
     import boto3
+
     from samcli.commands.logs.logs_context import parse_time
     from samcli.commands.traces.traces_puller_factory import generate_trace_puller
     from samcli.lib.utils.boto_utils import get_boto_config_with_user_agent

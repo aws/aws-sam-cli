@@ -8,18 +8,18 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Dict, Optional, cast
 
-from samcli.commands._utils.experimental import is_experimental_enabled, ExperimentalFlag
+from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.commands._utils.template import move_template
 from samcli.lib.bootstrap.nested_stack.nested_stack_builder import NestedStackBuilder
 from samcli.lib.build.app_builder import ApplicationBuildResult
 from samcli.lib.build.workflow_config import get_layer_subfolder
-from samcli.lib.providers.provider import Stack, Function
+from samcli.lib.providers.provider import Function, Stack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.sync.exceptions import InvalidRuntimeDefinitionForFunction
 from samcli.lib.utils import osutils
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.lib.utils.packagetype import ZIP
-from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION, AWS_LAMBDA_FUNCTION
+from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION, AWS_SERVERLESS_FUNCTION
 
 LOG = logging.getLogger(__name__)
 
