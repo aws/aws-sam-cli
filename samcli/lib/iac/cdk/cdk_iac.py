@@ -3,7 +3,7 @@ Provide a CDK implementation of IaCPluginInterface
 """
 from typing import List
 
-from samcli.lib.iac.plugins_interfaces import IaCPluginInterface, SamCliProject, Stack, LookupPath
+from samcli.lib.iac.plugins_interfaces import IaCPluginInterface, LookupPath, SamCliProject, Stack
 
 
 # TODO: Implement the new interface methods for the CDK plugin type

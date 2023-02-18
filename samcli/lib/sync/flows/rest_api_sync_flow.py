@@ -1,14 +1,14 @@
 """SyncFlow for RestApi"""
 import logging
-from typing import Dict, List, TYPE_CHECKING, Set, cast, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional, Set, cast
 
 from botocore.exceptions import ClientError
 
-from samcli.lib.sync.flows.generic_api_sync_flow import GenericApiSyncFlow
-from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_by_id, get_resource_ids_by_type
 from samcli.lib.providers.exceptions import MissingLocalDefinition
+from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_by_id, get_resource_ids_by_type
+from samcli.lib.sync.flows.generic_api_sync_flow import GenericApiSyncFlow
 from samcli.lib.utils.colors import Colored
-from samcli.lib.utils.resources import AWS_SERVERLESS_API, AWS_APIGATEWAY_STAGE, AWS_APIGATEWAY_DEPLOYMENT
+from samcli.lib.utils.resources import AWS_APIGATEWAY_DEPLOYMENT, AWS_APIGATEWAY_STAGE, AWS_SERVERLESS_API
 
 # BuildContext and DeployContext will only be imported for type checking to improve performance
 # since no instances of contexts will be instantiated in this class

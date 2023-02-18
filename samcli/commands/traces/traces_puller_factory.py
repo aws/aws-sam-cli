@@ -5,16 +5,16 @@ from typing import Any, List
 
 from samcli.commands.traces.trace_console_consumers import XRayTraceConsoleConsumer
 from samcli.lib.observability.observability_info_puller import (
-    ObservabilityPuller,
+    ObservabilityCombinedPuller,
     ObservabilityEventConsumer,
     ObservabilityEventConsumerDecorator,
-    ObservabilityCombinedPuller,
+    ObservabilityPuller,
 )
 from samcli.lib.observability.util import OutputOption
 from samcli.lib.observability.xray_traces.xray_event_mappers import (
-    XRayTraceConsoleMapper,
     XRayServiceGraphConsoleMapper,
     XRayServiceGraphJSONMapper,
+    XRayTraceConsoleMapper,
     XRayTraceJSONMapper,
 )
 from samcli.lib.observability.xray_traces.xray_event_puller import XRayTracePuller

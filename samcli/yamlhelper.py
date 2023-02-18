@@ -18,13 +18,12 @@ https://github.com/aws/aws-cli/blob/develop/awscli/customizations/cloudformation
 # pylint: disable=too-many-ancestors
 
 import json
-from typing import cast, Dict, Optional
-from botocore.compat import OrderedDict
+from typing import Dict, Optional, cast
+
 import yaml
-
-from yaml.nodes import ScalarNode, SequenceNode
-
+from botocore.compat import OrderedDict
 from samtranslator.utils.py27hash_fix import Py27Dict, Py27UniStr
+from yaml.nodes import ScalarNode, SequenceNode
 
 TAG_STR = "tag:yaml.org,2002:str"
 

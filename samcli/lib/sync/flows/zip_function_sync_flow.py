@@ -1,30 +1,27 @@
 """SyncFlow for ZIP based Lambda Functions"""
+import base64
 import hashlib
 import logging
 import os
-import base64
 import tempfile
 import uuid
 from contextlib import ExitStack
-
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, cast
-
-from samcli.lib.build.build_graph import BuildGraph
-from samcli.lib.providers.provider import Stack
-
-from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow, wait_for_function_update_complete
-from samcli.lib.package.s3_uploader import S3Uploader
-from samcli.lib.utils.colors import Colored
-from samcli.lib.utils.hash import file_checksum
-from samcli.lib.package.utils import make_zip_with_lambda_permissions
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
 from samcli.lib.build.app_builder import ApplicationBuilder
-from samcli.lib.sync.sync_flow import ResourceAPICall, ApiCallTypes
+from samcli.lib.build.build_graph import BuildGraph
+from samcli.lib.package.s3_uploader import S3Uploader
+from samcli.lib.package.utils import make_zip_with_lambda_permissions
+from samcli.lib.providers.provider import Stack
+from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow, wait_for_function_update_complete
+from samcli.lib.sync.sync_flow import ApiCallTypes, ResourceAPICall
+from samcli.lib.utils.colors import Colored
+from samcli.lib.utils.hash import file_checksum
 from samcli.lib.utils.osutils import rmtree_if_exists
 
 if TYPE_CHECKING:  # pragma: no cover
-    from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
+    from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)

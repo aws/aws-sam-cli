@@ -1,11 +1,11 @@
 """
 Module for creating default samconfig.toml files after initialize a sample app
 """
-from enum import Enum
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any, List
 
-from samcli.lib.config.samconfig import SamConfig, DEFAULT_GLOBAL_CMDNAME
+from samcli.lib.config.samconfig import DEFAULT_GLOBAL_CMDNAME, SamConfig
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 MORE_INFO_COMMENT = """More information about the configuration file can be found here:

@@ -3,16 +3,14 @@ Initialize an arbitrary project
 """
 
 import functools
-import shutil
 import logging
+import shutil
 
-from cookiecutter import repository
-from cookiecutter import exceptions
-from cookiecutter import config
+from cookiecutter import config, exceptions, repository
 
 from samcli.lib.utils import osutils
-from .exceptions import ArbitraryProjectDownloadFailed
 
+from .exceptions import ArbitraryProjectDownloadFailed
 
 LOG = logging.getLogger(__name__)
 

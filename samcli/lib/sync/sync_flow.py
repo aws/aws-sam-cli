@@ -1,23 +1,21 @@
 """SyncFlow base class """
 import logging
-
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
 from threading import Lock
-from typing import Any, Dict, List, NamedTuple, Optional, TYPE_CHECKING, cast, Set
+from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Set, cast
+
 from boto3.session import Session
 
-from samcli.lib.providers.provider import get_resource_by_id
-
-from samcli.lib.providers.provider import ResourceIdentifier, Stack
-from samcli.lib.utils.boto_utils import get_boto_client_provider_from_session_with_config
-from samcli.lib.utils.lock_distributor import LockDistributor, LockChain
+from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_by_id
 from samcli.lib.sync.exceptions import MissingLockException, MissingPhysicalResourceError
+from samcli.lib.utils.boto_utils import get_boto_client_provider_from_session_with_config
+from samcli.lib.utils.lock_distributor import LockChain, LockDistributor
 
 if TYPE_CHECKING:  # pragma: no cover
-    from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
+    from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.sync.sync_context import SyncContext
 
 # Logging with multiple processes is not safe. Use a log queue in the future.

@@ -6,8 +6,8 @@ from typing import Optional
 
 from samcli.commands.list.cli_common.list_common_context import ListContext
 from samcli.lib.list.endpoints.endpoints_producer import EndpointsProducer
-from samcli.lib.list.mapper_consumer_factory import MapperConsumerFactory
 from samcli.lib.list.list_interfaces import ProducersEnum
+from samcli.lib.list.mapper_consumer_factory import MapperConsumerFactory
 
 LOG = logging.getLogger(__name__)
 

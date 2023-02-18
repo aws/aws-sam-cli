@@ -3,11 +3,10 @@ Class to manage all the prompts during a guided sam deploy
 """
 
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 import click
-from click import confirm
-from click import prompt
+from click import confirm, prompt
 from click.types import FuncParamType
 
 from samcli.commands._utils.options import _space_separated_list_func_type
@@ -16,26 +15,26 @@ from samcli.commands._utils.template import (
 )
 from samcli.commands.deploy.auth_utils import auth_per_resource
 from samcli.commands.deploy.code_signer_utils import (
-    signer_config_per_function,
     extract_profile_name_and_owner_from_existing,
     prompt_profile_name,
     prompt_profile_owner,
+    signer_config_per_function,
 )
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
 from samcli.commands.deploy.guided_config import GuidedConfig
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.bootstrap.bootstrap import manage_stack
-from samcli.lib.config.samconfig import DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
+from samcli.lib.bootstrap.companion_stack.companion_stack_manager import CompanionStackManager
+from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME, DEFAULT_ENV
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.ecr_utils import is_ecr_url
-from samcli.lib.package.image_utils import tag_translation, NonLocalImageException, NoImageFoundException
-from samcli.lib.providers.provider import Function, Stack, get_resource_full_path_by_id, ResourceIdentifier
+from samcli.lib.package.image_utils import NoImageFoundException, NonLocalImageException, tag_translation
+from samcli.lib.providers.provider import Function, ResourceIdentifier, Stack, get_resource_full_path_by_id
+from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.defaults import get_default_aws_region
 from samcli.lib.utils.packagetype import IMAGE
-from samcli.lib.providers.sam_function_provider import SamFunctionProvider
-from samcli.lib.bootstrap.companion_stack.companion_stack_manager import CompanionStackManager
 
 LOG = logging.getLogger(__name__)
 

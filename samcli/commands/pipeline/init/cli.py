@@ -5,8 +5,9 @@ from typing import Any, Optional
 
 import click
 
-from samcli.cli.cli_config_file import configuration_option, TomlProvider
-from samcli.cli.main import pass_context, common_options as cli_framework_options
+from samcli.cli.cli_config_file import TomlProvider, configuration_option
+from samcli.cli.main import common_options as cli_framework_options
+from samcli.cli.main import pass_context
 from samcli.commands.pipeline.init.interactive_init_flow import InteractiveInitFlow
 from samcli.lib.telemetry.metric import track_command
 

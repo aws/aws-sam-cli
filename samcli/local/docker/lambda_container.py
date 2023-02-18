@@ -4,10 +4,11 @@ Represents Lambda runtime containers.
 import logging
 from typing import List
 
-from samcli.local.docker.lambda_debug_settings import LambdaDebugSettings
 from samcli.lib.utils.packagetype import IMAGE
+from samcli.local.docker.lambda_debug_settings import LambdaDebugSettings
+
 from .container import Container
-from .lambda_image import Runtime, LambdaImage
+from .lambda_image import LambdaImage, Runtime
 
 LOG = logging.getLogger(__name__)
 

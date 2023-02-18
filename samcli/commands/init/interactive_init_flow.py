@@ -1,39 +1,39 @@
 """
 Isolates interactive init prompt flow. Expected to call generator logic at end of flow.
 """
+import logging
 import pathlib
 import tempfile
-import logging
 from typing import Optional, Tuple
-import click
 
+import click
 from botocore.exceptions import ClientError, WaiterError
 
+from samcli.commands._utils.options import generate_next_command_recommendation
+from samcli.commands.exceptions import InvalidInitOptionException, SchemasApiException
 from samcli.commands.init.init_flow_helpers import (
-    get_architectures,
-    _get_runtime_from_image,
-    get_sorted_runtimes,
-    _get_templates_with_dependency_manager,
     _get_image_from_runtime,
+    _get_runtime_from_image,
+    _get_templates_with_dependency_manager,
+    get_architectures,
+    get_sorted_runtimes,
 )
+from samcli.commands.init.init_generator import do_generate
+from samcli.commands.init.init_templates import InitTemplates, InvalidInitTemplateError
 from samcli.commands.init.interactive_event_bridge_flow import (
     get_schema_template_details,
     get_schemas_api_caller,
     get_schemas_template_parameter,
 )
-from samcli.commands.exceptions import SchemasApiException, InvalidInitOptionException
+from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.schemas.schemas_code_manager import do_download_source_code_binding, do_extract_and_merge_schemas_code
+from samcli.lib.utils.osutils import remove
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.local.common.runtime_template import (
     LAMBDA_IMAGES_RUNTIMES_MAP,
     get_provided_runtime_from_custom_runtime,
     is_custom_runtime,
 )
-from samcli.commands.init.init_generator import do_generate
-from samcli.commands.init.init_templates import InitTemplates, InvalidInitTemplateError
-from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
-from samcli.lib.utils.osutils import remove
-from samcli.lib.utils.packagetype import IMAGE, ZIP
-from samcli.commands._utils.options import generate_next_command_recommendation
 
 LOG = logging.getLogger(__name__)
 

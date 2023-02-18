@@ -2,8 +2,8 @@
 Class containing error conditions that are exposed to the user.
 """
 import traceback
+from typing import IO, Optional
 from urllib.parse import quote
-from typing import Optional, IO
 
 import click
 
