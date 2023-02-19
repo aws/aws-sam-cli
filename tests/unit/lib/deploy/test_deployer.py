@@ -91,11 +91,6 @@ class TestDeployer(CustomTestCase):
         deployer = Deployer(MagicMock().client("cloudformation"))
         self.assertEqual(deployer.client_sleep, 0.5)
 
-    @patch("os.environ", {**os.environ, "SAM_CLI_POLL_DELAY": 30})
-    def test_deployer_sam_cli_poll_delay(self):
-        deployer = Deployer(MagicMock().client("cloudformation"), client_sleep=os.getenv("SAM_CLI_POLL_DELAY", 0.5))
-        self.assertEqual(deployer.client_sleep, 30)
-
     def test_deployer_has_no_stack(self):
         self.deployer._client.describe_stacks = MagicMock(return_value={"Stacks": []})
         self.assertEqual(self.deployer.has_stack("test"), False)
@@ -354,6 +349,19 @@ class TestDeployer(CustomTestCase):
         deployer._client.get_waiter = MagicMock(return_value=MockChangesetWaiter())
         deployer.wait_for_changeset("test-id", "test-stack")
         self.assertEqual(deployer.client_sleep, 10)
+
+    def test_wait_for_changeset_default_delay(self):
+        deployer = Deployer(MagicMock().client("cloudformation"), client_sleep=0.5)
+        deployer.wait_for_changeset("test-id", "test-stack")
+        get_waiter_call = deployer._client.get_waiter()
+        get_waiter_call.wait.assert_called_with(ChangeSetName="test-id", StackName="test-stack", WaiterConfig={'Delay': 5})
+
+    @patch("os.environ", {**os.environ, "SAM_CLI_POLL_DELAY": 10})
+    def test_wait_for_changeset_custom_delay(self):
+        deployer = Deployer(MagicMock().client("cloudformation"), client_sleep=os.getenv("SAM_CLI_POLL_DELAY"))
+        deployer.wait_for_changeset("test-id", "test-stack")
+        get_waiter_call = deployer._client.get_waiter()
+        get_waiter_call.wait.assert_called_with(ChangeSetName="test-id", StackName="test-stack", WaiterConfig={'Delay': 10.0})
 
     def test_wait_for_changeset_exception_ChangeEmpty(self):
         self.deployer._client.get_waiter = MagicMock(

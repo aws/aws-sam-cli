@@ -307,8 +307,9 @@ class Deployer:
 
         # Wait for changeset to be created
         waiter = self._client.get_waiter("change_set_create_complete")
-        # If there is a client sleep, use it as the delay or use the default 5 seconds
+        # Set default poll delay to 5 seconds
         waiter_config = {"Delay": 5}
+        # If the changeset is large, increase the poll delay by using client_sleep
         if ( 
             self.client_sleep 
             and self.client_sleep > waiter_config["Delay"]

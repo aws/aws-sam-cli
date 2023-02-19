@@ -130,7 +130,7 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             use_changeset=self.use_changeset,
             disable_rollback=self.disable_rollback,
-            poll_delay=10,
+            poll_delay=os.getenv('SAM_CLI_POLL_DELAY'),
             on_failure=self.on_failure,
         )
 
