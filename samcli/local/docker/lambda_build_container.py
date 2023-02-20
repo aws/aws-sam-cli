@@ -4,8 +4,8 @@ Represents Lambda Build Containers.
 
 import json
 import logging
-import pathlib
 import os
+import pathlib
 from typing import List
 from uuid import uuid4
 

@@ -3,9 +3,9 @@ Representation of a generic Docker container
 """
 import logging
 import os
-import socket
 import pathlib
 import shutil
+import socket
 import tempfile
 import threading
 import time
@@ -18,7 +18,6 @@ from docker.errors import NotFound as DockerNetworkNotFound
 from samcli.lib.utils.retry import retry
 from samcli.lib.utils.tar import extract_tarfile
 from samcli.local.docker.effective_user import EffectiveUser
-from .exceptions import ContainerNotStartableException
 
 from .exceptions import ContainerNotStartableException
 from .utils import NoFreePortsError, find_free_port, to_posix_path
