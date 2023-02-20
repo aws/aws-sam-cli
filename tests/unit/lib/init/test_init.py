@@ -5,7 +5,7 @@ from pathlib import Path
 from cookiecutter.exceptions import CookiecutterException, RepositoryNotFound
 from parameterized import parameterized
 
-from samcli.lib.init import generate_project, InvalidLocationError
+from samcli.lib.init import generate_project, InvalidLocationError, _create_default_samconfig
 from samcli.lib.init import GenerateProjectFailedError
 from samcli.lib.init import RUNTIME_DEP_TEMPLATE_MAPPING
 from samcli.lib.utils.packagetype import ZIP
@@ -78,7 +78,6 @@ class TestInit(TestCase):
 
     @patch("samcli.lib.init.cookiecutter")
     def test_when_generate_project_returns_error(self, cookiecutter_patch):
-
         # GIVEN generate_project fails to create a project
         ex = CookiecutterException("something is wrong")
         cookiecutter_patch.side_effect = ex
@@ -100,8 +99,11 @@ class TestInit(TestCase):
 
         self.assertEqual(expected_msg, str(ctx.exception))
 
+    @patch("samcli.lib.init._create_default_samconfig")
     @patch("samcli.lib.init.cookiecutter")
-    def test_must_set_cookiecutter_context_when_location_and_extra_context_is_provided(self, cookiecutter_patch):
+    def test_must_set_cookiecutter_context_when_location_and_extra_context_is_provided(
+        self, cookiecutter_patch, default_samconfig_mock
+    ):
         cookiecutter_context = {"key1": "value1", "key2": "value2"}
         custom_location = "mylocation"
         generate_project(
@@ -134,12 +136,12 @@ class TestInit(TestCase):
             template=self.template,
         )
 
+    @patch("samcli.lib.init._create_default_samconfig")
     @patch("samcli.lib.init.cookiecutter")
     @patch("samcli.lib.init.generate_non_cookiecutter_project")
     def test_init_arbitrary_project_with_location_is_not_cookiecutter(
-        self, generate_non_cookiecutter_project_mock, cookiecutter_mock
+        self, generate_non_cookiecutter_project_mock, cookiecutter_mock, default_samconfig_mock
     ):
-
         cookiecutter_mock.side_effect = RepositoryNotFound("msg")
 
         generate_project(location=self.location, output_dir=self.output_dir)
@@ -149,7 +151,6 @@ class TestInit(TestCase):
     @patch("samcli.lib.init.cookiecutter")
     @patch("samcli.lib.init.generate_non_cookiecutter_project")
     def test_init_arbitrary_project_with_named_folder(self, generate_non_cookiecutter_project_mock, cookiecutter_mock):
-
         cookiecutter_mock.side_effect = RepositoryNotFound("msg")
 
         generate_project(location=self.location, output_dir=self.output_dir, name=self.name)
@@ -177,3 +178,17 @@ class TestInit(TestCase):
             )
 
         self.assertEqual(expected_msg, str(ctx.exception))
+
+    @patch("samcli.lib.init.DefaultSamconfig")
+    @patch("samcli.lib.init.Path.is_file")
+    def test_create_default_samconfig(self, is_file_mock, samconfig_mock):
+        is_file_mock.return_value = False
+        _create_default_samconfig("zip", "outdir", "sam-app")
+        samconfig_mock.assert_called_once_with(Path("outdir/sam-app"), "zip", "sam-app")
+
+    @patch("samcli.lib.init.DefaultSamconfig")
+    @patch("samcli.lib.init.Path.is_file")
+    def test_doesnt_modify_samconfig_already_exists(self, is_file_mock, samconfig_mock):
+        is_file_mock.return_value = True
+        _create_default_samconfig("zip", "outdir", "sam-app")
+        samconfig_mock.assert_not_called()

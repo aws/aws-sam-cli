@@ -126,6 +126,9 @@ class LambdaOutputParser:
             True if the output matches the Error/Exception Dictionary otherwise False
         """
         is_lambda_user_error_response = False
+        lambda_response_error_dict_len = 2
+        lambda_response_error_with_stacktrace_dict_len = 3
+
         try:
             lambda_response_dict = json.loads(lambda_response)
 
@@ -138,13 +141,13 @@ class LambdaOutputParser:
             # 'errorMessage' and 'errorType', for languages with different error signatures
             if (
                 isinstance(lambda_response_dict, dict)
-                and len(lambda_response_dict.keys() & {"errorMessage", "errorType"}) == 2
+                and len(lambda_response_dict.keys() & {"errorMessage", "errorType"}) == lambda_response_error_dict_len
                 and (
                     (
                         len(lambda_response_dict.keys() & {"errorMessage", "errorType", "stackTrace", "cause"})
                         == len(lambda_response_dict)
                     )
-                    or (len(lambda_response_dict) == 3)
+                    or (len(lambda_response_dict) == lambda_response_error_with_stacktrace_dict_len)
                 )
             ):
                 is_lambda_user_error_response = True

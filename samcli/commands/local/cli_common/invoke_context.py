@@ -7,23 +7,24 @@ import logging
 import os
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, IO, cast, Tuple, Any, Type
+from typing import IO, Any, Dict, List, Optional, Tuple, Type, cast
 
-from samcli.commands.local.cli_common.user_exceptions import InvokeContextException, DebugContextException
-from samcli.lib.utils import osutils
-from samcli.lib.providers.provider import Stack, Function
-from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
-from samcli.lib.utils.async_utils import AsyncContext
-from samcli.lib.utils.stream_writer import StreamWriter
+from samcli.commands._utils.template import TemplateFailedParsingException, TemplateNotFoundException
 from samcli.commands.exceptions import ContainersInitializationException
-from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
+from samcli.commands.local.cli_common.user_exceptions import DebugContextException, InvokeContextException
 from samcli.commands.local.lib.debug_context import DebugContext
-from samcli.local.lambdafn.runtime import LambdaRuntime, WarmLambdaRuntime
+from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
+from samcli.lib.providers.provider import Function, Stack
+from samcli.lib.providers.sam_function_provider import RefreshableSamFunctionProvider, SamFunctionProvider
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+from samcli.lib.utils import osutils
+from samcli.lib.utils.async_utils import AsyncContext
+from samcli.lib.utils.packagetype import ZIP
+from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.lambda_image import LambdaImage
 from samcli.local.docker.manager import ContainerManager
-from samcli.commands._utils.template import TemplateNotFoundException, TemplateFailedParsingException
+from samcli.local.lambdafn.runtime import LambdaRuntime, WarmLambdaRuntime
 from samcli.local.layers.layer_downloader import LayerDownloader
-from samcli.lib.providers.sam_function_provider import SamFunctionProvider, RefreshableSamFunctionProvider
 
 LOG = logging.getLogger(__name__)
 
@@ -269,6 +270,15 @@ class InvokeContext:
         # initialize all lambda function containers upfront
         if self._containers_initializing_mode == ContainersInitializationMode.EAGER:
             self._initialize_all_functions_containers()
+
+        for func in self._function_provider.get_all():
+            if func.packagetype == ZIP and func.inlinecode:
+                LOG.warning(
+                    "Warning: Inline code found for function %s."
+                    " Invocation of inline code is not supported for sam local commands.",
+                    func.function_id,
+                )
+                break
 
         return self
 

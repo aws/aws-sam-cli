@@ -6,17 +6,17 @@ import logging
 
 import click
 
-from samcli.cli.cli_config_file import configuration_option, TomlProvider
-from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
-from samcli.commands._utils.options import common_observability_options
+from samcli.cli.cli_config_file import TomlProvider, configuration_option
+from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
+from samcli.cli.main import common_options as cli_framework_options
+from samcli.commands._utils.command_exception_handler import command_exception_handler
+from samcli.commands._utils.options import common_observability_options, generate_next_command_recommendation
 from samcli.commands.logs.validation_and_exception_handlers import (
     SAM_LOGS_ADDITIONAL_EXCEPTION_HANDLERS,
     stack_name_cw_log_group_validation,
 )
 from samcli.lib.telemetry.metric import track_command
-from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.lib.utils.version_checker import check_newer_version
-from samcli.commands._utils.options import generate_next_command_recommendation
 
 LOG = logging.getLogger(__name__)
 
@@ -148,7 +148,7 @@ def do_cli(
 
     from datetime import datetime
 
-    from samcli.commands.logs.logs_context import parse_time, ResourcePhysicalIdResolver
+    from samcli.commands.logs.logs_context import ResourcePhysicalIdResolver, parse_time
     from samcli.commands.logs.puller_factory import generate_puller
     from samcli.lib.observability.util import OutputOption
     from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config, get_boto_resource_provider_with_config

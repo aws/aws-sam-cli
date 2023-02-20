@@ -15,30 +15,30 @@ Cloudformation deploy class which also streams events and changeset information
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
-import sys
-import math
-from collections import OrderedDict, deque
 import logging
+import math
+import sys
 import time
+from collections import OrderedDict, deque
 from datetime import datetime
 from typing import Dict, List, Optional
 
 import botocore
 
-from samcli.lib.deploy.utils import DeployColor, FailureMode
+from samcli.commands._utils.table_print import MIN_OFFSET, newline_per_item, pprint_column_names, pprint_columns
+from samcli.commands.deploy import exceptions as deploy_exceptions
 from samcli.commands.deploy.exceptions import (
-    DeployFailedError,
     ChangeSetError,
-    DeployStackOutPutFailedError,
     DeployBucketInDifferentRegionError,
+    DeployFailedError,
+    DeployStackOutPutFailedError,
     DeployStackStatusMissingError,
 )
-from samcli.commands._utils.table_print import pprint_column_names, pprint_columns, newline_per_item, MIN_OFFSET
-from samcli.commands.deploy import exceptions as deploy_exceptions
-from samcli.lib.package.local_files_utils import mktempfile, get_uploaded_s3_object_name
+from samcli.lib.deploy.utils import DeployColor, FailureMode
+from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name, mktempfile
 from samcli.lib.package.s3_uploader import S3Uploader
-from samcli.lib.utils.time import utc_to_timestamp
 from samcli.lib.utils.colors import Colored
+from samcli.lib.utils.time import utc_to_timestamp
 
 LOG = logging.getLogger(__name__)
 

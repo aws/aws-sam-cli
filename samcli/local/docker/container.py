@@ -1,26 +1,27 @@
 """
 Representation of a generic Docker container
 """
-import os
 import logging
+import os
+import socket
 import pathlib
 import shutil
 import tempfile
 import threading
-import socket
 import time
 from typing import Optional
 
 import docker
 import requests
-
 from docker.errors import NotFound as DockerNetworkNotFound
+
 from samcli.lib.utils.retry import retry
 from samcli.lib.utils.tar import extract_tarfile
 from samcli.local.docker.effective_user import EffectiveUser
 from .exceptions import ContainerNotStartableException
 
-from .utils import to_posix_path, find_free_port, NoFreePortsError
+from .exceptions import ContainerNotStartableException
+from .utils import NoFreePortsError, find_free_port, to_posix_path
 
 LOG = logging.getLogger(__name__)
 

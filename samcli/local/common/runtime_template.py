@@ -2,10 +2,10 @@
 All-in-one metadata about runtimes
 """
 
-import re
 import itertools
 import os
 import pathlib
+import re
 from typing import List
 
 _init_path = str(pathlib.Path(os.path.dirname(__file__)).parent.parent)

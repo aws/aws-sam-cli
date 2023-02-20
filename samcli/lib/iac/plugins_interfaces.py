@@ -5,13 +5,13 @@ Provide IAC Plugins Interface && Project representation
 # pylint: skip-file
 
 import abc
+import logging
 from collections import OrderedDict
-from collections.abc import Callable, Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping
 from copy import deepcopy
 from enum import Enum
-from typing import List, Any, Dict, Iterator, Optional, Union
+from typing import Any, Dict, Iterator, List, Optional, Union
 from uuid import uuid4
-import logging
 
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 

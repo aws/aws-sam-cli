@@ -3,7 +3,7 @@ This file contains puller implementations for XRay
 """
 import logging
 from datetime import datetime
-from typing import Optional, Any, List, Set, Union, Dict
+from typing import Any, Dict, List, Optional, Set, Union
 
 from samcli.lib.observability.observability_info_puller import ObservabilityEventConsumer
 from samcli.lib.observability.xray_traces.xray_event_puller import AbstractXRayPuller

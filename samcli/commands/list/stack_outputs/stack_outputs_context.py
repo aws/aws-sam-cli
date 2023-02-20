@@ -3,10 +3,11 @@ Display the Outputs of a SAM stack
 """
 import logging
 from typing import Optional
-from samcli.lib.list.stack_outputs.stack_outputs_producer import StackOutputsProducer
+
 from samcli.commands.list.cli_common.list_common_context import ListContext
-from samcli.lib.list.mapper_consumer_factory import MapperConsumerFactory
 from samcli.lib.list.list_interfaces import ProducersEnum
+from samcli.lib.list.mapper_consumer_factory import MapperConsumerFactory
+from samcli.lib.list.stack_outputs.stack_outputs_producer import StackOutputsProducer
 
 LOG = logging.getLogger(__name__)
 

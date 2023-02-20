@@ -5,22 +5,21 @@ import logging
 import threading
 import uuid
 from abc import ABC, abstractmethod
-
 from pathlib import Path
-from threading import Thread, Lock
-from typing import Callable, List, Dict, Optional
+from threading import Lock, Thread
+from typing import Callable, Dict, List, Optional
 
 import docker
 from docker import DockerClient
 from docker.errors import ImageNotFound
 from docker.types import CancellableStream
+from watchdog.events import FileSystemEvent, FileSystemEventHandler, PatternMatchingEventHandler
 from watchdog.observers import Observer
-from watchdog.events import PatternMatchingEventHandler, FileSystemEvent, FileSystemEventHandler
-from watchdog.observers.api import ObservedWatch, BaseObserver
+from watchdog.observers.api import BaseObserver, ObservedWatch
 
 from samcli.cli.global_config import Singleton
 from samcli.lib.utils.hash import dir_checksum, file_checksum
-from samcli.lib.utils.packagetype import ZIP, IMAGE
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.local.lambdafn.config import FunctionConfig
 
 LOG = logging.getLogger(__name__)

@@ -2,20 +2,20 @@
 Class representing the samconfig.toml
 """
 
-import os
 import logging
-
+import os
 from pathlib import Path
 from typing import Any, Iterable
 
 import tomlkit
 
-from samcli.lib.config.version import SAM_CONFIG_VERSION, VERSION_KEY
 from samcli.lib.config.exceptions import SamConfigVersionException
+from samcli.lib.config.version import SAM_CONFIG_VERSION, VERSION_KEY
 
 LOG = logging.getLogger(__name__)
 
-DEFAULT_CONFIG_FILE_NAME = "samconfig.toml"
+DEFAULT_CONFIG_FILE_EXTENSION = "toml"
+DEFAULT_CONFIG_FILE_NAME = f"samconfig.{DEFAULT_CONFIG_FILE_EXTENSION}"
 DEFAULT_ENV = "default"
 DEFAULT_GLOBAL_CMDNAME = "global"
 
@@ -112,7 +112,9 @@ class SamConfig:
             If the data is invalid
         """
 
-        if not self.document:
+        if self.document is None:
+            # Checking for None here since a TOMLDocument can include a
+            # 'body' property but still be falsy without a 'value' property
             self._read()
         # Empty document prepare the initial structure.
         # self.document is a nested dict, we need to check each layer and add new tables, otherwise duplicated key
@@ -132,6 +134,20 @@ class SamConfig:
         # If the value we want to add to samconfig already exist in global section, we don't put it again in
         # the special command section
         self._deduplicate_global_parameters(cmd_name_key, section, key, env)
+
+    def put_comment(self, comment):
+        """
+        Write a comment section back to the file.
+
+        Parameters
+        ------
+        comment: str
+            A comment to write to the samconfg file
+        """
+        if self.document is None:
+            self._read()
+
+        self.document.add(tomlkit.comment(comment))
 
     def flush(self):
         """

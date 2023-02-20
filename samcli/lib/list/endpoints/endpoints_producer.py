@@ -2,32 +2,34 @@
 The producer for the 'sam list endpoints' command
 """
 import dataclasses
-import logging
-from typing import Dict, List, Any
-from enum import Enum
 import json
-from botocore.exceptions import ClientError, BotoCoreError
+import logging
+from enum import Enum
+from typing import Any, Dict, List
+
+from botocore.exceptions import BotoCoreError, ClientError
+
+from samcli.commands._utils.template import get_template_data
 from samcli.commands.list.exceptions import (
-    SamListUnknownBotoCoreError,
     SamListLocalResourcesNotFoundError,
+    SamListUnknownBotoCoreError,
     SamListUnknownClientError,
 )
-from samcli.lib.list.list_interfaces import Producer
-from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
-from samcli.lib.providers.provider import Stack
-from samcli.commands._utils.template import get_template_data
 from samcli.lib.list.endpoints.endpoints_def import EndpointsDef
+from samcli.lib.list.list_interfaces import Producer
 from samcli.lib.list.resources.resource_mapping_producer import ResourceMappingProducer
+from samcli.lib.providers.provider import Stack
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.boto_utils import get_client_error_code
 from samcli.lib.utils.resources import (
-    AWS_LAMBDA_FUNCTION,
+    AWS_APIGATEWAY_BASE_PATH_MAPPING,
     AWS_APIGATEWAY_RESTAPI,
     AWS_APIGATEWAY_V2_API,
-    AWS_LAMBDA_FUNCTION_URL,
-    AWS_APIGATEWAY_BASE_PATH_MAPPING,
-    AWS_APIGATEWAY_v2_BASE_PATH_MAPPING,
     AWS_APIGATEWAY_V2_DOMAIN_NAME,
     AWS_APIGATWAY_DOMAIN_NAME,
+    AWS_LAMBDA_FUNCTION,
+    AWS_LAMBDA_FUNCTION_URL,
+    AWS_APIGATEWAY_v2_BASE_PATH_MAPPING,
 )
 
 ENDPOINT_RESOURCE_TYPES = {AWS_LAMBDA_FUNCTION, AWS_APIGATEWAY_RESTAPI, AWS_APIGATEWAY_V2_API}

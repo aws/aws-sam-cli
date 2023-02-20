@@ -2,29 +2,26 @@
 WatchManager for Sync Watch Logic
 """
 import logging
-import time
 import threading
-
+import time
 from pathlib import Path
-from typing import List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Optional
 
-from samcli.lib.utils.colors import Colored
-from samcli.lib.providers.exceptions import MissingCodeUri, MissingLocalDefinition, InvalidTemplateFile
-
+from samcli.lib.providers.exceptions import InvalidTemplateFile, MissingCodeUri, MissingLocalDefinition
 from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_all_resource_ids
-from samcli.lib.utils.code_trigger_factory import CodeTriggerFactory
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
-from samcli.lib.utils.path_observer import HandlerObserver
-
-from samcli.lib.sync.sync_flow_factory import SyncFlowFactory
-from samcli.lib.sync.exceptions import InfraSyncRequiredError, MissingPhysicalResourceError, SyncFlowException
-from samcli.lib.utils.resource_trigger import OnChangeCallback, TemplateTrigger
 from samcli.lib.sync.continuous_sync_flow_executor import ContinuousSyncFlowExecutor
+from samcli.lib.sync.exceptions import InfraSyncRequiredError, MissingPhysicalResourceError, SyncFlowException
+from samcli.lib.sync.sync_flow_factory import SyncFlowFactory
+from samcli.lib.utils.code_trigger_factory import CodeTriggerFactory
+from samcli.lib.utils.colors import Colored
+from samcli.lib.utils.path_observer import HandlerObserver
+from samcli.lib.utils.resource_trigger import OnChangeCallback, TemplateTrigger
 
 if TYPE_CHECKING:  # pragma: no cover
+    from samcli.commands.build.build_context import BuildContext
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.package.package_context import PackageContext
-    from samcli.commands.build.build_context import BuildContext
     from samcli.commands.sync.sync_context import SyncContext
 
 DEFAULT_WAIT_TIME = 1

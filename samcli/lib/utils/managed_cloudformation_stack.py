@@ -3,14 +3,14 @@ Bootstrap's user's development environment by creating cloud resources required 
 """
 import logging
 from collections.abc import Collection
-from typing import cast, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, cast
 
 import boto3
 import click
 from botocore.config import Config
-from botocore.exceptions import ClientError, BotoCoreError, NoRegionError, NoCredentialsError, ProfileNotFound
+from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError, NoRegionError, ProfileNotFound
 
-from samcli.commands.exceptions import UserException, CredentialsError, RegionError
+from samcli.commands.exceptions import CredentialsError, RegionError, UserException
 
 LOG = logging.getLogger(__name__)
 

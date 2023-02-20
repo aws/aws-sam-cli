@@ -2,40 +2,40 @@
 Provide a CFN implementation of IaCPluginInterface
 """
 
-import os
 import logging
+import os
 from typing import List, Optional
 from urllib.parse import unquote, urlparse
 
 import jmespath
 
-from samcli.lib.utils.packagetype import IMAGE, ZIP
-from samcli.lib.iac.constants import PARAMETER_OVERRIDES, GLOBAL_PARAMETER_OVERRIDES
+from samcli.commands._utils.template import get_template_data
+from samcli.lib.iac.constants import GLOBAL_PARAMETER_OVERRIDES, PARAMETER_OVERRIDES
 from samcli.lib.iac.plugins_interfaces import (
     Asset,
     DictSection,
     DictSectionItem,
     IaCPluginInterface,
     ImageAsset,
+    LookupPath,
     S3Asset,
     SamCliContext,
     SamCliProject,
     Stack,
-    LookupPath,
 )
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider, get_local_path, is_local_path
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.resources import (
+    AWS_LAMBDA_FUNCTION,
+    AWS_LAMBDA_LAYERVERSION,
+    AWS_SERVERLESS_FUNCTION,
+    AWS_SERVERLESS_LAYERVERSION,
     METADATA_WITH_LOCAL_PATHS,
+    NESTED_STACKS_RESOURCES,
     RESOURCES_WITH_IMAGE_COMPONENT,
     RESOURCES_WITH_LOCAL_PATHS,
-    NESTED_STACKS_RESOURCES,
-    AWS_SERVERLESS_FUNCTION,
-    AWS_LAMBDA_FUNCTION,
-    AWS_SERVERLESS_LAYERVERSION,
-    AWS_LAMBDA_LAYERVERSION,
 )
-from samcli.commands._utils.template import get_template_data
-from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider, is_local_path, get_local_path
 
 LOG = logging.getLogger(__name__)
 

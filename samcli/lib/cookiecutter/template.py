@@ -10,7 +10,8 @@ from cookiecutter.main import cookiecutter
 
 from samcli.commands.exceptions import UserException
 from samcli.lib.init.arbitrary_project import generate_non_cookiecutter_project
-from .exceptions import GenerateProjectFailedError, InvalidLocationError, PreprocessingError, PostprocessingError
+
+from .exceptions import GenerateProjectFailedError, InvalidLocationError, PostprocessingError, PreprocessingError
 from .interactive_flow import InteractiveFlow
 from .plugin import Plugin
 from .processor import Processor

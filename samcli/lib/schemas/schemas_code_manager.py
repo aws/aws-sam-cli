@@ -1,13 +1,13 @@
 """ Isolates code download and merge logic for dynamic Schemas template """
 
-import os
 import json
-import click
+import os
 
+import click
 from botocore.exceptions import ClientError
 
-from samcli.local.lambdafn.zip import unzip
 from samcli.local.common.runtime_template import SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING
+from samcli.local.lambdafn.zip import unzip
 
 
 def do_download_source_code_binding(runtime, schema_template_details, schemas_api_caller, download_location):

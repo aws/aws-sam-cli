@@ -1,6 +1,26 @@
 [build-system]
 requires = ["setuptools", "wheel"]  # PEP 508 specifications.
 
+[tool.ruff]
+line-length = 120
+
+select = [
+    "E",  # Pycodestyle
+    "F",  # Pyflakes
+    "PL", # pylint
+    "I",  # isort
+]
+ignore = ["PLR0913"]
+
+[tool.ruff.pylint]
+max-branches = 25
+max-returns = 8
+max-statements = 80
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401", "E501"]
+"integration_uri.py" = ["E501"] # ARNs are long.
+"app.py" = ["E501"] # Doc links are long.
 
 [tool.black]
 line-length = 120

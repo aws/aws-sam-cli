@@ -1,26 +1,25 @@
 """
 Process and simplifies CloudFormation intrinsic properties such as FN::* and Ref
 """
+import base64
 import copy
 import logging
-
-import base64
 import re
 from collections import OrderedDict
 
-from samcli.lib.intrinsic_resolver.invalid_intrinsic_validation import (
-    verify_intrinsic_type_list,
-    verify_non_null,
-    verify_intrinsic_type_int,
-    verify_in_bounds,
-    verify_number_arguments,
-    verify_intrinsic_type_str,
-    verify_intrinsic_type_dict,
-    verify_intrinsic_type_bool,
-    verify_all_list_intrinsic_type,
-)
-from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidIntrinsicException, InvalidSymbolException
 from samcli.commands._utils.template import get_template_data
+from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidIntrinsicException, InvalidSymbolException
+from samcli.lib.intrinsic_resolver.invalid_intrinsic_validation import (
+    verify_all_list_intrinsic_type,
+    verify_in_bounds,
+    verify_intrinsic_type_bool,
+    verify_intrinsic_type_dict,
+    verify_intrinsic_type_int,
+    verify_intrinsic_type_list,
+    verify_intrinsic_type_str,
+    verify_non_null,
+    verify_number_arguments,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -829,12 +828,13 @@ class IntrinsicResolver:
         :param i:
         :return:
         """
+        first, second, third = 1, 2, 3
         prefix = "{} th ".format(str(i))
-        if i == 1:
+        if i == first:
             prefix = "first "
-        elif i == 2:
+        elif i == second:
             prefix = "second "
-        elif i == 3:
+        elif i == third:
             prefix = "third "
         return prefix
 

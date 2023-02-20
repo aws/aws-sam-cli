@@ -1,12 +1,12 @@
 """
 Init flow based helper functions
 """
-import logging
 import functools
+import logging
 import re
 
 from samcli.lib.utils.architecture import X86_64
-from samcli.local.common.runtime_template import INIT_RUNTIMES, is_custom_runtime, LAMBDA_IMAGES_RUNTIMES_MAP
+from samcli.local.common.runtime_template import INIT_RUNTIMES, LAMBDA_IMAGES_RUNTIMES_MAP, is_custom_runtime
 
 LOG = logging.getLogger(__name__)
 

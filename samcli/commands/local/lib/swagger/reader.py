@@ -2,11 +2,10 @@
 Read Swagger documents from variety of sources
 """
 
+import logging
 import os
 import tempfile
-import logging
-
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import parse_qs, urlparse
 
 import boto3
 import botocore

@@ -1,21 +1,20 @@
 """SyncFlow for Image based Lambda Functions"""
-from contextlib import ExitStack
 import logging
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from contextlib import ExitStack
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import docker
 from docker.client import DockerClient
 
+from samcli.lib.build.app_builder import ApplicationBuilder
+from samcli.lib.package.ecr_uploader import ECRUploader
 from samcli.lib.providers.provider import Stack
 from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow, wait_for_function_update_complete
-from samcli.lib.package.ecr_uploader import ECRUploader
-
-from samcli.lib.build.app_builder import ApplicationBuilder
 from samcli.lib.sync.sync_flow import ApiCallTypes, ResourceAPICall
 
 if TYPE_CHECKING:  # pragma: no cover
-    from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
+    from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)

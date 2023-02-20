@@ -2,8 +2,8 @@
 Row Definition and Row Modifiers to be used with `click.HelpFormatter write_dl methods`.
 """
 
-from typing import NamedTuple, List
 from abc import ABC
+from typing import List, NamedTuple
 
 from click import style
 

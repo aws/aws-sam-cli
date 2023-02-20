@@ -6,11 +6,11 @@ import threading
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, cast, Dict
+from typing import Dict, Optional, cast
 
 import tomlkit
-from tomlkit.toml_document import TOMLDocument
 from tomlkit.items import Item
+from tomlkit.toml_document import TOMLDocument
 
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 from samcli.lib.utils.osutils import rmtree_if_exists
