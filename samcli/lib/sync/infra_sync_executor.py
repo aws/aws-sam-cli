@@ -1,11 +1,10 @@
 """
 InfraSyncExecutor class which runs build, package and deploy contexts
 """
-import os
 import logging
 import re
 
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from boto3 import Session
 from botocore.exceptions import ClientError
@@ -14,6 +13,7 @@ from samcli.commands._utils.template import get_template_data
 from samcli.commands.build.build_context import BuildContext
 from samcli.commands.deploy.deploy_context import DeployContext
 from samcli.commands.package.package_context import PackageContext
+from samcli.lib.providers.sam_stack_provider import is_local_path
 from samcli.lib.utils.resources import (
     AWS_SERVERLESS_FUNCTION,
     AWS_LAMBDA_FUNCTION,
@@ -100,8 +100,9 @@ class InfraSyncExecutor:
 
             last_deployed_template_dict = yaml_parse(last_deployed_template_str)
 
-            self._remove_unnecesary_fields(last_deployed_template_dict)
-            self._remove_unnecesary_fields(current_template)
+            sanitized_resources = self._remove_unnecessary_fields(current_template)
+            self._remove_unnecessary_fields(last_deployed_template_dict, sanitized_resources)
+
             if last_deployed_template_dict != current_template:
                 return False
 
@@ -130,25 +131,9 @@ class InfraSyncExecutor:
 
         return True
 
-    def _is_local_definition(path: Optional[str]) -> bool:
-        """
-        Checks if the provided definition path is local
-
-        Parameters
-        ----------
-        path: str
-            The path string in the template
-
-        Returns
-        -------
-        bool
-            Returns True if is local, False if not
-        """
-        if not isinstance(path, str):
-            return False
-        return os.path.isfile(path) or os.path.isdir(path)
-
-    def _remove_unnecesary_fields(self, template_dict: Dict) -> None:
+    def _remove_unnecessary_fields(
+        self, template_dict: Dict, sanitized_resources: Optional[List[str]] = None
+    ) -> List[str]:
         """
         Fields skipped during template comparison because sync --code can handle the difference:
         * CodeUri or ImageUri property of AWS::Serverless::Function
@@ -160,16 +145,24 @@ class InfraSyncExecutor:
         * DefinitionUri property of AWS::Serverless::HttpApi
         * BodyS3Location property of AWS::ApiGatewayV2::Api
         * DefinitionUri property of AWS::Serverless::StateMachine
-        * SamResourceId in Metadata property of all resources
         * DefinitionS3Location property of AWS::StepFunctions::StateMachine
+        * SamResourceId in Metadata property of all resources
 
         Parameters
         ----------
         template_dict : Dict
             The unprocessed template dictionary
+        sanitized_resources: Optional[List[str]]
+            The corresponding resources in the other template that got processed
+
+        Returns
+        -------
+        List[str]
+            The list of resource IDs that got changed during sanitization
         """
 
         resources = template_dict.get("Resources", {})
+        processed_resources = set()
 
         for resource_logical_id in resources:
             resource_dict = resources.get(resource_logical_id, {})
@@ -179,64 +172,124 @@ class InfraSyncExecutor:
 
                 # CodeUri or ImageUri property of AWS::Serverless::Function
                 if resource_type == AWS_SERVERLESS_FUNCTION:
-                    if self._is_local_definition(resource_dict.get("Properties", {}).get("CodeUri", None)):
+                    if (
+                        is_local_path(resource_dict.get("Properties", {}).get("CodeUri", None))
+                        or resource_logical_id in sanitized_resources
+                    ):
                         resource_dict.get("Properties", {}).pop("CodeUri", None)
-                    if self._is_local_definition(resource_dict.get("Properties", {}).get("ImageUri", None)):
+                        processed_resources.add(resource_logical_id)
+                    if (
+                        is_local_path(resource_dict.get("Properties", {}).get("ImageUri", None))
+                        or resource_logical_id in sanitized_resources
+                    ):
                         resource_dict.get("Properties", {}).pop("ImageUri", None)
+                        processed_resources.add(resource_logical_id)
 
                 # ImageUri, S3Bucket, S3Key, S3ObjectVersion fields in Code property of AWS::Lambda::Function
-                elif resource_type == AWS_LAMBDA_FUNCTION:
-                    if self._is_local_definition(resource_dict.get("Properties", {}).get("Code", {}).get("ImageUri", None)):
+                if resource_type == AWS_LAMBDA_FUNCTION:
+                    if (
+                        is_local_path(resource_dict.get("Properties", {}).get("Code", {}).get("ImageUri", None))
+                        or resource_logical_id in sanitized_resources
+                    ):
                         resource_dict.get("Properties", {}).get("Code", {}).pop("ImageUri", None)
-                    if self._is_local_definition(resource_dict.get("Properties", {}).get("Code", {}).get("S3Bucket", None)):
+                        processed_resources.add(resource_logical_id)
+                    if (
+                        is_local_path(resource_dict.get("Properties", {}).get("Code", {}).get("S3Bucket", None))
+                        or resource_logical_id in sanitized_resources
+                    ):
                         resource_dict.get("Properties", {}).get("Code", {}).pop("S3Bucket", None)
-                    if self._is_local_definition(resource_dict.get("Properties", {}).get("Code", {}).get("S3Key", None)):
+                        processed_resources.add(resource_logical_id)
+                    if (
+                        is_local_path(resource_dict.get("Properties", {}).get("Code", {}).get("S3Key", None))
+                        or resource_logical_id in sanitized_resources
+                    ):
                         resource_dict.get("Properties", {}).get("Code", {}).pop("S3Key", None)
-                    if self._is_local_definition(resource_dict.get("Properties", {}).get("Code", {}).get("S3ObjectVersion", None)):
+                        processed_resources.add(resource_logical_id)
+                    if (
+                        is_local_path(resource_dict.get("Properties", {}).get("Code", {}).get("S3ObjectVersion", None))
+                        or resource_logical_id in sanitized_resources
+                    ):
                         resource_dict.get("Properties", {}).get("Code", {}).pop("S3ObjectVersion", None)
+                        processed_resources.add(resource_logical_id)
 
                 # ContentUri property of AWS::Serverless::LayerVersion
                 if resource_type == AWS_SERVERLESS_LAYERVERSION:
-                    if self._is_local_definition(resource_dict.get("Properties", {}).get("ContentUri", None)):
+                    if (
+                        is_local_path(resource_dict.get("Properties", {}).get("ContentUri", None))
+                        or resource_logical_id in sanitized_resources
+                    ):
                         resource_dict.get("Properties", {}).pop("ContentUri", None)
+                        processed_resources.add(resource_logical_id)
 
                 # Content property of AWS::Lambda::LayerVersion
                 if resource_type == AWS_LAMBDA_LAYERVERSION:
-                    if self._is_local_definition(resource_dict.get("Properties", {}).get("Content", None)):
+                    if (
+                        is_local_path(resource_dict.get("Properties", {}).get("Content", None))
+                        or resource_logical_id in sanitized_resources
+                    ):
                         resource_dict.get("Properties", {}).pop("Content", None)
+                        processed_resources.add(resource_logical_id)
 
                 # DefinitionBody property of AWS::Serverless::Api
                 if resource_type == AWS_SERVERLESS_API:
-                    if self._is_local_definition(resource_dict.get("Properties", {}).get("DefinitionBody", None)):
+                    if (
+                        is_local_path(resource_dict.get("Properties", {}).get("DefinitionBody", None))
+                        or resource_logical_id in sanitized_resources
+                    ):
                         resource_dict.get("Properties", {}).pop("DefinitionBody", None)
+                        processed_resources.add(resource_logical_id)
 
                 # BodyS3Location property of AWS::ApiGateway::RestApi
                 if resource_type == AWS_APIGATEWAY_RESTAPI:
-                    if self._is_local_definition(resource_dict.get("Properties", {}).get("BodyS3Location", None)):
+                    if (
+                        is_local_path(resource_dict.get("Properties", {}).get("BodyS3Location", None))
+                        or resource_logical_id in sanitized_resources
+                    ):
                         resource_dict.get("Properties", {}).pop("BodyS3Location", None)
+                        processed_resources.add(resource_logical_id)
 
                 # DefinitionUri property of AWS::Serverless::HttpApi
                 if resource_type == AWS_SERVERLESS_HTTPAPI:
-                    if self._is_local_definition(resource_dict.get("Properties", {}).get("DefinitionUri", None)):
+                    if (
+                        is_local_path(resource_dict.get("Properties", {}).get("DefinitionUri", None))
+                        or resource_logical_id in sanitized_resources
+                    ):
                         resource_dict.get("Properties", {}).pop("DefinitionUri", None)
+                        processed_resources.add(resource_logical_id)
 
                 # BodyS3Location property of AWS::ApiGatewayV2::Api
                 if resource_type == AWS_APIGATEWAY_V2_API:
-                    if self._is_local_definition(resource_dict.get("Properties", {}).get("BodyS3Location", None)):
+                    if (
+                        is_local_path(resource_dict.get("Properties", {}).get("BodyS3Location", None))
+                        or resource_logical_id in sanitized_resources
+                    ):
                         resource_dict.get("Properties", {}).pop("BodyS3Location", None)
+                        processed_resources.add(resource_logical_id)
 
                 # DefinitionUri property of AWS::Serverless::StateMachine
-                if resource_type == AWS_SERVERLESS_HTTPAPI:
-                    if self._is_local_definition(resource_dict.get("Properties", {}).get("DefinitionUri", None)):
+                if resource_type == AWS_SERVERLESS_STATEMACHINE:
+                    if (
+                        is_local_path(resource_dict.get("Properties", {}).get("DefinitionUri", None))
+                        or resource_logical_id in sanitized_resources
+                    ):
                         resource_dict.get("Properties", {}).pop("DefinitionUri", None)
+                        processed_resources.add(resource_logical_id)
 
                 # DefinitionS3Location property of AWS::StepFunctions::StateMachine
                 if resource_type == AWS_STEPFUNCTIONS_STATEMACHINE:
-                    if self._is_local_definition(resource_dict.get("Properties", {}).get("DefinitionS3Location", None)):
+                    if (
+                        is_local_path(resource_dict.get("Properties", {}).get("DefinitionS3Location", None))
+                        or resource_logical_id in sanitized_resources
+                    ):
                         resource_dict.get("Properties", {}).pop("DefinitionS3Location", None)
+                        processed_resources.add(resource_logical_id)
 
                 LOG.debug(f"Sanitizing the {resource_type} resource {resource_logical_id}")
 
             # Remove SamResourceId metadata since this metadata does not affect any cloud behaviour
-            resource_dict.get("Properties", {}).get("Metadata", {}).pop("SamResourceId", None)
+            resource_dict.get("Metadata", {}).pop("SamResourceId", None)
+            if not resource_dict.get("Metadata"):
+                resource_dict.pop("Metadata", None)
             LOG.debug(f"Sanitizing the Metadata for resource {resource_logical_id}")
+
+        return sorted(list(processed_resources))
