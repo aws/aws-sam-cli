@@ -6,7 +6,6 @@ from samcli.lib.providers.provider import Stack
 from samcli.lib.sync.sync_flow import ResourceAPICall, SyncFlow
 from samcli.lib.utils.hash import str_checksum
 
-
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.build.build_context import BuildContext
     from samcli.commands.deploy.deploy_context import DeployContext
