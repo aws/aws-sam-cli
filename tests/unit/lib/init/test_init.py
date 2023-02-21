@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 
 from pathlib import Path
 from cookiecutter.exceptions import CookiecutterException, RepositoryNotFound
