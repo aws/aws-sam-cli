@@ -34,7 +34,6 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
     _s3_client: Any
     _artifact_folder: Optional[str]
     _zip_file: Optional[str]
-    _local_sha: Optional[str]
     _build_graph: Optional[BuildGraph]
 
     def __init__(
@@ -67,7 +66,6 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
         self._s3_client = None
         self._artifact_folder = None
         self._zip_file = None
-        self._local_sha = None
         self._build_graph = None
         self._color = Colored()
 
