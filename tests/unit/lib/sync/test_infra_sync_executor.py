@@ -2,6 +2,7 @@ from unittest import TestCase
 from unittest.mock import MagicMock, patch
 from samcli.lib.sync.infra_sync_executor import InfraSyncExecutor
 from botocore.exceptions import ClientError
+from parameterized import parameterized
 
 
 class TestSyncFlowExecutor(TestCase):
@@ -414,3 +415,69 @@ class TestSyncFlowExecutor(TestCase):
         infra_sync_executor._remove_unnecessary_fields(self.template_dict)
 
         self.assertEqual(self.template_dict, expected_dict)
+
+    @parameterized.expand([(True, []), (False, ["ServerlessFunction"])])
+    @patch("samcli.lib.sync.infra_sync_executor.is_local_path")
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_remove_resource_field(self, is_local_path, linked_resources, session_mock, local_path_mock):
+        resource_dict = {
+            "Type": "AWS::Serverless::Function",
+            "Properties": {"CodeUri": "local/", "ImageUri": "image"},
+        }
+
+        expected_dict = {
+            "Type": "AWS::Serverless::Function",
+            "Properties": {},
+        }
+
+        resource_type = "AWS::Serverless::Function"
+        serverless_resource_id = "ServerlessFunction"
+
+        local_path_mock.return_value = is_local_path
+        infra_sync_executor = InfraSyncExecutor(self.build_context, self.package_context, self.deploy_context)
+
+        processed_resources = set()
+        processed_resources = infra_sync_executor._remove_resource_field(
+            serverless_resource_id, resource_type, resource_dict, processed_resources, linked_resources
+        )
+
+        self.assertEqual(sorted(list(processed_resources)), [serverless_resource_id])
+        self.assertEqual(resource_dict, expected_dict)
+
+    @parameterized.expand([(True, []), (False, ["LambdaFunction"])])
+    @patch("samcli.lib.sync.infra_sync_executor.is_local_path")
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_remove_resource_field_lambda_function(
+        self, is_local_path, linked_resources, session_mock, local_path_mock
+    ):
+        resource_dict = {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Code": {
+                    "ZipFile": "inline code",
+                    "ImageUri": "s3://location",
+                    "S3Bucket": "s3://location",
+                    "S3Key": "s3://location",
+                    "S3ObjectVersion": "s3://location",
+                }
+            },
+        }
+
+        expected_dict = {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {"Code": {"ZipFile": "inline code"}},
+        }
+
+        resource_type = "AWS::Lambda::Function"
+        lambda_resource_id = "LambdaFunction"
+
+        local_path_mock.return_value = is_local_path
+        infra_sync_executor = InfraSyncExecutor(self.build_context, self.package_context, self.deploy_context)
+
+        processed_resources = set()
+        processed_resources = infra_sync_executor._remove_resource_field(
+            lambda_resource_id, resource_type, resource_dict, processed_resources, linked_resources
+        )
+
+        self.assertEqual(sorted(list(processed_resources)), [lambda_resource_id])
+        self.assertEqual(resource_dict, expected_dict)
