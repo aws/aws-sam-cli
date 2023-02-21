@@ -394,7 +394,7 @@ class TestSyncFlowExecutor(TestCase):
                 "ServerlessFunction": {
                     "Type": "AWS::Serverless::Function",
                     "Properties": {"CodeUri": "local/", "ImageUri": "image"},
-                    "Metadata": {"SamResourceId": "Id"}
+                    "Metadata": {"SamResourceId": "Id"},
                 }
             }
         }
