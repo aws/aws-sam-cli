@@ -56,7 +56,7 @@ class TestStackOutputs(StackOutputsIntegBase):
         self.check_stack_output(
             outputs[1],
             "HelloWorldApi",
-            "https://.*execute.*.amazonaws.com/Prod/hello/",
+            "https://.*execute.*\\.amazonaws.com/Prod/hello/",
             "",
         )
         self.check_stack_output(
