@@ -3,7 +3,7 @@ InfraSyncExecutor class which runs build, package and deploy contexts
 """
 import logging
 import re
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
 from boto3 import Session
 from botocore.exceptions import ClientError
@@ -91,16 +91,25 @@ class InfraSyncExecutor:
             Returns False if two templates are different
         """
         try:
+            current_template = None
             # If the customer template uses a nested stack with location/template URL in S3
             if local_template_path.startswith("https://"):
                 parsed_s3_location = re.search(r"https:\/\/[^/]*\/([^/]*)\/(.*)", local_template_path)
-                s3_bucket = parsed_s3_location.group(1)
-                s3_key = parsed_s3_location.group(2)
-                s3_object = self._s3_client.get_object(Bucket=s3_bucket, Key=s3_key)
-                current_template = yaml_parse(s3_object.get("Body").read().decode("utf-8"))
+                if parsed_s3_location:
+                    s3_bucket = parsed_s3_location.group(1)
+                    s3_key = parsed_s3_location.group(2)
+                    s3_object = self._s3_client.get_object(Bucket=s3_bucket, Key=s3_key)
+
+                    streaming_body = s3_object.get("Body")
+                    if streaming_body:
+                        current_template = yaml_parse(streaming_body.read().decode("utf-8"))
+
             # If the template location is local
             else:
                 current_template = get_template_data(local_template_path)
+
+            if not current_template:
+                return False
 
             try:
                 last_deployed_template_str = self._cfn_client.get_template(
@@ -134,7 +143,7 @@ class InfraSyncExecutor:
                     template_field = "TemplateURL" if resource_type == "AWS::CloudFormation::Stack" else "Location"
                     if not self._compare_templates(
                         resource_dict.get("Properties", {}).get(template_field),
-                        stack_resource_detail.get("StackResourceDetail", {}).get("PhysicalResourceId"),
+                        stack_resource_detail.get("StackResourceDetail", {}).get("PhysicalResourceId", ""),
                     ):
                         return False
         except Exception:
@@ -144,7 +153,7 @@ class InfraSyncExecutor:
         return True
 
     def _remove_unnecessary_fields(
-        self, template_dict: Dict, linked_resources: Optional[List[str]] = None
+        self, template_dict: Dict, linked_resources: List[str] = []
     ) -> List[str]:
         """
         Fields skipped during template comparison because sync --code can handle the difference:
@@ -164,7 +173,7 @@ class InfraSyncExecutor:
         ----------
         template_dict: Dict
             The unprocessed template dictionary
-        linked_resources: Optional[List[str]]
+        linked_resources: List[str]
             The corresponding resources in the other template that got processed
 
         Returns
@@ -174,7 +183,7 @@ class InfraSyncExecutor:
         """
 
         resources = template_dict.get("Resources", {})
-        processed_resources = set()
+        processed_resources: Set[str] = set()
 
         for resource_logical_id in resources:
             resource_dict = resources.get(resource_logical_id, {})
@@ -203,7 +212,7 @@ class InfraSyncExecutor:
         resource_type: str,
         resource_dict: Dict,
         processed_resources: set,
-        linked_resources: Optional[List[str]] = None,
+        linked_resources: List[str] = [],
     ) -> set:
         """
         Helper method to process resource dict
@@ -227,7 +236,7 @@ class InfraSyncExecutor:
             The updated processed resources set
         """
         if resource_type == AWS_LAMBDA_FUNCTION:
-            for field in REMOVAL_MAP.get(resource_type, {}).get("Code", []):
+            for field in REMOVAL_MAP.get(resource_type, {}).get("Code", []):  # type: ignore
                 if (
                     is_local_path(resource_dict.get("Properties", {}).get("Code", {}).get(field, None))
                     or resource_logical_id in linked_resources
