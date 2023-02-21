@@ -152,9 +152,7 @@ class InfraSyncExecutor:
 
         return True
 
-    def _remove_unnecessary_fields(
-        self, template_dict: Dict, linked_resources: List[str] = []
-    ) -> List[str]:
+    def _remove_unnecessary_fields(self, template_dict: Dict, linked_resources: List[str] = []) -> List[str]:
         """
         Fields skipped during template comparison because sync --code can handle the difference:
         * CodeUri or ImageUri property of AWS::Serverless::Function
