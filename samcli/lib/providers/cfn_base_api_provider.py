@@ -1,22 +1,21 @@
 """Class that parses the CloudFormation Api Template"""
 import logging
-from typing import Type, Dict, Union, List, Optional, Any
+from typing import Any, Dict, List, Optional, Type, Union
 
 from samcli.commands.local.lib.swagger.parser import SwaggerParser
 from samcli.commands.local.lib.swagger.reader import SwaggerReader
+from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.providers.api_collector import ApiCollector
-
 from samcli.lib.providers.provider import (
+    CORS_CREDENTIALS_HEADER,
+    CORS_HEADERS_HEADER,
+    CORS_MAX_AGE_HEADER,
+    CORS_METHODS_HEADER,
+    CORS_ORIGIN_HEADER,
     Cors,
     Stack,
-    CORS_ORIGIN_HEADER,
-    CORS_HEADERS_HEADER,
-    CORS_METHODS_HEADER,
-    CORS_CREDENTIALS_HEADER,
-    CORS_MAX_AGE_HEADER,
 )
 from samcli.local.apigw.local_apigw_service import Route
-from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 
 LOG = logging.getLogger(__name__)
 

@@ -1,12 +1,12 @@
 """
 Module to help validate Lambda Authorizer properties
 """
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
+
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
 from samcli.commands.local.lib.swagger.integration_uri import LambdaUri
 from samcli.local.apigw.local_apigw_service import LambdaAuthorizer
-
 
 LOG = logging.getLogger(__name__)
 
@@ -240,7 +240,7 @@ class LambdaAuthorizerV2Validator(BaseLambdaAuthorizerValidator):
 
         payload_version = properties.get(LambdaAuthorizerV2Validator.AUTHORIZER_V2_PAYLOAD)
 
-        if not payload_version in LambdaAuthorizer.PAYLOAD_VERSIONS:
+        if payload_version not in LambdaAuthorizer.PAYLOAD_VERSIONS:
             raise InvalidSamTemplateException(
                 f"Lambda Authorizer '{logical_id}' is missing or invalid "
                 f"'{LambdaAuthorizerV2Validator.AUTHORIZER_V2_PAYLOAD}'"

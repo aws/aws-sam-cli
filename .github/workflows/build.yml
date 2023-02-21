@@ -1,4 +1,4 @@
-name: Unit Tests
+name: Build And Test
 
 on:
   pull_request:
@@ -7,8 +7,24 @@ on:
       - "feat/*"
 
 jobs:
-  build:
-    name: ${{ matrix.os }} / ${{ matrix.python }}
+  run-workflow:
+    name: PR Workflow
+    if: always()
+    runs-on: ubuntu-latest
+    needs:
+      - make-pr
+      - integration_tests-buildcmd_rust
+    steps:
+      - name: report-failure
+        if : |
+          needs.make-pr.result != 'success' || 
+          needs.integration_tests-buildcmd_rust.result != 'success'
+        run: exit 1
+      - name: report-success
+        run: exit 0
+
+  make-pr:
+    name: make pr / ${{ matrix.os }} / ${{ matrix.python }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -29,3 +45,59 @@ jobs:
     - run: test -f "./.github/ISSUE_TEMPLATE/Bug_report.md"  # prevent Bug_report.md from being renamed or deleted
     - run: make init
     - run: make pr
+
+  integration_tests-buildcmd_rust:
+    name: Integration Tests / buildcmd - Rust / ${{ matrix.os }} / ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    env:
+      AWS_DEFAULT_REGION: us-east-1
+      SAM_CLI_DEV: "1"
+      CARGO_LAMBDA_VERSION: 0.17.1
+      CI_OVERRIDE: "1"
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+        python:
+          - "3.7"
+          - "3.8"
+          - "3.9"
+        rust:
+          - stable
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+
+      # Install and configure Rust
+      - name: Install rustup
+        run: |
+          : install rustup if needed
+          if ! command -v rustup &> /dev/null ; then
+            curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL "https://sh.rustup.rs" | sh -s -- --default-toolchain none -y
+            echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
+          fi
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+      - name: rustup toolchain install ${{ matrix.rust }}
+        run: rustup toolchain install ${{ matrix.rust }} --profile minimal --no-self-update
+      - run: rustup default ${{ matrix.rust }}
+      - run: |
+          : disable incremental compilation
+          echo CARGO_INCREMENTAL=0 >> $GITHUB_ENV
+      - run: |
+          : enable colors in Cargo output
+          echo CARGO_TERM_COLOR=always >> $GITHUB_ENV
+
+      # Install and configure Cargo Lambda
+      - name: Install Cargo Lambda
+        run: pip install cargo-lambda==$CARGO_LAMBDA_VERSION
+      - run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - run: make init
+      - run: pytest -vv -n 4 tests/integration/buildcmd/test_build_cmd_rust.py

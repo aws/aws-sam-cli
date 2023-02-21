@@ -39,6 +39,7 @@ from .build_integ_base import (
     BuildIntegPythonBase,
     BuildIntegJavaBase,
     BuildIntegEsbuildBase,
+    BuildIntegRustBase,
 )
 
 LOG = logging.getLogger(__name__)
@@ -59,7 +60,7 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID_IMAGE = "ImageFunction"
 
-    @parameterized.expand([("3.6", False), ("3.7", False), ("3.8", False), ("3.9", False)])
+    @parameterized.expand([("3.7", False), ("3.8", False), ("3.9", False)])
     @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self, runtime, use_container):
         _tag = f"{random.randint(1,100)}"
@@ -87,7 +88,7 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
             self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
         )
 
-    @parameterized.expand([("3.6", False), ("3.7", False), ("3.8", False), ("3.9", False)])
+    @parameterized.expand([("3.7", False), ("3.8", False), ("3.9", False)])
     @pytest.mark.flaky(reruns=3)
     def test_with_dockerfile_extension(self, runtime, use_container):
         _tag = f"{random.randint(1,100)}"
@@ -164,8 +165,8 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
 
     @parameterized.expand(
         [
-            *[(runtime, "feature_phi/Dockerfile", {"phi": "1.62"}) for runtime in ["3.6", "3.7", "3.8", "3.9"]],
-            *[(runtime, "feature_pi/Dockerfile", {"pi": "3.14"}) for runtime in ["3.6", "3.7", "3.8", "3.9"]],
+            *[(runtime, "feature_phi/Dockerfile", {"phi": "1.62"}) for runtime in ["3.7", "3.8", "3.9"]],
+            *[(runtime, "feature_pi/Dockerfile", {"pi": "3.14"}) for runtime in ["3.7", "3.8", "3.9"]],
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -251,7 +252,7 @@ class TestSkipBuildingFunctionsWithLocalImageUri(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID_IMAGE = "ImageFunction"
 
-    @parameterized.expand(["3.6", "3.7", "3.8", "3.9"])
+    @parameterized.expand(["3.7", "3.8", "3.9"])
     @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self, runtime):
         _tag = f"{random.randint(1,100)}"
@@ -399,13 +400,11 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
         "prop",
     ),
     [
-        ("template.yaml", "Function", True, "python3.6", "Python", False, False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.7", "Python", False, False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.8", "Python", False, False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.9", "Python", False, False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.7", "PythonPEP600", False, False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.8", "PythonPEP600", False, False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.6", "Python", "use_container", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.7", "Python", "use_container", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.8", "Python", "use_container", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.9", "Python", "use_container", False, "CodeUri"),
@@ -449,13 +448,11 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
 
     @parameterized.expand(
         [
-            ("python3.6", "Python", False, "x86_64"),
             ("python3.7", "Python", False, "x86_64"),
             ("python3.8", "Python", False, "x86_64"),
             # numpy 1.20.3 (in PythonPEP600/requirements.txt) only support python 3.7+
             ("python3.7", "PythonPEP600", False, "x86_64"),
             ("python3.8", "PythonPEP600", False, "x86_64"),
-            ("python3.6", "Python", "use_container", "x86_64"),
             ("python3.7", "Python", "use_container", "x86_64"),
             ("python3.8", "Python", "use_container", "x86_64"),
             ("python3.8", "Python", False, "arm64"),
@@ -517,7 +514,7 @@ class TestBuildCommand_NodeFunctions(BuildIntegNodeBase):
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
-    template = "template_with_metadata.yaml"
+    template = "template_with_metadata_esbuild.yaml"
 
     @parameterized.expand(
         [

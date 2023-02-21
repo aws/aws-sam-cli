@@ -1,17 +1,17 @@
 """Handles Swagger Parsing"""
 
 import logging
-from typing import List, Union, Dict
-from samcli.commands.local.lib.validators.identity_source_validator import IdentitySourceValidator
+from typing import Dict, List, Union
 
-from samcli.commands.local.lib.swagger.integration_uri import LambdaUri, IntegrationType
-from samcli.local.apigw.local_apigw_service import Route, LambdaAuthorizer, Authorizer
+from samcli.commands.local.lib.swagger.integration_uri import IntegrationType, LambdaUri
+from samcli.commands.local.lib.validators.identity_source_validator import IdentitySourceValidator
 from samcli.local.apigw.exceptions import (
-    MultipleAuthorizerException,
     IncorrectOasWithDefaultAuthorizerException,
     InvalidOasVersion,
     InvalidSecurityDefinition,
+    MultipleAuthorizerException,
 )
+from samcli.local.apigw.local_apigw_service import Authorizer, LambdaAuthorizer, Route
 
 LOG = logging.getLogger(__name__)
 
@@ -112,7 +112,7 @@ class SwaggerParser:
                 continue
 
             # only add authorizer if it is Lambda token or request based (not jwt)
-            if not authorizer_type in LambdaAuthorizer.VALID_TYPES:
+            if authorizer_type not in LambdaAuthorizer.VALID_TYPES:
                 LOG.warning("Lambda authorizer '%s' type '%s' is unsupported, skipping", auth_name, authorizer_type)
                 continue
 

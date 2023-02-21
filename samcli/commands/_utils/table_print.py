@@ -1,10 +1,10 @@
 """
 Utilities for table pretty printing using click
 """
-from itertools import count, zip_longest
 import shutil
 import textwrap
 from functools import wraps
+from itertools import count, zip_longest
 from typing import Sized
 
 import click

@@ -3,9 +3,8 @@ Handles parsing of Swagger Integration data. This contains the arn of the Lambda
 integration type, response template etc.
 """
 
-import re
 import logging
-
+import re
 from enum import Enum
 from typing import Optional
 

@@ -40,7 +40,7 @@
       "Properties": {
         "Code": ".",
         "Handler": "main.handler",
-        "Runtime": "python3.6"
+        "Runtime": "python3.9"
       }
     },
     "HelloHandlerApiPermissionANYAC4E141E": {

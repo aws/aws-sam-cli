@@ -1,30 +1,29 @@
 """Parses SAM given a template"""
 import logging
-from typing import Any, Dict, Optional, Tuple, List, cast
+from typing import Any, Dict, List, Optional, Tuple, cast
 
-from samcli.commands.local.lib.swagger.integration_uri import LambdaUri
-from samcli.lib.providers.provider import Stack
-from samcli.local.apigw.local_apigw_service import Route, LambdaAuthorizer
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
-from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
-from samcli.lib.providers.api_collector import ApiCollector
+from samcli.commands.local.lib.swagger.integration_uri import LambdaUri
 from samcli.commands.local.lib.validators.lambda_auth_props import (
     LambdaAuthorizerV1Validator,
     LambdaAuthorizerV2Validator,
 )
-
+from samcli.lib.providers.api_collector import ApiCollector
+from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
+from samcli.lib.providers.provider import Stack
 from samcli.lib.utils.resources import (
+    AWS_APIGATEWAY_AUTHORIZER,
     AWS_APIGATEWAY_METHOD,
     AWS_APIGATEWAY_RESOURCE,
     AWS_APIGATEWAY_RESTAPI,
     AWS_APIGATEWAY_STAGE,
-    AWS_APIGATEWAY_AUTHORIZER,
     AWS_APIGATEWAY_V2_API,
+    AWS_APIGATEWAY_V2_AUTHORIZER,
     AWS_APIGATEWAY_V2_INTEGRATION,
     AWS_APIGATEWAY_V2_ROUTE,
     AWS_APIGATEWAY_V2_STAGE,
-    AWS_APIGATEWAY_V2_AUTHORIZER,
 )
+from samcli.local.apigw.local_apigw_service import LambdaAuthorizer, Route
 
 LOG = logging.getLogger(__name__)
 

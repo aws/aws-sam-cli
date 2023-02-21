@@ -1,18 +1,18 @@
 """Base SyncFlow for StepFunctions"""
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-
-from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIdentifier
-from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall, get_definition_path
-from samcli.lib.sync.exceptions import InfraSyncRequiredError
 from samcli.lib.providers.exceptions import MissingLocalDefinition
-
+from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_by_id
+from samcli.lib.sync.exceptions import InfraSyncRequiredError
+from samcli.lib.sync.sync_flow import ResourceAPICall, SyncFlow, get_definition_path
+from samcli.lib.utils.hash import str_checksum
 
 if TYPE_CHECKING:  # pragma: no cover
-    from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
+    from samcli.commands.deploy.deploy_context import DeployContext
+    from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)
 
@@ -29,6 +29,7 @@ class StepFunctionsSyncFlow(SyncFlow):
         state_machine_identifier: str,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
     ):
@@ -41,6 +42,8 @@ class StepFunctionsSyncFlow(SyncFlow):
             BuildContext used for build related parameters
         deploy_context : BuildContext
             DeployContext used for this deploy related parameters
+        sync_context: SyncContext
+            SyncContext object that obtains sync information.
         physical_id_mapping : Dict[str, str]
             Mapping between resource logical identifier and physical identifier
         stacks : List[Stack], optional
@@ -49,6 +52,7 @@ class StepFunctionsSyncFlow(SyncFlow):
         super().__init__(
             build_context,
             deploy_context,
+            sync_context,
             physical_id_mapping,
             log_name="StepFunctions " + state_machine_identifier,
             stacks=stacks,
@@ -58,6 +62,16 @@ class StepFunctionsSyncFlow(SyncFlow):
         self._stepfunctions_client = None
         self._definition_uri = None
         self._states_definition = None
+
+    @property
+    def sync_state_identifier(self) -> str:
+        """
+        Sync state is the unique identifier for each sync flow
+        In sync state toml file we will store
+        Key as StepFunctionsSyncFlow:StepFunctionsLogicalId
+        Value as state machine definition hash
+        """
+        return self.__class__.__name__ + ":" + self._state_machine_identifier
 
     def set_up(self) -> None:
         super().set_up()
@@ -71,6 +85,8 @@ class StepFunctionsSyncFlow(SyncFlow):
             raise InfraSyncRequiredError(self._state_machine_identifier, "DefinitionSubstitutions field is specified.")
         self._definition_uri = self._get_definition_file(self._state_machine_identifier)
         self._states_definition = self._process_definition_file()
+        if self._states_definition:
+            self._local_sha = str_checksum(self._states_definition)
 
     def _process_definition_file(self) -> Optional[str]:
         if self._definition_uri is None:

@@ -18,6 +18,7 @@ from samcli.lib.build.workflows import (
     GO_MOD_CONFIG,
     PROVIDED_MAKE_CONFIG,
     NODEJS_NPM_ESBUILD_CONFIG,
+    RUST_CARGO_LAMBDA_CONFIG,
 )
 from samcli.lib.telemetry.event import EventTracker
 
@@ -84,7 +85,6 @@ def get_selector(
 
 def get_layer_subfolder(build_workflow: str) -> str:
     subfolders_by_runtime = {
-        "python3.6": "python",
         "python3.7": "python",
         "python3.8": "python",
         "python3.9": "python",
@@ -144,10 +144,10 @@ def get_workflow_config(
     selectors_by_build_method = {
         "makefile": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG),
         "dotnet7": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
+        "rust-cargolambda": BasicWorkflowSelector(RUST_CARGO_LAMBDA_CONFIG),
     }
 
     selectors_by_runtime = {
-        "python3.6": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.7": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.8": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.9": BasicWorkflowSelector(PYTHON_PIP_CONFIG),

@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: A hello world application.
+
+Resources:
+  NoInlineCodeServerlessFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.9
+      Timeout: 600
+      CodeUri: .
+      Events:
+        EchoEventBodyPath:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /no_inlinecode
+  
+  InlineCodeServerlessFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.9
+      InlineCode: |
+        def handler(event, context):
+            print(event)
+            return "do nothing"
+      Timeout: 600
+      Events:
+        EchoEventBodyPath:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /inlinecode

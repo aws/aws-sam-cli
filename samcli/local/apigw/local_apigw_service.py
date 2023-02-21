@@ -2,36 +2,37 @@
 # pylint: disable=too-many-lines
 # TODO (lucashuy): this module needs to be refactored
 
-from dataclasses import dataclass
+import base64
 import io
 import json
 import logging
-import base64
-from typing import List, Optional
-
-from time import time
+from dataclasses import dataclass
 from datetime import datetime
+from time import time
+from typing import List, Optional
 
 from flask import Flask, request
 from werkzeug.datastructures import Headers
 from werkzeug.routing import BaseConverter
 from werkzeug.serving import WSGIRequestHandler
 
+from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
 from samcli.lib.providers.provider import Cors
-from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
 from samcli.lib.utils.stream_writer import StreamWriter
-from samcli.local.lambdafn.exceptions import FunctionNotFound
+from samcli.local.apigw.exceptions import LambdaResponseParseException, PayloadFormatVersionValidateException
 from samcli.local.events.api_event import (
-    ContextIdentity,
-    ContextHTTP,
-    RequestContext,
-    RequestContextV2,
     ApiGatewayLambdaEvent,
     ApiGatewayV2LambdaEvent,
+    ContextHTTP,
+    ContextIdentity,
+    RequestContext,
+    RequestContextV2,
 )
-from samcli.local.apigw.exceptions import LambdaResponseParseException, PayloadFormatVersionValidateException
-from .service_error_responses import ServiceErrorResponses
+from samcli.local.lambdafn.exceptions import FunctionNotFound
+from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
+
 from .path_converter import PathConverter
+from .service_error_responses import ServiceErrorResponses
 
 LOG = logging.getLogger(__name__)
 
@@ -401,6 +402,10 @@ class LocalApigwService(BaseLocalService):
             self.lambda_runner.invoke(route.function_name, event, stdout=stdout_stream_writer, stderr=self.stderr)
         except FunctionNotFound:
             return ServiceErrorResponses.lambda_not_found_response()
+        except UnsupportedInlineCodeError:
+            return ServiceErrorResponses.not_implemented_locally(
+                "Inline code is not supported for sam local commands. Please write your code in a separate file."
+            )
 
         lambda_response, _ = LambdaOutputParser.get_lambda_output(stdout_stream)
 

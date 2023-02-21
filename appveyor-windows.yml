@@ -22,6 +22,7 @@ configuration:
 environment:
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
+  CARGO_LAMBDA_VERSION: "v0.17.1"
 
   # Python uses $TMPDIR envvar to find root of tempdir
   TMPDIR: "%TEMP%"
@@ -141,6 +142,23 @@ for:
       only:
         - configuration: BuildIntegTesting
 
+    build_script:
+      # install Rust in build_script to not override the default "install" actions
+      - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
+      - rustup-init.exe -y --default-host x86_64-pc-windows-msvc --default-toolchain stable
+      - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
+      - set RUST_BACKTRACE=1
+      - rustup toolchain install stable --profile minimal --no-self-update
+      - rustup default stable
+      - rustup target add x86_64-unknown-linux-gnu --toolchain stable
+      - rustup target add aarch64-unknown-linux-gnu --toolchain stable
+      - ps: "choco install zig"
+      - ps: Invoke-WebRequest -Uri https://github.com/cargo-lambda/cargo-lambda/releases/download/$env:CARGO_LAMBDA_VERSION/cargo-lambda-$env:CARGO_LAMBDA_VERSION.windows-x64.zip -OutFile C:\Users\appveyor\cargo-lambda.zip
+      - ps: Expand-Archive -DestinationPath C:\Users\appveyor\.cargo\bin C:\Users\appveyor\cargo-lambda.zip
+      - rustc -V
+      - cargo -V
+      - cargo lambda -V
+
     test_script:
       # Reactivate virtualenv before running tests
       - "git --version"
@@ -218,7 +236,7 @@ for:
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
-      - ps: "pytest -vv tests/integration/deploy --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
+      - ps: "pytest -vv tests/integration/deploy -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
 
   # Integ testing package
   - matrix:

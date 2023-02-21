@@ -4,7 +4,7 @@ Interfaces and generic implementations for observability events (like CW logs)
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Dict, List, Optional, Generic, TypeVar, Any, Sequence, Union
+from typing import Any, Dict, Generic, List, Optional, Sequence, TypeVar, Union
 
 from samcli.lib.utils.async_utils import AsyncContext
 

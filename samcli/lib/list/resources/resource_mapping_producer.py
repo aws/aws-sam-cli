@@ -1,32 +1,30 @@
 """
 The producer for the 'sam list resources' command
 """
-from typing import Any, Dict
 import dataclasses
 import logging
+from typing import Any, Dict
 
-from botocore.exceptions import ClientError, NoCredentialsError, BotoCoreError
-from samtranslator.translator.managed_policy_translator import ManagedPolicyLoader
+from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError
 from samtranslator.translator.arn_generator import NoRegionFound
+from samtranslator.translator.managed_policy_translator import ManagedPolicyLoader
 
+from samcli.commands._utils.template import get_template_data
+from samcli.commands.exceptions import UserException
 from samcli.commands.list.exceptions import (
     SamListLocalResourcesNotFoundError,
+    SamListUnknownBotoCoreError,
     SamListUnknownClientError,
     StackDoesNotExistInRegionError,
-    SamListUnknownBotoCoreError,
 )
-
+from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
+from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.list.list_interfaces import Producer
 from samcli.lib.list.resources.resources_def import ResourcesDef
-from samcli.lib.translate.sam_template_validator import SamTemplateValidator
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
-from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
-from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
-from samcli.commands.exceptions import UserException
-from samcli.commands._utils.template import get_template_data
+from samcli.lib.translate.sam_template_validator import SamTemplateValidator
 from samcli.lib.utils.boto_utils import get_client_error_code
 from samcli.yamlhelper import yaml_parse
-
 
 LOG = logging.getLogger(__name__)
 
@@ -132,11 +130,11 @@ class ResourceMappingProducer(Producer):
             response = self.get_resources_info()
             for deployed_resource in response["StackResources"]:
                 resource_data = ResourcesDef(
-                    LogicalResourceId=deployed_resource["LogicalResourceId"],
-                    PhysicalResourceId=deployed_resource["PhysicalResourceId"],
+                    LogicalResourceId=deployed_resource.get("LogicalResourceId"),
+                    PhysicalResourceId=deployed_resource.get("PhysicalResourceId"),
                 )
                 resources_list.append(dataclasses.asdict(resource_data))
-                seen_resources.add(deployed_resource["LogicalResourceId"])
+                seen_resources.add(deployed_resource.get("LogicalResourceId"))
             for local_resource in stacks[ROOT_STACK].resources:
                 if local_resource not in seen_resources:
                     resource_data = ResourcesDef(LogicalResourceId=local_resource, PhysicalResourceId="-")

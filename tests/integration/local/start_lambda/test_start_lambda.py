@@ -109,6 +109,46 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
         self.assertEqual(str(error.exception), expected_error_message)
 
 
+class TestLambdaServiceWithInlineCode(StartLambdaIntegBaseClass):
+    template_path = "/testdata/invoke/template-inlinecode.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+        self.lambda_client = boto3.client(
+            "lambda",
+            endpoint_url=self.url,
+            region_name="us-east-1",
+            use_ssl=False,
+            verify=False,
+            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
+        )
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_invoke_function_with_inline_code(self):
+        expected_error_message = (
+            "An error occurred (NotImplemented) when calling the Invoke operation:"
+            " Inline code is not supported for sam local commands. Please write your code in a separate file."
+        )
+
+        with self.assertRaises(ClientError) as error:
+            self.lambda_client.invoke(FunctionName="InlineCodeServerlessFunction", Payload='"This is json data"')
+
+        self.assertEqual(str(error.exception), expected_error_message)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_invoke_function_without_inline_code(self):
+        response = self.lambda_client.invoke(
+            FunctionName="NoInlineCodeServerlessFunction",
+            Payload='"This is json data"',
+        )
+
+        self.assertEqual(response.get("Payload").read().decode("utf-8"), '"This is json data"')
+        self.assertIsNone(response.get("FunctionError"))
+        self.assertEqual(response.get("StatusCode"), 200)
+
+
 @parameterized_class(
     ("template_path", "parent_path"),
     [
@@ -225,7 +265,7 @@ class TestLambdaService(StartLambdaIntegBaseClass):
                 "errorMessage": "Lambda is raising an exception",
                 "errorType": "Exception",
                 "stackTrace": [
-                    ["/var/task/main.py", 51, "raise_exception", 'raise Exception("Lambda is raising an exception")']
+                    '  File "/var/task/main.py", line 51, in raise_exception\n    raise Exception("Lambda is raising an exception")\n'
                 ],
             },
         )
@@ -507,7 +547,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -570,7 +610,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -673,7 +713,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -776,7 +816,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -1045,7 +1085,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -1186,7 +1226,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -1289,7 +1329,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -1392,7 +1432,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -1585,8 +1625,8 @@ COPY main.py ./"""
 class TestLambdaServiceWithCustomInvokeImages(StartLambdaIntegBaseClass):
 
     invoke_image = [
-        "amazon/aws-sam-cli-emulation-image-python3.6",
-        "HelloWorldServerlessFunction=public.ecr.aws/sam/emulation-python3.6",
+        "amazon/aws-sam-cli-emulation-image-python3.9",
+        "HelloWorldServerlessFunction=public.ecr.aws/sam/emulation-python3.9",
     ]
 
     def setUp(self):

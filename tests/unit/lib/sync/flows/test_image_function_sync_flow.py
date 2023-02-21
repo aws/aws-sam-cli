@@ -3,6 +3,7 @@ from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
 from samcli.lib.sync.flows.image_function_sync_flow import ImageFunctionSyncFlow
+from samcli.lib.utils.hash import str_checksum
 
 
 class TestImageFunctionSyncFlow(TestCase):
@@ -11,6 +12,7 @@ class TestImageFunctionSyncFlow(TestCase):
             "Function1",
             build_context=MagicMock(),
             deploy_context=MagicMock(),
+            sync_context=MagicMock(),
             physical_id_mapping={},
             stacks=[MagicMock()],
             docker_client=MagicMock(),
@@ -38,6 +40,7 @@ class TestImageFunctionSyncFlow(TestCase):
 
         get_mock.assert_called_once_with("Function1")
         self.assertEqual(sync_flow._image_name, "ImageName1")
+        self.assertEqual(sync_flow._local_sha, str_checksum("ImageName1"))
 
     @patch("samcli.lib.sync.flows.image_function_sync_flow.wait_for_function_update_complete")
     @patch("samcli.lib.sync.flows.image_function_sync_flow.ECRUploader")

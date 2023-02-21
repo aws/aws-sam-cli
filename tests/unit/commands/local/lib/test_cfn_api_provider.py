@@ -473,11 +473,11 @@ class TestCloudFormationResourceMethod(TestCase):
                 },
                 "AWSAlphaLambdaFunction": {
                     "Type": "AWS::Lambda::Function",
-                    "Properties": {"Code": ".", "Handler": "main.run_test", "Runtime": "Python3.6"},
+                    "Properties": {"Code": ".", "Handler": "main.run_test", "Runtime": "Python3.9"},
                 },
                 "AWSBetaLambdaFunction": {
                     "Type": "AWS::Lambda::Function",
-                    "Properties": {"Code": ".", "Handler": "main.run_test", "Runtime": "Python3.6"},
+                    "Properties": {"Code": ".", "Handler": "main.run_test", "Runtime": "Python3.9"},
                 },
             }
         }
@@ -547,11 +547,11 @@ class TestCloudFormationResourceMethod(TestCase):
                 },
                 "AWSAlphaLambdaFunction": {
                     "Type": "AWS::Lambda::Function",
-                    "Properties": {"Code": ".", "Handler": "main.run_test", "Runtime": "Python3.6"},
+                    "Properties": {"Code": ".", "Handler": "main.run_test", "Runtime": "Python3.9"},
                 },
                 "AWSBetaLambdaFunction": {
                     "Type": "AWS::Lambda::Function",
-                    "Properties": {"Code": ".", "Handler": "main.run_test", "Runtime": "Python3.6"},
+                    "Properties": {"Code": ".", "Handler": "main.run_test", "Runtime": "Python3.9"},
                 },
             }
         }
@@ -565,7 +565,7 @@ class TestCloudFormationResourceMethod(TestCase):
             "Resources": {
                 "HelloHandler2E4FBA4D": {
                     "Type": "AWS::Lambda::Function",
-                    "Properties": {"Code": ".", "Handler": "main.handler", "Runtime": "python3.6"},
+                    "Properties": {"Code": ".", "Handler": "main.handler", "Runtime": "python3.9"},
                     "DependsOn": ["HelloHandlerServiceRole11EF7C63"],
                 },
                 "EndpointEEF1FD8F": {"Type": "AWS::ApiGateway::RestApi", "Properties": {"Name": "Endpoint"}},

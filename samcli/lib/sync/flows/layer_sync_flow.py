@@ -4,30 +4,40 @@ import hashlib
 import logging
 import os
 import re
+import shutil
 import tempfile
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any, TYPE_CHECKING, cast, Dict, List, Optional
 from contextlib import ExitStack
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
 from samcli.lib.build.app_builder import ApplicationBuilder
-from samcli.lib.package.utils import make_zip
-from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_by_id, Function, LayerVersion
+from samcli.lib.package.utils import make_zip_with_lambda_permissions
+from samcli.lib.providers.provider import Function, LayerVersion, ResourceIdentifier, Stack, get_resource_by_id
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.sync.exceptions import MissingPhysicalResourceError, NoLayerVersionsFoundError
-from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall, ApiCallTypes
+from samcli.lib.sync.flows.function_sync_flow import wait_for_function_update_complete
+from samcli.lib.sync.sync_flow import ApiCallTypes, ResourceAPICall, SyncFlow
 from samcli.lib.sync.sync_flow_executor import HELP_TEXT_FOR_SYNC_INFRA
 from samcli.lib.utils.colors import Colored
-from samcli.lib.utils.hash import file_checksum
-from samcli.lib.sync.flows.function_sync_flow import wait_for_function_update_complete
+from samcli.lib.utils.hash import file_checksum, str_checksum
 from samcli.lib.utils.osutils import rmtree_if_exists
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.build.build_context import BuildContext
     from samcli.commands.deploy.deploy_context import DeployContext
+    from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)
 FUNCTION_SLEEP = 1  # used to wait for lambda function configuration last update to be successful
+
+
+def get_latest_layer_version(lambda_client: Any, layer_arn: str) -> int:
+    """Fetches all layer versions from remote and returns the latest one"""
+    layer_versions = lambda_client.list_layer_versions(LayerName=layer_arn).get("LayerVersions", [])
+    if not layer_versions:
+        raise NoLayerVersionsFoundError(layer_arn)
+    return cast(int, layer_versions[0].get("Version"))
 
 
 class AbstractLayerSyncFlow(SyncFlow, ABC):
@@ -42,17 +52,24 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
     _layer_identifier: str
     _artifact_folder: Optional[str]
     _zip_file: Optional[str]
-    _local_sha: Optional[str]
 
     def __init__(
         self,
         layer_identifier: str,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
     ):
-        super().__init__(build_context, deploy_context, physical_id_mapping, f"Layer {layer_identifier}", stacks)
+        super().__init__(
+            build_context,
+            deploy_context,
+            sync_context,
+            physical_id_mapping,
+            f"Layer {layer_identifier}",
+            stacks,
+        )
         self._layer_identifier = layer_identifier
         self._layer_arn = None
         self._old_layer_version = None
@@ -64,11 +81,21 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
         super().set_up()
         self._lambda_client = self._boto_client("lambda")
 
+    @property
+    def sync_state_identifier(self) -> str:
+        """
+        Sync state is the unique identifier for each sync flow
+        In sync state toml file we will store
+        Key as LayerSyncFlow:LayerLogicalId
+        Value as layer ZIP hash
+        """
+        return self.__class__.__name__ + ":" + self._layer_identifier
+
     def compare_remote(self) -> bool:
         """
         Compare Sha256 of the deployed layer code vs the one just built, True if they are same, False otherwise
         """
-        self._old_layer_version = self._get_latest_layer_version()
+        self._old_layer_version = get_latest_layer_version(self._lambda_client, cast(str, self._layer_arn))
         old_layer_info = self._lambda_client.get_layer_version(
             LayerName=self._layer_arn,
             VersionNumber=self._old_layer_version,
@@ -77,13 +104,6 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
         LOG.debug("%sLocal SHA: %s Remote SHA: %s", self.log_prefix, self._local_sha, remote_sha)
 
         return self._local_sha == remote_sha
-
-    def _get_latest_layer_version(self):
-        """Fetches all layer versions from remote and returns the latest one"""
-        layer_versions = self._lambda_client.list_layer_versions(LayerName=self._layer_arn).get("LayerVersions", [])
-        if not layer_versions:
-            raise NoLayerVersionsFoundError(self._layer_arn)
-        return layer_versions[0].get("Version")
 
     def sync(self) -> None:
         """
@@ -108,6 +128,7 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
                         cast(int, self._new_layer_version),
                         self._build_context,
                         self._deploy_context,
+                        self._sync_context,
                         self._physical_id_mapping,
                         self._stacks,
                     )
@@ -183,10 +204,11 @@ class LayerSyncFlow(AbstractLayerSyncFlow):
         layer_identifier: str,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
     ):
-        super().__init__(layer_identifier, build_context, deploy_context, physical_id_mapping, stacks)
+        super().__init__(layer_identifier, build_context, deploy_context, sync_context, physical_id_mapping, stacks)
         self._layer = cast(LayerVersion, build_context.layer_provider.get(self._layer_identifier))
 
     def set_up(self) -> None:
@@ -230,12 +252,13 @@ class LayerSyncFlow(AbstractLayerSyncFlow):
                 manifest_path_override=self._build_context.manifest_path_override,
                 container_manager=self._build_context.container_manager,
                 mode=self._build_context.mode,
+                build_in_source=self._build_context.build_in_source,
             )
             LOG.debug("%sBuilding Layer", self.log_prefix)
             self._artifact_folder = builder.build().artifacts.get(self._layer_identifier)
 
         zip_file_path = os.path.join(tempfile.gettempdir(), f"data-{uuid.uuid4().hex}")
-        self._zip_file = make_zip(zip_file_path, self._artifact_folder)
+        self._zip_file = make_zip_with_lambda_permissions(zip_file_path, self._artifact_folder)
         LOG.debug("%sCreated artifact ZIP file: %s", self.log_prefix, self._zip_file)
         self._local_sha = file_checksum(cast(str, self._zip_file), hashlib.sha256())
 
@@ -258,6 +281,30 @@ class LayerSyncFlow(AbstractLayerSyncFlow):
         return dependent_functions
 
 
+class LayerSyncFlowSkipBuildDirectory(LayerSyncFlow):
+    """
+    LayerSyncFlow special implementation that will skip build step and zip contents of CodeUri
+    """
+
+    def gather_resources(self) -> None:
+        zip_file_path = os.path.join(tempfile.gettempdir(), f"data-{uuid.uuid4().hex}")
+        self._zip_file = make_zip_with_lambda_permissions(zip_file_path, self._layer.codeuri)
+        LOG.debug("%sCreated artifact ZIP file: %s", self.log_prefix, self._zip_file)
+        self._local_sha = file_checksum(cast(str, self._zip_file), hashlib.sha256())
+
+
+class LayerSyncFlowSkipBuildZipFile(LayerSyncFlow):
+    """
+    LayerSyncFlow special implementation, that will skip build and upload zip file which is defined in CodeUri directly
+    """
+
+    def gather_resources(self) -> None:
+        self._zip_file = os.path.join(tempfile.gettempdir(), f"data-{uuid.uuid4().hex}")
+        shutil.copy2(cast(str, self._layer.codeuri), self._zip_file)
+        LOG.debug("%sCreated artifact ZIP file: %s", self.log_prefix, self._zip_file)
+        self._local_sha = file_checksum(self._zip_file, hashlib.sha256())
+
+
 class FunctionLayerReferenceSync(SyncFlow):
     """
     Used for updating new Layer version for the related functions
@@ -268,21 +315,23 @@ class FunctionLayerReferenceSync(SyncFlow):
     _function_identifier: str
     _layer_arn: str
     _old_layer_version: int
-    _new_layer_version: int
+    _new_layer_version: Optional[int]
 
     def __init__(
         self,
         function_identifier: str,
         layer_arn: str,
-        new_layer_version: int,
+        new_layer_version: Optional[int],
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
     ):
         super().__init__(
             build_context,
             deploy_context,
+            sync_context,
             physical_id_mapping,
             log_name="Function Layer Reference Sync " + function_identifier,
             stacks=stacks,
@@ -292,9 +341,25 @@ class FunctionLayerReferenceSync(SyncFlow):
         self._new_layer_version = new_layer_version
         self._color = Colored()
 
+    @property
+    def sync_state_identifier(self) -> str:
+        """
+        Sync state is the unique identifier for each sync flow
+        In sync state toml file we will store
+        Key as FunctionLayerReferenceSync:FunctionLogicalId:LayerArn
+        Value as LayerVersion hash
+        """
+        return self.__class__.__name__ + ":" + self._function_identifier + ":" + self._layer_arn
+
     def set_up(self) -> None:
         super().set_up()
         self._lambda_client = self._boto_client("lambda")
+
+    def gather_resources(self) -> None:
+        if not self._new_layer_version:
+            LOG.debug("No layer version set for %s, fetching latest one", self._layer_arn)
+            self._new_layer_version = get_latest_layer_version(self._lambda_client, self._layer_arn)
+        self._local_sha = str_checksum(str(self._new_layer_version))
 
     def sync(self) -> None:
         """
@@ -360,9 +425,6 @@ class FunctionLayerReferenceSync(SyncFlow):
 
     def compare_remote(self) -> bool:
         return False
-
-    def gather_resources(self) -> None:
-        pass
 
     def gather_dependencies(self) -> List["SyncFlow"]:
         return []

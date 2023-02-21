@@ -6,17 +6,17 @@ import logging
 import os
 import tempfile
 import uuid
-from typing import List, TYPE_CHECKING, Dict, cast, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional, cast
 
 from samcli.lib.bootstrap.nested_stack.nested_stack_builder import NestedStackBuilder
 from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NestedStackManager
 from samcli.lib.build.build_graph import BuildGraph
-from samcli.lib.package.utils import make_zip
+from samcli.lib.package.utils import make_zip_with_lambda_permissions
 from samcli.lib.providers.provider import Function, Stack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.sync.exceptions import (
-    MissingFunctionBuildDefinition,
     InvalidRuntimeDefinitionForFunction,
+    MissingFunctionBuildDefinition,
     NoLayerVersionsFoundError,
 )
 from samcli.lib.sync.flows.layer_sync_flow import AbstractLayerSyncFlow
@@ -25,8 +25,9 @@ from samcli.lib.sync.sync_flow import SyncFlow
 from samcli.lib.utils.hash import file_checksum
 
 if TYPE_CHECKING:  # pragma: no cover
-    from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
+    from samcli.commands.deploy.deploy_context import DeployContext
+    from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)
 
@@ -49,6 +50,7 @@ class AutoDependencyLayerSyncFlow(AbstractLayerSyncFlow):
         build_graph: BuildGraph,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
     ):
@@ -56,6 +58,7 @@ class AutoDependencyLayerSyncFlow(AbstractLayerSyncFlow):
             NestedStackBuilder.get_layer_logical_id(function_identifier),
             build_context,
             deploy_context,
+            sync_context,
             physical_id_mapping,
             stacks,
         )
@@ -85,7 +88,7 @@ class AutoDependencyLayerSyncFlow(AbstractLayerSyncFlow):
             self._get_compatible_runtimes()[0],
         )
         zip_file_path = os.path.join(tempfile.gettempdir(), "data-" + uuid.uuid4().hex)
-        self._zip_file = make_zip(zip_file_path, self._artifact_folder)
+        self._zip_file = make_zip_with_lambda_permissions(zip_file_path, self._artifact_folder)
         self._local_sha = file_checksum(cast(str, self._zip_file), hashlib.sha256())
 
     def _get_dependent_functions(self) -> List[Function]:
@@ -126,6 +129,7 @@ class AutoDependencyLayerParentSyncFlow(ZipFunctionSyncFlow):
                     cast(BuildGraph, self._build_graph),
                     self._build_context,
                     self._deploy_context,
+                    self._sync_context,
                     self._physical_id_mapping,
                     cast(List[Stack], self._stacks),
                 )

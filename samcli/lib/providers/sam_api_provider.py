@@ -1,16 +1,16 @@
 """Parses SAM given the template"""
 
 import logging
-from typing import List, Optional, Dict, Tuple, cast, Union
+from typing import Dict, List, Optional, Tuple, Union, cast
 
 from samcli.commands.local.lib.swagger.integration_uri import LambdaUri
+from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.providers.api_collector import ApiCollector
 from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
-from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.providers.provider import Stack
 from samcli.lib.utils.colors import Colored
-from samcli.local.apigw.local_apigw_service import Route, Authorizer, LambdaAuthorizer
-from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION, AWS_SERVERLESS_API, AWS_SERVERLESS_HTTPAPI
+from samcli.lib.utils.resources import AWS_SERVERLESS_API, AWS_SERVERLESS_FUNCTION, AWS_SERVERLESS_HTTPAPI
+from samcli.local.apigw.local_apigw_service import Authorizer, LambdaAuthorizer, Route
 
 LOG = logging.getLogger(__name__)
 
@@ -159,7 +159,7 @@ class SamApiProvider(CfnBaseApiProvider):
                 f"'{SamApiProvider._AUTHORIZER_PAYLOAD}' must be of type string for Lambda Authorizer '{auth_name}'."
             )
 
-        if not payload_version in LambdaAuthorizer.PAYLOAD_VERSIONS and event_type == Route.HTTP:
+        if payload_version not in LambdaAuthorizer.PAYLOAD_VERSIONS and event_type == Route.HTTP:
             raise InvalidSamDocumentException(
                 f"Lambda Authorizer '{auth_name}' must contain a valid "
                 f"'{SamApiProvider._AUTHORIZER_PAYLOAD}' for HTTP APIs."

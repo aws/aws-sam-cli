@@ -2,36 +2,35 @@
 Common CLI options shared by various commands
 """
 
-import os
 import logging
+import os
 from functools import partial
 from typing import List, Tuple
 
 import click
 from click.types import FuncParamType
 
+from samcli.cli.types import (
+    CfnMetadataType,
+    CfnParameterOverridesType,
+    CfnTags,
+    ImageRepositoriesType,
+    ImageRepositoryType,
+    SigningProfilesOptionType,
+)
 from samcli.commands._utils.constants import (
-    DEFAULT_STACK_NAME,
     DEFAULT_BUILD_DIR,
-    DEFAULT_CACHE_DIR,
     DEFAULT_BUILT_TEMPLATE_PATH,
+    DEFAULT_CACHE_DIR,
+    DEFAULT_STACK_NAME,
 )
 from samcli.commands._utils.custom_options.hook_name_option import HookNameOption
-from samcli.commands._utils.parameterized_option import parameterized_option
-from samcli.commands._utils.template import get_template_data, TemplateNotFoundException
-from samcli.cli.types import (
-    CfnParameterOverridesType,
-    CfnMetadataType,
-    CfnTags,
-    SigningProfilesOptionType,
-    ImageRepositoryType,
-    ImageRepositoriesType,
-)
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
-from samcli.commands._utils.template import get_template_artifacts_format
+from samcli.commands._utils.parameterized_option import parameterized_option
+from samcli.commands._utils.template import TemplateNotFoundException, get_template_artifacts_format, get_template_data
 from samcli.lib.hook.hook_wrapper import get_available_hook_packages_ids
 from samcli.lib.observability.util import OutputOption
-from samcli.lib.utils.packagetype import ZIP, IMAGE
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml|json]"
 
@@ -644,7 +643,7 @@ def force_upload_option(f):
 
 
 def resolve_s3_click_option(guided):
-    from samcli.commands.package.exceptions import PackageResolveS3AndS3SetError, PackageResolveS3AndS3NotSetError
+    from samcli.commands.package.exceptions import PackageResolveS3AndS3NotSetError, PackageResolveS3AndS3SetError
 
     callback = (
         None

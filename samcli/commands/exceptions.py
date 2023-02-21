@@ -2,8 +2,8 @@
 Class containing error conditions that are exposed to the user.
 """
 import traceback
+from typing import IO, Optional
 from urllib.parse import quote
-from typing import Optional, IO
 
 import click
 
@@ -138,4 +138,10 @@ class InvalidImageException(UserException):
 class InvalidStackNameException(UserException):
     """
     Value provided to --stack-name is invalid
+    """
+
+
+class LinterRuleMatchedException(UserException):
+    """
+    The linter matched a rule meaning that the template linting failed
     """

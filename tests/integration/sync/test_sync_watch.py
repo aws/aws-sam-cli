@@ -68,7 +68,7 @@ class TestSyncWatchBase(SyncIntegBase):
         self.template_before = "" if not self.template_before else self.template_before
         self.stack_name = self._method_to_stack_name(self.id())
         # Remove temp dir so that shutil.copytree will not throw an error
-        # Needed for python 3.6 and 3.7 as these versions don't have dirs_exist_ok
+        # Needed for python 3.7 as these versions don't have dirs_exist_ok
         shutil.rmtree(self.test_dir)
         shutil.copytree(self.test_data_path, self.test_dir)
         super().setUp()
@@ -119,6 +119,7 @@ class TestSyncWatchBase(SyncIntegBase):
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
+            debug=True,
         )
         self.watch_process = start_persistent_process(sync_command_list, cwd=self.test_dir)
         read_until_string(self.watch_process, "Enter Y to proceed with the command, or enter N to cancel:\n")

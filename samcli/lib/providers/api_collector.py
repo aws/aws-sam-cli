@@ -5,10 +5,10 @@ routes in a standardized format
 
 import logging
 from collections import defaultdict
-from typing import Iterator, Tuple, Union, Optional, List, Set, Dict
+from typing import Dict, Iterator, List, Optional, Set, Tuple, Union
 
-from samcli.local.apigw.local_apigw_service import Route, Authorizer
-from samcli.lib.providers.provider import Cors, Api
+from samcli.lib.providers.provider import Api, Cors
+from samcli.local.apigw.local_apigw_service import Authorizer, Route
 
 LOG = logging.getLogger(__name__)
 

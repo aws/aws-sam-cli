@@ -80,6 +80,7 @@ class BuildIntegBase(TestCase):
         region=None,
         hook_name=None,
         beta_features=None,
+        build_in_source=None,
     ):
 
         command_list = [self.cmd, "build"]
@@ -137,6 +138,9 @@ class BuildIntegBase(TestCase):
 
         if hook_name:
             command_list += ["--hook-name", hook_name]
+
+        if build_in_source is not None:
+            command_list += ["--build-in-source"] if build_in_source else ["--no-build-in-source"]
 
         return command_list
 
@@ -322,10 +326,12 @@ class BuildIntegEsbuildBase(BuildIntegBase):
     MAX_MINIFIED_LINE_COUNT = 2
 
     def _test_with_default_package_json(
-        self, runtime, use_container, code_uri, expected_files, handler, architecture=None
+        self, runtime, use_container, code_uri, expected_files, handler, architecture=None, build_in_source=None
     ):
         overrides = self.get_override(runtime, code_uri, architecture, handler)
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, build_in_source=build_in_source
+        )
 
         LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
@@ -713,19 +719,23 @@ class BuildIntegProvidedBase(BuildIntegBase):
     EXPECTED_FILES_PROJECT_MANIFEST = {"__init__.py", "main.py", "requests", "requirements.txt"}
 
     FUNCTION_LOGICAL_ID = "Function"
-    code_uri = "Provided"
 
-    def _test_with_Makefile(self, runtime, use_container, manifest, architecture=None):
+    def _test_with_Makefile(
+        self, runtime, use_container, manifest, architecture=None, code_uri="Provided", build_in_source=None
+    ):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
-        overrides = self.get_override(runtime, self.code_uri, architecture, "main.handler")
+        overrides = self.get_override(runtime, code_uri, architecture, "main.handler")
         manifest_path = None
         if manifest:
             manifest_path = os.path.join(self.test_data_path, "Provided", manifest)
 
         cmdlist = self.get_command_list(
-            use_container=use_container, parameter_overrides=overrides, manifest_path=manifest_path
+            use_container=use_container,
+            parameter_overrides=overrides,
+            manifest_path=manifest_path,
+            build_in_source=build_in_source,
         )
 
         LOG.info("Running Command: {}".format(cmdlist))
@@ -949,3 +959,64 @@ class IntrinsicIntegBase(BuildIntegBase):
                 self.assertIn(error_message, process_stderr)
             else:
                 self.assertEqual(0, process_execute.process.returncode)
+
+
+class BuildIntegRustBase(BuildIntegBase):
+    FUNCTION_LOGICAL_ID = "Function"
+    EXPECTED_FILES_PROJECT_MANIFEST = {"bootstrap"}
+
+    def _test_with_rust_cargo_lambda(
+        self,
+        runtime,
+        code_uri,
+        handler="bootstap",
+        binary=None,
+        build_mode=None,
+        architecture=None,
+        use_container=False,
+        expected_invoke_result=None,
+    ):
+        overrides = self.get_override(runtime, code_uri, architecture, handler)
+        if binary:
+            overrides["Binary"] = binary
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides, beta_features=True)
+
+        newenv = os.environ.copy()
+        if build_mode:
+            newenv["SAM_BUILD_MODE"] = build_mode
+
+        run_command(cmdlist, cwd=self.working_dir, env=newenv)
+
+        self._verify_built_artifact(
+            self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
+        )
+
+        if expected_invoke_result and not SKIP_DOCKER_TESTS and architecture == X86_64:
+            # ARM64 is not supported yet for local invoke
+            self._verify_invoke_built_function(
+                self.built_template,
+                self.FUNCTION_LOGICAL_ID,
+                self._make_parameter_override_arg(overrides),
+                expected_invoke_result,
+            )
+
+        if use_container:
+            self.verify_docker_container_cleanedup(runtime)
+            self.verify_pulled_image(runtime, architecture)
+
+    def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("template.yaml", build_dir_files)
+        self.assertIn(function_logical_id, build_dir_files)
+
+        template_path = build_dir.joinpath("template.yaml")
+        resource_artifact_dir = build_dir.joinpath(function_logical_id)
+
+        # Make sure the template has correct CodeUri for resource
+        self._verify_resource_property(str(template_path), function_logical_id, "CodeUri", function_logical_id)
+
+        all_artifacts = set(os.listdir(str(resource_artifact_dir)))
+        actual_files = all_artifacts.intersection(expected_files)
+        self.assertEqual(actual_files, expected_files)

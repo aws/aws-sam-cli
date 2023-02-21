@@ -3,7 +3,6 @@ Provides classes that interface with Docker to create, execute and manage contai
 """
 
 import logging
-
 import sys
 import threading
 

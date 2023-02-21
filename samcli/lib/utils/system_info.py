@@ -51,7 +51,9 @@ def _gather_docker_info() -> str:
         Version number of Docker Engine if available. Otherwise "Not available"
     """
     import contextlib
+
     import docker
+
     from samcli.local.docker.utils import is_docker_reachable
 
     with contextlib.closing(docker.from_env()) as client:

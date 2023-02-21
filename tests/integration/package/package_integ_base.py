@@ -22,8 +22,8 @@ class PackageIntegBase(TestCase):
         Our integration tests use S3 bucket and ECR Repo to run several tests.
         Given that S3 objects are eventually consistent and we are using same bucket for
         lot of integration tests, we want to have multiple buckets to reduce
-        transient failures. In order to achieve this we created 3 buckets one for each python version we support (3.6,
-        3.7 and 3.8). Tests running for respective python version will use respective bucket.
+        transient failures. In order to achieve this we created 3 buckets one for each python version we support (3.7,
+        3.8 and 3.9). Tests running for respective python version will use respective bucket.
 
         AWS_S3 will point to a new environment variable AWS_S3_36 or AWS_S3_37 or AWS_S3_38. This is controlled by
         Appveyor. These environment variables will hold bucket name to run integration tests. Eg:
@@ -79,9 +79,6 @@ class PackageIntegBase(TestCase):
     def setUp(self):
         self.s3_prefix = uuid.uuid4().hex
         super().setUp()
-
-    def tearDown(self):
-        super().tearDown()
 
     def get_command_list(
         self,

@@ -1,18 +1,18 @@
 """
 The producer for the 'sam list stack-outputs' command
 """
-from typing import Optional, Any
 import dataclasses
 import logging
+from typing import Any, Optional
 
-from botocore.exceptions import ClientError, BotoCoreError
+from botocore.exceptions import BotoCoreError, ClientError
+
 from samcli.commands.list.exceptions import (
-    SamListUnknownClientError,
-    SamListUnknownBotoCoreError,
     NoOutputsForStackError,
+    SamListUnknownBotoCoreError,
+    SamListUnknownClientError,
     StackDoesNotExistInRegionError,
 )
-
 from samcli.lib.list.list_interfaces import Producer
 from samcli.lib.list.stack_outputs.stack_outputs import StackOutputs
 from samcli.lib.utils.boto_utils import get_client_error_code
@@ -61,9 +61,9 @@ class StackOutputsProducer(Producer):
         output_list = []
         for stack_output in response:
             stack_output_data = StackOutputs(
-                OutputKey=stack_output["OutputKey"],
-                OutputValue=stack_output["OutputValue"],
-                Description=stack_output["Description"],
+                OutputKey=stack_output.get("OutputKey", ""),
+                OutputValue=stack_output.get("OutputValue", ""),
+                Description=stack_output.get("Description", ""),
             )
             output_list.append(dataclasses.asdict(stack_output_data))
         mapped_output = self.mapper.map(output_list)
