@@ -1,18 +1,18 @@
 """
 The producer for the 'sam list stack-outputs' command
 """
-from typing import Optional, Any
 import dataclasses
 import logging
+from typing import Any, Optional
 
-from botocore.exceptions import ClientError, BotoCoreError
+from botocore.exceptions import BotoCoreError, ClientError
+
 from samcli.commands.list.exceptions import (
-    SamListUnknownClientError,
-    SamListUnknownBotoCoreError,
     NoOutputsForStackError,
+    SamListUnknownBotoCoreError,
+    SamListUnknownClientError,
     StackDoesNotExistInRegionError,
 )
-
 from samcli.lib.list.list_interfaces import Producer
 from samcli.lib.list.stack_outputs.stack_outputs import StackOutputs
 from samcli.lib.utils.boto_utils import get_client_error_code

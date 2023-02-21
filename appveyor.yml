@@ -87,7 +87,7 @@ for:
 
     build_script:
       # Install pre-dev dependencies
-      # This env is currently used for doing import check with Pylint without dev.txt dependencies installed 
+      # This env is currently used for doing import check with ruff without dev.txt dependencies installed
       - "pre-dev-venv\\Scripts\\activate"
       - "python -c \"import sys; print(sys.executable)\""
       - "pip install -e \".[pre-dev]\""
@@ -100,15 +100,15 @@ for:
       - "deactivate"
 
     test_script:
-      # Run pylint on pre-dev env to catch import errors
+      # Run ruff on pre-dev env to catch import errors
       - "pre-dev-venv\\Scripts\\activate"
-      - "pylint --rcfile .pylintrc samcli"
+      - "ruff samcli"
       - "deactivate"
 
       # Run tests with dev env
       - "venv\\Scripts\\activate"
       - ps: "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
-      - ps: "pylint --rcfile .pylintrc samcli"
+      - ps: "ruff samcli"
       - ps: "mypy setup.py samcli tests"
       - ps: "pytest -n 4 tests/functional"
       - "deactivate"
@@ -182,12 +182,12 @@ for:
     test_script:
       # Pre-dev Tests
       - "pip install -e \".[pre-dev]\""
-      - "pylint --rcfile .pylintrc samcli"
+      - "ruff samcli"
 
       # Dev Tests
       - "pip install -e \".[dev]\""
       - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
-      - "pylint --rcfile .pylintrc samcli"
+      - "ruff samcli"
       - "mypy setup.py samcli tests"
       - "pytest -n 4 tests/functional"
 

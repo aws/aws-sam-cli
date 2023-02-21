@@ -1,16 +1,13 @@
 """
 Utils for invoking subprocess calls
 """
-import os
-
 import logging
-from concurrent.futures.thread import ThreadPoolExecutor
-from time import sleep
-
+import os
 import sys
-from subprocess import Popen, PIPE
-
-from typing import Callable, Dict, Any, Optional, Union, AnyStr, IO
+from concurrent.futures.thread import ThreadPoolExecutor
+from subprocess import PIPE, Popen
+from time import sleep
+from typing import IO, Any, AnyStr, Callable, Dict, Optional, Union
 
 from samcli.commands.exceptions import UserException
 from samcli.lib.utils.stream_writer import StreamWriter

@@ -1,15 +1,14 @@
 """
 The factory for returning the appropriate mapper and consumer
 """
-from samcli.lib.list.list_interfaces import MapperConsumerFactoryInterface
-from samcli.lib.list.data_to_json_mapper import DataToJsonMapper
 from samcli.commands.list.json_consumer import StringConsumerJsonOutput
 from samcli.commands.list.table_consumer import StringConsumerTableOutput
-from samcli.lib.list.mapper_consumer_container import MapperConsumerContainer
-from samcli.lib.list.stack_outputs.stack_output_to_table_mapper import StackOutputToTableMapper
-from samcli.lib.list.resources.resources_to_table_mapper import ResourcesToTableMapper
+from samcli.lib.list.data_to_json_mapper import DataToJsonMapper
 from samcli.lib.list.endpoints.endpoints_to_table_mapper import EndpointsToTableMapper
-from samcli.lib.list.list_interfaces import ProducersEnum, Mapper
+from samcli.lib.list.list_interfaces import Mapper, MapperConsumerFactoryInterface, ProducersEnum
+from samcli.lib.list.mapper_consumer_container import MapperConsumerContainer
+from samcli.lib.list.resources.resources_to_table_mapper import ResourcesToTableMapper
+from samcli.lib.list.stack_outputs.stack_output_to_table_mapper import StackOutputToTableMapper
 
 
 class MapperConsumerFactory(MapperConsumerFactoryInterface):

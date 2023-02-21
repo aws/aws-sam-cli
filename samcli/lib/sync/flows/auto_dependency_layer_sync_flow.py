@@ -6,7 +6,7 @@ import logging
 import os
 import tempfile
 import uuid
-from typing import List, TYPE_CHECKING, Dict, cast, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional, cast
 
 from samcli.lib.bootstrap.nested_stack.nested_stack_builder import NestedStackBuilder
 from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NestedStackManager
@@ -15,8 +15,8 @@ from samcli.lib.package.utils import make_zip_with_lambda_permissions
 from samcli.lib.providers.provider import Function, Stack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.sync.exceptions import (
-    MissingFunctionBuildDefinition,
     InvalidRuntimeDefinitionForFunction,
+    MissingFunctionBuildDefinition,
     NoLayerVersionsFoundError,
 )
 from samcli.lib.sync.flows.layer_sync_flow import AbstractLayerSyncFlow
@@ -25,8 +25,8 @@ from samcli.lib.sync.sync_flow import SyncFlow
 from samcli.lib.utils.hash import file_checksum
 
 if TYPE_CHECKING:  # pragma: no cover
-    from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
+    from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)

@@ -1,6 +1,7 @@
 """
 Utilities involved in Packaging.
 """
+import contextlib
 import functools
 import logging
 import os
@@ -9,20 +10,19 @@ import shutil
 import tempfile
 import time
 import zipfile
-import contextlib
 from contextlib import contextmanager
-from typing import Dict, Optional, Callable, cast, List
+from typing import Callable, Dict, List, Optional, cast
 
 import jmespath
 
 from samcli.commands.package.exceptions import ImageNotFoundError, InvalidLocalPathError
 from samcli.lib.package.ecr_utils import is_ecr_url
 from samcli.lib.package.permissions import (
-    WindowsFilePermissionPermissionMapper,
-    WindowsDirPermissionPermissionMapper,
-    AdditiveFilePermissionPermissionMapper,
     AdditiveDirPermissionPermissionMapper,
+    AdditiveFilePermissionPermissionMapper,
     PermissionMapper,
+    WindowsDirPermissionPermissionMapper,
+    WindowsFilePermissionPermissionMapper,
 )
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.hash import dir_checksum

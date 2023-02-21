@@ -1,22 +1,21 @@
 """Base SyncFlow for Lambda Function"""
+import logging
+import time
 from abc import ABC
 from enum import Enum
-import logging
+from typing import TYPE_CHECKING, Any, Dict, List, cast
 
-import time
-from typing import Any, Dict, List, TYPE_CHECKING, cast
 from botocore.client import BaseClient
 
+from samcli.lib.providers.provider import Function, Stack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.sync.flows.alias_version_sync_flow import AliasVersionSyncFlow
-from samcli.lib.providers.provider import Function, Stack
+from samcli.lib.sync.sync_flow import SyncFlow
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 
-from samcli.lib.sync.sync_flow import SyncFlow
-
 if TYPE_CHECKING:  # pragma: no cover
-    from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
+    from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)
@@ -76,6 +75,16 @@ class FunctionSyncFlow(SyncFlow, ABC):
         self._lambda_client = self._boto_client("lambda")
         self._lambda_waiter = self._lambda_client.get_waiter("function_updated")
 
+    @property
+    def sync_state_identifier(self) -> str:
+        """
+        Sync state is the unique identifier for each sync flow
+        In sync state toml file we will store
+        Key as ZipFunctionSyncFlow:FunctionLogicalId
+        Value as function ZIP hash
+        """
+        return self.__class__.__name__ + ":" + self._function_identifier
+
     def gather_dependencies(self) -> List[SyncFlow]:
         """Gathers alias and versions related to a function.
         Currently only handles serverless function AutoPublishAlias field
@@ -106,7 +115,7 @@ class FunctionSyncFlow(SyncFlow, ABC):
                     self._stacks,
                 )
             )
-            LOG.debug("%sCreated  Alias and Version SyncFlow", self.log_prefix)
+            LOG.debug("%sCreated Alias and Version SyncFlow", self.log_prefix)
 
         return sync_flows
 

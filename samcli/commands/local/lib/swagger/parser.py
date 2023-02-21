@@ -2,7 +2,7 @@
 
 import logging
 
-from samcli.commands.local.lib.swagger.integration_uri import LambdaUri, IntegrationType
+from samcli.commands.local.lib.swagger.integration_uri import IntegrationType, LambdaUri
 from samcli.local.apigw.local_apigw_service import Route
 
 LOG = logging.getLogger(__name__)

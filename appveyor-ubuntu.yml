@@ -327,7 +327,7 @@ for:
     test_script:
       # Pre-dev Tests
       - "pip install -e \".[pre-dev]\""
-      - "pylint --rcfile .pylintrc samcli"
+      - "ruff samcli"
 
       - "pip install -e \".[dev]\""
       - sh: "pytest -vv tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-local.json"
@@ -342,12 +342,12 @@ for:
     test_script:
       # Pre-dev Tests
       - "pip install -e \".[pre-dev]\""
-      - "pylint --rcfile .pylintrc samcli"
+      - "ruff samcli"
 
       # Dev Tests
       - "pip install -e \".[dev]\""
       - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit --json-report --json-report-file=TEST_REPORT-unit.json"
-      - "pylint --rcfile .pylintrc samcli"
+      - "ruff samcli"
       - "mypy setup.py samcli tests"
       - "pytest -n 4 tests/functional --json-report --json-report-file=TEST_REPORT-functional.json"
       

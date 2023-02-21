@@ -2,20 +2,19 @@
 Helper methods that aid interactions within docker containers.
 """
 
-import os
-import platform
-import re
-import random
 import logging
-import posixpath
+import os
 import pathlib
+import platform
+import posixpath
+import random
+import re
 import socket
 
 import docker
 import requests
 
 from samcli.lib.utils.architecture import ARM64, validate_architecture
-
 from samcli.local.docker.exceptions import NoFreePortsError
 
 LOG = logging.getLogger(__name__)
