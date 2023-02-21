@@ -1,3 +1,4 @@
+import platform
 import time
 import signal
 
@@ -956,7 +957,7 @@ class TestInitCommand(InitIntegBase):
         time.sleep(self.BINARY_READY_WAIT_TIME)
 
         # Send SIGINT signal
-        process_execute.send_signal(signal.SIGINT)
+        process_execute.send_signal(signal.CTRL_C_EVENT if platform.system().lower() == "windows" else signal.SIGINT)
         process_execute.wait()
         # Process should exit gracefully with an exit code of 1.
         self.assertEqual(process_execute.returncode, 1)
