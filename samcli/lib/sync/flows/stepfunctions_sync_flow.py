@@ -1,18 +1,16 @@
 """Base SyncFlow for StepFunctions"""
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-
-from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIdentifier
-from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall, get_definition_path
-from samcli.lib.sync.exceptions import InfraSyncRequiredError
 from samcli.lib.providers.exceptions import MissingLocalDefinition
-
+from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_by_id
+from samcli.lib.sync.exceptions import InfraSyncRequiredError
+from samcli.lib.sync.sync_flow import ResourceAPICall, SyncFlow, get_definition_path
 
 if TYPE_CHECKING:  # pragma: no cover
-    from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
+    from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)

@@ -1,30 +1,27 @@
 """Executor for SyncFlows"""
 import logging
 import time
-
-from queue import Queue
-from typing import Callable, List, Optional, Set
+from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
-
+from queue import Queue
 from threading import RLock
-from concurrent.futures import ThreadPoolExecutor, Future
+from typing import Callable, List, Optional, Set
 
 from botocore.exceptions import ClientError
-from samcli.lib.telemetry.event import EventName, EventTracker, EventType
 
-from samcli.lib.utils.colors import Colored
 from samcli.lib.providers.exceptions import MissingLocalDefinition
 from samcli.lib.sync.exceptions import (
     InfraSyncRequiredError,
+    InvalidRuntimeDefinitionForFunction,
+    MissingFunctionBuildDefinition,
     MissingPhysicalResourceError,
     NoLayerVersionsFoundError,
     SyncFlowException,
-    MissingFunctionBuildDefinition,
-    InvalidRuntimeDefinitionForFunction,
 )
-
-from samcli.lib.utils.lock_distributor import LockDistributor, LockDistributorType
 from samcli.lib.sync.sync_flow import SyncFlow
+from samcli.lib.telemetry.event import EventName, EventTracker, EventType
+from samcli.lib.utils.colors import Colored
+from samcli.lib.utils.lock_distributor import LockDistributor, LockDistributorType
 
 LOG = logging.getLogger(__name__)
 

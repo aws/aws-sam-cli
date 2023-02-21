@@ -1,9 +1,10 @@
 """
     Date type classes for companion stacks
 """
-import re
 import posixpath
+import re
 from typing import Optional
+
 from samcli.lib.utils.hash import str_checksum
 
 

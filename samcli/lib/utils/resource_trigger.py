@@ -1,7 +1,6 @@
 """ResourceTrigger Classes for Creating PathHandlers According to a Resource"""
-import re
 import platform
-
+import re
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
@@ -9,15 +8,14 @@ from typing import Any, Dict, List, Optional, cast
 from typing_extensions import Protocol
 from watchdog.events import FileSystemEvent, RegexMatchingEventHandler
 
-from samcli.lib.providers.exceptions import MissingCodeUri, MissingLocalDefinition, InvalidTemplateFile
+from samcli.lib.providers.exceptions import InvalidTemplateFile, MissingCodeUri, MissingLocalDefinition
 from samcli.lib.providers.provider import Function, LayerVersion, ResourceIdentifier, Stack, get_resource_by_id
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_layer_provider import SamLayerProvider
 from samcli.lib.utils.definition_validator import DefinitionValidator
 from samcli.lib.utils.path_observer import PathHandler
-from samcli.local.lambdafn.exceptions import FunctionNotFound, ResourceNotFound
 from samcli.lib.utils.resources import RESOURCES_WITH_LOCAL_PATHS
-
+from samcli.local.lambdafn.exceptions import FunctionNotFound, ResourceNotFound
 
 AWS_SAM_FOLDER_REGEX = "^.*\\.aws-sam.*$"
 

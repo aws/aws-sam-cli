@@ -1,22 +1,22 @@
 """
 Init command to scaffold a project app from a template
 """
-import logging
 import json
+import logging
 from json import JSONDecodeError
 
 import click
 
-from samcli.cli.cli_config_file import configuration_option, TomlProvider
-from samcli.cli.main import pass_context, common_options, print_cmdline_args
-from samcli.lib.utils.version_checker import check_newer_version
-from samcli.local.common.runtime_template import INIT_RUNTIMES, SUPPORTED_DEP_MANAGERS, LAMBDA_IMAGES_RUNTIMES
-from samcli.lib.telemetry.metric import track_command
-from samcli.commands.init.init_flow_helpers import _get_runtime_from_image, get_architectures, get_sorted_runtimes
+from samcli.cli.cli_config_file import TomlProvider, configuration_option
+from samcli.cli.main import common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.click_mutex import ClickMutex
+from samcli.commands.init.init_flow_helpers import _get_runtime_from_image, get_architectures, get_sorted_runtimes
 from samcli.lib.build.constants import DEPRECATED_RUNTIMES
+from samcli.lib.telemetry.metric import track_command
+from samcli.lib.utils.architecture import ARM64, X86_64
 from samcli.lib.utils.packagetype import IMAGE, ZIP
-from samcli.lib.utils.architecture import X86_64, ARM64
+from samcli.lib.utils.version_checker import check_newer_version
+from samcli.local.common.runtime_template import INIT_RUNTIMES, LAMBDA_IMAGES_RUNTIMES, SUPPORTED_DEP_MANAGERS
 
 LOG = logging.getLogger(__name__)
 
@@ -316,10 +316,10 @@ def do_cli(
     Implementation of the ``cli`` method
     """
 
-    from samcli.commands.init.init_generator import do_generate
-    from samcli.commands.init.interactive_init_flow import do_interactive
-    from samcli.commands.init.init_templates import InitTemplates
     from samcli.commands.exceptions import LambdaImagesTemplateException
+    from samcli.commands.init.init_generator import do_generate
+    from samcli.commands.init.init_templates import InitTemplates
+    from samcli.commands.init.interactive_init_flow import do_interactive
 
     _deprecate_notification(runtime)
 

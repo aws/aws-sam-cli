@@ -3,6 +3,7 @@ Class to publish metrics
 """
 
 import logging
+
 import requests
 
 # Get the preconfigured endpoint URL

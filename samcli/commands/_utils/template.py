@@ -10,16 +10,16 @@ import yaml
 from botocore.utils import set_value_from_jmespath
 
 from samcli.commands.exceptions import UserException
-from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer, ASSET_PATH_METADATA_KEY
-from samcli.lib.utils.packagetype import ZIP, IMAGE
-from samcli.yamlhelper import yaml_parse, yaml_dump
+from samcli.lib.samlib.resource_metadata_normalizer import ASSET_PATH_METADATA_KEY, ResourceMetadataNormalizer
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.resources import (
+    AWS_LAMBDA_FUNCTION,
+    AWS_SERVERLESS_FUNCTION,
     METADATA_WITH_LOCAL_PATHS,
     RESOURCES_WITH_LOCAL_PATHS,
-    AWS_SERVERLESS_FUNCTION,
-    AWS_LAMBDA_FUNCTION,
     get_packageable_resource_paths,
 )
+from samcli.yamlhelper import yaml_dump, yaml_parse
 
 
 class TemplateNotFoundException(UserException):

@@ -4,20 +4,20 @@ Isolates interactive init prompt flow for event bridge.
 
 import click
 
-from samcli.lib.schemas.schemas_cli_message_generator import (
-    construct_cli_display_message_for_schemas,
-    construct_cli_display_message_for_registries,
-)
-from samcli.lib.schemas.schemas_api_caller import SchemasApiCaller
-from samcli.lib.schemas.schemas_aws_config import get_schemas_client, get_aws_configuration_choice
 from samcli.lib.schemas.cli_paginator import do_paginate_cli
+from samcli.lib.schemas.schemas_api_caller import SchemasApiCaller
+from samcli.lib.schemas.schemas_aws_config import get_aws_configuration_choice, get_schemas_client
+from samcli.lib.schemas.schemas_cli_message_generator import (
+    construct_cli_display_message_for_registries,
+    construct_cli_display_message_for_schemas,
+)
 from samcli.lib.schemas.schemas_constants import (
-    SCHEMAS_REGISTRY,
-    SCHEMA_NAME,
     EVENT_BRIDGE_SOURCE,
     EVENT_BRIDGE_SOURCE_DETAIL_TYPE,
     PAGE_LIMIT,
+    SCHEMA_NAME,
     SCHEMA_ROOT,
+    SCHEMAS_REGISTRY,
 )
 
 

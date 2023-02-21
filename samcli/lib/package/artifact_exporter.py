@@ -15,39 +15,39 @@ Exporting resources defined in the cloudformation template to the cloud.
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 import os
-from typing import Dict, Optional, List
+from typing import Dict, List, Optional
 
 from botocore.utils import set_value_from_jmespath
 
-from samcli.lib.providers.provider import get_full_path
-from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
-from samcli.lib.utils.resources import (
-    AWS_SERVERLESS_FUNCTION,
-    AWS_CLOUDFORMATION_STACK,
-    AWS_CLOUDFORMATION_STACKSET,
-    RESOURCES_WITH_LOCAL_PATHS,
-    AWS_SERVERLESS_APPLICATION,
-)
 from samcli.commands.package import exceptions
 from samcli.lib.package.code_signer import CodeSigner
+from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name, mktempfile
 from samcli.lib.package.packageable_resources import (
-    RESOURCES_EXPORT_LIST,
-    METADATA_EXPORT_LIST,
     GLOBAL_EXPORT_DICT,
-    ResourceZip,
+    METADATA_EXPORT_LIST,
+    RESOURCES_EXPORT_LIST,
     ECRResource,
+    ResourceZip,
 )
 from samcli.lib.package.s3_uploader import S3Uploader
-from samcli.lib.package.uploaders import Uploaders, Destination
+from samcli.lib.package.uploaders import Destination, Uploaders
 from samcli.lib.package.utils import (
-    is_local_folder,
-    make_abs_path,
     is_local_file,
+    is_local_folder,
     is_s3_url,
+    make_abs_path,
 )
-from samcli.lib.package.local_files_utils import mktempfile, get_uploaded_s3_object_name
+from samcli.lib.providers.provider import get_full_path
+from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 from samcli.lib.utils.packagetype import ZIP
-from samcli.yamlhelper import yaml_parse, yaml_dump
+from samcli.lib.utils.resources import (
+    AWS_CLOUDFORMATION_STACK,
+    AWS_CLOUDFORMATION_STACKSET,
+    AWS_SERVERLESS_APPLICATION,
+    AWS_SERVERLESS_FUNCTION,
+    RESOURCES_WITH_LOCAL_PATHS,
+)
+from samcli.yamlhelper import yaml_dump, yaml_parse
 
 # NOTE: sriram-mv, A cyclic dependency on `Template` needs to be broken.
 
