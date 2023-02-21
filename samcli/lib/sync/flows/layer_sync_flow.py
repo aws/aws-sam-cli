@@ -20,7 +20,7 @@ from samcli.lib.sync.flows.function_sync_flow import wait_for_function_update_co
 from samcli.lib.sync.sync_flow import ApiCallTypes, ResourceAPICall, SyncFlow
 from samcli.lib.sync.sync_flow_executor import HELP_TEXT_FOR_SYNC_INFRA
 from samcli.lib.utils.colors import Colored
-from samcli.lib.utils.hash import file_checksum
+from samcli.lib.utils.hash import file_checksum, str_checksum
 from samcli.lib.utils.osutils import rmtree_if_exists
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -52,7 +52,6 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
     _layer_identifier: str
     _artifact_folder: Optional[str]
     _zip_file: Optional[str]
-    _local_sha: Optional[str]
 
     def __init__(
         self,
@@ -81,6 +80,16 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
     def set_up(self) -> None:
         super().set_up()
         self._lambda_client = self._boto_client("lambda")
+
+    @property
+    def sync_state_identifier(self) -> str:
+        """
+        Sync state is the unique identifier for each sync flow
+        In sync state toml file we will store
+        Key as LayerSyncFlow:LayerLogicalId
+        Value as layer ZIP hash
+        """
+        return self.__class__.__name__ + ":" + self._layer_identifier
 
     def compare_remote(self) -> bool:
         """
@@ -332,6 +341,16 @@ class FunctionLayerReferenceSync(SyncFlow):
         self._new_layer_version = new_layer_version
         self._color = Colored()
 
+    @property
+    def sync_state_identifier(self) -> str:
+        """
+        Sync state is the unique identifier for each sync flow
+        In sync state toml file we will store
+        Key as FunctionLayerReferenceSync:FunctionLogicalId:LayerArn
+        Value as LayerVersion hash
+        """
+        return self.__class__.__name__ + ":" + self._function_identifier + ":" + self._layer_arn
+
     def set_up(self) -> None:
         super().set_up()
         self._lambda_client = self._boto_client("lambda")
@@ -340,6 +359,7 @@ class FunctionLayerReferenceSync(SyncFlow):
         if not self._new_layer_version:
             LOG.debug("No layer version set for %s, fetching latest one", self._layer_arn)
             self._new_layer_version = get_latest_layer_version(self._lambda_client, self._layer_arn)
+        self._local_sha = str_checksum(str(self._new_layer_version))
 
     def sync(self) -> None:
         """
