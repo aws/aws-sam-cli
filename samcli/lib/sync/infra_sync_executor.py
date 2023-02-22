@@ -3,7 +3,7 @@ InfraSyncExecutor class which runs build, package and deploy contexts
 """
 import logging
 import re
-from typing import Dict, Optional, Set
+from typing import cast, Dict, Optional, Set
 
 from boto3 import Session
 from botocore.exceptions import ClientError
@@ -237,7 +237,7 @@ class InfraSyncExecutor:
                 resource_dict.pop("Metadata", None)
             LOG.debug("Sanitizing the Metadata for resource %s", resource_logical_id)
 
-        return sorted(processed_resources)
+        return cast(Set, sorted(processed_resources))
 
     def _remove_resource_field(
         self,
@@ -270,7 +270,7 @@ class InfraSyncExecutor:
         processed_logical_id = None
 
         if resource_type == AWS_LAMBDA_FUNCTION:
-            for field in LAMBDA_FUNCTION_REMOVAL_MAP.get(resource_type, {}).get("Code", []):  # type: ignore
+            for field in LAMBDA_FUNCTION_REMOVAL_MAP.get(resource_type, {}).get("Code", []):
                 if (
                     is_local_path(resource_dict.get("Properties", {}).get("Code", {}).get(field, None))
                     or resource_logical_id in linked_resources
