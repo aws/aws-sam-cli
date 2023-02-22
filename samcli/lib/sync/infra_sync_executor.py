@@ -3,7 +3,7 @@ InfraSyncExecutor class which runs build, package and deploy contexts
 """
 import logging
 import re
-from typing import Dict, List, Optional, Set, cast
+from typing import Dict, List, Optional, Set
 
 from boto3 import Session
 from botocore.exceptions import ClientError
@@ -77,7 +77,7 @@ class InfraSyncExecutor:
         self._s3_client = self._boto_client("s3")
 
     def _boto_client(self, client_name: str):
-        return get_boto_client_provider_from_session_with_config(cast(Session, self._session))(client_name)
+        return get_boto_client_provider_from_session_with_config(self._session)(client_name)
 
     def _compare_templates(self, local_template_path: str, stack_name: str) -> bool:
         """
