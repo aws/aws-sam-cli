@@ -179,6 +179,8 @@ class TestYaml(TestCase):
         )
 
         output = yaml_parse(input_template)
+        self.assertIsInstance(output["AWSTemplateFormatVersion"], str)
+        self.assertEqual(output["AWSTemplateFormatVersion"], "2010-09-09")
         # Raises a `TypeError` if an unquoted `AWSTemplateFormatVersion` value has been parsed to a
         # `datetime` object and not a string by `yaml_parse` when using `--use-json` argument.
         json.dumps(output)

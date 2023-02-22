@@ -26,6 +26,7 @@ from samtranslator.utils.py27hash_fix import Py27Dict, Py27UniStr
 from yaml.nodes import ScalarNode, SequenceNode
 
 TAG_STR = "tag:yaml.org,2002:str"
+TIMESTAMP_TAG = "tag:yaml.org,2002:timestamp"
 
 
 def string_representer(dumper, value):
@@ -119,7 +120,7 @@ def yaml_parse(yamlstr) -> Dict:
         return cast(Dict, json.loads(yamlstr, object_pairs_hook=OrderedDict))
     except ValueError:
         yaml.constructor.SafeConstructor.yaml_constructors[
-            "tag:yaml.org,2002:timestamp"
+            TIMESTAMP_TAG
         ] = yaml.constructor.SafeConstructor.yaml_constructors[TAG_STR]
         yaml.SafeLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _dict_constructor)
         yaml.SafeLoader.add_multi_constructor("!", intrinsics_multi_constructor)
