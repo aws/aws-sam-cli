@@ -313,7 +313,6 @@ def do_cli(
                 use_json=False,
                 force_upload=True,
             ) as package_context:
-
                 # 500ms of sleep time between stack checks and describe stack events.
                 DEFAULT_POLL_DELAY = 0.5
                 try:

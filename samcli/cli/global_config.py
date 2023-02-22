@@ -143,6 +143,7 @@ class GlobalConfig(metaclass=Singleton):
         return Path(self.config_dir, self.config_filename)
 
     T = TypeVar("T")
+
     # Overloads are only used for type hinting.
     # Overload for case where is_flag is set
     @overload

@@ -73,7 +73,6 @@ class SwaggerParser:
 
         for full_path, path_config in paths_dict.items():
             for method, method_config in path_config.items():
-
                 function_name = self._get_integration_function_name(method_config)
                 if not function_name:
                     LOG.debug(

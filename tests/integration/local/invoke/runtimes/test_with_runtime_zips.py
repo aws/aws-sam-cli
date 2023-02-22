@@ -22,7 +22,6 @@ class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
     template = Path("runtimes", "template.yaml")
 
     def setUp(self):
-
         # Don't delete on close. Need the file to be present for tests to run.
         events_file = tempfile.NamedTemporaryFile(delete=False)
         events_file.write(b'"yolo"')  # Just empty event

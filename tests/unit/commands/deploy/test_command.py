@@ -21,7 +21,6 @@ MOCK_SAM_CONFIG = get_mock_sam_config()
 
 class TestDeployCliCommand(TestCase):
     def setUp(self):
-
         self.template_file = "input-template-file"
         self.stack_name = "stack-name"
         self.s3_bucket = "s3-bucket"
@@ -71,7 +70,6 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.deploy.command.click")
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
     def test_all_args(self, mock_deploy_context, mock_deploy_click, mock_package_context, mock_package_click):
-
         context_mock = Mock()
         mock_deploy_context.return_value.__enter__.return_value = context_mock
 
@@ -130,7 +128,7 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             use_changeset=self.use_changeset,
             disable_rollback=self.disable_rollback,
-            poll_delay=os.getenv('SAM_CLI_POLL_DELAY'),
+            poll_delay=os.getenv("SAM_CLI_POLL_DELAY"),
             on_failure=self.on_failure,
         )
 
@@ -727,7 +725,6 @@ class TestDeployCliCommand(TestCase):
         mock_signer_config_per_function.return_value = ({}, {})
 
         with patch.object(GuidedConfig, "save_config", MagicMock(return_value=False)) as mock_save_config:
-
             do_cli(
                 template_file=self.template_file,
                 stack_name=self.stack_name,

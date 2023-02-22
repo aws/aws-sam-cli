@@ -178,7 +178,6 @@ class TestGuidedContext(TestCase):
         patched_prompt,
         get_resource_full_path_by_id_mock,
     ):
-
         patched_signer_config_per_function.return_value = (None, None)
         patched_tag_translation.return_value = "helloworld-123456-v1"
         function_mock = MagicMock()

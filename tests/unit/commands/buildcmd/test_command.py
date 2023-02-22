@@ -12,7 +12,6 @@ class TestDoCli(TestCase):
     @patch("samcli.commands.build.build_context.BuildContext")
     @patch("samcli.commands.build.command.os")
     def test_must_succeed_build(self, os_mock, BuildContextMock, mock_build_click):
-
         ctx_mock = Mock()
         BuildContextMock.return_value.__enter__.return_value = ctx_mock
 
@@ -69,7 +68,6 @@ class TestDoCli(TestCase):
     @patch("samcli.commands.build.command.is_experimental_enabled")
     @patch("samcli.commands.build.build_context.BuildContext")
     def test_build_exits_supplied_hook_name(self, BuildContextMock, is_experimental_enabled_mock):
-
         ctx_mock = Mock()
         BuildContextMock.return_value.__enter__.return_value = ctx_mock
         is_experimental_enabled_mock.return_value = False
@@ -111,20 +109,17 @@ class TestGetModeValueFromEnvvar(TestCase):
         os.environ = self.original
 
     def test_must_get_value(self):
-
         os.environ[self.varname] = "A"
         result = _get_mode_value_from_envvar(self.varname, self.choices)
 
         self.assertEqual(result, "A")
 
     def test_must_raise_if_value_not_in_choice(self):
-
         os.environ[self.varname] = "Z"
 
         with self.assertRaises(click.UsageError):
             _get_mode_value_from_envvar(self.varname, self.choices)
 
     def test_return_none_if_value_not_found(self):
-
         result = _get_mode_value_from_envvar(self.varname, self.choices)
         self.assertIsNone(result)

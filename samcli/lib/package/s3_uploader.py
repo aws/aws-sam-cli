@@ -88,7 +88,6 @@ class S3Uploader:
             return self.make_url(remote_path)
 
         try:
-
             # Default to regular server-side encryption unless customer has
             # specified their own KMS keys
             additional_args = {"ServerSideEncryption": "AES256"}
@@ -248,7 +247,6 @@ class S3Uploader:
         version_property: Optional[str] = None,
     ) -> Dict:
         if isinstance(url, str) and url.startswith("s3://"):
-
             return S3Uploader._parse_s3_format_url(
                 url=url,
                 bucket_name_property=bucket_name_property,
@@ -324,7 +322,6 @@ class ProgressPercentage:
         self._lock = threading.Lock()
 
     def on_progress(self, bytes_transferred, **kwargs):
-
         # To simplify we'll assume this is hooked up
         # to a single filename.
         with self._lock:

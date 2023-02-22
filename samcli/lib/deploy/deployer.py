@@ -313,7 +313,6 @@ class Deployer:
         try:
             waiter.wait(ChangeSetName=changeset_id, StackName=stack_name, WaiterConfig=waiter_config)
         except botocore.exceptions.WaiterError as ex:
-
             resp = ex.last_response
             status = resp["Status"]
             reason = resp["StatusReason"]
