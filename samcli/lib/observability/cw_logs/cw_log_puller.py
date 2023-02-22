@@ -4,13 +4,13 @@ CloudWatch log event puller implementation
 import logging
 import time
 from datetime import datetime
-from typing import Optional, Any, List, Union, Dict
+from typing import Any, Dict, List, Optional, Union
 
 from botocore.exceptions import ClientError
 
 from samcli.lib.observability.cw_logs.cw_log_event import CWLogEvent
-from samcli.lib.observability.observability_info_puller import ObservabilityPuller, ObservabilityEventConsumer
-from samcli.lib.utils.time import to_timestamp, to_datetime
+from samcli.lib.observability.observability_info_puller import ObservabilityEventConsumer, ObservabilityPuller
+from samcli.lib.utils.time import to_datetime, to_timestamp
 
 LOG = logging.getLogger(__name__)
 

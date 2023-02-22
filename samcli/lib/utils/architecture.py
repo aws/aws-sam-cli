@@ -1,7 +1,7 @@
 """
 Architecture tools
 """
-from typing import Dict, List, cast, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, List, cast
 
 from samcli.commands.exceptions import UserException
 from samcli.commands.local.lib.exceptions import UnsupportedRuntimeArchitectureError

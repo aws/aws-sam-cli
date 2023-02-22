@@ -16,17 +16,17 @@ from samtranslator.model import ResourceTypeResolver, sam_resources
 # SAM Translator Library Internal module imports #
 from samtranslator.model.exceptions import (
     InvalidDocumentException,
-    InvalidTemplateException,
-    InvalidResourceException,
     InvalidEventException,
+    InvalidResourceException,
+    InvalidTemplateException,
 )
-from samtranslator.model.types import IS_STR
 from samtranslator.plugins import LifeCycleEvents
 from samtranslator.sdk.resource import SamResource, SamResourceType
 from samtranslator.translator.translator import prepare_plugins
 from samtranslator.validator.validator import SamTemplateValidator
 
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+
 from .local_uri_plugin import SupportLocalUriPlugin
 
 
@@ -92,7 +92,7 @@ class SamTranslatorWrapper:
 
             def patched_func(self):
                 if self.condition:
-                    if not IS_STR(self.condition, should_raise=False):
+                    if not isinstance(self.condition, str):
                         raise InvalidDocumentException(
                             [InvalidTemplateException("Every Condition member must be a string.")]
                         )

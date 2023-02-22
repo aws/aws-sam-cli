@@ -1,0 +1,13 @@
+{
+  "name": "npmdeps",
+  "version": "1.0.0",
+  "description": "",
+  "keywords": [],
+  "author": "",
+  "license": "APACHE2.0",
+  "main": "main.js",
+  "dependencies": {
+    "esbuild": "^0.14.14",
+    "local-dependency": "file:../Node"
+  }
+}

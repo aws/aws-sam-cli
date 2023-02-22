@@ -39,6 +39,7 @@ from .build_integ_base import (
     BuildIntegPythonBase,
     BuildIntegJavaBase,
     BuildIntegEsbuildBase,
+    BuildIntegRustBase,
 )
 
 LOG = logging.getLogger(__name__)
@@ -513,7 +514,7 @@ class TestBuildCommand_NodeFunctions(BuildIntegNodeBase):
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
-    template = "template_with_metadata.yaml"
+    template = "template_with_metadata_esbuild.yaml"
 
     @parameterized.expand(
         [

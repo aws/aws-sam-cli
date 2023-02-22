@@ -3,18 +3,18 @@ Read and parse CLI args for the Logs Command and setup the context for running t
 """
 
 import logging
-from typing import List, Optional, Set, Any, Dict
+from typing import Any, Dict, List, Optional, Set
 
-from samcli.lib.utils.resources import (
-    AWS_LAMBDA_FUNCTION,
-    AWS_APIGATEWAY_RESTAPI,
-    AWS_APIGATEWAY_V2_API,
-    AWS_STEPFUNCTIONS_STATEMACHINE,
-)
 from samcli.commands.exceptions import UserException
 from samcli.lib.utils.boto_utils import BotoProviderType
-from samcli.lib.utils.cloudformation import get_resource_summaries, CloudFormationResourceSummary
-from samcli.lib.utils.time import to_utc, parse_date
+from samcli.lib.utils.cloudformation import CloudFormationResourceSummary, get_resource_summaries
+from samcli.lib.utils.resources import (
+    AWS_APIGATEWAY_RESTAPI,
+    AWS_APIGATEWAY_V2_API,
+    AWS_LAMBDA_FUNCTION,
+    AWS_STEPFUNCTIONS_STATEMACHINE,
+)
+from samcli.lib.utils.time import parse_date, to_utc
 
 LOG = logging.getLogger(__name__)
 

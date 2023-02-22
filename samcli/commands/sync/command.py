@@ -1,61 +1,62 @@
 """CLI command for "sync" command."""
-import os
 import logging
-from typing import List, Set, TYPE_CHECKING, Optional, Tuple
+import os
+from typing import TYPE_CHECKING, List, Optional, Set, Tuple
 
 import click
 
-from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
+from samcli.cli.cli_config_file import TomlProvider, configuration_option
+from samcli.cli.context import Context
+from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
+from samcli.cli.main import common_options as cli_framework_options
 from samcli.commands._utils.cdk_support_decorators import unsupported_command_cdk
-from samcli.commands._utils.options import (
-    s3_bucket_option,
-    template_option_without_build,
-    parameter_override_option,
-    capabilities_option,
-    metadata_option,
-    notification_arns_option,
-    tags_option,
-    stack_name_option,
-    base_dir_option,
-    use_container_build_option,
-    image_repository_option,
-    image_repositories_option,
-    s3_prefix_option,
-    kms_key_id_option,
-    role_arn_option,
-)
+from samcli.commands._utils.click_mutex import ClickMutex
 from samcli.commands._utils.constants import (
     DEFAULT_BUILD_DIR,
     DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
     DEFAULT_CACHE_DIR,
 )
-from samcli.cli.cli_config_file import configuration_option, TomlProvider
-from samcli.commands._utils.click_mutex import ClickMutex
-from samcli.lib.telemetry.event import EventTracker, track_long_event
-from samcli.commands.sync.sync_context import SyncContext
-from samcli.lib.build.bundler import EsbuildBundlerManager
-from samcli.lib.utils.colors import Colored
-from samcli.lib.utils.version_checker import check_newer_version
-from samcli.lib.bootstrap.bootstrap import manage_stack
-from samcli.lib.cli_validation.image_repository_validation import image_repository_validation
-from samcli.lib.telemetry.metric import track_command, track_template_warnings
-from samcli.lib.warnings.sam_cli_warning import CodeDeployWarning, CodeDeployConditionWarning
+from samcli.commands._utils.options import (
+    base_dir_option,
+    capabilities_option,
+    image_repositories_option,
+    image_repository_option,
+    kms_key_id_option,
+    metadata_option,
+    notification_arns_option,
+    parameter_override_option,
+    role_arn_option,
+    s3_bucket_option,
+    s3_prefix_option,
+    stack_name_option,
+    tags_option,
+    template_option_without_build,
+    use_container_build_option,
+)
 from samcli.commands.build.command import _get_mode_value_from_envvar
-from samcli.lib.sync.sync_flow_factory import SyncCodeResources, SyncFlowFactory
-from samcli.lib.sync.sync_flow_executor import SyncFlowExecutor
-from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+from samcli.commands.sync.sync_context import SyncContext
+from samcli.lib.bootstrap.bootstrap import manage_stack
+from samcli.lib.build.bundler import EsbuildBundlerManager
+from samcli.lib.cli_validation.image_repository_validation import image_repository_validation
 from samcli.lib.providers.provider import (
     ResourceIdentifier,
     get_all_resource_ids,
     get_unique_resource_ids,
 )
-from samcli.cli.context import Context
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+from samcli.lib.sync.sync_flow_executor import SyncFlowExecutor
+from samcli.lib.sync.sync_flow_factory import SyncCodeResources, SyncFlowFactory
 from samcli.lib.sync.watch_manager import WatchManager
+from samcli.lib.telemetry.event import EventTracker, track_long_event
+from samcli.lib.telemetry.metric import track_command, track_template_warnings
+from samcli.lib.utils.colors import Colored
+from samcli.lib.utils.version_checker import check_newer_version
+from samcli.lib.warnings.sam_cli_warning import CodeDeployConditionWarning, CodeDeployWarning
 
 if TYPE_CHECKING:  # pragma: no cover
+    from samcli.commands.build.build_context import BuildContext
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.package.package_context import PackageContext
-    from samcli.commands.build.build_context import BuildContext
 
 LOG = logging.getLogger(__name__)
 
@@ -246,10 +247,10 @@ def do_cli(
     Implementation of the ``cli`` method
     """
     from samcli.cli.global_config import GlobalConfig
-    from samcli.lib.utils import osutils
     from samcli.commands.build.build_context import BuildContext
-    from samcli.commands.package.package_context import PackageContext
     from samcli.commands.deploy.deploy_context import DeployContext
+    from samcli.commands.package.package_context import PackageContext
+    from samcli.lib.utils import osutils
 
     global_config = GlobalConfig()
     if not global_config.is_accelerate_opt_in_stack(template_file, stack_name):
@@ -348,14 +349,28 @@ def do_cli(
                     poll_delay=poll_delay,
                     on_failure=None,
                 ) as deploy_context:
-                    with SyncContext(dependency_layer, build_context.build_dir, build_context.cache_dir):
+                    with SyncContext(
+                        dependency_layer, build_context.build_dir, build_context.cache_dir
+                    ) as sync_context:
                         if watch:
                             execute_watch(
-                                template_file, build_context, package_context, deploy_context, dependency_layer, code
+                                template_file,
+                                build_context,
+                                package_context,
+                                deploy_context,
+                                sync_context,
+                                dependency_layer,
+                                code,
                             )
                         elif code:
                             execute_code_sync(
-                                template_file, build_context, deploy_context, resource_id, resource, dependency_layer
+                                template_file,
+                                build_context,
+                                deploy_context,
+                                sync_context,
+                                resource_id,
+                                resource,
+                                dependency_layer,
                             )
                         else:
                             execute_infra_contexts(build_context, package_context, deploy_context)
@@ -389,6 +404,7 @@ def execute_code_sync(
     template: str,
     build_context: "BuildContext",
     deploy_context: "DeployContext",
+    sync_context: "SyncContext",
     resource_ids: Optional[Tuple[str]],
     resource_types: Optional[Tuple[str]],
     auto_dependency_layer: bool,
@@ -403,6 +419,8 @@ def execute_code_sync(
         BuildContext
     deploy_context : DeployContext
         DeployContext
+    sync_context: SyncContext
+        SyncContext object that obtains sync information.
     resource_ids : List[str]
         List of resource IDs to be synced.
     resource_types : List[str]
@@ -411,7 +429,7 @@ def execute_code_sync(
         Boolean flag to whether enable certain sync flows for auto dependency layer feature
     """
     stacks = SamLocalStackProvider.get_stacks(template)[0]
-    factory = SyncFlowFactory(build_context, deploy_context, stacks, auto_dependency_layer)
+    factory = SyncFlowFactory(build_context, deploy_context, sync_context, stacks, auto_dependency_layer)
     factory.load_physical_id_mapping()
     executor = SyncFlowExecutor()
 
@@ -435,6 +453,7 @@ def execute_watch(
     build_context: "BuildContext",
     package_context: "PackageContext",
     deploy_context: "DeployContext",
+    sync_context: "SyncContext",
     auto_dependency_layer: bool,
     skip_infra_syncs: bool,
 ):
@@ -450,9 +469,15 @@ def execute_watch(
         PackageContext
     deploy_context : DeployContext
         DeployContext
+    sync_context: SyncContext
+        SyncContext object that obtains sync information.
+    auto_dependency_layer: bool
+        Boolean flag to whether enable certain sync flows for auto dependency layer feature.
+    skip_infra_syncs: bool
+        Boolean flag to determine if only ececute code syncs.
     """
     watch_manager = WatchManager(
-        template, build_context, package_context, deploy_context, auto_dependency_layer, skip_infra_syncs
+        template, build_context, package_context, deploy_context, sync_context, auto_dependency_layer, skip_infra_syncs
     )
     watch_manager.start()
 

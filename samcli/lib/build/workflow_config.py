@@ -18,6 +18,7 @@ from samcli.lib.build.workflows import (
     GO_MOD_CONFIG,
     PROVIDED_MAKE_CONFIG,
     NODEJS_NPM_ESBUILD_CONFIG,
+    RUST_CARGO_LAMBDA_CONFIG,
 )
 from samcli.lib.telemetry.event import EventTracker
 
@@ -143,6 +144,7 @@ def get_workflow_config(
     selectors_by_build_method = {
         "makefile": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG),
         "dotnet7": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
+        "rust-cargolambda": BasicWorkflowSelector(RUST_CARGO_LAMBDA_CONFIG),
     }
 
     selectors_by_runtime = {

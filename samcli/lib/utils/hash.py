@@ -1,9 +1,9 @@
 """
 Hash calculation utilities for files and directories.
 """
-import os
 import hashlib
-from typing import Any, cast, List, Optional
+import os
+from typing import Any, List, Optional, cast
 
 BLOCK_SIZE = 4096
 

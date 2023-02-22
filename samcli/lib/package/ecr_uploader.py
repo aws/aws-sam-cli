@@ -1,22 +1,21 @@
 """
 Client for uploading packaged artifacts to ecr
 """
-import logging
 import base64
 import io
-
+import logging
 from typing import Dict
-import click
-import botocore
-import docker
 
-from docker.errors import BuildError, APIError
+import botocore
+import click
+import docker
+from docker.errors import APIError, BuildError
 
 from samcli.commands.package.exceptions import (
-    DockerPushFailedError,
-    DockerLoginFailedError,
-    ECRAuthorizationError,
     DeleteArtifactFailedError,
+    DockerLoginFailedError,
+    DockerPushFailedError,
+    ECRAuthorizationError,
 )
 from samcli.lib.docker.log_streamer import LogStreamer, LogStreamError
 from samcli.lib.package.image_utils import tag_translation

@@ -4,13 +4,12 @@ Sets up the cli for stack-outputs
 
 import click
 
-from samcli.cli.cli_config_file import configuration_option, TomlProvider
+from samcli.cli.cli_config_file import TomlProvider, configuration_option
+from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.commands.list.cli_common.options import output_option
-from samcli.cli.main import pass_context, common_options, aws_creds_options, print_cmdline_args
-from samcli.lib.utils.version_checker import check_newer_version
 from samcli.lib.telemetry.metric import track_command
-
+from samcli.lib.utils.version_checker import check_newer_version
 
 HELP_TEXT = """
 Get the stack outputs as defined in the SAM/CloudFormation template.

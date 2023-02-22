@@ -12,33 +12,33 @@ from samcli.commands._utils.cdk_support_decorators import unsupported_command_cd
 from samcli.commands._utils.click_mutex import ClickMutex
 from samcli.commands._utils.options import (
     capabilities_option,
+    force_upload_option,
     guided_deploy_stack_name,
+    image_repositories_option,
+    image_repository_option,
+    kms_key_id_option,
     metadata_option,
+    no_progressbar_option,
     notification_arns_option,
     parameter_override_option,
-    no_progressbar_option,
-    tags_option,
-    template_click_option,
-    signing_profiles_option,
-    stack_name_option,
-    s3_bucket_option,
-    image_repository_option,
-    image_repositories_option,
-    s3_prefix_option,
-    kms_key_id_option,
-    use_json_option,
-    force_upload_option,
+    resolve_image_repos_option,
     resolve_s3_option,
     role_arn_option,
-    resolve_image_repos_option,
+    s3_bucket_option,
+    s3_prefix_option,
+    signing_profiles_option,
+    stack_name_option,
+    tags_option,
+    template_click_option,
+    use_json_option,
 )
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
-from samcli.lib.telemetry.metric import track_command
-from samcli.lib.cli_validation.image_repository_validation import image_repository_validation
-from samcli.lib.utils import osutils
 from samcli.lib.bootstrap.bootstrap import manage_stack
-from samcli.lib.utils.version_checker import check_newer_version
 from samcli.lib.bootstrap.companion_stack.companion_stack_manager import sync_ecr_stack
+from samcli.lib.cli_validation.image_repository_validation import image_repository_validation
+from samcli.lib.telemetry.metric import track_command
+from samcli.lib.utils import osutils
+from samcli.lib.utils.version_checker import check_newer_version
 
 SHORT_HELP = "Deploy an AWS SAM application."
 
@@ -256,10 +256,10 @@ def do_cli(
     """
     Implementation of the ``cli`` method
     """
-    from samcli.commands.package.package_context import PackageContext
     from samcli.commands.deploy.deploy_context import DeployContext
-    from samcli.commands.deploy.guided_context import GuidedContext
     from samcli.commands.deploy.exceptions import DeployResolveS3AndS3SetError
+    from samcli.commands.deploy.guided_context import GuidedContext
+    from samcli.commands.package.package_context import PackageContext
 
     if guided:
         # Allow for a guided deploy to prompt and save those details.

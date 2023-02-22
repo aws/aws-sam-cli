@@ -1,7 +1,7 @@
 """ Contains the data types used in the TF prepare hook"""
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, List, Union, Optional, Dict, Callable
+from typing import Any, Callable, Dict, List, Optional, Union
 
 
 @dataclass

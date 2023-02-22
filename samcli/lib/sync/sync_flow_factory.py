@@ -1,51 +1,51 @@
 """SyncFlow Factory for creating SyncFlows based on resource types"""
 import logging
-from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, cast
 
 from botocore.exceptions import ClientError
 
+from samcli.commands.build.build_context import BuildContext
 from samcli.commands.exceptions import InvalidStackNameException
 from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NestedStackManager
 from samcli.lib.package.utils import is_local_folder, is_zip_file
-from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIdentifier
+from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_by_id
 from samcli.lib.sync.flows.auto_dependency_layer_sync_flow import AutoDependencyLayerParentSyncFlow
+from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow
+from samcli.lib.sync.flows.http_api_sync_flow import HttpApiSyncFlow
+from samcli.lib.sync.flows.image_function_sync_flow import ImageFunctionSyncFlow
 from samcli.lib.sync.flows.layer_sync_flow import (
     LayerSyncFlow,
     LayerSyncFlowSkipBuildDirectory,
     LayerSyncFlowSkipBuildZipFile,
 )
-from samcli.lib.utils.packagetype import ZIP, IMAGE
-from samcli.lib.utils.resource_type_based_factory import ResourceTypeBasedFactory
-
-from samcli.lib.sync.sync_flow import SyncFlow
-from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow
-from samcli.lib.sync.flows.zip_function_sync_flow import ZipFunctionSyncFlow
-from samcli.lib.sync.flows.image_function_sync_flow import ImageFunctionSyncFlow
 from samcli.lib.sync.flows.rest_api_sync_flow import RestApiSyncFlow
-from samcli.lib.sync.flows.http_api_sync_flow import HttpApiSyncFlow
 from samcli.lib.sync.flows.stepfunctions_sync_flow import StepFunctionsSyncFlow
+from samcli.lib.sync.flows.zip_function_sync_flow import ZipFunctionSyncFlow
+from samcli.lib.sync.sync_flow import SyncFlow
 from samcli.lib.utils.boto_utils import (
-    get_boto_resource_provider_with_config,
     get_boto_client_provider_with_config,
+    get_boto_resource_provider_with_config,
     get_client_error_code,
 )
 from samcli.lib.utils.cloudformation import get_resource_summaries
+from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.lib.utils.resource_type_based_factory import ResourceTypeBasedFactory
 from samcli.lib.utils.resources import (
-    AWS_SERVERLESS_FUNCTION,
+    AWS_APIGATEWAY_RESTAPI,
+    AWS_APIGATEWAY_V2_API,
     AWS_LAMBDA_FUNCTION,
-    AWS_SERVERLESS_LAYERVERSION,
     AWS_LAMBDA_LAYERVERSION,
     AWS_SERVERLESS_API,
-    AWS_APIGATEWAY_RESTAPI,
+    AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_HTTPAPI,
-    AWS_APIGATEWAY_V2_API,
+    AWS_SERVERLESS_LAYERVERSION,
     AWS_SERVERLESS_STATEMACHINE,
     AWS_STEPFUNCTIONS_STATEMACHINE,
 )
-from samcli.commands.build.build_context import BuildContext
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
+    from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)
 
@@ -86,6 +86,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
 
     _deploy_context: "DeployContext"
     _build_context: "BuildContext"
+    _sync_context: "SyncContext"
     _physical_id_mapping: Dict[str, str]
     _auto_dependency_layer: bool
 
@@ -93,6 +94,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
         self,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         stacks: List[Stack],
         auto_dependency_layer: bool,
     ) -> None:
@@ -103,12 +105,15 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
             BuildContext to be passed into each individual SyncFlow
         deploy_context : DeployContext
             DeployContext to be passed into each individual SyncFlow
+        sync_context: SyncContext
+            SyncContext object that obtains sync information.
         stacks : List[Stack]
             List of stacks containing a root stack and optional nested ones
         """
         super().__init__(stacks)
         self._deploy_context = deploy_context
         self._build_context = build_context
+        self._sync_context = sync_context
         self._auto_dependency_layer = auto_dependency_layer
         self._physical_id_mapping = dict()
 
@@ -154,6 +159,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                     str(resource_identifier),
                     self._build_context,
                     self._deploy_context,
+                    self._sync_context,
                     self._physical_id_mapping,
                     self._stacks,
                 )
@@ -162,6 +168,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                 str(resource_identifier),
                 self._build_context,
                 self._deploy_context,
+                self._sync_context,
                 self._physical_id_mapping,
                 self._stacks,
             )
@@ -170,6 +177,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                 str(resource_identifier),
                 self._build_context,
                 self._deploy_context,
+                self._sync_context,
                 self._physical_id_mapping,
                 self._stacks,
             )
@@ -188,6 +196,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                 str(resource_identifier),
                 self._build_context,
                 self._deploy_context,
+                self._sync_context,
                 self._physical_id_mapping,
                 self._stacks,
             )
@@ -198,6 +207,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                 str(resource_identifier),
                 self._build_context,
                 self._deploy_context,
+                self._sync_context,
                 self._physical_id_mapping,
                 self._stacks,
             )
@@ -208,6 +218,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                 str(resource_identifier),
                 self._build_context,
                 self._deploy_context,
+                self._sync_context,
                 self._physical_id_mapping,
                 self._stacks,
             )
@@ -220,6 +231,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
             str(resource_identifier),
             self._build_context,
             self._deploy_context,
+            self._sync_context,
             self._physical_id_mapping,
             self._stacks,
         )
@@ -229,6 +241,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
             str(resource_identifier),
             self._build_context,
             self._deploy_context,
+            self._sync_context,
             self._physical_id_mapping,
             self._stacks,
         )
@@ -240,6 +253,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
             str(resource_identifier),
             self._build_context,
             self._deploy_context,
+            self._sync_context,
             self._physical_id_mapping,
             self._stacks,
         )

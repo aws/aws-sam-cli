@@ -1,0 +1,28 @@
+version: 2
+updates:
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: chore
+      include: scope
+    reviewers:
+      - aws/serverless-application-experience-sbt
+
+  - package-ecosystem: "pip"
+    directory: "/requirements"
+    schedule:
+      interval: "weekly"
+    target-branch: "develop"
+    commit-message:
+      prefix: chore
+      include: scope
+    reviewers:
+      -  aws/serverless-application-experience-sbt
+    ignore:
+      # The dependencies are intentionally pinned to certain
+      # version ranges for specific Python versions
+      - dependency-name: "flake8"
+      - dependency-name: "isort"

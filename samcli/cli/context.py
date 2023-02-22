@@ -4,16 +4,17 @@ Context information passed to each CLI command
 
 import logging
 import uuid
-from typing import Optional, cast, List
+from typing import List, Optional, cast
 
 import click
 
+from samcli.cli.formatters import RootCommandHelpTextFormatter
 from samcli.commands.exceptions import CredentialsError
 from samcli.lib.utils.sam_logging import (
     LAMBDA_BULDERS_LOGGER_NAME,
-    SamCliLogger,
     SAM_CLI_FORMATTER_WITH_TIMESTAMP,
     SAM_CLI_LOGGER_NAME,
+    SamCliLogger,
 )
 
 
@@ -31,6 +32,7 @@ class Context:
     """
 
     _session_id: str
+    formatter_class = RootCommandHelpTextFormatter
 
     def __init__(self):
         """

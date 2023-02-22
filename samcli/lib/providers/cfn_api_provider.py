@@ -1,14 +1,12 @@
 """Parses SAM given a template"""
 import logging
-from typing import Any, Dict, Optional, Tuple, List, cast
+from typing import Any, Dict, List, Optional, Tuple, cast
 
-from samcli.commands.local.lib.swagger.integration_uri import LambdaUri
-from samcli.lib.providers.provider import Stack
-from samcli.local.apigw.local_apigw_service import Route
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
-from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
+from samcli.commands.local.lib.swagger.integration_uri import LambdaUri
 from samcli.lib.providers.api_collector import ApiCollector
-
+from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
+from samcli.lib.providers.provider import Stack
 from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_METHOD,
     AWS_APIGATEWAY_RESOURCE,
@@ -19,6 +17,7 @@ from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_V2_ROUTE,
     AWS_APIGATEWAY_V2_STAGE,
 )
+from samcli.local.apigw.local_apigw_service import Route
 
 LOG = logging.getLogger(__name__)
 

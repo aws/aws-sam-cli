@@ -2,26 +2,27 @@
 Class that provides functions from a given SAM template
 """
 import logging
-from typing import Dict, List, Optional, cast, Iterator, Any
+from typing import Any, Dict, Iterator, List, Optional, cast
 
 from samtranslator.policy_template_processor.exceptions import TemplateNotFoundException
 
+from samcli.commands._utils.template import TemplateFailedParsingException
+from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
+from samcli.lib.providers.exceptions import InvalidLayerReference
+from samcli.lib.utils.colors import Colored
+from samcli.lib.utils.file_observer import FileObserver
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_LAYERVERSION,
     AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_LAYERVERSION,
 )
-from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
-from samcli.commands._utils.template import TemplateFailedParsingException
-from samcli.lib.providers.exceptions import InvalidLayerReference
-from samcli.lib.utils.colors import Colored
-from samcli.lib.utils.packagetype import ZIP, IMAGE
-from samcli.lib.utils.file_observer import FileObserver
+
+from ..build.constants import DEPRECATED_RUNTIMES
 from .provider import Function, LayerVersion, Stack
 from .sam_base_provider import SamBaseProvider
 from .sam_stack_provider import SamLocalStackProvider
-from ..build.constants import DEPRECATED_RUNTIMES
 
 LOG = logging.getLogger(__name__)
 
@@ -690,15 +691,17 @@ class SamFunctionProvider(SamBaseProvider):
         # validate if the layer is in the format {"Fn::GetAtt": ["LayerStackName", "Outputs.LayerName"]}
         warn_message = "Fn::GetAtt with unsupported format in accelerate nested stack"
         layer_attribute = layer.get("Fn::GetAtt", [])
+        required_layer_attr_length = 2
+        reqauired_layer_reference_length = 2
         if not isinstance(layer_attribute, List):
             LOG.warning(warn_message)
             return False
 
-        if len(layer_attribute) != 2:
+        if len(layer_attribute) != required_layer_attr_length:
             LOG.warning(warn_message)
             return False
         layer_reference_array = layer_attribute[1].split(".")
-        if len(layer_reference_array) != 2:
+        if len(layer_reference_array) != reqauired_layer_reference_length:
             LOG.warning(warn_message)
             return False
         return True
