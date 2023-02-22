@@ -123,9 +123,8 @@ def generate_project(
 
     except UnknownRepoType as e:
         raise InvalidLocationError(template=params["template"]) from e
-    except CookiecutterException as e:
-        raise GenerateProjectFailedError(project=name, provider_error=e) from e
-
+    except (CookiecutterException, OSError) as e:
+        raise GenerateProjectFailedError(project=name if name else "", provider_error=e) from e
     except TypeError as ex:
         LOG.debug("Error from cookiecutter: %s", ex)
 
