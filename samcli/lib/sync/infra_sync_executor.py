@@ -75,11 +75,11 @@ class InfraSyncExecutor:
         self._package_context = package_context
         self._deploy_context = deploy_context
 
-        self._session = Session(profile_name=self._deploy_context.profile, region_name=self._deploy_context.region)
-        self._cfn_client = self._boto_client("cloudformation")
-        self._s3_client = self._boto_client("s3")
+        session = Session(profile_name=self._deploy_context.profile, region_name=self._deploy_context.region)
+        self._cfn_client = self._boto_client("cloudformation", session)
+        self._s3_client = self._boto_client("s3", session)
 
-    def _boto_client(self, client_name: str):
+    def _boto_client(self, client_name: str, session: Session):
         """
         Creates boto client
 
@@ -87,12 +87,14 @@ class InfraSyncExecutor:
         ----------
         client_name: str
             The name of the client
+        session: boto3.Session
+            The session created using customer config
 
         Returns
         -------
         Service client instance
         """
-        return get_boto_client_provider_from_session_with_config(self._session)(client_name)
+        return get_boto_client_provider_from_session_with_config(session)(client_name)
 
     def _compare_templates(self, local_template_path: str, stack_name: str) -> bool:
         """
@@ -133,6 +135,7 @@ class InfraSyncExecutor:
             current_template = get_template_data(local_template_path)
 
         if not current_template:
+            LOG.debug("Cannot obtain a working current template for template path %s", local_template_path)
             return False
 
         try:
@@ -149,6 +152,7 @@ class InfraSyncExecutor:
         self._remove_unnecessary_fields(last_deployed_template_dict, sanitized_resources)
 
         if last_deployed_template_dict != current_template:
+            LOG.debug("The current template is different from the last deployed version, we will not skip infra sync")
             return False
 
         # The recursive template check for Nested stacks
@@ -177,9 +181,10 @@ class InfraSyncExecutor:
                 ):
                     return False
 
+        LOG.debug("There are no changes from the previously deployed template for %s", local_template_path)
         return True
 
-    def _remove_unnecessary_fields(self, template_dict: Dict, linked_resources: List[str] = []) -> List[str]:
+    def _remove_unnecessary_fields(self, template_dict: Dict, linked_resources: Set[str] = set()) -> Set[str]:
         """
         Fields skipped during template comparison because sync --code can handle the difference:
         * CodeUri or ImageUri property of AWS::Serverless::Function
@@ -232,14 +237,14 @@ class InfraSyncExecutor:
                 resource_dict.pop("Metadata", None)
             LOG.debug("Sanitizing the Metadata for resource %s", resource_logical_id)
 
-        return sorted(list(processed_resources))
+        return sorted(processed_resources)
 
     def _remove_resource_field(
         self,
         resource_logical_id: str,
         resource_type: str,
         resource_dict: Dict,
-        linked_resources: List[str] = [],
+        linked_resources: Set[str] = set(),
     ) -> Optional[str]:
         """
         Helper method to process resource dict
@@ -254,7 +259,7 @@ class InfraSyncExecutor:
             The resource level dict containing Properties field
         processed_resources: set
             The set of already processed resource IDs
-        linked_resources: List[str]
+        linked_resources: Set[str]
             The corresponding resources in the other template that got processed
 
         Returns

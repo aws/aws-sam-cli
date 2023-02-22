@@ -5,7 +5,7 @@ from botocore.exceptions import ClientError
 from parameterized import parameterized
 
 
-class TestSyncFlowExecutor(TestCase):
+class TestInfraSyncExecutor(TestCase):
     def setUp(self):
         self.template_dict = {
             "Resources": {
