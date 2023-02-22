@@ -100,18 +100,23 @@ class SyncFlow(ABC):
 
     def set_up(self) -> None:
         """Clients and other expensives setups should be handled here instead of constructor"""
-        self._session = Session(profile_name=self._deploy_context.profile, region_name=self._deploy_context.region)
+        pass
+
+    def _get_session(self) -> Session:
+        if not self._session:
+            self._session = Session(profile_name=self._deploy_context.profile, region_name=self._deploy_context.region)
+        return self._session
 
     def _boto_client(self, client_name: str):
         default_retry_config = get_default_retry_config()
         if not default_retry_config:
             LOG.debug("Creating boto client (%s) with user's retry config", client_name)
-            return get_boto_client_provider_from_session_with_config(cast(Session, self._session))(client_name)
+            return get_boto_client_provider_from_session_with_config(self._get_session())(client_name)
 
         LOG.debug("Creating boto client (%s) with default retry config", client_name)
-        return get_boto_client_provider_from_session_with_config(
-            cast(Session, self._session), retries=default_retry_config
-        )(client_name)
+        return get_boto_client_provider_from_session_with_config(self._get_session(), retries=default_retry_config)(
+            client_name
+        )
 
     @property
     @abstractmethod

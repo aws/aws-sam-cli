@@ -81,11 +81,23 @@ class TestSyncFlow(TestCase):
 
     @patch("samcli.lib.sync.sync_flow.Session")
     @patch.multiple(SyncFlow, __abstractmethods__=set())
-    def test_set_up(self, session_mock):
+    def test_get_sync_flow(self, session_mock):
         sync_flow = self.create_sync_flow()
-        sync_flow.set_up()
+
+        # get first session object to instantiate it
+        session_object = sync_flow._get_session()
         session_mock.assert_called_once()
         self.assertIsNotNone(sync_flow._session)
+        self.assertIsNotNone(session_object)
+
+        # reset mock between tests
+        session_mock.reset_mock()
+
+        # get session object again which should return previously instantiated one
+        session_object = sync_flow._get_session()
+        session_mock.assert_not_called()
+        self.assertIsNotNone(sync_flow._session)
+        self.assertIsNotNone(session_object)
 
     @parameterized.expand([(None,), (20,)])
     @patch("samcli.lib.sync.sync_flow.get_boto_client_provider_from_session_with_config")
