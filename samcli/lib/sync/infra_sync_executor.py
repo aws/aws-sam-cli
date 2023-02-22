@@ -33,17 +33,20 @@ from samcli.yamlhelper import yaml_parse
 
 LOG = logging.getLogger(__name__)
 
-REMOVAL_MAP = {
-    AWS_SERVERLESS_FUNCTION: {"CodeUri", "ImageUri"},
-    AWS_LAMBDA_FUNCTION: {"Code": {"ImageUri", "S3Bucket", "S3Key", "S3ObjectVersion"}},
-    AWS_SERVERLESS_LAYERVERSION: {"ContentUri"},
-    AWS_LAMBDA_LAYERVERSION: {"Content"},
-    AWS_SERVERLESS_API: {"DefinitionBody"},
-    AWS_APIGATEWAY_RESTAPI: {"BodyS3Location"},
-    AWS_SERVERLESS_HTTPAPI: {"DefinitionUri"},
-    AWS_APIGATEWAY_V2_API: {"BodyS3Location"},
-    AWS_SERVERLESS_STATEMACHINE: {"DefinitionUri"},
-    AWS_STEPFUNCTIONS_STATEMACHINE: {"DefinitionS3Location"},
+GENERAL_REMOVAL_MAP = {
+    AWS_SERVERLESS_FUNCTION: ["CodeUri", "ImageUri"],
+    AWS_SERVERLESS_LAYERVERSION: ["ContentUri"],
+    AWS_LAMBDA_LAYERVERSION: ["Content"],
+    AWS_SERVERLESS_API: ["DefinitionBody"],
+    AWS_APIGATEWAY_RESTAPI: ["BodyS3Location"],
+    AWS_SERVERLESS_HTTPAPI: ["DefinitionUri"],
+    AWS_APIGATEWAY_V2_API: ["BodyS3Location"],
+    AWS_SERVERLESS_STATEMACHINE: ["DefinitionUri"],
+    AWS_STEPFUNCTIONS_STATEMACHINE: ["DefinitionS3Location"],
+}
+
+LAMBDA_FUNCTION_REMOVAL_MAP = {
+    AWS_LAMBDA_FUNCTION: {"Code": ["ImageUri", "S3Bucket", "S3Key", "S3ObjectVersion"]},
 }
 
 
@@ -77,6 +80,18 @@ class InfraSyncExecutor:
         self._s3_client = self._boto_client("s3")
 
     def _boto_client(self, client_name: str):
+        """
+        Creates boto client
+
+        Parameters
+        ----------
+        client_name: str
+            The name of the client
+
+        Returns
+        -------
+        Service client instance
+        """
         return get_boto_client_provider_from_session_with_config(self._session)(client_name)
 
     def _compare_templates(self, local_template_path: str, stack_name: str) -> bool:
@@ -250,7 +265,7 @@ class InfraSyncExecutor:
         processed_logical_id = None
 
         if resource_type == AWS_LAMBDA_FUNCTION:
-            for field in REMOVAL_MAP.get(resource_type, {}).get("Code", []):  # type: ignore
+            for field in LAMBDA_FUNCTION_REMOVAL_MAP.get(resource_type, {}).get("Code", []):  # type: ignore
                 if (
                     is_local_path(resource_dict.get("Properties", {}).get("Code", {}).get(field, None))
                     or resource_logical_id in linked_resources
@@ -258,7 +273,7 @@ class InfraSyncExecutor:
                     resource_dict.get("Properties", {}).get("Code", {}).pop(field, None)
                     processed_logical_id = resource_logical_id
         else:
-            for field in REMOVAL_MAP.get(resource_type, []):
+            for field in GENERAL_REMOVAL_MAP.get(resource_type, []):
                 if (
                     is_local_path(resource_dict.get("Properties", {}).get(field, None))
                     or resource_logical_id in linked_resources
