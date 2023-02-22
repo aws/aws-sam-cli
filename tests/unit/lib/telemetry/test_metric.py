@@ -186,6 +186,7 @@ class TestTrackCommand(TestCase):
             (click.BadArgumentUsage("Wrong argument usage"), "BadArgumentUsage", 1),
             (click.BadParameter("Bad param"), "BadParameter", 1),
             (click.UsageError("UsageError"), "UsageError", 1),
+            (click.Abort("Abort"), "Abort", 1),
         ]
     )
     @patch("samcli.lib.telemetry.metric.Context")

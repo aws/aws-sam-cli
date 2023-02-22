@@ -190,6 +190,32 @@ class TestInit(TestCase):
 
         self.assertEqual(expected_msg, str(ctx.exception))
 
+    @patch("samcli.lib.init.cookiecutter")
+    def test_when_generate_project_with_invalid_zip_location(self, cookiecutter_patch):
+        # INVALID ZIP PATH
+        invalid_zip_path = Path("invalid_dir").joinpath("invalid.zip")
+
+        # GIVEN generate_project fails to create a project
+        ex = OSError(f"No such file or directory: {str(invalid_zip_path)}")
+        cookiecutter_patch.side_effect = ex
+
+        expected_msg = str(GenerateProjectFailedError(project=self.name, provider_error=ex))
+
+        # WHEN the --location is not a valid local zip path
+        # THEN we should receive a GenerateProjectFailedError Exception
+        with self.assertRaises(GenerateProjectFailedError) as ctx:
+            generate_project(
+                location=invalid_zip_path,
+                runtime=self.runtime,
+                package_type=ZIP,
+                dependency_manager=self.dependency_manager,
+                output_dir=self.output_dir,
+                name=self.name,
+                no_input=self.no_input,
+            )
+
+        self.assertEqual(expected_msg, str(ctx.exception))
+
     @patch("samcli.lib.init.DefaultSamconfig")
     @patch("samcli.lib.init.Path.is_file")
     def test_create_default_samconfig(self, is_file_mock, samconfig_mock):
