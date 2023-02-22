@@ -26,7 +26,7 @@ typing_extensions~=4.4.0
 # NOTE: regex is not a direct dependency of SAM CLI, but pin to 2021.9.30 due to 2021.10.8 not working on M1 Mac - https://bitbucket.org/mrabarnett/mrab-regex/issues/399/missing-wheel-for-macosx-and-the-new-m1
 regex==2021.9.30
 # NOTE: tzlocal is not a direct dependency of SAM CLI, but pin to 3.0 as 4.0 break appveyor jobs
-tzlocal==3.0
+tzlocal==4.2
 
 #Adding cfn-lint dependency for SAM validate
 cfn-lint~=0.72

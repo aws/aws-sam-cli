@@ -528,9 +528,9 @@ typing-extensions==4.4.0 \
     #   aws-sam-translator
     #   importlib-metadata
     #   pydantic
-tzlocal==3.0 \
-    --hash=sha256:c736f2540713deb5938d789ca7c3fc25391e9a20803f05b60ec64987cf086559 \
-    --hash=sha256:f4e6e36db50499e0d92f79b67361041f048e2609d166e93456b50746dc4aef12
+tzlocal==4.2 \
+    --hash=sha256:89885494684c929d9191c57aa27502afc87a579be5cdd3225c77c463ea043745 \
+    --hash=sha256:ee5842fa3a795f023514ac2d801c4a81d1743bbe642e3940143326b3a00addd7
     # via
     #   aws-sam-cli (setup.py)
     #   dateparser
