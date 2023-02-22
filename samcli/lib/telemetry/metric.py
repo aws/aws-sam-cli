@@ -143,19 +143,21 @@ def track_command(func):
                 # re-raise here to handle exception captured in context and not run func()
                 raise ctx.exception
 
-            # Execute the function and capture return value. This is returned back by the wrapper
+            # Execute the function and capture return value. This is returned by the wrapper
             # First argument of all commands should be the Context
             return_value = func(*args, **kwargs)
         except (
             UserException,
+            click.Abort,
             click.BadOptionUsage,
             click.BadArgumentUsage,
             click.BadParameter,
             click.UsageError,
         ) as ex:
-            # Capture exception information and re-raise it later so we can first send metrics.
+            # Capture exception information and re-raise it later,
+            # so metrics can be sent.
             exception = ex
-            # TODO (hawflau): review exitcode meaning. We now understand exitcode 1 as errors fixable by users.
+            # NOTE(sriram-mv): Set exit code to 1 if deemed to be user fixable error.
             exit_code = 1
             if hasattr(ex, "wrapped_from") and ex.wrapped_from:
                 exit_reason = ex.wrapped_from
