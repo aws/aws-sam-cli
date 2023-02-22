@@ -436,12 +436,11 @@ class TestSyncFlowExecutor(TestCase):
         local_path_mock.return_value = is_local_path
         infra_sync_executor = InfraSyncExecutor(self.build_context, self.package_context, self.deploy_context)
 
-        processed_resources = set()
-        processed_resources = infra_sync_executor._remove_resource_field(
-            serverless_resource_id, resource_type, resource_dict, processed_resources, linked_resources
+        processed_resource = infra_sync_executor._remove_resource_field(
+            serverless_resource_id, resource_type, resource_dict, linked_resources
         )
 
-        self.assertEqual(sorted(list(processed_resources)), [serverless_resource_id])
+        self.assertEqual(processed_resource, serverless_resource_id)
         self.assertEqual(resource_dict, expected_dict)
 
     @parameterized.expand([(True, []), (False, ["LambdaFunction"])])
@@ -474,10 +473,9 @@ class TestSyncFlowExecutor(TestCase):
         local_path_mock.return_value = is_local_path
         infra_sync_executor = InfraSyncExecutor(self.build_context, self.package_context, self.deploy_context)
 
-        processed_resources = set()
-        processed_resources = infra_sync_executor._remove_resource_field(
-            lambda_resource_id, resource_type, resource_dict, processed_resources, linked_resources
+        processed_resource = infra_sync_executor._remove_resource_field(
+            lambda_resource_id, resource_type, resource_dict, linked_resources
         )
 
-        self.assertEqual(sorted(list(processed_resources)), [lambda_resource_id])
+        self.assertEqual(processed_resource, lambda_resource_id)
         self.assertEqual(resource_dict, expected_dict)

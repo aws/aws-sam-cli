@@ -3,7 +3,7 @@ InfraSyncExecutor class which runs build, package and deploy contexts
 """
 import logging
 import re
-from typing import Dict, List, Set
+from typing import Dict, List, Optional, Set, cast
 
 from boto3 import Session
 from botocore.exceptions import ClientError
@@ -13,12 +13,15 @@ from samcli.commands.build.build_context import BuildContext
 from samcli.commands.deploy.deploy_context import DeployContext
 from samcli.commands.package.package_context import PackageContext
 from samcli.lib.providers.sam_stack_provider import is_local_path
+from samcli.lib.utils.boto_utils import get_boto_client_provider_from_session_with_config
 from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_RESTAPI,
     AWS_APIGATEWAY_V2_API,
+    AWS_CLOUDFORMATION_STACK,
     AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_LAYERVERSION,
     AWS_SERVERLESS_API,
+    AWS_SERVERLESS_APPLICATION,
     AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_HTTPAPI,
     AWS_SERVERLESS_LAYERVERSION,
@@ -31,16 +34,16 @@ from samcli.yamlhelper import yaml_parse
 LOG = logging.getLogger(__name__)
 
 REMOVAL_MAP = {
-    AWS_SERVERLESS_FUNCTION: ["CodeUri", "ImageUri"],
-    AWS_LAMBDA_FUNCTION: {"Code": ["ImageUri", "S3Bucket", "S3Key", "S3ObjectVersion"]},
-    AWS_SERVERLESS_LAYERVERSION: ["ContentUri"],
-    AWS_LAMBDA_LAYERVERSION: ["Content"],
-    AWS_SERVERLESS_API: ["DefinitionBody"],
-    AWS_APIGATEWAY_RESTAPI: ["BodyS3Location"],
-    AWS_SERVERLESS_HTTPAPI: ["DefinitionUri"],
-    AWS_APIGATEWAY_V2_API: ["BodyS3Location"],
-    AWS_SERVERLESS_STATEMACHINE: ["DefinitionUri"],
-    AWS_STEPFUNCTIONS_STATEMACHINE: ["DefinitionS3Location"],
+    AWS_SERVERLESS_FUNCTION: {"CodeUri", "ImageUri"},
+    AWS_LAMBDA_FUNCTION: {"Code": {"ImageUri", "S3Bucket", "S3Key", "S3ObjectVersion"}},
+    AWS_SERVERLESS_LAYERVERSION: {"ContentUri"},
+    AWS_LAMBDA_LAYERVERSION: {"Content"},
+    AWS_SERVERLESS_API: {"DefinitionBody"},
+    AWS_APIGATEWAY_RESTAPI: {"BodyS3Location"},
+    AWS_SERVERLESS_HTTPAPI: {"DefinitionUri"},
+    AWS_APIGATEWAY_V2_API: {"BodyS3Location"},
+    AWS_SERVERLESS_STATEMACHINE: {"DefinitionUri"},
+    AWS_STEPFUNCTIONS_STATEMACHINE: {"DefinitionS3Location"},
 }
 
 
@@ -69,9 +72,12 @@ class InfraSyncExecutor:
         self._package_context = package_context
         self._deploy_context = deploy_context
 
-        session = Session(profile_name=self._deploy_context.profile, region_name=self._deploy_context.region)
-        self._cfn_client = session.client("cloudformation")
-        self._s3_client = session.client("s3")
+        self._session = Session(profile_name=self._deploy_context.profile, region_name=self._deploy_context.region)
+        self._cfn_client = self._boto_client("cloudformation")
+        self._s3_client = self._boto_client("s3")
+
+    def _boto_client(self, client_name: str):
+        return get_boto_client_provider_from_session_with_config(cast(Session, self._session))(client_name)
 
     def _compare_templates(self, local_template_path: str, stack_name: str) -> bool:
         """
@@ -90,65 +96,71 @@ class InfraSyncExecutor:
             Returns True if two templates are identical
             Returns False if two templates are different
         """
-        try:
-            current_template = None
-            # If the customer template uses a nested stack with location/template URL in S3
-            if local_template_path.startswith("https://"):
-                parsed_s3_location = re.search(r"https:\/\/[^/]*\/([^/]*)\/(.*)", local_template_path)
-                if parsed_s3_location:
-                    s3_bucket = parsed_s3_location.group(1)
-                    s3_key = parsed_s3_location.group(2)
+        current_template = None
+        # If the customer template uses a nested stack with location/template URL in S3
+        if local_template_path.startswith("https://"):
+            parsed_s3_location = re.search(r"https:\/\/[^/]*\/([^/]*)\/(.*)", local_template_path)
+            if parsed_s3_location:
+                s3_bucket = parsed_s3_location.group(1)
+                s3_key = parsed_s3_location.group(2)
+                try:
                     s3_object = self._s3_client.get_object(Bucket=s3_bucket, Key=s3_key)
+                except ClientError as ex:
+                    LOG.debug("The provided template location %s can not be found", local_template_path, exc_info=ex)
+                    return False
 
-                    streaming_body = s3_object.get("Body")
-                    if streaming_body:
-                        current_template = yaml_parse(streaming_body.read().decode("utf-8"))
+                streaming_body = s3_object.get("Body")
+                if streaming_body:
+                    current_template = yaml_parse(streaming_body.read().decode("utf-8"))
 
-            # If the template location is local
-            else:
-                current_template = get_template_data(local_template_path)
+        # If the template location is local
+        else:
+            current_template = get_template_data(local_template_path)
 
-            if not current_template:
-                return False
+        if not current_template:
+            return False
 
-            try:
-                last_deployed_template_str = self._cfn_client.get_template(
-                    StackName=stack_name, TemplateStage="Original"
-                ).get("TemplateBody", "")
-            except ClientError as ex:
-                LOG.debug("Stack with name %s does not exist on CloudFormation", stack_name, exc_info=ex)
-                return False
+        try:
+            last_deployed_template_str = self._cfn_client.get_template(
+                StackName=stack_name, TemplateStage="Original"
+            ).get("TemplateBody", "")
+        except ClientError as ex:
+            LOG.debug("Stack with name %s does not exist on CloudFormation", stack_name, exc_info=ex)
+            return False
 
-            last_deployed_template_dict = yaml_parse(last_deployed_template_str)
+        last_deployed_template_dict = yaml_parse(last_deployed_template_str)
 
-            sanitized_resources = self._remove_unnecessary_fields(current_template)
-            self._remove_unnecessary_fields(last_deployed_template_dict, sanitized_resources)
+        sanitized_resources = self._remove_unnecessary_fields(current_template)
+        self._remove_unnecessary_fields(last_deployed_template_dict, sanitized_resources)
 
-            if last_deployed_template_dict != current_template:
-                return False
+        if last_deployed_template_dict != current_template:
+            return False
 
-            # The recursive template check for Nested stacks
-            for resource_logical_id in current_template.get("Resources", {}):
-                resource_dict = current_template.get("Resources", {}).get(resource_logical_id, {})
-                resource_type = resource_dict.get("Type")
-                if resource_type == "AWS::CloudFormation::Stack" or resource_type == "AWS::Serverless::Application":
+        # The recursive template check for Nested stacks
+        for resource_logical_id in current_template.get("Resources", {}):
+            resource_dict = current_template.get("Resources", {}).get(resource_logical_id, {})
+            resource_type = resource_dict.get("Type")
+            if resource_type == AWS_CLOUDFORMATION_STACK or resource_type == AWS_SERVERLESS_APPLICATION:
+                try:
                     stack_resource_detail = self._cfn_client.describe_stack_resource(
                         StackName=stack_name, LogicalResourceId=resource_logical_id
                     )
+                except ClientError as ex:
+                    LOG.debug(
+                        "Cannot get resource detail with name %s on CloudFormation", resource_logical_id, exc_info=ex
+                    )
+                    return False
 
-                    # If the nested stack is of type AWS::CloudFormation::Stack,
-                    # The template location will be under TemplateURL property
-                    # If the nested stack is of type AWS::Serverless::Application,
-                    # the template location will be under Location property
-                    template_field = "TemplateURL" if resource_type == "AWS::CloudFormation::Stack" else "Location"
-                    if not self._compare_templates(
-                        resource_dict.get("Properties", {}).get(template_field),
-                        stack_resource_detail.get("StackResourceDetail", {}).get("PhysicalResourceId", ""),
-                    ):
-                        return False
-        except Exception:
-            LOG.debug("Template comparison with the cloud template failed, not skipping infra sync")
-            return False
+                # If the nested stack is of type AWS::CloudFormation::Stack,
+                # The template location will be under TemplateURL property
+                # If the nested stack is of type AWS::Serverless::Application,
+                # the template location will be under Location property
+                template_field = "TemplateURL" if resource_type == AWS_CLOUDFORMATION_STACK else "Location"
+                if not self._compare_templates(
+                    resource_dict.get("Properties", {}).get(template_field),
+                    stack_resource_detail.get("StackResourceDetail", {}).get("PhysicalResourceId", ""),
+                ):
+                    return False
 
         return True
 
@@ -188,19 +200,22 @@ class InfraSyncExecutor:
             resource_type = resource_dict.get("Type")
 
             if resource_type in SYNCABLE_RESOURCES:
-                processed_resources = self._remove_resource_field(
+                processed_resource = self._remove_resource_field(
                     resource_logical_id,
                     resource_type,
                     resource_dict,
-                    processed_resources,
                     linked_resources,
                 )
+
+                if processed_resource:
+                    LOG.debug("Sanitized %s resource %s", resource_type, resource_logical_id)
+                    processed_resources.add(processed_resource)
 
             # Remove SamResourceId metadata since this metadata does not affect any cloud behaviour
             resource_dict.get("Metadata", {}).pop("SamResourceId", None)
             if not resource_dict.get("Metadata"):
                 resource_dict.pop("Metadata", None)
-            LOG.debug(f"Sanitizing the Metadata for resource {resource_logical_id}")
+            LOG.debug("Sanitizing the Metadata for resource %s", resource_logical_id)
 
         return sorted(list(processed_resources))
 
@@ -209,9 +224,8 @@ class InfraSyncExecutor:
         resource_logical_id: str,
         resource_type: str,
         resource_dict: Dict,
-        processed_resources: set,
         linked_resources: List[str] = [],
-    ) -> set:
+    ) -> Optional[str]:
         """
         Helper method to process resource dict
 
@@ -230,9 +244,11 @@ class InfraSyncExecutor:
 
         Returns
         -------
-        set
-            The updated processed resources set
+        Optional[str]
+            The processed resource ID
         """
+        processed_logical_id = None
+
         if resource_type == AWS_LAMBDA_FUNCTION:
             for field in REMOVAL_MAP.get(resource_type, {}).get("Code", []):  # type: ignore
                 if (
@@ -240,7 +256,7 @@ class InfraSyncExecutor:
                     or resource_logical_id in linked_resources
                 ):
                     resource_dict.get("Properties", {}).get("Code", {}).pop(field, None)
-                    processed_resources.add(resource_logical_id)
+                    processed_logical_id = resource_logical_id
         else:
             for field in REMOVAL_MAP.get(resource_type, []):
                 if (
@@ -248,6 +264,6 @@ class InfraSyncExecutor:
                     or resource_logical_id in linked_resources
                 ):
                     resource_dict.get("Properties", {}).pop(field, None)
-                    processed_resources.add(resource_logical_id)
+                    processed_logical_id = resource_logical_id
 
-        return processed_resources
+        return processed_logical_id
