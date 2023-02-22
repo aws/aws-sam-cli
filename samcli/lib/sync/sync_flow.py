@@ -2,6 +2,7 @@
 import logging
 from abc import ABC, abstractmethod
 from enum import Enum
+from os import environ
 from pathlib import Path
 from threading import Lock
 from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Set, cast
@@ -21,6 +22,15 @@ if TYPE_CHECKING:  # pragma: no cover
 # Logging with multiple processes is not safe. Use a log queue in the future.
 # https://docs.python.org/3/howto/logging-cookbook.html#:~:text=Although%20logging%20is%20thread%2Dsafe,across%20multiple%20processes%20in%20Python.
 LOG = logging.getLogger(__name__)
+
+
+def get_default_retry_config() -> Optional[Dict]:
+    """
+    Returns a default retry config if nothing is overriden by environment variables
+    """
+    if environ.get("AWS_MAX_ATTEMPTS") or environ.get("AWS_RETRY_MODE"):
+        return None
+    return {"max_attempts": 10, "mode": "standard"}
 
 
 class ApiCallTypes(Enum):
@@ -93,7 +103,15 @@ class SyncFlow(ABC):
         self._session = Session(profile_name=self._deploy_context.profile, region_name=self._deploy_context.region)
 
     def _boto_client(self, client_name: str):
-        return get_boto_client_provider_from_session_with_config(cast(Session, self._session))(client_name)
+        default_retry_config = get_default_retry_config()
+        if not default_retry_config:
+            LOG.debug("Creating boto client (%s) with user's retry config", client_name)
+            return get_boto_client_provider_from_session_with_config(cast(Session, self._session))(client_name)
+
+        LOG.debug("Creating boto client (%s) with default retry config", client_name)
+        return get_boto_client_provider_from_session_with_config(
+            cast(Session, self._session), retries=default_retry_config
+        )(client_name)
 
     @property
     @abstractmethod
