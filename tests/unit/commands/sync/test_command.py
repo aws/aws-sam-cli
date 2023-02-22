@@ -4,7 +4,13 @@ from unittest import TestCase
 from unittest.mock import ANY, MagicMock, Mock, patch
 from parameterized import parameterized
 
-from samcli.commands.sync.command import do_cli, execute_code_sync, execute_watch, check_enable_dependency_layer
+from samcli.commands.sync.command import (
+    do_cli,
+    execute_code_sync,
+    execute_watch,
+    check_enable_dependency_layer,
+    execute_infra_contexts,
+)
 from samcli.lib.providers.provider import ResourceIdentifier
 from samcli.commands._utils.constants import (
     DEFAULT_BUILD_DIR,
@@ -71,6 +77,7 @@ class TestDoCli(TestCase):
     @patch("samcli.commands.build.command.os")
     @patch("samcli.commands.sync.command.manage_stack")
     @patch("samcli.commands.sync.command.SyncContext")
+    @patch("samcli.commands.sync.command.execute_infra_contexts")
     @patch("samcli.commands.sync.command.check_enable_dependency_layer")
     def test_infra_must_succeed_sync(
         self,
@@ -79,6 +86,7 @@ class TestDoCli(TestCase):
         auto_dependency_layer,
         use_container,
         check_enable_adl_mock,
+        execute_infra_mock,
         SyncContextMock,
         manage_stack_mock,
         os_mock,
@@ -197,9 +205,9 @@ class TestDoCli(TestCase):
             poll_delay=10,
             on_failure=None,
         )
-        build_context_mock.run.assert_called_once_with()
-        package_context_mock.run.assert_called_once_with()
-        deploy_context_mock.run.assert_called_once_with()
+
+        execute_infra_mock.assert_called_with(build_context_mock, package_context_mock, deploy_context_mock)
+
         execute_code_sync_mock.assert_not_called()
 
     @parameterized.expand([(False, True, False, False), (False, True, False, True)])
@@ -743,3 +751,17 @@ class TestDisableADL(TestCase):
             "",
         )
         self.assertEqual(check_enable_dependency_layer("/template/file"), expected)
+
+    @patch("samcli.commands.sync.command.InfraSyncExecutor")
+    def test_execute_infra_contexts(self, patch_infra_sync_executor):
+        build_context_mock = Mock()
+        package_context_mock = Mock()
+        deploy_context_mock = Mock()
+
+        infra_sync_executor_mock = Mock()
+        patch_infra_sync_executor.return_value = infra_sync_executor_mock
+
+        execute_infra_contexts(build_context_mock, package_context_mock, deploy_context_mock)
+
+        patch_infra_sync_executor.assert_called_once_with(build_context_mock, package_context_mock, deploy_context_mock)
+        infra_sync_executor_mock.execute_infra_sync.assert_called_once()

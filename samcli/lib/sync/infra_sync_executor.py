@@ -1,33 +1,14 @@
 """
 InfraSyncExecutor class which runs build, package and deploy contexts
 """
-import os
 import logging
-import re
-
-from typing import Dict, Optional
 
 from boto3 import Session
-from botocore.exceptions import ClientError
 
-from samcli.commands._utils.template import get_template_data
 from samcli.commands.build.build_context import BuildContext
 from samcli.commands.deploy.deploy_context import DeployContext
 from samcli.commands.package.package_context import PackageContext
-from samcli.lib.utils.resources import (
-    AWS_SERVERLESS_FUNCTION,
-    AWS_LAMBDA_FUNCTION,
-    AWS_SERVERLESS_LAYERVERSION,
-    AWS_LAMBDA_LAYERVERSION,
-    AWS_SERVERLESS_API,
-    AWS_APIGATEWAY_RESTAPI,
-    AWS_SERVERLESS_HTTPAPI,
-    AWS_APIGATEWAY_V2_API,
-    AWS_SERVERLESS_STATEMACHINE,
-    AWS_STEPFUNCTIONS_STATEMACHINE,
-    SYNCABLE_RESOURCES,
-)
-from samcli.yamlhelper import yaml_parse
+from samcli.lib.utils.boto_utils import get_boto_client_provider_from_session_with_config
 
 LOG = logging.getLogger(__name__)
 
@@ -57,9 +38,22 @@ class InfraSyncExecutor:
         self._package_context = package_context
         self._deploy_context = deploy_context
 
-        session = Session(profile_name=self._deploy_context.profile, region_name=self._deploy_context.region)
-        self._cfn_client = session.client("cloudformation")
-        self._s3_client = session.client("s3")
+        self._session = Session(profile_name=self._deploy_context.profile, region_name=self._deploy_context.region)
+        self._cfn_client = self._boto_client("cloudformation")
+        self._s3_client = self._boto_client("s3")
+
+    def _boto_client(self, client_name: str):
+        """
+        Creates boto client
+        Parameters
+        ----------
+        client_name: str
+            The name of the client
+        Returns
+        -------
+        Service client instance
+        """
+        return get_boto_client_provider_from_session_with_config(self._session)(client_name)
 
     def execute_infra_sync(self) -> bool:
         """
