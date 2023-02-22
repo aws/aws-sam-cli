@@ -569,9 +569,9 @@ werkzeug==2.0.3 \
     # via
     #   aws-sam-cli (setup.py)
     #   flask
-wheel==0.38.1 \
-    --hash=sha256:7a95f9a8dc0924ef318bd55b616112c70903192f524d120acc614f59547a9e1f \
-    --hash=sha256:ea041edf63f4ccba53ad6e035427997b3bb10ee88a4cd014ae82aeb9eea77bb9
+wheel==0.38.4 \
+    --hash=sha256:965f5259b566725405b05e7cf774052044b1ed30119b5d586b2703aafe8719ac \
+    --hash=sha256:b60533f3f5d530e971d6737ca6d58681ee434818fab630c83a734bb10c083ce8
     # via aws-lambda-builders
 zipp==3.10.0 \
     --hash=sha256:4fcb6f278987a6605757302a6e40e896257570d11c51628968ccb2a47e80c6c1 \
