@@ -158,12 +158,15 @@ class TestWatchManager(TestCase):
 
         self.assertEqual(1, self.path_observer.schedule_handlers.call_count)
 
-    def test_execute_infra_sync(self):
+    @patch("samcli.lib.sync.watch_manager.InfraSyncExecutor")
+    def test_execute_infra_sync(self, patch_infra_sync_executor):
+        infra_sync_executor_mock = MagicMock()
+        patch_infra_sync_executor.return_value = infra_sync_executor_mock
+
         self.watch_manager._execute_infra_context()
-        self.build_context.set_up.assert_called_once_with()
-        self.build_context.run.assert_called_once_with()
-        self.package_context.run.assert_called_once_with()
-        self.deploy_context.run.assert_called_once_with()
+
+        patch_infra_sync_executor.assert_called_once_with(self.build_context, self.package_context, self.deploy_context)
+        infra_sync_executor_mock.execute_infra_sync.assert_called_once()
 
     @patch("samcli.lib.sync.watch_manager.threading.Thread")
     def test_start_code_sync(self, thread_mock):

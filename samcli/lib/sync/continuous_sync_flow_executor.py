@@ -45,10 +45,10 @@ class ContinuousSyncFlowExecutor(SyncFlowExecutor):
         List[SyncFlowTask]
         Returns the list of sync flow tasks that got removed from the queue
         """
+        cleared_tasks = []
         with self._flow_queue_lock:
             self._stop_flag = should_stop
             if should_stop:
-                cleared_tasks = []
                 for task in self._flow_queue.queue:
                     cleared_tasks.append(task)
                 self._flow_queue.queue.clear()
