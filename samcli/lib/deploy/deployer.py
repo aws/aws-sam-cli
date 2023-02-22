@@ -307,14 +307,9 @@ class Deployer:
 
         # Wait for changeset to be created
         waiter = self._client.get_waiter("change_set_create_complete")
-        # Set default poll delay to 5 seconds
-        waiter_config = {"Delay": 5}
-        # If the changeset is large, increase the poll delay by using client_sleep
-        if ( 
-            self.client_sleep 
-            and self.client_sleep > waiter_config["Delay"]
-        ):
-          waiter_config["Delay"] = self.client_sleep
+        # Use default client_sleep to set the delay between polling
+        # To override use SAM_CLI_POLL_DELAY environment variable
+        waiter_config = {"Delay": self.client_sleep}
         try:
             waiter.wait(ChangeSetName=changeset_id, StackName=stack_name, WaiterConfig=waiter_config)
         except botocore.exceptions.WaiterError as ex:

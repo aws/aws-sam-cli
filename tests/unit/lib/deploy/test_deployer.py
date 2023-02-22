@@ -351,10 +351,10 @@ class TestDeployer(CustomTestCase):
         self.assertEqual(deployer.client_sleep, 10)
 
     def test_wait_for_changeset_default_delay(self):
-        deployer = Deployer(MagicMock().client("cloudformation"), client_sleep=0.5)
+        deployer = Deployer(MagicMock().client("cloudformation"))
         deployer.wait_for_changeset("test-id", "test-stack")
         get_waiter_call = deployer._client.get_waiter()
-        get_waiter_call.wait.assert_called_with(ChangeSetName="test-id", StackName="test-stack", WaiterConfig={'Delay': 5})
+        get_waiter_call.wait.assert_called_with(ChangeSetName="test-id", StackName="test-stack", WaiterConfig={'Delay': 0.5})
 
     @patch("os.environ", {**os.environ, "SAM_CLI_POLL_DELAY": 10})
     def test_wait_for_changeset_custom_delay(self):
