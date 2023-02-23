@@ -80,7 +80,7 @@ def _prompt(config: CONFIG, source_dir: str) -> bool:
         f"\nBuilding functions with {config.language} inside containers needs "
         f"mounting with write permissions to the source code directory {source_dir}. "
         f"Some files in this directory may be changed or added by the build process. "
-        f"Pass --mount-with-write to `sam build` CLI to avoid this confirmation. "
+        f"Pass `--mount-with WRITE` to `sam build` CLI to avoid this confirmation. "
         f"\nWould you like to enable mounting with write permissions? "
     ):
         return True
