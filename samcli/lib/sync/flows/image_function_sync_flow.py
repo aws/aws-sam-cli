@@ -11,7 +11,6 @@ from samcli.lib.package.ecr_uploader import ECRUploader
 from samcli.lib.providers.provider import Stack
 from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow, wait_for_function_update_complete
 from samcli.lib.sync.sync_flow import ApiCallTypes, ResourceAPICall
-from samcli.lib.utils.hash import str_checksum
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.build.build_context import BuildContext
@@ -82,7 +81,14 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
         )
         self._image_name = builder.build().artifacts.get(self._function_identifier)
         if self._image_name:
-            self._local_sha = str_checksum(self._image_name)
+            self._local_sha = self._get_local_image_id(self._image_name)
+
+    def _get_local_image_id(self, image: str) -> Optional[str]:
+        """Returns the local hash of the image"""
+        docker_img = self._docker_client.images.get(image)
+        if not docker_img or not docker_img.attrs.get("Id"):
+            return None
+        return str(docker_img.attrs.get("Id"))
 
     def compare_remote(self) -> bool:
         return False

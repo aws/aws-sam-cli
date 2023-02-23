@@ -111,6 +111,13 @@ class SyncFlow(ABC):
         """
         raise NotImplementedError("gather_resources")
 
+    def _update_local_hash(self) -> None:
+        if not self._local_sha:
+            LOG.debug("%sNo local hash is configured, skipping to update local hash", self.log_prefix)
+            return
+
+        self._sync_context.update_resource_sync_state(self.sync_state_identifier, self._local_sha)
+
     def compare_local(self) -> bool:
         """Comparison between local resource and its local stored state.
         If the resources are identical, sync and gather dependencies will be skipped.
@@ -347,6 +354,8 @@ class SyncFlow(ABC):
         if (not self.compare_local()) and (not self.compare_remote()):
             LOG.debug("%sSyncing", self.log_prefix)
             self.sync()
+            LOG.debug("%sUpdating local hash of the sync flow", self.log_prefix)
+            self._update_local_hash()
             LOG.debug("%sGathering Dependencies", self.log_prefix)
             dependencies = self.gather_dependencies()
         LOG.debug("%sFinished", self.log_prefix)
