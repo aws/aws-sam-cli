@@ -1,6 +1,7 @@
 """
 InfraSyncExecutor class which runs build, package and deploy contexts
 """
+import copy
 import logging
 import re
 from typing import Dict, Optional, Set, cast
@@ -27,7 +28,8 @@ from samcli.lib.utils.resources import (
     AWS_SERVERLESS_LAYERVERSION,
     AWS_SERVERLESS_STATEMACHINE,
     AWS_STEPFUNCTIONS_STATEMACHINE,
-    SYNCABLE_RESOURCES,
+    CODE_SYNCABLE_RESOURCES,
+    SYNCABLE_STACK_RESOURCES,
 )
 from samcli.yamlhelper import yaml_parse
 
@@ -43,6 +45,8 @@ GENERAL_REMOVAL_MAP = {
     AWS_APIGATEWAY_V2_API: ["BodyS3Location"],
     AWS_SERVERLESS_STATEMACHINE: ["DefinitionUri"],
     AWS_STEPFUNCTIONS_STATEMACHINE: ["DefinitionS3Location"],
+    AWS_SERVERLESS_APPLICATION: ["Location"],
+    AWS_CLOUDFORMATION_STACK: ["TemplateURL"],
 }
 
 LAMBDA_FUNCTION_REMOVAL_MAP = {
@@ -58,6 +62,7 @@ class InfraSyncExecutor:
     _build_context: BuildContext
     _package_context: PackageContext
     _deploy_context: DeployContext
+    _code_sync_resources: Set[str]
 
     def __init__(self, build_context: BuildContext, package_context: PackageContext, deploy_context: DeployContext):
         """Constructs the sync for infra executor.
@@ -74,6 +79,8 @@ class InfraSyncExecutor:
         self._build_context = build_context
         self._package_context = package_context
         self._deploy_context = deploy_context
+
+        self._code_sync_resources = set()
 
         session = Session(profile_name=self._deploy_context.profile, region_name=self._deploy_context.region)
         self._cfn_client = self._boto_client("cloudformation", session)
@@ -96,14 +103,14 @@ class InfraSyncExecutor:
         """
         return get_boto_client_provider_from_session_with_config(session)(client_name)
 
-    def _compare_templates(self, local_template_path: str, stack_name: str) -> bool:
+    def _compare_templates(self, template_path: str, stack_name: str) -> bool:
         """
         Recursively conpares two templates, including the nested templates referenced inside
 
         Parameters
         ----------
-        local_template_path : str
-            The local template location
+        template_path : str
+            The template location of the current template
         stack_name : str
             The CloudFormation stack name that the template is deployed to
 
@@ -113,29 +120,10 @@ class InfraSyncExecutor:
             Returns True if two templates are identical
             Returns False if two templates are different
         """
-        current_template = None
-        # If the customer template uses a nested stack with location/template URL in S3
-        if local_template_path.startswith("https://"):
-            parsed_s3_location = re.search(r"https:\/\/[^/]*\/([^/]*)\/(.*)", local_template_path)
-            if parsed_s3_location:
-                s3_bucket = parsed_s3_location.group(1)
-                s3_key = parsed_s3_location.group(2)
-                try:
-                    s3_object = self._s3_client.get_object(Bucket=s3_bucket, Key=s3_key)
-                except ClientError as ex:
-                    LOG.debug("The provided template location %s can not be found", local_template_path, exc_info=ex)
-                    return False
-
-                streaming_body = s3_object.get("Body")
-                if streaming_body:
-                    current_template = yaml_parse(streaming_body.read().decode("utf-8"))
-
-        # If the template location is local
-        else:
-            current_template = get_template_data(local_template_path)
+        current_template = self.get_template(template_path)
 
         if not current_template:
-            LOG.debug("Cannot obtain a working current template for template path %s", local_template_path)
+            LOG.debug("Cannot obtain a working current template for template path %s", template_path)
             return False
 
         try:
@@ -148,10 +136,13 @@ class InfraSyncExecutor:
 
         last_deployed_template_dict = yaml_parse(last_deployed_template_str)
 
-        sanitized_resources = self._remove_unnecessary_fields(current_template)
-        self._remove_unnecessary_fields(last_deployed_template_dict, sanitized_resources)
+        sanitized_current_template = copy.deepcopy(current_template)
+        sanitized_last_template = copy.deepcopy(last_deployed_template_dict)
 
-        if last_deployed_template_dict != current_template:
+        sanitized_resources = self._remove_unnecessary_fields(sanitized_current_template)
+        self._remove_unnecessary_fields(sanitized_last_template, sanitized_resources)
+
+        if sanitized_last_template != sanitized_current_template:
             LOG.debug("The current template is different from the last deployed version, we will not skip infra sync")
             return False
 
@@ -159,7 +150,22 @@ class InfraSyncExecutor:
         for resource_logical_id in current_template.get("Resources", {}):
             resource_dict = current_template.get("Resources", {}).get(resource_logical_id, {})
             resource_type = resource_dict.get("Type")
-            if resource_type == AWS_CLOUDFORMATION_STACK or resource_type == AWS_SERVERLESS_APPLICATION:
+
+            if resource_type in CODE_SYNCABLE_RESOURCES:
+                last_resource_dict = last_deployed_template_dict.get("Resources", {}).get(resource_logical_id, {})
+                if resource_type == AWS_LAMBDA_FUNCTION:
+                    if not resource_dict.get("Properties", {}).get("Code", None) == last_resource_dict.get(
+                        "Properties", {}
+                    ).get("Code", None):
+                        self._code_sync_resources.add(resource_logical_id)
+                else:
+                    for field in GENERAL_REMOVAL_MAP.get(resource_type, []):
+                        if not resource_dict.get("Properties", {}).get(field, None) == last_resource_dict.get(
+                            "Properties", {}
+                        ).get(field, None):
+                            self._code_sync_resources.add(resource_logical_id)
+
+            if resource_type in SYNCABLE_STACK_RESOURCES:
                 try:
                     stack_resource_detail = self._cfn_client.describe_stack_resource(
                         StackName=stack_name, LogicalResourceId=resource_logical_id
@@ -187,7 +193,7 @@ class InfraSyncExecutor:
                 ):
                     return False
 
-        LOG.debug("There are no changes from the previously deployed template for %s", local_template_path)
+        LOG.debug("There are no changes from the previously deployed template for %s", template_path)
         return True
 
     def _remove_unnecessary_fields(self, template_dict: Dict, linked_resources: Set[str] = set()) -> Set[str]:
@@ -203,6 +209,12 @@ class InfraSyncExecutor:
         * BodyS3Location property of AWS::ApiGatewayV2::Api
         * DefinitionUri property of AWS::Serverless::StateMachine
         * DefinitionS3Location property of AWS::StepFunctions::StateMachine
+
+        Fields skipped during template comparison because we have recursive compare logic for nested stack:
+        * Location property of AWS::Serverless::Application
+        * TemplateURL property of AWS::CloudFormation::Stack
+
+        Fields skipped during template comparison because it's a metadata generated by SAM
         * SamResourceId in Metadata property of all resources
 
         Parameters
@@ -225,7 +237,7 @@ class InfraSyncExecutor:
             resource_dict = resources.get(resource_logical_id, {})
             resource_type = resource_dict.get("Type")
 
-            if resource_type in SYNCABLE_RESOURCES:
+            if resource_type in CODE_SYNCABLE_RESOURCES or resource_type in SYNCABLE_STACK_RESOURCES:
                 processed_resource = self._remove_resource_field(
                     resource_logical_id,
                     resource_type,
@@ -263,8 +275,6 @@ class InfraSyncExecutor:
             Resource type
         resource_dict: Dict
             The resource level dict containing Properties field
-        processed_resources: set
-            The set of already processed resource IDs
         linked_resources: Set[str]
             The corresponding resources in the other template that got processed
 
@@ -285,7 +295,11 @@ class InfraSyncExecutor:
                     processed_logical_id = resource_logical_id
         else:
             for field in GENERAL_REMOVAL_MAP.get(resource_type, []):
-                if (
+                if resource_type in SYNCABLE_STACK_RESOURCES:
+                    if not isinstance(resource_dict.get("Properties", {}).get(field, None), dict):
+                        resource_dict.get("Properties", {}).pop(field, None)
+                        processed_logical_id = resource_logical_id
+                elif (
                     is_local_path(resource_dict.get("Properties", {}).get(field, None))
                     or resource_logical_id in linked_resources
                 ):
@@ -293,3 +307,64 @@ class InfraSyncExecutor:
                     processed_logical_id = resource_logical_id
 
         return processed_logical_id
+
+    def get_template(self, template_path: str) -> Optional[Dict]:
+        """
+        Returns the template dict based on local or remote read logic
+
+        Parameters
+        ----------
+        template_path: str
+            The location of the template
+
+        Returns
+        -------
+        Dict
+            The parsed template dict
+        """
+        template = None
+        # If the customer template uses a nested stack with location/template URL in S3
+        if template_path.startswith("https://"):
+            template = self._get_remote_template_data(template_path)
+
+        # If the template location is local
+        else:
+            template = get_template_data(template_path)
+
+        return template
+
+    def _get_remote_template_data(self, template_path: str) -> Optional[Dict]:
+        """
+        Get template dict from remote location
+
+        Parameters
+        ----------
+        template_path: str
+            The s3 location of the template
+
+        Returns
+        -------
+        Dict
+            The parsed template dict from s3
+        """
+        template = None
+
+        parsed_s3_location = re.search(r"https:\/\/[^/]*\/([^/]*)\/(.*)", template_path)
+        if parsed_s3_location:
+            s3_bucket = parsed_s3_location.group(1)
+            s3_key = parsed_s3_location.group(2)
+            try:
+                s3_object = self._s3_client.get_object(Bucket=s3_bucket, Key=s3_key)
+            except ClientError as ex:
+                LOG.debug("The provided template location %s can not be found", template_path, exc_info=ex)
+            else:
+                streaming_body = s3_object.get("Body")
+                if streaming_body:
+                    template = yaml_parse(streaming_body.read().decode("utf-8"))
+
+        return template
+
+    @property
+    def code_sync_resources(self):
+        """Returns the list of resources that should trigger code sync"""
+        return self._code_sync_resources

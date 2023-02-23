@@ -27,12 +27,13 @@ class TestInfraSyncExecutor(TestCase):
         infra_sync_executor._cfn_client.get_template.return_value = {
             "TemplateBody": """{
                 "Resources": {
-                    "ServerlessFunction": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "local/"}}
+                    "ServerlessFunction": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "https://s3"}}
                 }
             }"""
         }
 
         self.assertTrue(infra_sync_executor._compare_templates("path", "stack_name"))
+        self.assertEqual(sorted(infra_sync_executor.code_sync_resources), ["ServerlessFunction"])
 
     @patch("samcli.lib.sync.infra_sync_executor.is_local_path")
     @patch("samcli.lib.sync.infra_sync_executor.get_template_data")
@@ -119,6 +120,23 @@ class TestInfraSyncExecutor(TestCase):
         }
 
         self.assertTrue(infra_sync_executor._compare_templates("path", "stack_name"))
+        self.assertEqual(
+            sorted(infra_sync_executor.code_sync_resources),
+            sorted(
+                [
+                    "ServerlessFunction",
+                    "LambdaFunction",
+                    "ServerlessLayer",
+                    "LambdaLayer",
+                    "ServerlessApi",
+                    "RestApi",
+                    "ServerlessHttpApi",
+                    "HttpApi",
+                    "ServerlessStateMachine",
+                    "StateMachine",
+                ]
+            ),
+        )
 
         local_path_mock.return_value = False
         self.assertFalse(infra_sync_executor._compare_templates("path", "stack_name"))
@@ -343,6 +361,11 @@ class TestInfraSyncExecutor(TestCase):
                     "Type": "AWS::StepFunctions::StateMachine",
                     "Properties": {"DefinitionS3Location": "definiton"},
                 },
+                "ServerlessApplication": {
+                    "Type": "AWS::Serverless::Application",
+                    "Properties": {"Location": "template"},
+                },
+                "NestedStack": {"Type": "AWS::CloudFormation::Stack", "Properties": {"TemplateURL": "http://s3"}},
             }
         }
 
@@ -358,6 +381,8 @@ class TestInfraSyncExecutor(TestCase):
                 "HttpApi",
                 "ServerlessStateMachine",
                 "StateMachine",
+                "ServerlessApplication",
+                "NestedStack",
             ]
         )
 
@@ -398,6 +423,8 @@ class TestInfraSyncExecutor(TestCase):
                     "Type": "AWS::StepFunctions::StateMachine",
                     "Properties": {},
                 },
+                "ServerlessApplication": {"Type": "AWS::Serverless::Application", "Properties": {}},
+                "NestedStack": {"Type": "AWS::CloudFormation::Stack", "Properties": {}},
             }
         }
 
@@ -440,6 +467,11 @@ class TestInfraSyncExecutor(TestCase):
                     "Type": "AWS::StepFunctions::StateMachine",
                     "Properties": {"DefinitionS3Location": "s3://location"},
                 },
+                "ServerlessApplication": {
+                    "Type": "AWS::Serverless::Application",
+                    "Properties": {"Location": "https://s3"},
+                },
+                "NestedStack": {"Type": "AWS::CloudFormation::Stack", "Properties": {"TemplateURL": "https://s3"}},
             }
         }
 
@@ -540,3 +572,45 @@ class TestInfraSyncExecutor(TestCase):
 
         self.assertEqual(processed_resource, lambda_resource_id)
         self.assertEqual(resource_dict, expected_dict)
+
+    @patch("samcli.lib.sync.infra_sync_executor.get_template_data")
+    @patch("samcli.lib.sync.infra_sync_executor.InfraSyncExecutor._get_remote_template_data")
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_get_templates(self, session_mock, get_remote_template_mock, get_template_mock):
+        infra_sync_executor = InfraSyncExecutor(self.build_context, self.package_context, self.deploy_context)
+
+        infra_sync_executor.get_template("local")
+        get_template_mock.assert_called_once_with("local")
+
+        infra_sync_executor.get_template("https://s3.com/key/value")
+        get_remote_template_mock.assert_called_once_with("https://s3.com/key/value")
+
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_get_remote_template(self, sessiion_mock):
+        self.template_dict = {
+            "Resources": {
+                "ServerlessApplication": {
+                    "Type": "AWS::Serverless::Application",
+                    "Properties": {"Location": "https://s3.com/bucket/key"},
+                }
+            }
+        }
+
+        s3_string = """{
+            "Resources": {
+                "ServerlessApplication": {
+                    "Type": "AWS::Serverless::Application",
+                    "Properties": {"Location": "https://s3.com/bucket/key"},
+                }
+            }
+        }"""
+
+        infra_sync_executor = InfraSyncExecutor(self.build_context, self.package_context, self.deploy_context)
+
+        with patch("botocore.response.StreamingBody") as stream_mock:
+            stream_mock.read.return_value = s3_string.encode("utf-8")
+            infra_sync_executor._s3_client.get_object.return_value = {"Body": stream_mock}
+
+            self.assertEqual(
+                infra_sync_executor._get_remote_template_data("https://s3.com/key/value"), self.template_dict
+            )
