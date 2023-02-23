@@ -5,13 +5,15 @@ from typing import Dict, List, Union
 
 from samcli.commands.local.lib.swagger.integration_uri import IntegrationType, LambdaUri
 from samcli.commands.local.lib.validators.identity_source_validator import IdentitySourceValidator
+from samcli.local.apigw.authorizers.authorizer import Authorizer
+from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
 from samcli.local.apigw.exceptions import (
     IncorrectOasWithDefaultAuthorizerException,
     InvalidOasVersion,
     InvalidSecurityDefinition,
     MultipleAuthorizerException,
 )
-from samcli.local.apigw.local_apigw_service import Authorizer, LambdaAuthorizer, Route
+from samcli.local.apigw.local_apigw_service import Route
 
 LOG = logging.getLogger(__name__)
 
@@ -131,7 +133,7 @@ class SwaggerParser:
 
             if not identity_sources:
                 LOG.warning(
-                    "Skip parsing Lambda authorizer '%s', must contain at least valid identity source",
+                    "Skip parsing Lambda authorizer '%s', must contain at least one valid identity source",
                     auth_name,
                 )
                 continue

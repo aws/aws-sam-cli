@@ -13,7 +13,8 @@ from samcli.local.apigw.exceptions import (
     InvalidSecurityDefinition,
     MultipleAuthorizerException,
 )
-from samcli.local.apigw.local_apigw_service import Route, LambdaAuthorizer
+from samcli.local.apigw.local_apigw_service import Route
+from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
 
 
 class TestSwaggerParser_get_apis(TestCase):
@@ -410,7 +411,7 @@ class TestSwaggerParser_get_authorizers(TestCase):
                         authorizer_name="TokenAuth",
                         type="token",
                         lambda_name="arn",
-                        identity_sources=[ANY],
+                        identity_sources=["method.request.header.Auth"],
                         validation_string=None,
                         use_simple_response=False,
                     ),
@@ -419,11 +420,12 @@ class TestSwaggerParser_get_authorizers(TestCase):
                         authorizer_name="QueryAuth",
                         type="request",
                         lambda_name="arn",
-                        identity_sources=[ANY],
+                        identity_sources=["method.request.querystring.Auth"],
                         validation_string=None,
                         use_simple_response=False,
                     ),
                 },
+                Route.API,
             ),
             (  # openapi 3.0 with token authorizer
                 {
@@ -451,27 +453,22 @@ class TestSwaggerParser_get_authorizers(TestCase):
                         authorizer_name="TokenAuth",
                         type="request",
                         lambda_name="arn",
-                        identity_sources=[ANY],
+                        identity_sources=["$request.header.Auth"],
                         validation_string=None,
                         use_simple_response=False,
                     ),
                 },
+                Route.HTTP,
             ),
         ]
     )
     @patch("samcli.commands.local.lib.swagger.parser.LambdaUri")
-    @patch("samcli.commands.local.lib.swagger.parser.SwaggerParser._get_lambda_identity_sources")
-    def test_with_valid_lambda_auth_definition(
-        self, swagger_doc, expected_authorizers, get_id_sources_mock, mock_lambda_uri
-    ):
+    def test_with_valid_lambda_auth_definition(self, swagger_doc, expected_authorizers, api_type, mock_lambda_uri):
         mock_lambda_uri.get_function_name.return_value = "arn"
-
-        mock_identity_source = Mock()
-        get_id_sources_mock.return_value = [mock_identity_source]
 
         parser = SwaggerParser(Mock(), swagger_doc)
 
-        self.assertEqual(parser.get_authorizers(), expected_authorizers)
+        self.assertEqual(parser.get_authorizers(event_type=api_type), expected_authorizers)
 
     @parameterized.expand(
         [

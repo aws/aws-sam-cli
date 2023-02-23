@@ -6,7 +6,6 @@ import base64
 import io
 import json
 import logging
-from dataclasses import dataclass
 from datetime import datetime
 from time import time
 from typing import List, Optional
@@ -19,6 +18,8 @@ from werkzeug.serving import WSGIRequestHandler
 from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
 from samcli.lib.providers.provider import Cors
 from samcli.lib.utils.stream_writer import StreamWriter
+from samcli.local.apigw.authorizers.authorizer import Authorizer
+from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
 from samcli.local.apigw.exceptions import LambdaResponseParseException, PayloadFormatVersionValidateException
 from samcli.local.events.api_event import (
     ApiGatewayLambdaEvent,
@@ -35,41 +36,6 @@ from .path_converter import PathConverter
 from .service_error_responses import ServiceErrorResponses
 
 LOG = logging.getLogger(__name__)
-
-
-@dataclass
-class Authorizer:
-    payload_version: str
-    authorizer_name: str
-    type: str
-
-
-@dataclass
-class LambdaAuthorizer(Authorizer):
-    TOKEN = "token"
-    REQUEST = "request"
-    VALID_TYPES = [TOKEN, REQUEST]
-
-    PAYLOAD_V1 = "1.0"
-    PAYLOAD_V2 = "2.0"
-    PAYLOAD_VERSIONS = [PAYLOAD_V1, PAYLOAD_V2]
-
-    lambda_name: str
-    identity_sources: List[str]
-    validation_string: Optional[str] = None
-    use_simple_response: bool = False
-
-    def __eq__(self, other):
-        return (
-            isinstance(other, LambdaAuthorizer)
-            and self.lambda_name == other.lambda_name
-            and sorted(self.identity_sources) == sorted(other.identity_sources)
-            and self.validation_string == other.validation_string
-            and self.use_simple_response == other.use_simple_response
-            and self.payload_version == other.payload_version
-            and self.authorizer_name == other.authorizer_name
-            and self.type == other.type
-        )
 
 
 class Route:
@@ -247,7 +213,7 @@ class LocalApigwService(BaseLocalService):
 
         self._construct_error_handling()
 
-    def _add_catch_all_path(self, methods, path, route):
+    def _add_catch_all_path(self, methods: List[str], path: str, route: Route):
         """
         Add the catch all route to the _app and the dictionary of routes.
 
@@ -272,6 +238,9 @@ class LocalApigwService(BaseLocalService):
                 payload_format_version=route.payload_format_version,
                 is_default_route=True,
                 stack_path=route.stack_path,
+                authorizer_name=route.authorizer_name,
+                authorizer_object=route.authorizer_object,
+                use_default_authorizer=route.use_default_authorizer,
             )
 
     def _generate_route_keys(self, methods, path):
@@ -315,6 +284,40 @@ class LocalApigwService(BaseLocalService):
         # Something went wrong
         self._app.register_error_handler(500, ServiceErrorResponses.lambda_failure_response)
 
+    def _valid_identity_sources(self, route: Route) -> bool:
+        """
+        Validates if the route contains all the valid identity sources defined in the route's Lambda Authorizer
+
+        Parameters
+        ----------
+        route: Route
+            the Route object that contains the Lambda Authorizer definition
+
+        Returns
+        -------
+        bool
+            true if all the identity sources are present and valid
+        """
+        lambda_auth = route.authorizer_object
+
+        if not isinstance(lambda_auth, LambdaAuthorizer):
+            return False
+
+        identity_sources = lambda_auth.identity_sources
+
+        kwargs = {
+            "headers": request.headers,
+            "querystring": request.query_string.decode("utf-8"),
+            "context": {},
+            "stageVariables": self.api.stage_variables,
+        }
+
+        for validator in identity_sources:
+            if not validator.is_valid(**kwargs):
+                return False
+
+        return True
+
     def _request_handler(self, **kwargs):
         """
         We handle all requests to the host:port. The general flow of handling a request is as follows
@@ -339,7 +342,7 @@ class LocalApigwService(BaseLocalService):
         Response object
         """
 
-        route = self._get_current_route(request)
+        route: Route = self._get_current_route(request)
         cors_headers = Cors.cors_to_headers(self.api.cors)
 
         # payloadFormatVersion can only support 2 values: "1.0" and "2.0"
@@ -354,6 +357,9 @@ class LocalApigwService(BaseLocalService):
         if method == "OPTIONS" and self.api.cors:
             headers = Headers(cors_headers)
             return self.service_response("", headers, 200)
+
+        if isinstance(route.authorizer_object, LambdaAuthorizer) and not self._valid_identity_sources(route):
+            return ServiceErrorResponses.missing_lambda_auth_identity_sources()
 
         try:
             # TODO: Rewrite the logic below to use version 2.0 when an invalid value is provided

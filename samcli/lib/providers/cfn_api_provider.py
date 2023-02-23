@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional, Tuple, cast
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
 from samcli.commands.local.lib.swagger.integration_uri import LambdaUri
+from samcli.commands.local.lib.validators.identity_source_validator import IdentitySourceValidator
 from samcli.commands.local.lib.validators.lambda_auth_props import (
     LambdaAuthorizerV1Validator,
     LambdaAuthorizerV2Validator,
@@ -23,7 +24,8 @@ from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_V2_ROUTE,
     AWS_APIGATEWAY_V2_STAGE,
 )
-from samcli.local.apigw.local_apigw_service import LambdaAuthorizer, Route
+from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
+from samcli.local.apigw.local_apigw_service import Route
 
 LOG = logging.getLogger(__name__)
 
@@ -123,7 +125,14 @@ class CfnApiProvider(CfnBaseApiProvider):
 
         if identity_source_template:
             for identity_source in identity_source_template.split(","):
-                identity_source_list.append(identity_source.strip())
+                trimmed_id_source = identity_source.strip()
+
+                if not IdentitySourceValidator.validate_identity_source(trimmed_id_source):
+                    raise InvalidSamTemplateException(
+                        f"Lambda Authorizer {logical_id} does not contain valid identity sources.", Route.API
+                    )
+
+                identity_source_list.append(trimmed_id_source)
 
         validation_expression = properties.get(LambdaAuthorizerV1Validator.AUTHORIZER_VALIDATION)
 
@@ -160,7 +169,7 @@ class CfnApiProvider(CfnBaseApiProvider):
         api_id = properties.get(LambdaAuthorizerV2Validator.AUTHORIZER_V2_API)
         name = properties.get(LambdaAuthorizerV2Validator.AUTHORIZER_NAME)
         authorizer_uri = properties.get(LambdaAuthorizerV2Validator.AUTHORIZER_AUTHORIZER_URI)
-        identity_sources = properties.get(LambdaAuthorizerV2Validator.AUTHORIZER_IDENTITY_SOURCE, None)
+        identity_sources = properties.get(LambdaAuthorizerV2Validator.AUTHORIZER_IDENTITY_SOURCE, [])
         payload_version = properties.get(LambdaAuthorizerV2Validator.AUTHORIZER_V2_PAYLOAD)
         simple_responses = properties.get(LambdaAuthorizerV2Validator.AUTHORIZER_V2_SIMPLE_RESPONSE, False)
 
