@@ -179,7 +179,9 @@ class TestInfraSyncExecutor(TestCase):
     @patch("samcli.lib.sync.infra_sync_executor.is_local_path")
     @patch("samcli.lib.sync.infra_sync_executor.get_template_data")
     @patch("samcli.lib.sync.infra_sync_executor.Session")
-    def test_compare_templates_nested_stack_with_sar(self, expected_result, sar_id, session_mock, get_template_mock, local_path_mock):
+    def test_compare_templates_nested_stack_with_sar(
+        self, expected_result, sar_id, session_mock, get_template_mock, local_path_mock
+    ):
         self.template_dict = {
             "Resources": {
                 "ServerlessApplication": {
