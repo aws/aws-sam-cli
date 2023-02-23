@@ -175,6 +175,65 @@ class TestInfraSyncExecutor(TestCase):
 
         self.assertTrue(infra_sync_executor._compare_templates("path", "stack_name"))
 
+    @parameterized.expand([(True, "sar_id"), (False, "sar_id_2")])
+    @patch("samcli.lib.sync.infra_sync_executor.is_local_path")
+    @patch("samcli.lib.sync.infra_sync_executor.get_template_data")
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_compare_templates_nested_stack_with_sar(self, expected_result, sar_id, session_mock, get_template_mock, local_path_mock):
+        self.template_dict = {
+            "Resources": {
+                "ServerlessApplication": {
+                    "Type": "AWS::Serverless::Application",
+                    "Properties": {"Location": {"ApplicationId": sar_id, "SemanticVersion": "version"}},
+                },
+                "NestedStack": {"Type": "AWS::CloudFormation::Stack", "Properties": {"TemplateURL": "local/"}},
+            }
+        }
+
+        self.nested_dict = {
+            "Resources": {
+                "ServerlessFunction": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "local/"}}
+            }
+        }
+
+        get_template_mock.side_effect = [self.template_dict, self.nested_dict, self.nested_dict]
+        local_path_mock.return_value = True
+
+        infra_sync_executor = InfraSyncExecutor(self.build_context, self.package_context, self.deploy_context)
+        infra_sync_executor._cfn_client.get_template.side_effect = [
+            {
+                "TemplateBody": """{
+                    "Resources": {
+                        "ServerlessApplication": {
+                            "Type": "AWS::Serverless::Application",
+                            "Properties": {"Location": {"ApplicationId": "sar_id", "SemanticVersion": "version"}},
+                        },
+                        "NestedStack": {"Type": "AWS::CloudFormation::Stack", "Properties": {"TemplateURL": "local/"}},
+                    }
+                }"""
+            },
+            {
+                "TemplateBody": """{
+                    "Resources": {
+                        "ServerlessFunction": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "local/"}}
+                    }
+                }"""
+            },
+            {
+                "TemplateBody": """{
+                    "Resources": {
+                        "ServerlessFunction": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "local/"}}
+                    }
+                }"""
+            },
+        ]
+
+        infra_sync_executor._cfn_client.describe_stack_resource.return_value = {
+            "StackResourceDetails": {"PhysicalResourceId": "id"}
+        }
+
+        self.assertEqual(infra_sync_executor._compare_templates("path", "stack_name"), expected_result)
+
     @patch("samcli.lib.sync.infra_sync_executor.is_local_path")
     @patch("samcli.lib.sync.infra_sync_executor.get_template_data")
     @patch("samcli.lib.sync.infra_sync_executor.Session")

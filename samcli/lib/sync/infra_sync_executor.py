@@ -175,7 +175,13 @@ class InfraSyncExecutor:
                 # If the nested stack is of type AWS::Serverless::Application,
                 # the template location will be under Location property
                 template_field = "TemplateURL" if resource_type == AWS_CLOUDFORMATION_STACK else "Location"
-                if not self._compare_templates(
+                template_location = resource_dict.get("Properties", {}).get(template_field)
+
+                # For AWS::Serverless::Application, location can be a ApplicationLocationObject dict containing SAR ID
+                if isinstance(template_location, dict):
+                    continue
+                # For other scenarios, template location will be a string (local or s3 URL)
+                elif not self._compare_templates(
                     resource_dict.get("Properties", {}).get(template_field),
                     stack_resource_detail.get("StackResourceDetail", {}).get("PhysicalResourceId", ""),
                 ):
