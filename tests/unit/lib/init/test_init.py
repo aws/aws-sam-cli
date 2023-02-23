@@ -23,7 +23,8 @@ class TestInit(TestCase):
         self.template = RUNTIME_DEP_TEMPLATE_MAPPING["python"][0]["init_location"]
 
     @patch("samcli.lib.init.cookiecutter")
-    def test_init_successful(self, cookiecutter_patch):
+    @patch("samcli.lib.init._create_default_samconfig")
+    def test_init_successful(self, default_samconfig_mock, cookiecutter_patch):
         # GIVEN generate_project successfully created a project
         # WHEN a project name has been passed
         generate_project(
@@ -42,7 +43,8 @@ class TestInit(TestCase):
         )
 
     @patch("samcli.lib.init.cookiecutter")
-    def test_init_successful_with_no_dep_manager(self, cookiecutter_patch):
+    @patch("samcli.lib.init._create_default_samconfig")
+    def test_init_successful_with_no_dep_manager(self, default_samconfig_mock, cookiecutter_patch):
         generate_project(
             location=self.location,
             runtime=self.runtime,
@@ -58,7 +60,8 @@ class TestInit(TestCase):
             no_input=self.no_input, output_dir=self.output_dir, template=self.template
         )
 
-    def test_init_error_with_non_compatible_dependency_manager(self):
+    @patch("samcli.lib.init._create_default_samconfig")
+    def test_init_error_with_non_compatible_dependency_manager(self, default_samconfig_mock):
         with self.assertRaises(GenerateProjectFailedError) as ctx:
             generate_project(
                 location=self.location,
@@ -77,7 +80,8 @@ class TestInit(TestCase):
         )
 
     @patch("samcli.lib.init.cookiecutter")
-    def test_when_generate_project_returns_error(self, cookiecutter_patch):
+    @patch("samcli.lib.init._create_default_samconfig")
+    def test_when_generate_project_returns_error(self, default_samconfig_mock, cookiecutter_patch):
         # GIVEN generate_project fails to create a project
         ex = CookiecutterException("something is wrong")
         cookiecutter_patch.side_effect = ex
@@ -116,7 +120,10 @@ class TestInit(TestCase):
         )
 
     @patch("samcli.lib.init.cookiecutter")
-    def test_must_set_cookiecutter_context_when_app_template_is_provided(self, cookiecutter_patch):
+    @patch("samcli.lib.init._create_default_samconfig")
+    def test_must_set_cookiecutter_context_when_app_template_is_provided(
+        self, default_samconfig_mock, cookiecutter_patch
+    ):
         cookiecutter_context = {"key1": "value1", "key2": "value2"}
         generate_project(
             runtime=self.runtime,
@@ -150,7 +157,10 @@ class TestInit(TestCase):
 
     @patch("samcli.lib.init.cookiecutter")
     @patch("samcli.lib.init.generate_non_cookiecutter_project")
-    def test_init_arbitrary_project_with_named_folder(self, generate_non_cookiecutter_project_mock, cookiecutter_mock):
+    @patch("samcli.lib.init._create_default_samconfig")
+    def test_init_arbitrary_project_with_named_folder(
+        self, default_samconfig_mock, generate_non_cookiecutter_project_mock, cookiecutter_mock
+    ):
         cookiecutter_mock.side_effect = RepositoryNotFound("msg")
 
         generate_project(location=self.location, output_dir=self.output_dir, name=self.name)
@@ -161,7 +171,8 @@ class TestInit(TestCase):
         )
 
     @parameterized.expand(["https://example.com", "https://nonexist-domain.com"])
-    def test_when_generate_project_with_invalid_template_location(self, invalid_location):
+    @patch("samcli.lib.init._create_default_samconfig")
+    def test_when_generate_project_with_invalid_template_location(self, invalid_location, default_samconfig_mock):
         expected_msg = str(InvalidLocationError(template=invalid_location))
 
         # WHEN the --location is not valid
