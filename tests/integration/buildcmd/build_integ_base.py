@@ -81,7 +81,7 @@ class BuildIntegBase(TestCase):
         hook_name=None,
         beta_features=None,
         build_in_source=None,
-        mount_with_write=False,
+        mount_with=None,
     ):
 
         command_list = [self.cmd, "build"]
@@ -127,8 +127,8 @@ class BuildIntegBase(TestCase):
         if build_image:
             command_list += ["--build-image", build_image]
 
-        if mount_with_write:
-            command_list += ["--mount-with-write"]
+        if mount_with:
+            command_list += ["--mount-with", mount_with]
 
         if exclude:
             for f in exclude:

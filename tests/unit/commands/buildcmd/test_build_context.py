@@ -985,7 +985,7 @@ class TestBuildContext_run(TestCase):
             build_images={},
             create_auto_dependency_layer=auto_dependency_layer,
             build_in_source=False,
-            mount_with_write=False,
+            mount_with="Read",
         ) as build_context:
             build_context.run()
 

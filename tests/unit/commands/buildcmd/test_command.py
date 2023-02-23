@@ -38,7 +38,7 @@ class TestDoCli(TestCase):
             (),
             hook_name=None,
             build_in_source=False,
-            mount_with_write=False,
+            mount_with="read",
         )
 
         BuildContextMock.assert_called_with(
@@ -63,7 +63,7 @@ class TestDoCli(TestCase):
             aws_region=ctx_mock.region,
             hook_name=None,
             build_in_source=False,
-            mount_with_write=False,
+            mount_with="read",
         )
         ctx_mock.run.assert_called_with()
         self.assertEqual(ctx_mock.run.call_count, 1)
@@ -98,7 +98,7 @@ class TestDoCli(TestCase):
             (),
             hook_name="terraform",
             build_in_source=None,
-            mount_with_write=False,
+            mount_with="read",
         )
         self.assertEqual(ctx_mock.call_count, 0)
         self.assertEqual(ctx_mock.run.call_count, 0)

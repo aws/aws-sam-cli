@@ -23,7 +23,6 @@ from samcli.lib.build.app_builder import (
     DockerBuildFailed,
     DockerConnectionError,
 )
-from samcli.lib.build.exceptions import ContainerBuildNotSupported
 from samcli.commands.local.cli_common.user_exceptions import InvalidFunctionPropertyType
 from samcli.lib.telemetry.event import EventName, EventTracker
 from samcli.lib.utils.architecture import X86_64, ARM64
@@ -2593,14 +2592,18 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
     def tearDown(self):
         EventTracker.clear_trackers()
 
-    @patch("samcli.lib.build.app_builder.prompt_user_to_enable_mount_with_write")
     @patch("samcli.lib.telemetry.event.EventType.get_accepted_values")
     @patch("samcli.lib.build.app_builder.LambdaBuildContainer")
     @patch("samcli.lib.build.app_builder.lambda_builders_protocol_version")
     @patch("samcli.lib.build.app_builder.LOG")
     @patch("samcli.lib.build.app_builder.osutils")
     def test_must_build_in_container(
-        self, osutils_mock, LOGMock, protocol_version_mock, LambdaBuildContainerMock, event_mock, prompt_mock
+        self,
+        osutils_mock,
+        LOGMock,
+        protocol_version_mock,
+        LambdaBuildContainerMock,
+        event_mock,
     ):
         event_mock.return_value = "runtime"
         config = Mock()
@@ -2614,7 +2617,6 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
         # Wire all mocks correctly
         container_mock = LambdaBuildContainerMock.return_value = Mock()
         container_mock.wait_for_logs = mock_wait_for_logs
-        prompt_mock.return_value = False
         self.builder._parse_builder_response.return_value = response
 
         result = self.builder._build_function_on_container(
@@ -2649,15 +2651,13 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
         container_mock.copy.assert_called_with(response["result"]["artifacts_dir"] + "/.", "artifacts_dir")
         self.container_manager.stop.assert_called_with(container_mock)
 
-    @patch("samcli.lib.build.app_builder.prompt_user_to_enable_mount_with_write")
     @patch("samcli.lib.build.app_builder.LambdaBuildContainer")
-    def test_must_raise_on_unsupported_container(self, LambdaBuildContainerMock, prompt_mock):
+    def test_must_raise_on_unsupported_container(self, LambdaBuildContainerMock):
         config = Mock()
 
         container_mock = LambdaBuildContainerMock.return_value = Mock()
         container_mock.image = "image name"
         container_mock.executable_name = "myexecutable"
-        prompt_mock.return_value = False
 
         self.container_manager.run.side_effect = docker.errors.APIError(
             "Bad Request: 'lambda-builders' " "executable file not found in $PATH"

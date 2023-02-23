@@ -982,7 +982,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         ]
     )
     @pytest.mark.flaky(reruns=3)
-    def test_with_dotnetcore_in_process(self, runtime, code_uri, mode, architecture="x86_64"):
+    def test_dotnetcore_in_process(self, runtime, code_uri, mode, architecture="x86_64"):
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,
@@ -1052,9 +1052,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
-    def test_with_dotnetcore_in_container_mount_with_write_explicit(
-        self, runtime, code_uri, mode, architecture="x86_64"
-    ):
+    def test_dotnetcore_in_container_mount_with_write_explicit(self, runtime, code_uri, mode, architecture="x86_64"):
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,
@@ -1066,7 +1064,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
             self.template_path = self.template_path.replace("template.yaml", "template_build_method_dotnet_7.yaml")
 
         # test with explicit mount_with_write flag
-        cmdlist = self.get_command_list(use_container=True, parameter_overrides=overrides, mount_with_write=True)
+        cmdlist = self.get_command_list(use_container=True, parameter_overrides=overrides, mount_with="write")
         # env vars needed for testing unless set by dotnet images on public.ecr.aws
         cmdlist += ["--container-env-var", "DOTNET_CLI_HOME=/tmp/dotnet"]
         cmdlist += ["--container-env-var", "XDG_DATA_HOME=/tmp/xdg"]
@@ -1127,7 +1125,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
-    def test_with_dotnetcore_in_container_mount_with_write_interactive(
+    def test_dotnetcore_in_container_mount_with_write_interactive(
         self,
         runtime,
         code_uri,
@@ -1194,7 +1192,25 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
     @parameterized.expand([("dotnetcore3.1", "Dotnetcore3.1"), ("dotnet6", "Dotnet6")])
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
-    def test_must_fail_on_container_mount_without_write(self, runtime, code_uri):
+    def test_must_fail_on_container_mount_without_write_explicit(self, runtime, code_uri):
+        use_container = True
+        overrides = {
+            "Runtime": runtime,
+            "CodeUri": code_uri,
+            "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler",
+        }
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides, mount_with="read")
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        process_execute = run_command(cmdlist, cwd=self.working_dir)
+
+        # Must error out, because mounting with write is not allowed
+        self.assertEqual(process_execute.process.returncode, 1)
+
+    @parameterized.expand([("dotnetcore3.1", "Dotnetcore3.1"), ("dotnet6", "Dotnet6")])
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+    @pytest.mark.flaky(reruns=3)
+    def test_must_fail_on_container_mount_without_write_interactive(self, runtime, code_uri):
         use_container = True
         overrides = {
             "Runtime": runtime,
