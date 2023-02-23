@@ -27,6 +27,7 @@ DEFAULT_REGION = "us-west-2"
 class TestManagedStackDeploy(DeployIntegBase):
     def setUp(self):
         super().setUp()
+        self.cfn_client = boto3.client("cloudformation", region_name=DEFAULT_REGION)
         self.s3_client = boto3.client("s3", region_name=DEFAULT_REGION)
 
         self._delete_managed_stack(self.cfn_client, self.s3_client, DEFAULT_REGION)
