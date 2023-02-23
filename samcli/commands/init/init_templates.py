@@ -1,30 +1,32 @@
 """
 Manages the set of application templates.
 """
-import re
 import itertools
 import json
 import logging
 import os
+import re
+from enum import Enum
 from pathlib import Path
 from typing import Dict, Optional
+
 import requests
 
 from samcli.cli.global_config import GlobalConfig
-from samcli.commands.exceptions import UserException, AppTemplateUpdateException
+from samcli.commands.exceptions import AppTemplateUpdateException, UserException
 from samcli.lib.utils import configuration
 from samcli.lib.utils.git_repo import (
-    GitRepo,
     CloneRepoException,
     CloneRepoUnstableStateException,
+    GitRepo,
     ManifestNotFoundException,
 )
 from samcli.lib.utils.packagetype import IMAGE
 from samcli.local.common.runtime_template import (
     RUNTIME_DEP_TEMPLATE_MAPPING,
-    get_provided_runtime_from_custom_runtime,
     get_local_lambda_images_location,
     get_local_manifest_path,
+    get_provided_runtime_from_custom_runtime,
     is_custom_runtime,
 )
 
@@ -36,6 +38,10 @@ MANIFEST_URL = (
 APP_TEMPLATES_REPO_URL = "https://github.com/aws/aws-sam-cli-app-templates"
 APP_TEMPLATES_REPO_NAME = "aws-sam-cli-app-templates"
 APP_TEMPLATES_REPO_NAME_WINDOWS = "tmpl"
+
+
+class Status(Enum):
+    NOT_FOUND = 404
 
 
 class InvalidInitTemplateError(UserException):
@@ -237,7 +243,7 @@ class InitTemplates:
             response = requests.get(MANIFEST_URL, timeout=10)
             body = response.text
             # if the commit is not exist then MANIFEST_URL will be invalid, fall back to use manifest in latest commit
-            if response.status_code == 404:
+            if response.status_code == Status.NOT_FOUND:
                 LOG.warning(
                     "Request to MANIFEST_URL: %s failed, the commit hash in this url maybe invalid, "
                     "Using manifest.json in the latest commit instead.",

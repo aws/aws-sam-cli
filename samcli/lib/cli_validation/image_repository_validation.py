@@ -7,8 +7,8 @@ import click
 from samcli.commands._utils.option_validator import Validator
 from samcli.commands._utils.template import get_template_artifacts_format
 from samcli.lib.providers.provider import (
-    get_resource_full_path_by_id,
     ResourceIdentifier,
+    get_resource_full_path_by_id,
 )
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider

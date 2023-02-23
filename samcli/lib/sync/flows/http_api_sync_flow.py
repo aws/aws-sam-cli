@@ -1,11 +1,11 @@
 """SyncFlow for HttpApi"""
 
 import logging
-from typing import Dict, List, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, List
 
-from samcli.lib.sync.flows.generic_api_sync_flow import GenericApiSyncFlow
-from samcli.lib.providers.provider import ResourceIdentifier, Stack
 from samcli.lib.providers.exceptions import MissingLocalDefinition
+from samcli.lib.providers.provider import ResourceIdentifier, Stack
+from samcli.lib.sync.flows.generic_api_sync_flow import GenericApiSyncFlow
 
 # BuildContext and DeployContext will only be imported for type checking to improve performance
 # since no instances of contexts will be instantiated in this class

@@ -4,7 +4,7 @@ Code for all Package-able resources
 import logging
 import os
 import shutil
-from typing import Optional, Union, Dict
+from typing import Dict, Optional, Union
 
 import jmespath
 from botocore.utils import set_value_from_jmespath
@@ -14,43 +14,41 @@ from samcli.lib.package.ecr_uploader import ECRUploader
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Destination, Uploaders
 from samcli.lib.package.utils import (
-    resource_not_packageable,
-    is_local_file,
-    is_zip_file,
     copy_to_temp_dir,
+    is_ecr_url,
+    is_local_file,
+    is_path_value_valid,
+    is_s3_protocol_url,
+    is_zip_file,
+    resource_not_packageable,
     upload_local_artifacts,
     upload_local_image_artifacts,
-    is_s3_protocol_url,
-    is_path_value_valid,
-    is_ecr_url,
 )
-
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.resources import (
-    AWS_SERVERLESSREPO_APPLICATION,
-    AWS_SERVERLESS_FUNCTION,
-    AWS_SERVERLESS_API,
-    AWS_SERVERLESS_HTTPAPI,
+    AWS_APIGATEWAY_RESTAPI,
+    AWS_APIGATEWAY_V2_API,
+    AWS_APPSYNC_FUNCTIONCONFIGURATION,
     AWS_APPSYNC_GRAPHQLSCHEMA,
     AWS_APPSYNC_RESOLVER,
-    AWS_APPSYNC_FUNCTIONCONFIGURATION,
-    AWS_LAMBDA_FUNCTION,
-    AWS_APIGATEWAY_RESTAPI,
-    AWS_SERVERLESS_STATEMACHINE,
-    AWS_ELASTICBEANSTALK_APPLICATIONVERSION,
-    AWS_LAMBDA_LAYERVERSION,
-    AWS_SERVERLESS_LAYERVERSION,
-    AWS_GLUE_JOB,
-    AWS_STEPFUNCTIONS_STATEMACHINE,
     AWS_CLOUDFORMATION_MODULEVERSION,
     AWS_CLOUDFORMATION_RESOURCEVERSION,
-    METADATA_WITH_LOCAL_PATHS,
-    RESOURCES_WITH_LOCAL_PATHS,
-    RESOURCES_WITH_IMAGE_COMPONENT,
     AWS_ECR_REPOSITORY,
-    AWS_APIGATEWAY_V2_API,
+    AWS_ELASTICBEANSTALK_APPLICATIONVERSION,
+    AWS_GLUE_JOB,
+    AWS_LAMBDA_FUNCTION,
+    AWS_LAMBDA_LAYERVERSION,
+    AWS_SERVERLESS_API,
+    AWS_SERVERLESS_FUNCTION,
+    AWS_SERVERLESS_HTTPAPI,
+    AWS_SERVERLESS_LAYERVERSION,
+    AWS_SERVERLESS_STATEMACHINE,
+    AWS_SERVERLESSREPO_APPLICATION,
+    AWS_STEPFUNCTIONS_STATEMACHINE,
+    METADATA_WITH_LOCAL_PATHS,
+    RESOURCES_WITH_IMAGE_COMPONENT,
+    RESOURCES_WITH_LOCAL_PATHS,
 )
-
-from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 LOG = logging.getLogger(__name__)
 

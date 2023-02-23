@@ -3,15 +3,14 @@ Class that provides all nested stacks from a given SAM template
 """
 import logging
 import os
-from typing import Optional, Dict, cast, List, Iterator, Tuple, Union
+from typing import Dict, Iterator, List, Optional, Tuple, Union, cast
 from urllib.parse import unquote, urlparse
 
-from samcli.commands._utils.template import get_template_data
+from samcli.commands._utils.template import TemplateNotFoundException, get_template_data
 from samcli.lib.providers.exceptions import RemoteStackLocationNotSupported
 from samcli.lib.providers.provider import Stack, get_full_path
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.utils.resources import AWS_CLOUDFORMATION_STACK, AWS_SERVERLESS_APPLICATION
-from samcli.commands._utils.template import TemplateNotFoundException
 
 LOG = logging.getLogger(__name__)
 

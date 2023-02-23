@@ -7,7 +7,7 @@ import click
 
 from samcli.cli.context import get_cmd_names
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
-from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
+from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME, DEFAULT_ENV, SamConfig
 
 
 class GuidedConfig:

@@ -5,7 +5,7 @@ with the required infrastructure
 import os
 import sys
 from textwrap import dedent
-from typing import Optional, List, Tuple, Callable
+from typing import Callable, List, Optional, Tuple
 from xmlrpc.client import boolean
 
 import click
@@ -21,10 +21,8 @@ from samcli.commands.pipeline.bootstrap.oidc_config import (
 from samcli.commands.pipeline.external_links import CONFIG_AWS_CRED_DOC_URL
 from samcli.lib.bootstrap.bootstrap import get_current_account_id
 from samcli.lib.utils.colors import Colored
-
 from samcli.lib.utils.defaults import get_default_aws_region
 from samcli.lib.utils.profile import list_available_profiles
-
 
 GITHUB_ACTIONS = "github-actions"
 GITLAB = "gitlab"

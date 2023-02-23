@@ -67,12 +67,12 @@ class InfraSyncExecutor:
         """
         self._build_context.set_up()
         self._build_context.run()
+        self._package_context.run()
 
         if self._compare_templates(self._package_context.template_file, self._deploy_context.stack_name):
             LOG.info("Template haven't been changed since last deployment, skipping infra sync...")
             return False
 
-        self._package_context.run()
         self._deploy_context.run()
 
         return True
