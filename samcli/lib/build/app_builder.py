@@ -14,7 +14,6 @@ from aws_lambda_builders import (
 )
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
-from samcli.commands.build.utils import prompt_user_to_enable_mount_with_write
 from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition, BuildGraph
 from samcli.lib.build.build_strategy import (
     DefaultBuildStrategy,
@@ -897,8 +896,6 @@ class ApplicationBuilder:
                 "Docker is unreachable. Docker needs to be running to build inside a container."
             )
 
-        if not self._mount_with_write and config.must_mount_with_write_in_container:
-            self._mount_with_write = prompt_user_to_enable_mount_with_write(config, source_dir)
         # If we are printing debug logs in SAM CLI, the builder library should also print debug logs
         log_level = LOG.getEffectiveLevel()
 

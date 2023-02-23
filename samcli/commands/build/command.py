@@ -137,12 +137,11 @@ $ sam build MyFunction
     "By default the functions and layers are built in sequence",
 )
 @click.option(
-    "--mount-with-write/--mount-with-read",
-    "-w",
-    default=False,
-    is_flag=True,
-    help="Enable mounting with write permissions when building functions/layers inside container. "
-    "Some files in source code directory may be changed or added by the build process. "
+    "--mount-with",
+    "-mw",
+    type=click.Choice(["READ", "WRITE"], case_sensitive=False),
+    help="Optional. Specify mount mode for building functions/layers inside container. "
+    "If mount with write permissions, some files in source code directory may be changed/added by the build process. "
     "By default the source code directory is read only.",
     cls=ContainerOptions,
 )
@@ -185,7 +184,7 @@ def cli(
     config_env: str,
     hook_name: Optional[str],
     skip_prepare_infra: bool,
-    mount_with_write: bool,
+    mount_with: Optional[str],
 ) -> None:
     """
     `sam build` command entry point
@@ -216,7 +215,7 @@ def cli(
         exclude,
         hook_name,
         None,  # TODO: replace with build_in_source once it's added as a click option
-        mount_with_write,
+        mount_with,
     )  # pragma: no cover
 
 
@@ -242,7 +241,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     exclude: Optional[Tuple[str, ...]],
     hook_name: Optional[str],
     build_in_source: Optional[bool],
-    mount_with_write: bool,
+    mount_with: Optional[str],
 ) -> None:
     """
     Implementation of the ``cli`` method
@@ -288,7 +287,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         aws_region=click_ctx.region,
         hook_name=hook_name,
         build_in_source=build_in_source,
-        mount_with_write=mount_with_write,
+        mount_with=mount_with,
     ) as ctx:
         ctx.run()
 
