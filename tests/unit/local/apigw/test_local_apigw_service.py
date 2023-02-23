@@ -77,12 +77,10 @@ class TestApiGatewayService(TestCase):
         self.api_service = LocalApigwService(
             self.api, self.lambda_runner, port=3000, host="127.0.0.1", stderr=self.stderr
         )
-        self.api_service.create()
 
         self.http_service = LocalApigwService(
             self.http, self.lambda_runner, port=3000, host="127.0.0.1", stderr=self.stderr
         )
-        self.http_service.create()
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_api_request_must_invoke_lambda(self, request_mock):
