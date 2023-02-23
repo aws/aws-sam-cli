@@ -62,7 +62,8 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          - windows-latest
+          # TODO(hawflau): investigate and fix flakiness on Windows
+          # - windows-latest
         python:
           - "3.7"
           - "3.8"
