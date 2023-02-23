@@ -175,6 +175,7 @@ class Container:
         _root_user_id = "0"
         effective_user = EffectiveUser.get_current_effective_user().to_effective_user_str()
         if self._mount_with_write and effective_user and effective_user != _root_user_id:
+            LOG.debug("Detect non-root user, will pass argument '--user %s' to container", effective_user)
             kwargs["user"] = effective_user
 
         if self._container_opts:
@@ -282,6 +283,7 @@ class Container:
                 host_tmp_dir_path = pathlib.Path(self._host_tmp_dir)
                 if host_tmp_dir_path.exists():
                     shutil.rmtree(self._host_tmp_dir)
+                    LOG.debug("Successfully removed temporary directory %s on the host.", self._host_tmp_dir)
 
         self.id = None
 
@@ -306,6 +308,7 @@ class Container:
         # Make tmp dir on the host
         if self._mount_with_write and self._host_tmp_dir and not os.path.exists(self._host_tmp_dir):
             os.mkdir(self._host_tmp_dir)
+            LOG.debug("Successfully created temporary directory %s on the host.", self._host_tmp_dir)
 
         # Get the underlying container instance from Docker API
         real_container = self.docker_client.containers.get(self.id)

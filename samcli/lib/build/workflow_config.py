@@ -222,38 +222,6 @@ def get_workflow_config(
         ) from ex
 
 
-def supports_build_in_container(config: CONFIG) -> Tuple[bool, Optional[str]]:
-    """
-    Given a workflow config, this method provides a boolean on whether the workflow can run within a container or not.
-
-    Parameters
-    ----------
-    config namedtuple(Capability)
-        Config specifying the particular build workflow
-
-    Returns
-    -------
-    tuple(bool, str)
-        True, if this workflow can be built inside a container. False, along with a reason message if it cannot be.
-    """
-
-    def _key(c: CONFIG) -> str:
-        return str(c.language) + str(c.dependency_manager) + str(c.application_framework)
-
-    # This information could have beeen bundled inside the Workflow Config object. But we this way because
-    # ultimately the workflow's implementation dictates whether it can run within a container or not.
-    # A "workflow config" is like a primary key to identify the workflow. So we use the config as a key in the
-    # map to identify which workflows can support building within a container.
-
-    unsupported: Dict[str, str] = {}
-
-    thiskey = _key(config)
-    if thiskey in unsupported:
-        return False, unsupported[thiskey]
-
-    return True, None
-
-
 def supports_specified_workflow(specified_workflow: str) -> bool:
     """
     Given a specified workflow, returns whether it is supported in container builds,
