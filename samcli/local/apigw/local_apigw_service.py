@@ -305,10 +305,48 @@ class LocalApigwService(BaseLocalService):
 
         identity_sources = lambda_auth.identity_sources
 
+        endpoint = PathConverter.convert_path_to_api_gateway(request.endpoint)
+        method = request.method
+
+        if lambda_auth.payload_version == LambdaAuthorizer.PAYLOAD_V1:
+            identity = ContextIdentity(source_ip=request.remote_addr)
+
+            protocol = request.environ.get("SERVER_PROTOCOL", "HTTP/1.1")
+            host = request.host
+
+            context = RequestContext(
+                resource_path=endpoint,
+                http_method=method,
+                stage=self.api.stage_name,
+                identity=identity,
+                path=endpoint,
+                protocol=protocol,
+                domain_name=host,
+                operation_name=route.operation_name,
+            )
+        else:
+            apigw_endpoint = PathConverter.convert_path_to_api_gateway(endpoint)
+            route_key = self._v2_route_key(method, apigw_endpoint, route.is_default_route)
+
+            request_time_epoch = int(time())
+            request_time = datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000")
+
+            # NOTE (lucashuy): ignore the typing for `context` here
+            # mypy is grabbing the type from the first if block above
+            # where `context: RequestContext`, but here its `RequestContextV2`
+            context_http = ContextHTTP(method=method, path=request.path, source_ip=request.remote_addr)
+            context = RequestContextV2(
+                http=context_http,
+                route_key=route_key,
+                stage=self.api.stage_name,
+                request_time_epoch=request_time_epoch,
+                request_time=request_time,
+            )  # type: ignore
+
         kwargs = {
             "headers": request.headers,
             "querystring": request.query_string.decode("utf-8"),
-            "context": {},
+            "context": context.to_dict(),
             "stageVariables": self.api.stage_variables,
         }
 

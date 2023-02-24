@@ -549,7 +549,10 @@ class TestApiGatewayService(TestCase):
     )
     @patch("samcli.local.apigw.authorizers.lambda_authorizer.LambdaAuthorizer._parse_identity_sources")
     @patch("samcli.local.apigw.authorizers.lambda_authorizer.LambdaAuthorizer.identity_sources")
-    def test_valid_identity_sources_id_source(self, is_valid, id_source_prop_mock, lambda_auth_parse_mock):
+    @patch("samcli.local.apigw.path_converter.PathConverter.convert_path_to_api_gateway")
+    def test_valid_identity_sources_id_source(
+        self, is_valid, path_convert_mock, id_source_prop_mock, lambda_auth_parse_mock
+    ):
         route = self.api_gateway_route
         route.authorizer_object = LambdaAuthorizer("", "", "", [], "")
 
