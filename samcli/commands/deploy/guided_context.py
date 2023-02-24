@@ -178,8 +178,8 @@ class GuidedContext:
 
         click.echo("\n\tLooking for resources needed for deployment:")
         s3_bucket = manage_stack(profile=self.profile, region=region)
-        click.echo(f"\t Managed S3 bucket: {s3_bucket}")
-        click.echo("\t A different default S3 bucket can be set in samconfig.toml")
+        click.secho(f"\n\tManaged S3 bucket: {s3_bucket}", bold=True)
+        click.echo("\tA different default S3 bucket can be set in samconfig.toml")
 
         image_repositories = self.prompt_image_repository(
             stack_name, stacks, self.image_repositories, region, s3_bucket, self.s3_prefix

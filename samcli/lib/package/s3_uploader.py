@@ -328,7 +328,8 @@ class ProgressPercentage:
             self._seen_so_far += bytes_transferred
             percentage = (self._seen_so_far / self._size) * 100  # noqa: PLR2004
             sys.stderr.write(
-                "\rUploading to %s  %s / %s  (%.2f%%)" % (self._remote_path, self._seen_so_far, self._size, percentage)
+                "\r\tUploading to %s  %s / %s  (%.2f%%)"
+                % (self._remote_path, self._seen_so_far, self._size, percentage)
             )
             sys.stderr.flush()
             if int(percentage) == 100:  # noqa: PLR2004
