@@ -70,11 +70,8 @@ class InfraSyncExecutor:
         Parameters
         ----------
         build_context : BuildContext
-            BuildContext
         package_context : PackageContext
-            PackageContext
         deploy_context : DeployContext
-            DeployContext
         """
         self._build_context = build_context
         self._package_context = package_context
@@ -103,27 +100,38 @@ class InfraSyncExecutor:
         """
         return get_boto_client_provider_from_session_with_config(session)(client_name)
 
-    def _compare_templates(self, template_path: str, stack_name: str) -> bool:
+    def _determine_template_changed(
+        self,
+        packaged_template_path: str,
+        built_template_path: str,
+        stack_name: str,
+        nested_prefix: Optional[str] = None,
+    ) -> bool:
         """
         Recursively conpares two templates, including the nested templates referenced inside
 
         Parameters
         ----------
-        template_path : str
-            The template location of the current template
+        packaged_template_path : str
+            The template location of the current template packaged
+        built_template_path : str
+            The template location of the current template built
         stack_name : str
             The CloudFormation stack name that the template is deployed to
+        nested_prefix: Optional[str]
+            The nested stack stack name tree for child stack resources
 
         Returns
         -------
         bool
-            Returns True if two templates are identical
-            Returns False if two templates are different
+            Returns True if no template changes from last deployment
+            Returns False if there are template differences
         """
-        current_template = self.get_template(template_path)
+        current_template = self.get_template(packaged_template_path)
+        current_built_template = self.get_template(built_template_path)
 
-        if not current_template:
-            LOG.debug("Cannot obtain a working current template for template path %s", template_path)
+        if not current_template or not current_built_template:
+            LOG.debug("Cannot obtain a working current template for template path")
             return False
 
         try:
@@ -139,8 +147,10 @@ class InfraSyncExecutor:
         sanitized_current_template = copy.deepcopy(current_template)
         sanitized_last_template = copy.deepcopy(last_deployed_template_dict)
 
-        sanitized_resources = self._remove_unnecessary_fields(sanitized_current_template)
-        self._remove_unnecessary_fields(sanitized_last_template, sanitized_resources)
+        sanitized_resources = self._sanitize_template(
+            sanitized_current_template, built_template_dict=current_built_template
+        )
+        self._sanitize_template(sanitized_last_template, linked_resources=sanitized_resources)
 
         if sanitized_last_template != sanitized_current_template:
             LOG.debug("The current template is different from the last deployed version, we will not skip infra sync")
@@ -153,17 +163,19 @@ class InfraSyncExecutor:
 
             if resource_type in CODE_SYNCABLE_RESOURCES:
                 last_resource_dict = last_deployed_template_dict.get("Resources", {}).get(resource_logical_id, {})
+                resource_resolved_id = nested_prefix + resource_logical_id if nested_prefix else resource_logical_id
+
                 if resource_type == AWS_LAMBDA_FUNCTION:
                     if not resource_dict.get("Properties", {}).get("Code", None) == last_resource_dict.get(
                         "Properties", {}
                     ).get("Code", None):
-                        self._code_sync_resources.add(resource_logical_id)
+                        self._code_sync_resources.add(resource_resolved_id)
                 else:
                     for field in GENERAL_REMOVAL_MAP.get(resource_type, []):
                         if not resource_dict.get("Properties", {}).get(field, None) == last_resource_dict.get(
                             "Properties", {}
                         ).get(field, None):
-                            self._code_sync_resources.add(resource_logical_id)
+                            self._code_sync_resources.add(resource_resolved_id)
 
             if resource_type in SYNCABLE_STACK_RESOURCES:
                 try:
@@ -187,16 +199,23 @@ class InfraSyncExecutor:
                 if isinstance(template_location, dict):
                     continue
                 # For other scenarios, template location will be a string (local or s3 URL)
-                elif not self._compare_templates(
+                elif not self._determine_template_changed(
                     resource_dict.get("Properties", {}).get(template_field),
+                    current_built_template.get("Resources", {})
+                    .get(resource_logical_id, {})
+                    .get("Properties", {})
+                    .get(template_field),
                     stack_resource_detail.get("StackResourceDetail", {}).get("PhysicalResourceId", ""),
+                    resource_logical_id + "/",
                 ):
                     return False
 
-        LOG.debug("There are no changes from the previously deployed template for %s", template_path)
+        LOG.debug("There are no changes from the previously deployed template for %s", packaged_template_path)
         return True
 
-    def _remove_unnecessary_fields(self, template_dict: Dict, linked_resources: Set[str] = set()) -> Set[str]:
+    def _sanitize_template(
+        self, template_dict: Dict, linked_resources: Set[str] = set(), built_template_dict: Optional[Dict] = None
+    ) -> Set[str]:
         """
         Fields skipped during template comparison because sync --code can handle the difference:
         * CodeUri or ImageUri property of AWS::Serverless::Function
@@ -223,6 +242,8 @@ class InfraSyncExecutor:
             The unprocessed template dictionary
         linked_resources: List[str]
             The corresponding resources in the other template that got processed
+        built_template_dict: Optional[Dict]
+            The built template dict that the paths didn't get replaced with packaged links yet
 
         Returns
         -------
@@ -235,6 +256,11 @@ class InfraSyncExecutor:
 
         for resource_logical_id in resources:
             resource_dict = resources.get(resource_logical_id, {})
+
+            # Built resource dict helps with determining if a field is a local path
+            if built_template_dict:
+                built_resource_dict = built_template_dict.get("Resources", {}).get(resource_logical_id, {})
+
             resource_type = resource_dict.get("Type")
 
             if resource_type in CODE_SYNCABLE_RESOURCES or resource_type in SYNCABLE_STACK_RESOURCES:
@@ -243,6 +269,7 @@ class InfraSyncExecutor:
                     resource_type,
                     resource_dict,
                     linked_resources,
+                    built_resource_dict if built_template_dict else None,
                 )
 
                 if processed_resource:
@@ -263,6 +290,7 @@ class InfraSyncExecutor:
         resource_type: str,
         resource_dict: Dict,
         linked_resources: Set[str] = set(),
+        built_resource_dict: Optional[Dict] = None,
     ) -> Optional[str]:
         """
         Helper method to process resource dict
@@ -277,6 +305,8 @@ class InfraSyncExecutor:
             The resource level dict containing Properties field
         linked_resources: Set[str]
             The corresponding resources in the other template that got processed
+        built_resource_dict: Optional[Dict]
+            Only passed in for current template sanitization to determine if local
 
         Returns
         -------
@@ -287,10 +317,11 @@ class InfraSyncExecutor:
 
         if resource_type == AWS_LAMBDA_FUNCTION:
             for field in LAMBDA_FUNCTION_REMOVAL_MAP.get(resource_type, {}).get("Code", []):
+                # We sanitize only if the provided resource is local
                 if (
-                    is_local_path(resource_dict.get("Properties", {}).get("Code", {}).get(field, None))
-                    or resource_logical_id in linked_resources
-                ):
+                    built_resource_dict
+                    and is_local_path(built_resource_dict.get("Properties", {}).get("Code", {}).get(field, None))
+                ) or resource_logical_id in linked_resources:
                     resource_dict.get("Properties", {}).get("Code", {}).pop(field, None)
                     processed_logical_id = resource_logical_id
         else:
@@ -300,9 +331,8 @@ class InfraSyncExecutor:
                         resource_dict.get("Properties", {}).pop(field, None)
                         processed_logical_id = resource_logical_id
                 elif (
-                    is_local_path(resource_dict.get("Properties", {}).get(field, None))
-                    or resource_logical_id in linked_resources
-                ):
+                    built_resource_dict and is_local_path(built_resource_dict.get("Properties", {}).get(field, None))
+                ) or resource_logical_id in linked_resources:
                     resource_dict.get("Properties", {}).pop(field, None)
                     processed_logical_id = resource_logical_id
 
