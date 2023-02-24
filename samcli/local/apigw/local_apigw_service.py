@@ -325,7 +325,7 @@ class LocalApigwService(BaseLocalService):
                 protocol=protocol,
                 domain_name=host,
                 operation_name=operation_name,
-            )
+            ).to_dict()
         else:
             apigw_endpoint = PathConverter.convert_path_to_api_gateway(endpoint)
             route_key = self._v2_route_key(method, apigw_endpoint, route.is_default_route)
@@ -333,9 +333,6 @@ class LocalApigwService(BaseLocalService):
             request_time_epoch = int(time())
             request_time = datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000")
 
-            # NOTE (lucashuy): ignore the typing for `context` here
-            # mypy is grabbing the type from the first if block above
-            # where `context: RequestContext`, but here its `RequestContextV2`
             context_http = ContextHTTP(method=method, path=request.path, source_ip=request.remote_addr)
             context = RequestContextV2(
                 http=context_http,
@@ -343,12 +340,12 @@ class LocalApigwService(BaseLocalService):
                 stage=self.api.stage_name,
                 request_time_epoch=request_time_epoch,
                 request_time=request_time,
-            )  # type: ignore
+            ).to_dict()
 
         kwargs = {
             "headers": request.headers,
             "querystring": request.query_string.decode("utf-8"),
-            "context": context.to_dict(),
+            "context": context,
             "stageVariables": self.api.stage_variables,
         }
 
