@@ -158,7 +158,7 @@ class WatchManager:
 
             self._observer.schedule_handlers(template_trigger.get_path_handlers())
 
-    def _execute_infra_context(self) -> bool:
+    def _execute_infra_context(self, first_sync: bool = False) -> bool:
         """Execute infrastructure sync
 
         Returns: bool
@@ -166,8 +166,8 @@ class WatchManager:
         Returns True if infra sync got executed
         Returns False if infra sync got skipped
         """
-        infra_sync_executor = InfraSyncExecutor(self._build_context, self._package_context, self._deploy_context)
-        return infra_sync_executor.execute_infra_sync()
+        self._infra_sync_executor = InfraSyncExecutor(self._build_context, self._package_context, self._deploy_context)
+        return self._infra_sync_executor.execute_infra_sync(first_sync)
 
     def _start_code_sync(self) -> None:
         """Start SyncFlowExecutor in a separate thread."""
@@ -179,7 +179,7 @@ class WatchManager:
             )
             self._executor_thread.start()
 
-    def _stop_code_sync(self) -> List[SyncFlowTask]:
+    def _stop_code_sync(self) -> None:
         """
         Blocking call that stops SyncFlowExecutor and waits for it to finish.
 
@@ -188,13 +188,10 @@ class WatchManager:
         List[SyncFlowTask]
         Returns the list of sync flow tasks that got removed from the queue
         """
-        cleared_tasks = []
 
         if self._executor_thread and self._executor_thread.is_alive():
-            cleared_tasks = self._sync_flow_executor.stop()
+            self._sync_flow_executor.stop()
             self._executor_thread.join()
-
-        return cleared_tasks
 
     def start(self) -> None:
         """Start WatchManager and watch for changes to the template and its code resources."""
@@ -215,10 +212,12 @@ class WatchManager:
 
     def _start(self) -> None:
         """Start WatchManager and watch for changes to the template and its code resources."""
+        first_sync = True
         self._observer.start()
         while True:
             if self._waiting_infra_sync:
-                self._execute_infra_sync()
+                self._execute_infra_sync(first_sync)
+            first_sync = False
             time.sleep(1)
 
     def _start_sync(self) -> List[ResourceIdentifier]:
@@ -238,7 +237,7 @@ class WatchManager:
 
         return resources_with_code_syncs
 
-    def _execute_infra_sync(self) -> None:
+    def _execute_infra_sync(self, first_sync: bool = False) -> None:
         """
         Logic to execute infra sync.
 
@@ -246,11 +245,11 @@ class WatchManager:
         LOG.info(self._color.cyan("Queued infra sync. Wating for in progress code syncs to complete..."))
         self._waiting_infra_sync = False
 
-        cleared_tasks = self._stop_code_sync()
+        self._stop_code_sync()
 
         try:
             LOG.info(self._color.cyan("Starting infra sync."))
-            infra_sync_executed = self._execute_infra_context()
+            infra_sync_executed = self._execute_infra_context(first_sync)
         except Exception as e:
             LOG.error(
                 self._color.red("Failed to sync infra. Code sync is paused until template/stack is fixed."),
@@ -267,19 +266,16 @@ class WatchManager:
             self._observer.unschedule_all()
             self._update_stacks()
             self._add_template_triggers()
-            resources_with_code_syncs = self._add_code_triggers()
+            self._add_code_triggers()
             self._start_code_sync()
 
             if not infra_sync_executed:
-                # This is for resuming the tasks that we removed from queue
-                for task in cleared_tasks:
-                    self._sync_flow_executor.add_sync_flow_task(task)
-
                 # This is for initiating code sync for all resources
                 # To improve: only initiate code syncs for ones with template changes
-                self._queue_all_code_syncs(resources_with_code_syncs)
-
-            LOG.info(self._color.green("Infra sync completed."))
+                self._queue_all_code_syncs(self._infra_sync_executor.code_sync_resources)
+                LOG.info(self._color.green("Skipped infra sync and queued up required code syncs."))
+            else:
+                LOG.info(self._color.green("Infra sync completed."))
 
     def _queue_all_code_syncs(self, resource_ids_with_code_sync: List[ResourceIdentifier]):
         """ """

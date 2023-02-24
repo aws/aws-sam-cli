@@ -189,7 +189,10 @@ class TestSyncInfra(SyncIntegBase):
 
         sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
         self.assertEqual(sync_process_execute.process.returncode, 0)
-        self.assertIn("Template haven't been changed since last deployment, skipping infra sync...", str(sync_process_execute.stderr))
+        self.assertIn(
+            "Template haven't been changed since last deployment, skipping infra sync...",
+            str(sync_process_execute.stderr),
+        )
 
         # CFN Api call here to collect all the stack resources
         self.stack_resources = self._get_stacks(stack_name)

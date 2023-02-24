@@ -4,6 +4,7 @@ InfraSyncExecutor class which runs build, package and deploy contexts
 import logging
 
 from boto3 import Session
+from typing import Optional, Set
 
 from samcli.commands.build.build_context import BuildContext
 from samcli.commands.deploy.deploy_context import DeployContext
@@ -55,9 +56,14 @@ class InfraSyncExecutor:
         """
         return get_boto_client_provider_from_session_with_config(self._session)(client_name)
 
-    def execute_infra_sync(self) -> bool:
+    def execute_infra_sync(self, first_sync: bool = False) -> bool:
         """
         Compares the local template with the deployed one, executes infra sync if different
+
+        Parameters
+        ----------
+        first_sync: bool
+            A flag that signals the inital run, only true when it's the first time running infra sync
 
         Returns
         -------
@@ -69,13 +75,24 @@ class InfraSyncExecutor:
         self._build_context.run()
         self._package_context.run()
 
-        if self._compare_templates(self._package_context.template_file, self._deploy_context.stack_name):
-            LOG.info("Template haven't been changed since last deployment, skipping infra sync...")
-            return False
+        # Will not combine the comparisons in order to save operation cost
+        if first_sync:
+            if self._auto_skip_infra(
+                self._package_context.output_template_file,
+                self._package_context.template_file,
+                self._deploy_context.stack_name,
+            ):
+                LOG.info("Template haven't been changed since last deployment, skipping infra sync...")
+                return False
 
         self._deploy_context.run()
 
         return True
 
-    def _compare_templates(self, local_template_path: str, stack_name: str) -> bool:
+    def _auto_skip_infra(self, packaged_template_path: str, built_template_path: str, stack_name: str) -> bool:
         return False
+    
+    @property
+    def code_sync_resources(self) -> Set[str]:
+        """Returns the list of resources that should trigger code sync"""
+        return self._code_sync_resources

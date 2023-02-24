@@ -394,7 +394,7 @@ def execute_infra_contexts(
         DeployContext
     """
     infra_sync_executor = InfraSyncExecutor(build_context, package_context, deploy_context)
-    infra_sync_executor.execute_infra_sync()
+    infra_sync_executor.execute_infra_sync(first_sync=True)
 
 
 def execute_code_sync(
