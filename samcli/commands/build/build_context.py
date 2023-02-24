@@ -9,7 +9,7 @@ from typing import Dict, Optional, List, Tuple, cast
 
 import click
 
-from samcli.commands.build.utils import prompt_user_to_enable_mount_with_write_if_needed
+from samcli.commands.build.utils import prompt_user_to_enable_mount_with_write_if_needed, MountMode
 from samcli.lib.build.bundler import EsbuildBundlerManager
 from samcli.lib.providers.sam_api_provider import SamApiProvider
 from samcli.lib.telemetry.event import EventTracker
@@ -241,16 +241,16 @@ class BuildContext:
 
         # boolean value indicates if mount with write or not, defaults to READ ONLY
         mount_with_write = False
-        if self._use_container and not self._mount_with:
-            # if self._mount_with is None, means user does not specify mount mode
-            # check the need of mounting with write permissions and prompt user to enable it if needed
-            mount_with_write = prompt_user_to_enable_mount_with_write_if_needed(
-                self.get_resources_to_build(),
-                self.base_dir,
-            )
-        elif self._mount_with:
-            # user specify mount mode using CLI
-            mount_with_write = True if self._mount_with.lower() == "write" else False
+        if self._use_container:
+            if self._mount_with.lower() == MountMode.WRITE.value.lower():
+                mount_with_write = True
+            else:
+                # if self._mount_with is NOT WRITE
+                # check the need of mounting with write permissions and prompt user to enable it if needed
+                mount_with_write = prompt_user_to_enable_mount_with_write_if_needed(
+                    self.get_resources_to_build(),
+                    self.base_dir,
+                )
 
         try:
             builder = ApplicationBuilder(

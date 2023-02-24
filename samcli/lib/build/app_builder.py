@@ -544,6 +544,7 @@ class ApplicationBuilder:
                     build_runtime = compatible_runtimes[0]
                 global_image = self._build_images.get(None)
                 image = self._build_images.get(layer_name, global_image)
+                # pass supported specified workflow to container build, will be used to get docker image if not None
                 build_workflow = specified_workflow if supports_specified_workflow(specified_workflow) else None
                 self._build_function_on_container(
                     config,
@@ -682,6 +683,7 @@ class ApplicationBuilder:
                     # None represents the global build image for all functions/layers
                     global_image = self._build_images.get(None)
                     image = self._build_images.get(function_name, global_image)
+                    # pass supported specified workflow to container build, will be used to get docker image if not None
                     build_workflow = specified_workflow if supports_specified_workflow(specified_workflow) else None
                     return self._build_function_on_container(
                         config,

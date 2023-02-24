@@ -28,6 +28,7 @@ from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.commands.build.click_container import ContainerOptions
+from samcli.commands.build.utils import MountMode
 
 LOG = logging.getLogger(__name__)
 
@@ -139,7 +140,8 @@ $ sam build MyFunction
 @click.option(
     "--mount-with",
     "-mw",
-    type=click.Choice(["READ", "WRITE"], case_sensitive=False),
+    type=click.Choice(MountMode.values(), case_sensitive=False),
+    default=MountMode.READ.value,
     help="Optional. Specify mount mode for building functions/layers inside container. "
     "If mount with write permissions, some files in source code directory may be changed/added by the build process. "
     "By default the source code directory is read only.",

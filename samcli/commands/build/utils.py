@@ -2,11 +2,32 @@
 Utilities for sam build command
 """
 import pathlib
+from enum import Enum
+from typing import List
 
 import click
 
 from samcli.lib.build.workflow_config import CONFIG, get_workflow_config
 from samcli.lib.providers.provider import ResourcesToBuildCollector
+
+
+class MountMode(Enum):
+    """
+    Enums that represent mount mode used when build lambda functions/layers inside container
+    """
+
+    READ = "READ"
+    WRITE = "WRITE"
+
+    @classmethod
+    def values(cls) -> List[str]:
+        """
+        A getter to retrieve the accepted value list for mount mode
+
+        Returns: List[str]
+            The accepted mount mode list
+        """
+        return [e.value for e in cls]
 
 
 def prompt_user_to_enable_mount_with_write_if_needed(
@@ -31,35 +52,33 @@ def prompt_user_to_enable_mount_with_write_if_needed(
         True, if user enabled mounting with write permissions.
     """
 
-    functions = resources_to_build.functions
-    layers = resources_to_build.layers
-    runtime = None
-    specified_workflow = None
-    code_uri = None
-
-    if len(functions) > 0:
-        function = functions[0]
-        runtime = function.runtime
+    for function in resources_to_build.functions:
         code_uri = function.codeuri
-        # get specified_workflow if metadata exists
-        metadata = function.metadata
-        specified_workflow = metadata.get("BuildMethod", None) if metadata else None
-    elif len(layers) > 0:
-        layer = layers[0]
-        specified_workflow = layer.build_method
-        code_uri = layer.codeuri
+        if code_uri:
+            runtime = function.runtime
+            code_dir = str(pathlib.Path(base_dir, code_uri).resolve())
+            # get specified_workflow if metadata exists
+            metadata = function.metadata
+            specified_workflow = metadata.get("BuildMethod", None) if metadata else None
+            config = get_workflow_config(runtime, code_dir, base_dir, specified_workflow)
+            # at least one function needs mount with write, return with prompting
+            if config.must_mount_with_write_in_container:
+                return prompt(config, code_dir)
 
-    if code_uri:
-        code_dir = str(pathlib.Path(base_dir, code_uri).resolve())
-        config = get_workflow_config(runtime, code_dir, base_dir, specified_workflow)
-        # prompt if mount with write is needed
-        if config.must_mount_with_write_in_container:
-            return _prompt(config, code_dir)
+    for layer in resources_to_build.layers:
+        code_uri = layer.codeuri
+        if code_uri:
+            code_dir = str(pathlib.Path(base_dir, code_uri).resolve())
+            specified_workflow = layer.build_method
+            config = get_workflow_config(None, code_dir, base_dir, specified_workflow)
+            # at least one layer needs mount with write, return with prompting
+            if config.must_mount_with_write_in_container:
+                return prompt(config, code_dir)
 
     return False
 
 
-def _prompt(config: CONFIG, source_dir: str) -> bool:
+def prompt(config: CONFIG, source_dir: str) -> bool:
     """
     Prompt user to choose if enables mounting with write permissions or not when building lambda functions/layers
 
