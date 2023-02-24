@@ -78,7 +78,7 @@ class BuildContext:
         locate_layer_nested: bool = False,
         hook_name: Optional[str] = None,
         build_in_source: Optional[bool] = None,
-        mount_with: Optional[str] = None,
+        mount_with="READ",
     ) -> None:
         """
         Initialize the class
@@ -134,8 +134,8 @@ class BuildContext:
             Name of the hook package
         build_in_source: Optional[bool]
             Set to True to build in the source directory.
-        mount_with: Optional[str]
-            Mount mode of source code directory when building inside container.
+        mount_with:
+            Mount mode of source code directory when building inside container, READ ONLY by default
         """
 
         self._resource_identifier = resource_identifier

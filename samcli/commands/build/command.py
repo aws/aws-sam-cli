@@ -186,7 +186,7 @@ def cli(
     config_env: str,
     hook_name: Optional[str],
     skip_prepare_infra: bool,
-    mount_with: Optional[str],
+    mount_with="READ",
 ) -> None:
     """
     `sam build` command entry point
@@ -243,7 +243,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     exclude: Optional[Tuple[str, ...]],
     hook_name: Optional[str],
     build_in_source: Optional[bool],
-    mount_with: Optional[str],
+    mount_with="READ",
 ) -> None:
     """
     Implementation of the ``cli`` method
