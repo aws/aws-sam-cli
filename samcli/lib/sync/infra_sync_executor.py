@@ -4,7 +4,7 @@ InfraSyncExecutor class which runs build, package and deploy contexts
 import copy
 import logging
 import re
-from typing import Dict, Optional, Set, cast
+from typing import Dict, List, Optional, Set, cast
 
 from boto3 import Session
 from botocore.exceptions import ClientError
@@ -13,6 +13,7 @@ from samcli.commands._utils.template import get_template_data
 from samcli.commands.build.build_context import BuildContext
 from samcli.commands.deploy.deploy_context import DeployContext
 from samcli.commands.package.package_context import PackageContext
+from samcli.lib.providers.provider import ResourceIdentifier
 from samcli.lib.providers.sam_stack_provider import is_local_path
 from samcli.lib.utils.boto_utils import get_boto_client_provider_from_session_with_config
 from samcli.lib.utils.resources import (
@@ -395,6 +396,9 @@ class InfraSyncExecutor:
         return template
 
     @property
-    def code_sync_resources(self) -> Set[str]:
+    def code_sync_resources(self) -> List[ResourceIdentifier]:
         """Returns the list of resources that should trigger code sync"""
-        return self._code_sync_resources
+        resources = []
+        for resource in sorted(self._code_sync_resources):
+            resources.append(ResourceIdentifier(resource))
+        return resources

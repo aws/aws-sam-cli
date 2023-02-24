@@ -1,5 +1,6 @@
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
+from samcli.lib.providers.provider import ResourceIdentifier
 from samcli.lib.sync.infra_sync_executor import InfraSyncExecutor
 from botocore.exceptions import ClientError
 from parameterized import parameterized
@@ -39,7 +40,7 @@ class TestInfraSyncExecutor(TestCase):
         }
 
         self.assertTrue(infra_sync_executor._auto_skip_infra("path", "path2", "stack_name"))
-        self.assertEqual(sorted(infra_sync_executor.code_sync_resources), ["ServerlessFunction"])
+        self.assertEqual(sorted(infra_sync_executor.code_sync_resources), [ResourceIdentifier("ServerlessFunction")])
 
     @patch("samcli.lib.sync.infra_sync_executor.is_local_path")
     @patch("samcli.lib.sync.infra_sync_executor.get_template_data")
@@ -172,21 +173,19 @@ class TestInfraSyncExecutor(TestCase):
 
         self.assertTrue(infra_sync_executor._auto_skip_infra("path", "path2", "stack_name"))
         self.assertEqual(
-            sorted(infra_sync_executor.code_sync_resources),
-            sorted(
-                [
-                    "ServerlessFunction",
-                    "LambdaFunction",
-                    "ServerlessLayer",
-                    "LambdaLayer",
-                    "ServerlessApi",
-                    "RestApi",
-                    "ServerlessHttpApi",
-                    "HttpApi",
-                    "ServerlessStateMachine",
-                    "StateMachine",
-                ]
-            ),
+            infra_sync_executor.code_sync_resources,
+            [
+                ResourceIdentifier("HttpApi"),
+                ResourceIdentifier("LambdaFunction"),
+                ResourceIdentifier("LambdaLayer"),
+                ResourceIdentifier("RestApi"),
+                ResourceIdentifier("ServerlessApi"),
+                ResourceIdentifier("ServerlessFunction"),
+                ResourceIdentifier("ServerlessHttpApi"),
+                ResourceIdentifier("ServerlessLayer"),
+                ResourceIdentifier("ServerlessStateMachine"),
+                ResourceIdentifier("StateMachine"),
+            ],
         )
 
         local_path_mock.return_value = False
@@ -253,7 +252,8 @@ class TestInfraSyncExecutor(TestCase):
             infra_sync_executor._s3_client.get_object.return_value = {"Body": stream_mock}
             self.assertTrue(infra_sync_executor._auto_skip_infra("path", "path", "stack_name"))
             self.assertEqual(
-                sorted(infra_sync_executor.code_sync_resources), ["ServerlessApplication/ServerlessFunction"]
+                sorted(infra_sync_executor.code_sync_resources),
+                [ResourceIdentifier("ServerlessApplication/ServerlessFunction")],
             )
 
     @parameterized.expand([(True, "sar_id"), (False, "sar_id_2")])
@@ -302,9 +302,7 @@ class TestInfraSyncExecutor(TestCase):
             "StackResourceDetails": {"PhysicalResourceId": "id"}
         }
 
-        self.assertEqual(
-            infra_sync_executor._auto_skip_infra("path", "path2", "stack_name"), expected_result
-        )
+        self.assertEqual(infra_sync_executor._auto_skip_infra("path", "path2", "stack_name"), expected_result)
         self.assertEqual(sorted(infra_sync_executor.code_sync_resources), [])
 
     @patch("samcli.lib.sync.infra_sync_executor.is_local_path")
