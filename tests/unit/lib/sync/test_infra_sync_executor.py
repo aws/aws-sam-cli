@@ -14,7 +14,7 @@ class TestInfraSyncExecutor(TestCase):
     @patch("samcli.lib.sync.infra_sync_executor.is_local_path")
     @patch("samcli.lib.sync.infra_sync_executor.get_template_data")
     @patch("samcli.lib.sync.infra_sync_executor.Session")
-    def test_determine_template_changed_basic(self, session_mock, get_template_mock, local_path_mock):
+    def test_auto_skip_infra_basic(self, session_mock, get_template_mock, local_path_mock):
         built_template_dict = {
             "Resources": {
                 "ServerlessFunction": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "local/"}}
@@ -38,13 +38,13 @@ class TestInfraSyncExecutor(TestCase):
             }"""
         }
 
-        self.assertTrue(infra_sync_executor._determine_template_changed("path", "path2", "stack_name"))
+        self.assertTrue(infra_sync_executor._auto_skip_infra("path", "path2", "stack_name"))
         self.assertEqual(sorted(infra_sync_executor.code_sync_resources), ["ServerlessFunction"])
 
     @patch("samcli.lib.sync.infra_sync_executor.is_local_path")
     @patch("samcli.lib.sync.infra_sync_executor.get_template_data")
     @patch("samcli.lib.sync.infra_sync_executor.Session")
-    def test_determine_template_changed_all_resources(self, session_mock, get_template_mock, local_path_mock):
+    def test_auto_skip_infra_all_resources(self, session_mock, get_template_mock, local_path_mock):
         built_template_dict = {
             "Resources": {
                 "ServerlessFunction": {
@@ -170,7 +170,7 @@ class TestInfraSyncExecutor(TestCase):
             }"""
         }
 
-        self.assertTrue(infra_sync_executor._determine_template_changed("path", "path2", "stack_name"))
+        self.assertTrue(infra_sync_executor._auto_skip_infra("path", "path2", "stack_name"))
         self.assertEqual(
             sorted(infra_sync_executor.code_sync_resources),
             sorted(
@@ -190,12 +190,12 @@ class TestInfraSyncExecutor(TestCase):
         )
 
         local_path_mock.return_value = False
-        self.assertFalse(infra_sync_executor._determine_template_changed("path", "path2", "stack_name"))
+        self.assertFalse(infra_sync_executor._auto_skip_infra("path", "path2", "stack_name"))
 
     @patch("samcli.lib.sync.infra_sync_executor.is_local_path")
     @patch("samcli.lib.sync.infra_sync_executor.get_template_data")
     @patch("samcli.lib.sync.infra_sync_executor.Session")
-    def test_determine_template_changed_nested_stack(self, session_mock, get_template_mock, local_path_mock):
+    def test_auto_skip_infra_nested_stack(self, session_mock, get_template_mock, local_path_mock):
         built_template_dict = {
             "Resources": {
                 "ServerlessApplication": {"Type": "AWS::Serverless::Application", "Properties": {"Location": "local/"}},
@@ -251,7 +251,7 @@ class TestInfraSyncExecutor(TestCase):
         with patch("botocore.response.StreamingBody") as stream_mock:
             stream_mock.read.return_value = packaged_nested_dict.encode("utf-8")
             infra_sync_executor._s3_client.get_object.return_value = {"Body": stream_mock}
-            self.assertTrue(infra_sync_executor._determine_template_changed("path", "path", "stack_name"))
+            self.assertTrue(infra_sync_executor._auto_skip_infra("path", "path", "stack_name"))
             self.assertEqual(
                 sorted(infra_sync_executor.code_sync_resources), ["ServerlessApplication/ServerlessFunction"]
             )
@@ -260,7 +260,7 @@ class TestInfraSyncExecutor(TestCase):
     @patch("samcli.lib.sync.infra_sync_executor.is_local_path")
     @patch("samcli.lib.sync.infra_sync_executor.get_template_data")
     @patch("samcli.lib.sync.infra_sync_executor.Session")
-    def test_determine_template_changed_nested_stack_with_sar(
+    def test_auto_skip_infra_nested_stack_with_sar(
         self, expected_result, sar_id, session_mock, get_template_mock, local_path_mock
     ):
         built_template_dict = {
@@ -303,14 +303,14 @@ class TestInfraSyncExecutor(TestCase):
         }
 
         self.assertEqual(
-            infra_sync_executor._determine_template_changed("path", "path2", "stack_name"), expected_result
+            infra_sync_executor._auto_skip_infra("path", "path2", "stack_name"), expected_result
         )
         self.assertEqual(sorted(infra_sync_executor.code_sync_resources), [])
 
     @patch("samcli.lib.sync.infra_sync_executor.is_local_path")
     @patch("samcli.lib.sync.infra_sync_executor.get_template_data")
     @patch("samcli.lib.sync.infra_sync_executor.Session")
-    def test_determine_template_changed_http_template_location(self, session_mock, get_template_mock, local_path_mock):
+    def test_auto_skip_infra_http_template_location(self, session_mock, get_template_mock, local_path_mock):
         built_template_dict = {
             "Resources": {
                 "NestedStack": {
@@ -366,13 +366,13 @@ class TestInfraSyncExecutor(TestCase):
         with patch("botocore.response.StreamingBody") as stream_mock:
             stream_mock.read.return_value = nested_dict.encode("utf-8")
             infra_sync_executor._s3_client.get_object.return_value = {"Body": stream_mock}
-            self.assertTrue(infra_sync_executor._determine_template_changed("path", "path2", "stack_name"))
+            self.assertTrue(infra_sync_executor._auto_skip_infra("path", "path2", "stack_name"))
             self.assertEqual(sorted(infra_sync_executor.code_sync_resources), [])
 
     @patch("samcli.lib.sync.infra_sync_executor.is_local_path")
     @patch("samcli.lib.sync.infra_sync_executor.get_template_data")
     @patch("samcli.lib.sync.infra_sync_executor.Session")
-    def test_determine_template_changed_exception(self, session_mock, get_template_mock, local_path_mock):
+    def test_auto_skip_infra_exception(self, session_mock, get_template_mock, local_path_mock):
         template_dict = {
             "Resources": {
                 "ServerlessApplication": {
@@ -388,7 +388,7 @@ class TestInfraSyncExecutor(TestCase):
         infra_sync_executor = InfraSyncExecutor(self.build_context, self.package_context, self.deploy_context)
         infra_sync_executor._cfn_client.get_template.side_effect = [ClientError({"Error": {"Code": "404"}}, "Error")]
 
-        self.assertFalse(infra_sync_executor._determine_template_changed("path", "path2", "stack_name"))
+        self.assertFalse(infra_sync_executor._auto_skip_infra("path", "path2", "stack_name"))
 
     @patch("samcli.lib.sync.infra_sync_executor.is_local_path")
     @patch("samcli.lib.sync.infra_sync_executor.Session")

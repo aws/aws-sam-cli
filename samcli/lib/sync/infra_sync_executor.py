@@ -100,7 +100,7 @@ class InfraSyncExecutor:
         """
         return get_boto_client_provider_from_session_with_config(session)(client_name)
 
-    def _determine_template_changed(
+    def _auto_skip_infra(
         self,
         packaged_template_path: str,
         built_template_path: str,
@@ -199,7 +199,7 @@ class InfraSyncExecutor:
                 if isinstance(template_location, dict):
                     continue
                 # For other scenarios, template location will be a string (local or s3 URL)
-                elif not self._determine_template_changed(
+                elif not self._auto_skip_infra(
                     resource_dict.get("Properties", {}).get(template_field),
                     current_built_template.get("Resources", {})
                     .get(resource_logical_id, {})
