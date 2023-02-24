@@ -4,11 +4,12 @@ InfraSyncExecutor class which runs build, package and deploy contexts
 import logging
 
 from boto3 import Session
-from typing import Optional, Set
+from typing import List, Optional, Set
 
 from samcli.commands.build.build_context import BuildContext
 from samcli.commands.deploy.deploy_context import DeployContext
 from samcli.commands.package.package_context import PackageContext
+from samcli.lib.providers.provider import ResourceIdentifier
 from samcli.lib.utils.boto_utils import get_boto_client_provider_from_session_with_config
 
 LOG = logging.getLogger(__name__)
@@ -22,39 +23,40 @@ class InfraSyncExecutor:
     _build_context: BuildContext
     _package_context: PackageContext
     _deploy_context: DeployContext
+    _code_sync_resources: Set[str]
 
     def __init__(self, build_context: BuildContext, package_context: PackageContext, deploy_context: DeployContext):
         """Constructs the sync for infra executor.
-
         Parameters
         ----------
         build_context : BuildContext
-            BuildContext
         package_context : PackageContext
-            PackageContext
         deploy_context : DeployContext
-            DeployContext
         """
         self._build_context = build_context
         self._package_context = package_context
         self._deploy_context = deploy_context
 
-        self._session = Session(profile_name=self._deploy_context.profile, region_name=self._deploy_context.region)
-        self._cfn_client = self._boto_client("cloudformation")
-        self._s3_client = self._boto_client("s3")
+        self._code_sync_resources = set()
 
-    def _boto_client(self, client_name: str):
+        session = Session(profile_name=self._deploy_context.profile, region_name=self._deploy_context.region)
+        self._cfn_client = self._boto_client("cloudformation", session)
+        self._s3_client = self._boto_client("s3", session)
+
+    def _boto_client(self, client_name: str, session: Session):
         """
         Creates boto client
         Parameters
         ----------
         client_name: str
             The name of the client
+        session: boto3.Session
+            The session created using customer config
         Returns
         -------
         Service client instance
         """
-        return get_boto_client_provider_from_session_with_config(self._session)(client_name)
+        return get_boto_client_provider_from_session_with_config(session)(client_name)
 
     def execute_infra_sync(self, first_sync: bool = False) -> bool:
         """
@@ -93,6 +95,9 @@ class InfraSyncExecutor:
         return False
     
     @property
-    def code_sync_resources(self) -> Set[str]:
+    def code_sync_resources(self) -> List[ResourceIdentifier]:
         """Returns the list of resources that should trigger code sync"""
-        return self._code_sync_resources
+        resources = []
+        for resource in sorted(self._code_sync_resources):
+            resources.append(ResourceIdentifier(resource))
+        return resources
