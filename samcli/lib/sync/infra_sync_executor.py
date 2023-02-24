@@ -396,6 +396,6 @@ class InfraSyncExecutor:
         return template
 
     @property
-    def code_sync_resources(self) -> List[ResourceIdentifier]:
+    def code_sync_resources(self) -> Set[ResourceIdentifier]:
         """Returns the list of resources that should trigger code sync"""
         return self._code_sync_resources
