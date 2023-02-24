@@ -1,8 +1,6 @@
 from pathlib import Path
 
-import mock
-
-from samcli.lib.providers.provider import ResourceIdentifier, Stack
+from samcli.lib.providers.provider import Stack
 from unittest import TestCase
 from unittest.mock import MagicMock, patch, Mock
 
