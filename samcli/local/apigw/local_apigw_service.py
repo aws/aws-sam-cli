@@ -314,6 +314,8 @@ class LocalApigwService(BaseLocalService):
             protocol = request.environ.get("SERVER_PROTOCOL", "HTTP/1.1")
             host = request.host
 
+            operation_name = route.operation_name if route.event_type == Route.API else None
+
             context = RequestContext(
                 resource_path=endpoint,
                 http_method=method,
@@ -322,7 +324,7 @@ class LocalApigwService(BaseLocalService):
                 path=endpoint,
                 protocol=protocol,
                 domain_name=host,
-                operation_name=route.operation_name,
+                operation_name=operation_name,
             )
         else:
             apigw_endpoint = PathConverter.convert_path_to_api_gateway(endpoint)
