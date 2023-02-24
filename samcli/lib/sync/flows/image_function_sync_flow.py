@@ -56,11 +56,13 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
         self._docker_client = None
 
     def _get_docker_client(self) -> DockerClient:
+        """Lazy instantiates and returns the docker client"""
         if not self._docker_client:
             self._docker_client = docker.from_env()
         return self._docker_client
 
     def _get_ecr_client(self) -> Any:
+        """Lazy instantiates and returns the boto3 ecr client"""
         if not self._ecr_client:
             self._ecr_client = self._boto_client("ecr")
         return self._ecr_client
