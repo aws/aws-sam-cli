@@ -79,7 +79,7 @@ class InfraSyncExecutor:
 
         # Will not combine the comparisons in order to save operation cost
         if first_sync:
-            if self._auto_skip_infra(
+            if self._auto_skip_infra_sync(
                 self._package_context.output_template_file,
                 self._package_context.template_file,
                 self._deploy_context.stack_name,
@@ -91,7 +91,7 @@ class InfraSyncExecutor:
 
         return True
 
-    def _auto_skip_infra(self, packaged_template_path: str, built_template_path: str, stack_name: str) -> bool:
+    def _auto_skip_infra_sync(self, packaged_template_path: str, built_template_path: str, stack_name: str) -> bool:
         return False
     
     @property

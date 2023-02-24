@@ -374,7 +374,16 @@ def do_cli(
                                 dependency_layer,
                             )
                         else:
-                            execute_infra_contexts(build_context, package_context, deploy_context)
+                            code_sync_resources = execute_infra_contexts(build_context, package_context, deploy_context)
+                            execute_code_sync(
+                                template_file,
+                                build_context,
+                                deploy_context,
+                                sync_context,
+                                [],
+                                resource,
+                                dependency_layer,
+                            )
 
 
 def execute_infra_contexts(
