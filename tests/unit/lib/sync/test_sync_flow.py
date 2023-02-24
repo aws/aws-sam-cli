@@ -2,7 +2,7 @@ from pathlib import Path
 
 from samcli.lib.providers.provider import Stack
 from unittest import TestCase
-from unittest.mock import MagicMock, patch, Mock
+from unittest.mock import MagicMock, patch, Mock, PropertyMock
 
 from samcli.lib.sync.sync_flow import (
     SyncFlow,
@@ -35,7 +35,7 @@ class TestSyncFlow(TestCase):
         return sync_flow
 
     @parameterized.expand([(None,), ("local_sha",)])
-    @patch("samcli.lib.sync.sync_flow.SyncFlow.sync_state_identifier", new_callable=mock.PropertyMock)
+    @patch("samcli.lib.sync.sync_flow.SyncFlow.sync_state_identifier", new_callable=PropertyMock)
     @patch("samcli.lib.sync.sync_flow.Session")
     @patch.multiple(SyncFlow, __abstractmethods__=set())
     def test_update_local_hash(self, local_sha, session_mock, patched_sync_state_identifier):
