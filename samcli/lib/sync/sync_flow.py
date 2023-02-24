@@ -112,6 +112,7 @@ class SyncFlow(ABC):
         raise NotImplementedError("gather_resources")
 
     def _update_local_hash(self) -> None:
+        """Updates the latest local hash of the sync flow which then can be used for comparison for next run"""
         if not self._local_sha:
             LOG.debug("%sNo local hash is configured, skipping to update local hash", self.log_prefix)
             return
