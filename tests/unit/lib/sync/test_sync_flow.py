@@ -6,7 +6,13 @@ from samcli.lib.providers.provider import ResourceIdentifier, Stack
 from unittest import TestCase
 from unittest.mock import MagicMock, patch, Mock
 
-from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall, ApiCallTypes, get_definition_path
+from samcli.lib.sync.sync_flow import (
+    SyncFlow,
+    ResourceAPICall,
+    ApiCallTypes,
+    get_definition_path,
+    get_default_retry_config,
+)
 from parameterized import parameterized
 
 
@@ -102,26 +108,44 @@ class TestSyncFlow(TestCase):
 
     @patch("samcli.lib.sync.sync_flow.Session")
     @patch.multiple(SyncFlow, __abstractmethods__=set())
-    def test_set_up(self, session_mock):
+    def test_get_sync_flow(self, session_mock):
         sync_flow = self.create_sync_flow()
-        sync_flow.set_up()
+
+        # get first session object to instantiate it
+        session_object = sync_flow._get_session()
         session_mock.assert_called_once()
         self.assertIsNotNone(sync_flow._session)
+        self.assertIsNotNone(session_object)
 
+        # reset mock between tests
+        session_mock.reset_mock()
+
+        # get session object again which should return previously instantiated one
+        session_object = sync_flow._get_session()
+        session_mock.assert_not_called()
+        self.assertIsNotNone(sync_flow._session)
+        self.assertIsNotNone(session_object)
+
+    @parameterized.expand([(None,), (20,)])
     @patch("samcli.lib.sync.sync_flow.get_boto_client_provider_from_session_with_config")
+    @patch("samcli.lib.sync.sync_flow.environ")
     @patch.multiple(SyncFlow, __abstractmethods__=set())
-    def test_boto_client(self, patched_get_client):
+    def test_boto_client(self, environ_param, patched_environ, patched_get_client):
         client_name = "lambda"
         given_client_generator = Mock()
         patched_get_client.return_value = given_client_generator
         given_client = Mock()
         given_client_generator.return_value = given_client
+        patched_environ.get.return_value = environ_param
 
         sync_flow = self.create_sync_flow()
         with patch.object(sync_flow, "_session") as patched_session:
             client = sync_flow._boto_client(client_name)
 
-            patched_get_client.assert_called_with(patched_session)
+            if environ_param:
+                patched_get_client.assert_called_with(patched_session)
+            else:
+                patched_get_client.assert_called_with(patched_session, retries=get_default_retry_config())
             given_client_generator.assert_called_with(client_name)
             self.assertEqual(client, given_client)
 
