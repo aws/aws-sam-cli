@@ -4,7 +4,7 @@ InfraSyncExecutor class which runs build, package and deploy contexts
 import copy
 import logging
 import re
-from typing import Dict, List, Optional, Set, cast
+from typing import Dict, List, Optional, Set
 
 from boto3 import Session
 from botocore.exceptions import ClientError
@@ -63,7 +63,7 @@ class InfraSyncExecutor:
     _build_context: BuildContext
     _package_context: PackageContext
     _deploy_context: DeployContext
-    _code_sync_resources: Set[str]
+    _code_sync_resources: Set[ResourceIdentifier]
 
     def __init__(self, build_context: BuildContext, package_context: PackageContext, deploy_context: DeployContext):
         """Constructs the sync for infra executor.
@@ -101,7 +101,7 @@ class InfraSyncExecutor:
         """
         return get_boto_client_provider_from_session_with_config(session)(client_name)
 
-    def _auto_skip_infra(
+    def _auto_skip_infra_sync(
         self,
         packaged_template_path: str,
         built_template_path: str,
@@ -109,7 +109,7 @@ class InfraSyncExecutor:
         nested_prefix: Optional[str] = None,
     ) -> bool:
         """
-        Recursively conpares two templates, including the nested templates referenced inside
+        Recursively compares two templates, including the nested templates referenced inside
 
         Parameters
         ----------
@@ -170,13 +170,13 @@ class InfraSyncExecutor:
                     if not resource_dict.get("Properties", {}).get("Code", None) == last_resource_dict.get(
                         "Properties", {}
                     ).get("Code", None):
-                        self._code_sync_resources.add(resource_resolved_id)
+                        self._code_sync_resources.add(ResourceIdentifier(resource_resolved_id))
                 else:
                     for field in GENERAL_REMOVAL_MAP.get(resource_type, []):
                         if not resource_dict.get("Properties", {}).get(field, None) == last_resource_dict.get(
                             "Properties", {}
                         ).get(field, None):
-                            self._code_sync_resources.add(resource_resolved_id)
+                            self._code_sync_resources.add(ResourceIdentifier(resource_resolved_id))
 
             if resource_type in SYNCABLE_STACK_RESOURCES:
                 try:
@@ -200,7 +200,7 @@ class InfraSyncExecutor:
                 if isinstance(template_location, dict):
                     continue
                 # For other scenarios, template location will be a string (local or s3 URL)
-                elif not self._auto_skip_infra(
+                elif not self._auto_skip_infra_sync(
                     resource_dict.get("Properties", {}).get(template_field),
                     current_built_template.get("Resources", {})
                     .get(resource_logical_id, {})
@@ -283,7 +283,7 @@ class InfraSyncExecutor:
                 resource_dict.pop("Metadata", None)
             LOG.debug("Sanitizing the Metadata for resource %s", resource_logical_id)
 
-        return cast(Set, sorted(processed_resources))
+        return processed_resources
 
     def _remove_resource_field(
         self,
@@ -398,7 +398,4 @@ class InfraSyncExecutor:
     @property
     def code_sync_resources(self) -> List[ResourceIdentifier]:
         """Returns the list of resources that should trigger code sync"""
-        resources = []
-        for resource in sorted(self._code_sync_resources):
-            resources.append(ResourceIdentifier(resource))
-        return resources
+        return self._code_sync_resources
