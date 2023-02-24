@@ -233,6 +233,7 @@ class TestGuidedContext(TestCase):
             call("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy"),
             call("\t#SAM needs permission to be able to create roles to connect to the resources in your template"),
             call("\t#Preserves the state of previously provisioned resources when an operation fails"),
+            call("\n\tManaged S3 bucket: managed_s3_stack", bold=True),
         ]
         self.assertEqual(expected_click_secho_calls, patched_click_secho.call_args_list)
 
@@ -309,6 +310,7 @@ class TestGuidedContext(TestCase):
             call("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy"),
             call("\t#SAM needs permission to be able to create roles to connect to the resources in your template"),
             call("\t#Preserves the state of previously provisioned resources when an operation fails"),
+            call("\n\tManaged S3 bucket: managed_s3_stack", bold=True),
         ]
         self.assertEqual(expected_click_secho_calls, patched_click_secho.call_args_list)
 
@@ -432,6 +434,7 @@ class TestGuidedContext(TestCase):
             call("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy"),
             call("\t#SAM needs permission to be able to create roles to connect to the resources in your template"),
             call("\t#Preserves the state of previously provisioned resources when an operation fails"),
+            call("\n\tManaged S3 bucket: managed_s3_stack", bold=True),
         ]
         self.assertEqual(expected_click_secho_calls, patched_click_secho.call_args_list)
 
@@ -514,6 +517,7 @@ class TestGuidedContext(TestCase):
             call("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy"),
             call("\t#SAM needs permission to be able to create roles to connect to the resources in your template"),
             call("\t#Preserves the state of previously provisioned resources when an operation fails"),
+            call("\n\tManaged S3 bucket: managed_s3_stack", bold=True),
         ]
         self.assertEqual(expected_click_secho_calls, patched_click_secho.call_args_list)
 
