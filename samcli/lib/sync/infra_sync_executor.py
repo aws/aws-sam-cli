@@ -248,7 +248,7 @@ class InfraSyncExecutor:
 
         Returns
         -------
-        List[str]
+        Set[str]
             The list of resource IDs that got changed during sanitization
         """
 
