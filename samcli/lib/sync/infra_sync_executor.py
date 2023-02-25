@@ -207,7 +207,7 @@ class InfraSyncExecutor:
                     .get("Properties", {})
                     .get(template_field),
                     stack_resource_detail.get("StackResourceDetail", {}).get("PhysicalResourceId", ""),
-                    resource_logical_id + "/",
+                    nested_prefix + resource_logical_id + "/" if nested_prefix else resource_logical_id + "/",
                 ):
                     return False
 
