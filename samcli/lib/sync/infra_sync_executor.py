@@ -4,7 +4,7 @@ InfraSyncExecutor class which runs build, package and deploy contexts
 import copy
 import logging
 import re
-from typing import Dict, List, Optional, Set
+from typing import Dict, Optional, Set
 
 from boto3 import Session
 from botocore.exceptions import ClientError
