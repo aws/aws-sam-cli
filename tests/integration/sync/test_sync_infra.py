@@ -32,13 +32,14 @@ LOG = logging.getLogger(__name__)
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
 @parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 class TestSyncInfra(SyncIntegBase):
-    parameter_overrides = "Parameter=Clarity"
+    parameter_overrides = {}
 
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        hello_world_layer_name = f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
-        cls.parameter_overrides = f"HelloWorldLayerName={hello_world_layer_name}"
+        cls.parameter_overrides = {
+            "HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
+        }
 
     @skipIf(
         IS_WINDOWS,
@@ -97,7 +98,7 @@ class TestSyncInfra(SyncIntegBase):
             watch=False,
             dependency_layer=self.dependency_layer,
             stack_name=stack_name,
-            parameter_overrides="Parameter=Clarity",
+            parameter_overrides=self.parameter_overrides,
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -314,7 +315,6 @@ class TestSyncInfraCDKTemplates(SyncIntegBase):
             watch=False,
             dependency_layer=dependency_layer,
             stack_name=stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repositories=repository,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -342,7 +342,6 @@ class TestSyncInfraCDKTemplates(SyncIntegBase):
             watch=False,
             dependency_layer=dependency_layer,
             stack_name=stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repositories=repository,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -372,8 +371,9 @@ class TestSyncInfraWithJava(SyncIntegBase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        hello_world_layer_name = f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
-        cls.parameter_overrides = f"HelloWorldLayerName={hello_world_layer_name}"
+        cls.parameter_overrides = {
+            "HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
+        }
 
     @parameterized.expand(["infra/template-java.yaml"])
     def test_sync_infra_with_java(self, template_file):
@@ -433,7 +433,6 @@ class TestSyncInfraWithEsbuild(SyncIntegBase):
             watch=False,
             dependency_layer=self.dependency_layer,
             stack_name=stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,

@@ -267,7 +267,10 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         if profile:
             command_list += ["--profile", str(profile)]
         if parameter_overrides:
-            command_list += ["--parameter-overrides", str(parameter_overrides)]
+            arg_value = " ".join(
+                ["ParameterKey={},ParameterValue={}".format(key, value) for key, value in parameter_overrides.items()]
+            )
+            command_list = command_list + ["--parameter-overrides", arg_value]
         if base_dir:
             command_list += ["-s", str(base_dir)]
         if image_repository:

@@ -41,7 +41,7 @@ class TestSyncCodeBase(SyncIntegBase):
     template_path = ""
     template = ""
     folder = ""
-    parameter_overrides = "Parameter=Clarity"
+    parameter_overrides = {}
 
     @pytest.fixture(scope="class")
     def execute_infra_sync(self):
@@ -98,8 +98,7 @@ class TestSyncCode(TestSyncCodeBase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        hello_world_layer_name = f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
-        cls.parameter_overrides = f"HelloWorldLayerName={hello_world_layer_name}"
+        cls.parameter_overrides["HelloWorldLayerName"] =  f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
 
     def test_sync_code_function(self):
         shutil.rmtree(self.test_data_path.joinpath(self.folder, "before", "function"))
@@ -122,7 +121,6 @@ class TestSyncCode(TestSyncCodeBase):
             resource_list=["AWS::Serverless::Function"],
             dependency_layer=self.dependency_layer,
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -160,7 +158,6 @@ class TestSyncCode(TestSyncCodeBase):
             resource_list=["AWS::Serverless::LayerVersion"],
             dependency_layer=self.dependency_layer,
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -200,7 +197,6 @@ class TestSyncCode(TestSyncCodeBase):
             dependency_layer=self.dependency_layer,
             resource_list=["AWS::Serverless::LayerVersion", "AWS::Serverless::Function"],
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -232,7 +228,6 @@ class TestSyncCode(TestSyncCodeBase):
             watch=False,
             resource_list=["AWS::Serverless::Api"],
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -261,7 +256,6 @@ class TestSyncCode(TestSyncCodeBase):
             watch=False,
             resource_list=["AWS::Serverless::StateMachine"],
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -284,7 +278,6 @@ class TestSyncCode(TestSyncCodeBase):
             watch=False,
             resource_list=["AWS::Serverless::InvalidResource"],
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -319,7 +312,6 @@ class TestSyncCodeDotnetFunctionTemplate(TestSyncCodeBase):
             resource_list=["AWS::Serverless::Function"],
             dependency_layer=True,
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -368,7 +360,6 @@ class TestSyncCodeNodejsFunctionTemplate(TestSyncCodeBase):
             resource_list=["AWS::Serverless::Function"],
             dependency_layer=self.dependency_layer,
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -403,10 +394,10 @@ class TestSyncCodeNested(TestSyncCodeBase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        hello_world_layer_name = f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
-        child_stack_hello_world_layer_name = f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
-        cls.parameter_overrides = f"HelloWorldLayerName={hello_world_layer_name}," \
-                                  f"ChildStackHelloWorldLayerName={child_stack_hello_world_layer_name}"
+        cls.parameter_overrides = {
+            "HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140],
+            "ChildStackHelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
+        }
 
     def test_sync_code_nested_function(self):
         shutil.rmtree(self.test_data_path.joinpath(self.folder, "before", "child_stack", "child_functions"))
@@ -422,7 +413,6 @@ class TestSyncCodeNested(TestSyncCodeBase):
             resource_list=["AWS::Serverless::Function"],
             dependency_layer=self.dependency_layer,
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -455,7 +445,6 @@ class TestSyncCodeNested(TestSyncCodeBase):
             resource_list=["AWS::Serverless::LayerVersion"],
             dependency_layer=self.dependency_layer,
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -494,7 +483,6 @@ class TestSyncCodeNested(TestSyncCodeBase):
             dependency_layer=self.dependency_layer,
             stack_name=TestSyncCodeBase.stack_name,
             resource_list=["AWS::Serverless::LayerVersion", "AWS::Serverless::Function"],
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -529,7 +517,6 @@ class TestSyncCodeNested(TestSyncCodeBase):
             dependency_layer=self.dependency_layer,
             resource_list=["AWS::Serverless::Api"],
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -560,7 +547,6 @@ class TestSyncCodeNested(TestSyncCodeBase):
             watch=False,
             resource_list=["AWS::Serverless::StateMachine"],
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -586,8 +572,9 @@ class TestSyncCodeNestedWithIntrinsics(TestSyncCodeBase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        child_stack_hello_world_layer_name = f"ChildStackHelloWorldLayerName-{uuid.uuid4().hex}"[:140]
-        cls.parameter_overrides = f"ChildStackHelloWorldLayerName={child_stack_hello_world_layer_name}"
+        cls.parameter_overrides = {
+            "ChildStackHelloWorldLayerName": f"ChildStackHelloWorldLayerName-{uuid.uuid4().hex}"[:140]
+        }
 
     def test_sync_code_nested_getattr_layer(self):
         shutil.rmtree(
@@ -605,7 +592,6 @@ class TestSyncCodeNestedWithIntrinsics(TestSyncCodeBase):
             resource_list=["AWS::Serverless::LayerVersion"],
             dependency_layer=self.dependency_layer,
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -648,7 +634,6 @@ class TestSyncCodeEsbuildFunctionTemplate(TestSyncCodeBase):
             resource_list=["AWS::Serverless::Function"],
             dependency_layer=self.dependency_layer,
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -685,12 +670,11 @@ class TestSyncLayerCode(TestSyncCodeBase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        hello_world_layer_name = f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
-        hello_world_layer_without_build_name = f"HelloWorldLayerWithoutBuildMethod-{uuid.uuid4().hex}"[:140]
-        hello_world_layer_prebuilt_zip_name = f"HelloWorldPreBuiltZipLayer-{uuid.uuid4().hex}"[:140]
-        cls.parameter_overrides = f"HelloWorldLayerName={hello_world_layer_name}," \
-                                  f"HelloWorldLayerWithoutBuildMethodName={hello_world_layer_without_build_name}," \
-                                  f"HelloWorldPreBuiltZipLayerName={hello_world_layer_prebuilt_zip_name}"
+        cls.parameter_overrides = {
+            "HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140],
+            "HelloWorldLayerWithoutBuildMethodName": f"HelloWorldLayerWithoutBuildMethod-{uuid.uuid4().hex}"[:140],
+            "HelloWorldPreBuiltZipLayerName": f"HelloWorldPreBuiltZipLayer-{uuid.uuid4().hex}"[:140]
+        }
 
 
     @parameterized.expand(
@@ -719,7 +703,6 @@ class TestSyncLayerCode(TestSyncCodeBase):
             resource_id_list=[layer_logical_id],
             dependency_layer=self.dependency_layer,
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
