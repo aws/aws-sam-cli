@@ -49,6 +49,7 @@ LOG.addHandler(handler)
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
 class TestSyncWatchBase(SyncIntegBase):
     template_before = ""
+    parameter_overrides = "Parameter=Clarity"
 
     def setUp(self):
         self.s3_prefix = uuid.uuid4().hex
@@ -95,7 +96,7 @@ class TestSyncWatchBase(SyncIntegBase):
             watch=True,
             dependency_layer=self.dependency_layer,
             stack_name=self.stack_name,
-            parameter_overrides="Parameter=Clarity",
+            parameter_overrides=self.parameter_overrides,
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -140,7 +141,7 @@ class TestSyncWatchEsbuildBase(TestSyncWatchBase):
             watch=True,
             dependency_layer=self.dependency_layer,
             stack_name=self.stack_name,
-            parameter_overrides="Parameter=Clarity",
+            parameter_overrides=self.parameter_overrides,
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -167,10 +168,11 @@ class TestSyncWatchInfra(TestSyncWatchBase):
     @classmethod
     def setUpClass(cls):
         cls.template_before = f"infra/template-{cls.runtime}-before.yaml"
+        hello_world_layer_name = f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
+        cls.parameter_overrides = f"HelloWorldLayerName={hello_world_layer_name}"
         super(TestSyncWatchInfra, cls).setUpClass()
 
     def test_sync_watch_infra(self):
-
         self.update_file(
             self.test_data_path.joinpath(f"infra/template-{self.runtime}-after.yaml"),
             self.test_data_path.joinpath(f"infra/template-{self.runtime}-before.yaml"),
@@ -186,6 +188,13 @@ class TestSyncWatchInfra(TestSyncWatchBase):
 @parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 class TestSyncWatchCode(TestSyncWatchBase):
     template_before = str(Path("code", "before", "template-python.yaml"))
+
+    @classmethod
+    def setUpClass(cls):
+        cls.template_before = f"infra/template-{cls.runtime}-before.yaml"
+        hello_world_layer_name = f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
+        cls.parameter_overrides = f"HelloWorldLayerName={hello_world_layer_name}"
+        super().setUpClass()
 
     def test_sync_watch_code(self):
         self.stack_resources = self._get_stacks(self.stack_name)
@@ -263,6 +272,13 @@ class TestSyncWatchCode(TestSyncWatchBase):
 class TestSyncInfraNestedStacks(TestSyncWatchBase):
     template_before = str(Path("infra", "parent-stack.yaml"))
 
+    @classmethod
+    def setUpClass(cls):
+        cls.template_before = f"infra/template-{cls.runtime}-before.yaml"
+        hello_world_layer_name = f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
+        cls.parameter_overrides = f"HelloWorldLayerName={hello_world_layer_name}"
+        super().setUpClass()
+
     def test_sync_watch_infra_nested_stack(self):
         self.update_file(
             self.test_data_path.joinpath("infra", "template-python-after.yaml"),
@@ -279,6 +295,13 @@ class TestSyncInfraNestedStacks(TestSyncWatchBase):
 @parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 class TestSyncCodeWatchNestedStacks(TestSyncWatchBase):
     template_before = str(Path("code", "before", "parent-stack.yaml"))
+
+    @classmethod
+    def setUpClass(cls):
+        cls.template_before = f"infra/template-{cls.runtime}-before.yaml"
+        hello_world_layer_name = f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
+        cls.parameter_overrides = f"HelloWorldLayerName={hello_world_layer_name}"
+        super().setUpClass()
 
     def test_sync_watch_code_nested_stack(self):
         self.stack_resources = self._get_stacks(self.stack_name)
@@ -405,6 +428,12 @@ class TestSyncWatchUseContainer(TestSyncWatchBase):
 class TestSyncWatchInfraUseContainer(TestSyncWatchUseContainer):
     template_before = f"infra/template-python-before.yaml"
 
+    @classmethod
+    def setUpClass(cls):
+        hello_world_layer_name = f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
+        cls.parameter_overrides = f"HelloWorldLayerName={hello_world_layer_name}"
+        super().setUpClass()
+
     def test_sync_watch_infra(self):
         self.update_file(
             self.test_data_path.joinpath(f"infra/template-python-after.yaml"),
@@ -420,6 +449,12 @@ class TestSyncWatchInfraUseContainer(TestSyncWatchUseContainer):
 
 class TestSyncWatchCodeUseContainer(TestSyncWatchUseContainer):
     template_before = str(Path("code", "before", "template-python.yaml"))
+
+    @classmethod
+    def setUpClass(cls):
+        hello_world_layer_name = f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
+        cls.parameter_overrides = f"HelloWorldLayerName={hello_world_layer_name}"
+        super().setUpClass()
 
     def test_sync_watch_code(self):
         self.stack_resources = self._get_stacks(self.stack_name)
@@ -446,6 +481,12 @@ class TestSyncWatchCodeUseContainer(TestSyncWatchUseContainer):
 class TestSyncWatchCodeOnly(TestSyncWatchBase):
     template_before = str(Path("code", "before", "template-python-code-only.yaml"))
 
+    @classmethod
+    def setUpClass(cls):
+        hello_world_layer_name = f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
+        cls.parameter_overrides = f"HelloWorldLayerName={hello_world_layer_name}"
+        super().setUpClass()
+
     def run_initial_infra_validation(self) -> None:
         """Runs initial infra validation after deployment is completed"""
         self.stack_resources = self._get_stacks(self.stack_name)
@@ -466,7 +507,7 @@ class TestSyncWatchCodeOnly(TestSyncWatchBase):
             watch=True,
             dependency_layer=self.dependency_layer,
             stack_name=self.stack_name,
-            parameter_overrides="Parameter=Clarity",
+            parameter_overrides=self.parameter_overrides,
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
