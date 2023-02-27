@@ -191,7 +191,6 @@ class TestSyncWatchCode(TestSyncWatchBase):
 
     @classmethod
     def setUpClass(cls):
-        cls.template_before = f"infra/template-{cls.runtime}-before.yaml"
         hello_world_layer_name = f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
         cls.parameter_overrides = f"HelloWorldLayerName={hello_world_layer_name}"
         super().setUpClass()
@@ -274,7 +273,6 @@ class TestSyncInfraNestedStacks(TestSyncWatchBase):
 
     @classmethod
     def setUpClass(cls):
-        cls.template_before = f"infra/template-{cls.runtime}-before.yaml"
         hello_world_layer_name = f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
         cls.parameter_overrides = f"HelloWorldLayerName={hello_world_layer_name}"
         super().setUpClass()
@@ -298,7 +296,6 @@ class TestSyncCodeWatchNestedStacks(TestSyncWatchBase):
 
     @classmethod
     def setUpClass(cls):
-        cls.template_before = f"infra/template-{cls.runtime}-before.yaml"
         hello_world_layer_name = f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
         cls.parameter_overrides = f"HelloWorldLayerName={hello_world_layer_name}"
         super().setUpClass()

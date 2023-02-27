@@ -1,12 +1,8 @@
+import json
+import logging
 import os
 import platform
-
-import logging
-import json
-import shutil
-import tempfile
 import uuid
-from pathlib import Path
 from unittest import skipIf
 
 import pytest
@@ -18,7 +14,6 @@ from samcli.lib.utils.resources import (
     AWS_STEPFUNCTIONS_STATEMACHINE,
 )
 from tests.integration.sync.sync_integ_base import SyncIntegBase
-
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 from tests.testing_utils import run_command_with_input
 
@@ -39,6 +34,7 @@ LOG = logging.getLogger(__name__)
 class TestSyncInfra(SyncIntegBase):
     parameter_overrides = "Parameter=Clarity"
 
+    @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
         hello_world_layer_name = f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
@@ -373,6 +369,7 @@ class TestSyncInfraWithJava(SyncIntegBase):
     ecr_repo_name = None
     kms_key = None
 
+    @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
         hello_world_layer_name = f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]

@@ -95,6 +95,7 @@ class TestSyncCode(TestSyncCodeBase):
     template = "template-python.yaml"
     folder = "code"
 
+    @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
         hello_world_layer_name = f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
@@ -399,6 +400,7 @@ class TestSyncCodeNested(TestSyncCodeBase):
     template = "template.yaml"
     folder = "nested"
 
+    @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
         hello_world_layer_name = f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
@@ -581,6 +583,7 @@ class TestSyncCodeNestedWithIntrinsics(TestSyncCodeBase):
     template = "template.yaml"
     folder = "nested_intrinsics"
 
+    @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
         child_stack_hello_world_layer_name = f"ChildStackHelloWorldLayerName-{uuid.uuid4().hex}"[:140]
@@ -679,6 +682,7 @@ class TestSyncLayerCode(TestSyncCodeBase):
     template = "template-python-code-only-layer.yaml"
     folder = "code"
 
+    @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
         hello_world_layer_name = f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
