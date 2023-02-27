@@ -46,6 +46,36 @@ jobs:
     - run: make init
     - run: make pr
 
+  integraion-tests:
+    name: Integration Tests / ${{ matrix.os }} / ${{ matrix.python }} / ${{ matrix.tests_folder }}
+    runs-on: ${{ matrix.os }}
+    env:
+      AWS_DEFAULT_REGION: us-east-1
+      SAM_CLI_DEV: "1"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          # - windows-latest
+        python:
+          - "3.7"
+          - "3.8"
+          - "3.9"
+        tests_folder:
+          - "buildcmd"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: |
+            3.7
+            3.8
+            3.9
+      - name: Show ENV
+        run: env
+
   integration_tests-buildcmd_rust:
     name: Integration Tests / buildcmd - Rust / ${{ matrix.os }} / ${{ matrix.python }}
     runs-on: ${{ matrix.os }}
