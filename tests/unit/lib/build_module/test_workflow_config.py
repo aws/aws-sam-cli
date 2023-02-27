@@ -64,7 +64,7 @@ class Test_get_workflow_config(TestCase):
 
     @parameterized.expand([("provided.al2",)])
     def test_must_work_for_provided_with_build_method_rustcargolambda(self, runtime):
-        result = get_workflow_config(runtime, self.code_dir, self.project_dir, specified_workflow="rustcargolambda")
+        result = get_workflow_config(runtime, self.code_dir, self.project_dir, specified_workflow="rust-cargolambda")
         self.assertEqual(result.language, "rust")
         self.assertEqual(result.dependency_manager, "cargo")
         self.assertIsNone(result.application_framework)

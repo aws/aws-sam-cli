@@ -2,8 +2,8 @@
 Implementation of custom click parameter types
 """
 
-import re
 import json
+import re
 from json import JSONDecodeError
 
 import click
@@ -410,10 +410,11 @@ class ImageRepositoriesType(click.ParamType):
     """
 
     name = ""
+    KEY_VALUE_PAIR_LENGTH = 2
 
     def convert(self, value, param, ctx):
         key_value_pair = value.split("=")
-        if len(key_value_pair) != 2:
+        if len(key_value_pair) != self.KEY_VALUE_PAIR_LENGTH:
             raise click.BadParameter(
                 f"{param.opts[0]} is not a valid format, it needs to be of the form function_logical_id=ECR_URI"
             )

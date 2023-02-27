@@ -2,9 +2,9 @@
 Utilities for sam deploy command
 """
 
+import copy
 import json
 import textwrap
-import copy
 
 import click
 
@@ -81,7 +81,7 @@ def print_deploy_args(
     click.echo(f"\tParameter overrides          : {parameter_overrides_format_text}")
     click.echo(f"\tSigning Profiles             : {signing_profiles_format_text}")
 
-    click.secho("\nInitiating deployment\n=====================", fg="yellow")
+    click.secho("\nInitiating deployment\n=====================\n", fg="yellow")
 
 
 def sanitize_parameter_overrides(parameter_overrides):

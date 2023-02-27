@@ -2,23 +2,23 @@
 Entry point for the CLI
 """
 
-import logging
 import json
+import logging
 
 import click
 
 from samcli import __version__
+from samcli.cli.command import BaseCommand
+from samcli.cli.context import Context
+from samcli.cli.global_config import GlobalConfig
+from samcli.cli.options import debug_option, profile_option, region_option
 from samcli.lib.utils.sam_logging import (
     LAMBDA_BULDERS_LOGGER_NAME,
-    SamCliLogger,
     SAM_CLI_FORMATTER,
     SAM_CLI_LOGGER_NAME,
+    SamCliLogger,
 )
-from samcli.lib.utils.system_info import gather_system_info, gather_additional_dependencies_info
-from samcli.cli.options import debug_option, region_option, profile_option
-from samcli.cli.context import Context
-from samcli.cli.command import BaseCommand
-from samcli.cli.global_config import GlobalConfig
+from samcli.lib.utils.system_info import gather_additional_dependencies_info, gather_system_info
 
 LOG = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
@@ -109,19 +109,28 @@ TELEMETRY_PROMPT = """
 @click.command(cls=BaseCommand)
 @common_options
 @click.version_option(version=__version__, prog_name="SAM CLI")
-@click.option("--info", is_flag=True, is_eager=True, callback=print_info, expose_value=False)
+@click.option(
+    "--info",
+    is_flag=True,
+    is_eager=True,
+    callback=print_info,
+    expose_value=False,
+    help="Show system and dependencies information.",
+)
 @pass_context
 def cli(ctx):
     """
     AWS Serverless Application Model (SAM) CLI
 
-    The AWS Serverless Application Model extends AWS CloudFormation to provide a simplified way of defining the
-    Amazon API Gateway APIs, AWS Lambda functions, and Amazon DynamoDB tables needed by your serverless application.
-    You can find more in-depth guide about the SAM specification here:
-    https://github.com/awslabs/serverless-application-model.
+    The AWS Serverless Application Model Command Line Interface (AWS SAM CLI) is a command line tool
+    that you can use with AWS SAM templates and supported third-party integrations to build and run
+    your serverless applications.
+
+    Learn more: https://docs.aws.amazon.com/serverless-application-model/
     """
     import atexit
-    from samcli.lib.telemetry.metric import send_installed_metric, emit_all_metrics
+
+    from samcli.lib.telemetry.metric import emit_all_metrics, send_installed_metric
 
     # if development version of SAM CLI is used, attach module proxy
     # to catch missing configuration for dynamic/hidden imports

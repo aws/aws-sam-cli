@@ -4,9 +4,9 @@ Command group for "list" suite for commands.
 
 import click
 
+from samcli.commands.list.endpoints.command import cli as testable_resources_cli
 from samcli.commands.list.resources.command import cli as resources_cli
 from samcli.commands.list.stack_outputs.command import cli as stack_outputs_cli
-from samcli.commands.list.endpoints.command import cli as testable_resources_cli
 
 
 @click.group()

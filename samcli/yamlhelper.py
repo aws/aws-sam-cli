@@ -18,15 +18,15 @@ https://github.com/aws/aws-cli/blob/develop/awscli/customizations/cloudformation
 # pylint: disable=too-many-ancestors
 
 import json
-from typing import cast, Dict, Optional
-from botocore.compat import OrderedDict
-import yaml
+from typing import Dict, Optional, cast
 
+import yaml
+from botocore.compat import OrderedDict
+from samtranslator.utils.py27hash_fix import Py27Dict, Py27UniStr
 from yaml.nodes import ScalarNode, SequenceNode
 
-from samtranslator.utils.py27hash_fix import Py27Dict, Py27UniStr
-
 TAG_STR = "tag:yaml.org,2002:str"
+TIMESTAMP_TAG = "tag:yaml.org,2002:timestamp"
 
 
 def string_representer(dumper, value):
@@ -119,6 +119,9 @@ def yaml_parse(yamlstr) -> Dict:
         # json parser.
         return cast(Dict, json.loads(yamlstr, object_pairs_hook=OrderedDict))
     except ValueError:
+        yaml.constructor.SafeConstructor.yaml_constructors[
+            TIMESTAMP_TAG
+        ] = yaml.constructor.SafeConstructor.yaml_constructors[TAG_STR]
         yaml.SafeLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _dict_constructor)
         yaml.SafeLoader.add_multi_constructor("!", intrinsics_multi_constructor)
         return cast(Dict, yaml.safe_load(yamlstr))

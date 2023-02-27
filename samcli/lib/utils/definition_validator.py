@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 import yaml
+
 from samcli.yamlhelper import parse_yaml_file
 
 LOG = logging.getLogger(__name__)

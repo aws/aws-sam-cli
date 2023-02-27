@@ -1,9 +1,10 @@
 """
 The table consumer for 'sam list'
 """
-from typing import Dict, Any
-from samcli.lib.list.list_interfaces import ListInfoPullerConsumer
+from typing import Any, Dict
+
 from samcli.commands._utils.table_print import pprint_column_names, pprint_columns
+from samcli.lib.list.list_interfaces import ListInfoPullerConsumer
 
 
 class StringConsumerTableOutput(ListInfoPullerConsumer):

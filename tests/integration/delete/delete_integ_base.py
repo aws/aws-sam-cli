@@ -1,21 +1,14 @@
-import os
 from pathlib import Path
-from typing import Optional
-from unittest import TestCase
 
+from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.testing_utils import get_sam_command
 
 
-class DeleteIntegBase(TestCase):
+class DeleteIntegBase(DeployIntegBase):
     @classmethod
     def setUpClass(cls):
         cls.delete_test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "delete")
-
-    def setUp(self):
-        super().setUp()
-
-    def tearDown(self):
-        super().tearDown()
+        super().setUpClass()
 
     def get_delete_command_list(
         self,

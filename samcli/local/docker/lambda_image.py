@@ -1,27 +1,25 @@
 """
 Generates a Docker Image to be used for invoking a function locally
 """
-from typing import Optional
-import uuid
-import logging
 import hashlib
+import logging
+import platform
+import re
+import sys
+import uuid
 from enum import Enum
 from pathlib import Path
+from typing import Optional
 
-import sys
-import re
-import platform
 import docker
 
 from samcli.commands.local.cli_common.user_exceptions import ImageBuildException
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.utils.architecture import has_runtime_multi_arch_image
-from samcli.lib.utils.packagetype import ZIP, IMAGE
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.lib.utils.tar import create_tarball
-from samcli.local.docker.utils import get_rapid_name, get_docker_platform
-
-from samcli import __version__ as version
+from samcli.local.docker.utils import get_docker_platform, get_rapid_name
 
 LOG = logging.getLogger(__name__)
 

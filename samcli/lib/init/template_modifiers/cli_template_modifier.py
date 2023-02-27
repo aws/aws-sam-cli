@@ -5,9 +5,10 @@ import logging
 from abc import abstractmethod
 from copy import deepcopy
 from typing import Any, List
-from yaml.parser import ParserError
-from samcli.yamlhelper import parse_yaml_file
 
+from yaml.parser import ParserError
+
+from samcli.yamlhelper import parse_yaml_file
 
 LOG = logging.getLogger(__name__)
 
