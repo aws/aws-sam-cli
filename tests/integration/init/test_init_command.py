@@ -1,3 +1,7 @@
+import platform
+import time
+import signal
+
 from click.testing import CliRunner
 
 from samcli.commands.init import cli as init_cmd
@@ -14,6 +18,7 @@ from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 from pathlib import Path
 
+from tests.integration.init.test_init_base import InitIntegBase
 from tests.testing_utils import get_sam_command
 
 TIMEOUT = 300
@@ -912,7 +917,7 @@ class TestInitProducesSamconfigFile(TestCase):
         self._validate_common_properties(text)
 
         self.assertFalse(self._check_property("cached = true", text))
-        self.assertFalse(self._check_property("resolve_s3 = true", text))
+        self.assertTrue(self._check_property("resolve_s3 = true", text))
         self.assertTrue(self._check_property("resolve_image_repos = true", text))
 
     def _validate_zip_samconfig(self, project_path):
@@ -940,3 +945,20 @@ class TestInitProducesSamconfigFile(TestCase):
         with open(Path(project_path, "samconfig.toml"), "r") as f:
             text = f.readlines()
         return text
+
+
+class TestInitCommand(InitIntegBase):
+    def test_graceful_exit(self):
+        # Run the Base Command
+        command_list = self.get_command()
+        process_execute = Popen(command_list, stdout=PIPE, stderr=PIPE)
+
+        # Wait for binary to be ready before sending interrupts.
+        time.sleep(self.BINARY_READY_WAIT_TIME)
+
+        # Send SIGINT signal
+        process_execute.send_signal(signal.CTRL_C_EVENT if platform.system().lower() == "windows" else signal.SIGINT)
+        process_execute.wait()
+        # Process should exit gracefully with an exit code of 1.
+        self.assertEqual(process_execute.returncode, 1)
+        self.assertIn("Aborted!", process_execute.stderr.read().decode("utf-8"))
