@@ -917,7 +917,7 @@ class TestInitProducesSamconfigFile(TestCase):
         self._validate_common_properties(text)
 
         self.assertFalse(self._check_property("cached = true", text))
-        self.assertFalse(self._check_property("resolve_s3 = true", text))
+        self.assertTrue(self._check_property("resolve_s3 = true", text))
         self.assertTrue(self._check_property("resolve_image_repos = true", text))
 
     def _validate_zip_samconfig(self, project_path):
