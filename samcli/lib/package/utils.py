@@ -281,7 +281,7 @@ def make_zip_with_permissions(file_name, source_root, permission_mappers: List[P
                                 info = permission_mapper.apply(info)
                             # ZIP date time can be set to the last time the zip content was modified using this logic.
                             # info.date_time = time.localtime()[0:6]
-            
+
                             # If the date time above is added, the caching logic that compares ZIP files sha will break.
                             # However, without this field, contents of the zip file will have a last modified date 1980
                             # because python's zipfile.ZipInfo is set to: https://docs.python.org/3/library/zipfile.html.
