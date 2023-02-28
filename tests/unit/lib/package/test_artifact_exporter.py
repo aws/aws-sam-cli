@@ -1732,6 +1732,39 @@ class TestArtifactExporter(unittest.TestCase):
                 os.remove(zipfile_name)
             test_file_creator.remove_all()
 
+    def test_make_zip_keep_datetime_as_is(self):
+        test_file_creator = FileCreator()
+        test_file_creator.append_file(
+            "index.js", "exports handler = (event, context, callback) => {callback(null, event);}"
+        )
+
+        dirname = test_file_creator.rootdir
+
+        expected_files = {"index.js"}
+
+        random_name = "".join(random.choice(string.ascii_letters) for _ in range(10))
+        outfile = os.path.join(tempfile.gettempdir(), random_name)
+
+        zipfile_name = None
+        try:
+            zipfile_name = make_zip(outfile, dirname)
+
+            test_zip_file = zipfile.ZipFile(zipfile_name, "r")
+            with closing(test_zip_file) as zf:
+                files_in_zip = set()
+                for info in zf.infolist():
+                    files_in_zip.add(info.filename)
+                    # This tests that we are not setting the datetime field of the info
+                    # Currently we cannot set this field, for more information refer to
+                    # https://github.com/aws/aws-sam-cli/pull/4781/files
+                    self.assertEqual(info.date_time, (1980, 1, 1, 0, 0, 0))
+            self.assertEqual(files_in_zip, expected_files)
+
+        finally:
+            if zipfile_name:
+                os.remove(zipfile_name)
+            test_file_creator.remove_all()
+
     @patch("platform.system")
     def test_make_zip_windows(self, mock_system):
         mock_system.return_value = "Windows"
