@@ -88,6 +88,30 @@ jobs:
         with:
           distribution: 'corretto'
           java-version: '11'
+       # Install and configure Rust
+      - name: Install rustup
+        run: |
+          : install rustup if needed
+          if ! command -v rustup &> /dev/null ; then
+            curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL "https://sh.rustup.rs" | sh -s -- --default-toolchain none -y
+            echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
+          fi
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+      - name: rustup toolchain install ${{ matrix.rust }}
+        run: rustup toolchain install ${{ matrix.rust }} --profile minimal --no-self-update
+      - run: rustup default ${{ matrix.rust }}
+      - run: |
+          : disable incremental compilation
+          echo CARGO_INCREMENTAL=0 >> $GITHUB_ENV
+      - run: |
+          : enable colors in Cargo output
+          echo CARGO_TERM_COLOR=always >> $GITHUB_ENV
+
+      # Install and configure Cargo Lambda
+      - name: Install Cargo Lambda
+        run: pip install cargo-lambda==$CARGO_LAMBDA_VERSION
+      - run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+
       - name: Init samdev
         run: make init
       - name: Run integration tests for ${{ matrix.tests_folder }}
