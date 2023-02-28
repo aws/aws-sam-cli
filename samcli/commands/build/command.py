@@ -143,8 +143,8 @@ $ sam build MyFunction
     type=click.Choice(MountMode.values(), case_sensitive=False),
     default=MountMode.READ.value,
     help="Optional. Specify mount mode for building functions/layers inside container. "
-    "If mount with write permissions, some files in source code directory may be changed/added by the build process. "
-    "By default the source code directory is read only.",
+    "If it is mounted with write permissions, some files in source code directory may "
+    "be changed/added by the build process. By default the source code directory is read only.",
     cls=ContainerOptions,
 )
 @build_dir_option
@@ -186,7 +186,7 @@ def cli(
     config_env: str,
     hook_name: Optional[str],
     skip_prepare_infra: bool,
-    mount_with="READ",
+    mount_with=MountMode.READ.value,
 ) -> None:
     """
     `sam build` command entry point
@@ -243,7 +243,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     exclude: Optional[Tuple[str, ...]],
     hook_name: Optional[str],
     build_in_source: Optional[bool],
-    mount_with="READ",
+    mount_with=MountMode.READ.value,
 ) -> None:
     """
     Implementation of the ``cli`` method

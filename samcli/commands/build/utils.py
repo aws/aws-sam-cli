@@ -54,26 +54,30 @@ def prompt_user_to_enable_mount_with_write_if_needed(
 
     for function in resources_to_build.functions:
         code_uri = function.codeuri
-        if code_uri:
-            runtime = function.runtime
-            code_dir = str(pathlib.Path(base_dir, code_uri).resolve())
-            # get specified_workflow if metadata exists
-            metadata = function.metadata
-            specified_workflow = metadata.get("BuildMethod", None) if metadata else None
-            config = get_workflow_config(runtime, code_dir, base_dir, specified_workflow)
-            # at least one function needs mount with write, return with prompting
-            if config.must_mount_with_write_in_container:
-                return prompt(config, code_dir)
+        if not code_uri:
+            continue
+        runtime = function.runtime
+        code_dir = str(pathlib.Path(base_dir, code_uri).resolve())
+        # get specified_workflow if metadata exists
+        metadata = function.metadata
+        specified_workflow = metadata.get("BuildMethod", None) if metadata else None
+        config = get_workflow_config(runtime, code_dir, base_dir, specified_workflow)
+        # at least one function needs mount with write, return with prompting
+        if not config.must_mount_with_write_in_container:
+            continue
+        return prompt(config, code_dir)
 
     for layer in resources_to_build.layers:
         code_uri = layer.codeuri
-        if code_uri:
-            code_dir = str(pathlib.Path(base_dir, code_uri).resolve())
-            specified_workflow = layer.build_method
-            config = get_workflow_config(None, code_dir, base_dir, specified_workflow)
-            # at least one layer needs mount with write, return with prompting
-            if config.must_mount_with_write_in_container:
-                return prompt(config, code_dir)
+        if not code_uri:
+            continue
+        code_dir = str(pathlib.Path(base_dir, code_uri).resolve())
+        specified_workflow = layer.build_method
+        config = get_workflow_config(None, code_dir, base_dir, specified_workflow)
+        # at least one layer needs mount with write, return with prompting
+        if not config.must_mount_with_write_in_container:
+            continue
+        return prompt(config, code_dir)
 
     return False
 

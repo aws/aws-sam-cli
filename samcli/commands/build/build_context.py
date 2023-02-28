@@ -78,7 +78,7 @@ class BuildContext:
         locate_layer_nested: bool = False,
         hook_name: Optional[str] = None,
         build_in_source: Optional[bool] = None,
-        mount_with="READ",
+        mount_with=MountMode.READ.value,
     ) -> None:
         """
         Initialize the class
