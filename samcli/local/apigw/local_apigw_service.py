@@ -169,7 +169,7 @@ class LocalApigwService(BaseLocalService):
         )
 
         # add converter to support catch-all route
-        self._app.url_map.converters.update({"path": CatchAllPathConverter})
+        self._app.url_map.converters["path"] = CatchAllPathConverter
 
         # Prevent the dev server from emitting headers that will make the browser cache response by default
         self._app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
