@@ -2126,6 +2126,7 @@ test-project
             "amazon/nodejs14.x-base",
             "amazon/python3.8-base",
             "amazon/ruby2.7-base",
+            "amazon/go-provided.al2-base",
         ]
 
         expected_runtime = [
@@ -2136,6 +2137,7 @@ test-project
             "nodejs14.x",
             "python3.8",
             "ruby2.7",
+            "go (provided.al2)",
         ]
 
         for index, base_image in enumerate(base_images):

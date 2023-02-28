@@ -153,10 +153,13 @@ def _get_runtime_from_image(image: str) -> str:
     Expecting 'amazon/{runtime}-base'
     But might also be like 'amazon/{runtime}-provided.al2-base'
     """
-    parts = re.split("/|-", image)
-    if parts[2] != 'base':
-        return f'{parts[1]} ({parts[2]})'
-    return parts[1]
+    match = re.fullmatch(r"amazon/([a-z0-9.]*)-?([a-z0-9.]*)-base", image)
+    if match is None:
+        return "UNKNOWN"
+    runtime, base = match.groups()
+    if base != "":
+        return f"{runtime} ({base})"
+    return runtime
 
 
 def _get_image_from_runtime(runtime):
