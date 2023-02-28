@@ -153,9 +153,8 @@ def _get_runtime_from_image(image):
     Expecting 'amazon/{runtime}-base'
     But might also be like 'amazon/{runtime}-provided.al2-base'
     """
-    
     parts = re.split("/|-", image)
-    if len(parts) > 3:
+    if parts[2] != 'base':
         return f'{parts[1]} ({parts[2]})'
     return parts[1]
 
