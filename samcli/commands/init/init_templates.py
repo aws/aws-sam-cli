@@ -14,6 +14,9 @@ import requests
 
 from samcli.cli.global_config import GlobalConfig
 from samcli.commands.exceptions import AppTemplateUpdateException, UserException
+from samcli.commands.init.init_flow_helpers import (
+    _get_runtime_from_image,
+)
 from samcli.lib.utils import configuration
 from samcli.lib.utils.git_repo import (
     CloneRepoException,
@@ -272,7 +275,7 @@ def get_template_value(value: str, template: dict) -> Optional[str]:
 
 def get_runtime(package_type: Optional[str], template_runtime: str) -> str:
     if package_type == IMAGE:
-        template_runtime = re.split("/|-", template_runtime)[1]
+        return _get_runtime_from_image(template_runtime)
     return template_runtime
 
 

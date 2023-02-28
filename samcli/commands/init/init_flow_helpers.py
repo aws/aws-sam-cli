@@ -149,9 +149,15 @@ def _get_templates_with_dependency_manager(templates_options, dependency_manager
 def _get_runtime_from_image(image):
     """
     Get corresponding runtime from the base-image parameter
+
+    Expecting 'amazon/{runtime}-base'
+    But might also be like 'amazon/{runtime}-provided.al2-base'
     """
-    runtime = image[image.find("/") + 1 : image.find("-")]
-    return runtime
+    
+    parts = re.split("/|-", image)
+    if len(parts) > 3:
+        return f'{parts[1]} ({parts[2]})'
+    return parts[1]
 
 
 def _get_image_from_runtime(runtime):
