@@ -16,4 +16,4 @@ Resources:
     Properties:
       Location: child_stack/template.yaml
       Parameters:
-        HelloWorldLayerName: !Ref ChildStackHelloWorldLayerName
+        ChildStackHelloWorldLayerName: !Ref ChildStackHelloWorldLayerName
