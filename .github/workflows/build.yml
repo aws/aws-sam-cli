@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - make-pr
-      - integration_tests-buildcmd_rust
+      - integration-tests
     steps:
       - name: report-failure
         if : |
