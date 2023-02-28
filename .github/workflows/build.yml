@@ -74,8 +74,8 @@ jobs:
             3.8
             3.9
             ${{ matrix.python }}
-      - name: Show ENV
-        run: env
+      - name: Init samdev
+        run: make init
 
 #  integration_tests-buildcmd_rust:
 #    name: Integration Tests / buildcmd - Rust / ${{ matrix.os }} / ${{ matrix.python }}
