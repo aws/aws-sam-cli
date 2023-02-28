@@ -146,7 +146,7 @@ def _get_templates_with_dependency_manager(templates_options, dependency_manager
     return [t for t in templates_options if t.get("dependencyManager") == dependency_manager]
 
 
-def _get_runtime_from_image(image):
+def _get_runtime_from_image(image: str) -> str:
     """
     Get corresponding runtime from the base-image parameter
 
