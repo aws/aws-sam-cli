@@ -25,6 +25,7 @@ jobs:
 
   make-pr:
     name: make pr / ${{ matrix.os }} / ${{ matrix.python }}
+    if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -48,6 +49,7 @@ jobs:
 
   integration-tests:
     name: Integration Tests / ${{ matrix.os }} / ${{ matrix.python }} / ${{ matrix.tests_folder }}
+    if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     env:
       AWS_DEFAULT_REGION: us-east-1
