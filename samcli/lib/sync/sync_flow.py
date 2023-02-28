@@ -156,8 +156,7 @@ class SyncFlow(ABC):
         """
         stored_sha = self._sync_context.get_resource_latest_sync_hash(self.sync_state_identifier)
         if self._local_sha and stored_sha and self._local_sha == stored_sha:
-            pass
-            # return True
+            return True
         return False
 
     @abstractmethod
