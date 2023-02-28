@@ -1,6 +1,7 @@
 """
 Utilities to manipulate template
 """
+from functools import lru_cache
 import itertools
 import os
 import pathlib
@@ -30,6 +31,7 @@ class TemplateFailedParsingException(UserException):
     pass
 
 
+@lru_cache
 def get_template_data(template_file):
     """
     Read the template file, parse it as JSON/YAML and return the template as a dictionary.
