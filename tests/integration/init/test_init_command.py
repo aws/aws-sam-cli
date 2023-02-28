@@ -185,6 +185,37 @@ class TestBasicInitCommand(TestCase):
             self.assertTrue(Path(temp, "sam-app-gradle").is_dir())
             self.assertNotIn(COMMIT_ERROR, stderr)
 
+    def test_init_command_go_provided_image(self):
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    get_sam_command(),
+                    "init",
+                    "--app-template",
+                    "hello-world-lambda-image",
+                    "--name",
+                    "sam-app-go-image",
+                    "--package-type",
+                    "Image",
+                    "--base-image amazon/go-provided.al2-base",
+                    "--no-interactive",
+                    "-o",
+                    temp,
+                ],
+                stdout=PIPE,
+                stderr=PIPE,
+            )
+            try:
+                stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
+                stderr = stderr_data.decode("utf-8")
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 0)
+            self.assertTrue(Path(temp, "sam-app-go-image").is_dir())
+            self.assertNotIn(COMMIT_ERROR, stderr)
+
     def test_init_command_with_extra_context_parameter(self):
         with tempfile.TemporaryDirectory() as temp:
             process = Popen(
