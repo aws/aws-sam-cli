@@ -3,7 +3,7 @@ import logging
 import time
 from concurrent.futures.thread import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import Callable, List, Optional
+from typing import Callable, Optional
 
 from samcli.lib.sync.exceptions import SyncFlowException
 from samcli.lib.sync.sync_flow import SyncFlow
@@ -41,7 +41,7 @@ class ContinuousSyncFlowExecutor(SyncFlowExecutor):
         with self._flow_queue_lock:
             self._stop_flag = should_stop
             if should_stop:
-                self._flow_queue.queue.clear() 
+                self._flow_queue.queue.clear()
 
     def should_stop(self) -> bool:
         """

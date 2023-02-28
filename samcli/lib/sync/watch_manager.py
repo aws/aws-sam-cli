@@ -13,7 +13,6 @@ from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.sync.continuous_sync_flow_executor import ContinuousSyncFlowExecutor
 from samcli.lib.sync.exceptions import InfraSyncRequiredError, MissingPhysicalResourceError, SyncFlowException
 from samcli.lib.sync.infra_sync_executor import InfraSyncExecutor
-from samcli.lib.sync.sync_flow_executor import SyncFlowTask
 from samcli.lib.sync.sync_flow_factory import SyncFlowFactory
 from samcli.lib.utils.code_trigger_factory import CodeTriggerFactory
 from samcli.lib.utils.colors import Colored

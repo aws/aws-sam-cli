@@ -375,22 +375,27 @@ def do_cli(
                             )
                         else:
                             code_sync_resources = execute_infra_contexts(build_context, package_context, deploy_context)
-                            execute_code_sync(
-                                template_file,
-                                build_context,
-                                deploy_context,
-                                sync_context,
-                                [],
-                                resource,
-                                dependency_layer,
-                            )
+                            resource_ids = [
+                                (resource.stack_path + resource.resource_iac_id) for resource in code_sync_resources
+                            ]
+
+                            if resource_ids:
+                                execute_code_sync(
+                                    template_file,
+                                    build_context,
+                                    deploy_context,
+                                    sync_context,
+                                    resource_ids,
+                                    None,
+                                    dependency_layer,
+                                )
 
 
 def execute_infra_contexts(
     build_context: "BuildContext",
     package_context: "PackageContext",
     deploy_context: "DeployContext",
-) -> None:
+) -> Optional[Set[ResourceIdentifier]]:
     """Executes the sync for infra.
 
     Parameters
@@ -403,7 +408,12 @@ def execute_infra_contexts(
         DeployContext
     """
     infra_sync_executor = InfraSyncExecutor(build_context, package_context, deploy_context)
-    infra_sync_executor.execute_infra_sync(first_sync=True)
+    infra_executed = infra_sync_executor.execute_infra_sync(first_sync=True)
+
+    if not infra_executed:
+        return infra_sync_executor.code_sync_resources
+
+    return None
 
 
 def execute_code_sync(

@@ -131,7 +131,7 @@ class InfraSyncExecutor:
         self._deploy_context.run()
 
         return True
-    
+
     def _auto_skip_infra_sync(
         self,
         packaged_template_path: str,
