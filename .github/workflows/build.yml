@@ -76,6 +76,8 @@ jobs:
             ${{ matrix.python }}
       - name: Init samdev
         run: make init
+      - name: Run integration tests for ${{ matrix.tests_folder }}
+        run: pytest -vv tests/integration/${{ matrix.tests_folder }}
 
 #  integration_tests-buildcmd_rust:
 #    name: Integration Tests / buildcmd - Rust / ${{ matrix.os }} / ${{ matrix.python }}
