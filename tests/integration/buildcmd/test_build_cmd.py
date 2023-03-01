@@ -24,7 +24,6 @@ from tests.testing_utils import (
     SKIP_DOCKER_TESTS,
     SKIP_DOCKER_BUILD,
     SKIP_DOCKER_MESSAGE,
-    run_command_with_input,
 )
 from .build_integ_base import (
     BuildIntegBase,
@@ -39,7 +38,6 @@ from .build_integ_base import (
     BuildIntegPythonBase,
     BuildIntegJavaBase,
     BuildIntegEsbuildBase,
-    BuildIntegRustBase,
 )
 
 LOG = logging.getLogger(__name__)
@@ -952,10 +950,6 @@ class TestBuildCommand_Java_With_Specified_Architecture(BuildIntegJavaBase):
         )
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
     EXPECTED_FILES_PROJECT_MANIFEST = {
@@ -1037,7 +1031,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
             self._verify_invoke_built_function(
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
             )
-        self.verify_docker_container_cleanedup(runtime)
+            self.verify_docker_container_cleanedup(runtime)
 
     @parameterized.expand([("dotnetcore3.1", "Dotnetcore3.1"), ("dotnet6", "Dotnet6")])
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
