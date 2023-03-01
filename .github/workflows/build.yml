@@ -9,7 +9,7 @@ on:
 jobs:
   run-workflow:
     name: PR Workflow
-    #if: github.repository_owner == 'aws'
+    if: github.repository_owner == 'aws'
     runs-on: ubuntu-latest
     needs:
       - make-pr
