@@ -48,7 +48,7 @@ SKIP_SAR_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_
 
 @skipIf(
     # Hits public ECR pull limitation, move it to canary tests
-    ((not RUN_BY_CANARY) or (IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
@@ -151,7 +151,7 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
 
 @skipIf(
     # Hits public ECR pull limitation, move it to canary tests
-    ((not RUN_BY_CANARY) or (IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
@@ -382,10 +382,6 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
             )
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 @parameterized_class(
     (
         "template",
@@ -437,10 +433,6 @@ class TestBuildCommand_PythonFunctions(BuildIntegPythonBase):
         )
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPythonBase):
     template = "template_with_architecture.yaml"
 
@@ -465,10 +457,6 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
         )
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestBuildCommand_ErrorCases(BuildIntegBase):
     @pytest.mark.flaky(reruns=3)
     def test_unsupported_runtime(self):
@@ -1085,10 +1073,6 @@ class TestBuildCommand_Go_Modules_With_Specified_Architecture(BuildIntegGoBase):
         self.assertEqual(process_execute.process.returncode, 1)
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
     template = "many-functions-template.yaml"
 
