@@ -681,10 +681,6 @@ class TestBuildCommand_RubyFunctionsWithGemfileInTheRoot(BuildIntegRubyBase):
         self.template_path = str(Path(self.working_dir).joinpath("template.yaml"))
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestBuildCommand_Java(BuildIntegJavaBase):
     EXPECTED_FILES_PROJECT_MANIFEST_GRADLE = {"aws", "lib", "META-INF"}
     EXPECTED_FILES_PROJECT_MANIFEST_MAVEN = {"aws", "lib"}
@@ -772,10 +768,6 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
         )
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestBuildCommand_Java_With_Specified_Architecture(BuildIntegJavaBase):
     template = "template_with_architecture.yaml"
     EXPECTED_FILES_PROJECT_MANIFEST_GRADLE = {"aws", "lib", "META-INF"}
