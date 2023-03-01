@@ -896,6 +896,7 @@ class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
     @patch("samcli.commands.build.build_context.move_template")
     @patch("samcli.commands.build.build_context.get_template_data")
+    @patch("samcli.commands.build.build_context.BuildContext._is_sam_template")
     @patch("samcli.commands.build.build_context.os")
     @patch("samcli.commands.build.build_context.EsbuildBundlerManager")
     @patch("samcli.commands.build.build_context.BuildContext._handle_build_pre_processing")
@@ -905,6 +906,7 @@ class TestBuildContext_run(TestCase):
         pre_processing_mock,
         esbuild_bundler_manager_mock,
         os_mock,
+        is_sam_template_mock,
         get_template_data_mock,
         move_template_mock,
         resources_mock,
@@ -987,6 +989,7 @@ class TestBuildContext_run(TestCase):
             build_in_source=False,
         ) as build_context:
             build_context.run()
+            is_sam_template_mock.assert_called_once_with()
 
             ApplicationBuilderMock.assert_called_once_with(
                 ANY,
@@ -1222,6 +1225,36 @@ class TestBuildContext_run(TestCase):
                 build_context.run()
 
         self.assertEqual(str(ctx.exception), "Function Not Found")
+
+
+class TestBuildContext_is_sam_template(TestCase):
+    @parameterized.expand(
+        [
+            ({"Transform": "AWS::Serverless-2016-10-31"}, True),
+            ({"Transform": ["AWS::Serverless-2016-10-31"]}, True),
+            ({"Transform": ["AWS::Language::Extension", "AWS::Serverless-2016-10-31"]}, True),
+            ({"Transform": ["AWS::Language::Extension"]}, False),
+            ({"Transform": "AWS::Language::Extension"}, False),
+            ({"Transform": 123}, False),
+        ]
+    )
+    @patch("samcli.commands.build.build_context.get_template_data")
+    def test_is_sam_template(self, template_dict, expected_result, get_template_data_mock):
+        get_template_data_mock.return_value = template_dict
+
+        build_context = BuildContext(
+            resource_identifier="",
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            cached=False,
+            clean=False,
+            parallel=False,
+            mode="mode",
+        )
+        result = build_context._is_sam_template()
+        self.assertEqual(result, expected_result)
 
 
 class TestBuildContext_exclude_warning(TestCase):
