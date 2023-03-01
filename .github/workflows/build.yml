@@ -159,9 +159,6 @@ jobs:
           - "3.7"
           - "3.8"
           - "3.9"
-        tests_folder:
-          - "smoke"
-          - "functional"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -170,4 +167,4 @@ jobs:
       - name: Init samdev
         run: make init
       - name: Run integration tests for ${{ matrix.tests_folder }}
-        run: pytest -vv -n 4 ${{ matrix.tests_folder }}
+        run: pytest -vv -n 4 tests/functional tests/smoke
