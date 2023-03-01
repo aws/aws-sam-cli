@@ -19,7 +19,7 @@ jobs:
         if : |
           needs.make-pr.result != 'success' ||
           needs.integration-tests.result != 'success' ||
-          needs.smoke-and-functional-tests.result != 'success
+          needs.smoke-and-functional-tests.result != 'success'
         run: exit 1
       - name: report-success
         run: exit 0
