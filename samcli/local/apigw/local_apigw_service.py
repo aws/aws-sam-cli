@@ -113,6 +113,8 @@ class Route:
 
 class CatchAllPathConverter(BaseConverter):
     regex = ".+"
+    weight = 300
+    part_isolating = False
 
     def to_python(self, value):
         return value
