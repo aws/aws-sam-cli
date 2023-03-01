@@ -89,6 +89,7 @@ class TestManagedStackDeploy(DeployIntegBase):
 
         stack = boto3.resource("cloudformation", region_name=region).Stack(SAM_CLI_STACK_NAME)
         resources = stack.resource_summaries.all()
+        s3_bucket_name = None
         for resource in resources:
             if resource.resource_type == "AWS::S3::Bucket":
                 s3_bucket_name = resource.physical_resource_id
@@ -114,6 +115,7 @@ class TestManagedStackDeploy(DeployIntegBase):
         if stack.stack_status not in ["CREATE_COMPLETE", "UPDATE_COMPLETE"]:
             raise ManagedStackError("Managed stack status is not in CREATE_COMPLETE or UPDATE_COMPLETE")
 
+        s3_bucket_name = None
         resources = stack.resource_summaries.all()
         for resource in resources:
             if resource.resource_type == "AWS::S3::Bucket":
