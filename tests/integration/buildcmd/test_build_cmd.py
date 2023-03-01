@@ -423,6 +423,8 @@ class TestBuildCommand_PythonFunctions(BuildIntegPythonBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self):
+        if self.use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
         self._test_with_default_requirements(
             self.runtime,
             self.codeuri,
@@ -452,6 +454,8 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
     )
     @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self, runtime, codeuri, use_container, architecture):
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
         self._test_with_default_requirements(
             runtime, codeuri, use_container, self.test_data_path, architecture=architecture
         )
@@ -491,10 +495,6 @@ class TestBuildCommand_NodeFunctions(BuildIntegNodeBase):
         self._test_with_default_package_json(runtime, use_container, self.test_data_path)
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
     template = "template_with_metadata_esbuild.yaml"
 
@@ -1386,6 +1386,8 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegProvidedBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_building_Makefile(self, runtime, use_container, manifest):
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
         self._test_with_Makefile(runtime, use_container, manifest)
 
 
@@ -1413,6 +1415,8 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture(BuildIntegP
     )
     @pytest.mark.flaky(reruns=3)
     def test_building_Makefile(self, runtime, use_container, manifest, architecture):
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
         self._test_with_Makefile(runtime, use_container, manifest, architecture)
 
 
