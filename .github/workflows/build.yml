@@ -139,7 +139,7 @@ jobs:
         run: pytest -vv tests/integration/${{ matrix.tests_folder }}
 
   smoke-and-functional-tests:
-    name: Integration Tests / ${{ matrix.os }} / ${{ matrix.python }} / ${{ matrix.tests_folder }}
+    name: Functional & Smoke Tests / ${{ matrix.os }} / ${{ matrix.python }}
     #if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     env:
