@@ -10,6 +10,7 @@ import click
 from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.click_mutex import ClickMutex
+from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.commands.pipeline.bootstrap.oidc_config import (
     BitbucketOidcConfig,
     GitHubOidcConfig,
@@ -21,7 +22,6 @@ from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
 
-from ..._utils.command_exception_handler import command_exception_handler
 from .guided_context import BITBUCKET, GITHUB_ACTIONS, GITLAB, IAM, OPEN_ID_CONNECT
 
 SHORT_HELP = "Generates the required AWS resources to connect your CI/CD system."
