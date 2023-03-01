@@ -1,72 +1,53 @@
 import functools
 import json
-import platform
-import tempfile
 import os
-import string
+import platform
 import random
-import zipfile
+import shutil
+import string
+import tempfile
 import unittest
-
-from contextlib import contextmanager, closing
+import zipfile
+from contextlib import closing, contextmanager
 from unittest import mock
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import MagicMock, Mock, patch
 
-from samcli.commands.package.exceptions import ExportFailedError
-from samcli.lib.package.permissions import (
-    WindowsFilePermissionPermissionMapper,
-    WindowsDirPermissionPermissionMapper,
-    AdditiveFilePermissionPermissionMapper,
-    AdditiveDirPermissionPermissionMapper,
-)
-from samcli.lib.package.s3_uploader import S3Uploader
-from samcli.lib.package.uploaders import Destination
-from samcli.lib.package.utils import zip_folder, make_zip, make_zip_with_lambda_permissions, make_zip_with_permissions
-from samcli.lib.utils.packagetype import ZIP, IMAGE
-from samcli.lib.utils.resources import LAMBDA_LOCAL_RESOURCES, RESOURCES_WITH_LOCAL_PATHS
-from tests.testing_utils import FileCreator
 from samcli.commands.package import exceptions
+from samcli.commands.package.exceptions import ExportFailedError
 from samcli.lib.package.artifact_exporter import (
-    is_local_folder,
-    make_abs_path,
-    Template,
-    CloudFormationStackResource,
-    CloudFormationStackSetResource,
-    ServerlessApplicationResource,
-)
+    CloudFormationStackResource, CloudFormationStackSetResource,
+    ServerlessApplicationResource, Template, is_local_folder, make_abs_path)
 from samcli.lib.package.packageable_resources import (
-    is_s3_protocol_url,
-    is_local_file,
-    upload_local_artifacts,
-    Resource,
-    ResourceWithS3UrlDict,
-    ServerlessApiResource,
-    ServerlessFunctionResource,
-    GraphQLSchemaResource,
-    LambdaFunctionResource,
-    ApiGatewayRestApiResource,
-    ElasticBeanstalkApplicationVersion,
-    LambdaLayerVersionResource,
-    copy_to_temp_dir,
-    include_transform_export_handler,
-    GLOBAL_EXPORT_DICT,
-    ServerlessLayerVersionResource,
-    ServerlessRepoApplicationLicense,
-    ServerlessRepoApplicationReadme,
-    AppSyncResolverCodeResource,
-    AppSyncResolverRequestTemplateResource,
-    AppSyncResolverResponseTemplateResource,
+    GLOBAL_EXPORT_DICT, ApiGatewayRestApiResource,
     AppSyncFunctionConfigurationCodeResource,
     AppSyncFunctionConfigurationRequestTemplateResource,
     AppSyncFunctionConfigurationResponseTemplateResource,
-    GlueJobCommandScriptLocationResource,
+    AppSyncResolverCodeResource, AppSyncResolverRequestTemplateResource,
+    AppSyncResolverResponseTemplateResource,
     CloudFormationModuleVersionModulePackage,
-    CloudFormationResourceVersionSchemaHandlerPackage,
-    ResourceZip,
-    ResourceImage,
-    ResourceImageDict,
-    ECRResource,
-)
+    CloudFormationResourceVersionSchemaHandlerPackage, ECRResource,
+    ElasticBeanstalkApplicationVersion, GlueJobCommandScriptLocationResource,
+    GraphQLSchemaResource, LambdaFunctionResource, LambdaLayerVersionResource,
+    Resource, ResourceImage, ResourceImageDict, ResourceWithS3UrlDict,
+    ResourceZip, ServerlessApiResource, ServerlessFunctionResource,
+    ServerlessLayerVersionResource, ServerlessRepoApplicationLicense,
+    ServerlessRepoApplicationReadme, copy_to_temp_dir,
+    include_transform_export_handler, is_local_file, is_s3_protocol_url,
+    upload_local_artifacts)
+from samcli.lib.package.permissions import (
+    AdditiveDirPermissionPermissionMapper,
+    AdditiveFilePermissionPermissionMapper,
+    WindowsDirPermissionPermissionMapper,
+    WindowsFilePermissionPermissionMapper)
+from samcli.lib.package.s3_uploader import S3Uploader
+from samcli.lib.package.uploaders import Destination
+from samcli.lib.package.utils import (make_zip,
+                                      make_zip_with_lambda_permissions,
+                                      make_zip_with_permissions, zip_folder)
+from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.lib.utils.resources import (LAMBDA_LOCAL_RESOURCES,
+                                        RESOURCES_WITH_LOCAL_PATHS)
+from tests.testing_utils import FileCreator
 
 
 class TestArtifactExporter(unittest.TestCase):
@@ -363,6 +344,32 @@ class TestArtifactExporter(unittest.TestCase):
             absolute_artifact_path = make_abs_path(parent_dir, artifact_path)
 
             zip_and_upload_mock.assert_called_once_with(absolute_artifact_path, mock.ANY, None, zip_method=make_zip)
+
+
+    @patch("samcli.lib.package.utils.zip_and_upload")
+    def test_upload_local_artifacts_local_folder_with_a_zip(self, zip_and_upload_mock):
+        property_name = "property"
+        resource_id = "resource_id"
+        resource_type = "resource_type"
+        expected_s3_url = "s3://foo/bar?versionId=baz"
+
+        self.s3_uploader_mock.upload_with_dedup.return_value = expected_s3_url
+
+        #  Artifact path is a Directory
+        with self.make_temp_dir() as artifact_path:
+            parent_dir = tempfile.gettempdir()
+            archived_lambda_deployment = os.path.join(artifact_path, "lambda.zip")
+            with zipfile.ZipFile(archived_lambda_deployment, "w") as archive:
+                archive.writestr("__init__.py", "import os")
+            resource_dict = {property_name: artifact_path}
+
+            result = upload_local_artifacts(
+                resource_type, resource_id, resource_dict, property_name, parent_dir, self.s3_uploader_mock
+            )
+            self.assertEqual(result, expected_s3_url)
+
+            zip_and_upload_mock.assert_not_called()
+            self.s3_uploader_mock.upload_with_dedup.assert_called_with(archived_lambda_deployment)
 
     @patch("samcli.lib.package.utils.zip_and_upload")
     def test_upload_local_artifacts_local_folder_lambda_resources(self, zip_and_upload_mock):
@@ -1874,7 +1881,7 @@ class TestArtifactExporter(unittest.TestCase):
             yield filename
         finally:
             if filename:
-                os.rmdir(filename)
+                shutil.rmtree(filename)
 
     def example_yaml_template(self):
         return """
