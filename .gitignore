@@ -336,6 +336,12 @@ venv.*/
 # mypy
 .mypy_cache/
 
+# ruff
+.ruff_cache/
+
+# SAM default build folder
+.aws-sam/
+
 ### SublimeText ###
 # cache files for sublime text
 *.tmlanguage.cache

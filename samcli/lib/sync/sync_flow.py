@@ -2,6 +2,7 @@
 import logging
 from abc import ABC, abstractmethod
 from enum import Enum
+from os import environ
 from pathlib import Path
 from threading import Lock
 from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Set, cast
@@ -21,6 +22,15 @@ if TYPE_CHECKING:  # pragma: no cover
 # Logging with multiple processes is not safe. Use a log queue in the future.
 # https://docs.python.org/3/howto/logging-cookbook.html#:~:text=Although%20logging%20is%20thread%2Dsafe,across%20multiple%20processes%20in%20Python.
 LOG = logging.getLogger(__name__)
+
+
+def get_default_retry_config() -> Optional[Dict]:
+    """
+    Returns a default retry config if nothing is overriden by environment variables
+    """
+    if environ.get("AWS_MAX_ATTEMPTS") or environ.get("AWS_RETRY_MODE"):
+        return None
+    return {"max_attempts": 10, "mode": "standard"}
 
 
 class ApiCallTypes(Enum):
@@ -90,10 +100,23 @@ class SyncFlow(ABC):
 
     def set_up(self) -> None:
         """Clients and other expensives setups should be handled here instead of constructor"""
-        self._session = Session(profile_name=self._deploy_context.profile, region_name=self._deploy_context.region)
+        pass
+
+    def _get_session(self) -> Session:
+        if not self._session:
+            self._session = Session(profile_name=self._deploy_context.profile, region_name=self._deploy_context.region)
+        return self._session
 
     def _boto_client(self, client_name: str):
-        return get_boto_client_provider_from_session_with_config(cast(Session, self._session))(client_name)
+        default_retry_config = get_default_retry_config()
+        if not default_retry_config:
+            LOG.debug("Creating boto client (%s) with user's retry config", client_name)
+            return get_boto_client_provider_from_session_with_config(self._get_session())(client_name)
+
+        LOG.debug("Creating boto client (%s) with default retry config", client_name)
+        return get_boto_client_provider_from_session_with_config(self._get_session(), retries=default_retry_config)(
+            client_name
+        )
 
     @property
     @abstractmethod
@@ -110,6 +133,14 @@ class SyncFlow(ABC):
         Ex: Building lambda functions
         """
         raise NotImplementedError("gather_resources")
+
+    def _update_local_hash(self) -> None:
+        """Updates the latest local hash of the sync flow which then can be used for comparison for next run"""
+        if not self._local_sha:
+            LOG.debug("%sNo local hash is configured, skipping to update local hash", self.log_prefix)
+            return
+
+        self._sync_context.update_resource_sync_state(self.sync_state_identifier, self._local_sha)
 
     def compare_local(self) -> bool:
         """Comparison between local resource and its local stored state.
@@ -347,6 +378,8 @@ class SyncFlow(ABC):
         if (not self.compare_local()) and (not self.compare_remote()):
             LOG.debug("%sSyncing", self.log_prefix)
             self.sync()
+            LOG.debug("%sUpdating local hash of the sync flow", self.log_prefix)
+            self._update_local_hash()
             LOG.debug("%sGathering Dependencies", self.log_prefix)
             dependencies = self.gather_dependencies()
         LOG.debug("%sFinished", self.log_prefix)
