@@ -25,7 +25,7 @@ from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_V2_STAGE,
 )
 from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
-from samcli.local.apigw.local_apigw_service import Route
+from samcli.local.apigw.route import Route
 
 LOG = logging.getLogger(__name__)
 

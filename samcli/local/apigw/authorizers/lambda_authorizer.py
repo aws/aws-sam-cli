@@ -3,9 +3,13 @@ Custom Lambda Authorizer class definition
 """
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Tuple
+from urllib.parse import parse_qsl
 
+from samcli.commands.local.lib.validators.identity_source_validator import IdentitySourceValidator
 from samcli.local.apigw.authorizers.authorizer import Authorizer
+from samcli.local.apigw.exceptions import InvalidSecurityDefinition
+from samcli.local.apigw.route import Route
 
 
 class IdentitySource(ABC):
@@ -27,10 +31,11 @@ class IdentitySource(ABC):
         """
 
     def __eq__(self, other) -> bool:
-        if not isinstance(other, IdentitySource):
-            return NotImplemented
-
-        return self.identity_source == other.identity_source and self.__class__ == other.__class__
+        return (
+            isinstance(other, IdentitySource)
+            and self.identity_source == other.identity_source
+            and self.__class__ == other.__class__
+        )
 
 
 class HeaderIdentitySource(IdentitySource):
@@ -73,13 +78,9 @@ class QueryIdentitySource(IdentitySource):
         if not query_string:
             return False
 
-        # split "foo=bar&hello=world"
-        query_string_list: List[str] = query_string.split("&")
+        query_string_list: List[Tuple[str, str]] = parse_qsl(query_string)
 
-        for query in query_string_list:
-            # split "foo=bar"
-            key, value = query.split("=")
-
+        for key, value in query_string_list:
             if key == self.identity_source and value:
                 return True
 
@@ -220,6 +221,18 @@ class LambdaAuthorizer(Authorizer):
         identity_sources: List[str]
             A list of identity sources to parse
         """
+
+        # validate incoming identity sources first
+        for source in identity_sources:
+            is_valid = IdentitySourceValidator.validate_identity_source(
+                source, Route.API
+            ) or IdentitySourceValidator.validate_identity_source(source, Route.HTTP)
+
+            if not is_valid:
+                raise InvalidSecurityDefinition(
+                    f"Invalid identity source '{source}' for Lambda authorizer '{self.authorizer_name}"
+                )
+
         identity_source_type = {
             "method.request.header.": HeaderIdentitySource,
             "$request.header.": HeaderIdentitySource,

@@ -8,7 +8,7 @@ from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateE
 from samcli.commands.local.lib.swagger.integration_uri import LambdaUri
 from samcli.commands.local.lib.validators.identity_source_validator import IdentitySourceValidator
 from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
-from samcli.local.apigw.local_apigw_service import Route
+from samcli.local.apigw.route import Route
 
 LOG = logging.getLogger(__name__)
 

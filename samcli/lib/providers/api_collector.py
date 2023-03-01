@@ -8,7 +8,8 @@ from collections import defaultdict
 from typing import Dict, Iterator, List, Optional, Set, Tuple, Union
 
 from samcli.lib.providers.provider import Api, Cors
-from samcli.local.apigw.local_apigw_service import Authorizer, Route
+from samcli.local.apigw.authorizers.authorizer import Authorizer
+from samcli.local.apigw.route import Route
 
 LOG = logging.getLogger(__name__)
 

@@ -2,7 +2,7 @@ from unittest import TestCase
 from parameterized import parameterized
 
 from samcli.lib.providers.api_collector import ApiCollector
-from samcli.local.apigw.local_apigw_service import Route
+from samcli.local.apigw.route import Route
 from samcli.local.apigw.authorizers.authorizer import Authorizer
 
 

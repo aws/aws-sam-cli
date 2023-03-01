@@ -8,6 +8,7 @@ from samcli.local.apigw.authorizers.lambda_authorizer import (
     QueryIdentitySource,
     StageVariableIdentitySource,
 )
+from samcli.local.apigw.exceptions import InvalidSecurityDefinition
 
 
 class TestHeaderIdentitySource(TestCase):
@@ -130,4 +131,18 @@ class TestLambdaAuthorizer(TestCase):
         )
 
         self.assertEqual(sorted(lambda_auth._identity_sources_raw), sorted(identity_sources))
-        self.assertEqual(lambda_auth.identity_sources, expected_sources)
+        self.assertEqual(lambda_auth.identity_sources[0], expected_sources[0])
+
+    def test_parse_invalid_identity_sources_raises(self):
+        identity_sources = ["this is invalid"]
+
+        with self.assertRaises(InvalidSecurityDefinition):
+            LambdaAuthorizer(
+                authorizer_name="auth_name",
+                type="type",
+                lambda_name="lambda_name",
+                identity_sources=identity_sources,
+                payload_version="version",
+                validation_string="string",
+                use_simple_response=True,
+            )

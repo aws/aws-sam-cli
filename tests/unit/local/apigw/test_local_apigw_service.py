@@ -13,9 +13,9 @@ from werkzeug.datastructures import Headers
 from samcli.lib.providers.provider import Api
 from samcli.lib.providers.provider import Cors
 from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
+from samcli.local.apigw.route import Route
 from samcli.local.apigw.local_apigw_service import (
     LocalApigwService,
-    Route,
     CatchAllPathConverter,
 )
 from samcli.local.apigw.exceptions import LambdaResponseParseException, PayloadFormatVersionValidateException
@@ -561,6 +561,8 @@ class TestApiGatewayService(TestCase):
         route.authorizer_object.identity_sources = [mocked_id_source_obj]
 
         # create a dummy Flask app to populate the request object with testing data
+        # using Flask's dummy values for request is fine in this context since
+        # the variables are being passed and not validated
         with flask.Flask(__name__).test_request_context():
             self.assertEqual(self.api_service._valid_identity_sources(route), is_valid)
 

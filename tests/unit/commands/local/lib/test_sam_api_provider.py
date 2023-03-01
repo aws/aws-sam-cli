@@ -10,7 +10,7 @@ from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.providers.api_provider import ApiProvider
 from samcli.lib.providers.provider import Cors, Stack
 from samcli.lib.providers.sam_api_provider import SamApiProvider
-from samcli.local.apigw.local_apigw_service import Route
+from samcli.local.apigw.route import Route
 from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
 
 

@@ -13,7 +13,7 @@ from samcli.local.apigw.exceptions import (
     InvalidSecurityDefinition,
     MultipleAuthorizerException,
 )
-from samcli.local.apigw.local_apigw_service import Route
+from samcli.local.apigw.route import Route
 from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
 
 
