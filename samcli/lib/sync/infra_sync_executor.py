@@ -40,7 +40,7 @@ GENERAL_REMOVAL_MAP = {
     AWS_SERVERLESS_FUNCTION: ["CodeUri", "ImageUri"],
     AWS_SERVERLESS_LAYERVERSION: ["ContentUri"],
     AWS_LAMBDA_LAYERVERSION: ["Content"],
-    AWS_SERVERLESS_API: ["DefinitionBody"],
+    AWS_SERVERLESS_API: ["DefinitionUri"],
     AWS_APIGATEWAY_RESTAPI: ["BodyS3Location"],
     AWS_SERVERLESS_HTTPAPI: ["DefinitionUri"],
     AWS_APIGATEWAY_V2_API: ["BodyS3Location"],
@@ -253,7 +253,7 @@ class InfraSyncExecutor:
         * ImageUri, S3Bucket, S3Key, S3ObjectVersion fields in Code property of AWS::Lambda::Function
         * ContentUri property of AWS::Serverless::LayerVersion
         * Content property of AWS::Lambda::LayerVersion
-        * DefinitionBody property of AWS::Serverless::Api
+        * DefinitionUri property of AWS::Serverless::Api
         * BodyS3Location property of AWS::ApiGateway::RestApi
         * DefinitionUri property of AWS::Serverless::HttpApi
         * BodyS3Location property of AWS::ApiGatewayV2::Api

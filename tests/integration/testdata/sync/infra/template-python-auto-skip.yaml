@@ -3,7 +3,7 @@ Transform: AWS::Serverless-2016-10-31
 
 Globals:
   Function:
-    Timeout: 30
+    Timeout: 10
 
 Resources:
   HelloWorldFunction:
@@ -20,19 +20,19 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       StageName: prod
-      DefinitionUri: after/Python/apigateway/definition.json
+      DefinitionUri: before/Python/apigateway/definition.json
 
   HelloWorldApiV2:
     Type: AWS::Serverless::HttpApi
     Properties:
       StageName: beta
-      DefinitionUri: after/Python/apigateway2/definition.yaml
+      DefinitionUri: before/Python/apigateway2/definition.yaml
 
   HelloWorldLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
       Description: Hello World Layer
-      ContentUri: after/Python/layer/
+      ContentUri: before/Python/layer/
       CompatibleRuntimes:
         - python3.7
     Metadata:
@@ -41,7 +41,7 @@ Resources:
   HelloStepFunction:
     Type: AWS::Serverless::StateMachine
     Properties:
-      DefinitionUri: after/Python/statemachine/function.asl.json
+      DefinitionUri: before/Python/statemachine/function.asl.json
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref HelloWorldFunction

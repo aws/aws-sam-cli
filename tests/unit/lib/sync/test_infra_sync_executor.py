@@ -84,7 +84,7 @@ class TestInfraSyncExecutor(TestCase):
                 },
                 "ServerlessLayer": {"Type": "AWS::Serverless::LayerVersion", "Properties": {"ContentUri": "local/"}},
                 "LambdaLayer": {"Type": "AWS::Lambda::LayerVersion", "Properties": {"Content": "local/"}},
-                "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"DefinitionBody": "definition"}},
+                "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"DefinitionUri": "definition"}},
                 "RestApi": {"Type": "AWS::ApiGateway::RestApi", "Properties": {"BodyS3Location": "definiton"}},
                 "ServerlessHttpApi": {"Type": "AWS::Serverless::HttpApi", "Properties": {"DefinitionUri": "definiton"}},
                 "HttpApi": {"Type": "AWS::ApiGatewayV2::Api", "Properties": {"BodyS3Location": "definiton"}},
@@ -121,7 +121,7 @@ class TestInfraSyncExecutor(TestCase):
                     "Properties": {"ContentUri": "s3://location2"},
                 },
                 "LambdaLayer": {"Type": "AWS::Lambda::LayerVersion", "Properties": {"Content": "s3://location2"}},
-                "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"DefinitionBody": "s3://location2"}},
+                "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"DefinitionUri": "s3://location2"}},
                 "RestApi": {"Type": "AWS::ApiGateway::RestApi", "Properties": {"BodyS3Location": "s3://location2"}},
                 "ServerlessHttpApi": {
                     "Type": "AWS::Serverless::HttpApi",
@@ -171,7 +171,7 @@ class TestInfraSyncExecutor(TestCase):
                         "Properties": {"ContentUri": "s3://location"},
                     },
                     "LambdaLayer": {"Type": "AWS::Lambda::LayerVersion", "Properties": {"Content": "s3://location"}},
-                    "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"DefinitionBody": "s3://location"}},
+                    "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"DefinitionUri": "s3://location"}},
                     "RestApi": {"Type": "AWS::ApiGateway::RestApi", "Properties": {"BodyS3Location": "s3://location"}},
                     "ServerlessHttpApi": {
                         "Type": "AWS::Serverless::HttpApi",
@@ -429,7 +429,7 @@ class TestInfraSyncExecutor(TestCase):
                 },
                 "ServerlessLayer": {"Type": "AWS::Serverless::LayerVersion", "Properties": {"ContentUri": "local/"}},
                 "LambdaLayer": {"Type": "AWS::Lambda::LayerVersion", "Properties": {"Content": "local/"}},
-                "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"DefinitionBody": "definition"}},
+                "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"DefinitionUri": "definition"}},
                 "RestApi": {"Type": "AWS::ApiGateway::RestApi", "Properties": {"BodyS3Location": "definiton"}},
                 "ServerlessHttpApi": {"Type": "AWS::Serverless::HttpApi", "Properties": {"DefinitionUri": "definiton"}},
                 "HttpApi": {"Type": "AWS::ApiGatewayV2::Api", "Properties": {"BodyS3Location": "definiton"}},
@@ -471,7 +471,7 @@ class TestInfraSyncExecutor(TestCase):
                     "Properties": {"ContentUri": "s3://location"},
                 },
                 "LambdaLayer": {"Type": "AWS::Lambda::LayerVersion", "Properties": {"Content": "s3://location"}},
-                "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"DefinitionBody": "s3://location"}},
+                "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"DefinitionUri": "s3://location"}},
                 "RestApi": {"Type": "AWS::ApiGateway::RestApi", "Properties": {"BodyS3Location": "s3://location"}},
                 "ServerlessHttpApi": {
                     "Type": "AWS::Serverless::HttpApi",
@@ -575,7 +575,7 @@ class TestInfraSyncExecutor(TestCase):
                     "Properties": {"ContentUri": "s3://location"},
                 },
                 "LambdaLayer": {"Type": "AWS::Lambda::LayerVersion", "Properties": {"Content": "s3://location"}},
-                "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"DefinitionBody": "s3://location"}},
+                "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"DefinitionUri": "s3://location"}},
                 "RestApi": {"Type": "AWS::ApiGateway::RestApi", "Properties": {"BodyS3Location": "s3://location"}},
                 "ServerlessHttpApi": {
                     "Type": "AWS::Serverless::HttpApi",
