@@ -483,10 +483,6 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
         self.assertIn("Build Failed", str(process_execute.stdout))
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestBuildCommand_NodeFunctions(BuildIntegNodeBase):
     @parameterized.expand(
         [
