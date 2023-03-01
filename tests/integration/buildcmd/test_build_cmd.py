@@ -1070,10 +1070,6 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         self.assertEqual(actual_files, expected_files)
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestBuildCommand_Go_Modules(BuildIntegGoBase):
     @parameterized.expand([("go1.x", "Go", None, False), ("go1.x", "Go", "debug", True)])
     @pytest.mark.flaky(reruns=3)
@@ -1084,10 +1080,6 @@ class TestBuildCommand_Go_Modules(BuildIntegGoBase):
         self._test_with_go(runtime, code_uri, mode, self.test_data_path, use_container=use_container)
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestBuildCommand_Go_Modules_With_Specified_Architecture(BuildIntegGoBase):
     template = "template_with_architecture.yaml"
 
