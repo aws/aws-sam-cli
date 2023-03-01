@@ -897,6 +897,7 @@ class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
     @patch("samcli.commands.build.build_context.move_template")
     @patch("samcli.commands.build.build_context.get_template_data")
+    @patch("samcli.commands.build.build_context.BuildContext._is_sam_template")
     @patch("samcli.commands.build.build_context.os")
     @patch("samcli.commands.build.build_context.EsbuildBundlerManager")
     @patch("samcli.commands.build.build_context.BuildContext._handle_build_pre_processing")
@@ -906,6 +907,7 @@ class TestBuildContext_run(TestCase):
         pre_processing_mock,
         esbuild_bundler_manager_mock,
         os_mock,
+        is_sam_template_mock,
         get_template_data_mock,
         move_template_mock,
         resources_mock,
@@ -988,6 +990,7 @@ class TestBuildContext_run(TestCase):
             build_in_source=False,
         ) as build_context:
             build_context.run()
+            is_sam_template_mock.assert_called_once_with()
 
             ApplicationBuilderMock.assert_called_once_with(
                 ANY,
