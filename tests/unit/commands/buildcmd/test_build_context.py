@@ -1226,6 +1226,36 @@ class TestBuildContext_run(TestCase):
         self.assertEqual(str(ctx.exception), "Function Not Found")
 
 
+class TestBuildContext_is_sam_template(TestCase):
+    @parameterized.expand(
+        [
+            ({"Transform": "AWS::Serverless-2016-10-31"}, True),
+            ({"Transform": ["AWS::Serverless-2016-10-31"]}, True),
+            ({"Transform": ["AWS::Language::Extension", "AWS::Serverless-2016-10-31"]}, True),
+            ({"Transform": ["AWS::Language::Extension"]}, False),
+            ({"Transform": "AWS::Language::Extension"}, False),
+            ({"Transform": 123}, False),
+        ]
+    )
+    @patch("samcli.commands.build.build_context.get_template_data")
+    def test_is_sam_template(self, template_dict, expected_result, get_template_data_mock):
+        get_template_data_mock.return_value = template_dict
+
+        build_context = BuildContext(
+            resource_identifier="",
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            cached=False,
+            clean=False,
+            parallel=False,
+            mode="mode",
+        )
+        result = build_context._is_sam_template()
+        self.assertEqual(result, expected_result)
+
+
 class TestBuildContext_exclude_warning(TestCase):
     @parameterized.expand(
         [
