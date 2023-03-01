@@ -21,6 +21,7 @@ from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
 
+from ..._utils.command_exception_handler import command_exception_handler
 from .guided_context import BITBUCKET, GITHUB_ACTIONS, GITLAB, IAM, OPEN_ID_CONNECT
 
 SHORT_HELP = "Generates the required AWS resources to connect your CI/CD system."
@@ -177,6 +178,7 @@ OPENID_CONNECT = "OpenID Connect (OIDC)"
 @track_command
 @check_newer_version
 @print_cmdline_args
+@command_exception_handler
 def cli(
     ctx: Any,
     interactive: bool,

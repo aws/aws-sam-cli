@@ -1,11 +1,11 @@
 from typing import Callable
 from unittest import TestCase
 
-from botocore.exceptions import NoRegionError, ClientError
+from botocore.exceptions import NoRegionError, ClientError, NoCredentialsError
 from parameterized import parameterized
 
 from samcli.commands._utils.command_exception_handler import command_exception_handler
-from samcli.commands.exceptions import RegionError, CredentialsError, UserException
+from samcli.commands.exceptions import RegionError, CredentialsError, UserException, SDKError
 
 
 @command_exception_handler
@@ -27,6 +27,13 @@ class TestCommandExceptionHandler(TestCase):
 
         with self.assertRaises(RegionError):
             echo_command(_proxy_function_that_raises_region_error)
+
+    def test_generic_sdk_error(self):
+        def _proxy_function_that_raises_generic_boto_error():
+            raise NoCredentialsError()
+
+        with self.assertRaises(SDKError):
+            echo_command(_proxy_function_that_raises_generic_boto_error)
 
     @parameterized.expand([("ExpiredToken",), ("ExpiredTokenException",)])
     def test_expired_token_error(self, error_code):
