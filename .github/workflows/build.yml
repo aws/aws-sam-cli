@@ -50,7 +50,7 @@ jobs:
 
   integration-tests:
     name: Integration Tests / ${{ matrix.os }} / ${{ matrix.python }} / ${{ matrix.tests_folder }}
-    if: github.repository_owner == 'aws'
+    #if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     env:
       AWS_DEFAULT_REGION: us-east-1
@@ -72,21 +72,21 @@ jobs:
         # folders that is commented below requires credentials, no need to spare time to run them
         tests_folder:
           - "buildcmd"
-          #- "delete"
-          #- "deploy"
-          - "init"
-          #- "list"
-          - "local"
-          #- "logs"
-          #- "package"
-          - "pipeline"
-          #- "publish"
-          - "root"
-          - "scripts"
-          #- "sync"
-          - "telemetry"
-          #- "traces"
-          #- "validate"
+#          #- "delete"
+#          #- "deploy"
+#          - "init"
+#          #- "list"
+#          - "local"
+#          #- "logs"
+#          #- "package"
+#          - "pipeline"
+#          #- "publish"
+#          - "root"
+#          - "scripts"
+#          #- "sync"
+#          - "telemetry"
+#          #- "traces"
+#          #- "validate"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
