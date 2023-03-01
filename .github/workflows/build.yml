@@ -14,6 +14,7 @@ jobs:
     needs:
       - make-pr
       - integration-tests
+      - smoke-and-functional-tests
     steps:
       - name: report-failure
         if : |
