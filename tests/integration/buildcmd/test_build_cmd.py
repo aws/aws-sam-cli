@@ -941,6 +941,9 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_with_dotnetcore(self, runtime, code_uri, mode, architecture="x86_64"):
+        # dotnet7 requires docker to build the function in Windows environment
+        if (code_uri == "Dotnet7" and IS_WINDOWS) and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,
