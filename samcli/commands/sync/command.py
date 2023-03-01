@@ -375,17 +375,17 @@ def do_cli(
                             )
                         else:
                             code_sync_resources = execute_infra_contexts(build_context, package_context, deploy_context)
-                            resource_ids = [
-                                (resource.stack_path + resource.resource_iac_id) for resource in code_sync_resources
-                            ]
 
-                            if resource_ids:
+                            if code_sync_resources:
+                                resource_ids = [str(resource) for resource in code_sync_resources]
+
+                                LOG.info("The following resources will be code synced for an update: %s", resource_ids)
                                 execute_code_sync(
                                     template_file,
                                     build_context,
                                     deploy_context,
                                     sync_context,
-                                    resource_ids,
+                                    resource_ids,  # type: ignore
                                     None,
                                     dependency_layer,
                                 )

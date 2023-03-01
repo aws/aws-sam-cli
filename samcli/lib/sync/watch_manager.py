@@ -5,7 +5,7 @@ import logging
 import threading
 import time
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List, Optional, Set
 
 from samcli.lib.providers.exceptions import InvalidTemplateFile, MissingCodeUri, MissingLocalDefinition
 from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_all_resource_ids
@@ -121,16 +121,14 @@ class WatchManager:
         self._sync_flow_factory.load_physical_id_mapping()
         self._trigger_factory = CodeTriggerFactory(self._stacks, Path(self._build_context.base_dir))
 
-    def _add_code_triggers(self) -> List[ResourceIdentifier]:
+    def _add_code_triggers(self) -> None:
         """Create CodeResourceTrigger for all resources and add their handlers to observer"""
         if not self._stacks or not self._trigger_factory:
-            return []
+            return
         resource_ids = get_all_resource_ids(self._stacks)
-        resource_ids_with_code_sync = []
         for resource_id in resource_ids:
             try:
                 trigger = self._trigger_factory.create_trigger(resource_id, self._on_code_change_wrapper(resource_id))
-                resource_ids_with_code_sync.append(resource_id)
             except (MissingCodeUri, MissingLocalDefinition):
                 LOG.warning(
                     self._color.yellow("CodeTrigger not created as CodeUri or DefinitionUri is missing for %s."),
@@ -141,8 +139,6 @@ class WatchManager:
             if not trigger:
                 continue
             self._observer.schedule_handlers(trigger.get_path_handlers())
-
-        return resource_ids_with_code_sync
 
     def _add_template_triggers(self) -> None:
         """Create TemplateTrigger and add its handlers to observer"""
@@ -219,22 +215,13 @@ class WatchManager:
             first_sync = False
             time.sleep(1)
 
-    def _start_sync(self) -> List[ResourceIdentifier]:
-        """
-        Update stacks and populate all triggers
-
-        Returns
-        -------
-        List[ResourceIdentifier]
-        The list of resources that needs a code sync
-        """
+    def _start_sync(self) -> None:
+        """Update stacks and populate all triggers"""
         self._observer.unschedule_all()
         self._update_stacks()
         self._add_template_triggers()
-        resources_with_code_syncs = self._add_code_triggers()
+        self._add_code_triggers()
         self._start_code_sync()
-
-        return resources_with_code_syncs
 
     def _execute_infra_sync(self, first_sync: bool = False) -> None:
         """
@@ -262,26 +249,30 @@ class WatchManager:
             # Trigger are not removed until infra sync is finished as there
             # can be code changes during infra sync.
 
-            self._observer.unschedule_all()
-            self._update_stacks()
-            self._add_template_triggers()
-            self._add_code_triggers()
-            self._start_code_sync()
+            self._start_sync()
 
             if not infra_sync_executed:
                 # This is for initiating code sync for all resources
                 # To improve: only initiate code syncs for ones with template changes
-                self._queue_all_code_syncs(self._infra_sync_executor.code_sync_resources)
+                self._queue_up_code_syncs(self._infra_sync_executor.code_sync_resources)
                 LOG.info(self._color.green("Skipped infra sync and queued up required code syncs."))
             else:
                 LOG.info(self._color.green("Infra sync completed."))
 
-    def _queue_all_code_syncs(self, resource_ids_with_code_sync: List[ResourceIdentifier]):
-        """ """
+    def _queue_up_code_syncs(self, resource_ids_with_code_sync: Set[ResourceIdentifier]) -> None:
+        """
+        For ther given resource IDs, create sync flow tasks in the queue
+
+        Parameters
+        ----------
+        resource_ids_with_code_sync: Set[ResourceIdentifier]
+            The set of resource IDs to be synced
+        """
         for resource_id in resource_ids_with_code_sync:
-            sync_flow = self._sync_flow_factory.create_sync_flow(resource_id)
-            if sync_flow:
-                self._sync_flow_executor.add_delayed_sync_flow(sync_flow)
+            if self._sync_flow_factory:
+                sync_flow = self._sync_flow_factory.create_sync_flow(resource_id)
+                if sync_flow:
+                    self._sync_flow_executor.add_delayed_sync_flow(sync_flow)
 
     def _on_code_change_wrapper(self, resource_id: ResourceIdentifier) -> OnChangeCallback:
         """Wrapper method that generates a callback for code changes.

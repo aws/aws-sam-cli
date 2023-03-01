@@ -13,23 +13,23 @@ class TestInfraSyncExecutor(TestCase):
         self.deploy_context = MagicMock()
 
     @parameterized.expand([(True,), (False,)])
-    @patch("samcli.lib.sync.infra_sync_executor.InfraSyncExecutor._compare_templates")
+    @patch("samcli.lib.sync.infra_sync_executor.InfraSyncExecutor._auto_skip_infra_sync")
     @patch("samcli.lib.sync.infra_sync_executor.Session")
-    def test_execute_infra_sync(self, compare_templates, session_mock, compare_templates_mock):
+    def test_execute_infra_sync(self, auto_skip_infra_sync, session_mock, auto_skip_infra_sync_mock):
 
         infra_sync_executor = InfraSyncExecutor(self.build_context, self.package_context, self.deploy_context)
-        compare_templates_mock.return_value = compare_templates
+        auto_skip_infra_sync_mock.return_value = auto_skip_infra_sync
 
-        executed = infra_sync_executor.execute_infra_sync()
+        executed = infra_sync_executor.execute_infra_sync(True)
 
         self.build_context.set_up.assert_called_once()
         self.build_context.run.assert_called_once()
+        self.package_context.run.assert_called_once()
 
-        if not compare_templates:
-            self.package_context.run.assert_called_once()
+        if not auto_skip_infra_sync:
             self.deploy_context.run.assert_called_once()
 
-        self.assertEqual(executed, not compare_templates)
+        self.assertEqual(executed, not auto_skip_infra_sync)
 
     @patch("samcli.lib.sync.infra_sync_executor.is_local_path")
     @patch("samcli.lib.sync.infra_sync_executor.get_template_data")
