@@ -608,10 +608,6 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
         self._test_with_default_package_json(runtime, use_container, self.test_data_path, architecture)
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
     @parameterized.expand(["ruby2.7"])
     @pytest.mark.flaky(reruns=3)
@@ -625,10 +621,6 @@ class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
         self._test_with_default_gemfile(runtime, False, "Ruby", self.test_data_path)
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestBuildCommand_RubyFunctions_With_Architecture(BuildIntegRubyBase):
     template = "template_with_architecture.yaml"
 
@@ -644,10 +636,6 @@ class TestBuildCommand_RubyFunctions_With_Architecture(BuildIntegRubyBase):
         self._test_with_default_gemfile(runtime, False, "Ruby", self.test_data_path, architecture)
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestBuildCommand_RubyFunctionsWithGemfileInTheRoot(BuildIntegRubyBase):
     """
     Tests use case where Gemfile will present in the root of the project folder.
