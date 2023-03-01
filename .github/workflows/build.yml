@@ -18,7 +18,8 @@ jobs:
       - name: report-failure
         if : |
           needs.make-pr.result != 'success' ||
-          needs.integration-tests.result != 'success'
+          needs.integration-tests.result != 'success' ||
+          needs.smoke-and-functional-tests.result != 'success
         run: exit 1
       - name: report-success
         run: exit 0
@@ -136,3 +137,37 @@ jobs:
         run: make init
       - name: Run integration tests for ${{ matrix.tests_folder }}
         run: pytest -vv tests/integration/${{ matrix.tests_folder }}
+
+  smoke-and-functional-tests:
+    name: Integration Tests / ${{ matrix.os }} / ${{ matrix.python }} / ${{ matrix.tests_folder }}
+    #if: github.repository_owner == 'aws'
+    runs-on: ${{ matrix.os }}
+    env:
+      AWS_DEFAULT_REGION: us-east-1
+      SAM_CLI_DEV: "1"
+      CARGO_LAMBDA_VERSION: 0.17.1
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+        python:
+          - "3.7"
+          - "3.8"
+          - "3.9"
+        tests_folder:
+          - "smoke"
+          - "functional"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Init samdev
+        run: make init
+      - name: Run integration tests for ${{ matrix.tests_folder }}
+        run: pytest -vv -n 4 ${{ matrix.tests_folder }}
