@@ -13,6 +13,7 @@ from samcli.cli.context import Context
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
 from samcli.commands._utils.cdk_support_decorators import unsupported_command_cdk
+from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.commands._utils.options import template_option_without_build
 from samcli.commands.exceptions import LinterRuleMatchedException
 from samcli.lib.telemetry.event import EventTracker
@@ -37,6 +38,7 @@ from samcli.lib.utils.version_checker import check_newer_version
 @check_newer_version
 @print_cmdline_args
 @unsupported_command_cdk(alternative_command="cdk doctor")
+@command_exception_handler
 def cli(ctx, template_file, config_file, config_env, lint):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
