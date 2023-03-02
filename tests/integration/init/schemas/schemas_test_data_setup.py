@@ -55,21 +55,43 @@ eb-app-maven
             runner = CliRunner()
             runner.invoke(init_cmd, ["--output-dir", temp], input=user_input)
 
+        env = os.environ
+        if AWS_CONFIG_FILE in env:
+            cls.original_config_file = env[AWS_CONFIG_FILE]
+        if AWS_SHARED_CREDENTIALS_FILE in env:
+            cls.original_cred_file = env[AWS_SHARED_CREDENTIALS_FILE]
+        if AWS_PROFILE in env:
+            cls.original_profile = env[AWS_PROFILE]
+        if AWS_DEFAULT_REGION in env:
+            cls.original_region = env[AWS_DEFAULT_REGION]
+
     @classmethod
     def tearDownClass(cls) -> None:
-        cls._tear_down_custom_config()
+        env = os.environ
+        if cls.original_config_file is None and env.get(AWS_CONFIG_FILE):
+            del env[AWS_CONFIG_FILE]
+        elif cls.original_config_file:
+            env[AWS_CONFIG_FILE] = cls.original_config_file
+
+        if cls.original_cred_file is None and env.get(AWS_SHARED_CREDENTIALS_FILE):
+            del env[AWS_SHARED_CREDENTIALS_FILE]
+        elif cls.original_cred_file:
+            env[AWS_SHARED_CREDENTIALS_FILE] = cls.original_cred_file
+
+        if cls.original_profile is None and env.get(AWS_PROFILE):
+            del env[AWS_PROFILE]
+        elif cls.original_profile:
+            env[AWS_PROFILE] = cls.original_profile
+
+        if cls.original_region is None and env.get(AWS_DEFAULT_REGION):
+            del env[AWS_DEFAULT_REGION]
+        elif cls.original_region:
+            env[AWS_DEFAULT_REGION] = cls.original_region
+
 
     def _init_custom_config(self, profile, region):
         self.config_dir = tempfile.mkdtemp()
         env = os.environ
-        if AWS_CONFIG_FILE in env:
-            self.original_config_file = env[AWS_CONFIG_FILE]
-        if AWS_SHARED_CREDENTIALS_FILE in env:
-            self.original_cred_file = env[AWS_SHARED_CREDENTIALS_FILE]
-        if AWS_PROFILE in env:
-            self.original_profile = env[AWS_PROFILE]
-        if AWS_DEFAULT_REGION in env:
-            self.original_region = env[AWS_DEFAULT_REGION]
 
         custom_config = self._create_config_file(profile, region)
         session = Session()
