@@ -56,6 +56,7 @@ class TestDefaultSamconfig(TestCase):
             [
                 call(cmd_names=["global"], section="parameters", key="stack_name", value="sam-app"),
                 call(cmd_names=["build"], section="parameters", key="parallel", value=True),
+                call(cmd_names=["validate"], section="parameters", key="lint", value=True),
                 call(cmd_names=["deploy"], section="parameters", key="resolve_s3", value=True),
                 call(cmd_names=["package"], section="parameters", key="resolve_s3", value=True),
                 call(cmd_names=["deploy"], section="parameters", key="capabilities", value="CAPABILITY_IAM"),
@@ -83,6 +84,7 @@ class TestDefaultSamconfig(TestCase):
         default_config._config.put.assert_has_calls(
             [
                 call(cmd_names=["global"], section="parameters", key="stack_name", value="sam-app"),
+                call(cmd_names=["validate"], section="parameters", key="lint", value=True),
                 call(cmd_names=["build"], section="parameters", key="parallel", value=True),
                 call(cmd_names=["deploy"], section="parameters", key="resolve_image_repos", value=True),
                 call(cmd_names=["deploy"], section="parameters", key="capabilities", value="CAPABILITY_IAM"),
