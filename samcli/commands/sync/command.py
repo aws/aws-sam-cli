@@ -401,11 +401,14 @@ def execute_infra_contexts(
     Parameters
     ----------
     build_context : BuildContext
-        BuildContext
     package_context : PackageContext
-        PackageContext
     deploy_context : DeployContext
-        DeployContext
+
+    Returns
+    -------
+    Optional[Set[ResourceIdentifier]]
+        Returns a set of resource identifiers that needs a code sync if infra sync got skipped
+        Returns None if infra sync got executed
     """
     infra_sync_executor = InfraSyncExecutor(build_context, package_context, deploy_context)
     infra_executed = infra_sync_executor.execute_infra_sync(first_sync=True)

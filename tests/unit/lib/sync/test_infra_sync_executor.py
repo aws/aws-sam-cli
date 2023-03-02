@@ -701,6 +701,40 @@ class TestInfraSyncExecutor(TestCase):
         self.assertEqual(processed_resource, lambda_resource_id)
         self.assertEqual(resource_dict, expected_dict)
 
+    @parameterized.expand([(True, []), (False, ["LambdaFunction"])])
+    @patch("samcli.lib.sync.infra_sync_executor.is_local_path")
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_remove_resource_field_lambda_function_code_string(
+        self, is_local_path, linked_resources, session_mock, local_path_mock
+    ):
+        built_resource_dict = {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {"Code": "local"},
+        }
+
+        packaged_resource_dict = {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {"Code": {"S3Bucket": "bucket", "S3Key": "key"}},
+        }
+
+        expected_dict = {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {"Code": {}},
+        }
+
+        resource_type = "AWS::Lambda::Function"
+        lambda_resource_id = "LambdaFunction"
+
+        local_path_mock.return_value = is_local_path
+        infra_sync_executor = InfraSyncExecutor(self.build_context, self.package_context, self.deploy_context)
+
+        processed_resource = infra_sync_executor._remove_resource_field(
+            lambda_resource_id, resource_type, packaged_resource_dict, linked_resources, built_resource_dict
+        )
+
+        self.assertEqual(processed_resource, lambda_resource_id)
+        self.assertEqual(packaged_resource_dict, expected_dict)
+
     @patch("samcli.lib.sync.infra_sync_executor.get_template_data")
     @patch("samcli.lib.sync.infra_sync_executor.InfraSyncExecutor._get_remote_template_data")
     @patch("samcli.lib.sync.infra_sync_executor.Session")

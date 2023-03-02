@@ -87,12 +87,14 @@ class InfraSyncExecutor:
     def _boto_client(self, client_name: str, session: Session):
         """
         Creates boto client
+
         Parameters
         ----------
         client_name: str
             The name of the client
         session: boto3.Session
             The session created using customer config
+
         Returns
         -------
         Service client instance
@@ -155,6 +157,7 @@ class InfraSyncExecutor:
 
         Returns
         -------
+        bool
             Returns True if no template changes from last deployment
             Returns False if there are template differences
         """
@@ -349,11 +352,23 @@ class InfraSyncExecutor:
         if resource_type == AWS_LAMBDA_FUNCTION:
             for field in LAMBDA_FUNCTION_REMOVAL_MAP.get(resource_type, {}).get("Code", []):
                 # We sanitize only if the provided resource is local
+                # Lambda function's Code property accepts dictionary values
                 if (
                     built_resource_dict
+                    and isinstance(built_resource_dict.get("Properties", {}).get("Code"), dict)
                     and is_local_path(built_resource_dict.get("Properties", {}).get("Code", {}).get(field, None))
                 ) or resource_logical_id in linked_resources:
                     resource_dict.get("Properties", {}).get("Code", {}).pop(field, None)
+                    processed_logical_id = resource_logical_id
+                # SAM templates also accepts local paths for AWS::Lambda::Function's Code property
+                # Which will be transformed into a dict containing S3Bucket and S3Key after packaging
+                if (
+                    built_resource_dict
+                    and isinstance(built_resource_dict.get("Properties", {}).get("Code"), str)
+                    and is_local_path(built_resource_dict.get("Properties", {}).get("Code"))
+                ):
+                    resource_dict.get("Properties", {}).get("Code", {}).pop("S3Bucket", None)
+                    resource_dict.get("Properties", {}).get("Code", {}).pop("S3Key", None)
                     processed_logical_id = resource_logical_id
         else:
             for field in GENERAL_REMOVAL_MAP.get(resource_type, []):

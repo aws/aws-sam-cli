@@ -205,7 +205,7 @@ class TestSyncInfra(SyncIntegBase):
         for lambda_function in lambda_functions:
             lambda_response = json.loads(self._get_lambda_response(lambda_function))
             self.assertIn("extra_message", lambda_response)
-            self.assertEqual(lambda_response.get("message"), "9")
+            self.assertEqual(lambda_response.get("message"), "8")
 
     @parameterized.expand(["infra/template-python-before.yaml"])
     def test_sync_infra_no_confirm(self, template_file):

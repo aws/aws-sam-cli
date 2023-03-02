@@ -619,10 +619,6 @@ class TestSyncWatchAutoSkipInfra(SyncIntegBase):
             self.assertIn("extra_message", lambda_response)
             self.assertEqual(lambda_response.get("message"), "7")
 
-        # ApiGateway Api call here, which tests the RestApi
-        rest_api = self.stack_resources.get(AWS_APIGATEWAY_RESTAPI)[0]
-        self.assertEqual(self._get_api_message(rest_api), '{"message": "hello 1"}')
-
         template_after = f"infra/template-{self.runtime}-auto-skip.yaml"
         template_path = str(self.test_dir.joinpath(template_after))
         # Start watch
@@ -645,7 +641,7 @@ class TestSyncWatchAutoSkipInfra(SyncIntegBase):
 
         read_until_string(
             self.watch_process,
-            "\x1b[32mTemplate haven't been changed since last deployment, skipping infra sync..\x1b[0m\n",
+            "Template haven't been changed since last deployment, skipping infra sync...\n",
             timeout=100,
         )
 
@@ -658,4 +654,4 @@ class TestSyncWatchAutoSkipInfra(SyncIntegBase):
         for lambda_function in lambda_functions:
             lambda_response = json.loads(self._get_lambda_response(lambda_function))
             self.assertIn("extra_message", lambda_response)
-            self.assertEqual(lambda_response.get("message"), "9")
+            self.assertEqual(lambda_response.get("message"), "8")

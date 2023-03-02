@@ -35,9 +35,7 @@ class ContinuousSyncFlowExecutor(SyncFlowExecutor):
         self._stop_flag = False
 
     def stop(self, should_stop=True) -> None:
-        """
-        Stop executor after all current SyncFlows are finished.
-        """
+        """Stop executor after all current SyncFlows are finished."""
         with self._flow_queue_lock:
             self._stop_flag = should_stop
             if should_stop:
