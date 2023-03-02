@@ -221,10 +221,6 @@ class LocalApigwService(BaseLocalService):
         str
             JSON string of event properties
         """
-        # Default to None
-        # For Http Apis with payload version 1.0, API Gateway never sends the OperationName.
-        route_key = None
-
         # TODO: Rewrite the logic below to use version 2.0 when an invalid value is provided
         # the Lambda Event 2.0 is only used for the HTTP API gateway with defined payload format version equal 2.0
         # or none, as the default value to be used is 2.0
@@ -241,8 +237,9 @@ class LocalApigwService(BaseLocalService):
                 stage_variables=self.api.stage_variables,
                 route_key=route_key,
             )
-        elif route.event_type == Route.API:
-            route_key = route.operation_name
+        
+        # For Http Apis with payload version 1.0, API Gateway never sends the OperationName.
+        route_key = route.operation_name if route.event_type == Route.API else None
 
         return EventConstructor.v1_event(
             flask_request=flask_request,
