@@ -1,4 +1,4 @@
-from typing import List, Callable
+from typing import List, Callable, Optional
 
 from unittest import TestCase
 
@@ -10,8 +10,13 @@ import os
 from tests.testing_utils import CommandResult, run_command, run_command_with_input
 
 
+class BaseValidator(TestCase):
+    def validate(self, command_result: CommandResult):
+        self.assertEqual(command_result.process.returncode, 0)
+
+
 class EndToEndBaseStage(TestCase):
-    def __init__(self, validator: Callable[[CommandResult], None], command_list: List[str] = None):
+    def __init__(self, validator: BaseValidator, command_list: Optional[List[str]] = None):
         super().__init__()
         self.validator = validator
         self.command_list = command_list
@@ -20,7 +25,7 @@ class EndToEndBaseStage(TestCase):
         return run_command(self.command_list)
 
     def validate(self, command_result: CommandResult):
-        self.validator(command_result)
+        self.validator.validate(command_result)
 
 
 class DefaultInitStage(EndToEndBaseStage):

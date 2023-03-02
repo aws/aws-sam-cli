@@ -1,5 +1,4 @@
 import json
-from unittest import TestCase
 
 import os
 
@@ -13,30 +12,33 @@ from tests.end_to_end.test_stages import (
     DefaultRemoteInvokeStage,
     DefaultDeleteStage,
     EndToEndBaseStage,
-    DefaultSyncStage,
+    DefaultSyncStage, BaseValidator,
 )
 from tests.testing_utils import CommandResult
 
 
-class HelloWorldValidators(TestCase):
-    def default_command_output_validator(self, command_result: CommandResult):
-        self.assertEqual(command_result.process.returncode, 0)
-
-    def validate_init(self, command_result: CommandResult):
+class InitValidator(BaseValidator):
+    def validate(self, command_result: CommandResult):
         self.assertEqual(command_result.process.returncode, 0)
         working_directory = Path(os.getcwd())
         self.assertTrue(Path.is_dir(working_directory))
 
-    def validate_build(self, command_result: CommandResult):
+
+class BuildValidator(BaseValidator):
+    def validate(self, command_result: CommandResult):
         self.assertEqual(command_result.process.returncode, 0)
         build_dir = Path(os.getcwd()) / ".aws-sam"
         self.assertTrue(build_dir.is_dir())
 
-    def validate_remote_invoke(self, command_result: CommandResult):
+
+class RemoteInvokeValidator(BaseValidator):
+    def validate(self, command_result: CommandResult):
         self.assertEqual(command_result.process.get("StatusCode"), 200)
         self.assertEqual(command_result.process.get("FunctionError", ""), "")
 
-    def validate_stack_outputs(self, command_result: CommandResult):
+
+class StackOutputsValidator(BaseValidator):
+    def validate(self, command_result: CommandResult):
         self.assertEqual(command_result.process.returncode, 0)
         stack_outputs = json.loads(command_result.stdout.decode())
         self.assertEqual(len(stack_outputs), 3)
@@ -58,7 +60,6 @@ class TestHelloWorldDefaultEndToEnd(EndToEndBase):
 
     def test_go_hello_world_default_workflow(self):
         stack_name = self._method_to_stack_name(self.id())
-        validators = HelloWorldValidators()
         with EndToEndTestContext(self.app_name) as e2e_context:
             self.template_path = e2e_context.template_path
             init_command_list = self._get_init_command(e2e_context.working_dir)
@@ -67,12 +68,12 @@ class TestHelloWorldDefaultEndToEnd(EndToEndBase):
             stack_outputs_command_list = self._get_stack_outputs_command(stack_name)
             delete_command_list = self._get_delete_command(stack_name)
             stages = [
-                DefaultInitStage(validators.validate_init, init_command_list, self.app_name),
-                EndToEndBaseStage(validators.validate_build, build_command_list),
-                EndToEndBaseStage(validators.default_command_output_validator, deploy_command_list),
-                DefaultRemoteInvokeStage(validators.validate_remote_invoke, stack_name),
-                EndToEndBaseStage(validators.default_command_output_validator, stack_outputs_command_list),
-                DefaultDeleteStage(validators.default_command_output_validator, delete_command_list, stack_name),
+                DefaultInitStage(InitValidator(), init_command_list, self.app_name),
+                EndToEndBaseStage(BuildValidator(), build_command_list),
+                EndToEndBaseStage(BaseValidator(), deploy_command_list),
+                DefaultRemoteInvokeStage(RemoteInvokeValidator(), stack_name),
+                EndToEndBaseStage(BaseValidator(), stack_outputs_command_list),
+                DefaultDeleteStage(BaseValidator(), delete_command_list, stack_name),
             ]
             self._run_tests(stages)
 
@@ -89,7 +90,6 @@ class TestHelloWorldDefaultSyncEndToEnd(EndToEndBase):
 
     def test_go_hello_world_default_workflow(self):
         stack_name = self._method_to_stack_name(self.id())
-        validators = HelloWorldValidators()
         with EndToEndTestContext(self.app_name) as e2e_context:
             self.template_path = e2e_context.template_path
             init_command_list = self._get_init_command(e2e_context.working_dir)
@@ -97,10 +97,10 @@ class TestHelloWorldDefaultSyncEndToEnd(EndToEndBase):
             stack_outputs_command_list = self._get_stack_outputs_command(stack_name)
             delete_command_list = self._get_delete_command(stack_name)
             stages = [
-                DefaultInitStage(validators.validate_init, init_command_list, self.app_name),
-                DefaultSyncStage(validators.default_command_output_validator, sync_command_list),
-                DefaultRemoteInvokeStage(validators.validate_remote_invoke, stack_name),
-                EndToEndBaseStage(validators.default_command_output_validator, stack_outputs_command_list),
-                DefaultDeleteStage(validators.default_command_output_validator, delete_command_list, stack_name),
+                DefaultInitStage(InitValidator(), init_command_list, self.app_name),
+                DefaultSyncStage(BaseValidator(), sync_command_list),
+                DefaultRemoteInvokeStage(RemoteInvokeValidator(), stack_name),
+                EndToEndBaseStage(BaseValidator(), stack_outputs_command_list),
+                DefaultDeleteStage(BaseValidator(), delete_command_list, stack_name),
             ]
             self._run_tests(stages)
