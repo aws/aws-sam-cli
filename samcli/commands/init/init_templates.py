@@ -272,7 +272,7 @@ def get_template_value(value: str, template: dict) -> Optional[str]:
     return template.get(value)
 
 
-def get_runtime(package_type: Optional[str], template_runtime: str) -> str:
+def get_runtime(package_type: Optional[str], template_runtime: str) -> Optional[str]:
     if package_type == IMAGE:
         return _get_runtime_from_image(template_runtime)
     return template_runtime
