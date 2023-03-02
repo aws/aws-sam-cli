@@ -1,9 +1,3 @@
-from pathlib import Path
-
-import os
-
-from tempfile import TemporaryDirectory
-
 from typing import List
 
 from tests.end_to_end.test_stages import EndToEndBaseStage
@@ -60,23 +54,3 @@ class EndToEndBase(InitIntegBase, StackOutputsIntegBase, DeleteIntegBase, SyncIn
     def _get_sync_command(self, stack_name):
         self.stacks.append({"name": stack_name})
         return self.get_sync_command_list(stack_name=stack_name, template_file="template.yaml")
-
-
-class EndToEndTestContext:
-    def __init__(self, app_name):
-        super().__init__()
-        self.temporary_directory = TemporaryDirectory()
-        self.app_name = app_name
-        self.working_dir = ""
-        self.template_path = ""
-
-    def __enter__(self):
-        temp = self.temporary_directory.__enter__()
-        os.chdir(temp)
-        self.template_path = str(Path(temp) / self.app_name / "template.yaml")
-        self.working_dir = temp
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.temporary_directory.__exit__(exc_type, exc_val, exc_tb)
-        os.chdir(Path(__file__).parent)

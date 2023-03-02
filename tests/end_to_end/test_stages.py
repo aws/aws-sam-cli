@@ -1,4 +1,4 @@
-from typing import List, Callable, Optional
+from typing import List, Optional
 
 from unittest import TestCase
 
@@ -7,41 +7,48 @@ from pathlib import Path
 
 import os
 
+from tests.end_to_end.end_to_end_context import EndToEndTestContext
 from tests.testing_utils import CommandResult, run_command, run_command_with_input
 
 
 class BaseValidator(TestCase):
+    def __init__(self, test_context: EndToEndTestContext):
+        super().__init__()
+        self.test_context = test_context
+
     def validate(self, command_result: CommandResult):
         self.assertEqual(command_result.process.returncode, 0)
 
 
 class EndToEndBaseStage(TestCase):
-    def __init__(self, validator: BaseValidator, command_list: Optional[List[str]] = None):
+    def __init__(
+        self, validator: BaseValidator, test_context: EndToEndTestContext, command_list: Optional[List[str]] = None
+    ):
         super().__init__()
         self.validator = validator
         self.command_list = command_list
+        self.test_context = test_context
 
     def run_stage(self) -> CommandResult:
-        return run_command(self.command_list)
+        return run_command(self.command_list, cwd=self.test_context.project_directory)
 
     def validate(self, command_result: CommandResult):
         self.validator.validate(command_result)
 
 
 class DefaultInitStage(EndToEndBaseStage):
-    def __init__(self, validator, command_list, app_name):
-        super().__init__(validator, command_list)
+    def __init__(self, validator, test_context, command_list, app_name):
+        super().__init__(validator, test_context, command_list)
         self.app_name = app_name
 
     def run_stage(self) -> CommandResult:
-        command_result = run_command(self.command_list)
+        command_result = run_command(self.command_list, cwd=self.test_context.working_directory)
         self._delete_default_samconfig()
-        os.chdir(Path(os.getcwd()) / self.app_name)
         return command_result
 
     def _delete_default_samconfig(self):
         # The default samconfig.toml has some properties that clash with the test parameters
-        default_samconfig = Path(os.getcwd()) / self.app_name / "samconfig.toml"
+        default_samconfig = Path(self.test_context.project_directory) / "samconfig.toml"
         try:
             os.remove(default_samconfig)
         except Exception:
@@ -49,8 +56,8 @@ class DefaultInitStage(EndToEndBaseStage):
 
 
 class DefaultRemoteInvokeStage(EndToEndBaseStage):
-    def __init__(self, validator, stack_name):
-        super().__init__(validator)
+    def __init__(self, validator, test_context, stack_name):
+        super().__init__(validator, test_context)
         self.stack_name = stack_name
         self.lambda_client = boto3.client("lambda")
         self.resource = boto3.resource("cloudformation")
@@ -64,8 +71,8 @@ class DefaultRemoteInvokeStage(EndToEndBaseStage):
 
 
 class DefaultDeleteStage(EndToEndBaseStage):
-    def __init__(self, validator, command_list, stack_name):
-        super().__init__(validator, command_list)
+    def __init__(self, validator, test_context, command_list, stack_name):
+        super().__init__(validator, test_context, command_list)
         self.command_list = command_list
         self.stack_name = stack_name
         self.cfn_client = boto3.client("cloudformation")
@@ -73,4 +80,4 @@ class DefaultDeleteStage(EndToEndBaseStage):
 
 class DefaultSyncStage(EndToEndBaseStage):
     def run_stage(self) -> CommandResult:
-        return run_command_with_input(self.command_list, "y\n".encode())
+        return run_command_with_input(self.command_list, "y\n".encode(), cwd=self.test_context.project_directory)
