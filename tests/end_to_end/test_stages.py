@@ -1,15 +1,19 @@
+from typing import List
+
+import json
 from unittest import TestCase
 
 import boto3
+from botocore.exceptions import ClientError
 from pathlib import Path
 
 import os
 
-from tests.testing_utils import CommandResult, run_command, get_sam_command
+from tests.testing_utils import CommandResult, run_command, run_command_with_input
 
 
 class EndToEndBaseStage(TestCase):
-    command_list = []
+    command_list: List[str] = []
 
     def run_stage(self) -> CommandResult:
         return run_command(self.command_list)
@@ -65,28 +69,66 @@ class DefaultDeployStage(EndToEndBaseStage):
 
 
 class DefaultRemoteInvokeStage(EndToEndBaseStage):
-    def __init__(self, command_list):
+    def __init__(self, stack_name):
         super().__init__()
-        self.command_list = command_list
+        self.stack_name = stack_name
         self.lambda_client = boto3.client("lambda")
-        self.cfn_client = boto3.client("cloudformation")
+        self.resource = boto3.resource("cloudformation")
 
     def run_stage(self) -> CommandResult:
-        lambda_output = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
+        lambda_output = self.lambda_client.invoke(FunctionName=self._get_lambda_physical_id())
         return CommandResult(lambda_output, "", "")
 
     def validate(self, command_result: CommandResult):
         self.assertEqual(command_result.process.get("StatusCode"), 200)
         self.assertEqual(command_result.process.get("FunctionError", ""), "")
 
+    def _get_lambda_physical_id(self):
+        return self.resource.StackResource(self.stack_name, "HelloWorldFunction").physical_resource_id
+
+
+class DefaultStackOutputsStage(EndToEndBaseStage):
+    def __init__(self, command_list):
+        super().__init__()
+        self.command_list = command_list
+
+    def validate(self, command_result: CommandResult):
+        self.assertEqual(command_result.process.returncode, 0)
+        stack_outputs = json.loads(command_result.stdout.decode())
+        self.assertEqual(len(stack_outputs), 3)
+        for output in stack_outputs:
+            self.assertIn("OutputKey", output)
+            self.assertIn("OutputValue", output)
+            self.assertIn("Description", output)
+
 
 class DefaultDeleteStage(EndToEndBaseStage):
+    def __init__(self, command_list, stack_name):
+        super().__init__()
+        self.command_list = command_list
+        self.stack_name = stack_name
+        self.cfn_client = boto3.client("cloudformation")
+
+    def validate(self, command_result: CommandResult):
+        self.assertEqual(command_result.process.returncode, 0)
+        self.assertFalse(self._check_cfn_stack_exists())
+
+    def _check_cfn_stack_exists(self):
+        try:
+            self.cfn_client.describe_stacks(StackName=self.stack_name)
+        except ClientError as ex:
+            if "does not exist" in ex.args[0]:
+                return False
+        return True
+
+
+class DefaultSyncStage(EndToEndBaseStage):
     def __init__(self, command_list):
         super().__init__()
         self.command_list = command_list
 
     def run_stage(self) -> CommandResult:
-        pass
+        return run_command_with_input(self.command_list, "y\n".encode())
 
     def validate(self, command_result: CommandResult):
-        pass
+        self.assertEqual(command_result.process.returncode, 0)
