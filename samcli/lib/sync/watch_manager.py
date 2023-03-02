@@ -175,14 +175,7 @@ class WatchManager:
             self._executor_thread.start()
 
     def _stop_code_sync(self) -> None:
-        """
-        Blocking call that stops SyncFlowExecutor and waits for it to finish.
-
-        Returns
-        -------
-        List[SyncFlowTask]
-        Returns the list of sync flow tasks that got removed from the queue
-        """
+        """Blocking call that stops SyncFlowExecutor and waits for it to finish."""
 
         if self._executor_thread and self._executor_thread.is_alive():
             self._sync_flow_executor.stop()
@@ -224,15 +217,10 @@ class WatchManager:
         self._start_code_sync()
 
     def _execute_infra_sync(self, first_sync: bool = False) -> None:
-        """
-        Logic to execute infra sync.
-
-        """
+        """Logic to execute infra sync."""
         LOG.info(self._color.cyan("Queued infra sync. Wating for in progress code syncs to complete..."))
         self._waiting_infra_sync = False
-
         self._stop_code_sync()
-
         try:
             LOG.info(self._color.cyan("Starting infra sync."))
             infra_sync_executed = self._execute_infra_context(first_sync)
@@ -248,7 +236,6 @@ class WatchManager:
             # Update stacks and repopulate triggers
             # Trigger are not removed until infra sync is finished as there
             # can be code changes during infra sync.
-
             self._start_sync()
 
             if not infra_sync_executed:
