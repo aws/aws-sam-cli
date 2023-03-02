@@ -10,7 +10,7 @@ from werkzeug.datastructures import Headers
 
 from samcli.lib.providers.provider import Api
 from samcli.lib.providers.provider import Cors
-from samcli.local.apigw.event_constructor import EventConstructor
+from samcli.local.apigw.event_constructor import construct_v1_event, construct_v2_event_http
 from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
 from samcli.local.apigw.route import Route
 from samcli.local.apigw.local_apigw_service import (
@@ -82,8 +82,8 @@ class TestApiGatewayService(TestCase):
         )
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
-    @patch.object(EventConstructor, "v1_event")
-    @patch.object(EventConstructor, "v2_event_http")
+    @patch("samcli.local.apigw.local_apigw_service.construct_v1_event")
+    @patch("samcli.local.apigw.local_apigw_service.construct_v2_event_http")
     def test_api_request_must_invoke_lambda(self, v2_event_mock, v1_event_mock, request_mock):
         make_response_mock = Mock()
 
@@ -118,8 +118,8 @@ class TestApiGatewayService(TestCase):
         )
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
-    @patch.object(EventConstructor, "v1_event")
-    @patch.object(EventConstructor, "v2_event_http")
+    @patch("samcli.local.apigw.local_apigw_service.construct_v1_event")
+    @patch("samcli.local.apigw.local_apigw_service.construct_v2_event_http")
     def test_http_request_must_invoke_lambda(self, v2_event_mock, v1_event_mock, request_mock):
         make_response_mock = Mock()
 
@@ -149,8 +149,8 @@ class TestApiGatewayService(TestCase):
         )
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
-    @patch.object(EventConstructor, "v1_event")
-    @patch.object(EventConstructor, "v2_event_http")
+    @patch("samcli.local.apigw.local_apigw_service.construct_v1_event")
+    @patch("samcli.local.apigw.local_apigw_service.construct_v2_event_http")
     def test_http_v1_payload_request_must_invoke_lambda(self, v2_event_mock, v1_event_mock, request_mock):
         make_response_mock = Mock()
 
@@ -185,8 +185,8 @@ class TestApiGatewayService(TestCase):
         )
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
-    @patch.object(EventConstructor, "v1_event")
-    @patch.object(EventConstructor, "v2_event_http")
+    @patch("samcli.local.apigw.local_apigw_service.construct_v1_event")
+    @patch("samcli.local.apigw.local_apigw_service.construct_v2_event_http")
     def test_http_v2_payload_request_must_invoke_lambda(self, v2_event_mock, v1_event_mock, request_mock):
         make_response_mock = Mock()
 

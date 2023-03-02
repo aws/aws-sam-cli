@@ -17,7 +17,7 @@ from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
 from samcli.lib.providers.provider import Cors
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
-from samcli.local.apigw.event_constructor import EventConstructor
+from samcli.local.apigw.event_constructor import construct_v1_event, construct_v2_event_http
 from samcli.local.apigw.exceptions import LambdaResponseParseException, PayloadFormatVersionValidateException
 from samcli.local.apigw.path_converter import PathConverter
 from samcli.local.apigw.route import Route
@@ -229,7 +229,7 @@ class LocalApigwService(BaseLocalService):
             apigw_endpoint = PathConverter.convert_path_to_api_gateway(endpoint)
             route_key = self._v2_route_key(method, apigw_endpoint, route.is_default_route)
 
-            return EventConstructor.v2_event_http(
+            return construct_v2_event_http(
                 flask_request=flask_request,
                 port=self.port,
                 binary_types=self.api.binary_media_types,
@@ -237,11 +237,11 @@ class LocalApigwService(BaseLocalService):
                 stage_variables=self.api.stage_variables,
                 route_key=route_key,
             )
-        
+
         # For Http Apis with payload version 1.0, API Gateway never sends the OperationName.
         route_key = route.operation_name if route.event_type == Route.API else None
 
-        return EventConstructor.v1_event(
+        return construct_v1_event(
             flask_request=flask_request,
             port=self.port,
             binary_types=self.api.binary_media_types,

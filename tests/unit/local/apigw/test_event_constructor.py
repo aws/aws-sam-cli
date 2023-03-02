@@ -6,7 +6,15 @@ from unittest import TestCase
 from unittest.mock import Mock, patch
 from parameterized import parameterized, param
 
-from samcli.local.apigw.event_constructor import EventConstructor
+from samcli.local.apigw.event_constructor import (
+    _event_headers,
+    _event_http_headers,
+    _query_string_params,
+    _query_string_params_v_2_0,
+    _should_base64_encode,
+    construct_v1_event,
+    construct_v2_event_http,
+)
 from samcli.local.apigw.local_apigw_service import LocalApigwService
 
 
@@ -64,7 +72,7 @@ class TestService_construct_event(TestCase):
         self.assertIsInstance(request_time_epoch, int)
 
     def test_construct_event_with_data(self):
-        actual_event_str = EventConstructor.v1_event(self.request_mock, 3000, binary_types=[])
+        actual_event_str = construct_v1_event(self.request_mock, 3000, binary_types=[])
 
         actual_event_json = json.loads(actual_event_str)
         self.validate_request_context_and_remove_request_time_data(actual_event_json)
@@ -74,13 +82,13 @@ class TestService_construct_event(TestCase):
     def test_construct_event_no_data(self):
         self.request_mock.get_data.return_value = None
 
-        actual_event_str = EventConstructor.v1_event(self.request_mock, 3000, binary_types=[])
+        actual_event_str = construct_v1_event(self.request_mock, 3000, binary_types=[])
         actual_event_json = json.loads(actual_event_str)
         self.validate_request_context_and_remove_request_time_data(actual_event_json)
 
         self.assertEqual(actual_event_json["body"], None)
 
-    @patch("samcli.local.apigw.event_constructor.EventConstructor._should_base64_encode")
+    @patch("samcli.local.apigw.event_constructor._should_base64_encode")
     def test_construct_event_with_binary_data(self, should_base64_encode_patch):
         should_base64_encode_patch.return_value = True
 
@@ -89,7 +97,7 @@ class TestService_construct_event(TestCase):
 
         self.request_mock.get_data.return_value = binary_body
 
-        actual_event_str = EventConstructor.v1_event(self.request_mock, 3000, binary_types=[])
+        actual_event_str = construct_v1_event(self.request_mock, 3000, binary_types=[])
         actual_event_json = json.loads(actual_event_str)
         self.validate_request_context_and_remove_request_time_data(actual_event_json)
 
@@ -103,7 +111,7 @@ class TestService_construct_event(TestCase):
         request_mock.headers = headers_mock
         request_mock.scheme = "http"
 
-        actual_query_string = EventConstructor._event_headers(request_mock, "3000")
+        actual_query_string = _event_headers(request_mock, "3000")
         self.assertEqual(
             actual_query_string,
             (
@@ -121,7 +129,7 @@ class TestService_construct_event(TestCase):
         request_mock.headers = headers_mock
         request_mock.scheme = "http"
 
-        actual_query_string = EventConstructor._event_headers(request_mock, "3000")
+        actual_query_string = _event_headers(request_mock, "3000")
         self.assertEqual(
             actual_query_string,
             (
@@ -146,7 +154,7 @@ class TestService_construct_event(TestCase):
         query_param_args_mock.lists.return_value = {}.items()
         request_mock.args = query_param_args_mock
 
-        actual_query_string = EventConstructor._query_string_params(request_mock)
+        actual_query_string = _query_string_params(request_mock)
         self.assertEqual(actual_query_string, ({}, {}))
 
     def test_query_string_params_with_param_value_being_empty_list(self):
@@ -155,7 +163,7 @@ class TestService_construct_event(TestCase):
         query_param_args_mock.lists.return_value = {"param": []}.items()
         request_mock.args = query_param_args_mock
 
-        actual_query_string = EventConstructor._query_string_params(request_mock)
+        actual_query_string = _query_string_params(request_mock)
         self.assertEqual(actual_query_string, ({"param": ""}, {"param": [""]}))
 
     def test_query_string_params_with_param_value_being_non_empty_list(self):
@@ -164,7 +172,7 @@ class TestService_construct_event(TestCase):
         query_param_args_mock.lists.return_value = {"param": ["a", "b"]}.items()
         request_mock.args = query_param_args_mock
 
-        actual_query_string = EventConstructor._query_string_params(request_mock)
+        actual_query_string = _query_string_params(request_mock)
         self.assertEqual(actual_query_string, ({"param": "b"}, {"param": ["a", "b"]}))
 
     def test_query_string_params_v_2_0_with_param_value_being_non_empty_list(self):
@@ -173,7 +181,7 @@ class TestService_construct_event(TestCase):
         query_param_args_mock.lists.return_value = {"param": ["a", "b"]}.items()
         request_mock.args = query_param_args_mock
 
-        actual_query_string = EventConstructor._query_string_params_v_2_0(request_mock)
+        actual_query_string = _query_string_params_v_2_0(request_mock)
         self.assertEqual(actual_query_string, {"param": "a,b"})
 
 
@@ -246,7 +254,7 @@ class TestService_construct_event_http(TestCase):
         self.expected_dict = json.loads(expected)
 
     def test_construct_event_with_data(self):
-        actual_event_str = EventConstructor.v2_event_http(
+        actual_event_str = construct_v2_event_http(
             self.request_mock,
             3000,
             binary_types=[],
@@ -265,7 +273,7 @@ class TestService_construct_event_http(TestCase):
         self.request_mock.get_data.return_value = None
         self.expected_dict["body"] = None
 
-        actual_event_str = EventConstructor.v2_event_http(
+        actual_event_str = construct_v2_event_http(
             self.request_mock,
             3000,
             binary_types=[],
@@ -286,7 +294,7 @@ class TestService_construct_event_http(TestCase):
         route_key = LocalApigwService._v2_route_key("GET", "/path", True)
         self.assertEqual(route_key, "$default")
 
-    @patch("samcli.local.apigw.event_constructor.EventConstructor._should_base64_encode")
+    @patch("samcli.local.apigw.event_constructor._should_base64_encode")
     def test_construct_event_with_binary_data(self, should_base64_encode_patch):
         should_base64_encode_patch.return_value = True
 
@@ -298,7 +306,7 @@ class TestService_construct_event_http(TestCase):
         self.expected_dict["isBase64Encoded"] = True
         self.maxDiff = None
 
-        actual_event_str = EventConstructor.v2_event_http(
+        actual_event_str = construct_v2_event_http(
             self.request_mock,
             3000,
             binary_types=[],
@@ -318,7 +326,7 @@ class TestService_construct_event_http(TestCase):
         request_mock.headers = headers_mock
         request_mock.scheme = "http"
 
-        actual_query_string = EventConstructor._event_http_headers(request_mock, "3000")
+        actual_query_string = _event_http_headers(request_mock, "3000")
         self.assertEqual(actual_query_string, {"X-Forwarded-Proto": "http", "X-Forwarded-Port": "3000"})
 
     def test_event_headers_with_non_empty_list(self):
@@ -330,7 +338,7 @@ class TestService_construct_event_http(TestCase):
         request_mock.headers = headers_mock
         request_mock.scheme = "http"
 
-        actual_query_string = EventConstructor._event_http_headers(request_mock, "3000")
+        actual_query_string = _event_http_headers(request_mock, "3000")
         self.assertEqual(
             actual_query_string,
             {
@@ -351,8 +359,8 @@ class TestService_should_base64_encode(TestCase):
         ]
     )
     def test_should_base64_encode_returns_true(self, test_case_name, binary_types, mimetype):
-        self.assertTrue(EventConstructor._should_base64_encode(binary_types, mimetype))
+        self.assertTrue(_should_base64_encode(binary_types, mimetype))
 
     @parameterized.expand([param("Mimetype is not in binary types", ["image/gif"], "application/octet-stream")])
     def test_should_base64_encode_returns_false(self, test_case_name, binary_types, mimetype):
-        self.assertFalse(EventConstructor._should_base64_encode(binary_types, mimetype))
+        self.assertFalse(_should_base64_encode(binary_types, mimetype))
