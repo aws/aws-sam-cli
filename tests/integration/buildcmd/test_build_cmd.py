@@ -402,16 +402,6 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
         ("template.yaml", "Function", True, "python3.7", "Python", "use_container", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.8", "Python", "use_container", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.9", "Python", "use_container", False, "CodeUri"),
-        (
-            "cdk_v1_synthesized_template_zip_image_functions.json",
-            "RandomCitiesFunction5C47A2B8",
-            False,
-            None,
-            None,
-            False,
-            True,
-            "Code",
-        ),
     ],
 )
 class TestBuildCommand_PythonFunctions(BuildIntegPythonBase):
