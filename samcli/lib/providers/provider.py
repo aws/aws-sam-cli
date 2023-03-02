@@ -24,7 +24,7 @@ from samcli.lib.utils.architecture import X86_64
 
 if TYPE_CHECKING:  # pragma: no cover
     # avoid circular import, https://docs.python.org/3/library/typing.html#typing.TYPE_CHECKING
-    from samcli.local.apigw.local_apigw_service import Route
+    from samcli.local.apigw.route import Route
 
 LOG = logging.getLogger(__name__)
 

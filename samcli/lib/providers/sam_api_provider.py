@@ -10,7 +10,9 @@ from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
 from samcli.lib.providers.provider import Stack
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.resources import AWS_SERVERLESS_API, AWS_SERVERLESS_FUNCTION, AWS_SERVERLESS_HTTPAPI
-from samcli.local.apigw.local_apigw_service import Authorizer, LambdaAuthorizer, Route
+from samcli.local.apigw.authorizers.authorizer import Authorizer
+from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
+from samcli.local.apigw.route import Route
 
 LOG = logging.getLogger(__name__)
 

@@ -1,6 +1,7 @@
 import base64
 import copy
 import json
+import flask
 from unittest import TestCase
 
 from unittest.mock import Mock, patch, ANY, MagicMock
@@ -10,9 +11,10 @@ from werkzeug.datastructures import Headers
 from samcli.lib.providers.provider import Api
 from samcli.lib.providers.provider import Cors
 from samcli.local.apigw.event_constructor import EventConstructor
+from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
+from samcli.local.apigw.route import Route
 from samcli.local.apigw.local_apigw_service import (
     LocalApigwService,
-    Route,
     CatchAllPathConverter,
 )
 from samcli.local.apigw.exceptions import LambdaResponseParseException, PayloadFormatVersionValidateException
@@ -70,9 +72,11 @@ class TestApiGatewayService(TestCase):
         self.stderr = Mock()
         self.api = Api(routes=self.api_list_of_routes)
         self.http = Api(routes=self.http_list_of_routes)
+
         self.api_service = LocalApigwService(
             self.api, self.lambda_runner, port=3000, host="127.0.0.1", stderr=self.stderr
         )
+
         self.http_service = LocalApigwService(
             self.http, self.lambda_runner, port=3000, host="127.0.0.1", stderr=self.stderr
         )
@@ -530,6 +534,62 @@ class TestApiGatewayService(TestCase):
 
         with self.assertRaises(KeyError):
             self.api_service._get_current_route(request_mock)
+
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
+    @patch("samcli.local.apigw.local_apigw_service.ServiceErrorResponses")
+    @patch("samcli.local.apigw.local_apigw_service.LocalApigwService._valid_identity_sources")
+    def test_request_contains_lambda_auth_missing_identity_sources(
+        self, validate_id_mock, service_error_mock, request_mock
+    ):
+        route = self.api_gateway_route
+        route.authorizer_object = LambdaAuthorizer("", "", "", [], "")
+
+        self.api_service._get_current_route = MagicMock()
+        self.api_service._get_current_route.return_value = route
+        self.api_service._get_current_route.methods = []
+        self.api_service._get_current_route.return_value.payload_format_version = "2.0"
+
+        mocked_missing_lambda_auth_id = Mock()
+        service_error_mock.missing_lambda_auth_identity_sources.return_value = mocked_missing_lambda_auth_id
+
+        request_mock.return_value = ("test", "test")
+
+        validate_id_mock.return_value = False
+
+        result = self.api_service._request_handler()
+
+        self.assertEqual(result, mocked_missing_lambda_auth_id)
+
+    def test_valid_identity_sources_not_lambda_auth(self):
+        route = self.api_gateway_route
+        route.authorizer_object = None
+
+        self.assertFalse(self.api_service._valid_identity_sources(route))
+
+    @parameterized.expand(
+        [
+            (True,),
+            (False,),
+        ]
+    )
+    @patch("samcli.local.apigw.authorizers.lambda_authorizer.LambdaAuthorizer._parse_identity_sources")
+    @patch("samcli.local.apigw.authorizers.lambda_authorizer.LambdaAuthorizer.identity_sources")
+    @patch("samcli.local.apigw.path_converter.PathConverter.convert_path_to_api_gateway")
+    def test_valid_identity_sources_id_source(
+        self, is_valid, path_convert_mock, id_source_prop_mock, lambda_auth_parse_mock
+    ):
+        route = self.api_gateway_route
+        route.authorizer_object = LambdaAuthorizer("", "", "", [], "")
+
+        mocked_id_source_obj = Mock()
+        mocked_id_source_obj.is_valid = Mock(return_value=is_valid)
+        route.authorizer_object.identity_sources = [mocked_id_source_obj]
+
+        # create a dummy Flask app to populate the request object with testing data
+        # using Flask's dummy values for request is fine in this context since
+        # the variables are being passed and not validated
+        with flask.Flask(__name__).test_request_context():
+            self.assertEqual(self.api_service._valid_identity_sources(route), is_valid)
 
 
 class TestApiGatewayModel(TestCase):

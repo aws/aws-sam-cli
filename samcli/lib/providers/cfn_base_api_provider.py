@@ -15,7 +15,7 @@ from samcli.lib.providers.provider import (
     Cors,
     Stack,
 )
-from samcli.local.apigw.local_apigw_service import Route
+from samcli.local.apigw.route import Route
 
 LOG = logging.getLogger(__name__)
 

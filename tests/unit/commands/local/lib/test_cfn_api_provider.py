@@ -5,11 +5,11 @@ from unittest import TestCase
 
 from unittest.mock import patch, Mock
 from parameterized import parameterized
-from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
 
 from samcli.lib.providers.api_provider import ApiProvider
 from samcli.lib.providers.cfn_api_provider import CfnApiProvider
-from samcli.local.apigw.local_apigw_service import LambdaAuthorizer, Route
+from samcli.local.apigw.route import Route
+from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
 from tests.unit.commands.local.lib.test_sam_api_provider import make_swagger
 from samcli.lib.providers.provider import Cors, Stack
 
