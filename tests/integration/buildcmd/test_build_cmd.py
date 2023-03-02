@@ -435,6 +435,48 @@ class TestBuildCommand_PythonFunctions(BuildIntegPythonBase):
         )
 
 
+@skipIf(
+    # Hits public ECR pull limitation, move it to canary tests
+    SKIP_DOCKER_TESTS,
+    "Skip build tests that requires Docker in CI environment",
+)
+@parameterized_class(
+    (
+        "template",
+        "FUNCTION_LOGICAL_ID",
+        "overrides",
+        "runtime",
+        "codeuri",
+        "use_container",
+        "check_function_only",
+        "prop",
+    ),
+    [
+        (
+            "cdk_v1_synthesized_template_zip_image_functions.json",
+            "RandomCitiesFunction5C47A2B8",
+            False,
+            None,
+            None,
+            False,
+            True,
+            "Code",
+        ),
+    ],
+)
+class TestBuildCommand_PythonFunctions_CDK(TestBuildCommand_PythonFunctions):
+    @pytest.mark.flaky(reruns=3)
+    def test_cdk_app_with_default_requirements(self):
+        self._test_with_default_requirements(
+            self.runtime,
+            self.codeuri,
+            self.use_container,
+            self.test_data_path,
+            do_override=self.overrides,
+            check_function_only=self.check_function_only,
+        )
+
+
 class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPythonBase):
     template = "template_with_architecture.yaml"
 
