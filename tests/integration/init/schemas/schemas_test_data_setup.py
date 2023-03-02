@@ -55,6 +55,10 @@ eb-app-maven
             runner = CliRunner()
             runner.invoke(init_cmd, ["--output-dir", temp], input=user_input)
 
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls._tear_down_custom_config()
+
     def _init_custom_config(self, profile, region):
         self.config_dir = tempfile.mkdtemp()
         env = os.environ
