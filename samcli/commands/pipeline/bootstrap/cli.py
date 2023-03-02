@@ -10,6 +10,7 @@ import click
 from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.click_mutex import ClickMutex
+from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.commands.pipeline.bootstrap.oidc_config import (
     BitbucketOidcConfig,
     GitHubOidcConfig,
@@ -177,6 +178,7 @@ OPENID_CONNECT = "OpenID Connect (OIDC)"
 @track_command
 @check_newer_version
 @print_cmdline_args
+@command_exception_handler
 def cli(
     ctx: Any,
     interactive: bool,
