@@ -222,6 +222,9 @@ class InitTemplates:
                 ):
                     continue
                 runtime = get_runtime(template_package_type, template_runtime)
+                if runtime is None:
+                    LOG.debug("Unable to infer runtime for template %s, %s", template_package_type, template_runtime)
+                    continue
                 use_case = preprocessed_manifest.get(use_case_name, {})
                 use_case[runtime] = use_case.get(runtime, {})
                 use_case[runtime][template_package_type] = use_case[runtime].get(template_package_type, [])
