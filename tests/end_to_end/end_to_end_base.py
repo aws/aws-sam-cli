@@ -6,16 +6,7 @@ from tempfile import TemporaryDirectory
 
 from typing import List
 
-from tests.end_to_end.test_stages import (
-    EndToEndBaseStage,
-    DefaultBuildStage,
-    DefaultInitStage,
-    DefaultDeployStage,
-    DefaultRemoteInvokeStage,
-    DefaultDeleteStage,
-    DefaultStackOutputsStage,
-    DefaultSyncStage,
-)
+from tests.end_to_end.test_stages import EndToEndBaseStage
 from tests.integration.delete.delete_integ_base import DeleteIntegBase
 from tests.integration.init.test_init_base import InitIntegBase
 from tests.integration.sync.sync_integ_base import SyncIntegBase
@@ -32,42 +23,6 @@ class EndToEndBase(InitIntegBase, StackOutputsIntegBase, DeleteIntegBase, SyncIn
     def setUp(self):
         super().setUp()
         self.stacks = []
-
-    def default_workflow(self):
-        stack_name = self._method_to_stack_name(self.id())
-        with EndToEndTestContext(self.app_name) as e2e_context:
-            self.template_path = e2e_context.template_path
-            init_command_list = self._get_init_command(e2e_context.working_dir)
-            build_command_list = self.get_command_list()
-            deploy_command_list = self._get_deploy_command(stack_name)
-            delete_command_list = self._get_delete_command(stack_name)
-            stack_outputs_command_list = self._get_stack_outputs_command(stack_name)
-            stages = [
-                DefaultInitStage(init_command_list, self.app_name),
-                DefaultBuildStage(build_command_list),
-                DefaultDeployStage(deploy_command_list),
-                DefaultRemoteInvokeStage(stack_name),
-                DefaultStackOutputsStage(stack_outputs_command_list),
-                DefaultDeleteStage(delete_command_list, stack_name),
-            ]
-            self._run_tests(stages)
-
-    def default_sync_workflow(self):
-        stack_name = self._method_to_stack_name(self.id())
-        with EndToEndTestContext(self.app_name) as e2e_context:
-            self.template_path = e2e_context.template_path
-            init_command_list = self._get_init_command(e2e_context.working_dir)
-            sync_command_list = self._get_sync_command(stack_name)
-            delete_command_list = self._get_delete_command(stack_name)
-            stack_outputs_command_list = self._get_stack_outputs_command(stack_name)
-            stages = [
-                DefaultInitStage(init_command_list, self.app_name),
-                DefaultSyncStage(sync_command_list),
-                DefaultRemoteInvokeStage(stack_name),
-                DefaultStackOutputsStage(stack_outputs_command_list),
-                DefaultDeleteStage(delete_command_list, stack_name),
-            ]
-            self._run_tests(stages)
 
     @staticmethod
     def _run_tests(stages: List[EndToEndBaseStage]):
