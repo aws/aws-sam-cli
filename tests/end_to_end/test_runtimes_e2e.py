@@ -12,7 +12,8 @@ from tests.end_to_end.test_stages import (
     DefaultRemoteInvokeStage,
     DefaultDeleteStage,
     EndToEndBaseStage,
-    DefaultSyncStage, BaseValidator,
+    DefaultSyncStage,
+    BaseValidator,
 )
 from tests.testing_utils import CommandResult
 
