@@ -16,6 +16,7 @@ configuration:
   - DeleteIntegTesting
   - SyncIntegTesting
   - LocalIntegTesting
+  - EndToEndTesting
   # other Integration testing, Dev, regression and smoke testing
   - OtherTesting
 
@@ -293,6 +294,18 @@ for:
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
       - ps: "pytest -vv tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-local.json"
+
+  # End-to-end testing
+  - matrix:
+      only:
+        - configuration: EndToEndTesting
+
+    test_script:
+      # Reactivate virtualenv before running tests
+      - "git --version"
+      - "venv\\Scripts\\activate"
+      - "docker system prune -a -f"
+      - ps: "pytest -vv tests/end_to_end --json-report --json-report-file=TEST_REPORT-end-to-end.json"
 
   #Other testing
   - matrix:
