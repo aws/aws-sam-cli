@@ -2,6 +2,7 @@
 import uuid
 from datetime import datetime
 from time import time
+from typing import Any, Dict
 
 
 class ContextIdentity:
@@ -120,7 +121,7 @@ class RequestContext:
         self.request_time = request_time
         self.operation_name = operation_name
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         """
         Constructs an dictionary representation of the RequestContext Object to be used in serializing to JSON
 
@@ -326,7 +327,7 @@ class RequestContextV2:
         self.domain_name = domain_name
         self.domain_prefix = domain_prefix
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         """
         Constructs an dictionary representation of the RequestContext Version 2
         Object to be used in serializing to JSON

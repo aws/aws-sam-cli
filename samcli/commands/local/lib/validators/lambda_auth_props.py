@@ -6,7 +6,9 @@ from abc import ABC, abstractmethod
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
 from samcli.commands.local.lib.swagger.integration_uri import LambdaUri
-from samcli.local.apigw.local_apigw_service import LambdaAuthorizer
+from samcli.commands.local.lib.validators.identity_source_validator import IdentitySourceValidator
+from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
+from samcli.local.apigw.route import Route
 
 LOG = logging.getLogger(__name__)
 
@@ -237,6 +239,12 @@ class LambdaAuthorizerV2Validator(BaseLambdaAuthorizerValidator):
                 f"Lambda Authorizer '{logical_id}' must have "
                 f"'{LambdaAuthorizerV2Validator.AUTHORIZER_IDENTITY_SOURCE}' of type list defined."
             )
+
+        for identity_source in identity_sources:
+            if not IdentitySourceValidator.validate_identity_source(identity_source, Route.HTTP):
+                raise InvalidSamTemplateException(
+                    f"Lambda Authorizer {logical_id} does not contain valid identity sources.", Route.HTTP
+                )
 
         payload_version = properties.get(LambdaAuthorizerV2Validator.AUTHORIZER_V2_PAYLOAD)
 

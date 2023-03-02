@@ -3,7 +3,7 @@ Handles the validation of identity sources
 """
 import re
 
-from samcli.local.apigw.local_apigw_service import Route
+from samcli.local.apigw.route import Route
 
 
 class IdentitySourceValidator:

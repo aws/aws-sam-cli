@@ -3,7 +3,7 @@ from unittest import TestCase
 from parameterized import parameterized
 
 from samcli.commands.local.lib.validators.identity_source_validator import IdentitySourceValidator
-from samcli.local.apigw.local_apigw_service import Route
+from samcli.local.apigw.route import Route
 
 
 class TestIdentitySourceValidator(TestCase):

@@ -6,10 +6,9 @@ import base64
 import io
 import json
 import logging
-from dataclasses import dataclass
 from datetime import datetime
 from time import time
-from typing import List, Optional
+from typing import Any, Dict, List
 
 from flask import Flask, request
 from werkzeug.datastructures import Headers
@@ -19,7 +18,9 @@ from werkzeug.serving import WSGIRequestHandler
 from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
 from samcli.lib.providers.provider import Cors
 from samcli.lib.utils.stream_writer import StreamWriter
+from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
 from samcli.local.apigw.exceptions import LambdaResponseParseException, PayloadFormatVersionValidateException
+from samcli.local.apigw.route import Route
 from samcli.local.events.api_event import (
     ApiGatewayLambdaEvent,
     ApiGatewayV2LambdaEvent,
@@ -35,120 +36,6 @@ from .path_converter import PathConverter
 from .service_error_responses import ServiceErrorResponses
 
 LOG = logging.getLogger(__name__)
-
-
-@dataclass
-class Authorizer:
-    payload_version: str
-    authorizer_name: str
-    type: str
-
-
-@dataclass
-class LambdaAuthorizer(Authorizer):
-    TOKEN = "token"
-    REQUEST = "request"
-    VALID_TYPES = [TOKEN, REQUEST]
-
-    PAYLOAD_V1 = "1.0"
-    PAYLOAD_V2 = "2.0"
-    PAYLOAD_VERSIONS = [PAYLOAD_V1, PAYLOAD_V2]
-
-    lambda_name: str
-    identity_sources: List[str]
-    validation_string: Optional[str] = None
-    use_simple_response: bool = False
-
-    def __eq__(self, other):
-        return (
-            isinstance(other, LambdaAuthorizer)
-            and self.lambda_name == other.lambda_name
-            and sorted(self.identity_sources) == sorted(other.identity_sources)
-            and self.validation_string == other.validation_string
-            and self.use_simple_response == other.use_simple_response
-            and self.payload_version == other.payload_version
-            and self.authorizer_name == other.authorizer_name
-            and self.type == other.type
-        )
-
-
-class Route:
-    API = "Api"
-    HTTP = "HttpApi"
-    ANY_HTTP_METHODS = ["GET", "DELETE", "PUT", "POST", "HEAD", "OPTIONS", "PATCH"]
-
-    def __init__(
-        self,
-        function_name: Optional[str],
-        path: str,
-        methods: List[str],
-        event_type: str = API,
-        payload_format_version: Optional[str] = None,
-        is_default_route: bool = False,
-        operation_name=None,
-        stack_path: str = "",
-        authorizer_name: Optional[str] = None,
-        authorizer_object: Optional[Authorizer] = None,
-        use_default_authorizer: bool = True,
-    ):
-        """
-        Creates an ApiGatewayRoute
-
-        :param list(str) methods: http method
-        :param function_name: Name of the Lambda function this API is connected to
-        :param str path: Path off the base url
-        :param str event_type: Type of the event. "Api" or "HttpApi"
-        :param str payload_format_version: version of payload format
-        :param bool is_default_route: determines if the default route or not
-        :param string operation_name: Swagger operationId for the route
-        :param str stack_path: path of the stack the route is located
-        :param str authorizer_name: the authorizer this route is using, if any
-        :param Authorizer authorizer_object: the authorizer object this route is using, if any
-        :param bool use_default_authorizer: whether or not to use a default authorizer (if defined)
-        """
-        self.methods = self.normalize_method(methods)
-        self.function_name = function_name
-        self.path = path
-        self.event_type = event_type
-        self.payload_format_version = payload_format_version
-        self.is_default_route = is_default_route
-        self.operation_name = operation_name
-        self.stack_path = stack_path
-        self.authorizer_name = authorizer_name
-        self.authorizer_object = authorizer_object
-        self.use_default_authorizer = use_default_authorizer
-
-    def __eq__(self, other):
-        return (
-            isinstance(other, Route)
-            and sorted(self.methods) == sorted(other.methods)
-            and self.function_name == other.function_name
-            and self.path == other.path
-            and self.operation_name == other.operation_name
-            and self.stack_path == other.stack_path
-            and self.authorizer_name == other.authorizer_name
-            and self.authorizer_object == other.authorizer_object
-            and self.use_default_authorizer == other.use_default_authorizer
-        )
-
-    def __hash__(self):
-        route_hash = hash(f"{self.stack_path}-{self.function_name}-{self.path}")
-        for method in sorted(self.methods):
-            route_hash *= hash(method)
-        return route_hash
-
-    def normalize_method(self, methods):
-        """
-        Normalizes Http Methods. Api Gateway allows a Http Methods of ANY. This is a special verb to denote all
-        supported Http Methods on Api Gateway.
-
-        :param list methods: Http methods
-        :return list: Either the input http_method or one of the _ANY_HTTP_METHODS (normalized Http Methods)
-        """
-        methods = [method.upper() for method in methods]
-        if "ANY" in methods:
-            return self.ANY_HTTP_METHODS
-        return methods
 
 
 class CatchAllPathConverter(BaseConverter):
@@ -247,7 +134,7 @@ class LocalApigwService(BaseLocalService):
 
         self._construct_error_handling()
 
-    def _add_catch_all_path(self, methods, path, route):
+    def _add_catch_all_path(self, methods: List[str], path: str, route: Route):
         """
         Add the catch all route to the _app and the dictionary of routes.
 
@@ -272,6 +159,9 @@ class LocalApigwService(BaseLocalService):
                 payload_format_version=route.payload_format_version,
                 is_default_route=True,
                 stack_path=route.stack_path,
+                authorizer_name=route.authorizer_name,
+                authorizer_object=route.authorizer_object,
+                use_default_authorizer=route.use_default_authorizer,
             )
 
     def _generate_route_keys(self, methods, path):
@@ -315,6 +205,117 @@ class LocalApigwService(BaseLocalService):
         # Something went wrong
         self._app.register_error_handler(500, ServiceErrorResponses.lambda_failure_response)
 
+    def _build_v1_context(self, route: Route) -> Dict[str, Any]:
+        """
+        Helper function to a 1.0 request context
+
+        Parameters
+        ----------
+        route: Route
+            The Route object that was invoked
+
+        Returns
+        -------
+        dict
+            JSON object containing context variables
+        """
+        identity = ContextIdentity(source_ip=request.remote_addr)
+
+        protocol = request.environ.get("SERVER_PROTOCOL", "HTTP/1.1")
+        host = request.host
+
+        operation_name = route.operation_name if route.event_type == Route.API else None
+
+        endpoint = PathConverter.convert_path_to_api_gateway(request.endpoint)
+        method = request.method
+
+        context = RequestContext(
+            resource_path=endpoint,
+            http_method=method,
+            stage=self.api.stage_name,
+            identity=identity,
+            path=endpoint,
+            protocol=protocol,
+            domain_name=host,
+            operation_name=operation_name,
+        )
+
+        return context.to_dict()
+
+    def _build_v2_context(self, route: Route) -> Dict[str, Any]:
+        """
+        Helper function to a 2.0 request context
+
+        Parameters
+        ----------
+        route: Route
+            The Route object that was invoked
+
+        Returns
+        -------
+        dict
+            JSON object containing context variables
+        """
+        endpoint = PathConverter.convert_path_to_api_gateway(request.endpoint)
+        method = request.method
+
+        apigw_endpoint = PathConverter.convert_path_to_api_gateway(endpoint)
+        route_key = self._v2_route_key(method, apigw_endpoint, route.is_default_route)
+
+        request_time_epoch = int(time())
+        request_time = datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000")
+
+        context_http = ContextHTTP(method=method, path=request.path, source_ip=request.remote_addr)
+        context = RequestContextV2(
+            http=context_http,
+            route_key=route_key,
+            stage=self.api.stage_name,
+            request_time_epoch=request_time_epoch,
+            request_time=request_time,
+        )
+
+        return context.to_dict()
+
+    def _valid_identity_sources(self, route: Route) -> bool:
+        """
+        Validates if the route contains all the valid identity sources defined in the route's Lambda Authorizer
+
+        Parameters
+        ----------
+        route: Route
+            the Route object that contains the Lambda Authorizer definition
+
+        Returns
+        -------
+        bool
+            true if all the identity sources are present and valid
+        """
+        lambda_auth = route.authorizer_object
+
+        if not isinstance(lambda_auth, LambdaAuthorizer):
+            return False
+
+        identity_sources = lambda_auth.identity_sources
+
+        context = (
+            self._build_v1_context(route)
+            if lambda_auth.payload_version == LambdaAuthorizer.PAYLOAD_V1
+            else self._build_v2_context(route)
+        )
+
+        kwargs = {
+            "headers": request.headers,
+            "querystring": request.query_string.decode("utf-8"),
+            "context": context,
+            "stageVariables": self.api.stage_variables,
+        }
+
+        for validator in identity_sources:
+            if not validator.is_valid(**kwargs):
+                return False
+
+        return True
+
     def _request_handler(self, **kwargs):
         """
         We handle all requests to the host:port. The general flow of handling a request is as follows
@@ -339,7 +340,7 @@ class LocalApigwService(BaseLocalService):
         Response object
         """
 
-        route = self._get_current_route(request)
+        route: Route = self._get_current_route(request)
         cors_headers = Cors.cors_to_headers(self.api.cors)
 
         # payloadFormatVersion can only support 2 values: "1.0" and "2.0"
@@ -354,6 +355,9 @@ class LocalApigwService(BaseLocalService):
         if method == "OPTIONS" and self.api.cors:
             headers = Headers(cors_headers)
             return self.service_response("", headers, 200)
+
+        if isinstance(route.authorizer_object, LambdaAuthorizer) and not self._valid_identity_sources(route):
+            return ServiceErrorResponses.missing_lambda_auth_identity_sources()
 
         try:
             # TODO: Rewrite the logic below to use version 2.0 when an invalid value is provided

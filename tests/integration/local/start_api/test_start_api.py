@@ -14,7 +14,7 @@ import pytest
 from parameterized import parameterized_class
 
 from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
-from samcli.local.apigw.local_apigw_service import Route
+from samcli.local.apigw.route import Route
 from .start_api_integ_base import StartApiIntegBaseClass, WatchWarmContainersIntegBaseClass
 from ..invoke.layer_utils import LayerUtils
 
