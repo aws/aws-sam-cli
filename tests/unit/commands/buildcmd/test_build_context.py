@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch, Mock, ANY, call
 
 from parameterized import parameterized
 
+from samcli.commands.build.utils import MountMode
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 from samcli.lib.build.bundler import EsbuildBundlerManager
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
@@ -985,7 +986,7 @@ class TestBuildContext_run(TestCase):
             build_images={},
             create_auto_dependency_layer=auto_dependency_layer,
             build_in_source=False,
-            mount_with="Read",
+            mount_with=MountMode.READ,
         ) as build_context:
             build_context.run()
 

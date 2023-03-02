@@ -4,7 +4,7 @@ Unit test for EffectiveUser class
 from unittest import TestCase
 from unittest.mock import patch
 
-from samcli.local.docker.effective_user import EffectiveUser
+from samcli.local.docker.effective_user import EffectiveUser, ROOT_USER_ID
 
 
 class TestEffectiveUser(TestCase):
@@ -57,7 +57,7 @@ class TestEffectiveUser(TestCase):
 
         result = EffectiveUser.get_current_effective_user().to_effective_user_str()
 
-        self.assertEqual("0", result)
+        self.assertEqual(ROOT_USER_ID, result)
 
     @patch("samcli.local.docker.effective_user.os.name.lower")
     @patch("samcli.local.docker.effective_user.os")

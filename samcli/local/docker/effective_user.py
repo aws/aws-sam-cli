@@ -5,6 +5,9 @@ import os
 from dataclasses import dataclass
 from typing import Optional
 
+# constant for root user id
+ROOT_USER_ID = "0"
+
 
 @dataclass(frozen=True)
 class EffectiveUser:
@@ -19,8 +22,7 @@ class EffectiveUser:
             # Return None for non-posix systems
             return None
 
-        root_user_id = "0"
-        if self.user_id == root_user_id or not self.group_id:
+        if self.user_id == ROOT_USER_ID or not self.group_id:
             # Return only user id if root or no group id
             return str(self.user_id)
 

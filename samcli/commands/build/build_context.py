@@ -78,7 +78,7 @@ class BuildContext:
         locate_layer_nested: bool = False,
         hook_name: Optional[str] = None,
         build_in_source: Optional[bool] = None,
-        mount_with=MountMode.READ.value,
+        mount_with: str = MountMode.READ.value,
     ) -> None:
         """
         Initialize the class
@@ -175,7 +175,7 @@ class BuildContext:
         self._locate_layer_nested = locate_layer_nested
         self._hook_name = hook_name
         self._build_in_source = build_in_source
-        self._mount_with = mount_with
+        self._mount_with = MountMode(mount_with)
 
     def __enter__(self) -> "BuildContext":
         self.set_up()
@@ -242,7 +242,7 @@ class BuildContext:
         # boolean value indicates if mount with write or not, defaults to READ ONLY
         mount_with_write = False
         if self._use_container:
-            if self._mount_with.lower() == MountMode.WRITE.value.lower():
+            if self._mount_with == MountMode.WRITE:
                 mount_with_write = True
             else:
                 # if self._mount_with is NOT WRITE
