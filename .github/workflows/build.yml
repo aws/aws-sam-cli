@@ -70,8 +70,8 @@ jobs:
           - "3.7"
           - "3.8"
           - "3.9"
-        group: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-        total_groups: [10]
+        group: [1, 2, 3, 4, 5]
+        total_groups: [5]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -121,7 +121,7 @@ jobs:
       - name: Init samdev
         run: make init
       - name: Run integration tests for group ${{ matrix.group }}
-        run: pytest -vv --splits ${{ matrix.total_groups }} --group ${{ matrix.group }} tests/integration
+        run: pytest -vv --splits ${{ matrix.total_groups }} --group ${{ matrix.group }} --splitting-algorithm least_duration tests/integration
 
   smoke-and-functional-tests:
     name: Functional & Smoke Tests / ${{ matrix.os }} / ${{ matrix.python }}
