@@ -55,7 +55,7 @@ class IdentitySource(ABC):
 
 
 class HeaderIdentitySource(IdentitySource):
-    def find_identity_value(self, **kwargs) -> Any:
+    def find_identity_value(self, **kwargs) -> Optional[str]:
         """
         Finds the header value that the identity source corresponds to
 
@@ -66,15 +66,17 @@ class HeaderIdentitySource(IdentitySource):
 
         Returns
         -------
-        Any
-            The header if it is found, otherwise None
+        Optional[str]
+            The string value of the header if it is found, otherwise None
         """
         headers = kwargs.get("headers", {})
-        return headers.get(self.identity_source, None)
+        value = headers.get(self.identity_source)
+
+        return str(value) if value else None
 
 
 class QueryIdentitySource(IdentitySource):
-    def find_identity_value(self, **kwargs) -> Any:
+    def find_identity_value(self, **kwargs) -> Optional[str]:
         """
         Finds the query string value that the identity source corresponds to
 
@@ -85,8 +87,8 @@ class QueryIdentitySource(IdentitySource):
 
         Returns
         -------
-        Any
-            The query string if it is found, otherwise None
+        Optional[str]
+            The string value of the query parameter if one is found, otherwise None
         """
         query_string = kwargs.get("querystring", "")
 
@@ -103,7 +105,7 @@ class QueryIdentitySource(IdentitySource):
 
 
 class ContextIdentitySource(IdentitySource):
-    def find_identity_value(self, **kwargs) -> Any:
+    def find_identity_value(self, **kwargs) -> Optional[str]:
         """
         Finds the context value that the identity source corresponds to
 
@@ -114,15 +116,17 @@ class ContextIdentitySource(IdentitySource):
 
         Returns
         -------
-        Any
-            The context variable if it is found, otherwise None
+        Optional[str]
+            The string value of the context variable if it is found, otherwise None
         """
         context = kwargs.get("context", {})
-        return context.get(self.identity_source, None)
+        value = context.get(self.identity_source)
+
+        return str(value) if value else None
 
 
 class StageVariableIdentitySource(IdentitySource):
-    def find_identity_value(self, **kwargs) -> Any:
+    def find_identity_value(self, **kwargs) -> Optional[str]:
         """
         Finds the stage variable value that the identity source corresponds to
 
@@ -133,11 +137,13 @@ class StageVariableIdentitySource(IdentitySource):
 
         Returns
         -------
-        Any
+        Optional[str]
             The stage variable if it is found, otherwise None
         """
         stage_variables = kwargs.get("stageVariables", {})
-        return stage_variables.get(self.identity_source, None)
+        value = stage_variables.get(self.identity_source)
+
+        return str(value) if value else None
 
 
 @dataclass
