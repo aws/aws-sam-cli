@@ -359,7 +359,7 @@ class FunctionLayerReferenceSync(SyncFlow):
         if not self._new_layer_version:
             LOG.debug("No layer version set for %s, fetching latest one", self._layer_arn)
             self._new_layer_version = get_latest_layer_version(self._lambda_client, self._layer_arn)
-        self._local_sha = str_checksum(str(self._new_layer_version))
+        self._local_sha = str_checksum(str(self._new_layer_version), hashlib.sha256())
 
     def sync(self) -> None:
         """

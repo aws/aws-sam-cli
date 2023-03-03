@@ -122,3 +122,6 @@ class TestHash(TestCase):
     def test_str_checksum(self):
         checksum = str_checksum("Hello, World!")
         self.assertEqual(checksum, "65a8e27d8879283831b664bd8b7f0ad4")
+
+    def test_md5_instantiation(self):
+        str_checksum()
