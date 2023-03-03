@@ -53,7 +53,6 @@ class TestDeployRegression(PackageRegressionBase, DeployRegressionBase):
 
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_deploy_with_all_args(self, template_file):
-
         output_template_file = self.prepare_package(template_file=template_file)
 
         sam_stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]

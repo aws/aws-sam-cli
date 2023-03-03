@@ -45,7 +45,6 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
     ):
-
         """
         Parameters
         ----------

@@ -6,6 +6,7 @@ from typing import Any, Optional
 from samcli.lib.build.workflow_config import get_workflow_config
 from samcli.lib.utils.hash import file_checksum
 
+
 # TODO Expand this class to hash specific sections of the manifest
 class DependencyHashGenerator:
     _code_uri: str
