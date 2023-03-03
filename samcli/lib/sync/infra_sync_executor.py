@@ -142,13 +142,18 @@ class InfraSyncExecutor:
 
         # Will not combine the comparisons in order to save operation cost
         if first_sync:
-            if self._auto_skip_infra_sync(
-                self._package_context.output_template_file,
-                self._package_context.template_file,
-                self._deploy_context.stack_name,
-            ):
-                LOG.info("Template haven't been changed since last deployment, skipping infra sync...")
-                return InfraSyncResult(False, self.code_sync_resources)
+            try:
+                if self._auto_skip_infra_sync(
+                    self._package_context.output_template_file,
+                    self._package_context.template_file,
+                    self._deploy_context.stack_name,
+                ):
+                    LOG.info("Template haven't been changed since last deployment, skipping infra sync...")
+                    return InfraSyncResult(False, self.code_sync_resources)
+            except Exception as ex:
+                LOG.debug(
+                    "Could not skip infra sync by comparing to a previously deployed template, starting infra sync"
+                )
 
         self._deploy_context.run()
 
