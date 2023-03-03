@@ -60,7 +60,9 @@ class TestDoCli(TestCase):
 
     @parameterized.expand(
         [
-            (False, False, True, False, InfraSyncResult(False, {ResourceIdentifier("Function")})),
+            # Reminder: Add back after sync infra skip ready for release
+            # (False, False, True, False, InfraSyncResult(False, {ResourceIdentifier("Function")})),
+            (False, False, True, False, InfraSyncResult(True)),
             (False, False, False, False, InfraSyncResult(True)),
             (False, False, True, True, InfraSyncResult(True)),
             (False, False, False, True, InfraSyncResult(True)),
