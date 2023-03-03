@@ -10,6 +10,7 @@ from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.cdk_support_decorators import unsupported_command_cdk
 from samcli.commands._utils.click_mutex import ClickMutex
+from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.commands._utils.options import (
     capabilities_option,
     force_upload_option,
@@ -155,6 +156,7 @@ LOG = logging.getLogger(__name__)
 @check_newer_version
 @print_cmdline_args
 @unsupported_command_cdk(alternative_command="cdk deploy")
+@command_exception_handler
 def cli(
     ctx,
     template_file,
