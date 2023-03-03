@@ -50,7 +50,7 @@ jobs:
     - run: make pr
 
   integration-tests:
-    name: Integration Tests / ${{ matrix.os }} / ${{ matrix.python }} / ${{ matrix.tests_folder }}
+    name: Integration Tests / ${{ matrix.os }} / ${{ matrix.python }} / ${{ matrix.group }}
     if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     env:
@@ -70,7 +70,7 @@ jobs:
           - "3.7"
           - "3.8"
           - "3.9"
-        group: [1, 2, 3, 4, 5]
+        group: [1, 2, 3, 4, 5, 6]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -119,8 +119,8 @@ jobs:
 
       - name: Init samdev
         run: make init
-      - name: Run integration tests for ${{ matrix.tests_folder }}
-        run: pytest -vv --splits 5 --group ${{ matrix.group }} tests/integration
+      - name: Run integration tests for group ${{ matrix.group }}
+        run: pytest -vv --splits 6 --group ${{ matrix.group }} tests/integration
 
   smoke-and-functional-tests:
     name: Functional & Smoke Tests / ${{ matrix.os }} / ${{ matrix.python }}
