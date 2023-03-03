@@ -33,7 +33,6 @@ IAM = "iam"
 
 
 class GuidedContext:
-
     SUPPORTED_OIDC_PROVIDERS = {"1": GITHUB_ACTIONS, "2": GITLAB, "3": BITBUCKET}
     OIDC_PROVIDER_NAME_MAPPINGS = {GITHUB_ACTIONS: "GitHub Actions", GITLAB: "GitLab", BITBUCKET: "Bitbucket"}
     # GitHub defaults: https://tinyurl.com/github-defaults
@@ -190,7 +189,7 @@ class GuidedContext:
 
     def _prompt_oidc_provider(self) -> None:
         click.echo("Select an OIDC provider:")
-        for (key, provider) in self.SUPPORTED_OIDC_PROVIDERS.items():
+        for key, provider in self.SUPPORTED_OIDC_PROVIDERS.items():
             click.echo("\t{key} - {provider}".format(key=key, provider=self.OIDC_PROVIDER_NAME_MAPPINGS[provider]))
         oidc_provider = click.prompt(
             "Choice",

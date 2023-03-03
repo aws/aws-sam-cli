@@ -34,7 +34,6 @@ SUPPORTED_LANGUAGES = ("python", "nodejs", "java")
 
 
 class NestedStackManager:
-
     _stack: Stack
     _stack_name: str
     _build_dir: str

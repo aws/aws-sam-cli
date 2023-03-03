@@ -80,14 +80,12 @@ class TestUnzipWithPermissions(TestCase):
 
     @contextmanager
     def _create_zip(self, file_dict, add_attributes=True):
-
         zipfilename = None
         try:
             zipfilename = NamedTemporaryFile(mode="w+b").name
 
             zf = zipfile.ZipFile(zipfilename, "w", zipfile.ZIP_DEFLATED)
             for filename, data in file_dict.items():
-
                 fileinfo = zipfile.ZipInfo(filename)
 
                 if add_attributes:

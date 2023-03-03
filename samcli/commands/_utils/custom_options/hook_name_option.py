@@ -136,7 +136,6 @@ def _check_experimental_flag(hook_name, command_name, opts, default_map):
 
 
 def _get_customer_input_beta_features_option(default_map, experimental_entry, opts):
-
     # Get the beta-features flag value from the command parameters if provided.
     beta_features = opts.get("beta_features")
     if beta_features is not None:

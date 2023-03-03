@@ -41,7 +41,6 @@ LOG = logging.getLogger(__name__)
 
 
 class DeployContext:
-
     MSG_SHOWCASE_CHANGESET = "\nChangeset created successfully. {changeset_id}\n"
 
     MSG_EXECUTE_SUCCESS = "\nSuccessfully created/updated stack - {stack_name} in {region}\n"
@@ -327,7 +326,6 @@ class DeployContext:
             return parameter_values
 
         for key, _ in template_dict["Parameters"].items():
-
             obj = {"ParameterKey": key}
 
             if key in parameter_overrides:
