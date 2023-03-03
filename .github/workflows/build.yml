@@ -50,7 +50,7 @@ jobs:
     - run: make pr
 
   integration-tests:
-    name: Integration Tests / ${{ matrix.os }} / ${{ matrix.python }} / ${{ matrix.group }}
+    name: Integration Tests / ${{ matrix.os }} / ${{ matrix.python }} / group ${{ matrix.group }}
     if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     env:
