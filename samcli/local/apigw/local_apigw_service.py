@@ -18,7 +18,11 @@ from samcli.lib.providers.provider import Cors
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
 from samcli.local.apigw.event_constructor import construct_v1_event, construct_v2_event_http
-from samcli.local.apigw.exceptions import LambdaResponseParseException, PayloadFormatVersionValidateException
+from samcli.local.apigw.exceptions import (
+    InvalidSecurityDefinition,
+    LambdaResponseParseException,
+    PayloadFormatVersionValidateException,
+)
 from samcli.local.apigw.path_converter import PathConverter
 from samcli.local.apigw.route import Route
 from samcli.local.apigw.service_error_responses import ServiceErrorResponses
@@ -200,6 +204,203 @@ class LocalApigwService(BaseLocalService):
         self._app.register_error_handler(405, ServiceErrorResponses.route_not_found)
         # Something went wrong
         self._app.register_error_handler(500, ServiceErrorResponses.lambda_failure_response)
+
+    def _create_method_arn(self, flask_request: Request, event_type: str) -> str:
+        """
+        Creates a method ARN with fake AWS values
+
+        Parameters
+        ----------
+        flask_request: Request
+            Flask request object to get method and endpoint
+        event_type: str
+            Type of event (API or HTTP)
+
+        Returns
+        -------
+        str
+            A built method ARN with fake values
+        """
+        context = RequestContext() if event_type == Route.API else RequestContextV2()
+        method, endpoint = self.get_request_methods_endpoints(flask_request)
+
+        return (
+            f"arn:aws:execute-api:us-east-1:{context.account_id}:"  # type: ignore
+            f"{context.api_id}/{self.api.stage_name}/{method}/{endpoint}"
+        )
+
+    def _generate_lambda_token_authorizer_event(
+        self, flask_request: Request, route: Route, lambda_authorizer: LambdaAuthorizer
+    ) -> dict:
+        """
+        Creates a Lambda authorizer token event
+
+        Parameters
+        ----------
+        flask_request: Request
+            Flask request object to get method and endpoint
+        route: Route
+            Route object representing the endpoint to be invoked later
+        lambda_authorizer: LambdaAuthorizer
+            The Lambda authorizer the route is using
+
+        Returns
+        -------
+        dict
+            Basic dictionary containing a type and authorizationToken
+        """
+        method_arn = self._create_method_arn(flask_request, route.event_type)
+
+        headers = {"headers": flask_request.headers}
+
+        # V1 token based authorizers should always have a single identity source
+        if len(lambda_authorizer.identity_sources) != 1:
+            raise InvalidSecurityDefinition(
+                "An invalid token based Lambda Authorizer was found, there should be one header identity source"
+            )
+
+        identity_source = lambda_authorizer.identity_sources[0]
+        authorization_token = identity_source.find_identity_value(**headers)
+
+        return {
+            "type": LambdaAuthorizer.TOKEN.upper(),
+            "authorizationToken": str(authorization_token),
+            "methodArn": method_arn,
+        }
+
+    def _generate_lambda_request_authorizer_event_http(
+        self, lambda_authorizer_payload: str, identity_values: list, method_arn: str
+    ) -> dict:
+        """
+        Helper method to generate part of the event required for different payload versions
+        for API Gateway V2
+
+        Parameters
+        ----------
+        lambda_authorizer_payload: str
+            The payload version of the Lambda authorizer
+        identity_values: list
+            A list of string identity values
+        method_arn: str
+            The method ARN for the endpoint
+
+        Returns
+        -------
+        dict
+            Dictionary containing partial Lambda authorizer event
+        """
+        if lambda_authorizer_payload == LambdaAuthorizer.PAYLOAD_V2:
+            # payload 2.0 expects a list of strings
+            return {"identitySource": identity_values, "routeArn": method_arn}
+        else:
+            # payload 1.0 expects a comma deliminated string that is the same
+            # for both identitySource and authorizationToken
+            all_identity_values_string = ",".join(identity_values)
+
+            return {
+                "identitySource": all_identity_values_string,
+                "authorizationToken": all_identity_values_string,
+                "methodArn": method_arn,
+            }
+
+    def _generate_lambda_request_authorizer_event(
+        self, flask_request: Request, route: Route, lambda_authorizer: LambdaAuthorizer
+    ) -> dict:
+        """
+        Creates a Lambda authorizer request event
+
+        Parameters
+        ----------
+        flask_request: Request
+            Flask request object to get method and endpoint
+        route: Route
+            Route object representing the endpoint to be invoked later
+        lambda_authorizer: LambdaAuthorizer
+            The Lambda authorizer the route is using
+
+        Returns
+        -------
+        dict
+            A Lambda authorizer event
+        """
+        method_arn = self._create_method_arn(flask_request, route.event_type)
+        method, endpoint = self.get_request_methods_endpoints(flask_request)
+
+        # generate base lambda event and load it into a dict
+        lambda_event = self._generate_lambda_event(flask_request, route, method, endpoint)
+        lambda_event_dict: dict = json.loads(lambda_event)
+        lambda_event_dict.update({"type": LambdaAuthorizer.REQUEST.upper()})
+
+        # build context to form identity values
+        context = (
+            self._build_v1_context(route)
+            if lambda_authorizer.payload_version == LambdaAuthorizer.PAYLOAD_V1
+            else self._build_v2_context(route)
+        )
+
+        if route.event_type == Route.API:
+            # v1 requests only add method ARN
+            lambda_event_dict.update({"methodArn": method_arn})
+        else:
+            # kwargs to pass into identity value finder
+            kwargs = {
+                "headers": flask_request.headers,
+                "querystring": flask_request.query_string.decode("utf-8"),
+                "context": context,
+                "stageVariables": self.api.stage_variables,
+            }
+
+            # find and build all identity sources
+            all_identity_values = []
+            for identity_source in lambda_authorizer.identity_sources:
+                value = identity_source.find_identity_value(**kwargs)
+
+                if value:
+                    # all identity values must be a string
+                    all_identity_values.append(str(value))
+
+            lambda_event_dict.update(
+                self._generate_lambda_request_authorizer_event_http(
+                    lambda_authorizer.payload_version, all_identity_values, method_arn
+                )
+            )
+
+        return lambda_event_dict
+
+    def _generate_lambda_authorizer_event(
+        self, flask_request: Request, route: Route, lambda_authorizer: LambdaAuthorizer
+    ) -> str:
+        """
+        Generate a Lambda authorizer event
+
+        Parameters
+        ----------
+        flask_request: Request
+            Flask request object to get method and endpoint
+        route: Route
+            Route object representing the endpoint to be invoked later
+        lambda_authorizer: LambdaAuthorizer
+            The Lambda authorizer the route is using
+
+        Returns
+        -------
+        str
+            A JSON string containing event properties
+        """
+        authorizer_events = {
+            LambdaAuthorizer.TOKEN: self._generate_lambda_token_authorizer_event,
+            LambdaAuthorizer.REQUEST: self._generate_lambda_request_authorizer_event,
+        }
+
+        kwargs: Dict[str, Any] = {
+            "flask_request": flask_request,
+            "route": route,
+            "lambda_authorizer": lambda_authorizer,
+        }
+
+        authorizer_event = authorizer_events[lambda_authorizer.type](**kwargs)
+
+        return json.dumps(authorizer_event)
 
     def _generate_lambda_event(self, flask_request: Request, route: Route, method: str, endpoint: str) -> str:
         """
