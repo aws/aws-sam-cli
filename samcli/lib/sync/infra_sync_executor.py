@@ -150,7 +150,7 @@ class InfraSyncExecutor:
                 ):
                     LOG.info("Template haven't been changed since last deployment, skipping infra sync...")
                     return InfraSyncResult(False, self.code_sync_resources)
-            except Exception as ex:
+            except Exception:
                 LOG.debug(
                     "Could not skip infra sync by comparing to a previously deployed template, starting infra sync"
                 )
