@@ -346,7 +346,6 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
     def _validate_skipped_built_function(
         self, build_dir, skipped_function_logical_id, relative_path, src_code_path, src_code_prop, metadata_key
     ):
-
         cmdlist = self.get_command_list()
 
         LOG.info("Running Command: {}".format(cmdlist))
@@ -1051,7 +1050,6 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         self.assertEqual(process_execute.process.returncode, 1)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
-
         self.assertTrue(build_dir.exists(), "Build directory should be created")
 
         build_dir_files = os.listdir(str(build_dir))
@@ -1592,7 +1590,6 @@ class TestBuildWithBuildMethod(BuildIntegBase):
         self.assertEqual(command.stdout.strip(), b"Build Failed")
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
-
         self.assertTrue(build_dir.exists(), "Build directory should be created")
 
         build_dir_files = os.listdir(str(build_dir))
@@ -2399,7 +2396,6 @@ class TestBuildWithNestedStacks3LevelWithSymlink(NestedBuildIntegBase):
     ],
 )
 class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
-
     EXPECTED_FILES_PROJECT_MANIFEST = {
         "__init__.py",
         "main.py",

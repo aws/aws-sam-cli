@@ -40,7 +40,6 @@ from samcli.lib.utils.version_checker import check_newer_version
 @unsupported_command_cdk(alternative_command="cdk doctor")
 @command_exception_handler
 def cli(ctx, template_file, config_file, config_env, lint):
-
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(ctx, template_file, lint)  # pragma: no cover

@@ -18,7 +18,6 @@ from samcli.lib.utils.colors import Colored
 
 class TestExperimental(TestCase):
     def setUp(self):
-
         gc_patch = patch("samcli.commands._utils.experimental.GlobalConfig")
         self.gc_mock = gc_patch.start()
         self.addCleanup(gc_patch.stop)

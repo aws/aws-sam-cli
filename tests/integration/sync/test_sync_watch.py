@@ -197,7 +197,6 @@ class TestSyncWatchInfra(TestSyncWatchBase):
         super(TestSyncWatchInfra, cls).setUpClass()
 
     def test_sync_watch_infra(self):
-
         self.update_file(
             self.test_dir.joinpath(f"infra/template-{self.runtime}-after.yaml"),
             self.test_dir.joinpath(f"infra/template-{self.runtime}-before.yaml"),

@@ -907,7 +907,6 @@ class TestResourceLinking(TestCase):
         resolve_module_output_mock,
         resolve_module_variable_mock,
     ):
-
         variable_reference_value = Mock()
         resolve_module_variable_mock.return_value = [variable_reference_value]
         module_reference_value = Mock()

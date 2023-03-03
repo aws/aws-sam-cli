@@ -200,7 +200,6 @@ class EndpointsProducer(ResourceMappingProducer, Producer):
         """
         api_list = []
         for stage in stages:
-
             api_list.append(f"https://{physical_id}.execute-api.{self.region}.amazonaws.com/{stage}")
         return api_list
 

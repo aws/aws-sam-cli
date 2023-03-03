@@ -250,7 +250,6 @@ class Template:
         Intentionally not dealing with Api:DefinitionUri at this point.
         """
         for _, resource in self.template_dict["Resources"].items():
-
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", None)
 
@@ -303,7 +302,6 @@ class Template:
         self._apply_global_values()
 
         for resource_id, resource in self.template_dict["Resources"].items():
-
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
             resource_deletion_policy = resource.get("DeletionPolicy", None)
@@ -329,7 +327,6 @@ class Template:
 
         self._apply_global_values()
         for resource_id, resource in self.template_dict["Resources"].items():
-
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
             resource_deletion_policy = resource.get("DeletionPolicy", None)
@@ -356,7 +353,6 @@ class Template:
         self._apply_global_values()
 
         for _, resource in self.template_dict["Resources"].items():
-
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
 

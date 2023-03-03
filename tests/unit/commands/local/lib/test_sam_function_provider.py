@@ -1011,12 +1011,10 @@ class TestSamFunctionProviderEndToEnd(TestCase):
         ]
     )
     def test_get_must_return_each_function(self, name, expected_output):
-
         actual = self.provider.get(name)
         self.assertEqual(actual, expected_output)
 
     def test_get_all_must_return_all_functions(self):
-
         result = {f.full_path for f in self.provider.get_all()}
         expected = {
             "SamFunctions",
@@ -1420,7 +1418,6 @@ class TestSamFunctionProvider_get_function_id(TestCase):
 
 class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
     def test_must_convert_zip(self):
-
         name = "myname"
         properties = {
             "CodeUri": "/usr/local",
@@ -1463,7 +1460,6 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         self.assertEqual(expected, result)
 
     def test_must_convert_image(self):
-
         name = "myname"
         properties = {
             "ImageUri": "helloworld:v1",
@@ -1506,7 +1502,6 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         self.assertEqual(expected, result)
 
     def test_must_skip_non_existent_properties(self):
-
         name = "myname"
         properties = {"CodeUri": "/usr/local"}
 
@@ -1539,7 +1534,6 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         self.assertEqual(expected, result)
 
     def test_must_default_missing_code_uri(self):
-
         name = "myname"
         properties = {"Runtime": "myruntime"}
 
@@ -1547,7 +1541,6 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         self.assertEqual(result.codeuri, ".")  # Default value
 
     def test_must_use_inlinecode(self):
-
         name = "myname"
         properties = {
             "InlineCode": "testcode",
@@ -1587,7 +1580,6 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         self.assertEqual(expected, result)
 
     def test_must_prioritize_inlinecode(self):
-
         name = "myname"
         properties = {
             "CodeUri": "/usr/local",
@@ -1628,7 +1620,6 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         self.assertEqual(expected, result)
 
     def test_must_handle_code_dict(self):
-
         name = "myname"
         properties = {
             "CodeUri": {
@@ -1643,7 +1634,6 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
 
 class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
     def test_must_convert(self):
-
         name = "myname"
         properties = {
             "Code": {"Bucket": "bucket"},
@@ -1685,7 +1675,6 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
         self.assertEqual(expected, result)
 
     def test_must_use_inlinecode(self):
-
         name = "myname"
         properties = {
             "Code": {"ZipFile": "testcode"},
@@ -1726,7 +1715,6 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
         self.assertEqual(expected, result)
 
     def test_must_skip_non_existent_properties(self):
-
         name = "myname"
         properties = {"Code": {"Bucket": "bucket"}}
 
@@ -1793,7 +1781,7 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
             Mock(stack_path=STACK_PATH, location="template.yaml", resources=resources), list_of_layers
         )
 
-        for (actual_layer, expected_layer) in zip(
+        for actual_layer, expected_layer in zip(
             actual, [LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None, stack_path=STACK_PATH)]
         ):
             self.assertEqual(actual_layer, expected_layer)
@@ -1814,7 +1802,7 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
             Mock(stack_path=STACK_PATH, location="template.yaml", resources=resources), list_of_layers
         )
 
-        for (actual_layer, expected_layer) in zip(
+        for actual_layer, expected_layer in zip(
             actual,
             [
                 LayerVersion("Layer", "/somepath", stack_path=STACK_PATH),

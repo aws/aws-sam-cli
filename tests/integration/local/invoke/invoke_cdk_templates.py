@@ -128,7 +128,6 @@ class TestCDKSynthesizedTemplate(InvokeIntegBase):
 
 
 class TestCDKSynthesizedTemplatesImageFunctions(InvokeIntegBase):
-
     template = Path("cdk/cdk_template_image_functions.yaml")
     functions = [
         "StandardFunctionConstructZipFunction",

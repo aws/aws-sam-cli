@@ -87,7 +87,6 @@ class SamTemplateValidator:
         global_settings = self.sam_template.get("Globals", {})
 
         for resource_type, properties in global_settings.items():
-
             if resource_type == "Function":
                 if all(
                     [
@@ -99,16 +98,13 @@ class SamTemplateValidator:
                     SamTemplateValidator._update_to_s3_uri("CodeUri", properties)
 
         for _, resource in all_resources.items():
-
             resource_type = resource.get("Type")
             resource_dict = resource.get("Properties", {})
 
             if resource_type == "AWS::Serverless::Function" and resource_dict.get("PackageType", ZIP) == ZIP:
-
                 SamTemplateValidator._update_to_s3_uri("CodeUri", resource_dict)
 
             if resource_type == "AWS::Serverless::LayerVersion":
-
                 SamTemplateValidator._update_to_s3_uri("ContentUri", resource_dict)
 
             if resource_type == "AWS::Serverless::Api":
