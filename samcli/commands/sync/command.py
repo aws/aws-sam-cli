@@ -44,7 +44,7 @@ from samcli.lib.providers.provider import (
     get_unique_resource_ids,
 )
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
-from samcli.lib.sync.infra_sync_executor import InfraSyncExecutor
+from samcli.lib.sync.infra_sync_executor import InfraSyncExecutor, InfraSyncResult
 from samcli.lib.sync.sync_flow_executor import SyncFlowExecutor
 from samcli.lib.sync.sync_flow_factory import SyncCodeResources, SyncFlowFactory
 from samcli.lib.sync.watch_manager import WatchManager
@@ -374,7 +374,8 @@ def do_cli(
                                 dependency_layer,
                             )
                         else:
-                            code_sync_resources = execute_infra_contexts(build_context, package_context, deploy_context)
+                            infra_sync_result = execute_infra_contexts(build_context, package_context, deploy_context)
+                            code_sync_resources = infra_sync_result.code_sync_resources
 
                             if code_sync_resources:
                                 resource_ids = [str(resource) for resource in code_sync_resources]
@@ -385,7 +386,7 @@ def do_cli(
                                     build_context,
                                     deploy_context,
                                     sync_context,
-                                    resource_ids,  # type: ignore
+                                    tuple(resource_ids),  # type: ignore
                                     None,
                                     dependency_layer,
                                 )
@@ -395,7 +396,7 @@ def execute_infra_contexts(
     build_context: "BuildContext",
     package_context: "PackageContext",
     deploy_context: "DeployContext",
-) -> Optional[Set[ResourceIdentifier]]:
+) -> InfraSyncResult:
     """Executes the sync for infra.
 
     Parameters
@@ -406,17 +407,11 @@ def execute_infra_contexts(
 
     Returns
     -------
-    Optional[Set[ResourceIdentifier]]
-        Returns a set of resource identifiers that needs a code sync if infra sync got skipped
-        Returns None if infra sync got executed
+    InfraSyncResult
+        Data class that contains infra sync execution result
     """
     infra_sync_executor = InfraSyncExecutor(build_context, package_context, deploy_context)
-    infra_executed = infra_sync_executor.execute_infra_sync(first_sync=True)
-
-    if not infra_executed:
-        return infra_sync_executor.code_sync_resources
-
-    return None
+    return infra_sync_executor.execute_infra_sync(first_sync=True)
 
 
 def execute_code_sync(

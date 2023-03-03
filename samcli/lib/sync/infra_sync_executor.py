@@ -55,6 +55,27 @@ LAMBDA_FUNCTION_REMOVAL_MAP = {
 }
 
 
+class InfraSyncResult:
+    """Data class for storing infra sync result"""
+
+    _infra_sync_executed: bool
+    _code_sync_resources: Set[ResourceIdentifier]
+
+    def __init__(self, executed: bool, code_sync_resources: Set[ResourceIdentifier] = set()) -> None:
+        self._infra_sync_executed = executed
+        self._code_sync_resources = code_sync_resources
+
+    @property
+    def infra_sync_executed(self) -> bool:
+        """Returns a boolean indicating whether infra sync executed"""
+        return self._infra_sync_executed
+
+    @property
+    def code_sync_resources(self) -> Set[ResourceIdentifier]:
+        """Returns a set of resource identifiers that need an infra sync"""
+        return self._code_sync_resources
+
+
 class InfraSyncExecutor:
     """
     Executor for infra sync that contains skip logic when template is not changed
@@ -101,7 +122,7 @@ class InfraSyncExecutor:
         """
         return get_boto_client_provider_from_session_with_config(session)(client_name)
 
-    def execute_infra_sync(self, first_sync: bool = False) -> bool:
+    def execute_infra_sync(self, first_sync: bool = False) -> InfraSyncResult:
         """
         Compares the local template with the deployed one, executes infra sync if different
 
@@ -112,9 +133,8 @@ class InfraSyncExecutor:
 
         Returns
         -------
-        bool
-            Returns True if infra sync got executed
-            Returns False if infra sync got skipped
+        InfraSyncResult
+            Returns information containing whether infra sync executed plus resources to do code sync on
         """
         self._build_context.set_up()
         self._build_context.run()
@@ -128,11 +148,11 @@ class InfraSyncExecutor:
                 self._deploy_context.stack_name,
             ):
                 LOG.info("Template haven't been changed since last deployment, skipping infra sync...")
-                return False
+                return InfraSyncResult(False, self.code_sync_resources)
 
         self._deploy_context.run()
 
-        return True
+        return InfraSyncResult(True)
 
     def _auto_skip_infra_sync(
         self,

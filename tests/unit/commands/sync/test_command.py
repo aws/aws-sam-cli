@@ -18,6 +18,7 @@ from samcli.commands._utils.constants import (
     DEFAULT_CACHE_DIR,
 )
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+from samcli.lib.sync.infra_sync_executor import InfraSyncResult
 from tests.unit.commands.buildcmd.test_build_context import DummyStack
 
 
@@ -59,10 +60,10 @@ class TestDoCli(TestCase):
 
     @parameterized.expand(
         [
-            (False, False, True, False),
-            (False, False, False, False),
-            (False, False, True, True),
-            (False, False, False, True),
+            (False, False, True, False, InfraSyncResult(False, {ResourceIdentifier("Function")})),
+            (False, False, False, False, InfraSyncResult(True)),
+            (False, False, True, True, InfraSyncResult(True)),
+            (False, False, False, True, InfraSyncResult(True)),
         ]
     )
     @patch("os.environ", {**os.environ, "SAM_CLI_POLL_DELAY": 10})
@@ -85,6 +86,7 @@ class TestDoCli(TestCase):
         watch,
         auto_dependency_layer,
         use_container,
+        infra_sync_result,
         check_enable_adl_mock,
         execute_infra_mock,
         SyncContextMock,
@@ -110,6 +112,7 @@ class TestDoCli(TestCase):
         SyncContextMock.return_value.__enter__.return_value = sync_context_mock
 
         check_enable_adl_mock.return_value = auto_dependency_layer
+        execute_infra_mock.return_value = infra_sync_result
 
         do_cli(
             self.template_file,
@@ -208,7 +211,18 @@ class TestDoCli(TestCase):
 
         execute_infra_mock.assert_called_with(build_context_mock, package_context_mock, deploy_context_mock)
 
-        execute_code_sync_mock.assert_not_called()
+        if not infra_sync_result.infra_sync_executed:
+            execute_code_sync_mock.assert_called_with(
+                ANY,
+                build_context_mock,
+                deploy_context_mock,
+                sync_context_mock,
+                ("Function",),
+                None,
+                auto_dependency_layer,
+            )
+        else:
+            execute_code_sync_mock.assert_not_called()
 
     @parameterized.expand([(False, True, False, False), (False, True, False, True)])
     @patch("samcli.commands.sync.command.click")

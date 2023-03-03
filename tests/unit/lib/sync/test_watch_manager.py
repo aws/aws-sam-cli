@@ -1,5 +1,7 @@
 from unittest.case import TestCase
 from unittest.mock import MagicMock, patch, ANY, call
+from samcli.lib.providers.provider import ResourceIdentifier
+from samcli.lib.sync.infra_sync_executor import InfraSyncResult
 from samcli.lib.sync.watch_manager import WatchManager
 from samcli.lib.providers.exceptions import MissingCodeUri, MissingLocalDefinition, InvalidTemplateFile
 from samcli.lib.sync.exceptions import MissingPhysicalResourceError, SyncFlowException
@@ -204,12 +206,12 @@ class TestWatchManager(TestCase):
         self.path_observer.stop.assert_called_once_with()
         stop_code_sync_mock.assert_called_once_with()
 
-    @parameterized.expand([(True,), (False,)])
+    @parameterized.expand([(True, {ResourceIdentifier("Function")}), (False, set())])
     @patch("samcli.lib.sync.watch_manager.time.sleep")
-    def test__start(self, executed, sleep_mock):
+    def test__start(self, executed, code_sync_resources, sleep_mock):
         stop_code_sync_mock = MagicMock()
         execute_infra_sync_mock = MagicMock()
-        execute_infra_sync_mock.return_value = executed
+        execute_infra_sync_mock.return_value = InfraSyncResult(executed)
 
         update_stacks_mock = MagicMock()
         add_template_trigger_mock = MagicMock()

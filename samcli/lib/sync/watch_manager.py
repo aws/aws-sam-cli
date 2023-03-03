@@ -12,7 +12,7 @@ from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_all_res
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.sync.continuous_sync_flow_executor import ContinuousSyncFlowExecutor
 from samcli.lib.sync.exceptions import InfraSyncRequiredError, MissingPhysicalResourceError, SyncFlowException
-from samcli.lib.sync.infra_sync_executor import InfraSyncExecutor
+from samcli.lib.sync.infra_sync_executor import InfraSyncExecutor, InfraSyncResult
 from samcli.lib.sync.sync_flow_factory import SyncFlowFactory
 from samcli.lib.utils.code_trigger_factory import CodeTriggerFactory
 from samcli.lib.utils.colors import Colored
@@ -153,13 +153,13 @@ class WatchManager:
 
             self._observer.schedule_handlers(template_trigger.get_path_handlers())
 
-    def _execute_infra_context(self, first_sync: bool = False) -> bool:
+    def _execute_infra_context(self, first_sync: bool = False) -> InfraSyncResult:
         """Execute infrastructure sync
 
-        Returns: bool
+        Returns
         ----------
-        Returns True if infra sync got executed
-        Returns False if infra sync got skipped
+        InfraSyncResult
+            Returns information containing whether infra sync executed plus resources to do code sync on
         """
         self._infra_sync_executor = InfraSyncExecutor(self._build_context, self._package_context, self._deploy_context)
         return self._infra_sync_executor.execute_infra_sync(first_sync)
@@ -223,7 +223,7 @@ class WatchManager:
         self._stop_code_sync()
         try:
             LOG.info(self._color.cyan("Starting infra sync."))
-            infra_sync_executed = self._execute_infra_context(first_sync)
+            infra_sync_result = self._execute_infra_context(first_sync)
         except Exception as e:
             LOG.error(
                 self._color.red("Failed to sync infra. Code sync is paused until template/stack is fixed."),
@@ -238,10 +238,10 @@ class WatchManager:
             # can be code changes during infra sync.
             self._start_sync()
 
-            if not infra_sync_executed:
+            if not infra_sync_result.infra_sync_executed:
                 # This is for initiating code sync for all resources
                 # To improve: only initiate code syncs for ones with template changes
-                self._queue_up_code_syncs(self._infra_sync_executor.code_sync_resources)
+                self._queue_up_code_syncs(infra_sync_result.code_sync_resources)
                 LOG.info(self._color.green("Skipped infra sync and queued up required code syncs."))
             else:
                 LOG.info(self._color.green("Infra sync completed."))
