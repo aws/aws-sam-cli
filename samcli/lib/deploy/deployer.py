@@ -302,7 +302,7 @@ class Deployer:
         :param changeset_id: ID or name of the changeset
         :param stack_name:   Stack name
         """
-        sys.stdout.write("\nWaiting for changeset to be created..\n")
+        sys.stdout.write("\n\nWaiting for changeset to be created..\n\n")
         sys.stdout.flush()
 
         # Wait for changeset to be created

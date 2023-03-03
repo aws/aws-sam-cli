@@ -8,7 +8,6 @@ import os
 import re
 import shutil
 import tempfile
-import time
 import zipfile
 from contextlib import contextmanager
 from typing import Callable, Dict, List, Optional, cast
@@ -280,8 +279,14 @@ def make_zip_with_permissions(file_name, source_root, permission_mappers: List[P
                             info.external_attr = os.stat(full_path).st_mode << 16
                             for permission_mapper in permission_mappers:
                                 info = permission_mapper.apply(info)
-                            # Set current time to be the last time the zip content was modified.
-                            info.date_time = time.localtime()[0:6]
+                            # ZIP date time can be set to the last time the zip content was modified using this logic.
+                            # info.date_time = time.localtime()[0:6]
+
+                            # If the date time above is added, the caching logic that compares ZIP files sha will break.
+                            # Currently we skip executing sync flows for sam sync command when the logic ZIP hash is
+                            # the same as the remote lambda ZIP hash. A timestamp will make the evaluation always false.
+                            # However, without this field, contents of the zip file will have a last modified date 1980
+                            # because python's zipfile.ZipInfo is set to: https://docs.python.org/3/library/zipfile.html.
                             zf.writestr(info, file_bytes, compress_type=compression_type)
                         else:
                             zf.write(full_path, relative_path)

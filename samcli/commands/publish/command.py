@@ -10,6 +10,7 @@ from serverlessrepo.publish import CREATE_APPLICATION
 from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
+from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.commands._utils.options import template_common_option
 from samcli.commands._utils.template import TemplateFailedParsingException, TemplateNotFoundException, get_template_data
 from samcli.lib.telemetry.metric import track_command
@@ -52,6 +53,7 @@ SEMANTIC_VERSION = "SemanticVersion"
 @track_command
 @check_newer_version
 @print_cmdline_args
+@command_exception_handler
 def cli(
     ctx,
     template_file,

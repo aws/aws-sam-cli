@@ -27,6 +27,7 @@ DEFAULT_REGION = "us-west-2"
 class TestManagedStackDeploy(DeployIntegBase):
     def setUp(self):
         super().setUp()
+        self.cfn_client = boto3.client("cloudformation", region_name=DEFAULT_REGION)
         self.s3_client = boto3.client("s3", region_name=DEFAULT_REGION)
 
         self._delete_managed_stack(self.cfn_client, self.s3_client, DEFAULT_REGION)
@@ -88,6 +89,7 @@ class TestManagedStackDeploy(DeployIntegBase):
 
         stack = boto3.resource("cloudformation", region_name=region).Stack(SAM_CLI_STACK_NAME)
         resources = stack.resource_summaries.all()
+        s3_bucket_name = None
         for resource in resources:
             if resource.resource_type == "AWS::S3::Bucket":
                 s3_bucket_name = resource.physical_resource_id
@@ -113,6 +115,7 @@ class TestManagedStackDeploy(DeployIntegBase):
         if stack.stack_status not in ["CREATE_COMPLETE", "UPDATE_COMPLETE"]:
             raise ManagedStackError("Managed stack status is not in CREATE_COMPLETE or UPDATE_COMPLETE")
 
+        s3_bucket_name = None
         resources = stack.resource_summaries.all()
         for resource in resources:
             if resource.resource_type == "AWS::S3::Bucket":

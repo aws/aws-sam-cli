@@ -102,4 +102,4 @@ class TestTableConsumer(TestCase):
         consumer.consume(data)
         print(patched_click_echo.call_args_list)
         self.assertTrue(patched_click_echo.call_args_list)
-        self.assertEqual(call("Stack Outputs"), patched_click_echo.call_args_list[0])
+        self.assertEqual(call("Stack Outputs", bold=True), patched_click_echo.call_args_list[0])
