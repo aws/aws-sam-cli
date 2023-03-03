@@ -265,7 +265,7 @@ Options:
                                   InstanceType=t1.micro
 
   --capabilities LIST             List of capabilities that one must specify before AWS Cloudformation can create
-                                  certain stacks.
+                                  certain stacks. Valid values: ["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM"]
                                   More info at: https://docs.aws.amazon.com/serverlessrepo/latest/devguide/acknowledging-application-capabilities.html
                                   
   --s3-bucket TEXT                AWS S3 bucket where artifacts referenced in your template are uploaded.
@@ -335,6 +335,188 @@ Options:
                                   
 ```
 
+Here's a look at revamped sam build help text.
+
+```commandline
+Usage: sam build [OPTIONS] [RESOURCE_LOGICAL_ID]
+
+  Build your AWS serverless function code.
+
+  To use this command, update your AWS SAM template to specify the path
+  to your function's source code in the resource's Code or CodeUri property.
+
+  To build on your workstation, run this command in folder containing
+  SAM template. Built artifacts will be written to .aws-sam/build folder
+
+  Examples:
+  
+  $ sam build
+
+  To build inside a AWS Lambda like Docker container
+  $ sam build --use-container
+
+  To build with inline environment variables passed inside build containers
+  $ sam build --use-container --container-env-var Function.ENV_VAR=value --container-env-var GLOBAL_ENV_VAR=value
+
+  To build with environment variables file passd inside build containers
+  $ sam build --use-container --container-env-var-file env.json
+
+  To build & run your functions locally
+  $ sam build && sam local invoke
+
+  To build and package for deployment
+  $ sam build && sam package --s3-bucket <bucketname>
+
+  To build only an individual resource (function or layer) located in the SAM
+  template. Downstream SAM package and deploy will deploy only this resource
+  $ sam build MyFunction
+  
+  Supported Runtimes:
+  1. Python 3.7, 3.8, 3.9 using PIP
+
+  2. Nodejs 18.x, 16.x, 14.x, 12.x using NPM
+
+  3. Ruby 2.7 using Bundler
+
+  4. Java 8, Java 11 using Gradle and Maven
+
+  5. Dotnetcore3.1, Dotnet6 using Dotnet CLI (without --use-container flag)
+
+  6. Go 1.x using Go Modules (without --use-container flag)
+
+
+Options:
+   Required Options:
+    
+   -t, --template-file, --template AWS SAM template file.  [default: template.[yaml|yml|json]]
+    
+  Configuration Options:
+  
+  Learn more about configuration files at:
+  https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html.
+  
+  --config-file TEXT              Configuration file containing default parameter values. [default:'samconfig.toml']
+                                  
+  --config-env TEXT               Environment name specifying default parameter values in the configuration
+                                  file. [default: "default"]
+  AWS Credential Options:
+  
+  Exploratory DESIGN NOTE: How can we streamline credentials
+  
+  --profile TEXT                  Named profile for AWS credentials.
+  --region TEXT                   Set the AWS Region. (e.g. us-east-1). 
+  
+  Container Options:
+  
+  -u, --use-container             If your functions depend on packages that
+                                  have natively compiled dependencies, use
+                                  this flag to build your function inside an
+                                  AWS Lambda-like Docker container
+  -e, --container-env-var TEXT    Input environment variables through command
+                                  line to pass into build containers, you can
+                                  either input function specific format
+                                  (FuncName.VarName=Value) or global format
+                                  (VarName=Value). e.g., sam build --use-
+                                  container --container-env-var
+                                  Func1.VAR1=value1 --container-env-var
+                                  VAR2=value2
+  -ef, --container-env-var-file PATH
+                                  Path to environment variable json file
+                                  (e.g., env_vars.json) to pass into build
+                                  containers
+  -bi, --build-image TEXT         Container image URIs for building
+                                  functions/layers. You can specify for all
+                                  functions/layers with just the image URI
+                                  (--build-image public.ecr.aws/sam/build-
+                                  nodejs18.x:latest). You can specify for each
+                                  individual function with (--build-image
+                                  FunctionLogicalID=public.ecr.aws/sam/build-
+                                  nodejs18.x:latest). A combination of the two
+                                  can be used. If a function does not have
+                                  build image specified or an image URI for
+                                  all functions, the default SAM CLI build
+                                  images will be used.
+  --skip-pull-image               Specify whether CLI should skip pulling down
+                                  the latest Docker image for Lambda runtime.
+  --docker-network TEXT           Specifies the name or id of an existing
+                                  docker network to lambda docker containers
+                                  should connect to, along with the default
+                                  bridge network. If not specified, the Lambda
+                                  containers will only connect to the default
+                                  bridge docker network.
+                                  
+  Extension Options:
+             
+  --hook-name TEXT                The id of the hook package to be used to
+                                  extend the SAM CLI commands functionality.
+                                  As an example, you can use `terraform` to
+                                  extend SAM CLI commands functionality to
+                                  support terraform applications. Available
+                                  Hook Names ['terraform']
+  --skip-prepare-infra            Use this option to skip the preparation
+                                  stage if there have not been any
+                                  infrastructure changes. The --hook-name
+                                  option should also be specified when
+                                  skipping infrastructure preparation.
+  Build Stratergy Options:
+                                    
+  -x, --exclude TEXT              Name of the resource(s) to exclude from the
+                                  SAM CLI build.
+  -p, --parallel                  Enabled parallel builds. Use this flag to
+                                  build your AWS SAM template's functions and
+                                  layers in parallel. By default the functions
+                                  and layers are built in sequence
+  -m, --manifest PATH             Path to a custom dependency manifest (e.g.,
+                                  package.json) to use instead of the default
+                                  one
+  -c, --cached / --no-cached      Enable cached builds. Use this flag to reuse
+                                  build artifacts that have not changed from
+                                  previous builds. AWS SAM evaluates whether
+                                  you have made any changes to files in your
+                                  project directory.
+
+                                  Note: AWS SAM does not evaluate whether
+                                  changes have been made to third party
+                                  modules that your project depends on, where
+                                  you have not provided a specific version.
+                                  For example, if your Python function
+                                  includes a requirements.txt file with the
+                                  following entry requests=1.x and the latest
+                                  request module version changes from 1.1 to
+                                  1.2, SAM will not pull the latest version
+                                  until you run a non-cached build.
+   
+  Artifact Location Options: 
+  
+  -b, --build-dir DIRECTORY       Path to a folder where the built artifacts
+                                  will be stored. This directory will be first
+                                  removed before starting a build.
+  -cd, --cache-dir DIRECTORY      The folder where the cache artifacts will be
+                                  stored when --cached is specified. The
+                                  default cache directory is .aws-sam/cache
+  -s, --base-dir DIRECTORY        Resolve relative paths to function's source
+                                  code with respect to this folder. Use this
+                                  if SAM template and your source code are not
+                                  in same enclosing folder. By default,
+                                  relative paths are resolved with respect to
+                                  the SAM template's location
+  Template Options:
+  --parameter-overrides           Optional. A string that contains AWS
+                                  CloudFormation parameter overrides encoded
+                                  as key=value pairs.For example, 'ParameterKe
+                                  y=KeyPairName,ParameterValue=MyKey Parameter
+                                  Key=InstanceType,ParameterValue=t1.micro' or
+                                  KeyPairName=MyKey InstanceType=t1.micro
+   Beta Options:                   
+  --beta-features / --no-beta-features
+                                  Enable beta features.
+   Verbosity Options:
+                                     
+  --debug                         Turn on debug logging to print debug message
+                                  generated by AWS SAM CLI and display
+                                  timestamps.
+  -h, --help                      Show this message and exit.
+```
 
 Success criteria for the change
 -------------------------------
