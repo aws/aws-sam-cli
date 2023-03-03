@@ -460,7 +460,6 @@ class TestApiGatewayLambdaEvent(TestCase):
 
     def test_init_with_invalid_stage_variables(self):
         with self.assertRaises(TypeError):
-
             ApiGatewayLambdaEvent(
                 "request_method",
                 "request_data",

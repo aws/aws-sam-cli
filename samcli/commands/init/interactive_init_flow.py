@@ -427,7 +427,6 @@ def prompt_user_to_enable_application_insights():
 
 
 def _get_choice_from_options(chosen, options, question, msg):
-
     if chosen:
         return chosen
 
