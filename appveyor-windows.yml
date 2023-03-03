@@ -305,7 +305,7 @@ for:
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
-      - ps: "pytest -vv tests/end_to_end --json-report --json-report-file=TEST_REPORT-end-to-end.json"
+      - ps: "pytest -vv -n 4 --reruns 5 --dist loadscope tests/end_to_end --json-report --json-report-file=TEST_REPORT-end-to-end.json"
 
   #Other testing
   - matrix:

@@ -348,7 +348,7 @@ for:
 
     test_script:
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/end_to_end --json-report --json-report-file=TEST_REPORT-end-to-end.json"
+      - sh: "pytest -vv -n 4 --reruns 5 --dist loadscope tests/end_to_end --json-report --json-report-file=TEST_REPORT-end-to-end.json"
 
   # Other testing
   -
