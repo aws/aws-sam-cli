@@ -82,7 +82,6 @@ class BuildIntegBase(TestCase):
         beta_features=None,
         build_in_source=None,
     ):
-
         command_list = [self.cmd, "build"]
 
         if function_identifier:
@@ -599,7 +598,6 @@ class BuildIntegJavaBase(BuildIntegBase):
             self.verify_pulled_image(runtime, architecture)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files, expected_modules):
-
         self.assertTrue(build_dir.exists(), "Build directory should be created")
 
         build_dir_files = os.listdir(str(build_dir))
@@ -763,7 +761,6 @@ class BuildIntegProvidedBase(BuildIntegBase):
             self.verify_pulled_image(runtime, architecture)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
-
         self.assertTrue(build_dir.exists(), "Build directory should be created")
 
         build_dir_files = os.listdir(str(build_dir))
@@ -781,7 +778,6 @@ class BuildIntegProvidedBase(BuildIntegBase):
         self.assertEqual(actual_files, expected_files)
 
     def _verify_built_artifact_in_subapp(self, build_dir, subapp_path, function_logical_id, expected_files):
-
         self.assertTrue(build_dir.exists(), "Build directory should be created")
         subapp_build_dir = Path(build_dir, subapp_path)
         self.assertTrue(subapp_build_dir.exists(), f"Build directory for sub app {subapp_path} should be created")

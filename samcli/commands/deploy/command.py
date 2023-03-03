@@ -301,7 +301,6 @@ def do_cli(
             )
 
     with osutils.tempfile_platform_independent() as output_template_file:
-
         with PackageContext(
             template_file=template_file,
             s3_bucket=guided_context.guided_s3_bucket if guided else s3_bucket,

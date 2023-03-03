@@ -6,7 +6,6 @@ from samcli.commands.package.command import do_cli
 
 class TestPackageCliCommand(TestCase):
     def setUp(self):
-
         self.template_file = "input-template-file"
         self.s3_bucket = "s3-bucket"
         self.image_repository = "image-repo"
@@ -26,7 +25,6 @@ class TestPackageCliCommand(TestCase):
     @patch("samcli.commands.package.command.click")
     @patch("samcli.commands.package.package_context.PackageContext")
     def test_all_args(self, package_command_context, click_mock):
-
         context_mock = Mock()
         package_command_context.return_value.__enter__.return_value = context_mock
 

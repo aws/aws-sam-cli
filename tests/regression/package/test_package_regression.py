@@ -33,7 +33,6 @@ class TestPackageRegression(PackageRegressionBase):
         ]
     )
     def test_package_with_output_template_file(self, template_file, skip_sam_metadata=False):
-
         arguments = {"s3_bucket": self.s3_bucket.name, "template_file": self.test_data_path.joinpath(template_file)}
 
         self.regression_check(arguments, skip_sam_metadata)
@@ -51,7 +50,6 @@ class TestPackageRegression(PackageRegressionBase):
         ]
     )
     def test_package_with_output_template_file_and_prefix(self, template_file, skip_sam_metadata=False):
-
         arguments = {
             "s3_bucket": self.s3_bucket.name,
             "template_file": self.test_data_path.joinpath(template_file),
@@ -73,7 +71,6 @@ class TestPackageRegression(PackageRegressionBase):
         ]
     )
     def test_package_with_output_template_file_json_and_prefix(self, template_file, skip_sam_metadata=False):
-
         arguments = {
             "s3_bucket": self.s3_bucket.name,
             "template_file": self.test_data_path.joinpath(template_file),

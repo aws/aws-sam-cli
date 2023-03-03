@@ -189,7 +189,6 @@ class TestPackageZip(PackageIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
 
         with tempfile.NamedTemporaryFile(delete=False) as output_template:
-
             command_list = self.get_command_list(
                 s3_bucket=self.s3_bucket.name,
                 template_file=template_path,
@@ -244,7 +243,6 @@ class TestPackageZip(PackageIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
 
         with tempfile.NamedTemporaryFile(delete=False) as output_template:
-
             command_list = self.get_command_list(
                 s3_bucket=self.s3_bucket.name,
                 template_file=template_path,
@@ -302,7 +300,6 @@ class TestPackageZip(PackageIntegBase):
         with tempfile.NamedTemporaryFile(delete=False) as output_template:
             # Upload twice and see the string to have packaged artifacts both times.
             for _ in range(2):
-
                 command_list = self.get_command_list(
                     s3_bucket=self.s3_bucket.name,
                     template_file=template_path,

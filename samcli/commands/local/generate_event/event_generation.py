@@ -121,7 +121,6 @@ class EventTypeSubCommand(click.MultiCommand):
         self.events_lib = events_lib
 
     def get_command(self, ctx, cmd_name):
-
         """
         gets the Click Commands underneath a service name
 

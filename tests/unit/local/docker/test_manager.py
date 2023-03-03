@@ -33,7 +33,6 @@ def patched_modules():
 
 class TestContainerManager_init(TestCase):
     def test_must_initialize_with_default_value(self):
-
         manager = ContainerManager()
         self.assertFalse(manager.skip_pull_image)
 
@@ -219,7 +218,6 @@ class TestContainerManager_pull_image(TestCase):
         self.manager = ContainerManager(docker_client=self.mock_docker_client)
 
     def test_must_pull_and_print_progress_dots(self):
-
         stream = io.StringIO()
         pull_result = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
         self.mock_docker_client.api.pull.return_value = pull_result
@@ -331,7 +329,6 @@ class TestContainerManager_is_docker_reachable(TestCase):
         importlib.reload(manager_module)
 
     def test_must_return_True_simulate_non_windows_platform(self):
-
         # Mock these modules to simulate a Windows environment
         platform_mock = Mock()
         platform_mock.system.return_value = "Darwin"
@@ -362,18 +359,15 @@ class TestContainerManager_has_image(TestCase):
         self.manager = ContainerManager(docker_client=self.mock_docker_client)
 
     def test_must_find_an_image(self):
-
         self.assertTrue(self.manager.has_image(self.image_name))
 
     def test_must_not_find_image(self):
-
         self.mock_docker_client.images.get.side_effect = ImageNotFound("test")
         self.assertFalse(self.manager.has_image(self.image_name))
 
 
 class TestContainerManager_stop(TestCase):
     def test_must_call_delete_on_container(self):
-
         manager = ContainerManager()
         container = Mock()
         container.delete = Mock()

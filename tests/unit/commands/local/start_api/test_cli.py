@@ -100,7 +100,6 @@ class TestCli(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.lib.local_api_service.LocalApiService")
     def test_must_raise_if_no_api_defined(self, local_api_service_mock, invoke_context_mock):
-
         # Mock the __enter__ method to return a object inside a context manager
         context_mock = Mock()
         invoke_context_mock.return_value.__enter__.return_value = context_mock
@@ -130,7 +129,6 @@ class TestCli(TestCase):
     def test_must_raise_user_exception_on_invalid_sam_template(
         self, exeception_to_raise, execption_message, invoke_context_mock
     ):
-
         invoke_context_mock.side_effect = exeception_to_raise
 
         with self.assertRaises(UserException) as context:

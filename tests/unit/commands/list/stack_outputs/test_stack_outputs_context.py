@@ -20,7 +20,6 @@ class TestStackOutputsContext(TestCase):
         with StackOutputsContext(
             stack_name="test", output="json", region="us-east-1", profile=None
         ) as stack_output_context:
-
             stack_output_context.run()
             expected_click_echo_calls = [
                 call(
