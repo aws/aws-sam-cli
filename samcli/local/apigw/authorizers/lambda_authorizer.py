@@ -3,7 +3,7 @@ Custom Lambda Authorizer class definition
 """
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 from urllib.parse import parse_qsl
 
 from samcli.commands.local.lib.validators.identity_source_validator import IdentitySourceValidator
@@ -24,10 +24,26 @@ class IdentitySource(ABC):
         """
         self.identity_source = identity_source
 
-    @abstractmethod
     def is_valid(self, **kwargs) -> bool:
         """
         Validates if the identity source is present
+
+        Parameters
+        ----------
+        kwargs: dict
+            Key word arguments to search in
+
+        Returns
+        -------
+        bool:
+            True if the identity source is present
+        """
+        return self.find_identity_value(**kwargs) is not None
+
+    @abstractmethod
+    def find_identity_value(self, **kwargs) -> Any:
+        """
+        Returns the identity value, if found
         """
 
     def __eq__(self, other) -> bool:
@@ -39,9 +55,9 @@ class IdentitySource(ABC):
 
 
 class HeaderIdentitySource(IdentitySource):
-    def is_valid(self, **kwargs) -> bool:
+    def find_identity_value(self, **kwargs) -> Any:
         """
-        Validates if the header is present and not empty
+        Finds the header value that the identity source corresponds to
 
         Parameters
         ----------
@@ -50,18 +66,17 @@ class HeaderIdentitySource(IdentitySource):
 
         Returns
         -------
-        bool
-            True if the header is present and not empty
+        Any
+            The header if it is found, otherwise None
         """
         headers = kwargs.get("headers", {})
-
-        return bool(headers.get(self.identity_source, None))
+        return headers.get(self.identity_source, None)
 
 
 class QueryIdentitySource(IdentitySource):
-    def is_valid(self, **kwargs) -> bool:
+    def find_identity_value(self, **kwargs) -> Any:
         """
-        Validates if the query string is present and not empty
+        Finds the query string value that the identity source corresponds to
 
         Parameters
         ----------
@@ -70,27 +85,27 @@ class QueryIdentitySource(IdentitySource):
 
         Returns
         -------
-        bool
-            True if the query string is present and not empty
+        Any
+            The query string if it is found, otherwise None
         """
         query_string = kwargs.get("querystring", "")
 
         if not query_string:
-            return False
+            return None
 
         query_string_list: List[Tuple[str, str]] = parse_qsl(query_string)
 
         for key, value in query_string_list:
             if key == self.identity_source and value:
-                return True
+                return value
 
-        return False
+        return None
 
 
 class ContextIdentitySource(IdentitySource):
-    def is_valid(self, **kwargs) -> bool:
+    def find_identity_value(self, **kwargs) -> Any:
         """
-        Validates if the context key is present and not empty
+        Finds the context value that the identity source corresponds to
 
         Parameters
         ----------
@@ -99,32 +114,30 @@ class ContextIdentitySource(IdentitySource):
 
         Returns
         -------
-        bool
-            True if the context key is present and not empty
+        Any
+            The context variable if it is found, otherwise None
         """
         context = kwargs.get("context", {})
-
-        return context.get(self.identity_source, None) is not None
+        return context.get(self.identity_source, None)
 
 
 class StageVariableIdentitySource(IdentitySource):
-    def is_valid(self, **kwargs) -> bool:
+    def find_identity_value(self, **kwargs) -> Any:
         """
-        Validates if the stage variable key is present and not empty
+        Finds the stage variable value that the identity source corresponds to
 
         Parameters
         ----------
         kwargs
-            Keyword arguments containing `stageVariables`
+            Keyword arguments that should contain `stageVariables`
 
         Returns
         -------
-        bool
-            True if the stage variable key is present and not empty
+        Any
+            The stage variable if it is found, otherwise None
         """
         stage_variables = kwargs.get("stageVariables", {})
-
-        return stage_variables.get(self.identity_source, None) is not None
+        return stage_variables.get(self.identity_source, None)
 
 
 @dataclass

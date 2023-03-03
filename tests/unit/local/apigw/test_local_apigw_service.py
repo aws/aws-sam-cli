@@ -10,14 +10,17 @@ from werkzeug.datastructures import Headers
 
 from samcli.lib.providers.provider import Api
 from samcli.lib.providers.provider import Cors
-from samcli.local.apigw.event_constructor import construct_v1_event, construct_v2_event_http
 from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
 from samcli.local.apigw.route import Route
 from samcli.local.apigw.local_apigw_service import (
     LocalApigwService,
     CatchAllPathConverter,
 )
-from samcli.local.apigw.exceptions import LambdaResponseParseException, PayloadFormatVersionValidateException
+from samcli.local.apigw.exceptions import (
+    InvalidSecurityDefinition,
+    LambdaResponseParseException,
+    PayloadFormatVersionValidateException,
+)
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
 
@@ -590,6 +593,167 @@ class TestApiGatewayService(TestCase):
         # the variables are being passed and not validated
         with flask.Flask(__name__).test_request_context():
             self.assertEqual(self.api_service._valid_identity_sources(route), is_valid)
+
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
+    def test_create_method_arn(self, method_endpoint_mock):
+        method_endpoint_mock.return_value = ("method", "endpoint")
+
+        expected_method_arn = "arn:aws:execute-api:us-east-1:123456789012:1234567890/None/method/endpoint"
+
+        self.assertEqual(self.api_service._create_method_arn(Mock(), Route.API), expected_method_arn)
+
+    @patch.object(LocalApigwService, "_create_method_arn")
+    def test_generate_lambda_token_authorizer_event_invalid_identity_source(self, method_arn_mock):
+        method_arn_mock.return_value = "arn"
+
+        authorizer_object = LambdaAuthorizer("", "", "", [], "")
+        authorizer_object.identity_sources = []
+
+        with self.assertRaises(InvalidSecurityDefinition):
+            self.api_service._generate_lambda_token_authorizer_event(Mock(), self.api_gateway_route, authorizer_object)
+
+    @patch.object(LocalApigwService, "_create_method_arn")
+    def test_generate_lambda_token_authorizer_event(self, method_arn_mock):
+        method_arn_mock.return_value = "arn"
+
+        authorizer_object = LambdaAuthorizer("", "", "", [], "")
+        mocked_id_source_obj = Mock()
+        mocked_id_source_obj.find_identity_value = Mock(return_value="123")
+        authorizer_object._identity_sources = [mocked_id_source_obj]
+
+        result = self.api_service._generate_lambda_token_authorizer_event(
+            Mock(), self.api_gateway_route, authorizer_object
+        )
+
+        self.assertEqual(
+            result,
+            {
+                "type": "TOKEN",
+                "authorizationToken": "123",
+                "methodArn": "arn",
+            },
+        )
+
+    @parameterized.expand(
+        [
+            (
+                LambdaAuthorizer.PAYLOAD_V2,
+                ["value1", "value2"],
+                "arn",
+                {"identitySource": ["value1", "value2"], "routeArn": "arn"},
+            ),
+            (
+                LambdaAuthorizer.PAYLOAD_V1,
+                ["value1", "value2"],
+                "arn",
+                {
+                    "identitySource": "value1,value2",
+                    "authorizationToken": "value1,value2",
+                    "methodArn": "arn",
+                },
+            ),
+        ]
+    )
+    def test_generate_lambda_request_authorizer_event_http(self, payload, id_values, arn, expected_output):
+        result = self.api_service._generate_lambda_request_authorizer_event_http(payload, id_values, arn)
+
+        self.assertEqual(result, expected_output)
+
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
+    @patch.object(LocalApigwService, "_create_method_arn")
+    @patch.object(LocalApigwService, "_generate_lambda_event")
+    @patch.object(LocalApigwService, "_build_v1_context")
+    @patch.object(LocalApigwService, "_build_v2_context")
+    @patch.object(LocalApigwService, "_generate_lambda_request_authorizer_event_http")
+    def test_generate_lambda_request_authorizer_event_http_request(
+        self,
+        generate_lambda_auth_http_mock,
+        build_v2_mock,
+        build_v1_mock,
+        generate_lambda_mock,
+        method_arn_mock,
+        method_endpoints_mock,
+    ):
+        original = json.dumps({"existing": "value"})
+        payload_version = "2.0"
+        method_arn = "arn"
+
+        method_arn_mock.return_value = method_arn
+        method_endpoints_mock.return_value = ("method", "endpoint")
+        generate_lambda_mock.return_value = original
+        build_v2_mock.return_value = {}
+        build_v1_mock.return_value = {}
+
+        authorizer_object = LambdaAuthorizer("", "", "", [], payload_version)
+        mocked_id_source_obj = Mock()
+        mocked_id_source_obj.find_identity_value = Mock(return_value="123")
+        mocked_id_source_obj2 = Mock()
+        mocked_id_source_obj2.find_identity_value = Mock(return_value="abc")
+        authorizer_object._identity_sources = [mocked_id_source_obj, mocked_id_source_obj2]
+
+        self.api_service._generate_lambda_request_authorizer_event(Mock(), self.http_gateway_route, authorizer_object)
+
+        generate_lambda_auth_http_mock.assert_called_with(payload_version, ["123", "abc"], method_arn)
+
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
+    @patch.object(LocalApigwService, "_create_method_arn")
+    @patch.object(LocalApigwService, "_generate_lambda_event")
+    @patch.object(LocalApigwService, "_build_v1_context")
+    @patch.object(LocalApigwService, "_build_v2_context")
+    @patch.object(LocalApigwService, "_generate_lambda_request_authorizer_event_http")
+    def test_generate_lambda_request_authorizer_event_api(
+        self,
+        generate_lambda_auth_http_mock,
+        build_v2_mock,
+        build_v1_mock,
+        generate_lambda_mock,
+        method_arn_mock,
+        method_endpoints_mock,
+    ):
+        payload_version = "1.0"
+        method_arn = "arn"
+        original = {"existing": "value"}
+
+        method_arn_mock.return_value = method_arn
+        method_endpoints_mock.return_value = ("method", "endpoint")
+        generate_lambda_mock.return_value = json.dumps(original)
+        build_v2_mock.return_value = {}
+        build_v1_mock.return_value = {}
+
+        authorizer_object = LambdaAuthorizer("", "", "", [], payload_version)
+
+        result = self.api_service._generate_lambda_request_authorizer_event(
+            Mock(), self.api_gateway_route, authorizer_object
+        )
+
+        original.update({"methodArn": method_arn, "type": "REQUEST"})
+
+        self.assertEqual(result, original)
+        generate_lambda_auth_http_mock.assert_not_called()
+
+    @patch.object(LocalApigwService, "_generate_lambda_token_authorizer_event")
+    @patch.object(LocalApigwService, "_generate_lambda_request_authorizer_event")
+    def test_generate_lambda_authorizer_event_token(self, request_mock, token_mock):
+        token_auth = LambdaAuthorizer(Mock(), LambdaAuthorizer.TOKEN, Mock(), [], Mock())
+
+        token_mock.return_value = {}
+        request_mock.return_value = {}
+
+        self.api_service._generate_lambda_authorizer_event(Mock(), Mock(), token_auth)
+        token_mock.assert_called()
+        request_mock.assert_not_called()
+
+    @patch.object(LocalApigwService, "_generate_lambda_token_authorizer_event")
+    @patch.object(LocalApigwService, "_generate_lambda_request_authorizer_event")
+    def test_generate_lambda_authorizer_event_request(self, request_mock, token_mock):
+        request_auth = LambdaAuthorizer(Mock(), LambdaAuthorizer.REQUEST, Mock(), [], Mock())
+
+        token_mock.return_value = {}
+        request_mock.return_value = {}
+
+        self.api_service._generate_lambda_authorizer_event(Mock(), Mock(), request_auth)
+        token_mock.assert_not_called()
+        request_mock.assert_called()
 
 
 class TestApiGatewayModel(TestCase):
