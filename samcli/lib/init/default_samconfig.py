@@ -41,10 +41,12 @@ class DefaultSamconfig:
             ),
             Default(writing_type=WritingType.ZIP, key="cached", value=True, command=["build"]),
             Default(writing_type=WritingType.Both, key="parallel", value=True, command=["build"]),
+            Default(writing_type=WritingType.Both, key="lint", value=True, command=["validate"]),
             Default(writing_type=WritingType.Both, key="capabilities", value="CAPABILITY_IAM", command=["deploy"]),
             Default(writing_type=WritingType.Both, key="confirm_changeset", value=True, command=["deploy"]),
-            Default(writing_type=WritingType.ZIP, key="resolve_s3", value=True, command=["package"]),
-            Default(writing_type=WritingType.ZIP, key="resolve_s3", value=True, command=["deploy"]),
+            # NOTE(sriram-mv): Template is still uploaded to s3 regardless of Package Type.
+            Default(writing_type=WritingType.Both, key="resolve_s3", value=True, command=["package"]),
+            Default(writing_type=WritingType.Both, key="resolve_s3", value=True, command=["deploy"]),
             Default(writing_type=WritingType.Image, key="resolve_image_repos", value=True, command=["deploy"]),
             Default(writing_type=WritingType.Both, key="watch", value=True, command=["sync"]),
             Default(

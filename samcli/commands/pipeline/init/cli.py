@@ -8,6 +8,7 @@ import click
 from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.main import common_options as cli_framework_options
 from samcli.cli.main import pass_context
+from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.commands.pipeline.init.interactive_init_flow import InteractiveInitFlow
 from samcli.lib.telemetry.metric import track_command
 
@@ -33,6 +34,7 @@ file generation process, or refer to resources you have previously created with 
 @cli_framework_options
 @pass_context
 @track_command  # pylint: disable=R0914
+@command_exception_handler
 def cli(ctx: Any, config_env: Optional[str], config_file: Optional[str], bootstrap: bool) -> None:
     """
     `sam pipeline init` command entry point
