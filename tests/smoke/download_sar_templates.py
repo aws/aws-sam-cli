@@ -11,7 +11,6 @@ TEMPLATE_FOLDER = os.path.join("templates", "sar")
 
 
 def download(count=100):
-
     sar_browse_url = "https://shr32taah3.execute-api.us-east-1.amazonaws.com/Prod/applications/browse"
     current_page = 1
     retry_count = 0

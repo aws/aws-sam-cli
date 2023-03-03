@@ -56,7 +56,6 @@ class DeployBucketInDifferentRegionError(UserException):
 
 class DeployBucketRequiredError(UserException):
     def __init__(self):
-
         message_fmt = (
             "Templates with a size greater than 51,200 bytes must be deployed "
             "via an S3 Bucket. Please add the --s3-bucket parameter to your "

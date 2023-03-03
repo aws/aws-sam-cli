@@ -18,7 +18,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
     def test_init_interactive_with_event_bridge_app_aws_registry(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 7: Infrastructure event management - Use case
+        # 8: Infrastructure event management - Use case
         # 3: Java Runtime (java11)
         # 2: Maven
         # 2: select event-bridge app from scratch
@@ -31,7 +31,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
 
         user_input = """
 1
-7
+8
 3
 2
 2
@@ -59,7 +59,7 @@ Y
         # setup schema data
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 7: Infrastructure event management - Use case
+        # 8: Infrastructure event management - Use case
         # 3: Java Runtime
         # 2: Maven
         # 2: select event-bridge app from scratch
@@ -71,7 +71,7 @@ Y
 
         user_input = """
 1
-7
+8
 3
 2
 2
@@ -109,7 +109,7 @@ Y
     def test_init_interactive_with_event_bridge_app_pagination(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 7: Infrastructure event management - Use case
+        # 8: Infrastructure event management - Use case
         # 3: Java Runtime
         # 2: Maven
         # 2: select event-bridge app from scratch
@@ -123,7 +123,7 @@ Y
 
         user_input = """
 1
-7
+8
 3
 2
 2
@@ -152,7 +152,7 @@ P
     def test_init_interactive_with_event_bridge_app_customer_registry(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 7: Infrastructure event management - Use case
+        # 8: Infrastructure event management - Use case
         # 3: Java Runtime
         # 2: Maven
         # 2: select event-bridge app from scratch
@@ -164,7 +164,7 @@ P
 
         user_input = """
 1
-7
+8
 3
 2
 2
@@ -202,7 +202,7 @@ Y
     def test_init_interactive_with_event_bridge_app_aws_schemas_python(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 7: Infrastructure event management - Use case
+        # 8: Infrastructure event management - Use case
         # 6: Python 3.8
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -213,7 +213,7 @@ Y
 
         user_input = """
 1
-7
+8
 6
 2
 N
@@ -237,7 +237,7 @@ Y
     def test_init_interactive_with_event_bridge_app_aws_schemas_go(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 7: Infrastructure event management - Use case
+        # 8: Infrastructure event management - Use case
         # 1: Go 1.x
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -248,7 +248,7 @@ Y
 
         user_input = """
 1
-7
+8
 1
 2
 N
@@ -272,7 +272,7 @@ Y
         self._init_custom_config("mynewprofile", "us-west-2")
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 3: Infrastructure event management - Use case
+        # 8: Infrastructure event management - Use case
         # 6: Python 3.8
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -285,7 +285,7 @@ Y
 
         user_input = """
 1
-7
+8
 6
 2
 N
@@ -314,7 +314,7 @@ us-east-1
         self._init_custom_config("default", "cn-north-1")
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 7: Infrastructure event management - Use case
+        # 8: Infrastructure event management - Use case
         # 6: Python 3.8
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -325,7 +325,7 @@ us-east-1
 
         user_input = """
 1
-7
+8
 6
 2
 N
