@@ -85,7 +85,6 @@ class TestXRayTraceConsoleMapper(AbstraceXRayTraceMapperTest):
 
     def validate_segments(self, segments, message):
         for segment in segments:
-
             if segment.http_status:
                 self.assertTrue(
                     f" - {segment.get_duration():.3f}s - {segment.name} [HTTP: {segment.http_status}]" in message

@@ -198,7 +198,6 @@ def do_cli(  # pylint: disable=R0914
             container_host_interface=container_host_interface,
             invoke_images=processed_invoke_images,
         ) as context:
-
             # Invoke the function
             context.local_lambda_runner.invoke(
                 context.function_identifier, event=event_data, stdout=context.stdout, stderr=context.stderr

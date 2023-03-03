@@ -240,7 +240,6 @@ class LayerSyncFlow(AbstractLayerSyncFlow):
     def gather_resources(self) -> None:
         """Build layer and ZIP it into a temp file in self._zip_file"""
         with self._get_lock_chain():
-
             rmtree_if_exists(self._layer.get_build_dir(self._build_context.build_dir))
             builder = ApplicationBuilder(
                 self._build_context.collect_build_resources(self._layer_identifier),

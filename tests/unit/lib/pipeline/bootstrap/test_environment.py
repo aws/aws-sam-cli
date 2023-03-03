@@ -462,7 +462,6 @@ class TestStage(TestCase):
     def test_creates_new_oidc_provider_if_needed(
         self, update_stack_mock, click_mock, boto3_mock, generate_thumbprint_mock
     ):
-
         # setup
         stage: Stage = Stage(
             name=ANY_STAGE_CONFIGURATION_NAME,
@@ -496,7 +495,6 @@ class TestStage(TestCase):
     @patch("samcli.lib.pipeline.bootstrap.stage.click")
     @patch("samcli.lib.pipeline.bootstrap.stage.update_stack")
     def test_doesnt_create_new_oidc_provider(self, update_stack_mock, click_mock, boto3_mock, generate_thumbprint_mock):
-
         # setup
         stage: Stage = Stage(
             name=ANY_STAGE_CONFIGURATION_NAME,
@@ -529,7 +527,6 @@ class TestStage(TestCase):
 
     @patch("samcli.lib.pipeline.bootstrap.stage.boto3")
     def test_should_create_new_oidc_provider_returns_true_if_no_url(self, boto3_mock):
-
         # setup
         stage: Stage = Stage(
             name=ANY_STAGE_CONFIGURATION_NAME,

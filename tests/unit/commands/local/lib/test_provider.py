@@ -511,7 +511,6 @@ class TestGetResourceByID(TestCase):
     def test_get_resource_by_id_explicit_root(
         self,
     ):
-
         resource_identifier = MagicMock()
         resource_identifier.stack_path = ""
         resource_identifier.resource_iac_id = f"{'CDK' if self.is_cdk else ''}Function1"
@@ -532,7 +531,6 @@ class TestGetResourceByID(TestCase):
     def test_get_resource_by_id_explicit_nested(
         self,
     ):
-
         resource_identifier = MagicMock()
         resource_identifier.stack_path = "NestedStack1"
         resource_identifier.resource_iac_id = f"{'CDK' if self.is_cdk else ''}Function1"
@@ -545,7 +543,6 @@ class TestGetResourceByID(TestCase):
     def test_get_resource_by_id_explicit_nested_nested(
         self,
     ):
-
         resource_identifier = MagicMock()
         resource_identifier.stack_path = "NestedStack1/NestedNestedStack1"
         resource_identifier.resource_iac_id = f"{'CDK' if self.is_cdk else ''}Function2"
@@ -558,7 +555,6 @@ class TestGetResourceByID(TestCase):
     def test_get_resource_by_id_implicit_root(
         self,
     ):
-
         resource_identifier = MagicMock()
         resource_identifier.stack_path = ""
         resource_identifier.resource_iac_id = f"{'CDK' if self.is_cdk else ''}Function1"
@@ -571,7 +567,6 @@ class TestGetResourceByID(TestCase):
     def test_get_resource_by_id_implicit_nested(
         self,
     ):
-
         resource_identifier = MagicMock()
         resource_identifier.stack_path = ""
         resource_identifier.resource_iac_id = f"{'CDK' if self.is_cdk else ''}Function2"
@@ -584,7 +579,6 @@ class TestGetResourceByID(TestCase):
     def test_get_resource_by_id_implicit_with_stack_path(
         self,
     ):
-
         resource_identifier = MagicMock()
         resource_identifier.stack_path = "NestedStack1"
         resource_identifier.resource_iac_id = f"{'CDK' if self.is_cdk else ''}Function1"
@@ -597,7 +591,6 @@ class TestGetResourceByID(TestCase):
     def test_get_resource_by_id_not_found(
         self,
     ):
-
         resource_identifier = MagicMock()
         resource_identifier.resource_iac_id = f"{'CDK' if self.is_cdk else ''}Function3"
 

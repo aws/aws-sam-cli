@@ -95,7 +95,6 @@ class TestDelete(DeleteIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_delete_command_no_stack_deployed(self):
-
         stack_name = self._method_to_stack_name(self.id())
 
         delete_command_list = self.get_delete_command_list(
@@ -433,7 +432,6 @@ class TestDelete(DeleteIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_no_prompts_no_stack_name(self):
-
         delete_command_list = self.get_delete_command_list(no_prompts=True)
         delete_process_execute = run_command(delete_command_list)
         self.assertEqual(delete_process_execute.process.returncode, 2)
