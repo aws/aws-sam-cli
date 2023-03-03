@@ -1,4 +1,4 @@
-AWS SAM CLI: Root command help test Design
+AWS SAM CLI: Per command help test Design
 ==========================================
 
 What is the problem?
@@ -168,17 +168,21 @@ What will be changed?
 All help text will be following a certain structure like below.
 
 ```commandline
-Usage: sam sub-command [OPTIONS]
+Usage: **sam sub-command** [OPTIONS]
 
-1-liner explanation of what the sub-command does. It should directly map to the lifecycle shown in root help text.
-
-More detailed explanation.
+1-liner explanation of what the sub-command does. 
+It should directly map to the lifecycle shown in root help text.
 
 Examples:
 
 ```$sam sub-command --options```
 
   **This command does not require/requires access to AWS credentials.**
+  
+More detailed explanation.
+
+Workflows:
+    $ sam command -> **sam sub-command**
 
 Acronyms:
     IAM : Identity and Access Management.
@@ -191,11 +195,11 @@ Options:
 
     **Required Options:**
         ...
-    AWS Credential Options:
+    AWS Credential Options: (Ordering changes on a per command basis)
         ....
     Configuration Options:
         ....
-    Infra Options:
+    Infrastructure Options:
         ....
     Additional Options:
         ....
@@ -211,7 +215,13 @@ Usage: sam sync [OPTIONS]
 
   NEW! Sync an AWS SAM Project to AWS.
 
-  By default, the sync command runs a full AWS cloudformation stack update. You can specify
+  Examples:
+  $ sam sync --code --stack-name {stack} --resource-id \
+  {ChildStack}/{ResourceId}
+  
+  $ sam sync --code --watch --stack-name {stack}
+  
+  By default, the sync command runs a full AWS Cloudformation stack update. You can specify
   --code or --watch to switch modes. Sync also supports nested stacks and
   nested stack resources.
 
@@ -219,12 +229,6 @@ Usage: sam sync [OPTIONS]
   synchronization only, that will speed up start time and will skip any
   template change. Please remember to update your deployed stack by running
   without --code option.
-
-  Examples:
-  $ sam sync --code --stack-name {stack} --resource-id \
-  {ChildStack}/{ResourceId}
-  
-  $ sam sync --code --watch --stack-name {stack}
   
   **This command requires access to AWS credentials.**
 
@@ -241,33 +245,17 @@ Options:
   Required Options:
 
   -t, --template-file, --template PATH    AWS SAM template file.  [default: template.[yaml|yml|json]]
-  --stack-name TEXT                       Name of the AWS CloudFormation stack. If you specify an
-                                          existing stack, the command updates the stack. If you specify a new stack,
-                                          it gets created.
+  --stack-name TEXT                       Name of the AWS CloudFormation stack. 
 
   AWS Credential Options:
+  
+  Exploratory DESIGN NOTE: How can we streamline credentials
   
   --profile TEXT                  Named profile for AWS credentials.
   --region TEXT                   Set the AWS Region. (e.g. us-east-1). 
 
 
-  Infra Options:
-
-  --image-repository              AWS ECR repository URI where referenced image artifaccts are uploaded. 
-
-  --image-repositories            Mapping of Function Logical ID to AWS ECR Reposiroty URI
-                                  Example: Function_Logical_ID=ECR_Repo_Uri.
-                                  This option can be specified multiple times.
-
-  --s3-bucket TEXT                Name of the AWS S3 bucket where artifacts referenced in your template are uploaded.
-
-  --s3-prefix TEXT                Prefix name that is added to the artifact's name when it is uploaded to
-                                  the AWS S3 bucket. The prefix name is a path name (folder name) for the AWS S3 bucket.
-
-  --kms-key-id TEXT               ID of an AWS KMS key that the command uses to encrypt artifacts that are at rest
-                                  in the AWS S3 bucket.
-
-  --role-arn TEXT                 ARN of an IAM role that AWS CloudFormation assumes when executing the change set.
+  Infrastructure Options:
 
   --parameter-overrides           String that contains AWS CloudFormation parameter overrides encoded as
                                   key=value pairs.
@@ -276,50 +264,56 @@ Options:
                                   ParameterKey=InstanceType,ParameterValue=t1.micro' or KeyPairName=MyKey
                                   InstanceType=t1.micro
 
+  --capabilities LIST             List of capabilities that one must specify before AWS Cloudformation can create
+                                  certain stacks.
+                                  More info at: https://docs.aws.amazon.com/serverlessrepo/latest/devguide/acknowledging-application-capabilities.html
+                                  
+  --s3-bucket TEXT                AWS S3 bucket where artifacts referenced in your template are uploaded.
 
-  --metadata                      Map of metadata to attach to ALL the artifacts that are referenced in
-                                  the template.
+  --s3-prefix TEXT                Prefix name that is added to the artifact's name when it is uploaded to
+                                  the AWS S3 bucket.
+                                  
+  --image-repository              AWS ECR repository URI where referenced image artifacts are uploaded. 
+
+  --image-repositories            Mapping of Function Logical ID to AWS ECR Repository URI
+                                  Example: Function_Logical_ID=ECR_Repo_Uri.
+                                  This option can be specified multiple times.
+
+  --kms-key-id TEXT               ID of an AWS KMS key that is used to encrypt artifacts that are at rest
+                                  in the AWS S3 bucket.
+
+  --role-arn TEXT                 ARN of an IAM role that AWS CloudFormation assumes when executing the change set.
+
 
   --notification-arns LIST        ARNs of SNS topics that AWS CloudFormation associates with the stack.
 
-  --tags                          List of tags to associate with the stack that is created or updated. AWS
-                                  CloudFormation also propagates these tags to resources in the stack if the resource
-                                  supports it.
-
-  --capabilities LIST             List of capabilities that you must specify before AWS Cloudformation can create
-                                  certain stacks. Some stack templates might include resources that can affect
-                                  permissions in your AWS account, for example, by creating new AWS IAM users. 
-                                  For those stacks, you must explicitly acknowledge
-                                  their capabilities by specifying this parameter. The only valid values are
-                                  CAPABILITY_IAM and CAPABILITY_NAMED_IAM. If you have IAM resources, you can specify
-                                  either capability. If you have IAM resources with custom names, you must specify
-                                  CAPABILITY_NAMED_IAM. If you don't specify this parameter, this action returns an
-                                  InsufficientCapabilities error.
+  --tags                          List of tags to associate with the stack. 
                                   
+  --metadata                      Map of metadata to attach to ALL the artifacts that are referenced in
+                                  the template.
 
   Configuration Options:
   
   Learn more about configuration files at:  https://docs.aws.amazon.com/serverless-application-
                                   model/latest/developerguide/serverless-sam-cli-config.html.
   
-  --config-env TEXT               Environment name specifying the default parameter values in the configuration
-                                  file to use. [default: "default"]
-
-  --config-file TEXT              Path of the configuration file containing default parameter values
-                                  to use. [default:'samconfig.toml']
+  --config-file TEXT              Configuration file containing default parameter values. [default:'samconfig.toml']
+                                  
+  --config-env TEXT               Environment name specifying default parameter values in the configuration
+                                  file. [default: "default"]
 
 
   Additional Options:
   
   --dependency-layer / --no-dependency-layer
-                                  Separate dependencies of individual function into another layer,
-                                  for speeding up the sync process.
+                                  Separate dependencies of an individual function into a Lambda layer
+                                  for improving performance.
                                   
+  --watch                         Watch local files and automatically sync with cloud.
   --code                          Sync **ONLY** code resources. This includes AWS Lambda Functions, API Gateway, and Step
                                   Functions.
 
-  --watch                         Watch local files and automatically sync with remote.
-  --resource-id TEXT              Sync code for all the resources with the ID. To sync a resource within a nested
+  --resource-id TEXT              Sync code for all the resources with the Logical ID. To sync a resource within a nested
                                   stack, use the following pattern {ChildStack}/{logicalId}.
 
   --resource RESOURCE             Sync code for all resources of the given resource type. Accepted values are
@@ -329,11 +323,10 @@ Options:
                                   'AWS::ApiGatewayV2::Api', 'AWS::Serverless::StateMachine',
                                   'AWS::StepFunctions::StateMachine']
 
-  -s, --base-dir DIRECTORY        Resolve relative paths to function's source code with respect to this folder. Use
-                                  this if SAM template and your source code are not in same enclosing folder. By
-                                  default, relative paths are resolved with respect to the SAM template's location
-
   -u, --use-container             Build functions within AWS Lambda-like Docker container.
+  
+  -s, --base-dir DIRECTORY        Resolve relative paths to AWS SAM application from base directory.
+
 
   Verbosity Options:
 
