@@ -10,6 +10,7 @@ from werkzeug.datastructures import Headers
 
 from samcli.lib.providers.provider import Api
 from samcli.lib.providers.provider import Cors
+from samcli.local.apigw.event_constructor import construct_v1_event, construct_v2_event_http
 from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
 from samcli.local.apigw.route import Route
 from samcli.local.apigw.local_apigw_service import (
