@@ -65,28 +65,29 @@ eb-app-maven
             runner = CliRunner()
             runner.invoke(init_cmd, ["--output-dir", temp], input=user_input)
 
-    @classmethod
-    def tearDownClass(cls) -> None:
+    def tearDown(self) -> None:
         env = os.environ
         if env.get(AWS_CONFIG_FILE):
             del env[AWS_CONFIG_FILE]
-        if cls.original_config_file:
-            env[AWS_CONFIG_FILE] = cls.original_config_file
+        if self.original_config_file:
+            env[AWS_CONFIG_FILE] = self.original_config_file
 
         if env.get(AWS_SHARED_CREDENTIALS_FILE):
             del env[AWS_SHARED_CREDENTIALS_FILE]
-        if cls.original_cred_file:
-            env[AWS_SHARED_CREDENTIALS_FILE] = cls.original_cred_file
+        if self.original_cred_file:
+            env[AWS_SHARED_CREDENTIALS_FILE] = self.original_cred_file
 
         if env.get(AWS_PROFILE):
             del env[AWS_PROFILE]
-        if cls.original_profile:
-            env[AWS_PROFILE] = cls.original_profile
+        if self.original_profile:
+            env[AWS_PROFILE] = self.original_profile
 
         if env.get(AWS_DEFAULT_REGION):
             del env[AWS_DEFAULT_REGION]
-        if cls.original_region:
-            env[AWS_DEFAULT_REGION] = cls.original_region
+        if self.original_region:
+            env[AWS_DEFAULT_REGION] = self.original_region
+
+        shutil.rmtree(self.config_dir, ignore_errors=True)
 
     def _init_custom_config(self, profile, region):
         self.config_dir = tempfile.mkdtemp()
@@ -105,31 +106,6 @@ eb-app-maven
         env[AWS_SHARED_CREDENTIALS_FILE] = custom_cred
         env[AWS_PROFILE] = profile
         env[AWS_DEFAULT_REGION] = region
-
-    def _tear_down_custom_config(self):
-        env = os.environ
-
-        if self.original_config_file is None:
-            del env[AWS_CONFIG_FILE]
-        else:
-            env[AWS_CONFIG_FILE] = self.original_config_file
-
-        if self.original_cred_file is None:
-            del env[AWS_SHARED_CREDENTIALS_FILE]
-        else:
-            env[AWS_SHARED_CREDENTIALS_FILE] = self.original_cred_file
-
-        if self.original_profile is None:
-            del env[AWS_PROFILE]
-        else:
-            env[AWS_PROFILE] = self.original_profile
-
-        if self.original_region is None:
-            del env[AWS_DEFAULT_REGION]
-        else:
-            env[AWS_DEFAULT_REGION] = self.original_region
-
-        shutil.rmtree(self.config_dir, ignore_errors=True)
 
     def _create_config_file(self, profile, region):
         if profile == DEFAULT:
