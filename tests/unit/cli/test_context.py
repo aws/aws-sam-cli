@@ -100,7 +100,6 @@ class TestContext(TestCase):
 
     @patch("samcli.cli.context.click")
     def test_must_find_context(self, click_mock):
-
         ctx = Context()
         result = ctx.get_current_context()
 
@@ -109,7 +108,6 @@ class TestContext(TestCase):
 
     @patch("samcli.cli.context.click")
     def test_create_new_context_if_not_found(self, click_mock):
-
         # Context can't be found
         click_mock.get_current_context.return_value.find_object.return_value = None
 

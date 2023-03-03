@@ -4,7 +4,6 @@ from tests.testing_utils import get_sam_command
 
 
 class InitIntegBase(TestCase):
-
     BINARY_READY_WAIT_TIME = 5
 
     def get_command(

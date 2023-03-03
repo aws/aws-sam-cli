@@ -55,16 +55,13 @@ class MockFormatter:
 
 class TestBaseCommand(TestCase):
     def setUp(self):
-
         self.packages = ["a.b.cmd1", "foo.cmd2", "cmd3"]
 
     def test_must_inherit(self):
-
         cmd = BaseCommand()
         self.assertTrue(isinstance(cmd, click.MultiCommand))
 
     def test_check_formatter(self):
-
         cmd = BaseCommand()
         self.assertEqual(cmd.context_class.formatter_class, RootCommandHelpTextFormatter)
 

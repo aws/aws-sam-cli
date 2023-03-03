@@ -127,7 +127,6 @@ class LambdaBuildContainer(Container):
         is_building_layer,
         build_in_source,
     ):
-
         runtime = runtime.replace(".al2", "")
 
         return json.dumps(

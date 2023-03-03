@@ -13,7 +13,6 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 class TestLambdaUri(TestCase):
-
     FUNCTION_NAME = "MyCoolFunction"
 
     SUCCESS_CASES = [
@@ -76,7 +75,6 @@ class TestLambdaUri(TestCase):
 
     @parameterized.expand(SUCCESS_CASES)
     def test_get_function_name_success(self, test_case_name, uri):
-
         result = LambdaUri.get_function_name(uri)
         self.assertEqual(result, self.FUNCTION_NAME)
 
@@ -134,6 +132,5 @@ class TestLambdaUri(TestCase):
 
     @parameterized.expand(FAILURE_CASES)
     def test_get_function_name_failure(self, test_case_name, uri):
-
         result = LambdaUri.get_function_name(uri)
         self.assertIsNone(result, "Must fail to get function name when " + test_case_name)
