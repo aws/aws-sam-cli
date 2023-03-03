@@ -140,7 +140,6 @@ class Test_get_template_data(TestCase):
         yaml_parse_mock.side_effect = exception
 
         with patch("samcli.commands._utils.template.open", m):
-
             with self.assertRaises(TemplateFailedParsingException) as ex_ctx:
                 get_template_data(filename)
 
@@ -184,7 +183,6 @@ class Test_get_template_data(TestCase):
 
 class Test_update_relative_paths(TestCase):
     def setUp(self):
-
         self.s3path = "s3://foo/bar"
         self.s3_full_url_https = "https://s3.amazonaws.com/examplebucket/exampletemplate.yml"
         self.s3_full_url_http = "http://s3.amazonaws.com/examplebucket/exampletemplate.yml"
@@ -198,7 +196,6 @@ class Test_update_relative_paths(TestCase):
 
     @parameterized.expand([(resource_type, props) for resource_type, props in METADATA_WITH_LOCAL_PATHS.items()])
     def test_must_update_relative_metadata_paths(self, resource_type, properties):
-
         for propname in properties:
             for path in [self.s3path, self.abspath, self.curpath, self.s3_full_url_https, self.s3_full_url_http]:
                 template_dict = {
