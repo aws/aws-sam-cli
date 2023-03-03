@@ -14,7 +14,6 @@ from samcli.lib.utils.architecture import X86_64
 
 
 class TestCDKSynthesizedTemplatesFunctionIdentifies(InvokeIntegBase):
-
     template = Path("cdk/cdk_function_id_template.yaml")
 
     @parameterized.expand(
@@ -41,7 +40,6 @@ class TestCDKSynthesizedTemplatesFunctionIdentifies(InvokeIntegBase):
 
 
 class TestCDKSynthesizedTemplatesNestedFunctionIdentifies(InvokeIntegBase):
-
     template = Path("cdk/nested_templates/cdk_function_id_parent_template.yaml")
 
     @parameterized.expand([("LambdaWithUniqueFunctionName", "StandardZipFunctionWithFunctionUniqueName")])

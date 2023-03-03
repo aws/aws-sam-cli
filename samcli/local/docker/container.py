@@ -319,7 +319,6 @@ class Container:
             timer.cancel()
 
     def wait_for_logs(self, stdout=None, stderr=None):
-
         # Return instantly if we don't have to fetch any logs
         if not stdout and not stderr:
             return

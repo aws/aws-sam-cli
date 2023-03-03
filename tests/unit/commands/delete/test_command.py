@@ -7,7 +7,6 @@ from tests.unit.cli.test_cli_config_file import MockContext
 
 class TestDeleteCliCommand(TestCase):
     def setUp(self):
-
         self.stack_name = "stack-name"
         self.s3_bucket = "s3-bucket"
         self.s3_prefix = "s3-prefix"
@@ -20,7 +19,6 @@ class TestDeleteCliCommand(TestCase):
     @patch("samcli.commands.delete.command.click")
     @patch("samcli.commands.delete.delete_context.DeleteContext")
     def test_all_args(self, mock_delete_context, mock_delete_click):
-
         context_mock = Mock()
         mock_delete_context.return_value.__enter__.return_value = context_mock
 
