@@ -972,8 +972,8 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_with_dotnetcore(self, runtime, code_uri, mode, architecture="x86_64"):
-        # dotnet7 requires docker to build the function in Windows environment
-        if (code_uri == "Dotnet7" and IS_WINDOWS) and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+        # dotnet7 requires docker to build the function
+        if code_uri == "Dotnet7" and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
         overrides = {
             "Runtime": runtime,
@@ -1679,18 +1679,14 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
 
 
 @skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD),
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildWithDedupImageBuilds(DedupBuildIntegBase):
     template = "dedup-functions-image-template.yaml"
 
-    @parameterized.expand([(True,), (False,)])
     @pytest.mark.flaky(reruns=3)
-    def test_dedup_build(self, use_container):
-        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
-            self.skipTest(SKIP_DOCKER_MESSAGE)
-
+    def test_dedup_build(self):
         """
         Build template above and verify that each function call returns as expected
         """
@@ -1701,7 +1697,7 @@ class TestBuildWithDedupImageBuilds(DedupBuildIntegBase):
             "DockerFile": "Dockerfile",
             "Tag": f"{random.randint(1,100)}",
         }
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+        cmdlist = self.get_command_list(parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
@@ -2388,6 +2384,7 @@ class TestBuildWithNestedStacks3LevelWithSymlink(NestedBuildIntegBase):
             )
 
 
+@skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
 @parameterized_class(
     ("template", "use_base_dir"),
     [
@@ -2425,9 +2422,6 @@ class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_nested_build(self, use_container, cached, parallel):
-        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
-            self.skipTest(SKIP_DOCKER_MESSAGE)
-
         """
         Build template above and verify that each function call returns as expected
         """
