@@ -18,10 +18,10 @@ SLEEP_TIME = 1
 
 
 class SchemaTestDataSetup(TestCase):
-    original_cred_file = None
-    original_config_file = None
-    original_profile = None
-    original_region = None
+    original_cred_file: str
+    original_config_file: str
+    original_profile: str
+    original_region: str
 
     @classmethod
     def setUpClass(cls):
