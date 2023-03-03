@@ -10,7 +10,6 @@ import logging
 LOG = logging.getLogger(__name__)
 
 
-
 class EndToEndBase(InitIntegBase, StackOutputsIntegBase, DeleteIntegBase, SyncIntegBase):
     dependency_layer = True
     app_name = "sam-app"
