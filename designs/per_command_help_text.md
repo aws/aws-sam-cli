@@ -342,33 +342,34 @@ Usage: sam build [OPTIONS] [RESOURCE_LOGICAL_ID]
 
   Build your AWS serverless function code.
 
-  To use this command, update your AWS SAM template to specify the path
-  to your function's source code in the resource's Code or CodeUri property.
+  To use this command, update the AWS SAM template to specify the path
+  to function's source code in the resource's Code or CodeUri property.
 
-  To build on your workstation, run this command in folder containing
-  SAM template. Built artifacts will be written to .aws-sam/build folder
+  To build on one's workstation, run this command in folder containing
+  AWS SAM template. Built artifacts will be written to .aws-sam/build folder
 
   Examples:
   
   $ sam build
 
-  To build inside a AWS Lambda like Docker container
+  To build within an AWS Lambda like Docker container.
   $ sam build --use-container
 
-  To build with inline environment variables passed inside build containers
+  To build with inline environment variables within build containers.
   $ sam build --use-container --container-env-var Function.ENV_VAR=value --container-env-var GLOBAL_ENV_VAR=value
 
-  To build with environment variables file passd inside build containers
+  To build with environment variables within build containers.
   $ sam build --use-container --container-env-var-file env.json
 
-  To build & run your functions locally
+  To build & run functions locally.
   $ sam build && sam local invoke
 
-  To build and package for deployment
+  To build and package for deployment.
   $ sam build && sam package --s3-bucket <bucketname>
 
   To build only an individual resource (function or layer) located in the SAM
   template. Downstream SAM package and deploy will deploy only this resource
+  
   $ sam build MyFunction
   
   Supported Runtimes:
@@ -408,72 +409,66 @@ Options:
   
   Container Options:
   
-  -u, --use-container             If your functions depend on packages that
+  -u, --use-container             For functions that depend on packages which
                                   have natively compiled dependencies, use
-                                  this flag to build your function inside an
+                                  this flag to build functions inside an
                                   AWS Lambda-like Docker container
+                                  
   -e, --container-env-var TEXT    Input environment variables through command
-                                  line to pass into build containers, you can
-                                  either input function specific format
-                                  (FuncName.VarName=Value) or global format
-                                  (VarName=Value). e.g., sam build --use-
+                                  line to pass into build containers
+                                  Example: sam build --use-
                                   container --container-env-var
                                   Func1.VAR1=value1 --container-env-var
                                   VAR2=value2
-  -ef, --container-env-var-file PATH
-                                  Path to environment variable json file
-                                  (e.g., env_vars.json) to pass into build
-                                  containers
+                                  
+  -ef, --container-env-var-file   Environment variable json file
+                                  (env_vars.json) to pass into build
+                                  containers.
+                                  
   -bi, --build-image TEXT         Container image URIs for building
-                                  functions/layers. You can specify for all
+                                  functions/layers. One can specify for all
                                   functions/layers with just the image URI
                                   (--build-image public.ecr.aws/sam/build-
-                                  nodejs18.x:latest). You can specify for each
+                                  nodejs18.x:latest). One can also specify for each
                                   individual function with (--build-image
                                   FunctionLogicalID=public.ecr.aws/sam/build-
                                   nodejs18.x:latest). A combination of the two
                                   can be used. If a function does not have
                                   build image specified or an image URI for
-                                  all functions, the default SAM CLI build
+                                  all functions, the default AWS SAM CLI build
                                   images will be used.
-  --skip-pull-image               Specify whether CLI should skip pulling down
-                                  the latest Docker image for Lambda runtime.
-  --docker-network TEXT           Specifies the name or id of an existing
-                                  docker network to lambda docker containers
-                                  should connect to, along with the default
-                                  bridge network. If not specified, the Lambda
+                                  
+  --skip-pull-image               Skip pulling down the latest Docker image
+                                  for Lambda runtime.
+                                  
+  --docker-network TEXT           Name or ID of an existing
+                                  docker network for AWS Lambda docker containers
+                                  to connect to, along with the default
+                                  bridge network.
+                                  If not specified, the Lambda
                                   containers will only connect to the default
                                   bridge docker network.
                                   
   Extension Options:
              
-  --hook-name TEXT                The id of the hook package to be used to
-                                  extend the SAM CLI commands functionality.
-                                  As an example, you can use `terraform` to
-                                  extend SAM CLI commands functionality to
-                                  support terraform applications. Available
-                                  Hook Names ['terraform']
-  --skip-prepare-infra            Use this option to skip the preparation
-                                  stage if there have not been any
-                                  infrastructure changes. The --hook-name
-                                  option should also be specified when
-                                  skipping infrastructure preparation.
+  --hook-name TEXT                ID of the hook package to be used to
+                                  extend the AWS SAM CLI commands functionality.
+                                  
+                                  Available Hook Names ['terraform']
+                                  
+  --skip-prepare-infra            Skip infrastructure preparation
+                                  if there have not been any
+                                  infrastructure changes. 
+                                  `--hook-name` is required to use this option.
+                                  
   Build Stratergy Options:
                                     
   -x, --exclude TEXT              Name of the resource(s) to exclude from the
                                   SAM CLI build.
-  -p, --parallel                  Enabled parallel builds. Use this flag to
-                                  build your AWS SAM template's functions and
-                                  layers in parallel. By default the functions
-                                  and layers are built in sequence
+  -p, --parallel                  Enable parallel builds. 
   -m, --manifest PATH             Path to a custom dependency manifest (e.g.,
-                                  package.json) to use instead of the default
-                                  one
-  -c, --cached / --no-cached      Enable cached builds. Use this flag to reuse
-                                  build artifacts that have not changed from
-                                  previous builds. AWS SAM evaluates whether
-                                  you have made any changes to files in your
-                                  project directory.
+                                  package.json).
+  -c, --cached / --no-cached      Enable cached builds. 
 
                                   Note: AWS SAM does not evaluate whether
                                   changes have been made to third party
@@ -488,20 +483,18 @@ Options:
    
   Artifact Location Options: 
   
-  -b, --build-dir DIRECTORY       Path to a folder where the built artifacts
+  -b, --build-dir DIRECTORY       Directory where the built artifacts
                                   will be stored. This directory will be first
                                   removed before starting a build.
-  -cd, --cache-dir DIRECTORY      The folder where the cache artifacts will be
-                                  stored when --cached is specified. The
+                                  
+  -cd, --cache-dir DIRECTORY      Directory where the cache artifacts will be
+                                  stored. The
                                   default cache directory is .aws-sam/cache
-  -s, --base-dir DIRECTORY        Resolve relative paths to function's source
-                                  code with respect to this folder. Use this
-                                  if SAM template and your source code are not
-                                  in same enclosing folder. By default,
-                                  relative paths are resolved with respect to
-                                  the SAM template's location
+                                  
+  -s, --base-dir DIRECTORY        Resolve relative paths to AWS SAM application from base directory.
+                                  
   Template Options:
-  --parameter-overrides           Optional. A string that contains AWS
+  --parameter-overrides           String that contains AWS
                                   CloudFormation parameter overrides encoded
                                   as key=value pairs.For example, 'ParameterKe
                                   y=KeyPairName,ParameterValue=MyKey Parameter
