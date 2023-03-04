@@ -5,6 +5,9 @@ from tests.integration.delete.delete_integ_base import DeleteIntegBase
 from tests.integration.init.test_init_base import InitIntegBase
 from tests.integration.sync.sync_integ_base import SyncIntegBase
 from tests.integration.list.stack_outputs.stack_outputs_integ_base import StackOutputsIntegBase
+import logging
+
+LOG = logging.getLogger(__name__)
 
 
 class EndToEndBase(InitIntegBase, StackOutputsIntegBase, DeleteIntegBase, SyncIntegBase):
@@ -22,6 +25,8 @@ class EndToEndBase(InitIntegBase, StackOutputsIntegBase, DeleteIntegBase, SyncIn
     def _run_tests(stages: List[EndToEndBaseStage]):
         for stage in stages:
             command_result = stage.run_stage()
+            if command_result.stderr:
+                LOG.info(str(command_result.stderr))
             stage.validate(command_result)
 
     def _get_init_command(self, temp_directory):
