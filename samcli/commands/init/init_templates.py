@@ -8,6 +8,7 @@ import os
 import re
 from enum import Enum
 from pathlib import Path
+from subprocess import STDOUT, CalledProcessError, check_output
 from typing import Dict, Optional
 
 import requests
@@ -87,13 +88,16 @@ class InitTemplates:
             os_name = system().lower()
             cloned_folder_name = APP_TEMPLATES_REPO_NAME_WINDOWS if os_name == "windows" else APP_TEMPLATES_REPO_NAME
 
+            to_upsert = self._check_upsert_templates(shared_dir, cloned_folder_name)
+
             try:
-                self._git_repo.clone(
-                    clone_dir=shared_dir,
-                    clone_name=cloned_folder_name,
-                    replace_existing=True,
-                    commit=APP_TEMPLATES_REPO_COMMIT,
-                )
+                if to_upsert:
+                    self._git_repo.clone(
+                        clone_dir=shared_dir,
+                        clone_name=cloned_folder_name,
+                        replace_existing=True,
+                        commit=APP_TEMPLATES_REPO_COMMIT,
+                    )
             except CloneRepoUnstableStateException as ex:
                 raise AppTemplateUpdateException(str(ex)) from ex
             except (OSError, CloneRepoException):
@@ -101,6 +105,17 @@ class InitTemplates:
                 expected_previous_clone_local_path: Path = shared_dir.joinpath(cloned_folder_name)
                 if expected_previous_clone_local_path.exists():
                     self._git_repo.local_path = expected_previous_clone_local_path
+
+    def _check_upsert_templates(self, shared_dir, cloned_folder_name):
+        cache_dir = shared_dir / cloned_folder_name
+        git_executable = self._git_repo.get_git_executable()
+        command = [git_executable, "rev-parse", "--verify", "HEAD"]
+        try:
+            existing_hash = check_output(command, cwd=cache_dir, stderr=STDOUT).decode("utf-8").strip()
+        except CalledProcessError:
+            LOG.error("Unable to check existing cache hash")
+            return True
+        return not existing_hash == APP_TEMPLATES_REPO_COMMIT
 
     def _init_options_from_manifest(self, package_type, runtime, base_image, dependency_manager):
         manifest_path = self.get_manifest_path()

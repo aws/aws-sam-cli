@@ -70,6 +70,9 @@ class GitRepo:
             LOG.warning("WARN: Unable to create clone directory.", exc_info=ex)
             raise
 
+    def get_git_executable(self):
+        return self._git_executable()
+
     @staticmethod
     def _git_executable() -> str:
         if platform.system().lower() == "windows":
@@ -172,7 +175,7 @@ class GitRepo:
 
             LOG.debug("Copying from %s to %s", temp_path, dest_path)
             # Todo consider not removing the .git files/directories
-            shutil.copytree(temp_path, dest_path, ignore=shutil.ignore_patterns("*.git"))
+            shutil.copytree(temp_path, dest_path)
             return Path(dest_path)
         except (OSError, shutil.Error) as ex:
             # UNSTABLE STATE

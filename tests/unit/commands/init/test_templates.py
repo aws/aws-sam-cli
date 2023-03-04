@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from re import search
 from unittest import TestCase
-from unittest.mock import mock_open, patch, PropertyMock
+from unittest.mock import mock_open, patch, PropertyMock, Mock
 
 from samcli.commands.init.init_templates import InitTemplates
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -15,6 +15,7 @@ class TestTemplates(TestCase):
     @patch("shutil.copytree")
     def test_location_from_app_template_zip(self, subprocess_mock, git_exec_mock, cd_mock, copy_mock):
         it = InitTemplates()
+        it._check_upsert_templates = Mock()
 
         manifest = {
             "ruby2.7": [
@@ -36,12 +37,14 @@ class TestTemplates(TestCase):
                 location = it.location_from_app_template(ZIP, "ruby2.7", None, "bundler", "hello-world")
                 self.assertTrue(search("mock-ruby-template", location))
 
+    @patch("samcli.lib.utils.init_templates.")
     @patch("samcli.lib.utils.git_repo.check_output")
     @patch("samcli.lib.utils.git_repo.GitRepo._git_executable")
     @patch("samcli.lib.utils.git_repo.GitRepo._ensure_clone_directory_exists")
     @patch("shutil.copytree")
     def test_location_from_app_template_image(self, subprocess_mock, git_exec_mock, cd_mock, copy_mock):
         it = InitTemplates()
+        it._check_upsert_templates = Mock()
 
         manifest = {
             "ruby2.7-image": [
