@@ -127,7 +127,7 @@ class TestHash(TestCase):
     @patch("samcli.lib.utils.hash.hashlib")
     def test_md5_instantiation(self, patched_hashlib):
         str_checksum("dummy-data")
-        if sys.version_info.major >= 3 & sys.version_info.minor >= 9:
+        if sys.version_info.major >= 3 and sys.version_info.minor >= 9:
             patched_hashlib.md5.assert_called_with(usedforsecurity=False)
         else:
             patched_hashlib.md5.assert_called_with()
