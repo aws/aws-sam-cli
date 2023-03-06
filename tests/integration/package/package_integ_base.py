@@ -17,7 +17,7 @@ SLEEP = 3
 class PackageIntegBase(TestCase):
     kms_key = None
     ecr_repo_name = None
-    
+
     @classmethod
     def setUpClass(cls):
         cls.region_name = os.environ.get("AWS_DEFAULT_REGION")
