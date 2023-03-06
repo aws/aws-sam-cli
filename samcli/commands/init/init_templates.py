@@ -106,7 +106,24 @@ class InitTemplates:
                 if expected_previous_clone_local_path.exists():
                     self._git_repo.local_path = expected_previous_clone_local_path
 
-    def _check_upsert_templates(self, shared_dir, cloned_folder_name):
+    def _check_upsert_templates(self, shared_dir: Path, cloned_folder_name: str) -> bool:
+        """
+        Check if the app templates repository should be cloned, or if cloning should be skipped.
+
+        Parameters
+        ----------
+        shared_dir: Path
+            Folder containing the aws-sam-cli shared data
+
+        cloned_folder_name: str
+            Name of the directory into which the app templates will be copied
+
+        Returns
+        -------
+        bool
+            True if the cache should be updated, False otherwise
+
+        """
         cache_dir = shared_dir / cloned_folder_name
         git_executable = self._git_repo.get_git_executable()
         command = [git_executable, "rev-parse", "--verify", "HEAD"]
