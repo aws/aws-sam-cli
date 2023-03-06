@@ -1,10 +1,10 @@
 """
 Utilities to manipulate template
 """
-from functools import lru_cache
 import itertools
 import os
 import pathlib
+from functools import lru_cache
 
 import jmespath
 import yaml
