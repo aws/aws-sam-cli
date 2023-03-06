@@ -11,7 +11,6 @@ from samcli.cli.row_modifiers import BaseLineRowModifier, RowDefinition
 
 
 class RootCommandHelpTextFormatter(HelpFormatter):
-
     # Picked an additive constant that gives an aesthetically pleasing look.
     ADDITIVE_JUSTIFICATION = 10
 

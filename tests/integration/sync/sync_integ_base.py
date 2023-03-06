@@ -43,6 +43,9 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         self.sns_arn = os.environ.get("AWS_SNS")
         self.stacks = []
         self.s3_prefix = uuid.uuid4().hex
+        # Defining kms key and repo name here to avoid linter error
+        self.kms_key = ""
+        self.ecr_repo_name = ""
         self.dependency_layer = True if self.dependency_layer is None else self.dependency_layer
         super().setUp()
 

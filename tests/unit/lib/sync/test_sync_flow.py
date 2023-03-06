@@ -1,7 +1,8 @@
 from pathlib import Path
-from samcli.lib.providers.provider import ResourceIdentifier, Stack
+
+from samcli.lib.providers.provider import Stack
 from unittest import TestCase
-from unittest.mock import MagicMock, patch, Mock
+from unittest.mock import MagicMock, patch, Mock, PropertyMock
 
 from samcli.lib.sync.sync_flow import (
     SyncFlow,
@@ -14,7 +15,7 @@ from parameterized import parameterized
 
 
 class TestSyncFlow(TestCase):
-    def create_sync_flow(self):
+    def create_sync_flow(self, mock_update_local_hash=True):
         sync_flow = SyncFlow(
             build_context=MagicMock(),
             deploy_context=MagicMock(),
@@ -29,7 +30,28 @@ class TestSyncFlow(TestCase):
         sync_flow.sync = MagicMock()
         sync_flow.gather_dependencies = MagicMock()
         sync_flow._get_resource_api_calls = MagicMock()
+        if mock_update_local_hash:
+            sync_flow._update_local_hash = MagicMock()
         return sync_flow
+
+    @parameterized.expand([(None,), ("local_sha",)])
+    @patch("samcli.lib.sync.sync_flow.SyncFlow.sync_state_identifier", new_callable=PropertyMock)
+    @patch("samcli.lib.sync.sync_flow.Session")
+    @patch.multiple(SyncFlow, __abstractmethods__=set())
+    def test_update_local_hash(self, local_sha, session_mock, patched_sync_state_identifier):
+        sync_flow = self.create_sync_flow(False)
+        sync_flow._local_sha = local_sha
+
+        with patch.object(sync_flow, "_sync_context") as patched_sync_context:
+            sync_flow._update_local_hash()
+
+            if local_sha:
+                patched_sync_state_identifier.assert_called_once()
+                patched_sync_context.update_resource_sync_state.assert_called_with(
+                    sync_flow.sync_state_identifier, sync_flow._local_sha
+                )
+            else:
+                patched_sync_context.update_resource_sync_state.assert_not_called()
 
     @patch("samcli.lib.sync.sync_flow.Session")
     @patch.multiple(SyncFlow, __abstractmethods__=set())
@@ -44,6 +66,7 @@ class TestSyncFlow(TestCase):
         sync_flow.compare_local.assert_called_once()
         sync_flow.compare_remote.assert_called_once()
         sync_flow.sync.assert_called_once()
+        sync_flow._update_local_hash.assert_called_once()
         sync_flow.gather_dependencies.assert_called_once()
         self.assertEqual(result, ["A"])
 
@@ -60,6 +83,7 @@ class TestSyncFlow(TestCase):
         sync_flow.compare_local.assert_called_once()
         sync_flow.compare_remote.assert_not_called()
         sync_flow.sync.assert_not_called()
+        sync_flow._update_local_hash.assert_not_called()
         sync_flow.gather_dependencies.assert_not_called()
         self.assertEqual(result, [])
 
@@ -76,6 +100,7 @@ class TestSyncFlow(TestCase):
         sync_flow.compare_local.assert_called_once()
         sync_flow.compare_remote.assert_called_once()
         sync_flow.sync.assert_not_called()
+        sync_flow._update_local_hash.assert_not_called()
         sync_flow.gather_dependencies.assert_not_called()
         self.assertEqual(result, [])
 

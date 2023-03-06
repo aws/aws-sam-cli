@@ -132,7 +132,6 @@ class TestCDKSynthesizedTemplate(InvokeIntegBase):
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestCDKSynthesizedTemplatesImageFunctions(InvokeIntegBase):
-
     template = Path("cdk/cdk_template_image_functions.yaml")
     functions = [
         "StandardFunctionConstructZipFunction",

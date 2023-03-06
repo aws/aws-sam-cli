@@ -106,7 +106,6 @@ def _toml_document_to_sync_state(toml_document: Dict) -> Optional[SyncState]:
     resource_sync_states = dict()
     if resource_sync_states_toml_table:
         for resource_id in resource_sync_states_toml_table:
-
             resource_sync_state_toml_table = resource_sync_states_toml_table.get(resource_id)
             resource_sync_state = ResourceSyncState(
                 resource_sync_state_toml_table.get(HASH),
@@ -126,7 +125,6 @@ def _toml_document_to_sync_state(toml_document: Dict) -> Optional[SyncState]:
 
 
 class SyncContext:
-
     _current_state: SyncState
     _previous_state: Optional[SyncState]
     _build_dir: Path
@@ -141,7 +139,8 @@ class SyncContext:
         self._file_path = Path(build_dir).parent.joinpath(DEFAULT_SYNC_STATE_FILE_NAME)
 
     def __enter__(self) -> "SyncContext":
-        self._read()
+        with _lock:
+            self._read()
         LOG.debug(
             "Entering sync context, previous state: %s, current state: %s", self._previous_state, self._current_state
         )
@@ -153,7 +152,8 @@ class SyncContext:
         return self
 
     def __exit__(self, *args) -> None:
-        self._write()
+        with _lock:
+            self._write()
 
     def update_resource_sync_state(self, resource_id: str, hash_value: str) -> None:
         """
@@ -167,9 +167,10 @@ class SyncContext:
         hash_value: str
             The logical ID identifier of the resource
         """
-        LOG.debug("Updating resource_sync_state for resource %s with hash %s", resource_id, hash_value)
-        self._current_state.update_resource_sync_state(resource_id, hash_value)
-        self._write()
+        with _lock:
+            LOG.debug("Updating resource_sync_state for resource %s with hash %s", resource_id, hash_value)
+            self._current_state.update_resource_sync_state(resource_id, hash_value)
+            self._write()
 
     def get_resource_latest_sync_hash(self, resource_id: str) -> Optional[str]:
         """
@@ -186,19 +187,19 @@ class SyncContext:
         Optional[str]
             The hash of the resource stored in resource_sync_state if it exists
         """
-        resource_sync_state = self._current_state.resource_sync_states.get(resource_id)
-        if not resource_sync_state:
-            LOG.debug("No latest hash found for resource %s", resource_id)
-            return None
-        LOG.debug(
-            "Latest resource_sync_state hash %s found for resource %s", resource_id, resource_sync_state.hash_value
-        )
-        return resource_sync_state.hash_value
+        with _lock:
+            resource_sync_state = self._current_state.resource_sync_states.get(resource_id)
+            if not resource_sync_state:
+                LOG.debug("No latest hash found for resource %s", resource_id)
+                return None
+            LOG.debug(
+                "Latest resource_sync_state hash %s found for resource %s", resource_id, resource_sync_state.hash_value
+            )
+            return resource_sync_state.hash_value
 
     def _write(self) -> None:
-        with _lock:
-            with open(self._file_path, "w+") as file:
-                file.write(tomlkit.dumps(_sync_state_to_toml_document(self._current_state)))
+        with open(self._file_path, "w+") as file:
+            file.write(tomlkit.dumps(_sync_state_to_toml_document(self._current_state)))
 
     def _read(self) -> None:
         try:

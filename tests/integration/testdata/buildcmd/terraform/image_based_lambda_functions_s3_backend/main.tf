@@ -1,11 +1,5 @@
 terraform {
-  required_providers {
-    docker = {
-      source  = "kreuzwerker/docker"
-      version = "2.25.0"
-    }
-  }
-  backend "s3" {}
+    backend "s3" {}
 }
 
 provider "aws" {
@@ -123,7 +117,7 @@ resource "null_resource" "sam_metadata_aws_lambda_function_l2_function" {
 ## Serverless TF
 module "docker_image" {
   source  = "terraform-aws-modules/lambda/aws//modules/docker-build"
-  version = "4.6.0"
+  version = "4.10.1"
   create_ecr_repo = false
   ecr_repo        = "existing_test_repo"
   image_tag       = "latest"
@@ -132,7 +126,7 @@ module "docker_image" {
 
 module "serverless_tf_image_function" {
   source  = "terraform-aws-modules/lambda/aws"
-  version = "4.6.0"
+  version = "4.10.1"
   timeout = 300
   function_name = "serverless_tf_image_function"
   create_package = false

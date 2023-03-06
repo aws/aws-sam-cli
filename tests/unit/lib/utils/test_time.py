@@ -36,7 +36,6 @@ class TestToTimestamp(TestCase):
 
 class TestToUtc(TestCase):
     def test_with_timezone(self):
-
         date = parse_date("2018-07-06 13:09:54 PDT")
         expected = datetime.datetime(2018, 7, 6, 20, 9, 54)
 
@@ -44,7 +43,6 @@ class TestToUtc(TestCase):
         self.assertEqual(expected, result)
 
     def test_with_utc_timezone(self):
-
         date = parse_date("2018-07-06T13:09:54Z")
         expected = datetime.datetime(2018, 7, 6, 13, 9, 54)
 
@@ -52,7 +50,6 @@ class TestToUtc(TestCase):
         self.assertEqual(expected, result)
 
     def test_without_timezone(self):
-
         date = parse_date("2018-07-06T13:09:54Z").replace(tzinfo=None)
         expected = datetime.datetime(2018, 7, 6, 13, 9, 54)
 
