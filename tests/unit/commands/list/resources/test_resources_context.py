@@ -428,7 +428,6 @@ class TestGetTranslatedDict(TestCase):
         patched_click_get_current_context,
         patched_click_echo,
     ):
-
         mock_sam_file_reader.return_value = SAM_FILE_READER_RETURN
         resource_producer = ResourceMappingProducer(
             stack_name=None,

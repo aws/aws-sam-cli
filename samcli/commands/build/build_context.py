@@ -227,10 +227,7 @@ class BuildContext:
 
     def run(self):
         """Runs the building process by creating an ApplicationBuilder."""
-        template_dict = get_template_data(self._template_file)
-        template_transform = template_dict.get("Transform", "")
-        is_sam_template = isinstance(template_transform, str) and template_transform.startswith("AWS::Serverless")
-        if is_sam_template:
+        if self._is_sam_template():
             SamApiProvider.check_implicit_api_resource_ids(self.stacks)
 
         self._stacks = self._handle_build_pre_processing()
@@ -306,6 +303,17 @@ class BuildContext:
             deep_wrap = getattr(ex, "wrapped_from", None)
             wrapped_from = deep_wrap if deep_wrap else ex.__class__.__name__
             raise UserException(str(ex), wrapped_from=wrapped_from) from ex
+
+    def _is_sam_template(self) -> bool:
+        """Check if a given template is a SAM template"""
+        template_dict = get_template_data(self._template_file)
+        template_transforms = template_dict.get("Transform", [])
+        if not isinstance(template_transforms, list):
+            template_transforms = [template_transforms]
+        for template_transform in template_transforms:
+            if isinstance(template_transform, str) and template_transform.startswith("AWS::Serverless"):
+                return True
+        return False
 
     def _handle_build_pre_processing(self) -> List[Stack]:
         """

@@ -11,6 +11,7 @@ from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
 from samcli.commands._utils.cdk_support_decorators import unsupported_command_cdk
 from samcli.commands._utils.click_mutex import ClickMutex
+from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.commands._utils.constants import (
     DEFAULT_BUILD_DIR,
     DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
@@ -154,6 +155,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @check_newer_version
 @print_cmdline_args
 @unsupported_command_cdk()
+@command_exception_handler
 def cli(
     ctx: Context,
     template_file: str,
@@ -313,7 +315,6 @@ def do_cli(
                 use_json=False,
                 force_upload=True,
             ) as package_context:
-
                 # 500ms of sleep time between stack checks and describe stack events.
                 DEFAULT_POLL_DELAY = 0.5
                 try:

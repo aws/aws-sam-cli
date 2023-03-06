@@ -14,6 +14,7 @@ configuration:
   - DeleteIntegTesting
   - SyncIntegTesting
   - LocalIntegTesting
+  - EndToEndTesting
   # other Integration testing, Dev, regression and smoke testing
   - OtherTesting
 
@@ -176,8 +177,14 @@ build_script:
 # Final clean up no matter success or failure
 on_finish:
   # Upload test reports as artifacts
-  - sh: find "$APPVEYOR_BUILD_FOLDER" -type f -name 'TEST*.json' -print0 | xargs -0 -I '{}' appveyor PushArtifact '{}'
+  - sh: find "$APPVEYOR_BUILD_FOLDER" -type f -name 'TEST_REPORT-*.json' -print0 | xargs -0 -I '{}' appveyor PushArtifact '{}'
+  - sh: >
+      AWS_ACCESS_KEY_ID=$TEST_REPORT_S3_BUCKET_ACCESS_KEY_ID 
+      AWS_SECRET_ACCESS_KEY=$TEST_REPORT_S3_BUCKET_SECRET_ACCESS_KEY 
+      AWS_SESSION_TOKEN=$TEST_REPORT_S3_BUCKET_SESSION_TOKEN 
+      aws s3 cp "$APPVEYOR_BUILD_FOLDER" "s3://$TEST_REPORT_S3_BUCKET_NAME/appveyor/$APPVEYOR_PROJECT_SLUG/$APPVEYOR_BUILD_ID/$APPVEYOR_JOB_ID/" --recursive --exclude "*" --include "TEST_REPORT-*.json" --region us-west-2
 
+  # notify task success
   - sh: 'export AWS_ACCESS_KEY_ID=$CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID'
   - sh: 'export AWS_SECRET_ACCESS_KEY=$CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY'
   - sh: 'export AWS_SESSION_TOKEN=$CI_ACCESS_ROLE_AWS_SESSION_TOKEN'
@@ -331,6 +338,17 @@ for:
 
       - "pip install -e \".[dev]\""
       - sh: "pytest -vv tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-local.json"
+
+  # End-to-end testing
+  -
+    matrix:
+      only:
+        - image: Ubuntu
+          configuration: EndToEndTesting
+
+    test_script:
+      - "pip install -e \".[dev]\""
+      - sh: "pytest -vv -n 4 --reruns 5 --dist loadscope tests/end_to_end --json-report --json-report-file=TEST_REPORT-end-to-end.json"
 
   # Other testing
   -

@@ -9,7 +9,6 @@ from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateE
 
 
 class TestFunctionConfig(TestCase):
-
     DEFAULT_MEMORY = 128
     DEFAULT_TIMEOUT = 3
 
@@ -178,7 +177,6 @@ class TestFunctionConfigInvalidTimeouts(TestCase):
 
 
 class TestFunctionConfig_equals(TestCase):
-
     DEFAULT_MEMORY = 128
     DEFAULT_TIMEOUT = 3
 
