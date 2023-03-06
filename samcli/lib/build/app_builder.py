@@ -923,6 +923,7 @@ class ApplicationBuilder:
             is_building_layer=is_building_layer,
             build_in_source=self._build_in_source,
             mount_with_write=self._mount_with_write,
+            build_dir=self._build_dir,
         )
 
         try:

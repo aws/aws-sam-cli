@@ -17,7 +17,7 @@ from docker.errors import NotFound as DockerNetworkNotFound
 
 from samcli.lib.utils.retry import retry
 from samcli.lib.utils.tar import extract_tarfile
-from samcli.local.docker.effective_user import EffectiveUser
+from samcli.local.docker.effective_user import ROOT_USER_ID, EffectiveUser
 
 from .exceptions import ContainerNotStartableException
 from .utils import NoFreePortsError, find_free_port, to_posix_path
@@ -172,9 +172,8 @@ class Container:
         # Pass effective user to docker run CLI as "--user" option in the format of uid[:gid]
         # to run docker as current user instead of root
         # Skip if current user is root on posix systems or non-posix systems
-        _root_user_id = "0"
         effective_user = EffectiveUser.get_current_effective_user().to_effective_user_str()
-        if self._mount_with_write and effective_user and effective_user != _root_user_id:
+        if self._mount_with_write and effective_user and effective_user != ROOT_USER_ID:
             LOG.debug("Detect non-root user, will pass argument '--user %s' to container", effective_user)
             kwargs["user"] = effective_user
 
@@ -307,7 +306,7 @@ class Container:
 
         # Make tmp dir on the host
         if self._mount_with_write and self._host_tmp_dir and not os.path.exists(self._host_tmp_dir):
-            os.mkdir(self._host_tmp_dir)
+            os.makedirs(self._host_tmp_dir)
             LOG.debug("Successfully created temporary directory %s on the host.", self._host_tmp_dir)
 
         # Get the underlying container instance from Docker API

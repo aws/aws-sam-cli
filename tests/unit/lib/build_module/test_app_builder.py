@@ -2644,6 +2644,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
             is_building_layer=False,
             build_in_source=False,
             mount_with_write=False,
+            build_dir="/build/dir",
         )
 
         self.container_manager.run.assert_called_with(container_mock)

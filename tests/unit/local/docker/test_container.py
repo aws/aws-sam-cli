@@ -528,7 +528,7 @@ class TestContainer_start(TestCase):
         mock_path.exists.return_value = False
 
         self.container.start()
-        mock_os.mkdir.assert_called_with(self.container._host_tmp_dir)
+        mock_os.makedirs.assert_called_with(self.container._host_tmp_dir)
 
 
 class TestContainer_wait_for_result(TestCase):

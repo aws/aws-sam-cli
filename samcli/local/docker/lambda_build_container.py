@@ -47,6 +47,7 @@ class LambdaBuildContainer(Container):
         is_building_layer=False,
         build_in_source=None,
         mount_with_write: bool = False,
+        build_dir=None,
     ):
         abs_manifest_path = pathlib.Path(manifest_path).resolve()
         manifest_file_name = abs_manifest_path.name
@@ -102,9 +103,9 @@ class LambdaBuildContainer(Container):
         }
 
         host_tmp_dir = None
-        if mount_with_write:
+        if mount_with_write and build_dir:
             # Mounting tmp dir on the host as ``/tmp/samcli`` on container, which gives current user write permissions
-            host_tmp_dir = os.path.join(source_dir, f"tmp-{uuid4().hex}")
+            host_tmp_dir = os.path.join(build_dir, f"tmp-{uuid4().hex}")
             additional_volumes.update({host_tmp_dir: {"bind": container_dirs["base_dir"], "mode": mount_mode}})
 
         if log_level:
