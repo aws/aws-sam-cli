@@ -7,6 +7,10 @@ from pathlib import Path
 
 import os
 
+from samcli.cli.global_config import GlobalConfig
+from tests.end_to_end.end_to_end_context import EndToEndTestContext
+from tests.testing_utils import CommandResult, run_command, run_command_with_input
+from filelock import FileLock
 from tests.end_to_end.end_to_end_context import EndToEndTestContext
 from tests.testing_utils import CommandResult, run_command, run_command_with_input
 
@@ -42,6 +46,11 @@ class DefaultInitStage(EndToEndBaseStage):
         self.app_name = app_name
 
     def run_stage(self) -> CommandResult:
+        config_file_lock = GlobalConfig().config_dir / ".lock"
+        with FileLock(str(config_file_lock)):
+            # Need to lock the config file so that the several processes don't
+            # attempt to write to it at the same time when caching init templates.
+            command_result = run_command(self.command_list, cwd=self.test_context.working_directory)
         command_result = run_command(self.command_list, cwd=self.test_context.working_directory)
         self._delete_default_samconfig()
         return command_result

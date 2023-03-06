@@ -1,3 +1,5 @@
+from unittest import skipIf
+
 import json
 
 from pathlib import Path
@@ -14,6 +16,11 @@ from tests.end_to_end.test_stages import (
     DefaultSyncStage,
     BaseValidator,
 )
+from tests.testing_utils import CommandResult, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
+
+# Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
+# This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
+SKIP_E2E_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 from tests.testing_utils import CommandResult
 
 
@@ -48,6 +55,7 @@ class StackOutputsValidator(BaseValidator):
             self.assertIn("Description", output)
 
 
+@skipIf(SKIP_E2E_TESTS, "Skip E2E tests in CI/CD only")
 @parameterized_class(
     ("runtime", "dependency_manager"),
     [
@@ -78,6 +86,7 @@ class TestHelloWorldDefaultEndToEnd(EndToEndBase):
             self._run_tests(stages)
 
 
+@skipIf(SKIP_E2E_TESTS, "Skip E2E tests in CI/CD only")
 @parameterized_class(
     ("runtime", "dependency_manager"),
     [
