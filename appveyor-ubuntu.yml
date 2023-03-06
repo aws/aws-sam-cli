@@ -14,6 +14,7 @@ configuration:
   - DeleteIntegTesting
   - SyncIntegTesting
   - LocalIntegTesting
+  - EndToEndTesting
   # other Integration testing, Dev, regression and smoke testing
   - OtherTesting
 
@@ -337,6 +338,17 @@ for:
 
       - "pip install -e \".[dev]\""
       - sh: "pytest -vv tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-local.json"
+
+  # End-to-end testing
+  -
+    matrix:
+      only:
+        - image: Ubuntu
+          configuration: EndToEndTesting
+
+    test_script:
+      - "pip install -e \".[dev]\""
+      - sh: "pytest -vv -n 4 --reruns 5 --dist loadscope tests/end_to_end --json-report --json-report-file=TEST_REPORT-end-to-end.json"
 
   # Other testing
   -
