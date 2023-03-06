@@ -1,4 +1,7 @@
+from subprocess import STDOUT
+
 import json
+from parameterized import parameterized
 from pathlib import Path
 from re import search
 from unittest import TestCase
@@ -37,7 +40,6 @@ class TestTemplates(TestCase):
                 location = it.location_from_app_template(ZIP, "ruby2.7", None, "bundler", "hello-world")
                 self.assertTrue(search("mock-ruby-template", location))
 
-    @patch("samcli.lib.utils.init_templates.")
     @patch("samcli.lib.utils.git_repo.check_output")
     @patch("samcli.lib.utils.git_repo.GitRepo._git_executable")
     @patch("samcli.lib.utils.git_repo.GitRepo._ensure_clone_directory_exists")
@@ -67,3 +69,17 @@ class TestTemplates(TestCase):
                     IMAGE, None, "ruby2.7-image", "bundler", "hello-world-lambda-image"
                 )
                 self.assertTrue(search("mock-ruby-image-template", location))
+
+    @parameterized.expand([("hash_a", "hash_a", False), ("hash_a", "hash_b", True)])
+    @patch("samcli.lib.utils.git_repo.GitRepo.get_git_executable")
+    @patch("samcli.commands.init.init_templates.check_output")
+    def test_check_upsert_templates(self, first_hash, second_hash, expected_value, check_output_mock, git_exec_mock):
+        it = InitTemplates()
+        git_exec_mock.return_value = "git"
+        check_output_mock.return_value = second_hash.encode("utf-8")
+        with patch("samcli.commands.init.init_templates.APP_TEMPLATES_REPO_COMMIT", first_hash):
+            return_value = it._check_upsert_templates(Path("shared_dir"), Path("cloned_folder_dir"))
+        check_output_mock.assert_called_once_with(
+            ["git", "rev-parse", "--verify", "HEAD"], cwd=Path("shared_dir/cloned_folder_dir"), stderr=STDOUT
+        )
+        self.assertEqual(return_value, expected_value)
