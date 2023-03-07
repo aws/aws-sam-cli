@@ -31,21 +31,21 @@ class TestGitRepo(TestCase):
     @patch("samcli.lib.utils.git_repo.platform.system")
     def test_git_executable_not_windows(self, mock_platform, mock_popen):
         mock_platform.return_value = "Not Windows"
-        executable = self.repo._git_executable()
+        executable = self.repo.git_executable()
         self.assertEqual(executable, "git")
 
     @patch("samcli.lib.utils.git_repo.subprocess.Popen")
     @patch("samcli.lib.utils.git_repo.platform.system")
     def test_git_executable_windows(self, mock_platform, mock_popen):
         mock_platform.return_value = "Windows"
-        executable = self.repo._git_executable()
+        executable = self.repo.git_executable()
         self.assertEqual(executable, "git")
 
     @patch("samcli.lib.utils.git_repo.subprocess.Popen")
     def test_git_executable_fails(self, mock_popen):
         mock_popen.side_effect = OSError("fail")
         with self.assertRaises(OSError):
-            self.repo._git_executable()
+            self.repo.git_executable()
 
     @patch("samcli.lib.utils.git_repo.Path.exists")
     @patch("samcli.lib.utils.git_repo.shutil")

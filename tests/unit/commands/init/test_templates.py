@@ -13,7 +13,7 @@ from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 class TestTemplates(TestCase):
     @patch("samcli.lib.utils.git_repo.check_output")
-    @patch("samcli.lib.utils.git_repo.GitRepo._git_executable")
+    @patch("samcli.lib.utils.git_repo.GitRepo.git_executable")
     @patch("samcli.lib.utils.git_repo.GitRepo._ensure_clone_directory_exists")
     @patch("shutil.copytree")
     def test_location_from_app_template_zip(self, subprocess_mock, git_exec_mock, cd_mock, copy_mock):
@@ -41,7 +41,7 @@ class TestTemplates(TestCase):
                 self.assertTrue(search("mock-ruby-template", location))
 
     @patch("samcli.lib.utils.git_repo.check_output")
-    @patch("samcli.lib.utils.git_repo.GitRepo._git_executable")
+    @patch("samcli.lib.utils.git_repo.GitRepo.git_executable")
     @patch("samcli.lib.utils.git_repo.GitRepo._ensure_clone_directory_exists")
     @patch("shutil.copytree")
     def test_location_from_app_template_image(self, subprocess_mock, git_exec_mock, cd_mock, copy_mock):
@@ -71,7 +71,7 @@ class TestTemplates(TestCase):
                 self.assertTrue(search("mock-ruby-image-template", location))
 
     @parameterized.expand([("hash_a", "hash_a", False), ("hash_a", "hash_b", True)])
-    @patch("samcli.lib.utils.git_repo.GitRepo.get_git_executable")
+    @patch("samcli.lib.utils.git_repo.GitRepo.git_executable")
     @patch("samcli.commands.init.init_templates.check_output")
     def test_check_upsert_templates(self, first_hash, second_hash, expected_value, check_output_mock, git_exec_mock):
         it = InitTemplates()

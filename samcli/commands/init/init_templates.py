@@ -88,16 +88,16 @@ class InitTemplates:
             os_name = system().lower()
             cloned_folder_name = APP_TEMPLATES_REPO_NAME_WINDOWS if os_name == "windows" else APP_TEMPLATES_REPO_NAME
 
-            to_upsert = self._check_upsert_templates(shared_dir, cloned_folder_name)
+            if not self._check_upsert_templates(shared_dir, cloned_folder_name):
+                return
 
             try:
-                if to_upsert:
-                    self._git_repo.clone(
-                        clone_dir=shared_dir,
-                        clone_name=cloned_folder_name,
-                        replace_existing=True,
-                        commit=APP_TEMPLATES_REPO_COMMIT,
-                    )
+                self._git_repo.clone(
+                    clone_dir=shared_dir,
+                    clone_name=cloned_folder_name,
+                    replace_existing=True,
+                    commit=APP_TEMPLATES_REPO_COMMIT,
+                )
             except CloneRepoUnstableStateException as ex:
                 raise AppTemplateUpdateException(str(ex)) from ex
             except (OSError, CloneRepoException):
@@ -124,13 +124,13 @@ class InitTemplates:
             True if the cache should be updated, False otherwise
 
         """
-        cache_dir = shared_dir / cloned_folder_name
-        git_executable = self._git_repo.get_git_executable()
+        cache_dir = Path(shared_dir, cloned_folder_name)
+        git_executable = self._git_repo.git_executable()
         command = [git_executable, "rev-parse", "--verify", "HEAD"]
         try:
             existing_hash = check_output(command, cwd=cache_dir, stderr=STDOUT).decode("utf-8").strip()
-        except CalledProcessError:
-            LOG.debug("Unable to check existing cache hash")
+        except CalledProcessError as ex:
+            LOG.debug(f"Unable to check existing cache hash\n{ex.output.decode('utf-8')}")
             return True
         except (FileNotFoundError, NotADirectoryError):
             LOG.debug("Cache directory does not yet exist, creating one.")
