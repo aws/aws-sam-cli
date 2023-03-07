@@ -20,7 +20,6 @@ class TestLambdaBuildContainer_init(TestCase):
     @patch.object(LambdaBuildContainer, "_get_entrypoint")
     @patch.object(LambdaBuildContainer, "get_container_dirs")
     def test_must_init_class(self, get_container_dirs_mock, get_entrypoint_mock, get_image_mock, make_request_mock):
-
         request = make_request_mock.return_value = "somerequest"
         entry = get_entrypoint_mock.return_value = "entrypoint"
         image = get_image_mock.return_value = "imagename"
@@ -226,7 +225,6 @@ class TestLambdaBuildContainer_get_entrypoint(TestCase):
 
 class TestLambdaBuildContainer_convert_to_container_dirs(TestCase):
     def test_must_work_on_abs_and_relative_paths(self):
-
         input = [".", "../foo", "/some/abs/path"]
         mapping = {str(pathlib.Path(".").resolve()): "/first", "../foo": "/second", "/some/abs/path": "/third"}
 
@@ -236,7 +234,6 @@ class TestLambdaBuildContainer_convert_to_container_dirs(TestCase):
         self.assertEqual(result, expected)
 
     def test_must_skip_unknown_paths(self):
-
         input = ["/known/path", "/unknown/path"]
         mapping = {"/known/path": "/first"}
 
@@ -246,7 +243,6 @@ class TestLambdaBuildContainer_convert_to_container_dirs(TestCase):
         self.assertEqual(result, expected)
 
     def test_must_skip_on_empty_input(self):
-
         input = None
         mapping = {"/known/path": "/first"}
 

@@ -288,7 +288,6 @@ class ManifestWorkflowSelector(BasicWorkflowSelector):
         LOG.debug("Looking for a supported build workflow in following directories: %s", search_dirs)
 
         for config in self.configs:
-
             if any([self._has_manifest(config, directory) for directory in search_dirs]):
                 return config
 

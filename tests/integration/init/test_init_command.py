@@ -4,6 +4,7 @@ import signal
 
 from click.testing import CliRunner
 
+from samcli.cli.global_config import GlobalConfig
 from samcli.commands.init import cli as init_cmd
 from unittest import TestCase
 
@@ -13,6 +14,7 @@ import os
 import shutil
 import tempfile
 
+from samcli.commands.init.init_templates import APP_TEMPLATES_REPO_NAME_WINDOWS, APP_TEMPLATES_REPO_NAME
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 
@@ -183,6 +185,38 @@ class TestBasicInitCommand(TestCase):
 
             self.assertEqual(process.returncode, 0)
             self.assertTrue(Path(temp, "sam-app-gradle").is_dir())
+            self.assertNotIn(COMMIT_ERROR, stderr)
+
+    def test_init_command_go_provided_image(self):
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    get_sam_command(),
+                    "init",
+                    "--app-template",
+                    "hello-world-lambda-image",
+                    "--name",
+                    "sam-app-go-image",
+                    "--package-type",
+                    "Image",
+                    "--base-image",
+                    "amazon/go-provided.al2-base",
+                    "--no-interactive",
+                    "-o",
+                    temp,
+                ],
+                stdout=PIPE,
+                stderr=PIPE,
+            )
+            try:
+                stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
+                stderr = stderr_data.decode("utf-8")
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 0)
+            self.assertTrue(Path(temp, "sam-app-go-image").is_dir())
             self.assertNotIn(COMMIT_ERROR, stderr)
 
     def test_init_command_with_extra_context_parameter(self):
@@ -836,6 +870,67 @@ sam-interactive-init-app-default-runtime
             self.assertTrue(expected_output_folder.is_dir())
             self.assertTrue(Path(expected_output_folder, "hello_world").is_dir())
             self.assertTrue(Path(expected_output_folder, "hello_world", "app.py").is_file())
+
+
+class TestSubsequentInitCaching(TestCase):
+    def test_subsequent_init_skips_cloning(self):
+        from platform import system
+
+        os_name = system().lower()
+        cloned_folder_name = APP_TEMPLATES_REPO_NAME_WINDOWS if os_name == "windows" else APP_TEMPLATES_REPO_NAME
+
+        with tempfile.TemporaryDirectory() as temp:
+            project_directory = Path(temp, "sam-app")
+            cache_dir = GlobalConfig().config_dir / cloned_folder_name
+
+            # Run the first time, get cache last modification time
+            self._run_init(temp)
+            first_modification_time = self._last_modification_time(cache_dir)
+            self.assertTrue(project_directory.is_dir())
+            shutil.rmtree(project_directory)
+
+            # Run init again, get the second modification time
+            self._run_init(temp)
+            second_modification_time = self._last_modification_time(cache_dir)
+            self.assertTrue(project_directory.is_dir())
+
+            self.assertEqual(first_modification_time, second_modification_time)
+
+    def _run_init(self, cwd):
+        process = Popen(
+            [
+                get_sam_command(),
+                "init",
+                "--runtime",
+                "nodejs14.x",
+                "--dependency-manager",
+                "npm",
+                "--architecture",
+                "arm64",
+                "--app-template",
+                "hello-world",
+                "--name",
+                "sam-app",
+                "--no-interactive",
+                "-o",
+                cwd,
+            ],
+            stdout=PIPE,
+            stderr=PIPE,
+        )
+        try:
+            stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
+            stderr = stderr_data.decode("utf-8")
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        self.assertEqual(process.returncode, 0)
+        self.assertNotIn(COMMIT_ERROR, stderr)
+
+    @staticmethod
+    def _last_modification_time(file):
+        return os.path.getmtime(file)
 
 
 class TestInitProducesSamconfigFile(TestCase):

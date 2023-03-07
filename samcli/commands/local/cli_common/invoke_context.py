@@ -478,7 +478,6 @@ class InvokeContext:
 
         # Try to read the file and parse it as JSON
         try:
-
             with open(filename, "r") as fp:
                 return cast(Dict, json.load(fp))
 

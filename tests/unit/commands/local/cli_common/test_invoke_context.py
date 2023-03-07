@@ -429,7 +429,6 @@ class TestInvokeContext__enter__(TestCase):
             new_callable=PropertyMock,
             return_value=False,
         ):
-
             invoke_context._get_container_manager = Mock()
             invoke_context._get_container_manager.return_value = container_manager_mock
 
@@ -505,7 +504,6 @@ class TestInvokeContextAsContextManager(TestCase):
     @patch.object(InvokeContext, "__enter__")
     @patch.object(InvokeContext, "__exit__")
     def test_must_work_in_with_statement(self, ExitMock, EnterMock):
-
         context_obj = Mock()
         EnterMock.return_value = context_obj
 
@@ -565,7 +563,6 @@ class TestInvokeContext_local_lambda_runner(TestCase):
     def test_must_create_runner(
         self, SamFunctionProviderMock, LocalLambdaMock, LambdaRuntimeMock, download_layers_mock, lambda_image_patch
     ):
-
         runtime_mock = Mock()
         LambdaRuntimeMock.return_value = runtime_mock
 
@@ -790,7 +787,6 @@ class TestInvokeContext_local_lambda_runner(TestCase):
     def test_must_create_runner_with_invoke_image_option(
         self, SamFunctionProviderMock, LocalLambdaMock, LambdaRuntimeMock, download_layers_mock, lambda_image_patch
     ):
-
         runtime_mock = Mock()
         LambdaRuntimeMock.return_value = runtime_mock
 
@@ -913,7 +909,6 @@ class TestInvokeContext_stdout_property(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.StreamWriter")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
     def test_must_use_log_file_handle(self, SamFunctionProviderMock, StreamWriterMock, ExitMock):
-
         stream_writer_mock = Mock()
         StreamWriterMock.return_value = stream_writer_mock
 
@@ -943,7 +938,6 @@ class TestInvokeContext_stderr_property(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.StreamWriter")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
     def test_must_enable_auto_flush(self, SamFunctionProviderMock, StreamWriterMock, osutils_stderr_mock, ExitMock):
-
         context = InvokeContext(template_file="template", debug_ports=[6000])
 
         context._get_stacks = Mock()
@@ -967,7 +961,6 @@ class TestInvokeContext_stderr_property(TestCase):
     def test_must_use_stderr_if_no_log_file_handle(
         self, SamFunctionProviderMock, StreamWriterMock, osutils_stderr_mock, ExitMock
     ):
-
         stream_writer_mock = Mock()
         StreamWriterMock.return_value = stream_writer_mock
 
@@ -995,7 +988,6 @@ class TestInvokeContext_stderr_property(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.StreamWriter")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
     def test_must_use_log_file_handle(self, SamFunctionProviderMock, StreamWriterMock, ExitMock):
-
         stream_writer_mock = Mock()
         StreamWriterMock.return_value = stream_writer_mock
 
@@ -1063,7 +1055,6 @@ class TestInvokeContext_get_env_vars_value(TestCase):
         m = mock_open(read_data=file_data)
 
         with patch("samcli.commands.local.cli_common.invoke_context.open", m):
-
             with self.assertRaises(InvalidEnvironmentVariablesFileException) as ex_ctx:
                 InvokeContext._get_env_vars_value(filename)
 

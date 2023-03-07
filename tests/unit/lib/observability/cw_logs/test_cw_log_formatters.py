@@ -115,7 +115,6 @@ class TestCWJsonFormatter(TestCase):
 
     @parameterized.expand(["this is not json", '{"not a valid json"}'])
     def test_ignore_non_json(self, input_msg):
-
         event = CWLogEvent("group_name", {"message": input_msg})
 
         result = self.formatter.map(event)

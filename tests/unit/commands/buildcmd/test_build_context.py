@@ -658,7 +658,6 @@ class TestBuildContext__enter__(TestCase):
         SamApiProviderMock,
         get_buildable_stacks_mock,
     ):
-
         root_stack = Mock()
         root_stack.is_root_stack = True
         auto_dependency_layer = False
@@ -1102,7 +1101,6 @@ class TestBuildContext_run(TestCase):
         SamApiProviderMock,
         get_buildable_stacks_mock,
     ):
-
         stack = Mock()
         resources_mock.return_value = Mock(functions=[], layers=[])
 

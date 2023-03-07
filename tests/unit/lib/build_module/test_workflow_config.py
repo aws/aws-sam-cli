@@ -18,7 +18,6 @@ class Test_get_workflow_config(TestCase):
 
     @parameterized.expand([("python3.7",), ("python3.8",)])
     def test_must_work_for_python(self, runtime):
-
         result = get_workflow_config(runtime, self.code_dir, self.project_dir)
         self.assertEqual(result.language, "python")
         self.assertEqual(result.dependency_manager, "pip")
@@ -31,7 +30,6 @@ class Test_get_workflow_config(TestCase):
 
     @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
     def test_must_work_for_nodejs(self, runtime):
-
         result = get_workflow_config(runtime, self.code_dir, self.project_dir)
         self.assertEqual(result.language, "nodejs")
         self.assertEqual(result.dependency_manager, "npm")
@@ -151,7 +149,6 @@ class Test_get_workflow_config(TestCase):
     @parameterized.expand([("java8", "unknown.manifest")])
     @patch("samcli.lib.build.workflow_config.os")
     def test_must_fail_when_manifest_not_found(self, runtime, build_file, os_mock):
-
         os_mock.path.join.side_effect = lambda dirname, v: v
         os_mock.path.exists.side_effect = lambda v: v == build_file
 
@@ -161,7 +158,6 @@ class Test_get_workflow_config(TestCase):
         self.assertIn("Unable to find a supported build workflow for runtime '{}'.".format(runtime), str(ctx.exception))
 
     def test_must_raise_for_unsupported_runtimes(self):
-
         runtime = "foobar"
 
         with self.assertRaises(UnsupportedRuntimeException) as ctx:

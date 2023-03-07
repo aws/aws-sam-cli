@@ -295,7 +295,6 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
 
 
 def _get_mode_value_from_envvar(name: str, choices: List[str]) -> Optional[str]:
-
     mode = os.environ.get(name, None)
     if not mode:
         return None

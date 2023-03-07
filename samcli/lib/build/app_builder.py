@@ -843,7 +843,6 @@ class ApplicationBuilder:
         combine_dependencies: bool,
         is_building_layer: bool = False,
     ) -> str:
-
         builder = LambdaBuilder(
             language=config.language,
             dependency_manager=config.dependency_manager,
@@ -960,7 +959,6 @@ class ApplicationBuilder:
 
     @staticmethod
     def _parse_builder_response(stdout_data: str, image_name: str) -> Dict:
-
         try:
             response = json.loads(stdout_data)
         except Exception:

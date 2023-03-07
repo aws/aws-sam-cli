@@ -507,7 +507,6 @@ class TestLocalStartLambdaInvalidUsecasesTerraform(StartLambdaTerraformApplicati
         self.assertEqual(return_code, 0)
 
     def test_invalid_coexist_parameters(self):
-
         command_list = self.get_start_lambda_command(hook_name="terraform", template_path="path/template.yaml")
         _, stderr, return_code = self._run_command(command_list, tf_application=self.working_dir)
 

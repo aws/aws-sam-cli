@@ -543,7 +543,6 @@ class GuidedContext:
                 raise GuidedDeployFailedError("No images found to deploy, try running sam build") from ex
 
     def run(self):
-
         try:
             _parameter_override_keys = get_template_parameters(template_file=self.template_file)
         except ValueError as ex:
