@@ -26,9 +26,6 @@ from .build_integ_base import (
 
 LOG = logging.getLogger(__name__)
 
-# SAR tests require credentials. This is to skip running the test where credentials are not available.
-SKIP_SAR_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
-
 
 @skipIf(
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
