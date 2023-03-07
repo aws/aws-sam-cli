@@ -26,7 +26,6 @@ MOCK_SAM_CONFIG = get_mock_sam_config()
 
 class TestDoCli(TestCase):
     def setUp(self):
-
         self.template_file = "input-template-file"
         self.stack_name = "stack-name"
         self.resource_id = []
@@ -91,7 +90,6 @@ class TestDoCli(TestCase):
         execute_code_sync_mock,
         click_mock,
     ):
-
         build_context_mock = Mock()
         BuildContextMock.return_value.__enter__.return_value = build_context_mock
         package_context_mock = Mock()
@@ -374,7 +372,6 @@ class TestDoCli(TestCase):
         execute_code_sync_mock,
         click_mock,
     ):
-
         build_context_mock = Mock()
         BuildContextMock.return_value.__enter__.return_value = build_context_mock
         package_context_mock = Mock()
@@ -445,7 +442,6 @@ class TestSyncCode(TestCase):
         get_stacks_mock,
         click_mock,
     ):
-
         resource_identifier_strings = ["Function1"]
         resource_types = []
         sync_flows = [MagicMock()]
@@ -484,7 +480,6 @@ class TestSyncCode(TestCase):
         get_stacks_mock,
         click_mock,
     ):
-
         resource_identifier_strings = ["Function1", "Function2"]
         resource_types = []
         sync_flows = [MagicMock(), MagicMock()]
@@ -530,7 +525,6 @@ class TestSyncCode(TestCase):
         get_stacks_mock,
         click_mock,
     ):
-
         resource_identifier_strings = ["Function1", "Function2"]
         resource_types = ["AWS::Serverless::Function"]
         sync_flows = [MagicMock(), MagicMock(), MagicMock()]

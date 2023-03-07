@@ -2,6 +2,7 @@ from typing import Container, Iterable, Union
 import uuid
 import time
 import math
+import os
 from datetime import datetime, timedelta, timezone
 from unittest import TestCase
 from unittest.mock import patch, MagicMock, ANY, call
@@ -341,6 +342,30 @@ class TestDeployer(CustomTestCase):
     def test_wait_for_changeset(self):
         self.deployer._client.get_waiter = MagicMock(return_value=MockChangesetWaiter())
         self.deployer.wait_for_changeset("test-id", "test-stack")
+
+    @patch("os.environ", {**os.environ, "SAM_CLI_POLL_DELAY": 10})
+    def test_wait_for_changeset_client_sleep(self):
+        deployer = Deployer(MagicMock().client("cloudformation"), client_sleep=os.getenv("SAM_CLI_POLL_DELAY", 0.5))
+        deployer._client.get_waiter = MagicMock(return_value=MockChangesetWaiter())
+        deployer.wait_for_changeset("test-id", "test-stack")
+        self.assertEqual(deployer.client_sleep, 10)
+
+    def test_wait_for_changeset_default_delay(self):
+        deployer = Deployer(MagicMock().client("cloudformation"))
+        deployer.wait_for_changeset("test-id", "test-stack")
+        get_waiter_call = deployer._client.get_waiter()
+        get_waiter_call.wait.assert_called_with(
+            ChangeSetName="test-id", StackName="test-stack", WaiterConfig={"Delay": 0.5}
+        )
+
+    @patch("os.environ", {**os.environ, "SAM_CLI_POLL_DELAY": 10})
+    def test_wait_for_changeset_custom_delay(self):
+        deployer = Deployer(MagicMock().client("cloudformation"), client_sleep=os.getenv("SAM_CLI_POLL_DELAY"))
+        deployer.wait_for_changeset("test-id", "test-stack")
+        get_waiter_call = deployer._client.get_waiter()
+        get_waiter_call.wait.assert_called_with(
+            ChangeSetName="test-id", StackName="test-stack", WaiterConfig={"Delay": 10.0}
+        )
 
     def test_wait_for_changeset_exception_ChangeEmpty(self):
         self.deployer._client.get_waiter = MagicMock(
@@ -802,7 +827,6 @@ class TestDeployer(CustomTestCase):
     @patch("samcli.lib.deploy.deployer.math")
     @patch("time.sleep")
     def test_describe_stack_events_exceptions(self, patched_time, patched_math):
-
         self.deployer._client.get_paginator = MagicMock(
             side_effect=[
                 ClientError(

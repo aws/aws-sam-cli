@@ -374,7 +374,6 @@ class TestWarmContainersMultipleInvoke(TestWarmContainersBaseClass):
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_no_new_created_containers_after_lambda_function_invoke(self):
-
         initiated_containers_before_invoking_any_function = self.count_running_containers()
         result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
         initiated_containers = self.count_running_containers()
@@ -1623,7 +1622,6 @@ COPY main.py ./"""
     ],
 )
 class TestLambdaServiceWithCustomInvokeImages(StartLambdaIntegBaseClass):
-
     invoke_image = [
         "amazon/aws-sam-cli-emulation-image-python3.9",
         "HelloWorldServerlessFunction=public.ecr.aws/sam/emulation-python3.9",
