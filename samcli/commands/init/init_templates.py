@@ -129,8 +129,11 @@ class InitTemplates:
         command = [git_executable, "rev-parse", "--verify", "HEAD"]
         try:
             existing_hash = check_output(command, cwd=cache_dir, stderr=STDOUT).decode("utf-8").strip()
-        except (CalledProcessError, FileNotFoundError):
-            LOG.error("Unable to check existing cache hash")
+        except CalledProcessError:
+            LOG.debug("Unable to check existing cache hash")
+            return True
+        except FileNotFoundError:
+            LOG.debug("Cache directory does not yet exist, creating one.")
             return True
         return not existing_hash == APP_TEMPLATES_REPO_COMMIT
 
