@@ -9,7 +9,6 @@ class TestClickMutex(TestCase):
             self.message = message
 
     def setUp(self):
-
         self.click_option_patch = patch("samcli.commands._utils.click_mutex.click.Option.__init__")
         self.click_option_mock = self.click_option_patch.start()
         self.addCleanup(self.click_option_patch.stop)

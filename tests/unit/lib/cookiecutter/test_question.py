@@ -8,7 +8,6 @@ from samcli.lib.cookiecutter.question import Question, QuestionKind, Choice, Con
 
 
 class TestQuestion(TestCase):
-
     _ANY_TEXT = "any text"
     _ANY_KEY = "any key"
     _ANY_OPTIONS = ["option1", "option2", "option3"]
@@ -62,9 +61,9 @@ class TestQuestion(TestCase):
         self.assertEqual(q.default_next_question_key, self._ANY_DEFAULT_NEXT_QUESTION_KEY)
 
     def test_question_key_and_text_are_required(self):
-        with (self.assertRaises(TypeError)):
+        with self.assertRaises(TypeError):
             Question(text=self._ANY_TEXT)
-        with (self.assertRaises(TypeError)):
+        with self.assertRaises(TypeError):
             Question(key=self._ANY_KEY)
 
     def test_get_next_question_key(self):
@@ -179,11 +178,11 @@ class TestChoice(TestCase):
         self.assertEqual(self.question.text, TestQuestion._ANY_TEXT)
         self.assertEqual(self.question.key, TestQuestion._ANY_KEY)
         self.assertEqual(self.question._options, TestQuestion._ANY_OPTIONS)
-        with (self.assertRaises(TypeError)):
+        with self.assertRaises(TypeError):
             Choice(key=TestQuestion._ANY_KEY, text=TestQuestion._ANY_TEXT)
-        with (self.assertRaises(ValueError)):
+        with self.assertRaises(ValueError):
             Choice(key=TestQuestion._ANY_KEY, text=TestQuestion._ANY_TEXT, options=None)
-        with (self.assertRaises(ValueError)):
+        with self.assertRaises(ValueError):
             Choice(key=TestQuestion._ANY_KEY, text=TestQuestion._ANY_TEXT, options=[])
 
     def test_get_options_indexes_with_different_bases(self):

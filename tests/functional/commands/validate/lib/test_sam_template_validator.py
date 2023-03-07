@@ -13,7 +13,6 @@ TEMPLATE_DIR = "tests/functional/commands/validate/lib/models"
 
 
 class TestValidate(TestCase):
-
     VALID_TEST_TEMPLATES = [os.path.join(TEMPLATE_DIR, filename) for filename in os.listdir(TEMPLATE_DIR)]
 
     def test_valid_template(self):
