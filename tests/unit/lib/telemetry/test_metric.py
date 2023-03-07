@@ -210,7 +210,9 @@ class TestTrackCommand(TestCase):
                 "Must re-raise the original exception object without modification",
             )
 
-        run_metrics_mock.assert_called_with(self.context_mock, ANY, expected_exception, expected_code, ANY, exception_message)
+        run_metrics_mock.assert_called_with(
+            self.context_mock, ANY, expected_exception, expected_code, ANY, exception_message
+        )
 
     @patch("samcli.lib.telemetry.metric.Context")
     @patch("samcli.lib.telemetry.metric._send_command_run_metrics")
@@ -459,7 +461,6 @@ class TestSendCommandMetrics(TestCase):
         assert metric.get_metric_name() == "commandRun"
         self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
 
-
     @patch("samcli.lib.telemetry.metric._get_project_details")
     @patch("samcli.lib.telemetry.event.EventTracker.send_events", return_value=None)
     def test_collects_project_details(self, send_mock, project_details_mock):
@@ -516,6 +517,66 @@ class TestStackTrace(TestCase):
         stack_trace, exception_message = _get_stack_trace_info(exception)
         self.assertIsInstance(stack_trace, str)
         self.assertIsInstance(exception_message, str)
+
+    @patch("samcli.lib.telemetry.metric._clean_stack_summary_paths")
+    def test_must_clean_traceback_recursively(self, clean_path_mock: Mock):
+        def nested_failures():
+            try:
+                raise Exception("1")
+            except Exception:
+                try:
+                    raise Exception("2")
+                except Exception as ex:
+                    raise Exception("3") from ex
+
+        try:
+            nested_failures()
+        except Exception as ex:
+            stack_trace, exception_msg = _get_stack_trace_info(ex)
+            self.assertEqual(exception_msg, "Exception: 3\n")
+            self.assertEqual(clean_path_mock.call_count, 3)
+            self.assertEqual(
+                stack_trace.count("During handling of the above exception, another exception occurred:"), 1
+            )
+            self.assertEqual(
+                stack_trace.count("The above exception was the direct cause of the following exception:"), 1
+            )
+
+    def test_must_clean_traceback_recursively_with_context(self):
+        actual = Exception("TypeError")
+        nested1 = Exception("Nested1")
+        nested2 = Exception("Nested2")
+        nested1.__context__ = nested2
+        actual.__context__ = nested1
+
+        stack_trace, exception_msg = _get_stack_trace_info(actual)
+        self.assertEqual(exception_msg, "Exception: TypeError\n")
+        self.assertEqual(
+            stack_trace,
+            "Exception: Nested2\n\n"
+            "During handling of the above exception, another exception occurred:\n\n"
+            "Exception: Nested1\n\n"
+            "During handling of the above exception, another exception occurred:\n\n"
+            "Exception: TypeError\n",
+        )
+
+    def test_must_clean_traceback_recursively_with_cause(self):
+        actual = Exception("TypeError")
+        nested1 = Exception("Nested1")
+        nested2 = Exception("Nested2")
+        nested1.__context__ = nested2
+        actual.__cause__ = nested1
+
+        stack_trace, exception_msg = _get_stack_trace_info(actual)
+        self.assertEqual(exception_msg, "Exception: TypeError\n")
+        self.assertEqual(
+            stack_trace,
+            "Exception: Nested2\n\n"
+            "During handling of the above exception, another exception occurred:\n\n"
+            "Exception: Nested1\n\n"
+            "The above exception was the direct cause of the following exception:\n\n"
+            "Exception: TypeError\n",
+        )
 
     def test_must_clean_path_preceding_site_packages(self):
         stack_summary = traceback.StackSummary.from_list(

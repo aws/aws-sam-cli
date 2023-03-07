@@ -3,8 +3,8 @@ Provides methods to generate and send metrics
 """
 import logging
 import platform
-import uuid
 import traceback
+import uuid
 from dataclasses import dataclass
 from functools import reduce, wraps
 from pathlib import Path
@@ -193,7 +193,15 @@ def track_command(func):
     return wrapped
 
 
-def _send_command_run_metrics(ctx: Context, duration: int, exit_reason: str, exit_code: int, stack_trace: Optional[str], exception_message: Optional[str], **kwargs) -> None:
+def _send_command_run_metrics(
+    ctx: Context,
+    duration: int,
+    exit_reason: str,
+    exit_code: int,
+    stack_trace: Optional[str],
+    exception_message: Optional[str],
+    **kwargs,
+) -> None:
     """
     Emits metrics based on the results of a command run
 
@@ -269,6 +277,8 @@ def _get_project_details(hook_name: str, template_dict: Dict) -> ProjectDetails:
         hook_name=hook_package_config.name,
         hook_package_version=hook_package_config.version,
     )
+
+
 def _get_stack_trace_info(exception: Exception) -> Tuple[Optional[str], Optional[str]]:
     """
     Takes an Exception instance and extracts the following:
@@ -288,13 +298,25 @@ def _get_stack_trace_info(exception: Exception) -> Tuple[Optional[str], Optional
     stack_trace, exception_msg = None, None
     try:
         tb_exception = traceback.TracebackException.from_exception(exception)
-        _clean_stack_summary_paths(tb_exception.stack)
-        stack_trace = "".join(list(tb_exception.format()))
+        _clean_traceback_recursively(tb_exception)
+        stack_trace = "".join(list(tb_exception.format(chain=True)))
         exception_msg = list(tb_exception.format_exception_only())[-1]
     except Exception as ex:
         LOG.debug("failed to retrieve stack trace or exception message: %s", ex)
 
     return (stack_trace, exception_msg)
+
+
+def _clean_traceback_recursively(tbexp: traceback.TracebackException):
+    # __cause__ is populated by using `riase ... from ...` - PEP 3134
+    if tbexp.__cause__:
+        _clean_traceback_recursively(tbexp.__cause__)
+
+    # __context__ is populated by raising an exception in an except block - PEP 3134
+    if tbexp.__context__:
+        _clean_traceback_recursively(tbexp.__context__)
+
+    _clean_stack_summary_paths(tbexp.stack)
 
 
 def _clean_stack_summary_paths(stack_summary: traceback.StackSummary) -> None:
