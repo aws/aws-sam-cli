@@ -14,6 +14,7 @@ import os
 import shutil
 import tempfile
 
+from samcli.commands.init.init_templates import APP_TEMPLATES_REPO_NAME_WINDOWS, APP_TEMPLATES_REPO_NAME
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 
@@ -841,9 +842,14 @@ sam-interactive-init-app-default-runtime
 
 class TestSubsequentInitCaching(TestCase):
     def test_subsequent_init_skips_cloning(self):
+        from platform import system
+
+        os_name = system().lower()
+        cloned_folder_name = APP_TEMPLATES_REPO_NAME_WINDOWS if os_name == "windows" else APP_TEMPLATES_REPO_NAME
+
         with tempfile.TemporaryDirectory() as temp:
             project_directory = Path(temp, "sam-app")
-            cache_dir = GlobalConfig().config_dir / "aws-sam-cli-app-templates"
+            cache_dir = GlobalConfig().config_dir / cloned_folder_name
 
             # Run the first time, get cache last modification time
             self._run_init(temp)
