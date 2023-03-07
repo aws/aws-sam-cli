@@ -127,10 +127,6 @@ class TestCDKSynthesizedTemplate(InvokeIntegBase):
         self.assertEqual(environ["MyRuntimeVersion"], "v0")
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestCDKSynthesizedTemplatesImageFunctions(InvokeIntegBase):
     template = Path("cdk/cdk_template_image_functions.yaml")
     functions = [
