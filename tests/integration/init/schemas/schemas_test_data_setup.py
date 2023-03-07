@@ -28,10 +28,10 @@ class SchemaTestDataSetup(TestCase):
     @classmethod
     def setUpClass(cls):
         env = os.environ
-        cls.original_config_file = env[AWS_CONFIG_FILE] if AWS_CONFIG_FILE in env else None
-        cls.original_cred_file = env[AWS_SHARED_CREDENTIALS_FILE] if AWS_SHARED_CREDENTIALS_FILE in env else None
-        cls.original_profile = env[AWS_PROFILE] if AWS_PROFILE in env else None
-        cls.original_region = env[AWS_DEFAULT_REGION] if AWS_DEFAULT_REGION in env else None
+        cls.original_config_file = env.get(AWS_CONFIG_FILE)
+        cls.original_cred_file = env.get(AWS_SHARED_CREDENTIALS_FILE)
+        cls.original_profile = env.get(AWS_PROFILE)
+        cls.original_region = env.get(AWS_DEFAULT_REGION)
         cls.config_dir = None
 
         session = Session()
