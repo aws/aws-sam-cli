@@ -62,6 +62,16 @@ class InfraSyncResult:
     _code_sync_resources: Set[ResourceIdentifier]
 
     def __init__(self, executed: bool, code_sync_resources: Set[ResourceIdentifier] = set()) -> None:
+        """
+        Constructor
+
+        Parameters
+        ----------
+        Executed: bool
+            Infra sync execution happened or not
+        code_sync_resources: Set[ResourceIdentifier]
+            Resources that needs a code sync
+        """
         self._infra_sync_executed = executed
         self._code_sync_resources = code_sync_resources
 
@@ -72,7 +82,7 @@ class InfraSyncResult:
 
     @property
     def code_sync_resources(self) -> Set[ResourceIdentifier]:
-        """Returns a set of resource identifiers that need an infra sync"""
+        """Returns a set of resource identifiers that need a code sync"""
         return self._code_sync_resources
 
 
