@@ -381,7 +381,8 @@ def do_cli(
                             if code_sync_resources:
                                 resource_ids = [str(resource) for resource in code_sync_resources]
 
-                                LOG.info("The following resources will be code synced for an update: %s", resource_ids)
+                                LOG.info("Queuing up code sync for the resources that require an update")
+                                LOG.debug("The following resources will be code synced for an update: %s", resource_ids)
                                 execute_code_sync(
                                     template_file,
                                     build_context,

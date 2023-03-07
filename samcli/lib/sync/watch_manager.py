@@ -255,11 +255,12 @@ class WatchManager:
         resource_ids_with_code_sync: Set[ResourceIdentifier]
             The set of resource IDs to be synced
         """
+        if not self._sync_flow_factory:
+            return
         for resource_id in resource_ids_with_code_sync:
-            if self._sync_flow_factory:
-                sync_flow = self._sync_flow_factory.create_sync_flow(resource_id)
-                if sync_flow:
-                    self._sync_flow_executor.add_delayed_sync_flow(sync_flow)
+            sync_flow = self._sync_flow_factory.create_sync_flow(resource_id)
+            if sync_flow:
+                self._sync_flow_executor.add_delayed_sync_flow(sync_flow)
 
     def _on_code_change_wrapper(self, resource_id: ResourceIdentifier) -> OnChangeCallback:
         """Wrapper method that generates a callback for code changes.
