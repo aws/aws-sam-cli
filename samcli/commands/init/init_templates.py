@@ -7,6 +7,7 @@ import logging
 import os
 from enum import Enum
 from pathlib import Path
+from subprocess import STDOUT, CalledProcessError, check_output
 from typing import Dict, Optional
 
 import requests
@@ -89,6 +90,9 @@ class InitTemplates:
             os_name = system().lower()
             cloned_folder_name = APP_TEMPLATES_REPO_NAME_WINDOWS if os_name == "windows" else APP_TEMPLATES_REPO_NAME
 
+            if not self._check_upsert_templates(shared_dir, cloned_folder_name):
+                return
+
             try:
                 self._git_repo.clone(
                     clone_dir=shared_dir,
@@ -103,6 +107,38 @@ class InitTemplates:
                 expected_previous_clone_local_path: Path = shared_dir.joinpath(cloned_folder_name)
                 if expected_previous_clone_local_path.exists():
                     self._git_repo.local_path = expected_previous_clone_local_path
+
+    def _check_upsert_templates(self, shared_dir: Path, cloned_folder_name: str) -> bool:
+        """
+        Check if the app templates repository should be cloned, or if cloning should be skipped.
+
+        Parameters
+        ----------
+        shared_dir: Path
+            Folder containing the aws-sam-cli shared data
+
+        cloned_folder_name: str
+            Name of the directory into which the app templates will be copied
+
+        Returns
+        -------
+        bool
+            True if the cache should be updated, False otherwise
+
+        """
+        cache_dir = Path(shared_dir, cloned_folder_name)
+        git_executable = self._git_repo.git_executable()
+        command = [git_executable, "rev-parse", "--verify", "HEAD"]
+        try:
+            existing_hash = check_output(command, cwd=cache_dir, stderr=STDOUT).decode("utf-8").strip()
+        except CalledProcessError as ex:
+            LOG.debug(f"Unable to check existing cache hash\n{ex.output.decode('utf-8')}")
+            return True
+        except (FileNotFoundError, NotADirectoryError):
+            LOG.debug("Cache directory does not yet exist, creating one.")
+            return True
+        self._git_repo.local_path = cache_dir
+        return not existing_hash == APP_TEMPLATES_REPO_COMMIT
 
     def _init_options_from_manifest(self, package_type, runtime, base_image, dependency_manager):
         manifest_path = self.get_manifest_path()
