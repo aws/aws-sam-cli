@@ -308,8 +308,6 @@ us-east-1
             self.assertTrue(expected_output_folder.is_dir())
             self.assertTrue(Path(expected_output_folder, "hello_world_function", "schema").is_dir())
 
-            self._tear_down_custom_config()
-
     def test_init_interactive_with_event_bridge_app_non_supported_schemas_region(self):
         self._init_custom_config("default", "cn-north-1")
         # WHEN the user follows interactive init prompts
@@ -339,4 +337,3 @@ Y
             runner = CliRunner()
             result = runner.invoke(init_cmd, ["--output-dir", temp], input=user_input)
             self.assertTrue(result.exception)
-            self._tear_down_custom_config()
