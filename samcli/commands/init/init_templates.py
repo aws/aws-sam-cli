@@ -132,7 +132,7 @@ class InitTemplates:
         except CalledProcessError:
             LOG.debug("Unable to check existing cache hash")
             return True
-        except FileNotFoundError:
+        except (FileNotFoundError, NotADirectoryError):
             LOG.debug("Cache directory does not yet exist, creating one.")
             return True
         return not existing_hash == APP_TEMPLATES_REPO_COMMIT
