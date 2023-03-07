@@ -1,5 +1,8 @@
+import os
+
 from typing import List
 
+from samcli.cli.global_config import GlobalConfig
 from tests.end_to_end.test_stages import EndToEndBaseStage
 from tests.integration.delete.delete_integ_base import DeleteIntegBase
 from tests.integration.init.test_init_base import InitIntegBase
@@ -20,6 +23,13 @@ class EndToEndBase(InitIntegBase, StackOutputsIntegBase, DeleteIntegBase, SyncIn
     def setUp(self):
         super().setUp()
         self.stacks = []
+        self.config_file_dir = GlobalConfig().config_dir
+        self._create_config_dir()
+
+    def _create_config_dir(self):
+        # Init tests will lock the config dir, ensure it exists before obtaining a lock
+        if not self.config_file_dir.is_dir():
+            os.mkdir(self.config_file_dir)
 
     @staticmethod
     def _run_tests(stages: List[EndToEndBaseStage]):
