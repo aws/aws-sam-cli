@@ -137,7 +137,7 @@ jobs:
       - name: Init samdev
         run: make init
       - name: Run integration tests for ${{ matrix.tests_folder }}
-        run: pytest -vv --splits 5 --group ${{ matrix.group }} tests/integration
+        run: pytest -vv tests/integration/${{ matrix.tests_folder }}
 
   smoke-and-functional-tests:
     name: Functional & Smoke Tests / ${{ matrix.os }} / ${{ matrix.python }}
