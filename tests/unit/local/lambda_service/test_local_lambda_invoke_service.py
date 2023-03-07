@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch, ANY, call
 from samcli.local.lambda_service import local_lambda_invoke_service
 from samcli.local.lambda_service.local_lambda_invoke_service import LocalLambdaInvokeService, FunctionNamePathConverter
 from samcli.local.lambdafn.exceptions import FunctionNotFound
+from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
 
 
 class TestLocalLambdaService(TestCase):
@@ -50,7 +51,7 @@ class TestLocalLambdaService(TestCase):
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LocalLambdaInvokeService.service_response")
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LambdaOutputParser")
     def test_invoke_request_handler(self, lambda_output_parser_mock, service_response_mock):
-        lambda_output_parser_mock.get_lambda_output.return_value = "hello world", None, False
+        lambda_output_parser_mock.get_lambda_output.return_value = "hello world", False
         service_response_mock.return_value = "request response"
 
         request_mock = Mock()
@@ -89,6 +90,27 @@ class TestLocalLambdaService(TestCase):
 
         lambda_error_responses_mock.resource_not_found.assert_called_once_with("NotFound")
 
+    @patch("samcli.local.lambda_service.local_lambda_invoke_service.LambdaErrorResponses")
+    def test_invoke_request_function_contains_inline_code(self, lambda_error_responses_mock):
+        request_mock = Mock()
+        request_mock.get_data.return_value = b"{}"
+        local_lambda_invoke_service.request = request_mock
+
+        lambda_runner_mock = Mock()
+        lambda_runner_mock.invoke.side_effect = UnsupportedInlineCodeError(message="Inline code is not supported")
+
+        lambda_error_responses_mock.not_implemented_locally.return_value = "Inline code is not supported"
+
+        service = LocalLambdaInvokeService(lambda_runner=lambda_runner_mock, port=3000, host="localhost")
+
+        response = service._invoke_request_handler(function_name="FunctionWithInlineCode")
+
+        self.assertEqual(response, "Inline code is not supported")
+
+        lambda_runner_mock.invoke.assert_called_once_with("FunctionWithInlineCode", "{}", stdout=ANY, stderr=None)
+
+        lambda_error_responses_mock.not_implemented_locally.assert_called()
+
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LocalLambdaInvokeService.service_response")
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LambdaOutputParser")
     def test_request_handler_returns_process_stdout_when_making_response(
@@ -98,10 +120,9 @@ class TestLocalLambdaService(TestCase):
         request_mock.get_data.return_value = b"{}"
         local_lambda_invoke_service.request = request_mock
 
-        lambda_logs = "logs"
         lambda_response = "response"
         is_customer_error = False
-        lambda_output_parser_mock.get_lambda_output.return_value = lambda_response, lambda_logs, is_customer_error
+        lambda_output_parser_mock.get_lambda_output.return_value = lambda_response, is_customer_error
 
         service_response_mock.return_value = "request response"
 
@@ -115,9 +136,6 @@ class TestLocalLambdaService(TestCase):
 
         self.assertEqual(result, "request response")
         lambda_output_parser_mock.get_lambda_output.assert_called_with(ANY)
-
-        # Make sure the logs are written to stderr
-        stderr_mock.write.assert_called_with(lambda_logs)
 
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LambdaErrorResponses")
     def test_construct_error_handling(self, lambda_error_response_mock):
@@ -138,7 +156,7 @@ class TestLocalLambdaService(TestCase):
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LocalLambdaInvokeService.service_response")
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LambdaOutputParser")
     def test_invoke_request_handler_with_lambda_that_errors(self, lambda_output_parser_mock, service_response_mock):
-        lambda_output_parser_mock.get_lambda_output.return_value = "hello world", None, True
+        lambda_output_parser_mock.get_lambda_output.return_value = "hello world", True
         service_response_mock.return_value = "request response"
         request_mock = Mock()
         request_mock.get_data.return_value = b"{}"
@@ -159,7 +177,7 @@ class TestLocalLambdaService(TestCase):
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LocalLambdaInvokeService.service_response")
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LambdaOutputParser")
     def test_invoke_request_handler_with_no_data(self, lambda_output_parser_mock, service_response_mock):
-        lambda_output_parser_mock.get_lambda_output.return_value = "hello world", None, False
+        lambda_output_parser_mock.get_lambda_output.return_value = "hello world", False
         service_response_mock.return_value = "request response"
 
         request_mock = Mock()

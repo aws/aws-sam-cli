@@ -13,12 +13,10 @@ from samcli.lib.utils.osutils import rmtree_if_exists
 
 class Test_mkdir_temp(TestCase):
     def test_must_return_temp_dir(self):
-
         with osutils.mkdir_temp() as tempdir:
             self.assertTrue(os.path.exists(tempdir))
 
     def test_must_delete_temp_dir_after_use(self):
-
         dir_name = None
         with osutils.mkdir_temp() as tempdir:
             dir_name = tempdir
@@ -44,7 +42,6 @@ class Test_mkdir_temp(TestCase):
 
 class Test_stderr(TestCase):
     def test_must_return_sys_stderr(self):
-
         expected_stderr = sys.stderr
 
         if sys.version_info.major > 2:
@@ -55,7 +52,6 @@ class Test_stderr(TestCase):
 
 class Test_stdout(TestCase):
     def test_must_return_sys_stdout(self):
-
         expected_stdout = sys.stdout
 
         if sys.version_info.major > 2:

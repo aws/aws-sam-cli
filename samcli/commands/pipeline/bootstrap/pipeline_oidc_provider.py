@@ -3,14 +3,14 @@ Represents a pipeline OIDC provider
 """
 from abc import abstractmethod
 from typing import List
-import click
-from samcli.commands.pipeline.bootstrap.guided_context import BITBUCKET, GITHUB_ACTIONS, GITLAB
 
+import click
+
+from samcli.commands.pipeline.bootstrap.guided_context import BITBUCKET, GITHUB_ACTIONS, GITLAB
 from samcli.lib.config.samconfig import SamConfig
 
 
 class PipelineOidcProvider:
-
     PROVIDER_URL_PARAMETER = "oidc-provider-url"
     CLIENT_ID_PARAMETER = "oidc-client-id"
     OPENID_CONNECT = "OpenID Connect (OIDC)"

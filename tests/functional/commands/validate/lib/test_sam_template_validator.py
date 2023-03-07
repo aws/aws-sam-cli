@@ -5,7 +5,7 @@ from parameterized import parameterized
 
 import samcli.yamlhelper as yamlhelper
 
-from samcli.commands.validate.lib.sam_template_validator import SamTemplateValidator
+from samcli.lib.translate.sam_template_validator import SamTemplateValidator
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 
 # Out of TestValidate's scope because https://stackoverflow.com/a/47224266
@@ -13,7 +13,6 @@ TEMPLATE_DIR = "tests/functional/commands/validate/lib/models"
 
 
 class TestValidate(TestCase):
-
     VALID_TEST_TEMPLATES = [os.path.join(TEMPLATE_DIR, filename) for filename in os.listdir(TEMPLATE_DIR)]
 
     def test_valid_template(self):
@@ -39,7 +38,7 @@ class TestValidate(TestCase):
         validator = SamTemplateValidator(template, managed_policy_mock, region="us-east-1")
 
         # Should not throw an exception
-        validator.is_valid()
+        validator.get_translated_template_if_valid()
 
     def test_invalid_template(self):
         template = {
@@ -59,7 +58,7 @@ class TestValidate(TestCase):
         validator = SamTemplateValidator(template, managed_policy_mock, region="us-east-1")
 
         with self.assertRaises(InvalidSamDocumentException):
-            validator.is_valid()
+            validator.get_translated_template_if_valid()
 
     def test_valid_template_with_local_code_for_function(self):
         template = {
@@ -79,7 +78,7 @@ class TestValidate(TestCase):
         validator = SamTemplateValidator(template, managed_policy_mock, region="us-east-1")
 
         # Should not throw an exception
-        validator.is_valid()
+        validator.get_translated_template_if_valid()
 
     def test_valid_template_with_local_code_for_layer_version(self):
         template = {
@@ -96,7 +95,7 @@ class TestValidate(TestCase):
         validator = SamTemplateValidator(template, managed_policy_mock, region="us-east-1")
 
         # Should not throw an exception
-        validator.is_valid()
+        validator.get_translated_template_if_valid()
 
     def test_valid_template_with_local_code_for_api(self):
         template = {
@@ -116,7 +115,7 @@ class TestValidate(TestCase):
         validator = SamTemplateValidator(template, managed_policy_mock, region="us-east-1")
 
         # Should not throw an exception
-        validator.is_valid()
+        validator.get_translated_template_if_valid()
 
     def test_valid_template_with_DefinitionBody_for_api(self):
         template = {
@@ -136,7 +135,7 @@ class TestValidate(TestCase):
         validator = SamTemplateValidator(template, managed_policy_mock, region="us-east-1")
 
         # Should not throw an exception
-        validator.is_valid()
+        validator.get_translated_template_if_valid()
 
     def test_valid_template_with_s3_object_passed(self):
         template = {
@@ -168,7 +167,7 @@ class TestValidate(TestCase):
         validator = SamTemplateValidator(template, managed_policy_mock, region="us-east-1")
 
         # Should not throw an exception
-        validator.is_valid()
+        validator.get_translated_template_if_valid()
 
         # validate the CodeUri was not changed
         self.assertEqual(
@@ -190,4 +189,4 @@ class TestValidate(TestCase):
         validator = SamTemplateValidator(template, managed_policy_mock, region="us-east-1")
 
         # Should not throw an exception
-        validator.is_valid()
+        validator.get_translated_template_if_valid()

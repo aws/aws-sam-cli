@@ -1,22 +1,22 @@
 """
 Representation of a generic Docker container
 """
-import os
 import logging
-import tarfile
+import os
+import socket
 import tempfile
 import threading
-import socket
 import time
 
 import docker
 import requests
-
 from docker.errors import NotFound as DockerNetworkNotFound
-from samcli.lib.utils.retry import retry
-from .exceptions import ContainerNotStartableException
 
-from .utils import to_posix_path, find_free_port, NoFreePortsError
+from samcli.lib.utils.retry import retry
+from samcli.lib.utils.tar import extract_tarfile
+
+from .exceptions import ContainerNotStartableException
+from .utils import NoFreePortsError, find_free_port, to_posix_path
 
 LOG = logging.getLogger(__name__)
 
@@ -319,7 +319,6 @@ class Container:
             timer.cancel()
 
     def wait_for_logs(self, stdout=None, stderr=None):
-
         # Return instantly if we don't have to fetch any logs
         if not stdout and not stderr:
             return
@@ -362,7 +361,8 @@ class Container:
         a_socket.close()
         return connection_succeeded
 
-    def copy(self, from_container_path, to_host_path):
+    def copy(self, from_container_path, to_host_path) -> None:
+        """Copies a path from container into host path"""
 
         if not self.is_created():
             raise RuntimeError("Container does not exist. Cannot get logs for this container")
@@ -378,8 +378,7 @@ class Container:
             # Seek the handle back to start of file for tarfile to use
             fp.seek(0)
 
-            with tarfile.open(fileobj=fp, mode="r") as tar:
-                tar.extractall(path=to_host_path)
+            extract_tarfile(file_obj=fp, unpack_dir=to_host_path)
 
     @staticmethod
     def _write_container_output(output_itr, stdout=None, stderr=None):

@@ -12,7 +12,6 @@ from samcli.commands.local.lib.swagger.reader import parse_aws_include_transform
 
 class TestParseAwsIncludeTransform(TestCase):
     def test_must_return_location(self):
-
         data = {"Fn::Transform": {"Name": "AWS::Include", "Parameters": {"Location": "s3://bucket/swagger.yaml"}}}
 
         expected = "s3://bucket/swagger.yaml"
@@ -42,7 +41,6 @@ class TestParseAwsIncludeTransform(TestCase):
 
 class TestSamSwaggerReader_init(TestCase):
     def test_definition_body_and_uri_required(self):
-
         with self.assertRaises(ValueError):
             SwaggerReader()
 
@@ -144,7 +142,6 @@ class TestSamSwaggerReader_download_swagger(TestCase):
 
     @patch("samcli.commands.local.lib.swagger.reader.yaml_parse")
     def test_must_skip_non_s3_dictionaries(self, yaml_parse_mock):
-
         location = {"some": "value"}
 
         reader = SwaggerReader(definition_uri=location)
@@ -207,7 +204,6 @@ class TestSamSwaggerReader_download_swagger(TestCase):
         yaml_parse_mock.assert_not_called()
 
     def test_with_invalid_location(self):
-
         reader = SwaggerReader(definition_uri="something")
         actual = reader._download_swagger({})
 
@@ -223,7 +219,6 @@ class TestSamSwaggerReaderDownloadFromS3(TestCase):
     @patch("samcli.commands.local.lib.swagger.reader.boto3")
     @patch("samcli.commands.local.lib.swagger.reader.tempfile")
     def test_must_download_file_from_s3(self, tempfilemock, botomock):
-
         s3_mock = Mock()
         botomock.client.return_value = s3_mock
 
@@ -260,7 +255,6 @@ class TestSamSwaggerReaderDownloadFromS3(TestCase):
     @patch("samcli.commands.local.lib.swagger.reader.boto3")
     @patch("samcli.commands.local.lib.swagger.reader.tempfile")
     def test_must_work_without_object_version_id(self, tempfilemock, botomock):
-
         s3_mock = Mock()
         botomock.client.return_value = s3_mock
 
@@ -278,7 +272,6 @@ class TestSamSwaggerReaderDownloadFromS3(TestCase):
     @patch("samcli.commands.local.lib.swagger.reader.boto3")
     @patch("samcli.commands.local.lib.swagger.reader.tempfile")
     def test_must_log_on_download_exception(self, tempfilemock, botomock):
-
         s3_mock = Mock()
         botomock.client.return_value = s3_mock
 
@@ -331,6 +324,5 @@ class TestSamSwaggerReader_parse_s3_location(TestCase):
         ]
     )
     def test_must_parse_invalid_location(self, location):
-
         result = SwaggerReader._parse_s3_location(location)
         self.assertEqual(result, (None, None, None))

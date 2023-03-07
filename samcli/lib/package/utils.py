@@ -1,22 +1,28 @@
 """
 Utilities involved in Packaging.
 """
+import contextlib
 import functools
 import logging
 import os
-import platform
 import re
 import shutil
 import tempfile
 import zipfile
-import contextlib
 from contextlib import contextmanager
-from typing import Dict, Optional, Callable, cast
+from typing import Callable, Dict, List, Optional, cast
 
 import jmespath
 
 from samcli.commands.package.exceptions import ImageNotFoundError, InvalidLocalPathError
 from samcli.lib.package.ecr_utils import is_ecr_url
+from samcli.lib.package.permissions import (
+    AdditiveDirPermissionPermissionMapper,
+    AdditiveFilePermissionPermissionMapper,
+    PermissionMapper,
+    WindowsDirPermissionPermissionMapper,
+    WindowsFilePermissionPermissionMapper,
+)
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.hash import dir_checksum
 from samcli.lib.utils.resources import LAMBDA_LOCAL_RESOURCES
@@ -229,7 +235,7 @@ def zip_folder(folder_path, zip_method):
             os.remove(zipfile_name)
 
 
-def make_zip_with_permissions(file_name, source_root, file_permissions, dir_permissions):
+def make_zip_with_permissions(file_name, source_root, permission_mappers: List[PermissionMapper]):
     """
     Create a zip file from the source directory
 
@@ -239,15 +245,15 @@ def make_zip_with_permissions(file_name, source_root, file_permissions, dir_perm
         The basename of the zip file, without .zip
     source_root : str
         The path to the source directory
-    file_permissions : int
-        The permissions set for files within the source_root
-    dir_permissions : int
-        The permissions set for directories within the source_root
+    permission_mappers : list
+        permission objects that need to match an interface such that they have an apply method
+        which takes in the external attributes of a zipfile.Zipinfo object
     Returns
     -------
     str
         The name of the zip file, including .zip extension
     """
+    permission_mappers = permission_mappers or []
     zipfile_name = "{0}.zip".format(file_name)
     source_root = os.path.abspath(source_root)
     compression_type = zipfile.ZIP_DEFLATED
@@ -266,12 +272,21 @@ def make_zip_with_permissions(file_name, source_root, file_permissions, dir_perm
                         # https://github.com/aws/aws-sam-cli/pull/2193#discussion_r513110608
                         # Changed to 0755 due to a regression in https://github.com/aws/aws-sam-cli/issues/2344
                         # Final PR: https://github.com/aws/aws-sam-cli/pull/2356/files
-                        if file_permissions and dir_permissions:
-                            # Clear external attr
-                            info.external_attr = 0
+                        if permission_mappers:
                             # Set host OS to Unix
                             info.create_system = 3
-                            info.external_attr = dir_permissions << 16 if info.is_dir() else file_permissions << 16
+                            # Set current permission of the file/dir to ZipInfo's external_attr
+                            info.external_attr = os.stat(full_path).st_mode << 16
+                            for permission_mapper in permission_mappers:
+                                info = permission_mapper.apply(info)
+                            # ZIP date time can be set to the last time the zip content was modified using this logic.
+                            # info.date_time = time.localtime()[0:6]
+
+                            # If the date time above is added, the caching logic that compares ZIP files sha will break.
+                            # Currently we skip executing sync flows for sam sync command when the logic ZIP hash is
+                            # the same as the remote lambda ZIP hash. A timestamp will make the evaluation always false.
+                            # However, without this field, contents of the zip file will have a last modified date 1980
+                            # because python's zipfile.ZipInfo is set to: https://docs.python.org/3/library/zipfile.html.
                             zf.writestr(info, file_bytes, compress_type=compression_type)
                         else:
                             zf.write(full_path, relative_path)
@@ -281,18 +296,24 @@ def make_zip_with_permissions(file_name, source_root, file_permissions, dir_perm
 
 make_zip = functools.partial(
     make_zip_with_permissions,
-    file_permissions=0o100755 if platform.system().lower() == "windows" else None,
-    dir_permissions=0o100755 if platform.system().lower() == "windows" else None,
+    permission_mappers=[
+        WindowsFilePermissionPermissionMapper(permissions=0o100755),
+        WindowsDirPermissionPermissionMapper(permissions=0o100755),
+    ],
 )
-# Context: Nov 2022
-# NOTE(sriram-mv): Modify permissions regardless of the Operating system, since
-# AWS Lambda requires following permissions as referenced in docs:
-# https://aws.amazon.com/premiumsupport/knowledge-center/lambda-deployment-package-errors/
-# For backward compatibility with windows, setting the permissions to be 755.
+# Context: Jan 2023
+# NOTE(sriram-mv): Modify permissions regardless of the Operating system
+# to add 111 for directories and 444 for files in addition to existing permissions.
+# No overriding explicit permissions are set.
+# Extended Attributes are preserved.
 make_zip_with_lambda_permissions = functools.partial(
     make_zip_with_permissions,
-    file_permissions=0o100755 if platform.system().lower() == "windows" else 0o100644,
-    dir_permissions=0o100755,
+    permission_mappers=[
+        WindowsFilePermissionPermissionMapper(permissions=0o100755),
+        WindowsDirPermissionPermissionMapper(permissions=0o100755),
+        AdditiveFilePermissionPermissionMapper(permissions=0o100444),
+        AdditiveDirPermissionPermissionMapper(permissions=0o100111),
+    ],
 )
 
 

@@ -2,7 +2,6 @@
 Factory for creating CodeResourceTriggers
 """
 import logging
-
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, cast
 

@@ -1,6 +1,8 @@
 from unittest import TestCase
 from unittest.mock import MagicMock, patch, Mock
 
+from parameterized import parameterized
+
 from samcli.lib.sync.sync_flow_factory import SyncCodeResources, SyncFlowFactory
 from samcli.lib.utils.cloudformation import CloudFormationResourceSummary
 from samcli.lib.utils.resources import (
@@ -36,6 +38,7 @@ class TestSyncFlowFactory(TestCase):
         factory = SyncFlowFactory(
             build_context=MagicMock(),
             deploy_context=MagicMock(),
+            sync_context=MagicMock(),
             stacks=[stack_resource, MagicMock()],
             auto_dependency_layer=auto_dependency_layer,
         )
@@ -105,8 +108,43 @@ class TestSyncFlowFactory(TestCase):
     @patch("samcli.lib.sync.sync_flow_factory.LayerSyncFlow")
     def test_create_layer_flow(self, layer_sync_mock):
         factory = self.create_factory()
+        # mock layer for not having SkipBuild:True
+        factory._build_context.layer_provider.get.return_value = Mock(skip_build=False)
         result = factory._create_layer_flow("Layer1", {})
         self.assertEqual(result, layer_sync_mock.return_value)
+
+    @parameterized.expand([(Mock(build_method=None),), (Mock(skip_build=True),)])
+    @patch("samcli.lib.sync.sync_flow_factory.LayerSyncFlowSkipBuildDirectory")
+    @patch("samcli.lib.sync.sync_flow_factory.is_local_folder")
+    def test_create_layer_flow_with_skip_build_directory(self, layer_mock, is_local_folder_mock, layer_sync_mock):
+        factory = self.create_factory()
+        # mock layer return to have no build method
+        factory._build_context.layer_provider.get.return_value = layer_mock
+        # codeuri should resolve as directory
+        is_local_folder_mock.return_value = True
+        result = factory._create_layer_flow("Layer1", {})
+        self.assertEqual(result, layer_sync_mock.return_value)
+
+    @parameterized.expand([(Mock(build_method=None),), (Mock(skip_build=True),)])
+    @patch("samcli.lib.sync.sync_flow_factory.LayerSyncFlowSkipBuildZipFile")
+    @patch("samcli.lib.sync.sync_flow_factory.is_local_folder")
+    @patch("samcli.lib.sync.sync_flow_factory.is_zip_file")
+    def test_create_layer_flow_with_skip_build_zip(
+        self, layer_mock, is_zip_file_mock, is_local_folder_mock, layer_sync_mock
+    ):
+        factory = self.create_factory()
+        factory._build_context.layer_provider.get.return_value = layer_mock
+        # codeuri should resolve as zip file
+        is_local_folder_mock.return_value = False
+        is_zip_file_mock.return_value = True
+        result = factory._create_layer_flow("Layer1", {})
+        self.assertEqual(result, layer_sync_mock.return_value)
+
+    def test_create_layer_flow_with_no_layer(self):
+        factory = self.create_factory()
+        factory._build_context.layer_provider.get.return_value = None
+        result = factory._create_layer_flow("Layer1", {})
+        self.assertIsNone(result)
 
     @patch("samcli.lib.sync.sync_flow_factory.ImageFunctionSyncFlow")
     @patch("samcli.lib.sync.sync_flow_factory.ZipFunctionSyncFlow")

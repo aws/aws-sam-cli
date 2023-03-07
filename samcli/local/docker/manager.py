@@ -3,7 +3,6 @@ Provides classes that interface with Docker to create, execute and manage contai
 """
 
 import logging
-
 import sys
 import threading
 
@@ -79,7 +78,7 @@ class ContainerManager:
         if is_image_local and self.skip_pull_image:
             LOG.info("Requested to skip pulling images ...\n")
         elif image_name.startswith("samcli/lambda") or (is_image_local and LambdaImage.is_rapid_image(image_name)):
-            LOG.info("Skip pulling image and use local one: %s.\n", image_name)
+            LOG.info("Using local image: %s.\n", image_name)
         else:
             try:
                 self.pull_image(image_name)

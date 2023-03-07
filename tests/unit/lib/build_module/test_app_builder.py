@@ -460,7 +460,7 @@ class TestApplicationBuilder_build(TestCase):
         msg = "Function name property Architectures should be a list of length 1"
         self.assertEqual(str(ex.exception), msg)
 
-    @parameterized.expand([("python2.7",), ("ruby2.5",), ("nodejs10.x",), ("dotnetcore2.1",)])
+    @parameterized.expand([("python2.7",), ("python3.6",), ("ruby2.5",), ("nodejs10.x",), ("dotnetcore2.1",)])
     def test_deprecated_runtimes(self, runtime):
         with self.assertRaises(UnsupportedRuntimeException):
             self.builder._build_function(
@@ -2365,7 +2365,13 @@ class TestApplicationBuilder_build_function(TestCase):
 class TestApplicationBuilder_build_function_in_process(TestCase):
     def setUp(self):
         self.builder = ApplicationBuilder(
-            Mock(), "/build/dir", "/base/dir", "/cache/dir", mode="mode", stream_writer=StreamWriter(sys.stderr)
+            Mock(),
+            "/build/dir",
+            "/base/dir",
+            "/cache/dir",
+            mode="mode",
+            stream_writer=StreamWriter(sys.stderr),
+            build_in_source=False,
         )
 
     def tearDown(self):
@@ -2420,6 +2426,7 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
             combine_dependencies=True,
             is_building_layer=False,
             experimental_flags=experimental_flags,
+            build_in_source=False,
         )
 
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
@@ -2484,6 +2491,7 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
                     combine_dependencies=True,
                     is_building_layer=True,
                     experimental_flags=["A", "B", "C"],
+                    build_in_source=False,
                 )
             ]
         )
@@ -2500,6 +2508,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
             container_manager=self.container_manager,
             mode="mode",
             stream_writer=StreamWriter(sys.stderr),
+            build_in_source=False,
         )
         self.builder._parse_builder_response = Mock()
 
@@ -2550,6 +2559,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
             mode="mode",
             env_vars={},
             is_building_layer=False,
+            build_in_source=False,
         )
 
         self.container_manager.run.assert_called_with(container_mock)
@@ -2717,6 +2727,7 @@ class TestApplicationBuilder_get_build_options(TestCase):
             ("nodejs", "npm", {"UseNpmCi": True}, {"use_npm_ci": True}),
             ("esbuild", "npm-esbuild", {"UseNpmCi": True}, {"entry_points": ["app"], "use_npm_ci": True}),
             ("provided", "", {}, {"build_logical_id": "Function"}),
+            ("rust", "cargo", {"Binary": "hello_world"}, {"artifact_executable_name": "hello_world"}),
         ]
     )
     def test_get_options_various_languages_dependency_managers(

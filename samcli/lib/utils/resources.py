@@ -20,11 +20,15 @@ AWS_APIGATEWAY_STAGE = "AWS::ApiGateway::Stage"
 AWS_APIGATEWAY_RESOURCE = "AWS::ApiGateway::Resource"
 AWS_APIGATEWAY_METHOD = "AWS::ApiGateway::Method"
 AWS_APIGATEWAY_DEPLOYMENT = "AWS::ApiGateway::Deployment"
+AWS_APIGATEWAY_BASE_PATH_MAPPING = "AWS::ApiGateway::BasePathMapping"
+AWS_APIGATWAY_DOMAIN_NAME = "AWS::ApiGateway::DomainName"
 
 AWS_APIGATEWAY_V2_API = "AWS::ApiGatewayV2::Api"
 AWS_APIGATEWAY_V2_INTEGRATION = "AWS::ApiGatewayV2::Integration"
 AWS_APIGATEWAY_V2_ROUTE = "AWS::ApiGatewayV2::Route"
 AWS_APIGATEWAY_V2_STAGE = "AWS::ApiGatewayV2::Stage"
+AWS_APIGATEWAY_v2_BASE_PATH_MAPPING = "AWS::ApiGatewayV2::ApiMapping"
+AWS_APIGATEWAY_V2_DOMAIN_NAME = "AWS::ApiGatewayV2::DomainName"
 
 # SFN
 AWS_SERVERLESS_STATEMACHINE = "AWS::Serverless::StateMachine"
@@ -60,8 +64,12 @@ RESOURCES_WITH_LOCAL_PATHS = {
     AWS_SERVERLESS_HTTPAPI: ["DefinitionUri"],
     AWS_SERVERLESS_STATEMACHINE: ["DefinitionUri"],
     AWS_APPSYNC_GRAPHQLSCHEMA: ["DefinitionS3Location"],
-    AWS_APPSYNC_RESOLVER: ["RequestMappingTemplateS3Location", "ResponseMappingTemplateS3Location"],
-    AWS_APPSYNC_FUNCTIONCONFIGURATION: ["RequestMappingTemplateS3Location", "ResponseMappingTemplateS3Location"],
+    AWS_APPSYNC_RESOLVER: ["RequestMappingTemplateS3Location", "ResponseMappingTemplateS3Location", "CodeS3Location"],
+    AWS_APPSYNC_FUNCTIONCONFIGURATION: [
+        "RequestMappingTemplateS3Location",
+        "ResponseMappingTemplateS3Location",
+        "CodeS3Location",
+    ],
     AWS_LAMBDA_FUNCTION: ["Code"],
     AWS_APIGATEWAY_RESTAPI: ["BodyS3Location"],
     AWS_APIGATEWAY_V2_API: ["BodyS3Location"],
@@ -94,6 +102,23 @@ LAMBDA_LOCAL_RESOURCES = [
     AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_LAYERVERSION,
 ]
+
+CODE_SYNCABLE_RESOURCES = [
+    AWS_SERVERLESS_FUNCTION,
+    AWS_LAMBDA_FUNCTION,
+    AWS_SERVERLESS_LAYERVERSION,
+    AWS_LAMBDA_LAYERVERSION,
+    AWS_SERVERLESS_API,
+    AWS_APIGATEWAY_RESTAPI,
+    AWS_SERVERLESS_HTTPAPI,
+    AWS_APIGATEWAY_V2_API,
+    AWS_SERVERLESS_STATEMACHINE,
+    AWS_STEPFUNCTIONS_STATEMACHINE,
+]
+
+SYNCABLE_STACK_RESOURCES = [AWS_SERVERLESS_APPLICATION, AWS_CLOUDFORMATION_STACK]
+
+AWS_LAMBDA_FUNCTION_URL = "AWS::Lambda::Url"
 
 
 def get_packageable_resource_paths():

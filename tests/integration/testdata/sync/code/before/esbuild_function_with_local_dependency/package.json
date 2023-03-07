@@ -1,0 +1,13 @@
+{
+    "name": "hello_world",
+    "version": "1.0.0",
+    "description": "hello world sample for NodeJS",
+    "main": "app.js",
+    "author": "SAM CLI",
+    "license": "MIT",
+    "dependencies": {
+      "esbuild": "^0.14.51",
+      "local-dependency": "file:../esbuild_function"
+    }
+  }
+  

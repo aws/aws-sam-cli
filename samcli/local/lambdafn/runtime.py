@@ -2,21 +2,22 @@
 Classes representing a local Lambda runtime
 """
 import copy
+import logging
 import os
 import shutil
-import tempfile
 import signal
-import logging
+import tempfile
 import threading
-from typing import Optional, Union, Dict
+from typing import Dict, Optional, Union
 
-from samcli.local.docker.lambda_container import LambdaContainer
+from samcli.lib.telemetry.metric import capture_parameter
 from samcli.lib.utils.file_observer import LambdaFunctionObserver
 from samcli.lib.utils.packagetype import ZIP
-from samcli.lib.telemetry.metric import capture_parameter
-from .zip import unzip
+from samcli.local.docker.lambda_container import LambdaContainer
+
 from ...lib.providers.provider import LayerVersion
 from ...lib.utils.stream_writer import StreamWriter
+from .zip import unzip
 
 LOG = logging.getLogger(__name__)
 
@@ -70,6 +71,17 @@ class LambdaRuntime:
 
         code_dir = self._get_code_dir(function_config.code_abs_path)
         layers = [self._unarchived_layer(layer) for layer in function_config.layers]
+        if function_config.runtime_management_config and function_config.runtime_management_config.get(
+            "RuntimeVersionArn"
+        ):
+            sam_accelerate_link = "https://s12d.com/accelerate"
+            LOG.info(
+                "This function will be invoked using the latest available runtime, which may differ from your "
+                "Runtime Management Configuration. To test this function with a pinned runtime, test on AWS with "
+                "`sam sync -–help`. Learn more here: %s",
+                sam_accelerate_link,
+            )
+
         container = LambdaContainer(
             function_config.runtime,
             function_config.imageuri,

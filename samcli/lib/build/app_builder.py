@@ -100,6 +100,7 @@ class ApplicationBuilder:
         container_env_var_file: Optional[str] = None,
         build_images: Optional[Dict] = None,
         combine_dependencies: bool = True,
+        build_in_source: Optional[bool] = None,
     ) -> None:
         """
         Initialize the class
@@ -141,6 +142,8 @@ class ApplicationBuilder:
         combine_dependencies: bool
             An optional bool parameter to inform lambda builders whether we should separate the source code and
             dependencies or not.
+        build_in_source: Optional[bool]
+            Set to True to build in the source directory.
         """
         self._resources_to_build = resources_to_build
         self._build_dir = build_dir
@@ -162,6 +165,7 @@ class ApplicationBuilder:
         self._container_env_var_file = container_env_var_file
         self._build_images = build_images or {}
         self._combine_dependencies = combine_dependencies
+        self._build_in_source = build_in_source
 
     def build(self) -> ApplicationBuildResult:
         """
@@ -773,6 +777,10 @@ class ApplicationBuilder:
             )
             if working_directory:
                 options = {**options, "working_directory": convert_path_to_unix_path(working_directory)}
+
+        if language == "rust" and "Binary" in build_props:
+            options = options if options else {}
+            options["artifact_executable_name"] = build_props["Binary"]
         return options
 
     @staticmethod
@@ -832,7 +840,6 @@ class ApplicationBuilder:
         combine_dependencies: bool,
         is_building_layer: bool = False,
     ) -> str:
-
         builder = LambdaBuilder(
             language=config.language,
             dependency_manager=config.dependency_manager,
@@ -857,6 +864,7 @@ class ApplicationBuilder:
                 combine_dependencies=combine_dependencies,
                 is_building_layer=is_building_layer,
                 experimental_flags=get_enabled_experimental_flags(),
+                build_in_source=self._build_in_source,
             )
         except LambdaBuilderError as ex:
             raise BuildError(wrapped_from=ex.__class__.__name__, msg=str(ex)) from ex
@@ -911,6 +919,7 @@ class ApplicationBuilder:
             env_vars=container_env_vars,
             image=build_image,
             is_building_layer=is_building_layer,
+            build_in_source=self._build_in_source,
         )
 
         try:
@@ -948,13 +957,12 @@ class ApplicationBuilder:
 
     @staticmethod
     def _parse_builder_response(stdout_data: str, image_name: str) -> Dict:
-
         try:
             response = json.loads(stdout_data)
         except Exception:
             # Invalid JSON is produced as an output only when the builder process crashed for some reason.
             # Report this as a crash
-            LOG.debug("Builder crashed")
+            LOG.error("Builder crashed: %s", stdout_data)
             raise
 
         if "error" in response:

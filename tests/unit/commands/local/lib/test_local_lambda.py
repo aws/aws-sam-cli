@@ -18,7 +18,7 @@ from samcli.commands.local.lib.exceptions import (
     OverridesNotWellDefinedError,
     NoPrivilegeException,
     InvalidIntermediateImageError,
-    UnsupportedRuntimeArchitectureError,
+    UnsupportedInlineCodeError,
 )
 
 
@@ -251,6 +251,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             architectures=[X86_64],
             codesign_config_arn=None,
             function_url_config=None,
+            runtime_management_config=None,
         )
 
         self.local_lambda.env_vars_values = env_vars_values
@@ -303,6 +304,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             architectures=[X86_64],
             codesign_config_arn=None,
             function_url_config=None,
+            runtime_management_config=None,
         )
 
         self.local_lambda.env_vars_values = env_vars_values
@@ -345,6 +347,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             architectures=[X86_64],
             codesign_config_arn=None,
             function_url_config=None,
+            runtime_management_config=None,
         )
 
         self.local_lambda.env_vars_values = {}
@@ -423,6 +426,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             architectures=[ARM64],
             codesign_config_arn=None,
             function_url_config=None,
+            runtime_management_config=None,
         )
 
         config = "someconfig"
@@ -444,6 +448,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             env_vars=env_vars,
             architecture=ARM64,
             full_path=function.full_path,
+            runtime_management_config=function.runtime_management_config,
         )
 
         resolve_code_path_patch.assert_called_with(self.cwd, function.codeuri)
@@ -489,6 +494,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             architectures=[X86_64],
             function_url_config=None,
             codesign_config_arn=None,
+            runtime_management_config=None,
         )
 
         config = "someconfig"
@@ -510,6 +516,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             env_vars=env_vars,
             architecture=X86_64,
             full_path=function.full_path,
+            runtime_management_config=function.runtime_management_config,
         )
 
         resolve_code_path_patch.assert_called_with(self.cwd, "codeuri")
@@ -565,7 +572,7 @@ class TestLocalLambda_invoke(TestCase):
         event = "event"
         stdout = "stdout"
         stderr = "stderr"
-        function = Mock(functionname="name", handler="app.handler", runtime="test", packagetype=ZIP)
+        function = Mock(functionname="name", handler="app.handler", runtime="test", packagetype=ZIP, inlinecode=None)
         invoke_config = "config"
 
         self.function_provider_mock.get.return_value = function
@@ -677,6 +684,25 @@ class TestLocalLambda_invoke(TestCase):
         self.function_provider_mock.get.return_value = function
 
         with self.assertRaises(InvalidIntermediateImageError):
+            self.local_lambda.invoke(name, event, stdout, stderr)
+
+    def test_must_raise_unsupported_error_if_inlinecode_found(self):
+        name = "name"
+        event = "event"
+        stdout = "stdout"
+        stderr = "stderr"
+        function = Mock(
+            functionname="name",
+            handler="app.handler",
+            runtime="test",
+            packagetype=ZIP,
+            inlinecode="| \
+        exports.handler = async () => 'Hello World!'",
+        )
+
+        self.function_provider_mock.get.return_value = function
+
+        with self.assertRaises(UnsupportedInlineCodeError):
             self.local_lambda.invoke(name, event, stdout, stderr)
 
 

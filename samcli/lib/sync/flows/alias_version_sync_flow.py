@@ -1,13 +1,15 @@
 """SyncFlow for Lambda Function Alias and Version"""
 import logging
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from samcli.lib.providers.provider import Stack
-from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall
+from samcli.lib.sync.sync_flow import ResourceAPICall, SyncFlow
+from samcli.lib.utils.hash import str_checksum
 
 if TYPE_CHECKING:  # pragma: no cover
-    from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
+    from samcli.commands.deploy.deploy_context import DeployContext
+    from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)
 
@@ -27,6 +29,7 @@ class AliasVersionSyncFlow(SyncFlow):
         alias_name: str,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         stacks: Optional[List[Stack]] = None,
     ):
@@ -41,6 +44,8 @@ class AliasVersionSyncFlow(SyncFlow):
             BuildContext
         deploy_context : DeployContext
             DeployContext
+        sync_context: SyncContext
+            SyncContext object that obtains sync information.
         physical_id_mapping : Dict[str, str]
             Physical ID Mapping
         stacks : Optional[List[Stack]]
@@ -49,6 +54,7 @@ class AliasVersionSyncFlow(SyncFlow):
         super().__init__(
             build_context,
             deploy_context,
+            sync_context,
             physical_id_mapping,
             log_name=f"Alias {alias_name} and Version of {function_identifier}",
             stacks=stacks,
@@ -57,6 +63,16 @@ class AliasVersionSyncFlow(SyncFlow):
         self._alias_name = alias_name
         self._lambda_client = None
 
+    @property
+    def sync_state_identifier(self) -> str:
+        """
+        Sync state is the unique identifier for each sync flow
+        In sync state toml file we will store
+        Key as AliasVersionSyncFlow:FunctionLogicalId:AliasName
+        Value as alias version number
+        """
+        return self.__class__.__name__ + ":" + self._function_identifier + ":" + self._alias_name
+
     def set_up(self) -> None:
         super().set_up()
         self._lambda_client = self._boto_client("lambda")
@@ -64,12 +80,16 @@ class AliasVersionSyncFlow(SyncFlow):
     def gather_resources(self) -> None:
         pass
 
+    def compare_local(self) -> bool:
+        return False
+
     def compare_remote(self) -> bool:
         return False
 
     def sync(self) -> None:
         function_physical_id = self.get_physical_id(self._function_identifier)
         version = self._lambda_client.publish_version(FunctionName=function_physical_id).get("Version")
+        self._local_sha = str_checksum(str(version))
         LOG.debug("%sCreated new function version: %s", self.log_prefix, version)
         if version:
             self._lambda_client.update_alias(

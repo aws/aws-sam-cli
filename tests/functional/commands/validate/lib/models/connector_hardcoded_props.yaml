@@ -1,5 +1,3 @@
-%YAML 1.1
----
 Transform: AWS::Serverless-2016-10-31
 Resources:
   # Intentionally not complete
@@ -71,6 +69,28 @@ Resources:
       Source:
         Type: AWS::ApiGatewayV2::Api
         ResourceId: !Ref MyApiV2
+        Qualifier: '*'
+      Destination:
+        Id: MyFunction
+      Permissions:
+      - Write
+
+  ApiV1ToLambdaWithId:
+    Type: AWS::Serverless::Connector
+    Properties:
+      Source:
+        Id: MyApiV1
+        Qualifier: Prod/GET/foobar
+      Destination:
+        Id: MyFunction
+      Permissions:
+      - Write
+
+  ApiV2ToLambdaWithId:
+    Type: AWS::Serverless::Connector
+    Properties:
+      Source:
+        Id: MyApiV2
         Qualifier: '*'
       Destination:
         Id: MyFunction

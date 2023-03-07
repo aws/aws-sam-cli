@@ -43,7 +43,7 @@ Supported Resource Types
 \b
 Supported Runtimes
 ------------------
-1. Python 3.6, 3.7, 3.8 3.9 using PIP\n
+1. Python 3.7, 3.8, 3.9 using PIP\n
 2. Nodejs 18.x, 16.x, 14.x, 12.x using NPM\n
 3. Ruby 2.7 using Bundler\n
 4. Java 8, Java 11 using Gradle and Maven\n
@@ -204,6 +204,7 @@ def cli(
         build_image,
         exclude,
         hook_name,
+        None,  # TODO: replace with build_in_source once it's added as a click option
     )  # pragma: no cover
 
 
@@ -228,6 +229,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     build_image: Optional[Tuple[str]],
     exclude: Optional[Tuple[str, ...]],
     hook_name: Optional[str],
+    build_in_source: Optional[bool],
 ) -> None:
     """
     Implementation of the ``cli`` method
@@ -272,12 +274,12 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         excluded_resources=exclude,
         aws_region=click_ctx.region,
         hook_name=hook_name,
+        build_in_source=build_in_source,
     ) as ctx:
         ctx.run()
 
 
 def _get_mode_value_from_envvar(name: str, choices: List[str]) -> Optional[str]:
-
     mode = os.environ.get(name, None)
     if not mode:
         return None

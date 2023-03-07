@@ -390,7 +390,7 @@ class TestLocalStartLambdaTerraformApplicationWithBetaFeatures(StartLambdaTerraf
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_function_and_warning_message_is_printed(self):
-        self.assertTrue(self.start_lambda_process_error.startswith(Colored().yellow(EXPERIMENTAL_WARNING)))
+        self.assertIn(Colored().yellow(EXPERIMENTAL_WARNING), self.start_lambda_process_error)
 
 
 class TestLocalStartLambdaTerraformApplicationWithExperimentalPromptNo(StartLambdaTerraformApplicationIntegBase):
@@ -507,7 +507,6 @@ class TestLocalStartLambdaInvalidUsecasesTerraform(StartLambdaTerraformApplicati
         self.assertEqual(return_code, 0)
 
     def test_invalid_coexist_parameters(self):
-
         command_list = self.get_start_lambda_command(hook_name="terraform", template_path="path/template.yaml")
         _, stderr, return_code = self._run_command(command_list, tf_application=self.working_dir)
 

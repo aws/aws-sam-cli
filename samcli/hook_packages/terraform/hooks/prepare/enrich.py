@@ -3,35 +3,34 @@ Terraform resource enrichment
 
 This module populates the values required for each of the Lambda resources
 """
-import logging
 import json
+import logging
 import os
 import re
-from typing import Dict, List, Tuple
 from json.decoder import JSONDecodeError
-from subprocess import run, CalledProcessError
-from samcli.hook_packages.terraform.lib.utils import (
-    get_sam_metadata_planned_resource_value_attribute,
-    _calculate_configuration_attribute_value_hash,
-    build_cfn_logical_id,
-)
-from samcli.hook_packages.terraform.hooks.prepare.types import SamMetadataResource
-from samcli.hook_packages.terraform.hooks.prepare.makefile_generator import (
-    generate_makefile_rule_for_lambda_resource,
-    generate_makefile,
-)
+from subprocess import CalledProcessError, run
+from typing import Dict, List, Tuple
+
 from samcli.hook_packages.terraform.hooks.prepare.constants import (
     CFN_CODE_PROPERTIES,
     SAM_METADATA_RESOURCE_NAME_ATTRIBUTE,
 )
-from samcli.hook_packages.terraform.hooks.prepare.resource_linking import _resolve_resource_attribute
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import InvalidSamMetadataPropertiesException
-from samcli.lib.utils.resources import (
-    AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
-    AWS_LAMBDA_LAYERVERSION as CFN_AWS_LAMBDA_LAYER_VERSION,
+from samcli.hook_packages.terraform.hooks.prepare.makefile_generator import (
+    generate_makefile,
+    generate_makefile_rule_for_lambda_resource,
 )
-from samcli.lib.utils.packagetype import ZIP, IMAGE
+from samcli.hook_packages.terraform.hooks.prepare.resource_linking import _resolve_resource_attribute
+from samcli.hook_packages.terraform.hooks.prepare.types import SamMetadataResource
+from samcli.hook_packages.terraform.lib.utils import (
+    _calculate_configuration_attribute_value_hash,
+    build_cfn_logical_id,
+    get_sam_metadata_planned_resource_value_attribute,
+)
 from samcli.lib.hook.exceptions import PrepareHookException
+from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION
+from samcli.lib.utils.resources import AWS_LAMBDA_LAYERVERSION as CFN_AWS_LAMBDA_LAYER_VERSION
 
 SAM_METADATA_DOCKER_TAG_ATTRIBUTE = "docker_tag"
 SAM_METADATA_DOCKER_BUILD_ARGS_ATTRIBUTE = "docker_build_args"
@@ -415,7 +414,28 @@ def _get_source_code_path(
             LOG.debug("The decoded value of the %s value is %s", src_code_attribute_name, source_code)
         except JSONDecodeError:
             LOG.debug("Source code value could not be parsed as a JSON object. Handle it as normal string value")
+            cfn_source_code_path = source_code
 
+    if isinstance(source_code, list):
+        # SAM CLI does not process multiple paths, so we will handle only the first value in this list
+        # The first value can either be a string or dict so update source_code to be the first element of the list
+        LOG.debug(
+            "Process the extracted %s as list, and get the first value as SAM CLI does not support multiple paths",
+            src_code_attribute_name,
+        )
+        if len(source_code) < 1:
+            raise InvalidSamMetadataPropertiesException(
+                f"The sam metadata resource {sam_metadata_resource_address} "
+                f"should contain the lambda function/lambda layer "
+                f"{src_code_attribute_name} in property {src_code_property_name}, and it should not be an empty list"
+            )
+        source_code = source_code[0]
+        if not source_code:
+            raise InvalidSamMetadataPropertiesException(
+                f"The sam metadata resource {sam_metadata_resource_address} "
+                f"should contain a valid lambda/lambda layer function "
+                f"{src_code_attribute_name} in property {src_code_property_name}"
+            )
     if isinstance(source_code, dict):
         LOG.debug(
             "Process the extracted %s as JSON object using the property %s",
@@ -442,25 +462,6 @@ def _get_source_code_path(
                 f"should contain a valid lambda function/lambda layer "
                 f"{src_code_attribute_name} property in property {property_path_property_name} as the "
                 f"{src_code_property_name} value is an object"
-            )
-    elif isinstance(source_code, list):
-        # SAM CLI does not process multiple paths, so we will handle only the first value in this list
-        LOG.debug(
-            "Process the extracted %s as list, and get the first value as SAM CLI does not support multiple paths",
-            src_code_attribute_name,
-        )
-        if len(source_code) < 1:
-            raise InvalidSamMetadataPropertiesException(
-                f"The sam metadata resource {sam_metadata_resource_address} "
-                f"should contain the lambda function/lambda layer "
-                f"{src_code_attribute_name} in property {src_code_property_name}, and it should not be an empty list"
-            )
-        cfn_source_code_path = source_code[0]
-        if not cfn_source_code_path:
-            raise InvalidSamMetadataPropertiesException(
-                f"The sam metadata resource {sam_metadata_resource_address} "
-                f"should contain a valid lambda/lambda layer function "
-                f"{src_code_attribute_name} in property {src_code_property_name}"
             )
     else:
         cfn_source_code_path = source_code

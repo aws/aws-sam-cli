@@ -3,7 +3,6 @@ Configures a logger
 """
 import logging
 
-
 SAM_CLI_FORMATTER = logging.Formatter("%(message)s")
 SAM_CLI_FORMATTER_WITH_TIMESTAMP = logging.Formatter("%(asctime)s | %(message)s")
 
@@ -44,7 +43,7 @@ class SamCliLogger:
         Configure a Logger with a NullHandler
 
         Useful for libraries that do not follow:
-            https://docs.python.org/3.6/howto/logging.html#configuring-logging-for-a-library
+            https://docs.python.org/3.9/howto/logging.html#configuring-logging-for-a-library
 
         Parameters
         ----------

@@ -88,7 +88,6 @@ class TestSamConfigForAllCommands(TestCase):
         config_values = {"template_file": "mytemplate.yaml"}
 
         with samconfig_parameters(["validate"], self.scratch_dir, **config_values) as config_path:
-
             from samcli.commands.validate.validate import cli
 
             LOG.debug(Path(config_path).read_text())
@@ -101,7 +100,7 @@ class TestSamConfigForAllCommands(TestCase):
                 LOG.exception("Command failed", exc_info=result.exc_info)
             self.assertIsNone(result.exception)
 
-            do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")))
+            do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")), False)
 
     @patch("samcli.commands.build.command.do_cli")
     def test_build(self, do_cli_mock):
@@ -124,7 +123,6 @@ class TestSamConfigForAllCommands(TestCase):
         }
 
         with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
-
             from samcli.commands.build.command import cli
 
             LOG.debug(Path(config_path).read_text())
@@ -157,6 +155,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "file",
                 ("",),
                 ("",),
+                None,
                 None,
             )
 
@@ -215,6 +214,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ("",),
                 ("",),
                 None,
+                None,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -236,7 +236,6 @@ class TestSamConfigForAllCommands(TestCase):
         }
 
         with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
-
             from samcli.commands.build.command import cli
 
             LOG.debug(Path(config_path).read_text())
@@ -270,6 +269,7 @@ class TestSamConfigForAllCommands(TestCase):
                 (),
                 (),
                 None,
+                None,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -290,7 +290,6 @@ class TestSamConfigForAllCommands(TestCase):
         }
 
         with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
-
             from samcli.commands.build.command import cli
 
             LOG.debug(Path(config_path).read_text())
@@ -324,6 +323,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ("Function1=image_1", "image_2"),
                 (),
                 None,
+                None,
             )
 
     @patch("samcli.commands.local.invoke.cli.do_cli")
@@ -351,7 +351,6 @@ class TestSamConfigForAllCommands(TestCase):
 
         # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
         with samconfig_parameters(["invoke"], self.scratch_dir, **config_values) as config_path:
-
             from samcli.commands.local.invoke.cli import cli
 
             LOG.debug(Path(config_path).read_text())
@@ -391,7 +390,6 @@ class TestSamConfigForAllCommands(TestCase):
 
     @patch("samcli.commands.local.start_api.cli.do_cli")
     def test_local_start_api(self, do_cli_mock):
-
         config_values = {
             "template_file": "mytemplate.yaml",
             "host": "127.0.0.1",
@@ -415,7 +413,6 @@ class TestSamConfigForAllCommands(TestCase):
 
         # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
         with samconfig_parameters(["start-api"], self.scratch_dir, **config_values) as config_path:
-
             from samcli.commands.local.start_api.cli import cli
 
             LOG.debug(Path(config_path).read_text())
@@ -456,7 +453,6 @@ class TestSamConfigForAllCommands(TestCase):
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
     def test_local_start_lambda(self, do_cli_mock):
-
         config_values = {
             "template_file": "mytemplate.yaml",
             "host": "127.0.0.1",
@@ -479,7 +475,6 @@ class TestSamConfigForAllCommands(TestCase):
 
         # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
         with samconfig_parameters(["start-lambda"], self.scratch_dir, **config_values) as config_path:
-
             from samcli.commands.local.start_lambda.cli import cli
 
             LOG.debug(Path(config_path).read_text())
@@ -547,7 +542,6 @@ class TestSamConfigForAllCommands(TestCase):
         }
 
         with samconfig_parameters(["package"], self.scratch_dir, **config_values) as config_path:
-
             from samcli.commands.package.command import cli
 
             LOG.debug(Path(config_path).read_text())
@@ -583,7 +577,6 @@ class TestSamConfigForAllCommands(TestCase):
     def test_package_with_image_repository_and_image_repositories(
         self, do_cli_mock, get_template_artifacts_format_mock
     ):
-
         get_template_artifacts_format_mock.return_value = [IMAGE]
         config_values = {
             "template_file": "mytemplate.yaml",
@@ -601,7 +594,6 @@ class TestSamConfigForAllCommands(TestCase):
         }
 
         with samconfig_parameters(["package"], self.scratch_dir, **config_values) as config_path:
-
             from samcli.commands.package.command import cli
 
             LOG.debug(Path(config_path).read_text())
@@ -615,7 +607,6 @@ class TestSamConfigForAllCommands(TestCase):
     @patch("samcli.commands._utils.options.get_template_artifacts_format")
     @patch("samcli.commands.deploy.command.do_cli")
     def test_deploy(self, do_cli_mock, template_artifacts_mock1, template_artifacts_mock2, template_artifacts_mock3):
-
         template_artifacts_mock1.return_value = [ZIP]
         template_artifacts_mock2.return_value = [ZIP]
         template_artifacts_mock3.return_value = [ZIP]
@@ -644,7 +635,6 @@ class TestSamConfigForAllCommands(TestCase):
         }
 
         with samconfig_parameters(["deploy"], self.scratch_dir, **config_values) as config_path:
-
             from samcli.commands.deploy.command import cli
 
             LOG.debug(Path(config_path).read_text())
@@ -691,7 +681,6 @@ class TestSamConfigForAllCommands(TestCase):
 
     @patch("samcli.commands.deploy.command.do_cli")
     def test_deploy_image_repositories_and_image_repository(self, do_cli_mock):
-
         config_values = {
             "template_file": "mytemplate.yaml",
             "stack_name": "mystack",
@@ -717,7 +706,6 @@ class TestSamConfigForAllCommands(TestCase):
         }
 
         with samconfig_parameters(["deploy"], self.scratch_dir, **config_values) as config_path:
-
             from samcli.commands.deploy.command import cli
 
             LOG.debug(Path(config_path).read_text())
@@ -732,7 +720,6 @@ class TestSamConfigForAllCommands(TestCase):
     def test_deploy_different_parameter_override_format(
         self, do_cli_mock, template_artifacts_mock1, template_artifacts_mock2, template_artifacts_mock3
     ):
-
         template_artifacts_mock1.return_value = [ZIP]
         template_artifacts_mock2.return_value = [ZIP]
         template_artifacts_mock3.return_value = [ZIP]
@@ -762,7 +749,6 @@ class TestSamConfigForAllCommands(TestCase):
         }
 
         with samconfig_parameters(["deploy"], self.scratch_dir, **config_values) as config_path:
-
             from samcli.commands.deploy.command import cli
 
             LOG.debug(Path(config_path).read_text())
@@ -910,8 +896,12 @@ class TestSamConfigForAllCommands(TestCase):
 
             do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")), "0.1.1")
 
-    def test_info_must_not_read_from_config(self):
+    @patch("samcli.cli.main.gather_system_info")
+    @patch("samcli.cli.main.gather_additional_dependencies_info")
+    def test_info_must_not_read_from_config(self, deps_info_mock, system_info_mock):
         config_values = {"a": "b"}
+        system_info_mock.return_value = {"Python": "1.2.3"}
+        deps_info_mock.return_value = {"dep1": "1.2.3", "dep2": "1.2.3"}
 
         with samconfig_parameters([], self.scratch_dir, **config_values) as config_path:
             from samcli.cli.main import cli
@@ -920,11 +910,10 @@ class TestSamConfigForAllCommands(TestCase):
             runner = CliRunner()
             result = runner.invoke(cli, ["--info"])
 
-            LOG.info(result.exception)
+            LOG.info("exception: %s", result.exception)
             if result.exception:
                 LOG.exception("Command failed", exc_info=result.exc_info)
             self.assertIsNone(result.exception)
-
             info_result = json.loads(result.output)
             self.assertTrue("version" in info_result)
 
@@ -943,7 +932,6 @@ class TestSamConfigForAllCommands(TestCase):
         is_all_image_funcs_provided_mock,
         experimental_mock,
     ):
-
         template_artifacts_mock1.return_value = [ZIP]
         template_artifacts_mock2.return_value = [ZIP]
         template_artifacts_mock3.return_value = [ZIP]
@@ -1011,6 +999,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 "samconfig.toml",
                 "default",
+                None,
             )
 
 
@@ -1031,7 +1020,6 @@ class TestSamConfigWithOverrides(TestCase):
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
     def test_override_with_cli_params(self, do_cli_mock):
-
         config_values = {
             "template_file": "mytemplate.yaml",
             "host": "127.0.0.1",
@@ -1054,7 +1042,6 @@ class TestSamConfigWithOverrides(TestCase):
 
         # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
         with samconfig_parameters(["start-lambda"], self.scratch_dir, **config_values) as config_path:
-
             from samcli.commands.local.start_lambda.cli import cli
 
             LOG.debug(Path(config_path).read_text())
@@ -1136,7 +1123,6 @@ class TestSamConfigWithOverrides(TestCase):
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
     def test_override_with_cli_params_and_envvars(self, do_cli_mock):
-
         config_values = {
             "template_file": "mytemplate.yaml",
             "host": "127.0.0.1",
@@ -1158,7 +1144,6 @@ class TestSamConfigWithOverrides(TestCase):
 
         # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
         with samconfig_parameters(["start-lambda"], self.scratch_dir, **config_values) as config_path:
-
             from samcli.commands.local.start_lambda.cli import cli
 
             LOG.debug(Path(config_path).read_text())
@@ -1236,7 +1221,6 @@ class TestSamConfigWithOverrides(TestCase):
         config_values = {"template": "mytemplate.yaml"}
 
         with samconfig_parameters(["validate"], self.scratch_dir, **config_values) as config_path:
-
             from samcli.commands.validate.validate import cli
 
             LOG.debug(Path(config_path).read_text())
@@ -1249,7 +1233,7 @@ class TestSamConfigWithOverrides(TestCase):
                 LOG.exception("Command failed", exc_info=result.exc_info)
             self.assertIsNone(result.exception)
 
-            do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")))
+            do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")), False)
 
 
 @contextmanager

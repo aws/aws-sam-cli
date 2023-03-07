@@ -1,27 +1,26 @@
 """ Application Environment """
+import hashlib
 import json
 import os
 import pathlib
 import re
 import socket
-import hashlib
 from itertools import chain
 from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import boto3
-from botocore.exceptions import ClientError
 import click
 import requests
-
+from botocore.exceptions import ClientError
 from OpenSSL import SSL, crypto  # type: ignore
-from samcli.commands.pipeline.bootstrap.guided_context import OPEN_ID_CONNECT, GITHUB_ACTIONS, GITLAB, BITBUCKET
-from samcli.commands.pipeline.bootstrap.pipeline_oidc_provider import PipelineOidcProvider
 
+from samcli.commands.pipeline.bootstrap.guided_context import BITBUCKET, GITHUB_ACTIONS, GITLAB, OPEN_ID_CONNECT
+from samcli.commands.pipeline.bootstrap.pipeline_oidc_provider import PipelineOidcProvider
 from samcli.lib.config.samconfig import SamConfig
+from samcli.lib.pipeline.bootstrap.resource import ECRImageRepository, IAMUser, OidcProvider, Resource
 from samcli.lib.utils.colors import Colored
-from samcli.lib.utils.managed_cloudformation_stack import update_stack, StackOutput
-from samcli.lib.pipeline.bootstrap.resource import OidcProvider, Resource, IAMUser, ECRImageRepository
+from samcli.lib.utils.managed_cloudformation_stack import StackOutput, update_stack
 
 CFN_TEMPLATE_PATH = str(pathlib.Path(os.path.dirname(__file__)))
 STACK_NAME_PREFIX = "aws-sam-cli-managed"
@@ -44,6 +43,18 @@ BITBUCKET_REPO_UUID = "bitbucket_repo_uuid"
 PERMISSIONS_PROVIDER = "permissions_provider"
 OIDC_SUPPORTED_PROVIDER = [GITHUB_ACTIONS, GITLAB, BITBUCKET]
 REGION = "region"
+
+
+def _get_secure_ssl_context() -> SSL.Context:
+    """
+    Returns a SSL Context with secure settings
+    """
+    ctx = SSL.Context(SSL.TLS_METHOD)
+    ctx.set_options(SSL.OP_NO_TLSv1)
+    ctx.set_options(SSL.OP_NO_TLSv1_1)
+    ctx.set_options(SSL.OP_NO_SSLv2)
+    ctx.set_options(SSL.OP_NO_SSLv3)
+    return ctx
 
 
 class Stage:
@@ -200,7 +211,7 @@ class Stage:
         # Create connection to retrieve certificate
         # Create an IPV4 socket and use TLS for the SSL connection
         address = (url_for_certificate, 443)
-        ctx = SSL.Context(SSL.TLS_METHOD)
+        ctx = _get_secure_ssl_context()
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect(address)
         c = SSL.Connection(ctx, s)

@@ -11,20 +11,20 @@ from samcli.commands.exceptions import UserException
 from samcli.commands.logs.console_consumers import CWConsoleEventConsumer
 from samcli.commands.traces.traces_puller_factory import generate_trace_puller
 from samcli.lib.observability.cw_logs.cw_log_formatters import (
+    CWAddNewLineIfItDoesntExist,
     CWColorizeErrorsFormatter,
     CWJsonFormatter,
     CWKeywordHighlighterFormatter,
-    CWPrettyPrintFormatter,
-    CWAddNewLineIfItDoesntExist,
     CWLogEventJSONMapper,
+    CWPrettyPrintFormatter,
 )
 from samcli.lib.observability.cw_logs.cw_log_group_provider import LogGroupProvider
 from samcli.lib.observability.cw_logs.cw_log_puller import CWLogPuller
 from samcli.lib.observability.observability_info_puller import (
-    ObservabilityPuller,
-    ObservabilityEventConsumerDecorator,
-    ObservabilityEventConsumer,
     ObservabilityCombinedPuller,
+    ObservabilityEventConsumer,
+    ObservabilityEventConsumerDecorator,
+    ObservabilityPuller,
 )
 from samcli.lib.observability.util import OutputOption
 from samcli.lib.utils.boto_utils import BotoProviderType, get_client_error_code

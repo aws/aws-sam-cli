@@ -7,18 +7,18 @@ import logging
 import os
 import posixpath
 from collections import namedtuple
-from typing import Any, Set, NamedTuple, Optional, List, Dict, Tuple, Union, cast, Iterator, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, NamedTuple, Optional, Set, Tuple, Union, cast
 
 from samcli.commands.local.cli_common.user_exceptions import (
+    InvalidFunctionPropertyType,
     InvalidLayerVersionArn,
     UnsupportedIntrinsic,
-    InvalidFunctionPropertyType,
 )
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.samlib.resource_metadata_normalizer import (
-    ResourceMetadataNormalizer,
     SAM_METADATA_SKIP_BUILD_KEY,
     SAM_RESOURCE_ID_KEY,
+    ResourceMetadataNormalizer,
 )
 from samcli.lib.utils.architecture import X86_64
 
@@ -84,6 +84,8 @@ class Function(NamedTuple):
     function_url_config: Optional[Dict]
     # The path of the stack relative to the root stack, it is empty for functions in root stack
     stack_path: str = ""
+    # Configuration for runtime management. Includes the fields `UpdateRuntimeOn` and `RuntimeVersionArn` (optional).
+    runtime_management_config: Optional[Dict] = None
 
     @property
     def full_path(self) -> str:

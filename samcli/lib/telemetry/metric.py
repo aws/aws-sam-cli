@@ -1,16 +1,14 @@
 """
 Provides methods to generate and send metrics
 """
+import logging
+import platform
+import uuid
 from dataclasses import dataclass
-
+from functools import reduce, wraps
 from pathlib import Path
 from timeit import default_timer
-from functools import wraps, reduce
-
-import uuid
-import platform
-import logging
-from typing import Optional, Dict
+from typing import Any, Dict, Optional
 
 import click
 
@@ -18,16 +16,16 @@ from samcli import __version__ as samcli_version
 from samcli.cli.context import Context
 from samcli.cli.global_config import GlobalConfig
 from samcli.commands._utils.experimental import get_all_experimental_statues
-from samcli.commands.exceptions import UserException
+from samcli.commands.exceptions import UnhandledException, UserException
+from samcli.lib.hook.exceptions import InvalidHookPackageConfigException
 from samcli.lib.hook.hook_config import HookPackageConfig
 from samcli.lib.hook.hook_wrapper import INTERNAL_PACKAGES_ROOT
-from samcli.lib.hook.exceptions import InvalidHookPackageConfigException
 from samcli.lib.hook.utils import get_hook_metadata
 from samcli.lib.iac.cdk.utils import is_cdk_project
 from samcli.lib.iac.plugins_interfaces import ProjectTypes
 from samcli.lib.telemetry.cicd import CICDDetector, CICDPlatform
 from samcli.lib.telemetry.event import EventTracker
-from samcli.lib.telemetry.project_metadata import get_git_remote_origin_url, get_project_name, get_initial_commit_hash
+from samcli.lib.telemetry.project_metadata import get_git_remote_origin_url, get_initial_commit_hash, get_project_name
 from samcli.lib.telemetry.telemetry import Telemetry
 from samcli.lib.warnings.sam_cli_warning import TemplateWarningsChecker
 
@@ -124,78 +122,126 @@ def track_command(func):
 
     """
 
+    @wraps(func)
     def wrapped(*args, **kwargs):
-        telemetry = Telemetry()
-
         exception = None
         return_value = None
         exit_reason = "success"
         exit_code = 0
 
         duration_fn = _timer()
-        try:
 
-            # Execute the function and capture return value. This is returned back by the wrapper
+        ctx = None
+        try:
+            # we have get_current_context in it's own try/except to catch the RuntimeError for this and not func()
+            ctx = Context.get_current_context()
+        except RuntimeError:
+            LOG.debug("Unable to find Click Context for getting session_id.")
+
+        try:
+            if ctx and ctx.exception:
+                # re-raise here to handle exception captured in context and not run func()
+                raise ctx.exception
+
+            # Execute the function and capture return value. This is returned by the wrapper
             # First argument of all commands should be the Context
             return_value = func(*args, **kwargs)
-
-        except UserException as ex:
-            # Capture exception information and re-raise it later so we can first send metrics.
+        except (
+            UserException,
+            click.Abort,
+            click.BadOptionUsage,
+            click.BadArgumentUsage,
+            click.BadParameter,
+            click.UsageError,
+        ) as ex:
+            # Capture exception information and re-raise it later,
+            # so metrics can be sent.
             exception = ex
-            exit_code = ex.exit_code
-            if ex.wrapped_from is None:
-                exit_reason = type(ex).__name__
-            else:
+            # NOTE(sriram-mv): Set exit code to 1 if deemed to be user fixable error.
+            exit_code = 1
+            if hasattr(ex, "wrapped_from") and ex.wrapped_from:
                 exit_reason = ex.wrapped_from
-
+            else:
+                exit_reason = type(ex).__name__
         except Exception as ex:
-            exception = ex
+            command = ctx.command_path if ctx else ""
+            exception = UnhandledException(command, ex)
             # Standard Unix practice to return exit code 255 on fatal/unhandled exit.
             exit_code = 255
             exit_reason = type(ex).__name__
 
-        try:
-            ctx = Context.get_current_context()
-            metric_specific_attributes = get_all_experimental_statues() if ctx.experimental else {}
+        if ctx:
+            time = duration_fn()
+
             try:
-                template_dict = ctx.template_dict
-                project_details = _get_project_details(kwargs.get("hook_name", ""), template_dict)
-                if project_details.project_type == ProjectTypes.CDK.value:
-                    EventTracker.track_event("UsedFeature", "CDK")
-                metric_specific_attributes["projectType"] = project_details.project_type
-                if project_details.hook_name:
-                    metric_specific_attributes["hookPackageId"] = project_details.hook_name
-                if project_details.hook_package_version:
-                    metric_specific_attributes["hookPackageVersion"] = project_details.hook_package_version
-            except AttributeError:
-                LOG.debug("Template is not provided in context, skip adding project type metric")
-            metric_name = "commandRunExperimental" if ctx.experimental else "commandRun"
-            metric = Metric(metric_name)
-            metric.add_data("awsProfileProvided", bool(ctx.profile))
-            metric.add_data("debugFlagProvided", bool(ctx.debug))
-            metric.add_data("region", ctx.region or "")
-            metric.add_data("commandName", ctx.command_path)  # Full command path. ex: sam local start-api
-            if not ctx.command_path.endswith("init") or ctx.command_path.endswith("pipeline init"):
-                # Project metadata
-                # We don't capture below usage attributes for sam init as the command is not run inside a project
-                metric_specific_attributes["gitOrigin"] = get_git_remote_origin_url()
-                metric_specific_attributes["projectName"] = get_project_name()
-                metric_specific_attributes["initialCommit"] = get_initial_commit_hash()
-            metric.add_data("metricSpecificAttributes", metric_specific_attributes)
-            # Metric about command's execution characteristics
-            metric.add_data("duration", duration_fn())
-            metric.add_data("exitReason", exit_reason)
-            metric.add_data("exitCode", exit_code)
-            EventTracker.send_events()  # Sends Event metrics to Telemetry before commandRun metrics
-            telemetry.emit(metric)
-        except RuntimeError:
-            LOG.debug("Unable to find Click Context for getting session_id.")
+                # metrics also contain a call to Context.get_current_context, catch RuntimeError
+                _send_command_run_metrics(ctx, time, exit_reason, exit_code, **kwargs)
+            except RuntimeError:
+                LOG.debug("Unable to find Click context when sending metrics to telemetry")
+
         if exception:
             raise exception  # pylint: disable=raising-bad-type
 
         return return_value
 
     return wrapped
+
+
+def _send_command_run_metrics(ctx: Context, duration: int, exit_reason: str, exit_code: int, **kwargs) -> None:
+    """
+    Emits metrics based on the results of a command run
+
+    Parameters
+    ----------
+    ctx: Context
+        The click context containing parameters, options, etc
+    duration: int
+        The total run time of the command in milliseconds
+    exit_reason: str
+        The exit reason from the command, "success" if successful, otherwise name of exception
+    exit_code: int
+        The exit code of command run
+    """
+    telemetry = Telemetry()
+
+    # get_all_experimental_statues() returns Dict[str, bool]
+    # since we append other values here (not just bool), need to explicitly set type
+    metric_specific_attributes: Dict[str, Any] = get_all_experimental_statues() if ctx.experimental else {}
+
+    try:
+        template_dict = ctx.template_dict
+        project_details = _get_project_details(kwargs.get("hook_name", ""), template_dict)
+        if project_details.project_type == ProjectTypes.CDK.value:
+            EventTracker.track_event("UsedFeature", "CDK")
+        metric_specific_attributes["projectType"] = project_details.project_type
+        if project_details.hook_name:
+            metric_specific_attributes["hookPackageId"] = project_details.hook_name
+        if project_details.hook_package_version:
+            metric_specific_attributes["hookPackageVersion"] = project_details.hook_package_version
+    except AttributeError:
+        LOG.debug("Template is not provided in context, skip adding project type metric")
+
+    metric_name = "commandRunExperimental" if ctx.experimental else "commandRun"
+    metric = Metric(metric_name)
+    metric.add_data("awsProfileProvided", bool(ctx.profile))
+    metric.add_data("debugFlagProvided", bool(ctx.debug))
+    metric.add_data("region", ctx.region or "")
+    metric.add_data("commandName", ctx.command_path)  # Full command path. ex: sam local start-api
+
+    if not ctx.command_path.endswith("init") or ctx.command_path.endswith("pipeline init"):
+        # Project metadata
+        # We don't capture below usage attributes for sam init as the command is not run inside a project
+        metric_specific_attributes["gitOrigin"] = get_git_remote_origin_url()
+        metric_specific_attributes["projectName"] = get_project_name()
+        metric_specific_attributes["initialCommit"] = get_initial_commit_hash()
+
+    metric.add_data("metricSpecificAttributes", metric_specific_attributes)
+    # Metric about command's execution characteristics
+    metric.add_data("duration", duration)
+    metric.add_data("exitReason", exit_reason)
+    metric.add_data("exitCode", exit_code)
+    EventTracker.send_events()  # Sends Event metrics to Telemetry before commandRun metrics
+    telemetry.emit(metric)
 
 
 def _get_project_details(hook_name: str, template_dict: Dict) -> ProjectDetails:

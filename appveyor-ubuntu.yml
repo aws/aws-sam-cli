@@ -14,6 +14,7 @@ configuration:
   - DeleteIntegTesting
   - SyncIntegTesting
   - LocalIntegTesting
+  - EndToEndTesting
   # other Integration testing, Dev, regression and smoke testing
   - OtherTesting
 
@@ -23,6 +24,7 @@ environment:
   NODE_VERSION: "14.17.6"
   AWS_S3: 'AWS_S3_TESTING'
   AWS_ECR: 'AWS_ECR_TESTING'
+  CARGO_LAMBDA_VERSION: "v0.17.1"
  
   matrix:
 
@@ -31,7 +33,6 @@ environment:
       PYTHON_ARCH: '64'
       RUN_SMOKE: 1
       NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_36_PIP: 1
       INSTALL_PY_38_PIP: 1
       INSTALL_PY_39_PIP: 1
       APPVEYOR_CONSOLE_DISABLE_PTY: true
@@ -41,7 +42,6 @@ environment:
       PYTHON_ARCH: '64'
       RUN_SMOKE: 1
       NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_36_PIP: 1
       INSTALL_PY_37_PIP: 1
       INSTALL_PY_39_PIP: 1
       APPVEYOR_CONSOLE_DISABLE_PTY: true
@@ -51,7 +51,6 @@ environment:
       PYTHON_ARCH: '64'
       RUN_SMOKE: 1
       NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_36_PIP: 1
       INSTALL_PY_37_PIP: 1
       INSTALL_PY_38_PIP: 1
       APPVEYOR_CONSOLE_DISABLE_PTY: true
@@ -85,17 +84,13 @@ install:
   - sh: "./aws_cli/bin/python -m pip install awscli"
   - sh: "PATH=$(echo $PWD'/aws_cli/bin'):$PATH"
 
-  - sh: "sudo apt-get -y install python3.6"
-  - sh: "sudo apt-get -y install python2.7"
   - sh: "sudo apt-get -y install python3.7"
   - sh: "sudo apt-get -y install python3.8"
   - sh: "sudo apt-get -y install python3.9 python3.9-dev python3.9-venv"
 
   - sh: "which python3.8"
   - sh: "which python3.7"
-  - sh: "which python3.6"
   - sh: "which python3.9"
-  - sh: "which python2.7"
 
   - sh: "PATH=$PATH:/usr/bin/python3.9:/usr/bin/python3.8:/usr/bin/python3.7"
   - sh: "curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py"
@@ -106,7 +101,6 @@ install:
   - ps: "If ($env:INSTALL_PY_39_PIP) {python3.9 get-pip.py --user}"
   - ps: "If ($env:INSTALL_PY_38_PIP) {python3.8 get-pip.py --user}"
   - ps: "If ($env:INSTALL_PY_37_PIP) {python3.7 get-pip.py --user}"
-  - ps: "If ($env:INSTALL_PY_36_PIP) {python3.6 get-pip-36.py --user}"
 
   # update ca-certificates which causes failures with newest golang library
   - sh: "sudo apt-get install --reinstall ca-certificates"
@@ -121,6 +115,18 @@ install:
   - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
   - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
   - sh: "terraform -version"
+
+  # install Rust
+  - sh: "curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL https://sh.rustup.rs | sh -s -- --default-toolchain none -y"
+  - sh: "source $HOME/.cargo/env"
+  - sh: "rustup toolchain install stable --profile minimal --no-self-update"
+  - sh: "rustup default stable"
+  - sh: "rustup target add x86_64-unknown-linux-gnu --toolchain stable"
+  - sh: "rustup target add aarch64-unknown-linux-gnu --toolchain stable"
+  - sh: "pip install cargo-lambda==$CARGO_LAMBDA_VERSION"
+  - sh: "rustc -V"
+  - sh: "cargo -V"
+  - sh: "cargo lambda -V"
 
   - sh: "python3.9 -m venv .venv_env_vars"
   - sh: ".venv_env_vars/bin/pip install boto3"
@@ -170,6 +176,15 @@ build_script:
 
 # Final clean up no matter success or failure
 on_finish:
+  # Upload test reports as artifacts
+  - sh: find "$APPVEYOR_BUILD_FOLDER" -type f -name 'TEST_REPORT-*.json' -print0 | xargs -0 -I '{}' appveyor PushArtifact '{}'
+  - sh: >
+      AWS_ACCESS_KEY_ID=$TEST_REPORT_S3_BUCKET_ACCESS_KEY_ID 
+      AWS_SECRET_ACCESS_KEY=$TEST_REPORT_S3_BUCKET_SECRET_ACCESS_KEY 
+      AWS_SESSION_TOKEN=$TEST_REPORT_S3_BUCKET_SESSION_TOKEN 
+      aws s3 cp "$APPVEYOR_BUILD_FOLDER" "s3://$TEST_REPORT_S3_BUCKET_NAME/appveyor/$APPVEYOR_PROJECT_SLUG/$APPVEYOR_BUILD_ID/$APPVEYOR_JOB_ID/" --recursive --exclude "*" --include "TEST_REPORT-*.json" --region us-west-2
+
+  # notify task success
   - sh: 'export AWS_ACCESS_KEY_ID=$CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID'
   - sh: 'export AWS_SECRET_ACCESS_KEY=$CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY'
   - sh: 'export AWS_SESSION_TOKEN=$CI_ACCESS_ROLE_AWS_SESSION_TOKEN'
@@ -193,7 +208,7 @@ for:
 
       # Set JAVA_HOME to java11
       - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
-      - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java11"
+      - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java11.json"
 
   # Local ZIP  Terraform Build integ testing
   -
@@ -274,7 +289,7 @@ for:
 
     test_script:
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/deploy --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
+      - sh: "pytest -vv tests/integration/deploy -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
 
   # Integ testing package
   -
@@ -285,7 +300,7 @@ for:
 
     test_script:
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/package --json-report --json-report-file=TEST_REPORT-integration-package.json"
+      - sh: "pytest -vv tests/integration/package -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package.json"
 
   # Integ testing delete
   -
@@ -296,7 +311,7 @@ for:
 
     test_script:
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/delete --json-report --json-report-file=TEST_REPORT-integration-delete.json"
+      - sh: "pytest -vv tests/integration/delete -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-delete.json"
 
   # Integ testing sync
   -
@@ -319,10 +334,21 @@ for:
     test_script:
       # Pre-dev Tests
       - "pip install -e \".[pre-dev]\""
-      - "pylint --rcfile .pylintrc samcli"
+      - "ruff samcli"
 
       - "pip install -e \".[dev]\""
       - sh: "pytest -vv tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-local.json"
+
+  # End-to-end testing
+  -
+    matrix:
+      only:
+        - image: Ubuntu
+          configuration: EndToEndTesting
+
+    test_script:
+      - "pip install -e \".[dev]\""
+      - sh: "pytest -vv -n 4 --reruns 5 --dist loadscope tests/end_to_end --json-report --json-report-file=TEST_REPORT-end-to-end.json"
 
   # Other testing
   -
@@ -334,12 +360,12 @@ for:
     test_script:
       # Pre-dev Tests
       - "pip install -e \".[pre-dev]\""
-      - "pylint --rcfile .pylintrc samcli"
+      - "ruff samcli"
 
       # Dev Tests
       - "pip install -e \".[dev]\""
       - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit --json-report --json-report-file=TEST_REPORT-unit.json"
-      - "pylint --rcfile .pylintrc samcli"
+      - "ruff samcli"
       - "mypy setup.py samcli tests"
       - "pytest -n 4 tests/functional --json-report --json-report-file=TEST_REPORT-functional.json"
       
@@ -350,6 +376,3 @@ for:
       # Smoke tests run in parallel - it runs on both Linux & Windows
       # Presence of the RUN_SMOKE envvar will run the smoke tests
       - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke --json-report --json-report-file=TEST_REPORT-smoke.json}"
-
-artifacts:
-  - path: './TEST_REPORT*.json'

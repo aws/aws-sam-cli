@@ -3,45 +3,44 @@ Terraform translate to CFN implementation
 
 This method contains the logic required to translate the `terraform show` JSON output into a Cloudformation template
 """
-import logging
 import hashlib
-from typing import Dict, List, Tuple, Union, Any
+import logging
+from typing import Any, Dict, List, Tuple, Union
+
+from samcli.hook_packages.terraform.hooks.prepare.constants import (
+    CFN_CODE_PROPERTIES,
+    SAM_METADATA_RESOURCE_NAME_ATTRIBUTE,
+)
+from samcli.hook_packages.terraform.hooks.prepare.enrich import enrich_resources_and_generate_makefile
+from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
+    REMOTE_DUMMY_VALUE,
+    RESOURCE_TRANSLATOR_MAPPING,
+    TF_AWS_LAMBDA_FUNCTION,
+    TF_AWS_LAMBDA_LAYER_VERSION,
+    PropertyBuilderMapping,
+)
+from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
+    _build_module,
+    _get_configuration_address,
+    _link_lambda_function_to_layer,
+    _resolve_resource_attribute,
+)
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     ConstantValue,
     References,
     ResolvedReference,
-    TFResource,
+    SamMetadataResource,
     TFModule,
+    TFResource,
 )
 from samcli.hook_packages.terraform.lib.utils import (
+    _calculate_configuration_attribute_value_hash,
     build_cfn_logical_id,
     get_sam_metadata_planned_resource_value_attribute,
-    _calculate_configuration_attribute_value_hash,
-)
-from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
-    TF_AWS_LAMBDA_LAYER_VERSION,
-    TF_AWS_LAMBDA_FUNCTION,
-    RESOURCE_TRANSLATOR_MAPPING,
-    REMOTE_DUMMY_VALUE,
-    PropertyBuilderMapping,
-)
-from samcli.lib.utils.resources import (
-    AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
-)
-from samcli.lib.utils.packagetype import ZIP, IMAGE
-from samcli.hook_packages.terraform.hooks.prepare.enrich import enrich_resources_and_generate_makefile
-from samcli.hook_packages.terraform.hooks.prepare.types import SamMetadataResource
-from samcli.hook_packages.terraform.hooks.prepare.constants import (
-    SAM_METADATA_RESOURCE_NAME_ATTRIBUTE,
-    CFN_CODE_PROPERTIES,
-)
-from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
-    _resolve_resource_attribute,
-    _build_module,
-    _get_configuration_address,
-    _link_lambda_function_to_layer,
 )
 from samcli.lib.hook.exceptions import PrepareHookException
+from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION
 
 SAM_METADATA_RESOURCE_TYPE = "null_resource"
 SAM_METADATA_NAME_PREFIX = "sam_metadata_"

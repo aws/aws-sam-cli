@@ -13,6 +13,12 @@ from unittest import mock
 from unittest.mock import patch, Mock, MagicMock
 
 from samcli.commands.package.exceptions import ExportFailedError
+from samcli.lib.package.permissions import (
+    WindowsFilePermissionPermissionMapper,
+    WindowsDirPermissionPermissionMapper,
+    AdditiveFilePermissionPermissionMapper,
+    AdditiveDirPermissionPermissionMapper,
+)
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Destination
 from samcli.lib.package.utils import zip_folder, make_zip, make_zip_with_lambda_permissions, make_zip_with_permissions
@@ -47,8 +53,10 @@ from samcli.lib.package.packageable_resources import (
     ServerlessLayerVersionResource,
     ServerlessRepoApplicationLicense,
     ServerlessRepoApplicationReadme,
+    AppSyncResolverCodeResource,
     AppSyncResolverRequestTemplateResource,
     AppSyncResolverResponseTemplateResource,
+    AppSyncFunctionConfigurationCodeResource,
     AppSyncFunctionConfigurationRequestTemplateResource,
     AppSyncFunctionConfigurationResponseTemplateResource,
     GlueJobCommandScriptLocationResource,
@@ -83,10 +91,12 @@ class TestArtifactExporter(unittest.TestCase):
             {"class": ServerlessFunctionResource, "expected_result": uploaded_s3_url},
             {"class": ServerlessApiResource, "expected_result": uploaded_s3_url},
             {"class": GraphQLSchemaResource, "expected_result": uploaded_s3_url},
+            {"class": AppSyncResolverCodeResource, "expected_result": uploaded_s3_url},
             {"class": AppSyncResolverRequestTemplateResource, "expected_result": uploaded_s3_url},
             {"class": AppSyncResolverResponseTemplateResource, "expected_result": uploaded_s3_url},
             {"class": AppSyncFunctionConfigurationRequestTemplateResource, "expected_result": uploaded_s3_url},
             {"class": AppSyncFunctionConfigurationResponseTemplateResource, "expected_result": uploaded_s3_url},
+            {"class": AppSyncFunctionConfigurationCodeResource, "expected_result": uploaded_s3_url},
             {"class": ApiGatewayRestApiResource, "expected_result": {"Bucket": "foo", "Key": "bar", "Version": "baz"}},
             {
                 "class": LambdaFunctionResource,
@@ -129,7 +139,6 @@ class TestArtifactExporter(unittest.TestCase):
     def _helper_verify_export_resources(
         self, test_class, uploaded_s3_url, upload_local_artifacts_mock, expected_result
     ):
-
         s3_uploader_mock = Mock()
         code_signer_mock = Mock()
         code_signer_mock.should_sign_package.return_value = False
@@ -222,7 +231,6 @@ class TestArtifactExporter(unittest.TestCase):
         self.assertFalse(is_s3_protocol_url(url), "{0} should be valid".format(url))
 
     def test_parse_s3_url(self):
-
         valid = [
             {"url": "s3://foo/bar", "result": {"Bucket": "foo", "Key": "bar"}},
             {"url": "s3://foo/bar/cat/dog", "result": {"Bucket": "foo", "Key": "bar/cat/dog"}},
@@ -669,7 +677,6 @@ class TestArtifactExporter(unittest.TestCase):
         is_local_file_mock.return_value = True
 
         with self.make_temp_dir() as tmp_dir:
-
             copy_to_temp_dir_mock.return_value = tmp_dir
 
             # This is not a zip file
@@ -1255,7 +1262,6 @@ class TestArtifactExporter(unittest.TestCase):
 
         # Patch the file open method to return template string
         with patch("samcli.lib.package.artifact_exporter.open", open_mock(read_data=template_str)) as open_mock:
-
             template_exporter = Template(
                 template_path,
                 parent_dir,
@@ -1311,7 +1317,6 @@ class TestArtifactExporter(unittest.TestCase):
 
         # Patch the file open method to return template string
         with patch("samcli.lib.package.artifact_exporter.open", open_mock(read_data=template_str)) as open_mock:
-
             template_exporter = Template(
                 template_path, parent_dir, self.uploaders_mock, self.code_signer_mock, resources_to_export
             )
@@ -1488,7 +1493,7 @@ class TestArtifactExporter(unittest.TestCase):
             "Resources": {
                 "FunResource": {
                     "Type": "AWS::Serverless::Function",
-                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x"},
+                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs18.x"},
                 }
             },
         }
@@ -1498,7 +1503,6 @@ class TestArtifactExporter(unittest.TestCase):
 
         # Patch the file open method to return template string
         with patch("samcli.lib.package.artifact_exporter.open", open_mock(read_data=template_str)) as open_mock:
-
             template_exporter = Template(
                 template_path, parent_dir, self.uploaders_mock, self.code_signer_mock, resources_to_export
             )
@@ -1549,7 +1553,6 @@ class TestArtifactExporter(unittest.TestCase):
 
         with patch("samcli.lib.package.artifact_exporter.open", open_mock(read_data=template_str)) as open_mock:
             with patch.dict(GLOBAL_EXPORT_DICT, {"Fn::Transform": include_transform_export_handler_mock}):
-
                 template_exporter = Template(template_path, parent_dir, self.uploaders_mock, resources_to_export)
                 exported_template = template_exporter._export_global_artifacts(template_exporter.template_dict)
 
@@ -1606,7 +1609,6 @@ class TestArtifactExporter(unittest.TestCase):
 
     @patch("samcli.lib.package.packageable_resources.is_local_file")
     def test_include_transform_export_handler_with_s3_uri(self, is_local_file_mock):
-
         handler_output = include_transform_export_handler(
             {"Name": "AWS::Include", "Parameters": {"Location": "s3://bucket/foo.yaml"}},
             self.s3_uploader_mock,
@@ -1620,7 +1622,6 @@ class TestArtifactExporter(unittest.TestCase):
 
     @patch("samcli.lib.package.packageable_resources.is_local_file")
     def test_include_transform_export_handler_with_no_path(self, is_local_file_mock):
-
         handler_output = include_transform_export_handler(
             {"Name": "AWS::Include", "Parameters": {"Location": ""}}, self.s3_uploader_mock, "parent_dir"
         )
@@ -1632,7 +1633,6 @@ class TestArtifactExporter(unittest.TestCase):
 
     @patch("samcli.lib.package.packageable_resources.is_local_file")
     def test_include_transform_export_handler_with_dict_value_for_location(self, is_local_file_mock):
-
         handler_output = include_transform_export_handler(
             {"Name": "AWS::Include", "Parameters": {"Location": {"Fn::Sub": "${S3Bucket}/file.txt"}}},
             self.s3_uploader_mock,
@@ -1670,16 +1670,13 @@ class TestArtifactExporter(unittest.TestCase):
         self.assertEqual(handler_output, {"Name": "AWS::OtherTransform", "Parameters": {"Location": "foo.yaml"}})
 
     def test_template_export_path_be_folder(self):
-
         template_path = "/path/foo"
         # Set parent_dir to be a non-existent folder
         with self.assertRaises(ValueError):
-
             Template(template_path, "somefolder", self.uploaders_mock, self.code_signer_mock)
         # Set parent_dir to be a real folder, but just a relative path
         with self.make_temp_dir() as dirname:
             with self.assertRaises(ValueError):
-
                 Template(template_path, os.path.relpath(dirname), self.uploaders_mock, self.code_signer_mock)
 
     def test_make_zip_keep_permissions_as_is(self):
@@ -1722,14 +1719,51 @@ class TestArtifactExporter(unittest.TestCase):
                 os.remove(zipfile_name)
             test_file_creator.remove_all()
 
+    def test_make_zip_keep_datetime_as_is(self):
+        test_file_creator = FileCreator()
+        test_file_creator.append_file(
+            "index.js", "exports handler = (event, context, callback) => {callback(null, event);}"
+        )
+
+        dirname = test_file_creator.rootdir
+
+        expected_files = {"index.js"}
+
+        random_name = "".join(random.choice(string.ascii_letters) for _ in range(10))
+        outfile = os.path.join(tempfile.gettempdir(), random_name)
+
+        zipfile_name = None
+        try:
+            zipfile_name = make_zip(outfile, dirname)
+
+            test_zip_file = zipfile.ZipFile(zipfile_name, "r")
+            with closing(test_zip_file) as zf:
+                files_in_zip = set()
+                for info in zf.infolist():
+                    files_in_zip.add(info.filename)
+                    # This tests that we are not setting the datetime field of the info
+                    # Currently we cannot set this field, for more information refer to
+                    # https://github.com/aws/aws-sam-cli/pull/4781/files
+                    self.assertEqual(info.date_time, (1980, 1, 1, 0, 0, 0))
+            self.assertEqual(files_in_zip, expected_files)
+
+        finally:
+            if zipfile_name:
+                os.remove(zipfile_name)
+            test_file_creator.remove_all()
+
     @patch("platform.system")
     def test_make_zip_windows(self, mock_system):
         mock_system.return_value = "Windows"
         # Redefining `make_zip` as is in local scope so that arguments passed to functools partial are re-loaded.
         windows_make_zip = functools.partial(
             make_zip_with_permissions,
-            file_permissions=0o100755 if platform.system().lower() == "windows" else None,
-            dir_permissions=0o100755 if platform.system().lower() == "windows" else None,
+            permission_mappers=[
+                WindowsFilePermissionPermissionMapper(permissions=0o100755),
+                WindowsDirPermissionPermissionMapper(permissions=0o100755),
+                AdditiveFilePermissionPermissionMapper(permissions=0o100444),
+                AdditiveDirPermissionPermissionMapper(permissions=0o100111),
+            ],
         )
 
         test_file_creator = FileCreator()
@@ -1765,13 +1799,14 @@ class TestArtifactExporter(unittest.TestCase):
             test_file_creator.remove_all()
 
     def test_make_zip_lambda_resources(self):
-
         test_file_creator = FileCreator()
         test_file_creator.append_file(
             "index.js", "exports handler = (event, context, callback) => {callback(null, event);}"
         )
 
         dirname = test_file_creator.rootdir
+        file_permissions = os.stat(test_file_creator.full_path("index.js")).st_mode
+        dir_permissions = os.stat(test_file_creator.rootdir).st_mode
 
         expected_files = {"index.js"}
 
@@ -1791,9 +1826,11 @@ class TestArtifactExporter(unittest.TestCase):
                     permission_bits = (info.external_attr & external_attr_mask) >> 16
                     if not platform.system().lower() == "windows":
                         if info.is_dir():
-                            self.assertEqual(permission_bits, 0o100755)
+                            permission_difference = permission_bits ^ dir_permissions
+                            self.assertTrue(permission_difference <= 0o100111)
                         else:
-                            self.assertEqual(permission_bits, 0o100644)
+                            permission_difference = permission_bits ^ file_permissions
+                            self.assertTrue(permission_difference <= 0o100444)
                     else:
                         self.assertEqual(permission_bits, 0o100755)
 
@@ -1844,7 +1881,6 @@ class TestArtifactExporter(unittest.TestCase):
         """
 
     def test_template_delete(self):
-
         resource_type1_class = Mock()
         resource_type1_class.RESOURCE_TYPE = "resource_type1"
         resource_type1_class.ARTIFACT_TYPE = ZIP
@@ -1921,7 +1957,6 @@ class TestArtifactExporter(unittest.TestCase):
         self.assertEqual(repos, {"Resource1": {"Repository": "test_repo"}})
 
     def test_template_get_s3_info(self):
-
         resource_type1_class = Mock()
         resource_type1_class.RESOURCE_TYPE = "resource_type1"
         resource_type1_class.ARTIFACT_TYPE = ZIP

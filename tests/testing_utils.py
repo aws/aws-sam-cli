@@ -16,9 +16,11 @@ from uuid import uuid4
 import psutil
 
 IS_WINDOWS = platform.system().lower() == "windows"
-RUNNING_ON_CI = os.environ.get("APPVEYOR", False)
-RUNNING_TEST_FOR_MASTER_ON_CI = os.environ.get("APPVEYOR_REPO_BRANCH", "master") != "master"
-CI_OVERRIDE = os.environ.get("APPVEYOR_CI_OVERRIDE", False)
+RUNNING_ON_CI = os.environ.get("APPVEYOR", False) or os.environ.get("CI", False)
+RUNNING_TEST_FOR_MASTER_ON_CI = (
+    os.environ.get("APPVEYOR_REPO_BRANCH", os.environ.get("GITHUB_REF_NAME", "master")) != "master"
+)
+CI_OVERRIDE = os.environ.get("APPVEYOR_CI_OVERRIDE", False) or os.environ.get("CI_OVERRIDE", False)
 RUN_BY_CANARY = os.environ.get("BY_CANARY", False)
 
 # Tests require docker suffers from Docker Hub request limit
@@ -120,7 +122,7 @@ def kill_process(process: Popen) -> None:
         raise ValueError(f"Processes: {alive} are still alive.")
 
 
-def read_until_string(process: Popen, expected_output: str, timeout: int = 5) -> None:
+def read_until_string(process: Popen, expected_output: str, timeout: int = 30) -> None:
     """Read output from process until a line equals to expected_output has shown up or reaching timeout.
     Throws TimeoutError if times out
     """

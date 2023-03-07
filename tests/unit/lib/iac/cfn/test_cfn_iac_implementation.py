@@ -1,7 +1,6 @@
-import copy
 import os
 from unittest import TestCase
-from unittest.mock import patch, Mock, ANY
+from unittest.mock import patch, Mock
 
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.iac.cfn.cfn_iac import CfnIacImplementation

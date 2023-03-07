@@ -36,7 +36,7 @@ class TestXRayServiceGraphPuller(TestCase):
         patched_utc_to_timestamp.assert_called()
         patched_to_utc.assert_called()
         given_paginator.paginate.assert_called_with(StartTime=start_time, EndTime=end_time)
-        patched_xray_service_graph_event.assrt_called_with({"EndTime": "endtime", "Services": [{"id": 1}]})
+        patched_xray_service_graph_event.assert_called_with({"EndTime": "endtime", "Services": [{"id": 1}]})
         self.consumer.consume.assert_called()
 
     @patch("samcli.lib.observability.xray_traces.xray_service_graph_event_puller.XRayServiceGraphEvent")
@@ -60,7 +60,7 @@ class TestXRayServiceGraphPuller(TestCase):
         patched_utc_to_timestamp.assert_called()
         patched_to_utc.assert_called()
         given_paginator.paginate.assert_called_with(StartTime=start_time, EndTime=end_time)
-        patched_xray_service_graph_event.assrt_called_with({"EndTime": "endtime", "Services": [{"id": 1}]})
+        patched_xray_service_graph_event.assert_called_with({"EndTime": "endtime", "Services": [{"id": 1}]})
         # consumer should only get called once
         self.consumer.consume.assert_called_once()
 

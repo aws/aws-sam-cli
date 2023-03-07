@@ -2,6 +2,7 @@
 Lambda Function configuration data required by the runtime
 """
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
+
 from .env_vars import EnvironmentVariables
 
 
@@ -28,6 +29,7 @@ class FunctionConfig:
         architecture,
         memory=None,
         timeout=None,
+        runtime_management_config=None,
         env_vars=None,
     ):
         """
@@ -57,6 +59,8 @@ class FunctionConfig:
             Function memory limit in MB, by default None
         timeout : int, optional
             Function timeout in seconds, by default None
+        runtime_management_config: str, optional
+            Function's runtime management config
         env_vars : str, optional
             Environment variables, by default None
              If it not provided, this class will generate one for you based on the function properties
@@ -80,6 +84,7 @@ class FunctionConfig:
         self.architecture = architecture
 
         self.timeout = timeout or self._DEFAULT_TIMEOUT_SECONDS
+        self.runtime_management_config = runtime_management_config
 
         if not isinstance(self.timeout, int):
             try:
