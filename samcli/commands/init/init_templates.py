@@ -135,6 +135,7 @@ class InitTemplates:
         except (FileNotFoundError, NotADirectoryError):
             LOG.debug("Cache directory does not yet exist, creating one.")
             return True
+        self._git_repo.local_path = cache_dir
         return not existing_hash == APP_TEMPLATES_REPO_COMMIT
 
     def _init_options_from_manifest(self, package_type, runtime, base_image, dependency_manager):
