@@ -5,7 +5,6 @@ import itertools
 import json
 import logging
 import os
-import re
 from enum import Enum
 from pathlib import Path
 from subprocess import STDOUT, CalledProcessError, check_output
@@ -15,6 +14,9 @@ import requests
 
 from samcli.cli.global_config import GlobalConfig
 from samcli.commands.exceptions import AppTemplateUpdateException, UserException
+from samcli.commands.init.init_flow_helpers import (
+    _get_runtime_from_image,
+)
 from samcli.lib.utils import configuration
 from samcli.lib.utils.git_repo import (
     CloneRepoException,
@@ -256,6 +258,9 @@ class InitTemplates:
                 ):
                     continue
                 runtime = get_runtime(template_package_type, template_runtime)
+                if runtime is None:
+                    LOG.debug("Unable to infer runtime for template %s, %s", template_package_type, template_runtime)
+                    continue
                 use_case = preprocessed_manifest.get(use_case_name, {})
                 use_case[runtime] = use_case.get(runtime, {})
                 use_case[runtime][template_package_type] = use_case[runtime].get(template_package_type, [])
@@ -306,9 +311,9 @@ def get_template_value(value: str, template: dict) -> Optional[str]:
     return template.get(value)
 
 
-def get_runtime(package_type: Optional[str], template_runtime: str) -> str:
+def get_runtime(package_type: Optional[str], template_runtime: str) -> Optional[str]:
     if package_type == IMAGE:
-        template_runtime = re.split("/|-", template_runtime)[1]
+        return _get_runtime_from_image(template_runtime)
     return template_runtime
 
 
