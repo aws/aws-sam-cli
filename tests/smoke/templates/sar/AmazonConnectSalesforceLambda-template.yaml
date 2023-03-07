@@ -31,7 +31,7 @@ Parameters:
     Type: String
   SalesforcePassword:
     Default: ''
-    Description: The password of a valid Salesforce API account for your environment. This account must be the same one as entered in the “Salesforce API Configuration Username” parameter above.
+    Description: The password of a valid Salesforce API account for your environment. This account must be the same one as entered in the "Salesforce API Configuration Username" parameter above.
     Type: String
     NoEcho: true
   SalesforceAccessToken:

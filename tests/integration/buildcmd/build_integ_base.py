@@ -688,9 +688,9 @@ class BuildIntegPythonBase(BuildIntegBase):
                 self._make_parameter_override_arg(overrides) if do_override else None,
                 expected,
             )
-        if use_container:
-            self.verify_docker_container_cleanedup(runtime)
-            self.verify_pulled_image(runtime, architecture)
+            if use_container:
+                self.verify_docker_container_cleanedup(runtime)
+                self.verify_pulled_image(runtime, architecture)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
         self.assertTrue(build_dir.exists(), "Build directory should be created")

@@ -40,7 +40,7 @@ GENERAL_REMOVAL_MAP = {
     AWS_SERVERLESS_FUNCTION: ["CodeUri", "ImageUri"],
     AWS_SERVERLESS_LAYERVERSION: ["ContentUri"],
     AWS_LAMBDA_LAYERVERSION: ["Content"],
-    AWS_SERVERLESS_API: ["DefinitionBody"],
+    AWS_SERVERLESS_API: ["DefinitionUri"],
     AWS_APIGATEWAY_RESTAPI: ["BodyS3Location"],
     AWS_SERVERLESS_HTTPAPI: ["DefinitionUri"],
     AWS_APIGATEWAY_V2_API: ["BodyS3Location"],
@@ -53,6 +53,37 @@ GENERAL_REMOVAL_MAP = {
 LAMBDA_FUNCTION_REMOVAL_MAP = {
     AWS_LAMBDA_FUNCTION: {"Code": ["ImageUri", "S3Bucket", "S3Key", "S3ObjectVersion"]},
 }
+
+
+class InfraSyncResult:
+    """Data class for storing infra sync result"""
+
+    _infra_sync_executed: bool
+    _code_sync_resources: Set[ResourceIdentifier]
+
+    def __init__(self, executed: bool, code_sync_resources: Set[ResourceIdentifier] = set()) -> None:
+        """
+        Constructor
+
+        Parameters
+        ----------
+        Executed: bool
+            Infra sync execution happened or not
+        code_sync_resources: Set[ResourceIdentifier]
+            Resources that needs a code sync
+        """
+        self._infra_sync_executed = executed
+        self._code_sync_resources = code_sync_resources
+
+    @property
+    def infra_sync_executed(self) -> bool:
+        """Returns a boolean indicating whether infra sync executed"""
+        return self._infra_sync_executed
+
+    @property
+    def code_sync_resources(self) -> Set[ResourceIdentifier]:
+        """Returns a set of resource identifiers that need a code sync"""
+        return self._code_sync_resources
 
 
 class InfraSyncExecutor:
@@ -100,6 +131,45 @@ class InfraSyncExecutor:
         Service client instance
         """
         return get_boto_client_provider_from_session_with_config(session)(client_name)
+
+    def execute_infra_sync(self, first_sync: bool = False) -> InfraSyncResult:
+        """
+        Compares the local template with the deployed one, executes infra sync if different
+
+        Parameters
+        ----------
+        first_sync: bool
+            A flag that signals the inital run, only true when it's the first time running infra sync
+
+        Returns
+        -------
+        InfraSyncResult
+            Returns information containing whether infra sync executed plus resources to do code sync on
+        """
+        self._build_context.set_up()
+        self._build_context.run()
+        self._package_context.run()
+
+        # Will not combine the comparisons in order to save operation cost
+        if first_sync:
+            # Reminder: Add back after sync infra skip ready for release
+            # try:
+            #     if self._auto_skip_infra_sync(
+            #         self._package_context.output_template_file,
+            #         self._package_context.template_file,
+            #         self._deploy_context.stack_name,
+            #     ):
+            #         LOG.info("Template haven't been changed since last deployment, skipping infra sync...")
+            #         return InfraSyncResult(False, self.code_sync_resources)
+            # except Exception:
+            #     LOG.debug(
+            #         "Could not skip infra sync by comparing to a previously deployed template, starting infra sync"
+            #     )
+            pass
+
+        self._deploy_context.run()
+
+        return InfraSyncResult(True)
 
     def _auto_skip_infra_sync(
         self,
@@ -223,7 +293,7 @@ class InfraSyncExecutor:
         * ImageUri, S3Bucket, S3Key, S3ObjectVersion fields in Code property of AWS::Lambda::Function
         * ContentUri property of AWS::Serverless::LayerVersion
         * Content property of AWS::Lambda::LayerVersion
-        * DefinitionBody property of AWS::Serverless::Api
+        * DefinitionUri property of AWS::Serverless::Api
         * BodyS3Location property of AWS::ApiGateway::RestApi
         * DefinitionUri property of AWS::Serverless::HttpApi
         * BodyS3Location property of AWS::ApiGatewayV2::Api
@@ -319,11 +389,23 @@ class InfraSyncExecutor:
         if resource_type == AWS_LAMBDA_FUNCTION:
             for field in LAMBDA_FUNCTION_REMOVAL_MAP.get(resource_type, {}).get("Code", []):
                 # We sanitize only if the provided resource is local
+                # Lambda function's Code property accepts dictionary values
                 if (
                     built_resource_dict
+                    and isinstance(built_resource_dict.get("Properties", {}).get("Code"), dict)
                     and is_local_path(built_resource_dict.get("Properties", {}).get("Code", {}).get(field, None))
                 ) or resource_logical_id in linked_resources:
                     resource_dict.get("Properties", {}).get("Code", {}).pop(field, None)
+                    processed_logical_id = resource_logical_id
+                # SAM templates also accepts local paths for AWS::Lambda::Function's Code property
+                # Which will be transformed into a dict containing S3Bucket and S3Key after packaging
+                if (
+                    built_resource_dict
+                    and isinstance(built_resource_dict.get("Properties", {}).get("Code"), str)
+                    and is_local_path(built_resource_dict.get("Properties", {}).get("Code"))
+                ):
+                    resource_dict.get("Properties", {}).get("Code", {}).pop("S3Bucket", None)
+                    resource_dict.get("Properties", {}).get("Code", {}).pop("S3Key", None)
                     processed_logical_id = resource_logical_id
         else:
             for field in GENERAL_REMOVAL_MAP.get(resource_type, []):
