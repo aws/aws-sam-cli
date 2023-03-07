@@ -31,21 +31,21 @@ class TestGitRepo(TestCase):
     @patch("samcli.lib.utils.git_repo.platform.system")
     def test_git_executable_not_windows(self, mock_platform, mock_popen):
         mock_platform.return_value = "Not Windows"
-        executable = self.repo._git_executable()
+        executable = self.repo.git_executable()
         self.assertEqual(executable, "git")
 
     @patch("samcli.lib.utils.git_repo.subprocess.Popen")
     @patch("samcli.lib.utils.git_repo.platform.system")
     def test_git_executable_windows(self, mock_platform, mock_popen):
         mock_platform.return_value = "Windows"
-        executable = self.repo._git_executable()
+        executable = self.repo.git_executable()
         self.assertEqual(executable, "git")
 
     @patch("samcli.lib.utils.git_repo.subprocess.Popen")
     def test_git_executable_fails(self, mock_popen):
         mock_popen.side_effect = OSError("fail")
         with self.assertRaises(OSError):
-            self.repo._git_executable()
+            self.repo.git_executable()
 
     @patch("samcli.lib.utils.git_repo.Path.exists")
     @patch("samcli.lib.utils.git_repo.shutil")
@@ -62,8 +62,7 @@ class TestGitRepo(TestCase):
             [call(["git", "clone", self.repo.url, REPO_NAME], cwd=ANY, stderr=subprocess.STDOUT)]
         )
         shutil_mock.rmtree.assert_not_called()
-        shutil_mock.copytree.assert_called_with(ANY, EXPECTED_DEFAULT_CLONE_PATH, ignore=ANY)
-        shutil_mock.ignore_patterns.assert_called_with("*.git")
+        shutil_mock.copytree.assert_called_with(ANY, EXPECTED_DEFAULT_CLONE_PATH)
 
     @patch("samcli.lib.utils.git_repo.Path.exists")
     @patch("samcli.lib.utils.git_repo.shutil")
@@ -76,8 +75,7 @@ class TestGitRepo(TestCase):
         path_exist_mock.return_value = False
         self.repo.clone(clone_dir=self.local_clone_dir, clone_name=REPO_NAME)
         shutil_mock.rmtree.assert_not_called()
-        shutil_mock.copytree.assert_called_with(ANY, EXPECTED_DEFAULT_CLONE_PATH, ignore=ANY)
-        shutil_mock.ignore_patterns.assert_called_with("*.git")
+        shutil_mock.copytree.assert_called_with(ANY, EXPECTED_DEFAULT_CLONE_PATH)
 
     @patch("samcli.lib.utils.git_repo.Path.exists")
     @patch("samcli.lib.utils.git_repo.shutil")
@@ -91,8 +89,7 @@ class TestGitRepo(TestCase):
         self.repo.clone(clone_dir=self.local_clone_dir, clone_name=REPO_NAME, replace_existing=True)
         self.local_clone_dir.mkdir.assert_called_once_with(mode=0o700, parents=True, exist_ok=True)
         shutil_mock.rmtree.assert_called_with(EXPECTED_DEFAULT_CLONE_PATH, onerror=rmtree_callback)
-        shutil_mock.copytree.assert_called_with(ANY, EXPECTED_DEFAULT_CLONE_PATH, ignore=ANY)
-        shutil_mock.ignore_patterns.assert_called_with("*.git")
+        shutil_mock.copytree.assert_called_with(ANY, EXPECTED_DEFAULT_CLONE_PATH)
 
     @patch("samcli.lib.utils.git_repo.Path.exists")
     @patch("samcli.lib.utils.git_repo.check_output")
@@ -186,8 +183,7 @@ class TestGitRepo(TestCase):
         except Exception:
             pass
         shutil_mock.rmtree.assert_called_once_with(EXPECTED_DEFAULT_CLONE_PATH, onerror=rmtree_callback)
-        shutil_mock.copytree.assert_called_once_with(ANY, EXPECTED_DEFAULT_CLONE_PATH, ignore=ANY)
-        shutil_mock.ignore_patterns.assert_called_once_with("*.git")
+        shutil_mock.copytree.assert_called_once_with(ANY, EXPECTED_DEFAULT_CLONE_PATH)
 
     @patch("samcli.lib.utils.git_repo.LOG")
     @patch("samcli.lib.utils.git_repo.check_output")
@@ -221,8 +217,7 @@ class TestGitRepo(TestCase):
             [call(["git", "checkout", COMMIT], cwd=ANY, stderr=subprocess.STDOUT)],
         )
         shutil_mock.rmtree.assert_not_called()
-        shutil_mock.copytree.assert_called_with(ANY, EXPECTED_DEFAULT_CLONE_PATH, ignore=ANY)
-        shutil_mock.ignore_patterns.assert_called_with("*.git")
+        shutil_mock.copytree.assert_called_with(ANY, EXPECTED_DEFAULT_CLONE_PATH)
 
     @patch("samcli.lib.utils.git_repo.Path.exists")
     @patch("samcli.lib.utils.git_repo.shutil")
@@ -247,8 +242,7 @@ class TestGitRepo(TestCase):
             ]
         )
         shutil_mock.rmtree.assert_not_called()
-        shutil_mock.copytree.assert_called_with(ANY, EXPECTED_DEFAULT_CLONE_PATH, ignore=ANY)
-        shutil_mock.ignore_patterns.assert_called_with("*.git")
+        shutil_mock.copytree.assert_called_with(ANY, EXPECTED_DEFAULT_CLONE_PATH)
 
     @patch("samcli.lib.utils.git_repo.Path")
     @patch("samcli.lib.utils.git_repo.platform.system")
