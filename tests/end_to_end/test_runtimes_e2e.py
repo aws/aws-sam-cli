@@ -16,7 +16,7 @@ from tests.end_to_end.test_stages import (
     DefaultSyncStage,
     BaseValidator,
 )
-from tests.testing_utils import CommandResult, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
+from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
@@ -60,7 +60,7 @@ class StackOutputsValidator(BaseValidator):
     ("runtime", "dependency_manager"),
     [
         ("go1.x", "mod"),
-        ("python3.9", "pip"),
+        ("python3.7", "pip"),
     ],
 )
 class TestHelloWorldDefaultEndToEnd(EndToEndBase):
@@ -91,7 +91,7 @@ class TestHelloWorldDefaultEndToEnd(EndToEndBase):
     ("runtime", "dependency_manager"),
     [
         ("go1.x", "mod"),
-        ("python3.9", "pip"),
+        ("python3.7", "pip"),
     ],
 )
 class TestHelloWorldDefaultSyncEndToEnd(EndToEndBase):
