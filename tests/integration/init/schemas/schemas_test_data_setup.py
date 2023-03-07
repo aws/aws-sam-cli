@@ -3,6 +3,7 @@ import time
 import shutil
 import tempfile
 from unittest import TestCase
+from typing import Optional
 
 from boto3.session import Session
 from botocore.exceptions import ClientError
@@ -18,22 +19,20 @@ SLEEP_TIME = 1
 
 
 class SchemaTestDataSetup(TestCase):
-    original_cred_file: str
-    original_config_file: str
-    original_profile: str
-    original_region: str
+    original_cred_file: Optional[str]
+    original_config_file: Optional[str]
+    original_profile: Optional[str]
+    original_region: Optional[str]
+    config_dir: Optional[str]
 
     @classmethod
     def setUpClass(cls):
         env = os.environ
-        if AWS_CONFIG_FILE in env:
-            cls.original_config_file = env[AWS_CONFIG_FILE]
-        if AWS_SHARED_CREDENTIALS_FILE in env:
-            cls.original_cred_file = env[AWS_SHARED_CREDENTIALS_FILE]
-        if AWS_PROFILE in env:
-            cls.original_profile = env[AWS_PROFILE]
-        if AWS_DEFAULT_REGION in env:
-            cls.original_region = env[AWS_DEFAULT_REGION]
+        cls.original_config_file = env[AWS_CONFIG_FILE] if AWS_CONFIG_FILE in env else None
+        cls.original_cred_file = env[AWS_SHARED_CREDENTIALS_FILE] if AWS_SHARED_CREDENTIALS_FILE in env else None
+        cls.original_profile = env[AWS_PROFILE] if AWS_PROFILE in env else None
+        cls.original_region = env[AWS_DEFAULT_REGION] if AWS_DEFAULT_REGION in env else None
+        cls.config_dir = None
 
         session = Session()
         schemas_client = session.client("schemas", region_name=session.region_name)
@@ -86,8 +85,8 @@ eb-app-maven
             del env[AWS_DEFAULT_REGION]
         if self.original_region:
             env[AWS_DEFAULT_REGION] = self.original_region
-
-        shutil.rmtree(self.config_dir, ignore_errors=True)
+        if self.config_dir:
+            shutil.rmtree(self.config_dir, ignore_errors=True)
 
     def _init_custom_config(self, profile, region):
         self.config_dir = tempfile.mkdtemp()
