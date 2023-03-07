@@ -24,7 +24,6 @@ pytest-timeout==1.4.2
 pytest-rerunfailures==9.1.1
 pytest-json-report==1.5.0
 filelock==3.9.0
-pytest-split==0.8.0
 
 # formatter
 black==22.6.0
