@@ -572,7 +572,10 @@ class TestStackTrace(TestCase):
             self.assertEqual(stack_trace.count("ZeroDivisionError: <REDACTED>"), 1)
 
             # assert all filepaths in the stack trace are sanitized
-            self.assertEqual(stack_trace.count('File "/../test_metric.py"'), 5)
+            expected = (
+                'File "/../test_metric.py"' if platform.system().lower() != "windows" else 'File "\\..\\test_metric.py"'
+            )
+            self.assertEqual(stack_trace.count(expected), 5)
 
     def test_must_clean_path_preceding_site_packages(self):
         stack_summary = traceback.StackSummary.from_list(
