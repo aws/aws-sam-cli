@@ -3,13 +3,13 @@ Class used to parse and update template when tracing is enabled
 """
 import logging
 from typing import List
+
 from samcli.lib.init.template_modifiers.cli_template_modifier import TemplateModifier
 
 LOG = logging.getLogger(__name__)
 
 
 class XRayTracingTemplateModifier(TemplateModifier):
-
     FIELD_NAME_FUNCTION_TRACING = "Tracing"
     FIELD_NAME_API_TRACING = "TracingEnabled"
     GLOBALS = "Globals:\n"

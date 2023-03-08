@@ -4,11 +4,11 @@ from flask import jsonify, make_response
 
 
 class ServiceErrorResponses:
-
     _NO_LAMBDA_INTEGRATION = {"message": "No function defined for resource method"}
     _MISSING_AUTHENTICATION = {"message": "Missing Authentication Token"}
     _LAMBDA_FAILURE = {"message": "Internal server error"}
 
+    HTTP_STATUS_CODE_501 = 501
     HTTP_STATUS_CODE_502 = 502
     HTTP_STATUS_CODE_403 = 403
 
@@ -21,6 +21,18 @@ class ServiceErrorResponses:
         """
         response_data = jsonify(ServiceErrorResponses._LAMBDA_FAILURE)
         return make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_502)
+
+    @staticmethod
+    def not_implemented_locally(message):
+        """
+        Constructs a Flask Response for for when a Lambda function functionality is
+        not implemented
+
+        :return: a Flask Response
+        """
+        exception_dict = {"message": message}
+        response_data = jsonify(exception_dict)
+        return make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_501)
 
     @staticmethod
     def lambda_not_found_response(*args):

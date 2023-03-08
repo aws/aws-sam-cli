@@ -8,7 +8,7 @@ jobs:
   apply-label:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/github-script@v3
+      - uses: actions/github-script@v6
         # the login of our bot called 'sam-cli-bot'
         if: github.event.sender.login != 'aws-sam-cli-stale-bot'
         with:

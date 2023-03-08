@@ -2,16 +2,15 @@
 Click Help Formatter Classes that are customized for the root command.
 """
 from contextlib import contextmanager
-from typing import Sequence, Iterator, Optional
+from typing import Iterator, Optional, Sequence
 
-from click import style, HelpFormatter
+from click import HelpFormatter, style
 
-from samcli.cli.row_modifiers import RowDefinition, BaseLineRowModifier
 from samcli.cli.root.command_list import SAM_CLI_COMMANDS
+from samcli.cli.row_modifiers import BaseLineRowModifier, RowDefinition
 
 
 class RootCommandHelpTextFormatter(HelpFormatter):
-
     # Picked an additive constant that gives an aesthetically pleasing look.
     ADDITIVE_JUSTIFICATION = 10
 

@@ -1,12 +1,13 @@
 """
 Init flow based helper functions
 """
-import logging
 import functools
+import logging
 import re
+from typing import Optional
 
 from samcli.lib.utils.architecture import X86_64
-from samcli.local.common.runtime_template import INIT_RUNTIMES, is_custom_runtime, LAMBDA_IMAGES_RUNTIMES_MAP
+from samcli.local.common.runtime_template import INIT_RUNTIMES, LAMBDA_IMAGES_RUNTIMES_MAP, is_custom_runtime
 
 LOG = logging.getLogger(__name__)
 
@@ -146,11 +147,19 @@ def _get_templates_with_dependency_manager(templates_options, dependency_manager
     return [t for t in templates_options if t.get("dependencyManager") == dependency_manager]
 
 
-def _get_runtime_from_image(image):
+def _get_runtime_from_image(image: str) -> Optional[str]:
     """
     Get corresponding runtime from the base-image parameter
+
+    Expecting 'amazon/{runtime}-base'
+    But might also be like 'amazon/{runtime}-provided.al2-base'
     """
-    runtime = image[image.find("/") + 1 : image.find("-")]
+    match = re.fullmatch(r"amazon/([a-z0-9.]*)-?([a-z0-9.]*)-base", image)
+    if match is None:
+        return None
+    runtime, base = match.groups()
+    if base != "":
+        return f"{runtime} ({base})"
     return runtime
 
 

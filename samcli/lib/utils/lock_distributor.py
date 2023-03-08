@@ -1,9 +1,9 @@
 """LockDistributor for creating and managing a set of locks"""
-import threading
 import multiprocessing
 import multiprocessing.managers
-from typing import Dict, Set, Optional, cast
+import threading
 from enum import Enum, auto
+from typing import Dict, Optional, Set, cast
 
 
 class LockChain:

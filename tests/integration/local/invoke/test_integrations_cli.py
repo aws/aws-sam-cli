@@ -856,7 +856,6 @@ class TestLayerVersion(TestLayerVersionBase):
     @parameterized.expand([("TwoLayerVersionServerlessFunction"), ("TwoLayerVersionLambdaFunction")])
     @pytest.mark.flaky(reruns=3)
     def test_download_two_layers(self, function_logical_id):
-
         command_list = self.get_command_list(
             function_logical_id,
             template_path=self.template_path,
@@ -881,7 +880,6 @@ class TestLayerVersion(TestLayerVersionBase):
         self.assertEqual(process_stdout, expected_output)
 
     def test_caching_two_layers(self):
-
         command_list = self.get_command_list(
             "TwoLayerVersionServerlessFunction",
             template_path=self.template_path,
@@ -901,7 +899,6 @@ class TestLayerVersion(TestLayerVersionBase):
         self.assertEqual(2, len(os.listdir(str(self.layer_cache))))
 
     def test_caching_two_layers_with_layer_cache_env_set(self):
-
         command_list = self.get_command_list(
             "TwoLayerVersionServerlessFunction",
             template_path=self.template_path,
@@ -1104,3 +1101,37 @@ class TestInvokeWithFunctionFullPathToAvoidAmbiguity(InvokeIntegBase):
 
         self.assertEqual(process.returncode, 1)
         self.assertIn("not found in template", process_stderr.decode("utf-8"))
+
+
+class TestInvokeFunctionWithInlineCode(InvokeIntegBase):
+    template = Path("template-inlinecode.yaml")
+
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_returncode_is_zero(self):
+        command_list = self.get_command_list(
+            "NoInlineCodeServerlessFunction", template_path=self.template_path, event_path=self.event_path
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        self.assertEqual(process.returncode, 0)
+
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_inline_code_function(self):
+        command_list = self.get_command_list(
+            "InlineCodeServerlessFunction", template_path=self.template_path, event_path=self.event_path
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        self.assertEqual(process.returncode, 1)

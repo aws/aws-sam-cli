@@ -2,9 +2,9 @@
 Methods to expose the event types and generate the event jsons for use in SAM CLI generate-event
 """
 
-import os
-import json
 import base64
+import json
+import os
 import warnings
 from typing import Dict
 from urllib.parse import quote as url_quote

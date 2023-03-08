@@ -2,10 +2,10 @@
 All-in-one metadata about runtimes
 """
 
-import re
 import itertools
 import os
 import pathlib
+import re
 from typing import List
 
 _init_path = str(pathlib.Path(os.path.dirname(__file__)).parent.parent)
@@ -127,6 +127,7 @@ LAMBDA_IMAGES_RUNTIMES_MAP = {
     "dotnet5.0": "amazon/dotnet5.0-base",
     "dotnetcore3.1": "amazon/dotnetcore3.1-base",
     "go1.x": "amazon/go1.x-base",
+    "go (provided.al2)": "amazon/go-provided.al2-base",
     "java11": "amazon/java11-base",
     "java8.al2": "amazon/java8.al2-base",
     "java8": "amazon/java8-base",

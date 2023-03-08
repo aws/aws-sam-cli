@@ -1,28 +1,27 @@
 """SyncFlow for Image based Lambda Functions"""
-from contextlib import ExitStack
 import logging
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from contextlib import ExitStack
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import docker
 from docker.client import DockerClient
 
+from samcli.lib.build.app_builder import ApplicationBuilder
+from samcli.lib.package.ecr_uploader import ECRUploader
 from samcli.lib.providers.provider import Stack
 from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow, wait_for_function_update_complete
-from samcli.lib.package.ecr_uploader import ECRUploader
-
-from samcli.lib.build.app_builder import ApplicationBuilder
 from samcli.lib.sync.sync_flow import ApiCallTypes, ResourceAPICall
 
 if TYPE_CHECKING:  # pragma: no cover
-    from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
+    from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)
 
 
 class ImageFunctionSyncFlow(FunctionSyncFlow):
-    _ecr_client: Any
+    _ecr_client: Optional[Any]
     _docker_client: Optional[DockerClient]
     _image_name: Optional[str]
 
@@ -34,7 +33,6 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
         sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
-        docker_client: Optional[DockerClient] = None,
     ):
         """
         Parameters
@@ -51,20 +49,23 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
             Physical ID Mapping
         stacks : Optional[List[Stack]]
             Stacks
-        docker_client : Optional[DockerClient]
-            Docker client to be used for building and uploading images.
-            Defaults to docker.from_env() if None is provided.
         """
         super().__init__(function_identifier, build_context, deploy_context, sync_context, physical_id_mapping, stacks)
         self._ecr_client = None
         self._image_name = None
-        self._docker_client = docker_client
+        self._docker_client = None
 
-    def set_up(self) -> None:
-        super().set_up()
-        self._ecr_client = self._boto_client("ecr")
+    def _get_docker_client(self) -> DockerClient:
+        """Lazy instantiates and returns the docker client"""
         if not self._docker_client:
             self._docker_client = docker.from_env()
+        return self._docker_client
+
+    def _get_ecr_client(self) -> Any:
+        """Lazy instantiates and returns the boto3 ecr client"""
+        if not self._ecr_client:
+            self._ecr_client = self._boto_client("ecr")
+        return self._ecr_client
 
     def gather_resources(self) -> None:
         """Build function image and save it in self._image_name"""
@@ -81,6 +82,15 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
             build_in_source=self._build_context.build_in_source,
         )
         self._image_name = builder.build().artifacts.get(self._function_identifier)
+        if self._image_name:
+            self._local_sha = self._get_local_image_id(self._image_name)
+
+    def _get_local_image_id(self, image: str) -> Optional[str]:
+        """Returns the local hash of the image"""
+        docker_img = self._get_docker_client().images.get(image)
+        if not docker_img or not docker_img.attrs.get("Id"):
+            return None
+        return str(docker_img.attrs.get("Id"))
 
     def compare_remote(self) -> bool:
         return False
@@ -106,7 +116,7 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
             LOG.debug("%sGetting ECR Repo from Remote Function", self.log_prefix)
             function_result = self._lambda_client.get_function(FunctionName=function_physical_id)
             ecr_repo = function_result.get("Code", dict()).get("ImageUri", "").split(":")[0]
-        ecr_uploader = ECRUploader(self._docker_client, self._ecr_client, ecr_repo, None)
+        ecr_uploader = ECRUploader(self._get_docker_client(), self._get_ecr_client(), ecr_repo, None)
         image_uri = ecr_uploader.upload(self._image_name, self._function_identifier)
 
         with ExitStack() as exit_stack:

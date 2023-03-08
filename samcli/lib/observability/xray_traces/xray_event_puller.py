@@ -5,13 +5,13 @@ import logging
 import time
 from datetime import datetime
 from itertools import zip_longest
-from typing import Optional, Any, Dict, Union, List
+from typing import Any, Dict, List, Optional, Union
 
 from botocore.exceptions import ClientError
 
-from samcli.lib.observability.observability_info_puller import ObservabilityPuller, ObservabilityEventConsumer
+from samcli.lib.observability.observability_info_puller import ObservabilityEventConsumer, ObservabilityPuller
 from samcli.lib.observability.xray_traces.xray_events import XRayTraceEvent
-from samcli.lib.utils.time import to_timestamp, to_datetime
+from samcli.lib.utils.time import to_datetime, to_timestamp
 
 LOG = logging.getLogger(__name__)
 

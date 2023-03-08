@@ -8,7 +8,6 @@ from typing import List, Optional
 from samcli.lib.observability.observability_info_puller import ObservabilityEvent
 from samcli.lib.utils.hash import str_checksum
 
-
 start_time_getter = operator.attrgetter("start_time")
 
 

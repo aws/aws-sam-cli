@@ -1,28 +1,28 @@
 """Base SyncFlow for Lambda Function"""
-from enum import Enum
 import logging
-
 import time
-from typing import Any, Dict, List, TYPE_CHECKING, cast
+from abc import ABC
+from enum import Enum
+from typing import TYPE_CHECKING, Any, Dict, List, cast
+
 from botocore.client import BaseClient
 
+from samcli.lib.providers.provider import Function, Stack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.sync.flows.alias_version_sync_flow import AliasVersionSyncFlow
-from samcli.lib.providers.provider import Function, Stack
+from samcli.lib.sync.sync_flow import SyncFlow
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 
-from samcli.lib.sync.sync_flow import SyncFlow
-
 if TYPE_CHECKING:  # pragma: no cover
-    from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
+    from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)
 FUNCTION_SLEEP = 1  # used to wait for lambda function last update to be successful
 
 
-class FunctionSyncFlow(SyncFlow):
+class FunctionSyncFlow(SyncFlow, ABC):
     _function_identifier: str
     _function_provider: SamFunctionProvider
     _function: Function
@@ -75,6 +75,16 @@ class FunctionSyncFlow(SyncFlow):
         self._lambda_client = self._boto_client("lambda")
         self._lambda_waiter = self._lambda_client.get_waiter("function_updated")
 
+    @property
+    def sync_state_identifier(self) -> str:
+        """
+        Sync state is the unique identifier for each sync flow
+        In sync state toml file we will store
+        Key as ZipFunctionSyncFlow:FunctionLogicalId
+        Value as function ZIP hash
+        """
+        return self.__class__.__name__ + ":" + self._function_identifier
+
     def gather_dependencies(self) -> List[SyncFlow]:
         """Gathers alias and versions related to a function.
         Currently only handles serverless function AutoPublishAlias field
@@ -105,7 +115,7 @@ class FunctionSyncFlow(SyncFlow):
                     self._stacks,
                 )
             )
-            LOG.debug("%sCreated  Alias and Version SyncFlow", self.log_prefix)
+            LOG.debug("%sCreated Alias and Version SyncFlow", self.log_prefix)
 
         return sync_flows
 

@@ -2,7 +2,6 @@
 
 import re
 
-
 # To sanitize schema package name and root name. During code generation schema service follows
 # convention to replace all the special character except [a-zA-Z0-9_@] via _.
 CHARACTER_TO_SANITIZE = "[^a-zA-Z0-9_@]"

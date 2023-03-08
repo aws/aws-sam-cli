@@ -6,16 +6,16 @@ CLI configuration decorator to use TOML configuration files for click commands.
 # [click_config_file](https://github.com/phha/click_config_file/blob/master/click_config_file.py)
 # SPDX-License-Identifier: MIT
 
-import os
 import functools
 import logging
-
+import os
 from pathlib import Path
+
 import click
 
-from samcli.commands.exceptions import ConfigException
 from samcli.cli.context import get_cmd_names
-from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
+from samcli.commands.exceptions import ConfigException
+from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME, DEFAULT_ENV, SamConfig
 
 __all__ = ("TomlProvider", "configuration_option", "get_ctx_defaults")
 

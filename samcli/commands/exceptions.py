@@ -2,8 +2,8 @@
 Class containing error conditions that are exposed to the user.
 """
 import traceback
+from typing import IO, Optional
 from urllib.parse import quote
-from typing import Optional, IO
 
 import click
 
@@ -71,6 +71,12 @@ class UnhandledException(click.ClickException):
 class CredentialsError(UserException):
     """
     Exception class when credentials that have been passed are invalid.
+    """
+
+
+class SDKError(UserException):
+    """
+    Exception class when there are generic Boto Errors.
     """
 
 

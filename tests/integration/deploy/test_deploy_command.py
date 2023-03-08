@@ -4,17 +4,14 @@ import uuid
 from pathlib import Path
 from unittest import skipIf
 
-import boto3
 import botocore
 import docker
-from botocore.config import Config
 from botocore.exceptions import ClientError
 from parameterized import parameterized
 
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
-from tests.integration.package.package_integ_base import PackageIntegBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
@@ -24,7 +21,7 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 
 
 @skipIf(SKIP_DEPLOY_TESTS, "Skip deploy tests in CI/CD only")
-class TestDeploy(PackageIntegBase, DeployIntegBase):
+class TestDeploy(DeployIntegBase):
     @classmethod
     def setUpClass(cls):
         cls.docker_client = docker.from_env()
@@ -41,31 +38,11 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         # setup signing profile arn & name
         cls.signing_profile_name = os.environ.get("AWS_SIGNING_PROFILE_NAME")
         cls.signing_profile_version_arn = os.environ.get("AWS_SIGNING_PROFILE_VERSION_ARN")
-        PackageIntegBase.setUpClass()
-        DeployIntegBase.setUpClass()
+        super().setUpClass()
 
     def setUp(self):
-        self.cfn_client = boto3.client("cloudformation")
-        self.ecr_client = boto3.client("ecr")
         self.sns_arn = os.environ.get("AWS_SNS")
-        self.stacks = []
-        PackageIntegBase.setUp(self)
-        DeployIntegBase.setUp(self)
-
-    def tearDown(self):
-        for stack in self.stacks:
-            # because of the termination protection, do not delete aws-sam-cli-managed-default stack
-            stack_name = stack["name"]
-            if stack_name != SAM_CLI_STACK_NAME:
-                region = stack.get("region")
-                cfn_client = (
-                    self.cfn_client if not region else boto3.client("cloudformation", config=Config(region_name=region))
-                )
-                ecr_client = self.ecr_client if not region else boto3.client("ecr", config=Config(region_name=region))
-                self._delete_companion_stack(cfn_client, ecr_client, self._stack_name_to_companion_stack(stack_name))
-                cfn_client.delete_stack(StackName=stack_name)
-        DeployIntegBase.tearDown(self)
-        PackageIntegBase.tearDown(self)
+        super().setUp()
 
     @parameterized.expand(
         [

@@ -144,7 +144,7 @@ def get_workflow_config(
     selectors_by_build_method = {
         "makefile": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG),
         "dotnet7": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
-        "rustcargolambda": BasicWorkflowSelector(RUST_CARGO_LAMBDA_CONFIG),
+        "rust-cargolambda": BasicWorkflowSelector(RUST_CARGO_LAMBDA_CONFIG),
     }
 
     selectors_by_runtime = {
@@ -303,7 +303,6 @@ class ManifestWorkflowSelector(BasicWorkflowSelector):
         LOG.debug("Looking for a supported build workflow in following directories: %s", search_dirs)
 
         for config in self.configs:
-
             if any([self._has_manifest(config, directory) for directory in search_dirs]):
                 return config
 

@@ -5,10 +5,10 @@ from json import JSONDecodeError
 
 from botocore.exceptions import ClientError, EndpointConnectionError
 
-from samcli.lib.schemas.schemas_directory_hierarchy_builder import sanitize_name, get_package_hierarchy
-from samcli.lib.schemas.schemas_constants import DEFAULT_EVENT_SOURCE, DEFAULT_EVENT_DETAIL_TYPE
 from samcli.commands.exceptions import SchemasApiException
-from samcli.commands.local.cli_common.user_exceptions import ResourceNotFound, NotAvailableInRegion
+from samcli.commands.local.cli_common.user_exceptions import NotAvailableInRegion, ResourceNotFound
+from samcli.lib.schemas.schemas_constants import DEFAULT_EVENT_DETAIL_TYPE, DEFAULT_EVENT_SOURCE
+from samcli.lib.schemas.schemas_directory_hierarchy_builder import get_package_hierarchy, sanitize_name
 
 SCHEMAS_NOT_AVAILABLE_IN_REGION_ERROR = (
     "EventBridge Schemas are not available in provided region. Please check AWS doc for Schemas supported regions."

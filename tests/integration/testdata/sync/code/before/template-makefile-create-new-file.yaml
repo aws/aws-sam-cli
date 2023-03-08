@@ -1,0 +1,27 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Timeout: 10
+
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: makefile_function_create_new_file/
+      Handler: main.handler
+      Runtime: python3.7
+      Layers:
+        - !Ref HelloWorldLayer
+    Metadata:
+      BuildMethod: makefile
+
+  HelloWorldLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: makefile_layer_create_new_file/
+      CompatibleRuntimes:
+        - python3.7
+    Metadata:
+      BuildMethod: makefile

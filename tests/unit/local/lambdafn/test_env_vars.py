@@ -10,7 +10,6 @@ from samcli.local.lambdafn.env_vars import EnvironmentVariables
 
 class TestEnvironmentVariables_init(TestCase):
     def test_must_initialize_with_empty_values(self):
-
         memory = 123
         timeout = 10
         handler = "handler"
@@ -266,7 +265,6 @@ class TestEnvironmentVariables_get_aws_variables(TestCase):
         }
 
     def test_must_work_with_overridden_aws_creds(self):
-
         expected = {
             "AWS_SAM_LOCAL": "true",
             "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
@@ -289,7 +287,6 @@ class TestEnvironmentVariables_get_aws_variables(TestCase):
         self.assertEqual(expected, environ._get_aws_variables())
 
     def test_must_work_without_any_aws_creds(self):
-
         expected = {
             "AWS_SAM_LOCAL": "true",
             "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
@@ -311,7 +308,6 @@ class TestEnvironmentVariables_get_aws_variables(TestCase):
         self.assertEqual(expected, environ._get_aws_variables())
 
     def test_must_work_with_partial_aws_creds(self):
-
         creds = {"region": "some other region", "sessiontoken": "my awesome token"}
 
         expected = {
@@ -339,7 +335,6 @@ class TestEnvironmentVariables_get_aws_variables(TestCase):
 
 class TestEnvironmentVariables_stringify_value(TestCase):
     def setUp(self):
-
         self.environ = EnvironmentVariables(1024, 10, "handler")
 
     @parameterized.expand([param([1, 2, 3]), param({"a": {"b": "c"}}), param(("this", "is", "tuple")), param(None)])
@@ -362,7 +357,6 @@ class TestEnvironmentVariables_stringify_value(TestCase):
 
 class TestEnvironmentVariables_add_lambda_event_body(TestCase):
     def test_must_add_proper_variable(self):
-
         value = "foobar"
 
         environ = EnvironmentVariables()

@@ -3,35 +3,34 @@ Terraform resource enrichment
 
 This module populates the values required for each of the Lambda resources
 """
-import logging
 import json
+import logging
 import os
 import re
-from typing import Dict, List, Tuple
 from json.decoder import JSONDecodeError
-from subprocess import run, CalledProcessError
-from samcli.hook_packages.terraform.lib.utils import (
-    get_sam_metadata_planned_resource_value_attribute,
-    _calculate_configuration_attribute_value_hash,
-    build_cfn_logical_id,
-)
-from samcli.hook_packages.terraform.hooks.prepare.types import SamMetadataResource
-from samcli.hook_packages.terraform.hooks.prepare.makefile_generator import (
-    generate_makefile_rule_for_lambda_resource,
-    generate_makefile,
-)
+from subprocess import CalledProcessError, run
+from typing import Dict, List, Tuple
+
 from samcli.hook_packages.terraform.hooks.prepare.constants import (
     CFN_CODE_PROPERTIES,
     SAM_METADATA_RESOURCE_NAME_ATTRIBUTE,
 )
-from samcli.hook_packages.terraform.hooks.prepare.resource_linking import _resolve_resource_attribute
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import InvalidSamMetadataPropertiesException
-from samcli.lib.utils.resources import (
-    AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
-    AWS_LAMBDA_LAYERVERSION as CFN_AWS_LAMBDA_LAYER_VERSION,
+from samcli.hook_packages.terraform.hooks.prepare.makefile_generator import (
+    generate_makefile,
+    generate_makefile_rule_for_lambda_resource,
 )
-from samcli.lib.utils.packagetype import ZIP, IMAGE
+from samcli.hook_packages.terraform.hooks.prepare.resource_linking import _resolve_resource_attribute
+from samcli.hook_packages.terraform.hooks.prepare.types import SamMetadataResource
+from samcli.hook_packages.terraform.lib.utils import (
+    _calculate_configuration_attribute_value_hash,
+    build_cfn_logical_id,
+    get_sam_metadata_planned_resource_value_attribute,
+)
 from samcli.lib.hook.exceptions import PrepareHookException
+from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION
+from samcli.lib.utils.resources import AWS_LAMBDA_LAYERVERSION as CFN_AWS_LAMBDA_LAYER_VERSION
 
 SAM_METADATA_DOCKER_TAG_ATTRIBUTE = "docker_tag"
 SAM_METADATA_DOCKER_BUILD_ARGS_ATTRIBUTE = "docker_build_args"

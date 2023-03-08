@@ -1,15 +1,13 @@
 """Experimental flag"""
-import sys
 import logging
-
+import sys
 from dataclasses import dataclass
 from functools import wraps
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
 
 import click
 
 from samcli.cli.context import Context
-
 from samcli.cli.global_config import ConfigEntry, GlobalConfig
 from samcli.commands._utils.parameterized_option import parameterized_option
 from samcli.lib.utils.colors import Colored
@@ -17,7 +15,8 @@ from samcli.lib.utils.colors import Colored
 LOG = logging.getLogger(__name__)
 
 EXPERIMENTAL_PROMPT = """
-This feature is currently in beta. Visit the docs page to learn more about the AWS Beta terms https://aws.amazon.com/service-terms/.
+This feature is currently in beta.
+Visit the docs page to learn more about the AWS Beta terms https://aws.amazon.com/service-terms/.
 Enter Y to proceed with the command, or enter N to cancel:
 """
 

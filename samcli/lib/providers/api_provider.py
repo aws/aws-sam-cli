@@ -1,12 +1,12 @@
 """Class that provides the Api with a list of routes from a Template"""
 
 import logging
-from typing import List, Optional, Iterator
+from typing import Iterator, List, Optional
 
 from samcli.lib.providers.api_collector import ApiCollector
 from samcli.lib.providers.cfn_api_provider import CfnApiProvider
 from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
-from samcli.lib.providers.provider import AbstractApiProvider, Stack, Api
+from samcli.lib.providers.provider import AbstractApiProvider, Api, Stack
 from samcli.lib.providers.sam_api_provider import SamApiProvider
 
 LOG = logging.getLogger(__name__)

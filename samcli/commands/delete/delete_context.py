@@ -1,33 +1,25 @@
 """
 Delete a SAM stack
 """
-import logging
-
 import json
-
+import logging
 from typing import Optional
 
 import boto3
-
 import click
-from click import confirm
-from click import prompt
+from click import confirm, prompt
 
 from samcli.cli.cli_config_file import TomlProvider
-from samcli.lib.utils.boto_utils import get_boto_config_with_user_agent
-from samcli.lib.delete.cfn_utils import CfnUtils
-
-from samcli.lib.package.s3_uploader import S3Uploader
-from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name
-
 from samcli.cli.context import Context
-
 from samcli.commands.delete.exceptions import CfDeleteFailedStatusError
-
+from samcli.lib.bootstrap.companion_stack.companion_stack_builder import CompanionStack
+from samcli.lib.delete.cfn_utils import CfnUtils
 from samcli.lib.package.artifact_exporter import Template
 from samcli.lib.package.ecr_uploader import ECRUploader
+from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name
+from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Uploaders
-from samcli.lib.bootstrap.companion_stack.companion_stack_builder import CompanionStack
+from samcli.lib.utils.boto_utils import get_boto_config_with_user_agent
 
 CONFIG_COMMAND = "deploy"
 CONFIG_SECTION = "parameters"
