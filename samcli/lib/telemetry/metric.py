@@ -307,8 +307,17 @@ def _get_stack_trace_info(exception: Exception) -> Tuple[Optional[str], Optional
     return (stack_trace, exception_msg)
 
 
-def _clean_traceback_recursively(tbexp: traceback.TracebackException):
-    # __cause__ is populated by using `riase ... from ...` - PEP 3134
+def _clean_traceback_recursively(tbexp: traceback.TracebackException) -> None:
+    """
+    Cleans stack trace recursively by going through both cause and context
+    We don't handle RecursionError because traceback.TracebackException prevents it
+
+    Parameters
+    ----------
+    tbexp : traceback.TracebackException
+        TracebackException instance
+    """
+    # __cause__ is populated by using `raise ... from ...` - PEP 3134
     if tbexp.__cause__:
         _clean_traceback_recursively(tbexp.__cause__)
 
