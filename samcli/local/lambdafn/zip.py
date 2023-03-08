@@ -92,7 +92,6 @@ def unzip(zip_file_path, output_dir, permission=None):
     """
 
     with zipfile.ZipFile(zip_file_path, "r") as zip_ref:
-
         # For each item in the zip file, extract the file and set permissions if available
         for file_info in zip_ref.infolist():
             extracted_path = _extract(file_info, output_dir, zip_ref)

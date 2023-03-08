@@ -74,6 +74,12 @@ class CredentialsError(UserException):
     """
 
 
+class SDKError(UserException):
+    """
+    Exception class when there are generic Boto Errors.
+    """
+
+
 class SchemasApiException(UserException):
     """
     Exception class to wrap all Schemas APIs exceptions.

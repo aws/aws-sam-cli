@@ -51,7 +51,6 @@ class GuidedConfig:
         image_repositories=None,
         **kwargs,
     ):
-
         ctx, samconfig = self.get_config_ctx(config_file)
 
         cmd_names = get_cmd_names(ctx.info_name, ctx)

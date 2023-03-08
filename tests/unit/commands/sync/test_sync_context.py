@@ -166,7 +166,6 @@ class TestSyncStateToTomlSerde(TestCase):
 
 @parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 class TestSyncContext(TestCase):
-
     dependency_layer: bool
 
     def setUp(self) -> None:

@@ -1604,7 +1604,6 @@ foo
     @patch("samcli.commands.init.init_generator.generate_project")
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
     def test_init_cli_no_package_type(self, generate_project_patch, git_repo_clone_mock, _get_manifest_mock):
-
         _get_manifest_mock.return_value = self.data
 
         # WHEN the user follows interactive init prompts
@@ -1887,7 +1886,7 @@ N
                 "packageType": "Image",
             },
         ]
-        with (self.assertRaises(UserException)):
+        with self.assertRaises(UserException):
             init_cli(
                 ctx=self.ctx,
                 no_interactive=True,
@@ -2126,6 +2125,7 @@ test-project
             "amazon/nodejs14.x-base",
             "amazon/python3.8-base",
             "amazon/ruby2.7-base",
+            "amazon/go-provided.al2-base",
         ]
 
         expected_runtime = [
@@ -2136,6 +2136,7 @@ test-project
             "nodejs14.x",
             "python3.8",
             "ruby2.7",
+            "go (provided.al2)",
         ]
 
         for index, base_image in enumerate(base_images):

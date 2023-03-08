@@ -5,15 +5,18 @@ import itertools
 import json
 import logging
 import os
-import re
 from enum import Enum
 from pathlib import Path
+from subprocess import STDOUT, CalledProcessError, check_output
 from typing import Dict, Optional
 
 import requests
 
 from samcli.cli.global_config import GlobalConfig
 from samcli.commands.exceptions import AppTemplateUpdateException, UserException
+from samcli.commands.init.init_flow_helpers import (
+    _get_runtime_from_image,
+)
 from samcli.lib.utils import configuration
 from samcli.lib.utils.git_repo import (
     CloneRepoException,
@@ -87,6 +90,9 @@ class InitTemplates:
             os_name = system().lower()
             cloned_folder_name = APP_TEMPLATES_REPO_NAME_WINDOWS if os_name == "windows" else APP_TEMPLATES_REPO_NAME
 
+            if not self._check_upsert_templates(shared_dir, cloned_folder_name):
+                return
+
             try:
                 self._git_repo.clone(
                     clone_dir=shared_dir,
@@ -101,6 +107,38 @@ class InitTemplates:
                 expected_previous_clone_local_path: Path = shared_dir.joinpath(cloned_folder_name)
                 if expected_previous_clone_local_path.exists():
                     self._git_repo.local_path = expected_previous_clone_local_path
+
+    def _check_upsert_templates(self, shared_dir: Path, cloned_folder_name: str) -> bool:
+        """
+        Check if the app templates repository should be cloned, or if cloning should be skipped.
+
+        Parameters
+        ----------
+        shared_dir: Path
+            Folder containing the aws-sam-cli shared data
+
+        cloned_folder_name: str
+            Name of the directory into which the app templates will be copied
+
+        Returns
+        -------
+        bool
+            True if the cache should be updated, False otherwise
+
+        """
+        cache_dir = Path(shared_dir, cloned_folder_name)
+        git_executable = self._git_repo.git_executable()
+        command = [git_executable, "rev-parse", "--verify", "HEAD"]
+        try:
+            existing_hash = check_output(command, cwd=cache_dir, stderr=STDOUT).decode("utf-8").strip()
+        except CalledProcessError as ex:
+            LOG.debug(f"Unable to check existing cache hash\n{ex.output.decode('utf-8')}")
+            return True
+        except (FileNotFoundError, NotADirectoryError):
+            LOG.debug("Cache directory does not yet exist, creating one.")
+            return True
+        self._git_repo.local_path = cache_dir
+        return not existing_hash == APP_TEMPLATES_REPO_COMMIT
 
     def _init_options_from_manifest(self, package_type, runtime, base_image, dependency_manager):
         manifest_path = self.get_manifest_path()
@@ -220,6 +258,9 @@ class InitTemplates:
                 ):
                     continue
                 runtime = get_runtime(template_package_type, template_runtime)
+                if runtime is None:
+                    LOG.debug("Unable to infer runtime for template %s, %s", template_package_type, template_runtime)
+                    continue
                 use_case = preprocessed_manifest.get(use_case_name, {})
                 use_case[runtime] = use_case.get(runtime, {})
                 use_case[runtime][template_package_type] = use_case[runtime].get(template_package_type, [])
@@ -270,9 +311,9 @@ def get_template_value(value: str, template: dict) -> Optional[str]:
     return template.get(value)
 
 
-def get_runtime(package_type: Optional[str], template_runtime: str) -> str:
+def get_runtime(package_type: Optional[str], template_runtime: str) -> Optional[str]:
     if package_type == IMAGE:
-        template_runtime = re.split("/|-", template_runtime)[1]
+        return _get_runtime_from_image(template_runtime)
     return template_runtime
 
 
