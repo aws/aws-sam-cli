@@ -1,6 +1,7 @@
 import hashlib
 import os
 import shutil
+import sys
 import tempfile
 from unittest import TestCase
 from unittest.mock import patch
@@ -122,3 +123,11 @@ class TestHash(TestCase):
     def test_str_checksum(self):
         checksum = str_checksum("Hello, World!")
         self.assertEqual(checksum, "65a8e27d8879283831b664bd8b7f0ad4")
+
+    @patch("samcli.lib.utils.hash.hashlib")
+    def test_md5_instantiation(self, patched_hashlib):
+        str_checksum("dummy-data")
+        if sys.version_info.major >= 3 and sys.version_info.minor >= 9:
+            patched_hashlib.md5.assert_called_with(usedforsecurity=False)
+        else:
+            patched_hashlib.md5.assert_called_with()
