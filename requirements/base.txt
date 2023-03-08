@@ -1,22 +1,20 @@
 chevron~=0.12
 click~=8.0
-#2.1.x and later versions of Werkzeug library has a bug for setting up <path:*> endpoints
 Flask<2.1
-Werkzeug<2.1
 #Need to add Schemas latest SDK.
 boto3>=1.19.5,==1.*
 jmespath~=0.10.0
 ruamel_yaml==0.17.21
 PyYAML>=5.4.1,==5.*
 cookiecutter~=2.1.1
-aws-sam-translator==1.59.0
+aws-sam-translator==1.60.1
 #docker minor version updates can include breaking changes. Auto update micro version only.
 docker~=4.2.0
 dateparser~=1.0
 requests==2.25.1
 serverlessrepo==0.1.10
 aws_lambda_builders==1.27.0
-tomlkit==0.7.2
+tomlkit==0.11.6
 watchdog==2.1.2
 pyopenssl==23.0.0
 

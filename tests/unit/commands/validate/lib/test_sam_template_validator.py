@@ -295,7 +295,6 @@ class TestSamTemplateValidator(TestCase):
         self.assertIn("DefinitionBody", tempalte_resources.get("ServerlessApi").get("Properties"))
 
     def test_replace_local_codeuri_with_no_resources(self):
-
         template = {
             "AWSTemplateFormatVersion": "2010-09-09",
             "Transform": "AWS::Serverless-2016-10-31",

@@ -106,7 +106,6 @@ def _toml_document_to_sync_state(toml_document: Dict) -> Optional[SyncState]:
     resource_sync_states = dict()
     if resource_sync_states_toml_table:
         for resource_id in resource_sync_states_toml_table:
-
             resource_sync_state_toml_table = resource_sync_states_toml_table.get(resource_id)
             resource_sync_state = ResourceSyncState(
                 resource_sync_state_toml_table.get(HASH),
@@ -126,7 +125,6 @@ def _toml_document_to_sync_state(toml_document: Dict) -> Optional[SyncState]:
 
 
 class SyncContext:
-
     _current_state: SyncState
     _previous_state: Optional[SyncState]
     _build_dir: Path

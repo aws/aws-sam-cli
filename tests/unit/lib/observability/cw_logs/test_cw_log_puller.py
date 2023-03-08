@@ -14,7 +14,6 @@ LOG_CLIENT = botocore.session.get_session().create_client("logs", region_name="u
 
 
 class TestCWLogPullerBase(TestCase):
-
     real_client = None
 
     @classmethod

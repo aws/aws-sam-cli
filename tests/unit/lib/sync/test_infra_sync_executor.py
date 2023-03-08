@@ -12,6 +12,30 @@ class TestInfraSyncExecutor(TestCase):
         self.package_context = MagicMock()
         self.deploy_context = MagicMock()
 
+    @parameterized.expand([(True,), (False,)])
+    @patch("samcli.lib.sync.infra_sync_executor.InfraSyncExecutor._auto_skip_infra_sync")
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_execute_infra_sync(self, auto_skip_infra_sync, session_mock, auto_skip_infra_sync_mock):
+
+        infra_sync_executor = InfraSyncExecutor(self.build_context, self.package_context, self.deploy_context)
+        auto_skip_infra_sync_mock.return_value = auto_skip_infra_sync
+
+        infra_sync_result = infra_sync_executor.execute_infra_sync(True)
+
+        executed = infra_sync_result.infra_sync_executed
+        code_sync_resources = infra_sync_result.code_sync_resources
+
+        self.build_context.set_up.assert_called_once()
+        self.build_context.run.assert_called_once()
+        self.package_context.run.assert_called_once()
+
+        if not auto_skip_infra_sync:
+            self.deploy_context.run.assert_called_once()
+            self.assertEqual(code_sync_resources, set())
+
+        # Reminder: Add back after sync infra skip ready for release
+        # self.assertEqual(executed, not auto_skip_infra_sync)
+
     @patch("samcli.lib.sync.infra_sync_executor.is_local_path")
     @patch("samcli.lib.sync.infra_sync_executor.get_template_data")
     @patch("samcli.lib.sync.infra_sync_executor.Session")
@@ -65,7 +89,7 @@ class TestInfraSyncExecutor(TestCase):
                 },
                 "ServerlessLayer": {"Type": "AWS::Serverless::LayerVersion", "Properties": {"ContentUri": "local/"}},
                 "LambdaLayer": {"Type": "AWS::Lambda::LayerVersion", "Properties": {"Content": "local/"}},
-                "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"DefinitionBody": "definition"}},
+                "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"DefinitionUri": "definition"}},
                 "RestApi": {"Type": "AWS::ApiGateway::RestApi", "Properties": {"BodyS3Location": "definiton"}},
                 "ServerlessHttpApi": {"Type": "AWS::Serverless::HttpApi", "Properties": {"DefinitionUri": "definiton"}},
                 "HttpApi": {"Type": "AWS::ApiGatewayV2::Api", "Properties": {"BodyS3Location": "definiton"}},
@@ -102,7 +126,7 @@ class TestInfraSyncExecutor(TestCase):
                     "Properties": {"ContentUri": "s3://location2"},
                 },
                 "LambdaLayer": {"Type": "AWS::Lambda::LayerVersion", "Properties": {"Content": "s3://location2"}},
-                "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"DefinitionBody": "s3://location2"}},
+                "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"DefinitionUri": "s3://location2"}},
                 "RestApi": {"Type": "AWS::ApiGateway::RestApi", "Properties": {"BodyS3Location": "s3://location2"}},
                 "ServerlessHttpApi": {
                     "Type": "AWS::Serverless::HttpApi",
@@ -152,7 +176,7 @@ class TestInfraSyncExecutor(TestCase):
                         "Properties": {"ContentUri": "s3://location"},
                     },
                     "LambdaLayer": {"Type": "AWS::Lambda::LayerVersion", "Properties": {"Content": "s3://location"}},
-                    "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"DefinitionBody": "s3://location"}},
+                    "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"DefinitionUri": "s3://location"}},
                     "RestApi": {"Type": "AWS::ApiGateway::RestApi", "Properties": {"BodyS3Location": "s3://location"}},
                     "ServerlessHttpApi": {
                         "Type": "AWS::Serverless::HttpApi",
@@ -410,7 +434,7 @@ class TestInfraSyncExecutor(TestCase):
                 },
                 "ServerlessLayer": {"Type": "AWS::Serverless::LayerVersion", "Properties": {"ContentUri": "local/"}},
                 "LambdaLayer": {"Type": "AWS::Lambda::LayerVersion", "Properties": {"Content": "local/"}},
-                "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"DefinitionBody": "definition"}},
+                "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"DefinitionUri": "definition"}},
                 "RestApi": {"Type": "AWS::ApiGateway::RestApi", "Properties": {"BodyS3Location": "definiton"}},
                 "ServerlessHttpApi": {"Type": "AWS::Serverless::HttpApi", "Properties": {"DefinitionUri": "definiton"}},
                 "HttpApi": {"Type": "AWS::ApiGatewayV2::Api", "Properties": {"BodyS3Location": "definiton"}},
@@ -452,7 +476,7 @@ class TestInfraSyncExecutor(TestCase):
                     "Properties": {"ContentUri": "s3://location"},
                 },
                 "LambdaLayer": {"Type": "AWS::Lambda::LayerVersion", "Properties": {"Content": "s3://location"}},
-                "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"DefinitionBody": "s3://location"}},
+                "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"DefinitionUri": "s3://location"}},
                 "RestApi": {"Type": "AWS::ApiGateway::RestApi", "Properties": {"BodyS3Location": "s3://location"}},
                 "ServerlessHttpApi": {
                     "Type": "AWS::Serverless::HttpApi",
@@ -556,7 +580,7 @@ class TestInfraSyncExecutor(TestCase):
                     "Properties": {"ContentUri": "s3://location"},
                 },
                 "LambdaLayer": {"Type": "AWS::Lambda::LayerVersion", "Properties": {"Content": "s3://location"}},
-                "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"DefinitionBody": "s3://location"}},
+                "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"DefinitionUri": "s3://location"}},
                 "RestApi": {"Type": "AWS::ApiGateway::RestApi", "Properties": {"BodyS3Location": "s3://location"}},
                 "ServerlessHttpApi": {
                     "Type": "AWS::Serverless::HttpApi",
@@ -681,6 +705,40 @@ class TestInfraSyncExecutor(TestCase):
 
         self.assertEqual(processed_resource, lambda_resource_id)
         self.assertEqual(resource_dict, expected_dict)
+
+    @parameterized.expand([(True, []), (False, ["LambdaFunction"])])
+    @patch("samcli.lib.sync.infra_sync_executor.is_local_path")
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_remove_resource_field_lambda_function_code_string(
+        self, is_local_path, linked_resources, session_mock, local_path_mock
+    ):
+        built_resource_dict = {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {"Code": "local"},
+        }
+
+        packaged_resource_dict = {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {"Code": {"S3Bucket": "bucket", "S3Key": "key"}},
+        }
+
+        expected_dict = {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {"Code": {}},
+        }
+
+        resource_type = "AWS::Lambda::Function"
+        lambda_resource_id = "LambdaFunction"
+
+        local_path_mock.return_value = is_local_path
+        infra_sync_executor = InfraSyncExecutor(self.build_context, self.package_context, self.deploy_context)
+
+        processed_resource = infra_sync_executor._remove_resource_field(
+            lambda_resource_id, resource_type, packaged_resource_dict, linked_resources, built_resource_dict
+        )
+
+        self.assertEqual(processed_resource, lambda_resource_id)
+        self.assertEqual(packaged_resource_dict, expected_dict)
 
     @patch("samcli.lib.sync.infra_sync_executor.get_template_data")
     @patch("samcli.lib.sync.infra_sync_executor.InfraSyncExecutor._get_remote_template_data")

@@ -197,7 +197,6 @@ class SamFunctionProvider(SamBaseProvider):
         result: Dict[str, Function] = {}  # a dict with full_path as key and extracted function as value
         for stack in stacks:
             for name, resource in stack.resources.items():
-
                 resource_type = resource.get("Type")
                 resource_properties = resource.get("Properties", {})
                 resource_metadata = resource.get("Metadata", None)
@@ -214,7 +213,6 @@ class SamFunctionProvider(SamBaseProvider):
                     if resource_package_type == ZIP and SamBaseProvider._is_s3_location(
                         resource_properties.get(code_property_key)
                     ):
-
                         # CodeUri can be a dictionary of S3 Bucket/Key or a S3 URI, neither of which are supported
                         if not ignore_code_extraction_warnings:
                             SamFunctionProvider._warn_code_extraction(resource_type, name, code_property_key)
@@ -538,7 +536,6 @@ class SamFunctionProvider(SamBaseProvider):
 
             # If the layer is a string, assume it is the arn
             if isinstance(layer, str):
-
                 if locate_layer_nested and "arn:" not in layer:
                     # the layer is not an arn
                     continue
@@ -555,7 +552,6 @@ class SamFunctionProvider(SamBaseProvider):
             # In the list of layers that is defined within a template, you can reference a LayerVersion resource.
             # When running locally, we need to follow that Ref so we can extract the local path to the layer code.
             if isinstance(layer, dict) and layer.get("Ref"):
-
                 # if search_layer is set, this case should be resolved already
                 if locate_layer_nested:
                     continue

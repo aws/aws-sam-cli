@@ -881,7 +881,6 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
         ]
     )
     def test_parse_raise_exception_invalide_base64_encoded_for_http_api(self, encoded_response_value):
-
         binary_body = b"011000100110100101101110011000010111001001111001"  # binary in binary
         base64_body = base64.b64encode(binary_body).decode("utf-8")
         lambda_output = {

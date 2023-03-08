@@ -11,7 +11,6 @@ from samcli.lib.config.samconfig import SamConfig
 
 
 class PipelineOidcProvider:
-
     PROVIDER_URL_PARAMETER = "oidc-provider-url"
     CLIENT_ID_PARAMETER = "oidc-client-id"
     OPENID_CONNECT = "OpenID Connect (OIDC)"
