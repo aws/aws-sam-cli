@@ -5,26 +5,34 @@ on:
     branches:
       - develop
       - "feat/*"
+  merge_group:
+    types: [ checks_requested ]
+    branches:
+      - develop
+      - "feat/*"
 
 jobs:
   run-workflow:
     name: PR Workflow
-    if: always()
+    if: github.repository_owner == 'aws'
     runs-on: ubuntu-latest
     needs:
       - make-pr
-      - integration_tests-buildcmd_rust
+      - integration-tests
+      - smoke-and-functional-tests
     steps:
       - name: report-failure
         if : |
-          needs.make-pr.result != 'success' || 
-          needs.integration_tests-buildcmd_rust.result != 'success'
+          needs.make-pr.result != 'success' ||
+          needs.integration-tests.result != 'success' ||
+          needs.smoke-and-functional-tests.result != 'success'
         run: exit 1
       - name: report-success
         run: exit 0
 
   make-pr:
     name: make pr / ${{ matrix.os }} / ${{ matrix.python }}
+    if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -46,14 +54,14 @@ jobs:
     - run: make init
     - run: make pr
 
-  integration_tests-buildcmd_rust:
-    name: Integration Tests / buildcmd - Rust / ${{ matrix.os }} / ${{ matrix.python }}
+  integration-tests:
+    name: Integration Tests / ${{ matrix.os }} / ${{ matrix.python }} / ${{ matrix.tests_folder }}
+    if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     env:
       AWS_DEFAULT_REGION: us-east-1
       SAM_CLI_DEV: "1"
       CARGO_LAMBDA_VERSION: 0.17.1
-      CI_OVERRIDE: "1"
     defaults:
       run:
         shell: bash
@@ -62,21 +70,53 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          # TODO(hawflau): investigate and fix flakiness on Windows
-          # - windows-latest
+          - windows-latest
         python:
           - "3.7"
           - "3.8"
           - "3.9"
-        rust:
-          - stable
+        # folders that is commented below requires credentials, no need to spare time to run them
+        tests_folder:
+          - "buildcmd"
+          #- "delete"
+          #- "deploy"
+          - "init"
+          #- "list"
+          - "local"
+          #- "logs"
+          #- "package"
+          - "pipeline"
+          #- "publish"
+          - "root"
+          - "scripts"
+          #- "sync"
+          - "telemetry"
+          #- "traces"
+          #- "validate"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python }}
-
-      # Install and configure Rust
+          # set last version as the one in matrix to make it default
+          python-version: |
+            3.7
+            3.8
+            3.9
+            ${{ matrix.python }}
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '1.19'
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "2.7"
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'corretto'
+          java-version: '11'
+       # Install and configure Rust
       - name: Install rustup
         run: |
           : install rustup if needed
@@ -85,20 +125,52 @@ jobs:
             echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
           fi
         if: ${{ matrix.os == 'ubuntu-latest' }}
-      - name: rustup toolchain install ${{ matrix.rust }}
-        run: rustup toolchain install ${{ matrix.rust }} --profile minimal --no-self-update
-      - run: rustup default ${{ matrix.rust }}
+      - name: rustup toolchain install stable
+        run: rustup toolchain install stable --profile minimal --no-self-update
+      - run: rustup default stable
       - run: |
           : disable incremental compilation
           echo CARGO_INCREMENTAL=0 >> $GITHUB_ENV
       - run: |
           : enable colors in Cargo output
           echo CARGO_TERM_COLOR=always >> $GITHUB_ENV
-
       # Install and configure Cargo Lambda
       - name: Install Cargo Lambda
         run: pip install cargo-lambda==$CARGO_LAMBDA_VERSION
       - run: echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - run: make init
-      - run: pytest -vv -n 4 tests/integration/buildcmd/test_build_cmd_rust.py
+      - name: Init samdev
+        run: make init
+      - name: Run integration tests for ${{ matrix.tests_folder }}
+        run: pytest -vv tests/integration/${{ matrix.tests_folder }}
+
+  smoke-and-functional-tests:
+    name: Functional & Smoke Tests / ${{ matrix.os }} / ${{ matrix.python }}
+    if: github.repository_owner == 'aws'
+    runs-on: ${{ matrix.os }}
+    env:
+      AWS_DEFAULT_REGION: us-east-1
+      SAM_CLI_DEV: "1"
+      CARGO_LAMBDA_VERSION: 0.17.1
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+        python:
+          - "3.7"
+          - "3.8"
+          - "3.9"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Init samdev
+        run: make init
+      - name: Run functional & smoke tests
+        run: pytest -vv -n 4 tests/functional tests/smoke

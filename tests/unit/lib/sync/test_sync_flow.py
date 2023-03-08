@@ -238,6 +238,7 @@ class TestSyncFlow(TestCase):
         definition_path = get_definition_path(resource, "identifier", True, "base_dir", [])
         self.assertEqual(definition_path, Path("base_dir").joinpath("test_uri"))
 
+    # Reminder: Add back after sync infra skip ready for release
     # @patch("samcli.lib.sync.sync_flow.Session")
     # @patch.multiple(SyncFlow, __abstractmethods__=set())
     # def test_compare_local(self, patched_session):
