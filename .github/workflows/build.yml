@@ -9,6 +9,7 @@ on:
     types: [ checks_requested ]
     branches:
       - develop
+      - "feat/*"
 
 jobs:
   run-workflow:
