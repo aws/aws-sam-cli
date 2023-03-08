@@ -1,7 +1,7 @@
 import platform
 import time
 import traceback
-
+import os
 from unittest import TestCase
 from unittest.mock import patch, Mock, ANY, call
 
@@ -522,61 +522,53 @@ class TestStackTrace(TestCase):
     def test_must_clean_traceback_recursively(self, clean_path_mock: Mock):
         def nested_failures():
             try:
-                raise Exception("1")
+                raise UserException(f"1 - We can print a filepath here {os.getcwd()}")
             except Exception:
                 try:
-                    raise Exception("2")
+                    raise TypeError("2 - another exception")
                 except Exception as ex:
-                    raise Exception("3") from ex
+                    try:
+                        raise ZeroDivisionError("3 - diveded by zero") from ex
+                    except Exception as ex:
+                        raise UserException(f"4 - something's wrong: {ex}")
+
+        try:
+            nested_failures()
+        except Exception as ex:
+            _, exception_msg = _get_stack_trace_info(ex)
+            self.assertEqual(exception_msg, "samcli.commands.exceptions.UserException: <REDACTED>\n")
+            self.assertEqual(clean_path_mock.call_count, 4)
+
+    def test_must_produce_sanitized_stack_trace(self):
+        def nested_failures():
+            try:
+                raise UserException(f"1 - We can print a filepath here {os.getcwd()}")
+            except Exception:
+                try:
+                    raise TypeError("2 - another exception")
+                except Exception as ex:
+                    try:
+                        raise ZeroDivisionError("3 - diveded by zero") from ex
+                    except Exception as ex:
+                        raise UserException(f"4 - something's wrong: {ex}")
 
         try:
             nested_failures()
         except Exception as ex:
             stack_trace, exception_msg = _get_stack_trace_info(ex)
-            self.assertEqual(exception_msg, "Exception: 3\n")
-            self.assertEqual(clean_path_mock.call_count, 3)
-            self.assertEqual(
-                stack_trace.count("During handling of the above exception, another exception occurred:"), 1
-            )
-            self.assertEqual(
-                stack_trace.count("The above exception was the direct cause of the following exception:"), 1
-            )
+            self.assertEqual(exception_msg, "samcli.commands.exceptions.UserException: <REDACTED>\n")
 
-    def test_must_clean_traceback_recursively_with_context(self):
-        actual = Exception("TypeError")
-        nested1 = Exception("Nested1")
-        nested2 = Exception("Nested2")
-        nested1.__context__ = nested2
-        actual.__context__ = nested1
+            # assert stack trace is chained
+            self.assertEqual(stack_trace.count("During handling of the above exception, another exception occurred:"), 2)
+            self.assertEqual(stack_trace.count("The above exception was the direct cause of the following exception:"), 1)
 
-        stack_trace, exception_msg = _get_stack_trace_info(actual)
-        self.assertEqual(exception_msg, "Exception: TypeError\n")
-        self.assertEqual(
-            stack_trace,
-            "Exception: Nested2\n\n"
-            "During handling of the above exception, another exception occurred:\n\n"
-            "Exception: Nested1\n\n"
-            "During handling of the above exception, another exception occurred:\n\n"
-            "Exception: TypeError\n",
-        )
+            # assert all exception messages in the stack trace are sanitized
+            self.assertEqual(stack_trace.count("samcli.commands.exceptions.UserException: <REDACTED>"), 2)
+            self.assertEqual(stack_trace.count("TypeError: <REDACTED>"), 1)
+            self.assertEqual(stack_trace.count("ZeroDivisionError: <REDACTED>"), 1)
 
-    def test_must_clean_traceback_recursively_with_cause(self):
-        actual = Exception("TypeError")
-        nested1 = Exception("Nested1")
-        nested2 = Exception("Nested2")
-        nested1.__context__ = nested2
-        actual.__cause__ = nested1
-
-        stack_trace, exception_msg = _get_stack_trace_info(actual)
-        self.assertEqual(exception_msg, "Exception: TypeError\n")
-        self.assertEqual(
-            stack_trace,
-            "Exception: Nested2\n\n"
-            "During handling of the above exception, another exception occurred:\n\n"
-            "Exception: Nested1\n\n"
-            "The above exception was the direct cause of the following exception:\n\n"
-            "Exception: TypeError\n",
-        )
+            # assert all filepaths in the stack trace are sanitized
+            self.assertEqual(stack_trace.count("File \"/../test_metric.py\""), 5)
 
     def test_must_clean_path_preceding_site_packages(self):
         stack_summary = traceback.StackSummary.from_list(
