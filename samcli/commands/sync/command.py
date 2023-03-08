@@ -45,6 +45,7 @@ from samcli.lib.providers.provider import (
     get_unique_resource_ids,
 )
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+from samcli.lib.sync.infra_sync_executor import InfraSyncExecutor, InfraSyncResult
 from samcli.lib.sync.sync_flow_executor import SyncFlowExecutor
 from samcli.lib.sync.sync_flow_factory import SyncCodeResources, SyncFlowFactory
 from samcli.lib.sync.watch_manager import WatchManager
@@ -374,31 +375,45 @@ def do_cli(
                                 dependency_layer,
                             )
                         else:
-                            execute_infra_contexts(build_context, package_context, deploy_context)
+                            infra_sync_result = execute_infra_contexts(build_context, package_context, deploy_context)
+                            code_sync_resources = infra_sync_result.code_sync_resources
+
+                            if code_sync_resources:
+                                resource_ids = [str(resource) for resource in code_sync_resources]
+
+                                LOG.info("Queuing up code sync for the resources that require an update")
+                                LOG.debug("The following resources will be code synced for an update: %s", resource_ids)
+                                execute_code_sync(
+                                    template_file,
+                                    build_context,
+                                    deploy_context,
+                                    sync_context,
+                                    tuple(resource_ids),  # type: ignore
+                                    None,
+                                    dependency_layer,
+                                )
 
 
 def execute_infra_contexts(
     build_context: "BuildContext",
     package_context: "PackageContext",
     deploy_context: "DeployContext",
-) -> None:
+) -> InfraSyncResult:
     """Executes the sync for infra.
 
     Parameters
     ----------
     build_context : BuildContext
-        BuildContext
     package_context : PackageContext
-        PackageContext
     deploy_context : DeployContext
-        DeployContext
+
+    Returns
+    -------
+    InfraSyncResult
+        Data class that contains infra sync execution result
     """
-    LOG.debug("Executing the build using build context.")
-    build_context.run()
-    LOG.debug("Executing the packaging using package context.")
-    package_context.run()
-    LOG.debug("Executing the deployment using deploy context.")
-    deploy_context.run()
+    infra_sync_executor = InfraSyncExecutor(build_context, package_context, deploy_context)
+    return infra_sync_executor.execute_infra_sync(first_sync=True)
 
 
 def execute_code_sync(
