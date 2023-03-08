@@ -327,7 +327,7 @@ def _clean_traceback_recursively(tbexp: traceback.TracebackException) -> None:
 
     _clean_stack_summary_paths(tbexp.stack)
     # redacting entire exception message
-    tbexp._str = "<REDACTED>" # type: ignore
+    tbexp._str = "<REDACTED>"  # type: ignore
 
 
 def _clean_stack_summary_paths(stack_summary: traceback.StackSummary) -> None:
