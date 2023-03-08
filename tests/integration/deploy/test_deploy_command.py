@@ -24,20 +24,20 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 class TestDeploy(DeployIntegBase):
     @classmethod
     def setUpClass(cls):
-        # cls.docker_client = docker.from_env()
-        # cls.local_images = [
-        #     ("public.ecr.aws/sam/emulation-python3.8", "latest"),
-        # ]
-        # # setup some images locally by pulling them.
-        # for repo, tag in cls.local_images:
-        #     cls.docker_client.api.pull(repository=repo, tag=tag)
-        #     cls.docker_client.api.tag(f"{repo}:{tag}", "emulation-python3.8", tag="latest")
-        #     cls.docker_client.api.tag(f"{repo}:{tag}", "emulation-python3.8-2", tag="latest")
-        #     cls.docker_client.api.tag(f"{repo}:{tag}", "colorsrandomfunctionf61b9209", tag="latest")
+        cls.docker_client = docker.from_env()
+        cls.local_images = [
+            ("public.ecr.aws/sam/emulation-python3.8", "latest"),
+        ]
+        # setup some images locally by pulling them.
+        for repo, tag in cls.local_images:
+            cls.docker_client.api.pull(repository=repo, tag=tag)
+            cls.docker_client.api.tag(f"{repo}:{tag}", "emulation-python3.8", tag="latest")
+            cls.docker_client.api.tag(f"{repo}:{tag}", "emulation-python3.8-2", tag="latest")
+            cls.docker_client.api.tag(f"{repo}:{tag}", "colorsrandomfunctionf61b9209", tag="latest")
 
         # setup signing profile arn & name
-        # cls.signing_profile_name = os.environ.get("AWS_SIGNING_PROFILE_NAME")
-        # cls.signing_profile_version_arn = os.environ.get("AWS_SIGNING_PROFILE_VERSION_ARN")
+        cls.signing_profile_name = os.environ.get("AWS_SIGNING_PROFILE_NAME")
+        cls.signing_profile_version_arn = os.environ.get("AWS_SIGNING_PROFILE_VERSION_ARN")
         super().setUpClass()
 
     def setUp(self):
