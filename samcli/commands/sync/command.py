@@ -375,7 +375,9 @@ def do_cli(
                                 dependency_layer,
                             )
                         else:
-                            infra_sync_result = execute_infra_contexts(build_context, package_context, deploy_context)
+                            infra_sync_result = execute_infra_contexts(
+                                build_context, package_context, deploy_context, sync_context
+                            )
                             code_sync_resources = infra_sync_result.code_sync_resources
 
                             if code_sync_resources:
@@ -398,6 +400,7 @@ def execute_infra_contexts(
     build_context: "BuildContext",
     package_context: "PackageContext",
     deploy_context: "DeployContext",
+    sync_context: "SyncContext",
 ) -> InfraSyncResult:
     """Executes the sync for infra.
 
@@ -406,13 +409,14 @@ def execute_infra_contexts(
     build_context : BuildContext
     package_context : PackageContext
     deploy_context : DeployContext
+    sync_context : SyncContext
 
     Returns
     -------
     InfraSyncResult
         Data class that contains infra sync execution result
     """
-    infra_sync_executor = InfraSyncExecutor(build_context, package_context, deploy_context)
+    infra_sync_executor = InfraSyncExecutor(build_context, package_context, deploy_context, sync_context)
     return infra_sync_executor.execute_infra_sync(first_sync=True)
 
 
