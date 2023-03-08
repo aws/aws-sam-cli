@@ -5,6 +5,10 @@ on:
     branches:
       - develop
       - "feat/*"
+  merge_group:
+    types: [ checks_requested ]
+    branches:
+      - develop
 
 jobs:
   run-workflow:
