@@ -559,8 +559,12 @@ class TestStackTrace(TestCase):
             self.assertEqual(exception_msg, "samcli.commands.exceptions.UserException: <REDACTED>\n")
 
             # assert stack trace is chained
-            self.assertEqual(stack_trace.count("During handling of the above exception, another exception occurred:"), 2)
-            self.assertEqual(stack_trace.count("The above exception was the direct cause of the following exception:"), 1)
+            self.assertEqual(
+                stack_trace.count("During handling of the above exception, another exception occurred:"), 2
+            )
+            self.assertEqual(
+                stack_trace.count("The above exception was the direct cause of the following exception:"), 1
+            )
 
             # assert all exception messages in the stack trace are sanitized
             self.assertEqual(stack_trace.count("samcli.commands.exceptions.UserException: <REDACTED>"), 2)
@@ -568,7 +572,7 @@ class TestStackTrace(TestCase):
             self.assertEqual(stack_trace.count("ZeroDivisionError: <REDACTED>"), 1)
 
             # assert all filepaths in the stack trace are sanitized
-            self.assertEqual(stack_trace.count("File \"/../test_metric.py\""), 5)
+            self.assertEqual(stack_trace.count('File "/../test_metric.py"'), 5)
 
     def test_must_clean_path_preceding_site_packages(self):
         stack_summary = traceback.StackSummary.from_list(

@@ -329,6 +329,7 @@ def _clean_traceback_recursively(tbexp: traceback.TracebackException) -> None:
     # redacting entire exception message
     tbexp._str = "<REDACTED>"
 
+
 def _clean_stack_summary_paths(stack_summary: traceback.StackSummary) -> None:
     """
     Cleans the user-sensitive paths contained within a StackSummary instance
