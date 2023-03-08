@@ -54,6 +54,8 @@ LAMBDA_FUNCTION_REMOVAL_MAP = {
     AWS_LAMBDA_FUNCTION: {"Code": ["ImageUri", "S3Bucket", "S3Key", "S3ObjectVersion"]},
 }
 
+SYNC_FLOW_THRESHOLD = 50
+
 
 class InfraSyncResult:
     """Data class for storing infra sync result"""
@@ -153,18 +155,24 @@ class InfraSyncExecutor:
         # Will not combine the comparisons in order to save operation cost
         if first_sync:
             # Reminder: Add back after sync infra skip ready for release
-            # try:
-            #     if self._auto_skip_infra_sync(
-            #         self._package_context.output_template_file,
-            #         self._package_context.template_file,
-            #         self._deploy_context.stack_name,
-            #     ):
-            #         LOG.info("Template haven't been changed since last deployment, skipping infra sync...")
-            #         return InfraSyncResult(False, self.code_sync_resources)
-            # except Exception:
-            #     LOG.debug(
-            #         "Could not skip infra sync by comparing to a previously deployed template, starting infra sync"
-            #     )
+            try:
+                if self._auto_skip_infra_sync(
+                    self._package_context.output_template_file,
+                    self._package_context.template_file,
+                    self._deploy_context.stack_name,
+                ):
+                    # We have a threshold on number of sync flows we initiate
+                    # If higher than the threshold, we perform infra sync to improve performance
+                    if len(self.code_sync_resources) < SYNC_FLOW_THRESHOLD:
+                        LOG.info("Template haven't been changed since last deployment, skipping infra sync...")
+                        return InfraSyncResult(False, self.code_sync_resources)
+                    else:
+                        LOG.info("The number of resources that needs an update exceeds %s, \
+an infra sync will be executed for an CloudFormation deployment to improve performance", SYNC_FLOW_THRESHOLD)
+            except Exception:
+                LOG.debug(
+                    "Could not skip infra sync by comparing to a previously deployed template, starting infra sync"
+                )
             pass
 
         self._deploy_context.run()
