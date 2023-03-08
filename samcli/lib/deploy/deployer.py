@@ -691,7 +691,6 @@ class Deployer:
         kwargs = {
             "StackName": stack_name,
         }
-
         current_state = self._get_stack_status(stack_name)
 
         try:
@@ -704,7 +703,7 @@ class Deployer:
 
                 current_state = self._get_stack_status(stack_name)
 
-            failed_states = ["CREATE_FAILED", "UPDATE_FAILED", "ROLLBACK_COMPLETE", "ROLLBACK_FAILED"]
+            failed_states = ["CREATE_FAILED", "ROLLBACK_COMPLETE", "ROLLBACK_FAILED"]
 
             if current_state in failed_states:
                 LOG.info("Stack %s failed to create/update correctly, deleting stack", stack_name)
