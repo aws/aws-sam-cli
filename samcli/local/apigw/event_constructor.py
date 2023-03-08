@@ -3,7 +3,6 @@ Lambda event construction and generation
 """
 
 import base64
-import json
 import logging
 from datetime import datetime
 from time import time
@@ -88,9 +87,9 @@ def construct_v1_event(
         stage_variables=stage_variables,
     )
 
-    event_str = json.dumps(event.to_dict(), sort_keys=True)
-    LOG.debug("Constructed String representation of Event to invoke Lambda. Event: %s", event_str)
-    return event_str
+    event_dict = event.to_dict()
+    LOG.debug("Constructed Event 1.0 to invoke Lambda. Event: %s", event_dict)
+    return event_dict
 
 
 def construct_v2_event_http(
@@ -159,9 +158,9 @@ def construct_v2_event_http(
         stage_variables=stage_variables,
     )
 
-    event_str = json.dumps(event.to_dict())
-    LOG.debug("Constructed String representation of Event Version 2.0 to invoke Lambda. Event: %s", event_str)
-    return event_str
+    event_dict = event.to_dict()
+    LOG.debug("Constructed Event Version 2.0 to invoke Lambda. Event: %s", event_dict)
+    return event_dict
 
 
 def _query_string_params(flask_request):

@@ -38,3 +38,9 @@ class InvalidSecurityDefinition(UserException):
     """
     An exception raised when the user provides an invalid security definition
     """
+
+
+class InvalidLambdaAuthorizerResponse(UserException):
+    """
+    An exception raised when a Lambda authorizer returns an invalid response format
+    """
