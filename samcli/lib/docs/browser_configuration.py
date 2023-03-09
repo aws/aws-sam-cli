@@ -1,3 +1,6 @@
+"""
+Library housing logic for handling web browsers
+"""
 import logging
 import os
 import webbrowser
@@ -18,7 +21,16 @@ class BrowserConfiguration:
         self.open_mode = open_mode
         self.web_browser = webbrowser.get(browser_name)
 
-    def launch(self, url):
+    def launch(self, url: str):
+        """
+        Launch a browser session (or open an existing tab by default) for a given URL
+
+        Parameters
+        ----------
+        url: str
+            The URL string to open in the browser
+        """
+
         open_mode = self.open_mode.value if self.open_mode else OpenMode.SameWindow.value
         try:
             self.web_browser.open(url=url, new=open_mode)

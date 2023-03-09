@@ -1,3 +1,6 @@
+"""
+Context class for handling `sam docs` command logic
+"""
 from click import echo
 
 from samcli.lib.docs.browser_configuration import BrowserConfiguration
@@ -18,6 +21,9 @@ class DocsContext:
         pass
 
     def run(self):
+        """
+        Run the necessary logic for the `sam docs` command
+        """
         echo(f"Opening documentation in the browser. If the page fails to open, use the following link: {self.URL}")
         browser = BrowserConfiguration()
         documentation = Documentation(browser=browser, url=self.URL)
