@@ -188,8 +188,8 @@ class InfraSyncExecutor:
         # Will be added with the sync infra skip is ready for release
         # if days_since_last_infra_sync > AUTO_INFRA_SYNC_DAYS:
         #     LOG.info(
-        #         "Infrastructure Sync hasn't been run in the last %s days, sam sync will be queuing up the stack \
-        #          deployment to minimize the drift in CloudFormation.",
+        #         "Infrastructure Sync hasn't been run in the last %s days, sam sync will be queuing up the stack" 
+        #         " deployment to minimize the drift in CloudFormation.",
         #         AUTO_INFRA_SYNC_DAYS,
         #     )
         self._deploy_context.run()
