@@ -44,9 +44,23 @@ class SyncState:
     resource_sync_states: Dict[str, ResourceSyncState]
 
     def update_resource_sync_state(self, resource_id: str, hash_value: str):
+        """
+        Updates the sync_state information for the provided resource_id
+        to be stored in the TOML file.
+
+        Parameters
+        -------
+        resource_id: str
+            The resource identifier of the resource
+        hash_value: str
+            The logical ID identifier of the resource
+        """
         self.resource_sync_states[resource_id] = ResourceSyncState(hash_value, datetime.utcnow())
 
     def update_infra_sync_time(self):
+        """
+        Updates the last infra sync time to be stored in the TOML file.
+        """
         self.latest_infra_sync_time = datetime.utcnow()
 
 
@@ -167,12 +181,23 @@ class SyncContext:
             self._write()
 
     def update_infra_sync_time(self):
+        """
+        Updates the last infra sync time and stores it in the TOML file.
+        """
         with _lock:
             LOG.debug("Updating latest_infra_sync_time in sync state")
             self._current_state.update_infra_sync_time()
             self._write()
 
     def get_latest_infra_sync_time(self) -> Optional[datetime]:
+        """
+        Returns the time last infra sync happened.
+
+        Returns
+        -------
+        Optional[datetime]
+            The last infra sync time if it exists
+        """
         with _lock:
             infra_sync_time = self._current_state.latest_infra_sync_time
             if not infra_sync_time:
