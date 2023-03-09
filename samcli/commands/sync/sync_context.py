@@ -129,7 +129,7 @@ def _toml_document_to_sync_state(toml_document: Dict) -> Optional[SyncState]:
         dependency_layer = sync_state_toml_table.get(DEPENDENCY_LAYER)
         latest_infra_sync_time = sync_state_toml_table.get(LATEST_INFRA_SYNC_TIME)
         if latest_infra_sync_time:
-            latest_infra_sync_time = datetime.fromisoformat(latest_infra_sync_time)
+            latest_infra_sync_time = datetime.fromisoformat(str(latest_infra_sync_time))
     sync_state = SyncState(dependency_layer, latest_infra_sync_time, resource_sync_states)
 
     return sync_state

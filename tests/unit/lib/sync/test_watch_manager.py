@@ -169,7 +169,9 @@ class TestWatchManager(TestCase):
 
         self.watch_manager._execute_infra_context(first_sync)
 
-        patch_infra_sync_executor.assert_called_once_with(self.build_context, self.package_context, self.deploy_context)
+        patch_infra_sync_executor.assert_called_once_with(
+            self.build_context, self.package_context, self.deploy_context, self.sync_context
+        )
         infra_sync_executor_mock.execute_infra_sync.assert_called_once_with(first_sync)
 
     @patch("samcli.lib.sync.watch_manager.threading.Thread")
