@@ -37,7 +37,7 @@ class TestBrowserConfiguration(TestCase):
         webbrowser_mock.open.side_effect = browser_exception
         browser_mock_get.return_value = webbrowser_mock
         browser = BrowserConfiguration()
-        with patch('samcli.lib.docs.browser_configuration.logging.Logger.info') as log:
+        with patch("samcli.lib.docs.browser_configuration.logging.Logger.info") as log:
             browser.launch(self.url)
             print(log)
             log.assert_called_once_with(
