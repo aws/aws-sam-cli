@@ -5,16 +5,13 @@ import json
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from io import BytesIO
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import parse_qsl
 
 from samcli.commands.local.lib.validators.identity_source_validator import IdentitySourceValidator
-from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.apigw.authorizers.authorizer import Authorizer
 from samcli.local.apigw.exceptions import InvalidLambdaAuthorizerResponse, InvalidSecurityDefinition
 from samcli.local.apigw.route import Route
-from samcli.local.services.base_local_service import LambdaOutputParser
 
 _RESPONSE_PRINCIPAL_ID = "principalId"
 _RESPONSE_CONTEXT = "context"
@@ -299,15 +296,6 @@ class LambdaAuthorizer(Authorizer):
                     self._identity_sources.append(identity_source_validator)
 
                     break
-
-    def invoke_lambda_function(self, invoke_context, event, stderr) -> str:
-        with BytesIO() as stdout:
-            stdout_writer = StreamWriter(stdout, auto_flush=True)
-
-            invoke_context(self.lambda_name, event, stdout=stdout_writer, stderr=stderr)
-            lambda_response, _ = LambdaOutputParser.get_lambda_output(stdout)
-
-            return lambda_response
 
     def is_valid_response(self, response: str, method_arn: str) -> bool:
         """
