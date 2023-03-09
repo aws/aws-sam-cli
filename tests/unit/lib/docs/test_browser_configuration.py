@@ -1,3 +1,4 @@
+import os
 from unittest import TestCase
 
 import webbrowser
@@ -36,6 +37,9 @@ class TestBrowserConfiguration(TestCase):
         webbrowser_mock.open.side_effect = browser_exception
         browser_mock_get.return_value = webbrowser_mock
         browser = BrowserConfiguration()
-        with self.assertLogs(level="INFO") as log:
+        with patch('samcli.lib.docs.browser_configuration.logging.Logger.info') as log:
             browser.launch(self.url)
-            self.assertIn("Error occurred when attempting to open a web browser", log.output[0])
+            print(log)
+            log.assert_called_once_with(
+                f"Error occurred when attempting to open a web browser:{os.linesep}Something went wrong"
+            )
