@@ -446,6 +446,10 @@ class LambdaAuthorizer(Authorizer):
             The built authorizer context object
         """
         built_context = response.get(_RESPONSE_CONTEXT, {})
-        built_context[_RESPONSE_PRINCIPAL_ID] = response.get(_RESPONSE_PRINCIPAL_ID)
+
+        principal_id = response.get(_RESPONSE_PRINCIPAL_ID)
+        if principal_id:
+            # only V1 response contains this ID in the output
+            built_context[_RESPONSE_PRINCIPAL_ID] = principal_id
 
         return built_context  # type: ignore
