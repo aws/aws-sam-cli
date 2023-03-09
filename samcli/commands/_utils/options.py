@@ -375,6 +375,41 @@ def common_observability_options(f):
     return f
 
 
+def common_configuration_click_options():
+    return [
+        click.option(
+            "--config-file",
+            help=(
+                "The path and file name of the configuration file containing default parameter values to use. "
+                "Its default value is 'samconfig.toml' in project directory. "
+                "For more information about configuration files, see: "
+                "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html."
+            ),
+            type=click.STRING,
+            default="samconfig.toml",
+            show_default=True,
+        ),
+        click.option(
+            "--config-env",
+            help=(
+                "The environment name specifying the default parameter values in the configuration file to use. "
+                "Its default value is 'default'. For more information about configuration files, see: "
+                "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html."
+            ),
+            type=click.STRING,
+            default="default",
+            show_default=True,
+        ),
+    ]
+
+
+def common_configuration_options(f):
+    for option in common_configuration_click_options():
+        option(f)
+
+    return f
+
+
 def metadata_click_option():
     return click.option(
         "--metadata",
