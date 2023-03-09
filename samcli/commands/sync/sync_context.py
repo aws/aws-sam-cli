@@ -180,7 +180,7 @@ class SyncContext:
         with _lock:
             self._write()
 
-    def update_infra_sync_time(self):
+    def update_infra_sync_time(self) -> None:
         """
         Updates the last infra sync time and stores it in the TOML file.
         """
