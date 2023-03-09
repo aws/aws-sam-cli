@@ -8,11 +8,26 @@ class ServiceErrorResponses:
     _MISSING_AUTHENTICATION = {"message": "Missing Authentication Token"}
     _LAMBDA_FAILURE = {"message": "Internal server error"}
     _MISSING_LAMBDA_AUTH_IDENTITY_SOURCES = {"message": "Unauthorized"}
+    _LAMBDA_AUTHORIZER_NOT_AUTHORIZED = {"message": "User is not authorized to access this resource"}
 
     HTTP_STATUS_CODE_501 = 501
     HTTP_STATUS_CODE_502 = 502
     HTTP_STATUS_CODE_403 = 403
     HTTP_STATUS_CODE_401 = 401
+
+    @staticmethod
+    def lambda_authorizer_unauthorized() -> Response:
+        """
+        Constructs a Flask response for when a route invokes a Lambda Authorizer, but
+        is the identity sources provided are not authorized for that method
+
+        Returns
+        -------
+        Response
+            A Flask Response object
+        """
+        response_data = jsonify(ServiceErrorResponses._LAMBDA_AUTHORIZER_NOT_AUTHORIZED)
+        return make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_403)
 
     @staticmethod
     def missing_lambda_auth_identity_sources() -> Response:

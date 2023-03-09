@@ -88,7 +88,7 @@ class LocalApigwService(BaseLocalService):
         self.api = api
         self.lambda_runner = lambda_runner
         self.static_dir = static_dir
-        self._dict_of_routes = {}
+        self._dict_of_routes: Dict[str, Route] = {}
         self.stderr = stderr
 
     def create(self):
@@ -237,7 +237,7 @@ class LocalApigwService(BaseLocalService):
 
         return (
             f"arn:aws:execute-api:us-east-1:{context.account_id}:"  # type: ignore
-            f"{context.api_id}/{self.api.stage_name}/{method}/{endpoint}"
+            f"{context.api_id}/{self.api.stage_name}/{method}{endpoint}"
         )
 
     def _generate_lambda_token_authorizer_event(
@@ -571,13 +571,26 @@ class LocalApigwService(BaseLocalService):
         return True
 
     def _invoke_lambda_function(self, lambda_function_name: str, event: dict) -> str:
+        """
+        Helper method to invoke a function and setup stdout+stderr
+
+        Parameters
+        ----------
+        lambda_function_name: str
+            The name of the Lambda function to invoke
+        event: dict
+            The event object to pass into the Lambda function
+
+        Returns
+        -------
+        str
+            A string containing the output from the Lambda function
+        """
         with BytesIO() as stdout:
             event_str = json.dumps(event, sort_keys=True)
             stdout_writer = StreamWriter(stdout, auto_flush=True)
 
-            self.lambda_runner.invoke(
-                lambda_function_name, event_str, stdout=stdout_writer, stderr=self.stderr
-            )
+            self.lambda_runner.invoke(lambda_function_name, event_str, stdout=stdout_writer, stderr=self.stderr)
             lambda_response, _ = LambdaOutputParser.get_lambda_output(stdout)
 
         return lambda_response
@@ -640,14 +653,14 @@ class LocalApigwService(BaseLocalService):
         try:
             if lambda_authorizer:
                 lambda_auth_response = self._invoke_lambda_function(lambda_authorizer.lambda_name, auth_lambda_event)
+                method_arn = self._create_method_arn(request, route.event_type)
 
-                if not lambda_authorizer.is_valid_response(lambda_auth_response):
-                    # TODO (lucashuy): create the bad response if we authorizer denied us
-                    return False
+                if not lambda_authorizer.is_valid_response(lambda_auth_response, method_arn):
+                    return ServiceErrorResponses.lambda_authorizer_unauthorized()
 
                 # update route context to include any context that may have been passed from authorizer
                 original_context = route_lambda_event.get("requestContext", {})
-                original_context.update(lambda_authorizer.get_context(lambda_auth_response))
+                original_context.update({"authorizer": LambdaAuthorizer.get_context(lambda_auth_response)})
                 route_lambda_event.update({"requestContext": original_context})
 
             # invoke the route's Lambda function

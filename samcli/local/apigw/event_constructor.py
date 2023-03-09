@@ -6,6 +6,7 @@ import base64
 import logging
 from datetime import datetime
 from time import time
+from typing import Any, Dict
 
 from samcli.local.apigw.path_converter import PathConverter
 from samcli.local.events.api_event import (
@@ -22,7 +23,7 @@ LOG = logging.getLogger(__name__)
 
 def construct_v1_event(
     flask_request, port, binary_types, stage_name=None, stage_variables=None, operation_name=None
-) -> str:
+) -> Dict[str, Any]:
     """
     Helper method that constructs the Event to be passed to Lambda
 
@@ -31,7 +32,7 @@ def construct_v1_event(
     :param binary_types: list of binary types
     :param stage_name: Optional, the stage name string
     :param stage_variables: Optional, API Gateway Stage Variables
-    :return: String representing the event
+    :return: JSON object
     """
 
     identity = ContextIdentity(source_ip=flask_request.remote_addr)
@@ -101,7 +102,7 @@ def construct_v2_event_http(
     route_key=None,
     request_time_epoch=int(time()),
     request_time=datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000"),
-) -> str:
+) -> Dict[str, Any]:
     """
     Helper method that constructs the Event 2.0 to be passed to Lambda
 
@@ -113,7 +114,7 @@ def construct_v2_event_http(
     :param stage_name: Optional, the stage name string
     :param stage_variables: Optional, API Gateway Stage Variables
     :param route_key: Optional, the route key for the route
-    :return: String representing the event
+    :return: JSON object
     """
     method = flask_request.method
 
