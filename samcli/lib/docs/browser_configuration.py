@@ -19,7 +19,7 @@ class OpenMode(Enum):
 class BrowserConfiguration:
     def __init__(self, browser_name: Optional[str] = None, open_mode: Optional[OpenMode] = None):
         self.open_mode = open_mode
-        self.web_browser = webbrowser.get(browser_name)
+        self.browser_name = browser_name
 
     def launch(self, url: str):
         """
@@ -33,6 +33,7 @@ class BrowserConfiguration:
 
         open_mode = self.open_mode.value if self.open_mode else OpenMode.SameWindow.value
         try:
-            self.web_browser.open(url=url, new=open_mode)
+            web_browser: webbrowser.BaseBrowser = webbrowser.get(self.browser_name)
+            web_browser.open(url=url, new=open_mode)
         except webbrowser.Error as ex:
             LOG.info(f"Error occurred when attempting to open a web browser:{os.linesep}{str(ex)}")
