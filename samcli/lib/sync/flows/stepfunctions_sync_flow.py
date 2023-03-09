@@ -1,4 +1,5 @@
 """Base SyncFlow for StepFunctions"""
+import hashlib
 import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
@@ -86,7 +87,7 @@ class StepFunctionsSyncFlow(SyncFlow):
         self._definition_uri = self._get_definition_file(self._state_machine_identifier)
         self._states_definition = self._process_definition_file()
         if self._states_definition:
-            self._local_sha = str_checksum(self._states_definition)
+            self._local_sha = str_checksum(self._states_definition, hashlib.sha256())
 
     def _process_definition_file(self) -> Optional[str]:
         if self._definition_uri is None:
