@@ -29,6 +29,6 @@ class TestBrowserConfiguration(TestCase):
         webbrowser_mock.open.side_effect = webbrowser.Error
         browser = BrowserConfiguration()
         browser.web_browser = webbrowser_mock
-        with self.assertLogs(level='INFO') as log:
+        with self.assertLogs(level="INFO") as log:
             browser.launch(self.url)
             self.assertIn("Error occurred when attempting to open a web browser", log.output[0])

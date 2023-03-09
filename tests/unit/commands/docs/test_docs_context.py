@@ -20,8 +20,8 @@ class TestDocsContext(TestCase):
         mock_browser_config.return_value = mock_browser
         mock_documentation.return_value = mock_documentation_object
         with DocsContext(
-                config_file="samconfig.toml",
-                config_env="default",
+            config_file="samconfig.toml",
+            config_env="default",
         ) as docs_context:
             docs_context.run()
             mock_browser_config.assert_called_once()
