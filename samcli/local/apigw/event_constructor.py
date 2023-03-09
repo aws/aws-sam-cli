@@ -90,7 +90,7 @@ def construct_v1_event(
 
     event_dict = event.to_dict()
     LOG.debug("Constructed Event 1.0 to invoke Lambda. Event: %s", event_dict)
-    return event_dict
+    return event_dict  # type: ignore
 
 
 def construct_v2_event_http(
@@ -161,7 +161,7 @@ def construct_v2_event_http(
 
     event_dict = event.to_dict()
     LOG.debug("Constructed Event Version 2.0 to invoke Lambda. Event: %s", event_dict)
-    return event_dict
+    return event_dict  # type: ignore
 
 
 def _query_string_params(flask_request):

@@ -772,6 +772,91 @@ class TestApiGatewayService(TestCase):
         token_mock.assert_not_called()
         request_mock.assert_called()
 
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
+    @patch.object(LocalApigwService, "_generate_lambda_authorizer_event")
+    @patch.object(LocalApigwService, "_valid_identity_sources")
+    @patch.object(LocalApigwService, "_invoke_lambda_function")
+    @patch("samcli.local.apigw.local_apigw_service.construct_v1_event")
+    @patch("samcli.local.apigw.local_apigw_service.construct_v2_event_http")
+    def test_lambda_auth_called(
+        self, v2_event_mock, v1_event_mock, invoke_mock, validate_id_mock, gen_auth_event_mock, request_mock
+    ):
+        make_response_mock = Mock()
+        validate_id_mock.return_value = True
+
+        # create mock authorizer
+        auth = LambdaAuthorizer(Mock(), Mock(), "auth_lambda", [], Mock(), Mock(), Mock())
+        auth.is_valid_response = Mock(return_value=True)
+        self.api_gateway_route.authorizer_object = auth
+
+        # get api service to return mocked route containing authorizer
+        self.api_service.service_response = make_response_mock
+        self.api_service._get_current_route = MagicMock()
+        self.api_service._get_current_route.return_value = self.api_gateway_route
+        self.api_service._get_current_route.methods = []
+        self.api_service._get_current_route.return_value.payload_format_version = "2.0"
+        v1_event_mock.return_value = {}
+
+        parse_output_mock = Mock(return_value=("status_code", Headers({"headers": "headers"}), "body"))
+        self.api_service._parse_v1_payload_format_lambda_output = parse_output_mock
+
+        service_response_mock = Mock(return_value=make_response_mock)
+        self.api_service.service_response = service_response_mock
+
+        request_mock.return_value = ("test", "test")
+
+        self.api_service._request_handler()
+
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
+    @patch.object(LocalApigwService, "_generate_lambda_authorizer_event")
+    @patch.object(LocalApigwService, "_valid_identity_sources")
+    @patch.object(LocalApigwService, "_invoke_lambda_function")
+    @patch("samcli.local.apigw.local_apigw_service.ServiceErrorResponses")
+    @patch("samcli.local.apigw.local_apigw_service.construct_v1_event")
+    @patch("samcli.local.apigw.local_apigw_service.construct_v2_event_http")
+    def test_lambda_auth_unauthorized_response(
+        self,
+        v2_event_mock,
+        v1_event_mock,
+        service_err_mock,
+        invoke_mock,
+        validate_id_mock,
+        gen_auth_event_mock,
+        request_mock,
+    ):
+        make_response_mock = Mock()
+        validate_id_mock.return_value = True
+
+        # create mock authorizer
+        auth = LambdaAuthorizer(Mock(), Mock(), "auth_lambda", [], Mock(), Mock(), Mock())
+        auth.is_valid_response = Mock(return_value=False)
+        self.api_gateway_route.authorizer_object = auth
+
+        # get api service to return mocked route containing authorizer
+        self.api_service.service_response = make_response_mock
+        self.api_service._get_current_route = MagicMock()
+        self.api_service._get_current_route.return_value = self.api_gateway_route
+        self.api_service._get_current_route.methods = []
+        self.api_service._get_current_route.return_value.payload_format_version = "2.0"
+        v1_event_mock.return_value = {}
+
+        parse_output_mock = Mock(return_value=("status_code", Headers({"headers": "headers"}), "body"))
+        self.api_service._parse_v1_payload_format_lambda_output = parse_output_mock
+
+        service_response_mock = Mock(return_value=make_response_mock)
+        self.api_service.service_response = service_response_mock
+
+        request_mock.return_value = ("test", "test")
+
+        mock_context = {"key": "value"}
+        invoke_mock.side_effect = [{"context": mock_context}, Mock()]
+
+        unauth_mock = Mock()
+        service_err_mock.lambda_authorizer_unauthorized.return_value = unauth_mock
+
+        result = self.api_service._request_handler()
+        self.assertEqual(result, unauth_mock)
+
 
 class TestApiGatewayModel(TestCase):
     def setUp(self):

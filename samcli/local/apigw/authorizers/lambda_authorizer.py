@@ -356,7 +356,7 @@ class LambdaAuthorizer(Authorizer):
         all_statements = policy_document.get(_RESPONSE_IAM_STATEMENT)
         if not all_statements or not isinstance(all_statements, list) or not len(all_statements) > 0:
             raise InvalidLambdaAuthorizerResponse(
-                f"Authorizer {self.authorizer_name} contains an invalid {_RESPONSE_IAM_STATEMENT}"
+                f"Authorizer {self.authorizer_name} contains an invalid " f"or missing {_RESPONSE_IAM_STATEMENT}"
             )
 
         for statement in all_statements:
@@ -442,10 +442,10 @@ class LambdaAuthorizer(Authorizer):
 
         Returns
         -------
-        dict
+        Dict[str, Any]
             The built authorizer context object
         """
         built_context = response.get(_RESPONSE_CONTEXT, {})
         built_context[_RESPONSE_PRINCIPAL_ID] = response.get(_RESPONSE_PRINCIPAL_ID)
 
-        return built_context
+        return built_context  # type: ignore
