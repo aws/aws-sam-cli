@@ -254,42 +254,56 @@ class TestLambdaAuthorizer(TestCase):
 
     @parameterized.expand(
         [
-            ({}, "Authorizer my auth is missing principalId from response"),  # missing principalId
+            (json.dumps([]),),
+            ("not valid json",),
+            (json.dumps({"context": "not dict"}),),
+        ]
+    )
+    def test_get_context_raises_exception(self, input):
+        with self.assertRaises(InvalidLambdaAuthorizerResponse):
+            LambdaAuthorizer("myauth", Mock(), Mock(), [], Mock()).get_context(json.dumps(input))
+
+    @parameterized.expand(
+        [
+            (  # missing principalId
+                {},
+                "Authorizer 'my auth' contains an invalid or missing 'principalId' from response",
+            ),
             (  # missing policyDocument
                 {"principalId": "123"},
-                "Authorizer my auth is missing policyDocument from response",
+                "Authorizer 'my auth' contains an invalid or missing 'policyDocument' from response",
             ),
             (  # policyDocument not dict
                 {"principalId": "123", "policyDocument": "not list"},
-                "Authorizer my auth is missing policyDocument from response",
+                "Authorizer 'my auth' contains an invalid or missing 'policyDocument' from response",
             ),
             (  # policyDocument empty
                 {"principalId": "123", "policyDocument": {}},
-                "Authorizer my auth is missing policyDocument from response",
+                "Authorizer 'my auth' contains an invalid or missing 'Statement' from response",
             ),
             (  # missing statement
                 {"principalId": "123", "policyDocument": {"missing": "statement"}},
-                "Authorizer my auth contains an invalid or missing Statement",
+                "Authorizer 'my auth' contains an invalid or missing 'Statement'",
             ),
             (  # statement not list
                 {"principalId": "123", "policyDocument": {"Statement": "statement"}},
-                "Authorizer my auth contains an invalid or missing Statement",
+                "Authorizer 'my auth' contains an invalid or missing 'Statement'",
             ),
             (  # statement empty
                 {"principalId": "123", "policyDocument": {"Statement": []}},
-                "Authorizer my auth contains an invalid or missing Statement",
+                "Authorizer 'my auth' contains an invalid or missing 'Statement'",
             ),
             (  # statement not an object
                 {"principalId": "123", "policyDocument": {"Statement": ["string"]}},
-                "Authorizer my auth contains an invalid Statement, it must be an object",
+                "Authorizer 'my auth' policy document must be a list of object",
             ),
             (  # statement missing action
                 {"principalId": "123", "policyDocument": {"Statement": [{"no action": "123"}]}},
-                "Authorizer my auth is missing Action from response",
+                "Authorizer 'my auth' policy document contains an invalid 'Action'",
             ),
             (  # statement missing effect
                 {"principalId": "123", "policyDocument": {"Statement": [{"Action": "execute-api:Invoke"}]}},
-                "Authorizer my auth is missing Effect from response",
+                "Authorizer 'my auth' policy document contains an invalid 'Effect'",
             ),
             (  # statement resource not a list
                 {
@@ -298,7 +312,7 @@ class TestLambdaAuthorizer(TestCase):
                         "Statement": [{"Action": "execute-api:Invoke", "Effect": "Allow", "Resource": "not list"}]
                     },
                 },
-                "Authorizer my auth is missing Resource or Resource is not a list",
+                "Authorizer 'my auth' policy document contains an invalid 'Resource'",
             ),
         ]
     )
@@ -324,7 +338,7 @@ class TestLambdaAuthorizer(TestCase):
                 {
                     "principalId": "123",
                     "policyDocument": {
-                        "Statement": [{"Action": "execute-api:Invoke", "Effect": "Deny", "Resource": []}]
+                        "Statement": [{"Action": "execute-api:Invoke", "Effect": "Deny", "Resource": [""]}]
                     },
                 },
                 False,
@@ -332,7 +346,7 @@ class TestLambdaAuthorizer(TestCase):
             (  # wrong action
                 {
                     "principalId": "123",
-                    "policyDocument": {"Statement": [{"Action": "hello world", "Effect": "Deny", "Resource": []}]},
+                    "policyDocument": {"Statement": [{"Action": "hello world", "Effect": "Deny", "Resource": [""]}]},
                 },
                 False,
             ),
