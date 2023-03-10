@@ -26,6 +26,7 @@ from samcli.commands._utils.constants import (
 )
 from samcli.commands._utils.custom_options.hook_name_option import HookNameOption
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
+from samcli.commands._utils.custom_options.replace_help_option import ReplaceHelpSummaryOption
 from samcli.commands._utils.parameterized_option import parameterized_option
 from samcli.commands._utils.template import TemplateNotFoundException, get_template_artifacts_format, get_template_data
 from samcli.lib.hook.hook_wrapper import get_available_hook_packages_ids
@@ -250,6 +251,8 @@ def template_click_option(include_build=True):
         "-t",
         default=_TEMPLATE_OPTION_DEFAULT_VALUE,
         type=click.Path(),
+        cls=ReplaceHelpSummaryOption,
+        replace_help_option="-t, --template, --template-file",
         envvar="SAM_TEMPLATE_FILE",
         callback=partial(get_or_default_template_file_name, include_build=include_build),
         show_default=True,
