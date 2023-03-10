@@ -67,8 +67,9 @@ class TestWatchManager(TestCase):
         sync_flow_factory_mock.return_value.load_physical_id_mapping.assert_called_once_with()
         trigger_factory_mock.assert_called_once_with(stacks, path_mock.return_value)
 
+    @patch("samcli.lib.sync.watch_manager.LOG")
     @patch("samcli.lib.sync.watch_manager.get_all_resource_ids")
-    def test_add_code_triggers(self, get_all_resource_ids_mock):
+    def test_add_code_triggers(self, get_all_resource_ids_mock, patched_log):
         resource_ids = [MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock()]
         get_all_resource_ids_mock.return_value = resource_ids
 
