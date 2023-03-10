@@ -430,24 +430,30 @@ class LambdaAuthorizer(Authorizer):
 
         return is_authorized
 
-    @staticmethod
-    def get_context(response: dict) -> Dict[str, Any]:
+    def get_context(self, response: str) -> Dict[str, Any]:
         """
         Returns the context (if set) from the authorizer response and appends the principalId to it.
 
         Parameters
         ----------
-        response: dict
-            JSON object output from Lambda Authorizer
+        response: str
+            Output from Lambda authorizer
 
         Returns
         -------
         Dict[str, Any]
             The built authorizer context object
         """
-        built_context = response.get(_RESPONSE_CONTEXT, {})
+        try:
+            json_response: dict = json.loads(response)
+        except ValueError:
+            raise InvalidLambdaAuthorizerResponse(
+                f"Authorizer {self.authorizer_name} return an invalid response payload"
+            )
 
-        principal_id = response.get(_RESPONSE_PRINCIPAL_ID)
+        built_context = json_response.get(_RESPONSE_CONTEXT, {})
+
+        principal_id = json_response.get(_RESPONSE_PRINCIPAL_ID)
         if principal_id:
             # only V1 response contains this ID in the output
             built_context[_RESPONSE_PRINCIPAL_ID] = principal_id

@@ -1,3 +1,4 @@
+import json
 from unittest import TestCase
 from unittest.mock import Mock, patch
 from parameterized import parameterized
@@ -247,7 +248,7 @@ class TestLambdaAuthorizer(TestCase):
         expected = context.copy()
         expected["principalId"] = principal_id
 
-        result = LambdaAuthorizer.get_context(input)
+        result = LambdaAuthorizer(Mock(), Mock(), Mock(), [], Mock()).get_context(json.dumps(input))
 
         self.assertEqual(result, expected)
 

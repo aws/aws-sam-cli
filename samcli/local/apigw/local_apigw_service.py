@@ -660,7 +660,7 @@ class LocalApigwService(BaseLocalService):
 
                 # update route context to include any context that may have been passed from authorizer
                 original_context = route_lambda_event.get("requestContext", {})
-                original_context.update({"authorizer": LambdaAuthorizer.get_context(lambda_auth_response)})
+                original_context.update({"authorizer": lambda_authorizer.get_context(lambda_auth_response)})
                 route_lambda_event.update({"requestContext": original_context})
 
             # invoke the route's Lambda function

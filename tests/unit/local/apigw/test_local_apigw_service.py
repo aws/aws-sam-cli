@@ -787,6 +787,7 @@ class TestApiGatewayService(TestCase):
         # create mock authorizer
         auth = LambdaAuthorizer(Mock(), Mock(), "auth_lambda", [], Mock(), Mock(), Mock())
         auth.is_valid_response = Mock(return_value=True)
+        auth.get_context = Mock(return_value={})
         self.api_gateway_route.authorizer_object = auth
 
         # get api service to return mocked route containing authorizer
