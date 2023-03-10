@@ -66,16 +66,21 @@ class TestInfraSyncExecutor(TestCase):
         self.package_context.run.assert_called_once()
 
         self.deploy_context.run.assert_called_once()
-        
+
         self.sync_context.update_infra_sync_time.assert_called_once()
-        self.assertEqual(code_sync_resources, set())    
+        self.assertEqual(code_sync_resources, set())
 
     @patch("samcli.lib.sync.infra_sync_executor.SYNC_FLOW_THRESHOLD", 1)
     @patch("samcli.lib.sync.infra_sync_executor.InfraSyncExecutor._auto_skip_infra_sync")
     @patch("samcli.lib.sync.infra_sync_executor.Session")
-    def test_execute_infra_sync_exceed_threshold(self, session_mock, auto_skip_infra_sync_mock):
-
-        infra_sync_executor = InfraSyncExecutor(self.build_context, self.package_context, self.deploy_context)
+    @patch("samcli.lib.sync.infra_sync_executor.datetime")
+    def test_execute_infra_sync_exceed_threshold(self, datetime_mock, session_mock, auto_skip_infra_sync_mock):
+        datetime_mock.utcnow.return_value = datetime(2023, 2, 8, 12, 12, 12)
+        last_infra_sync_time = datetime(2023, 2, 4, 12, 12, 12)
+        self.sync_context.get_latest_infra_sync_time.return_value = last_infra_sync_time
+        infra_sync_executor = InfraSyncExecutor(
+            self.build_context, self.package_context, self.deploy_context, self.sync_context
+        )
         auto_skip_infra_sync_mock.return_value = True
         infra_sync_executor._code_sync_resources = {"Function"}
 
