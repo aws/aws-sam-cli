@@ -57,7 +57,7 @@ class SyncState:
         """
         self.resource_sync_states[resource_id] = ResourceSyncState(hash_value, datetime.utcnow())
 
-    def update_infra_sync_time(self):
+    def update_infra_sync_time(self) -> None:
         """
         Updates the last infra sync time to be stored in the TOML file.
         """
