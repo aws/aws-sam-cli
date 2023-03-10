@@ -40,8 +40,8 @@ class ResourceSyncState:
 @dataclass
 class SyncState:
     dependency_layer: bool
-    latest_infra_sync_time: Optional[datetime]
     resource_sync_states: Dict[str, ResourceSyncState]
+    latest_infra_sync_time: Optional[datetime]
 
     def update_resource_sync_state(self, resource_id: str, hash_value: str) -> None:
         """
@@ -144,7 +144,7 @@ def _toml_document_to_sync_state(toml_document: Dict) -> Optional[SyncState]:
         latest_infra_sync_time = sync_state_toml_table.get(LATEST_INFRA_SYNC_TIME)
         if latest_infra_sync_time:
             latest_infra_sync_time = datetime.fromisoformat(str(latest_infra_sync_time))
-    sync_state = SyncState(dependency_layer, latest_infra_sync_time, resource_sync_states)
+    sync_state = SyncState(dependency_layer, resource_sync_states, latest_infra_sync_time)
 
     return sync_state
 
@@ -157,7 +157,7 @@ class SyncContext:
     _file_path: Path
 
     def __init__(self, dependency_layer: bool, build_dir: str, cache_dir: str):
-        self._current_state = SyncState(dependency_layer, None, dict())
+        self._current_state = SyncState(dependency_layer, dict(), None)
         self._previous_state = None
         self._build_dir = Path(build_dir)
         self._cache_dir = Path(cache_dir)
@@ -201,7 +201,7 @@ class SyncContext:
         with _lock:
             infra_sync_time = self._current_state.latest_infra_sync_time
             if not infra_sync_time:
-                LOG.debug("No previous infra sync time found")
+                LOG.debug("No record of previous infrastructure sync time found from sync.toml file")
                 return None
             LOG.debug("Latest infra sync happened at %s ", infra_sync_time)
             return infra_sync_time
@@ -241,7 +241,7 @@ class SyncContext:
         with _lock:
             resource_sync_state = self._current_state.resource_sync_states.get(resource_id)
             if not resource_sync_state:
-                LOG.debug("No latest hash found for resource %s", resource_id)
+                LOG.debug("No record of latest hash found for resource %s found in sync.toml file", resource_id)
                 return None
             LOG.debug(
                 "Latest resource_sync_state hash %s found for resource %s", resource_id, resource_sync_state.hash_value

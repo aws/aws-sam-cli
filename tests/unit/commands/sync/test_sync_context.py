@@ -124,7 +124,11 @@ class TestSyncStateToTomlSerde(TestCase):
         ]
     )
     def test_sync_state_to_toml(self, dependency_layer, latest_infra_sync_time, resource_sync_states):
-        sync_state = SyncState(dependency_layer, latest_infra_sync_time, resource_sync_states)
+        sync_state = SyncState(
+            dependency_layer=dependency_layer,
+            latest_infra_sync_time=latest_infra_sync_time,
+            resource_sync_states=resource_sync_states,
+        )
 
         toml_document = _sync_state_to_toml_document(sync_state)
         self.assertIsNotNone(toml_document)
