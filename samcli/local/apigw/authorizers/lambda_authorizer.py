@@ -524,7 +524,6 @@ class LambdaAuthorizerIAMPolicyValidator:
                     f"Authorizer '{auth_name}' policy document must be a list of objects"
                 )
 
-
             for prop_name, validator in validators.items():
                 if not validator.is_valid(statement):
                     raise InvalidLambdaAuthorizerResponse(
