@@ -43,7 +43,7 @@ class SyncState:
     latest_infra_sync_time: Optional[datetime]
     resource_sync_states: Dict[str, ResourceSyncState]
 
-    def update_resource_sync_state(self, resource_id: str, hash_value: str):
+    def update_resource_sync_state(self, resource_id: str, hash_value: str) -> None:
         """
         Updates the sync_state information for the provided resource_id
         to be stored in the TOML file.
