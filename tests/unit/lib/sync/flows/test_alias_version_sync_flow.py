@@ -75,4 +75,4 @@ class TestAliasVersionSyncFlow(TestCase):
         sync_flow._lambda_client.publish_version.return_value = {"Version": "2"}
 
         sync_flow.sync()
-        self.assertEqual(sync_flow._local_sha, str_checksum("2"))
+        self.assertEqual(sync_flow._local_sha, str_checksum("2", hashlib.sha256()))

@@ -164,7 +164,7 @@ def _toml_table_to_layer_build_definition(uuid: str, toml_table: tomlkit.api.Tab
         LayerBuildDefinition of given toml table
     """
     layer_build_definition = LayerBuildDefinition(
-        toml_table.get(LAYER_NAME_FIELD),
+        toml_table.get(LAYER_NAME_FIELD, ""),
         toml_table.get(CODE_URI_FIELD),
         toml_table.get(BUILD_METHOD_FIELD),
         toml_table.get(COMPATIBLE_RUNTIMES_FIELD),

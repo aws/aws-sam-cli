@@ -47,6 +47,9 @@ black:
 black-check:
 	black --check setup.py samcli tests
 
+format: black
+	ruff samcli --fix
+
 # Verifications to run before sending a pull request
 pr: init dev black-check
 
