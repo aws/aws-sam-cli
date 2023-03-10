@@ -16,6 +16,10 @@ class Documentation:
     def open_docs(self):
         """
         Open the documentation page in a configured web browser
+
+        Raises
+        ------
+        BrowserConfigurationError
         """
         LOG.debug(f"Launching {self.url} in a browser.")
         self.browser.launch(self.url)

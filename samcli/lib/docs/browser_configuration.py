@@ -2,7 +2,6 @@
 Library housing logic for handling web browsers
 """
 import logging
-import os
 import webbrowser
 from enum import Enum
 from typing import Optional
@@ -14,6 +13,10 @@ class OpenMode(Enum):
     SameWindow = 0
     NewWindow = 1
     NewTab = 2
+
+
+class BrowserConfigurationError(Exception):
+    pass
 
 
 class BrowserConfiguration:
@@ -29,6 +32,11 @@ class BrowserConfiguration:
         ----------
         url: str
             The URL string to open in the browser
+
+        Raises
+        ------
+        BrowserConfigurationError
+
         """
 
         open_mode = self.open_mode.value if self.open_mode else OpenMode.SameWindow.value
@@ -36,4 +44,4 @@ class BrowserConfiguration:
             web_browser: webbrowser.BaseBrowser = webbrowser.get(self.browser_name)
             web_browser.open(url=url, new=open_mode)
         except webbrowser.Error as ex:
-            LOG.info(f"Error occurred when attempting to open a web browser:{os.linesep}{str(ex)}")
+            raise BrowserConfigurationError("Error occurred when attempting to open a web browser") from ex

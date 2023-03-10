@@ -3,16 +3,15 @@ Context class for handling `sam docs` command logic
 """
 from click import echo
 
-from samcli.lib.docs.browser_configuration import BrowserConfiguration
+from samcli.lib.docs.browser_configuration import BrowserConfiguration, BrowserConfigurationError
 from samcli.lib.docs.documentation import Documentation
+
+SUCCESS_MESSAGE = "Documentation page opened in a browser"
+ERROR_MESSAGE = "Failed to open a web browser. Use the following link to navigate to the documentation page: {URL}"
 
 
 class DocsContext:
     URL = "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html"
-
-    def __init__(self, config_file: str, config_env: str):
-        self.config_file = config_file
-        self.config_env = config_env
 
     def __enter__(self):
         return self
@@ -24,7 +23,11 @@ class DocsContext:
         """
         Run the necessary logic for the `sam docs` command
         """
-        echo(f"Opening documentation in the browser. If the page fails to open, use the following link: {self.URL}")
         browser = BrowserConfiguration()
         documentation = Documentation(browser=browser, url=self.URL)
-        documentation.open_docs()
+        try:
+            documentation.open_docs()
+        except BrowserConfigurationError:
+            echo(ERROR_MESSAGE.format(URL=self.URL))
+        else:
+            echo(SUCCESS_MESSAGE)
