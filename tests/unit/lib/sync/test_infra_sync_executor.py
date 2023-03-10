@@ -56,6 +56,28 @@ class TestInfraSyncExecutor(TestCase):
         )
         auto_skip_infra_sync_mock.return_value = False
         self.sync_context.get_latest_infra_sync_time.return_value = datetime.utcnow()
+        infra_sync_result = infra_sync_executor.execute_infra_sync(True)
+
+        executed = infra_sync_result.infra_sync_executed
+        code_sync_resources = infra_sync_result.code_sync_resources
+
+        self.build_context.set_up.assert_called_once()
+        self.build_context.run.assert_called_once()
+        self.package_context.run.assert_called_once()
+
+        self.deploy_context.run.assert_called_once()
+        
+        self.sync_context.update_infra_sync_time.assert_called_once()
+        self.assertEqual(code_sync_resources, set())    
+
+    @patch("samcli.lib.sync.infra_sync_executor.SYNC_FLOW_THRESHOLD", 1)
+    @patch("samcli.lib.sync.infra_sync_executor.InfraSyncExecutor._auto_skip_infra_sync")
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_execute_infra_sync_exceed_threshold(self, session_mock, auto_skip_infra_sync_mock):
+
+        infra_sync_executor = InfraSyncExecutor(self.build_context, self.package_context, self.deploy_context)
+        auto_skip_infra_sync_mock.return_value = True
+        infra_sync_executor._code_sync_resources = {"Function"}
 
         infra_sync_result = infra_sync_executor.execute_infra_sync(True)
 
@@ -67,8 +89,9 @@ class TestInfraSyncExecutor(TestCase):
         self.package_context.run.assert_called_once()
 
         self.deploy_context.run.assert_called_once()
-        self.sync_context.update_infra_sync_time.assert_called_once()
         self.assertEqual(code_sync_resources, set())
+
+        self.assertEqual(executed, True)
 
     @patch("samcli.lib.sync.infra_sync_executor.is_local_path")
     @patch("samcli.lib.sync.infra_sync_executor.get_template_data")

@@ -57,6 +57,7 @@ LAMBDA_FUNCTION_REMOVAL_MAP = {
 }
 
 AUTO_INFRA_SYNC_DAYS = 7
+SYNC_FLOW_THRESHOLD = 50
 
 
 class InfraSyncResult:
@@ -177,8 +178,18 @@ class InfraSyncExecutor:
             #         self._package_context.template_file,
             #         self._deploy_context.stack_name,
             #     ):
-            #         LOG.info("Template haven't been changed since last deployment, skipping infra sync...")
-            #         return InfraSyncResult(False, self.code_sync_resources)
+            #         We have a threshold on number of sync flows we initiate
+            #         If higher than the threshold, we perform infra sync to improve performance
+            #         if len(self.code_sync_resources) < SYNC_FLOW_THRESHOLD:
+            #             pass
+            #             LOG.info("Template haven't been changed since last deployment, skipping infra sync...")
+            #             return InfraSyncResult(False, self.code_sync_resources)
+            #         else:
+            #             LOG.info(
+            #             "The number of resources that needs an update exceeds %s, \
+            #             an infra sync will be executed for an CloudFormation deployment to improve performance",
+            #             SYNC_FLOW_THRESHOLD)
+            #             pass
             # except Exception:
             #     LOG.debug(
             #         "Could not skip infra sync by comparing to a previously deployed template, starting infra sync"
