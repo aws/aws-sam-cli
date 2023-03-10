@@ -204,6 +204,7 @@ AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
     "Runtime": _get_property_extractor("runtime"),
     "Layers": _get_property_extractor("layers"),
     "Timeout": _get_property_extractor("timeout"),
+    "MemorySize": _get_property_extractor("memory_size"),
     "ImageConfig": _build_lambda_function_image_config_property,
 }
 
