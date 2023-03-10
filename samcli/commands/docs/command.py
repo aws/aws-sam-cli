@@ -9,9 +9,8 @@ from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
 
 HELP_TEXT = """Launch the AWS SAM CLI documentation in a browser! This command will
-    open a page containing information about setting up credentials, the
-    AWS SAM CLI lifecycle and other useful details. From there, navigate the
-    command reference as required.
+    show information about setting up credentials, the
+    AWS SAM CLI lifecycle and other useful details. 
 """
 
 
