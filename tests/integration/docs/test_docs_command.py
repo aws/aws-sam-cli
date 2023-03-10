@@ -9,8 +9,9 @@ class TestDocsCommand(DocsIntegBase):
         command_result = run_command(command_list)
         stdout = command_result.stdout.decode("utf-8").strip()
         self.assertEqual(command_result.process.returncode, 0)
-        self.assertIn(self._expected_message(), stdout)
+        self._assert_valid_response(stdout)
 
-    @staticmethod
-    def _expected_message():
-        return SUCCESS_MESSAGE if not RUNNING_ON_CI else (ERROR_MESSAGE.format(URL=DocsContext.URL))
+    def _assert_valid_response(self, stdout):
+        # We don't know if the machine this runs on will have a browser,
+        # so we're just testing to ensure we get one of two valid command outputs
+        return self.assertTrue(SUCCESS_MESSAGE in stdout or ERROR_MESSAGE.format(URL=DocsContext.URL) in stdout)
