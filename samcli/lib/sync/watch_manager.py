@@ -161,7 +161,9 @@ class WatchManager:
         InfraSyncResult
             Returns information containing whether infra sync executed plus resources to do code sync on
         """
-        self._infra_sync_executor = InfraSyncExecutor(self._build_context, self._package_context, self._deploy_context)
+        self._infra_sync_executor = InfraSyncExecutor(
+            self._build_context, self._package_context, self._deploy_context, self._sync_context
+        )
         return self._infra_sync_executor.execute_infra_sync(first_sync)
 
     def _start_code_sync(self) -> None:
