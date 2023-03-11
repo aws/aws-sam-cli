@@ -169,6 +169,7 @@ class TestBaseCommand(TestCase):
         cmd = BaseCommand()
         expected_output = {
             "Commands": [],
+            "Learn": [("docs", "docs command output")],
             "Create an App": [("init", "init command output")],
             "Develop your App": [
                 ("build", "build command output"),
@@ -201,6 +202,7 @@ class TestBaseCommand(TestCase):
                 "delete": "delete command output",
                 "pipeline": "pipeline command output",
                 "publish": "publish command output",
+                "docs": "docs command output",
             },
         ):
             cmd.format_commands(ctx, formatter)

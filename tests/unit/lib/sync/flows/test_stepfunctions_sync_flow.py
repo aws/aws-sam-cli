@@ -1,3 +1,4 @@
+import hashlib
 from unittest import TestCase
 from unittest.mock import MagicMock, mock_open, patch
 from pathlib import Path
@@ -128,7 +129,7 @@ class TestStepFunctionsSyncFlow(TestCase):
         sync_flow._get_definition_file.assert_called_once_with("StateMachine1")
         sync_flow._process_definition_file.assert_called_once()
 
-        self.assertEqual(sync_flow._local_sha, str_checksum('{"key": "value"}'))
+        self.assertEqual(sync_flow._local_sha, str_checksum('{"key": "value"}', hashlib.sha256()))
 
     @patch("samcli.lib.sync.sync_flow.Session")
     def test_failed_gather_resources_definition_substitution(self, session_mock):
