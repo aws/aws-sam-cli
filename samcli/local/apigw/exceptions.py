@@ -44,3 +44,9 @@ class InvalidLambdaAuthorizerResponse(UserException):
     """
     An exception raised when a Lambda authorizer returns an invalid response format
     """
+
+
+class AuthorizerUnauthorizedRequest(UserException):
+    """
+    An exception raised when the request is not authorized by the authorizer
+    """

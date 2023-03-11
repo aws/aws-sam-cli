@@ -20,6 +20,7 @@ from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
 from samcli.local.apigw.event_constructor import construct_v1_event, construct_v2_event_http
 from samcli.local.apigw.exceptions import (
+    AuthorizerUnauthorizedRequest,
     InvalidSecurityDefinition,
     LambdaResponseParseException,
     PayloadFormatVersionValidateException,
@@ -652,16 +653,7 @@ class LocalApigwService(BaseLocalService):
 
         try:
             if lambda_authorizer:
-                lambda_auth_response = self._invoke_lambda_function(lambda_authorizer.lambda_name, auth_lambda_event)
-                method_arn = self._create_method_arn(request, route.event_type)
-
-                if not lambda_authorizer.is_valid_response(lambda_auth_response, method_arn):
-                    return ServiceErrorResponses.lambda_authorizer_unauthorized()
-
-                # update route context to include any context that may have been passed from authorizer
-                original_context = route_lambda_event.get("requestContext", {})
-                original_context.update({"authorizer": lambda_authorizer.get_context(lambda_auth_response)})
-                route_lambda_event.update({"requestContext": original_context})
+                self._invoke_parse_lambda_authorizer(lambda_authorizer, auth_lambda_event, route_lambda_event, route)
 
             # invoke the route's Lambda function
             lambda_response = self._invoke_lambda_function(route.function_name, route_lambda_event)
@@ -671,6 +663,8 @@ class LocalApigwService(BaseLocalService):
             return ServiceErrorResponses.not_implemented_locally(
                 "Inline code is not supported for sam local commands. Please write your code in a separate file."
             )
+        except AuthorizerUnauthorizedRequest:
+            return ServiceErrorResponses.lambda_authorizer_unauthorized()
 
         try:
             if route.event_type == Route.HTTP and (
@@ -688,6 +682,34 @@ class LocalApigwService(BaseLocalService):
             return ServiceErrorResponses.lambda_failure_response()
 
         return self.service_response(body, headers, status_code)
+
+    def _invoke_parse_lambda_authorizer(
+        self, lambda_authorizer: LambdaAuthorizer, auth_lambda_event: dict, route_lambda_event: dict, route: Route
+    ) -> None:
+        """
+        Helper method to invoke and parse the output of a Lambda authorizer
+
+        Parameters
+        ----------
+        lambda_authorizer: LambdaAuthorizer
+            The route's Lambda authorizer
+        auth_lambda_event: dict
+            The event to pass to the Lambda authorizer
+        route_lambda_event: dict
+            The event to pass into the route
+        route: Route
+            The route that is being called
+        """
+        lambda_auth_response = self._invoke_lambda_function(lambda_authorizer.lambda_name, auth_lambda_event)
+        method_arn = self._create_method_arn(request, route.event_type)
+
+        if not lambda_authorizer.is_valid_response(lambda_auth_response, method_arn):
+            raise AuthorizerUnauthorizedRequest(f"Request is not authorized for {method_arn}")
+
+        # update route context to include any context that may have been passed from authorizer
+        original_context = route_lambda_event.get("requestContext", {})
+        original_context.update({"authorizer": lambda_authorizer.get_context(lambda_auth_response)})
+        route_lambda_event.update({"requestContext": original_context})
 
     def _get_current_route(self, flask_request):
         """
