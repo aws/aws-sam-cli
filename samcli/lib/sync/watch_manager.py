@@ -244,7 +244,11 @@ class WatchManager:
                 # This is for initiating code sync for all resources
                 # To improve: only initiate code syncs for ones with template changes
                 self._queue_up_code_syncs(infra_sync_result.code_sync_resources)
-                LOG.info(self._color.green("Skipped infra sync and queued up required code syncs."))
+                LOG.info(
+                    self._color.green("Skipped infra sync as the local template is in sync with the cloud template.")
+                )
+                if len(infra_sync_result.code_sync_resources) != 0:
+                    LOG.info("Required code syncs are queued up.")
             else:
                 LOG.info(self._color.green("Infra sync completed."))
 

@@ -132,6 +132,15 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
     help="This option separates the dependencies of individual function into another layer, for speeding up the sync."
     "process",
 )
+# Reminder: remove hidden flag once the feature is ready for release.
+@click.option(
+    "--skip-infra-sync/--no-skip-infra",
+    default=False,  # Reminder: Change this to True when this feature is released
+    is_flag=True,
+    hidden=True,  # Reminder: Change this to False when this feature is released
+    help="This option will skip the initial infrastructure sync if it is not required"
+    " by comparing the local template with the template deployed in cloud.",
+)
 @stack_name_option(required=True)  # pylint: disable=E1120
 @base_dir_option
 @use_container_build_option
@@ -165,6 +174,7 @@ def cli(
     resource_id: Optional[Tuple[str]],
     resource: Optional[Tuple[str]],
     dependency_layer: bool,
+    skip_infra_sync: bool,
     stack_name: str,
     base_dir: Optional[str],
     parameter_overrides: dict,
@@ -195,6 +205,7 @@ def cli(
         resource_id,
         resource,
         dependency_layer,
+        skip_infra_sync,
         stack_name,
         ctx.region,
         ctx.profile,
@@ -225,6 +236,7 @@ def do_cli(
     resource_id: Optional[Tuple[str]],
     resource: Optional[Tuple[str]],
     dependency_layer: bool,
+    skip_infra_sync: bool,
     stack_name: str,
     region: str,
     profile: str,
@@ -352,7 +364,7 @@ def do_cli(
                     on_failure=None,
                 ) as deploy_context:
                     with SyncContext(
-                        dependency_layer, build_context.build_dir, build_context.cache_dir
+                        dependency_layer, build_context.build_dir, build_context.cache_dir, skip_infra_sync
                     ) as sync_context:
                         if watch:
                             execute_watch(
@@ -496,6 +508,8 @@ def execute_watch(
     skip_infra_syncs: bool
         Boolean flag to determine if only ececute code syncs.
     """
+    # Note: skip_infra_sync is different from skip_infra_syncs, skip_infra_syncs completely skips infra syncs and
+    # skip_infra_sync skips the initial infra sync if its not required.
     watch_manager = WatchManager(
         template, build_context, package_context, deploy_context, sync_context, auto_dependency_layer, skip_infra_syncs
     )
