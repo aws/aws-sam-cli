@@ -62,9 +62,7 @@ install:
   - "choco install dotnet-sdk"
   # setup Java, Maven and Gradle
   - "choco install maven -y --force"
-  - "refreshenv"
   - "choco install gradle -y --force"
-  - "refreshenv"
   - "java -version"
   - "gradle -v"
   - "mvn --version"
