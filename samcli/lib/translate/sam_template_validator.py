@@ -7,6 +7,7 @@ import logging
 from boto3.session import Session
 from samtranslator.parser import parser
 from samtranslator.public.exceptions import InvalidDocumentException
+from samtranslator.translator.managed_policy_translator import ManagedPolicyLoader
 from samtranslator.translator.translator import Translator
 
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
@@ -18,7 +19,7 @@ LOG = logging.getLogger(__name__)
 
 
 class SamTemplateValidator:
-    def __init__(self, sam_template, managed_policy_loader, profile=None, region=None):
+    def __init__(self, sam_template, managed_policy_loader: ManagedPolicyLoader, profile=None, region=None):
         """
         Construct a SamTemplateValidator
 
@@ -54,10 +55,9 @@ class SamTemplateValidator:
         InvalidSamDocumentException
              If the template is not valid, an InvalidSamDocumentException is raised
         """
-        managed_policy_map = self.managed_policy_loader.load()
 
         sam_translator = Translator(
-            managed_policy_map=managed_policy_map,
+            managed_policy_map=None,
             sam_parser=self.sam_parser,
             plugins=[],
             boto_session=self.boto3_session,
@@ -67,13 +67,19 @@ class SamTemplateValidator:
         self._replace_local_image()
 
         try:
-            template = sam_translator.translate(sam_template=self.sam_template, parameter_values={})
+            template = sam_translator.translate(
+                sam_template=self.sam_template, parameter_values={}, get_managed_policy_map=self._get_managed_policy_map
+            )
             LOG.debug("Translated template is:\n%s", yaml_dump(template))
             return yaml_dump(template)
         except InvalidDocumentException as e:
             raise InvalidSamDocumentException(
                 functools.reduce(lambda message, error: message + " " + str(error), e.causes, str(e))
             ) from e
+
+    @functools.lru_cache(maxsize=None)
+    def _get_managed_policy_map(self):
+        return self.managed_policy_loader.load()
 
     def _replace_local_codeuri(self):
         """
