@@ -252,7 +252,7 @@ def template_click_option(include_build=True):
         default=_TEMPLATE_OPTION_DEFAULT_VALUE,
         type=click.Path(),
         cls=ReplaceHelpSummaryOption,
-        replace_help_option="-t, --template, --template-file",
+        replace_help_option="-t,--template,--template-file",
         envvar="SAM_TEMPLATE_FILE",
         callback=partial(get_or_default_template_file_name, include_build=include_build),
         show_default=True,
@@ -295,8 +295,8 @@ def parameter_override_click_option():
         cls=OptionNargs,
         type=CfnParameterOverridesType(),
         default={},
-        help="Optional. A string that contains AWS CloudFormation parameter overrides encoded as key=value pairs."
-        "For example, 'ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,"
+        help="String that contains AWS CloudFormation parameter overrides encoded as key=value pairs."
+        "\n\nExample: 'ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,"
         "ParameterValue=t1.micro' or KeyPairName=MyKey InstanceType=t1.micro",
     )
 
@@ -382,7 +382,7 @@ def metadata_click_option():
     return click.option(
         "--metadata",
         type=CfnMetadataType(),
-        help="Optional. A map of metadata to attach to ALL the artifacts that are referenced in your template.",
+        help="Map of metadata to attach to ALL the artifacts that are referenced in the template.",
     )
 
 
@@ -397,16 +397,10 @@ def capabilities_click_option(default):
         required=False,
         default=default,
         type=FuncParamType(func=_space_separated_list_func_type),
-        help="A list of capabilities that you must specify "
-        "before AWS Cloudformation can create certain stacks. Some stack templates "
-        "might include resources that can affect permissions in your AWS "
-        "account, for example, by creating new AWS Identity and Access Management "
-        "(IAM) users. For those stacks, you must explicitly acknowledge "
-        "their capabilities by specifying this parameter. The only valid values"
-        "are CAPABILITY_IAM and CAPABILITY_NAMED_IAM. If you have IAM resources, "
-        "you can specify either capability. If you have IAM resources with custom "
-        "names, you must specify CAPABILITY_NAMED_IAM. If you don't specify "
-        "this parameter, this action returns an InsufficientCapabilities error.",
+        help="List of capabilities that one must specify "
+        "before AWS Cloudformation can create certain stacks."
+        "\n\nAccepted Values: CAPABILITY_IAM, CAPABILITY_NAMED_IAM, CAPABILITY_RESOURCE_POLICY, CAPABILITY_AUTO_EXPAND."
+        "\n\nLearn more at: https://docs.aws.amazon.com/serverlessrepo/latest/devguide/acknowledging-application-capabilities.html",  # noqa
     )
 
 
@@ -417,13 +411,7 @@ def capabilities_option(f, default=None):
 
 def tags_click_option():
     return click.option(
-        "--tags",
-        cls=OptionNargs,
-        type=CfnTags(),
-        required=False,
-        help="A list of tags to associate with the stack that is created or updated."
-        "AWS CloudFormation also propagates these tags to resources "
-        "in the stack if the resource supports it.",
+        "--tags", cls=OptionNargs, type=CfnTags(), required=False, help="List of tags to associate with the stack."
     )
 
 
@@ -437,9 +425,7 @@ def notification_arns_click_option():
         cls=OptionNargs,
         type=FuncParamType(func=_space_separated_list_func_type),
         required=False,
-        help="Amazon  Simple  Notification  Service  topic"
-        "Amazon  Resource  Names  (ARNs) that AWS CloudFormation associates with"
-        "the stack.",
+        help="ARNs of SNS topics that AWS Cloudformation associates with the stack.",
     )
 
 
@@ -449,12 +435,7 @@ def notification_arns_option(f):
 
 def stack_name_click_option(required, callback):
     return click.option(
-        "--stack-name",
-        required=required,
-        callback=callback,
-        help="The name of the AWS CloudFormation stack you're deploying to. "
-        "If you specify an existing stack, the command updates the stack. "
-        "If you specify a new stack, the command creates it.",
+        "--stack-name", required=required, callback=callback, help="Name of the AWS CloudFormation stack."
     )
 
 
@@ -469,7 +450,7 @@ def s3_bucket_click_option(disable_callback):
     return click.option(
         "--s3-bucket",
         required=False,
-        help="The name of the S3 bucket where this command uploads the artifacts that are referenced in your template.",
+        help="AWS S3 bucket where artifacts referenced in the template are uploaded.",
         callback=callback,
     )
 
@@ -517,7 +498,7 @@ def base_dir_click_option():
         type=click.Path(dir_okay=True, file_okay=False),  # Must be a directory
         help="Resolve relative paths to function's source code with respect to this folder. Use this if "
         "SAM template and your source code are not in same enclosing folder. By default, relative paths "
-        "are resolved with respect to the SAM template's location",
+        "are resolved with respect to the SAM template's location.",
     )
 
 
@@ -566,7 +547,7 @@ def image_repository_click_option():
         callback=partial(artifact_callback, artifact=IMAGE),
         type=ImageRepositoryType(),
         required=False,
-        help="ECR repo uri where this command uploads the image artifacts that are referenced in your template.",
+        help="AWS ECR repository URI where artifacts referenced in the template are uploaded.",
     )
 
 
@@ -581,8 +562,9 @@ def image_repositories_click_option():
         callback=image_repositories_callback,
         type=ImageRepositoriesType(),
         required=False,
-        help="Specify mapping of Function Logical ID to ECR Repo uri, of the form Function_Logical_ID=ECR_Repo_Uri."
-        "This option can be specified multiple times.",
+        help="Mapping of Function Logical ID to AWS ECR Repository URI."
+        "\n\nExample: Function_Logical_ID=ECR_Repo_Uri"
+        "\nThis option can be specified multiple times.",
     )
 
 
@@ -594,9 +576,7 @@ def s3_prefix_click_option():
     return click.option(
         "--s3-prefix",
         required=False,
-        help="A prefix name that the command adds to the artifacts "
-        "name when it uploads them to the S3 bucket. The prefix name is a "
-        "path name (folder name) for the S3 bucket.",
+        help="Prefix name that is added to the artifact's name when it is uploaded to the AWS S3 bucket.",
     )
 
 
@@ -608,7 +588,7 @@ def kms_key_id_click_option():
     return click.option(
         "--kms-key-id",
         required=False,
-        help="The ID of an AWS KMS key that the command uses to encrypt artifacts that are at rest in the S3 bucket.",
+        help="The ID of an AWS KMS key that is used to encrypt artifacts that are at rest in the AWS S3 bucket.",
     )
 
 
@@ -743,9 +723,7 @@ def role_arn_click_option():
     return click.option(
         "--role-arn",
         required=False,
-        help="The Amazon Resource Name (ARN) of an AWS Identity "
-        "and Access Management (IAM) role that AWS CloudFormation assumes when "
-        "executing the change set.",
+        help="ARN of an IAM role that AWS Cloudformation assumes" "when executing a deployment change set.",
     )
 
 
@@ -773,8 +751,7 @@ def use_container_build_click_option():
         "--use-container",
         "-u",
         is_flag=True,
-        help="If your functions depend on packages that have natively compiled dependencies, use this flag "
-        "to build your function inside an AWS Lambda-like Docker container",
+        help="Build functions within an AWS Lambda-like container.",
     )
 
 

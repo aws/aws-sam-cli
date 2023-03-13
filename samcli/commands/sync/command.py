@@ -89,20 +89,20 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 
 
 @click.command(
-    "sync", cls=SyncCommand, help=HELP_TEXT, short_help=SHORT_HELP, context_settings={"max_content_width": 120}
+    "sync", cls=SyncCommand, help=HELP_TEXT, short_help=SHORT_HELP, context_settings={"max_content_width": 100}
 )
 @configuration_option(provider=TomlProvider(section="parameters"))
 @template_option_without_build
 @click.option(
     "--code",
     is_flag=True,
-    help="Sync code resources. This includes Lambda Functions, API Gateway, and Step Functions.",
+    help="Sync ONLY code resources. This includes Lambda Functions, API Gateway, and Step Functions.",
     cls=ClickMutex,
 )
 @click.option(
     "--watch",
     is_flag=True,
-    help="Watch local files and automatically sync with remote.",
+    help="Watch local files and automatically sync with cloud.",
     cls=ClickMutex,
 )
 @click.option(
@@ -122,8 +122,9 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
     "--dependency-layer/--no-dependency-layer",
     default=True,
     is_flag=True,
-    help="This option separates the dependencies of individual function into another layer, for speeding up the sync."
-    "process",
+    # cls=ReplaceHelpSummaryOption,
+    # replace_help_option="--dependency-layer,--no-dependency-layer",
+    help="Separate dependencies of individual function into a Lambda layer for improved performance.",
 )
 @stack_name_option(required=True)  # pylint: disable=E1120
 @base_dir_option
