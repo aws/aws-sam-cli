@@ -1,8 +1,13 @@
+"""
+Sync Command Options related Datastructures for formatting.
+"""
+from typing import Dict
+
 from samcli.cli.row_modifiers import RowDefinition
 
 REQUIRED_OPTIONS = ["stack_name", "template_file"]
 
-CREDENTIAL_OPTION_NAMES = ["region", "profile"]
+AWS_CREDENTIAL_OPTION_NAMES = ["region", "profile"]
 
 INFRASTRUCTURE_OPTION_NAMES = [
     "parameter_overrides",
@@ -33,19 +38,19 @@ OTHER_OPTIONS = ["debug", "help"]
 
 ALL_OPTIONS = (
     REQUIRED_OPTIONS
-    + CREDENTIAL_OPTION_NAMES
+    + AWS_CREDENTIAL_OPTION_NAMES
     + INFRASTRUCTURE_OPTION_NAMES
     + CONFIGURATION_OPTION_NAMES
     + ADDITIONAL_OPTIONS
     + OTHER_OPTIONS
 )
 
-OPTIONS_MAP = {
+OPTIONS_INFO: Dict[str, Dict] = {
     "Required Options": {
         "option_names": REQUIRED_OPTIONS,
     },
     "AWS Credential Options": {
-        "option_names": CREDENTIAL_OPTION_NAMES,
+        "option_names": AWS_CREDENTIAL_OPTION_NAMES,
     },
     "Infrastructure Options": {
         "option_names": INFRASTRUCTURE_OPTION_NAMES,

@@ -1,12 +1,13 @@
-import click
-from click import Command, Context
+"""
+Sync Command Class.
+"""
+from click import Command, Context, Parameter, style
 
-from samcli.cli.formatters import RootCommandHelpTextFormatter
 from samcli.cli.row_modifiers import RowDefinition, ShowcaseRowModifier
 from samcli.commands.sync.core.formatters import SyncCommandHelpTextFormatter
-from samcli.commands.sync.core.options import OPTIONS_MAP
+from samcli.commands.sync.core.options import OPTIONS_INFO
 
-DESCRIPTION = """
+SYNC_DESCRIPTION = """
   By default, `$sam sync` runs a full AWS Cloudformation stack update. 
 
   Running `sam sync --watch` with `--code` will provide a way to run just code
@@ -17,7 +18,7 @@ DESCRIPTION = """
   
   `$sam sync` also supports nested stacks and nested stack resources.
   
-  """ + click.style(
+  """ + style(
     "This command requires access to AWS credentials.", bold=True
 )
 
@@ -29,19 +30,19 @@ class SyncCommand(Command):
     context_class = CustomFormatterContext
 
     @staticmethod
-    def format_description(formatter):
+    def format_description(formatter: SyncCommandHelpTextFormatter):
         with formatter.indented_section(name="Description", extra_indents=1):
             formatter.write_rd(
                 [
                     RowDefinition(
                         text="",
-                        name=DESCRIPTION,
+                        name=SYNC_DESCRIPTION,
                     ),
                 ],
             )
 
     @staticmethod
-    def format_examples(ctx, formatter):
+    def format_examples(ctx: Context, formatter: SyncCommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
             formatter.write_rd(
                 [
@@ -51,12 +52,12 @@ class SyncCommand(Command):
                     ),
                     RowDefinition(
                         text="",
-                        name=click.style(f"${ctx.command_path} " f"--code --watch --stack-name {{stack}}"),
+                        name=style(f"${ctx.command_path} " f"--code --watch --stack-name {{stack}}"),
                         extra_row_modifiers=[ShowcaseRowModifier()],
                     ),
                     RowDefinition(
                         text="",
-                        name=click.style(
+                        name=style(
                             f"${ctx.command_path} "
                             f"--code --stack-name {{stack}} --resource-id {{ChildStack}}/{{ResourceId}} "
                         ),
@@ -66,7 +67,7 @@ class SyncCommand(Command):
             )
 
     @staticmethod
-    def format_acronyms(formatter):
+    def format_acronyms(formatter: SyncCommandHelpTextFormatter):
         with formatter.indented_section(name="Acronyms", extra_indents=1):
             formatter.write_rd(
                 [
@@ -103,21 +104,25 @@ class SyncCommand(Command):
                 ]
             )
 
-    def format_options(self, ctx: Context, formatter: RootCommandHelpTextFormatter) -> None:
+    def format_options(self, ctx: Context, formatter: SyncCommandHelpTextFormatter) -> None:  # type:ignore
+        # NOTE(sriram-mv): `ignore` is put in place here for mypy even though it is the correct behavior,
+        # as the `formatter_class` can be set in subclass of Command. If ignore is not set,
+        # mypy raises argument needs to be HelpFormatter as super class defines it.
+
         SyncCommand.format_description(formatter)
         SyncCommand.format_examples(ctx, formatter)
         SyncCommand.format_acronyms(formatter)
 
         params = self.get_params(ctx)
 
-        for option_heading, options in OPTIONS_MAP.items():
+        for option_heading, options in OPTIONS_INFO.items():
             opts = [
-                RowDefinition(name=param.get_help_record(ctx)[0], text=param.get_help_record(ctx)[1])
+                SyncCommand._convert_param_to_row_definition(ctx, param)
                 for param in params
-                if param.name in options.get("option_names")
+                if param.name in options.get("option_names", "")
             ]
             with formatter.indented_section(name=option_heading, extra_indents=1):
-                formatter.write_rd(options.get("extras") if options.get("extras") else [RowDefinition()])
+                formatter.write_rd(options.get("extras", [RowDefinition()]))
                 formatter.write_rd(
                     [RowDefinition(name="", text="\n")]
                     + [
@@ -126,3 +131,11 @@ class SyncCommand(Command):
                         for opt in options
                     ]
                 )
+
+    @staticmethod
+    def _convert_param_to_row_definition(ctx: Context, param: Parameter):
+        help_record = param.get_help_record(ctx)
+        if not help_record:
+            return RowDefinition()
+        name, text = help_record
+        return RowDefinition(name=name, text=text)

@@ -88,8 +88,9 @@ DEFAULT_TEMPLATE_NAME = "template.yaml"
 DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 
 
+# TODO(sriram-mv): Move context settings to be global such as width.
 @click.command(
-    "sync", cls=SyncCommand, help=HELP_TEXT, short_help=SHORT_HELP, context_settings={"max_content_width": 100}
+    "sync", cls=SyncCommand, help=HELP_TEXT, short_help=SHORT_HELP, context_settings={"max_content_width": 120}
 )
 @configuration_option(provider=TomlProvider(section="parameters"))
 @template_option_without_build
