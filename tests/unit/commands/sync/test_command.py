@@ -259,7 +259,7 @@ class TestDoCli(TestCase):
         execute_watch_mock,
         click_mock,
     ):
-        skip_infra_syncs = watch and code
+        disable_infra_syncs = watch and code
         build_context_mock = Mock()
         BuildContextMock.return_value.__enter__.return_value = build_context_mock
         package_context_mock = Mock()
@@ -361,13 +361,13 @@ class TestDoCli(TestCase):
             on_failure=None,
         )
         execute_watch_mock.assert_called_once_with(
-            self.template_file,
-            build_context_mock,
-            package_context_mock,
-            deploy_context_mock,
-            sync_context_mock,
-            auto_dependency_layer,
-            skip_infra_syncs,
+            template=self.template_file,
+            build_context=build_context_mock,
+            package_context=package_context_mock,
+            deploy_context=deploy_context_mock,
+            sync_context=sync_context_mock,
+            auto_dependency_layer=auto_dependency_layer,
+            disable_infra_syncs=disable_infra_syncs,
         )
 
     @parameterized.expand([(True, False, True, True, False), (True, False, False, False, True)])
@@ -708,7 +708,7 @@ class TestWatch(TestCase):
         watch_manager_mock,
         click_mock,
     ):
-        skip_infra_syncs = code
+        disable_infra_syncs = code
         execute_watch(
             self.template_file,
             self.build_context,
@@ -716,7 +716,7 @@ class TestWatch(TestCase):
             self.deploy_context,
             self.sync_context,
             auto_dependency_layer,
-            skip_infra_syncs,
+            disable_infra_syncs,
         )
 
         watch_manager_mock.assert_called_once_with(
@@ -726,7 +726,7 @@ class TestWatch(TestCase):
             self.deploy_context,
             self.sync_context,
             auto_dependency_layer,
-            skip_infra_syncs,
+            disable_infra_syncs,
         )
         watch_manager_mock.return_value.start.assert_called_once_with()
 

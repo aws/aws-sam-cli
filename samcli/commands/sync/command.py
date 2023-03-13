@@ -368,13 +368,13 @@ def do_cli(
                     ) as sync_context:
                         if watch:
                             execute_watch(
-                                template_file,
-                                build_context,
-                                package_context,
-                                deploy_context,
-                                sync_context,
-                                dependency_layer,
-                                code,
+                                template=template_file,
+                                build_context=build_context,
+                                package_context=package_context,
+                                deploy_context=deploy_context,
+                                sync_context=sync_context,
+                                auto_dependency_layer=dependency_layer,
+                                disable_infra_syncs=code,
                             )
                         elif code:
                             execute_code_sync(
@@ -487,7 +487,7 @@ def execute_watch(
     deploy_context: "DeployContext",
     sync_context: "SyncContext",
     auto_dependency_layer: bool,
-    skip_infra_syncs: bool,
+    disable_infra_syncs: bool,
 ):
     """Start sync watch execution
 
@@ -505,13 +505,20 @@ def execute_watch(
         SyncContext object that obtains sync information.
     auto_dependency_layer: bool
         Boolean flag to whether enable certain sync flows for auto dependency layer feature.
-    skip_infra_syncs: bool
-        Boolean flag to determine if only ececute code syncs.
+    disable_infra_syncs: bool
+        Boolean flag to determine if sam sync only executes code syncs.
     """
-    # Note: skip_infra_sync is different from skip_infra_syncs, skip_infra_syncs completely skips infra syncs and
-    # skip_infra_sync skips the initial infra sync if its not required.
+    # Note: disable_infra_syncs  is different from skip_infra_sync,
+    # disable_infra_syncs completely disables infra syncs and
+    # skip_infra_sync skips the initial infra sync if it's not required.
     watch_manager = WatchManager(
-        template, build_context, package_context, deploy_context, sync_context, auto_dependency_layer, skip_infra_syncs
+        template,
+        build_context,
+        package_context,
+        deploy_context,
+        sync_context,
+        auto_dependency_layer,
+        disable_infra_syncs,
     )
     watch_manager.start()
 

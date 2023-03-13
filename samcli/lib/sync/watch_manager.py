@@ -44,7 +44,7 @@ class WatchManager:
     _waiting_infra_sync: bool
     _color: Colored
     _auto_dependency_layer: bool
-    _skip_infra_syncs: bool
+    _disable_infra_syncs: bool
 
     def __init__(
         self,
@@ -54,7 +54,7 @@ class WatchManager:
         deploy_context: "DeployContext",
         sync_context: "SyncContext",
         auto_dependency_layer: bool,
-        skip_infra_syncs: bool,
+        disable_infra_syncs: bool,
     ):
         """Manager for sync watch execution logic.
         This manager will observe template and its code resources.
@@ -78,7 +78,7 @@ class WatchManager:
         self._deploy_context = deploy_context
         self._sync_context = sync_context
         self._auto_dependency_layer = auto_dependency_layer
-        self._skip_infra_syncs = skip_infra_syncs
+        self._disable_infra_syncs = disable_infra_syncs
 
         self._sync_flow_factory = None
         self._sync_flow_executor = ContinuousSyncFlowExecutor()
@@ -94,7 +94,7 @@ class WatchManager:
         """Queue up an infra structure sync.
         A simple bool flag is suffice
         """
-        if self._skip_infra_syncs:
+        if self._disable_infra_syncs:
             LOG.info(
                 self._color.yellow(
                     "You have enabled the --code flag, which limits sam sync updates to code changes only. To do a "
@@ -190,7 +190,7 @@ class WatchManager:
         # This is a wrapper for gracefully handling Ctrl+C or other termination cases.
         try:
             self.queue_infra_sync()
-            if self._skip_infra_syncs:
+            if self._disable_infra_syncs:
                 self._start_sync()
                 LOG.info(self._color.green("Sync watch started."))
             self._start()
