@@ -465,9 +465,9 @@ serverlessrepo==0.1.10 \
     --hash=sha256:671f48038123f121437b717ed51f253a55775590f00fbab6fbc6a01f8d05c017 \
     --hash=sha256:b99c69be8ce87ccc48103fbe371ba7b148c3374c57862e59118c402522e5ed52
     # via aws-sam-cli (setup.py)
-six==1.15.0 \
-    --hash=sha256:30639c035cdb23534cd4aa2dd52c3bf48f06e5f4a941509c8bafd8ce11080259 \
-    --hash=sha256:8b74bedcbbbaca38ff6d7491d76f2b06b3592611af620f8426e82dddb04a5ced
+six==1.16.0 \
+    --hash=sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926 \
+    --hash=sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254
     # via
     #   docker
     #   jsonschema
