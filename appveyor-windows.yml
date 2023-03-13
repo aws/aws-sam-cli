@@ -126,6 +126,9 @@ install:
   # Actually install SAM CLI's dependencies
   - 'pip install -e ".[dev]"'
 
+  # Install aws cli
+  - "pip install awscli"
+
   # Echo final Path
   - "echo %PATH%"
 
