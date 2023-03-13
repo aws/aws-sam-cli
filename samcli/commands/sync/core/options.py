@@ -1,15 +1,15 @@
 """
 Sync Command Options related Datastructures for formatting.
 """
-from typing import Dict
+from typing import Dict, List
 
 from samcli.cli.row_modifiers import RowDefinition
 
-REQUIRED_OPTIONS = ["stack_name", "template_file"]
+REQUIRED_OPTIONS: List[str] = ["stack_name", "template_file"]
 
-AWS_CREDENTIAL_OPTION_NAMES = ["region", "profile"]
+AWS_CREDENTIAL_OPTION_NAMES: List[str] = ["region", "profile"]
 
-INFRASTRUCTURE_OPTION_NAMES = [
+INFRASTRUCTURE_OPTION_NAMES: List[str] = [
     "parameter_overrides",
     "capabilities",
     "s3_bucket",
@@ -23,9 +23,9 @@ INFRASTRUCTURE_OPTION_NAMES = [
     "metadata",
 ]
 
-CONFIGURATION_OPTION_NAMES = ["config_env", "config_file"]
+CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"]
 
-ADDITIONAL_OPTIONS = [
+ADDITIONAL_OPTIONS: List[str] = [
     "dependency_layer",
     "watch",
     "code",
@@ -34,9 +34,9 @@ ADDITIONAL_OPTIONS = [
     "use_container",
     "base_dir",
 ]
-OTHER_OPTIONS = ["debug", "help"]
+OTHER_OPTIONS: List[str] = ["debug", "help"]
 
-ALL_OPTIONS = (
+ALL_OPTIONS: List[str] = (
     REQUIRED_OPTIONS
     + AWS_CREDENTIAL_OPTION_NAMES
     + INFRASTRUCTURE_OPTION_NAMES

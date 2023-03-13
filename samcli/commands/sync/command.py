@@ -123,8 +123,6 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
     "--dependency-layer/--no-dependency-layer",
     default=True,
     is_flag=True,
-    # cls=ReplaceHelpSummaryOption,
-    # replace_help_option="--dependency-layer,--no-dependency-layer",
     help="Separate dependencies of individual function into a Lambda layer for improved performance.",
 )
 @stack_name_option(required=True)  # pylint: disable=E1120
