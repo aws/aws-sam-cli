@@ -209,7 +209,9 @@ class TestDoCli(TestCase):
             on_failure=None,
         )
 
-        execute_infra_mock.assert_called_with(build_context_mock, package_context_mock, deploy_context_mock)
+        execute_infra_mock.assert_called_with(
+            build_context_mock, package_context_mock, deploy_context_mock, sync_context_mock
+        )
 
         if not infra_sync_result.infra_sync_executed:
             execute_code_sync_mock.assert_called_with(
@@ -767,11 +769,14 @@ class TestDisableADL(TestCase):
         build_context_mock = Mock()
         package_context_mock = Mock()
         deploy_context_mock = Mock()
+        sync_context_mock = Mock()
 
         infra_sync_executor_mock = Mock()
         patch_infra_sync_executor.return_value = infra_sync_executor_mock
 
-        execute_infra_contexts(build_context_mock, package_context_mock, deploy_context_mock)
+        execute_infra_contexts(build_context_mock, package_context_mock, deploy_context_mock, sync_context_mock)
 
-        patch_infra_sync_executor.assert_called_once_with(build_context_mock, package_context_mock, deploy_context_mock)
+        patch_infra_sync_executor.assert_called_once_with(
+            build_context_mock, package_context_mock, deploy_context_mock, sync_context_mock
+        )
         infra_sync_executor_mock.execute_infra_sync.assert_called_once()

@@ -15,4 +15,5 @@ SAM_CLI_COMMANDS = {
     "sync": "Sync an AWS SAM project to AWS.",
     "pipeline": "Manage the continuous delivery of your AWS serverless application.",
     "list": "Fetch the state of your AWS serverless application.",
+    "docs": "Launch the AWS SAM CLI documentation in a browser.",
 }

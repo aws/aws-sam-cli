@@ -29,6 +29,7 @@ _SAM_CLI_COMMAND_PACKAGES = [
     "samcli.commands.sync",
     "samcli.commands.pipeline.pipeline",
     "samcli.commands.list.list",
+    "samcli.commands.docs",
     # We intentionally do not expose the `bootstrap` command for now. We might open it up later
     # "samcli.commands.bootstrap",
 ]
@@ -133,6 +134,17 @@ class BaseCommand(click.MultiCommand):
         # as the `formatter_class` can be set in subclass of Command. If ignore is not set,
         # mypy raises argument needs to be HelpFormatter as super class defines it.
         with formatter.section("Commands"):
+            with formatter.section("Learn"):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            name="docs",
+                            text=SAM_CLI_COMMANDS.get("docs", ""),
+                            extra_row_modifiers=[HighlightNewRowNameModifier()],
+                        )
+                    ]
+                )
+
             with formatter.section("Create an App"):
                 formatter.write_rd(
                     [
