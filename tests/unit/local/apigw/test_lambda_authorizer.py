@@ -7,6 +7,7 @@ from samcli.local.apigw.authorizers.lambda_authorizer import (
     ContextIdentitySource,
     HeaderIdentitySource,
     LambdaAuthorizer,
+    LambdaAuthorizerIAMPolicyValidator,
     QueryIdentitySource,
     StageVariableIdentitySource,
 )
@@ -164,8 +165,8 @@ class TestLambdaAuthorizer(TestCase):
             ).is_valid_response("not a valid json string", Mock())
 
     @patch.object(LambdaAuthorizer, "_validate_simple_response")
-    @patch.object(LambdaAuthorizer, "_validate_iam_response")
-    def test_response_validator_calls_simple_response(self, iam_mock, simple_mock):
+    @patch.object(LambdaAuthorizer, "_is_resource_authorized")
+    def test_response_validator_calls_simple_response(self, resource_mock, simple_mock):
         LambdaAuthorizer(
             "my auth",
             Mock(),
@@ -176,7 +177,7 @@ class TestLambdaAuthorizer(TestCase):
             True,
         ).is_valid_response("{}", Mock())
 
-        iam_mock.assert_not_called()
+        resource_mock.assert_not_called()
         simple_mock.assert_called_once()
 
     @parameterized.expand(
@@ -206,11 +207,23 @@ class TestLambdaAuthorizer(TestCase):
         ]
     )
     @patch.object(LambdaAuthorizer, "_validate_simple_response")
-    @patch.object(LambdaAuthorizer, "_validate_iam_response")
-    def test_response_validator_calls_iam_response(self, lambda_auth, iam_mock, simple_mock):
-        lambda_auth.is_valid_response("{}", Mock())
+    @patch.object(LambdaAuthorizer, "_is_resource_authorized")
+    @patch.object(LambdaAuthorizerIAMPolicyValidator, "validate_policy_document")
+    @patch.object(LambdaAuthorizerIAMPolicyValidator, "validate_statement")
+    def test_response_validator_calls_is_resource_authorized(
+        self, validate_policy_mock, validate_statement_mock, lambda_auth, resource_mock, simple_mock
+    ):
+        LambdaAuthorizer(
+            "my auth",
+            Mock(),
+            Mock(),
+            [],
+            LambdaAuthorizer.PAYLOAD_V1,
+            Mock(),
+            False,
+        ).is_valid_response("{}", Mock())
 
-        iam_mock.assert_called_once()
+        resource_mock.assert_called_once()
         simple_mock.assert_not_called()
 
     @parameterized.expand([({"missing": "key"},), ({"isAuthorized": "suppose to be bool"},)])
@@ -262,75 +275,6 @@ class TestLambdaAuthorizer(TestCase):
     def test_get_context_raises_exception(self, input):
         with self.assertRaises(InvalidLambdaAuthorizerResponse):
             LambdaAuthorizer("myauth", Mock(), Mock(), [], Mock()).get_context(json.dumps(input))
-
-    @parameterized.expand(
-        [
-            (  # missing principalId
-                {},
-                "Authorizer 'my auth' contains an invalid or missing 'principalId' from response",
-            ),
-            (  # missing policyDocument
-                {"principalId": "123"},
-                "Authorizer 'my auth' contains an invalid or missing 'policyDocument' from response",
-            ),
-            (  # policyDocument not dict
-                {"principalId": "123", "policyDocument": "not list"},
-                "Authorizer 'my auth' contains an invalid or missing 'policyDocument' from response",
-            ),
-            (  # policyDocument empty
-                {"principalId": "123", "policyDocument": {}},
-                "Authorizer 'my auth' contains an invalid or missing 'Statement' from response",
-            ),
-            (  # missing statement
-                {"principalId": "123", "policyDocument": {"missing": "statement"}},
-                "Authorizer 'my auth' contains an invalid or missing 'Statement'",
-            ),
-            (  # statement not list
-                {"principalId": "123", "policyDocument": {"Statement": "statement"}},
-                "Authorizer 'my auth' contains an invalid or missing 'Statement'",
-            ),
-            (  # statement empty
-                {"principalId": "123", "policyDocument": {"Statement": []}},
-                "Authorizer 'my auth' contains an invalid or missing 'Statement'",
-            ),
-            (  # statement not an object
-                {"principalId": "123", "policyDocument": {"Statement": ["string"]}},
-                "Authorizer 'my auth' policy document must be a list of object",
-            ),
-            (  # statement missing action
-                {"principalId": "123", "policyDocument": {"Statement": [{"no action": "123"}]}},
-                "Authorizer 'my auth' policy document contains an invalid 'Action'",
-            ),
-            (  # statement missing effect
-                {"principalId": "123", "policyDocument": {"Statement": [{"Action": "execute-api:Invoke"}]}},
-                "Authorizer 'my auth' policy document contains an invalid 'Effect'",
-            ),
-            (  # statement resource not a list
-                {
-                    "principalId": "123",
-                    "policyDocument": {
-                        "Statement": [{"Action": "execute-api:Invoke", "Effect": "Allow", "Resource": "not list"}]
-                    },
-                },
-                "Authorizer 'my auth' policy document contains an invalid 'Resource'",
-            ),
-        ]
-    )
-    def test_validate_iam_response_raises(self, response, message):
-        method_arn = "arn"
-
-        auth = LambdaAuthorizer(
-            "my auth",
-            Mock(),
-            Mock(),
-            [],
-            Mock(),
-            Mock(),
-            Mock(),
-        )
-
-        with self.assertRaisesRegex(InvalidLambdaAuthorizerResponse, message):
-            auth._validate_iam_response(response, method_arn)
 
     @parameterized.expand(
         [
@@ -436,7 +380,7 @@ class TestLambdaAuthorizer(TestCase):
             ),
         ]
     )
-    def test_validate_iam_response(self, response, expected_result):
+    def test_validate_is_resource_authorized(self, response, expected_result):
         method_arn = "arn:aws:execute-api:us-east-1:123456789012:1234567890/prod/GET/hello"
 
         auth = LambdaAuthorizer(
@@ -449,6 +393,73 @@ class TestLambdaAuthorizer(TestCase):
             Mock(),
         )
 
-        result = auth._validate_iam_response(response, method_arn)
+        result = auth._is_resource_authorized(response, method_arn)
 
         self.assertEqual(result, expected_result)
+
+
+class TestLambdaAuthorizerIamPolicyValidator(TestCase):
+    @parameterized.expand(
+        [
+            (  # missing principalId
+                {},
+                "Authorizer 'my auth' contains an invalid or missing 'principalId' from response",
+            ),
+            (  # missing policyDocument
+                {"principalId": "123"},
+                "Authorizer 'my auth' contains an invalid or missing 'policyDocument' from response",
+            ),
+            (  # policyDocument not dict
+                {"principalId": "123", "policyDocument": "not list"},
+                "Authorizer 'my auth' contains an invalid or missing 'policyDocument' from response",
+            ),
+        ]
+    )
+    def test_validate_validate_policy_document_raises(self, response, message):
+        with self.assertRaisesRegex(InvalidLambdaAuthorizerResponse, message):
+            LambdaAuthorizerIAMPolicyValidator.validate_policy_document("my auth", response)
+
+    @parameterized.expand(
+        [
+            (  # policyDocument empty
+                {"principalId": "123", "policyDocument": {}},
+                "Authorizer 'my auth' contains an invalid or missing 'Statement' from response",
+            ),
+            (  # missing statement
+                {"principalId": "123", "policyDocument": {"missing": "statement"}},
+                "Authorizer 'my auth' contains an invalid or missing 'Statement'",
+            ),
+            (  # statement not list
+                {"principalId": "123", "policyDocument": {"Statement": "statement"}},
+                "Authorizer 'my auth' contains an invalid or missing 'Statement'",
+            ),
+            (  # statement empty
+                {"principalId": "123", "policyDocument": {"Statement": []}},
+                "Authorizer 'my auth' contains an invalid or missing 'Statement'",
+            ),
+            (  # statement not an object
+                {"principalId": "123", "policyDocument": {"Statement": ["string"]}},
+                "Authorizer 'my auth' policy document must be a list of object",
+            ),
+            (  # statement missing action
+                {"principalId": "123", "policyDocument": {"Statement": [{"no action": "123"}]}},
+                "Authorizer 'my auth' policy document contains an invalid 'Action'",
+            ),
+            (  # statement missing effect
+                {"principalId": "123", "policyDocument": {"Statement": [{"Action": "execute-api:Invoke"}]}},
+                "Authorizer 'my auth' policy document contains an invalid 'Effect'",
+            ),
+            (  # statement resource not a list
+                {
+                    "principalId": "123",
+                    "policyDocument": {
+                        "Statement": [{"Action": "execute-api:Invoke", "Effect": "Allow", "Resource": "not list"}]
+                    },
+                },
+                "Authorizer 'my auth' policy document contains an invalid 'Resource'",
+            ),
+        ]
+    )
+    def test_validate_validate_statement_raises(self, response, message):
+        with self.assertRaisesRegex(InvalidLambdaAuthorizerResponse, message):
+            LambdaAuthorizerIAMPolicyValidator.validate_statement("my auth", response)

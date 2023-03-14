@@ -324,65 +324,47 @@ class LambdaAuthorizer(Authorizer):
         if self.payload_version == LambdaAuthorizer.PAYLOAD_V2 and self.use_simple_response:
             return self._validate_simple_response(json_response)
 
-        return self._validate_iam_response(json_response, method_arn)
+        # validate IAM policy document
+        LambdaAuthorizerIAMPolicyValidator.validate_policy_document(self.authorizer_name, json_response)
+        LambdaAuthorizerIAMPolicyValidator.validate_statement(self.authorizer_name, json_response)
 
-    def _validate_iam_response(self, response: dict, method_arn: str) -> bool:
+        return self._is_resource_authorized(json_response, method_arn)
+
+    def _is_resource_authorized(self, response: dict, method_arn: str) -> bool:
         """
-        Helper method to validate if a Lambda authorizer response is valid and authorized
+        Validate the if the current method ARN is actually authorized
 
         Parameters
         ----------
         response: dict
-            JSON object from Lambda authorizer output
+            The response output from the Lambda authorizer (should be in IAM format)
         method_arn: str
-            The method ARN of this request
+            The route's method ARN
 
         Returns
         -------
         bool
-            True if the request is authorized
+            True if authorized
         """
+        policy_document = response.get(_RESPONSE_POLICY_DOCUMENT, {})
+        all_statements = policy_document.get(_RESPONSE_IAM_STATEMENT, [])
 
-        def is_resource_authorized(response: dict, method_arn: str) -> bool:
-            """
-            Validate the if the current method ARN is actually authorized
+        for statement in all_statements:
+            if (
+                statement.get(_RESPONSE_IAM_ACTION) != _IAM_INVOKE_ACTION
+                or statement.get(_RESPONSE_IAM_EFFECT) != _RESPONSE_IAM_EFFECT_ALLOW
+            ):
+                continue
 
-            Parameters
-            ----------
-            response: dict
-                The response output from the Lambda authorizer (should be in IAM format)
-            method_arn: str
-                The route's method ARN
+            for resource_arn in statement.get(_RESPONSE_IAM_RESOURCE, []):
+                # form a regular expression from the possible wildcard resource ARN
+                regex_method_arn = resource_arn.replace("*", ".+").replace("?", ".")
+                regex_method_arn += "$"
 
-            Returns
-            -------
-            bool
-                True if authorized
-            """
-            policy_document = response.get(_RESPONSE_POLICY_DOCUMENT, {})
-            all_statements = policy_document.get(_RESPONSE_IAM_STATEMENT, [])
+                if re.match(regex_method_arn, method_arn):
+                    return True
 
-            for statement in all_statements:
-                if statement.get(_RESPONSE_IAM_ACTION) != _IAM_INVOKE_ACTION:
-                    continue
-
-                if statement.get(_RESPONSE_IAM_EFFECT) != _RESPONSE_IAM_EFFECT_ALLOW:
-                    continue
-
-                for resource_arn in statement.get(_RESPONSE_IAM_RESOURCE, []):
-                    # form a regular expression from the possible wildcard resource ARN
-                    regex_method_arn = resource_arn.replace("*", ".+").replace("?", ".")
-                    regex_method_arn += "$"
-
-                    if re.match(regex_method_arn, method_arn):
-                        return True
-
-            return False
-
-        LambdaAuthorizerIAMPolicyValidator.validate_policy_document(self.authorizer_name, response)
-        LambdaAuthorizerIAMPolicyValidator.validate_statement(self.authorizer_name, response)
-
-        return is_resource_authorized(response, method_arn)
+        return False
 
     def _validate_simple_response(self, response: dict) -> bool:
         """
