@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from samtranslator.model.exceptions import ExceptionWithMessage
-from unittest.mock import patch, call, Mock
+from unittest.mock import patch, call, Mock, ANY
 from botocore.exceptions import ClientError, EndpointConnectionError, NoCredentialsError, BotoCoreError
 from samtranslator.translator.arn_generator import NoRegionFound
 
@@ -212,11 +212,13 @@ class TestResourceMappingProducerProduce(TestCase):
             validator.get_translated_template_if_valid()
 
         sam_translator.assert_called_once_with(
-            managed_policy_map={"policy": "SomePolicy"}, sam_parser=parser, plugins=[], boto_session=boto_session_mock
+            managed_policy_map=None, sam_parser=parser, plugins=[], boto_session=boto_session_mock
         )
 
         boto_session_patch.assert_called_once_with(profile_name=None, region_name=None)
-        translate_mock.translate.assert_called_once_with(sam_template=template, parameter_values={})
+        translate_mock.translate.assert_called_once_with(
+            sam_template=template, parameter_values={}, get_managed_policy_map=ANY
+        )
         sam_parser.Parser.assert_called_once()
 
     @patch("samcli.commands.list.json_consumer.click.echo")
