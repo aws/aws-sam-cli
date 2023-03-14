@@ -1,6 +1,7 @@
 import platform
 import time
-
+import traceback
+import os
 from unittest import TestCase
 from unittest.mock import patch, Mock, ANY, call
 
@@ -17,6 +18,8 @@ from samcli.lib.telemetry.cicd import CICDPlatform
 from samcli.lib.telemetry.metric import (
     capture_return_value,
     _get_metric,
+    _get_stack_trace_info,
+    _clean_stack_summary_paths,
     send_installed_metric,
     track_command,
     track_template_warnings,
@@ -152,7 +155,7 @@ class TestTrackCommand(TestCase):
 
         track_command(real_fn)()
 
-        run_metrics_mock.assert_called_with(self.context_mock, ANY, "success", 0)
+        run_metrics_mock.assert_called_with(self.context_mock, ANY, "success", 0, None, None)
 
     @pytest.mark.flaky(reruns=3)
     @patch("samcli.lib.telemetry.metric.Context")
@@ -198,6 +201,7 @@ class TestTrackCommand(TestCase):
             raise exception
 
         expected_exception_class = exception.__class__ if expected_code != 255 else UnhandledException
+        _, exception_message = _get_stack_trace_info(exception)
         with self.assertRaises(expected_exception_class) as context:
             track_command(real_fn)()
             self.assertEqual(
@@ -206,7 +210,9 @@ class TestTrackCommand(TestCase):
                 "Must re-raise the original exception object without modification",
             )
 
-        run_metrics_mock.assert_called_with(self.context_mock, ANY, expected_exception, expected_code)
+        run_metrics_mock.assert_called_with(
+            self.context_mock, ANY, expected_exception, expected_code, ANY, exception_message
+        )
 
     @patch("samcli.lib.telemetry.metric.Context")
     @patch("samcli.lib.telemetry.metric._send_command_run_metrics")
@@ -283,7 +289,7 @@ class TestTrackCommand(TestCase):
             track_command(mocked_func)()
 
         mocked_func.assert_not_called()
-        run_metrics_mock.assert_called_with(self.context_mock, ANY, exception.__name__, exitcode)
+        run_metrics_mock.assert_called_with(self.context_mock, ANY, exception.__name__, exitcode, ANY, ANY)
 
 
 class TestSendCommandMetrics(TestCase):
@@ -326,9 +332,11 @@ class TestSendCommandMetrics(TestCase):
             "duration": ANY,
             "exitReason": "success",
             "exitCode": 0,
+            "stackTrace": None,
+            "exceptionMessage": None,
         }
 
-        _send_command_run_metrics(self.context_mock, 0, "success", 0)
+        _send_command_run_metrics(self.context_mock, 0, "success", 0, None, None)
 
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric = args[0]
@@ -341,7 +349,7 @@ class TestSendCommandMetrics(TestCase):
     def test_must_emit_command_run_metric_with_sanitized_profile_value(self, send_mock):
         self.context_mock.profile = "myprofilename"
 
-        _send_command_run_metrics(self.context_mock, 0, "success", 0)
+        _send_command_run_metrics(self.context_mock, 0, "success", 0, None, None)
 
         expected_attrs = _ignore_common_attributes({"awsProfileProvided": True})
         args, _ = self.telemetry_instance.emit.call_args_list[0]
@@ -351,6 +359,108 @@ class TestSendCommandMetrics(TestCase):
 
         send_mock.assert_called()
 
+    @patch("samcli.lib.telemetry.metric._get_stack_trace_info")
+    @patch("samcli.lib.telemetry.metric.Context")
+    def test_must_record_user_exception(self, ContextMock, get_stack_trace_info_mock):
+        expected_stack_trace = "Expected stack trace"
+        expected_exception_message = "Expected exception message"
+        get_stack_trace_info_mock.return_value = (expected_stack_trace, expected_exception_message)
+        ContextMock.get_current_context.return_value = self.context_mock
+        expected_exception = UserException("Something went wrong")
+
+        def real_fn():
+            raise expected_exception
+
+        with self.assertRaises(UserException) as context:
+            track_command(real_fn)()
+            self.assertEqual(
+                context.exception,
+                expected_exception,
+                "Must re-raise the original exception object without modification",
+            )
+
+        get_stack_trace_info_mock.assert_called_once()
+        expected_attrs = _ignore_common_attributes(
+            {
+                "exitReason": "UserException",
+                "exitCode": 1,
+                "stackTrace": expected_stack_trace,
+                "exceptionMessage": expected_exception_message,
+            }
+        )
+        args, _ = self.telemetry_instance.emit.call_args_list[0]
+        metric = args[0]
+        assert metric.get_metric_name() == "commandRun"
+        self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
+
+    @patch("samcli.lib.telemetry.metric._get_stack_trace_info")
+    @patch("samcli.lib.telemetry.metric.Context")
+    def test_must_record_wrapped_user_exception(self, ContextMock, get_stack_trace_info_mock):
+        expected_stack_trace = "Expected stack trace"
+        expected_exception_message = "Expected exception message"
+        get_stack_trace_info_mock.return_value = (expected_stack_trace, expected_exception_message)
+        ContextMock.get_current_context.return_value = self.context_mock
+        expected_exception = UserException("Something went wrong", wrapped_from="CustomException")
+
+        def real_fn():
+            raise expected_exception
+
+        with self.assertRaises(UserException) as context:
+            track_command(real_fn)()
+            self.assertEqual(
+                context.exception,
+                expected_exception,
+                "Must re-raise the original exception object without modification",
+            )
+
+        get_stack_trace_info_mock.assert_called_once()
+        expected_attrs = _ignore_common_attributes(
+            {
+                "exitReason": "CustomException",
+                "exitCode": 1,
+                "stackTrace": expected_stack_trace,
+                "exceptionMessage": expected_exception_message,
+            }
+        )
+        args, _ = self.telemetry_instance.emit.call_args_list[0]
+        metric = args[0]
+        assert metric.get_metric_name() == "commandRun"
+        self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
+
+    @patch("samcli.lib.telemetry.metric._get_stack_trace_info")
+    @patch("samcli.lib.telemetry.metric.Context")
+    def test_must_record_any_exceptions(self, ContextMock, get_stack_trace_info_mock):
+        expected_stack_trace = "Expected stack trace"
+        expected_exception_message = "Expected exception message"
+        get_stack_trace_info_mock.return_value = (expected_stack_trace, expected_exception_message)
+        ContextMock.get_current_context.return_value = self.context_mock
+        expected_exception = KeyError("IO Error test")
+
+        def real_fn():
+            raise expected_exception
+
+        with self.assertRaises(UnhandledException) as context:
+            track_command(real_fn)()
+            self.assertEqual(
+                context.exception,
+                expected_exception,
+                "Must re-raise the original exception object without modification",
+            )
+
+        get_stack_trace_info_mock.assert_called_once()
+        expected_attrs = _ignore_common_attributes(
+            {
+                "exitReason": "KeyError",
+                "exitCode": 255,
+                "stackTrace": expected_stack_trace,
+                "exceptionMessage": expected_exception_message,
+            }  # Unhandled exceptions always use exit code 255
+        )
+        args, _ = self.telemetry_instance.emit.call_args_list[0]
+        metric = args[0]
+        assert metric.get_metric_name() == "commandRun"
+        self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
+
     @patch("samcli.lib.telemetry.metric._get_project_details")
     @patch("samcli.lib.telemetry.event.EventTracker.send_events", return_value=None)
     def test_collects_project_details(self, send_mock, project_details_mock):
@@ -358,7 +468,7 @@ class TestSendCommandMetrics(TestCase):
             project_type="Terraform", hook_package_version="1.0.0", hook_name="terraform"
         )
 
-        _send_command_run_metrics(self.context_mock, 0, "success", 0, hook_name="terraform")
+        _send_command_run_metrics(self.context_mock, 0, "success", 0, None, None, hook_name="terraform")
 
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric_data = args[0]._data
@@ -382,7 +492,7 @@ class TestSendCommandMetrics(TestCase):
     def test_context_contains_exception(self, expected_exception, expected_code, send_events_mock):
         self.context_mock.exception = expected_exception("some exception")
 
-        _send_command_run_metrics(self.context_mock, 0, expected_exception.__name__, expected_code)
+        _send_command_run_metrics(self.context_mock, 0, expected_exception.__name__, expected_code, None, None)
 
         metrics, _ = self.telemetry_instance.emit.call_args_list[0]
         metrics = metrics[0]._data
@@ -393,6 +503,125 @@ class TestSendCommandMetrics(TestCase):
         self.assertEqual(metrics.get("exitCode"), expected_code)
 
         send_events_mock.assert_called()
+
+
+class TestStackTrace(TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_must_return_stack_trace_info(self):
+        exception = Exception("Something went wrong...")
+        stack_trace, exception_message = _get_stack_trace_info(exception)
+        self.assertIsInstance(stack_trace, str)
+        self.assertIsInstance(exception_message, str)
+
+    @patch("samcli.lib.telemetry.metric._clean_stack_summary_paths")
+    def test_must_clean_traceback_recursively(self, clean_path_mock: Mock):
+        def nested_failures():
+            try:
+                raise UserException(f"1 - We can print a filepath here {os.getcwd()}")
+            except Exception:
+                try:
+                    raise TypeError("2 - another exception")
+                except Exception as ex:
+                    try:
+                        raise ZeroDivisionError("3 - diveded by zero") from ex
+                    except Exception as ex:
+                        raise UserException(f"4 - something's wrong: {ex}")
+
+        try:
+            nested_failures()
+        except Exception as ex:
+            _, exception_msg = _get_stack_trace_info(ex)
+            self.assertEqual(exception_msg, "samcli.commands.exceptions.UserException: <REDACTED>\n")
+            self.assertEqual(clean_path_mock.call_count, 4)
+
+    def test_must_produce_sanitized_stack_trace(self):
+        def nested_failures():
+            try:
+                raise UserException(f"1 - We can print a filepath here {os.getcwd()}")
+            except Exception:
+                try:
+                    raise TypeError("2 - another exception")
+                except Exception as ex:
+                    try:
+                        raise ZeroDivisionError("3 - diveded by zero") from ex
+                    except Exception as ex:
+                        raise UserException(f"4 - something's wrong: {ex}")
+
+        try:
+            nested_failures()
+        except Exception as ex:
+            stack_trace, exception_msg = _get_stack_trace_info(ex)
+            self.assertEqual(exception_msg, "samcli.commands.exceptions.UserException: <REDACTED>\n")
+
+            # assert stack trace is chained
+            self.assertEqual(
+                stack_trace.count("During handling of the above exception, another exception occurred:"), 2
+            )
+            self.assertEqual(
+                stack_trace.count("The above exception was the direct cause of the following exception:"), 1
+            )
+
+            # assert all exception messages in the stack trace are sanitized
+            self.assertEqual(stack_trace.count("samcli.commands.exceptions.UserException: <REDACTED>"), 2)
+            self.assertEqual(stack_trace.count("TypeError: <REDACTED>"), 1)
+            self.assertEqual(stack_trace.count("ZeroDivisionError: <REDACTED>"), 1)
+
+            # assert all filepaths in the stack trace are sanitized
+            expected = (
+                'File "/../test_metric.py"' if platform.system().lower() != "windows" else 'File "\\..\\test_metric.py"'
+            )
+            self.assertEqual(stack_trace.count(expected), 5)
+
+    def test_must_clean_path_preceding_site_packages(self):
+        stack_summary = traceback.StackSummary.from_list(
+            [
+                ("/python3.8/site-packages/botocore/abc.py", 264, "___iter__", "return func(*args, **kwargs)"),
+                ("/python3.8/site-packages/samcli/abc.py", 87, "wrapper", "return func(*args, **kwargs)"),
+            ]
+        )
+        expected_stack_summary = traceback.StackSummary.from_list(
+            [
+                ("/../site-packages/botocore/abc.py", 264, "___iter__", "return func(*args, **kwargs)"),
+                ("/../site-packages/samcli/abc.py", 87, "wrapper", "return func(*args, **kwargs)"),
+            ]
+        )
+        _clean_stack_summary_paths(stack_summary)
+        self.assertEqual(stack_summary, expected_stack_summary)
+
+    def test_must_clean_path_preceding_samcli(self):
+        stack_summary = traceback.StackSummary.from_list(
+            [("/aws-sam-cli/samcli/abc.py", 87, "wrapper", "return func(*args, **kwargs)")]
+        )
+        expected_stack_summary = traceback.StackSummary.from_list(
+            [("/../samcli/abc.py", 87, "wrapper", "return func(*args, **kwargs)")]
+        )
+        _clean_stack_summary_paths(stack_summary)
+        self.assertEqual(stack_summary, expected_stack_summary)
+
+    def test_must_clean_path_preceding_last_file(self):
+        stack_summary = traceback.StackSummary.from_list(
+            [("/test-folder/abc.py", 508, "_api_call", "return self._make_api_call(operation_name, kwargs)")]
+        )
+        expected_stack_summary = traceback.StackSummary.from_list(
+            [("/../abc.py", 508, "_api_call", "return self._make_api_call(operation_name, kwargs)")]
+        )
+        _clean_stack_summary_paths(stack_summary)
+        self.assertEqual(stack_summary, expected_stack_summary)
+
+    def test_must_clean_path_preceding_last_file_windows(self):
+        stack_summary = traceback.StackSummary.from_list(
+            [("\\test-folder\\abc.py", 508, "_api_call", "return self._make_api_call(operation_name, kwargs)")]
+        )
+        expected_stack_summary = traceback.StackSummary.from_list(
+            [("\\..\\abc.py", 508, "_api_call", "return self._make_api_call(operation_name, kwargs)")]
+        )
+        _clean_stack_summary_paths(stack_summary)
+        self.assertEqual(stack_summary, expected_stack_summary)
 
 
 class TestParameterCapture(TestCase):

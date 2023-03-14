@@ -3,12 +3,13 @@ Provides methods to generate and send metrics
 """
 import logging
 import platform
+import traceback
 import uuid
 from dataclasses import dataclass
 from functools import reduce, wraps
 from pathlib import Path
 from timeit import default_timer
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 import click
 
@@ -128,6 +129,8 @@ def track_command(func):
         return_value = None
         exit_reason = "success"
         exit_code = 0
+        stack_trace = None
+        exception_message = None
 
         duration_fn = _timer()
 
@@ -163,19 +166,22 @@ def track_command(func):
                 exit_reason = ex.wrapped_from
             else:
                 exit_reason = type(ex).__name__
+            stack_trace, exception_message = _get_stack_trace_info(ex)
+
         except Exception as ex:
             command = ctx.command_path if ctx else ""
             exception = UnhandledException(command, ex)
             # Standard Unix practice to return exit code 255 on fatal/unhandled exit.
             exit_code = 255
             exit_reason = type(ex).__name__
+            stack_trace, exception_message = _get_stack_trace_info(ex)
 
         if ctx:
             time = duration_fn()
 
             try:
                 # metrics also contain a call to Context.get_current_context, catch RuntimeError
-                _send_command_run_metrics(ctx, time, exit_reason, exit_code, **kwargs)
+                _send_command_run_metrics(ctx, time, exit_reason, exit_code, stack_trace, exception_message, **kwargs)
             except RuntimeError:
                 LOG.debug("Unable to find Click context when sending metrics to telemetry")
 
@@ -187,7 +193,15 @@ def track_command(func):
     return wrapped
 
 
-def _send_command_run_metrics(ctx: Context, duration: int, exit_reason: str, exit_code: int, **kwargs) -> None:
+def _send_command_run_metrics(
+    ctx: Context,
+    duration: int,
+    exit_reason: str,
+    exit_code: int,
+    stack_trace: Optional[str],
+    exception_message: Optional[str],
+    **kwargs,
+) -> None:
     """
     Emits metrics based on the results of a command run
 
@@ -240,6 +254,8 @@ def _send_command_run_metrics(ctx: Context, duration: int, exit_reason: str, exi
     metric.add_data("duration", duration)
     metric.add_data("exitReason", exit_reason)
     metric.add_data("exitCode", exit_code)
+    metric.add_data("stackTrace", stack_trace)
+    metric.add_data("exceptionMessage", exception_message)
     EventTracker.send_events()  # Sends Event metrics to Telemetry before commandRun metrics
     telemetry.emit(metric)
 
@@ -261,6 +277,89 @@ def _get_project_details(hook_name: str, template_dict: Dict) -> ProjectDetails:
         hook_name=hook_package_config.name,
         hook_package_version=hook_package_config.version,
     )
+
+
+def _get_stack_trace_info(exception: Exception) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Takes an Exception instance and extracts the following:
+      1. Stack trace in a readable string format with user-sensitive paths cleaned
+      2. Exception mesage including the fully-qualified exception name and value
+
+    Parameters
+    ----------
+    exception : Exception
+        Exception instance
+
+    Returns
+    -------
+    (str, str)
+        (stack trace, exception message)
+    """
+    stack_trace, exception_msg = None, None
+    try:
+        tb_exception = traceback.TracebackException.from_exception(exception)
+        _clean_traceback_recursively(tb_exception)
+        stack_trace = "".join(list(tb_exception.format(chain=True)))
+        exception_msg = list(tb_exception.format_exception_only())[-1]
+    except Exception as ex:
+        LOG.debug("failed to retrieve stack trace or exception message: %s", ex)
+
+    return (stack_trace, exception_msg)
+
+
+def _clean_traceback_recursively(tbexp: traceback.TracebackException) -> None:
+    """
+    Cleans stack trace recursively by going through both cause and context
+    We don't handle RecursionError because traceback.TracebackException prevents it
+
+    Parameters
+    ----------
+    tbexp : traceback.TracebackException
+        TracebackException instance
+    """
+    # __cause__ is populated by using `raise ... from ...` - PEP 3134
+    if tbexp.__cause__:
+        _clean_traceback_recursively(tbexp.__cause__)
+
+    # __context__ is populated by raising an exception in an except block - PEP 3134
+    if tbexp.__context__:
+        _clean_traceback_recursively(tbexp.__context__)
+
+    _clean_stack_summary_paths(tbexp.stack)
+    # redacting entire exception message
+    tbexp._str = "<REDACTED>"  # type: ignore
+
+
+def _clean_stack_summary_paths(stack_summary: traceback.StackSummary) -> None:
+    """
+    Cleans the user-sensitive paths contained within a StackSummary instance
+
+    Parameters
+    ----------
+    stack_summary : traceback.StackSummary
+        StackSummary instance
+    """
+    for frame in stack_summary:
+        path = frame.filename
+        separator = "\\" if "\\" in path else "/"
+
+        # Case 1: If "site-packages" is found within path, replace its leading segment with: /../ or \..\
+        # i.e. /python3.8/site-packages/boto3/test.py becomes /../site-packages/boto3/test.py
+        site_packages_idx = path.rfind("site-packages")
+        if site_packages_idx != -1:
+            frame.filename = f"{separator}..{separator}{path[site_packages_idx:]}"
+            continue
+
+        # Case 2: If "samcli" is found within path, do the same replacement as previous
+        samcli_idx = path.rfind("samcli")
+        if samcli_idx != -1:
+            frame.filename = f"{separator}..{separator}{path[samcli_idx:]}"
+            continue
+
+        # Case 3: Keep only the last file within the path, and do the same replacement as previous
+        path_split = path.split(separator)
+        if len(path_split) > 0:
+            frame.filename = f"{separator}..{separator}{path_split[-1]}"
 
 
 def _timer():
