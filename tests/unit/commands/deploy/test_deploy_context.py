@@ -268,5 +268,5 @@ class TestSamDeployCommand(TestCase):
             self.deploy_command_context.run()
 
             self.deploy_command_context.deployer.wait_for_execute.assert_called_with(
-                ANY, "CREATE", True, FailureMode.DO_NOTHING
+                ANY, "CREATE", False, FailureMode.DO_NOTHING
             )

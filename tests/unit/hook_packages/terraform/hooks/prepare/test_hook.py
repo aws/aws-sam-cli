@@ -250,7 +250,7 @@ class TestPrepareHook(PrepareHookUnitBase):
         resources = {
             "AbsResource1": {
                 "Type": "AWS::Lambda::Function",
-                "Properties": {"Code": abs_path, "Timeout": 10, "Handler": "app.func"},
+                "Properties": {"Code": abs_path, "Timeout": 10, "MemorySize": 128, "Handler": "app.func"},
             },
             "S3Resource1": {
                 "Type": "AWS::Lambda::Function",
@@ -260,12 +260,13 @@ class TestPrepareHook(PrepareHookUnitBase):
                         "S3Key": "s3_key_name",
                     },
                     "Timeout": 10,
+                    "MemorySize": 128,
                     "Handler": "app.func",
                 },
             },
             "RelativeResource1": {
                 "Type": "AWS::Lambda::Function",
-                "Properties": {"Code": relative_path, "Timeout": 10, "Handler": "app.func"},
+                "Properties": {"Code": relative_path, "Timeout": 10, "MemorySize": 128, "Handler": "app.func"},
             },
             "S3Layer": {
                 "Type": "AWS::Lambda::LayerVersion",
@@ -288,13 +289,13 @@ class TestPrepareHook(PrepareHookUnitBase):
             },
             "OtherResource1": {
                 "Type": "AWS::Lambda::NotFunction",
-                "Properties": {"Code": relative_path, "Timeout": 10, "Handler": "app.func"},
+                "Properties": {"Code": relative_path, "Timeout": 10, "MemorySize": 128, "Handler": "app.func"},
             },
         }
         expected_resources = {
             "AbsResource1": {
                 "Type": "AWS::Lambda::Function",
-                "Properties": {"Code": abs_path, "Timeout": 10, "Handler": "app.func"},
+                "Properties": {"Code": abs_path, "Timeout": 10, "MemorySize": 128, "Handler": "app.func"},
             },
             "S3Resource1": {
                 "Type": "AWS::Lambda::Function",
@@ -304,12 +305,13 @@ class TestPrepareHook(PrepareHookUnitBase):
                         "S3Key": "s3_key_name",
                     },
                     "Timeout": 10,
+                    "MemorySize": 128,
                     "Handler": "app.func",
                 },
             },
             "RelativeResource1": {
                 "Type": "AWS::Lambda::Function",
-                "Properties": {"Code": updated_relative_path, "Timeout": 10, "Handler": "app.func"},
+                "Properties": {"Code": updated_relative_path, "Timeout": 10, "MemorySize": 128, "Handler": "app.func"},
             },
             "S3Layer": {
                 "Type": "AWS::Lambda::LayerVersion",
@@ -332,7 +334,7 @@ class TestPrepareHook(PrepareHookUnitBase):
             },
             "OtherResource1": {
                 "Type": "AWS::Lambda::NotFunction",
-                "Properties": {"Code": relative_path, "Timeout": 10, "Handler": "app.func"},
+                "Properties": {"Code": relative_path, "Timeout": 10, "MemorySize": 128, "Handler": "app.func"},
             },
         }
         _update_resources_paths(resources, terraform_application_root)

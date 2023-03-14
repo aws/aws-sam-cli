@@ -43,6 +43,7 @@ class PrepareHookUnitBase(TestCase):
             "runtime": "python3.7",
             "layers": ["layer_arn1", "layer_arn2"],
             "timeout": 3,
+            "memory_size": 128,
         }
         self.expected_cfn_function_common_properties: dict = {
             "FunctionName": self.zip_function_name,
@@ -53,6 +54,7 @@ class PrepareHookUnitBase(TestCase):
             "Runtime": "python3.7",
             "Layers": ["layer_arn1", "layer_arn2"],
             "Timeout": 3,
+            "MemorySize": 128,
         }
 
         self.tf_image_package_type_function_common_properties: dict = {
@@ -61,6 +63,7 @@ class PrepareHookUnitBase(TestCase):
             "environment": [{"variables": {"foo": "bar", "hello": "world"}}],
             "package_type": "Image",
             "timeout": 3,
+            "memory_size": 128,
         }
         self.expected_cfn_image_package_type_function_common_properties: dict = {
             "FunctionName": self.image_function_name,
@@ -68,6 +71,7 @@ class PrepareHookUnitBase(TestCase):
             "Environment": {"Variables": {"foo": "bar", "hello": "world"}},
             "PackageType": "Image",
             "Timeout": 3,
+            "MemorySize": 128,
         }
 
         self.tf_layer_common_properties: dict = {
