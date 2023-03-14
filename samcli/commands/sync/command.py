@@ -134,7 +134,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 )
 # Reminder: remove hidden flag once the feature is ready for release.
 @click.option(
-    "--skip-infra-sync/--no-skip-infra",
+    "--skip-infra-sync/--no-skip-infra-sync",
     default=False,  # Reminder: Change this to True when this feature is released
     is_flag=True,
     hidden=True,  # Reminder: Change this to False when this feature is released
