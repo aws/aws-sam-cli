@@ -1,26 +1,13 @@
 """
 Sync Command Class.
 """
+from typing import List
+
 from click import Command, Context, Parameter, style
 
 from samcli.cli.row_modifiers import RowDefinition, ShowcaseRowModifier
 from samcli.commands.sync.core.formatters import SyncCommandHelpTextFormatter
 from samcli.commands.sync.core.options import OPTIONS_INFO
-
-SYNC_DESCRIPTION = """
-  By default, `$sam sync` runs a full AWS Cloudformation stack update. 
-
-  Running `sam sync --watch` with `--code` will provide a way to run just code
-  synchronization, speeding up start time skipping template changes.
-  
-  Remember to update the deployed stack by running
-  without --code for infrastructure changes.
-  
-  `$sam sync` also supports nested stacks and nested stack resources.
-  
-  """ + style(
-    "This command requires access to AWS credentials.", bold=True
-)
 
 
 class SyncCommand(Command):
@@ -29,14 +16,23 @@ class SyncCommand(Command):
 
     context_class = CustomFormatterContext
 
-    @staticmethod
-    def format_description(formatter: SyncCommandHelpTextFormatter):
+    def __init__(self, description, requires_credentials=False, *args, **kwargs):
+        self.description = description
+        self.requires_credentials = requires_credentials
+        self.description_addendum = (
+            style("\n  This command requires access to AWS credentials.", bold=True)
+            if self.requires_credentials
+            else style("\n  This command does not require access to AWS credentials.", bold=True)
+        )
+        super().__init__(*args, **kwargs)
+
+    def format_description(self, formatter: SyncCommandHelpTextFormatter):
         with formatter.indented_section(name="Description", extra_indents=1):
             formatter.write_rd(
                 [
                     RowDefinition(
                         text="",
-                        name=SYNC_DESCRIPTION,
+                        name=self.description + self.description_addendum,
                     ),
                 ],
             )
@@ -109,18 +105,23 @@ class SyncCommand(Command):
         # as the `formatter_class` can be set in subclass of Command. If ignore is not set,
         # mypy raises argument needs to be HelpFormatter as super class defines it.
 
-        SyncCommand.format_description(formatter)
+        self.format_description(formatter)
         SyncCommand.format_examples(ctx, formatter)
         SyncCommand.format_acronyms(formatter)
 
         params = self.get_params(ctx)
 
         for option_heading, options in OPTIONS_INFO.items():
-            opts = [
-                SyncCommand._convert_param_to_row_definition(ctx, param)
-                for param in params
-                if param.name in options.get("option_names", "")
-            ]
+            opts: List[RowDefinition] = sorted(
+                [
+                    SyncCommand._convert_param_to_row_definition(
+                        ctx=ctx, param=param, rank=options.get("option_names", {}).get(param.name, {}).get("rank", 0)
+                    )
+                    for param in params
+                    if param.name in options.get("option_names", {}).keys()
+                ],
+                key=lambda row_def: row_def.rank,
+            )
             with formatter.indented_section(name=option_heading, extra_indents=1):
                 formatter.write_rd(options.get("extras", [RowDefinition()]))
                 formatter.write_rd(
@@ -133,9 +134,9 @@ class SyncCommand(Command):
                 )
 
     @staticmethod
-    def _convert_param_to_row_definition(ctx: Context, param: Parameter):
+    def _convert_param_to_row_definition(ctx: Context, param: Parameter, rank: int):
         help_record = param.get_help_record(ctx)
         if not help_record:
             return RowDefinition()
         name, text = help_record
-        return RowDefinition(name=name, text=text)
+        return RowDefinition(name=name, text=text, rank=rank)

@@ -69,6 +69,19 @@ HELP_TEXT = """
 
 """
 
+DESCRIPTION = """
+  By default, `$sam sync` runs a full AWS Cloudformation stack update.
+
+  Running `sam sync --watch` with `--code` will provide a way to run just code
+  synchronization, speeding up start time skipping template changes.
+
+  Remember to update the deployed stack by running
+  without --code for infrastructure changes.
+
+  `$sam sync` also supports nested stacks and nested stack resources.
+"""
+
+
 SYNC_INFO_TEXT = """
 The SAM CLI will use the AWS Lambda, Amazon API Gateway, and AWS StepFunctions APIs to upload your code without 
 performing a CloudFormation deployment. This will cause drift in your CloudFormation stack. 
@@ -90,7 +103,13 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 
 # TODO(sriram-mv): Move context settings to be global such as width.
 @click.command(
-    "sync", cls=SyncCommand, help=HELP_TEXT, short_help=SHORT_HELP, context_settings={"max_content_width": 120}
+    "sync",
+    cls=SyncCommand,
+    help=HELP_TEXT,
+    short_help=SHORT_HELP,
+    description=DESCRIPTION,
+    requires_credentials=True,
+    context_settings={"max_content_width": 120},
 )
 @configuration_option(provider=TomlProvider(section="parameters"))
 @template_option_without_build

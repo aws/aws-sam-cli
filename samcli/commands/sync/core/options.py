@@ -5,6 +5,9 @@ from typing import Dict, List
 
 from samcli.cli.row_modifiers import RowDefinition
 
+# NOTE(sriram-mv): The ordering of the option lists matter, they are the order
+# in which options will be displayed.
+
 REQUIRED_OPTIONS: List[str] = ["stack_name", "template_file"]
 
 AWS_CREDENTIAL_OPTION_NAMES: List[str] = ["region", "profile"]
@@ -16,8 +19,8 @@ INFRASTRUCTURE_OPTION_NAMES: List[str] = [
     "s3_prefix",
     "image_repository",
     "image_repositories",
-    "kms_key_id",
     "role_arn",
+    "kms_key_id",
     "notification_arns",
     "tags",
     "metadata",
@@ -26,12 +29,12 @@ INFRASTRUCTURE_OPTION_NAMES: List[str] = [
 CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"]
 
 ADDITIONAL_OPTIONS: List[str] = [
-    "dependency_layer",
     "watch",
     "code",
+    "dependency_layer",
+    "use_container",
     "resource_id",
     "resource",
-    "use_container",
     "base_dir",
 ]
 OTHER_OPTIONS: List[str] = ["debug", "help"]
@@ -46,17 +49,15 @@ ALL_OPTIONS: List[str] = (
 )
 
 OPTIONS_INFO: Dict[str, Dict] = {
-    "Required Options": {
-        "option_names": REQUIRED_OPTIONS,
-    },
+    "Required Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(REQUIRED_OPTIONS)}},
     "AWS Credential Options": {
-        "option_names": AWS_CREDENTIAL_OPTION_NAMES,
+        "option_names": {opt: {"rank": idx} for idx, opt in enumerate(AWS_CREDENTIAL_OPTION_NAMES)}
     },
     "Infrastructure Options": {
-        "option_names": INFRASTRUCTURE_OPTION_NAMES,
+        "option_names": {opt: {"rank": idx} for idx, opt in enumerate(INFRASTRUCTURE_OPTION_NAMES)}
     },
     "Configuration Options": {
-        "option_names": CONFIGURATION_OPTION_NAMES,
+        "option_names": {opt: {"rank": idx} for idx, opt in enumerate(CONFIGURATION_OPTION_NAMES)},
         "extras": [
             RowDefinition(name="Learn more about configuration files at:"),
             RowDefinition(
@@ -65,10 +66,6 @@ OPTIONS_INFO: Dict[str, Dict] = {
             ),
         ],
     },
-    "Additional Options": {
-        "option_names": ADDITIONAL_OPTIONS,
-    },
-    "Other Options": {
-        "option_names": OTHER_OPTIONS,
-    },
+    "Additional Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(ADDITIONAL_OPTIONS)}},
+    "Other Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(OTHER_OPTIONS)}},
 }

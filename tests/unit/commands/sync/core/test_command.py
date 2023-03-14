@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import Mock, patch
-from samcli.commands.sync.core.command import SyncCommand, SYNC_DESCRIPTION
+from samcli.commands.sync.core.command import SyncCommand
+from samcli.commands.sync.command import DESCRIPTION
 from tests.unit.cli.test_command import MockFormatter
 
 
@@ -29,13 +30,13 @@ class TestSyncCommand(unittest.TestCase):
             MockParams(rv=("--s3-bucket", ""), name="s3_bucket"),
         ]
 
-        cmd = SyncCommand(name="sync")
+        cmd = SyncCommand(name="sync", requires_credentials=True, description=DESCRIPTION)
         expected_output = {
             "AWS Credential Options": [("", ""), ("--region", ""), ("", "")],
             "Acronyms": [("IAM", ""), ("ARN", ""), ("S3", ""), ("SNS", ""), ("ECR", ""), ("KMS", "")],
             "Additional Options": [("", ""), ("--resource", ""), ("", "")],
             "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
-            "Description": [(SYNC_DESCRIPTION, "")],
+            "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [
                 ("", ""),
                 ("$sam sync --code --watch --stack-name {stack}\x1b[0m", ""),

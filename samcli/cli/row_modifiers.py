@@ -16,6 +16,7 @@ class RowModifier(ABC):
 class RowDefinition(NamedTuple):
     name: str = ""
     text: str = ""
+    rank: int = 0
     extra_row_modifiers: List[RowModifier] = []
 
 
