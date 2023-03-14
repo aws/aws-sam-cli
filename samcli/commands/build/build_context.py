@@ -263,7 +263,7 @@ class BuildContext:
 
             self._build_result = builder.build()
 
-            self._handle_build_post_processing(builder)
+            self._handle_build_post_processing(builder, self._build_result)
 
             click.secho("\nBuild Succeeded", fg="green")
 
