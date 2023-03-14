@@ -771,6 +771,10 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
         )
 
 
+@skipIf(
+    (IS_WINDOWS and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
 class TestBuildCommand_Java_With_Specified_Architecture(BuildIntegJavaBase):
     template = "template_with_architecture.yaml"
     EXPECTED_FILES_PROJECT_MANIFEST_GRADLE = {"aws", "lib", "META-INF"}
