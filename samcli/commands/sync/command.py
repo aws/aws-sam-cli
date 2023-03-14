@@ -108,7 +108,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
     cls=ClickMutex,
 )
 @click.option(
-    "--watch",
+    "--watch/--no-watch",
     is_flag=True,
     help="Watch local files and automatically sync with remote.",
     cls=ClickMutex,
