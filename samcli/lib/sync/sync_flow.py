@@ -13,6 +13,7 @@ from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resourc
 from samcli.lib.sync.exceptions import MissingLockException, MissingPhysicalResourceError
 from samcli.lib.utils.boto_utils import get_boto_client_provider_from_session_with_config
 from samcli.lib.utils.lock_distributor import LockChain, LockDistributor
+from samcli.lib.utils.resources import RESOURCES_WITH_LOCAL_PATHS
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.build.build_context import BuildContext
@@ -413,8 +414,15 @@ def get_definition_path(
     Optional[Path]
         A resolved absolute path for the definition file
     """
+    definition_field_names = RESOURCES_WITH_LOCAL_PATHS.get(resource.get("Type"))
+    if not definition_field_names:
+        LOG.error("Couldn't find definition field name for resource {}", identifier)
+        return None
+    definition_field_name = definition_field_names[0]
+    LOG.debug("Found definition field name as {}", definition_field_name)
+
     properties = resource.get("Properties", {})
-    definition_file = properties.get("DefinitionUri")
+    definition_file = properties.get(definition_field_name)
     definition_path = None
     if definition_file:
         definition_path = Path(base_dir).joinpath(definition_file)
