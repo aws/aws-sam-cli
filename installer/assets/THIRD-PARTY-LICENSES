@@ -2047,6 +2047,8 @@ IN THE SOFTWARE.
 
 ** cffi; version 1.15.1 -- https://cffi.readthedocs.io/en/latest/
 © Copyright 2012-2018, Armin Rigo, Maciej Fijalkowski
+** pydantic; version 1.10.6 -- https://docs.pydantic.dev/
+Copyright (c) 2017 - 2022 Samuel Colvin and other contributors
  
 Except when otherwise stated (look for LICENSE files in directories or
 information at the beginning of each file) all software and
