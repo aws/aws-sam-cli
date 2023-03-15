@@ -155,9 +155,9 @@ class SyncFlow(ABC):
             Return False otherwise.
         """
         stored_sha = self._sync_context.get_resource_latest_sync_hash(self.sync_state_identifier)
+        LOG.debug("%sLocal SHA: %s Stored SHA: %s", self.log_prefix, self._local_sha, stored_sha)
         if self._local_sha and stored_sha and self._local_sha == stored_sha:
-            pass
-            # return True
+            return True
         return False
 
     @abstractmethod
@@ -382,6 +382,8 @@ class SyncFlow(ABC):
             self._update_local_hash()
             LOG.debug("%sGathering Dependencies", self.log_prefix)
             dependencies = self.gather_dependencies()
+        else:
+            LOG.info("%sSkipping resource update as the content didn't change", self.log_prefix)
         LOG.debug("%sFinished", self.log_prefix)
         return dependencies
 

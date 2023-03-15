@@ -1303,7 +1303,7 @@ to create a managed default bucket, or run sam deploy --guided",
             bytes(
                 f"Error: Failed to create/update the stack: {stack_name}, Waiter StackCreateComplete failed: "
                 f'Waiter encountered a terminal failure state: For expression "Stacks[].StackStatus" '
-                f'we matched expected path: "CREATE_FAILED" at least once',
+                f'we matched expected path: "ROLLBACK_COMPLETE" at least once',
                 encoding="utf-8",
             ),
             stderr,
@@ -1363,7 +1363,7 @@ to create a managed default bucket, or run sam deploy --guided",
             bytes(
                 f"Error: Failed to create/update the stack: {stack_name}, Waiter StackUpdateComplete failed: "
                 f'Waiter encountered a terminal failure state: For expression "Stacks[].StackStatus" '
-                f'we matched expected path: "UPDATE_FAILED" at least once',
+                f'we matched expected path: "UPDATE_ROLLBACK_COMPLETE" at least once',
                 encoding="utf-8",
             ),
             stderr,

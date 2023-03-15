@@ -1,4 +1,5 @@
 import base64
+import hashlib
 from unittest import TestCase
 from unittest.mock import MagicMock, Mock, patch, call, ANY, mock_open, PropertyMock
 
@@ -458,10 +459,10 @@ class TestFunctionLayerReferenceSync(TestCase):
 
         if layer_version:
             patched_get_latest_layer_version.assert_not_called()
-            self.assertEqual(self.function_layer_sync._local_sha, str_checksum("1"))
+            self.assertEqual(self.function_layer_sync._local_sha, str_checksum("1", hashlib.sha256()))
         else:
             patched_get_latest_layer_version.assert_called_once()
-            self.assertEqual(self.function_layer_sync._local_sha, str_checksum("2"))
+            self.assertEqual(self.function_layer_sync._local_sha, str_checksum("2", hashlib.sha256()))
 
 
 class TestLayerSyncFlowSkipBuild(TestCase):
