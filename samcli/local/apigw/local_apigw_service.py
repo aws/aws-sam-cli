@@ -1,12 +1,12 @@
 """API Gateway Local Service"""
 
 import base64
-import io
 import json
 import logging
 from datetime import datetime
+from io import BytesIO
 from time import time
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from flask import Flask, Request, request
 from werkzeug.datastructures import Headers
@@ -14,11 +14,13 @@ from werkzeug.routing import BaseConverter
 from werkzeug.serving import WSGIRequestHandler
 
 from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
-from samcli.lib.providers.provider import Cors
+from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
+from samcli.lib.providers.provider import Api, Cors
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
 from samcli.local.apigw.event_constructor import construct_v1_event, construct_v2_event_http
 from samcli.local.apigw.exceptions import (
+    AuthorizerUnauthorizedRequest,
     InvalidSecurityDefinition,
     LambdaResponseParseException,
     PayloadFormatVersionValidateException,
@@ -54,7 +56,15 @@ class LocalApigwService(BaseLocalService):
     _DEFAULT_PORT = 3000
     _DEFAULT_HOST = "127.0.0.1"
 
-    def __init__(self, api, lambda_runner, static_dir=None, port=None, host=None, stderr=None):
+    def __init__(
+        self,
+        api: Api,
+        lambda_runner: LocalLambdaRunner,
+        static_dir: Optional[str] = None,
+        port: Optional[int] = None,
+        host: Optional[str] = None,
+        stderr: Optional[StreamWriter] = None,
+    ):
         """
         Creates an ApiGatewayService
 
@@ -79,7 +89,7 @@ class LocalApigwService(BaseLocalService):
         self.api = api
         self.lambda_runner = lambda_runner
         self.static_dir = static_dir
-        self._dict_of_routes = {}
+        self._dict_of_routes: Dict[str, Route] = {}
         self.stderr = stderr
 
     def create(self):
@@ -228,7 +238,7 @@ class LocalApigwService(BaseLocalService):
 
         return (
             f"arn:aws:execute-api:us-east-1:{context.account_id}:"  # type: ignore
-            f"{context.api_id}/{self.api.stage_name}/{method}/{endpoint}"
+            f"{context.api_id}/{self.api.stage_name}/{method}{endpoint}"
         )
 
     def _generate_lambda_token_authorizer_event(
@@ -330,8 +340,7 @@ class LocalApigwService(BaseLocalService):
 
         # generate base lambda event and load it into a dict
         lambda_event = self._generate_lambda_event(flask_request, route, method, endpoint)
-        lambda_event_dict: dict = json.loads(lambda_event)
-        lambda_event_dict.update({"type": LambdaAuthorizer.REQUEST.upper()})
+        lambda_event.update({"type": LambdaAuthorizer.REQUEST.upper()})
 
         # build context to form identity values
         context = (
@@ -342,7 +351,7 @@ class LocalApigwService(BaseLocalService):
 
         if route.event_type == Route.API:
             # v1 requests only add method ARN
-            lambda_event_dict.update({"methodArn": method_arn})
+            lambda_event.update({"methodArn": method_arn})
         else:
             # kwargs to pass into identity value finder
             kwargs = {
@@ -361,17 +370,17 @@ class LocalApigwService(BaseLocalService):
                     # all identity values must be a string
                     all_identity_values.append(str(value))
 
-            lambda_event_dict.update(
+            lambda_event.update(
                 self._generate_lambda_request_authorizer_event_http(
                     lambda_authorizer.payload_version, all_identity_values, method_arn
                 )
             )
 
-        return lambda_event_dict
+        return lambda_event
 
     def _generate_lambda_authorizer_event(
         self, flask_request: Request, route: Route, lambda_authorizer: LambdaAuthorizer
-    ) -> str:
+    ) -> dict:
         """
         Generate a Lambda authorizer event
 
@@ -400,11 +409,9 @@ class LocalApigwService(BaseLocalService):
             "lambda_authorizer": lambda_authorizer,
         }
 
-        authorizer_event = authorizer_events[lambda_authorizer.type](**kwargs)
+        return authorizer_events[lambda_authorizer.type](**kwargs)
 
-        return json.dumps(authorizer_event)
-
-    def _generate_lambda_event(self, flask_request: Request, route: Route, method: str, endpoint: str) -> str:
+    def _generate_lambda_event(self, flask_request: Request, route: Route, method: str, endpoint: str) -> dict:
         """
         Helper function to generate the correct Lambda event
 
@@ -564,6 +571,31 @@ class LocalApigwService(BaseLocalService):
 
         return True
 
+    def _invoke_lambda_function(self, lambda_function_name: str, event: dict) -> str:
+        """
+        Helper method to invoke a function and setup stdout+stderr
+
+        Parameters
+        ----------
+        lambda_function_name: str
+            The name of the Lambda function to invoke
+        event: dict
+            The event object to pass into the Lambda function
+
+        Returns
+        -------
+        str
+            A string containing the output from the Lambda function
+        """
+        with BytesIO() as stdout:
+            event_str = json.dumps(event, sort_keys=True)
+            stdout_writer = StreamWriter(stdout, auto_flush=True)
+
+            self.lambda_runner.invoke(lambda_function_name, event_str, stdout=stdout_writer, stderr=self.stderr)
+            lambda_response, _ = LambdaOutputParser.get_lambda_output(stdout)
+
+        return lambda_response
+
     def _request_handler(self, **kwargs):
         """
         We handle all requests to the host:port. The general flow of handling a request is as follows
@@ -590,6 +622,7 @@ class LocalApigwService(BaseLocalService):
 
         route: Route = self._get_current_route(request)
         cors_headers = Cors.cors_to_headers(self.api.cors)
+        lambda_authorizer = route.authorizer_object
 
         # payloadFormatVersion can only support 2 values: "1.0" and "2.0"
         # so we want to do strict validation to make sure it has proper value if provided
@@ -604,28 +637,34 @@ class LocalApigwService(BaseLocalService):
             headers = Headers(cors_headers)
             return self.service_response("", headers, 200)
 
-        if isinstance(route.authorizer_object, LambdaAuthorizer) and not self._valid_identity_sources(route):
+        # check for LambdaAuthorizer since that is the only authorizer we currently support
+        if isinstance(lambda_authorizer, LambdaAuthorizer) and not self._valid_identity_sources(route):
             return ServiceErrorResponses.missing_lambda_auth_identity_sources()
 
         try:
-            event = self._generate_lambda_event(request, route, method, endpoint)
+            route_lambda_event = self._generate_lambda_event(request, route, method, endpoint)
+            auth_lambda_event = None
+
+            if lambda_authorizer:
+                auth_lambda_event = self._generate_lambda_authorizer_event(request, route, lambda_authorizer)
         except UnicodeDecodeError as error:
             LOG.error("UnicodeDecodeError while processing HTTP request: %s", error)
             return ServiceErrorResponses.lambda_failure_response()
 
-        stdout_stream = io.BytesIO()
-        stdout_stream_writer = StreamWriter(stdout_stream, auto_flush=True)
-
         try:
-            self.lambda_runner.invoke(route.function_name, event, stdout=stdout_stream_writer, stderr=self.stderr)
+            if lambda_authorizer:
+                self._invoke_parse_lambda_authorizer(lambda_authorizer, auth_lambda_event, route_lambda_event, route)
+
+            # invoke the route's Lambda function
+            lambda_response = self._invoke_lambda_function(route.function_name, route_lambda_event)
         except FunctionNotFound:
             return ServiceErrorResponses.lambda_not_found_response()
         except UnsupportedInlineCodeError:
             return ServiceErrorResponses.not_implemented_locally(
                 "Inline code is not supported for sam local commands. Please write your code in a separate file."
             )
-
-        lambda_response, _ = LambdaOutputParser.get_lambda_output(stdout_stream)
+        except AuthorizerUnauthorizedRequest:
+            return ServiceErrorResponses.lambda_authorizer_unauthorized()
 
         try:
             if route.event_type == Route.HTTP and (
@@ -643,6 +682,34 @@ class LocalApigwService(BaseLocalService):
             return ServiceErrorResponses.lambda_failure_response()
 
         return self.service_response(body, headers, status_code)
+
+    def _invoke_parse_lambda_authorizer(
+        self, lambda_authorizer: LambdaAuthorizer, auth_lambda_event: dict, route_lambda_event: dict, route: Route
+    ) -> None:
+        """
+        Helper method to invoke and parse the output of a Lambda authorizer
+
+        Parameters
+        ----------
+        lambda_authorizer: LambdaAuthorizer
+            The route's Lambda authorizer
+        auth_lambda_event: dict
+            The event to pass to the Lambda authorizer
+        route_lambda_event: dict
+            The event to pass into the route
+        route: Route
+            The route that is being called
+        """
+        lambda_auth_response = self._invoke_lambda_function(lambda_authorizer.lambda_name, auth_lambda_event)
+        method_arn = self._create_method_arn(request, route.event_type)
+
+        if not lambda_authorizer.is_valid_response(lambda_auth_response, method_arn):
+            raise AuthorizerUnauthorizedRequest(f"Request is not authorized for {method_arn}")
+
+        # update route context to include any context that may have been passed from authorizer
+        original_context = route_lambda_event.get("requestContext", {})
+        original_context.update({"authorizer": lambda_authorizer.get_context(lambda_auth_response)})
+        route_lambda_event.update({"requestContext": original_context})
 
     def _get_current_route(self, flask_request):
         """
