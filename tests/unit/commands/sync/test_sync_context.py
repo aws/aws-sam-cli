@@ -15,32 +15,44 @@ from samcli.commands.sync.sync_context import (
     SYNC_STATE,
     DEPENDENCY_LAYER,
     RESOURCE_SYNC_STATES,
+    LATEST_INFRA_SYNC_TIME,
     _toml_document_to_sync_state,
     SyncContext,
 )
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 
-MOCK_TIME = datetime(2023, 2, 8, 12, 12, 12)
+MOCK_RESOURCE_SYNC_TIME = datetime(2023, 2, 8, 12, 12, 12)
+MOCK_INFRA_SYNC_TIME = datetime.utcnow()
 
 
 class TestSyncState(TestCase):
     @parameterized.expand(
         [
-            (True, {"MockResourceId": ResourceSyncState("mock-hash", MOCK_TIME)}),
-            (False, {"MockResourceId": ResourceSyncState("mock-hash", MOCK_TIME)}),
-            (True, {"Parent/Child/MockResourceId": ResourceSyncState("nested-mock-hash", MOCK_TIME)}),
+            (True, MOCK_INFRA_SYNC_TIME, {"MockResourceId": ResourceSyncState("mock-hash", MOCK_RESOURCE_SYNC_TIME)}),
+            (False, None, {"MockResourceId": ResourceSyncState("mock-hash", MOCK_RESOURCE_SYNC_TIME)}),
+            (
+                True,
+                None,
+                {"Parent/Child/MockResourceId": ResourceSyncState("nested-mock-hash", MOCK_RESOURCE_SYNC_TIME)},
+            ),
             (
                 False,
+                MOCK_INFRA_SYNC_TIME,
                 {
-                    "MockResourceId": ResourceSyncState("mock-hash", MOCK_TIME),
-                    "Parent/Child/MockResourceId": ResourceSyncState("nested-mock-hash", MOCK_TIME),
+                    "MockResourceId": ResourceSyncState("mock-hash", MOCK_RESOURCE_SYNC_TIME),
+                    "Parent/Child/MockResourceId": ResourceSyncState("nested-mock-hash", MOCK_RESOURCE_SYNC_TIME),
                 },
             ),
         ]
     )
-    def test_sync_state(self, dependency_layer, resource_sync_states):
-        sync_state = SyncState(dependency_layer=dependency_layer, resource_sync_states=resource_sync_states)
+    def test_sync_state(self, dependency_layer, latest_infra_sync_time, resource_sync_states):
+        sync_state = SyncState(
+            dependency_layer=dependency_layer,
+            latest_infra_sync_time=latest_infra_sync_time,
+            resource_sync_states=resource_sync_states,
+        )
         self.assertEqual(sync_state.dependency_layer, dependency_layer)
+        self.assertEqual(sync_state.latest_infra_sync_time, latest_infra_sync_time)
         self.assertEqual(sync_state.resource_sync_states, resource_sync_states)
 
     @parameterized.expand(
@@ -49,19 +61,26 @@ class TestSyncState(TestCase):
             (False, "Parent/Child/MockResourceId", "mock-nested-hash"),
         ]
     )
-    def test_sync_state_update_resource_sync_state(self, dependency_layer, resource_id, resource_hash):
-        sync_state = SyncState(dependency_layer=dependency_layer, resource_sync_states={})
+    @mock.patch("samcli.commands.sync.sync_context.datetime")
+    def test_sync_state_update_sync_state_methods(self, dependency_layer, resource_id, resource_hash, datetime_mock):
+        datetime_mock.utcnow.return_value = MOCK_INFRA_SYNC_TIME
+        sync_state = SyncState(dependency_layer=dependency_layer, latest_infra_sync_time=None, resource_sync_states={})
         self.assertEqual(sync_state.dependency_layer, dependency_layer)
+        self.assertEqual(sync_state.latest_infra_sync_time, None)
         self.assertEqual(sync_state.resource_sync_states, {})
 
         sync_state.update_resource_sync_state(resource_id, resource_hash)
         self.assertEqual(sync_state.resource_sync_states[resource_id].hash_value, resource_hash)
+        self.assertEqual(sync_state.resource_sync_states[resource_id].sync_time, MOCK_INFRA_SYNC_TIME)
+
+        sync_state.update_infra_sync_time()
+        self.assertEqual(sync_state.latest_infra_sync_time, MOCK_INFRA_SYNC_TIME)
 
 
 class TestResourceSyncState(TestCase):
     @parameterized.expand(
         [
-            ("mockhash", MOCK_TIME),
+            ("mockhash", MOCK_RESOURCE_SYNC_TIME),
         ]
     )
     def test_sync_state(self, hash_str, sync_time):
@@ -73,6 +92,7 @@ class TestResourceSyncState(TestCase):
 TOML_TEMPLATE = """
 [sync_state]
 dependency_layer = {dependency_layer}
+latest_infra_sync_time = {latest_infra_sync_time}
 
 [resource_sync_states]
 """
@@ -87,19 +107,28 @@ sync_time = "{resource_sync_time}"
 class TestSyncStateToTomlSerde(TestCase):
     @parameterized.expand(
         [
-            (True, {"MockResourceId": ResourceSyncState("mock-hash", MOCK_TIME)}),
-            (True, {"Parent/Child/MockResourceId": ResourceSyncState("mock-hash", MOCK_TIME)}),
+            (True, MOCK_INFRA_SYNC_TIME, {"MockResourceId": ResourceSyncState("mock-hash", MOCK_RESOURCE_SYNC_TIME)}),
+            (
+                True,
+                MOCK_INFRA_SYNC_TIME,
+                {"Parent/Child/MockResourceId": ResourceSyncState("mock-hash", MOCK_RESOURCE_SYNC_TIME)},
+            ),
             (
                 False,
+                MOCK_INFRA_SYNC_TIME,
                 {
-                    "MockResourceId": ResourceSyncState("mock-hash", MOCK_TIME),
-                    "Parent/Child/MockResourceId": ResourceSyncState("mock-hash", MOCK_TIME),
+                    "MockResourceId": ResourceSyncState("mock-hash", MOCK_RESOURCE_SYNC_TIME),
+                    "Parent/Child/MockResourceId": ResourceSyncState("mock-hash", MOCK_RESOURCE_SYNC_TIME),
                 },
             ),
         ]
     )
-    def test_sync_state_to_toml(self, dependency_layer, resource_sync_states):
-        sync_state = SyncState(dependency_layer, resource_sync_states)
+    def test_sync_state_to_toml(self, dependency_layer, latest_infra_sync_time, resource_sync_states):
+        sync_state = SyncState(
+            dependency_layer=dependency_layer,
+            latest_infra_sync_time=latest_infra_sync_time,
+            resource_sync_states=resource_sync_states,
+        )
 
         toml_document = _sync_state_to_toml_document(sync_state)
         self.assertIsNotNone(toml_document)
@@ -109,6 +138,9 @@ class TestSyncStateToTomlSerde(TestCase):
 
         dependency_layer_toml_field = sync_state_toml_table.get(DEPENDENCY_LAYER)
         self.assertEqual(dependency_layer_toml_field, dependency_layer)
+
+        latest_infra_sync_time_toml_field = sync_state_toml_table.get(LATEST_INFRA_SYNC_TIME)
+        self.assertEqual(latest_infra_sync_time_toml_field, latest_infra_sync_time.isoformat())
 
         resource_sync_states_toml_field = toml_document.get(RESOURCE_SYNC_STATES)
         self.assertIsNotNone(resource_sync_states_toml_field)
@@ -128,18 +160,20 @@ class TestSyncStateToTomlSerde(TestCase):
 
     @parameterized.expand(
         [
-            (True, {"MockResourceId": ResourceSyncState("mock-hash", MOCK_TIME)}),
+            (True, {"MockResourceId": ResourceSyncState("mock-hash", MOCK_RESOURCE_SYNC_TIME)}),
             (
                 False,
                 {
-                    "MockResourceId": ResourceSyncState("mock-hash", MOCK_TIME),
-                    "Parent/Child/MockResourceId": ResourceSyncState("mock-nested-hash", MOCK_TIME),
+                    "MockResourceId": ResourceSyncState("mock-hash", MOCK_RESOURCE_SYNC_TIME),
+                    "Parent/Child/MockResourceId": ResourceSyncState("mock-nested-hash", MOCK_RESOURCE_SYNC_TIME),
                 },
             ),
         ]
     )
     def test_toml_to_sync_state(self, dependency_layer, resource_sync_states):
-        toml_template_str = TOML_TEMPLATE.format(dependency_layer=str(dependency_layer).lower())
+        toml_template_str = TOML_TEMPLATE.format(
+            dependency_layer=str(dependency_layer).lower(), latest_infra_sync_time=MOCK_INFRA_SYNC_TIME.isoformat()
+        )
         for resource_id in resource_sync_states:
             resource_sync_state = resource_sync_states.get(resource_id)
             resource_id_toml = resource_id.replace("/", "-")
@@ -155,6 +189,7 @@ class TestSyncStateToTomlSerde(TestCase):
         toml_doc = tomlkit.loads(toml_template_str)
         sync_state = _toml_document_to_sync_state(toml_doc)
         self.assertEqual(sync_state.dependency_layer, dependency_layer)
+        self.assertEqual(sync_state.latest_infra_sync_time, MOCK_INFRA_SYNC_TIME)
         self.assertEqual(sync_state.resource_sync_states, resource_sync_states)
 
     def test_none_toml_doc_should_return_none(self):
@@ -176,7 +211,10 @@ class TestSyncContext(TestCase):
     @parameterized.expand([(True,), (False,)])
     @patch("samcli.commands.sync.sync_context.rmtree_if_exists")
     def test_sync_context_dependency_layer(self, previous_dependency_layer_value, patched_rmtree_if_exists):
-        previous_session_state = TOML_TEMPLATE.format(dependency_layer=str(previous_dependency_layer_value).lower())
+        previous_session_state = TOML_TEMPLATE.format(
+            dependency_layer=str(previous_dependency_layer_value).lower(),
+            latest_infra_sync_time=MOCK_INFRA_SYNC_TIME.isoformat(),
+        )
         with mock.patch("builtins.open", mock_open(read_data=previous_session_state)) as mock_file:
             with self.sync_context:
                 pass
@@ -200,12 +238,39 @@ class TestSyncContext(TestCase):
     def test_sync_context_resource_sync_state_methods(
         self, previous_dependency_layer_value, resource_id, resource_hash
     ):
-        previous_session_state = TOML_TEMPLATE.format(dependency_layer=str(previous_dependency_layer_value).lower())
+        previous_session_state = TOML_TEMPLATE.format(
+            dependency_layer=str(previous_dependency_layer_value).lower(),
+            latest_infra_sync_time=MOCK_INFRA_SYNC_TIME.isoformat(),
+        )
         with mock.patch("builtins.open", mock_open(read_data=previous_session_state)) as mock_file:
             with self.sync_context as sync_context:
                 self.assertIsNone(sync_context.get_resource_latest_sync_hash(resource_id))
                 sync_context.update_resource_sync_state(resource_id, resource_hash)
                 self.assertEqual(sync_context.get_resource_latest_sync_hash(resource_id), resource_hash)
+                self.assertEqual(sync_context.get_latest_infra_sync_time(), MOCK_INFRA_SYNC_TIME)
+
+    @parameterized.expand(
+        [(True, "MockResourceId", "mock-hash"), (False, "Parent/Child/MockResourceId", "nested-mock-hash")]
+    )
+    @mock.patch("samcli.commands.sync.sync_context.datetime")
+    def test_sync_context_update_infra_sync_state_methods(
+        self, previous_dependency_layer_value, resource_id, resource_hash, datetime_mock
+    ):
+        datetime_mock.utcnow.return_value = MOCK_INFRA_SYNC_TIME
+        template = """
+        [sync_state]
+        dependency_layer = {dependency_layer}
+        """
+        previous_session_state = template.format(dependency_layer=str(previous_dependency_layer_value).lower())
+        with mock.patch("builtins.open", mock_open(read_data=previous_session_state)) as mock_file:
+            with self.sync_context as sync_context:
+                self.assertIsNone(sync_context.get_resource_latest_sync_hash(resource_id))
+                sync_context.update_resource_sync_state(resource_id, resource_hash)
+                self.assertEqual(sync_context.get_resource_latest_sync_hash(resource_id), resource_hash)
+
+                self.assertIsNone(sync_context.get_latest_infra_sync_time())
+                sync_context.update_infra_sync_time()
+                self.assertEqual(sync_context.get_latest_infra_sync_time(), MOCK_INFRA_SYNC_TIME)
 
     @patch("samcli.commands.sync.sync_context.rmtree_if_exists")
     def test_sync_context_has_no_previous_state_if_file_doesnt_exist(self, patched_rmtree_if_exists):

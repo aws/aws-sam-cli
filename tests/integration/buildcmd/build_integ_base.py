@@ -14,6 +14,7 @@ import docker
 import jmespath
 from pathlib import Path
 
+from samcli.commands.build.utils import MountMode
 from samcli.lib.utils import osutils
 from samcli.lib.utils.architecture import X86_64, has_runtime_multi_arch_image
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
@@ -81,6 +82,7 @@ class BuildIntegBase(TestCase):
         hook_name=None,
         beta_features=None,
         build_in_source=None,
+        mount_with=None,
     ):
         command_list = [self.cmd, "build"]
 
@@ -124,6 +126,9 @@ class BuildIntegBase(TestCase):
 
         if build_image:
             command_list += ["--build-image", build_image]
+
+        if mount_with:
+            command_list += ["--mount-with", mount_with.value]
 
         if exclude:
             for f in exclude:

@@ -1,4 +1,5 @@
 """SyncFlow for Lambda Function Alias and Version"""
+import hashlib
 import logging
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
@@ -89,7 +90,7 @@ class AliasVersionSyncFlow(SyncFlow):
     def sync(self) -> None:
         function_physical_id = self.get_physical_id(self._function_identifier)
         version = self._lambda_client.publish_version(FunctionName=function_physical_id).get("Version")
-        self._local_sha = str_checksum(str(version))
+        self._local_sha = str_checksum(str(version), hashlib.sha256())
         LOG.debug("%sCreated new function version: %s", self.log_prefix, version)
         if version:
             self._lambda_client.update_alias(
