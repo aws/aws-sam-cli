@@ -20,6 +20,7 @@ from samcli.lib.sync.flows.zip_function_sync_flow import ZipFunctionSyncFlow
 )
 class TestZipFunctionSyncFlow(TestCase):
     build_artifacts = None
+
     def create_function_sync_flow(self):
         self.build_context_mock = MagicMock()
         self.function_identifier = "Function1"
@@ -89,7 +90,9 @@ class TestZipFunctionSyncFlow(TestCase):
             sync_flow._get_lock_chain.return_value.__enter__.assert_not_called()
             sync_flow._get_lock_chain.return_value.__exit__.assert_not_called()
         else:
-            rmtree_if_exists_mock.assert_called_once_with(function_object.get_build_dir(self.build_context_mock.build_dir))
+            rmtree_if_exists_mock.assert_called_once_with(
+                function_object.get_build_dir(self.build_context_mock.build_dir)
+            )
             get_mock.assert_called_once_with("Function1")
             self.assertEqual(sync_flow._artifact_folder, "ArtifactFolder1")
             make_zip_mock.assert_called_once_with("temp_folder" + os.sep + "data-uuid_value", "ArtifactFolder1")
@@ -224,7 +227,7 @@ class TestZipFunctionSyncFlow(TestCase):
             sync_context=MagicMock(),
             physical_id_mapping={},
             stacks=[MagicMock()],
-            application_build_result=self.build_artifacts
+            application_build_result=self.build_artifacts,
         )
 
         result = sync_flow._get_resource_api_calls()
