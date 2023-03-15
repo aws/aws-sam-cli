@@ -24,6 +24,7 @@ class TestAutoDependencyLayerParentSyncFlow(TestCase):
             Mock(),
             Mock(),
             [Mock()],
+            None
         )
 
     @patch("samcli.lib.sync.flows.auto_dependency_layer_sync_flow.super")
@@ -63,6 +64,7 @@ class TestAutoDependencyLayerSyncFlow(TestCase):
             Mock(),
             Mock(),
             [Mock()],
+            None,
         )
 
     def test_gather_resources_fail_when_no_function_build_definition_found(self):

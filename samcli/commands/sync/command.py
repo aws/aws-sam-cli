@@ -393,6 +393,7 @@ def do_cli(
                                     tuple(resource_ids),  # type: ignore
                                     None,
                                     dependency_layer,
+                                    True,
                                 )
 
 
@@ -428,6 +429,7 @@ def execute_code_sync(
     resource_ids: Optional[Tuple[str]],
     resource_types: Optional[Tuple[str]],
     auto_dependency_layer: bool,
+    use_built_resources: bool = False,
 ) -> None:
     """Executes the sync flow for code.
 
@@ -447,6 +449,8 @@ def execute_code_sync(
         List of resource types to be synced.
     auto_dependency_layer: bool
         Boolean flag to whether enable certain sync flows for auto dependency layer feature
+    use_built_resources: bool
+        Boolean flag to whether to use pre-build resources from BuildContext or build resources from scratch
     """
     stacks = SamLocalStackProvider.get_stacks(template)[0]
     factory = SyncFlowFactory(build_context, deploy_context, sync_context, stacks, auto_dependency_layer)
@@ -460,7 +464,8 @@ def execute_code_sync(
     )
 
     for resource_id in sync_flow_resource_ids:
-        sync_flow = factory.create_sync_flow(resource_id)
+        built_result = build_context.build_result if use_built_resources else None
+        sync_flow = factory.create_sync_flow(resource_id, built_result)
         if sync_flow:
             executor.add_sync_flow(sync_flow)
         else:
