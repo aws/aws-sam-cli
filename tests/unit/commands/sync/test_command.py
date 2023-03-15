@@ -713,7 +713,7 @@ class TestSyncCode(TestCase):
             {},
             {},
             True,
-            use_built_resources
+            use_built_resources,
         )
 
         built_result = self.build_context.build_result if use_built_resources else None

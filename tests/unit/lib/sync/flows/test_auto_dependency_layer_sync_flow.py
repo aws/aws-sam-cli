@@ -18,13 +18,7 @@ from samcli.lib.sync.flows.layer_sync_flow import FunctionLayerReferenceSync
 class TestAutoDependencyLayerParentSyncFlow(TestCase):
     def setUp(self) -> None:
         self.sync_flow = AutoDependencyLayerParentSyncFlow(
-            "function_identifier",
-            Mock(),
-            Mock(stack_name="stack_name"),
-            Mock(),
-            Mock(),
-            [Mock()],
-            None
+            "function_identifier", Mock(), Mock(stack_name="stack_name"), Mock(), Mock(), [Mock()], None
         )
 
     @patch("samcli.lib.sync.flows.auto_dependency_layer_sync_flow.super")

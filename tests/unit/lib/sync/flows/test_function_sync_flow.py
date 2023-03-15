@@ -15,6 +15,7 @@ from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow
 )
 class TestFunctionSyncFlow(TestCase):
     build_artifacts = None
+
     def create_function_sync_flow(self):
         sync_flow = FunctionSyncFlow(
             "Function1",

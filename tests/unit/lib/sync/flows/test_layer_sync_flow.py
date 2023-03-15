@@ -26,6 +26,7 @@ from samcli.lib.utils.hash import str_checksum
 )
 class TestLayerSyncFlow(TestCase):
     build_artifacts = None
+
     def setUp(self):
         self.layer_identifier = "LayerA"
         self.build_context_mock = Mock()
@@ -109,14 +110,13 @@ class TestLayerSyncFlow(TestCase):
 
         layer_object = self.build_context_mock.layer_provider.get(self.layer_identifier)
 
-
         if self.build_artifacts:
             patched_rmtree_if_exists.assert_not_called()
             self.build_context_mock.collect_build_resources.assert_not_called()
             patched_app_builder.assert_not_called()
             self.assertEqual(
                 self.layer_sync_flow._artifact_folder,
-                self.build_artifacts.artifacts.get(self.layer_sync_flow._layer_identifier)
+                self.build_artifacts.artifacts.get(self.layer_sync_flow._layer_identifier),
             )
             self.layer_sync_flow._get_lock_chain.assert_not_called()
             self.layer_sync_flow._get_lock_chain.return_value.__enter__.assert_not_called()
@@ -494,6 +494,7 @@ class TestFunctionLayerReferenceSync(TestCase):
 )
 class TestLayerSyncFlowSkipBuild(TestCase):
     build_artifacts = None
+
     @patch("samcli.lib.sync.flows.layer_sync_flow.make_zip_with_lambda_permissions")
     @patch("samcli.lib.sync.flows.layer_sync_flow.file_checksum")
     def test_gather_resources_for_skip_build_directory(self, mock_checksum, mock_make_zip):
