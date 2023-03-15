@@ -43,16 +43,17 @@ class SyncCommand(Command):
             formatter.write_rd(
                 [
                     RowDefinition(
-                        name="",
                         text="\n",
                     ),
                     RowDefinition(
-                        text="",
+                        name=style(f"${ctx.command_path} " f"--watch --stack-name {{stack}}"),
+                        extra_row_modifiers=[ShowcaseRowModifier()],
+                    ),
+                    RowDefinition(
                         name=style(f"${ctx.command_path} " f"--code --watch --stack-name {{stack}}"),
                         extra_row_modifiers=[ShowcaseRowModifier()],
                     ),
                     RowDefinition(
-                        text="",
                         name=style(
                             f"${ctx.command_path} "
                             f"--code --stack-name {{stack}} --resource-id {{ChildStack}}/{{ResourceId}} "

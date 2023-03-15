@@ -39,6 +39,7 @@ class TestSyncCommand(unittest.TestCase):
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [
                 ("", ""),
+                ("$sam sync --watch --stack-name {stack}\x1b[0m", ""),
                 ("$sam sync --code --watch --stack-name {stack}\x1b[0m", ""),
                 ("$sam sync --code --stack-name {stack} --resource-id " "{ChildStack}/{ResourceId} \x1b[0m", ""),
             ],
