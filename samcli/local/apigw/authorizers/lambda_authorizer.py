@@ -1,15 +1,28 @@
 """
 Custom Lambda Authorizer class definition
 """
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, List, Optional, Tuple
+from json import JSONDecodeError, loads
+from typing import Any, Dict, List, Optional, Tuple, Type
 from urllib.parse import parse_qsl
 
 from samcli.commands.local.lib.validators.identity_source_validator import IdentitySourceValidator
 from samcli.local.apigw.authorizers.authorizer import Authorizer
-from samcli.local.apigw.exceptions import InvalidSecurityDefinition
+from samcli.local.apigw.exceptions import InvalidLambdaAuthorizerResponse, InvalidSecurityDefinition
 from samcli.local.apigw.route import Route
+
+_RESPONSE_PRINCIPAL_ID = "principalId"
+_RESPONSE_CONTEXT = "context"
+_RESPONSE_POLICY_DOCUMENT = "policyDocument"
+_RESPONSE_IAM_STATEMENT = "Statement"
+_RESPONSE_IAM_EFFECT = "Effect"
+_RESPONSE_IAM_EFFECT_ALLOW = "Allow"
+_RESPONSE_IAM_ACTION = "Action"
+_RESPONSE_IAM_RESOURCE = "Resource"
+_SIMPLE_RESPONSE_IS_AUTH = "isAuthorized"
+_IAM_INVOKE_ACTION = "execute-api:Invoke"
 
 
 class IdentitySource(ABC):
@@ -284,3 +297,217 @@ class LambdaAuthorizer(Authorizer):
                     self._identity_sources.append(identity_source_validator)
 
                     break
+
+    def is_valid_response(self, response: str, method_arn: str) -> bool:
+        """
+        Validates whether a Lambda authorizer request is authenticated or not.
+
+        Parameters
+        ----------
+        response: str
+            JSON string containing the output from a Lambda authorizer
+        method_arn: str
+            The method ARN of the route that invoked the Lambda authorizer
+
+        Returns
+        -------
+        bool
+            True if the request is properly authenticated
+        """
+        try:
+            json_response = loads(response)
+        except (ValueError, JSONDecodeError):
+            raise InvalidLambdaAuthorizerResponse(
+                f"Authorizer {self.authorizer_name} return an invalid response payload"
+            )
+
+        if self.payload_version == LambdaAuthorizer.PAYLOAD_V2 and self.use_simple_response:
+            return self._validate_simple_response(json_response)
+
+        # validate IAM policy document
+        LambdaAuthorizerIAMPolicyValidator.validate_policy_document(self.authorizer_name, json_response)
+        LambdaAuthorizerIAMPolicyValidator.validate_statement(self.authorizer_name, json_response)
+
+        return self._is_resource_authorized(json_response, method_arn)
+
+    def _is_resource_authorized(self, response: dict, method_arn: str) -> bool:
+        """
+        Validate the if the current method ARN is actually authorized
+
+        Parameters
+        ----------
+        response: dict
+            The response output from the Lambda authorizer (should be in IAM format)
+        method_arn: str
+            The route's method ARN
+
+        Returns
+        -------
+        bool
+            True if authorized
+        """
+        policy_document = response.get(_RESPONSE_POLICY_DOCUMENT, {})
+        all_statements = policy_document.get(_RESPONSE_IAM_STATEMENT, [])
+
+        for statement in all_statements:
+            if (
+                statement.get(_RESPONSE_IAM_ACTION) != _IAM_INVOKE_ACTION
+                or statement.get(_RESPONSE_IAM_EFFECT) != _RESPONSE_IAM_EFFECT_ALLOW
+            ):
+                continue
+
+            for resource_arn in statement.get(_RESPONSE_IAM_RESOURCE, []):
+                # form a regular expression from the possible wildcard resource ARN
+                regex_method_arn = resource_arn.replace("*", ".+").replace("?", ".")
+                regex_method_arn += "$"
+
+                if re.match(regex_method_arn, method_arn):
+                    return True
+
+        return False
+
+    def _validate_simple_response(self, response: dict) -> bool:
+        """
+        Helper method to validate if a Lambda authorizer response using simple responses is valid and authorized
+
+        Parameters
+        ----------
+        response: dict
+            JSON object containing required simple response paramters
+
+        Returns
+        -------
+        bool
+            True if the request is authorized
+        """
+        is_authorized = response.get(_SIMPLE_RESPONSE_IS_AUTH)
+
+        if is_authorized is None or not isinstance(is_authorized, bool):
+            raise InvalidLambdaAuthorizerResponse(
+                f"Authorizer {self.authorizer_name} is missing or contains an invalid " f"{_SIMPLE_RESPONSE_IS_AUTH}"
+            )
+
+        return is_authorized
+
+    def get_context(self, response: str) -> Dict[str, Any]:
+        """
+        Returns the context (if set) from the authorizer response and appends the principalId to it.
+
+        Parameters
+        ----------
+        response: str
+            Output from Lambda authorizer
+
+        Returns
+        -------
+        Dict[str, Any]
+            The built authorizer context object
+        """
+        invalid_message = f"Authorizer {self.authorizer_name} return an invalid response payload"
+
+        try:
+            json_response = loads(response)
+        except (ValueError, JSONDecodeError) as ex:
+            raise InvalidLambdaAuthorizerResponse(invalid_message) from ex
+
+        if not isinstance(json_response, dict):
+            raise InvalidLambdaAuthorizerResponse(invalid_message)
+
+        built_context = json_response.get(_RESPONSE_CONTEXT, {})
+
+        if not isinstance(built_context, dict):
+            raise InvalidLambdaAuthorizerResponse(invalid_message)
+
+        principal_id = json_response.get(_RESPONSE_PRINCIPAL_ID)
+        if principal_id:
+            # only V1 response contains this ID in the output
+            built_context[_RESPONSE_PRINCIPAL_ID] = principal_id
+
+        return built_context
+
+
+@dataclass
+class LambdaAuthorizerIAMPolicyPropertyValidator:
+    property_key: str
+    property_type: Type
+
+    def is_valid(self, response: dict) -> bool:
+        """
+        Validates whether the property is present and of the correct type
+
+        Parameters
+        ----------
+        response: dict
+            The response output from the Lambda authorizer (should be in IAM format)
+
+        Returns
+        -------
+        bool
+            True if present and of correct type
+        """
+        value = response.get(self.property_key)
+
+        return value is not None and isinstance(value, self.property_type)
+
+
+class LambdaAuthorizerIAMPolicyValidator:
+    @staticmethod
+    def validate_policy_document(auth_name: str, response: dict) -> None:
+        """
+        Validate the properties of a Lambda authorizer response at the root level
+
+        Parameters
+        ----------
+        auth_name: str
+            Name of the authorizer
+        response: dict
+            The response output from the Lambda authorizer (should be in IAM format)
+        """
+        validators = {
+            _RESPONSE_PRINCIPAL_ID: LambdaAuthorizerIAMPolicyPropertyValidator(_RESPONSE_PRINCIPAL_ID, str),
+            _RESPONSE_POLICY_DOCUMENT: LambdaAuthorizerIAMPolicyPropertyValidator(_RESPONSE_POLICY_DOCUMENT, dict),
+        }
+
+        for prop_name, validator in validators.items():
+            if not validator.is_valid(response):
+                raise InvalidLambdaAuthorizerResponse(
+                    f"Authorizer '{auth_name}' contains an invalid or " f"missing '{prop_name}' from response"
+                )
+
+    @staticmethod
+    def validate_statement(auth_name: str, response: dict) -> None:
+        """
+        Validate the Statement(s) of a Lambda authorizer response's policy document
+
+        Parameters
+        ----------
+        auth_name: str
+            Name of the authorizer
+        response: dict
+            The response output from the Lambda authorizer (should be in IAM format)
+        """
+        policy_document = response.get(_RESPONSE_POLICY_DOCUMENT, {})
+
+        all_statements = policy_document.get(_RESPONSE_IAM_STATEMENT)
+        if not all_statements or not isinstance(all_statements, list) or not len(all_statements) > 0:
+            raise InvalidLambdaAuthorizerResponse(
+                f"Authorizer '{auth_name}' contains an invalid or " f"missing '{_RESPONSE_IAM_STATEMENT}' from response"
+            )
+
+        validators = {
+            _RESPONSE_IAM_ACTION: LambdaAuthorizerIAMPolicyPropertyValidator(_RESPONSE_IAM_ACTION, str),
+            _RESPONSE_IAM_EFFECT: LambdaAuthorizerIAMPolicyPropertyValidator(_RESPONSE_IAM_EFFECT, str),
+            _RESPONSE_IAM_RESOURCE: LambdaAuthorizerIAMPolicyPropertyValidator(_RESPONSE_IAM_RESOURCE, list),
+        }
+
+        for statement in all_statements:
+            if not isinstance(statement, dict):
+                raise InvalidLambdaAuthorizerResponse(
+                    f"Authorizer '{auth_name}' policy document must be a list of objects"
+                )
+
+            for prop_name, validator in validators.items():
+                if not validator.is_valid(statement):
+                    raise InvalidLambdaAuthorizerResponse(
+                        f"Authorizer '{auth_name}' policy document contains an invalid '{prop_name}'"
+                    )

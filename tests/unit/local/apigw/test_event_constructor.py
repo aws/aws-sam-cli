@@ -72,9 +72,7 @@ class TestService_construct_event(TestCase):
         self.assertIsInstance(request_time_epoch, int)
 
     def test_construct_event_with_data(self):
-        actual_event_str = construct_v1_event(self.request_mock, 3000, binary_types=[])
-
-        actual_event_json = json.loads(actual_event_str)
+        actual_event_json = construct_v1_event(self.request_mock, 3000, binary_types=[])
         self.validate_request_context_and_remove_request_time_data(actual_event_json)
 
         self.assertEqual(actual_event_json["body"], self.expected_dict["body"])
@@ -82,8 +80,7 @@ class TestService_construct_event(TestCase):
     def test_construct_event_no_data(self):
         self.request_mock.get_data.return_value = None
 
-        actual_event_str = construct_v1_event(self.request_mock, 3000, binary_types=[])
-        actual_event_json = json.loads(actual_event_str)
+        actual_event_json = construct_v1_event(self.request_mock, 3000, binary_types=[])
         self.validate_request_context_and_remove_request_time_data(actual_event_json)
 
         self.assertEqual(actual_event_json["body"], None)
@@ -97,8 +94,7 @@ class TestService_construct_event(TestCase):
 
         self.request_mock.get_data.return_value = binary_body
 
-        actual_event_str = construct_v1_event(self.request_mock, 3000, binary_types=[])
-        actual_event_json = json.loads(actual_event_str)
+        actual_event_json = construct_v1_event(self.request_mock, 3000, binary_types=[])
         self.validate_request_context_and_remove_request_time_data(actual_event_json)
 
         self.assertEqual(actual_event_json["body"], base64_body)
@@ -254,7 +250,7 @@ class TestService_construct_event_http(TestCase):
         self.expected_dict = json.loads(expected)
 
     def test_construct_event_with_data(self):
-        actual_event_str = construct_v2_event_http(
+        actual_event_dict = construct_v2_event_http(
             self.request_mock,
             3000,
             binary_types=[],
@@ -262,9 +258,6 @@ class TestService_construct_event_http(TestCase):
             request_time_epoch=self.request_time_epoch,
             request_time=self.request_time,
         )
-        print("DEBUG: json.loads(actual_event_str)", json.loads(actual_event_str))
-        print("DEBUG: self.expected_dict", self.expected_dict)
-        actual_event_dict = json.loads(actual_event_str)
         self.assertEqual(len(actual_event_dict["requestContext"]["requestId"]), 36)
         actual_event_dict["requestContext"]["requestId"] = ""
         self.assertEqual(actual_event_dict, self.expected_dict)
@@ -273,7 +266,7 @@ class TestService_construct_event_http(TestCase):
         self.request_mock.get_data.return_value = None
         self.expected_dict["body"] = None
 
-        actual_event_str = construct_v2_event_http(
+        actual_event_dict = construct_v2_event_http(
             self.request_mock,
             3000,
             binary_types=[],
@@ -281,7 +274,6 @@ class TestService_construct_event_http(TestCase):
             request_time_epoch=self.request_time_epoch,
             request_time=self.request_time,
         )
-        actual_event_dict = json.loads(actual_event_str)
         self.assertEqual(len(actual_event_dict["requestContext"]["requestId"]), 36)
         actual_event_dict["requestContext"]["requestId"] = ""
         self.assertEqual(actual_event_dict, self.expected_dict)
@@ -306,7 +298,7 @@ class TestService_construct_event_http(TestCase):
         self.expected_dict["isBase64Encoded"] = True
         self.maxDiff = None
 
-        actual_event_str = construct_v2_event_http(
+        actual_event_dict = construct_v2_event_http(
             self.request_mock,
             3000,
             binary_types=[],
@@ -314,7 +306,6 @@ class TestService_construct_event_http(TestCase):
             request_time_epoch=self.request_time_epoch,
             request_time=self.request_time,
         )
-        actual_event_dict = json.loads(actual_event_str)
         self.assertEqual(len(actual_event_dict["requestContext"]["requestId"]), 36)
         actual_event_dict["requestContext"]["requestId"] = ""
         self.assertEqual(actual_event_dict, self.expected_dict)

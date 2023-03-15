@@ -222,12 +222,14 @@ class TestApiGatewayService(TestCase):
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     @patch("samcli.local.apigw.local_apigw_service.LocalApigwService._generate_lambda_event")
     def test_api_options_request_must_invoke_lambda(self, generate_mock, request_mock):
+        generate_mock.return_value = {}
         make_response_mock = Mock()
 
         self.api_service.service_response = make_response_mock
         self.api_service._get_current_route = MagicMock()
         self.api_service._get_current_route.return_value.methods = ["OPTIONS"]
         self.api_service._get_current_route.return_value.payload_format_version = "1.0"
+        self.api_service._get_current_route.return_value.authorizer_object = None
 
         parse_output_mock = Mock()
         parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
@@ -247,12 +249,14 @@ class TestApiGatewayService(TestCase):
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     @patch("samcli.local.apigw.local_apigw_service.LocalApigwService._generate_lambda_event")
     def test_http_options_request_must_invoke_lambda(self, generate_mock, request_mock):
+        generate_mock.return_value = {}
         make_response_mock = Mock()
 
         self.http_service.service_response = make_response_mock
         self.http_service._get_current_route = MagicMock()
         self.http_service._get_current_route.return_value.methods = ["OPTIONS"]
         self.http_service._get_current_route.return_value.payload_format_version = "1.0"
+        self.http_service._get_current_route.return_value.authorizer_object = None
 
         parse_output_mock = Mock()
         parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
@@ -275,11 +279,13 @@ class TestApiGatewayService(TestCase):
     def test_request_handler_returns_process_stdout_when_making_response(
         self, generate_mock, lambda_output_parser_mock, request_mock
     ):
+        generate_mock.return_value = {}
         make_response_mock = Mock()
         request_mock.return_value = ("test", "test")
         self.api_service.service_response = make_response_mock
         current_route = Mock()
         current_route.payload_format_version = "2.0"
+        current_route.authorizer_object = None
         self.api_service._get_current_route = MagicMock()
         self.api_service._get_current_route.return_value = current_route
         current_route.methods = []
@@ -307,12 +313,14 @@ class TestApiGatewayService(TestCase):
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     @patch("samcli.local.apigw.local_apigw_service.LocalApigwService._generate_lambda_event")
     def test_request_handler_returns_make_response(self, generate_mock, request_mock):
+        generate_mock.return_value = {}
         make_response_mock = Mock()
 
         self.api_service.service_response = make_response_mock
         self.api_service._get_current_route = MagicMock()
         self.api_service._get_current_route.methods = []
         self.api_service._get_current_route.return_value.payload_format_version = "1.0"
+        self.api_service._get_current_route.return_value.authorizer_object = None
 
         parse_output_mock = Mock()
         parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
@@ -407,9 +415,11 @@ class TestApiGatewayService(TestCase):
     def test_request_handles_error_when_invoke_cant_find_function(
         self, generate_mock, service_error_responses_patch, request_mock
     ):
+        generate_mock.return_value = {}
         not_found_response_mock = Mock()
         self.api_service._get_current_route = MagicMock()
         self.api_service._get_current_route.return_value.payload_format_version = "2.0"
+        self.api_service._get_current_route.return_value.authorizer_object = None
         self.api_service._get_current_route.methods = []
 
         service_error_responses_patch.lambda_not_found_response.return_value = not_found_response_mock
@@ -426,9 +436,11 @@ class TestApiGatewayService(TestCase):
     def test_request_handles_error_when_invoke_function_with_inline_code(
         self, generate_mock, service_error_responses_patch, request_mock
     ):
+        generate_mock.return_value = {}
         not_implemented_response_mock = Mock()
         self.api_service._get_current_route = MagicMock()
         self.api_service._get_current_route.return_value.payload_format_version = "2.0"
+        self.api_service._get_current_route.return_value.authorizer_object = None
         self.api_service._get_current_route.methods = []
 
         service_error_responses_patch.not_implemented_locally.return_value = not_implemented_response_mock
@@ -455,6 +467,7 @@ class TestApiGatewayService(TestCase):
     def test_request_handler_errors_when_parse_lambda_output_raises_keyerror(
         self, generate_mock, service_error_responses_patch, request_mock
     ):
+        generate_mock.return_value = {}
         parse_output_mock = Mock()
         parse_output_mock.side_effect = LambdaResponseParseException()
         self.api_service._parse_v1_payload_format_lambda_output = parse_output_mock
@@ -466,6 +479,7 @@ class TestApiGatewayService(TestCase):
         self.api_service._get_current_route = MagicMock()
         self.api_service._get_current_route.methods = []
         self.api_service._get_current_route.return_value.payload_format_version = "1.0"
+        self.api_service._get_current_route.return_value.authorizer_object = None
 
         request_mock.return_value = ("test", "test")
         result = self.api_service._request_handler()
@@ -487,11 +501,13 @@ class TestApiGatewayService(TestCase):
     def test_request_handler_errors_when_unable_to_read_binary_data(
         self, generate_mock, service_error_responses_patch, request_mock
     ):
+        generate_mock.return_value = {}
         _construct_event = Mock()
         _construct_event.side_effect = UnicodeDecodeError("utf8", b"obj", 1, 2, "reason")
         self.api_service._get_current_route = MagicMock()
         self.api_service._get_current_route.methods = []
         self.api_service._get_current_route.return_value.payload_format_version = "1.0"
+        self.api_service._get_current_route.return_value.authorizer_object = None
 
         failure_mock = Mock()
         service_error_responses_patch.lambda_failure_response.return_value = failure_mock
@@ -597,7 +613,7 @@ class TestApiGatewayService(TestCase):
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_create_method_arn(self, method_endpoint_mock):
-        method_endpoint_mock.return_value = ("method", "endpoint")
+        method_endpoint_mock.return_value = ("method", "/endpoint")
 
         expected_method_arn = "arn:aws:execute-api:us-east-1:123456789012:1234567890/None/method/endpoint"
 
@@ -675,7 +691,7 @@ class TestApiGatewayService(TestCase):
         method_arn_mock,
         method_endpoints_mock,
     ):
-        original = json.dumps({"existing": "value"})
+        original = {"existing": "value"}
         payload_version = "2.0"
         method_arn = "arn"
 
@@ -717,7 +733,7 @@ class TestApiGatewayService(TestCase):
 
         method_arn_mock.return_value = method_arn
         method_endpoints_mock.return_value = ("method", "endpoint")
-        generate_lambda_mock.return_value = json.dumps(original)
+        generate_lambda_mock.return_value = original
         build_v2_mock.return_value = {}
         build_v1_mock.return_value = {}
 
@@ -755,6 +771,92 @@ class TestApiGatewayService(TestCase):
         self.api_service._generate_lambda_authorizer_event(Mock(), Mock(), request_auth)
         token_mock.assert_not_called()
         request_mock.assert_called()
+
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
+    @patch.object(LocalApigwService, "_generate_lambda_authorizer_event")
+    @patch.object(LocalApigwService, "_valid_identity_sources")
+    @patch.object(LocalApigwService, "_invoke_lambda_function")
+    @patch("samcli.local.apigw.local_apigw_service.construct_v1_event")
+    @patch("samcli.local.apigw.local_apigw_service.construct_v2_event_http")
+    def test_lambda_auth_called(
+        self, v2_event_mock, v1_event_mock, invoke_mock, validate_id_mock, gen_auth_event_mock, request_mock
+    ):
+        make_response_mock = Mock()
+        validate_id_mock.return_value = True
+
+        # create mock authorizer
+        auth = LambdaAuthorizer(Mock(), Mock(), "auth_lambda", [], Mock(), Mock(), Mock())
+        auth.is_valid_response = Mock(return_value=True)
+        auth.get_context = Mock(return_value={})
+        self.api_gateway_route.authorizer_object = auth
+
+        # get api service to return mocked route containing authorizer
+        self.api_service.service_response = make_response_mock
+        self.api_service._get_current_route = MagicMock()
+        self.api_service._get_current_route.return_value = self.api_gateway_route
+        self.api_service._get_current_route.methods = []
+        self.api_service._get_current_route.return_value.payload_format_version = "2.0"
+        v1_event_mock.return_value = {}
+
+        parse_output_mock = Mock(return_value=("status_code", Headers({"headers": "headers"}), "body"))
+        self.api_service._parse_v1_payload_format_lambda_output = parse_output_mock
+
+        service_response_mock = Mock(return_value=make_response_mock)
+        self.api_service.service_response = service_response_mock
+
+        request_mock.return_value = ("test", "test")
+
+        self.api_service._request_handler()
+
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
+    @patch.object(LocalApigwService, "_generate_lambda_authorizer_event")
+    @patch.object(LocalApigwService, "_valid_identity_sources")
+    @patch.object(LocalApigwService, "_invoke_lambda_function")
+    @patch("samcli.local.apigw.local_apigw_service.ServiceErrorResponses")
+    @patch("samcli.local.apigw.local_apigw_service.construct_v1_event")
+    @patch("samcli.local.apigw.local_apigw_service.construct_v2_event_http")
+    def test_lambda_auth_unauthorized_response(
+        self,
+        v2_event_mock,
+        v1_event_mock,
+        service_err_mock,
+        invoke_mock,
+        validate_id_mock,
+        gen_auth_event_mock,
+        request_mock,
+    ):
+        make_response_mock = Mock()
+        validate_id_mock.return_value = True
+
+        # create mock authorizer
+        auth = LambdaAuthorizer(Mock(), Mock(), "auth_lambda", [], Mock(), Mock(), Mock())
+        auth.is_valid_response = Mock(return_value=False)
+        self.api_gateway_route.authorizer_object = auth
+
+        # get api service to return mocked route containing authorizer
+        self.api_service.service_response = make_response_mock
+        self.api_service._get_current_route = MagicMock()
+        self.api_service._get_current_route.return_value = self.api_gateway_route
+        self.api_service._get_current_route.methods = []
+        self.api_service._get_current_route.return_value.payload_format_version = "2.0"
+        v1_event_mock.return_value = {}
+
+        parse_output_mock = Mock(return_value=("status_code", Headers({"headers": "headers"}), "body"))
+        self.api_service._parse_v1_payload_format_lambda_output = parse_output_mock
+
+        service_response_mock = Mock(return_value=make_response_mock)
+        self.api_service.service_response = service_response_mock
+
+        request_mock.return_value = ("test", "test")
+
+        mock_context = {"key": "value"}
+        invoke_mock.side_effect = [{"context": mock_context}, Mock()]
+
+        unauth_mock = Mock()
+        service_err_mock.lambda_authorizer_unauthorized.return_value = unauth_mock
+
+        result = self.api_service._request_handler()
+        self.assertEqual(result, unauth_mock)
 
 
 class TestApiGatewayModel(TestCase):
