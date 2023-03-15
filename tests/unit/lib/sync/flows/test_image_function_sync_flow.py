@@ -16,7 +16,6 @@ from samcli.lib.sync.sync_flow import ApiCallTypes
 )
 class TestImageFunctionSyncFlow(TestCase):
     build_artifacts = None
-
     def create_function_sync_flow(self):
         sync_flow = ImageFunctionSyncFlow(
             "Function1",
@@ -25,7 +24,7 @@ class TestImageFunctionSyncFlow(TestCase):
             sync_context=MagicMock(),
             physical_id_mapping={},
             stacks=[MagicMock()],
-            application_build_result=self.build_artifacts,
+            application_build_result=self.build_artifacts
         )
         return sync_flow
 

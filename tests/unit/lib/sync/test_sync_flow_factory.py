@@ -119,11 +119,16 @@ class TestSyncFlowFactory(TestCase):
         result = factory._create_layer_flow("Layer1", {}, pre_build_artifacts)
         self.assertEqual(result, layer_sync_mock.return_value)
 
-    @parameterized.expand(itertools.product([Mock(build_method=None), Mock(skip_build=True)], [None, Mock()]))
+    @parameterized.expand(
+        itertools.product(
+            [Mock(build_method=None), Mock(skip_build=True)],
+            [None, Mock()]
+        )
+    )
     @patch("samcli.lib.sync.sync_flow_factory.LayerSyncFlowSkipBuildDirectory")
     @patch("samcli.lib.sync.sync_flow_factory.is_local_folder")
     def test_create_layer_flow_with_skip_build_directory(
-        self, layer_mock, pre_build_artifacts, is_local_folder_mock, layer_sync_mock
+            self, layer_mock, pre_build_artifacts, is_local_folder_mock, layer_sync_mock
     ):
         factory = self.create_factory()
         # mock layer return to have no build method
@@ -133,7 +138,12 @@ class TestSyncFlowFactory(TestCase):
         result = factory._create_layer_flow("Layer1", {}, pre_build_artifacts)
         self.assertEqual(result, layer_sync_mock.return_value)
 
-    @parameterized.expand(itertools.product([Mock(build_method=None), Mock(skip_build=True)], [None, Mock()]))
+    @parameterized.expand(
+        itertools.product(
+            [Mock(build_method=None), Mock(skip_build=True)],
+            [None, Mock()]
+        )
+    )
     @patch("samcli.lib.sync.sync_flow_factory.LayerSyncFlowSkipBuildZipFile")
     @patch("samcli.lib.sync.sync_flow_factory.is_local_folder")
     @patch("samcli.lib.sync.sync_flow_factory.is_zip_file")
