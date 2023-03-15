@@ -5,6 +5,7 @@ import copy
 import logging
 import re
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, Optional, Set
 
 from boto3 import Session
@@ -309,12 +310,15 @@ class InfraSyncExecutor:
                 if isinstance(template_location, dict):
                     continue
                 # For other scenarios, template location will be a string (local or s3 URL)
-                elif not self._auto_skip_infra_sync(
+                nested_template_location = current_built_template.get("Resources", {})\
+                    .get(resource_logical_id, {})\
+                    .get("Properties", {})\
+                    .get(template_field)
+                if is_local_path(nested_template_location):
+                    nested_template_location = str(Path(built_template_path).parent.joinpath(nested_template_location))
+                if not self._auto_skip_infra_sync(
                     resource_dict.get("Properties", {}).get(template_field),
-                    current_built_template.get("Resources", {})
-                    .get(resource_logical_id, {})
-                    .get("Properties", {})
-                    .get(template_field),
+                    nested_template_location,
                     stack_resource_detail.get("StackResourceDetail", {}).get("PhysicalResourceId", ""),
                     nested_prefix + resource_logical_id + "/" if nested_prefix else resource_logical_id + "/",
                 ):
