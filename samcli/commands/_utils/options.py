@@ -723,7 +723,7 @@ def role_arn_click_option():
     return click.option(
         "--role-arn",
         required=False,
-        help="ARN of an IAM role that AWS Cloudformation assumes" "when executing a deployment change set.",
+        help="ARN of an IAM role that AWS Cloudformation assumes when executing a deployment change set.",
     )
 
 
