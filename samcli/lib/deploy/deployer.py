@@ -314,22 +314,22 @@ class Deployer:
             waiter.wait(ChangeSetName=changeset_id, StackName=stack_name, WaiterConfig=waiter_config)
         except botocore.exceptions.WaiterError as ex:
             resp = ex.last_response
-            if "Status" in resp and "StatusReason" in resp:
-                status = resp["Status"]
-                reason = resp["StatusReason"]
+            status = resp.get("Status")
+            reason = resp.get("StatusReason")
 
-                if (
-                    status == "FAILED"
-                    and "The submitted information didn't contain changes." in reason
-                    or "No updates are to be performed" in reason
-                ):
-                    raise deploy_exceptions.ChangeEmptyError(stack_name=stack_name)
+            if not status or not reason:
+                # not a CFN DescribeChangeSet response, re-raising
+                LOG.debug("Failed while waiting for changeset: %s", ex)
+                raise ex
 
-                raise ChangeSetError(stack_name=stack_name, msg=f"ex: {ex} Status: {status}. Reason: {reason}") from ex
+            if (
+                status == "FAILED"
+                and "The submitted information didn't contain changes." in reason
+                or "No updates are to be performed" in reason
+            ):
+                raise deploy_exceptions.ChangeEmptyError(stack_name=stack_name)
 
-            # Not a changeset error, re-raising
-            LOG.debug("Failed while waiting for changeset: %s", ex)
-            raise ex
+            raise ChangeSetError(stack_name=stack_name, msg=f"ex: {ex} Status: {status}. Reason: {reason}") from ex
 
     def execute_changeset(self, changeset_id, stack_name, disable_rollback):
         """
