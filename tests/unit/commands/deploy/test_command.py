@@ -354,7 +354,7 @@ class TestDeployCliCommand(TestCase):
                 confirm_changeset=True,
                 profile=self.profile,
                 region="us-east-1",
-                s3_bucket="managed-s3-bucket",
+                resolve_s3=True,
                 image_repositories={"HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"},
                 stack_name="sam-app",
                 s3_prefix="sam-app",
@@ -501,7 +501,7 @@ class TestDeployCliCommand(TestCase):
             MOCK_SAM_CONFIG.put.call_args_list,
             [
                 call(["deploy"], "parameters", "stack_name", "sam-app", env="test-env"),
-                call(["deploy"], "parameters", "s3_bucket", "managed-s3-bucket", env="test-env"),
+                call(["deploy"], "parameters", "resolve_s3", True, env="test-env"),
                 call(["deploy"], "parameters", "s3_prefix", "sam-app", env="test-env"),
                 call(["deploy"], "parameters", "region", "us-east-1", env="test-env"),
                 call(["deploy"], "parameters", "confirm_changeset", True, env="test-env"),
@@ -655,7 +655,7 @@ class TestDeployCliCommand(TestCase):
             MOCK_SAM_CONFIG.put.call_args_list,
             [
                 call(["deploy"], "parameters", "stack_name", "sam-app", env="test-env"),
-                call(["deploy"], "parameters", "s3_bucket", "managed-s3-bucket", env="test-env"),
+                call(["deploy"], "parameters", "resolve_s3", True, env="test-env"),
                 call(["deploy"], "parameters", "s3_prefix", "sam-app", env="test-env"),
                 call(["deploy"], "parameters", "region", "us-east-1", env="test-env"),
                 call(["deploy"], "parameters", "confirm_changeset", True, env="test-env"),

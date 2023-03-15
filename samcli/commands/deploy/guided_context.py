@@ -83,6 +83,8 @@ class GuidedContext:
         self.guided_s3_prefix = None
         self.guided_region = None
         self.guided_profile = None
+        self.resolve_s3 = False
+        self.resolve_image_repositories = False
         self.signing_profiles = signing_profiles
         self._capabilities = None
         self._parameter_overrides = None
@@ -179,7 +181,10 @@ class GuidedContext:
         click.echo("\n\tLooking for resources needed for deployment:")
         s3_bucket = manage_stack(profile=self.profile, region=region)
         click.secho(f"\n\tManaged S3 bucket: {s3_bucket}", bold=True)
-        click.echo("\tA different default S3 bucket can be set in samconfig.toml")
+        click.echo(
+            "\tA different default S3 bucket can be set in samconfig.toml"
+            " and auto resolution of buckets turned off by setting resolve_s3=False"
+        )
 
         image_repositories = self.prompt_image_repository(
             stack_name, stacks, self.image_repositories, region, s3_bucket, self.s3_prefix
@@ -187,6 +192,10 @@ class GuidedContext:
 
         self.guided_stack_name = stack_name
         self.guided_s3_bucket = s3_bucket
+        self.resolve_s3 = True if self.guided_s3_bucket else False
+        self.resolve_image_repositories = (
+            True if (self.guided_image_repositories or self.guided_image_repository) else False
+        )
         self.guided_image_repositories = image_repositories
         self.guided_s3_prefix = stack_name
         self.guided_region = region
@@ -562,9 +571,9 @@ class GuidedContext:
                 self.config_env or DEFAULT_ENV,
                 self.config_file or DEFAULT_CONFIG_FILE_NAME,
                 stack_name=self.guided_stack_name,
-                s3_bucket=self.guided_s3_bucket,
+                resolve_s3=self.resolve_s3,
                 s3_prefix=self.guided_s3_prefix,
-                image_repositories=self.guided_image_repositories,
+                resolve_image_repositories=self.resolve_image_repositories,
                 region=self.guided_region,
                 profile=self.guided_profile,
                 confirm_changeset=self.confirm_changeset,
