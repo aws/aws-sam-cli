@@ -312,10 +312,12 @@ class InfraSyncExecutor:
                 if isinstance(template_location, dict):
                     continue
                 # For other scenarios, template location will be a string (local or s3 URL)
-                nested_template_location = current_built_template.get("Resources", {})\
-                    .get(resource_logical_id, {})\
-                    .get("Properties", {})\
+                nested_template_location = (
+                    current_built_template.get("Resources", {})
+                    .get(resource_logical_id, {})
+                    .get("Properties", {})
                     .get(template_field)
+                )
                 if is_local_path(nested_template_location):
                     nested_template_location = str(Path(built_template_path).parent.joinpath(nested_template_location))
                 if not self._auto_skip_infra_sync(
@@ -330,7 +332,10 @@ class InfraSyncExecutor:
         return True
 
     def _sanitize_template(
-        self, template_dict: Dict, linked_resources: Set[str] = None, built_template_dict: Optional[Dict] = None
+        self,
+        template_dict: Dict,
+        linked_resources: Optional[Set[str]] = None,
+        built_template_dict: Optional[Dict] = None,
     ) -> Set[str]:
         """
         Fields skipped during template comparison because sync --code can handle the difference:
@@ -370,6 +375,7 @@ class InfraSyncExecutor:
 
         resources = template_dict.get("Resources", {})
         processed_resources: Set[str] = set()
+        built_resource_dict = None
 
         for resource_logical_id in resources:
             resource_dict = resources.get(resource_logical_id, {})
@@ -406,7 +412,7 @@ class InfraSyncExecutor:
         resource_logical_id: str,
         resource_type: str,
         resource_dict: Dict,
-        linked_resources: Set[str] = set(),
+        linked_resources: Optional[Set[str]] = None,
         built_resource_dict: Optional[Dict] = None,
     ) -> Optional[str]:
         """
@@ -420,7 +426,7 @@ class InfraSyncExecutor:
             Resource type
         resource_dict: Dict
             The resource level dict containing Properties field
-        linked_resources: Set[str]
+        linked_resources: Optional[Set[str]]
             The corresponding resources in the other template that got processed
         built_resource_dict: Optional[Dict]
             Only passed in for current template sanitization to determine if local
@@ -430,6 +436,7 @@ class InfraSyncExecutor:
         Optional[str]
             The processed resource ID
         """
+        linked_resources = linked_resources or set()
         processed_logical_id = None
 
         if resource_type == AWS_LAMBDA_FUNCTION:

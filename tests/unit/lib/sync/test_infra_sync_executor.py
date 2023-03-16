@@ -287,7 +287,10 @@ class TestInfraSyncExecutor(TestCase):
     def test_auto_skip_infra_sync_nested_stack(self, session_mock, get_template_mock, local_path_mock):
         built_template_dict = {
             "Resources": {
-                "ServerlessApplication": {"Type": "AWS::Serverless::Application", "Properties": {"Location": "local/template.yaml"}},
+                "ServerlessApplication": {
+                    "Type": "AWS::Serverless::Application",
+                    "Properties": {"Location": "local/template.yaml"},
+                },
             }
         }
 
@@ -351,7 +354,7 @@ class TestInfraSyncExecutor(TestCase):
                 [
                     call("path/packaged-template.yaml"),
                     call("path/built-template.yaml"),
-                    call("path/local/template.yaml")
+                    call("path/local/template.yaml"),
                 ]
             )
             self.assertEqual(
