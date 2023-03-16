@@ -6,7 +6,7 @@ import logging
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional, Set
+from typing import TYPE_CHECKING, Dict, Optional, Set
 
 from boto3 import Session
 from botocore.exceptions import ClientError
@@ -15,7 +15,6 @@ from samcli.commands._utils.template import get_template_data
 from samcli.commands.build.build_context import BuildContext
 from samcli.commands.deploy.deploy_context import DeployContext
 from samcli.commands.package.package_context import PackageContext
-from samcli.commands.sync.sync_context import SyncContext
 from samcli.lib.providers.provider import ResourceIdentifier
 from samcli.lib.providers.sam_stack_provider import is_local_path
 from samcli.lib.utils.boto_utils import get_boto_client_provider_from_session_with_config
@@ -36,6 +35,9 @@ from samcli.lib.utils.resources import (
     SYNCABLE_STACK_RESOURCES,
 )
 from samcli.yamlhelper import yaml_parse
+
+if TYPE_CHECKING:  # pragma: no cover
+    from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)
 
@@ -107,7 +109,7 @@ class InfraSyncExecutor:
         build_context: BuildContext,
         package_context: PackageContext,
         deploy_context: DeployContext,
-        sync_context: SyncContext,
+        sync_context: "SyncContext",
     ):
         """Constructs the sync for infra executor.
 
@@ -328,7 +330,7 @@ class InfraSyncExecutor:
         return True
 
     def _sanitize_template(
-        self, template_dict: Dict, linked_resources: Set[str] = set(), built_template_dict: Optional[Dict] = None
+        self, template_dict: Dict, linked_resources: Set[str] = None, built_template_dict: Optional[Dict] = None
     ) -> Set[str]:
         """
         Fields skipped during template comparison because sync --code can handle the difference:
@@ -364,6 +366,7 @@ class InfraSyncExecutor:
         Set[str]
             The list of resource IDs that got changed during sanitization
         """
+        linked_resources = linked_resources or set()
 
         resources = template_dict.get("Resources", {})
         processed_resources: Set[str] = set()

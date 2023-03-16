@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, call
 from samcli.lib.providers.provider import ResourceIdentifier
 from samcli.lib.sync.infra_sync_executor import datetime, InfraSyncExecutor
 from botocore.exceptions import ClientError
@@ -287,7 +287,7 @@ class TestInfraSyncExecutor(TestCase):
     def test_auto_skip_infra_sync_nested_stack(self, session_mock, get_template_mock, local_path_mock):
         built_template_dict = {
             "Resources": {
-                "ServerlessApplication": {"Type": "AWS::Serverless::Application", "Properties": {"Location": "local/"}},
+                "ServerlessApplication": {"Type": "AWS::Serverless::Application", "Properties": {"Location": "local/template.yaml"}},
             }
         }
 
@@ -302,7 +302,7 @@ class TestInfraSyncExecutor(TestCase):
 
         built_nested_dict = {
             "Resources": {
-                "ServerlessFunction": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "local/"}}
+                "ServerlessFunction": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "function/"}}
             }
         }
 
@@ -322,14 +322,14 @@ class TestInfraSyncExecutor(TestCase):
             {
                 "TemplateBody": """{
                     "Resources": {
-                        "ServerlessApplication": {"Type": "AWS::Serverless::Application", "Properties": {"Location": "local/"}}
+                        "ServerlessApplication": {"Type": "AWS::Serverless::Application", "Properties": {"Location": "local/template.yaml"}}
                     }
                 }"""
             },
             {
                 "TemplateBody": """{
                     "Resources": {
-                        "ServerlessFunction": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "local/"}}
+                        "ServerlessFunction": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "function/"}}
                     }
                 }"""
             },
@@ -342,7 +342,18 @@ class TestInfraSyncExecutor(TestCase):
         with patch("botocore.response.StreamingBody") as stream_mock:
             stream_mock.read.return_value = packaged_nested_dict.encode("utf-8")
             infra_sync_executor._s3_client.get_object.return_value = {"Body": stream_mock}
-            self.assertTrue(infra_sync_executor._auto_skip_infra_sync("path", "path", "stack_name"))
+            self.assertTrue(
+                infra_sync_executor._auto_skip_infra_sync(
+                    "path/packaged-template.yaml", "path/built-template.yaml", "stack_name"
+                )
+            )
+            get_template_mock.assert_has_calls(
+                [
+                    call("path/packaged-template.yaml"),
+                    call("path/built-template.yaml"),
+                    call("path/local/template.yaml")
+                ]
+            )
             self.assertEqual(
                 infra_sync_executor.code_sync_resources,
                 {ResourceIdentifier("ServerlessApplication/ServerlessFunction")},
@@ -399,10 +410,9 @@ class TestInfraSyncExecutor(TestCase):
         self.assertEqual(infra_sync_executor._auto_skip_infra_sync("path", "path2", "stack_name"), expected_result)
         self.assertEqual(infra_sync_executor.code_sync_resources, set())
 
-    @patch("samcli.lib.sync.infra_sync_executor.is_local_path")
     @patch("samcli.lib.sync.infra_sync_executor.get_template_data")
     @patch("samcli.lib.sync.infra_sync_executor.Session")
-    def test_auto_skip_infra_sync_http_template_location(self, session_mock, get_template_mock, local_path_mock):
+    def test_auto_skip_infra_sync_http_template_location(self, session_mock, get_template_mock):
         built_template_dict = {
             "Resources": {
                 "NestedStack": {
@@ -428,7 +438,6 @@ class TestInfraSyncExecutor(TestCase):
         }"""
 
         get_template_mock.side_effect = [packaged_template_dict, built_template_dict]
-        local_path_mock.return_value = True
 
         infra_sync_executor = InfraSyncExecutor(
             self.build_context, self.package_context, self.deploy_context, self.sync_context
