@@ -97,7 +97,7 @@ class DownloadPackagedZipFunctionStage(EndToEndBaseStage):
         self.s3_client = self._session.client("s3")
 
     def run_stage(self) -> CommandResult:
-        built_function_path = Path(self.test_context.project_directory) / ".aws-sam/build" / self.function_name
+        built_function_path = Path(self.test_context.project_directory) / ".aws-sam" / "build" / self.function_name
         zip_file_path = built_function_path / "zipped_function.zip"
         packaged_template = {}
         with open(self.test_context.project_directory + "/packaged_template.json", "r") as json_file:
