@@ -438,13 +438,13 @@ class TestDoCli(TestCase):
             build_in_source=None,
         )
         execute_code_sync_mock.assert_called_once_with(
-            self.template_file,
-            build_context_mock,
-            deploy_context_mock,
-            sync_context_mock,
-            self.resource_id,
-            self.resource,
-            auto_dependency_layer,
+            template=self.template_file,
+            build_context=build_context_mock,
+            deploy_context=deploy_context_mock,
+            sync_context=sync_context_mock,
+            resource_ids=self.resource_id,
+            resource_types=self.resource,
+            auto_dependency_layer=auto_dependency_layer,
         )
 
 

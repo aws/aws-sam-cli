@@ -1,7 +1,7 @@
 """CLI command for "sync" command."""
 import logging
 import os
-from typing import TYPE_CHECKING, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, List, Optional, Set
 
 import click
 
@@ -162,14 +162,14 @@ def cli(
     template_file: str,
     code: bool,
     watch: bool,
-    resource_id: Optional[Tuple[str]],
-    resource: Optional[Tuple[str]],
+    resource_id: Optional[List[str]],
+    resource: Optional[List[str]],
     dependency_layer: bool,
     stack_name: str,
     base_dir: Optional[str],
     parameter_overrides: dict,
     image_repository: str,
-    image_repositories: Optional[Tuple[str]],
+    image_repositories: Optional[List[str]],
     s3_bucket: str,
     s3_prefix: str,
     kms_key_id: str,
@@ -222,8 +222,8 @@ def do_cli(
     template_file: str,
     code: bool,
     watch: bool,
-    resource_id: Optional[Tuple[str]],
-    resource: Optional[Tuple[str]],
+    resource_id: Optional[List[str]],
+    resource: Optional[List[str]],
     dependency_layer: bool,
     stack_name: str,
     region: str,
@@ -232,7 +232,7 @@ def do_cli(
     parameter_overrides: dict,
     mode: Optional[str],
     image_repository: str,
-    image_repositories: Optional[Tuple[str]],
+    image_repositories: Optional[List[str]],
     s3_bucket: str,
     s3_prefix: str,
     kms_key_id: str,
@@ -366,13 +366,13 @@ def do_cli(
                             )
                         elif code:
                             execute_code_sync(
-                                template_file,
-                                build_context,
-                                deploy_context,
-                                sync_context,
-                                resource_id,
-                                resource,
-                                dependency_layer,
+                                template=template_file,
+                                build_context=build_context,
+                                deploy_context=deploy_context,
+                                sync_context=sync_context,
+                                resource_ids=resource_id,
+                                resource_types=resource,
+                                auto_dependency_layer=dependency_layer,
                             )
                         else:
                             infra_sync_result = execute_infra_contexts(
@@ -386,14 +386,14 @@ def do_cli(
                                 LOG.info("Queuing up code sync for the resources that require an update")
                                 LOG.debug("The following resources will be code synced for an update: %s", resource_ids)
                                 execute_code_sync(
-                                    template_file,
-                                    build_context,
-                                    deploy_context,
-                                    sync_context,
-                                    tuple(resource_ids),  # type: ignore
-                                    None,
-                                    dependency_layer,
-                                    True,
+                                    template=template_file,
+                                    build_context=build_context,
+                                    deploy_context=deploy_context,
+                                    sync_context=sync_context,
+                                    resource_ids=resource_ids,
+                                    resource_types=None,
+                                    auto_dependency_layer=dependency_layer,
+                                    use_built_resources=True,
                                 )
 
 
@@ -426,8 +426,8 @@ def execute_code_sync(
     build_context: "BuildContext",
     deploy_context: "DeployContext",
     sync_context: "SyncContext",
-    resource_ids: Optional[Tuple[str]],
-    resource_types: Optional[Tuple[str]],
+    resource_ids: Optional[List[str]],
+    resource_types: Optional[List[str]],
     auto_dependency_layer: bool,
     use_built_resources: bool = False,
 ) -> None:
