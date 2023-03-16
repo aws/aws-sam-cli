@@ -1,7 +1,7 @@
 from unittest import skipIf
 
 import json
-
+import zipfile
 from pathlib import Path
 
 from parameterized import parameterized_class
@@ -38,6 +38,13 @@ class BuildValidator(BaseValidator):
         self.assertTrue(build_dir.is_dir())
 
 
+class LocalInvokeValidator(BaseValidator):
+    def validate(self, command_result: CommandResult):
+        response = json.loads(command_result.stdout.decode("utf-8").split("\n")[-1])
+        self.assertEqual(command_result.process.returncode, 0)
+        self.assertEqual(response["statusCode"], 200)
+
+
 class RemoteInvokeValidator(BaseValidator):
     def validate(self, command_result: CommandResult):
         self.assertEqual(command_result.process.get("StatusCode"), 200)
@@ -66,7 +73,7 @@ class StackOutputsValidator(BaseValidator):
 class TestHelloWorldDefaultEndToEnd(EndToEndBase):
     app_template = "hello-world"
 
-    def test_go_hello_world_default_workflow(self):
+    def test_hello_world_default_workflow(self):
         stack_name = self._method_to_stack_name(self.id())
         with EndToEndTestContext(self.app_name) as e2e_context:
             self.template_path = e2e_context.template_path
@@ -84,6 +91,55 @@ class TestHelloWorldDefaultEndToEnd(EndToEndBase):
                 DefaultDeleteStage(BaseValidator(e2e_context), e2e_context, delete_command_list, stack_name),
             ]
             self._run_tests(stages)
+
+
+@skipIf(SKIP_E2E_TESTS, "Skip E2E tests in CI/CD only")
+@parameterized_class(
+    ("runtime", "dependency_manager"),
+    [
+        ("go1.x", "mod"),
+        ("python3.7", "pip"),
+    ],
+)
+class TestHelloWorldZipPackagePermissionsEndToEnd(EndToEndBase):
+    """This end to end test is to ensure the zip file created using sam package
+    has the required permissions to invoke the Function.
+    """
+
+    app_template = "hello-world"
+
+    def test_hello_world_workflow(self):
+        with EndToEndTestContext(self.app_name) as e2e_context:
+            self.template_path = e2e_context.template_path
+            init_command_list = self._get_init_command(e2e_context.working_directory)
+            build_command_list = self.get_command_list()
+            package_command_list = self._get_package_command(s3_prefix="end-to-end-package-test")
+            local_command_list = self._get_local_command("HelloWorldFunction")
+            stages = [
+                DefaultInitStage(InitValidator(e2e_context), e2e_context, init_command_list, self.app_name),
+                EndToEndBaseStage(BuildValidator(e2e_context), e2e_context, build_command_list),
+                EndToEndBaseStage(BaseValidator(e2e_context), e2e_context, package_command_list),
+            ]
+            self._run_tests(stages)
+
+            function_name = "HelloWorldFunction"
+            built_function_path = Path(e2e_context.project_directory) / ".aws-sam/build" / function_name
+            zip_file_path = built_function_path / "zipped_hello_world.zip"
+
+            # Download the packaged zip file to run sam local command.
+            s3_objects_resp = self.s3_client.list_objects_v2(
+                Bucket=self.s3_bucket.name, Prefix="end-to-end-package-test"
+            )
+            remote_zipped_function_key = s3_objects_resp["Contents"][0]["Key"]
+            self.s3_client.download_file(
+                self.s3_bucket.name, remote_zipped_function_key, built_function_path / "zipped_hello_world.zip"
+            )
+
+            with zipfile.ZipFile(zip_file_path, "r") as zip_refzip:
+                zip_refzip.extractall(path=built_function_path)
+
+            local_stage = EndToEndBaseStage(LocalInvokeValidator(e2e_context), e2e_context, local_command_list)
+            self._run_tests([local_stage])
 
 
 @skipIf(SKIP_E2E_TESTS, "Skip E2E tests in CI/CD only")
