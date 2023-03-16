@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest import TestCase
 from unittest.mock import MagicMock, patch, call
 from samcli.lib.providers.provider import ResourceIdentifier
@@ -289,7 +290,7 @@ class TestInfraSyncExecutor(TestCase):
             "Resources": {
                 "ServerlessApplication": {
                     "Type": "AWS::Serverless::Application",
-                    "Properties": {"Location": "local/template.yaml"},
+                    "Properties": {"Location": str(Path("local") / "template.yaml")},
                 },
             }
         }
@@ -323,16 +324,20 @@ class TestInfraSyncExecutor(TestCase):
         )
         infra_sync_executor._cfn_client.get_template.side_effect = [
             {
-                "TemplateBody": """{
-                    "Resources": {
-                        "ServerlessApplication": {"Type": "AWS::Serverless::Application", "Properties": {"Location": "local/template.yaml"}}
-                    }
-                }"""
+                "TemplateBody": f"""{{
+                    "Resources": {{
+                        "ServerlessApplication": {{
+                            "Type": "AWS::Serverless::Application", 
+                            "Properties": {{"Location": "{str(Path("local") / "template.yaml")}"}} }}
+                    }}
+                }}"""
             },
             {
                 "TemplateBody": """{
                     "Resources": {
-                        "ServerlessFunction": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "function/"}}
+                        "ServerlessFunction": {
+                            "Type": "AWS::Serverless::Function", 
+                            "Properties": {"CodeUri": "function/"}}
                     }
                 }"""
             },
@@ -347,14 +352,16 @@ class TestInfraSyncExecutor(TestCase):
             infra_sync_executor._s3_client.get_object.return_value = {"Body": stream_mock}
             self.assertTrue(
                 infra_sync_executor._auto_skip_infra_sync(
-                    "path/packaged-template.yaml", "path/built-template.yaml", "stack_name"
+                    str(Path("path") / "packaged-template.yaml"),
+                    str(Path("path") / "built-template.yaml"),
+                    "stack_name",
                 )
             )
             get_template_mock.assert_has_calls(
                 [
-                    call("path/packaged-template.yaml"),
-                    call("path/built-template.yaml"),
-                    call("path/local/template.yaml"),
+                    call(str(Path("path") / "packaged-template.yaml")),
+                    call(str(Path("path") / "built-template.yaml")),
+                    call(str(Path("path") / "local/template.yaml")),
                 ]
             )
             self.assertEqual(
