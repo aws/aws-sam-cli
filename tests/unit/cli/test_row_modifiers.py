@@ -18,7 +18,7 @@ class TestRowModifier(TestCase):
         result = modifier.apply(self.row, self.justification_length)
 
         self.assertEqual(result.name, "Name      ")
-        self.assertEqual(result.text, "Text")
+        self.assertEqual(result.text, "Text      ")
 
     def test_highlight_new_row_name_modifier(self):
         modifier = HighlightNewRowNameModifier()

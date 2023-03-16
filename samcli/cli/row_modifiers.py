@@ -16,6 +16,7 @@ class RowModifier(ABC):
 class RowDefinition(NamedTuple):
     name: str = ""
     text: str = ""
+    rank: int = 0
     extra_row_modifiers: List[RowModifier] = []
 
 
@@ -26,7 +27,7 @@ class BaseLineRowModifier(RowModifier):
     def apply(self, row: RowDefinition, justification_length: int):
         return RowDefinition(
             name=row.name.ljust(justification_length if justification_length else self.justification_length),
-            text=row.text.strip(),
+            text=row.text.strip().ljust(justification_length if justification_length else self.justification_length),
         )
 
 
