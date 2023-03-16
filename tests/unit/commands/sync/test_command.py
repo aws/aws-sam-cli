@@ -789,5 +789,5 @@ class TestDisableADL(TestCase):
         self.assertEqual(invoke_result.exit_code, 2)
         self.assertIn(
             "Error: Invalid value for '--resource': 'AWS::Serverless::InvalidResource' is not one of",
-            invoke_result.output
+            invoke_result.output,
         )
