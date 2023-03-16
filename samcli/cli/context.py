@@ -49,6 +49,14 @@ class Context:
     def exception(self):
         return self._exception
 
+    @property
+    def invoked_subcommand(self):
+        click_core_ctx = click.get_current_context()
+        if click_core_ctx:
+            return click_core_ctx.invoked_subcommand
+
+        return None
+
     @exception.setter
     def exception(self, value: Exception):
         """

@@ -1,0 +1,6 @@
+{
+  "config": "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html",
+  "build": "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-using-build.html",
+  "local": "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-test-and-debug.html",
+  "local invoke": "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-using-invoke.html"
+}
