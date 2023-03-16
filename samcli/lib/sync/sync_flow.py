@@ -414,7 +414,7 @@ def get_definition_path(
     Optional[Path]
         A resolved absolute path for the definition file
     """
-    definition_field_names = RESOURCES_WITH_LOCAL_PATHS.get(resource.get("Type"))
+    definition_field_names = RESOURCES_WITH_LOCAL_PATHS.get(resource.get("Type", ""))
     if not definition_field_names:
         LOG.error("Couldn't find definition field name for resource {}", identifier)
         return None
