@@ -9,7 +9,6 @@ from tests.integration.init.test_init_base import InitIntegBase
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
 from tests.integration.sync.sync_integ_base import SyncIntegBase
 from tests.integration.list.stack_outputs.stack_outputs_integ_base import StackOutputsIntegBase
-import boto3
 import logging
 
 LOG = logging.getLogger(__name__)
@@ -27,8 +26,6 @@ class EndToEndBase(InitIntegBase, StackOutputsIntegBase, DeleteIntegBase, SyncIn
         self.stacks = []
         self.config_file_dir = GlobalConfig().config_dir
         self._create_config_dir()
-        self._session = boto3.session.Session()
-        self.s3_client = self._session.client("s3")
 
     def _create_config_dir(self):
         # Init tests will lock the config dir, ensure it exists before obtaining a lock

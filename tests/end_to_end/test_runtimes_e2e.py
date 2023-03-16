@@ -1,7 +1,6 @@
 from unittest import skipIf
 
 import json
-import zipfile
 from pathlib import Path
 
 from parameterized import parameterized_class
@@ -10,6 +9,7 @@ from tests.end_to_end.end_to_end_base import EndToEndBase
 from tests.end_to_end.end_to_end_context import EndToEndTestContext
 from tests.end_to_end.test_stages import (
     DefaultInitStage,
+    PackageDownloadZipStage,
     DefaultRemoteInvokeStage,
     DefaultDeleteStage,
     EndToEndBaseStage,
@@ -118,28 +118,10 @@ class TestHelloWorldZipPackagePermissionsEndToEnd(EndToEndBase):
             stages = [
                 DefaultInitStage(InitValidator(e2e_context), e2e_context, init_command_list, self.app_name),
                 EndToEndBaseStage(BuildValidator(e2e_context), e2e_context, build_command_list),
-                EndToEndBaseStage(BaseValidator(e2e_context), e2e_context, package_command_list),
+                PackageDownloadZipStage(BaseValidator(e2e_context), e2e_context, package_command_list, self.s3_bucket),
+                EndToEndBaseStage(LocalInvokeValidator(e2e_context), e2e_context, local_command_list),
             ]
             self._run_tests(stages)
-
-            function_name = "HelloWorldFunction"
-            built_function_path = Path(e2e_context.project_directory) / ".aws-sam/build" / function_name
-            zip_file_path = built_function_path / "zipped_hello_world.zip"
-
-            # Download the packaged zip file to run sam local command.
-            s3_objects_resp = self.s3_client.list_objects_v2(
-                Bucket=self.s3_bucket.name, Prefix="end-to-end-package-test"
-            )
-            remote_zipped_function_key = s3_objects_resp["Contents"][0]["Key"]
-            self.s3_client.download_file(
-                self.s3_bucket.name, remote_zipped_function_key, built_function_path / "zipped_hello_world.zip"
-            )
-
-            with zipfile.ZipFile(zip_file_path, "r") as zip_refzip:
-                zip_refzip.extractall(path=built_function_path)
-
-            local_stage = EndToEndBaseStage(LocalInvokeValidator(e2e_context), e2e_context, local_command_list)
-            self._run_tests([local_stage])
 
 
 @skipIf(SKIP_E2E_TESTS, "Skip E2E tests in CI/CD only")

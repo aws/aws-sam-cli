@@ -3,6 +3,7 @@ from typing import List, Optional
 from unittest import TestCase
 
 import boto3
+import zipfile
 from pathlib import Path
 
 import os
@@ -82,6 +83,34 @@ class DefaultDeleteStage(EndToEndBaseStage):
         self.command_list = command_list
         self.stack_name = stack_name
         self.cfn_client = boto3.client("cloudformation")
+
+
+class PackageDownloadZipStage(EndToEndBaseStage):
+    """This stage runs sam package and downloads the packaged zip file from S3"""
+
+    def __init__(self, validator, test_context, command_list, s3_bucket) -> None:
+        super().__init__(validator, test_context, command_list)
+        self.command_list = command_list
+        self._session = boto3.session.Session()
+        self.s3_client = self._session.client("s3")
+        self.s3_bucket = s3_bucket
+
+    def run_stage(self) -> CommandResult:
+        command_result = run_command(self.command_list, cwd=self.test_context.project_directory)
+        function_name = "HelloWorldFunction"
+        built_function_path = Path(self.test_context.project_directory) / ".aws-sam/build" / function_name
+        zip_file_path = built_function_path / "zipped_hello_world.zip"
+
+        # Download the packaged zip file to run sam local command.
+        s3_objects_resp = self.s3_client.list_objects_v2(Bucket=self.s3_bucket.name, Prefix="end-to-end-package-test")
+        remote_zipped_function_key = s3_objects_resp["Contents"][0]["Key"]
+        self.s3_client.download_file(
+            self.s3_bucket.name, remote_zipped_function_key, str(built_function_path / "zipped_hello_world.zip")
+        )
+
+        with zipfile.ZipFile(zip_file_path, "r") as zip_refzip:
+            zip_refzip.extractall(path=built_function_path)
+        return command_result
 
 
 class DefaultSyncStage(EndToEndBaseStage):
