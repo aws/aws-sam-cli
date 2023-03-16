@@ -4,6 +4,8 @@ from unittest import TestCase
 
 import boto3
 import zipfile
+import json
+from samcli.lib.package.s3_uploader import S3Uploader
 from pathlib import Path
 
 import os
@@ -85,32 +87,42 @@ class DefaultDeleteStage(EndToEndBaseStage):
         self.cfn_client = boto3.client("cloudformation")
 
 
-class PackageDownloadZipStage(EndToEndBaseStage):
-    """This stage runs sam package and downloads the packaged zip file from S3"""
+class DownloadPackagedZipFunctionStage(EndToEndBaseStage):
+    """This stage downloads the packaged zip file from S3 and places it in the build directory"""
 
-    def __init__(self, validator, test_context, command_list, s3_bucket) -> None:
-        super().__init__(validator, test_context, command_list)
-        self.command_list = command_list
+    def __init__(self, validator, test_context, function_name) -> None:
+        super().__init__(validator, test_context)
+        self.function_name = function_name
         self._session = boto3.session.Session()
         self.s3_client = self._session.client("s3")
-        self.s3_bucket = s3_bucket
 
     def run_stage(self) -> CommandResult:
-        command_result = run_command(self.command_list, cwd=self.test_context.project_directory)
-        function_name = "HelloWorldFunction"
-        built_function_path = Path(self.test_context.project_directory) / ".aws-sam/build" / function_name
-        zip_file_path = built_function_path / "zipped_hello_world.zip"
+        built_function_path = Path(self.test_context.project_directory) / ".aws-sam/build" / self.function_name
+        zip_file_path = built_function_path / "zipped_function.zip"
+        packaged_template = {}
+        with open(self.test_context.project_directory + "/packaged_template.json", "r") as json_file:
+            packaged_template = json.load(json_file)
 
-        # Download the packaged zip file to run sam local command.
-        s3_objects_resp = self.s3_client.list_objects_v2(Bucket=self.s3_bucket.name, Prefix="end-to-end-package-test")
-        remote_zipped_function_key = s3_objects_resp["Contents"][0]["Key"]
-        self.s3_client.download_file(
-            self.s3_bucket.name, remote_zipped_function_key, str(built_function_path / "zipped_hello_world.zip")
+        zipped_fn_s3_loc = (
+            packaged_template.get("Resources", {})
+            .get(self.function_name, {})
+            .get("Properties", {})
+            .get("CodeUri", None)
         )
 
-        with zipfile.ZipFile(zip_file_path, "r") as zip_refzip:
-            zip_refzip.extractall(path=built_function_path)
-        return command_result
+        output_msg = ""
+        if zipped_fn_s3_loc:
+            s3_info = S3Uploader.parse_s3_url(zipped_fn_s3_loc)
+            self.s3_client.download_file(s3_info["Bucket"], s3_info["Key"], str(zip_file_path))
+
+            with zipfile.ZipFile(zip_file_path, "r") as zip_refzip:
+                zip_refzip.extractall(path=built_function_path)
+
+            output_msg = "Packaged zip file downloaded"
+        else:
+            output_msg = "Failed to download zip file"
+
+        return CommandResult(None, output_msg, "")
 
 
 class DefaultSyncStage(EndToEndBaseStage):

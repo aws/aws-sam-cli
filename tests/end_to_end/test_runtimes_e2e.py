@@ -9,7 +9,7 @@ from tests.end_to_end.end_to_end_base import EndToEndBase
 from tests.end_to_end.end_to_end_context import EndToEndTestContext
 from tests.end_to_end.test_stages import (
     DefaultInitStage,
-    PackageDownloadZipStage,
+    DownloadPackagedZipFunctionStage,
     DefaultRemoteInvokeStage,
     DefaultDeleteStage,
     EndToEndBaseStage,
@@ -49,6 +49,11 @@ class RemoteInvokeValidator(BaseValidator):
     def validate(self, command_result: CommandResult):
         self.assertEqual(command_result.process.get("StatusCode"), 200)
         self.assertEqual(command_result.process.get("FunctionError", ""), "")
+
+
+class DownloadPackagedZipValidator(BaseValidator):
+    def validate(self, command_result: CommandResult):
+        self.assertEqual(command_result.stdout, "Packaged zip file downloaded")
 
 
 class StackOutputsValidator(BaseValidator):
@@ -109,16 +114,20 @@ class TestHelloWorldZipPackagePermissionsEndToEnd(EndToEndBase):
     app_template = "hello-world"
 
     def test_hello_world_workflow(self):
+        function_name = "HelloWorldFunction"
         with EndToEndTestContext(self.app_name) as e2e_context:
             self.template_path = e2e_context.template_path
             init_command_list = self._get_init_command(e2e_context.working_directory)
             build_command_list = self.get_command_list()
-            package_command_list = self._get_package_command(s3_prefix="end-to-end-package-test")
+            package_command_list = self._get_package_command(
+                s3_prefix="end-to-end-package-test", use_json=True, output_template_file="packaged_template.json"
+            )
             local_command_list = self._get_local_command("HelloWorldFunction")
             stages = [
                 DefaultInitStage(InitValidator(e2e_context), e2e_context, init_command_list, self.app_name),
                 EndToEndBaseStage(BuildValidator(e2e_context), e2e_context, build_command_list),
-                PackageDownloadZipStage(BaseValidator(e2e_context), e2e_context, package_command_list, self.s3_bucket),
+                EndToEndBaseStage(BaseValidator(e2e_context), e2e_context, package_command_list),
+                DownloadPackagedZipFunctionStage(DownloadPackagedZipValidator(e2e_context), e2e_context, function_name),
                 EndToEndBaseStage(LocalInvokeValidator(e2e_context), e2e_context, local_command_list),
             ]
             self._run_tests(stages)

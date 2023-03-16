@@ -61,8 +61,14 @@ class EndToEndBase(InitIntegBase, StackOutputsIntegBase, DeleteIntegBase, SyncIn
             s3_bucket=self.s3_bucket.name,
         )
 
-    def _get_package_command(self, s3_prefix):
-        return DeleteIntegBase.get_command_list(self, s3_bucket=self.s3_bucket.name, s3_prefix=s3_prefix)
+    def _get_package_command(self, s3_prefix, use_json=False, output_template_file=None):
+        return DeleteIntegBase.get_command_list(
+            self,
+            s3_bucket=self.s3_bucket.name,
+            s3_prefix=s3_prefix,
+            use_json=use_json,
+            output_template_file=output_template_file,
+        )
 
     def _get_local_command(self, function_name):
         return InvokeIntegBase.get_minimal_local_invoke_command_list(function_to_invoke=function_name)
