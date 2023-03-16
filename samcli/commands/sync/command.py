@@ -17,6 +17,7 @@ from samcli.commands._utils.constants import (
     DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
     DEFAULT_CACHE_DIR,
 )
+from samcli.commands._utils.custom_options.replace_help_option import ReplaceHelpSummaryOption
 from samcli.commands._utils.options import (
     base_dir_option,
     capabilities_option,
@@ -35,6 +36,7 @@ from samcli.commands._utils.options import (
     use_container_build_option,
 )
 from samcli.commands.build.command import _get_mode_value_from_envvar
+from samcli.commands.sync.core.command import SyncCommand
 from samcli.commands.sync.sync_context import SyncContext
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.build.bundler import EsbuildBundlerManager
@@ -63,21 +65,22 @@ if TYPE_CHECKING:  # pragma: no cover
 LOG = logging.getLogger(__name__)
 
 HELP_TEXT = """
-Update/Sync local artifacts to AWS
-
-By default, the sync command runs a full stack update. You can specify --code or --watch to switch modes.
-\b
-Sync also supports nested stacks and nested stack resources. For example
-
-$ sam sync --code --stack-name {stack} --resource-id \\
-{ChildStack}/{ResourceId}
-
-Running --watch with --code option will provide a way to run code synchronization only, that will speed up start time
-and will skip any template change. Please remember to update your deployed stack by running without --code option.
-
-$ sam sync --code --watch --stack-name {stack} 
+  NEW! Sync an AWS SAM Project to AWS.
 
 """
+
+DESCRIPTION = """
+  By default, `$sam sync` runs a full AWS Cloudformation stack update.
+
+  Running `sam sync --watch` with `--code` will provide a way to run just code
+  synchronization, speeding up start time skipping template changes.
+
+  Remember to update the deployed stack by running
+  without --code for infrastructure changes.
+
+  `$sam sync` also supports nested stacks and nested stack resources.
+"""
+
 
 SYNC_INFO_TEXT = """
 The SAM CLI will use the AWS Lambda, Amazon API Gateway, and AWS StepFunctions APIs to upload your code without 
@@ -92,25 +95,34 @@ Enter Y to proceed with the command, or enter N to cancel:
 """
 
 
-SHORT_HELP = "Sync a project to AWS"
+SHORT_HELP = "Sync an AWS SAM project to AWS."
 
 DEFAULT_TEMPLATE_NAME = "template.yaml"
 DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 
 
-@click.command("sync", help=HELP_TEXT, short_help=SHORT_HELP)
+# TODO(sriram-mv): Move context settings to be global such as width.
+@click.command(
+    "sync",
+    cls=SyncCommand,
+    help=HELP_TEXT,
+    short_help=SHORT_HELP,
+    description=DESCRIPTION,
+    requires_credentials=True,
+    context_settings={"max_content_width": 120},
+)
 @configuration_option(provider=TomlProvider(section="parameters"))
 @template_option_without_build
 @click.option(
     "--code",
     is_flag=True,
-    help="Sync code resources. This includes Lambda Functions, API Gateway, and Step Functions.",
+    help="Sync ONLY code resources. This includes Lambda Functions, API Gateway, and Step Functions.",
     cls=ClickMutex,
 )
 @click.option(
-    "--watch",
+    "--watch/--no-watch",
     is_flag=True,
-    help="Watch local files and automatically sync with remote.",
+    help="Watch local files and automatically sync with cloud.",
     cls=ClickMutex,
 )
 @click.option(
@@ -122,15 +134,15 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @click.option(
     "--resource",
     multiple=True,
-    type=click.Choice(SyncCodeResources.values(), case_sensitive=True),
+    cls=ReplaceHelpSummaryOption,
+    replace_help_option="--resource RESOURCE",
     help=f"Sync code for all resources of the given resource type. Accepted values are {SyncCodeResources.values()}",
 )
 @click.option(
     "--dependency-layer/--no-dependency-layer",
     default=True,
     is_flag=True,
-    help="This option separates the dependencies of individual function into another layer, for speeding up the sync."
-    "process",
+    help="Separate dependencies of individual function into a Lambda layer for improved performance.",
 )
 @stack_name_option(required=True)  # pylint: disable=E1120
 @base_dir_option

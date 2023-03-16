@@ -9,6 +9,7 @@ from typing import Dict, Optional, List, Tuple, cast
 
 import click
 
+from samcli.commands.build.utils import prompt_user_to_enable_mount_with_write_if_needed, MountMode
 from samcli.lib.build.bundler import EsbuildBundlerManager
 from samcli.lib.providers.sam_api_provider import SamApiProvider
 from samcli.lib.telemetry.event import EventTracker
@@ -35,7 +36,6 @@ from samcli.lib.build.app_builder import (
     ApplicationBuilder,
     BuildError,
     UnsupportedBuilderLibraryVersionError,
-    ContainerBuildNotSupported,
     ApplicationBuildResult,
 )
 from samcli.commands._utils.constants import DEFAULT_BUILD_DIR
@@ -78,6 +78,7 @@ class BuildContext:
         locate_layer_nested: bool = False,
         hook_name: Optional[str] = None,
         build_in_source: Optional[bool] = None,
+        mount_with: str = MountMode.READ.value,
     ) -> None:
         """
         Initialize the class
@@ -133,6 +134,8 @@ class BuildContext:
             Name of the hook package
         build_in_source: Optional[bool]
             Set to True to build in the source directory.
+        mount_with:
+            Mount mode of source code directory when building inside container, READ ONLY by default
         """
 
         self._resource_identifier = resource_identifier
@@ -173,6 +176,7 @@ class BuildContext:
         self._hook_name = hook_name
         self._build_in_source = build_in_source
         self._build_result: Optional[ApplicationBuildResult] = None
+        self._mount_with = MountMode(mount_with)
 
     def __enter__(self) -> "BuildContext":
         self.set_up()
@@ -233,6 +237,19 @@ class BuildContext:
 
         self._stacks = self._handle_build_pre_processing()
 
+        # boolean value indicates if mount with write or not, defaults to READ ONLY
+        mount_with_write = False
+        if self._use_container:
+            if self._mount_with == MountMode.WRITE:
+                mount_with_write = True
+            else:
+                # if self._mount_with is NOT WRITE
+                # check the need of mounting with write permissions and prompt user to enable it if needed
+                mount_with_write = prompt_user_to_enable_mount_with_write_if_needed(
+                    self.get_resources_to_build(),
+                    self.base_dir,
+                )
+
         try:
             builder = ApplicationBuilder(
                 self.get_resources_to_build(),
@@ -250,6 +267,7 @@ class BuildContext:
                 build_images=self._build_images,
                 combine_dependencies=not self._create_auto_dependency_layer,
                 build_in_source=self._build_in_source,
+                mount_with_write=mount_with_write,
             )
         except FunctionNotFound as ex:
             raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
@@ -294,7 +312,6 @@ class BuildContext:
             BuildError,
             BuildInsideContainerError,
             UnsupportedBuilderLibraryVersionError,
-            ContainerBuildNotSupported,
             InvalidBuildGraphException,
         ) as ex:
             click.secho("\nBuild Failed", fg="red")

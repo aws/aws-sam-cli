@@ -17,7 +17,6 @@ from samcli.commands._utils.constants import (
     DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
     DEFAULT_CACHE_DIR,
 )
-from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.sync.infra_sync_executor import InfraSyncResult
 from tests.unit.commands.buildcmd.test_build_context import DummyStack
 
@@ -226,7 +225,7 @@ class TestDoCli(TestCase):
         else:
             execute_code_sync_mock.assert_not_called()
 
-    @parameterized.expand([(False, True, False, False), (False, True, False, True)])
+    @parameterized.expand([(False, True, False, False), (False, True, False, True), (False, False, False, True)])
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.execute_watch")
     @patch("samcli.commands.build.command.click")
