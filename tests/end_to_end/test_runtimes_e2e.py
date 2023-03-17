@@ -9,7 +9,7 @@ from tests.end_to_end.end_to_end_base import EndToEndBase
 from tests.end_to_end.end_to_end_context import EndToEndTestContext
 from tests.end_to_end.test_stages import (
     DefaultInitStage,
-    DownloadPackagedZipFunctionStage,
+    PackageDownloadZipFunctionStage,
     DefaultRemoteInvokeStage,
     DefaultDeleteStage,
     EndToEndBaseStage,
@@ -49,11 +49,6 @@ class RemoteInvokeValidator(BaseValidator):
     def validate(self, command_result: CommandResult):
         self.assertEqual(command_result.process.get("StatusCode"), 200)
         self.assertEqual(command_result.process.get("FunctionError", ""), "")
-
-
-class DownloadPackagedZipValidator(BaseValidator):
-    def validate(self, command_result: CommandResult):
-        self.assertEqual(command_result.stdout, "Packaged zip file downloaded")
 
 
 class StackOutputsValidator(BaseValidator):
@@ -126,8 +121,9 @@ class TestHelloWorldZipPackagePermissionsEndToEnd(EndToEndBase):
             stages = [
                 DefaultInitStage(InitValidator(e2e_context), e2e_context, init_command_list, self.app_name),
                 EndToEndBaseStage(BuildValidator(e2e_context), e2e_context, build_command_list),
-                EndToEndBaseStage(BaseValidator(e2e_context), e2e_context, package_command_list),
-                DownloadPackagedZipFunctionStage(DownloadPackagedZipValidator(e2e_context), e2e_context, function_name),
+                PackageDownloadZipFunctionStage(
+                    BaseValidator(e2e_context), e2e_context, package_command_list, function_name
+                ),
                 EndToEndBaseStage(LocalInvokeValidator(e2e_context), e2e_context, local_command_list),
             ]
             self._run_tests(stages)

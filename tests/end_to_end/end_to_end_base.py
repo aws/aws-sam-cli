@@ -64,7 +64,6 @@ class EndToEndBase(InitIntegBase, StackOutputsIntegBase, DeleteIntegBase, SyncIn
 
     def _get_package_command(self, s3_prefix, use_json=False, output_template_file=None):
         return PackageIntegBase.get_command_list(
-            self,
             s3_bucket=self.s3_bucket.name,
             s3_prefix=s3_prefix,
             use_json=use_json,
