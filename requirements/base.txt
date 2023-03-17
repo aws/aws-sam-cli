@@ -27,4 +27,4 @@ regex==2021.9.30
 tzlocal==3.0
 
 #Adding cfn-lint dependency for SAM validate
-cfn-lint~=0.72
+cfn-lint~=0.75
