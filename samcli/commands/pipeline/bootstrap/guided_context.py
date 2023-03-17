@@ -5,7 +5,7 @@ with the required infrastructure
 import os
 import sys
 from textwrap import dedent
-from typing import Optional, List, Tuple, Callable
+from typing import Callable, List, Optional, Tuple
 from xmlrpc.client import boolean
 
 import click
@@ -21,10 +21,8 @@ from samcli.commands.pipeline.bootstrap.oidc_config import (
 from samcli.commands.pipeline.external_links import CONFIG_AWS_CRED_DOC_URL
 from samcli.lib.bootstrap.bootstrap import get_current_account_id
 from samcli.lib.utils.colors import Colored
-
 from samcli.lib.utils.defaults import get_default_aws_region
 from samcli.lib.utils.profile import list_available_profiles
-
 
 GITHUB_ACTIONS = "github-actions"
 GITLAB = "gitlab"
@@ -35,7 +33,6 @@ IAM = "iam"
 
 
 class GuidedContext:
-
     SUPPORTED_OIDC_PROVIDERS = {"1": GITHUB_ACTIONS, "2": GITLAB, "3": BITBUCKET}
     OIDC_PROVIDER_NAME_MAPPINGS = {GITHUB_ACTIONS: "GitHub Actions", GITLAB: "GitLab", BITBUCKET: "Bitbucket"}
     # GitHub defaults: https://tinyurl.com/github-defaults
@@ -192,7 +189,7 @@ class GuidedContext:
 
     def _prompt_oidc_provider(self) -> None:
         click.echo("Select an OIDC provider:")
-        for (key, provider) in self.SUPPORTED_OIDC_PROVIDERS.items():
+        for key, provider in self.SUPPORTED_OIDC_PROVIDERS.items():
             click.echo("\t{key} - {provider}".format(key=key, provider=self.OIDC_PROVIDER_NAME_MAPPINGS[provider]))
         oidc_provider = click.prompt(
             "Choice",

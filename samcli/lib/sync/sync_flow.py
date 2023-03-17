@@ -1,27 +1,36 @@
 """SyncFlow base class """
 import logging
-
 from abc import ABC, abstractmethod
 from enum import Enum
+from os import environ
 from pathlib import Path
 from threading import Lock
-from typing import Any, Dict, List, NamedTuple, Optional, TYPE_CHECKING, cast, Set
+from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Set, cast
+
 from boto3.session import Session
 
-from samcli.lib.providers.provider import get_resource_by_id
-
-from samcli.lib.providers.provider import ResourceIdentifier, Stack
-from samcli.lib.utils.boto_utils import get_boto_client_provider_from_session_with_config
-from samcli.lib.utils.lock_distributor import LockDistributor, LockChain
+from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_by_id
 from samcli.lib.sync.exceptions import MissingLockException, MissingPhysicalResourceError
+from samcli.lib.utils.boto_utils import get_boto_client_provider_from_session_with_config
+from samcli.lib.utils.lock_distributor import LockChain, LockDistributor
 
 if TYPE_CHECKING:  # pragma: no cover
-    from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
+    from samcli.commands.deploy.deploy_context import DeployContext
+    from samcli.commands.sync.sync_context import SyncContext
 
 # Logging with multiple processes is not safe. Use a log queue in the future.
 # https://docs.python.org/3/howto/logging-cookbook.html#:~:text=Although%20logging%20is%20thread%2Dsafe,across%20multiple%20processes%20in%20Python.
 LOG = logging.getLogger(__name__)
+
+
+def get_default_retry_config() -> Optional[Dict]:
+    """
+    Returns a default retry config if nothing is overriden by environment variables
+    """
+    if environ.get("AWS_MAX_ATTEMPTS") or environ.get("AWS_RETRY_MODE"):
+        return None
+    return {"max_attempts": 10, "mode": "standard"}
 
 
 class ApiCallTypes(Enum):
@@ -45,15 +54,20 @@ class SyncFlow(ABC):
     _log_name: str
     _build_context: "BuildContext"
     _deploy_context: "DeployContext"
+    _sync_context: "SyncContext"
     _stacks: Optional[List[Stack]]
     _session: Optional[Session]
     _physical_id_mapping: Dict[str, str]
     _locks: Optional[Dict[str, Lock]]
+    # Local hash represents the state of a particular sync flow
+    # We store the hash value in sync state toml file as value
+    _local_sha: Optional[str]
 
     def __init__(
         self,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         log_name: str,
         stacks: Optional[List[Stack]] = None,
@@ -65,6 +79,8 @@ class SyncFlow(ABC):
             BuildContext used for build related parameters
         deploy_context : BuildContext
             DeployContext used for this deploy related parameters
+        sync_context: SyncContext
+            SyncContext object that obtains sync information.
         physical_id_mapping : Dict[str, str]
             Mapping between resource logical identifier and physical identifier
         log_name : str
@@ -74,18 +90,42 @@ class SyncFlow(ABC):
         """
         self._build_context = build_context
         self._deploy_context = deploy_context
+        self._sync_context = sync_context
         self._log_name = log_name
         self._stacks = stacks
         self._session = None
         self._physical_id_mapping = physical_id_mapping
         self._locks = None
+        self._local_sha = None
 
     def set_up(self) -> None:
         """Clients and other expensives setups should be handled here instead of constructor"""
-        self._session = Session(profile_name=self._deploy_context.profile, region_name=self._deploy_context.region)
+        pass
+
+    def _get_session(self) -> Session:
+        if not self._session:
+            self._session = Session(profile_name=self._deploy_context.profile, region_name=self._deploy_context.region)
+        return self._session
 
     def _boto_client(self, client_name: str):
-        return get_boto_client_provider_from_session_with_config(cast(Session, self._session))(client_name)
+        default_retry_config = get_default_retry_config()
+        if not default_retry_config:
+            LOG.debug("Creating boto client (%s) with user's retry config", client_name)
+            return get_boto_client_provider_from_session_with_config(self._get_session())(client_name)
+
+        LOG.debug("Creating boto client (%s) with default retry config", client_name)
+        return get_boto_client_provider_from_session_with_config(self._get_session(), retries=default_retry_config)(
+            client_name
+        )
+
+    @property
+    @abstractmethod
+    def sync_state_identifier(self) -> str:
+        """
+        Sync state is the unique identifier for each sync flow
+        We store the identifier in sync state toml file as key
+        """
+        raise NotImplementedError("sync_state_identifier")
 
     @abstractmethod
     def gather_resources(self) -> None:
@@ -93,6 +133,32 @@ class SyncFlow(ABC):
         Ex: Building lambda functions
         """
         raise NotImplementedError("gather_resources")
+
+    def _update_local_hash(self) -> None:
+        """Updates the latest local hash of the sync flow which then can be used for comparison for next run"""
+        if not self._local_sha:
+            LOG.debug("%sNo local hash is configured, skipping to update local hash", self.log_prefix)
+            return
+
+        self._sync_context.update_resource_sync_state(self.sync_state_identifier, self._local_sha)
+
+    def compare_local(self) -> bool:
+        """Comparison between local resource and its local stored state.
+        If the resources are identical, sync and gather dependencies will be skipped.
+        Simply return False if there is no comparison needed.
+        Ex: Comparing local Lambda function artifact with stored SHA256
+
+        Returns
+        -------
+        bool
+            Return True if current resource and cached are in sync. Skipping rest of the execution.
+            Return False otherwise.
+        """
+        stored_sha = self._sync_context.get_resource_latest_sync_hash(self.sync_state_identifier)
+        LOG.debug("%sLocal SHA: %s Stored SHA: %s", self.log_prefix, self._local_sha, stored_sha)
+        if self._local_sha and stored_sha and self._local_sha == stored_sha:
+            return True
+        return False
 
     @abstractmethod
     def compare_remote(self) -> bool:
@@ -309,11 +375,15 @@ class SyncFlow(ABC):
         LOG.debug("%sGathering Resources", self.log_prefix)
         self.gather_resources()
         LOG.debug("%sComparing with Remote", self.log_prefix)
-        if not self.compare_remote():
+        if (not self.compare_local()) and (not self.compare_remote()):
             LOG.debug("%sSyncing", self.log_prefix)
             self.sync()
+            LOG.debug("%sUpdating local hash of the sync flow", self.log_prefix)
+            self._update_local_hash()
             LOG.debug("%sGathering Dependencies", self.log_prefix)
             dependencies = self.gather_dependencies()
+        else:
+            LOG.info("%sSkipping resource update as the content didn't change", self.log_prefix)
         LOG.debug("%sFinished", self.log_prefix)
         return dependencies
 

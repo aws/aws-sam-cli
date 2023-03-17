@@ -34,7 +34,7 @@ smoke-test:
 
 lint:
 	# Linter performs static analysis to catch latent bugs
-	pylint --rcfile .pylintrc samcli
+	ruff samcli
 	# mypy performs type check
 	mypy --no-incremental setup.py samcli tests
 
@@ -46,6 +46,9 @@ black:
 
 black-check:
 	black --check setup.py samcli tests
+
+format: black
+	ruff samcli --fix
 
 # Verifications to run before sending a pull request
 pr: init dev black-check

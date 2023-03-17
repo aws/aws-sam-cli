@@ -3,6 +3,11 @@ Supplies the environment variables necessary to set up Local Lambda runtime
 """
 
 import sys
+from enum import IntEnum
+
+
+class Python(IntEnum):
+    TWO = 2
 
 
 class EnvironmentVariables:
@@ -89,7 +94,6 @@ class EnvironmentVariables:
 
         # Default value for the variable gets lowest priority
         for name, value in self.variables.items():
-
             # Shell environment values, second priority
             if name in self.shell_env_values:
                 value = self.shell_env_values[name]
@@ -197,7 +201,7 @@ class EnvironmentVariables:
 
         # value is a scalar type like int, str which can be stringified
         # do not stringify unicode in Py2, Py3 str supports unicode
-        elif sys.version_info.major > 2:
+        elif sys.version_info.major > Python.TWO:
             result = str(value)
         elif not isinstance(value, unicode):  # noqa: F821 pylint: disable=undefined-variable
             result = str(value)

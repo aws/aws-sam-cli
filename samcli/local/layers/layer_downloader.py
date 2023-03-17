@@ -7,13 +7,12 @@ from pathlib import Path
 from typing import List
 
 import boto3
-from botocore.exceptions import NoCredentialsError, ClientError
+from botocore.exceptions import ClientError, NoCredentialsError
 
-from samcli.lib.providers.provider import Stack, LayerVersion
+from samcli.commands.local.cli_common.user_exceptions import CredentialsRequired, ResourceNotFound
+from samcli.lib.providers.provider import LayerVersion, Stack
 from samcli.lib.utils.codeuri import resolve_code_path
 from samcli.local.lambdafn.zip import unzip_from_uri
-from samcli.commands.local.cli_common.user_exceptions import CredentialsRequired, ResourceNotFound
-
 
 LOG = logging.getLogger(__name__)
 

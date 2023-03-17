@@ -4,17 +4,17 @@ Terraform prepare hook implementation
 This module contains the main prepare method
 """
 import json
+import logging
 import os
 from pathlib import Path
-from subprocess import run, CalledProcessError
+from subprocess import CalledProcessError, run
 from typing import Any, Dict
-import logging
 
-from samcli.lib.hook.exceptions import PrepareHookException
-from samcli.hook_packages.terraform.hooks.prepare.translate import translate_to_cfn
 from samcli.hook_packages.terraform.hooks.prepare.constants import CFN_CODE_PROPERTIES
+from samcli.hook_packages.terraform.hooks.prepare.translate import translate_to_cfn
+from samcli.lib.hook.exceptions import PrepareHookException
 from samcli.lib.utils import osutils
-from samcli.lib.utils.subprocess_utils import invoke_subprocess_with_loading_pattern, LoadingPatternError
+from samcli.lib.utils.subprocess_utils import LoadingPatternError, invoke_subprocess_with_loading_pattern
 
 LOG = logging.getLogger(__name__)
 

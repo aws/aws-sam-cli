@@ -55,7 +55,6 @@ class TestInteractiveFlow(TestCase):
     @patch.object(Confirm, "ask")
     @patch.object(Choice, "ask")
     def test_run_with_preloaded_default_values(self, mock_3rd_q, mock_2nd_q, mock_1st_q):
-
         mock_1st_q.return_value = "answer1"
         mock_2nd_q.return_value = False
         mock_3rd_q.return_value = "option1"

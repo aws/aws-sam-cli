@@ -1,7 +1,7 @@
 """
 Module to check mutually exclusive cli parameters
 """
-from typing import Any, List, Tuple, Mapping, cast
+from typing import Any, List, Mapping, Tuple, cast
 
 import click
 

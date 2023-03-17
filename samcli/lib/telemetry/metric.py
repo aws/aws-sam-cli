@@ -1,16 +1,14 @@
 """
 Provides methods to generate and send metrics
 """
+import logging
+import platform
+import uuid
 from dataclasses import dataclass
-
+from functools import reduce, wraps
 from pathlib import Path
 from timeit import default_timer
-from functools import wraps, reduce
-
-import uuid
-import platform
-import logging
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 import click
 
@@ -18,16 +16,16 @@ from samcli import __version__ as samcli_version
 from samcli.cli.context import Context
 from samcli.cli.global_config import GlobalConfig
 from samcli.commands._utils.experimental import get_all_experimental_statues
-from samcli.commands.exceptions import UserException, UnhandledException
+from samcli.commands.exceptions import UnhandledException, UserException
+from samcli.lib.hook.exceptions import InvalidHookPackageConfigException
 from samcli.lib.hook.hook_config import HookPackageConfig
 from samcli.lib.hook.hook_wrapper import INTERNAL_PACKAGES_ROOT
-from samcli.lib.hook.exceptions import InvalidHookPackageConfigException
 from samcli.lib.hook.utils import get_hook_metadata
 from samcli.lib.iac.cdk.utils import is_cdk_project
 from samcli.lib.iac.plugins_interfaces import ProjectTypes
 from samcli.lib.telemetry.cicd import CICDDetector, CICDPlatform
 from samcli.lib.telemetry.event import EventTracker
-from samcli.lib.telemetry.project_metadata import get_git_remote_origin_url, get_project_name, get_initial_commit_hash
+from samcli.lib.telemetry.project_metadata import get_git_remote_origin_url, get_initial_commit_hash, get_project_name
 from samcli.lib.telemetry.telemetry import Telemetry
 from samcli.lib.warnings.sam_cli_warning import TemplateWarningsChecker
 
@@ -145,19 +143,21 @@ def track_command(func):
                 # re-raise here to handle exception captured in context and not run func()
                 raise ctx.exception
 
-            # Execute the function and capture return value. This is returned back by the wrapper
+            # Execute the function and capture return value. This is returned by the wrapper
             # First argument of all commands should be the Context
             return_value = func(*args, **kwargs)
         except (
             UserException,
+            click.Abort,
             click.BadOptionUsage,
             click.BadArgumentUsage,
             click.BadParameter,
             click.UsageError,
         ) as ex:
-            # Capture exception information and re-raise it later so we can first send metrics.
+            # Capture exception information and re-raise it later,
+            # so metrics can be sent.
             exception = ex
-            # TODO (hawflau): review exitcode meaning. We now understand exitcode 1 as errors fixable by users.
+            # NOTE(sriram-mv): Set exit code to 1 if deemed to be user fixable error.
             exit_code = 1
             if hasattr(ex, "wrapped_from") and ex.wrapped_from:
                 exit_reason = ex.wrapped_from

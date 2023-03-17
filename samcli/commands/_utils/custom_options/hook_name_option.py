@@ -4,14 +4,15 @@ Custom Click options for hook name
 
 import logging
 import os
+
 import click
 
 from samcli.cli.context import Context
 from samcli.cli.global_config import GlobalConfig
 from samcli.commands._utils.constants import DEFAULT_BUILT_TEMPLATE_PATH
 from samcli.commands._utils.experimental import (
-    prompt_experimental,
     ExperimentalFlag,
+    prompt_experimental,
     set_experimental,
     update_experimental_context,
 )
@@ -135,7 +136,6 @@ def _check_experimental_flag(hook_name, command_name, opts, default_map):
 
 
 def _get_customer_input_beta_features_option(default_map, experimental_entry, opts):
-
     # Get the beta-features flag value from the command parameters if provided.
     beta_features = opts.get("beta_features")
     if beta_features is not None:

@@ -2,8 +2,9 @@
 Plugins are sub-sets of templates, it encapsulate common behavior of different templates and plugged to each of them
 """
 from typing import NamedTuple
-from .processor import Processor
+
 from .interactive_flow import InteractiveFlow
+from .processor import Processor
 
 
 class Plugin(NamedTuple):

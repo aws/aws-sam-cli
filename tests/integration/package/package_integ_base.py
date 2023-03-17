@@ -15,6 +15,9 @@ SLEEP = 3
 
 
 class PackageIntegBase(TestCase):
+    kms_key = None
+    ecr_repo_name = None
+
     @classmethod
     def setUpClass(cls):
         cls.region_name = os.environ.get("AWS_DEFAULT_REGION")
@@ -79,9 +82,6 @@ class PackageIntegBase(TestCase):
     def setUp(self):
         self.s3_prefix = uuid.uuid4().hex
         super().setUp()
-
-    def tearDown(self):
-        super().tearDown()
 
     def get_command_list(
         self,

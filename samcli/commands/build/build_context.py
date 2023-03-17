@@ -9,12 +9,14 @@ from typing import Dict, Optional, List, Tuple, cast
 
 import click
 
+from samcli.commands.build.utils import prompt_user_to_enable_mount_with_write_if_needed, MountMode
 from samcli.lib.build.bundler import EsbuildBundlerManager
 from samcli.lib.providers.sam_api_provider import SamApiProvider
 from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.utils.packagetype import IMAGE
 
 from samcli.commands._utils.template import get_template_data
+from samcli.commands._utils.experimental import ExperimentalFlag, prompt_experimental
 from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
 from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NestedStackManager
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
@@ -34,7 +36,6 @@ from samcli.lib.build.app_builder import (
     ApplicationBuilder,
     BuildError,
     UnsupportedBuilderLibraryVersionError,
-    ContainerBuildNotSupported,
     ApplicationBuildResult,
 )
 from samcli.commands._utils.constants import DEFAULT_BUILD_DIR
@@ -77,6 +78,7 @@ class BuildContext:
         locate_layer_nested: bool = False,
         hook_name: Optional[str] = None,
         build_in_source: Optional[bool] = None,
+        mount_with: str = MountMode.READ.value,
     ) -> None:
         """
         Initialize the class
@@ -132,6 +134,8 @@ class BuildContext:
             Name of the hook package
         build_in_source: Optional[bool]
             Set to True to build in the source directory.
+        mount_with:
+            Mount mode of source code directory when building inside container, READ ONLY by default
         """
 
         self._resource_identifier = resource_identifier
@@ -171,6 +175,7 @@ class BuildContext:
         self._locate_layer_nested = locate_layer_nested
         self._hook_name = hook_name
         self._build_in_source = build_in_source
+        self._mount_with = MountMode(mount_with)
 
     def __enter__(self) -> "BuildContext":
         self.set_up()
@@ -226,13 +231,23 @@ class BuildContext:
 
     def run(self):
         """Runs the building process by creating an ApplicationBuilder."""
-        template_dict = get_template_data(self._template_file)
-        template_transform = template_dict.get("Transform", "")
-        is_sam_template = isinstance(template_transform, str) and template_transform.startswith("AWS::Serverless")
-        if is_sam_template:
+        if self._is_sam_template():
             SamApiProvider.check_implicit_api_resource_ids(self.stacks)
 
         self._stacks = self._handle_build_pre_processing()
+
+        # boolean value indicates if mount with write or not, defaults to READ ONLY
+        mount_with_write = False
+        if self._use_container:
+            if self._mount_with == MountMode.WRITE:
+                mount_with_write = True
+            else:
+                # if self._mount_with is NOT WRITE
+                # check the need of mounting with write permissions and prompt user to enable it if needed
+                mount_with_write = prompt_user_to_enable_mount_with_write_if_needed(
+                    self.get_resources_to_build(),
+                    self.base_dir,
+                )
 
         try:
             builder = ApplicationBuilder(
@@ -251,12 +266,14 @@ class BuildContext:
                 build_images=self._build_images,
                 combine_dependencies=not self._create_auto_dependency_layer,
                 build_in_source=self._build_in_source,
+                mount_with_write=mount_with_write,
             )
         except FunctionNotFound as ex:
             raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
 
         try:
             self._check_exclude_warning()
+            self._check_rust_cargo_experimental_flag()
 
             for f in self.get_resources_to_build().functions:
                 EventTracker.track_event("BuildFunctionRuntime", f.runtime)
@@ -294,7 +311,6 @@ class BuildContext:
             BuildError,
             BuildInsideContainerError,
             UnsupportedBuilderLibraryVersionError,
-            ContainerBuildNotSupported,
             InvalidBuildGraphException,
         ) as ex:
             click.secho("\nBuild Failed", fg="red")
@@ -304,6 +320,17 @@ class BuildContext:
             deep_wrap = getattr(ex, "wrapped_from", None)
             wrapped_from = deep_wrap if deep_wrap else ex.__class__.__name__
             raise UserException(str(ex), wrapped_from=wrapped_from) from ex
+
+    def _is_sam_template(self) -> bool:
+        """Check if a given template is a SAM template"""
+        template_dict = get_template_data(self._template_file)
+        template_transforms = template_dict.get("Transform", [])
+        if not isinstance(template_transforms, list):
+            template_transforms = [template_transforms]
+        for template_transform in template_transforms:
+            if isinstance(template_transform, str) and template_transform.startswith("AWS::Serverless"):
+                return True
+        return False
 
     def _handle_build_pre_processing(self) -> List[Stack]:
         """
@@ -670,3 +697,26 @@ Commands you can use next
         excludes: Tuple[str, ...] = self._exclude if self._exclude is not None else ()
         if self._resource_identifier in excludes:
             LOG.warning(self._EXCLUDE_WARNING_MESSAGE)
+
+    def _check_rust_cargo_experimental_flag(self) -> None:
+        """
+        Prints warning message and confirms if user wants to use beta feature
+        """
+        WARNING_MESSAGE = (
+            'Build method "rust-cargolambda" is a beta feature.\n'
+            "Please confirm if you would like to proceed\n"
+            'You can also enable this beta feature with "sam build --beta-features".'
+        )
+        resources_to_build = self.get_resources_to_build()
+        is_building_rust = False
+        for function in resources_to_build.functions:
+            if function.metadata and function.metadata.get("BuildMethod", "") == "rust-cargolambda":
+                is_building_rust = True
+                break
+
+        if is_building_rust:
+            prompt_experimental(ExperimentalFlag.RustCargoLambda, WARNING_MESSAGE)
+
+    @property
+    def build_in_source(self) -> Optional[bool]:
+        return self._build_in_source

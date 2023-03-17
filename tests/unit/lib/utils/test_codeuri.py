@@ -25,7 +25,6 @@ class TestLocalLambda_get_code_path(TestCase):
 
     @parameterized.expand([("var/task"), ("some/dir")])
     def test_must_resolve_relative_cwd(self, cwd_path):
-
         codeuri = self.relative_codeuri
 
         abs_cwd = os.path.abspath(cwd_path)
@@ -37,7 +36,6 @@ class TestLocalLambda_get_code_path(TestCase):
 
     @parameterized.expand([(""), ("."), ("hello"), ("a/b/c/d"), ("../../c/d/e")])
     def test_must_resolve_relative_codeuri(self, codeuri):
-
         expected = os.path.normpath(os.path.join(self.cwd, codeuri))
 
         actual = resolve_code_path(self.cwd, codeuri)
@@ -46,7 +44,6 @@ class TestLocalLambda_get_code_path(TestCase):
 
     @parameterized.expand([("/a/b/c"), ("/")])
     def test_must_resolve_absolute_codeuri(self, codeuri):
-
         expected = codeuri  # CodeUri must be return as is for absolute paths
 
         actual = resolve_code_path(None, codeuri)

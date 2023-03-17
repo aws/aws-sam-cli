@@ -5,9 +5,9 @@ setting up stdin/stdout etc
 
 import click
 
+from .generate_event.cli import cli as generate_event_cli
 from .invoke.cli import cli as invoke_cli
 from .start_api.cli import cli as start_api_cli
-from .generate_event.cli import cli as generate_event_cli
 from .start_lambda.cli import cli as start_lambda_cli
 
 

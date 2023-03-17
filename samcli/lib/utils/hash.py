@@ -1,11 +1,23 @@
 """
 Hash calculation utilities for files and directories.
 """
-import os
 import hashlib
-from typing import Any, cast, List, Optional
+import os
+import sys
+from typing import Any, List, Optional, cast
 
 BLOCK_SIZE = 4096
+# earliest python version to support usedforsecurity option for hashlib.md5 is 3.9
+# https://docs.python.org/3/library/hashlib.html#hash-algorithms
+_MAJOR_PYTHON_VERSION = 3
+_MINOR_PYTHON_VERSION = 9
+
+
+def _get_md5():
+    if sys.version_info.major >= _MAJOR_PYTHON_VERSION and sys.version_info.minor >= _MINOR_PYTHON_VERSION:
+        return hashlib.md5(usedforsecurity=False)
+    else:
+        return hashlib.md5()
 
 
 def file_checksum(file_name: str, hash_generator: Any = None) -> str:
@@ -25,7 +37,7 @@ def file_checksum(file_name: str, hash_generator: Any = None) -> str:
     """
     # Default value is set here because default values are static mutable in Python
     if not hash_generator:
-        hash_generator = hashlib.md5()
+        hash_generator = _get_md5()
     with open(file_name, "rb") as file_handle:
         # Save current cursor position and reset cursor to start of file
         curpos = file_handle.tell()
@@ -65,7 +77,7 @@ def dir_checksum(
     """
     ignore_set = set(ignore_list or [])
     if not hash_generator:
-        hash_generator = hashlib.md5()
+        hash_generator = _get_md5()
     files = list()
     # Walk through given directory and find all directories and files.
     for dirpath, dirnames, filenames in os.walk(directory, followlinks=followlinks):
@@ -89,7 +101,7 @@ def dir_checksum(
     return cast(str, hash_generator.hexdigest())
 
 
-def str_checksum(content: str) -> str:
+def str_checksum(content: str, hash_generator: Any = None) -> str:
     """
     return a md5 checksum of a given string
 
@@ -97,10 +109,13 @@ def str_checksum(content: str) -> str:
     ----------
     content: string
         the string to be hashed
+     hash_generator : hashlib._Hash
+        The hashing method (hashlib _Hash object) that generates checksum. Defaults to hashlib.md5.
     Returns
     -------
     md5 checksum of content
     """
-    md5 = hashlib.md5()
-    md5.update(content.encode("utf-8"))
-    return md5.hexdigest()
+    if not hash_generator:
+        hash_generator = _get_md5()
+    hash_generator.update(content.encode("utf-8"))
+    return cast(str, hash_generator.hexdigest())

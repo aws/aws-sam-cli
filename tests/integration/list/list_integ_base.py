@@ -1,17 +1,19 @@
 import re
 
 import os
-from unittest import TestCase
 from pathlib import Path
 import uuid
 import shutil
 import tempfile
+
+from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.testing_utils import get_sam_command
 
 
-class ListIntegBase(TestCase):
+class ListIntegBase(DeployIntegBase):
     @classmethod
     def setUpClass(cls):
+        super().setUpClass()
         cls.cmd = cls.base_command()
         cls.list_test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "list")
 

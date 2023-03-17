@@ -14,6 +14,7 @@ configuration:
   - DeleteIntegTesting
   - SyncIntegTesting
   - LocalIntegTesting
+  - EndToEndTesting
   # other Integration testing, Dev, regression and smoke testing
   - OtherTesting
 
@@ -23,6 +24,7 @@ environment:
   NODE_VERSION: "14.17.6"
   AWS_S3: 'AWS_S3_TESTING'
   AWS_ECR: 'AWS_ECR_TESTING'
+  CARGO_LAMBDA_VERSION: "v0.17.1"
  
   matrix:
 
@@ -114,6 +116,18 @@ install:
   - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
   - sh: "terraform -version"
 
+  # install Rust
+  - sh: "curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL https://sh.rustup.rs | sh -s -- --default-toolchain none -y"
+  - sh: "source $HOME/.cargo/env"
+  - sh: "rustup toolchain install stable --profile minimal --no-self-update"
+  - sh: "rustup default stable"
+  - sh: "rustup target add x86_64-unknown-linux-gnu --toolchain stable"
+  - sh: "rustup target add aarch64-unknown-linux-gnu --toolchain stable"
+  - sh: "pip install cargo-lambda==$CARGO_LAMBDA_VERSION"
+  - sh: "rustc -V"
+  - sh: "cargo -V"
+  - sh: "cargo lambda -V"
+
   - sh: "python3.9 -m venv .venv_env_vars"
   - sh: ".venv_env_vars/bin/pip install boto3"
   - sh: "test_env_var=$(.venv_env_vars/bin/python tests/get_testing_resources.py)"
@@ -163,8 +177,14 @@ build_script:
 # Final clean up no matter success or failure
 on_finish:
   # Upload test reports as artifacts
-  - sh: find "$APPVEYOR_BUILD_FOLDER" -type f -name 'TEST*.json' -print0 | xargs -0 -I '{}' appveyor PushArtifact '{}'
+  - sh: find "$APPVEYOR_BUILD_FOLDER" -type f -name 'TEST_REPORT-*.json' -print0 | xargs -0 -I '{}' appveyor PushArtifact '{}'
+  - sh: >
+      AWS_ACCESS_KEY_ID=$TEST_REPORT_S3_BUCKET_ACCESS_KEY_ID 
+      AWS_SECRET_ACCESS_KEY=$TEST_REPORT_S3_BUCKET_SECRET_ACCESS_KEY 
+      AWS_SESSION_TOKEN=$TEST_REPORT_S3_BUCKET_SESSION_TOKEN 
+      aws s3 cp "$APPVEYOR_BUILD_FOLDER" "s3://$TEST_REPORT_S3_BUCKET_NAME/appveyor/$APPVEYOR_PROJECT_SLUG/$APPVEYOR_BUILD_ID/$APPVEYOR_JOB_ID/" --recursive --exclude "*" --include "TEST_REPORT-*.json" --region us-west-2
 
+  # notify task success
   - sh: 'export AWS_ACCESS_KEY_ID=$CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID'
   - sh: 'export AWS_SECRET_ACCESS_KEY=$CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY'
   - sh: 'export AWS_SESSION_TOKEN=$CI_ACCESS_ROLE_AWS_SESSION_TOKEN'
@@ -269,7 +289,7 @@ for:
 
     test_script:
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/deploy --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
+      - sh: "pytest -vv tests/integration/deploy -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
 
   # Integ testing package
   -
@@ -314,10 +334,21 @@ for:
     test_script:
       # Pre-dev Tests
       - "pip install -e \".[pre-dev]\""
-      - "pylint --rcfile .pylintrc samcli"
+      - "ruff samcli"
 
       - "pip install -e \".[dev]\""
       - sh: "pytest -vv tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-local.json"
+
+  # End-to-end testing
+  -
+    matrix:
+      only:
+        - image: Ubuntu
+          configuration: EndToEndTesting
+
+    test_script:
+      - "pip install -e \".[dev]\""
+      - sh: "pytest -vv -n 4 --reruns 5 --dist loadscope tests/end_to_end --json-report --json-report-file=TEST_REPORT-end-to-end.json"
 
   # Other testing
   -
@@ -329,12 +360,12 @@ for:
     test_script:
       # Pre-dev Tests
       - "pip install -e \".[pre-dev]\""
-      - "pylint --rcfile .pylintrc samcli"
+      - "ruff samcli"
 
       # Dev Tests
       - "pip install -e \".[dev]\""
       - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit --json-report --json-report-file=TEST_REPORT-unit.json"
-      - "pylint --rcfile .pylintrc samcli"
+      - "ruff samcli"
       - "mypy setup.py samcli tests"
       - "pytest -n 4 tests/functional --json-report --json-report-file=TEST_REPORT-functional.json"
       

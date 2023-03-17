@@ -3,11 +3,12 @@ CLI command for "delete" command
 """
 
 import logging
-
 from typing import Optional
-import click
-from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 
+import click
+
+from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
+from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.lib.utils.version_checker import check_newer_version
 
 SHORT_HELP = "Delete an AWS SAM application and the artifacts created by sam deploy."
@@ -83,6 +84,7 @@ LOG = logging.getLogger(__name__)
 @pass_context
 @check_newer_version
 @print_cmdline_args
+@command_exception_handler
 def cli(ctx, stack_name: str, config_file: str, config_env: str, no_prompts: bool, s3_bucket: str, s3_prefix: str):
     """
     `sam delete` command entry point

@@ -11,8 +11,9 @@ from botocore.exceptions import ClientError
 
 from samcli import __version__
 from samcli.cli.global_config import GlobalConfig
-from samcli.commands.exceptions import UserException, CredentialsError
-from samcli.lib.utils.managed_cloudformation_stack import StackOutput, manage_stack as manage_cloudformation_stack
+from samcli.commands.exceptions import CredentialsError, UserException
+from samcli.lib.utils.managed_cloudformation_stack import StackOutput
+from samcli.lib.utils.managed_cloudformation_stack import manage_stack as manage_cloudformation_stack
 
 SAM_CLI_STACK_NAME = "aws-sam-cli-managed-default"
 LOG = logging.getLogger(__name__)

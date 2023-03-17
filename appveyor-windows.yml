@@ -16,21 +16,23 @@ configuration:
   - DeleteIntegTesting
   - SyncIntegTesting
   - LocalIntegTesting
+  - EndToEndTesting
   # other Integration testing, Dev, regression and smoke testing
   - OtherTesting
 
 environment:
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
+  CARGO_LAMBDA_VERSION: "v0.17.1"
 
   # Python uses $TMPDIR envvar to find root of tempdir
   TMPDIR: "%TEMP%"
   TMP: "%TEMP%"
 
-  # MSI Installers only use Py3.7.6. It is sufficient to test with this version here.
-  PYTHON_HOME: "C:\\Python37-x64"
-  PYTHON_SCRIPTS: "C:\\Python37-x64\\Scripts"
-  PYTHON_EXE: "C:\\Python37-x64\\python.exe"
+  # MSI Installers only use Py3.8. It is sufficient to test with this version here.
+  PYTHON_HOME: "C:\\Python38-x64"
+  PYTHON_SCRIPTS: "C:\\Python38-x64\\Scripts"
+  PYTHON_EXE: "C:\\Python38-x64\\python.exe"
   PYTHON_ARCH: "64"
   HOME: 'C:\Users\appveyor'
   HOMEDRIVE: "C:"
@@ -56,10 +58,18 @@ cache:
 install:
   # setup make
   - "choco install make"
+  # Install latest dotnet sdk
+  - "choco install dotnet-sdk"
+  # setup Java, Maven and Gradle
+  - "choco install maven -y --force"
+  - "choco install gradle -y --force"
+  - "java -version"
+  - "gradle -v"
+  - "mvn --version"
 
   # Make sure the temp directory exists for Python to use.
   - ps: "mkdir -Force C:\\tmp"
-  - "SET PATH=%PYTHON_HOME%;C:\\Ruby27-x64\\bin;%PATH%"
+  - 'set PATH=%PYTHON_HOME%;C:\Ruby27-x64\bin;%PATH%;C:\Python37-x64;C:\Python39-x64'
   - "echo %PYTHON_HOME%"
   - "echo %PATH%"
   - "python --version"
@@ -71,6 +81,9 @@ install:
 
   # Upgrade setuptools, wheel and virtualenv
   - "python -m pip install --upgrade setuptools wheel virtualenv"
+  # Install pip for the python versions which is used by the tests
+  - "C:\\Python37-x64\\python.exe -m pip install --upgrade pip"
+  - "C:\\Python39-x64\\python.exe -m pip install --upgrade pip"
 
   # Install AWS CLI Globally via pip3
   - "pip install awscli"
@@ -124,8 +137,16 @@ install:
 # Final clean up no matter success or failure
 on_finish:
   # Upload test reports as artifacts
-  - ps: Get-ChildItem .\TEST*.json | % { Push-AppveyorArtifact $_.FullName -FileName $_.Name }
+  - ps: Get-ChildItem .\TEST_REPORT-*.json | % { Push-AppveyorArtifact $_.FullName -FileName $_.Name }
+  - ps: '
+  If (Test-Path env:BY_CANARY){
+    $env:AWS_ACCESS_KEY_ID = $env:TEST_REPORT_S3_BUCKET_ACCESS_KEY_ID;
+    $env:AWS_SECRET_ACCESS_KEY = $env:TEST_REPORT_S3_BUCKET_SECRET_ACCESS_KEY;
+    $env:AWS_SESSION_TOKEN = $env:TEST_REPORT_S3_BUCKET_SESSION_TOKEN;
+    aws s3 cp ".\" "s3://$env:TEST_REPORT_S3_BUCKET_NAME/appveyor/$env:APPVEYOR_PROJECT_SLUG/$env:APPVEYOR_BUILD_ID/$env:APPVEYOR_JOB_ID/" --recursive --exclude "*" --include "TEST_REPORT-*.json" --region us-west-2
+  }'
 
+  # notify success
   - ps: "
   If (Test-Path env:BY_CANARY){
     $env:AWS_ACCESS_KEY_ID = $env:CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID;
@@ -140,6 +161,23 @@ for:
   - matrix:
       only:
         - configuration: BuildIntegTesting
+
+    build_script:
+      # install Rust in build_script to not override the default "install" actions
+      - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
+      - rustup-init.exe -y --default-host x86_64-pc-windows-msvc --default-toolchain stable
+      - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
+      - set RUST_BACKTRACE=1
+      - rustup toolchain install stable --profile minimal --no-self-update
+      - rustup default stable
+      - rustup target add x86_64-unknown-linux-gnu --toolchain stable
+      - rustup target add aarch64-unknown-linux-gnu --toolchain stable
+      - ps: "choco install zig"
+      - ps: Invoke-WebRequest -Uri https://github.com/cargo-lambda/cargo-lambda/releases/download/$env:CARGO_LAMBDA_VERSION/cargo-lambda-$env:CARGO_LAMBDA_VERSION.windows-x64.zip -OutFile C:\Users\appveyor\cargo-lambda.zip
+      - ps: Expand-Archive -DestinationPath C:\Users\appveyor\.cargo\bin C:\Users\appveyor\cargo-lambda.zip
+      - rustc -V
+      - cargo -V
+      - cargo lambda -V
 
     test_script:
       # Reactivate virtualenv before running tests
@@ -218,7 +256,7 @@ for:
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
-      - ps: "pytest -vv tests/integration/deploy --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
+      - ps: "pytest -vv tests/integration/deploy -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
 
   # Integ testing package
   - matrix:
@@ -267,6 +305,18 @@ for:
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
       - ps: "pytest -vv tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-local.json"
+
+  # End-to-end testing
+  - matrix:
+      only:
+        - configuration: EndToEndTesting
+
+    test_script:
+      # Reactivate virtualenv before running tests
+      - "git --version"
+      - "venv\\Scripts\\activate"
+      - "docker system prune -a -f"
+      - ps: "pytest -vv -n 4 --reruns 5 --dist loadscope tests/end_to_end --json-report --json-report-file=TEST_REPORT-end-to-end.json"
 
   #Other testing
   - matrix:

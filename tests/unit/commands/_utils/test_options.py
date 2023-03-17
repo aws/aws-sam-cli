@@ -90,7 +90,6 @@ class TestGetOrDefaultTemplateFileName(TestCase):
     @patch("samcli.commands._utils.options.os")
     @patch("samcli.commands._utils.options.get_template_data")
     def test_verify_ctx(self, get_template_data_mock, os_mock):
-
         ctx = Mock()
         ctx.default_map = {}
 
@@ -109,7 +108,6 @@ class TestGetOrDefaultTemplateFileName(TestCase):
         os_mock.path.abspath.assert_called_with(expected)
 
     def test_verify_ctx_template_file_param(self):
-
         ctx_mock = Mock()
         ctx_mock.default_map = {"template": "bar.txt"}
         expected_result_from_ctx = os.path.abspath("bar.txt")

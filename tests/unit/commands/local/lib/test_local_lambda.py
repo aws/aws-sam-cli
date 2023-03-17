@@ -18,6 +18,7 @@ from samcli.commands.local.lib.exceptions import (
     OverridesNotWellDefinedError,
     NoPrivilegeException,
     InvalidIntermediateImageError,
+    UnsupportedInlineCodeError,
 )
 
 
@@ -571,7 +572,7 @@ class TestLocalLambda_invoke(TestCase):
         event = "event"
         stdout = "stdout"
         stderr = "stderr"
-        function = Mock(functionname="name", handler="app.handler", runtime="test", packagetype=ZIP)
+        function = Mock(functionname="name", handler="app.handler", runtime="test", packagetype=ZIP, inlinecode=None)
         invoke_config = "config"
 
         self.function_provider_mock.get.return_value = function
@@ -683,6 +684,25 @@ class TestLocalLambda_invoke(TestCase):
         self.function_provider_mock.get.return_value = function
 
         with self.assertRaises(InvalidIntermediateImageError):
+            self.local_lambda.invoke(name, event, stdout, stderr)
+
+    def test_must_raise_unsupported_error_if_inlinecode_found(self):
+        name = "name"
+        event = "event"
+        stdout = "stdout"
+        stderr = "stderr"
+        function = Mock(
+            functionname="name",
+            handler="app.handler",
+            runtime="test",
+            packagetype=ZIP,
+            inlinecode="| \
+        exports.handler = async () => 'Hello World!'",
+        )
+
+        self.function_provider_mock.get.return_value = function
+
+        with self.assertRaises(UnsupportedInlineCodeError):
             self.local_lambda.invoke(name, event, stdout, stderr)
 
 

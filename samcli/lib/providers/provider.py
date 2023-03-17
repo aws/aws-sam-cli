@@ -7,18 +7,18 @@ import logging
 import os
 import posixpath
 from collections import namedtuple
-from typing import Any, Set, NamedTuple, Optional, List, Dict, Tuple, Union, cast, Iterator, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, NamedTuple, Optional, Set, Tuple, Union, cast
 
 from samcli.commands.local.cli_common.user_exceptions import (
+    InvalidFunctionPropertyType,
     InvalidLayerVersionArn,
     UnsupportedIntrinsic,
-    InvalidFunctionPropertyType,
 )
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.samlib.resource_metadata_normalizer import (
-    ResourceMetadataNormalizer,
     SAM_METADATA_SKIP_BUILD_KEY,
     SAM_RESOURCE_ID_KEY,
+    ResourceMetadataNormalizer,
 )
 from samcli.lib.utils.architecture import X86_64
 

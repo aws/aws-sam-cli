@@ -6,16 +6,16 @@ CLI configuration decorator to use TOML configuration files for click commands.
 # [click_config_file](https://github.com/phha/click_config_file/blob/master/click_config_file.py)
 # SPDX-License-Identifier: MIT
 
-import os
 import functools
 import logging
-
+import os
 from pathlib import Path
+
 import click
 
-from samcli.commands.exceptions import ConfigException
 from samcli.cli.context import get_cmd_names
-from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
+from samcli.commands.exceptions import ConfigException
+from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME, DEFAULT_ENV, SamConfig
 
 __all__ = ("TomlProvider", "configuration_option", "get_ctx_defaults")
 
@@ -245,13 +245,9 @@ def decorator_customize_config_file(f):
     """
     config_file_attrs = {}
     config_file_param_decls = ("--config-file",)
-    config_file_attrs["help"] = (
-        "The path and file name of the configuration file containing default parameter values to use. "
-        "Its default value is 'samconfig.toml' in project directory. For more information about configuration files, "
-        "see: "
-        "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html."
-    )
+    config_file_attrs["help"] = "Configuration file containing default parameter values."
     config_file_attrs["default"] = "samconfig.toml"
+    config_file_attrs["show_default"] = True
     config_file_attrs["is_eager"] = True
     config_file_attrs["required"] = False
     config_file_attrs["type"] = click.STRING
@@ -267,12 +263,9 @@ def decorator_customize_config_env(f):
     """
     config_env_attrs = {}
     config_env_param_decls = ("--config-env",)
-    config_env_attrs["help"] = (
-        "The environment name specifying the default parameter values in the configuration file to use. "
-        "Its default value is 'default'. For more information about configuration files, see: "
-        "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html."
-    )
+    config_env_attrs["help"] = "Environment name specifying default parameter values in the configuration file."
     config_env_attrs["default"] = "default"
+    config_env_attrs["show_default"] = True
     config_env_attrs["is_eager"] = True
     config_env_attrs["required"] = False
     config_env_attrs["type"] = click.STRING

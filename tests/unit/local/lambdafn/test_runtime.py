@@ -14,7 +14,6 @@ from samcli.local.lambdafn.config import FunctionConfig
 
 
 class LambdaRuntime_create(TestCase):
-
     DEFAULT_MEMORY = 128
     DEFAULT_TIMEOUT = 3
 
@@ -169,7 +168,6 @@ class LambdaRuntime_create(TestCase):
 
 
 class LambdaRuntime_run(TestCase):
-
     DEFAULT_MEMORY = 128
     DEFAULT_TIMEOUT = 3
 
@@ -255,12 +253,10 @@ class LambdaRuntime_run(TestCase):
 
 
 class LambdaRuntime_invoke(TestCase):
-
     DEFAULT_MEMORY = 128
     DEFAULT_TIMEOUT = 3
 
     def setUp(self):
-
         self.manager_mock = Mock()
 
         self.name = "name"
@@ -605,12 +601,10 @@ class TestLambdaRuntime_unarchived_layer(TestCase):
 
 
 class TestWarmLambdaRuntime_invoke(TestCase):
-
     DEFAULT_MEMORY = 128
     DEFAULT_TIMEOUT = 3
 
     def setUp(self):
-
         self.manager_mock = Mock()
 
         self.name = "name"
@@ -986,7 +980,6 @@ class TestWarmLambdaRuntime_clean_warm_containers_related_resources(TestCase):
 
     @patch("samcli.local.lambdafn.runtime.shutil")
     def test_must_container_stopped_when_its_code_dir_got_changed(self, shutil_mock):
-
         self.runtime.clean_running_containers_and_related_resources()
         self.assertEqual(
             self.runtime._container_manager.stop.call_args_list,

@@ -7,7 +7,6 @@ from samtranslator.public.plugins import BasePlugin
 
 
 class SupportLocalUriPlugin(BasePlugin):
-
     _SERVERLESS_FUNCTION = "AWS::Serverless::Function"
 
     def __init__(self):
@@ -17,7 +16,6 @@ class SupportLocalUriPlugin(BasePlugin):
         super().__init__(SupportLocalUriPlugin.__name__)
 
     def on_before_transform_resource(self, logical_id, resource_type, resource_properties):
-
         if resource_type == self._SERVERLESS_FUNCTION and not resource_properties.get("CodeUri"):
             # If CodeUri is *not* present, set it to "." which is functionally equivalent
             resource_properties["CodeUri"] = "."

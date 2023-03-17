@@ -23,7 +23,6 @@ class TestGenerateNonCookieCutterProject(TestCase):
     @parameterized.expand([("https://example.com/file.zip", True), ("/path/to/file.zip", False)])
     @patch("samcli.lib.init.arbitrary_project.osutils")
     def test_support_zip_files(self, location, is_url, osutils_mock):
-
         with patch.object(repository, "unzip") as unzip_mock:
             unzip_mock.return_value = "unzipped_dir"
 

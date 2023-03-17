@@ -3,21 +3,20 @@ Base class for SAM Template providers
 """
 
 import logging
+from typing import Any, Dict, Iterable, Optional, Union, cast
 
-from typing import Any, Dict, Optional, cast, Iterable, Union
-from samcli.lib.utils.resources import (
-    AWS_LAMBDA_FUNCTION,
-    AWS_SERVERLESS_FUNCTION,
-    AWS_LAMBDA_LAYERVERSION,
-    AWS_SERVERLESS_LAYERVERSION,
-)
 from samcli.lib.iac.plugins_interfaces import Stack
 from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
+from samcli.lib.package.ecr_utils import is_ecr_url
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 from samcli.lib.samlib.wrapper import SamTranslatorWrapper
-from samcli.lib.package.ecr_utils import is_ecr_url
-
+from samcli.lib.utils.resources import (
+    AWS_LAMBDA_FUNCTION,
+    AWS_LAMBDA_LAYERVERSION,
+    AWS_SERVERLESS_FUNCTION,
+    AWS_SERVERLESS_LAYERVERSION,
+)
 
 LOG = logging.getLogger(__name__)
 

@@ -26,7 +26,6 @@ class TestContainer_init(TestCase):
         self.mock_docker_client = Mock()
 
     def test_init_must_store_all_values(self):
-
         container = Container(
             self.image,
             self.cmd,
@@ -303,7 +302,6 @@ class TestContainer_create(TestCase):
         self.mock_docker_client.networks.get.assert_not_called()
 
     def test_must_fail_if_already_created(self):
-
         container = Container(
             self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
         )
@@ -375,7 +373,6 @@ class TestContainer_stop(TestCase):
         self.assertIsNotNone(self.container.id)
 
     def test_must_skip_if_container_is_not_created(self):
-
         self.container.is_created.return_value = False
         self.container.stop()
         self.mock_docker_client.containers.get.assert_not_called()
@@ -400,7 +397,6 @@ class TestContainer_delete(TestCase):
         self.container.is_created = Mock()
 
     def test_must_delete(self):
-
         self.container.is_created.return_value = True
         real_container_mock = Mock()
         self.mock_docker_client.containers.get.return_value = real_container_mock
@@ -457,10 +453,20 @@ class TestContainer_delete(TestCase):
         self.assertIsNotNone(self.container.id)
 
     def test_must_skip_if_container_is_not_created(self):
-
         self.container.is_created.return_value = False
         self.container.delete()
         self.mock_docker_client.containers.get.assert_not_called()
+
+    @patch("samcli.local.docker.container.pathlib.Path.exists")
+    @patch("samcli.local.docker.container.shutil")
+    def test_must_remove_host_tmp_dir_after_mount_with_write_container_build(self, mock_shutil, mock_exists):
+        self.container.is_created.return_value = True
+        self.container._mount_with_write = True
+        self.container._host_tmp_dir = "host_tmp_dir"
+
+        mock_exists.return_value = True
+        self.container.delete()
+        mock_shutil.rmtree.assert_called_with(self.container._host_tmp_dir)
 
 
 class TestContainer_start(TestCase):
@@ -482,7 +488,6 @@ class TestContainer_start(TestCase):
         self.container.is_created = Mock()
 
     def test_must_start_container(self):
-
         self.container.is_created.return_value = True
 
         container_mock = Mock()
@@ -495,18 +500,27 @@ class TestContainer_start(TestCase):
         container_mock.start.assert_called_with()
 
     def test_must_not_start_if_container_is_not_created(self):
-
         self.container.is_created.return_value = False
 
         with self.assertRaises(RuntimeError):
             self.container.start()
 
     def test_must_not_support_input_data(self):
-
         self.container.is_created.return_value = True
 
         with self.assertRaises(ValueError):
             self.container.start(input_data="some input data")
+
+    @patch("samcli.local.docker.container.os.path")
+    @patch("samcli.local.docker.container.os")
+    def test_must_make_host_tmp_dir_if_mount_with_write_container_build(self, mock_os, mock_path):
+        self.container.is_created.return_value = True
+        self.container._mount_with_write = True
+        self.container._host_tmp_dir = "host_tmp_dir"
+        mock_path.exists.return_value = False
+
+        self.container.start()
+        mock_os.makedirs.assert_called_with(self.container._host_tmp_dir)
 
 
 class TestContainer_wait_for_result(TestCase):
@@ -715,7 +729,6 @@ class TestContainer_wait_for_logs(TestCase):
         self.container.is_created = Mock()
 
     def test_must_fetch_stdout_and_stderr_data(self):
-
         self.container.is_created.return_value = True
 
         real_container_mock = Mock()
@@ -734,12 +747,10 @@ class TestContainer_wait_for_logs(TestCase):
         self.container._write_container_output.assert_called_with(output_itr, stdout=stdout_mock, stderr=stderr_mock)
 
     def test_must_skip_if_no_stdout_and_stderr(self):
-
         self.container.wait_for_logs()
         self.mock_docker_client.containers.get.assert_not_called()
 
     def test_must_raise_if_container_is_not_created(self):
-
         self.container.is_created.return_value = False
 
         with self.assertRaises(RuntimeError):
@@ -772,7 +783,6 @@ class TestContainer_write_container_output(TestCase):
         self.stderr_mock.write.assert_has_calls([call(b"stderr1"), call(b"stderr2")])
 
     def test_must_write_only_stdout(self):
-
         Container._write_container_output(self.output_itr, stdout=self.stdout_mock, stderr=None)
 
         self.stdout_mock.write.assert_has_calls([call(b"stdout1"), call(b"stdout2")])
@@ -799,7 +809,6 @@ class TestContainer_wait_for_socket_connection(TestCase):
     @patch("samcli.local.docker.container.CONTAINER_CONNECTION_TIMEOUT", 0)
     @patch("socket.socket")
     def test_times_out_if_unable_to_connect(self, patched_socket):
-
         socket_mock = Mock()
         socket_mock.connect_ex.return_value = 22
         patched_socket.return_value = socket_mock
@@ -816,7 +825,6 @@ class TestContainer_wait_for_socket_connection(TestCase):
 
     @patch("socket.socket")
     def test_does_not_time_out_if_able_to_connect(self, patched_socket):
-
         socket_mock = Mock()
         socket_mock.connect_ex.return_value = 0
         patched_socket.return_value = socket_mock

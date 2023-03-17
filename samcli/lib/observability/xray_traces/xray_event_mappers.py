@@ -8,12 +8,12 @@ from typing import List
 
 from samcli.lib.observability.observability_info_puller import ObservabilityEventMapper
 from samcli.lib.observability.xray_traces.xray_events import (
+    XRayGraphServiceInfo,
+    XRayServiceGraphEvent,
     XRayTraceEvent,
     XRayTraceSegment,
-    XRayServiceGraphEvent,
-    XRayGraphServiceInfo,
 )
-from samcli.lib.utils.time import to_utc, utc_to_timestamp, timestamp_to_iso
+from samcli.lib.utils.time import timestamp_to_iso, to_utc, utc_to_timestamp
 
 
 class XRayTraceConsoleMapper(ObservabilityEventMapper[XRayTraceEvent]):

@@ -1,30 +1,28 @@
 """SyncFlow for ZIP based Lambda Functions"""
+import base64
 import hashlib
 import logging
 import os
-import base64
 import tempfile
 import uuid
 from contextlib import ExitStack
-
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, cast
-
-from samcli.lib.build.build_graph import BuildGraph
-from samcli.lib.providers.provider import Stack
-
-from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow, wait_for_function_update_complete
-from samcli.lib.package.s3_uploader import S3Uploader
-from samcli.lib.utils.colors import Colored
-from samcli.lib.utils.hash import file_checksum
-from samcli.lib.package.utils import make_zip
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
 from samcli.lib.build.app_builder import ApplicationBuilder
-from samcli.lib.sync.sync_flow import ResourceAPICall, ApiCallTypes
+from samcli.lib.build.build_graph import BuildGraph
+from samcli.lib.package.s3_uploader import S3Uploader
+from samcli.lib.package.utils import make_zip_with_lambda_permissions
+from samcli.lib.providers.provider import Stack
+from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow, wait_for_function_update_complete
+from samcli.lib.sync.sync_flow import ApiCallTypes, ResourceAPICall
+from samcli.lib.utils.colors import Colored
+from samcli.lib.utils.hash import file_checksum
 from samcli.lib.utils.osutils import rmtree_if_exists
 
 if TYPE_CHECKING:  # pragma: no cover
-    from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
+    from samcli.commands.deploy.deploy_context import DeployContext
+    from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)
 MAXIMUM_FUNCTION_ZIP_SIZE = 50 * 1024 * 1024  # 50MB limit for Lambda direct ZIP upload
@@ -36,7 +34,6 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
     _s3_client: Any
     _artifact_folder: Optional[str]
     _zip_file: Optional[str]
-    _local_sha: Optional[str]
     _build_graph: Optional[BuildGraph]
 
     def __init__(
@@ -44,10 +41,10 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
         function_identifier: str,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
     ):
-
         """
         Parameters
         ----------
@@ -57,16 +54,17 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
             BuildContext
         deploy_context : DeployContext
             DeployContext
+        sync_context: SyncContext
+            SyncContext object that obtains sync information.
         physical_id_mapping : Dict[str, str]
             Physical ID Mapping
         stacks : Optional[List[Stack]]
             Stacks
         """
-        super().__init__(function_identifier, build_context, deploy_context, physical_id_mapping, stacks)
+        super().__init__(function_identifier, build_context, deploy_context, sync_context, physical_id_mapping, stacks)
         self._s3_client = None
         self._artifact_folder = None
         self._zip_file = None
-        self._local_sha = None
         self._build_graph = None
         self._color = Colored()
 
@@ -92,6 +90,7 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
                 container_manager=self._build_context.container_manager,
                 mode=self._build_context.mode,
                 combine_dependencies=self._combine_dependencies(),
+                build_in_source=self._build_context.build_in_source,
             )
             LOG.debug("%sBuilding Function", self.log_prefix)
             build_result = builder.build()
@@ -99,7 +98,7 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
             self._artifact_folder = build_result.artifacts.get(self._function_identifier)
 
         zip_file_path = os.path.join(tempfile.gettempdir(), "data-" + uuid.uuid4().hex)
-        self._zip_file = make_zip(zip_file_path, self._artifact_folder)
+        self._zip_file = make_zip_with_lambda_permissions(zip_file_path, self._artifact_folder)
         LOG.debug("%sCreated artifact ZIP file: %s", self.log_prefix, self._zip_file)
         self._local_sha = file_checksum(cast(str, self._zip_file), hashlib.sha256())
 

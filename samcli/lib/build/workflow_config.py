@@ -18,6 +18,7 @@ from samcli.lib.build.workflows import (
     GO_MOD_CONFIG,
     PROVIDED_MAKE_CONFIG,
     NODEJS_NPM_ESBUILD_CONFIG,
+    RUST_CARGO_LAMBDA_CONFIG,
 )
 from samcli.lib.telemetry.event import EventTracker
 
@@ -143,6 +144,7 @@ def get_workflow_config(
     selectors_by_build_method = {
         "makefile": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG),
         "dotnet7": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
+        "rust-cargolambda": BasicWorkflowSelector(RUST_CARGO_LAMBDA_CONFIG),
     }
 
     selectors_by_runtime = {
@@ -220,40 +222,25 @@ def get_workflow_config(
         ) from ex
 
 
-def supports_build_in_container(config: CONFIG) -> Tuple[bool, Optional[str]]:
+def supports_specified_workflow(specified_workflow: str) -> bool:
     """
-    Given a workflow config, this method provides a boolean on whether the workflow can run within a container or not.
+    Given a specified workflow, returns whether it is supported in container builds,
+    can be used to overwrite runtime and get docker image or not
 
     Parameters
     ----------
-    config namedtuple(Capability)
-        Config specifying the particular build workflow
+    specified_workflow
+        Workflow specified in the template
 
     Returns
     -------
-    tuple(bool, str)
-        True, if this workflow can be built inside a container. False, along with a reason message if it cannot be.
+    bool
+        True, if this workflow is supported, can be used to overwrite runtime and get docker image
     """
 
-    def _key(c: CONFIG) -> str:
-        return str(c.language) + str(c.dependency_manager) + str(c.application_framework)
+    supported_specified_workflow = ["dotnet7"]
 
-    # This information could have beeen bundled inside the Workflow Config object. But we this way because
-    # ultimately the workflow's implementation dictates whether it can run within a container or not.
-    # A "workflow config" is like a primary key to identify the workflow. So we use the config as a key in the
-    # map to identify which workflows can support building within a container.
-
-    unsupported = {
-        _key(DOTNET_CLIPACKAGE_CONFIG): "We do not support building .NET Core Lambda functions within a container. "
-        "Try building without the container. Most .NET Core functions will build "
-        "successfully.",
-    }
-
-    thiskey = _key(config)
-    if thiskey in unsupported:
-        return False, unsupported[thiskey]
-
-    return True, None
+    return specified_workflow in supported_specified_workflow
 
 
 class BasicWorkflowSelector:
@@ -301,7 +288,6 @@ class ManifestWorkflowSelector(BasicWorkflowSelector):
         LOG.debug("Looking for a supported build workflow in following directories: %s", search_dirs)
 
         for config in self.configs:
-
             if any([self._has_manifest(config, directory) for directory in search_dirs]):
                 return config
 

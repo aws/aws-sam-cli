@@ -3,13 +3,61 @@ Contains method decorator which can be used to convert common exceptions into cl
 which will end exeecution gracefully
 """
 from functools import wraps
-from typing import Callable, Dict, Any, Optional
+from typing import Any, Callable, Dict, Optional
 
-from botocore.exceptions import NoRegionError, ClientError
+from botocore.exceptions import BotoCoreError, ClientError, NoRegionError
 
 from samcli.commands._utils.parameterized_option import parameterized_option
-from samcli.commands.exceptions import CredentialsError, RegionError
+from samcli.commands.exceptions import CredentialsError, RegionError, SDKError
 from samcli.lib.utils.boto_utils import get_client_error_code
+
+
+class CustomExceptionHandler:
+    def __init__(self, custom_exception_handler_mapping):
+        self.custom_exception_handler_mapping = custom_exception_handler_mapping
+
+    def get_handler(self, exception_type: type):
+        return self.custom_exception_handler_mapping.get(exception_type)
+
+
+class GenericExceptionHandler:
+    def __init__(self, generic_exception_handler_mapping):
+        self.generic_exception_handler_mapping = generic_exception_handler_mapping
+
+    def get_handler(self, exception_type: type):
+        for common_exception, common_exception_handler in self.generic_exception_handler_mapping.items():
+            if issubclass(exception_type, common_exception):
+                return common_exception_handler
+
+
+def _handle_no_region_error(ex: NoRegionError) -> None:
+    raise RegionError(
+        "No region information found. Please provide --region parameter or configure default region settings."
+    )
+
+
+def _handle_client_errors(ex: ClientError) -> None:
+    error_code = get_client_error_code(ex)
+
+    if error_code in ("ExpiredToken", "ExpiredTokenException"):
+        raise CredentialsError(
+            "Your credential configuration is invalid or has expired token value. \nFor more information please "
+            "visit: https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html"
+        )
+
+    raise ex
+
+
+def _catch_all_boto_errors(ex: BotoCoreError) -> None:
+    raise SDKError(str(ex)) from ex
+
+
+CUSTOM_EXCEPTION_HANDLER_MAPPING: Dict[Any, Callable] = {
+    NoRegionError: _handle_no_region_error,
+    ClientError: _handle_client_errors,
+}
+
+GENERIC_EXCEPTION_HANDLER_MAPPING: Dict[Any, Callable] = {BotoCoreError: _catch_all_boto_errors}
 
 
 @parameterized_option
@@ -31,10 +79,15 @@ def command_exception_handler(f, additional_mapping: Optional[Dict[Any, Callable
                 if exception_handler:
                     exception_handler(ex)
 
-                # if no custom handling defined search for default handlers
-                exception_handler = COMMON_EXCEPTION_HANDLER_MAPPING.get(exception_type)
-                if exception_handler:
-                    exception_handler(ex)
+                # if no custom handling defined search for default handlers under pre-defined
+                # custom and generic handlers.
+                for exception_handler in [
+                    CustomExceptionHandler(CUSTOM_EXCEPTION_HANDLER_MAPPING),
+                    GenericExceptionHandler(GENERIC_EXCEPTION_HANDLER_MAPPING),
+                ]:
+                    handler = exception_handler.get_handler(exception_type)
+                    if handler:
+                        handler(ex)
 
                 # if no handler defined, raise the exception
                 raise ex
@@ -42,29 +95,3 @@ def command_exception_handler(f, additional_mapping: Optional[Dict[Any, Callable
         return wrapper_command_exception_handler
 
     return decorator_command_exception_handler(f)
-
-
-def _handle_no_region_error(ex: NoRegionError) -> None:
-    raise RegionError(
-        "No region information found. Please provide --region parameter or configure default region settings. "
-        "\nFor more information please visit https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/"
-        "setup-credentials.html#setup-credentials-setting-region"
-    )
-
-
-def _handle_client_errors(ex: ClientError) -> None:
-    error_code = get_client_error_code(ex)
-
-    if error_code in ("ExpiredToken", "ExpiredTokenException"):
-        raise CredentialsError(
-            "Your credential configuration is invalid or has expired token value. \nFor more information please "
-            "visit: https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html"
-        )
-
-    raise ex
-
-
-COMMON_EXCEPTION_HANDLER_MAPPING: Dict[Any, Callable] = {
-    NoRegionError: _handle_no_region_error,
-    ClientError: _handle_client_errors,
-}
