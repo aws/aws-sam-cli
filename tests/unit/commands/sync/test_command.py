@@ -230,7 +230,6 @@ class TestDoCli(TestCase):
         else:
             execute_code_sync_mock.assert_not_called()
 
-
     @parameterized.expand(
         [(False, True, False, True, False), (False, True, False, False, True), (False, False, False, False, True)]
     )
