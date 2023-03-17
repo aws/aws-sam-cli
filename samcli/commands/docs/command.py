@@ -3,12 +3,14 @@ CLI command for "docs" command
 """
 import functools
 import sys
-from typing import List
+from typing import List, Optional
 
 import click
+from click import Command, Context
 
 from samcli.cli.main import common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.command_exception_handler import command_exception_handler
+from samcli.commands.exceptions import UserException
 from samcli.lib.docs.browser_configuration import BrowserConfiguration, BrowserConfigurationError
 from samcli.lib.docs.documentation import Documentation
 from samcli.lib.telemetry.metric import track_command
@@ -23,66 +25,92 @@ SUCCESS_MESSAGE = "Documentation page opened in a browser"
 ERROR_MESSAGE = "Failed to open a web browser. Use the following link to navigate to the documentation page: {URL}"
 
 
-class DocsSubcommand(click.MultiCommand):
-    def __init__(self, commands: list, full_command, command_callback, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if not commands:
-            raise ValueError("Events library is necessary to run this command")
-        self.commands = commands
-        self.full_command = full_command
-        self.command_callback = command_callback
+class InvalidDocsCommandException(UserException):
+    """
+    Exception when the docs command fails
+    """
 
-    def get_command(self, ctx, cmd_name):
-        next_command = self.commands.pop(0)
-        if not len(self.commands):
+
+class DocsBaseCommand(click.Command):
+    def __init__(self, *args, **kwargs):
+        command_callback = DocsCommand().command_callback
+        super().__init__(name="docs", callback=command_callback)
+
+
+class DocsSubcommand(click.MultiCommand):
+    def __init__(self, command: Optional[List[str]] = None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.docs_command = DocsCommand()
+        self.command = command or self.docs_command.sub_commands
+        self.command_string = self.docs_command.sub_command_string
+        self.command_callback = self.docs_command.command_callback
+
+    def get_command(self, ctx: Context, cmd_name: str) -> Command:
+        """
+        Overriding the get_command method from the parent class.
+
+        This method recursively gets creates sub-commands until
+        it reaches the leaf command, then it returns that as a click command.
+
+        Parameters
+        ----------
+        ctx
+        cmd_name
+
+        Returns
+        -------
+
+        """
+        next_command = self.command.pop(0)
+        if not len(self.command):
             return click.Command(
                 name=next_command,
-                short_help=f"Documentation for {self.full_command}",
+                short_help=f"Documentation for {self.command_string}",
                 callback=self.command_callback,
             )
-        return DocsSubcommand(
-            commands=self.commands, full_command=self.full_command, command_callback=self.command_callback
-        )
+        return DocsSubcommand(command=self.command)
 
-    def list_commands(self, ctx):
-        return Documentation.load().keys()
+    def list_commands(self, ctx: Context):
+        return list(Documentation.load().keys())
 
 
-class DocsCommand(DocsSubcommand):
-    def __init__(self, *args, **kwargs):
-        impl = CommandImplementation(command=self.fully_resolved_command)
-        if self.fully_resolved_command not in Documentation.load().keys():
-            raise ValueError("Invalid command")
-        command_callback = functools.partial(impl.run_command)
-        super().__init__(
-            commands=self.command_hierarchy,
-            full_command=self.fully_resolved_command,
-            command_callback=command_callback,
-            *args,
-            **kwargs,
-        )
+class DocsCommand:
+    @property
+    def command_callback(self):
+        impl = CommandImplementation(command=self.sub_command_string)
+        return functools.partial(impl.run_command)
 
     @property
-    def fully_resolved_command(self):
-        return " ".join(self.command_hierarchy)
+    def all_commands(self):
+        return list(Documentation.load().keys())
 
     @property
-    def command_hierarchy(self):
-        return self._get_command_hierarchy()
+    def sub_command_string(self):
+        return " ".join(self.sub_commands)
 
-    def _get_command_hierarchy(self) -> List[str]:
-        return self._filter_flags(sys.argv[2:])
+    @property
+    def sub_commands(self):
+        return self._filter_arguments(sys.argv[2:])
 
     @staticmethod
-    def _filter_flags(commands):
-        return list(filter(lambda arg: not arg.startswith("--"), commands))
+    def _filter_arguments(commands):
+        return list(filter(lambda arg: not arg.startswith("-"), commands))
+
+    def create_command(self):
+        if self.sub_commands:
+            return DocsSubcommand
+        return DocsBaseCommand
 
 
 class CommandImplementation:
-    def __init__(self, command):
+    def __init__(self, command: str):
         self.command = command
 
     def run_command(self):
+        """
+        Run the necessary logic for the `sam docs` command
+        """
+        # TODO: Make sure the docs page exists in the list of docs pages
         browser = BrowserConfiguration()
         documentation = Documentation(browser=browser, command=self.command)
         try:
@@ -93,7 +121,7 @@ class CommandImplementation:
             click.echo(SUCCESS_MESSAGE)
 
 
-@click.command(name="docs", help=HELP_TEXT, cls=DocsCommand)
+@click.command(name="docs", help=HELP_TEXT, cls=DocsCommand().create_command())
 @common_options
 @pass_context
 @track_command
