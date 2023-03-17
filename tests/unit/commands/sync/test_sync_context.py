@@ -200,16 +200,16 @@ class TestSyncStateToTomlSerde(TestCase):
 
 
 @parameterized_class(
-    [{"dependency_layer": True, "skip_infra_sync": True}, {"dependency_layer": False, "skip_infra_sync": False}]
+    [{"dependency_layer": True, "skip_deploy_sync": True}, {"dependency_layer": False, "skip_deploy_sync": False}]
 )
 class TestSyncContext(TestCase):
     dependency_layer: bool
-    skip_infra_sync: bool
+    skip_deploy_sync: bool
 
     def setUp(self) -> None:
         self.build_dir = "build_dir"
         self.cache_dir = "cache_dir"
-        self.sync_context = SyncContext(self.dependency_layer, self.build_dir, self.cache_dir, self.skip_infra_sync)
+        self.sync_context = SyncContext(self.dependency_layer, self.build_dir, self.cache_dir, self.skip_deploy_sync)
 
     @parameterized.expand([(True,), (False,)])
     @patch("samcli.commands.sync.sync_context.rmtree_if_exists")

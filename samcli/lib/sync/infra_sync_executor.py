@@ -170,7 +170,7 @@ class InfraSyncExecutor:
             days_since_last_infra_sync = (current_time - last_infra_sync_time).days
 
         # Will not combine the comparisons in order to save operation cost
-        if self._sync_context.skip_infra_sync and first_sync and (days_since_last_infra_sync <= AUTO_INFRA_SYNC_DAYS):
+        if self._sync_context.skip_deploy_sync and first_sync and (days_since_last_infra_sync <= AUTO_INFRA_SYNC_DAYS):
             # Reminder: Add back after sync infra skip ready for release
             # try:
             #     if self._auto_skip_infra_sync(
