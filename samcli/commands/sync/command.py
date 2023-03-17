@@ -151,7 +151,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
     default=False,  # Reminder: Change this to True when this feature is released
     is_flag=True,
     hidden=True,  # Reminder: Change this to False when this feature is released
-    help="This option will skip the initial infrastructure sync if it is not required"
+    help="This option will skip the initial infrastructure deployment if it is not required"
     " by comparing the local template with the template deployed in cloud.",
 )
 @stack_name_option(required=True)  # pylint: disable=E1120
