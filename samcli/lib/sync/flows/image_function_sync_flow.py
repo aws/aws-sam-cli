@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 import docker
 from docker.client import DockerClient
 
-from samcli.lib.build.app_builder import ApplicationBuilder
+from samcli.lib.build.app_builder import ApplicationBuilder, ApplicationBuildResult
 from samcli.lib.package.ecr_uploader import ECRUploader
 from samcli.lib.providers.provider import Stack
 from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow, wait_for_function_update_complete
@@ -33,6 +33,7 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
         sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
+        application_build_result: Optional[ApplicationBuildResult],
     ):
         """
         Parameters
@@ -49,8 +50,18 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
             Physical ID Mapping
         stacks : Optional[List[Stack]]
             Stacks
+         application_build_result: Optional[ApplicationBuildResult]
+            Pre-build ApplicationBuildResult which can be re-used during SyncFlows
         """
-        super().__init__(function_identifier, build_context, deploy_context, sync_context, physical_id_mapping, stacks)
+        super().__init__(
+            function_identifier,
+            build_context,
+            deploy_context,
+            sync_context,
+            physical_id_mapping,
+            stacks,
+            application_build_result,
+        )
         self._ecr_client = None
         self._image_name = None
         self._docker_client = None
@@ -69,6 +80,22 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
 
     def gather_resources(self) -> None:
         """Build function image and save it in self._image_name"""
+        if self._application_build_result:
+            LOG.debug("Using pre-built resources for function {}", self._function_identifier)
+            self._use_prebuilt_resources(self._application_build_result)
+        else:
+            LOG.debug("Building function from scratch {}", self._function_identifier)
+            self._build_resources_from_scratch()
+
+        if self._image_name:
+            self._local_sha = self._get_local_image_id(self._image_name)
+
+    def _use_prebuilt_resources(self, application_build_result: ApplicationBuildResult) -> None:
+        """Uses previously build resources, and assigns the image name"""
+        self._image_name = application_build_result.artifacts.get(self._function_identifier)
+
+    def _build_resources_from_scratch(self) -> None:
+        """Builds function from scratch and assigns the image name"""
         builder = ApplicationBuilder(
             self._build_context.collect_build_resources(self._function_identifier),
             self._build_context.build_dir,
@@ -82,8 +109,6 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
             build_in_source=self._build_context.build_in_source,
         )
         self._image_name = builder.build().artifacts.get(self._function_identifier)
-        if self._image_name:
-            self._local_sha = self._get_local_image_id(self._image_name)
 
     def _get_local_image_id(self, image: str) -> Optional[str]:
         """Returns the local hash of the image"""

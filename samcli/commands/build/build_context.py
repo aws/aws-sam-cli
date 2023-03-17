@@ -175,6 +175,7 @@ class BuildContext:
         self._locate_layer_nested = locate_layer_nested
         self._hook_name = hook_name
         self._build_in_source = build_in_source
+        self._build_result: Optional[ApplicationBuildResult] = None
         self._mount_with = MountMode(mount_with)
 
     def __enter__(self) -> "BuildContext":
@@ -275,9 +276,9 @@ class BuildContext:
             for f in self.get_resources_to_build().functions:
                 EventTracker.track_event("BuildFunctionRuntime", f.runtime)
 
-            build_result = builder.build()
+            self._build_result = builder.build()
 
-            self._handle_build_post_processing(builder, build_result)
+            self._handle_build_post_processing(builder, self._build_result)
 
             click.secho("\nBuild Succeeded", fg="green")
 
@@ -530,6 +531,10 @@ Commands you can use next
     @property
     def create_auto_dependency_layer(self) -> bool:
         return self._create_auto_dependency_layer
+
+    @property
+    def build_result(self) -> Optional[ApplicationBuildResult]:
+        return self._build_result
 
     def collect_build_resources(self, resource_identifier: str) -> ResourcesToBuildCollector:
         """Collect a single buildable resource and its dependencies.
