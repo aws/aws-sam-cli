@@ -392,7 +392,7 @@ def do_cli(
                             )
                             code_sync_resources = infra_sync_result.code_sync_resources
 
-                            if code_sync_resources:
+                            if not infra_sync_result.infra_sync_executed and code_sync_resources:
                                 resource_ids = [str(resource) for resource in code_sync_resources]
 
                                 LOG.info("Queuing up code sync for the resources that require an update")
