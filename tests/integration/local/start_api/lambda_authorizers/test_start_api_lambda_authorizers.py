@@ -168,7 +168,12 @@ Resources:
         )
 
 
-class TestUsingInvalidVersionHttpApi(WritableStartApiIntegBaseClass):
+class TestInvalidInvalidVersionHttpApi(WritableStartApiIntegBaseClass):
+    """
+    Test using an invalid AuthorizerPayloadFormatVersion property value
+    when defining a Lambda Authorizer in the a Serverless resource properties.
+    """
+
     do_collect_cmd_init_output = True
     template_content = """AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
@@ -214,7 +219,12 @@ Resources:
         )
 
 
-class TestUsingUnparsableFunctionArnHttpApi(WritableStartApiIntegBaseClass):
+class TestUsingInvalidFunctionArnHttpApi(WritableStartApiIntegBaseClass):
+    """
+    Test using an invalid FunctionArn property value when defining 
+    a Lambda Authorizer in the a Serverless resource properties.
+    """
+
     do_collect_cmd_init_output = True
     template_content = """AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
