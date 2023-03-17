@@ -117,12 +117,3 @@ class InvokeIntegBase(TestCase):
         except TimeoutExpired:
             process.kill()
             raise
-
-    @staticmethod
-    def get_minimal_local_invoke_command_list(function_to_invoke=None):
-        command_list = [get_sam_command(), "local", "invoke"]
-
-        if function_to_invoke:
-            command_list = command_list + [function_to_invoke]
-
-        return command_list
