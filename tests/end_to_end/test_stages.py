@@ -100,7 +100,7 @@ class DownloadPackagedZipFunctionStage(EndToEndBaseStage):
         built_function_path = Path(self.test_context.project_directory) / ".aws-sam" / "build" / self.function_name
         zip_file_path = built_function_path / "zipped_function.zip"
         packaged_template = {}
-        with open(self.test_context.project_directory + "/packaged_template.json", "r") as json_file:
+        with open(Path(self.test_context.project_directory) / "packaged_template.json", "r") as json_file:
             packaged_template = json.load(json_file)
 
         zipped_fn_s3_loc = (
