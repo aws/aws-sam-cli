@@ -28,6 +28,7 @@ from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.commands.build.click_container import ContainerOptions
+from samcli.commands.build.utils import MountMode
 
 LOG = logging.getLogger(__name__)
 
@@ -136,6 +137,16 @@ $ sam build MyFunction
     help="Enabled parallel builds. Use this flag to build your AWS SAM template's functions and layers in parallel. "
     "By default the functions and layers are built in sequence",
 )
+@click.option(
+    "--mount-with",
+    "-mw",
+    type=click.Choice(MountMode.values(), case_sensitive=False),
+    default=MountMode.READ.value,
+    help="Optional. Specify mount mode for building functions/layers inside container. "
+    "If it is mounted with write permissions, some files in source code directory may "
+    "be changed/added by the build process. By default the source code directory is read only.",
+    cls=ContainerOptions,
+)
 @build_dir_option
 @cache_dir_option
 @base_dir_option
@@ -175,6 +186,7 @@ def cli(
     config_env: str,
     hook_name: Optional[str],
     skip_prepare_infra: bool,
+    mount_with,
 ) -> None:
     """
     `sam build` command entry point
@@ -205,6 +217,7 @@ def cli(
         exclude,
         hook_name,
         None,  # TODO: replace with build_in_source once it's added as a click option
+        mount_with,
     )  # pragma: no cover
 
 
@@ -230,6 +243,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     exclude: Optional[Tuple[str, ...]],
     hook_name: Optional[str],
     build_in_source: Optional[bool],
+    mount_with,
 ) -> None:
     """
     Implementation of the ``cli`` method
@@ -275,6 +289,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         aws_region=click_ctx.region,
         hook_name=hook_name,
         build_in_source=build_in_source,
+        mount_with=mount_with,
     ) as ctx:
         ctx.run()
 
