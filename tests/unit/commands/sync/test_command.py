@@ -2,10 +2,13 @@ import itertools
 import os
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, Mock, patch
+
+from click.testing import CliRunner
 from parameterized import parameterized
 
 from samcli.commands.sync.command import (
     do_cli,
+    cli as sync_cli,
     execute_code_sync,
     execute_watch,
     check_enable_dependency_layer,
@@ -839,3 +842,12 @@ class TestDisableADL(TestCase):
             build_context_mock, package_context_mock, deploy_context_mock, sync_context_mock
         )
         infra_sync_executor_mock.execute_infra_sync.assert_called_once()
+
+    def test_invalid_resource_type(self):
+        cli_runner = CliRunner()
+        invoke_result = cli_runner.invoke(sync_cli, ["--resource", "AWS::Serverless::InvalidResource"])
+        self.assertEqual(invoke_result.exit_code, 2)
+        self.assertIn(
+            "Error: Invalid value for '--resource': 'AWS::Serverless::InvalidResource' is not one of",
+            invoke_result.output,
+        )
