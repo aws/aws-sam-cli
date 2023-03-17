@@ -312,6 +312,7 @@ class BuildContext:
             BuildInsideContainerError,
             UnsupportedBuilderLibraryVersionError,
             InvalidBuildGraphException,
+            ResourceNotFound,
         ) as ex:
             click.secho("\nBuild Failed", fg="red")
 
