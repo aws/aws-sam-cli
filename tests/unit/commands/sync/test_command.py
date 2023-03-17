@@ -2,10 +2,13 @@ import itertools
 import os
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, Mock, patch
+
+from click.testing import CliRunner
 from parameterized import parameterized
 
 from samcli.commands.sync.command import (
     do_cli,
+    cli as sync_cli,
     execute_code_sync,
     execute_watch,
     check_enable_dependency_layer,
@@ -17,7 +20,6 @@ from samcli.commands._utils.constants import (
     DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
     DEFAULT_CACHE_DIR,
 )
-from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.sync.infra_sync_executor import InfraSyncResult
 from tests.unit.commands.buildcmd.test_build_context import DummyStack
 
@@ -226,7 +228,7 @@ class TestDoCli(TestCase):
         else:
             execute_code_sync_mock.assert_not_called()
 
-    @parameterized.expand([(False, True, False, False), (False, True, False, True)])
+    @parameterized.expand([(False, True, False, False), (False, True, False, True), (False, False, False, True)])
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.execute_watch")
     @patch("samcli.commands.build.command.click")
@@ -780,3 +782,12 @@ class TestDisableADL(TestCase):
             build_context_mock, package_context_mock, deploy_context_mock, sync_context_mock
         )
         infra_sync_executor_mock.execute_infra_sync.assert_called_once()
+
+    def test_invalid_resource_type(self):
+        cli_runner = CliRunner()
+        invoke_result = cli_runner.invoke(sync_cli, ["--resource", "AWS::Serverless::InvalidResource"])
+        self.assertEqual(invoke_result.exit_code, 2)
+        self.assertIn(
+            "Error: Invalid value for '--resource': 'AWS::Serverless::InvalidResource' is not one of",
+            invoke_result.output,
+        )
