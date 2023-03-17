@@ -221,7 +221,7 @@ Resources:
 
 class TestUsingInvalidFunctionArnHttpApi(WritableStartApiIntegBaseClass):
     """
-    Test using an invalid FunctionArn property value when defining 
+    Test using an invalid FunctionArn property value when defining
     a Lambda Authorizer in the a Serverless resource properties.
     """
 
