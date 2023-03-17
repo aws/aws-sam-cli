@@ -120,7 +120,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
     cls=ClickMutex,
 )
 @click.option(
-    "--watch",
+    "--watch/--no-watch",
     is_flag=True,
     help="Watch local files and automatically sync with cloud.",
     cls=ClickMutex,
@@ -135,6 +135,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
     "--resource",
     multiple=True,
     cls=ReplaceHelpSummaryOption,
+    type=click.Choice(SyncCodeResources.values(), case_sensitive=True),
     replace_help_option="--resource RESOURCE",
     help=f"Sync code for all resources of the given resource type. Accepted values are {SyncCodeResources.values()}",
 )
