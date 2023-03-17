@@ -302,8 +302,11 @@ class BuildContext:
                 )
 
                 click.secho(msg, fg="yellow")
+        except FunctionNotFound as function_not_found_ex:
+            raise UserException(
+                str(function_not_found_ex), wrapped_from=function_not_found_ex.__class__.__name__
+            ) from function_not_found_ex
         except (
-            FunctionNotFound,
             UnsupportedRuntimeException,
             BuildError,
             BuildInsideContainerError,
