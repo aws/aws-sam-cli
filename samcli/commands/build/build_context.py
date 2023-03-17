@@ -236,20 +236,20 @@ class BuildContext:
 
         self._stacks = self._handle_build_pre_processing()
 
-        # boolean value indicates if mount with write or not, defaults to READ ONLY
-        mount_with_write = False
-        if self._use_container:
-            if self._mount_with == MountMode.WRITE:
-                mount_with_write = True
-            else:
-                # if self._mount_with is NOT WRITE
-                # check the need of mounting with write permissions and prompt user to enable it if needed
-                mount_with_write = prompt_user_to_enable_mount_with_write_if_needed(
-                    self.get_resources_to_build(),
-                    self.base_dir,
-                )
-
         try:
+            # boolean value indicates if mount with write or not, defaults to READ ONLY
+            mount_with_write = False
+            if self._use_container:
+                if self._mount_with == MountMode.WRITE:
+                    mount_with_write = True
+                else:
+                    # if self._mount_with is NOT WRITE
+                    # check the need of mounting with write permissions and prompt user to enable it if needed
+                    mount_with_write = prompt_user_to_enable_mount_with_write_if_needed(
+                        self.get_resources_to_build(),
+                        self.base_dir,
+                    )
+
             builder = ApplicationBuilder(
                 self.get_resources_to_build(),
                 self.build_dir,
@@ -268,10 +268,7 @@ class BuildContext:
                 build_in_source=self._build_in_source,
                 mount_with_write=mount_with_write,
             )
-        except FunctionNotFound as ex:
-            raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
 
-        try:
             self._check_exclude_warning()
             self._check_rust_cargo_experimental_flag()
 
@@ -305,13 +302,17 @@ class BuildContext:
                 )
 
                 click.secho(msg, fg="yellow")
-
+        except FunctionNotFound as function_not_found_ex:
+            raise UserException(
+                str(function_not_found_ex), wrapped_from=function_not_found_ex.__class__.__name__
+            ) from function_not_found_ex
         except (
             UnsupportedRuntimeException,
             BuildError,
             BuildInsideContainerError,
             UnsupportedBuilderLibraryVersionError,
             InvalidBuildGraphException,
+            ResourceNotFound,
         ) as ex:
             click.secho("\nBuild Failed", fg="red")
 
