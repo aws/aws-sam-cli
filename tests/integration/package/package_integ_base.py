@@ -83,8 +83,8 @@ class PackageIntegBase(TestCase):
         self.s3_prefix = uuid.uuid4().hex
         super().setUp()
 
+    @staticmethod
     def get_command_list(
-        self,
         s3_bucket=None,
         template=None,
         template_file=None,
