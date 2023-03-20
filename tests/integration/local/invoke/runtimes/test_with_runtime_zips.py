@@ -22,7 +22,6 @@ class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
     template = Path("runtimes", "template.yaml")
 
     def setUp(self):
-
         # Don't delete on close. Need the file to be present for tests to run.
         events_file = tempfile.NamedTemporaryFile(delete=False)
         events_file.write(b'"yolo"')  # Just empty event
@@ -37,7 +36,7 @@ class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
     @pytest.mark.timeout(timeout=300, method="thread")
     @parameterized.expand([param("Go1xFunction"), param("Java8Function")])
     def test_runtime_zip(self, function_name):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             function_name, template_path=self.template_path, event_path=self.events_file_path
         )
 
@@ -54,7 +53,7 @@ class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
 
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_custom_provided_runtime(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "CustomBashFunction", template_path=self.template_path, event_path=self.events_file_path
         )
 

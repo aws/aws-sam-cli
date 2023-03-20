@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch, Mock, ANY, call
 
 from parameterized import parameterized
 
+from samcli.commands.build.utils import MountMode
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 from samcli.lib.build.bundler import EsbuildBundlerManager
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
@@ -16,7 +17,6 @@ from samcli.lib.build.app_builder import (
     BuildError,
     UnsupportedBuilderLibraryVersionError,
     BuildInsideContainerError,
-    ContainerBuildNotSupported,
     ApplicationBuildResult,
 )
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
@@ -658,7 +658,6 @@ class TestBuildContext__enter__(TestCase):
         SamApiProviderMock,
         get_buildable_stacks_mock,
     ):
-
         root_stack = Mock()
         root_stack.is_root_stack = True
         auto_dependency_layer = False
@@ -988,6 +987,7 @@ class TestBuildContext_run(TestCase):
             build_images={},
             create_auto_dependency_layer=auto_dependency_layer,
             build_in_source=False,
+            mount_with=MountMode.READ,
         ) as build_context:
             build_context.run()
             is_sam_template_mock.assert_called_once_with()
@@ -1008,6 +1008,7 @@ class TestBuildContext_run(TestCase):
                 build_images=build_context._build_images,
                 combine_dependencies=not auto_dependency_layer,
                 build_in_source=build_context._build_in_source,
+                mount_with_write=False,
             )
             builder_mock.build.assert_called_once()
             builder_mock.update_template.assert_has_calls(
@@ -1063,7 +1064,6 @@ class TestBuildContext_run(TestCase):
             (UnsupportedRuntimeException(), "UnsupportedRuntimeException"),
             (BuildInsideContainerError(), "BuildInsideContainerError"),
             (BuildError(wrapped_from=DeepWrap().__class__.__name__, msg="Test"), "DeepWrap"),
-            (ContainerBuildNotSupported(), "ContainerBuildNotSupported"),
             (
                 UnsupportedBuilderLibraryVersionError(container_name="name", error_msg="msg"),
                 "UnsupportedBuilderLibraryVersionError",
@@ -1101,7 +1101,6 @@ class TestBuildContext_run(TestCase):
         SamApiProviderMock,
         get_buildable_stacks_mock,
     ):
-
         stack = Mock()
         resources_mock.return_value = Mock(functions=[], layers=[])
 

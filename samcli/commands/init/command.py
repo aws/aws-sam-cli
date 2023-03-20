@@ -331,6 +331,8 @@ def do_cli(
         templates = InitTemplates()
         if package_type == IMAGE and image_bool:
             runtime = _get_runtime_from_image(base_image)
+            if runtime is None:
+                raise LambdaImagesTemplateException("Unable to infer the runtime from the base image name")
             options = templates.init_options(package_type, runtime, base_image, dependency_manager)
             if not app_template:
                 if len(options) == 1:

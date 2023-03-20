@@ -14,6 +14,7 @@ import docker
 import jmespath
 from pathlib import Path
 
+from samcli.commands.build.utils import MountMode
 from samcli.lib.utils import osutils
 from samcli.lib.utils.architecture import X86_64, has_runtime_multi_arch_image
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
@@ -81,8 +82,8 @@ class BuildIntegBase(TestCase):
         hook_name=None,
         beta_features=None,
         build_in_source=None,
+        mount_with=None,
     ):
-
         command_list = [self.cmd, "build"]
 
         if function_identifier:
@@ -125,6 +126,9 @@ class BuildIntegBase(TestCase):
 
         if build_image:
             command_list += ["--build-image", build_image]
+
+        if mount_with:
+            command_list += ["--mount-with", mount_with.value]
 
         if exclude:
             for f in exclude:
@@ -599,7 +603,6 @@ class BuildIntegJavaBase(BuildIntegBase):
             self.verify_pulled_image(runtime, architecture)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files, expected_modules):
-
         self.assertTrue(build_dir.exists(), "Build directory should be created")
 
         build_dir_files = os.listdir(str(build_dir))
@@ -690,9 +693,9 @@ class BuildIntegPythonBase(BuildIntegBase):
                 self._make_parameter_override_arg(overrides) if do_override else None,
                 expected,
             )
-        if use_container:
-            self.verify_docker_container_cleanedup(runtime)
-            self.verify_pulled_image(runtime, architecture)
+            if use_container:
+                self.verify_docker_container_cleanedup(runtime)
+                self.verify_pulled_image(runtime, architecture)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -763,7 +766,6 @@ class BuildIntegProvidedBase(BuildIntegBase):
             self.verify_pulled_image(runtime, architecture)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
-
         self.assertTrue(build_dir.exists(), "Build directory should be created")
 
         build_dir_files = os.listdir(str(build_dir))
@@ -781,7 +783,6 @@ class BuildIntegProvidedBase(BuildIntegBase):
         self.assertEqual(actual_files, expected_files)
 
     def _verify_built_artifact_in_subapp(self, build_dir, subapp_path, function_logical_id, expected_files):
-
         self.assertTrue(build_dir.exists(), "Build directory should be created")
         subapp_build_dir = Path(build_dir, subapp_path)
         self.assertTrue(subapp_build_dir.exists(), f"Build directory for sub app {subapp_path} should be created")

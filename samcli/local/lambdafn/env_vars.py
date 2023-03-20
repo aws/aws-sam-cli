@@ -94,7 +94,6 @@ class EnvironmentVariables:
 
         # Default value for the variable gets lowest priority
         for name, value in self.variables.items():
-
             # Shell environment values, second priority
             if name in self.shell_env_values:
                 value = self.shell_env_values[name]

@@ -131,7 +131,6 @@ def _update_relative_paths(template_dict, original_root, new_root):
     """
 
     for resource_type, properties in template_dict.get("Metadata", {}).items():
-
         if resource_type not in METADATA_WITH_LOCAL_PATHS:
             # Unknown resource. Skipping
             continue

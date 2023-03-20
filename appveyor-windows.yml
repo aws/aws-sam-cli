@@ -16,6 +16,7 @@ configuration:
   - DeleteIntegTesting
   - SyncIntegTesting
   - LocalIntegTesting
+  - EndToEndTesting
   # other Integration testing, Dev, regression and smoke testing
   - OtherTesting
 
@@ -28,10 +29,10 @@ environment:
   TMPDIR: "%TEMP%"
   TMP: "%TEMP%"
 
-  # MSI Installers only use Py3.7.6. It is sufficient to test with this version here.
-  PYTHON_HOME: "C:\\Python37-x64"
-  PYTHON_SCRIPTS: "C:\\Python37-x64\\Scripts"
-  PYTHON_EXE: "C:\\Python37-x64\\python.exe"
+  # MSI Installers only use Py3.8. It is sufficient to test with this version here.
+  PYTHON_HOME: "C:\\Python38-x64"
+  PYTHON_SCRIPTS: "C:\\Python38-x64\\Scripts"
+  PYTHON_EXE: "C:\\Python38-x64\\python.exe"
   PYTHON_ARCH: "64"
   HOME: 'C:\Users\appveyor'
   HOMEDRIVE: "C:"
@@ -57,10 +58,18 @@ cache:
 install:
   # setup make
   - "choco install make"
+  # Install latest dotnet sdk
+  - "choco install dotnet-sdk"
+  # setup Java, Maven and Gradle
+  - "choco install maven -y --force"
+  - "choco install gradle -y --force"
+  - "java -version"
+  - "gradle -v"
+  - "mvn --version"
 
   # Make sure the temp directory exists for Python to use.
   - ps: "mkdir -Force C:\\tmp"
-  - "SET PATH=%PYTHON_HOME%;C:\\Ruby27-x64\\bin;%PATH%"
+  - 'set PATH=%PYTHON_HOME%;C:\Ruby27-x64\bin;%PATH%;C:\Python37-x64;C:\Python39-x64'
   - "echo %PYTHON_HOME%"
   - "echo %PATH%"
   - "python --version"
@@ -72,6 +81,9 @@ install:
 
   # Upgrade setuptools, wheel and virtualenv
   - "python -m pip install --upgrade setuptools wheel virtualenv"
+  # Install pip for the python versions which is used by the tests
+  - "C:\\Python37-x64\\python.exe -m pip install --upgrade pip"
+  - "C:\\Python39-x64\\python.exe -m pip install --upgrade pip"
 
   # Install AWS CLI Globally via pip3
   - "pip install awscli"
@@ -125,13 +137,13 @@ install:
 # Final clean up no matter success or failure
 on_finish:
   # Upload test reports as artifacts
-  - ps: Get-ChildItem .\TEST*.json | % { Push-AppveyorArtifact $_.FullName -FileName $_.Name }
+  - ps: Get-ChildItem .\TEST_REPORT-*.json | % { Push-AppveyorArtifact $_.FullName -FileName $_.Name }
   - ps: '
   If (Test-Path env:BY_CANARY){
     $env:AWS_ACCESS_KEY_ID = $env:TEST_REPORT_S3_BUCKET_ACCESS_KEY_ID;
     $env:AWS_SECRET_ACCESS_KEY = $env:TEST_REPORT_S3_BUCKET_SECRET_ACCESS_KEY;
     $env:AWS_SESSION_TOKEN = $env:TEST_REPORT_S3_BUCKET_SESSION_TOKEN;
-    aws s3 cp ".\" "s3://$env:TEST_REPORT_S3_BUCKET_NAME/appveyor/$env:APPVEYOR_PROJECT_SLUG/$env:APPVEYOR_BUILD_ID/$env:APPVEYOR_JOB_ID/" --recursive --exclude "*" --include "TEST*.json" --region us-west-2
+    aws s3 cp ".\" "s3://$env:TEST_REPORT_S3_BUCKET_NAME/appveyor/$env:APPVEYOR_PROJECT_SLUG/$env:APPVEYOR_BUILD_ID/$env:APPVEYOR_JOB_ID/" --recursive --exclude "*" --include "TEST_REPORT-*.json" --region us-west-2
   }'
 
   # notify success
@@ -293,6 +305,18 @@ for:
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
       - ps: "pytest -vv tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-local.json"
+
+  # End-to-end testing
+  - matrix:
+      only:
+        - configuration: EndToEndTesting
+
+    test_script:
+      # Reactivate virtualenv before running tests
+      - "git --version"
+      - "venv\\Scripts\\activate"
+      - "docker system prune -a -f"
+      - ps: "pytest -vv -n 4 --reruns 5 --dist loadscope tests/end_to_end --json-report --json-report-file=TEST_REPORT-end-to-end.json"
 
   #Other testing
   - matrix:

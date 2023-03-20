@@ -98,7 +98,6 @@ class SamLocalStackProvider(SamBaseProvider):
         """
 
         for name, resource in self._resources.items():
-
             resource_type = resource.get("Type")
             resource_properties = resource.get("Properties", {})
             resource_metadata = resource.get("Metadata", None)

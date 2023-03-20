@@ -55,16 +55,13 @@ class MockFormatter:
 
 class TestBaseCommand(TestCase):
     def setUp(self):
-
         self.packages = ["a.b.cmd1", "foo.cmd2", "cmd3"]
 
     def test_must_inherit(self):
-
         cmd = BaseCommand()
         self.assertTrue(isinstance(cmd, click.MultiCommand))
 
     def test_check_formatter(self):
-
         cmd = BaseCommand()
         self.assertEqual(cmd.context_class.formatter_class, RootCommandHelpTextFormatter)
 
@@ -172,6 +169,7 @@ class TestBaseCommand(TestCase):
         cmd = BaseCommand()
         expected_output = {
             "Commands": [],
+            "Learn": [("docs", "docs command output")],
             "Create an App": [("init", "init command output")],
             "Develop your App": [
                 ("build", "build command output"),
@@ -204,6 +202,7 @@ class TestBaseCommand(TestCase):
                 "delete": "delete command output",
                 "pipeline": "pipeline command output",
                 "publish": "publish command output",
+                "docs": "docs command output",
             },
         ):
             cmd.format_commands(ctx, formatter)

@@ -3,6 +3,7 @@ import time
 import shutil
 import tempfile
 from unittest import TestCase
+from typing import Optional
 
 from boto3.session import Session
 from botocore.exceptions import ClientError
@@ -18,13 +19,21 @@ SLEEP_TIME = 1
 
 
 class SchemaTestDataSetup(TestCase):
-    original_cred_file = None
-    original_config_file = None
-    original_profile = None
-    original_region = None
+    original_cred_file: Optional[str]
+    original_config_file: Optional[str]
+    original_profile: Optional[str]
+    original_region: Optional[str]
+    config_dir: Optional[str]
 
     @classmethod
     def setUpClass(cls):
+        env = os.environ
+        cls.original_config_file = env.get(AWS_CONFIG_FILE)
+        cls.original_cred_file = env.get(AWS_SHARED_CREDENTIALS_FILE)
+        cls.original_profile = env.get(AWS_PROFILE)
+        cls.original_region = env.get(AWS_DEFAULT_REGION)
+        cls.config_dir = None
+
         session = Session()
         schemas_client = session.client("schemas", region_name=session.region_name)
         # all setup is done here to avoid creating side effects in test. Currently we are using CLI and
@@ -55,17 +64,33 @@ eb-app-maven
             runner = CliRunner()
             runner.invoke(init_cmd, ["--output-dir", temp], input=user_input)
 
+    def tearDown(self) -> None:
+        env = os.environ
+        if env.get(AWS_CONFIG_FILE):
+            del env[AWS_CONFIG_FILE]
+        if self.original_config_file:
+            env[AWS_CONFIG_FILE] = self.original_config_file
+
+        if env.get(AWS_SHARED_CREDENTIALS_FILE):
+            del env[AWS_SHARED_CREDENTIALS_FILE]
+        if self.original_cred_file:
+            env[AWS_SHARED_CREDENTIALS_FILE] = self.original_cred_file
+
+        if env.get(AWS_PROFILE):
+            del env[AWS_PROFILE]
+        if self.original_profile:
+            env[AWS_PROFILE] = self.original_profile
+
+        if env.get(AWS_DEFAULT_REGION):
+            del env[AWS_DEFAULT_REGION]
+        if self.original_region:
+            env[AWS_DEFAULT_REGION] = self.original_region
+        if self.config_dir:
+            shutil.rmtree(self.config_dir, ignore_errors=True)
+
     def _init_custom_config(self, profile, region):
         self.config_dir = tempfile.mkdtemp()
         env = os.environ
-        if AWS_CONFIG_FILE in env:
-            self.original_config_file = env[AWS_CONFIG_FILE]
-        if AWS_SHARED_CREDENTIALS_FILE in env:
-            self.original_cred_file = env[AWS_SHARED_CREDENTIALS_FILE]
-        if AWS_PROFILE in env:
-            self.original_profile = env[AWS_PROFILE]
-        if AWS_DEFAULT_REGION in env:
-            self.original_region = env[AWS_DEFAULT_REGION]
 
         custom_config = self._create_config_file(profile, region)
         session = Session()
@@ -80,31 +105,6 @@ eb-app-maven
         env[AWS_SHARED_CREDENTIALS_FILE] = custom_cred
         env[AWS_PROFILE] = profile
         env[AWS_DEFAULT_REGION] = region
-
-    def _tear_down_custom_config(self):
-        env = os.environ
-
-        if self.original_config_file is None:
-            del env[AWS_CONFIG_FILE]
-        else:
-            env[AWS_CONFIG_FILE] = self.original_config_file
-
-        if self.original_cred_file is None:
-            del env[AWS_SHARED_CREDENTIALS_FILE]
-        else:
-            env[AWS_SHARED_CREDENTIALS_FILE] = self.original_cred_file
-
-        if self.original_profile is None:
-            del env[AWS_PROFILE]
-        else:
-            env[AWS_PROFILE] = self.original_profile
-
-        if self.original_region is None:
-            del env[AWS_DEFAULT_REGION]
-        else:
-            env[AWS_DEFAULT_REGION] = self.original_region
-
-        shutil.rmtree(self.config_dir, ignore_errors=True)
 
     def _create_config_file(self, profile, region):
         if profile == DEFAULT:
