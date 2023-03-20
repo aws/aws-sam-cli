@@ -68,7 +68,7 @@ class DocsBaseCommand(Command):
                 ]
             )
 
-    def format_options(self, ctx: Context, formatter: DocsCommandHelpTextFormatter):
+    def format_options(self, ctx: Context, formatter: DocsCommandHelpTextFormatter):  # type:ignore
         """
         Overrides the format_options method from the parent class to update
         the help text formatting in a consistent method for the AWS SAM CLI
@@ -84,7 +84,7 @@ class DocsBaseCommand(Command):
         self.format_sub_commands(formatter)
 
 
-class DocsSubcommand(MultiCommand):
+class DocsSubCommand(MultiCommand):
     def __init__(self, command: Optional[List[str]] = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.docs_command = DocsCommandContext()
@@ -120,7 +120,7 @@ class DocsSubcommand(MultiCommand):
                 short_help=f"Documentation for {self.command_string}",
                 callback=self.command_callback,
             )
-        return DocsSubcommand(command=self.command)
+        return DocsSubCommand(command=self.command)
 
     def list_commands(self, ctx: Context) -> List[str]:
         """

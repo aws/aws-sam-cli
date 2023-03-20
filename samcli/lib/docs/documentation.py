@@ -59,4 +59,4 @@ class Documentation:
             A dictionary containing commands and their corresponding docs URLs
         """
         with open(Path(__file__).parent / DOCS_CONFIG_FILE) as f:
-            return json.load(f)
+            return dict(json.load(f))

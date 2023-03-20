@@ -8,7 +8,7 @@ from click import Command, command
 from samcli.cli.main import pass_context
 from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.commands.docs.command_context import COMMAND_NAME, DocsCommandContext
-from samcli.commands.docs.core.command import DocsBaseCommand, DocsSubcommand
+from samcli.commands.docs.core.command import DocsBaseCommand, DocsSubCommand
 
 
 def create_command() -> Type[Command]:
@@ -21,7 +21,7 @@ def create_command() -> Type[Command]:
         sub-commands, otherwise returns the base command class
     """
     if DocsCommandContext().sub_commands:
-        return DocsSubcommand
+        return DocsSubCommand
     return DocsBaseCommand
 
 
