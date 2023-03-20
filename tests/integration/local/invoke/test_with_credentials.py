@@ -11,7 +11,7 @@ SKIP_CREDENTIALS_TESTS = IS_WINDOWS or RUNNING_ON_CI or not RUN_BY_CANARY
 
 class CredentialsTestBase(InvokeIntegBase):
     def invoke_functions_and_validate(self, function_name):
-        local_invoke_command_list = self.get_command_list(function_to_invoke=function_name)
+        local_invoke_command_list = InvokeIntegBase.get_command_list(function_to_invoke=function_name)
         stdout, _, returncode = self.run_command(local_invoke_command_list)
         self.assertEqual(returncode, 0)
         self.assertTrue((b'"statusCode": 200' in stdout) or (b'"statusCode":200' in stdout))

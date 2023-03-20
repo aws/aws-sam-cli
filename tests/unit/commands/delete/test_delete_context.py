@@ -367,7 +367,7 @@ class TestDeleteContext(TestCase):
                 ),
                 call(
                     click.style(
-                        "\tDo you you want to delete the ECR companion stack"
+                        "\tDo you want to delete the ECR companion stack"
                         + " Companion-Stack-Name in the region us-east-1 ?",
                         bold=True,
                     ),
