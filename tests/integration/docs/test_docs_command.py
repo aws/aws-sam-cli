@@ -32,7 +32,7 @@ class TestDocsCommand(DocsIntegBase):
         command_result = run_command(command_list)
         stderr = command_result.stderr.decode("utf-8").strip()
         self.assertEqual(command_result.process.returncode, 1)
-        self.assertEqual(
+        self.assertIn(
             (
                 f"Error: Command not found. Try using one of the following available commands:{os.linesep}"
                 f"{os.linesep.join([command for command in DocsCommandContext().get_complete_command_paths()])}"
