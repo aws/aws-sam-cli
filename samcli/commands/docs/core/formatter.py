@@ -1,3 +1,6 @@
+"""
+Base formatter for the docs command help text
+"""
 from samcli.cli.formatters import RootCommandHelpTextFormatter
 from samcli.cli.row_modifiers import BaseLineRowModifier
 

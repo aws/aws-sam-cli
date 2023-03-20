@@ -1,9 +1,12 @@
+"""
+Module contains classes for creating the docs command from click
+"""
 from typing import List, Optional
 
 from click import Command, Context, MultiCommand, style
 
 from samcli.cli.row_modifiers import RowDefinition
-from samcli.commands.docs.command_context import DocsCommandContext, COMMAND_NAME
+from samcli.commands.docs.command_context import COMMAND_NAME, DocsCommandContext
 from samcli.commands.docs.core.formatter import DocsCommandHelpTextFormatter
 
 HELP_TEXT = "NEW! Open the documentation in a browser."
@@ -29,6 +32,14 @@ class DocsBaseCommand(Command):
 
     @staticmethod
     def format_description(formatter: DocsCommandHelpTextFormatter):
+        """
+        Formats the description of the help text for the docs command.
+
+        Parameters
+        ----------
+        formatter: DocsCommandHelpTextFormatter
+            A formatter instance to use for formatting the help text
+        """
         with formatter.indented_section(name="Description", extra_indents=1):
             formatter.write_rd(
                 [
@@ -41,6 +52,14 @@ class DocsBaseCommand(Command):
             )
 
     def format_sub_commands(self, formatter: DocsCommandHelpTextFormatter):
+        """
+        Formats the sub-commands of the help text for the docs command.
+
+        Parameters
+        ----------
+        formatter: DocsCommandHelpTextFormatter
+            A formatter instance to use for formatting the help text
+        """
         with formatter.indented_section(name="Commands", extra_indents=1):
             formatter.write_rd(
                 [
@@ -50,6 +69,17 @@ class DocsBaseCommand(Command):
             )
 
     def format_options(self, ctx: Context, formatter: DocsCommandHelpTextFormatter):
+        """
+        Overrides the format_options method from the parent class to update
+        the help text formatting in a consistent method for the AWS SAM CLI
+
+        Parameters
+        ----------
+        ctx: Context
+            The click command context
+        formatter: DocsCommandHelpTextFormatter
+            A formatter instance to use for formatting the help text
+        """
         DocsBaseCommand.format_description(formatter)
         self.format_sub_commands(formatter)
 
@@ -71,11 +101,16 @@ class DocsSubcommand(MultiCommand):
 
         Parameters
         ----------
-        ctx
-        cmd_name
+        ctx: Context
+            The click command context
+        cmd_name: str
+            Name of the next command to be added as a sub-command or the leaf command
 
         Returns
         -------
+        Command
+            Returns either a sub-command to be recursively added to the command tree,
+            or the leaf command to be invoked by the command handler
 
         """
         next_command = self.command.pop(0)
@@ -87,5 +122,19 @@ class DocsSubcommand(MultiCommand):
             )
         return DocsSubcommand(command=self.command)
 
-    def list_commands(self, ctx: Context):
+    def list_commands(self, ctx: Context) -> List[str]:
+        """
+        Overrides the list_command method from the parent class.
+        Used for the Command class to understand all possible sub-commands.
+
+        Parameters
+        ----------
+        ctx: Context
+            The click command context
+
+        Returns
+        -------
+        List[str]
+            List of strings representing sub-commands callable by the docs command
+        """
         return self.docs_command.all_commands
