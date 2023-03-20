@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Set, ca
 
 from boto3.session import Session
 
+from samcli.lib.build.app_builder import ApplicationBuildResult
 from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_by_id
 from samcli.lib.sync.exceptions import MissingLockException, MissingPhysicalResourceError
 from samcli.lib.utils.boto_utils import get_boto_client_provider_from_session_with_config
@@ -62,6 +63,7 @@ class SyncFlow(ABC):
     # Local hash represents the state of a particular sync flow
     # We store the hash value in sync state toml file as value
     _local_sha: Optional[str]
+    _application_build_result: Optional[ApplicationBuildResult]
 
     def __init__(
         self,
@@ -71,6 +73,7 @@ class SyncFlow(ABC):
         physical_id_mapping: Dict[str, str],
         log_name: str,
         stacks: Optional[List[Stack]] = None,
+        application_build_result: Optional[ApplicationBuildResult] = None,
     ):
         """
         Parameters
@@ -87,6 +90,8 @@ class SyncFlow(ABC):
             Name to be used for logging purposes
         stacks : List[Stack], optional
             List of stacks containing a root stack and optional nested stacks
+         application_build_result: Optional[ApplicationBuildResult]
+            Pre-build ApplicationBuildResult which can be re-used during SyncFlows
         """
         self._build_context = build_context
         self._deploy_context = deploy_context
@@ -97,6 +102,7 @@ class SyncFlow(ABC):
         self._physical_id_mapping = physical_id_mapping
         self._locks = None
         self._local_sha = None
+        self._application_build_result = application_build_result
 
     def set_up(self) -> None:
         """Clients and other expensives setups should be handled here instead of constructor"""

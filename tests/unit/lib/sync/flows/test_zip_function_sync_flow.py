@@ -1,14 +1,26 @@
 import os
+
+from parameterized import parameterized_class
+
 from samcli.lib.sync.flows.function_sync_flow import wait_for_function_update_complete
 
 from samcli.lib.sync.sync_flow import ApiCallTypes
 from unittest import TestCase
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import MagicMock, mock_open, patch, Mock
 
 from samcli.lib.sync.flows.zip_function_sync_flow import ZipFunctionSyncFlow
 
 
+@parameterized_class(
+    ("build_artifacts"),
+    [
+        (None,),
+        (Mock(),),
+    ],
+)
 class TestZipFunctionSyncFlow(TestCase):
+    build_artifacts = None
+
     def create_function_sync_flow(self):
         self.build_context_mock = MagicMock()
         self.function_identifier = "Function1"
@@ -19,6 +31,7 @@ class TestZipFunctionSyncFlow(TestCase):
             sync_context=MagicMock(),
             physical_id_mapping={},
             stacks=[MagicMock()],
+            application_build_result=self.build_artifacts,
         )
         sync_flow._get_resource_api_calls = MagicMock()
         return sync_flow
@@ -66,15 +79,29 @@ class TestZipFunctionSyncFlow(TestCase):
         sync_flow.gather_resources()
 
         function_object = self.build_context_mock.function_provider.get(self.function_identifier)
-        rmtree_if_exists_mock.assert_called_once_with(function_object.get_build_dir(self.build_context_mock.build_dir))
-        get_mock.assert_called_once_with("Function1")
-        self.assertEqual(sync_flow._artifact_folder, "ArtifactFolder1")
-        make_zip_mock.assert_called_once_with("temp_folder" + os.sep + "data-uuid_value", "ArtifactFolder1")
+
+        if self.build_artifacts:
+            build_folder = self.build_artifacts.artifacts.get(self.function_identifier)
+            rmtree_if_exists_mock.assert_not_called()
+            get_mock.assert_not_called()
+            self.assertEqual(sync_flow._artifact_folder, build_folder)
+            make_zip_mock.assert_called_once_with("temp_folder" + os.sep + "data-uuid_value", build_folder)
+            sync_flow._get_lock_chain.assert_not_called()
+            sync_flow._get_lock_chain.return_value.__enter__.assert_not_called()
+            sync_flow._get_lock_chain.return_value.__exit__.assert_not_called()
+        else:
+            rmtree_if_exists_mock.assert_called_once_with(
+                function_object.get_build_dir(self.build_context_mock.build_dir)
+            )
+            get_mock.assert_called_once_with("Function1")
+            self.assertEqual(sync_flow._artifact_folder, "ArtifactFolder1")
+            make_zip_mock.assert_called_once_with("temp_folder" + os.sep + "data-uuid_value", "ArtifactFolder1")
+            sync_flow._get_lock_chain.assert_called_once()
+            sync_flow._get_lock_chain.return_value.__enter__.assert_called_once()
+            sync_flow._get_lock_chain.return_value.__exit__.assert_called_once()
+
         file_checksum_mock.assert_called_once_with("zip_file", sha256_mock.return_value)
         self.assertEqual("sha256_value", sync_flow._local_sha)
-        sync_flow._get_lock_chain.assert_called_once()
-        sync_flow._get_lock_chain.return_value.__enter__.assert_called_once()
-        sync_flow._get_lock_chain.return_value.__exit__.assert_called_once()
 
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.base64.b64decode")
     @patch("samcli.lib.sync.sync_flow.Session")
@@ -200,6 +227,7 @@ class TestZipFunctionSyncFlow(TestCase):
             sync_context=MagicMock(),
             physical_id_mapping={},
             stacks=[MagicMock()],
+            application_build_result=self.build_artifacts,
         )
 
         result = sync_flow._get_resource_api_calls()
