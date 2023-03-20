@@ -85,6 +85,7 @@ class TestCliConfiguration(TestCase):
         self.param = MagicMock()
         self.value = MagicMock()
         self.config_file = "otherconfig.toml"
+        self.config_file_pipe = "config"
 
     class Dummy:
         pass
@@ -154,6 +155,39 @@ class TestCliConfiguration(TestCase):
                 param=self.param,
                 value=self.value,
             )
+        self.assertEqual(self.saved_callback.call_count, 1)
+        for arg in [self.ctx, self.param, DEFAULT_ENV]:
+            self.assertIn(arg, self.saved_callback.call_args[0])
+        self.assertNotIn(self.value, self.saved_callback.call_args[0])
+
+    def test_callback_with_config_file_from_pipe(self):
+        mock_context1 = MockContext(info_name="sam", parent=None)
+        mock_context2 = MockContext(info_name="local", parent=mock_context1)
+        mock_context3 = MockContext(info_name="start-api", parent=mock_context2)
+        self.ctx.parent = mock_context3
+        self.ctx.info_name = "test_info"
+        # Create a temporary directory.
+        temp_dir = tempfile.mkdtemp()
+        # Create a new config file path that is one layer above the temporary directory.
+        config_file_pipe_path = Path(temp_dir).parent.joinpath(self.config_file_pipe)
+        try:
+            # Create a new pipe
+            os.mkfifo(config_file_pipe_path)
+            # Set the `samconfig_dir` to be temporary directory that was created.
+            setattr(self.ctx, "samconfig_dir", temp_dir)
+            # set a relative path for the config file from `samconfig_dir`.
+            self.ctx.params = {"config_file": os.path.join("..", self.config_file_pipe)}
+            configuration_callback(
+                cmd_name=self.cmd_name,
+                option_name=self.option_name,
+                saved_callback=self.saved_callback,
+                provider=self.provider,
+                ctx=self.ctx,
+                param=self.param,
+                value=self.value,
+            )
+        finally:
+            os.remove(config_file_pipe_path)
         self.assertEqual(self.saved_callback.call_count, 1)
         for arg in [self.ctx, self.param, DEFAULT_ENV]:
             self.assertIn(arg, self.saved_callback.call_args[0])
