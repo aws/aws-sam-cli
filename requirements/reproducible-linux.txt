@@ -253,9 +253,9 @@ cryptography==39.0.1 \
     --hash=sha256:fdd188c8a6ef8769f148f88f859884507b954cc64db6b52f66ef199bb9ad660a \
     --hash=sha256:fe913f20024eb2cb2f323e42a64bdf2911bb9738a15dba7d3cce48151034e3a8
     # via pyopenssl
-dateparser==1.0.0 \
-    --hash=sha256:159cc4e01a593706a15cd4e269a0b3345edf3aef8bf9278a57dac8adf5bf1e4a \
-    --hash=sha256:17202df32c7a36e773136ff353aa3767e987f8b3e27374c39fd21a30a803d6f8
+dateparser==1.1.7 \
+    --hash=sha256:fbed8b738a24c9cd7f47c4f2089527926566fe539e1a06125eddba75917b1eef \
+    --hash=sha256:ff047d9cffad4d3113ead8ec0faf8a7fc43bab7d853ac8715e071312b53c465a
     # via aws-sam-cli (setup.py)
 docker==4.2.2 \
     --hash=sha256:03a46400c4080cb6f7aa997f881ddd84fef855499ece219d75fbdb53289c17ab \
