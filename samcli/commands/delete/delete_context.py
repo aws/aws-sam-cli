@@ -188,7 +188,7 @@ class DeleteContext:
 
         return confirm(
             click.style(
-                "\tDo you you want to delete the ECR companion stack"
+                "\tDo you want to delete the ECR companion stack"
                 f" {self.companion_stack_name} in the region {self.region} ?",
                 bold=True,
             ),

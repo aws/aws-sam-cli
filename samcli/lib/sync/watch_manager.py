@@ -264,7 +264,7 @@ class WatchManager:
         if not self._sync_flow_factory:
             return
         for resource_id in resource_ids_with_code_sync:
-            sync_flow = self._sync_flow_factory.create_sync_flow(resource_id)
+            sync_flow = self._sync_flow_factory.create_sync_flow(resource_id, self._build_context.build_result)
             if sync_flow:
                 self._sync_flow_executor.add_delayed_sync_flow(sync_flow)
 
