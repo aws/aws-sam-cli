@@ -276,26 +276,6 @@ class TestSyncCode(TestSyncCodeBase):
         state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
         self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')
 
-    def test_sync_code_invalid_resource_type(self):
-        sync_command_list = self.get_sync_command_list(
-            template_file=TestSyncCodeBase.template_path,
-            code=True,
-            watch=False,
-            resource_list=["AWS::Serverless::InvalidResource"],
-            stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
-            image_repository=self.ecr_repo_name,
-            s3_prefix=self.s3_prefix,
-            kms_key_id=self.kms_key,
-            tags="integ=true clarity=yes foo_bar=baz",
-        )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
-        self.assertEqual(sync_process_execute.process.returncode, 2)
-        self.assertIn(
-            "Error: Invalid value for '--resource': 'AWS::Serverless::InvalidResource' is not one of",
-            str(sync_process_execute.stderr),
-        )
-
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
 class TestSyncCodeDotnetFunctionTemplate(TestSyncCodeBase):

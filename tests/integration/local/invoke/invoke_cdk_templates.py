@@ -22,7 +22,7 @@ class TestCDKSynthesizedTemplate(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returncode_is_zero(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "helloworld-serverless-function", event_path=self.event_path, template_path=self.template_path
         )
         stdout, _, return_code = self.run_command(command_list)
@@ -31,7 +31,7 @@ class TestCDKSynthesizedTemplate(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_utf8_event(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "helloworld-serverless-function", event_path=self.event_utf8_path, template_path=self.template_path
         )
         stdout, _, return_code = self.run_command(command_list)
@@ -40,7 +40,7 @@ class TestCDKSynthesizedTemplate(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returns_expected_results(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "helloworld-serverless-function", event_path=self.event_path, template_path=self.template_path
         )
 
@@ -51,7 +51,7 @@ class TestCDKSynthesizedTemplate(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_timeout_set(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "timeout-function", event_path=self.event_path, template_path=self.template_path
         )
 
@@ -78,7 +78,7 @@ class TestCDKSynthesizedTemplate(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_env_vars(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "custom-env-vars-function", event_path=self.event_path, template_path=self.template_path
         )
 
@@ -89,7 +89,7 @@ class TestCDKSynthesizedTemplate(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_when_function_writes_stdout(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "write-to-stdout-function", event_path=self.event_path, template_path=self.template_path
         )
 
@@ -101,7 +101,7 @@ class TestCDKSynthesizedTemplate(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returns_expected_result_when_no_event_given(self):
-        command_list = self.get_command_list("echo-event-function", template_path=self.template_path)
+        command_list = InvokeIntegBase.get_command_list("echo-event-function", template_path=self.template_path)
 
         stdout, _, return_code = self.run_command(command_list)
 
@@ -112,7 +112,7 @@ class TestCDKSynthesizedTemplate(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_parameters_overrides(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "echo-env-with-parameters",
             event_path=self.event_path,
             parameter_overrides={"MyRuntimeVersion": "v0", "TimeOut": "100"},
@@ -165,7 +165,7 @@ class TestCDKSynthesizedTemplatesImageFunctions(InvokeIntegBase):
     def test_build_and_invoke_image_function(self, function_name):
         # Set the function name to be removed during teardown
         self.teardown_function_name = function_name
-        local_invoke_command_list = self.get_command_list(
+        local_invoke_command_list = InvokeIntegBase.get_command_list(
             function_to_invoke=function_name, template_path=self.template_path
         )
         stdout, _, return_code = self.run_command(local_invoke_command_list)
@@ -178,7 +178,7 @@ class TestCDKSynthesizedTemplatesImageFunctions(InvokeIntegBase):
         self.assertEqual(response, expected_response)
 
     def test_invoke_with_utf8_event(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "StandardFunctionConstructZipFunction", template_path=self.template_path, event_path=self.event_utf8_path
         )
         stdout, _, return_code = self.run_command(command_list)
@@ -214,7 +214,7 @@ class TestRuntimeFunctionConstructs(InvokeIntegBase):
 
     @parameterized.expand(["NodeJsFunction", "PythonFunction", "GoFunction", "FunctionBundledAssets"])
     def test_runtime_function_construct(self, function_name):
-        local_invoke_command_list = self.get_command_list(
+        local_invoke_command_list = InvokeIntegBase.get_command_list(
             function_to_invoke=function_name, template_path=self.template_path
         )
         stdout, _, return_code = self.run_command(local_invoke_command_list)
@@ -235,7 +235,7 @@ class TestCDKLayerVersion(TestLayerVersionBase):
 
     def test_reference_of_layer_version(self):
         function_identifier = "sample-function"
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             function_identifier,
             template_path=self.template_path,
             no_event=True,

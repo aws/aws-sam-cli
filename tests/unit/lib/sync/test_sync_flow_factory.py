@@ -1,3 +1,4 @@
+import itertools
 from unittest import TestCase
 from unittest.mock import MagicMock, patch, Mock
 
@@ -67,113 +68,123 @@ class TestSyncFlowFactory(TestCase):
             {"Resource1": "PhysicalResource1", "Resource2": "PhysicalResource2"},
         )
 
+    @parameterized.expand([(None,), (Mock(),)])
     @patch("samcli.lib.sync.sync_flow_factory.ImageFunctionSyncFlow")
     @patch("samcli.lib.sync.sync_flow_factory.ZipFunctionSyncFlow")
-    def test_create_lambda_flow_zip(self, zip_function_mock, image_function_mock):
+    def test_create_lambda_flow_zip(self, pre_build_artifacts, zip_function_mock, image_function_mock):
         factory = self.create_factory()
         resource = {"Properties": {"PackageType": "Zip"}}
-        result = factory._create_lambda_flow("Function1", resource)
+        result = factory._create_lambda_flow("Function1", resource, pre_build_artifacts)
         self.assertEqual(result, zip_function_mock.return_value)
 
+    @parameterized.expand([(None,), (Mock(),)])
     @patch("samcli.lib.sync.sync_flow_factory.ImageFunctionSyncFlow")
     @patch("samcli.lib.sync.sync_flow_factory.ZipFunctionSyncFlow")
     @patch("samcli.lib.sync.sync_flow_factory.AutoDependencyLayerParentSyncFlow")
     def test_create_lambda_flow_zip_with_auto_dependency_layer(
-        self, auto_dependency_layer_mock, zip_function_mock, image_function_mock
+        self, pre_build_artifacts, auto_dependency_layer_mock, zip_function_mock, image_function_mock
     ):
         factory = self.create_factory(True)
         resource = {"Properties": {"PackageType": "Zip", "Runtime": "python3.8"}}
-        result = factory._create_lambda_flow("Function1", resource)
+        result = factory._create_lambda_flow("Function1", resource, pre_build_artifacts)
         self.assertEqual(result, auto_dependency_layer_mock.return_value)
 
+    @parameterized.expand([(None,), (Mock(),)])
     @patch("samcli.lib.sync.sync_flow_factory.ImageFunctionSyncFlow")
     @patch("samcli.lib.sync.sync_flow_factory.ZipFunctionSyncFlow")
     @patch("samcli.lib.sync.sync_flow_factory.AutoDependencyLayerParentSyncFlow")
     def test_create_lambda_flow_zip_with_unsupported_runtime_auto_dependency_layer(
-        self, auto_dependency_layer_mock, zip_function_mock, image_function_mock
+        self, pre_build_artifacts, auto_dependency_layer_mock, zip_function_mock, image_function_mock
     ):
         factory = self.create_factory(True)
         resource = {"Properties": {"PackageType": "Zip", "Runtime": "ruby2.7"}}
-        result = factory._create_lambda_flow("Function1", resource)
+        result = factory._create_lambda_flow("Function1", resource, pre_build_artifacts)
         self.assertEqual(result, zip_function_mock.return_value)
 
+    @parameterized.expand([(None,), (Mock(),)])
     @patch("samcli.lib.sync.sync_flow_factory.ImageFunctionSyncFlow")
     @patch("samcli.lib.sync.sync_flow_factory.ZipFunctionSyncFlow")
-    def test_create_lambda_flow_image(self, zip_function_mock, image_function_mock):
+    def test_create_lambda_flow_image(self, pre_build_artifacts, zip_function_mock, image_function_mock):
         factory = self.create_factory()
         resource = {"Properties": {"PackageType": "Image"}}
-        result = factory._create_lambda_flow("Function1", resource)
+        result = factory._create_lambda_flow("Function1", resource, pre_build_artifacts)
         self.assertEqual(result, image_function_mock.return_value)
 
+    @parameterized.expand([(None,), (Mock(),)])
     @patch("samcli.lib.sync.sync_flow_factory.LayerSyncFlow")
-    def test_create_layer_flow(self, layer_sync_mock):
+    def test_create_layer_flow(self, pre_build_artifacts, layer_sync_mock):
         factory = self.create_factory()
         # mock layer for not having SkipBuild:True
         factory._build_context.layer_provider.get.return_value = Mock(skip_build=False)
-        result = factory._create_layer_flow("Layer1", {})
+        result = factory._create_layer_flow("Layer1", {}, pre_build_artifacts)
         self.assertEqual(result, layer_sync_mock.return_value)
 
-    @parameterized.expand([(Mock(build_method=None),), (Mock(skip_build=True),)])
+    @parameterized.expand(itertools.product([Mock(build_method=None), Mock(skip_build=True)], [None, Mock()]))
     @patch("samcli.lib.sync.sync_flow_factory.LayerSyncFlowSkipBuildDirectory")
     @patch("samcli.lib.sync.sync_flow_factory.is_local_folder")
-    def test_create_layer_flow_with_skip_build_directory(self, layer_mock, is_local_folder_mock, layer_sync_mock):
+    def test_create_layer_flow_with_skip_build_directory(
+        self, layer_mock, pre_build_artifacts, is_local_folder_mock, layer_sync_mock
+    ):
         factory = self.create_factory()
         # mock layer return to have no build method
         factory._build_context.layer_provider.get.return_value = layer_mock
         # codeuri should resolve as directory
         is_local_folder_mock.return_value = True
-        result = factory._create_layer_flow("Layer1", {})
+        result = factory._create_layer_flow("Layer1", {}, pre_build_artifacts)
         self.assertEqual(result, layer_sync_mock.return_value)
 
-    @parameterized.expand([(Mock(build_method=None),), (Mock(skip_build=True),)])
+    @parameterized.expand(itertools.product([Mock(build_method=None), Mock(skip_build=True)], [None, Mock()]))
     @patch("samcli.lib.sync.sync_flow_factory.LayerSyncFlowSkipBuildZipFile")
     @patch("samcli.lib.sync.sync_flow_factory.is_local_folder")
     @patch("samcli.lib.sync.sync_flow_factory.is_zip_file")
     def test_create_layer_flow_with_skip_build_zip(
-        self, layer_mock, is_zip_file_mock, is_local_folder_mock, layer_sync_mock
+        self, layer_mock, pre_build_artifacts, is_zip_file_mock, is_local_folder_mock, layer_sync_mock
     ):
         factory = self.create_factory()
         factory._build_context.layer_provider.get.return_value = layer_mock
         # codeuri should resolve as zip file
         is_local_folder_mock.return_value = False
         is_zip_file_mock.return_value = True
-        result = factory._create_layer_flow("Layer1", {})
+        result = factory._create_layer_flow("Layer1", {}, pre_build_artifacts)
         self.assertEqual(result, layer_sync_mock.return_value)
 
-    def test_create_layer_flow_with_no_layer(self):
+    @parameterized.expand([(None,), (Mock(),)])
+    def test_create_layer_flow_with_no_layer(self, pre_build_artifacts):
         factory = self.create_factory()
         factory._build_context.layer_provider.get.return_value = None
-        result = factory._create_layer_flow("Layer1", {})
+        result = factory._create_layer_flow("Layer1", {}, pre_build_artifacts)
         self.assertIsNone(result)
 
+    @parameterized.expand([(None,), (Mock(),)])
     @patch("samcli.lib.sync.sync_flow_factory.ImageFunctionSyncFlow")
     @patch("samcli.lib.sync.sync_flow_factory.ZipFunctionSyncFlow")
-    def test_create_lambda_flow_other(self, zip_function_mock, image_function_mock):
+    def test_create_lambda_flow_other(self, pre_build_artifacts, zip_function_mock, image_function_mock):
         factory = self.create_factory()
         resource = {"Properties": {"PackageType": "Other"}}
-        result = factory._create_lambda_flow("Function1", resource)
+        result = factory._create_lambda_flow("Function1", resource, pre_build_artifacts)
         self.assertEqual(result, None)
 
     @patch("samcli.lib.sync.sync_flow_factory.RestApiSyncFlow")
     def test_create_rest_api_flow(self, rest_api_sync_mock):
         factory = self.create_factory()
-        result = factory._create_rest_api_flow("API1", {})
+        result = factory._create_rest_api_flow("API1", {}, None)
         self.assertEqual(result, rest_api_sync_mock.return_value)
 
     @patch("samcli.lib.sync.sync_flow_factory.HttpApiSyncFlow")
     def test_create_api_flow(self, http_api_sync_mock):
         factory = self.create_factory()
-        result = factory._create_api_flow("API1", {})
+        result = factory._create_api_flow("API1", {}, None)
         self.assertEqual(result, http_api_sync_mock.return_value)
 
     @patch("samcli.lib.sync.sync_flow_factory.StepFunctionsSyncFlow")
     def test_create_stepfunctions_flow(self, stepfunctions_sync_mock):
         factory = self.create_factory()
-        result = factory._create_stepfunctions_flow("StateMachine1", {})
+        result = factory._create_stepfunctions_flow("StateMachine1", {}, None)
         self.assertEqual(result, stepfunctions_sync_mock.return_value)
 
+    @parameterized.expand([(None,), (Mock(),)])
     @patch("samcli.lib.sync.sync_flow_factory.get_resource_by_id")
-    def test_create_sync_flow(self, get_resource_by_id_mock):
+    def test_create_sync_flow(self, pre_build_artifacts, get_resource_by_id_mock):
         factory = self.create_factory()
 
         sync_flow = MagicMock()
@@ -187,10 +198,10 @@ class TestSyncFlowFactory(TestCase):
         get_generator_function_mock.return_value = generator_mock
         factory._get_generator_function = get_generator_function_mock
 
-        result = factory.create_sync_flow(resource_identifier)
+        result = factory.create_sync_flow(resource_identifier, pre_build_artifacts)
 
         self.assertEqual(result, sync_flow)
-        generator_mock.assert_called_once_with(factory, resource_identifier, get_resource_by_id)
+        generator_mock.assert_called_once_with(factory, resource_identifier, get_resource_by_id, pre_build_artifacts)
 
     @patch("samcli.lib.sync.sync_flow_factory.get_resource_by_id")
     def test_create_unknown_resource_sync_flow(self, get_resource_by_id_mock):
