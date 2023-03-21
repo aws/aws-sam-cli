@@ -271,6 +271,8 @@ def do_cli(
             s3_bucket=s3_bucket,
             image_repository=image_repository,
             image_repositories=image_repositories,
+            resolve_s3=resolve_s3,
+            resolve_image_repos=resolve_image_repos,
             s3_prefix=s3_prefix,
             region=region,
             profile=profile,

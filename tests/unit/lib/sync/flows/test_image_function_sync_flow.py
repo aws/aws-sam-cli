@@ -1,12 +1,22 @@
-from samcli.lib.sync.sync_flow import ApiCallTypes
 from unittest import TestCase
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, Mock
+
+from parameterized import parameterized_class
 
 from samcli.lib.sync.flows.image_function_sync_flow import ImageFunctionSyncFlow
-from samcli.lib.utils.hash import str_checksum
+from samcli.lib.sync.sync_flow import ApiCallTypes
 
 
+@parameterized_class(
+    ("build_artifacts"),
+    [
+        (None,),
+        (Mock(),),
+    ],
+)
 class TestImageFunctionSyncFlow(TestCase):
+    build_artifacts = None
+
     def create_function_sync_flow(self):
         sync_flow = ImageFunctionSyncFlow(
             "Function1",
@@ -15,6 +25,7 @@ class TestImageFunctionSyncFlow(TestCase):
             sync_context=MagicMock(),
             physical_id_mapping={},
             stacks=[MagicMock()],
+            application_build_result=self.build_artifacts,
         )
         return sync_flow
 
@@ -63,8 +74,14 @@ class TestImageFunctionSyncFlow(TestCase):
             sync_flow.set_up()
             sync_flow.gather_resources()
 
-            get_mock.assert_called_once_with("Function1")
-            self.assertEqual(sync_flow._image_name, "ImageName1")
+            if self.build_artifacts:
+                get_mock.assert_not_called()
+                self.assertEqual(
+                    sync_flow._image_name, self.build_artifacts.artifacts.get(sync_flow._function_identifier)
+                )
+            else:
+                get_mock.assert_called_once_with("Function1")
+                self.assertEqual(sync_flow._image_name, "ImageName1")
             self.assertEqual(
                 sync_flow._local_sha, str(patched_get_docker_client().images.get("ImageName1").attrs.get("Id"))
             )
