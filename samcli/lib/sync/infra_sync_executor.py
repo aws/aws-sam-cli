@@ -184,9 +184,10 @@ class InfraSyncExecutor:
                         return InfraSyncResult(False, self.code_sync_resources)
                     else:
                         LOG.info(
-                        "The number of resources that needs an update exceeds %s, \
+                            "The number of resources that needs an update exceeds %s, \
 an infra sync will be executed for an CloudFormation deployment to improve performance",
-                        SYNC_FLOW_THRESHOLD)
+                            SYNC_FLOW_THRESHOLD,
+                        )
             except Exception:
                 LOG.debug(
                     "Could not skip infra sync by comparing to a previously deployed template, starting infra sync"
@@ -198,7 +199,6 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
                 " deployment to minimize the drift in CloudFormation.",
                 AUTO_INFRA_SYNC_DAYS,
             )
-
         self._deploy_context.run()
 
         # Update latest infra sync time in sync state

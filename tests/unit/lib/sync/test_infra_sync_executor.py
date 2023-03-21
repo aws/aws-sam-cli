@@ -42,8 +42,7 @@ class TestInfraSyncExecutor(TestCase):
             self.sync_context.update_infra_sync_time.assert_called_once()
             self.assertEqual(code_sync_resources, set())
 
-        # Reminder: Add back after sync infra skip ready for release
-        # self.assertEqual(executed, not auto_skip_infra_sync)
+        self.assertEqual(executed, not auto_skip_infra_sync)
 
     @patch("samcli.lib.sync.infra_sync_executor.InfraSyncExecutor._auto_skip_infra_sync")
     @patch("samcli.lib.sync.infra_sync_executor.Session")
