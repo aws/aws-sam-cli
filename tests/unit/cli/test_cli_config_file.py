@@ -2,12 +2,14 @@ import os
 import tempfile
 
 from pathlib import Path
-from unittest import TestCase
-from unittest.mock import MagicMock
+from unittest import TestCase, skipIf
+from unittest.mock import MagicMock, patch
 
 from samcli.commands.exceptions import ConfigException
 from samcli.cli.cli_config_file import TomlProvider, configuration_option, configuration_callback, get_ctx_defaults
 from samcli.lib.config.samconfig import DEFAULT_ENV
+
+from tests.testing_utils import IS_WINDOWS
 
 
 class MockContext:
@@ -160,6 +162,7 @@ class TestCliConfiguration(TestCase):
             self.assertIn(arg, self.saved_callback.call_args[0])
         self.assertNotIn(self.value, self.saved_callback.call_args[0])
 
+    @skipIf(IS_WINDOWS, "os.mkfifo doesn't exist on windows")
     def test_callback_with_config_file_from_pipe(self):
         mock_context1 = MockContext(info_name="sam", parent=None)
         mock_context2 = MockContext(info_name="local", parent=mock_context1)
