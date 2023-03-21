@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, cast
 
 from samcli.lib.bootstrap.nested_stack.nested_stack_builder import NestedStackBuilder
 from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NestedStackManager
+from samcli.lib.build.app_builder import ApplicationBuildResult
 from samcli.lib.build.build_graph import BuildGraph
 from samcli.lib.package.utils import make_zip_with_lambda_permissions
 from samcli.lib.providers.provider import Function, Stack
@@ -53,6 +54,7 @@ class AutoDependencyLayerSyncFlow(AbstractLayerSyncFlow):
         sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
+        application_build_result: Optional[ApplicationBuildResult],
     ):
         super().__init__(
             NestedStackBuilder.get_layer_logical_id(function_identifier),
@@ -61,6 +63,7 @@ class AutoDependencyLayerSyncFlow(AbstractLayerSyncFlow):
             sync_context,
             physical_id_mapping,
             stacks,
+            application_build_result,
         )
         self._function_identifier = function_identifier
         self._build_graph = build_graph
@@ -132,6 +135,7 @@ class AutoDependencyLayerParentSyncFlow(ZipFunctionSyncFlow):
                     self._sync_context,
                     self._physical_id_mapping,
                     cast(List[Stack], self._stacks),
+                    self._application_build_result,
                 )
             )
         return parent_dependencies

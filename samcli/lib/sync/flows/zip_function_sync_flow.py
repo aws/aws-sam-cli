@@ -8,7 +8,7 @@ import uuid
 from contextlib import ExitStack
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
-from samcli.lib.build.app_builder import ApplicationBuilder
+from samcli.lib.build.app_builder import ApplicationBuilder, ApplicationBuildResult
 from samcli.lib.build.build_graph import BuildGraph
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.utils import make_zip_with_lambda_permissions
@@ -44,6 +44,7 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
         sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
+        application_build_result: Optional[ApplicationBuildResult],
     ):
         """
         Parameters
@@ -60,8 +61,18 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
             Physical ID Mapping
         stacks : Optional[List[Stack]]
             Stacks
+         application_build_result: Optional[ApplicationBuildResult]
+            Pre-build ApplicationBuildResult which can be re-used during SyncFlows
         """
-        super().__init__(function_identifier, build_context, deploy_context, sync_context, physical_id_mapping, stacks)
+        super().__init__(
+            function_identifier,
+            build_context,
+            deploy_context,
+            sync_context,
+            physical_id_mapping,
+            stacks,
+            application_build_result,
+        )
         self._s3_client = None
         self._artifact_folder = None
         self._zip_file = None
@@ -74,6 +85,25 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
 
     def gather_resources(self) -> None:
         """Build function and ZIP it into a temp file in self._zip_file"""
+        if self._application_build_result:
+            LOG.debug("Using pre-built resources for function {}", self._function_identifier)
+            self._use_prebuilt_resources(self._application_build_result)
+        else:
+            LOG.debug("Building function from scratch {}", self._function_identifier)
+            self._build_resources_from_scratch()
+
+        zip_file_path = os.path.join(tempfile.gettempdir(), "data-" + uuid.uuid4().hex)
+        self._zip_file = make_zip_with_lambda_permissions(zip_file_path, self._artifact_folder)
+        LOG.debug("%sCreated artifact ZIP file: %s", self.log_prefix, self._zip_file)
+        self._local_sha = file_checksum(cast(str, self._zip_file), hashlib.sha256())
+
+    def _use_prebuilt_resources(self, application_build_result: ApplicationBuildResult) -> None:
+        """Uses pre-built artifacts and assigns build_graph and artifacts_folder"""
+        self._build_graph = application_build_result.build_graph
+        self._artifact_folder = application_build_result.artifacts.get(self._function_identifier)
+
+    def _build_resources_from_scratch(self) -> None:
+        """Builds function from scratch and assigns build_graph and artifacts_folder"""
         with ExitStack() as exit_stack:
             if self.has_locks():
                 exit_stack.enter_context(self._get_lock_chain())
@@ -96,11 +126,6 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
             build_result = builder.build()
             self._build_graph = build_result.build_graph
             self._artifact_folder = build_result.artifacts.get(self._function_identifier)
-
-        zip_file_path = os.path.join(tempfile.gettempdir(), "data-" + uuid.uuid4().hex)
-        self._zip_file = make_zip_with_lambda_permissions(zip_file_path, self._artifact_folder)
-        LOG.debug("%sCreated artifact ZIP file: %s", self.log_prefix, self._zip_file)
-        self._local_sha = file_checksum(cast(str, self._zip_file), hashlib.sha256())
 
     def compare_remote(self) -> bool:
         remote_info = self._lambda_client.get_function(FunctionName=self.get_physical_id(self._function_identifier))

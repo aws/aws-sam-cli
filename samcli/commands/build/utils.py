@@ -9,6 +9,7 @@ import click
 
 from samcli.lib.build.workflow_config import CONFIG, get_workflow_config
 from samcli.lib.providers.provider import ResourcesToBuildCollector
+from samcli.lib.utils.packagetype import IMAGE
 
 
 class MountMode(Enum):
@@ -53,6 +54,8 @@ def prompt_user_to_enable_mount_with_write_if_needed(
     """
 
     for function in resources_to_build.functions:
+        if function.packagetype == IMAGE:
+            continue
         code_uri = function.codeuri
         if not code_uri:
             continue
