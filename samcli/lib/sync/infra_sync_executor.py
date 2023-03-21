@@ -170,7 +170,7 @@ class InfraSyncExecutor:
             days_since_last_infra_sync = (current_time - last_infra_sync_time).days
 
         # Will not combine the comparisons in order to save operation cost
-        if first_sync and (days_since_last_infra_sync <= AUTO_INFRA_SYNC_DAYS):
+        if self._sync_context.skip_deploy_sync and first_sync and (days_since_last_infra_sync <= AUTO_INFRA_SYNC_DAYS):
             try:
                 if self._auto_skip_infra_sync(
                     self._package_context.output_template_file,
@@ -198,6 +198,7 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
                 " deployment to minimize the drift in CloudFormation.",
                 AUTO_INFRA_SYNC_DAYS,
             )
+
         self._deploy_context.run()
 
         # Update latest infra sync time in sync state

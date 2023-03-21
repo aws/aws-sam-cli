@@ -62,11 +62,11 @@ class TestDoCli(TestCase):
     @parameterized.expand(
         [
             # Reminder: Add back after sync infra skip ready for release
-            # (False, False, True, False, InfraSyncResult(False, {ResourceIdentifier("Function")})),
-            (False, False, True, False, InfraSyncResult(True)),
-            (False, False, False, False, InfraSyncResult(True)),
-            (False, False, True, True, InfraSyncResult(True)),
-            (False, False, False, True, InfraSyncResult(True)),
+            # (False, False, True, True, False, InfraSyncResult(False, {ResourceIdentifier("Function")})),
+            (False, False, True, True, False, InfraSyncResult(True)),
+            (False, False, False, False, False, InfraSyncResult(True)),
+            (False, False, True, True, True, InfraSyncResult(True)),
+            (False, False, False, False, True, InfraSyncResult(True)),
         ]
     )
     @patch("os.environ", {**os.environ, "SAM_CLI_POLL_DELAY": 10})
@@ -88,6 +88,7 @@ class TestDoCli(TestCase):
         code,
         watch,
         auto_dependency_layer,
+        skip_deploy_sync,
         use_container,
         infra_sync_result,
         check_enable_adl_mock,
@@ -123,6 +124,7 @@ class TestDoCli(TestCase):
             self.resource_id,
             self.resource,
             auto_dependency_layer,
+            skip_deploy_sync,
             self.stack_name,
             self.region,
             self.profile,
@@ -228,7 +230,9 @@ class TestDoCli(TestCase):
         else:
             execute_code_sync_mock.assert_not_called()
 
-    @parameterized.expand([(False, True, False, False), (False, True, False, True), (False, False, False, True)])
+    @parameterized.expand(
+        [(False, True, False, True, False), (False, True, False, False, True), (False, False, False, False, True)]
+    )
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.execute_watch")
     @patch("samcli.commands.build.command.click")
@@ -245,6 +249,7 @@ class TestDoCli(TestCase):
         code,
         watch,
         auto_dependency_layer,
+        skip_deploy_sync,
         use_container,
         SyncContextMock,
         manage_stack_mock,
@@ -258,7 +263,7 @@ class TestDoCli(TestCase):
         execute_watch_mock,
         click_mock,
     ):
-        skip_infra_syncs = watch and code
+        disable_infra_syncs = watch and code
         build_context_mock = Mock()
         BuildContextMock.return_value.__enter__.return_value = build_context_mock
         package_context_mock = Mock()
@@ -275,6 +280,7 @@ class TestDoCli(TestCase):
             self.resource_id,
             self.resource,
             auto_dependency_layer,
+            skip_deploy_sync,
             self.stack_name,
             self.region,
             self.profile,
@@ -359,16 +365,16 @@ class TestDoCli(TestCase):
             on_failure=None,
         )
         execute_watch_mock.assert_called_once_with(
-            self.template_file,
-            build_context_mock,
-            package_context_mock,
-            deploy_context_mock,
-            sync_context_mock,
-            auto_dependency_layer,
-            skip_infra_syncs,
+            template=self.template_file,
+            build_context=build_context_mock,
+            package_context=package_context_mock,
+            deploy_context=deploy_context_mock,
+            sync_context=sync_context_mock,
+            auto_dependency_layer=auto_dependency_layer,
+            disable_infra_syncs=disable_infra_syncs,
         )
 
-    @parameterized.expand([(True, False, True, False), (True, False, False, True)])
+    @parameterized.expand([(True, False, True, True, False), (True, False, False, False, True)])
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.execute_code_sync")
     @patch("samcli.commands.build.command.click")
@@ -386,6 +392,7 @@ class TestDoCli(TestCase):
         code,
         watch,
         auto_dependency_layer,
+        skip_deploy_sync,
         use_container,
         check_enable_adl_mock,
         SyncContextMock,
@@ -418,6 +425,7 @@ class TestDoCli(TestCase):
             self.resource_id,
             self.resource,
             auto_dependency_layer,
+            skip_deploy_sync,
             self.stack_name,
             self.region,
             self.profile,
@@ -764,7 +772,7 @@ class TestWatch(TestCase):
         watch_manager_mock,
         click_mock,
     ):
-        skip_infra_syncs = code
+        disable_infra_syncs = code
         execute_watch(
             self.template_file,
             self.build_context,
@@ -772,7 +780,7 @@ class TestWatch(TestCase):
             self.deploy_context,
             self.sync_context,
             auto_dependency_layer,
-            skip_infra_syncs,
+            disable_infra_syncs,
         )
 
         watch_manager_mock.assert_called_once_with(
@@ -782,7 +790,7 @@ class TestWatch(TestCase):
             self.deploy_context,
             self.sync_context,
             auto_dependency_layer,
-            skip_infra_syncs,
+            disable_infra_syncs,
         )
         watch_manager_mock.return_value.start.assert_called_once_with()
 
