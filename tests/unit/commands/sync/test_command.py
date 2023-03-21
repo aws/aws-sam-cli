@@ -225,7 +225,7 @@ class TestDoCli(TestCase):
                 resource_ids=["Function"],
                 resource_types=None,
                 auto_dependency_layer=auto_dependency_layer,
-                use_built_resources=True
+                use_built_resources=True,
             )
         else:
             execute_code_sync_mock.assert_not_called()
