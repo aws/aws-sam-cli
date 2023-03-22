@@ -36,6 +36,32 @@ LOG = logging.getLogger(__name__)
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
 @parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 class TestSyncInfra(SyncIntegBase):
+    def setUp(self):
+        self.test_dir = Path(tempfile.mkdtemp())
+        shutil.rmtree(self.test_dir)
+        shutil.copytree(self.test_data_path, self.test_dir)
+        super().setUp()
+
+    def tearDown(self):
+        shutil.rmtree(self.test_dir)
+        super().tearDown()
+
+    def _verify_infra_changes(self, resources):
+        # Lambda
+        lambda_functions = resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "9")
+
+        # APIGW
+        rest_api = resources.get(AWS_APIGATEWAY_RESTAPI)[0]
+        self.assertEqual(self._get_api_message(rest_api), '{"message": "hello 2"}')
+
+        # SFN
+        state_machine = resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
+        self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')
+
     @skipIf(
         IS_WINDOWS,
         "Skip sync ruby tests in windows",
@@ -44,7 +70,7 @@ class TestSyncInfra(SyncIntegBase):
     @parameterized.expand([["ruby", False], ["python", False], ["python", True]])
     def test_sync_infra(self, runtime, use_container):
         template_before = f"infra/template-{runtime}-before.yaml"
-        template_path = str(self.test_data_path.joinpath(template_before))
+        template_path = str(self.test_dir.joinpath(template_before))
         stack_name = self._method_to_stack_name(self.id())
         self.stacks.append({"name": stack_name})
 
@@ -84,7 +110,7 @@ class TestSyncInfra(SyncIntegBase):
             self.assertEqual(self._get_sfn_response(state_machine), '"World 1"')
 
         template_after = f"infra/template-{runtime}-after.yaml"
-        template_path = str(self.test_data_path.joinpath(template_after))
+        template_path = str(self.test_dir.joinpath(template_after))
 
         # Run infra sync
         sync_command_list = self.get_sync_command_list(
@@ -109,108 +135,136 @@ class TestSyncInfra(SyncIntegBase):
         # CFN Api call here to collect all the stack resources
         self.stack_resources = self._get_stacks(stack_name)
         # Lambda Api call here, which tests both the python function and the layer
-        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
-        for lambda_function in lambda_functions:
-            lambda_response = json.loads(self._get_lambda_response(lambda_function))
-            self.assertIn("extra_message", lambda_response)
-            self.assertEqual(lambda_response.get("message"), "9")
-        if runtime == "python":
-            # ApiGateway Api call here, which tests the RestApi
-            rest_api = self.stack_resources.get(AWS_APIGATEWAY_RESTAPI)[0]
-            self.assertEqual(self._get_api_message(rest_api), '{"message": "hello 2"}')
-            # SFN Api call here, which tests the StateMachine
-            state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
-            self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')
+        if not runtime == "python":
+            lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+            for lambda_function in lambda_functions:
+                lambda_response = json.loads(self._get_lambda_response(lambda_function))
+                self.assertIn("extra_message", lambda_response)
+                self.assertEqual(lambda_response.get("message"), "9")
+        else:
+            self._verify_infra_changes(self.stack_resources)
 
-    # Reminder: Add back after sync infra skip ready for release
-    # @skipIf(
-    #     IS_WINDOWS,
-    #     "Skip sync ruby tests in windows",
-    # )
-    # @pytest.mark.flaky(reruns=3)
-    # @parameterized.expand([["python", False], ["python", True]])
-    # def test_sync_infra_auto_skip(self, runtime, use_container):
-    #     template_before = f"infra/template-{runtime}-before.yaml"
-    #     template_path = str(self.test_data_path.joinpath(template_before))
-    #     stack_name = self._method_to_stack_name(self.id())
-    #     self.stacks.append({"name": stack_name})
+    @skipIf(
+        IS_WINDOWS,
+        "Skip sync ruby tests in windows",
+    )
+    @pytest.mark.flaky(reruns=3)
+    @parameterized.expand([["python", False], ["python", True]])
+    def test_sync_infra_auto_skip(self, runtime, use_container):
+        template_before = f"infra/template-{runtime}-before.yaml"
+        template_path = str(self.test_dir.joinpath(template_before))
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
 
-    #     # Run infra sync
-    #     sync_command_list = self.get_sync_command_list(
-    #         template_file=template_path,
-    #         code=False,
-    #         watch=False,
-    #         dependency_layer=self.dependency_layer,
-    #         stack_name=stack_name,
-    #         parameter_overrides="Parameter=Clarity",
-    #         image_repository=self.ecr_repo_name,
-    #         s3_prefix=self.s3_prefix,
-    #         kms_key_id=self.kms_key,
-    #         tags="integ=true clarity=yes foo_bar=baz",
-    #         use_container=use_container,
-    #     )
+        # Run infra sync
+        sync_command_list = self.get_sync_command_list(
+            template_file=template_path,
+            code=False,
+            watch=False,
+            dependency_layer=self.dependency_layer,
+            stack_name=stack_name,
+            parameter_overrides="Parameter=Clarity",
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+            use_container=use_container,
+        )
 
-    #     sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
-    #     self.assertEqual(sync_process_execute.process.returncode, 0)
-    #     self.assertIn("Stack creation succeeded. Sync infra completed.", str(sync_process_execute.stderr))
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+        self.assertIn("Stack creation succeeded. Sync infra completed.", str(sync_process_execute.stderr))
 
-    #     # CFN Api call here to collect all the stack resources
-    #     self.stack_resources = self._get_stacks(stack_name)
-    #     # Lambda Api call here, which tests both the python function and the layer
-    #     lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
-    #     for lambda_function in lambda_functions:
-    #         lambda_response = json.loads(self._get_lambda_response(lambda_function))
-    #         self.assertIn("extra_message", lambda_response)
-    #         self.assertEqual(lambda_response.get("message"), "7")
-    #     if runtime == "python":
-    #         # ApiGateway Api call here, which tests the RestApi
-    #         rest_api = self.stack_resources.get(AWS_APIGATEWAY_RESTAPI)[0]
-    #         self.assertEqual(self._get_api_message(rest_api), '{"message": "hello 1"}')
-    #         # SFN Api call here, which tests the StateMachine
-    #         state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
-    #         self.assertEqual(self._get_sfn_response(state_machine), '"World 1"')
+        template_after = f"infra/template-{runtime}-auto-skip.yaml"
+        template_path = str(self.test_dir.joinpath(template_after))
 
-    #     template_after = f"infra/template-{runtime}-auto-skip.yaml"
-    #     template_path = str(self.test_data_path.joinpath(template_after))
+        # Run infra sync
+        sync_command_list = self.get_sync_command_list(
+            template_file=template_path,
+            code=False,
+            watch=False,
+            dependency_layer=self.dependency_layer,
+            stack_name=stack_name,
+            parameter_overrides="Parameter=Clarity",
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+            use_container=use_container,
+        )
 
-    #     # Run infra sync
-    #     sync_command_list = self.get_sync_command_list(
-    #         template_file=template_path,
-    #         code=False,
-    #         watch=False,
-    #         dependency_layer=self.dependency_layer,
-    #         stack_name=stack_name,
-    #         parameter_overrides="Parameter=Clarity",
-    #         image_repository=self.ecr_repo_name,
-    #         s3_prefix=self.s3_prefix,
-    #         kms_key_id=self.kms_key,
-    #         tags="integ=true clarity=yes foo_bar=baz",
-    #         use_container=use_container,
-    #     )
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+        self.assertIn(
+            "Template haven't been changed since last deployment, skipping infra sync...",
+            str(sync_process_execute.stderr),
+        )
+        self.assertIn(
+            "Queuing up code sync for the resources that require an update",
+            str(sync_process_execute.stderr),
+        )
 
-    #     sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
-    #     self.assertEqual(sync_process_execute.process.returncode, 0)
-    #     self.assertIn(
-    #         "Template haven't been changed since last deployment, skipping infra sync...",
-    #         str(sync_process_execute.stderr),
-    #     )
-    #     self.assertIn(
-    #         "The following resources will be code synced for an update: ",
-    #         str(sync_process_execute.stderr),
-    #     )
+        # CFN Api call here to collect all the stack resources
+        self.stack_resources = self._get_stacks(stack_name)
+        # Lambda Api call here, which tests both the python function and the layer
+        self._verify_infra_changes(self.stack_resources)
 
-    #     # CFN Api call here to collect all the stack resources
-    #     self.stack_resources = self._get_stacks(stack_name)
-    #     # Lambda Api call here, which tests both the python function and the layer
-    #     lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
-    #     for lambda_function in lambda_functions:
-    #         lambda_response = json.loads(self._get_lambda_response(lambda_function))
-    #         self.assertIn("extra_message", lambda_response)
-    #         self.assertEqual(lambda_response.get("message"), "8")
+    @skipIf(
+        IS_WINDOWS,
+        "Skip sync ruby tests in windows",
+    )
+    @pytest.mark.flaky(reruns=3)
+    @parameterized.expand([["python", False], ["python", True]])
+    def test_sync_infra_auto_skip_nested(self, runtime, use_container):
+        template_before = str(Path("infra", "parent-stack.yaml"))
+        template_path = str(self.test_dir.joinpath(template_before))
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        # Run infra sync
+        sync_command_list = self.get_sync_command_list(
+            template_file=template_path,
+            code=False,
+            watch=False,
+            dependency_layer=self.dependency_layer,
+            stack_name=stack_name,
+            parameter_overrides="Parameter=Clarity",
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+            use_container=use_container,
+        )
+
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+        self.assertIn("Stack creation succeeded. Sync infra completed.", str(sync_process_execute.stderr))
+
+        self.update_file(
+            self.test_dir.joinpath("infra", "template-python-auto-skip.yaml"),
+            self.test_dir.joinpath("infra", "template-python-before.yaml"),
+        )
+
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+        self.assertIn(
+            "Template haven't been changed since last deployment, skipping infra sync...",
+            str(sync_process_execute.stderr),
+        )
+        self.assertIn(
+            "Queuing up code sync for the resources that require an update",
+            str(sync_process_execute.stderr),
+        )
+
+        # CFN Api call here to collect all the stack resources
+        self.stack_resources = self._get_stacks(stack_name)
+        # Lambda Api call here, which tests both the python function and the layer
+        self._verify_infra_changes(self.stack_resources)
 
     @parameterized.expand(["infra/template-python-before.yaml"])
     def test_sync_infra_no_confirm(self, template_file):
-        template_path = str(self.test_data_path.joinpath(template_file))
+        template_path = str(self.test_dir.joinpath(template_file))
         stack_name = self._method_to_stack_name(self.id())
 
         # Run infra sync
@@ -233,7 +287,7 @@ class TestSyncInfra(SyncIntegBase):
 
     @parameterized.expand(["infra/template-python-before.yaml"])
     def test_sync_infra_no_stack_name(self, template_file):
-        template_path = str(self.test_data_path.joinpath(template_file))
+        template_path = str(self.test_dir.joinpath(template_file))
 
         # Run infra sync
         sync_command_list = self.get_sync_command_list(
@@ -254,7 +308,7 @@ class TestSyncInfra(SyncIntegBase):
 
     @parameterized.expand(["infra/template-python-before.yaml"])
     def test_sync_infra_no_capabilities(self, template_file):
-        template_path = str(self.test_data_path.joinpath(template_file))
+        template_path = str(self.test_dir.joinpath(template_file))
         stack_name = self._method_to_stack_name(self.id())
         self.stacks.append({"name": stack_name})
 
@@ -283,7 +337,7 @@ Requires capabilities : [CAPABILITY_AUTO_EXPAND]",
 
     @parameterized.expand(["infra/template-python-before.yaml"])
     def test_sync_infra_s3_bucket_option(self, template_file):
-        template_path = str(self.test_data_path.joinpath(template_file))
+        template_path = str(self.test_dir.joinpath(template_file))
         stack_name = self._method_to_stack_name(self.id())
 
         sync_command_list = self.get_sync_command_list(
