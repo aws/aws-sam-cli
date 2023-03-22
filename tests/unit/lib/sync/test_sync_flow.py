@@ -13,6 +13,15 @@ from samcli.lib.sync.sync_flow import (
 )
 from parameterized import parameterized
 
+from samcli.lib.utils.resources import (
+    AWS_SERVERLESS_HTTPAPI,
+    AWS_SERVERLESS_API,
+    AWS_SERVERLESS_STATEMACHINE,
+    AWS_APIGATEWAY_RESTAPI,
+    AWS_APIGATEWAY_V2_API,
+    AWS_STEPFUNCTIONS_STATEMACHINE,
+)
+
 
 class TestSyncFlow(TestCase):
     def create_sync_flow(self, mock_update_local_hash=True):
@@ -220,20 +229,40 @@ class TestSyncFlow(TestCase):
         sync_flow._equality_keys.return_value = "A"
         self.assertEqual(hash(sync_flow), hash((type(sync_flow), "A")))
 
+    @parameterized.expand(
+        [
+            (AWS_SERVERLESS_HTTPAPI, "DefinitionUri"),
+            (AWS_SERVERLESS_API, "DefinitionUri"),
+            (AWS_SERVERLESS_STATEMACHINE, "DefinitionUri"),
+            (AWS_APIGATEWAY_V2_API, "BodyS3Location"),
+            (AWS_APIGATEWAY_RESTAPI, "BodyS3Location"),
+            (AWS_STEPFUNCTIONS_STATEMACHINE, "DefinitionS3Location"),
+        ]
+    )
     @patch("samcli.lib.sync.sync_flow.Stack.get_stack_by_full_path")
-    def test_get_definition_path(self, get_stack_mock):
-        resource = {"Properties": {"DefinitionUri": "test_uri"}}
+    def test_get_definition_path(self, resource_type, definition_field, get_stack_mock):
+        resource = {"Properties": {definition_field: "test_uri"}, "Type": resource_type}
         get_stack_mock.return_value = Stack("parent_path", "stack_name", "location/template.yaml", None, {})
 
         definition_path = get_definition_path(resource, "identifier", False, "base_dir", [])
         self.assertEqual(definition_path, Path("location").joinpath("test_uri"))
 
-        resource = {"Properties": {"DefinitionUri": ""}}
+        resource = {"Properties": {definition_field: ""}, "Type": resource_type}
         definition_path = get_definition_path(resource, "identifier", False, "base_dir", [])
         self.assertEqual(definition_path, None)
 
-    def test_get_definition_file_with_base_dir(self):
-        resource = {"Properties": {"DefinitionUri": "test_uri"}}
+    @parameterized.expand(
+        [
+            (AWS_SERVERLESS_HTTPAPI, "DefinitionUri"),
+            (AWS_SERVERLESS_API, "DefinitionUri"),
+            (AWS_SERVERLESS_STATEMACHINE, "DefinitionUri"),
+            (AWS_APIGATEWAY_V2_API, "BodyS3Location"),
+            (AWS_APIGATEWAY_RESTAPI, "BodyS3Location"),
+            (AWS_STEPFUNCTIONS_STATEMACHINE, "DefinitionS3Location"),
+        ]
+    )
+    def test_get_definition_file_with_base_dir(self, resource_type, definition_field):
+        resource = {"Properties": {definition_field: "test_uri"}, "Type": resource_type}
 
         definition_path = get_definition_path(resource, "identifier", True, "base_dir", [])
         self.assertEqual(definition_path, Path("base_dir").joinpath("test_uri"))
