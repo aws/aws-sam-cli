@@ -54,9 +54,9 @@ boto3==1.26.94 \
     #   aws-sam-cli (setup.py)
     #   aws-sam-translator
     #   serverlessrepo
-botocore==1.24.30 \
-    --hash=sha256:af4bdc51eeecbe9fdcdadbed9ad58c5c91380ef30f3560022bbc2ee1d78f0ad6 \
-    --hash=sha256:c622751093e3d0bf61343e66d6d06190ef30bf42b1557d5070ca84e9efa06d4b
+botocore==1.29.97 \
+    --hash=sha256:0df677eb2bef3ba18ac69e007633559b4426df310eee99df9882437b5faf498a \
+    --hash=sha256:176740221714c0f031c2cd773879df096dbc0f977c63b3e2ed6a956205f02e82
     # via
     #   boto3
     #   s3transfer
@@ -566,9 +566,9 @@ ruamel-yaml-clib==0.2.7 \
     --hash=sha256:f01da5790e95815eb5a8a138508c01c758e5f5bc0ce4286c4f7028b8dd7ac3d0 \
     --hash=sha256:f34019dced51047d6f70cb9383b2ae2853b7fc4dce65129a5acd49f4f9256646
     # via ruamel-yaml
-s3transfer==0.5.0 \
-    --hash=sha256:50ed823e1dc5868ad40c8dc92072f757aa0e653a192845c94a3b676f4a62da4c \
-    --hash=sha256:9c1dc369814391a6bda20ebbf4b70a0f34630592c9aa520856bf384916af2803
+s3transfer==0.6.0 \
+    --hash=sha256:06176b74f3a15f61f1b4f25a1fc29a4429040b7647133a463da8fa5bd28d5ecd \
+    --hash=sha256:2ed07d3866f523cc561bf4a00fc5535827981b117dd7876f036b0c1aca42c947
     # via boto3
 sarif-om==1.0.4 \
     --hash=sha256:539ef47a662329b1c8502388ad92457425e95dc0aaaf995fe46f4984c4771911 \
