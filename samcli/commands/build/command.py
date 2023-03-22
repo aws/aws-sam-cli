@@ -44,7 +44,7 @@ Supported Resource Types
 \b
 Supported Runtimes
 ------------------
-1. Python 3.7, 3.8, 3.9 using PIP\n
+1. Python 3.7, 3.8, 3.9, 3.10 using PIP\n
 2. Nodejs 18.x, 16.x, 14.x, 12.x using NPM\n
 3. Ruby 2.7 using Bundler\n
 4. Java 8, Java 11 using Gradle and Maven\n
