@@ -16,6 +16,15 @@ LANDING_PAGE = "https://docs.aws.amazon.com/serverless-application-model/latest/
 
 class Documentation:
     def __init__(self, browser: BrowserConfiguration, command: str):
+        """
+        Constructor for instantiating a Documentation object
+        Parameters
+        ----------
+        browser: BrowserConfiguration
+            Configuration for a browser object used to launch docs pages
+        command: str
+            String name of the command for which to find documentation
+        """
         self.browser = browser
         self.command = command
 

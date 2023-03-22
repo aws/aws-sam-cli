@@ -85,6 +85,14 @@ class DocsCommandContext:
 
 class CommandImplementation:
     def __init__(self, command: str):
+        """
+        Constructor used for instantiating a command implementation object
+
+        Parameters
+        ----------
+        command: str
+            Name of the command that is being executed
+        """
         self.command = command
         self.docs_command = DocsCommandContext()
 

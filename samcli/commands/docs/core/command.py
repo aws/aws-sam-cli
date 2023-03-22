@@ -26,6 +26,9 @@ class DocsBaseCommand(Command):
     context_class = CustomFormatterContext
 
     def __init__(self, *args, **kwargs):
+        """
+        Constructor for instantiating a base command for the docs command
+        """
         self.docs_command = DocsCommandContext()
         command_callback = self.docs_command.command_callback
         super().__init__(name=COMMAND_NAME, help=HELP_TEXT, callback=command_callback)
@@ -86,6 +89,14 @@ class DocsBaseCommand(Command):
 
 class DocsSubCommand(MultiCommand):
     def __init__(self, command: Optional[List[str]] = None, *args, **kwargs):
+        """
+        Constructor for instantiating a sub-command for the docs command
+
+        Parameters
+        ----------
+        command: Optional[List[str]]
+            Optional list of strings representing the fully resolved command name (e.g. ["docs", "local", "invoke"])
+        """
         super().__init__(*args, **kwargs)
         self.docs_command = DocsCommandContext()
         self.command = command or self.docs_command.sub_commands
