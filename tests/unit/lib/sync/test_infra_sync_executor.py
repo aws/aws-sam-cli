@@ -4,6 +4,7 @@ from samcli.lib.providers.provider import ResourceIdentifier
 from samcli.lib.sync.infra_sync_executor import datetime, InfraSyncExecutor
 from botocore.exceptions import ClientError
 from parameterized import parameterized
+from samcli.lib.telemetry.event import Event, EventTracker
 
 
 class TestInfraSyncExecutor(TestCase):
@@ -12,6 +13,7 @@ class TestInfraSyncExecutor(TestCase):
         self.package_context = MagicMock()
         self.deploy_context = MagicMock()
         self.sync_context = MagicMock()
+        EventTracker.clear_trackers()
 
     @parameterized.expand([(True,), (False,)])
     @patch("samcli.lib.sync.infra_sync_executor.InfraSyncExecutor._auto_skip_infra_sync")
@@ -26,7 +28,6 @@ class TestInfraSyncExecutor(TestCase):
             self.build_context, self.package_context, self.deploy_context, self.sync_context
         )
         auto_skip_infra_sync_mock.return_value = auto_skip_infra_sync
-        self.sync_context.get_latest_infra_sync_time.return_value = datetime.utcnow()
 
         infra_sync_result = infra_sync_executor.execute_infra_sync(True)
 
@@ -41,6 +42,14 @@ class TestInfraSyncExecutor(TestCase):
             self.deploy_context.run.assert_called_once()
             self.sync_context.update_infra_sync_time.assert_called_once()
             self.assertEqual(code_sync_resources, set())
+            self.assertEqual(len(EventTracker.get_tracked_events()), 3)
+            self.assertIn(Event("SyncFlowStart", "SkipInfraSyncFlow"), EventTracker.get_tracked_events())
+            self.assertIn(Event("SyncFlowStart", "InfraSyncFlow"), EventTracker.get_tracked_events())
+            self.assertIn(Event("SyncFlowEnd", "InfraSyncFlow"), EventTracker.get_tracked_events())
+        else:
+            self.assertEqual(len(EventTracker.get_tracked_events()), 2)
+            self.assertIn(Event("SyncFlowStart", "SkipInfraSyncFlow"), EventTracker.get_tracked_events())
+            self.assertIn(Event("SyncFlowEnd", "SkipInfraSyncFlow"), EventTracker.get_tracked_events())
 
         self.assertEqual(executed, not auto_skip_infra_sync)
 
@@ -55,8 +64,6 @@ class TestInfraSyncExecutor(TestCase):
         infra_sync_executor = InfraSyncExecutor(
             self.build_context, self.package_context, self.deploy_context, self.sync_context
         )
-        auto_skip_infra_sync_mock.return_value = False
-        self.sync_context.get_latest_infra_sync_time.return_value = datetime.utcnow()
         infra_sync_result = infra_sync_executor.execute_infra_sync(True)
 
         executed = infra_sync_result.infra_sync_executed
@@ -70,6 +77,10 @@ class TestInfraSyncExecutor(TestCase):
 
         self.sync_context.update_infra_sync_time.assert_called_once()
         self.assertEqual(code_sync_resources, set())
+
+        self.assertEqual(len(EventTracker.get_tracked_events()), 2)
+        self.assertIn(Event("SyncFlowStart", "InfraSyncFlow"), EventTracker.get_tracked_events())
+        self.assertIn(Event("SyncFlowEnd", "InfraSyncFlow"), EventTracker.get_tracked_events())
 
     @patch("samcli.lib.sync.infra_sync_executor.SYNC_FLOW_THRESHOLD", 1)
     @patch("samcli.lib.sync.infra_sync_executor.InfraSyncExecutor._auto_skip_infra_sync")
