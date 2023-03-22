@@ -1,53 +1,72 @@
 import functools
 import json
-import os
 import platform
-import random
-import shutil
-import string
 import tempfile
-import unittest
+import os
+import string
+import random
 import zipfile
-from contextlib import closing, contextmanager
-from unittest import mock
-from unittest.mock import MagicMock, Mock, patch
+import unittest
 
-from samcli.commands.package import exceptions
+from contextlib import contextmanager, closing
+from unittest import mock
+from unittest.mock import patch, Mock, MagicMock
+
 from samcli.commands.package.exceptions import ExportFailedError
+from samcli.lib.package.permissions import (
+    WindowsFilePermissionPermissionMapper,
+    WindowsDirPermissionPermissionMapper,
+    AdditiveFilePermissionPermissionMapper,
+    AdditiveDirPermissionPermissionMapper,
+)
+from samcli.lib.package.s3_uploader import S3Uploader
+from samcli.lib.package.uploaders import Destination
+from samcli.lib.package.utils import zip_folder, make_zip, make_zip_with_lambda_permissions, make_zip_with_permissions
+from samcli.lib.utils.packagetype import ZIP, IMAGE
+from samcli.lib.utils.resources import LAMBDA_LOCAL_RESOURCES, RESOURCES_WITH_LOCAL_PATHS
+from tests.testing_utils import FileCreator
+from samcli.commands.package import exceptions
 from samcli.lib.package.artifact_exporter import (
-    CloudFormationStackResource, CloudFormationStackSetResource,
-    ServerlessApplicationResource, Template, is_local_folder, make_abs_path)
+    is_local_folder,
+    make_abs_path,
+    Template,
+    CloudFormationStackResource,
+    CloudFormationStackSetResource,
+    ServerlessApplicationResource,
+)
 from samcli.lib.package.packageable_resources import (
-    GLOBAL_EXPORT_DICT, ApiGatewayRestApiResource,
+    is_s3_protocol_url,
+    is_local_file,
+    upload_local_artifacts,
+    Resource,
+    ResourceWithS3UrlDict,
+    ServerlessApiResource,
+    ServerlessFunctionResource,
+    GraphQLSchemaResource,
+    LambdaFunctionResource,
+    ApiGatewayRestApiResource,
+    ElasticBeanstalkApplicationVersion,
+    LambdaLayerVersionResource,
+    copy_to_temp_dir,
+    include_transform_export_handler,
+    GLOBAL_EXPORT_DICT,
+    ServerlessLayerVersionResource,
+    ServerlessRepoApplicationLicense,
+    ServerlessRepoApplicationReadme,
+    AppSyncResolverCodeResource,
+    AppSyncResolverRequestTemplateResource,
+    AppSyncResolverResponseTemplateResource,
     AppSyncFunctionConfigurationCodeResource,
     AppSyncFunctionConfigurationRequestTemplateResource,
     AppSyncFunctionConfigurationResponseTemplateResource,
-    AppSyncResolverCodeResource, AppSyncResolverRequestTemplateResource,
-    AppSyncResolverResponseTemplateResource,
+    GlueJobCommandScriptLocationResource,
     CloudFormationModuleVersionModulePackage,
-    CloudFormationResourceVersionSchemaHandlerPackage, ECRResource,
-    ElasticBeanstalkApplicationVersion, GlueJobCommandScriptLocationResource,
-    GraphQLSchemaResource, LambdaFunctionResource, LambdaLayerVersionResource,
-    Resource, ResourceImage, ResourceImageDict, ResourceWithS3UrlDict,
-    ResourceZip, ServerlessApiResource, ServerlessFunctionResource,
-    ServerlessLayerVersionResource, ServerlessRepoApplicationLicense,
-    ServerlessRepoApplicationReadme, copy_to_temp_dir,
-    include_transform_export_handler, is_local_file, is_s3_protocol_url,
-    upload_local_artifacts)
-from samcli.lib.package.permissions import (
-    AdditiveDirPermissionPermissionMapper,
-    AdditiveFilePermissionPermissionMapper,
-    WindowsDirPermissionPermissionMapper,
-    WindowsFilePermissionPermissionMapper)
-from samcli.lib.package.s3_uploader import S3Uploader
-from samcli.lib.package.uploaders import Destination
-from samcli.lib.package.utils import (make_zip,
-                                      make_zip_with_lambda_permissions,
-                                      make_zip_with_permissions, zip_folder)
-from samcli.lib.utils.packagetype import IMAGE, ZIP
-from samcli.lib.utils.resources import (LAMBDA_LOCAL_RESOURCES,
-                                        RESOURCES_WITH_LOCAL_PATHS)
-from tests.testing_utils import FileCreator
+    CloudFormationResourceVersionSchemaHandlerPackage,
+    ResourceZip,
+    ResourceImage,
+    ResourceImageDict,
+    ECRResource,
+)
 
 
 class TestArtifactExporter(unittest.TestCase):
