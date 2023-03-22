@@ -164,7 +164,7 @@ class TestPackageCommand(TestCase):
                 False,
                 AWS_SERVERLESS_FUNCTION,
             ),
-             (
+            (
                 "preview_runtime",
                 True,
                 AWS_LAMBDA_FUNCTION,
@@ -179,14 +179,7 @@ class TestPackageCommand(TestCase):
     @patch("samcli.commands.package.package_context.PREVIEW_RUNTIMES", {"preview_runtime"})
     @patch("samcli.commands.package.package_context.click")
     def test_warn_preview_runtime(self, runtime, should_warn, function_type, patched_click):
-        resources = {
-            "MyFunction": {
-                "Type": function_type,
-                "Properties": {
-                    "Runtime": runtime
-                }
-            }
-        }
+        resources = {"MyFunction": {"Type": function_type, "Properties": {"Runtime": runtime}}}
 
         self.package_command_context._warn_preview_runtime([Mock(resources=resources)])
 
