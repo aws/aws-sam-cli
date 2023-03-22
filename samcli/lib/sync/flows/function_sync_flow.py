@@ -3,10 +3,11 @@ import logging
 import time
 from abc import ABC
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, List, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
 from botocore.client import BaseClient
 
+from samcli.lib.build.app_builder import ApplicationBuildResult
 from samcli.lib.providers.provider import Function, Stack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.sync.flows.alias_version_sync_flow import AliasVersionSyncFlow
@@ -38,6 +39,7 @@ class FunctionSyncFlow(SyncFlow, ABC):
         sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
+        application_build_result: Optional[ApplicationBuildResult],
     ):
         """
         Parameters
@@ -54,6 +56,8 @@ class FunctionSyncFlow(SyncFlow, ABC):
             Physical ID Mapping
         stacks : Optional[List[Stack]]
             Stacks
+        application_build_result: Optional[ApplicationBuildResult]
+            Pre-build ApplicationBuildResult which can be re-used during SyncFlows
         """
         super().__init__(
             build_context,
@@ -62,6 +66,7 @@ class FunctionSyncFlow(SyncFlow, ABC):
             physical_id_mapping,
             log_name="Lambda Function " + function_identifier,
             stacks=stacks,
+            application_build_result=application_build_result,
         )
         self._function_identifier = function_identifier
         self._function_provider = self._build_context.function_provider

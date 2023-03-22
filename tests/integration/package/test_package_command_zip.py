@@ -28,7 +28,7 @@ class TestPackageZip(PackageIntegBase):
     @parameterized.expand(["aws-serverless-function.yaml", "cdk_v1_synthesized_template_zip_functions.json"])
     def test_package_template_flag(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
-        command_list = self.get_command_list(
+        command_list = PackageIntegBase.get_command_list(
             s3_bucket=self.s3_bucket.name, s3_prefix=self.s3_prefix, template=template_path
         )
 
@@ -50,7 +50,7 @@ class TestPackageZip(PackageIntegBase):
     )
     def test_package_nested_template(self, template_file, uploading_count):
         template_path = self.test_data_path.joinpath(template_file)
-        command_list = self.get_command_list(
+        command_list = PackageIntegBase.get_command_list(
             s3_bucket=self.s3_bucket.name, s3_prefix=self.s3_prefix, template=template_path, force_upload=True
         )
 
@@ -92,7 +92,7 @@ class TestPackageZip(PackageIntegBase):
     )
     def test_package_barebones(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
-        command_list = self.get_command_list(
+        command_list = PackageIntegBase.get_command_list(
             s3_bucket=self.s3_bucket.name, s3_prefix=self.s3_prefix, template_file=template_path
         )
 
@@ -107,7 +107,7 @@ class TestPackageZip(PackageIntegBase):
         self.assertIn("{bucket_name}".format(bucket_name=self.s3_bucket.name), process_stdout.decode("utf-8"))
 
     def test_package_without_required_args(self):
-        command_list = self.get_command_list()
+        command_list = PackageIntegBase.get_command_list()
 
         process = Popen(command_list, stdout=PIPE)
         try:
@@ -144,7 +144,7 @@ class TestPackageZip(PackageIntegBase):
     )
     def test_package_with_prefix(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
-        command_list = self.get_command_list(
+        command_list = PackageIntegBase.get_command_list(
             s3_bucket=self.s3_bucket.name, template_file=template_path, s3_prefix=self.s3_prefix
         )
 
@@ -189,7 +189,7 @@ class TestPackageZip(PackageIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
 
         with tempfile.NamedTemporaryFile(delete=False) as output_template:
-            command_list = self.get_command_list(
+            command_list = PackageIntegBase.get_command_list(
                 s3_bucket=self.s3_bucket.name,
                 template_file=template_path,
                 s3_prefix=self.s3_prefix,
@@ -243,7 +243,7 @@ class TestPackageZip(PackageIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
 
         with tempfile.NamedTemporaryFile(delete=False) as output_template:
-            command_list = self.get_command_list(
+            command_list = PackageIntegBase.get_command_list(
                 s3_bucket=self.s3_bucket.name,
                 template_file=template_path,
                 s3_prefix=self.s3_prefix,
@@ -300,7 +300,7 @@ class TestPackageZip(PackageIntegBase):
         with tempfile.NamedTemporaryFile(delete=False) as output_template:
             # Upload twice and see the string to have packaged artifacts both times.
             for _ in range(2):
-                command_list = self.get_command_list(
+                command_list = PackageIntegBase.get_command_list(
                     s3_bucket=self.s3_bucket.name,
                     template_file=template_path,
                     s3_prefix=self.s3_prefix,
@@ -355,7 +355,7 @@ class TestPackageZip(PackageIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
 
         with tempfile.NamedTemporaryFile(delete=False) as output_template:
-            command_list = self.get_command_list(
+            command_list = PackageIntegBase.get_command_list(
                 s3_bucket=self.s3_bucket.name,
                 template_file=template_path,
                 s3_prefix=self.s3_prefix,
@@ -411,7 +411,7 @@ class TestPackageZip(PackageIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
 
         with tempfile.NamedTemporaryFile(delete=False) as output_template:
-            command_list = self.get_command_list(
+            command_list = PackageIntegBase.get_command_list(
                 s3_bucket=self.s3_bucket.name,
                 template_file=template_path,
                 s3_prefix=self.s3_prefix,
@@ -466,7 +466,7 @@ class TestPackageZip(PackageIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
 
         with tempfile.NamedTemporaryFile(delete=False) as output_template:
-            command_list = self.get_command_list(
+            command_list = PackageIntegBase.get_command_list(
                 template_file=template_path,
                 s3_prefix=self.s3_prefix,
                 output_template_file=output_template.name,
@@ -497,7 +497,7 @@ class TestPackageZip(PackageIntegBase):
         template_path = self.test_data_path.joinpath("aws-serverless-function.yaml")
 
         with tempfile.NamedTemporaryFile(delete=False) as output_template:
-            command_list = self.get_command_list(
+            command_list = PackageIntegBase.get_command_list(
                 template_file=template_path,
                 s3_prefix=self.s3_prefix,
                 output_template_file=output_template.name,
@@ -534,7 +534,7 @@ class TestPackageZip(PackageIntegBase):
     )
     def test_package_with_warning_template(self, template_file, warning_keyword):
         template_path = self.test_data_path.joinpath(template_file)
-        command_list = self.get_command_list(
+        command_list = PackageIntegBase.get_command_list(
             s3_bucket=self.s3_bucket.name, s3_prefix=self.s3_prefix, template=template_path
         )
 
@@ -564,7 +564,7 @@ class TestPackageZip(PackageIntegBase):
         template_file = os.path.join("deep-nested", "template.yaml")
 
         template_path = self.test_data_path.joinpath(template_file)
-        command_list = self.get_command_list(
+        command_list = PackageIntegBase.get_command_list(
             s3_bucket=self.s3_bucket.name, s3_prefix=self.s3_prefix, template=template_path, force_upload=True
         )
 
@@ -608,7 +608,7 @@ class TestPackageZip(PackageIntegBase):
         template_file = os.path.join("stackset", "template.yaml")
 
         template_path = self.test_data_path.joinpath(template_file)
-        command_list = self.get_command_list(
+        command_list = PackageIntegBase.get_command_list(
             s3_bucket=self.s3_bucket.name, s3_prefix=self.s3_prefix, template=template_path, force_upload=True
         )
 
@@ -651,7 +651,7 @@ class TestPackageZip(PackageIntegBase):
         template_file = os.path.join("stackset", "nested-template.yaml")
 
         template_path = self.test_data_path.joinpath(template_file)
-        command_list = self.get_command_list(
+        command_list = PackageIntegBase.get_command_list(
             s3_bucket=self.s3_bucket.name, s3_prefix=self.s3_prefix, template=template_path, force_upload=True
         )
 
@@ -686,7 +686,7 @@ class TestPackageZip(PackageIntegBase):
     @parameterized.expand(["aws-serverless-function-cdk.yaml", "cdk_v1_synthesized_template_zip_functions.json"])
     def test_package_logs_warning_for_cdk_project(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
-        command_list = self.get_command_list(
+        command_list = PackageIntegBase.get_command_list(
             s3_bucket=self.s3_bucket.name, s3_prefix=self.s3_prefix, template_file=template_path
         )
 
