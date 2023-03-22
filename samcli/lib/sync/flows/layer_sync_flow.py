@@ -240,7 +240,6 @@ class LayerSyncFlow(AbstractLayerSyncFlow):
     def gather_resources(self) -> None:
         """Build layer and ZIP it into a temp file in self._zip_file"""
         with self._get_lock_chain():
-
             rmtree_if_exists(self._layer.get_build_dir(self._build_context.build_dir))
             builder = ApplicationBuilder(
                 self._build_context.collect_build_resources(self._layer_identifier),
@@ -359,7 +358,7 @@ class FunctionLayerReferenceSync(SyncFlow):
         if not self._new_layer_version:
             LOG.debug("No layer version set for %s, fetching latest one", self._layer_arn)
             self._new_layer_version = get_latest_layer_version(self._lambda_client, self._layer_arn)
-        self._local_sha = str_checksum(str(self._new_layer_version))
+        self._local_sha = str_checksum(str(self._new_layer_version), hashlib.sha256())
 
     def sync(self) -> None:
         """

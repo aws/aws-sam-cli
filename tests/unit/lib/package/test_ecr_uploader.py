@@ -307,7 +307,6 @@ class TestECRUploader(TestCase):
         self.assertEqual(expected_click_echo_calls, patched_click_echo.call_args_list)
 
     def test_parse_image_url(self):
-
         valid = [
             {"url": self.image_uri, "result": {"repository": "mock-image-repo", "image_tag": "mock-tag"}},
             {"url": "mock-image-rep:mock-tag", "result": {"repository": "mock-image-rep", "image_tag": "mock-tag"}},

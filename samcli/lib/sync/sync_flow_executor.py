@@ -189,7 +189,6 @@ class SyncFlowExecutor:
         with ThreadPoolExecutor() as executor:
             self._running_futures.clear()
             while True:
-
                 self._execute_step(executor, exception_handler)
 
                 # Exit execution if there are no running and pending sync flows

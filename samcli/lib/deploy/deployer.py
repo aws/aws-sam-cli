@@ -307,12 +307,12 @@ class Deployer:
 
         # Wait for changeset to be created
         waiter = self._client.get_waiter("change_set_create_complete")
-        # Poll every 5 seconds. Changeset creation should be fast
-        waiter_config = {"Delay": 5}
+        # Use default client_sleep to set the delay between polling
+        # To override use SAM_CLI_POLL_DELAY environment variable
+        waiter_config = {"Delay": self.client_sleep}
         try:
             waiter.wait(ChangeSetName=changeset_id, StackName=stack_name, WaiterConfig=waiter_config)
         except botocore.exceptions.WaiterError as ex:
-
             resp = ex.last_response
             status = resp["Status"]
             reason = resp["StatusReason"]
@@ -691,7 +691,6 @@ class Deployer:
         kwargs = {
             "StackName": stack_name,
         }
-
         current_state = self._get_stack_status(stack_name)
 
         try:
@@ -704,7 +703,7 @@ class Deployer:
 
                 current_state = self._get_stack_status(stack_name)
 
-            failed_states = ["CREATE_FAILED", "UPDATE_FAILED", "ROLLBACK_COMPLETE", "ROLLBACK_FAILED"]
+            failed_states = ["CREATE_FAILED", "ROLLBACK_COMPLETE", "ROLLBACK_FAILED"]
 
             if current_state in failed_states:
                 LOG.info("Stack %s failed to create/update correctly, deleting stack", stack_name)

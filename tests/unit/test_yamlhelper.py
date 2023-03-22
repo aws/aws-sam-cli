@@ -19,7 +19,6 @@ from samcli.yamlhelper import yaml_parse, yaml_dump
 
 
 class TestYaml(TestCase):
-
     yaml_with_tags = """
     Resource:
         Key1: !Ref Something

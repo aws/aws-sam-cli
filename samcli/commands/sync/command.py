@@ -11,6 +11,7 @@ from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
 from samcli.commands._utils.cdk_support_decorators import unsupported_command_cdk
 from samcli.commands._utils.click_mutex import ClickMutex
+from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.commands._utils.constants import (
     DEFAULT_BUILD_DIR,
     DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
@@ -44,6 +45,7 @@ from samcli.lib.providers.provider import (
     get_unique_resource_ids,
 )
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+from samcli.lib.sync.infra_sync_executor import InfraSyncExecutor, InfraSyncResult
 from samcli.lib.sync.sync_flow_executor import SyncFlowExecutor
 from samcli.lib.sync.sync_flow_factory import SyncCodeResources, SyncFlowFactory
 from samcli.lib.sync.watch_manager import WatchManager
@@ -154,6 +156,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @check_newer_version
 @print_cmdline_args
 @unsupported_command_cdk()
+@command_exception_handler
 def cli(
     ctx: Context,
     template_file: str,
@@ -313,7 +316,6 @@ def do_cli(
                 use_json=False,
                 force_upload=True,
             ) as package_context:
-
                 # 500ms of sleep time between stack checks and describe stack events.
                 DEFAULT_POLL_DELAY = 0.5
                 try:
@@ -373,31 +375,49 @@ def do_cli(
                                 dependency_layer,
                             )
                         else:
-                            execute_infra_contexts(build_context, package_context, deploy_context)
+                            infra_sync_result = execute_infra_contexts(
+                                build_context, package_context, deploy_context, sync_context
+                            )
+                            code_sync_resources = infra_sync_result.code_sync_resources
+
+                            if code_sync_resources:
+                                resource_ids = [str(resource) for resource in code_sync_resources]
+
+                                LOG.info("Queuing up code sync for the resources that require an update")
+                                LOG.debug("The following resources will be code synced for an update: %s", resource_ids)
+                                execute_code_sync(
+                                    template_file,
+                                    build_context,
+                                    deploy_context,
+                                    sync_context,
+                                    tuple(resource_ids),  # type: ignore
+                                    None,
+                                    dependency_layer,
+                                )
 
 
 def execute_infra_contexts(
     build_context: "BuildContext",
     package_context: "PackageContext",
     deploy_context: "DeployContext",
-) -> None:
+    sync_context: "SyncContext",
+) -> InfraSyncResult:
     """Executes the sync for infra.
 
     Parameters
     ----------
     build_context : BuildContext
-        BuildContext
     package_context : PackageContext
-        PackageContext
     deploy_context : DeployContext
-        DeployContext
+    sync_context : SyncContext
+
+    Returns
+    -------
+    InfraSyncResult
+        Data class that contains infra sync execution result
     """
-    LOG.debug("Executing the build using build context.")
-    build_context.run()
-    LOG.debug("Executing the packaging using package context.")
-    package_context.run()
-    LOG.debug("Executing the deployment using deploy context.")
-    deploy_context.run()
+    infra_sync_executor = InfraSyncExecutor(build_context, package_context, deploy_context, sync_context)
+    return infra_sync_executor.execute_infra_sync(first_sync=True)
 
 
 def execute_code_sync(

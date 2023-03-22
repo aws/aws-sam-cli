@@ -1,4 +1,5 @@
 """SyncFlow interface for HttpApi and RestApi"""
+import hashlib
 import logging
 from abc import ABC
 from pathlib import Path
@@ -79,7 +80,7 @@ class GenericApiSyncFlow(SyncFlow, ABC):
         self._definition_uri = self._get_definition_file(self._api_identifier)
         self._swagger_body = self._process_definition_file()
         if self._swagger_body:
-            self._local_sha = str_checksum(self._swagger_body.decode("utf-8"))
+            self._local_sha = str_checksum(self._swagger_body.decode("utf-8"), hashlib.sha256())
 
     def _process_definition_file(self) -> Optional[bytes]:
         if self._definition_uri is None:

@@ -15,7 +15,6 @@ from samcli.lib.observability.util import OutputOption
 @patch("samcli.commands._utils.experimental.update_experimental_context")
 class TestLogsCliCommand(TestCase):
     def setUp(self):
-
         self.function_name = "name"
         self.stack_name = "stack name"
         self.filter_pattern = "filter"

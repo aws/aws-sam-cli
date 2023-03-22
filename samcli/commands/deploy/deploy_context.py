@@ -41,7 +41,6 @@ LOG = logging.getLogger(__name__)
 
 
 class DeployContext:
-
     MSG_SHOWCASE_CHANGESET = "\nChangeset created successfully. {changeset_id}\n"
 
     MSG_EXECUTE_SUCCESS = "\nSuccessfully created/updated stack - {stack_name} in {region}\n"
@@ -268,14 +267,8 @@ class DeployContext:
                     if not click.confirm(f"{self.MSG_CONFIRM_CHANGESET}", default=False):
                         return
 
-                # Stop the rollback in the case of DO_NOTHING or if this is a new stack and DELETE is specified
-                # DO_NOTHING behaves the same disable_rollback, they both preserve the current state of the stack
-                do_disable_rollback = (
-                    self.on_failure in [FailureMode.DO_NOTHING, FailureMode.DELETE] or disable_rollback
-                )
-
-                self.deployer.execute_changeset(result["Id"], stack_name, do_disable_rollback)
-                self.deployer.wait_for_execute(stack_name, changeset_type, do_disable_rollback, self.on_failure)
+                self.deployer.execute_changeset(result["Id"], stack_name, disable_rollback)
+                self.deployer.wait_for_execute(stack_name, changeset_type, disable_rollback, self.on_failure)
                 click.echo(self.MSG_EXECUTE_SUCCESS.format(stack_name=stack_name, region=region))
 
             except deploy_exceptions.ChangeEmptyError as ex:
@@ -327,7 +320,6 @@ class DeployContext:
             return parameter_values
 
         for key, _ in template_dict["Parameters"].items():
-
             obj = {"ParameterKey": key}
 
             if key in parameter_overrides:
