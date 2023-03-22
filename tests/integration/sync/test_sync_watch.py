@@ -569,9 +569,9 @@ class TestSyncWatchCodeOnly(TestSyncWatchBase):
 
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
-# @parameterized_class(
-#     [{"runtime": "python", "dependency_layer": True}, {"runtime": "python", "dependency_layer": False}]
-# )
+@parameterized_class(
+    [{"runtime": "python", "dependency_layer": True}, {"runtime": "python", "dependency_layer": False}]
+)
 class TestSyncWatchAutoSkipInfra(SyncIntegBase):
     def setUp(self):
         self.runtime = "python"

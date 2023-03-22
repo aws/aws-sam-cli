@@ -89,7 +89,7 @@ class TestSyncInfra(SyncIntegBase):
             use_container=use_container,
         )
 
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_dir)
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertIn("Stack creation succeeded. Sync infra completed.", str(sync_process_execute.stderr))
 
@@ -127,7 +127,7 @@ class TestSyncInfra(SyncIntegBase):
             use_container=use_container,
         )
 
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_dir)
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertIn("Stack update succeeded. Sync infra completed.", str(sync_process_execute.stderr))
         self.assertNotIn("Commands you can use next", str(sync_process_execute.stderr))
@@ -171,7 +171,7 @@ class TestSyncInfra(SyncIntegBase):
             use_container=use_container,
         )
 
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_dir)
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertIn("Stack creation succeeded. Sync infra completed.", str(sync_process_execute.stderr))
 
@@ -193,7 +193,7 @@ class TestSyncInfra(SyncIntegBase):
             use_container=use_container,
         )
 
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_dir)
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertIn(
             "Template haven't been changed since last deployment, skipping infra sync...",
@@ -237,16 +237,16 @@ class TestSyncInfra(SyncIntegBase):
             use_container=use_container,
         )
 
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_dir)
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertIn("Stack creation succeeded. Sync infra completed.", str(sync_process_execute.stderr))
 
         self.update_file(
-            self.test_dir.joinpath("infra", "template-python-auto-skip.yaml"),
-            self.test_dir.joinpath("infra", "template-python-before.yaml"),
+            self.test_dir.joinpath("infra", f"template-{runtime}-auto-skip.yaml"),
+            self.test_dir.joinpath("infra", f"template-{runtime}-before.yaml"),
         )
 
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_dir)
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertIn(
             "Template haven't been changed since last deployment, skipping infra sync...",
@@ -280,7 +280,7 @@ class TestSyncInfra(SyncIntegBase):
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "n\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "n\n".encode(), cwd=self.test_dir)
 
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertNotIn("Build Succeeded", str(sync_process_execute.stderr))
@@ -302,7 +302,7 @@ class TestSyncInfra(SyncIntegBase):
             tags="integ=true clarity=yes foo_bar=baz",
         )
 
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_dir)
         self.assertEqual(sync_process_execute.process.returncode, 2)
         self.assertIn("Error: Missing option '--stack-name'.", str(sync_process_execute.stderr))
 
@@ -327,7 +327,7 @@ class TestSyncInfra(SyncIntegBase):
             tags="integ=true clarity=yes foo_bar=baz",
         )
 
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_dir)
         self.assertEqual(sync_process_execute.process.returncode, 1)
         self.assertIn(
             "An error occurred (InsufficientCapabilitiesException) when calling the CreateStack operation: \
@@ -355,7 +355,7 @@ Requires capabilities : [CAPABILITY_AUTO_EXPAND]",
             tags="integ=true clarity=yes foo_bar=baz",
         )
 
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_dir)
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertIn("Stack creation succeeded. Sync infra completed.", str(sync_process_execute.stderr))
 
