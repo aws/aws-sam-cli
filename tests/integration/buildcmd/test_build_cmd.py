@@ -25,6 +25,7 @@ from tests.testing_utils import (
     SKIP_DOCKER_TESTS,
     SKIP_DOCKER_BUILD,
     SKIP_DOCKER_MESSAGE,
+    run_command_with_input,
 )
 from .build_integ_base import (
     BuildIntegBase,
@@ -402,6 +403,7 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
         ("template.yaml", "Function", True, "python3.7", "Python", "use_container", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.8", "Python", "use_container", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.9", "Python", "use_container", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.10", "Python", "use_container", False, "CodeUri"),
     ],
 )
 class TestBuildCommand_PythonFunctions(BuildIntegPythonBase):

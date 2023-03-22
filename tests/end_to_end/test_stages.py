@@ -3,6 +3,9 @@ from typing import List, Optional
 from unittest import TestCase
 
 import boto3
+import zipfile
+import json
+from samcli.lib.package.s3_uploader import S3Uploader
 from pathlib import Path
 
 import os
@@ -82,6 +85,43 @@ class DefaultDeleteStage(EndToEndBaseStage):
         self.command_list = command_list
         self.stack_name = stack_name
         self.cfn_client = boto3.client("cloudformation")
+
+
+class PackageDownloadZipFunctionStage(EndToEndBaseStage):
+    """This stage downloads the packaged zip file from S3 and places it in the build directory"""
+
+    def __init__(self, validator, test_context, command_list, function_name) -> None:
+        super().__init__(validator, test_context, command_list)
+        self.command_list = command_list
+        self.function_name = function_name
+        self._session = boto3.session.Session()
+        self.s3_client = self._session.client("s3")
+
+    def run_stage(self) -> CommandResult:
+        command_result = run_command(self.command_list, cwd=self.test_context.project_directory)
+        self._download_packaged_file()
+        return command_result
+
+    def _download_packaged_file(self):
+        built_function_path = Path(self.test_context.project_directory) / ".aws-sam" / "build" / self.function_name
+        zip_file_path = built_function_path / "zipped_function.zip"
+        packaged_template = {}
+        with open(Path(self.test_context.project_directory) / "packaged_template.json", "r") as json_file:
+            packaged_template = json.load(json_file)
+
+        zipped_fn_s3_loc = (
+            packaged_template.get("Resources", {})
+            .get(self.function_name, {})
+            .get("Properties", {})
+            .get("CodeUri", None)
+        )
+
+        if zipped_fn_s3_loc:
+            s3_info = S3Uploader.parse_s3_url(zipped_fn_s3_loc)
+            self.s3_client.download_file(s3_info["Bucket"], s3_info["Key"], str(zip_file_path))
+
+            with zipfile.ZipFile(zip_file_path, "r") as zip_refzip:
+                zip_refzip.extractall(path=built_function_path)
 
 
 class DefaultSyncStage(EndToEndBaseStage):

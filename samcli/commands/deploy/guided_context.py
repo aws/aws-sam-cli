@@ -24,7 +24,7 @@ from samcli.commands.deploy.exceptions import GuidedDeployFailedError
 from samcli.commands.deploy.guided_config import GuidedConfig
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.bootstrap.bootstrap import manage_stack
-from samcli.lib.bootstrap.companion_stack.companion_stack_manager import CompanionStackManager
+from samcli.lib.bootstrap.companion_stack.companion_stack_manager import CompanionStackManager, sync_ecr_stack
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME, DEFAULT_ENV
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.ecr_utils import is_ecr_url
@@ -49,6 +49,8 @@ class GuidedContext:
         image_repository,
         image_repositories,
         s3_prefix,
+        resolve_s3=False,
+        resolve_image_repos=False,
         region=None,
         profile=None,
         confirm_changeset=None,
@@ -83,6 +85,8 @@ class GuidedContext:
         self.guided_s3_prefix = None
         self.guided_region = None
         self.guided_profile = None
+        self.resolve_s3 = resolve_s3
+        self.resolve_image_repositories = resolve_image_repos
         self.signing_profiles = signing_profiles
         self._capabilities = None
         self._parameter_overrides = None
@@ -177,17 +181,30 @@ class GuidedContext:
             )
 
         click.echo("\n\tLooking for resources needed for deployment:")
-        s3_bucket = manage_stack(profile=self.profile, region=region)
-        click.secho(f"\n\tManaged S3 bucket: {s3_bucket}", bold=True)
-        click.echo("\tA different default S3 bucket can be set in samconfig.toml")
+        managed_s3_bucket = manage_stack(profile=self.profile, region=region)
+        click.secho(f"\n\tManaged S3 bucket: {managed_s3_bucket}", bold=True)
+        click.echo(
+            "\tA different default S3 bucket can be set in samconfig.toml"
+            " and auto resolution of buckets turned off by setting resolve_s3=False"
+        )
 
-        image_repositories = self.prompt_image_repository(
-            stack_name, stacks, self.image_repositories, region, s3_bucket, self.s3_prefix
+        image_repositories = (
+            sync_ecr_stack(
+                self.template_file, stack_name, region, managed_s3_bucket, self.s3_prefix, self.image_repositories
+            )
+            if self.resolve_image_repositories
+            else self.prompt_image_repository(
+                stack_name, stacks, self.image_repositories, region, managed_s3_bucket, self.s3_prefix
+            )
         )
 
         self.guided_stack_name = stack_name
-        self.guided_s3_bucket = s3_bucket
+        self.guided_s3_bucket = managed_s3_bucket
         self.guided_image_repositories = image_repositories
+        # NOTE(sriram-mv): The resultant s3 bucket is ALWAYS the managed_s3_bucket. There is no user flow to set it
+        # within guided.
+        self.resolve_s3 = True if self.guided_s3_bucket else False
+
         self.guided_s3_prefix = stack_name
         self.guided_region = region
         self.guided_profile = self.profile
@@ -403,7 +420,9 @@ class GuidedContext:
             )
             if not is_ecr_url(image_uri):
                 raise GuidedDeployFailedError(f"Invalid Image Repository ECR URI: {image_uri}")
-
+            # NOTE(sriram-mv): If a prompt to accept an ECR URI succeeded, then one does not any longer
+            # resolve image repositories automatically.
+            self.resolve_image_repositories = False
             updated_repositories[function_logical_id] = image_uri
 
         return updated_repositories
@@ -510,7 +529,7 @@ class GuidedContext:
             click.echo(
                 "\t #The deployment was aborted to prevent "
                 "unreferenced managed ECR repositories from being deleted.\n"
-                "\t #You may remove repositories from the SAMCLI "
+                "\t #You may remove repositories from the AWS SAM CLI "
                 "managed stack to retain them and resolve this unreferenced check."
             )
             raise GuidedDeployFailedError("Unreferenced Auto Created ECR Repos Must Be Deleted.")
@@ -562,9 +581,10 @@ class GuidedContext:
                 self.config_env or DEFAULT_ENV,
                 self.config_file or DEFAULT_CONFIG_FILE_NAME,
                 stack_name=self.guided_stack_name,
-                s3_bucket=self.guided_s3_bucket,
+                resolve_s3=self.resolve_s3,
                 s3_prefix=self.guided_s3_prefix,
-                image_repositories=self.guided_image_repositories,
+                image_repositories=self.guided_image_repositories if not self.resolve_image_repositories else None,
+                resolve_image_repos=self.resolve_image_repositories,
                 region=self.guided_region,
                 profile=self.guided_profile,
                 confirm_changeset=self.confirm_changeset,
