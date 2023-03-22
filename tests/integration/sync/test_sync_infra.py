@@ -144,10 +144,6 @@ class TestSyncInfra(SyncIntegBase):
         else:
             self._verify_infra_changes(self.stack_resources)
 
-    @skipIf(
-        IS_WINDOWS,
-        "Skip sync ruby tests in windows",
-    )
     @pytest.mark.flaky(reruns=3)
     @parameterized.expand([["python", False], ["python", True]])
     def test_sync_infra_auto_skip(self, runtime, use_container):
@@ -209,10 +205,6 @@ class TestSyncInfra(SyncIntegBase):
         # Lambda Api call here, which tests both the python function and the layer
         self._verify_infra_changes(self.stack_resources)
 
-    @skipIf(
-        IS_WINDOWS,
-        "Skip sync ruby tests in windows",
-    )
     @pytest.mark.flaky(reruns=3)
     @parameterized.expand([["python", False], ["python", True]])
     def test_sync_infra_auto_skip_nested(self, runtime, use_container):
