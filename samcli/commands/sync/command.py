@@ -145,6 +145,15 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
     is_flag=True,
     help="Separate dependencies of individual function into a Lambda layer for improved performance.",
 )
+# Reminder: remove hidden flag once the feature is ready for release.
+@click.option(
+    "--skip-deploy-sync/--no-skip-deploy-sync",
+    default=False,  # Reminder: Change this to True when this feature is released
+    is_flag=True,
+    hidden=True,  # Reminder: Change this to False when this feature is released
+    help="This option will skip the initial infrastructure deployment if it is not required"
+    " by comparing the local template with the template deployed in cloud.",
+)
 @stack_name_option(required=True)  # pylint: disable=E1120
 @base_dir_option
 @use_container_build_option
@@ -178,6 +187,7 @@ def cli(
     resource_id: Optional[List[str]],
     resource: Optional[List[str]],
     dependency_layer: bool,
+    skip_deploy_sync: bool,
     stack_name: str,
     base_dir: Optional[str],
     parameter_overrides: dict,
@@ -208,6 +218,7 @@ def cli(
         resource_id,
         resource,
         dependency_layer,
+        skip_deploy_sync,
         stack_name,
         ctx.region,
         ctx.profile,
@@ -238,6 +249,7 @@ def do_cli(
     resource_id: Optional[List[str]],
     resource: Optional[List[str]],
     dependency_layer: bool,
+    skip_deploy_sync: bool,
     stack_name: str,
     region: str,
     profile: str,
@@ -365,17 +377,17 @@ def do_cli(
                     on_failure=None,
                 ) as deploy_context:
                     with SyncContext(
-                        dependency_layer, build_context.build_dir, build_context.cache_dir
+                        dependency_layer, build_context.build_dir, build_context.cache_dir, skip_deploy_sync
                     ) as sync_context:
                         if watch:
                             execute_watch(
-                                template_file,
-                                build_context,
-                                package_context,
-                                deploy_context,
-                                sync_context,
-                                dependency_layer,
-                                code,
+                                template=template_file,
+                                build_context=build_context,
+                                package_context=package_context,
+                                deploy_context=deploy_context,
+                                sync_context=sync_context,
+                                auto_dependency_layer=dependency_layer,
+                                disable_infra_syncs=code,
                             )
                         elif code:
                             execute_code_sync(
@@ -493,7 +505,7 @@ def execute_watch(
     deploy_context: "DeployContext",
     sync_context: "SyncContext",
     auto_dependency_layer: bool,
-    skip_infra_syncs: bool,
+    disable_infra_syncs: bool,
 ):
     """Start sync watch execution
 
@@ -511,11 +523,20 @@ def execute_watch(
         SyncContext object that obtains sync information.
     auto_dependency_layer: bool
         Boolean flag to whether enable certain sync flows for auto dependency layer feature.
-    skip_infra_syncs: bool
-        Boolean flag to determine if only ececute code syncs.
+    disable_infra_syncs: bool
+        Boolean flag to determine if sam sync only executes code syncs.
     """
+    # Note: disable_infra_syncs  is different from skip_deploy_sync,
+    # disable_infra_syncs completely disables infra syncs and
+    # skip_deploy_sync skips the initial infra sync if it's not required.
     watch_manager = WatchManager(
-        template, build_context, package_context, deploy_context, sync_context, auto_dependency_layer, skip_infra_syncs
+        template,
+        build_context,
+        package_context,
+        deploy_context,
+        sync_context,
+        auto_dependency_layer,
+        disable_infra_syncs,
     )
     watch_manager.start()
 
