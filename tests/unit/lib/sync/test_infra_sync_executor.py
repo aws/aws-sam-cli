@@ -43,13 +43,13 @@ class TestInfraSyncExecutor(TestCase):
             self.sync_context.update_infra_sync_time.assert_called_once()
             self.assertEqual(code_sync_resources, set())
             self.assertEqual(len(EventTracker.get_tracked_events()), 3)
-            self.assertIn(Event("SyncFlowStart", "SkipInfraSyncFlow"), EventTracker.get_tracked_events())
-            self.assertIn(Event("SyncFlowStart", "InfraSyncFlow"), EventTracker.get_tracked_events())
-            self.assertIn(Event("SyncFlowEnd", "InfraSyncFlow"), EventTracker.get_tracked_events())
+            self.assertIn(Event("SyncFlowStart", "SkipInfraSyncExecute"), EventTracker.get_tracked_events())
+            self.assertIn(Event("SyncFlowStart", "InfraSyncExecute"), EventTracker.get_tracked_events())
+            self.assertIn(Event("SyncFlowEnd", "InfraSyncExecute"), EventTracker.get_tracked_events())
         else:
             self.assertEqual(len(EventTracker.get_tracked_events()), 2)
-            self.assertIn(Event("SyncFlowStart", "SkipInfraSyncFlow"), EventTracker.get_tracked_events())
-            self.assertIn(Event("SyncFlowEnd", "SkipInfraSyncFlow"), EventTracker.get_tracked_events())
+            self.assertIn(Event("SyncFlowStart", "SkipInfraSyncExecute"), EventTracker.get_tracked_events())
+            self.assertIn(Event("SyncFlowEnd", "SkipInfraSyncExecute"), EventTracker.get_tracked_events())
 
         self.assertEqual(executed, not auto_skip_infra_sync)
 
@@ -79,8 +79,8 @@ class TestInfraSyncExecutor(TestCase):
         self.assertEqual(code_sync_resources, set())
 
         self.assertEqual(len(EventTracker.get_tracked_events()), 2)
-        self.assertIn(Event("SyncFlowStart", "InfraSyncFlow"), EventTracker.get_tracked_events())
-        self.assertIn(Event("SyncFlowEnd", "InfraSyncFlow"), EventTracker.get_tracked_events())
+        self.assertIn(Event("SyncFlowStart", "InfraSyncExecute"), EventTracker.get_tracked_events())
+        self.assertIn(Event("SyncFlowEnd", "InfraSyncExecute"), EventTracker.get_tracked_events())
 
     @patch("samcli.lib.sync.infra_sync_executor.SYNC_FLOW_THRESHOLD", 1)
     @patch("samcli.lib.sync.infra_sync_executor.InfraSyncExecutor._auto_skip_infra_sync")
