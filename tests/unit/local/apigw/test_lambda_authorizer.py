@@ -33,6 +33,14 @@ class TestHeaderIdentitySource(TestCase):
 
         self.assertFalse(header_id_source.is_valid(**sources_dict))
 
+    def test_validation_expression_passes(self):
+        id_source = "myheader"
+        args = {"headers": Headers({id_source: "123"}), "validation_expression": "^123$"}
+
+        header_id_source = HeaderIdentitySource(id_source)
+
+        self.assertTrue(header_id_source.is_valid(**args))
+
 
 class TestQueryIdentitySource(TestCase):
     @parameterized.expand(
