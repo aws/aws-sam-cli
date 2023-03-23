@@ -3,6 +3,7 @@ Module contains classes for creating the docs command from click
 """
 from typing import List, Optional
 
+import os
 from click import Command, Context, MultiCommand, style
 
 from samcli.cli.row_modifiers import RowDefinition
@@ -49,7 +50,7 @@ class DocsBaseCommand(Command):
                     RowDefinition(
                         text="",
                         name=DESCRIPTION
-                        + style("\n  This command does not require access to AWS credentials.", bold=True),
+                        + style(f"{os.linesep}  This command does not require access to AWS credentials.", bold=True),
                     ),
                 ],
             )
@@ -68,7 +69,8 @@ class DocsBaseCommand(Command):
                 [
                     RowDefinition(self.docs_command.base_command + " " + command)
                     for command in self.docs_command.all_commands
-                ]
+                ],
+                col_max=50
             )
 
     def format_options(self, ctx: Context, formatter: DocsCommandHelpTextFormatter):  # type:ignore
