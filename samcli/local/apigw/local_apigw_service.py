@@ -708,7 +708,15 @@ class LocalApigwService(BaseLocalService):
 
         # update route context to include any context that may have been passed from authorizer
         original_context = route_lambda_event.get("requestContext", {})
-        original_context.update({"authorizer": lambda_authorizer.get_context(lambda_auth_response)})
+
+        context = lambda_authorizer.get_context(lambda_auth_response)
+
+        # payload V2 responses have the passed context under the "lambda" key
+        if route.payload_format_version == "1.0":
+            original_context.update({"authorizer": context})
+        else:
+            original_context.update({"authorizer": {"lambda": context}})
+
         route_lambda_event.update({"requestContext": original_context})
 
     def _get_current_route(self, flask_request):
