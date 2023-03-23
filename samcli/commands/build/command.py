@@ -46,6 +46,7 @@ DESCRIPTION = """
   1. AWS::Serverless::Function\n
   2. AWS::Lambda::Function\n
   3. AWS::Serverless::LayerVersion\n
+  4. AWS::Lambda::LayerVersion\n
   \b
   Supported Runtimes
   ------------------
