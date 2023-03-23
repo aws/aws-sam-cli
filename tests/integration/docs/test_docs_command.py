@@ -17,8 +17,9 @@ class TestDocsCommand(DocsIntegBase):
         command_list = self.get_docs_command_list(sub_commands=sub_commands)
         command_result = run_command(command_list)
         stdout = command_result.stdout.decode("utf-8").strip()
+        stderr = command_result.stderr.decode("utf-8").strip()
         self.assertEqual(command_result.process.returncode, 0)
-        self._assert_valid_response(stdout, url)
+        self._assert_valid_response(stdout, stderr, url)
 
     def test_base_command(self):
         command_list = self.get_docs_command_list()
@@ -37,7 +38,7 @@ class TestDocsCommand(DocsIntegBase):
             stderr,
         )
 
-    def _assert_valid_response(self, stdout, url):
+    def _assert_valid_response(self, stdout, stderr, url):
         # We don't know if the machine this runs on will have a browser,
         # so we're just testing to ensure we get one of two valid command outputs
-        return self.assertTrue(SUCCESS_MESSAGE in stdout or ERROR_MESSAGE.format(URL=url) in stdout)
+        return self.assertTrue(SUCCESS_MESSAGE in stdout or ERROR_MESSAGE.format(URL=url) in stderr)
