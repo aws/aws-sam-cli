@@ -858,6 +858,20 @@ class TestApiGatewayService(TestCase):
         result = self.api_service._request_handler()
         self.assertEqual(result, unauth_mock)
 
+    @patch.object(LocalApigwService, "_invoke_lambda_function")
+    @patch.object(LocalApigwService, "_create_method_arn")
+    def test_lambda_authorizer_pass_context_http(self, method_arn_mock, mock_invoke):
+        mock_get_context = Mock()
+        route_event = {}
+
+        auth = LambdaAuthorizer(Mock(), Mock(), "auth_lambda", [], Mock(), Mock(), Mock())
+        auth.is_valid_response = Mock(return_value=True)
+        auth.get_context = Mock(return_value=mock_get_context)
+        self.http_v2_payload_route.authorizer_object = auth
+
+        self.http_service._invoke_parse_lambda_authorizer(auth, {}, route_event, self.http_v2_payload_route)
+        self.assertEqual(route_event, {"requestContext": {"authorizer": {"lambda": mock_get_context}}})
+
 
 class TestApiGatewayModel(TestCase):
     def setUp(self):
