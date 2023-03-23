@@ -145,12 +145,10 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
     is_flag=True,
     help="Separate dependencies of individual function into a Lambda layer for improved performance.",
 )
-# Reminder: remove hidden flag once the feature is ready for release.
 @click.option(
     "--skip-deploy-sync/--no-skip-deploy-sync",
-    default=False,  # Reminder: Change this to True when this feature is released
+    default=True,
     is_flag=True,
-    hidden=True,  # Reminder: Change this to False when this feature is released
     help="This option will skip the initial infrastructure deployment if it is not required"
     " by comparing the local template with the template deployed in cloud.",
 )

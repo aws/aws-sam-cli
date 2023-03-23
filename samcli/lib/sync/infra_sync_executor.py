@@ -17,6 +17,7 @@ from samcli.commands.deploy.deploy_context import DeployContext
 from samcli.commands.package.package_context import PackageContext
 from samcli.lib.providers.provider import ResourceIdentifier
 from samcli.lib.providers.sam_stack_provider import is_local_path
+from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.utils.boto_utils import get_boto_client_provider_from_session_with_config
 from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_RESTAPI,
@@ -174,39 +175,39 @@ class InfraSyncExecutor:
 
         # Will not combine the comparisons in order to save operation cost
         if self._sync_context.skip_deploy_sync and first_sync and (days_since_last_infra_sync <= AUTO_INFRA_SYNC_DAYS):
-            # Reminder: Add back after sync infra skip ready for release
-            # try:
-            #     if self._auto_skip_infra_sync(
-            #         self._package_context.output_template_file,
-            #         self._package_context.template_file,
-            #         self._deploy_context.stack_name,
-            #     ):
-            #         # We have a threshold on number of sync flows we initiate
-            #         # If higher than the threshold, we perform infra sync to improve performance
-            #         if len(self.code_sync_resources) < SYNC_FLOW_THRESHOLD:
-            #             pass
-            #             LOG.info("Template haven't been changed since last deployment, skipping infra sync...")
-            #             return InfraSyncResult(False, self.code_sync_resources)
-            #         else:
-            #             LOG.info(
-            #             "The number of resources that needs an update exceeds %s, \
-            #             an infra sync will be executed for an CloudFormation deployment to improve performance",
-            #             SYNC_FLOW_THRESHOLD)
-            #             pass
-            # except Exception:
-            #     LOG.debug(
-            #         "Could not skip infra sync by comparing to a previously deployed template, starting infra sync"
-            #     )
-            pass
+            EventTracker.track_event("SyncFlowStart", "SkipInfraSyncExecute")
+            try:
+                if self._auto_skip_infra_sync(
+                    self._package_context.output_template_file,
+                    self._package_context.template_file,
+                    self._deploy_context.stack_name,
+                ):
+                    # We have a threshold on number of sync flows we initiate
+                    # If higher than the threshold, we perform infra sync to improve performance
+                    if len(self.code_sync_resources) < SYNC_FLOW_THRESHOLD:
+                        LOG.info("Template haven't been changed since last deployment, skipping infra sync...")
+                        EventTracker.track_event("SyncFlowEnd", "SkipInfraSyncExecute")
+                        return InfraSyncResult(False, self.code_sync_resources)
+                    else:
+                        LOG.info(
+                            "The number of resources that needs an update exceeds %s, \
+an infra sync will be executed for an CloudFormation deployment to improve performance",
+                            SYNC_FLOW_THRESHOLD,
+                        )
+            except Exception:
+                LOG.debug(
+                    "Could not skip infra sync by comparing to a previously deployed template, starting infra sync"
+                )
 
-        # Will be added with the sync infra skip is ready for release
-        # if days_since_last_infra_sync > AUTO_INFRA_SYNC_DAYS:
-        #     LOG.info(
-        #         "Infrastructure Sync hasn't been run in the last %s days, sam sync will be queuing up the stack"
-        #         " deployment to minimize the drift in CloudFormation.",
-        #         AUTO_INFRA_SYNC_DAYS,
-        #     )
+        EventTracker.track_event("SyncFlowStart", "InfraSyncExecute")
+        if days_since_last_infra_sync > AUTO_INFRA_SYNC_DAYS:
+            LOG.info(
+                "Infrastructure Sync hasn't been run in the last %s days, sam sync will be queuing up the stack"
+                " deployment to minimize the drift in CloudFormation.",
+                AUTO_INFRA_SYNC_DAYS,
+            )
         self._deploy_context.run()
+        EventTracker.track_event("SyncFlowEnd", "InfraSyncExecute")
 
         # Update latest infra sync time in sync state
         self._sync_context.update_infra_sync_time()
