@@ -180,7 +180,7 @@ def experimental_click_option(default: Optional[bool]):
         is_flag=True,
         expose_value=False,
         callback=_experimental_option_callback,
-        help="Should beta features be enabled.",
+        help="Enable/Disable beta features.",
     )
 
 
