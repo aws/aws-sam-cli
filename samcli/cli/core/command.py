@@ -1,3 +1,9 @@
+"""
+Core command class that inherits from click.Command and overrides some of the formatting options
+to be specific for AWS SAM CLI.
+
+Should be used by all commands for a consistent UI experience
+"""
 from typing import Dict, List
 
 from click import Command, Context, Parameter, style

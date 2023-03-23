@@ -482,7 +482,7 @@ def cache_dir_click_option():
         "-cd",
         default=DEFAULT_CACHE_DIR,
         type=click.Path(file_okay=False, dir_okay=True, writable=True),  # Must be a directory
-        help="Directory to store cached artifacts." "The default cache directory is .aws-sam/cache",
+        help="Directory to store cached artifacts. The default cache directory is .aws-sam/cache",
     )
 
 
@@ -512,7 +512,7 @@ def manifest_click_option():
         "-m",
         default=None,
         type=click.Path(),
-        help="Path to a custom dependency manifest." "Example: custom-package.json",
+        help="Path to a custom dependency manifest. Example: custom-package.json",
     )
 
 
