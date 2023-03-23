@@ -5,7 +5,7 @@ from samcli.commands.deploy.core.options import ALL_OPTIONS
 
 class DeployCommandHelpTextFormatter(RootCommandHelpTextFormatter):
     # Picked an additive constant that gives an aesthetically pleasing look.
-    ADDITIVE_JUSTIFICATION = 11
+    ADDITIVE_JUSTIFICATION = 15
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

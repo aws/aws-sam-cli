@@ -1,38 +1,20 @@
 from typing import List
 
-from click import Command, Context, Parameter, style
+from click import Context, style
 
+from samcli.cli.core.command import CoreCommand
 from samcli.cli.row_modifiers import RowDefinition, ShowcaseRowModifier
 from samcli.commands.deploy.core.formatters import DeployCommandHelpTextFormatter
 from samcli.commands.deploy.core.options import OPTIONS_INFO
 
+COL_SIZE_MODIFIER = 50
 
-class DeployCommand(Command):
+
+class DeployCommand(CoreCommand):
     class CustomFormatterContext(Context):
         formatter_class = DeployCommandHelpTextFormatter
 
     context_class = CustomFormatterContext
-
-    def __init__(self, description, requires_credentials=False, *args, **kwargs):
-        self.description = description
-        self.requires_credentials = requires_credentials
-        self.description_addendum = (
-            style("\n  This command requires access to AWS credentials.", bold=True)
-            if self.requires_credentials
-            else style("\n  This command does not require access to AWS credentials.", bold=True)
-        )
-        super().__init__(*args, **kwargs)
-
-    def format_description(self, formatter: DeployCommandHelpTextFormatter):
-        with formatter.indented_section(name="Description", extra_indents=1):
-            formatter.write_rd(
-                [
-                    RowDefinition(
-                        text="",
-                        name=self.description + self.description_addendum,
-                    ),
-                ],
-            )
 
     @staticmethod
     def format_examples(ctx: Context, formatter: DeployCommandHelpTextFormatter):
@@ -43,21 +25,11 @@ class DeployCommand(Command):
                         text="\n",
                     ),
                     RowDefinition(
-                        name=style(f"${ctx.command_path} " f"--watch --stack-name {{stack}}"),
-                        extra_row_modifiers=[ShowcaseRowModifier()],
-                    ),
-                    RowDefinition(
-                        name=style(f"${ctx.command_path} " f"--code --watch --stack-name {{stack}}"),
-                        extra_row_modifiers=[ShowcaseRowModifier()],
-                    ),
-                    RowDefinition(
-                        name=style(
-                            f"${ctx.command_path} "
-                            f"--code --stack-name {{stack}} --resource-id {{ChildStack}}/{{ResourceId}} "
-                        ),
+                        name=style(f"$ {ctx.command_path} " f"--watch --stack-name {{stack}}"),
                         extra_row_modifiers=[ShowcaseRowModifier()],
                     ),
                 ],
+                col_max=COL_SIZE_MODIFIER
             )
 
     @staticmethod
@@ -98,7 +70,8 @@ class DeployCommand(Command):
                         text="Key Management Service",
                         extra_row_modifiers=[ShowcaseRowModifier()],
                     ),
-                ]
+                ],
+                col_max=COL_SIZE_MODIFIER
             )
 
     def format_options(self, ctx: Context, formatter: DeployCommandHelpTextFormatter) -> None:  # type:ignore
@@ -110,34 +83,25 @@ class DeployCommand(Command):
         DeployCommand.format_examples(ctx, formatter)
         DeployCommand.format_acronyms(formatter)
 
-        params = self.get_params(ctx)
-
-    #     for option_heading, options in OPTIONS_INFO.items():
-    #         opts: List[RowDefinition] = sorted(
-    #             [
-    #                 DeployCommand._convert_param_to_row_definition(
-    #                     ctx=ctx, param=param, rank=options.get("option_names", {}).get(param.name, {}).get("rank", 0)
-    #                 )
-    #                 for param in params
-    #                 if param.name in options.get("option_names", {}).keys()
-    #             ],
-    #             key=lambda row_def: row_def.rank,
-    #         )
-    #         with formatter.indented_section(name=option_heading, extra_indents=1):
-    #             formatter.write_rd(options.get("extras", [RowDefinition()]))
-    #             formatter.write_rd(
-    #                 [RowDefinition(name="", text="\n")]
-    #                 + [
-    #                     opt
-    #                     for options in zip(opts, [RowDefinition(name="", text="\n")] * (len(opts)))
-    #                     for opt in options
-    #                 ]
-    #             )
-    #
-    # @staticmethod
-    # def _convert_param_to_row_definition(ctx: Context, param: Parameter, rank: int):
-    #     help_record = param.get_help_record(ctx)
-    #     if not help_record:
-    #         return RowDefinition()
-    #     name, text = help_record
-    #     return RowDefinition(name=name, text=text, rank=rank)
+        for option_heading, options in OPTIONS_INFO.items():
+            opts: List[RowDefinition] = sorted(
+                [
+                    CoreCommand.convert_param_to_row_definition(
+                        ctx=ctx, param=param, rank=options.get("option_names", {}).get(param.name, {}).get("rank", 0)
+                    )
+                    for param in self.get_params(ctx)
+                    if param.name in options.get("option_names", {}).keys()
+                ],
+                key=lambda row_def: row_def.rank,
+            )
+            with formatter.indented_section(name=option_heading, extra_indents=1):
+                formatter.write_rd(options.get("extras", [RowDefinition()]), col_max=COL_SIZE_MODIFIER)
+                formatter.write_rd(
+                    [RowDefinition(name="", text="\n")]
+                    + [
+                        opt
+                        for options in zip(opts, [RowDefinition(name="", text="\n")] * (len(opts)))
+                        for opt in options
+                    ],
+                    col_max=COL_SIZE_MODIFIER
+                )
