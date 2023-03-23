@@ -33,6 +33,7 @@ from samcli.commands._utils.options import (
     template_click_option,
     use_json_option,
 )
+from samcli.commands.deploy.core.command import DeployCommand
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.bootstrap.companion_stack.companion_stack_manager import sync_ecr_stack
@@ -44,16 +45,13 @@ from samcli.lib.utils.version_checker import check_newer_version
 SHORT_HELP = "Deploy an AWS SAM application."
 
 
-HELP_TEXT = """The sam deploy command creates a Cloudformation Stack and deploys your resources.
+HELP_TEXT = """The sam deploy command creates a Cloudformation Stack and deploys your resources."""
 
-\b
-Set SAM_CLI_POLL_DELAY Environment Variable with a value of seconds in your shell to configure 
-how often SAM CLI checks the Stack state, which is useful when seeing throttling from CloudFormation.
+DESCRIPTION = """
+  Set SAM_CLI_POLL_DELAY Environment Variable with a value of seconds in your shell to configure 
+  how often SAM CLI checks the Stack state, which is useful when seeing throttling from CloudFormation.
 
-\b
-e.g. sam deploy --template-file packaged.yaml --stack-name sam-app --capabilities CAPABILITY_IAM
-
-\b
+  e.g. sam deploy --template-file packaged.yaml --stack-name sam-app --capabilities CAPABILITY_IAM
 """
 
 CONFIG_SECTION = "parameters"
@@ -63,8 +61,16 @@ LOG = logging.getLogger(__name__)
 @click.command(
     "deploy",
     short_help=SHORT_HELP,
-    context_settings={"ignore_unknown_options": False, "allow_interspersed_args": True, "allow_extra_args": True},
+    context_settings={
+        "ignore_unknown_options": False,
+        "allow_interspersed_args": True,
+        "allow_extra_args": True,
+        "max_content_width": 120,
+    },
+    cls=DeployCommand,
     help=HELP_TEXT,
+    description=DESCRIPTION,
+    requires_credentials=True,
 )
 @configuration_option(provider=TomlProvider(section=CONFIG_SECTION))
 @click.option(
