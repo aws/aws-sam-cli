@@ -5,7 +5,8 @@ import copy
 import logging
 import re
 from datetime import datetime
-from typing import Dict, Optional, Set
+from pathlib import Path
+from typing import TYPE_CHECKING, Dict, Optional, Set
 
 from boto3 import Session
 from botocore.exceptions import ClientError
@@ -14,9 +15,9 @@ from samcli.commands._utils.template import get_template_data
 from samcli.commands.build.build_context import BuildContext
 from samcli.commands.deploy.deploy_context import DeployContext
 from samcli.commands.package.package_context import PackageContext
-from samcli.commands.sync.sync_context import SyncContext
 from samcli.lib.providers.provider import ResourceIdentifier
 from samcli.lib.providers.sam_stack_provider import is_local_path
+from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.utils.boto_utils import get_boto_client_provider_from_session_with_config
 from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_RESTAPI,
@@ -35,6 +36,9 @@ from samcli.lib.utils.resources import (
     SYNCABLE_STACK_RESOURCES,
 )
 from samcli.yamlhelper import yaml_parse
+
+if TYPE_CHECKING:  # pragma: no cover
+    from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)
 
@@ -106,7 +110,7 @@ class InfraSyncExecutor:
         build_context: BuildContext,
         package_context: PackageContext,
         deploy_context: DeployContext,
-        sync_context: SyncContext,
+        sync_context: "SyncContext",
     ):
         """Constructs the sync for infra executor.
 
@@ -170,40 +174,40 @@ class InfraSyncExecutor:
             days_since_last_infra_sync = (current_time - last_infra_sync_time).days
 
         # Will not combine the comparisons in order to save operation cost
-        if first_sync and (days_since_last_infra_sync <= AUTO_INFRA_SYNC_DAYS):
-            # Reminder: Add back after sync infra skip ready for release
-            # try:
-            #     if self._auto_skip_infra_sync(
-            #         self._package_context.output_template_file,
-            #         self._package_context.template_file,
-            #         self._deploy_context.stack_name,
-            #     ):
-            #         We have a threshold on number of sync flows we initiate
-            #         If higher than the threshold, we perform infra sync to improve performance
-            #         if len(self.code_sync_resources) < SYNC_FLOW_THRESHOLD:
-            #             pass
-            #             LOG.info("Template haven't been changed since last deployment, skipping infra sync...")
-            #             return InfraSyncResult(False, self.code_sync_resources)
-            #         else:
-            #             LOG.info(
-            #             "The number of resources that needs an update exceeds %s, \
-            #             an infra sync will be executed for an CloudFormation deployment to improve performance",
-            #             SYNC_FLOW_THRESHOLD)
-            #             pass
-            # except Exception:
-            #     LOG.debug(
-            #         "Could not skip infra sync by comparing to a previously deployed template, starting infra sync"
-            #     )
-            pass
+        if self._sync_context.skip_deploy_sync and first_sync and (days_since_last_infra_sync <= AUTO_INFRA_SYNC_DAYS):
+            EventTracker.track_event("SyncFlowStart", "SkipInfraSyncExecute")
+            try:
+                if self._auto_skip_infra_sync(
+                    self._package_context.output_template_file,
+                    self._package_context.template_file,
+                    self._deploy_context.stack_name,
+                ):
+                    # We have a threshold on number of sync flows we initiate
+                    # If higher than the threshold, we perform infra sync to improve performance
+                    if len(self.code_sync_resources) < SYNC_FLOW_THRESHOLD:
+                        LOG.info("Template haven't been changed since last deployment, skipping infra sync...")
+                        EventTracker.track_event("SyncFlowEnd", "SkipInfraSyncExecute")
+                        return InfraSyncResult(False, self.code_sync_resources)
+                    else:
+                        LOG.info(
+                            "The number of resources that needs an update exceeds %s, \
+an infra sync will be executed for an CloudFormation deployment to improve performance",
+                            SYNC_FLOW_THRESHOLD,
+                        )
+            except Exception:
+                LOG.debug(
+                    "Could not skip infra sync by comparing to a previously deployed template, starting infra sync"
+                )
 
-        # Will be added with the sync infra skip is ready for release
-        # if days_since_last_infra_sync > AUTO_INFRA_SYNC_DAYS:
-        #     LOG.info(
-        #         "Infrastructure Sync hasn't been run in the last %s days, sam sync will be queuing up the stack"
-        #         " deployment to minimize the drift in CloudFormation.",
-        #         AUTO_INFRA_SYNC_DAYS,
-        #     )
+        EventTracker.track_event("SyncFlowStart", "InfraSyncExecute")
+        if days_since_last_infra_sync > AUTO_INFRA_SYNC_DAYS:
+            LOG.info(
+                "Infrastructure Sync hasn't been run in the last %s days, sam sync will be queuing up the stack"
+                " deployment to minimize the drift in CloudFormation.",
+                AUTO_INFRA_SYNC_DAYS,
+            )
         self._deploy_context.run()
+        EventTracker.track_event("SyncFlowEnd", "InfraSyncExecute")
 
         # Update latest infra sync time in sync state
         self._sync_context.update_infra_sync_time()
@@ -309,12 +313,17 @@ class InfraSyncExecutor:
                 if isinstance(template_location, dict):
                     continue
                 # For other scenarios, template location will be a string (local or s3 URL)
-                elif not self._auto_skip_infra_sync(
-                    resource_dict.get("Properties", {}).get(template_field),
+                nested_template_location = (
                     current_built_template.get("Resources", {})
                     .get(resource_logical_id, {})
                     .get("Properties", {})
-                    .get(template_field),
+                    .get(template_field)
+                )
+                if is_local_path(nested_template_location):
+                    nested_template_location = str(Path(built_template_path).parent.joinpath(nested_template_location))
+                if not self._auto_skip_infra_sync(
+                    resource_dict.get("Properties", {}).get(template_field),
+                    nested_template_location,
                     stack_resource_detail.get("StackResourceDetail", {}).get("PhysicalResourceId", ""),
                     nested_prefix + resource_logical_id + "/" if nested_prefix else resource_logical_id + "/",
                 ):
@@ -324,7 +333,10 @@ class InfraSyncExecutor:
         return True
 
     def _sanitize_template(
-        self, template_dict: Dict, linked_resources: Set[str] = set(), built_template_dict: Optional[Dict] = None
+        self,
+        template_dict: Dict,
+        linked_resources: Optional[Set[str]] = None,
+        built_template_dict: Optional[Dict] = None,
     ) -> Set[str]:
         """
         Fields skipped during template comparison because sync --code can handle the difference:
@@ -360,9 +372,11 @@ class InfraSyncExecutor:
         Set[str]
             The list of resource IDs that got changed during sanitization
         """
+        linked_resources = linked_resources or set()
 
         resources = template_dict.get("Resources", {})
         processed_resources: Set[str] = set()
+        built_resource_dict = None
 
         for resource_logical_id in resources:
             resource_dict = resources.get(resource_logical_id, {})
@@ -399,7 +413,7 @@ class InfraSyncExecutor:
         resource_logical_id: str,
         resource_type: str,
         resource_dict: Dict,
-        linked_resources: Set[str] = set(),
+        linked_resources: Optional[Set[str]] = None,
         built_resource_dict: Optional[Dict] = None,
     ) -> Optional[str]:
         """
@@ -413,7 +427,7 @@ class InfraSyncExecutor:
             Resource type
         resource_dict: Dict
             The resource level dict containing Properties field
-        linked_resources: Set[str]
+        linked_resources: Optional[Set[str]]
             The corresponding resources in the other template that got processed
         built_resource_dict: Optional[Dict]
             Only passed in for current template sanitization to determine if local
@@ -423,6 +437,7 @@ class InfraSyncExecutor:
         Optional[str]
             The processed resource ID
         """
+        linked_resources = linked_resources or set()
         processed_logical_id = None
 
         if resource_type == AWS_LAMBDA_FUNCTION:

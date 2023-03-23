@@ -34,6 +34,7 @@ class Runtime(Enum):
     python37 = "python3.7"
     python38 = "python3.8"
     python39 = "python3.9"
+    python310 = "python3.10"
     ruby27 = "ruby2.7"
     java8 = "java8"
     java8al2 = "java8.al2"

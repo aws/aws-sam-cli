@@ -31,6 +31,7 @@ CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"]
 ADDITIONAL_OPTIONS: List[str] = [
     "watch",
     "code",
+    "skip_deploy_sync",
     "dependency_layer",
     "use_container",
     "resource_id",
