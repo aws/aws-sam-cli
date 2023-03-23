@@ -10,6 +10,7 @@ from samcli.commands.package.exceptions import PackageFailedError
 from samcli.lib.package.artifact_exporter import Template
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
+from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION, AWS_SERVERLESS_FUNCTION
 
 
 class TestPackageCommand(TestCase):
@@ -156,22 +157,31 @@ class TestPackageCommand(TestCase):
             (
                 "preview_runtime",
                 True,
+                AWS_SERVERLESS_FUNCTION,
             ),
             (
                 "ga_runtime",
                 False,
+                AWS_SERVERLESS_FUNCTION,
+            ),
+            (
+                "preview_runtime",
+                True,
+                AWS_LAMBDA_FUNCTION,
+            ),
+            (
+                "ga_runtime",
+                False,
+                AWS_LAMBDA_FUNCTION,
             ),
         ]
     )
     @patch("samcli.commands.package.package_context.PREVIEW_RUNTIMES", {"preview_runtime"})
-    @patch("samcli.commands.package.package_context.SamFunctionProvider")
     @patch("samcli.commands.package.package_context.click")
-    def test_warn_preview_runtime(self, runtime, should_warn, patched_click, patched_function_provider):
-        function_provider = Mock()
-        patched_function_provider.return_value = function_provider
-        function_provider.get_all.return_value = [Mock(runtime=runtime)]
+    def test_warn_preview_runtime(self, runtime, should_warn, function_type, patched_click):
+        resources = {"MyFunction": {"Type": function_type, "Properties": {"Runtime": runtime}}}
 
-        self.package_command_context._warn_preview_runtime([Mock()])
+        self.package_command_context._warn_preview_runtime([Mock(resources=resources)])
 
         if should_warn:
             patched_click.secho.assert_called_once()
