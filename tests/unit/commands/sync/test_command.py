@@ -61,8 +61,7 @@ class TestDoCli(TestCase):
 
     @parameterized.expand(
         [
-            # Reminder: Add back after sync infra skip ready for release
-            # (False, False, True, True, False, InfraSyncResult(False, {ResourceIdentifier("Function")})),
+            (False, False, True, True, False, InfraSyncResult(False, {ResourceIdentifier("Function")})),
             (False, False, True, True, False, InfraSyncResult(True)),
             (False, False, False, False, False, InfraSyncResult(True)),
             (False, False, True, True, True, InfraSyncResult(True)),
@@ -219,13 +218,14 @@ class TestDoCli(TestCase):
 
         if not infra_sync_result.infra_sync_executed:
             execute_code_sync_mock.assert_called_with(
-                ANY,
-                build_context_mock,
-                deploy_context_mock,
-                sync_context_mock,
-                ("Function",),
-                None,
-                auto_dependency_layer,
+                template=self.template_file,
+                build_context=build_context_mock,
+                deploy_context=deploy_context_mock,
+                sync_context=sync_context_mock,
+                resource_ids=["Function"],
+                resource_types=None,
+                auto_dependency_layer=auto_dependency_layer,
+                use_built_resources=True,
             )
         else:
             execute_code_sync_mock.assert_not_called()

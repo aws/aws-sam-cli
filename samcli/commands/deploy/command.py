@@ -328,8 +328,8 @@ def do_cli(
         ) as package_context:
             package_context.run()
 
-        # 500ms of sleep time between stack checks and describe stack events.
-        DEFAULT_POLL_DELAY = 0.5
+        # 5s of sleep time between stack checks and describe stack events.
+        DEFAULT_POLL_DELAY = 5
         try:
             poll_delay = float(os.getenv("SAM_CLI_POLL_DELAY", str(DEFAULT_POLL_DELAY)))
         except ValueError:
