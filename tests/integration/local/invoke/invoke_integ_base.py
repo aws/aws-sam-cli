@@ -27,8 +27,8 @@ class InvokeIntegBase(TestCase):
     def get_integ_dir():
         return Path(__file__).resolve().parents[2]
 
+    @staticmethod
     def get_command_list(
-        self,
         function_to_invoke,
         template_path=None,
         event_path=None,
@@ -43,7 +43,7 @@ class InvokeIntegBase(TestCase):
         hook_name=None,
         beta_features=None,
     ):
-        command_list = [self.cmd, "local", "invoke", function_to_invoke]
+        command_list = [get_sam_command(), "local", "invoke", function_to_invoke]
 
         if template_path:
             command_list = command_list + ["-t", template_path]

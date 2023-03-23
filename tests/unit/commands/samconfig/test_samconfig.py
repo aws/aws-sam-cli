@@ -988,6 +988,7 @@ class TestSamConfigForAllCommands(TestCase):
                 (),
                 (),
                 True,
+                True,
                 "mystack",
                 "myregion",
                 None,

@@ -235,6 +235,157 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.tag_translation")
+    @patch("samcli.commands.deploy.guided_context.sync_ecr_stack")
+    def test_all_args_guided_use_defaults(
+        self,
+        mock_sync_ecr_stack,
+        mock_tag_translation,
+        mock_confirm,
+        mock_prompt,
+        mock_signer_config_per_function,
+        mock_sam_function_provider,
+        mock_get_buildable_stacks,
+        mock_get_template_parameters,
+        mockauth_per_resource,
+        mock_managed_stack,
+        mock_deploy_context,
+        mock_deploy_click,
+        mock_package_context,
+        mock_package_click,
+    ):
+        mock_get_buildable_stacks.return_value = (Mock(), [])
+        mock_tag_translation.return_value = "helloworld-123456-v1"
+
+        context_mock = Mock()
+        function_mock = MagicMock()
+        function_mock.packagetype = IMAGE
+        function_mock.imageuri = "helloworld:v1"
+        function_mock.full_path = "HelloWorldFunction"
+        mock_sam_function_provider.return_value.get_all.return_value = [function_mock]
+        mockauth_per_resource.return_value = [("HelloWorldResource", False)]
+        mock_deploy_context.return_value.__enter__.return_value = context_mock
+        mock_confirm.side_effect = [True, False, True, True, True, True, True]
+        mock_prompt.side_effect = [
+            "sam-app",
+            "us-east-1",
+            "guidedParameter",
+            "secure",
+            ("CAPABILITY_IAM",),
+            "testconfig.toml",
+            "test-env",
+        ]
+
+        mock_get_template_parameters.return_value = {
+            "Myparameter": {"Type": "String"},
+            "MyNoEchoParameter": {"Type": "String", "NoEcho": True},
+        }
+
+        mock_managed_stack.return_value = "managed-s3-bucket"
+        mock_sync_ecr_stack.return_value = {
+            "HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/managed-ecr"
+        }
+
+        mock_signer_config_per_function.return_value = ({}, {})
+
+        self.resolve_s3 = True
+        self.resolve_image_repos = True
+        with patch.object(GuidedConfig, "save_config", MagicMock(return_value=True)) as mock_save_config:
+            do_cli(
+                template_file=self.template_file,
+                stack_name=self.stack_name,
+                s3_bucket=None,
+                image_repository=None,
+                image_repositories=None,
+                force_upload=self.force_upload,
+                no_progressbar=self.no_progressbar,
+                s3_prefix=self.s3_prefix,
+                kms_key_id=self.kms_key_id,
+                parameter_overrides=self.parameter_overrides,
+                capabilities=self.capabilities,
+                no_execute_changeset=self.no_execute_changeset,
+                role_arn=self.role_arn,
+                notification_arns=self.notification_arns,
+                fail_on_empty_changeset=self.fail_on_empty_changset,
+                tags=self.tags,
+                region=self.region,
+                profile=self.profile,
+                use_json=self.use_json,
+                metadata=self.metadata,
+                guided=True,
+                confirm_changeset=True,
+                signing_profiles=self.signing_profiles,
+                resolve_s3=self.resolve_s3,
+                config_env=self.config_env,
+                config_file=self.config_file,
+                resolve_image_repos=self.resolve_image_repos,
+                disable_rollback=self.disable_rollback,
+                on_failure=self.on_failure,
+            )
+
+            mock_deploy_context.assert_called_with(
+                template_file=ANY,
+                stack_name="sam-app",
+                s3_bucket="managed-s3-bucket",
+                image_repository=None,
+                image_repositories={"HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/managed-ecr"},
+                force_upload=self.force_upload,
+                no_progressbar=self.no_progressbar,
+                s3_prefix="sam-app",
+                kms_key_id=self.kms_key_id,
+                parameter_overrides={"Myparameter": "guidedParameter", "MyNoEchoParameter": "secure"},
+                capabilities=self.capabilities,
+                no_execute_changeset=self.no_execute_changeset,
+                role_arn=self.role_arn,
+                notification_arns=self.notification_arns,
+                fail_on_empty_changeset=self.fail_on_empty_changset,
+                tags=self.tags,
+                region="us-east-1",
+                profile=self.profile,
+                confirm_changeset=True,
+                signing_profiles=self.signing_profiles,
+                use_changeset=self.use_changeset,
+                disable_rollback=True,
+                poll_delay=5,
+                on_failure=self.on_failure,
+            )
+
+            context_mock.run.assert_called_with()
+            mock_save_config.assert_called_with(
+                {
+                    "Myparameter": {"Value": "guidedParameter", "Hidden": False},
+                    "MyNoEchoParameter": {"Value": "secure", "Hidden": True},
+                },
+                "test-env",
+                "testconfig.toml",
+                capabilities=("CAPABILITY_IAM",),
+                confirm_changeset=True,
+                profile=self.profile,
+                region="us-east-1",
+                resolve_s3=True,
+                resolve_image_repos=True,
+                image_repositories=None,
+                stack_name="sam-app",
+                s3_prefix="sam-app",
+                signing_profiles=self.signing_profiles,
+                disable_rollback=True,
+            )
+            mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
+            self.assertEqual(context_mock.run.call_count, 1)
+
+    @patch("samcli.commands.package.command.click")
+    @patch("samcli.commands.package.package_context.PackageContext")
+    @patch("samcli.commands.deploy.command.click")
+    @patch("samcli.commands.deploy.deploy_context.DeployContext")
+    @patch("samcli.commands.deploy.guided_context.manage_stack")
+    @patch("samcli.commands.deploy.guided_context.auth_per_resource")
+    @patch("samcli.commands.deploy.guided_context.get_template_parameters")
+    @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
+    @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
+    @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
+    @patch.object(GuidedConfig, "get_config_ctx", MagicMock(return_value=(None, get_mock_sam_config())))
+    @patch("samcli.commands.deploy.guided_context.prompt")
+    @patch("samcli.commands.deploy.guided_context.confirm")
+    @patch("samcli.commands.deploy.guided_context.tag_translation")
     def test_all_args_guided(
         self,
         mock_tag_translation,
@@ -338,7 +489,7 @@ class TestDeployCliCommand(TestCase):
                 signing_profiles=self.signing_profiles,
                 use_changeset=self.use_changeset,
                 disable_rollback=True,
-                poll_delay=0.5,
+                poll_delay=5,
                 on_failure=self.on_failure,
             )
 
@@ -354,7 +505,8 @@ class TestDeployCliCommand(TestCase):
                 confirm_changeset=True,
                 profile=self.profile,
                 region="us-east-1",
-                s3_bucket="managed-s3-bucket",
+                resolve_s3=True,
+                resolve_image_repos=False,
                 image_repositories={"HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"},
                 stack_name="sam-app",
                 s3_prefix="sam-app",
@@ -488,7 +640,7 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             use_changeset=self.use_changeset,
             disable_rollback=True,
-            poll_delay=0.5,
+            poll_delay=5,
             on_failure=self.on_failure,
         )
 
@@ -501,7 +653,7 @@ class TestDeployCliCommand(TestCase):
             MOCK_SAM_CONFIG.put.call_args_list,
             [
                 call(["deploy"], "parameters", "stack_name", "sam-app", env="test-env"),
-                call(["deploy"], "parameters", "s3_bucket", "managed-s3-bucket", env="test-env"),
+                call(["deploy"], "parameters", "resolve_s3", True, env="test-env"),
                 call(["deploy"], "parameters", "s3_prefix", "sam-app", env="test-env"),
                 call(["deploy"], "parameters", "region", "us-east-1", env="test-env"),
                 call(["deploy"], "parameters", "confirm_changeset", True, env="test-env"),
@@ -642,7 +794,7 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             use_changeset=self.use_changeset,
             disable_rollback=True,
-            poll_delay=0.5,
+            poll_delay=5,
             on_failure=self.on_failure,
         )
 
@@ -655,7 +807,7 @@ class TestDeployCliCommand(TestCase):
             MOCK_SAM_CONFIG.put.call_args_list,
             [
                 call(["deploy"], "parameters", "stack_name", "sam-app", env="test-env"),
-                call(["deploy"], "parameters", "s3_bucket", "managed-s3-bucket", env="test-env"),
+                call(["deploy"], "parameters", "resolve_s3", True, env="test-env"),
                 call(["deploy"], "parameters", "s3_prefix", "sam-app", env="test-env"),
                 call(["deploy"], "parameters", "region", "us-east-1", env="test-env"),
                 call(["deploy"], "parameters", "confirm_changeset", True, env="test-env"),
@@ -780,7 +932,7 @@ class TestDeployCliCommand(TestCase):
                 signing_profiles=self.signing_profiles,
                 use_changeset=self.use_changeset,
                 disable_rollback=self.disable_rollback,
-                poll_delay=0.5,
+                poll_delay=5,
                 on_failure=self.on_failure,
             )
 
@@ -856,7 +1008,7 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             use_changeset=self.use_changeset,
             disable_rollback=self.disable_rollback,
-            poll_delay=0.5,
+            poll_delay=5,
             on_failure=self.on_failure,
         )
 
@@ -971,7 +1123,7 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             use_changeset=True,
             disable_rollback=self.disable_rollback,
-            poll_delay=0.5,
+            poll_delay=5,
             on_failure=self.on_failure,
         )
 
