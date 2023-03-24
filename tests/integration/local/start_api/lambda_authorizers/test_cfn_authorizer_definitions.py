@@ -2,6 +2,7 @@ import pytest
 import requests
 from tests.integration.local.start_api.start_api_integ_base import (
     StartApiIntegBaseClass,
+    WritableStartApiIntegBaseClass,
 )
 from parameterized import parameterized_class
 
@@ -159,3 +160,172 @@ class TestCfnLambdaAuthorizer500(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response_json, {"message": "Internal server error"})
+
+
+class TestInvalidApiTemplateUsingUnsupportedType(WritableStartApiIntegBaseClass):
+    """
+    Test using an invalid Type for an Authorizer
+    """
+
+    do_collect_cmd_init_output = True
+
+    template_content = """AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  RequestAuthorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      AuthorizerUri: arn:aws:apigateway:123:lambda:path/2015-03-31/functions/arn/invocations
+      Type: notvalid
+      IdentitySource: "method.request.header.header, method.request.querystring.query"
+      Name: RequestAuthorizer
+      RestApiId: !Ref RestApiLambdaAuth
+"""
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=10, method="thread")
+    def test_invalid_template(self):
+        self.assertIn(
+            "Authorizer 'RequestAuthorizer' with type 'notvalid' is currently not supported. "
+            "Only Lambda Authorizers of type TOKEN and REQUEST are supported.",
+            self.start_api_process_output,
+        )
+
+
+class TestInvalidHttpTemplateUsingIncorrectPayloadVersion(WritableStartApiIntegBaseClass):
+    """
+    Test using an invalid AuthorizerPayloadFormatVersion for an Authorizer
+    """
+
+    do_collect_cmd_init_output = True
+
+    template_content = """AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  RequestAuthorizerV2Simple:
+    Type: AWS::ApiGatewayV2::Authorizer
+    Properties:
+      AuthorizerPayloadFormatVersion: "3.0"
+      EnableSimpleResponses: false
+      AuthorizerType: REQUEST
+      AuthorizerUri: arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:123456789012:function:AuthorizerFunction/invocations
+      IdentitySource:
+        - "$request.header.header"
+        - "$request.querystring.query"
+      Name: RequestAuthorizerV2Simple
+      ApiId: !Ref HttpLambdaAuth
+"""
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=10, method="thread")
+    def test_invalid_template(self):
+        self.assertIn(
+            "Error: Lambda Authorizer 'RequestAuthorizerV2Simple' is missing or "
+            "invalid 'AuthorizerPayloadFormatVersion', it must be set to '1.0' or '2.0'",
+            self.start_api_process_output,
+        )
+
+
+class TestInvalidHttpTemplateSimpleResponseWithV1(WritableStartApiIntegBaseClass):
+    """
+    Test using simple responses with V1 format version
+    """
+
+    do_collect_cmd_init_output = True
+
+    template_content = """AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  RequestAuthorizerV2Simple:
+    Type: AWS::ApiGatewayV2::Authorizer
+    Properties:
+      AuthorizerPayloadFormatVersion: "1.0"
+      EnableSimpleResponses: true
+      AuthorizerType: REQUEST
+      AuthorizerUri: arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:123456789012:function:AuthorizerFunction/invocations
+      IdentitySource:
+        - "$request.header.header"
+        - "$request.querystring.query"
+      Name: RequestAuthorizerV2Simple
+      ApiId: !Ref HttpLambdaAuth
+"""
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=10, method="thread")
+    def test_invalid_template(self):
+        self.assertIn(
+            "Error: 'EnableSimpleResponses' is only supported for '2.0' "
+            "payload format versions for Lambda Authorizer 'RequestAuthorizerV2Simple'.",
+            self.start_api_process_output,
+        )
+
+
+class TestInvalidHttpTemplateUnsupportedType(WritableStartApiIntegBaseClass):
+    """
+    Test using an invalid Type for HttpApi
+    """
+
+    do_collect_cmd_init_output = True
+
+    template_content = """AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  RequestAuthorizerV2Simple:
+    Type: AWS::ApiGatewayV2::Authorizer
+    Properties:
+      AuthorizerPayloadFormatVersion: "1.0"
+      EnableSimpleResponses: false
+      AuthorizerType: unsupportedtype
+      AuthorizerUri: arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:123456789012:function:AuthorizerFunction/invocations
+      IdentitySource:
+        - "$request.header.header"
+        - "$request.querystring.query"
+      Name: RequestAuthorizerV2Simple
+      ApiId: !Ref HttpLambdaAuth
+"""
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=10, method="thread")
+    def test_invalid_template(self):
+        self.assertIn(
+            "Authorizer 'RequestAuthorizerV2Simple' with type 'unsupportedtype' is currently "
+            "not supported. Only Lambda Authorizers of type REQUEST are supported for API Gateway V2.",
+            self.start_api_process_output,
+        )
+
+
+class TestInvalidHttpTemplateInvalidIdentitySources(WritableStartApiIntegBaseClass):
+    """
+    Test using an invalid identity source
+    """
+
+    do_collect_cmd_init_output = True
+
+    template_content = """AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  RequestAuthorizerV2Simple:
+    Type: AWS::ApiGatewayV2::Authorizer
+    Properties:
+      AuthorizerPayloadFormatVersion: "1.0"
+      EnableSimpleResponses: false
+      AuthorizerType: REQUEST
+      AuthorizerUri: arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:123456789012:function:AuthorizerFunction/invocations
+      IdentitySource:
+        - "hello.world.this.is.invalid"
+      Name: RequestAuthorizerV2Simple
+      ApiId: !Ref HttpLambdaAuth
+"""
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=10, method="thread")
+    def test_invalid_template(self):
+        self.assertIn(
+            "Error: Lambda Authorizer RequestAuthorizerV2Simple does not contain valid identity sources.",
+            self.start_api_process_output,
+        )
