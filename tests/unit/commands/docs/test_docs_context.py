@@ -102,4 +102,4 @@ class TestCommandImplementation(TestCase):
         command_implementation.docs_command = Mock()
         command_implementation.docs_command.sub_commands = []
         command_implementation.run_command()
-        mock_echo.assert_called_once_with(ERROR_MESSAGE.format(URL="some-url"))
+        mock_echo.assert_called_once_with(ERROR_MESSAGE.format(URL="some-url"), err=True)

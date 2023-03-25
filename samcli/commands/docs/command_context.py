@@ -3,7 +3,6 @@ import os
 import sys
 from typing import Callable, List
 
-import click
 from click import echo
 
 from samcli.cli.main import common_options, print_cmdline_args
@@ -67,7 +66,7 @@ class DocsCommandContext:
         click.get_current_context().command_path returns the entire command by the time it
         gets to the leaf node. We just want "sam docs" so we extract it from that string
         """
-        return " ".join((click.get_current_context().command_path.split(" "))[:2])
+        return f"sam {COMMAND_NAME}"
 
     @staticmethod
     def _filter_arguments(commands: List[str]) -> List[str]:

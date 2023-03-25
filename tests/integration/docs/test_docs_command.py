@@ -25,8 +25,9 @@ class TestDocsCommand(DocsIntegBase):
         command_list = self.get_docs_command_list()
         command_result = run_command(command_list)
         stdout = command_result.stdout.decode("utf-8").strip()
+        stderr = command_result.stderr.decode("utf-8").strip()
         self.assertEqual(command_result.process.returncode, 0)
-        self._assert_valid_response(stdout, LANDING_PAGE)
+        self._assert_valid_response(stdout, stderr, LANDING_PAGE)
 
     def test_invalid_command(self):
         command_list = self.get_docs_command_list(sub_commands=["wrong", "command"])
