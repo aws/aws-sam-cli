@@ -59,7 +59,7 @@ environment:
       APPVEYOR_JOB_NAME: "$PYTHON_VERSION - $CONFIGURATION"
 
 install:
-  - sh: "ls -ltra $PYTHON_HOME"
+  - sh: "ls -ltra $HOME"
   - sh: "python3.10 --version"
   # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
   - sh: "sudo apt-get update"
