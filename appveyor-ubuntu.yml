@@ -59,7 +59,7 @@ environment:
       APPVEYOR_JOB_NAME: "$PYTHON_VERSION - $CONFIGURATION"
 
 install:
-  - sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin"
+  #- sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin"
   - sh: "which python"
   - "python -c \"import sys; print(sys.executable)\""
   - sh: "python3.11 --version && non-existing-executable"
