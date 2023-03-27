@@ -59,8 +59,11 @@ environment:
       APPVEYOR_JOB_NAME: "$PYTHON_VERSION - $CONFIGURATION"
 
 install:
-  - sh: "ls -ltra /home/appveyor/venv3.10.10/bin"
-  - sh: "python3.10 --version"
+  - sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin"
+  - sh: "which python"
+  - sh: "python --version"
+  - sh: "python3.11 --version && non-existing-executable"
+
   # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
   - sh: "sudo apt-get update"
 
@@ -87,7 +90,7 @@ install:
   - sh: "./aws_cli/bin/python -m pip install awscli"
   - sh: "PATH=$(echo $PWD'/aws_cli/bin'):$PATH"
 
-  - sh: "PATH=$PATH:$HOME/venv3.7:$HOME/venv3.8:$HOME/venv3.9:$HOME/venv3.10"
+  - sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin"
 
   - sh: "curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py"
   - sh: "curl https://bootstrap.pypa.io/pip/3.6/get-pip.py -o get-pip-36.py"
