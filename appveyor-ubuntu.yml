@@ -61,7 +61,7 @@ environment:
 install:
   - sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin"
   - sh: "which python"
-  - sh: "python --version"
+  - sh: "python -c \"import sys; print(sys.executable)\""
   - sh: "python3.11 --version && non-existing-executable"
 
   # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
