@@ -1,6 +1,6 @@
 version: 1.0.{build}
 image: 
-  - Ubuntu
+  - Ubuntu2004
 
 environment:
   AWS_DEFAULT_REGION: us-east-1
