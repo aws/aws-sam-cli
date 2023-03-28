@@ -58,12 +58,7 @@ environment:
       APPVEYOR_CONSOLE_DISABLE_PTY: true
 
 install:
-  - APPVEYOR_JOB_NAME: "$PYTHON_VERSION - $CONFIGURATION"
-  - sh: "PATH=$PYTHON_HOME:$PATH"
-  #- sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin"
-  - sh: "which python"
-  - "python -c \"import sys; print(sys.executable)\""
-  - sh: "python3.11 --version && non-existing-executable"
+  - sh: "APPVEYOR_JOB_NAME=$PYTHON_VERSION - $CONFIGURATION"
 
   # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
   - sh: "sudo apt-get update"
