@@ -260,8 +260,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu
-          configuration: DeployIntegTesting
+        - configuration: DeployIntegTesting
 
     test_script:
       - "pip install -e \".[dev]\""
