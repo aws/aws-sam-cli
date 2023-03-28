@@ -178,8 +178,7 @@ for:
   - 
     matrix:
       only:
-        - image: Ubuntu
-          configuration: BuildIntegTesting
+        - configuration: BuildIntegTesting
 
     test_script:
       # Pre-dev Tests
@@ -196,8 +195,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu
-          configuration: LocalZipTerraformBuildIntegTesting
+        - configuration: LocalZipTerraformBuildIntegTesting
 
     test_script:
       # Pre-dev Tests
@@ -210,8 +208,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu
-          configuration: LocalZipTerraformBuildInContainerIntegTesting
+        - configuration: LocalZipTerraformBuildInContainerIntegTesting
 
     test_script:
       # Pre-dev Tests
@@ -224,8 +221,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu
-          configuration: S3ZipTerraformBuildIntegTesting
+        - configuration: S3ZipTerraformBuildIntegTesting
 
     test_script:
       # Pre-dev Tests
@@ -238,8 +234,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu
-          configuration: S3ZipTerraformBuildInContainerIntegTesting
+        - configuration: S3ZipTerraformBuildInContainerIntegTesting
 
     test_script:
       # Pre-dev Tests
@@ -252,8 +247,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu
-          configuration: OtherTerraformBuildIntegTesting
+        - configuration: OtherTerraformBuildIntegTesting
 
     test_script:
       # Pre-dev Tests
@@ -277,8 +271,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu
-          configuration: PackageIntegTesting
+        - configuration: PackageIntegTesting
 
     test_script:
       - "pip install -e \".[dev]\""
@@ -288,8 +281,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu
-          configuration: DeleteIntegTesting
+        - configuration: DeleteIntegTesting
 
     test_script:
       - "pip install -e \".[dev]\""
@@ -299,8 +291,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu
-          configuration: SyncIntegTesting
+        - configuration: SyncIntegTesting
 
     test_script:
       - "pip install -e \".[dev]\""
@@ -310,8 +301,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu
-          configuration: LocalIntegTesting
+        - configuration: LocalIntegTesting
 
     test_script:
       # Pre-dev Tests
@@ -325,8 +315,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu
-          configuration: EndToEndTesting
+        - configuration: EndToEndTesting
 
     test_script:
       - "pip install -e \".[dev]\""
@@ -336,8 +325,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu
-          configuration: OtherTesting
+        - configuration: OtherTesting
 
     test_script:
       # Pre-dev Tests
