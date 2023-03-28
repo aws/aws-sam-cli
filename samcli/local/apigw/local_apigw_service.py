@@ -712,10 +712,10 @@ class LocalApigwService(BaseLocalService):
         context = lambda_authorizer.get_context(lambda_auth_response)
 
         # payload V2 responses have the passed context under the "lambda" key
-        if route.payload_format_version == "1.0":
-            original_context.update({"authorizer": context})
-        else:
+        if route.event_type == Route.HTTP and route.payload_format_version in [None, "2.0"]:
             original_context.update({"authorizer": {"lambda": context}})
+        else:
+            original_context.update({"authorizer": context})
 
         route_lambda_event.update({"requestContext": original_context})
 
