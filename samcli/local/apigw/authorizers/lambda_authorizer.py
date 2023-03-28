@@ -87,6 +87,29 @@ class HeaderIdentitySource(IdentitySource):
 
         return str(value) if value else None
 
+    def is_valid(self, **kwargs) -> bool:
+        """
+        Validates whether the required header is present and matches the
+        validation expression, if defined.
+
+        Parameters
+        ----------
+        kwargs: dict
+            Keyword arugments containing the incoming sources and validation expression
+
+        Returns
+        -------
+        bool
+            True if present and valid
+        """
+        identity_source = self.find_identity_value(**kwargs)
+        validation_expression = kwargs.get("validation_expression")
+
+        if validation_expression and identity_source is not None:
+            return re.match(validation_expression, identity_source) is not None
+
+        return identity_source is not None
+
 
 class QueryIdentitySource(IdentitySource):
     def find_identity_value(self, **kwargs) -> Optional[str]:
