@@ -56,9 +56,10 @@ environment:
       INSTALL_PY_38_PIP: 1
       INSTALL_PY_310_PIP: 1
       APPVEYOR_CONSOLE_DISABLE_PTY: true
-      APPVEYOR_JOB_NAME: "$PYTHON_VERSION - $CONFIGURATION"
 
 install:
+  - APPVEYOR_JOB_NAME: "$PYTHON_VERSION - $CONFIGURATION"
+  - sh: "PATH=$PYTHON_HOME:$PATH"
   #- sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin"
   - sh: "which python"
   - "python -c \"import sys; print(sys.executable)\""
