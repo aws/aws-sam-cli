@@ -1053,7 +1053,7 @@ class TestInitCommand(InitIntegBase):
 
         # Send SIGINT signal
         process_execute.send_signal(signal.CTRL_C_EVENT if platform.system().lower() == "windows" else signal.SIGINT)
-        process_execute.wait(timeout=10)
+        (_, stderr) = process_execute.communicate(timeout=10)
         # Process should exit gracefully with an exit code of 1.
         self.assertEqual(process_execute.returncode, 1)
-        self.assertIn("Aborted!", process_execute.stderr.read().decode("utf-8"))
+        self.assertIn("Aborted!", stderr.decode("utf-8"))
