@@ -36,7 +36,7 @@ environment:
       INSTALL_PY_39_PIP: 1
       INSTALL_PY_310_PIP: 1
       APPVEYOR_CONSOLE_DISABLE_PTY: true
-      job_group: "python3.7"
+      job_group: "python3.7 $CONFIGURATION"
 
     - PYTHON_HOME: "$HOME/venv3.8/bin"
       PYTHON_VERSION: '3.8'
@@ -46,7 +46,7 @@ environment:
       INSTALL_PY_39_PIP: 1
       INSTALL_PY_310_PIP: 1
       APPVEYOR_CONSOLE_DISABLE_PTY: true
-      job_group: "python3.8"
+      job_group: "python3.8 $CONFIGURATION"
 
     - PYTHON_HOME: "$HOME/venv3.9/bin"
       PYTHON_VERSION: '3.9'
@@ -56,7 +56,7 @@ environment:
       INSTALL_PY_38_PIP: 1
       INSTALL_PY_310_PIP: 1
       APPVEYOR_CONSOLE_DISABLE_PTY: true
-      job_group: "python3.9"
+      job_group: "python3.9 $CONFIGURATION"
 
 install:
   # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
