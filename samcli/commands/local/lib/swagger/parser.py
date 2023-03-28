@@ -40,6 +40,7 @@ class SwaggerParser:
     _AUTHORIZER_NAME = "name"
     _AUTHORIZER_IN = "in"
     _AUTHORIZER_IDENTITY_SOURCE = "identitySource"
+    _AUTHORIZER_SIMPLE_RESPONSES = "enableSimpleResponses"
 
     def __init__(self, stack_path: str, swagger):
         """
@@ -123,11 +124,26 @@ class SwaggerParser:
             )
 
             validation_expression = authorizer_object.get(SwaggerParser._AUTHORIZER_LAMBDA_VALIDATION)
-            if event_type != Route.HTTP:
+            if event_type == Route.HTTP and validation_expression:
                 validation_expression = None
 
                 LOG.warning(
-                    "Validation expressions is only available on Rest APIs, ignoring for Lambda authorizer '%s'",
+                    "Validation expressions is only available on REST APIs, ignoring for Lambda authorizer '%s'",
+                    auth_name,
+                )
+
+            enable_simple_response = authorizer_object.get(SwaggerParser._AUTHORIZER_SIMPLE_RESPONSES, False)
+            if (
+                event_type == Route.API
+                and enable_simple_response
+                or event_type == Route.HTTP
+                and payload_version != LambdaAuthorizer.PAYLOAD_V2
+            ):
+                enable_simple_response = False
+
+                LOG.warning(
+                    "Simple responses are only available on HTTP APIs with payload version "
+                    "2.0, ignoring for Lambda authorizer '%s'",
                     auth_name,
                 )
 
@@ -145,6 +161,7 @@ class SwaggerParser:
                 lambda_name=lambda_name,
                 identity_sources=identity_sources,
                 validation_string=validation_expression,
+                use_simple_response=enable_simple_response,
             )
 
             authorizers[auth_name] = lambda_authorizer
