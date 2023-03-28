@@ -138,6 +138,7 @@ class SwaggerParser:
                 and enable_simple_response
                 or event_type == Route.HTTP
                 and payload_version != LambdaAuthorizer.PAYLOAD_V2
+                and enable_simple_response
             ):
                 enable_simple_response = False
 
