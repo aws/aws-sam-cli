@@ -84,16 +84,6 @@ install:
 
   - sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin"
 
-  - sh: "curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py"
-  - sh: "curl https://bootstrap.pypa.io/pip/3.6/get-pip.py -o get-pip-36.py"
-
-  - sh: "sudo apt-get -y install python3-distutils"
-  - sh: "sudo apt-get -y install python3.9-distutils"
-  - ps: "If ($env:INSTALL_PY_310_PIP) {python3.10 get-pip.py --user}"
-  - ps: "If ($env:INSTALL_PY_39_PIP) {python3.9 get-pip.py --user}"
-  - ps: "If ($env:INSTALL_PY_38_PIP) {python3.8 get-pip.py --user}"
-  - ps: "If ($env:INSTALL_PY_37_PIP) {python3.7 get-pip.py --user}"
-
   # update ca-certificates which causes failures with newest golang library
   - sh: "sudo apt-get install --reinstall ca-certificates"
 
