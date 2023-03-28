@@ -563,6 +563,7 @@ class LocalApigwService(BaseLocalService):
             "querystring": request.query_string.decode("utf-8"),
             "context": context,
             "stageVariables": self.api.stage_variables,
+            "validation_expression": lambda_auth.validation_string,
         }
 
         for validator in identity_sources:
