@@ -824,6 +824,7 @@ class TestSwaggerParser_get_authorizers(TestCase):
 
         self.assertEqual(parser.get_authorizers(Route.API)["TokenAuth"].payload_version, LambdaAuthorizer.PAYLOAD_V1)
 
+
 class TestSwaggerParser_get_default_authorizer(TestCase):
     def test_valid_default_authorizers(self):
         authorizer_name = "authorizer"
