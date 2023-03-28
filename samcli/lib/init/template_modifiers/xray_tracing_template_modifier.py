@@ -54,7 +54,7 @@ class XRayTracingTemplateModifier(TemplateModifier):
             if not function_gloabls:
                 template_globals[self.FUNCTION] = {}
             template_globals[self.FUNCTION][self.TRACING_FUNCTION] = self.ACTIVE_TRACING
-            
+
             api_globals = template_globals.get(self.API, {})
             if not api_globals:
                 template_globals[self.API] = {}
@@ -66,12 +66,8 @@ class XRayTracingTemplateModifier(TemplateModifier):
     def _add_tracing_with_globals(self):
         """Adds Globals and tracing fields"""
         global_section = {
-            self.FUNCTION: {
-                self.TRACING_FUNCTION: self.ACTIVE_TRACING
-            },
-            self.API: {
-                self.TRACING_API: self.TRACING_API_VALUE
-            }
+            self.FUNCTION: {self.TRACING_FUNCTION: self.ACTIVE_TRACING},
+            self.API: {self.TRACING_API: self.TRACING_API_VALUE},
         }
 
         self.template = XRayTracingTemplateModifier.CommentedMap(self.template)
