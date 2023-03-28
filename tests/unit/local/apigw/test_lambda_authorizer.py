@@ -23,13 +23,14 @@ class TestHeaderIdentitySource(TestCase):
 
     @parameterized.expand(
         [
-            ({"headers": Headers({})}, "test"),  # test empty headers
-            ({}, "test"),  # test no headers
-            ({"headers": Headers({"not here": 123})}, "test"),  # test missing headers
+            ({"headers": Headers({})},),  # test empty headers
+            ({},),  # test no headers
+            ({"headers": Headers({"not here": 123})},),  # test missing headers
+            ({"validation_expression": "^123$"},),  # test no headers, but provided validation
         ]
     )
-    def test_invalid_header_identity_source(self, sources_dict, id_source):
-        header_id_source = HeaderIdentitySource(id_source)
+    def test_invalid_header_identity_source(self, sources_dict):
+        header_id_source = HeaderIdentitySource("test")
 
         self.assertFalse(header_id_source.is_valid(**sources_dict))
 
