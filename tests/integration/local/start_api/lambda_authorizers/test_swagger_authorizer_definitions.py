@@ -250,6 +250,7 @@ Resources:
             self.start_api_process_output,
         )
 
+
 class TestInvalidSwaggerTemplateUsingInvalidIdentitySources(WritableStartApiIntegBaseClass):
     """
     Test using an invalid identity source (a.b.c.d.e)
@@ -289,6 +290,7 @@ Resources:
             "'Authorizer' is not a valid identity source, check the spelling/format.",
             self.start_api_process_output,
         )
+
 
 class TestInvalidSwaggerTemplateUsingTokenWithHttpApi(WritableStartApiIntegBaseClass):
     """
