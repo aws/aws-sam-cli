@@ -59,6 +59,7 @@ environment:
       APPVEYOR_JOB_NAME: "$PYTHON_VERSION-$CONFIGURATION"
 
 install:
+  - job_name: "$PYTHON_VERSION-$CONFIGURATION"
   # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
   - sh: "sudo apt-get update"
 
