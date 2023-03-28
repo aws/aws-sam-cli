@@ -25,11 +25,17 @@ class DeployCommand(CoreCommand):
                         text="\n",
                     ),
                     RowDefinition(
-                        name=style(f"$ {ctx.command_path} " f"--watch --stack-name {{stack}}"),
+                        name=style(f"$ {ctx.command_path} deploy --guided"), extra_row_modifiers=[ShowcaseRowModifier()]
+                    ),
+                    RowDefinition(
+                        name=style(
+                            f"$ {ctx.command_path} --template-file packaged.yaml "
+                            f"--stack-name sam-app --capabilities CAPABILITY_IAM"
+                        ),
                         extra_row_modifiers=[ShowcaseRowModifier()],
                     ),
                 ],
-                col_max=COL_SIZE_MODIFIER
+                col_max=COL_SIZE_MODIFIER,
             )
 
     @staticmethod
@@ -71,7 +77,7 @@ class DeployCommand(CoreCommand):
                         extra_row_modifiers=[ShowcaseRowModifier()],
                     ),
                 ],
-                col_max=COL_SIZE_MODIFIER
+                col_max=COL_SIZE_MODIFIER,
             )
 
     def format_options(self, ctx: Context, formatter: DeployCommandHelpTextFormatter) -> None:  # type:ignore
@@ -103,5 +109,5 @@ class DeployCommand(CoreCommand):
                         for options in zip(opts, [RowDefinition(name="", text="\n")] * (len(opts)))
                         for opt in options
                     ],
-                    col_max=COL_SIZE_MODIFIER
+                    col_max=COL_SIZE_MODIFIER,
                 )

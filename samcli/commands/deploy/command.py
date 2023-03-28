@@ -48,10 +48,13 @@ SHORT_HELP = "Deploy an AWS SAM application."
 HELP_TEXT = """The sam deploy command creates a Cloudformation Stack and deploys your resources."""
 
 DESCRIPTION = """
+  To turn on the guided interactive mode, specify the --guided option. This mode shows you the parameters 
+  required for deployment, provides default options, and optionally saves these options in a configuration 
+  file in your project directory. When you perform subsequent deployments of your application using sam deploy, 
+  the AWS SAM CLI retrieves the required parameters from the configuration file.
+  
   Set SAM_CLI_POLL_DELAY Environment Variable with a value of seconds in your shell to configure 
   how often SAM CLI checks the Stack state, which is useful when seeing throttling from CloudFormation.
-
-  e.g. sam deploy --template-file packaged.yaml --stack-name sam-app --capabilities CAPABILITY_IAM
 """
 
 CONFIG_SECTION = "parameters"
