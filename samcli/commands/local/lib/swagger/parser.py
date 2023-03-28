@@ -104,9 +104,13 @@ class SwaggerParser:
                 continue
 
             authorizer_type = authorizer_object.get(SwaggerParser._AUTHORIZER_TYPE, "").lower()
-            payload_version = authorizer_object.get(
-                SwaggerParser._AUTHORIZER_PAYLOAD_VERSION, LambdaAuthorizer.PAYLOAD_V1
-            )
+            payload_version = authorizer_object.get(SwaggerParser._AUTHORIZER_PAYLOAD_VERSION)
+
+            if event_type == Route.HTTP and payload_version not in LambdaAuthorizer.PAYLOAD_VERSIONS:
+                raise InvalidSecurityDefinition(f"Authorizer '{auth_name}' contains an invalid payload version")
+
+            if event_type == Route.API:
+                payload_version = LambdaAuthorizer.PAYLOAD_V1
 
             lambda_name = LambdaUri.get_function_name(authorizer_object.get(SwaggerParser._AUTHORIZER_LAMBDA_URI))
 
@@ -275,7 +279,7 @@ class SwaggerParser:
             # make sure that authorizer actually has keys
             if len(authorizer_object) != 1:
                 raise InvalidSecurityDefinition(
-                    "Invalid default security definition found, there must " "be an authorizer defined."
+                    "Invalid default security definition found, there must be an authorizer defined."
                 )
 
             authorizer_name = str(authorizer_object[0])
