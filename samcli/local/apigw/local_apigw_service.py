@@ -16,6 +16,7 @@ from werkzeug.serving import WSGIRequestHandler
 from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.lib.providers.provider import Api, Cors
+from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
 from samcli.local.apigw.event_constructor import construct_v1_event, construct_v2_event_http
@@ -701,6 +702,8 @@ class LocalApigwService(BaseLocalService):
         route: Route
             The route that is being called
         """
+        EventTracker.track_event(EventName.USED_FEATURE.value, UsedFeature.CUSTOM_LAMBDA_AUTHORIZERS.value)
+
         lambda_auth_response = self._invoke_lambda_function(lambda_authorizer.lambda_name, auth_lambda_event)
         method_arn = self._create_method_arn(request, route.event_type)
 

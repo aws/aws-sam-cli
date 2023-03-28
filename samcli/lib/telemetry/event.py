@@ -34,6 +34,7 @@ class UsedFeature(Enum):
     CDK = "CDK"
     INIT_WITH_APPLICATION_INSIGHTS = "InitWithApplicationInsights"
     CFNLint = "CFNLint"
+    CUSTOM_LAMBDA_AUTHORIZERS = "CustomLambdaAuthorizers"
 
 
 class EventType:
