@@ -134,6 +134,7 @@ class TestEventTracker(TestCase):
             "sessionId": ANY,
             "executionEnvironment": ANY,
             "ci": ANY,
+            "userAgent": ANY,
             "pyversion": ANY,
             "samcliVersion": ANY,
             "metricSpecificAttributes": {
