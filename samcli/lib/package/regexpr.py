@@ -7,5 +7,5 @@ HOSTNAME_LOCALHOST = r"localhost(:\d{1,5})?"
 HOSTNAME_127_0_0_1 = r"127\.0\.0\.1(:\d{1,5})?"
 ECR_URL = (
     rf"^({HOSTNAME_ECR_AWS}|{HOSTNAME_LOCALHOST}|{HOSTNAME_127_0_0_1})\/"
-    r"(?:[a-z0-9]+(?:[._-][a-z0-9]+)*/)*[a-z0-9]+(?:[._-][a-z0-9]+)*"
+    r"(?:[a-z0-9]+(?:[._-][a-z0-9]+)*\/)*[a-z0-9]+(?:[._-][a-z0-9]+)*"
 )
