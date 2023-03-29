@@ -1,5 +1,5 @@
 import importlib
-from unittest import TestCase
+from unittest import TestCase, skipIf
 
 from parameterized import parameterized
 
@@ -8,8 +8,10 @@ from samcli.cli.import_module_proxy import (
     attach_import_module_proxy,
     MissingDynamicImportError,
 )
+from tests.testing_utils import IS_WINDOWS
 
 
+@skipIf(IS_WINDOWS, "Skip dynamic import tests for Windows as we don't use PyInstaller for it")
 class TestImportModuleProxy(TestCase):
     """
     There is a chance that setUpClass method of this test class might cause flakiness with other tests if we run them

@@ -120,6 +120,7 @@ class TestSamConfigForAllCommands(TestCase):
             "container_env_var_file": "file",
             "build_image": [("")],
             "exclude": [("")],
+            "mount_with": "read",
         }
 
         with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
@@ -157,6 +158,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ("",),
                 None,
                 None,
+                "READ",
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -178,6 +180,7 @@ class TestSamConfigForAllCommands(TestCase):
             "container_env_var_file": "file",
             "build_image": [("")],
             "exclude": [("")],
+            "mount_with": "read",
         }
 
         with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
@@ -215,6 +218,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ("",),
                 None,
                 None,
+                "READ",
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -233,6 +237,7 @@ class TestSamConfigForAllCommands(TestCase):
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
             "container_env_var": [("")],
             "container_env_var_file": "env_vars_file",
+            "mount_with": "read",
         }
 
         with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
@@ -270,6 +275,7 @@ class TestSamConfigForAllCommands(TestCase):
                 (),
                 None,
                 None,
+                "READ",
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -287,6 +293,7 @@ class TestSamConfigForAllCommands(TestCase):
             "skip_pull_image": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
             "build_image": ["Function1=image_1", "image_2"],
+            "mount_with": "read",
         }
 
         with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
@@ -324,6 +331,7 @@ class TestSamConfigForAllCommands(TestCase):
                 (),
                 None,
                 None,
+                "READ",
             )
 
     @patch("samcli.commands.local.invoke.cli.do_cli")
@@ -979,6 +987,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 (),
                 (),
+                True,
                 True,
                 "mystack",
                 "myregion",

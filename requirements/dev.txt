@@ -9,7 +9,7 @@ pytest-cov==4.0.0
 # here we fix its version and upgrade it manually in the future
 mypy==0.790
 boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray]==1.21.21
-types-pywin32==304.0.0.1
+types-pywin32==306.0.0.0
 types-PyYAML==6.0.12
 types-chevron==0.14.2
 types-psutil==5.9.5.1
@@ -23,8 +23,8 @@ pytest-forked==1.6.0
 pytest-timeout==2.1.0
 pytest-rerunfailures==11.1.2
 pytest-json-report==1.5.0
-filelock==3.9.0
+filelock==3.10.7
 
 # formatter
 black==22.6.0
-psutil==5.9.0
+psutil==5.9.4

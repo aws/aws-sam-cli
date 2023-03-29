@@ -52,6 +52,8 @@ class EventType:
         "RestApiSyncFlow",
         "StepFunctionsSyncFlow",
         "ZipFunctionSyncFlow",
+        "InfraSyncExecute",
+        "SkipInfraSyncExecute",
     ]
     _WORKFLOWS = [f"{config.language}-{config.dependency_manager}" for config in ALL_CONFIGS]
 

@@ -82,7 +82,8 @@
           ]
         },
         "Handler": "main.handler",
-        "Runtime": "python3.7"
+        "Runtime": "python3.7",
+        "Timeout": "30"
       },
       "DependsOn": [
         "RandomCitiesFunctionServiceRole4EFB1CF5"

@@ -7,6 +7,7 @@ from botocore.exceptions import ClientError
 from samcli.commands.build.build_context import BuildContext
 from samcli.commands.exceptions import InvalidStackNameException
 from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NestedStackManager
+from samcli.lib.build.app_builder import ApplicationBuildResult
 from samcli.lib.package.utils import is_local_folder, is_zip_file
 from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_by_id
 from samcli.lib.sync.flows.auto_dependency_layer_sync_flow import AutoDependencyLayerParentSyncFlow
@@ -147,7 +148,10 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
         }
 
     def _create_lambda_flow(
-        self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]
+        self,
+        resource_identifier: ResourceIdentifier,
+        resource: Dict[str, Any],
+        application_build_result: Optional[ApplicationBuildResult],
     ) -> Optional[FunctionSyncFlow]:
         resource_properties = resource.get("Properties", dict())
         package_type = resource_properties.get("PackageType", ZIP)
@@ -162,6 +166,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                     self._sync_context,
                     self._physical_id_mapping,
                     self._stacks,
+                    application_build_result,
                 )
 
             return ZipFunctionSyncFlow(
@@ -171,6 +176,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                 self._sync_context,
                 self._physical_id_mapping,
                 self._stacks,
+                application_build_result,
             )
         if package_type == IMAGE:
             return ImageFunctionSyncFlow(
@@ -180,11 +186,15 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                 self._sync_context,
                 self._physical_id_mapping,
                 self._stacks,
+                application_build_result,
             )
         return None
 
     def _create_layer_flow(
-        self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]
+        self,
+        resource_identifier: ResourceIdentifier,
+        resource: Dict[str, Any],
+        application_build_result: Optional[ApplicationBuildResult],
     ) -> Optional[SyncFlow]:
         layer = self._build_context.layer_provider.get(str(resource_identifier))
         if not layer:
@@ -199,6 +209,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                 self._sync_context,
                 self._physical_id_mapping,
                 self._stacks,
+                application_build_result,
             )
 
         if is_local_folder(layer.codeuri):
@@ -210,6 +221,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                 self._sync_context,
                 self._physical_id_mapping,
                 self._stacks,
+                application_build_result,
             )
 
         if is_zip_file(layer.codeuri):
@@ -221,12 +233,18 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                 self._sync_context,
                 self._physical_id_mapping,
                 self._stacks,
+                application_build_result,
             )
 
         LOG.warning("Can't create sync flow for '%s' layer resource", resource_identifier)
         return None
 
-    def _create_rest_api_flow(self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]) -> SyncFlow:
+    def _create_rest_api_flow(
+        self,
+        resource_identifier: ResourceIdentifier,
+        resource: Dict[str, Any],
+        application_build_result: Optional[ApplicationBuildResult],
+    ) -> SyncFlow:
         return RestApiSyncFlow(
             str(resource_identifier),
             self._build_context,
@@ -236,7 +254,12 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
             self._stacks,
         )
 
-    def _create_api_flow(self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]) -> SyncFlow:
+    def _create_api_flow(
+        self,
+        resource_identifier: ResourceIdentifier,
+        resource: Dict[str, Any],
+        application_build_result: Optional[ApplicationBuildResult],
+    ) -> SyncFlow:
         return HttpApiSyncFlow(
             str(resource_identifier),
             self._build_context,
@@ -247,7 +270,10 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
         )
 
     def _create_stepfunctions_flow(
-        self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]
+        self,
+        resource_identifier: ResourceIdentifier,
+        resource: Dict[str, Any],
+        application_build_result: Optional[ApplicationBuildResult],
     ) -> Optional[SyncFlow]:
         return StepFunctionsSyncFlow(
             str(resource_identifier),
@@ -258,7 +284,9 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
             self._stacks,
         )
 
-    GeneratorFunction = Callable[["SyncFlowFactory", ResourceIdentifier, Dict[str, Any]], Optional[SyncFlow]]
+    GeneratorFunction = Callable[
+        ["SyncFlowFactory", ResourceIdentifier, Dict[str, Any], Optional[ApplicationBuildResult]], Optional[SyncFlow]
+    ]
     GENERATOR_MAPPING: Dict[str, GeneratorFunction] = {
         AWS_LAMBDA_FUNCTION: _create_lambda_flow,
         AWS_SERVERLESS_FUNCTION: _create_lambda_flow,
@@ -277,9 +305,13 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
     def _get_generator_mapping(self) -> Dict[str, GeneratorFunction]:  # pylint: disable=no-self-use
         return SyncFlowFactory.GENERATOR_MAPPING
 
-    def create_sync_flow(self, resource_identifier: ResourceIdentifier) -> Optional[SyncFlow]:
+    def create_sync_flow(
+        self, resource_identifier: ResourceIdentifier, application_build_result: Optional[ApplicationBuildResult] = None
+    ) -> Optional[SyncFlow]:
         resource = get_resource_by_id(self._stacks, resource_identifier)
         generator = self._get_generator_function(resource_identifier)
         if not generator or not resource:
             return None
-        return cast(SyncFlowFactory.GeneratorFunction, generator)(self, resource_identifier, resource)
+        return cast(SyncFlowFactory.GeneratorFunction, generator)(
+            self, resource_identifier, resource, application_build_result
+        )

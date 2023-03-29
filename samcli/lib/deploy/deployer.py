@@ -314,8 +314,13 @@ class Deployer:
             waiter.wait(ChangeSetName=changeset_id, StackName=stack_name, WaiterConfig=waiter_config)
         except botocore.exceptions.WaiterError as ex:
             resp = ex.last_response
-            status = resp["Status"]
-            reason = resp["StatusReason"]
+            status = resp.get("Status")
+            reason = resp.get("StatusReason")
+
+            if not status or not reason:
+                # not a CFN DescribeChangeSet response, re-raising
+                LOG.debug("Failed while waiting for changeset: %s", ex)
+                raise ex
 
             if (
                 status == "FAILED"
@@ -324,9 +329,7 @@ class Deployer:
             ):
                 raise deploy_exceptions.ChangeEmptyError(stack_name=stack_name)
 
-            raise ChangeSetError(
-                stack_name=stack_name, msg="ex: {0} Status: {1}. Reason: {2}".format(ex, status, reason)
-            ) from ex
+            raise ChangeSetError(stack_name=stack_name, msg=f"ex: {ex} Status: {status}. Reason: {reason}") from ex
 
     def execute_changeset(self, changeset_id, stack_name, disable_rollback):
         """

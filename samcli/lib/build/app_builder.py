@@ -7,7 +7,6 @@ import json
 import logging
 import pathlib
 from typing import List, Optional, Dict, cast, NamedTuple
-
 import docker
 import docker.errors
 from aws_lambda_builders import (
@@ -15,7 +14,6 @@ from aws_lambda_builders import (
 )
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
-
 from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition, BuildGraph
 from samcli.lib.build.build_strategy import (
     DefaultBuildStrategy,
@@ -51,14 +49,12 @@ from samcli.lib.build.exceptions import (
     DockerBuildFailed,
     BuildError,
     BuildInsideContainerError,
-    ContainerBuildNotSupported,
     UnsupportedBuilderLibraryVersionError,
 )
-
 from samcli.lib.build.workflow_config import (
     get_workflow_config,
+    supports_specified_workflow,
     get_layer_subfolder,
-    supports_build_in_container,
     CONFIG,
     UnsupportedRuntimeException,
 )
@@ -101,6 +97,7 @@ class ApplicationBuilder:
         build_images: Optional[Dict] = None,
         combine_dependencies: bool = True,
         build_in_source: Optional[bool] = None,
+        mount_with_write: bool = False,
     ) -> None:
         """
         Initialize the class
@@ -144,6 +141,8 @@ class ApplicationBuilder:
             dependencies or not.
         build_in_source: Optional[bool]
             Set to True to build in the source directory.
+        mount_with_write: bool
+            Mount source code directory with write permissions when building inside container.
         """
         self._resources_to_build = resources_to_build
         self._build_dir = build_dir
@@ -166,6 +165,7 @@ class ApplicationBuilder:
         self._build_images = build_images or {}
         self._combine_dependencies = combine_dependencies
         self._build_in_source = build_in_source
+        self._mount_with_write = mount_with_write
 
     def build(self) -> ApplicationBuildResult:
         """
@@ -544,6 +544,8 @@ class ApplicationBuilder:
                     build_runtime = compatible_runtimes[0]
                 global_image = self._build_images.get(None)
                 image = self._build_images.get(layer_name, global_image)
+                # pass to container only when specified workflow is supported to overwrite runtime to get image
+                supported_specified_workflow = supports_specified_workflow(specified_workflow)
                 self._build_function_on_container(
                     config,
                     code_dir,
@@ -555,6 +557,7 @@ class ApplicationBuilder:
                     container_env_vars,
                     image,
                     is_building_layer=True,
+                    specified_workflow=specified_workflow if supported_specified_workflow else None,
                 )
             else:
                 self._build_function_in_process(
@@ -644,11 +647,9 @@ class ApplicationBuilder:
             # Create the arguments to pass to the builder
             # Code is always relative to the given base directory.
             code_dir = str(pathlib.Path(self._base_dir, codeuri).resolve())
-
             # Determine if there was a build workflow that was specified directly in the template.
-            specified_build_workflow = metadata.get("BuildMethod", None) if metadata else None
-
-            config = get_workflow_config(runtime, code_dir, self._base_dir, specified_workflow=specified_build_workflow)
+            specified_workflow = metadata.get("BuildMethod", None) if metadata else None
+            config = get_workflow_config(runtime, code_dir, self._base_dir, specified_workflow=specified_workflow)
 
             if config.language == "provided" and isinstance(metadata, dict) and metadata.get("ProjectRootDirectory"):
                 code_dir = str(pathlib.Path(self._base_dir, metadata.get("ProjectRootDirectory", code_dir)).resolve())
@@ -682,7 +683,8 @@ class ApplicationBuilder:
                     # None represents the global build image for all functions/layers
                     global_image = self._build_images.get(None)
                     image = self._build_images.get(function_name, global_image)
-
+                    # pass to container only when specified workflow is supported to overwrite runtime to get image
+                    supported_specified_workflow = supports_specified_workflow(specified_workflow)
                     return self._build_function_on_container(
                         config,
                         code_dir,
@@ -693,6 +695,7 @@ class ApplicationBuilder:
                         options,
                         container_env_vars,
                         image,
+                        specified_workflow=specified_workflow if supported_specified_workflow else None,
                     )
 
                 return self._build_function_in_process(
@@ -883,6 +886,7 @@ class ApplicationBuilder:
         container_env_vars: Optional[Dict] = None,
         build_image: Optional[str] = None,
         is_building_layer: bool = False,
+        specified_workflow: Optional[str] = None,
     ) -> str:
         # _build_function_on_container() is only called when self._container_manager if not None
         if not self._container_manager:
@@ -892,10 +896,6 @@ class ApplicationBuilder:
             raise BuildInsideContainerError(
                 "Docker is unreachable. Docker needs to be running to build inside a container."
             )
-
-        container_build_supported, reason = supports_build_in_container(config)
-        if not container_build_supported:
-            raise ContainerBuildNotSupported(reason)
 
         # If we are printing debug logs in SAM CLI, the builder library should also print debug logs
         log_level = LOG.getEffectiveLevel()
@@ -911,6 +911,7 @@ class ApplicationBuilder:
             manifest_path,
             runtime,
             architecture,
+            specified_workflow=specified_workflow,
             log_level=log_level,
             optimizations=None,
             options=options,
@@ -920,6 +921,8 @@ class ApplicationBuilder:
             image=build_image,
             is_building_layer=is_building_layer,
             build_in_source=self._build_in_source,
+            mount_with_write=self._mount_with_write,
+            build_dir=self._build_dir,
         )
 
         try:
@@ -930,7 +933,6 @@ class ApplicationBuilder:
                     raise UnsupportedBuilderLibraryVersionError(
                         container.image, "{} executable not found in container".format(container.executable_name)
                     ) from ex
-
             # Container's output provides status of whether the build succeeded or failed
             # stdout contains the result of JSON-RPC call
             stdout_stream = io.BytesIO()

@@ -457,6 +457,17 @@ class TestContainer_delete(TestCase):
         self.container.delete()
         self.mock_docker_client.containers.get.assert_not_called()
 
+    @patch("samcli.local.docker.container.pathlib.Path.exists")
+    @patch("samcli.local.docker.container.shutil")
+    def test_must_remove_host_tmp_dir_after_mount_with_write_container_build(self, mock_shutil, mock_exists):
+        self.container.is_created.return_value = True
+        self.container._mount_with_write = True
+        self.container._host_tmp_dir = "host_tmp_dir"
+
+        mock_exists.return_value = True
+        self.container.delete()
+        mock_shutil.rmtree.assert_called_with(self.container._host_tmp_dir)
+
 
 class TestContainer_start(TestCase):
     def setUp(self):
@@ -499,6 +510,17 @@ class TestContainer_start(TestCase):
 
         with self.assertRaises(ValueError):
             self.container.start(input_data="some input data")
+
+    @patch("samcli.local.docker.container.os.path")
+    @patch("samcli.local.docker.container.os")
+    def test_must_make_host_tmp_dir_if_mount_with_write_container_build(self, mock_os, mock_path):
+        self.container.is_created.return_value = True
+        self.container._mount_with_write = True
+        self.container._host_tmp_dir = "host_tmp_dir"
+        mock_path.exists.return_value = False
+
+        self.container.start()
+        mock_os.makedirs.assert_called_with(self.container._host_tmp_dir)
 
 
 class TestContainer_wait_for_result(TestCase):

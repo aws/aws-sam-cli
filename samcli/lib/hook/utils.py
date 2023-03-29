@@ -24,5 +24,5 @@ def get_hook_metadata(template: Dict[str, Dict]) -> Optional[Dict]:
 
     """
 
-    metadata = template.get("Metadata", {})
+    metadata = template.get("Metadata", {}) if template else {}
     return metadata.get(HOOK_METADATA_KEY)
