@@ -4,6 +4,7 @@ Class used to parse and update template with new field
 import logging
 from abc import abstractmethod
 from copy import deepcopy
+from typing import Any, List
 
 from yaml.parser import ParserError
 

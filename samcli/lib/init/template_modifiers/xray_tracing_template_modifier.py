@@ -4,15 +4,16 @@ Class used to parse and update template when tracing is enabled
 import logging
 from typing import Any
 
+from ruamel.yaml import YAML
+from ruamel.yaml.comments import CommentedMap
+from ruamel.yaml.representer import RoundTripRepresenter
+
 from samcli.lib.init.template_modifiers.cli_template_modifier import TemplateModifier
 
 LOG = logging.getLogger(__name__)
 
 
 class XRayTracingTemplateModifier(TemplateModifier):
-    import ruamel.yaml
-    from ruamel.yaml import YAML
-    from ruamel.yaml.comments import CommentedMap
 
     FIELD_NAME_FUNCTION_TRACING = "Tracing"
     FIELD_NAME_API_TRACING = "TracingEnabled"
@@ -30,12 +31,12 @@ class XRayTracingTemplateModifier(TemplateModifier):
     )
 
     # set ignore aliases to true. This configuration avoids usage yaml aliases which is not parsed by CloudFormation.
-    class NonAliasingRTRepresenter(ruamel.yaml.representer.RoundTripRepresenter):
+    class NonAliasingRTRepresenter(RoundTripRepresenter):
         def ignore_aliases(self, data):
             return True
 
     def __init__(self, location):
-        self.yaml = XRayTracingTemplateModifier.YAML()
+        self.yaml = YAML()
         self.yaml.Representer = XRayTracingTemplateModifier.NonAliasingRTRepresenter
         super().__init__(location)
 
@@ -70,8 +71,8 @@ class XRayTracingTemplateModifier(TemplateModifier):
             self.API: {self.TRACING_API: self.TRACING_API_VALUE},
         }
 
-        self.template = XRayTracingTemplateModifier.CommentedMap(self.template)
-        self.template[self.GLOBALS] = XRayTracingTemplateModifier.CommentedMap(global_section)
+        self.template = CommentedMap(self.template)
+        self.template[self.GLOBALS] = CommentedMap(global_section)
         self.template.yaml_set_comment_before_after_key(self.GLOBALS, before=self.COMMENT)
 
     def _print_sanity_check_error(self):
