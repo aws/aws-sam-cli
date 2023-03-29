@@ -384,7 +384,7 @@ class BuildIntegEsbuildBase(BuildIntegBase):
     @staticmethod
     def _extract_filename_from_handler(handler):
         # Takes a handler in the form /a/b/c/file.function and returns file
-        return (handler.split(".")[0]).split("/")[-1]
+        return str(Path(handler).stem)
 
     def _verify_function_minified(self, filename, resource_artifact_dir):
         with open(Path(resource_artifact_dir, f"{filename}.js"), "r") as handler_file:

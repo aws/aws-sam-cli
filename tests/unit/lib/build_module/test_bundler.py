@@ -185,12 +185,12 @@ class PostProcessHandler(TestCase):
         bundler_manager = EsbuildBundlerManager(Mock(), build_dir="/build/dir")
         bundler_manager._get_path_and_filename_from_handler = Mock()
         bundler_manager._get_path_and_filename_from_handler.return_value = ""
-        return_val = bundler_manager._check_invalid_lambda_handler("", "")
+        return_val = bundler_manager._should_update_handler("", "")
         self.assertTrue(return_val)
 
     def test_check_invalid_lambda_handler_none_build_dir(self):
         bundler_manager = EsbuildBundlerManager(Mock(), build_dir=None)
-        return_val = bundler_manager._check_invalid_lambda_handler("", "")
+        return_val = bundler_manager._should_update_handler("", "")
         self.assertFalse(return_val)
 
     def test_update_function_handler(self):
@@ -221,7 +221,7 @@ class PostProcessHandler(TestCase):
 
         dummy_stack = DummyStack(resources)
 
-        bundler_manager = EsbuildBundlerManager(dummy_stack)
+        bundler_manager = EsbuildBundlerManager(dummy_stack, build_dir="build/dir")
         bundler_manager._check_invalid_lambda_handler = Mock()
         bundler_manager._check_invalid_lambda_handler.return_value = True
         updated_template = bundler_manager._update_function_handler(template)

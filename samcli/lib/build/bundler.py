@@ -6,14 +6,13 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Dict, Optional
 
+from samcli.commands.local.lib.exceptions import InvalidHandlerPathError
 from samcli.lib.providers.provider import Stack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 
 LOG = logging.getLogger(__name__)
 
 ESBUILD_PROPERTY = "esbuild"
-HANDLER_WITHOUT_FUNCTION_INDEX = 0
-HANDLER_FILE_INDEX = -1
 
 
 class EsbuildBundlerManager:
@@ -143,7 +142,7 @@ class EsbuildBundlerManager:
 
         return template
 
-    def _check_invalid_lambda_handler(self, handler: str, name: str) -> bool:
+    def _should_update_handler(self, handler: str, name: str) -> bool:
         """
         Function to check if the handler exists in the build dir where we expect it to.
         If it does, we won't change the path to prevent introducing breaking changes.
@@ -154,7 +153,11 @@ class EsbuildBundlerManager:
         """
         if not self._build_dir:
             return False
-        handler_filename = self._get_path_and_filename_from_handler(handler)
+        try:
+            handler_filename = self._get_path_and_filename_from_handler(handler)
+        except InvalidHandlerPathError:
+            LOG.debug("Unable to parse handler, continuing without post-processing template.")
+            return False
         expected_artifact_path = Path(self._build_dir, name, handler_filename)
         return not expected_artifact_path.is_file()
 
@@ -167,7 +170,11 @@ class EsbuildBundlerManager:
         :param handler: string representation of handler property
         :return: string path to built handler file
         """
-        return handler.split(".")[HANDLER_WITHOUT_FUNCTION_INDEX] + ".js"
+        try:
+            path = str(Path(handler).parent / Path(handler).stem) + ".js"
+        except AttributeError:
+            raise InvalidHandlerPathError("Unable to parse the handler")
+        return path
 
     def _update_function_handler(self, template: Dict) -> Dict:
         """
@@ -183,9 +190,9 @@ class EsbuildBundlerManager:
         for name, resource in self._stack.resources.items():
             if self._esbuild_in_metadata(resource.get("Metadata", {})):
                 long_path_handler = resource.get("Properties", {}).get("Handler", "")
-                if not long_path_handler or not self._check_invalid_lambda_handler(long_path_handler, name):
+                if not long_path_handler or not self._should_update_handler(long_path_handler, name):
                     continue
-                resolved_handler = long_path_handler.split("/")[HANDLER_FILE_INDEX]
+                resolved_handler = str(Path(long_path_handler).name)
                 template_resource = template.get("Resources", {}).get(name, {})
                 template_resource["Properties"]["Handler"] = resolved_handler
         return template
