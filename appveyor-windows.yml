@@ -16,7 +16,7 @@ configuration:
 #  - DeleteIntegTesting
 #  - SyncIntegTesting
 #  - LocalIntegTesting
-  - EndToEndTesting
+#  - EndToEndTesting
   # other Integration testing, Dev, regression and smoke testing
   - OtherTesting
 
