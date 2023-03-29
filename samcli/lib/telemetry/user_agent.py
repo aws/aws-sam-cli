@@ -4,7 +4,7 @@ Reads user agent information from environment and returns it for telemetry consu
 import os
 from typing import Optional
 
-USER_AGENT_ENV_VAR = "SAM_CLI_USER_AGENT"
+USER_AGENT_ENV_VAR = "AWS_TOOLING_USER_AGENT"
 
 
 def get_user_agent_string() -> Optional[str]:
