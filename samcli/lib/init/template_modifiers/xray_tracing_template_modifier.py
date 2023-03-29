@@ -2,7 +2,11 @@
 Class used to parse and update template when tracing is enabled
 """
 import logging
-from typing import List
+from typing import Any
+
+from ruamel.yaml import YAML
+from ruamel.yaml.comments import CommentedMap
+from ruamel.yaml.representer import RoundTripRepresenter
 
 from samcli.lib.init.template_modifiers.cli_template_modifier import TemplateModifier
 
@@ -10,92 +14,66 @@ LOG = logging.getLogger(__name__)
 
 
 class XRayTracingTemplateModifier(TemplateModifier):
+
     FIELD_NAME_FUNCTION_TRACING = "Tracing"
     FIELD_NAME_API_TRACING = "TracingEnabled"
-    GLOBALS = "Globals:\n"
-    RESOURCE = "Resources:\n"
-    FUNCTION = "  Function:\n"
-    TRACING_FUNCTION = "    Tracing: Active\n"
-    API = "  Api:\n"
-    TRACING_API = "    TracingEnabled: True\n"
+    GLOBALS = "Globals"
+    RESOURCE = "Resources"
+    FUNCTION = "Function"
+    TRACING_FUNCTION = "Tracing"
+    ACTIVE_TRACING = "Active"
+    API = "Api"
+    TRACING_API = "TracingEnabled"
+    TRACING_API_VALUE = True
     COMMENT = (
         "# More info about Globals: "
         "https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst\n"
     )
 
-    def _get_template(self) -> List[str]:
-        """
-        Gets data the SAM templates and returns it in a array
+    # set ignore aliases to true. This configuration avoids usage yaml aliases which is not parsed by CloudFormation.
+    class NonAliasingRTRepresenter(RoundTripRepresenter):
+        def ignore_aliases(self, data):
+            return True
 
-        Returns
-        -------
-        list
-            array with updated template data
-        """
-        with open(self.template_location, "r") as file:
-            return file.readlines()
+    def __init__(self, location):
+        self.yaml = YAML()
+        self.yaml.Representer = XRayTracingTemplateModifier.NonAliasingRTRepresenter
+        super().__init__(location)
+
+    def _get_template(self) -> Any:
+        with open(self.template_location) as file:
+            return self.yaml.load(file)
 
     def _update_template_fields(self):
         """
         Add new field to SAM template
         """
-        global_section_position = self._section_position(self.GLOBALS)
+        if self.template.get(self.GLOBALS):
+            template_globals = self.template.get(self.GLOBALS)
 
-        if global_section_position >= 0:
-            self._add_tracing_section(
-                global_section_position, self.FUNCTION, self.FIELD_NAME_FUNCTION_TRACING, self.TRACING_FUNCTION
-            )
-            self._add_tracing_section(global_section_position, self.API, self.FIELD_NAME_API_TRACING, self.TRACING_API)
+            function_globals = template_globals.get(self.FUNCTION, {})
+            if not function_globals:
+                template_globals[self.FUNCTION] = {}
+            template_globals[self.FUNCTION][self.TRACING_FUNCTION] = self.ACTIVE_TRACING
+
+            api_globals = template_globals.get(self.API, {})
+            if not api_globals:
+                template_globals[self.API] = {}
+            template_globals[self.API][self.TRACING_API] = self.TRACING_API_VALUE
+
         else:
             self._add_tracing_with_globals()
 
     def _add_tracing_with_globals(self):
         """Adds Globals and tracing fields"""
-        resource_section_position = self._section_position(self.RESOURCE)
-        globals_section_data = [
-            self.COMMENT,
-            self.GLOBALS,
-            self.FUNCTION,
-            self.TRACING_FUNCTION,
-            self.API,
-            self.TRACING_API,
-            "\n",
-        ]
-        self.template = (
-            self.template[:resource_section_position] + globals_section_data + self.template[resource_section_position:]
-        )
+        global_section = {
+            self.FUNCTION: {self.TRACING_FUNCTION: self.ACTIVE_TRACING},
+            self.API: {self.TRACING_API: self.TRACING_API_VALUE},
+        }
 
-    def _add_tracing_section(
-        self,
-        global_section_position: int,
-        parent_section: str,
-        tracing_field_name: str,
-        tracing_field: str,
-    ):
-        """
-        Adds tracing into the designated field
-
-        Parameters
-        ----------
-        global_section_position : dict
-            Position of the Globals field in the template
-        parent_section: str
-            Name of the parent section that the tracing field would be added.
-        tracing_field_name: str
-            Name of the tracing field, which will be used to check if it already exist
-        tracing_field: str
-            Name of the whole tracing field, which includes its name and value
-        """
-        parent_section_position = self._section_position(parent_section, global_section_position)
-        if parent_section_position >= 0:
-            field_positon_function = self._field_position(parent_section_position, tracing_field_name)
-            if field_positon_function >= 0:
-                self.template[field_positon_function] = tracing_field
-
-            else:
-                self.template = self._add_fields_to_section(parent_section_position, [tracing_field])
-        else:
-            self.template = self._add_fields_to_section(global_section_position, [parent_section, tracing_field])
+        self.template = CommentedMap(self.template)
+        self.template[self.GLOBALS] = CommentedMap(global_section)
+        self.template.yaml_set_comment_before_after_key(self.GLOBALS, before=self.COMMENT)
 
     def _print_sanity_check_error(self):
         link = (
@@ -115,5 +93,4 @@ class XRayTracingTemplateModifier(TemplateModifier):
             array with updated template data
         """
         with open(self.template_location, "w") as file:
-            for line in template:
-                file.write(line)
+            self.yaml.dump(self.template, file)
