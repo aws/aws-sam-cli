@@ -25,12 +25,25 @@ class DeployCommand(CoreCommand):
                         text="\n",
                     ),
                     RowDefinition(
-                        name=style(f"$ {ctx.command_path} deploy --guided"), extra_row_modifiers=[ShowcaseRowModifier()]
+                        name=style(f"$ {ctx.command_path} --guided"), extra_row_modifiers=[ShowcaseRowModifier()]
                     ),
                     RowDefinition(
                         name=style(
-                            f"$ {ctx.command_path} --template-file packaged.yaml "
-                            f"--stack-name sam-app --capabilities CAPABILITY_IAM"
+                            f"$ {ctx.command_path} --template-file packaged.yaml --stack-name "
+                            f"sam-app --capabilities CAPABILITY_IAM"
+                        ),
+                        extra_row_modifiers=[ShowcaseRowModifier()],
+                    ),
+                    RowDefinition(
+                        name=style(
+                            f"$ {ctx.command_path} --parameter-overrides "
+                            f"'ParameterKey=InstanceType,ParameterValue=t1.micro'"
+                        ),
+                        extra_row_modifiers=[ShowcaseRowModifier()],
+                    ),
+                    RowDefinition(
+                        name=style(
+                            f"$ {ctx.command_path} --parameter-overrides KeyPairName=MyKey InstanceType=t1.micro"
                         ),
                         extra_row_modifiers=[ShowcaseRowModifier()],
                     ),

@@ -90,20 +90,15 @@ LOG = logging.getLogger(__name__)
     required=False,
     is_flag=True,
     help="Indicates whether to execute the change set. "
-    "Specify this flag if you want to view your stack changes "
-    "before executing the change set. The command creates an AWS CloudFormation "
-    "change set and then exits without executing the change set. if "
-    "the changeset looks satisfactory, the stack changes can be made by "
-    "running the same command without specifying `--no-execute-changeset`",
+    "Specify this flag to view stack changes before executing the change set.",
 )
 @click.option(
     "--fail-on-empty-changeset/--no-fail-on-empty-changeset",
     default=True,
     required=False,
     is_flag=True,
-    help="Specify  if  the CLI should return a non-zero exit code if there are no "
-    "changes to be made to the stack. The default behavior is to return a "
-    "non-zero exit code.",
+    help="Specify whether AWS SAM CLI should return a non-zero exit code if there are no "
+    "changes to be made to the stack. Defaults to a non-zero exit code.",
 )
 @click.option(
     "--confirm-changeset/--no-confirm-changeset",
