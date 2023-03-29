@@ -1044,7 +1044,7 @@ class TestInitProducesSamconfigFile(TestCase):
 
 @skipIf(
     IS_WINDOWS and RUNNING_ON_APPVEYOR,
-    "Killing process in Windows in Appveyor gets stuck, skipping this test since it is already run in GHA"
+    "Killing process in Windows in Appveyor gets stuck, skipping this test since it is already run in GHA",
 )
 class TestInitCommand(InitIntegBase):
     def test_graceful_exit(self):
