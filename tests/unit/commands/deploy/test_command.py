@@ -345,7 +345,7 @@ class TestDeployCliCommand(TestCase):
                 signing_profiles=self.signing_profiles,
                 use_changeset=self.use_changeset,
                 disable_rollback=True,
-                poll_delay=0.5,
+                poll_delay=5,
                 on_failure=self.on_failure,
             )
 
@@ -489,7 +489,7 @@ class TestDeployCliCommand(TestCase):
                 signing_profiles=self.signing_profiles,
                 use_changeset=self.use_changeset,
                 disable_rollback=True,
-                poll_delay=0.5,
+                poll_delay=5,
                 on_failure=self.on_failure,
             )
 
@@ -640,7 +640,7 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             use_changeset=self.use_changeset,
             disable_rollback=True,
-            poll_delay=0.5,
+            poll_delay=5,
             on_failure=self.on_failure,
         )
 
@@ -794,7 +794,7 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             use_changeset=self.use_changeset,
             disable_rollback=True,
-            poll_delay=0.5,
+            poll_delay=5,
             on_failure=self.on_failure,
         )
 
@@ -932,7 +932,7 @@ class TestDeployCliCommand(TestCase):
                 signing_profiles=self.signing_profiles,
                 use_changeset=self.use_changeset,
                 disable_rollback=self.disable_rollback,
-                poll_delay=0.5,
+                poll_delay=5,
                 on_failure=self.on_failure,
             )
 
@@ -1008,7 +1008,7 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             use_changeset=self.use_changeset,
             disable_rollback=self.disable_rollback,
-            poll_delay=0.5,
+            poll_delay=5,
             on_failure=self.on_failure,
         )
 
@@ -1123,7 +1123,7 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             use_changeset=True,
             disable_rollback=self.disable_rollback,
-            poll_delay=0.5,
+            poll_delay=5,
             on_failure=self.on_failure,
         )
 

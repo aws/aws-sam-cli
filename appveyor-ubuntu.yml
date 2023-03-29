@@ -1,6 +1,6 @@
 version: 1.0.{build}
 image: 
-  - Ubuntu
+  - Ubuntu2004
 
 configuration:
   - BuildIntegTesting
@@ -28,36 +28,34 @@ environment:
  
   matrix:
 
-    - PYTHON_HOME: "C:\\Python37-x64"
+    - PYTHON_HOME: "$HOME/venv3.7/bin"
       PYTHON_VERSION: '3.7'
       PYTHON_ARCH: '64'
-      RUN_SMOKE: 1
       NOSE_PARAMETERIZED_NO_WARN: 1
       INSTALL_PY_38_PIP: 1
       INSTALL_PY_39_PIP: 1
+      INSTALL_PY_310_PIP: 1
       APPVEYOR_CONSOLE_DISABLE_PTY: true
 
-    - PYTHON_HOME: "C:\\Python38-x64"
+    - PYTHON_HOME: "$HOME/venv3.8/bin"
       PYTHON_VERSION: '3.8'
       PYTHON_ARCH: '64'
-      RUN_SMOKE: 1
       NOSE_PARAMETERIZED_NO_WARN: 1
       INSTALL_PY_37_PIP: 1
       INSTALL_PY_39_PIP: 1
+      INSTALL_PY_310_PIP: 1
       APPVEYOR_CONSOLE_DISABLE_PTY: true
 
-    - PYTHON_HOME: "C:\\Python39-x64"
+    - PYTHON_HOME: "$HOME/venv3.9/bin"
       PYTHON_VERSION: '3.9'
       PYTHON_ARCH: '64'
-      RUN_SMOKE: 1
       NOSE_PARAMETERIZED_NO_WARN: 1
       INSTALL_PY_37_PIP: 1
       INSTALL_PY_38_PIP: 1
+      INSTALL_PY_310_PIP: 1
       APPVEYOR_CONSOLE_DISABLE_PTY: true
 
 install:
-  # apt repo for python3.9 installation
-  - sh: "sudo add-apt-repository ppa:deadsnakes/ppa"
   # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
   - sh: "sudo apt-get update"
 
@@ -84,23 +82,7 @@ install:
   - sh: "./aws_cli/bin/python -m pip install awscli"
   - sh: "PATH=$(echo $PWD'/aws_cli/bin'):$PATH"
 
-  - sh: "sudo apt-get -y install python3.7"
-  - sh: "sudo apt-get -y install python3.8"
-  - sh: "sudo apt-get -y install python3.9 python3.9-dev python3.9-venv"
-
-  - sh: "which python3.8"
-  - sh: "which python3.7"
-  - sh: "which python3.9"
-
-  - sh: "PATH=$PATH:/usr/bin/python3.9:/usr/bin/python3.8:/usr/bin/python3.7"
-  - sh: "curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py"
-  - sh: "curl https://bootstrap.pypa.io/pip/3.6/get-pip.py -o get-pip-36.py"
-
-  - sh: "sudo apt-get -y install python3-distutils"
-  - sh: "sudo apt-get -y install python3.9-distutils"
-  - ps: "If ($env:INSTALL_PY_39_PIP) {python3.9 get-pip.py --user}"
-  - ps: "If ($env:INSTALL_PY_38_PIP) {python3.8 get-pip.py --user}"
-  - ps: "If ($env:INSTALL_PY_37_PIP) {python3.7 get-pip.py --user}"
+  - sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin"
 
   # update ca-certificates which causes failures with newest golang library
   - sh: "sudo apt-get install --reinstall ca-certificates"
@@ -196,8 +178,7 @@ for:
   - 
     matrix:
       only:
-        - image: Ubuntu
-          configuration: BuildIntegTesting
+        - configuration: BuildIntegTesting
 
     test_script:
       # Pre-dev Tests
@@ -214,8 +195,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu
-          configuration: LocalZipTerraformBuildIntegTesting
+        - configuration: LocalZipTerraformBuildIntegTesting
 
     test_script:
       # Pre-dev Tests
@@ -228,8 +208,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu
-          configuration: LocalZipTerraformBuildInContainerIntegTesting
+        - configuration: LocalZipTerraformBuildInContainerIntegTesting
 
     test_script:
       # Pre-dev Tests
@@ -242,8 +221,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu
-          configuration: S3ZipTerraformBuildIntegTesting
+        - configuration: S3ZipTerraformBuildIntegTesting
 
     test_script:
       # Pre-dev Tests
@@ -256,8 +234,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu
-          configuration: S3ZipTerraformBuildInContainerIntegTesting
+        - configuration: S3ZipTerraformBuildInContainerIntegTesting
 
     test_script:
       # Pre-dev Tests
@@ -270,8 +247,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu
-          configuration: OtherTerraformBuildIntegTesting
+        - configuration: OtherTerraformBuildIntegTesting
 
     test_script:
       # Pre-dev Tests
@@ -284,8 +260,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu
-          configuration: DeployIntegTesting
+        - configuration: DeployIntegTesting
 
     test_script:
       - "pip install -e \".[dev]\""
@@ -295,8 +270,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu
-          configuration: PackageIntegTesting
+        - configuration: PackageIntegTesting
 
     test_script:
       - "pip install -e \".[dev]\""
@@ -306,8 +280,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu
-          configuration: DeleteIntegTesting
+        - configuration: DeleteIntegTesting
 
     test_script:
       - "pip install -e \".[dev]\""
@@ -317,8 +290,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu
-          configuration: SyncIntegTesting
+        - configuration: SyncIntegTesting
 
     test_script:
       - "pip install -e \".[dev]\""
@@ -328,8 +300,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu
-          configuration: LocalIntegTesting
+        - configuration: LocalIntegTesting
 
     test_script:
       # Pre-dev Tests
@@ -343,8 +314,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu
-          configuration: EndToEndTesting
+        - configuration: EndToEndTesting
 
     test_script:
       - "pip install -e \".[dev]\""
@@ -354,8 +324,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu
-          configuration: OtherTesting
+        - configuration: OtherTesting
 
     test_script:
       # Pre-dev Tests
@@ -372,7 +341,4 @@ for:
       - sh: "pytest tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json"
       - sh: "pytest -vv tests/regression --json-report --json-report-file=TEST_REPORT-regression.json"
       - sh: "black --check setup.py tests samcli"
-
-      # Smoke tests run in parallel - it runs on both Linux & Windows
-      # Presence of the RUN_SMOKE envvar will run the smoke tests
-      - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke --json-report --json-report-file=TEST_REPORT-smoke.json}"
+      - sh: "pytest -n 4 -vv tests/smoke --json-report --json-report-file=TEST_REPORT-smoke.json"
