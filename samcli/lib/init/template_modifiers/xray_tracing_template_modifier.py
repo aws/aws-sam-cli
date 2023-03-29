@@ -51,8 +51,8 @@ class XRayTracingTemplateModifier(TemplateModifier):
         if self.template.get(self.GLOBALS):
             template_globals = self.template.get(self.GLOBALS)
 
-            function_gloabls = template_globals.get(self.FUNCTION, {})
-            if not function_gloabls:
+            function_globals = template_globals.get(self.FUNCTION, {})
+            if not function_globals:
                 template_globals[self.FUNCTION] = {}
             template_globals[self.FUNCTION][self.TRACING_FUNCTION] = self.ACTIVE_TRACING
 
