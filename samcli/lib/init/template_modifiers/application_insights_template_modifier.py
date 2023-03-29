@@ -68,12 +68,8 @@ class ApplicationInsightsTemplateModifier(TemplateModifier):
             self.DEPENDS_ON_KEY: self.RESOURCE_GROUP_REF,
         }
 
-        self.template[self.RESOURCES_KEY][self.RESOURCE_GROUP_REF] = CommentedMap(
-            resourceGroup
-        )
-        self.template[self.RESOURCES_KEY][
-            self.APPLICATION_INSIGHTS_REF
-        ] = CommentedMap(appInsightsApplication)
+        self.template[self.RESOURCES_KEY][self.RESOURCE_GROUP_REF] = CommentedMap(resourceGroup)
+        self.template[self.RESOURCES_KEY][self.APPLICATION_INSIGHTS_REF] = CommentedMap(appInsightsApplication)
 
     def _print_sanity_check_error(self):
         link = "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch-application-insights.html"
