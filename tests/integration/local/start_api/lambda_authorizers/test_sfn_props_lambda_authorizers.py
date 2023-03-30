@@ -20,7 +20,7 @@ from parameterized import parameterized_class
         ({"AuthOverride": "Request"}, "/testdata/start_api/lambda_authorizers/serverless-api-props.yaml"),
     ],
 )
-class TestServerlessPropertiesLambdaAuthorizers(StartApiIntegBaseClass):
+class TestSfnPropertiesLambdaAuthorizers(StartApiIntegBaseClass):
     def setUp(self):
         self.url = f"http://127.0.0.1:{self.port}"
 
@@ -67,7 +67,7 @@ class TestServerlessPropertiesLambdaAuthorizers(StartApiIntegBaseClass):
         ),
     ],
 )
-class TestServerlessPropertiesLambdaAuthorizersUnauthorized(StartApiIntegBaseClass):
+class TestSfnPropertiesLambdaAuthorizersUnauthorized(StartApiIntegBaseClass):
     def setUp(self):
         self.url = f"http://127.0.0.1:{self.port}"
 
@@ -105,7 +105,7 @@ class TestServerlessPropertiesLambdaAuthorizersUnauthorized(StartApiIntegBaseCla
         ),
     ],
 )
-class TestServerlessPropertiesLambdaAuthorizer500(StartApiIntegBaseClass):
+class TestSfnPropertiesLambdaAuthorizer500(StartApiIntegBaseClass):
     def setUp(self):
         self.url = f"http://127.0.0.1:{self.port}"
 

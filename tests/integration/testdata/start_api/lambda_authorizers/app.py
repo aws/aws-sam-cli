@@ -15,8 +15,15 @@ import json
 import re
 
 def lambda_handler(event, context):
-    message = event.get("requestContext", {}).get("authorizer", {}).get("passed")
-    print(event)
+    authorizer_context = event.get("requestContext", {}).get("authorizer", {})
+
+    # assume APIGW V1, search for passed message under "authorizer"
+    message = authorizer_context.get("passed")
+    
+    if not message:
+        # this may be V2, search under "authorizer" -> "lambda"
+        message = authorizer_context.get("lambda", {}).get("passed")
+
     return {
         "statusCode": 200,
         "body": json.dumps({
