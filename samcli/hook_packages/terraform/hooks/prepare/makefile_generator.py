@@ -89,10 +89,10 @@ def generate_makefile(
     )
     shutil.copy(copy_terraform_built_artifacts_script_path, output_directory_path)
 
+    samcli_root_path = Path(os.path.dirname(__file__)).parent.parent.parent.parent
+
     # copy zip.py script into output directory
-    ZIP_UTILS_MODULE_script_path = os.path.join(
-        Path(os.path.dirname(__file__)).parent.parent.parent.parent, "local", "lambdafn", ZIP_UTILS_MODULE
-    )
+    ZIP_UTILS_MODULE_script_path = os.path.join(samcli_root_path, "local", "lambdafn", ZIP_UTILS_MODULE)
     shutil.copy(ZIP_UTILS_MODULE_script_path, output_directory_path)
 
     # create makefile

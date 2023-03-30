@@ -51,13 +51,7 @@ import subprocess
 import sys
 import zipfile
 
-try:
-    # this case will work only while executing the copy terraform command from the makefile
-    from zip import unzip  # type: ignore
-except ImportError:
-    # this way to fix the hidden import unit testing
-    from samcli.local.lambdafn.zip import unzip
-
+from zip import unzip  # type: ignore
 
 LOG = logging.getLogger(__name__)
 

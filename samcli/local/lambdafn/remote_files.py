@@ -2,8 +2,8 @@
 Helper methods to handle files in remote locations.
 """
 
-import os
 import logging
+import os
 from pathlib import Path
 
 import requests
