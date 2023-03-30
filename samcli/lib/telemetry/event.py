@@ -2,17 +2,16 @@
 Represents Events and their values.
 """
 
-from datetime import datetime
-from enum import Enum
 import logging
 import threading
+from datetime import datetime
+from enum import Enum
 from typing import List, Optional
 
 from samcli.cli.context import Context
 from samcli.lib.build.workflows import ALL_CONFIGS
 from samcli.lib.telemetry.telemetry import Telemetry
 from samcli.local.common.runtime_template import INIT_RUNTIMES
-
 
 LOG = logging.getLogger(__name__)
 
@@ -53,6 +52,8 @@ class EventType:
         "RestApiSyncFlow",
         "StepFunctionsSyncFlow",
         "ZipFunctionSyncFlow",
+        "InfraSyncExecute",
+        "SkipInfraSyncExecute",
     ]
     _WORKFLOWS = [f"{config.language}-{config.dependency_manager}" for config in ALL_CONFIGS]
 

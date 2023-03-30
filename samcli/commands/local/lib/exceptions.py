@@ -33,3 +33,9 @@ class UnsupportedRuntimeArchitectureError(UserException):
     """
     Raised when runtime does not support architecture
     """
+
+
+class UnsupportedInlineCodeError(UserException):
+    """
+    Raised when inline code is used for sam local commands
+    """

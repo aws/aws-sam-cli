@@ -32,7 +32,6 @@ class TestDeleteContext(TestCase):
             s3_bucket=None,
             s3_prefix=None,
         ) as delete_context:
-
             delete_context.run()
             expected_click_echo_calls = [
                 call(f"Error: The input stack test does" + f" not exist on Cloudformation in the region us-east-1"),
@@ -186,7 +185,6 @@ class TestDeleteContext(TestCase):
             s3_bucket=None,
             s3_prefix=None,
         ) as delete_context:
-
             delete_context.run()
             expected_click_secho_calls = [
                 call(
@@ -217,7 +215,6 @@ class TestDeleteContext(TestCase):
     def test_guided_prompts_s3_bucket_prefix_present_execute_run(
         self, patched_boto3, patched_click_get_current_context, patched_confirm, patched_get_cf_template_name
     ):
-
         patched_get_cf_template_name.return_value = "hello.template"
         with DeleteContext(
             stack_name="test",
@@ -277,7 +274,6 @@ class TestDeleteContext(TestCase):
     def test_guided_prompts_s3_bucket_present_no_prefix_execute_run(
         self, patched_boto3, patched_click_get_current_context, patched_confirm, patched_get_cf_template_name
     ):
-
         patched_get_cf_template_name.return_value = "hello.template"
         with DeleteContext(
             stack_name="test",
@@ -329,7 +325,6 @@ class TestDeleteContext(TestCase):
     def test_guided_prompts_ecr_companion_stack_present_execute_run(
         self, patched_boto3, patched_click_get_current_context, patched_confirm, patched_get_cf_template_name
     ):
-
         patched_get_cf_template_name.return_value = "hello.template"
         with DeleteContext(
             stack_name="test",
@@ -372,7 +367,7 @@ class TestDeleteContext(TestCase):
                 ),
                 call(
                     click.style(
-                        "\tDo you you want to delete the ECR companion stack"
+                        "\tDo you want to delete the ECR companion stack"
                         + " Companion-Stack-Name in the region us-east-1 ?",
                         bold=True,
                     ),

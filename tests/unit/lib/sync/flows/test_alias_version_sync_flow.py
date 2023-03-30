@@ -6,6 +6,7 @@ from unittest import TestCase
 from unittest.mock import ANY, MagicMock, call, mock_open, patch
 
 from samcli.lib.sync.flows.alias_version_sync_flow import AliasVersionSyncFlow
+from samcli.lib.utils.hash import str_checksum
 
 
 class TestAliasVersionSyncFlow(TestCase):
@@ -15,6 +16,7 @@ class TestAliasVersionSyncFlow(TestCase):
             "Alias1",
             build_context=MagicMock(),
             deploy_context=MagicMock(),
+            sync_context=MagicMock(),
             physical_id_mapping={},
             stacks=[MagicMock()],
         )
@@ -60,3 +62,17 @@ class TestAliasVersionSyncFlow(TestCase):
     def test_compare_remote(self):
         sync_flow = self.create_sync_flow()
         self.assertFalse(sync_flow.compare_remote())
+
+    @patch("samcli.lib.sync.sync_flow.Session")
+    def test_local_sha(self, session_mock):
+        sync_flow = self.create_sync_flow()
+
+        sync_flow.get_physical_id = MagicMock()
+        sync_flow.get_physical_id.return_value = "PhysicalFunction1"
+
+        sync_flow.set_up()
+
+        sync_flow._lambda_client.publish_version.return_value = {"Version": "2"}
+
+        sync_flow.sync()
+        self.assertEqual(sync_flow._local_sha, str_checksum("2", hashlib.sha256()))

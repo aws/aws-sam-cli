@@ -42,14 +42,14 @@ Note: This script intentionally does not use Python3 specific syntax.
 # pylint: skip-file
 
 import argparse
-import re
-import os
 import json
-import shutil
-import sys
-import subprocess
-import zipfile
 import logging
+import os
+import re
+import shutil
+import subprocess
+import sys
+import zipfile
 
 try:
     # this case will work only while executing the copy terraform command from the makefile
@@ -347,7 +347,7 @@ if __name__ == "__main__":
     LOG.info("Parsing terraform output")
     try:
         data_object = json.loads(terraform_out)
-    except ValueError as ex:
+    except ValueError:
         LOG.error("Parsing JSON from terraform out unsuccessful!", exc_info=True)
         cli_exit()
 

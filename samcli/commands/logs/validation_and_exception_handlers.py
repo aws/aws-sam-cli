@@ -2,11 +2,11 @@
 Contains helper functions for validation and exception handling of "sam logs" command
 """
 from functools import wraps
-from typing import Dict, Any, Callable
+from typing import Any, Callable, Dict
 
 import click
 from botocore.exceptions import ClientError
-from click import Context, BadOptionUsage
+from click import BadOptionUsage, Context
 
 from samcli.commands.exceptions import InvalidStackNameException
 from samcli.lib.utils.boto_utils import get_client_error_code

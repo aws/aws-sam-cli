@@ -7,10 +7,10 @@ from typing import Dict
 import docker
 
 from samcli.lib.package.stream_cursor_utils import (
-    CursorUpFormatter,
+    ClearLineFormatter,
     CursorDownFormatter,
     CursorLeftFormatter,
-    ClearLineFormatter,
+    CursorUpFormatter,
 )
 from samcli.lib.utils.stream_writer import StreamWriter
 

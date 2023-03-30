@@ -1,7 +1,7 @@
 """
 Architecture tools
 """
-from typing import Dict, List, cast, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, List, cast
 
 from samcli.commands.exceptions import UserException
 from samcli.commands.local.lib.exceptions import UnsupportedRuntimeArchitectureError
@@ -18,10 +18,10 @@ SUPPORTED_RUNTIMES: Dict[str, List[str]] = {
     "nodejs14.x": [ARM64, X86_64],
     "nodejs16.x": [ARM64, X86_64],
     "nodejs18.x": [ARM64, X86_64],
-    "python3.6": [X86_64],
     "python3.7": [X86_64],
     "python3.8": [ARM64, X86_64],
     "python3.9": [ARM64, X86_64],
+    "python3.10": [ARM64, X86_64],
     "ruby2.7": [ARM64, X86_64],
     "java8": [X86_64],
     "java8.al2": [ARM64, X86_64],

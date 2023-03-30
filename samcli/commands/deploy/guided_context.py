@@ -3,11 +3,10 @@ Class to manage all the prompts during a guided sam deploy
 """
 
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 import click
-from click import confirm
-from click import prompt
+from click import confirm, prompt
 from click.types import FuncParamType
 
 from samcli.commands._utils.options import _space_separated_list_func_type
@@ -16,26 +15,26 @@ from samcli.commands._utils.template import (
 )
 from samcli.commands.deploy.auth_utils import auth_per_resource
 from samcli.commands.deploy.code_signer_utils import (
-    signer_config_per_function,
     extract_profile_name_and_owner_from_existing,
     prompt_profile_name,
     prompt_profile_owner,
+    signer_config_per_function,
 )
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
 from samcli.commands.deploy.guided_config import GuidedConfig
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.bootstrap.bootstrap import manage_stack
-from samcli.lib.config.samconfig import DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
+from samcli.lib.bootstrap.companion_stack.companion_stack_manager import CompanionStackManager, sync_ecr_stack
+from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME, DEFAULT_ENV
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.ecr_utils import is_ecr_url
-from samcli.lib.package.image_utils import tag_translation, NonLocalImageException, NoImageFoundException
-from samcli.lib.providers.provider import Function, Stack, get_resource_full_path_by_id, ResourceIdentifier
+from samcli.lib.package.image_utils import NoImageFoundException, NonLocalImageException, tag_translation
+from samcli.lib.providers.provider import Function, ResourceIdentifier, Stack, get_resource_full_path_by_id
+from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.defaults import get_default_aws_region
 from samcli.lib.utils.packagetype import IMAGE
-from samcli.lib.providers.sam_function_provider import SamFunctionProvider
-from samcli.lib.bootstrap.companion_stack.companion_stack_manager import CompanionStackManager
 
 LOG = logging.getLogger(__name__)
 
@@ -50,6 +49,8 @@ class GuidedContext:
         image_repository,
         image_repositories,
         s3_prefix,
+        resolve_s3=False,
+        resolve_image_repos=False,
         region=None,
         profile=None,
         confirm_changeset=None,
@@ -84,6 +85,8 @@ class GuidedContext:
         self.guided_s3_prefix = None
         self.guided_region = None
         self.guided_profile = None
+        self.resolve_s3 = resolve_s3
+        self.resolve_image_repositories = resolve_image_repos
         self.signing_profiles = signing_profiles
         self._capabilities = None
         self._parameter_overrides = None
@@ -178,17 +181,30 @@ class GuidedContext:
             )
 
         click.echo("\n\tLooking for resources needed for deployment:")
-        s3_bucket = manage_stack(profile=self.profile, region=region)
-        click.echo(f"\t Managed S3 bucket: {s3_bucket}")
-        click.echo("\t A different default S3 bucket can be set in samconfig.toml")
+        managed_s3_bucket = manage_stack(profile=self.profile, region=region)
+        click.secho(f"\n\tManaged S3 bucket: {managed_s3_bucket}", bold=True)
+        click.echo(
+            "\tA different default S3 bucket can be set in samconfig.toml"
+            " and auto resolution of buckets turned off by setting resolve_s3=False"
+        )
 
-        image_repositories = self.prompt_image_repository(
-            stack_name, stacks, self.image_repositories, region, s3_bucket, self.s3_prefix
+        image_repositories = (
+            sync_ecr_stack(
+                self.template_file, stack_name, region, managed_s3_bucket, self.s3_prefix, self.image_repositories
+            )
+            if self.resolve_image_repositories
+            else self.prompt_image_repository(
+                stack_name, stacks, self.image_repositories, region, managed_s3_bucket, self.s3_prefix
+            )
         )
 
         self.guided_stack_name = stack_name
-        self.guided_s3_bucket = s3_bucket
+        self.guided_s3_bucket = managed_s3_bucket
         self.guided_image_repositories = image_repositories
+        # NOTE(sriram-mv): The resultant s3 bucket is ALWAYS the managed_s3_bucket. There is no user flow to set it
+        # within guided.
+        self.resolve_s3 = True if self.guided_s3_bucket else False
+
         self.guided_s3_prefix = stack_name
         self.guided_region = region
         self.guided_profile = self.profile
@@ -404,7 +420,9 @@ class GuidedContext:
             )
             if not is_ecr_url(image_uri):
                 raise GuidedDeployFailedError(f"Invalid Image Repository ECR URI: {image_uri}")
-
+            # NOTE(sriram-mv): If a prompt to accept an ECR URI succeeded, then one does not any longer
+            # resolve image repositories automatically.
+            self.resolve_image_repositories = False
             updated_repositories[function_logical_id] = image_uri
 
         return updated_repositories
@@ -511,7 +529,7 @@ class GuidedContext:
             click.echo(
                 "\t #The deployment was aborted to prevent "
                 "unreferenced managed ECR repositories from being deleted.\n"
-                "\t #You may remove repositories from the SAMCLI "
+                "\t #You may remove repositories from the AWS SAM CLI "
                 "managed stack to retain them and resolve this unreferenced check."
             )
             raise GuidedDeployFailedError("Unreferenced Auto Created ECR Repos Must Be Deleted.")
@@ -544,7 +562,6 @@ class GuidedContext:
                 raise GuidedDeployFailedError("No images found to deploy, try running sam build") from ex
 
     def run(self):
-
         try:
             _parameter_override_keys = get_template_parameters(template_file=self.template_file)
         except ValueError as ex:
@@ -564,9 +581,10 @@ class GuidedContext:
                 self.config_env or DEFAULT_ENV,
                 self.config_file or DEFAULT_CONFIG_FILE_NAME,
                 stack_name=self.guided_stack_name,
-                s3_bucket=self.guided_s3_bucket,
+                resolve_s3=self.resolve_s3,
                 s3_prefix=self.guided_s3_prefix,
-                image_repositories=self.guided_image_repositories,
+                image_repositories=self.guided_image_repositories if not self.resolve_image_repositories else None,
+                resolve_image_repos=self.resolve_image_repositories,
                 region=self.guided_region,
                 profile=self.guided_profile,
                 confirm_changeset=self.confirm_changeset,

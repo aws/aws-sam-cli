@@ -52,7 +52,7 @@ class TestPackageImage(PackageIntegBase):
     )
     def test_package_template_without_image_repository(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
-        command_list = self.get_command_list(template=template_path)
+        command_list = PackageIntegBase.get_command_list(template=template_path)
 
         process = Popen(command_list, stdout=PIPE, stderr=PIPE)
         try:
@@ -75,7 +75,7 @@ class TestPackageImage(PackageIntegBase):
     )
     def test_package_template_with_image_repository(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
-        command_list = self.get_command_list(image_repository=self.ecr_repo_name, template=template_path)
+        command_list = PackageIntegBase.get_command_list(image_repository=self.ecr_repo_name, template=template_path)
 
         process = Popen(command_list, stdout=PIPE)
         try:
@@ -98,7 +98,7 @@ class TestPackageImage(PackageIntegBase):
     )
     def test_package_template_with_image_repositories(self, resource_id, template_file):
         template_path = self.test_data_path.joinpath(template_file)
-        command_list = self.get_command_list(
+        command_list = PackageIntegBase.get_command_list(
             image_repositories=f"{resource_id}={self.ecr_repo_name}", template=template_path
         )
 
@@ -128,7 +128,7 @@ class TestPackageImage(PackageIntegBase):
     )
     def test_package_template_with_image_repositories_nested_stack(self, resource_id, template_file):
         template_path = self.test_data_path.joinpath(template_file)
-        command_list = self.get_command_list(
+        command_list = PackageIntegBase.get_command_list(
             image_repositories=f"{resource_id}={self.ecr_repo_name}", template=template_path, resolve_s3=True
         )
 
@@ -152,7 +152,7 @@ class TestPackageImage(PackageIntegBase):
     )
     def test_package_template_with_non_ecr_repo_uri_image_repository(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
-        command_list = self.get_command_list(
+        command_list = PackageIntegBase.get_command_list(
             image_repository="non-ecr-repo-uri", template=template_path, resolve_s3=True
         )
 
@@ -176,7 +176,9 @@ class TestPackageImage(PackageIntegBase):
     )
     def test_package_template_and_s3_bucket(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
-        command_list = self.get_command_list(s3_bucket=self.s3_bucket, s3_prefix=self.s3_prefix, template=template_path)
+        command_list = PackageIntegBase.get_command_list(
+            s3_bucket=self.s3_bucket, s3_prefix=self.s3_prefix, template=template_path
+        )
 
         process = Popen(command_list, stdout=PIPE, stderr=PIPE)
         try:
@@ -200,7 +202,7 @@ class TestPackageImage(PackageIntegBase):
             # Closes the NamedTemporaryFile as on Windows NT or later, NamedTemporaryFile cannot be opened twice.
             packaged_file.close()
 
-            command_list = self.get_command_list(
+            command_list = PackageIntegBase.get_command_list(
                 image_repository=self.ecr_repo_name,
                 template=template_path,
                 resolve_s3=True,
@@ -245,7 +247,7 @@ class TestPackageImage(PackageIntegBase):
         template_file = os.path.join("deep-nested-image", "template.yaml")
 
         template_path = self.test_data_path.joinpath(template_file)
-        command_list = self.get_command_list(
+        command_list = PackageIntegBase.get_command_list(
             image_repository=self.ecr_repo_name, resolve_s3=True, template=template_path, force_upload=True
         )
 

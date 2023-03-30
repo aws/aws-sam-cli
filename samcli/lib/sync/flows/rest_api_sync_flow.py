@@ -1,20 +1,21 @@
 """SyncFlow for RestApi"""
 import logging
-from typing import Dict, List, TYPE_CHECKING, Set, cast, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional, Set, cast
 
 from botocore.exceptions import ClientError
 
-from samcli.lib.sync.flows.generic_api_sync_flow import GenericApiSyncFlow
-from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_by_id, get_resource_ids_by_type
 from samcli.lib.providers.exceptions import MissingLocalDefinition
+from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_by_id, get_resource_ids_by_type
+from samcli.lib.sync.flows.generic_api_sync_flow import GenericApiSyncFlow
 from samcli.lib.utils.colors import Colored
-from samcli.lib.utils.resources import AWS_SERVERLESS_API, AWS_APIGATEWAY_STAGE, AWS_APIGATEWAY_DEPLOYMENT
+from samcli.lib.utils.resources import AWS_APIGATEWAY_DEPLOYMENT, AWS_APIGATEWAY_STAGE, AWS_SERVERLESS_API
 
 # BuildContext and DeployContext will only be imported for type checking to improve performance
 # since no instances of contexts will be instantiated in this class
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.build.build_context import BuildContext
     from samcli.commands.deploy.deploy_context import DeployContext
+    from samcli.commands.sync.sync_context import SyncContext
 
 LOG = logging.getLogger(__name__)
 
@@ -24,32 +25,36 @@ class RestApiSyncFlow(GenericApiSyncFlow):
 
     def __init__(
         self,
-        api_identifier: str,
+        restapi_identifier: str,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
+        sync_context: "SyncContext",
         physical_id_mapping: Dict[str, str],
         stacks: List[Stack],
     ):
         """
         Parameters
         ----------
-        api_identifier : str
+        restapi_identifier : str
             RestApi resource identifier that needs to have associated RestApi updated.
         build_context : BuildContext
             BuildContext used for build related parameters
         deploy_context : BuildContext
             DeployContext used for this deploy related parameters
+        sync_context: SyncContext
+            SyncContext object that obtains sync information.
         physical_id_mapping : Dict[str, str]
             Mapping between resource logical identifier and physical identifier
         stacks : List[Stack], optional
             List of stacks containing a root stack and optional nested stacks
         """
         super().__init__(
-            api_identifier,
+            restapi_identifier,
             build_context,
             deploy_context,
+            sync_context,
             physical_id_mapping,
-            log_name="RestApi " + api_identifier,
+            log_name="RestApi " + restapi_identifier,
             stacks=stacks,
         )
         self._api_physical_id = ""

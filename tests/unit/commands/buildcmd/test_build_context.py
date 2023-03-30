@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch, Mock, ANY, call
 
 from parameterized import parameterized
 
+from samcli.commands.build.utils import MountMode
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 from samcli.lib.build.bundler import EsbuildBundlerManager
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
@@ -16,7 +17,6 @@ from samcli.lib.build.app_builder import (
     BuildError,
     UnsupportedBuilderLibraryVersionError,
     BuildInsideContainerError,
-    ContainerBuildNotSupported,
     ApplicationBuildResult,
 )
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
@@ -658,7 +658,6 @@ class TestBuildContext__enter__(TestCase):
         SamApiProviderMock,
         get_buildable_stacks_mock,
     ):
-
         root_stack = Mock()
         root_stack.is_root_stack = True
         auto_dependency_layer = False
@@ -897,6 +896,7 @@ class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
     @patch("samcli.commands.build.build_context.move_template")
     @patch("samcli.commands.build.build_context.get_template_data")
+    @patch("samcli.commands.build.build_context.BuildContext._is_sam_template")
     @patch("samcli.commands.build.build_context.os")
     @patch("samcli.commands.build.build_context.EsbuildBundlerManager")
     @patch("samcli.commands.build.build_context.BuildContext._handle_build_pre_processing")
@@ -906,6 +906,7 @@ class TestBuildContext_run(TestCase):
         pre_processing_mock,
         esbuild_bundler_manager_mock,
         os_mock,
+        is_sam_template_mock,
         get_template_data_mock,
         move_template_mock,
         resources_mock,
@@ -986,8 +987,10 @@ class TestBuildContext_run(TestCase):
             build_images={},
             create_auto_dependency_layer=auto_dependency_layer,
             build_in_source=False,
+            mount_with=MountMode.READ,
         ) as build_context:
             build_context.run()
+            is_sam_template_mock.assert_called_once_with()
 
             ApplicationBuilderMock.assert_called_once_with(
                 ANY,
@@ -1005,6 +1008,7 @@ class TestBuildContext_run(TestCase):
                 build_images=build_context._build_images,
                 combine_dependencies=not auto_dependency_layer,
                 build_in_source=build_context._build_in_source,
+                mount_with_write=False,
             )
             builder_mock.build.assert_called_once()
             builder_mock.update_template.assert_has_calls(
@@ -1060,7 +1064,6 @@ class TestBuildContext_run(TestCase):
             (UnsupportedRuntimeException(), "UnsupportedRuntimeException"),
             (BuildInsideContainerError(), "BuildInsideContainerError"),
             (BuildError(wrapped_from=DeepWrap().__class__.__name__, msg="Test"), "DeepWrap"),
-            (ContainerBuildNotSupported(), "ContainerBuildNotSupported"),
             (
                 UnsupportedBuilderLibraryVersionError(container_name="name", error_msg="msg"),
                 "UnsupportedBuilderLibraryVersionError",
@@ -1098,7 +1101,6 @@ class TestBuildContext_run(TestCase):
         SamApiProviderMock,
         get_buildable_stacks_mock,
     ):
-
         stack = Mock()
         resources_mock.return_value = Mock(functions=[], layers=[])
 
@@ -1224,6 +1226,36 @@ class TestBuildContext_run(TestCase):
                 build_context.run()
 
         self.assertEqual(str(ctx.exception), "Function Not Found")
+
+
+class TestBuildContext_is_sam_template(TestCase):
+    @parameterized.expand(
+        [
+            ({"Transform": "AWS::Serverless-2016-10-31"}, True),
+            ({"Transform": ["AWS::Serverless-2016-10-31"]}, True),
+            ({"Transform": ["AWS::Language::Extension", "AWS::Serverless-2016-10-31"]}, True),
+            ({"Transform": ["AWS::Language::Extension"]}, False),
+            ({"Transform": "AWS::Language::Extension"}, False),
+            ({"Transform": 123}, False),
+        ]
+    )
+    @patch("samcli.commands.build.build_context.get_template_data")
+    def test_is_sam_template(self, template_dict, expected_result, get_template_data_mock):
+        get_template_data_mock.return_value = template_dict
+
+        build_context = BuildContext(
+            resource_identifier="",
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            cached=False,
+            clean=False,
+            parallel=False,
+            mode="mode",
+        )
+        result = build_context._is_sam_template()
+        self.assertEqual(result, expected_result)
 
 
 class TestBuildContext_exclude_warning(TestCase):

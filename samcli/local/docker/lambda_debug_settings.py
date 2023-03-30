@@ -157,10 +157,6 @@ class LambdaDebugSettings:
                     **_container_env_vars,
                 },
             ),
-            Runtime.python36.value: lambda: DebugSettings(
-                entry + ["/var/lang/bin/python3.6"] + debug_args_list + ["/var/runtime/bootstrap.py"],
-                container_env_vars=_container_env_vars,
-            ),
             Runtime.python37.value: lambda: DebugSettings(
                 entry + ["/var/lang/bin/python3.7"] + debug_args_list + ["/var/runtime/bootstrap"],
                 container_env_vars=_container_env_vars,
@@ -171,6 +167,10 @@ class LambdaDebugSettings:
             ),
             Runtime.python39.value: lambda: DebugSettings(
                 entry + ["/var/lang/bin/python3.9"] + debug_args_list + ["/var/runtime/bootstrap.py"],
+                container_env_vars=_container_env_vars,
+            ),
+            Runtime.python310.value: lambda: DebugSettings(
+                entry + ["/var/lang/bin/python3.10"] + debug_args_list + ["/var/runtime/bootstrap.py"],
                 container_env_vars=_container_env_vars,
             ),
         }

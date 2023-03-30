@@ -3,12 +3,12 @@ Terraform Makefile and make rule generation
 
 This module generates the Makefile for the project and the rules for each of the Lambda functions found
 """
-import os
-from pathlib import Path
-from typing import List, Optional
 import logging
+import os
 import shutil
 import uuid
+from pathlib import Path
+from typing import List, Optional
 
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     SamMetadataResource,

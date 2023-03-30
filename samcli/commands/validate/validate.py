@@ -2,19 +2,22 @@
 CLI Command for Validating a SAM Template
 """
 import os
-import boto3
-from botocore.exceptions import NoCredentialsError
-import click
 
+import boto3
+import click
+from botocore.exceptions import NoCredentialsError
 from samtranslator.translator.arn_generator import NoRegionFound
 
+from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.context import Context
-from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
+from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
+from samcli.cli.main import common_options as cli_framework_options
 from samcli.commands._utils.cdk_support_decorators import unsupported_command_cdk
+from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.commands._utils.options import template_option_without_build
+from samcli.commands.exceptions import LinterRuleMatchedException
 from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.telemetry.metric import track_command
-from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
 
 
@@ -35,8 +38,8 @@ from samcli.lib.utils.version_checker import check_newer_version
 @check_newer_version
 @print_cmdline_args
 @unsupported_command_cdk(alternative_command="cdk doctor")
+@command_exception_handler
 def cli(ctx, template_file, config_file, config_env, lint):
-
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(ctx, template_file, lint)  # pragma: no cover
@@ -125,8 +128,10 @@ def _lint(ctx: Context, template: str) -> None:
 
     """
 
-    import cfnlint.core  # type: ignore
     import logging
+
+    import cfnlint.core  # type: ignore
+
     from samcli.commands.exceptions import UserException
 
     cfn_lint_logger = logging.getLogger("cfnlint")
@@ -146,11 +151,17 @@ def _lint(ctx: Context, template: str) -> None:
         matches = list(cfnlint.core.get_matches(filenames, args))
         if not matches:
             click.secho("{} is a valid SAM Template".format(template), fg="green")
+            return
+
         rules = cfnlint.core.get_used_rules()
         matches_output = formatter.print_matches(matches, rules, filenames)
 
         if matches_output:
             click.secho(matches_output)
+
+        raise LinterRuleMatchedException(
+            "Linting failed. At least one linting rule was matched to the provided template."
+        )
 
     except cfnlint.core.InvalidRegionException as e:
         raise UserException(

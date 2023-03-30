@@ -174,3 +174,9 @@ Resources:
 
       - Route53ChangeResourceRecordSetsPolicy:
           HostedZoneId: test
+
+      - SSMParameterWithSlashPrefixReadPolicy:
+          ParameterName: /name
+
+      - StepFunctionsExecutionPolicy_v2:
+          StateMachineName: name

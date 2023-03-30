@@ -3,8 +3,8 @@ Helper methods to unzip an archive preserving the file permissions. Python's zip
 this feature natively (https://bugs.python.org/issue15795).
 """
 
-import os
 import logging
+import os
 import zipfile
 
 LOG = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ def _is_symlink(file_info):
         A response regarding whether the ZipInfo defines a symlink or not.
     """
 
-    return (file_info.external_attr >> 28) == 0xA
+    return (file_info.external_attr >> 28) == 0xA  # noqa: PLR2004
 
 
 def _extract(file_info, output_dir, zip_ref):
@@ -87,7 +87,6 @@ def unzip(zip_file_path, output_dir, permission=None):
     """
 
     with zipfile.ZipFile(zip_file_path, "r") as zip_ref:
-
         # For each item in the zip file, extract the file and set permissions if available
         for file_info in zip_ref.infolist():
             extracted_path = _extract(file_info, output_dir, zip_ref)

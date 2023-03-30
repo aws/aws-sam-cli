@@ -1,8 +1,8 @@
 """ Read info from runtime_config.json file"""
 
 import json
-from pathlib import Path
 import logging
+from pathlib import Path
 
 from click import ClickException
 

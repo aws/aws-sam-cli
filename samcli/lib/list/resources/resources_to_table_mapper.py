@@ -1,8 +1,9 @@
 """
 Implementation of the resources to table mapper
 """
-from typing import Dict, Any
 from collections import OrderedDict
+from typing import Any, Dict
+
 from samcli.lib.list.list_interfaces import Mapper
 
 

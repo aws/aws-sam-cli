@@ -2,26 +2,27 @@
 Class that provides functions from a given SAM template
 """
 import logging
-from typing import Dict, List, Optional, cast, Iterator, Any
+from typing import Any, Dict, Iterator, List, Optional, cast
 
 from samtranslator.policy_template_processor.exceptions import TemplateNotFoundException
 
+from samcli.commands._utils.template import TemplateFailedParsingException
+from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
+from samcli.lib.providers.exceptions import InvalidLayerReference
+from samcli.lib.utils.colors import Colored
+from samcli.lib.utils.file_observer import FileObserver
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_LAYERVERSION,
     AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_LAYERVERSION,
 )
-from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
-from samcli.commands._utils.template import TemplateFailedParsingException
-from samcli.lib.providers.exceptions import InvalidLayerReference
-from samcli.lib.utils.colors import Colored
-from samcli.lib.utils.packagetype import ZIP, IMAGE
-from samcli.lib.utils.file_observer import FileObserver
+
+from ..build.constants import DEPRECATED_RUNTIMES
 from .provider import Function, LayerVersion, Stack
 from .sam_base_provider import SamBaseProvider
 from .sam_stack_provider import SamLocalStackProvider
-from ..build.constants import DEPRECATED_RUNTIMES
 
 LOG = logging.getLogger(__name__)
 
@@ -196,7 +197,6 @@ class SamFunctionProvider(SamBaseProvider):
         result: Dict[str, Function] = {}  # a dict with full_path as key and extracted function as value
         for stack in stacks:
             for name, resource in stack.resources.items():
-
                 resource_type = resource.get("Type")
                 resource_properties = resource.get("Properties", {})
                 resource_metadata = resource.get("Metadata", None)
@@ -213,7 +213,6 @@ class SamFunctionProvider(SamBaseProvider):
                     if resource_package_type == ZIP and SamBaseProvider._is_s3_location(
                         resource_properties.get(code_property_key)
                     ):
-
                         # CodeUri can be a dictionary of S3 Bucket/Key or a S3 URI, neither of which are supported
                         if not ignore_code_extraction_warnings:
                             SamFunctionProvider._warn_code_extraction(resource_type, name, code_property_key)
@@ -537,7 +536,6 @@ class SamFunctionProvider(SamBaseProvider):
 
             # If the layer is a string, assume it is the arn
             if isinstance(layer, str):
-
                 if locate_layer_nested and "arn:" not in layer:
                     # the layer is not an arn
                     continue
@@ -554,7 +552,6 @@ class SamFunctionProvider(SamBaseProvider):
             # In the list of layers that is defined within a template, you can reference a LayerVersion resource.
             # When running locally, we need to follow that Ref so we can extract the local path to the layer code.
             if isinstance(layer, dict) and layer.get("Ref"):
-
                 # if search_layer is set, this case should be resolved already
                 if locate_layer_nested:
                     continue
@@ -690,15 +687,17 @@ class SamFunctionProvider(SamBaseProvider):
         # validate if the layer is in the format {"Fn::GetAtt": ["LayerStackName", "Outputs.LayerName"]}
         warn_message = "Fn::GetAtt with unsupported format in accelerate nested stack"
         layer_attribute = layer.get("Fn::GetAtt", [])
+        required_layer_attr_length = 2
+        reqauired_layer_reference_length = 2
         if not isinstance(layer_attribute, List):
             LOG.warning(warn_message)
             return False
 
-        if len(layer_attribute) != 2:
+        if len(layer_attribute) != required_layer_attr_length:
             LOG.warning(warn_message)
             return False
         layer_reference_array = layer_attribute[1].split(".")
-        if len(layer_reference_array) != 2:
+        if len(layer_reference_array) != reqauired_layer_reference_length:
             LOG.warning(warn_message)
             return False
         return True

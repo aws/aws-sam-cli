@@ -4,7 +4,7 @@ Module used for detecting whether SAMCLI is executed in a CI/CD environment.
 
 import os
 from enum import Enum, auto
-from typing import Mapping, Optional, Dict, Union, Callable
+from typing import Callable, Dict, Mapping, Optional, Union
 
 
 class CICDPlatform(Enum):

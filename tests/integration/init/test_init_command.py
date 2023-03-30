@@ -1,18 +1,27 @@
+import platform
+import time
+import signal
+
 from click.testing import CliRunner
 
+from samcli.cli.global_config import GlobalConfig
 from samcli.commands.init import cli as init_cmd
-from unittest import TestCase
+from unittest import TestCase, skipIf
 
 from parameterized import parameterized
 from subprocess import Popen, TimeoutExpired, PIPE
 import os
 import shutil
 import tempfile
+
+from samcli.commands.init.init_templates import APP_TEMPLATES_REPO_NAME_WINDOWS, APP_TEMPLATES_REPO_NAME
+from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 from pathlib import Path
 
-from tests.testing_utils import get_sam_command
+from tests.integration.init.test_init_base import InitIntegBase
+from tests.testing_utils import get_sam_command, IS_WINDOWS, RUNNING_ON_APPVEYOR
 
 TIMEOUT = 300
 
@@ -176,6 +185,38 @@ class TestBasicInitCommand(TestCase):
 
             self.assertEqual(process.returncode, 0)
             self.assertTrue(Path(temp, "sam-app-gradle").is_dir())
+            self.assertNotIn(COMMIT_ERROR, stderr)
+
+    def test_init_command_go_provided_image(self):
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    get_sam_command(),
+                    "init",
+                    "--app-template",
+                    "hello-world-lambda-image",
+                    "--name",
+                    "sam-app-go-image",
+                    "--package-type",
+                    "Image",
+                    "--base-image",
+                    "amazon/go-provided.al2-base",
+                    "--no-interactive",
+                    "-o",
+                    temp,
+                ],
+                stdout=PIPE,
+                stderr=PIPE,
+            )
+            try:
+                stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
+                stderr = stderr_data.decode("utf-8")
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 0)
+            self.assertTrue(Path(temp, "sam-app-go-image").is_dir())
             self.assertNotIn(COMMIT_ERROR, stderr)
 
     def test_init_command_with_extra_context_parameter(self):
@@ -711,9 +752,12 @@ class TestInitWithArbitraryProject(TestCase):
     def tearDown(self):
         shutil.rmtree(self.tempdir)
 
-    def _validate_expected_files_exist(self, output_folder: Path):
+    def _validate_expected_files_exist(self, output_folder: Path, config_exists: bool = True):
         self.assertTrue(output_folder.exists())
-        self.assertEqual(os.listdir(str(output_folder)), ["test.txt"])
+        self.assertEqual(
+            set(os.listdir(str(output_folder))),
+            set(["test.txt"] + [DEFAULT_CONFIG_FILE_NAME] if config_exists else ["test.txt"]),
+        )
         self.assertEqual(Path(output_folder, "test.txt").read_text(), "hello world")
 
     @parameterized.expand([(None,), ("project_name",)])
@@ -733,7 +777,7 @@ class TestInitWithArbitraryProject(TestCase):
             expected_output_folder = Path(temp, project_name) if project_name else Path(temp)
 
             self.assertEqual(process.returncode, 0)
-            self._validate_expected_files_exist(expected_output_folder)
+            self._validate_expected_files_exist(expected_output_folder, config_exists=True if project_name else False)
 
     def test_zip_not_exists(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -826,3 +870,194 @@ sam-interactive-init-app-default-runtime
             self.assertTrue(expected_output_folder.is_dir())
             self.assertTrue(Path(expected_output_folder, "hello_world").is_dir())
             self.assertTrue(Path(expected_output_folder, "hello_world", "app.py").is_file())
+
+
+class TestSubsequentInitCaching(TestCase):
+    def test_subsequent_init_skips_cloning(self):
+        from platform import system
+
+        os_name = system().lower()
+        cloned_folder_name = APP_TEMPLATES_REPO_NAME_WINDOWS if os_name == "windows" else APP_TEMPLATES_REPO_NAME
+
+        with tempfile.TemporaryDirectory() as temp:
+            project_directory = Path(temp, "sam-app")
+            cache_dir = GlobalConfig().config_dir / cloned_folder_name
+
+            # Run the first time, get cache last modification time
+            self._run_init(temp)
+            first_modification_time = self._last_modification_time(cache_dir)
+            self.assertTrue(project_directory.is_dir())
+            shutil.rmtree(project_directory)
+
+            # Run init again, get the second modification time
+            self._run_init(temp)
+            second_modification_time = self._last_modification_time(cache_dir)
+            self.assertTrue(project_directory.is_dir())
+
+            self.assertEqual(first_modification_time, second_modification_time)
+
+    def _run_init(self, cwd):
+        process = Popen(
+            [
+                get_sam_command(),
+                "init",
+                "--runtime",
+                "nodejs14.x",
+                "--dependency-manager",
+                "npm",
+                "--architecture",
+                "arm64",
+                "--app-template",
+                "hello-world",
+                "--name",
+                "sam-app",
+                "--no-interactive",
+                "-o",
+                cwd,
+            ],
+            stdout=PIPE,
+            stderr=PIPE,
+        )
+        try:
+            stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
+            stderr = stderr_data.decode("utf-8")
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        self.assertEqual(process.returncode, 0)
+        self.assertNotIn(COMMIT_ERROR, stderr)
+
+    @staticmethod
+    def _last_modification_time(file):
+        return os.path.getmtime(file)
+
+
+class TestInitProducesSamconfigFile(TestCase):
+    def test_zip_template_config(self):
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    get_sam_command(),
+                    "init",
+                    "--runtime",
+                    "nodejs14.x",
+                    "--dependency-manager",
+                    "npm",
+                    "--architecture",
+                    "arm64",
+                    "--app-template",
+                    "hello-world",
+                    "--name",
+                    "sam-app",
+                    "--no-interactive",
+                    "-o",
+                    temp,
+                ],
+                stdout=PIPE,
+                stderr=PIPE,
+            )
+            try:
+                stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
+                stderr = stderr_data.decode("utf-8")
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            project_directory = Path(temp, "sam-app")
+
+            self.assertEqual(process.returncode, 0)
+            self.assertTrue(project_directory.is_dir())
+            self.assertNotIn(COMMIT_ERROR, stderr)
+            self._validate_zip_samconfig(project_directory)
+
+    def test_image_template_config(self):
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    get_sam_command(),
+                    "init",
+                    "--package-type",
+                    IMAGE,
+                    "--base-image",
+                    "amazon/nodejs14.x-base",
+                    "--dependency-manager",
+                    "npm",
+                    "--name",
+                    "sam-app",
+                    "--no-interactive",
+                    "-o",
+                    temp,
+                ],
+                stdout=PIPE,
+                stderr=PIPE,
+            )
+            try:
+                stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
+                stderr = stderr_data.decode("utf-8")
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            project_directory = Path(temp, "sam-app")
+
+            self.assertEqual(process.returncode, 0)
+            self.assertTrue(project_directory.is_dir())
+            self.assertNotIn(COMMIT_ERROR, stderr)
+            self._validate_image_samconfig(project_directory)
+
+    def _validate_image_samconfig(self, project_path):
+        text = self._read_config(project_path)
+
+        self._validate_common_properties(text)
+
+        self.assertFalse(self._check_property("cached = true", text))
+        self.assertTrue(self._check_property("resolve_s3 = true", text))
+        self.assertTrue(self._check_property("resolve_image_repos = true", text))
+
+    def _validate_zip_samconfig(self, project_path):
+        text = self._read_config(project_path)
+
+        self._validate_common_properties(text)
+
+        self.assertTrue(self._check_property("cached = true", text))
+        self.assertTrue(self._check_property("resolve_s3 = true", text))
+        self.assertFalse(self._check_property("resolve_image_repos = true", text))
+
+    def _validate_common_properties(self, text):
+        self.assertTrue(self._check_property("parallel = true", text))
+        self.assertTrue(self._check_property('warm_containers = "EAGER"', text))
+        self.assertTrue(self._check_property('stack_name = "sam-app"', text))
+        self.assertTrue(self._check_property("watch = true", text))
+        self.assertTrue(self._check_property('capabilities = "CAPABILITY_IAM"', text))
+
+    @staticmethod
+    def _check_property(to_find, container):
+        return any(to_find in line for line in container)
+
+    @staticmethod
+    def _read_config(project_path):
+        with open(Path(project_path, "samconfig.toml"), "r") as f:
+            text = f.readlines()
+        return text
+
+
+@skipIf(
+    IS_WINDOWS and RUNNING_ON_APPVEYOR,
+    "Killing process in Windows in Appveyor gets stuck, skipping this test since it is already run in GHA",
+)
+class TestInitCommand(InitIntegBase):
+    def test_graceful_exit(self):
+        # Run the Base Command
+        command_list = self.get_command()
+        process_execute = Popen(command_list, stdout=PIPE, stderr=PIPE)
+
+        # Wait for binary to be ready before sending interrupts.
+        time.sleep(self.BINARY_READY_WAIT_TIME)
+
+        # Send SIGINT signal
+        process_execute.send_signal(signal.CTRL_C_EVENT if platform.system().lower() == "windows" else signal.SIGINT)
+        (_, stderr) = process_execute.communicate(timeout=10)
+        # Process should exit gracefully with an exit code of 1.
+        self.assertEqual(process_execute.returncode, 1)
+        self.assertIn("Aborted!", stderr.decode("utf-8"))

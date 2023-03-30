@@ -1,27 +1,25 @@
 """
 Generates a Docker Image to be used for invoking a function locally
 """
-from typing import Optional
-import uuid
-import logging
 import hashlib
+import logging
+import platform
+import re
+import sys
+import uuid
 from enum import Enum
 from pathlib import Path
+from typing import Optional
 
-import sys
-import re
-import platform
 import docker
 
 from samcli.commands.local.cli_common.user_exceptions import ImageBuildException
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.utils.architecture import has_runtime_multi_arch_image
-from samcli.lib.utils.packagetype import ZIP, IMAGE
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.lib.utils.tar import create_tarball
-from samcli.local.docker.utils import get_rapid_name, get_docker_platform
-
-from samcli import __version__ as version
+from samcli.local.docker.utils import get_docker_platform, get_rapid_name
 
 LOG = logging.getLogger(__name__)
 
@@ -33,10 +31,10 @@ class Runtime(Enum):
     nodejs14x = "nodejs14.x"
     nodejs16x = "nodejs16.x"
     nodejs18x = "nodejs18.x"
-    python36 = "python3.6"
     python37 = "python3.7"
     python38 = "python3.8"
     python39 = "python3.9"
+    python310 = "python3.10"
     ruby27 = "ruby2.7"
     java8 = "java8"
     java8al2 = "java8.al2"
@@ -338,7 +336,7 @@ class LambdaImage:
     @staticmethod
     def _generate_dockerfile(base_image, layers, architecture):
         """
-        FROM public.ecr.aws/lambda/python:3.6-x86_64
+        FROM public.ecr.aws/lambda/python:3.9-x86_64
 
         ADD aws-lambda-rie /var/rapid
 

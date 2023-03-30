@@ -9,6 +9,7 @@ import tempfile
 from pathlib import Path
 from unittest import skipIf
 
+import pytest
 import boto3
 from botocore.config import Config
 from parameterized import parameterized_class
@@ -30,6 +31,7 @@ from tests.testing_utils import (
     kill_process,
     read_until_string,
     start_persistent_process,
+    run_command_with_input,
 )
 
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
@@ -68,7 +70,7 @@ class TestSyncWatchBase(SyncIntegBase):
         self.template_before = "" if not self.template_before else self.template_before
         self.stack_name = self._method_to_stack_name(self.id())
         # Remove temp dir so that shutil.copytree will not throw an error
-        # Needed for python 3.6 and 3.7 as these versions don't have dirs_exist_ok
+        # Needed for python 3.7 as these versions don't have dirs_exist_ok
         shutil.rmtree(self.test_dir)
         shutil.copytree(self.test_data_path, self.test_dir)
         super().setUp()
@@ -197,7 +199,6 @@ class TestSyncWatchInfra(TestSyncWatchBase):
         super(TestSyncWatchInfra, cls).setUpClass()
 
     def test_sync_watch_infra(self):
-
         self.update_file(
             self.test_dir.joinpath(f"infra/template-{self.runtime}-after.yaml"),
             self.test_dir.joinpath(f"infra/template-{self.runtime}-before.yaml"),
@@ -565,3 +566,203 @@ class TestSyncWatchCodeOnly(TestSyncWatchBase):
             "complete infrastructure and code sync, remove the --code flag.\x1b[0m\n",
             timeout=30,
         )
+
+
+@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@parameterized_class(
+    [{"runtime": "python", "dependency_layer": True}, {"runtime": "python", "dependency_layer": False}]
+)
+class TestSyncWatchAutoSkipInfra(SyncIntegBase):
+    def setUp(self):
+        self.runtime = "python"
+        self.dependency_layer = True
+        super().setUp()
+        self.test_dir = Path(tempfile.mkdtemp())
+        shutil.rmtree(self.test_dir)
+        shutil.copytree(self.test_data_path, self.test_dir)
+
+    def tearDown(self):
+        kill_process(self.watch_process)
+        shutil.rmtree(self.test_dir)
+        super().tearDown()
+
+    @pytest.mark.flaky(reruns=3)
+    def test_sync_watch_auto_skip_infra(self):
+        template_before = f"code/before/template-{self.runtime}.yaml"
+        template_path = str(self.test_dir.joinpath(template_before))
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        # Run infra sync
+        sync_command_list = self.get_sync_command_list(
+            template_file=str(template_path),
+            code=False,
+            watch=False,
+            dependency_layer=self.dependency_layer,
+            stack_name=stack_name,
+            parameter_overrides="Parameter=Clarity",
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+            use_container=False,
+        )
+
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_dir)
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+        self.assertIn("Stack creation succeeded. Sync infra completed.", str(sync_process_execute.stderr))
+
+        # Start watch
+        sync_command_list = self.get_sync_command_list(
+            template_file=template_path,
+            code=False,
+            watch=True,
+            dependency_layer=self.dependency_layer,
+            stack_name=stack_name,
+            parameter_overrides="Parameter=Clarity",
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+        self.watch_process = start_persistent_process(sync_command_list, cwd=self.test_dir)
+
+        read_until_string(
+            self.watch_process,
+            "Template haven't been changed since last deployment, skipping infra sync...\n",
+            timeout=100,
+        )
+
+        kill_process(self.watch_process)
+
+        # Test Lambda Function
+        self.update_file(
+            self.test_dir.joinpath("code", "after", "function", "app.py"),
+            self.test_dir.joinpath("code", "before", "function", "app.py"),
+        )
+
+        # Start watch
+        sync_command_list = self.get_sync_command_list(
+            template_file=template_path,
+            code=False,
+            watch=True,
+            dependency_layer=self.dependency_layer,
+            stack_name=stack_name,
+            parameter_overrides="Parameter=Clarity",
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+        self.watch_process = start_persistent_process(sync_command_list, cwd=self.test_dir)
+
+        read_until_string(
+            self.watch_process, "\x1b[32mFinished syncing Lambda Function HelloWorldFunction.\x1b[0m\n", timeout=100
+        )
+
+        kill_process(self.watch_process)
+
+        self.stack_resources = self._get_stacks(stack_name)
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "8")
+
+        # Test Lambda Layer
+        self.update_file(
+            self.test_dir.joinpath("code", "after", "layer", "layer_method.py"),
+            self.test_dir.joinpath("code", "before", "layer", "layer_method.py"),
+        )
+
+        # Start watch
+        sync_command_list = self.get_sync_command_list(
+            template_file=template_path,
+            code=False,
+            watch=True,
+            dependency_layer=self.dependency_layer,
+            stack_name=stack_name,
+            parameter_overrides="Parameter=Clarity",
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+        self.watch_process = start_persistent_process(sync_command_list, cwd=self.test_dir)
+
+        read_until_string(
+            self.watch_process,
+            "\x1b[32mFinished syncing Function Layer Reference Sync HelloWorldFunction.\x1b[0m\n",
+            timeout=100,
+        )
+
+        kill_process(self.watch_process)
+
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "9")
+
+        # Test APIGW
+        self.update_file(
+            self.test_dir.joinpath("code", "after", "apigateway", "definition.json"),
+            self.test_dir.joinpath("code", "before", "apigateway", "definition.json"),
+        )
+
+        # Start watch
+        sync_command_list = self.get_sync_command_list(
+            template_file=template_path,
+            code=False,
+            watch=True,
+            dependency_layer=self.dependency_layer,
+            stack_name=stack_name,
+            parameter_overrides="Parameter=Clarity",
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+        self.watch_process = start_persistent_process(sync_command_list, cwd=self.test_dir)
+
+        read_until_string(
+            self.watch_process,
+            "\x1b[32mFinished syncing RestApi HelloWorldApi.\x1b[0m\n",
+            timeout=100,
+        )
+        time.sleep(API_SLEEP)
+        kill_process(self.watch_process)
+
+        rest_api = self.stack_resources.get(AWS_APIGATEWAY_RESTAPI)[0]
+        self.assertEqual(self._get_api_message(rest_api), '{"message": "hello 2"}')
+
+        # Test SFN
+        self.update_file(
+            self.test_dir.joinpath("code", "after", "statemachine", "function.asl.json"),
+            self.test_dir.joinpath("code", "before", "statemachine", "function.asl.json"),
+        )
+
+        # Start watch
+        sync_command_list = self.get_sync_command_list(
+            template_file=template_path,
+            code=False,
+            watch=True,
+            dependency_layer=self.dependency_layer,
+            stack_name=stack_name,
+            parameter_overrides="Parameter=Clarity",
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+        self.watch_process = start_persistent_process(sync_command_list, cwd=self.test_dir)
+
+        read_until_string(
+            self.watch_process,
+            "\x1b[32mFinished syncing StepFunctions HelloStepFunction.\x1b[0m\n",
+            timeout=100,
+        )
+        time.sleep(SFN_SLEEP)
+
+        state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
+        self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')

@@ -1,4 +1,4 @@
-[![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/awslabs/aws-sam-cli)
+[![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/aws/aws-sam-cli)
 
 # Contributing Guidelines
 
@@ -17,7 +17,7 @@ Refer to the [Development Guide](DEVELOPMENT_GUIDE.md) for help with environment
 
 We welcome you to use the GitHub issue tracker to report bugs or suggest features.
 
-When filing an issue, please check [existing open](https://github.com/awslabs/aws-sam-cli/issues), or [recently closed](https://github.com/awslabs/aws-sam-cli/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aclosed%20), issues to make sure somebody else hasn't already 
+When filing an issue, please check [existing open](https://github.com/aws/aws-sam-cli/issues), or [recently closed](https://github.com/aws/aws-sam-cli/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aclosed%20), issues to make sure somebody else hasn't already 
 reported the issue. Please try to include as much information as you can. Details like these are incredibly useful:
 
 * A reproducible test case or series of steps
@@ -50,7 +50,10 @@ GitHub provides additional document on [forking a repository](https://help.githu
 
 
 ## Finding contributions to work on
-Looking at the existing issues is a great way to find something to contribute on. As our projects, by default, use the default GitHub issue labels ((enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at any ['help wanted'](https://github.com/awslabs/aws-sam-cli/labels/help%20wanted) issues is a great place to start. 
+Looking at the existing issues is a great way to find something to contribute on. As our projects, by default, use the default GitHub issue labels ((enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at any ['help wanted'](https://github.com/aws/aws-sam-cli/labels/help%20wanted) issues is a great place to start. 
+
+## First time contributors
+If this your first time looking to contribute, looking at any ['contributors/welcome'](https://github.com/aws/aws-sam-cli/labels/contributors%2Fwelcome) or ['contributors/good-first-issue'](https://github.com/aws/aws-sam-cli/labels/contributors%2Fgood-first-issue) issues is a great place to start. 
 
 
 ## Code of Conduct
@@ -65,6 +68,6 @@ If you discover a potential security issue in this project we ask that you notif
 
 ## Licensing
 
-See the [LICENSE](https://github.com/awslabs/aws-sam-cli/blob/master/LICENSE) file for our project's licensing. We will ask you to confirm the licensing of your contribution.
+See the [LICENSE](https://github.com/aws/aws-sam-cli/blob/master/LICENSE) file for our project's licensing. We will ask you to confirm the licensing of your contribution.
 
 We may ask you to sign a [Contributor License Agreement (CLA)](http://en.wikipedia.org/wiki/Contributor_License_Agreement) for larger changes.
