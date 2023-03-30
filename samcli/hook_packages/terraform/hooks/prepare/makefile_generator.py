@@ -18,6 +18,7 @@ from samcli.lib.utils.path_utils import convert_path_to_unix_path
 LOG = logging.getLogger(__name__)
 
 TERRAFORM_BUILD_SCRIPT = "copy_terraform_built_artifacts.py"
+ZIP_UTILS_MODULE = "zip.py"
 TF_BACKEND_OVERRIDE_FILENAME = "z_samcli_backend_override"
 
 
@@ -87,6 +88,12 @@ def generate_makefile(
         Path(os.path.dirname(__file__)).parent.parent, TERRAFORM_BUILD_SCRIPT
     )
     shutil.copy(copy_terraform_built_artifacts_script_path, output_directory_path)
+
+    samcli_root_path = Path(os.path.dirname(__file__)).parent.parent.parent.parent
+
+    # copy zip.py script into output directory
+    ZIP_UTILS_MODULE_script_path = os.path.join(samcli_root_path, "local", "lambdafn", ZIP_UTILS_MODULE)
+    shutil.copy(ZIP_UTILS_MODULE_script_path, output_directory_path)
 
     # create makefile
     makefile_path = os.path.join(output_directory_path, "Makefile")
