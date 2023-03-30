@@ -1,5 +1,6 @@
 import os
 import pathlib
+import shutil
 import subprocess
 import tempfile
 import sys
@@ -11,7 +12,8 @@ TIMEOUT = 3
 
 class TestCopyTerraformBuiltArtifacts(TestCase):
     def setUp(self) -> None:
-        self.script_dir = pathlib.Path(__file__).parents[3].joinpath("samcli", "hook_packages", "terraform")
+        self.samcli_root_path = pathlib.Path(__file__).parents[3].joinpath("samcli")
+        self.script_dir = self.samcli_root_path.joinpath("hook_packages", "terraform")
         self.working_dir = pathlib.Path(__file__).parents[0]
         self.script_name = "copy_terraform_built_artifacts.py"
         self.script_location = self.script_dir.joinpath(self.script_name)
@@ -23,6 +25,12 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
         )
         self.directory = pathlib.Path(tempfile.mkdtemp()).absolute()
         self.artifact_name = "test_artifact"
+
+        self.zip_module_path = self.samcli_root_path.joinpath("local", "lambdafn", "zip.py")
+        shutil.copy(self.zip_module_path, self.script_dir)
+
+    def tearDown(self) -> None:
+        os.remove(os.path.join(self.script_dir, "zip.py"))
 
     def test_script_output_path_directory(self):
         with open(self.input_file, "rb") as f:
