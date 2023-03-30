@@ -248,9 +248,9 @@ class LambdaAuthorizerV2Validator(BaseLambdaAuthorizerValidator):
 
         payload_version = properties.get(LambdaAuthorizerV2Validator.AUTHORIZER_V2_PAYLOAD)
 
-        if payload_version not in LambdaAuthorizer.PAYLOAD_VERSIONS:
+        if payload_version not in [None, *LambdaAuthorizer.PAYLOAD_VERSIONS]:
             raise InvalidSamTemplateException(
-                f"Lambda Authorizer '{logical_id}' is missing or invalid "
+                f"Lambda Authorizer '{logical_id}' contains an invalid "
                 f"'{LambdaAuthorizerV2Validator.AUTHORIZER_V2_PAYLOAD}'"
                 ", it must be set to '1.0' or '2.0'"
             )

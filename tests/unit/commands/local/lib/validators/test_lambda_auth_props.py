@@ -113,19 +113,62 @@ class TestLambdaAuthorizerV1Validator(TestCase):
 
 
 class TestLambdaAuthorizerV2Validator(TestCase):
+    @parameterized.expand(
+        [
+            (  # authorizer with 2.0 payload and simple responses
+                {
+                    "Properties": {
+                        "AuthorizerType": "REQUEST",
+                        "ApiId": "my-rest-api",
+                        "Name": "my-auth-name",
+                        "AuthorizerUri": "arn",
+                        "IdentitySource": ["$request.header.auth", "$context.something"],
+                        "AuthorizerPayloadFormatVersion": "2.0",
+                        "EnableSimpleResponses": True,
+                    }
+                },
+            ),
+            (  # authorizer with 2.0 payload and NO simple responses
+                {
+                    "Properties": {
+                        "AuthorizerType": "REQUEST",
+                        "ApiId": "my-rest-api",
+                        "Name": "my-auth-name",
+                        "AuthorizerUri": "arn",
+                        "IdentitySource": ["$request.header.auth", "$context.something"],
+                        "AuthorizerPayloadFormatVersion": "2.0",
+                        "EnableSimpleResponses": False,
+                    }
+                },
+            ),
+            (  # authorizer with 1.0 payload and NO simple responses
+                {
+                    "Properties": {
+                        "AuthorizerType": "REQUEST",
+                        "ApiId": "my-rest-api",
+                        "Name": "my-auth-name",
+                        "AuthorizerUri": "arn",
+                        "IdentitySource": ["$request.header.auth", "$context.something"],
+                        "AuthorizerPayloadFormatVersion": "1.0",
+                    }
+                },
+            ),
+            (  # authorizer with missing payload version
+                {
+                    "Properties": {
+                        "AuthorizerType": "REQUEST",
+                        "ApiId": "my-rest-api",
+                        "Name": "my-auth-name",
+                        "AuthorizerUri": "arn",
+                        "IdentitySource": ["$request.header.auth", "$context.something"],
+                    }
+                },
+            ),
+        ]
+    )
     @patch("samcli.commands.local.lib.swagger.integration_uri.LambdaUri.get_function_name")
-    def test_valid_v2_properties(self, function_mock):
+    def test_valid_v2_properties(self, properties, function_mock):
         logical_id = "id"
-        properties = {
-            "Properties": {
-                "AuthorizerType": "REQUEST",
-                "ApiId": "my-rest-api",
-                "Name": "my-auth-name",
-                "AuthorizerUri": "arn",
-                "IdentitySource": ["$request.header.auth", "$context.something"],
-                "AuthorizerPayloadFormatVersion": "2.0",
-            }
-        }
 
         # mock ARN resolving function
         auth_lambda_func_name = "my-lambda"
@@ -174,7 +217,7 @@ class TestLambdaAuthorizerV2Validator(TestCase):
                 },
                 "Lambda Authorizer 'my-auth-id' must have 'IdentitySource' of type list defined.",
             ),
-            (  # test missing payload version
+            (  # test invalid payload version
                 {
                     "Properties": {
                         "AuthorizerType": "REQUEST",
@@ -182,9 +225,10 @@ class TestLambdaAuthorizerV2Validator(TestCase):
                         "Name": "myauth",
                         "AuthorizerUri": "arn",
                         "IdentitySource": [],
+                        "AuthorizerPayloadFormatVersion": "1.2.3",
                     }
                 },
-                "Lambda Authorizer 'my-auth-id' is missing or invalid 'AuthorizerPayloadFormatVersion', it must be set to '1.0' or '2.0'",
+                "Lambda Authorizer 'my-auth-id' contains an invalid 'AuthorizerPayloadFormatVersion', it must be set to '1.0' or '2.0'",
             ),
             (  # test using simple response but wrong payload version
                 {

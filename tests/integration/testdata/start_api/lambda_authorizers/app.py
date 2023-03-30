@@ -19,7 +19,7 @@ def lambda_handler(event, context):
 
     # assume APIGW V1, search for passed message under "authorizer"
     message = authorizer_context.get("passed")
-
+    
     if not message:
         # this may be V2, search under "authorizer" -> "lambda"
         message = authorizer_context.get("lambda", {}).get("passed")
