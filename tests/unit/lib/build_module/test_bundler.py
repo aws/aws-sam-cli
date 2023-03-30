@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch, Mock
 
@@ -177,7 +178,8 @@ class PostProcessHandler(TestCase):
     def test_get_path_and_filename_from_handler(self):
         handler = "src/functions/FunctionName/app.Handler"
         file = EsbuildBundlerManager._get_path_and_filename_from_handler(handler)
-        self.assertEqual(file, "src/functions/FunctionName/app.js")
+        expected_path = str(Path("src") / "functions" / "FunctionName" / "app.js")
+        self.assertEqual(file, expected_path)
 
     @patch("samcli.lib.build.bundler.Path.__init__")
     def test_check_invalid_lambda_handler(self, mock_path):

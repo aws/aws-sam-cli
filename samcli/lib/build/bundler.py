@@ -192,7 +192,7 @@ class EsbuildBundlerManager:
                 long_path_handler = resource.get("Properties", {}).get("Handler", "")
                 if not long_path_handler or not self._should_update_handler(long_path_handler, name):
                     continue
-                resolved_handler = str(PosixPath(long_path_handler).name)
+                resolved_handler = str(Path(long_path_handler).name)
                 template_resource = template.get("Resources", {}).get(name, {})
                 template_resource["Properties"]["Handler"] = resolved_handler
         return template
