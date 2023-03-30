@@ -3,7 +3,7 @@ Handles bundler properties as needed to modify the build process
 """
 import logging
 from copy import deepcopy
-from pathlib import Path
+from pathlib import Path, PosixPath
 from typing import Dict, Optional
 
 from samcli.commands.local.lib.exceptions import InvalidHandlerPathError
@@ -172,7 +172,7 @@ class EsbuildBundlerManager:
         """
         try:
             path = str(Path(handler).parent / Path(handler).stem) + ".js"
-        except AttributeError:
+        except (AttributeError, TypeError):
             raise InvalidHandlerPathError("Unable to parse the handler")
         return path
 
@@ -192,7 +192,7 @@ class EsbuildBundlerManager:
                 long_path_handler = resource.get("Properties", {}).get("Handler", "")
                 if not long_path_handler or not self._should_update_handler(long_path_handler, name):
                     continue
-                resolved_handler = str(Path(long_path_handler).name)
+                resolved_handler = str(PosixPath(long_path_handler).name)
                 template_resource = template.get("Resources", {}).get(name, {})
                 template_resource["Properties"]["Handler"] = resolved_handler
         return template
