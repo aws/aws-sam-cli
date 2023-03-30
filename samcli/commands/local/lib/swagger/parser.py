@@ -137,13 +137,7 @@ class SwaggerParser:
                 )
 
             enable_simple_response = authorizer_object.get(SwaggerParser._AUTHORIZER_SIMPLE_RESPONSES, False)
-            if (
-                event_type == Route.API
-                and enable_simple_response
-                or event_type == Route.HTTP
-                and payload_version != LambdaAuthorizer.PAYLOAD_V2
-                and enable_simple_response
-            ):
+            if event_type != Route.HTTP or payload_version != LambdaAuthorizer.PAYLOAD_V2 and enable_simple_response:
                 enable_simple_response = False
 
                 LOG.warning(
