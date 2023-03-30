@@ -10,7 +10,7 @@ from samcli.cli.row_modifiers import RowDefinition
 REQUIRED_OPTIONS: List[str] = ["stack_name", "capabilities", "resolve_s3"]
 
 # Can be used instead of the options in the first list
-SECONDARY_REQUIRED_OPTIONS: List[str] = ["guided"]
+INTERACTIVE_OPTIONS: List[str] = ["guided"]
 
 AWS_CREDENTIAL_OPTION_NAMES: List[str] = ["region", "profile"]
 
@@ -48,7 +48,7 @@ OTHER_OPTIONS: List[str] = ["debug", "help"]
 
 ALL_OPTIONS: List[str] = (
     REQUIRED_OPTIONS
-    + SECONDARY_REQUIRED_OPTIONS
+    + INTERACTIVE_OPTIONS
     + AWS_CREDENTIAL_OPTION_NAMES
     + INFRASTRUCTURE_OPTION_NAMES
     + DEPLOYMENT_OPTIONS
@@ -59,8 +59,8 @@ ALL_OPTIONS: List[str] = (
 
 OPTIONS_INFO: Dict[str, Dict] = {
     "Required Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(REQUIRED_OPTIONS)}},
-    "Secondary Required Options": {
-        "option_names": {opt: {"rank": idx} for idx, opt in enumerate(SECONDARY_REQUIRED_OPTIONS)},
+    "Interactive Options": {
+        "option_names": {opt: {"rank": idx} for idx, opt in enumerate(INTERACTIVE_OPTIONS)},
         "extras": [
             RowDefinition(name="Use the guided flag for a step-by-step flow instead of using the required options. ")
         ],

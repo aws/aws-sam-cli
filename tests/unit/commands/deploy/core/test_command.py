@@ -42,7 +42,7 @@ class TestDeployCommand(unittest.TestCase):
             "Other Options": [("", ""), ("--debug", ""), ("", "")],
             "Required Options": [("", ""), ("--stack-name", ""), ("", "")],
             "Infrastructure Options": [("", ""), ("--s3-bucket", ""), ("", "")],
-            "Secondary Required Options": [("", ""), ("--guided", ""), ("", "")],
+            "Interactive Options": [("", ""), ("--guided", ""), ("", "")],
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Acronyms": [("", ""), ("IAM", ""), ("ARN", ""), ("S3", ""), ("SNS", ""), ("ECR", ""), ("KMS", "")],
             "Examples": [
