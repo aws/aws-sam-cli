@@ -19,7 +19,7 @@ class TestECRUtils(TestCase):
     def test_valid_localhost_ecr_url(self):
         url = "localhost/my-repo"
         self.assertTrue(is_ecr_url(url))
-    
+
     def test_valid_localhost_ecr_url_port(self):
         url = "localhost:8084/my-repo"
         self.assertTrue(is_ecr_url(url))
@@ -37,7 +37,7 @@ class TestECRUtils(TestCase):
         self.assertFalse(is_ecr_url(url))
 
     def test_ecr_url_only_hostname2(self):
-        url = "000000000000.dkr.ecr.eu-west-1.amazonaws.com/" # with slash
+        url = "000000000000.dkr.ecr.eu-west-1.amazonaws.com/"  # with slash
         self.assertFalse(is_ecr_url(url))
 
     def test_ecr_url_non_alphanum_starting_char(self):
@@ -83,4 +83,3 @@ class TestECRUtils(TestCase):
     def test_127_0_0_1_ecr_url_wronghostname(self):
         url = "127.0.0.2:1234/my-repo"
         self.assertFalse(is_ecr_url(url))
-
