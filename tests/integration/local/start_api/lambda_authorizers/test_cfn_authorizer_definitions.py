@@ -222,7 +222,7 @@ Resources:
     @pytest.mark.timeout(timeout=10, method="thread")
     def test_invalid_template(self):
         self.assertIn(
-            "Error: Lambda Authorizer 'RequestAuthorizerV2Simple' is missing or "
+            "Error: Lambda Authorizer 'RequestAuthorizerV2Simple' contains an "
             "invalid 'AuthorizerPayloadFormatVersion', it must be set to '1.0' or '2.0'",
             self.start_api_process_output,
         )
