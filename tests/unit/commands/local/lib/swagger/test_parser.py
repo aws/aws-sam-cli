@@ -606,6 +606,224 @@ class TestSwaggerParser_get_authorizers(TestCase):
         with self.assertRaises(InvalidOasVersion):
             parser.get_authorizers()
 
+    @parameterized.expand(
+        [
+            (  # API event with a defined validation string (123), expect lambda auth obj property populated
+                {
+                    "swagger": "2.0",
+                    "securityDefinitions": {
+                        "TokenAuth": {
+                            "type": "apiKey",
+                            "in": "header",
+                            "name": "Auth",
+                            "x-amazon-apigateway-authtype": "custom",
+                            "x-amazon-apigateway-authorizer": {
+                                "type": "token",
+                                "identityValidationExpression": "123",
+                                "authorizerUri": "arn",
+                            },
+                        },
+                    },
+                },
+                "123",
+                Route.API,
+            ),
+            (  # HTTP event with a defined validation string (123), expect lambda auth obj property NOT populated
+                {
+                    "openapi": "3.0",
+                    "components": {
+                        "securitySchemes": {
+                            "TokenAuth": {
+                                "type": "apiKey",
+                                "in": "header",
+                                "name": "unused",
+                                "x-amazon-apigateway-authtype": "custom",
+                                "x-amazon-apigateway-authorizer": {
+                                    "authorizerPayloadFormatVersion": "2.0",
+                                    "type": "request",
+                                    "identityValidationExpression": "123",
+                                    "authorizerUri": "arn",
+                                    "identitySource": "$request.header.header",
+                                },
+                            },
+                        }
+                    },
+                },
+                None,
+                Route.HTTP,
+            ),
+        ]
+    )
+    @patch("samcli.commands.local.lib.swagger.parser.LambdaUri")
+    @patch("samcli.commands.local.lib.swagger.parser.SwaggerParser._get_lambda_identity_sources")
+    def test_defining_validation_expression(
+        self, swagger_doc, expected_validation_string, event_type, get_id_sources_mock, mock_lambda_uri
+    ):
+        mock_lambda_uri.get_function_name.return_value = "arn"
+
+        parser = SwaggerParser(Mock(), swagger_doc)
+
+        lambda_authorizers = parser.get_authorizers(event_type)
+
+        self.assertEqual(lambda_authorizers["TokenAuth"].validation_string, expected_validation_string)
+
+    @parameterized.expand(
+        [
+            ##
+            # testing API events
+            #
+            (  # using 2.0 payload and no simple response, expect it to be set as False
+                "2.0",
+                False,
+                Route.API,
+                False,
+            ),
+            (  # using 1.0 payload and no simple response, expect it to be set as False
+                "1.0",
+                False,
+                Route.API,
+                False,
+            ),
+            (  # using 1.0 payload and simple response IS set, expect it to be set as False
+                "1.0",
+                True,
+                Route.API,
+                False,
+            ),
+            (  # using 2.0 payload and simple response IS set, expect it to be set as False
+                "2.0",
+                True,
+                Route.API,
+                False,
+            ),
+            ##
+            # testing HTTP events
+            #
+            (  # using 2.0 payload and no simple response, expect it to be set as False
+                "2.0",
+                False,
+                Route.HTTP,
+                False,
+            ),
+            (  # using 1.0 payload and no simple response, expect it to be set as False
+                "1.0",
+                False,
+                Route.HTTP,
+                False,
+            ),
+            (  # using 1.0 payload and simple response IS set, expect it to be set as False
+                "1.0",
+                True,
+                Route.HTTP,
+                False,
+            ),
+            (  # using 2.0 payload and simple response IS set, expect it to be set as True
+                "2.0",
+                True,
+                Route.HTTP,
+                True,
+            ),
+        ]
+    )
+    @patch("samcli.commands.local.lib.swagger.parser.LambdaUri")
+    @patch("samcli.commands.local.lib.swagger.parser.SwaggerParser._get_lambda_identity_sources")
+    def test_defining_simple_responses(
+        self,
+        payload_version,
+        enabled_simple_response,
+        event_type,
+        expected_response,
+        get_id_sources_mock,
+        mock_lambda_uri,
+    ):
+        mock_lambda_uri.get_function_name.return_value = "arn"
+
+        swagger_doc = {
+            "openapi": "3.0",
+            "components": {
+                "securitySchemes": {
+                    "Authorizer": {
+                        "type": "apiKey",
+                        "in": "header",
+                        "name": "notused",
+                        "x-amazon-apigateway-authorizer": {
+                            "authorizerPayloadFormatVersion": payload_version,
+                            "enableSimpleResponses": enabled_simple_response,
+                            "type": "request",
+                            "authorizerUri": "arn",
+                            "identitySource": "$request.header.header",
+                        },
+                    },
+                },
+            },
+        }
+
+        parser = SwaggerParser(Mock(), swagger_doc)
+
+        lambda_authorizers = parser.get_authorizers(event_type)
+
+        self.assertEqual(lambda_authorizers["Authorizer"].use_simple_response, expected_response)
+
+    @patch("samcli.commands.local.lib.swagger.parser.LambdaUri")
+    @patch("samcli.commands.local.lib.swagger.parser.SwaggerParser._get_lambda_identity_sources")
+    def test_defining_invalid_payload_versions(self, get_id_sources_mock, mock_lambda_uri):
+        mock_lambda_uri.get_function_name.return_value = "arn"
+
+        swagger_doc = {
+            "openapi": "3.0",
+            "components": {
+                "securitySchemes": {
+                    "TokenAuth": {
+                        "type": "apiKey",
+                        "in": "header",
+                        "name": "Auth",
+                        "x-amazon-apigateway-authtype": "custom",
+                        "x-amazon-apigateway-authorizer": {
+                            "authorizerPayloadFormatVersion": "1.2.3",
+                            "type": "request",
+                            "authorizerUri": "arn",
+                            "identitySource": "$request.header.header",
+                        },
+                    },
+                },
+            },
+        }
+
+        parser = SwaggerParser(Mock(), swagger_doc)
+
+        with self.assertRaisesRegex(
+            InvalidSecurityDefinition, "^Authorizer 'TokenAuth' contains an invalid payload version$"
+        ):
+            parser.get_authorizers(Route.HTTP)
+
+    @patch("samcli.commands.local.lib.swagger.parser.LambdaUri")
+    @patch("samcli.commands.local.lib.swagger.parser.SwaggerParser._get_lambda_identity_sources")
+    def test_undefined_payload_api_event(self, get_id_sources_mock, mock_lambda_uri):
+        """
+        Tests if the payload version is set to 1.0 if it is not defined for API events
+        """
+        mock_lambda_uri.get_function_name.return_value = "arn"
+
+        swagger_doc = {
+            "swagger": "2.0",
+            "securityDefinitions": {
+                "TokenAuth": {
+                    "type": "apiKey",
+                    "in": "header",
+                    "name": "Auth",
+                    "x-amazon-apigateway-authtype": "custom",
+                    "x-amazon-apigateway-authorizer": {
+                        "type": "token",
+                        "authorizerUri": "arn",
+                    },
+                },
+            },
+        }
+
+        parser = SwaggerParser(Mock(), swagger_doc)
+
+        self.assertEqual(parser.get_authorizers(Route.API)["TokenAuth"].payload_version, LambdaAuthorizer.PAYLOAD_V1)
+
 
 class TestSwaggerParser_get_default_authorizer(TestCase):
     def test_valid_default_authorizers(self):
