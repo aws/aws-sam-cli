@@ -186,7 +186,7 @@ class PostProcessHandler(TestCase):
         mock_path.return_value = None
         bundler_manager = EsbuildBundlerManager(Mock(), build_dir="/build/dir")
         bundler_manager._get_path_and_filename_from_handler = Mock()
-        bundler_manager._get_path_and_filename_from_handler.return_value = ""
+        bundler_manager._get_path_and_filename_from_handler.return_value = "some-path"
         return_val = bundler_manager._should_update_handler("", "")
         self.assertTrue(return_val)
 

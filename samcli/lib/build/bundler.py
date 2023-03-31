@@ -153,16 +153,15 @@ class EsbuildBundlerManager:
         """
         if not self._build_dir:
             return False
-        try:
-            handler_filename = self._get_path_and_filename_from_handler(handler)
-        except InvalidHandlerPathError:
+        handler_filename = self._get_path_and_filename_from_handler(handler)
+        if not handler_filename:
             LOG.debug("Unable to parse handler, continuing without post-processing template.")
             return False
         expected_artifact_path = Path(self._build_dir, name, handler_filename)
         return not expected_artifact_path.is_file()
 
     @staticmethod
-    def _get_path_and_filename_from_handler(handler: str) -> str:
+    def _get_path_and_filename_from_handler(handler: str) -> Optional[str]:
         """
         Takes a string representation of the handler defined in the
         template, returns the file name and location of the handler.
@@ -173,7 +172,7 @@ class EsbuildBundlerManager:
         try:
             path = str(Path(handler).parent / Path(handler).stem) + ".js"
         except (AttributeError, TypeError):
-            raise InvalidHandlerPathError("Unable to parse the handler")
+            return None
         return path
 
     def _update_function_handler(self, template: Dict) -> Dict:
