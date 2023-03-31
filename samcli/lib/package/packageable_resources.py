@@ -21,6 +21,7 @@ from samcli.lib.package.utils import (
     is_s3_protocol_url,
     is_zip_file,
     resource_not_packageable,
+    upload_gql_local_artifacts,
     upload_local_artifacts,
     upload_local_image_artifacts,
 )
@@ -40,6 +41,7 @@ from samcli.lib.utils.resources import (
     AWS_LAMBDA_LAYERVERSION,
     AWS_SERVERLESS_API,
     AWS_SERVERLESS_FUNCTION,
+    AWS_SERVERLESS_GRAPHQLAPI,
     AWS_SERVERLESS_HTTPAPI,
     AWS_SERVERLESS_LAYERVERSION,
     AWS_SERVERLESS_STATEMACHINE,
@@ -49,6 +51,7 @@ from samcli.lib.utils.resources import (
     RESOURCES_WITH_IMAGE_COMPONENT,
     RESOURCES_WITH_LOCAL_PATHS,
 )
+from samtranslator.internal.schema_source import aws_serverless_graphqlapi
 
 LOG = logging.getLogger(__name__)
 
@@ -404,6 +407,62 @@ class ServerlessStateMachineResource(ResourceWithS3UrlDict):
     VERSION_PROPERTY = "Version"
 
 
+class SamGraphQLResource(ResourceZip):
+    RESOURCE_TYPE = AWS_SERVERLESS_GRAPHQLAPI
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
+    # Don't package the directory if CodeUri is omitted.
+    # Necessary to support InlineCode
+    PACKAGE_NULL_PROPERTY = False
+
+    def export(self, resource_id: str, resource_dict: Optional[Dict], parent_dir: str):
+        if resource_dict is None:
+            return
+
+        if resource_not_packageable(resource_dict):
+            return
+
+        # schema-based class with extra methods to resolve paths
+        graphql = aws_serverless_graphqlapi.Properties(**resource_dict)
+
+        for resource in graphql.list_resources_with_code():
+            try:
+                self.do_export(resource_id, resource, parent_dir)
+
+            except Exception as ex:
+                LOG.debug("Unable to export", exc_info=ex)
+                raise exceptions.ExportFailedError(
+                    resource_id=resource_id, property_name=self.PROPERTY_NAME, property_value=resource.get_code_uri(), ex=ex
+                )
+        return graphql.dict(exclude_none=True)
+
+    def do_export(self, resource_id, resource, parent_dir):
+        """
+        Default export action is to upload artifacts and set the property to
+        S3 URL of the uploaded object
+        If code signing configuration is provided for function/layer, uploaded artifact
+        will be replaced by signed artifact location
+        """
+        # code signer only accepts files which has '.zip' extension in it
+        # so package artifact with '.zip' if it is required to be signed
+        should_sign_package = self.code_signer.should_sign_package(resource_id)
+        artifact_extension = "zip" if should_sign_package else None
+        local_path = resource.get_code_uri()
+        if local_path:
+            uploaded_url = upload_gql_local_artifacts(
+                self.RESOURCE_TYPE,
+                resource_id,
+                local_path,
+                parent_dir,
+                self.uploader,
+                artifact_extension,
+            )
+            if should_sign_package:
+                uploaded_url = self.code_signer.sign_package(
+                    resource_id, uploaded_url, self.uploader.get_version_of_artifact(uploaded_url)
+                )
+            resource.set_code_uri(uploaded_url)
+
+
 class GraphQLSchemaResource(ResourceZip):
     RESOURCE_TYPE = AWS_APPSYNC_GRAPHQLSCHEMA
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
@@ -586,6 +645,7 @@ class ECRResource(Resource):
 
 
 RESOURCES_EXPORT_LIST = [
+    SamGraphQLResource,
     ServerlessFunctionResource,
     ServerlessFunctionImageResource,
     ServerlessApiResource,

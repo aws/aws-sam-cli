@@ -288,7 +288,9 @@ class Template:
                     continue
                 # Export code resources
                 exporter = exporter_class(self.uploaders, self.code_signer)
-                exporter.export(full_path, resource_dict, self.template_dir)
+                updated_resource_dict = exporter.export(full_path, resource_dict, self.template_dir)
+                if updated_resource_dict and resource.get("Properties"):
+                    resource["Properties"] = updated_resource_dict
 
         return self.template_dict
 

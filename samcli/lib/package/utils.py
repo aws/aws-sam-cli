@@ -192,6 +192,70 @@ def upload_local_artifacts(
     raise InvalidLocalPathError(resource_id=resource_id, property_name=property_name, local_path=local_path)
 
 
+def upload_gql_local_artifacts(
+    resource_type: str,
+    resource_id: str,
+    local_path: str,
+    parent_dir: str,
+    uploader: S3Uploader,
+    extension: Optional[str] = None,
+) -> str:
+    """
+    Upload local artifacts referenced by the property at given resource and
+    return S3 URL of the uploaded object. It is the responsibility of callers
+    to ensure property value is a valid string
+
+    If path refers to a file, this method will upload the file. If path refers
+    to a folder, this method will zip the folder and upload the zip to S3.
+    If path is omitted, this method will zip the current working folder and
+    upload.
+
+    If path is already a path to S3 object, this method does nothing.
+
+    :param resource_type:   Type of the CloudFormation resource
+    :param resource_id:     Id of the CloudFormation resource
+    :param resource_dict:   Dictionary containing resource definition
+    :param local_path:      local path
+    :param parent_dir:      Resolve all relative paths with respect to this
+                            directory
+    :param uploader:        Method to upload files to S3
+    :param extension:       Extension of the uploaded artifact
+    :return:                S3 URL of the uploaded object
+    :raise:                 ValueError if path is not a S3 URL or a local path
+    """
+
+    # local_path = jmespath.search(property_name, resource_dict)
+
+    # if local_path is None:
+    #     # Build the root directory and upload to S3
+    #     local_path = parent_dir
+
+    if is_s3_protocol_url(local_path):
+        # A valid CloudFormation template will specify artifacts as S3 URLs.
+        # This check is supporting the case where your resource does not
+        # refer to local artifacts
+        # Nothing to do if property value is an S3 URL
+        LOG.debug("Property %s of %s is already a S3 URL", local_path, resource_id)
+        return cast(str, local_path)
+
+    local_path = make_abs_path(parent_dir, local_path)
+
+    # Or, pointing to a folder. Zip the folder and upload (zip_method is changed based on resource type)
+    if is_local_folder(local_path):
+        return zip_and_upload(
+            local_path,
+            uploader,
+            extension,
+            zip_method=make_zip_with_lambda_permissions if resource_type in LAMBDA_LOCAL_RESOURCES else make_zip,
+        )
+
+    # Path could be pointing to a file. Upload the file
+    if is_local_file(local_path):
+        return uploader.upload_with_dedup(local_path)
+
+    raise InvalidLocalPathError(resource_id=resource_id, property_name="GQL", local_path=local_path)
+
+
 def resource_not_packageable(resource_dict):
     inline_code = jmespath.search("InlineCode", resource_dict)
     if inline_code is not None:
