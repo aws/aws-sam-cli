@@ -718,7 +718,7 @@ class TestLayerVersionBase(InvokeIntegBase):
         for image in samcli_images:
             docker_client.images.remove(image.id)
 
-        shutil.rmtree(str(self.layer_cache))
+        shutil.rmtree(str(self.layer_cache), ignore_errors=True)
 
     @classmethod
     def setUpClass(cls):
@@ -782,6 +782,24 @@ class TestLayerVersion(TestLayerVersionBase):
         expected_output = '"This is a Layer Ping from simple_python"'
 
         self.assertEqual(process_stdout.decode("utf-8"), expected_output)
+
+    def test_invoke_with_invoke_image_provided(self):
+        command_list = InvokeIntegBase.get_command_list(
+            "ReferenceLambdaLayerVersionServerlessFunction",
+            template_path=self.template_path,
+            event_path=self.event_path,
+            invoke_image="amazon/aws-sam-cli-emulation-image-python3.9",
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
+        self.assertEqual(process_stdout.decode("utf-8"), '"This is a Layer Ping from simple_python"')
 
     @parameterized.expand([("OneLayerVersionServerlessFunction"), ("OneLayerVersionLambdaFunction")])
     def test_download_one_layer(self, function_logical_id):
