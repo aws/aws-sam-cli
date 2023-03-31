@@ -152,8 +152,11 @@ class Context:
 
         """
         click_core_ctx = click.get_current_context()
-        if click_core_ctx:
-            return click_core_ctx.template_dict
+        try:
+            if click_core_ctx:
+                return click_core_ctx.template_dict
+        except AttributeError:
+            return None
 
         return None
 

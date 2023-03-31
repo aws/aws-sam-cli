@@ -15,8 +15,9 @@ from uuid import uuid4
 
 import psutil
 
+RUNNING_ON_APPVEYOR = os.environ.get("APPVEYOR", False)
 IS_WINDOWS = platform.system().lower() == "windows"
-RUNNING_ON_CI = os.environ.get("APPVEYOR", False) or os.environ.get("CI", False)
+RUNNING_ON_CI = RUNNING_ON_APPVEYOR or os.environ.get("CI", False)
 RUNNING_TEST_FOR_MASTER_ON_CI = (
     os.environ.get("APPVEYOR_REPO_BRANCH", os.environ.get("GITHUB_REF_NAME", "master")) != "master"
 )

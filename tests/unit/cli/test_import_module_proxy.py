@@ -32,6 +32,10 @@ class TestImportModuleProxy(TestCase):
 
     @parameterized.expand(hidden_imports.SAM_CLI_HIDDEN_IMPORTS)
     def test_import_should_succeed_for_a_defined_hidden_package(self, package):
+        if package == "samcli.hook_packages.terraform.copy_terraform_built_artifacts":
+            self.skipTest(
+                "Copy Terraform built artifacts script will not be imported in sam cli, but will be executed as a standalone script and does not require any non standard modules"
+            )
         try:
             importlib.import_module(package)
         except ModuleNotFoundError as ex:

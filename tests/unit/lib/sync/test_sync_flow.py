@@ -13,6 +13,15 @@ from samcli.lib.sync.sync_flow import (
 )
 from parameterized import parameterized
 
+from samcli.lib.utils.resources import (
+    AWS_SERVERLESS_HTTPAPI,
+    AWS_SERVERLESS_API,
+    AWS_SERVERLESS_STATEMACHINE,
+    AWS_APIGATEWAY_RESTAPI,
+    AWS_APIGATEWAY_V2_API,
+    AWS_STEPFUNCTIONS_STATEMACHINE,
+)
+
 
 class TestSyncFlow(TestCase):
     def create_sync_flow(self, mock_update_local_hash=True):
@@ -220,49 +229,69 @@ class TestSyncFlow(TestCase):
         sync_flow._equality_keys.return_value = "A"
         self.assertEqual(hash(sync_flow), hash((type(sync_flow), "A")))
 
+    @parameterized.expand(
+        [
+            (AWS_SERVERLESS_HTTPAPI, "DefinitionUri"),
+            (AWS_SERVERLESS_API, "DefinitionUri"),
+            (AWS_SERVERLESS_STATEMACHINE, "DefinitionUri"),
+            (AWS_APIGATEWAY_V2_API, "BodyS3Location"),
+            (AWS_APIGATEWAY_RESTAPI, "BodyS3Location"),
+            (AWS_STEPFUNCTIONS_STATEMACHINE, "DefinitionS3Location"),
+        ]
+    )
     @patch("samcli.lib.sync.sync_flow.Stack.get_stack_by_full_path")
-    def test_get_definition_path(self, get_stack_mock):
-        resource = {"Properties": {"DefinitionUri": "test_uri"}}
+    def test_get_definition_path(self, resource_type, definition_field, get_stack_mock):
+        resource = {"Properties": {definition_field: "test_uri"}, "Type": resource_type}
         get_stack_mock.return_value = Stack("parent_path", "stack_name", "location/template.yaml", None, {})
 
         definition_path = get_definition_path(resource, "identifier", False, "base_dir", [])
         self.assertEqual(definition_path, Path("location").joinpath("test_uri"))
 
-        resource = {"Properties": {"DefinitionUri": ""}}
+        resource = {"Properties": {definition_field: ""}, "Type": resource_type}
         definition_path = get_definition_path(resource, "identifier", False, "base_dir", [])
         self.assertEqual(definition_path, None)
 
-    def test_get_definition_file_with_base_dir(self):
-        resource = {"Properties": {"DefinitionUri": "test_uri"}}
+    @parameterized.expand(
+        [
+            (AWS_SERVERLESS_HTTPAPI, "DefinitionUri"),
+            (AWS_SERVERLESS_API, "DefinitionUri"),
+            (AWS_SERVERLESS_STATEMACHINE, "DefinitionUri"),
+            (AWS_APIGATEWAY_V2_API, "BodyS3Location"),
+            (AWS_APIGATEWAY_RESTAPI, "BodyS3Location"),
+            (AWS_STEPFUNCTIONS_STATEMACHINE, "DefinitionS3Location"),
+        ]
+    )
+    def test_get_definition_file_with_base_dir(self, resource_type, definition_field):
+        resource = {"Properties": {definition_field: "test_uri"}, "Type": resource_type}
 
         definition_path = get_definition_path(resource, "identifier", True, "base_dir", [])
         self.assertEqual(definition_path, Path("base_dir").joinpath("test_uri"))
 
-    # Reminder: Add back after sync infra skip ready for release
-    # @patch("samcli.lib.sync.sync_flow.Session")
-    # @patch.multiple(SyncFlow, __abstractmethods__=set())
-    # def test_compare_local(self, patched_session):
-    #     sync_flow = SyncFlow(
-    #         build_context=MagicMock(),
-    #         deploy_context=MagicMock(),
-    #         sync_context=MagicMock(),
-    #         physical_id_mapping={},
-    #         log_name="log-name",
-    #         stacks=[MagicMock()],
-    #     )
-    #     sync_flow.gather_resources = MagicMock()
-    #     sync_flow.compare_remote = MagicMock()
-    #     sync_flow.sync = MagicMock()
-    #     sync_flow.gather_dependencies = MagicMock()
-    #     sync_flow._get_resource_api_calls = MagicMock()
+    @patch("samcli.lib.sync.sync_flow.Session")
+    @patch("samcli.lib.sync.sync_flow.SyncFlow.sync_state_identifier", new_callable=PropertyMock)
+    @patch.multiple(SyncFlow, __abstractmethods__=set())
+    def test_compare_local(self, patched_session, patched_sync_state_identifier):
+        sync_flow = SyncFlow(
+            build_context=MagicMock(),
+            deploy_context=MagicMock(),
+            sync_context=MagicMock(),
+            physical_id_mapping={},
+            log_name="log-name",
+            stacks=[MagicMock()],
+        )
+        sync_flow.gather_resources = MagicMock()
+        sync_flow.compare_remote = MagicMock()
+        sync_flow.sync = MagicMock()
+        sync_flow.gather_dependencies = MagicMock()
+        sync_flow._get_resource_api_calls = MagicMock()
 
-    #     sync_flow._local_sha = None
-    #     self.assertEqual(sync_flow.compare_local(), False)
+        sync_flow._local_sha = None
+        self.assertEqual(sync_flow.compare_local(), False)
 
-    #     sync_flow._local_sha = "hash"
+        sync_flow._local_sha = "hash"
 
-    #     sync_flow._sync_context.get_resource_latest_sync_hash.return_value = None
-    #     self.assertEqual(sync_flow.compare_local(), False)
+        sync_flow._sync_context.get_resource_latest_sync_hash.return_value = None
+        self.assertEqual(sync_flow.compare_local(), False)
 
-    #     sync_flow._sync_context.get_resource_latest_sync_hash.return_value = "hash"
-    #     self.assertEqual(sync_flow.compare_local(), True)
+        sync_flow._sync_context.get_resource_latest_sync_hash.return_value = "hash"
+        self.assertEqual(sync_flow.compare_local(), True)

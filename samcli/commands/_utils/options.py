@@ -275,16 +275,17 @@ def docker_click_options():
         click.option(
             "--skip-pull-image",
             is_flag=True,
-            help="Specify whether CLI should skip pulling down the latest Docker image for Lambda runtime.",
+            help="Skip pulling down the latest Docker image for Lambda runtime.",
             envvar="SAM_SKIP_PULL_IMAGE",
             default=False,
         ),
         click.option(
             "--docker-network",
             envvar="SAM_DOCKER_NETWORK",
-            help="Specifies the name or id of an existing docker network to lambda docker "
-            "containers should connect to, along with the default bridge network. If not specified, "
-            "the Lambda containers will only connect to the default bridge docker network.",
+            help="Name or ID of an existing docker network for AWS Lambda docker containers"
+            " to connect to, along with the default bridge network. "
+            "If not specified, the Lambda containers will only connect to the default"
+            " bridge docker network.",
         ),
     ]
 
@@ -295,9 +296,7 @@ def parameter_override_click_option():
         cls=OptionNargs,
         type=CfnParameterOverridesType(),
         default={},
-        help="String that contains AWS CloudFormation parameter overrides encoded as key=value pairs."
-        "\n\nExample: 'ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,"
-        "ParameterValue=t1.micro' or KeyPairName=MyKey InstanceType=t1.micro",
+        help="String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
     )
 
 
@@ -325,7 +324,7 @@ def signing_profiles_click_option():
         cls=OptionNargs,
         type=SigningProfilesOptionType(),
         default={},
-        help="Optional. A string that contains Code Sign configuration parameters as "
+        help="A string that contains Code Sign configuration parameters as "
         "FunctionOrLayerNameToSign=SigningProfileName:SigningProfileOwner "
         "Since signing profile owner is optional, it could also be written as "
         "FunctionOrLayerNameToSign=SigningProfileName",
@@ -466,8 +465,8 @@ def build_dir_click_option():
         "-b",
         default=DEFAULT_BUILD_DIR,
         type=click.Path(file_okay=False, dir_okay=True, writable=True),  # Must be a directory
-        help="Path to a folder where the built artifacts will be stored. "
-        "This directory will be first removed before starting a build.",
+        help="Directory to store build artifacts."
+        "Note: This directory will be first removed before starting a build.",
     )
 
 
@@ -481,8 +480,7 @@ def cache_dir_click_option():
         "-cd",
         default=DEFAULT_CACHE_DIR,
         type=click.Path(file_okay=False, dir_okay=True, writable=True),  # Must be a directory
-        help="The folder where the cache artifacts will be stored when --cached is specified. "
-        "The default cache directory is .aws-sam/cache",
+        help="Directory to store cached artifacts. The default cache directory is .aws-sam/cache",
     )
 
 
@@ -496,8 +494,8 @@ def base_dir_click_option():
         "-s",
         default=None,
         type=click.Path(dir_okay=True, file_okay=False),  # Must be a directory
-        help="Resolve relative paths to function's source code with respect to this folder. Use this if "
-        "SAM template and your source code are not in same enclosing folder. By default, relative paths "
+        help="Resolve relative paths to function's source code with respect to this directory. Use this if "
+        "SAM template and source code are not in same enclosing folder. By default, relative paths "
         "are resolved with respect to the SAM template's location.",
     )
 
@@ -512,7 +510,7 @@ def manifest_click_option():
         "-m",
         default=None,
         type=click.Path(),
-        help="Path to a custom dependency manifest (e.g., package.json) to use instead of the default one",
+        help="Path to a custom dependency manifest. Example: custom-package.json",
     )
 
 
@@ -527,13 +525,14 @@ def cached_click_option():
         default=False,
         required=False,
         is_flag=True,
-        help="Enable cached builds. Use this flag to reuse build artifacts that have not changed from previous builds. "
-        "AWS SAM evaluates whether you have made any changes to files in your project directory. \n\n"
-        "Note: AWS SAM does not evaluate whether changes have been made to third party modules "
-        "that your project depends on, where you have not provided a specific version. "
-        "For example, if your Python function includes a requirements.txt file with the following entry "
+        help="Enable cached builds."
+        "Reuse build artifacts that have not changed from previous builds. "
+        "\n\nAWS SAM CLI evaluates if files in your project directory have changed. \n\n"
+        "Note: AWS SAM CLI does not evaluate changes made to third party modules "
+        "that the project depends on."
+        "Example: Python function includes a requirements.txt file with the following entry "
         "requests=1.x and the latest request module version changes from 1.1 to 1.2, "
-        "SAM will not pull the latest version until you run a non-cached build.",
+        "AWS SAM CLI will not pull the latest version until a non-cached build is run.",
     )
 
 
@@ -661,9 +660,10 @@ def hook_name_click_option(force_prepare=True, invalid_coexist_options=None):
             default=None,
             type=click.STRING,
             required=False,
-            help=f"The id of the hook package to be used to extend the SAM CLI commands functionality. As an example, "
-            f"you can use `terraform` to extend SAM CLI commands functionality to support terraform applications. "
-            f"Available Hook Names {get_available_hook_packages_ids()}",
+            help=f"Hook package id to extend AWS SAM CLI commands functionality. "
+            f"\n\n Example: `terraform` to extend AWS SAM CLI commands "
+            f"functionality to support terraform applications. "
+            f"\n\n Available Hook Names: {get_available_hook_packages_ids()}",
         )(f)
 
     def hook_name_processer_wrapper(f):
@@ -705,8 +705,8 @@ def skip_prepare_infra_click_option():
         is_flag=True,
         required=False,
         callback=skip_prepare_infra_callback,
-        help="Use this option to skip the preparation stage if there have not been any infrastructure changes. "
-        "The --hook-name option should also be specified when skipping infrastructure preparation.",
+        help="Skip preparation stage when there are no infrastructure changes. "
+        "Only used in conjunction with --hook-name.",
     )
 
 

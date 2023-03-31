@@ -1,5 +1,5 @@
 version: 1.0.{build}
-image: Visual Studio 2019
+image: Visual Studio 2022
 build: off
 
 clone_folder: C:\source
@@ -58,10 +58,7 @@ cache:
 install:
   # setup make
   - "choco install make"
-  # Install latest dotnet sdk
-  - "choco install dotnet-sdk"
   # setup Java, Maven and Gradle
-  - "choco install maven -y --force"
   - "choco install gradle -y --force"
   - "java -version"
   - "gradle -v"
@@ -69,7 +66,7 @@ install:
 
   # Make sure the temp directory exists for Python to use.
   - ps: "mkdir -Force C:\\tmp"
-  - 'set PATH=%PYTHON_HOME%;C:\Ruby27-x64\bin;%PATH%;C:\Python37-x64;C:\Python39-x64'
+  - 'set PATH=%PYTHON_HOME%;C:\Ruby27-x64\bin;%PATH%;C:\Python37-x64;C:\Python39-x64;C:\Python310-x64'
   - "echo %PYTHON_HOME%"
   - "echo %PATH%"
   - "python --version"
@@ -84,6 +81,7 @@ install:
   # Install pip for the python versions which is used by the tests
   - "C:\\Python37-x64\\python.exe -m pip install --upgrade pip"
   - "C:\\Python39-x64\\python.exe -m pip install --upgrade pip"
+  - "C:\\Python310-x64\\python.exe -m pip install --upgrade pip"
 
   # Install AWS CLI Globally via pip3
   - "pip install awscli"
