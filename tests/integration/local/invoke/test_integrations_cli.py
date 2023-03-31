@@ -718,10 +718,7 @@ class TestLayerVersionBase(InvokeIntegBase):
         for image in samcli_images:
             docker_client.images.remove(image.id)
 
-        try:
-            shutil.rmtree(str(self.layer_cache))
-        except:
-            pass
+        shutil.rmtree(str(self.layer_cache), ignore_errors=True)
 
     @classmethod
     def setUpClass(cls):
