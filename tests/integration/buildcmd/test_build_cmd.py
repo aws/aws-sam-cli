@@ -584,6 +584,8 @@ class TestBuildCommand_EsbuildFunctionProperties(BuildIntegEsbuildBase):
         [
             ("nodejs16.x", "../Esbuild/TypeScript", "app.lambdaHandler", "x86_64"),
             ("nodejs18.x", "../Esbuild/TypeScript", "app.lambdaHandler", "x86_64"),
+            ("nodejs16.x", "../Esbuild/TypeScript", "nested/function/app.lambdaHandler", "x86_64"),
+            ("nodejs18.x", "../Esbuild/TypeScript", "nested/function/app.lambdaHandler", "x86_64"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
