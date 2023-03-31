@@ -18,7 +18,8 @@ INFRASTRUCTURE_OPTION_NAMES: List[str] = [
     "parameter_overrides",
     "s3_bucket",
     "s3_prefix",
-    "resolve_image_repos" "image_repository",
+    "resolve_image_repos",
+    "image_repository",
     "image_repositories",
     "role_arn",
     "kms_key_id",
@@ -39,12 +40,13 @@ DEPLOYMENT_OPTIONS: List[str] = [
 CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"]
 
 ADDITIONAL_OPTIONS: List[str] = [
-    "no_progressbar" "base_dir",
+    "no_progressbar",
     "signing_profiles",
     "template_file",
+    "use_json",
 ]
 
-OTHER_OPTIONS: List[str] = ["debug", "help"]
+OTHER_OPTIONS: List[str] = ["debug"]
 
 ALL_OPTIONS: List[str] = (
     REQUIRED_OPTIONS
