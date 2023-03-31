@@ -418,7 +418,7 @@ class LocalApigwService(BaseLocalService):
     def _response_cors_headers(flask_request, cors_headers):
         if "Access-Control-Allow-Origin" not in cors_headers:
             return cors_headers
-    
+
         cors_origins = cors_headers["Access-Control-Allow-Origin"]
         # unset this header due to restrictive manner
         del cors_headers["Access-Control-Allow-Origin"]

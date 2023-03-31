@@ -1663,6 +1663,7 @@ class TestService_construct_event_http(TestCase):
             },
         )
 
+
 class TestService_cors_response_headers(TestCase):
     def test_response_cors_no_origin(self):
         request_mock = Mock()
@@ -1671,9 +1672,7 @@ class TestService_cors_response_headers(TestCase):
         request_mock.headers = headers_mock
         request_mock.scheme = "http"
 
-        cors = Cors(
-            allow_origin="*", allow_methods="GET,POST,OPTIONS"
-        )
+        cors = Cors(allow_origin="*", allow_methods="GET,POST,OPTIONS")
 
         response_cors_headers = Cors.cors_to_headers(cors)
         response_cors_headers = LocalApigwService._response_cors_headers(request_mock, response_cors_headers)
@@ -1692,9 +1691,7 @@ class TestService_cors_response_headers(TestCase):
         request_mock.headers = headers_mock
         request_mock.scheme = "http"
 
-        cors = Cors(
-            allow_origin="*", allow_methods="GET,POST,OPTIONS", allow_credentials=True
-        )
+        cors = Cors(allow_origin="*", allow_methods="GET,POST,OPTIONS", allow_credentials=True)
 
         response_cors_headers = Cors.cors_to_headers(cors)
         response_cors_headers = LocalApigwService._response_cors_headers(request_mock, response_cors_headers)
@@ -1713,9 +1710,7 @@ class TestService_cors_response_headers(TestCase):
         request_mock.headers = headers_mock
         request_mock.scheme = "http"
 
-        cors = Cors(
-            allow_origin="localhost:3000", allow_methods="GET,POST,OPTIONS", allow_credentials=True
-        )
+        cors = Cors(allow_origin="localhost:3000", allow_methods="GET,POST,OPTIONS", allow_credentials=True)
 
         response_cors_headers = Cors.cors_to_headers(cors)
         response_cors_headers = LocalApigwService._response_cors_headers(request_mock, response_cors_headers)
@@ -1776,9 +1771,7 @@ class TestService_cors_response_headers(TestCase):
         request_mock.headers = headers_mock
         request_mock.scheme = "http"
 
-        cors = Cors(
-            allow_origin="*", allow_methods="GET,POST,OPTIONS", allow_credentials=False
-        )
+        cors = Cors(allow_origin="*", allow_methods="GET,POST,OPTIONS", allow_credentials=False)
 
         response_cors_headers = Cors.cors_to_headers(cors)
         response_cors_headers = LocalApigwService._response_cors_headers(request_mock, response_cors_headers)
@@ -1797,14 +1790,13 @@ class TestService_cors_response_headers(TestCase):
         request_mock.headers = headers_mock
         request_mock.scheme = "http"
 
-        cors = Cors(
-            allow_origin="*", allow_methods="GET,POST,OPTIONS"
-        )
+        cors = Cors(allow_origin="*", allow_methods="GET,POST,OPTIONS")
 
         response_cors_headers = Cors.cors_to_headers(cors)
         response_cors_headers = LocalApigwService._response_cors_headers(request_mock, response_cors_headers)
 
         self.assertTrue("Access-Control-Allow-Origin" not in response_cors_headers)
+
 
 class TestService_should_base64_encode(TestCase):
     @parameterized.expand(
