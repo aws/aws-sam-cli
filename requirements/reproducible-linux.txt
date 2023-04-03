@@ -47,9 +47,9 @@ binaryornot==0.4.4 \
     --hash=sha256:359501dfc9d40632edc9fac890e19542db1a287bbcfa58175b66658392018061 \
     --hash=sha256:b8b71173c917bddcd2c16070412e369c3ed7f0528926f70cac18a6c97fd563e4
     # via cookiecutter
-boto3==1.26.99 \
-    --hash=sha256:536d9e7a074f4f16cc87b426f91b3079edd5c6927541a04f7e3fa28c53293532 \
-    --hash=sha256:d9fd57d6e98fd919cdbd613428f685e05b48c71477fda1aa7fbf51867262c7d1
+boto3==1.26.104 \
+    --hash=sha256:308c5a8293d9b76e74921f4d945be19cc467b92e5f128df1db76e31c71345bb3 \
+    --hash=sha256:bcd09f16bdf3d71ab7d0fab20e97242f09c63f4cea0943329521ab35a950f900
     # via
     #   aws-sam-cli (setup.py)
     #   aws-sam-translator
