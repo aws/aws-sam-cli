@@ -10,6 +10,7 @@ from werkzeug.datastructures import Headers
 
 from samcli.lib.providers.provider import Api
 from samcli.lib.providers.provider import Cors
+from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
 from samcli.local.apigw.event_constructor import construct_v1_event, construct_v2_event_http
 from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
 from samcli.local.apigw.route import Route
@@ -860,7 +861,8 @@ class TestApiGatewayService(TestCase):
 
     @patch.object(LocalApigwService, "_invoke_lambda_function")
     @patch.object(LocalApigwService, "_create_method_arn")
-    def test_lambda_authorizer_pass_context_http(self, method_arn_mock, mock_invoke):
+    @patch.object(EventTracker, "track_event")
+    def test_lambda_authorizer_pass_context_http(self, event_mock, method_arn_mock, mock_invoke):
         mock_get_context = Mock()
         route_event = {}
 
@@ -874,7 +876,8 @@ class TestApiGatewayService(TestCase):
 
     @patch.object(LocalApigwService, "_invoke_lambda_function")
     @patch.object(LocalApigwService, "_create_method_arn")
-    def test_lambda_authorizer_pass_context_api(self, method_arn_mock, mock_invoke):
+    @patch.object(EventTracker, "track_event")
+    def test_lambda_authorizer_pass_context_api(self, event_mock, method_arn_mock, mock_invoke):
         mock_get_context = Mock()
         route_event = {}
 
@@ -885,6 +888,21 @@ class TestApiGatewayService(TestCase):
 
         self.api_service._invoke_parse_lambda_authorizer(auth, {}, route_event, self.api_gateway_route)
         self.assertEqual(route_event, {"requestContext": {"authorizer": mock_get_context}})
+
+    @patch.object(LocalApigwService, "_invoke_lambda_function")
+    @patch.object(LocalApigwService, "_create_method_arn")
+    @patch.object(EventTracker, "track_event")
+    def test_lambda_authorizer_tracks_event(self, event_mock, method_arn_mock, mock_invoke):
+        mock_get_context = Mock()
+        route_event = {}
+
+        auth = LambdaAuthorizer(Mock(), Mock(), "auth_lambda", [], Mock(), Mock(), Mock())
+        auth.is_valid_response = Mock(return_value=True)
+        auth.get_context = Mock(return_value=mock_get_context)
+        self.api_gateway_route.authorizer_object = auth
+
+        self.api_service._invoke_parse_lambda_authorizer(auth, {}, route_event, self.api_gateway_route)
+        event_mock.assert_called_with(EventName.USED_FEATURE.value, UsedFeature.CUSTOM_LAMBDA_AUTHORIZERS.value)
 
 
 class TestApiGatewayModel(TestCase):
