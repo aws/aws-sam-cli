@@ -4,10 +4,12 @@ routes in a standardized format
 """
 
 import logging
+import os
 from collections import defaultdict
 from typing import Dict, Iterator, List, Optional, Set, Tuple, Union
 
 from samcli.lib.providers.provider import Api, Cors
+from samcli.lib.utils.colors import Colored
 from samcli.local.apigw.authorizers.authorizer import Authorizer
 from samcli.local.apigw.route import Route
 
@@ -102,7 +104,10 @@ class ApiCollector:
                         route.authorizer_name,
                         route.path,
                     )
-                else:
+
+                    continue
+
+                if not authorizer_object and authorizer_name_lookup:
                     route.authorizer_name = None
 
                     LOG.info(
@@ -184,6 +189,14 @@ class ApiCollector:
         api.stage_name = self.stage_name
         api.stage_variables = self.stage_variables
         api.cors = self.cors
+
+        for authorizers in self._authorizers_per_resources.values():
+            if len(authorizers):
+                message = f"{os.linesep}<sample warning message goes here>{os.linesep}"
+                LOG.warning(Colored().yellow(message))
+
+                break
+
         return api
 
     @staticmethod
