@@ -56,6 +56,9 @@ def method_to_stack_name(method_name):
 
 def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandResult:
     LOG.info("Running command: %s", " ".join(command_list))
+    LOG.info("cwd:             %s", cwd)
+    LOG.info("env:             %s", env)
+    LOG.info("timeout:         %s", timeout)
     process_execute = Popen(command_list, cwd=cwd, env=env, stdout=PIPE, stderr=PIPE)
     try:
         stdout_data, stderr_data = process_execute.communicate(timeout=timeout)
