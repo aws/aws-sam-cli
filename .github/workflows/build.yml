@@ -4,12 +4,12 @@ on:
   pull_request:
     branches:
       - develop
-      - "feat/*"
+      - "feat*"
   merge_group:
     types: [ checks_requested ]
     branches:
       - develop
-      - "feat/*"
+      - "feat*"
 
 jobs:
   run-workflow:
