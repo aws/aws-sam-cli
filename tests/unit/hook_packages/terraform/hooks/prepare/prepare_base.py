@@ -306,7 +306,6 @@ class PrepareHookUnitBase(TestCase):
             "provider_name": AWS_PROVIDER_NAME,
         }
 
-
         self.tf_lambda_function_resource_common_attributes: dict = {
             "type": "aws_lambda_function",
             "provider_name": AWS_PROVIDER_NAME,
