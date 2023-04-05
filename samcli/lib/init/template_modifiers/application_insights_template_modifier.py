@@ -28,7 +28,7 @@ class ApplicationInsightsTemplateModifier(TemplateModifier):
     RESOURCE_GROUP_REF = "ApplicationResourceGroup"
     APPLICATION_INSIGHTS_REF = "ApplicationInsightsMonitoring"
     AUTO_CONFIG_VALUE = "true"
-    RESOURCE_GROUP_NAME = {"Fn::Join": ["", ["ApplicationInsights-SAM-", {"Ref": "AWS::StackName"}]]}
+    RESOURCE_GROUP_NAME = {"Fn::Sub": "ApplicationInsights-SAM-${AWS::StackName}"}
 
     # set ignore aliases to true. This configuration avoids usage yaml aliases which is not parsed by CloudFormation.
     class NonAliasingRTRepresenter(RoundTripRepresenter):
@@ -62,10 +62,9 @@ class ApplicationInsightsTemplateModifier(TemplateModifier):
         appInsightsApplication = {
             self.TYPE_KEY: AWS_APPLICATION_INSIGHTS,
             self.PROPERTIES_KEY: {
-                self.RESOURCE_GROUP_NAME_KEY: self.RESOURCE_GROUP_NAME,
+                self.RESOURCE_GROUP_NAME_KEY: {"Ref": self.RESOURCE_GROUP_REF},
                 self.AUTO_CONFIG_ENABLED_KEY: self.AUTO_CONFIG_VALUE,
             },
-            self.DEPENDS_ON_KEY: self.RESOURCE_GROUP_REF,
         }
 
         self.template[self.RESOURCES_KEY][self.RESOURCE_GROUP_REF] = CommentedMap(resourceGroup)
