@@ -3,8 +3,10 @@ Handles bundler properties as needed to modify the build process
 """
 import logging
 from copy import deepcopy
+from pathlib import Path, PosixPath
 from typing import Dict, Optional
 
+from samcli.commands.local.lib.exceptions import InvalidHandlerPathError
 from samcli.lib.providers.provider import Stack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 
@@ -14,9 +16,10 @@ ESBUILD_PROPERTY = "esbuild"
 
 
 class EsbuildBundlerManager:
-    def __init__(self, stack: Stack, template: Optional[Dict] = None):
+    def __init__(self, stack: Stack, template: Optional[Dict] = None, build_dir: Optional[str] = None):
         self._stack = stack
         self._previous_template = template or dict()
+        self._build_dir = build_dir
 
     def esbuild_configured(self) -> bool:
         """
@@ -31,6 +34,12 @@ class EsbuildBundlerManager:
             if function.metadata and function.metadata.get("BuildMethod", "") == ESBUILD_PROPERTY:
                 return True
         return False
+
+    def handle_template_post_processing(self) -> Dict:
+        template = deepcopy(self._previous_template)
+        template = self._set_sourcemap_env_from_metadata(template)
+        template = self._update_function_handler(template)
+        return template
 
     def set_sourcemap_metadata_from_env(self) -> Stack:
         """
@@ -73,7 +82,7 @@ class EsbuildBundlerManager:
 
         return modified_stack
 
-    def set_sourcemap_env_from_metadata(self) -> Dict:
+    def _set_sourcemap_env_from_metadata(self, template: Dict) -> Dict:
         """
         Appends ``NODE_OPTIONS: --enable-source-maps``, if Sourcemap is set to true
         and sets Sourcemap to true if ``NODE_OPTIONS: --enable-source-maps`` is provided.
@@ -82,7 +91,6 @@ class EsbuildBundlerManager:
         using_source_maps = False
         invalid_node_option = False
 
-        template = deepcopy(self._previous_template)
         template_resources = template.get("Resources", {})
 
         # We check the stack resources since they contain the global values, we modify the template
@@ -132,6 +140,60 @@ class EsbuildBundlerManager:
         if invalid_node_option:
             self._warn_invalid_node_options()
 
+        return template
+
+    def _should_update_handler(self, handler: str, name: str) -> bool:
+        """
+        Function to check if the handler exists in the build dir where we expect it to.
+        If it does, we won't change the path to prevent introducing breaking changes.
+
+        :param handler: handler string as defined in the template.
+        :param name: function name corresponding to function build directory
+        :return: True if it's an invalid handler, False otherwise
+        """
+        if not self._build_dir:
+            return False
+        handler_filename = self._get_path_and_filename_from_handler(handler)
+        if not handler_filename:
+            LOG.debug("Unable to parse handler, continuing without post-processing template.")
+            return False
+        expected_artifact_path = Path(self._build_dir, name, handler_filename)
+        return not expected_artifact_path.is_file()
+
+    @staticmethod
+    def _get_path_and_filename_from_handler(handler: str) -> Optional[str]:
+        """
+        Takes a string representation of the handler defined in the
+        template, returns the file name and location of the handler.
+
+        :param handler: string representation of handler property
+        :return: string path to built handler file
+        """
+        try:
+            path = str(Path(handler).parent / Path(handler).stem) + ".js"
+        except (AttributeError, TypeError):
+            return None
+        return path
+
+    def _update_function_handler(self, template: Dict) -> Dict:
+        """
+        Updates the function handler to point to the actual handler,
+        not the pre-built handler location.
+
+        E.g. pre-build could be codeuri/src/handler/app.lambdaHandler
+        esbuild would bundle that into .aws-sam/FunctionName/app.js
+
+        :param template: deepcopy of template dict
+        :return: Updated template with resolved handler property
+        """
+        for name, resource in self._stack.resources.items():
+            if self._esbuild_in_metadata(resource.get("Metadata", {})):
+                long_path_handler = resource.get("Properties", {}).get("Handler", "")
+                if not long_path_handler or not self._should_update_handler(long_path_handler, name):
+                    continue
+                resolved_handler = str(Path(long_path_handler).name)
+                template_resource = template.get("Resources", {}).get(name, {})
+                template_resource["Properties"]["Handler"] = resolved_handler
         return template
 
     @staticmethod

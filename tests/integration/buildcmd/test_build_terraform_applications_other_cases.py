@@ -310,10 +310,10 @@ class TestBuildGoFunctionAndKeepPermissions(BuildTerraformApplicationIntegBase):
 
         _, stderr, return_code = self.run_command(build_cmd_list, env=environment_variables)
         LOG.info(stderr)
-        self.assertNotEqual(return_code, 0)
+        self.assertEqual(return_code, 0)
 
         self._verify_invoke_built_function(
             function_logical_id=function_identifier,
             overrides=None,
-            expected_result={"message": "Hello World"},
+            expected_result="{'message': 'Hello World'}",
         )
