@@ -34,7 +34,7 @@ class UsedFeature(Enum):
     CDK = "CDK"
     INIT_WITH_APPLICATION_INSIGHTS = "InitWithApplicationInsights"
     CFNLint = "CFNLint"
-    CUSTOM_LAMBDA_AUTHORIZERS = "CustomLambdaAuthorizers"
+    INVOKED_CUSTOM_LAMBDA_AUTHORIZERS = "InvokedLambdaAuthorizers"
 
 
 class EventType:
@@ -135,7 +135,7 @@ class EventTracker:
     MAX_EVENTS: int = 50  # Maximum number of events to store before sending
 
     @staticmethod
-    def track_event(event_name: str, event_value: str):
+    def track_event(event_name: str, event_value: str, session_id: Optional[str] = None):
         """Method to track an event where and when it occurs.
 
         Place this method in the codepath of the event that you would
@@ -150,6 +150,8 @@ class EventTracker:
         event_value: str
             The value of the Event. Must be a valid EventType value for the
             passed event_name, or an EventCreationError will be thrown.
+        session_id: Optional[str]
+            The session ID to set to link back to the original command run
 
         Examples
         --------
@@ -162,18 +164,15 @@ class EventTracker:
                 EventTracker.track_event("UsedFeature", "FeatureY")
                 return some_value
         """
+
+        if session_id:
+            EventTracker._session_id = session_id
+
         try:
             should_send: bool = False
             with EventTracker._event_lock:
                 EventTracker._events.append(Event(event_name, event_value))
-                # Get the session ID (needed for multithreading sending)
-                if not EventTracker._session_id:
-                    try:
-                        ctx = Context.get_current_context()
-                        if ctx:
-                            EventTracker._session_id = ctx.session_id
-                    except RuntimeError:
-                        LOG.debug("EventTracker: Unable to obtain session ID")
+
                 if len(EventTracker._events) >= EventTracker.MAX_EVENTS:
                     should_send = True
             if should_send:
@@ -196,9 +195,24 @@ class EventTracker:
     @staticmethod
     def send_events() -> threading.Thread:
         """Call a thread to send the current list of Events via Telemetry."""
+        EventTracker._set_session_id()
+
         send_thread = threading.Thread(target=EventTracker._send_events_in_thread)
         send_thread.start()
         return send_thread
+
+    @staticmethod
+    def _set_session_id() -> None:
+        """
+        Get the session ID from click and save it locally.
+        """
+        if not EventTracker._session_id:
+            try:
+                ctx = Context.get_current_context()
+                if ctx:
+                    EventTracker._session_id = ctx.session_id
+            except RuntimeError:
+                LOG.debug("EventTracker: Unable to obtain session ID")
 
     @staticmethod
     def _send_events_in_thread():

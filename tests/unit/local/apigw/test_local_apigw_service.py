@@ -902,7 +902,11 @@ class TestApiGatewayService(TestCase):
         self.api_gateway_route.authorizer_object = auth
 
         self.api_service._invoke_parse_lambda_authorizer(auth, {}, route_event, self.api_gateway_route)
-        event_mock.assert_called_with(EventName.USED_FEATURE.value, UsedFeature.CUSTOM_LAMBDA_AUTHORIZERS.value)
+        event_mock.assert_called_with(
+            event_name=EventName.USED_FEATURE.value,
+            event_value=UsedFeature.INVOKED_CUSTOM_LAMBDA_AUTHORIZERS.value,
+            session_id=ANY,
+        )
 
 
 class TestApiGatewayModel(TestCase):

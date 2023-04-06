@@ -93,6 +93,19 @@ class LocalApigwService(BaseLocalService):
         self._dict_of_routes: Dict[str, Route] = {}
         self.stderr = stderr
 
+        self._click_session_id = None
+
+        try:
+            # save the session ID for telemetry event sending
+            from samcli.cli.context import Context
+
+            ctx = Context.get_current_context()
+
+            if ctx:
+                self._click_session_id = ctx.session_id
+        except RuntimeError:
+            LOG.debug("Not able to get click context in APIGW service")
+
     def create(self):
         """
         Creates a Flask Application that can be started.
@@ -702,8 +715,6 @@ class LocalApigwService(BaseLocalService):
         route: Route
             The route that is being called
         """
-        EventTracker.track_event(EventName.USED_FEATURE.value, UsedFeature.CUSTOM_LAMBDA_AUTHORIZERS.value)
-
         lambda_auth_response = self._invoke_lambda_function(lambda_authorizer.lambda_name, auth_lambda_event)
         method_arn = self._create_method_arn(request, route.event_type)
 
@@ -722,6 +733,12 @@ class LocalApigwService(BaseLocalService):
             original_context.update({"authorizer": context})
 
         route_lambda_event.update({"requestContext": original_context})
+
+        EventTracker.track_event(
+            event_name=EventName.USED_FEATURE.value,
+            event_value=UsedFeature.INVOKED_CUSTOM_LAMBDA_AUTHORIZERS.value,
+            session_id=self._click_session_id,
+        )
 
     def _get_current_route(self, flask_request):
         """
