@@ -179,8 +179,12 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
             translated_resource = {
                 "Type": resource_translator.cfn_name,
                 "Properties": translated_properties,
-                "Metadata": {"SamResourceId": resource_full_address, "SkipBuild": True},
+                "Metadata": {"SamResourceId": resource_full_address},
             }
+
+            # Only set the SkipBuild metadata if it's a resource that can be built
+            if resource_translator.cfn_name in CFN_CODE_PROPERTIES:
+                translated_resource["Metadata"]["SkipBuild"] = True
 
             # build CFN logical ID from resource address
             logical_id = build_cfn_logical_id(resource_full_address)

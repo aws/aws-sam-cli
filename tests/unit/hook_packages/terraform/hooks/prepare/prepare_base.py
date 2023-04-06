@@ -497,7 +497,7 @@ class PrepareHookUnitBase(TestCase):
         self.expected_cfn_apigw_resource: dict = {
             "Type": AWS_APIGATEWAY_RESOURCE,
             "Properties": self.expected_cfn_apigw_resource_properties,
-            "Metadata": {"SamResourceId": f"aws_api_gateway_resource.{self.apigw_resource_name}", "SkipBuild": True},
+            "Metadata": {"SamResourceId": f"aws_api_gateway_resource.{self.apigw_resource_name}"},
         }
 
         self.tf_json_with_root_module_only: dict = {
