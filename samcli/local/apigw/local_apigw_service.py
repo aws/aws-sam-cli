@@ -22,6 +22,7 @@ from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
 from samcli.local.apigw.event_constructor import construct_v1_event, construct_v2_event_http
 from samcli.local.apigw.exceptions import (
     AuthorizerUnauthorizedRequest,
+    InvalidLambdaAuthorizerResponse,
     InvalidSecurityDefinition,
     LambdaResponseParseException,
     PayloadFormatVersionValidateException,
@@ -666,20 +667,45 @@ class LocalApigwService(BaseLocalService):
             LOG.error("UnicodeDecodeError while processing HTTP request: %s", error)
             return ServiceErrorResponses.lambda_failure_response()
 
+        lambda_authorizer_exception = None
+        auth_service_error = None
         try:
             if lambda_authorizer:
                 self._invoke_parse_lambda_authorizer(lambda_authorizer, auth_lambda_event, route_lambda_event, route)
+        except AuthorizerUnauthorizedRequest as ex:
+            auth_service_error = ServiceErrorResponses.lambda_authorizer_unauthorized()
+            lambda_authorizer_exception = ex
+        except InvalidLambdaAuthorizerResponse as ex:
+            auth_service_error = ServiceErrorResponses.lambda_failure_response()
+            lambda_authorizer_exception = ex
+        finally:
+            exception_name = type(lambda_authorizer_exception).__name__ if lambda_authorizer_exception else None
 
+            EventTracker.track_event(
+                event_name=EventName.USED_FEATURE.value,
+                event_value=UsedFeature.INVOKED_CUSTOM_LAMBDA_AUTHORIZERS.value,
+                session_id=self._click_session_id,
+                exception_name=exception_name,
+            )
+
+            if lambda_authorizer_exception:
+                LOG.error("Lambda authorizer failed to invoke successfully: %s", exception_name)
+
+                return auth_service_error
+
+        endpoint_service_error = None
+        try:
             # invoke the route's Lambda function
             lambda_response = self._invoke_lambda_function(route.function_name, route_lambda_event)
         except FunctionNotFound:
-            return ServiceErrorResponses.lambda_not_found_response()
+            endpoint_service_error = ServiceErrorResponses.lambda_not_found_response()
         except UnsupportedInlineCodeError:
-            return ServiceErrorResponses.not_implemented_locally(
+            endpoint_service_error = ServiceErrorResponses.not_implemented_locally(
                 "Inline code is not supported for sam local commands. Please write your code in a separate file."
             )
-        except AuthorizerUnauthorizedRequest:
-            return ServiceErrorResponses.lambda_authorizer_unauthorized()
+
+        if endpoint_service_error:
+            return endpoint_service_error
 
         try:
             if route.event_type == Route.HTTP and (
@@ -733,12 +759,6 @@ class LocalApigwService(BaseLocalService):
             original_context.update({"authorizer": context})
 
         route_lambda_event.update({"requestContext": original_context})
-
-        EventTracker.track_event(
-            event_name=EventName.USED_FEATURE.value,
-            event_value=UsedFeature.INVOKED_CUSTOM_LAMBDA_AUTHORIZERS.value,
-            session_id=self._click_session_id,
-        )
 
     def _get_current_route(self, flask_request):
         """

@@ -85,12 +85,14 @@ class Event:
     event_value: str  # Validated by EventType.get_accepted_values to never be an arbitrary string
     thread_id = threading.get_ident()  # The thread ID; used to group Events from the same command run
     time_stamp: str
+    exception_name: Optional[str]
 
-    def __init__(self, event_name: str, event_value: str):
+    def __init__(self, event_name: str, event_value: str, exception_name: Optional[str] = None):
         Event._verify_event(event_name, event_value)
         self.event_name = EventName(event_name)
         self.event_value = event_value
         self.time_stamp = str(datetime.utcnow())[:-3]  # format microseconds from 6 -> 3 figures to allow SQL casting
+        self.exception_name = exception_name
 
     def __eq__(self, other):
         return self.event_name == other.event_name and self.event_value == other.event_value
@@ -109,6 +111,7 @@ class Event:
             "event_value": self.event_value,
             "thread_id": self.thread_id,
             "time_stamp": self.time_stamp,
+            "exception_name": self.exception_name,
         }
 
     @staticmethod
@@ -135,7 +138,9 @@ class EventTracker:
     MAX_EVENTS: int = 50  # Maximum number of events to store before sending
 
     @staticmethod
-    def track_event(event_name: str, event_value: str, session_id: Optional[str] = None):
+    def track_event(
+        event_name: str, event_value: str, session_id: Optional[str] = None, exception_name: Optional[str] = None
+    ):
         """Method to track an event where and when it occurs.
 
         Place this method in the codepath of the event that you would
@@ -171,7 +176,7 @@ class EventTracker:
         try:
             should_send: bool = False
             with EventTracker._event_lock:
-                EventTracker._events.append(Event(event_name, event_value))
+                EventTracker._events.append(Event(event_name, event_value, exception_name=exception_name))
 
                 if len(EventTracker._events) >= EventTracker.MAX_EVENTS:
                     should_send = True
