@@ -149,11 +149,11 @@ class LambdaImage:
         """
         base_image = None
         tag_prefix = ""
-        runtime_image_tag = Runtime.get_image_name_tag(runtime, architecture)
 
         if packagetype == IMAGE:
             base_image = image
         elif packagetype == ZIP:
+            runtime_image_tag = Runtime.get_image_name_tag(runtime, architecture)
             if self.invoke_images:
                 base_image = self.invoke_images.get(function_name, self.invoke_images.get(None))
             if not base_image:
