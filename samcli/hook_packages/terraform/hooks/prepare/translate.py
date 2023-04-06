@@ -176,7 +176,7 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
             translated_properties = _translate_properties(
                 resource_values, resource_translator.property_builder_mapping, config_resource
             )
-            translated_resource = {
+            translated_resource: Dict = {
                 "Type": resource_translator.cfn_name,
                 "Properties": translated_properties,
                 "Metadata": {"SamResourceId": resource_full_address},
