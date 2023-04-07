@@ -49,7 +49,7 @@ class MockFormatter:
         finally:
             pass
 
-    def write_rd(self, rows):
+    def write_rd(self, rows, col_max=None):
         self.data[list(self.data.keys())[-1]] = [(row.name, "" if self.scrub_text else row.text) for row in rows]
 
 

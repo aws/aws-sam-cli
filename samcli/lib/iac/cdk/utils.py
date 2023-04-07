@@ -19,7 +19,7 @@ def is_cdk_project(template: Dict) -> bool:
         CFN template to look through
 
     """
-    resources = template.get("Resources", {})
+    resources = template.get("Resources", {}) if template else {}
     cdk_project_conditions = any(
         [
             _resource_level_metadata_exists(resources),
