@@ -376,10 +376,15 @@ class BuildIntegEsbuildBase(BuildIntegBase):
         self._verify_esbuild_properties(self.default_build_dir, self.FUNCTION_LOGICAL_ID, overrides["Handler"])
 
     def _verify_esbuild_properties(self, build_dir, function_logical_id, handler):
-        filename = handler.split(".")[0]
+        filename = self._extract_filename_from_handler(handler)
         resource_artifact_dir = build_dir.joinpath(function_logical_id)
         self._verify_sourcemap_created(filename, resource_artifact_dir)
         self._verify_function_minified(filename, resource_artifact_dir)
+
+    @staticmethod
+    def _extract_filename_from_handler(handler):
+        # Takes a handler in the form /a/b/c/file.function and returns file
+        return str(Path(handler).stem)
 
     def _verify_function_minified(self, filename, resource_artifact_dir):
         with open(Path(resource_artifact_dir, f"{filename}.js"), "r") as handler_file:

@@ -12,7 +12,7 @@ from botocore.exceptions import ClientError, NoCredentialsError
 from samcli.commands.local.cli_common.user_exceptions import CredentialsRequired, ResourceNotFound
 from samcli.lib.providers.provider import LayerVersion, Stack
 from samcli.lib.utils.codeuri import resolve_code_path
-from samcli.local.lambdafn.zip import unzip_from_uri
+from samcli.local.lambdafn.remote_files import unzip_from_uri
 
 LOG = logging.getLogger(__name__)
 

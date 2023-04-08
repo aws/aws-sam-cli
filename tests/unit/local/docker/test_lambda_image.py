@@ -67,7 +67,8 @@ class TestLambdaImage(TestCase):
         self.assertEqual(lambda_image.docker_client, docker_client_mock)
         self.assertIsNone(lambda_image.invoke_images)
 
-    def test_building_image_with_no_runtime_only_image(self):
+    @patch("samcli.local.docker.lambda_image.Runtime.get_image_name_tag")
+    def test_building_image_with_no_runtime_only_image(self, mock_get_image_name_tag):
         docker_client_mock = Mock()
         layer_downloader_mock = Mock()
         setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
@@ -81,10 +82,11 @@ class TestLambdaImage(TestCase):
             f"mylambdaimage:{RAPID_IMAGE_TAG_PREFIX}-{X86_64}",
         )
 
+    @patch("samcli.local.docker.lambda_image.Runtime.get_image_name_tag")
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
     @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")
     def test_building_image_with_no_runtime_only_image_always_build(
-        self, generate_docker_image_version_patch, build_image_patch
+        self, generate_docker_image_version_patch, build_image_patch, mock_get_image_name_tag
     ):
         docker_client_mock = Mock()
         layer_downloader_mock = Mock()
@@ -593,7 +595,8 @@ class TestLambdaImage(TestCase):
             ]
         )
 
-    def test_building_new_rapid_image_removes_old_rapid_images_for_image_function(self):
+    @patch("samcli.local.docker.lambda_image.Runtime.get_image_name_tag")
+    def test_building_new_rapid_image_removes_old_rapid_images_for_image_function(self, mock_get_image_name_tag):
         image_name = "custom_image_name"
         docker_client_mock = Mock()
         docker_client_mock.api.build.return_value = ["mock"]
