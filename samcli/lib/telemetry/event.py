@@ -180,6 +180,9 @@ class EventTracker:
             with EventTracker._event_lock:
                 EventTracker._events.append(Event(event_name, event_value, exception_name=exception_name))
 
+                # Get the session ID (needed for multithreading sending)
+                EventTracker._set_session_id()
+
                 if len(EventTracker._events) >= EventTracker.MAX_EVENTS:
                     should_send = True
             if should_send:
@@ -202,8 +205,6 @@ class EventTracker:
     @staticmethod
     def send_events() -> threading.Thread:
         """Call a thread to send the current list of Events via Telemetry."""
-        EventTracker._set_session_id()
-
         send_thread = threading.Thread(target=EventTracker._send_events_in_thread)
         send_thread.start()
         return send_thread

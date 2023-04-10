@@ -961,25 +961,6 @@ class TestApiGatewayService(TestCase):
         self.api_service._invoke_parse_lambda_authorizer(auth, {}, route_event, self.api_gateway_route)
         self.assertEqual(route_event, {"requestContext": {"authorizer": mock_get_context}})
 
-    # @patch.object(LocalApigwService, "_invoke_lambda_function")
-    # @patch.object(LocalApigwService, "_create_method_arn")
-    # @patch.object(EventTracker, "track_event")
-    # def test_lambda_authorizer_tracks_event(self, event_mock, method_arn_mock, mock_invoke):
-    #     mock_get_context = Mock()
-    #     route_event = {}
-
-    #     auth = LambdaAuthorizer(Mock(), Mock(), "auth_lambda", [], Mock(), Mock(), Mock())
-    #     auth.is_valid_response = Mock(return_value=True)
-    #     auth.get_context = Mock(return_value=mock_get_context)
-    #     self.api_gateway_route.authorizer_object = auth
-
-    #     self.api_service._invoke_parse_lambda_authorizer(auth, {}, route_event, self.api_gateway_route)
-    #     event_mock.assert_called_with(
-    #         event_name=EventName.USED_FEATURE.value,
-    #         event_value=UsedFeature.INVOKED_CUSTOM_LAMBDA_AUTHORIZERS.value,
-    #         session_id=ANY,
-    #     )
-
 
 class TestApiGatewayModel(TestCase):
     def setUp(self):
