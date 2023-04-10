@@ -148,12 +148,7 @@ class TestTemplateModifier(TestCase):
                                         (
                                             "Properties",
                                             {
-                                                "Name": {
-                                                    "Fn::Join": [
-                                                        "",
-                                                        ["ApplicationInsights-SAM-", {"Ref": "AWS::StackName"}],
-                                                    ]
-                                                },
+                                                "Name": {"Fn::Sub": "ApplicationInsights-SAM-${AWS::StackName}"},
                                                 "ResourceQuery": {"Type": "CLOUDFORMATION_STACK_1_0"},
                                             },
                                         ),
@@ -168,16 +163,10 @@ class TestTemplateModifier(TestCase):
                                         (
                                             "Properties",
                                             {
-                                                "ResourceGroupName": {
-                                                    "Fn::Join": [
-                                                        "",
-                                                        ["ApplicationInsights-SAM-", {"Ref": "AWS::StackName"}],
-                                                    ]
-                                                },
+                                                "ResourceGroupName": {"Ref": "ApplicationResourceGroup"},
                                                 "AutoConfigurationEnabled": "true",
                                             },
                                         ),
-                                        ("DependsOn", "ApplicationResourceGroup"),
                                     ]
                                 ),
                             ),

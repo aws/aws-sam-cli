@@ -290,3 +290,30 @@ class TestUnsupportedCases(BuildTerraformApplicationIntegBase):
         LOG.info(stderr)
         self.assertEqual(return_code, 1)
         self.assertRegex(stderr.decode("utf-8"), expected_error_message)
+
+
+@skipIf(
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
+    "Skip Terraform test cases unless running in CI",
+)
+class TestBuildGoFunctionAndKeepPermissions(BuildTerraformApplicationIntegBase):
+    terraform_application = Path("terraform/go_lambda_function_check_keep_permissions")
+
+    def test_invoke_function(self):
+        function_identifier = "hello-world-function"
+        build_cmd_list = self.get_command_list(
+            beta_features=True, hook_name="terraform", function_identifier=function_identifier
+        )
+
+        LOG.info("command list: %s", build_cmd_list)
+        environment_variables = os.environ.copy()
+
+        _, stderr, return_code = self.run_command(build_cmd_list, env=environment_variables)
+        LOG.info(stderr)
+        self.assertEqual(return_code, 0)
+
+        self._verify_invoke_built_function(
+            function_logical_id=function_identifier,
+            overrides=None,
+            expected_result="{'message': 'Hello World'}",
+        )

@@ -1,5 +1,5 @@
 """Test Terraform prepare Makefile"""
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, call
 from parameterized import parameterized
 
 from tests.unit.hook_packages.terraform.hooks.prepare.prepare_base import PrepareHookUnitBase
@@ -161,11 +161,13 @@ class TestPrepareMakefile(PrepareHookUnitBase):
 
         mock_copy_tf_backend_override_file_path = Mock()
         mock_copy_terraform_built_artifacts_script_path = Mock()
+        mock_zip_module_path = Mock()
         mock_makefile_path = Mock()
         mock_os.path.dirname.return_value = ""
         mock_os.path.join.side_effect = [
             mock_copy_tf_backend_override_file_path,
             mock_copy_terraform_built_artifacts_script_path,
+            mock_zip_module_path,
             mock_makefile_path,
         ]
 
@@ -182,8 +184,10 @@ class TestPrepareMakefile(PrepareHookUnitBase):
         else:
             mock_os.makedirs.assert_called_once_with(mock_output_directory_path, exist_ok=True)
 
-        mock_shutil.copy.assert_called_once_with(
-            mock_copy_terraform_built_artifacts_script_path, mock_output_directory_path
+        mock_shutil.copy.assert_has_calls(
+            [
+                call(mock_copy_terraform_built_artifacts_script_path, mock_output_directory_path),
+                call(mock_zip_module_path, mock_output_directory_path),
+            ]
         )
-
         mock_makefile.writelines.assert_called_once_with(mock_makefile_rules)

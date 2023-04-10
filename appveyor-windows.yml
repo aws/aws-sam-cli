@@ -1,5 +1,5 @@
 version: 1.0.{build}
-image: Visual Studio 2019
+image: Visual Studio 2022
 build: off
 
 clone_folder: C:\source
@@ -58,10 +58,7 @@ cache:
 install:
   # setup make
   - "choco install make"
-  # Install latest dotnet sdk
-  - "choco install dotnet-sdk"
   # setup Java, Maven and Gradle
-  - "choco install maven -y --force"
   - "choco install gradle -y --force"
   - "java -version"
   - "gradle -v"
