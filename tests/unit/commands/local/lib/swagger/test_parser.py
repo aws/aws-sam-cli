@@ -824,6 +824,36 @@ class TestSwaggerParser_get_authorizers(TestCase):
 
         self.assertEqual(parser.get_authorizers(Route.API)["TokenAuth"].payload_version, LambdaAuthorizer.PAYLOAD_V1)
 
+    @patch("samcli.commands.local.lib.swagger.parser.LambdaUri")
+    @patch("samcli.commands.local.lib.swagger.parser.SwaggerParser._get_lambda_identity_sources")
+    def test_simple_response_override_using_rest_api(self, get_id_sources_mock, mock_lambda_uri):
+        """
+        Tests the the Lambda authorizer's simple response property is set to False
+        if it is provided in a Swagger 2.0 document.
+        """
+        mock_lambda_uri.get_function_name.return_value = "arn"
+
+        swagger_doc = {
+            "swagger": "2.0",
+            "securityDefinitions": {
+                "TokenAuth": {
+                    "type": "apiKey",
+                    "in": "header",
+                    "name": "Auth",
+                    "x-amazon-apigateway-authtype": "custom",
+                    "x-amazon-apigateway-authorizer": {
+                        "type": "token",
+                        "authorizerUri": "arn",
+                        "enableSimpleResponses": True,
+                    },
+                },
+            },
+        }
+
+        parser = SwaggerParser(Mock(), swagger_doc)
+
+        self.assertEqual(parser.get_authorizers(Route.API)["TokenAuth"].use_simple_response, False)
+
 
 class TestSwaggerParser_get_default_authorizer(TestCase):
     def test_valid_default_authorizers(self):
