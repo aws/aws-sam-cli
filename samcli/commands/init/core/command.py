@@ -1,4 +1,3 @@
-
 from click import Context, style
 
 from samcli.cli.core.command import CoreCommand
