@@ -1,4 +1,3 @@
-from typing import List
 
 from click import Context, style
 
@@ -92,25 +91,6 @@ class InitCommand(CoreCommand):
 
         self.format_description(formatter)
         InitCommand.format_examples(ctx, formatter)
-
-        for option_heading, options in OPTIONS_INFO.items():
-            opts: List[RowDefinition] = sorted(
-                [
-                    CoreCommand.convert_param_to_row_definition(
-                        ctx=ctx, param=param, rank=options.get("option_names", {}).get(param.name, {}).get("rank", 0)
-                    )
-                    for param in self.get_params(ctx)
-                    if param.name in options.get("option_names", {}).keys()
-                ],
-                key=lambda row_def: row_def.rank,
-            )
-            with formatter.indented_section(name=option_heading, extra_indents=1):
-                formatter.write_rd(options.get("extras", [RowDefinition()]))
-                formatter.write_rd(
-                    [RowDefinition(name="", text="\n")]
-                    + [
-                        opt
-                        for options in zip(opts, [RowDefinition(name="", text="\n")] * (len(opts)))
-                        for opt in options
-                    ],
-                )
+        CoreCommand._format_options(
+            ctx=ctx, params=self.get_params(ctx), formatter=formatter, formatting_options=OPTIONS_INFO
+        )
