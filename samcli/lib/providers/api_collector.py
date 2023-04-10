@@ -192,7 +192,9 @@ class ApiCollector:
 
         for authorizers in self._authorizers_per_resources.values():
             if len(authorizers):
-                message = f"{os.linesep}<sample warning message goes here>{os.linesep}"
+                message = f"""{os.linesep}AWS SAM CLI cannot guarantee one-to-one behaviour of Lambda authorizers 
+locally versus authorizers that are deployed to AWS. Make sure to validate
+any critical behaviour in the cloud before deploying to production.{os.linesep}"""
                 LOG.warning(Colored().yellow(message))
 
                 break
