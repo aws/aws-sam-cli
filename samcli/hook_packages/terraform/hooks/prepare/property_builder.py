@@ -12,6 +12,7 @@ from samcli.hook_packages.terraform.hooks.prepare.types import (
 )
 from samcli.lib.hook.exceptions import PrepareHookException
 from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.lib.utils.resources import AWS_APIGATEWAY_RESOURCE as CFN_AWS_APIGATEWAY_RESOURCE
 from samcli.lib.utils.resources import AWS_APIGATEWAY_RESTAPI as CFN_AWS_APIGATEWAY_RESTAPI
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION
 from samcli.lib.utils.resources import AWS_LAMBDA_LAYERVERSION as CFN_AWS_LAMBDA_LAYER_VERSION
@@ -20,6 +21,7 @@ REMOTE_DUMMY_VALUE = "<<REMOTE DUMMY VALUE - RAISE ERROR IF IT IS STILL THERE>>"
 TF_AWS_LAMBDA_FUNCTION = "aws_lambda_function"
 TF_AWS_LAMBDA_LAYER_VERSION = "aws_lambda_layer_version"
 
+TF_AWS_API_GATEWAY_RESOURCE = "aws_api_gateway_resource"
 TF_AWS_API_GATEWAY_REST_API = "aws_api_gateway_rest_api"
 
 
@@ -225,6 +227,12 @@ AWS_API_GATEWAY_REST_API_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
     "BinaryMediaTypes": _get_property_extractor("binary_media_types"),
 }
 
+AWS_API_GATEWAY_RESOURCE_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
+    "RestApiId": _get_property_extractor("rest_api_id"),
+    "ParentId": _get_property_extractor("parent_id"),
+    "PathPart": _get_property_extractor("path_part"),
+}
+
 RESOURCE_TRANSLATOR_MAPPING: Dict[str, ResourceTranslator] = {
     TF_AWS_LAMBDA_FUNCTION: ResourceTranslator(CFN_AWS_LAMBDA_FUNCTION, AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING),
     TF_AWS_LAMBDA_LAYER_VERSION: ResourceTranslator(
@@ -232,5 +240,8 @@ RESOURCE_TRANSLATOR_MAPPING: Dict[str, ResourceTranslator] = {
     ),
     TF_AWS_API_GATEWAY_REST_API: ResourceTranslator(
         CFN_AWS_APIGATEWAY_RESTAPI, AWS_API_GATEWAY_REST_API_PROPERTY_BUILDER_MAPPING
+    ),
+    TF_AWS_API_GATEWAY_RESOURCE: ResourceTranslator(
+        CFN_AWS_APIGATEWAY_RESOURCE, AWS_API_GATEWAY_RESOURCE_PROPERTY_BUILDER_MAPPING
     ),
 }

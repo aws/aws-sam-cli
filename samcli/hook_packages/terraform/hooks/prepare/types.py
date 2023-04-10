@@ -83,6 +83,7 @@ class ResourceTranslationValidator:
     """
     Base class for a validation class to be used when translating Terraform resources to a metadata file
     """
+
     resource: Dict
     config_resource: TFResource
 
