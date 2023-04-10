@@ -376,9 +376,9 @@ class BuildContext:
                 )
                 modified_template = nested_stack_manager.generate_auto_dependency_layer_stack()
 
-            esbuild_manager = EsbuildBundlerManager(stack=stack, template=modified_template)
+            esbuild_manager = EsbuildBundlerManager(stack=stack, template=modified_template, build_dir=self.build_dir)
             if esbuild_manager.esbuild_configured():
-                modified_template = esbuild_manager.set_sourcemap_env_from_metadata()
+                modified_template = esbuild_manager.handle_template_post_processing()
 
             move_template(stack.location, output_template_path, modified_template)
 

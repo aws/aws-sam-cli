@@ -19,7 +19,7 @@ resource "null_resource" "build_lambda_function" {
   }
 
   provisioner "local-exec" {
-    command = substr(pathexpand("~"), 0, 1) == "/"? "go build -trimpath -o bin/hello_world main.go && chmod 777 bin/* && zip -r hello_world.zip bin/*" : "powershell go build -trimpath -o bin\\hello_world main.go && attrib +R bin\\* && Compress-Archive -Path bin\\* -DestinationPath hello_world.zip"
+    command = substr(pathexpand("~"), 0, 1) == "/"? "go build -trimpath -o bin/hello_world main.go && chmod 777 bin/* && zip -r hello_world.zip bin/*" : "powershell $ENV:GOARCH='amd64' ; $Env:GOOS='linux' ; go build -trimpath -o bin\\hello_world . ; Compress-Archive -Path bin -DestinationPath hello_world.zip"
   }
 }
 
