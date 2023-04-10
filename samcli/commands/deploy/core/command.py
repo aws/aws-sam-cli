@@ -7,7 +7,7 @@ from samcli.cli.row_modifiers import RowDefinition, ShowcaseRowModifier
 from samcli.commands.deploy.core.formatters import DeployCommandHelpTextFormatter
 from samcli.commands.deploy.core.options import OPTIONS_INFO
 
-COL_SIZE_MODIFIER = 50
+COL_SIZE_MODIFIER = 38
 
 
 class DeployCommand(CoreCommand):
