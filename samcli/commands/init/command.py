@@ -183,7 +183,7 @@ def non_interactive_validation(func):
     type=click.Choice(SUPPORTED_DEP_MANAGERS),
     default=None,
     help="Dependency manager for Lambda runtime."
-    + click.style(f"\n\nDependency managers: {' '.join(SUPPORTED_DEP_MANAGERS)}", bold=True),
+    + click.style(f"\n\nDependency managers: {', '.join(SUPPORTED_DEP_MANAGERS)}", bold=True),
     required=False,
     cls=ClickMutex,
     replace_help_option="--dependency-manager DEPENDENCY_MANAGER",

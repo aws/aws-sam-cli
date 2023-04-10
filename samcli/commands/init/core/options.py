@@ -15,6 +15,7 @@ APPLICATION_OPTIONS: List[str] = [
     "location",
     "package_type",
     "base_image",
+    "app_template",
     "output_dir",
 ]
 
@@ -28,7 +29,7 @@ ADDITIONAL_OPTIONS: List[str] = [
     "application_insights",
 ]
 
-OTHER_OPTIONS: List[str] = ["debug", "help"]
+OTHER_OPTIONS: List[str] = ["debug"]
 
 ALL_OPTIONS: List[str] = (
     APPLICATION_OPTIONS + NON_INTERACTIVE_OPTIONS + CONFIGURATION_OPTION_NAMES + ADDITIONAL_OPTIONS + OTHER_OPTIONS
