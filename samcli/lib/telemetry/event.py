@@ -157,6 +157,8 @@ class EventTracker:
             passed event_name, or an EventCreationError will be thrown.
         session_id: Optional[str]
             The session ID to set to link back to the original command run
+        exception_name: Optional[str]
+            The name of the exception that this event encountered when tracking a feature
 
         Examples
         --------
