@@ -2,6 +2,7 @@ import os
 from unittest import skipIf
 
 import boto3
+import pytest
 from botocore.exceptions import ClientError
 from parameterized import parameterized
 
@@ -16,7 +17,7 @@ PYTHON_VERSION = os.environ.get("PYTHON_VERSION", "0.0.0")
 # This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
 SKIP_MANAGED_STACK_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 # Limits the managed stack tests to be run on a single python version to avoid CI race conditions
-IS_TARGETTED_PYTHON_VERSION = PYTHON_VERSION.startswith("3.7")
+IS_TARGETTED_PYTHON_VERSION = PYTHON_VERSION.startswith("3.8")
 
 CFN_PYTHON_VERSION_SUFFIX = PYTHON_VERSION.replace(".", "-")
 # Set region for managed stacks to be in a different region than the ones in deploy
@@ -24,6 +25,7 @@ DEFAULT_REGION = "us-west-2"
 
 
 @skipIf(SKIP_MANAGED_STACK_TESTS or not IS_TARGETTED_PYTHON_VERSION, "Skip managed stack tests in CI/CD only")
+@pytest.mark.xdist_group(name="managed_stack")
 class TestManagedStackDeploy(DeployIntegBase):
     def setUp(self):
         super().setUp()
